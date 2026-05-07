@@ -257,7 +257,9 @@ pub async fn download_import_error_file(
         .ok_or_else(|| AppError::NotFound("Job not found".to_string()))?;
 
     if job.workspace_id != workspace_id {
-        return Err(AppError::Forbidden("Unauthorized access to this job".to_string()));
+        return Err(AppError::Forbidden(
+            "Unauthorized access to this job".to_string(),
+        ));
     }
 
     let base_dir = crate::utils::get_storage_dir();

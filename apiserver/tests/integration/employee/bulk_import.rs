@@ -185,16 +185,27 @@ async fn test_upload_employee_duplicate_id_skips() {
     }
 
     assert!(completed, "Job should have completed");
-    
+
     // Check error_log for DL_LINK
-    let job = apiserver::repositories::import_job_repository::get_job_by_id(&factory.pool, job_uuid).await.unwrap().unwrap();
+    let job =
+        apiserver::repositories::import_job_repository::get_job_by_id(&factory.pool, job_uuid)
+            .await
+            .unwrap()
+            .unwrap();
     let error_log = job.error_log.expect("Expected error_log for skipped row");
-    assert!(error_log.contains("DL_LINK:"), "Error log should contain DL_LINK: {}", error_log);
-    
+    assert!(
+        error_log.contains("DL_LINK:"),
+        "Error log should contain DL_LINK: {}",
+        error_log
+    );
+
     // Check that the error file exists on disk
     let storage_dir = apiserver::utils::get_storage_dir();
     let error_file_path = format!("{}/imports/error_{job_uuid}.xlsx", storage_dir);
-    assert!(tokio::fs::try_exists(&error_file_path).await.unwrap(), "Error Excel file should exist");
+    assert!(
+        tokio::fs::try_exists(&error_file_path).await.unwrap(),
+        "Error Excel file should exist"
+    );
 
     // Verify "DUP001" is NOT updated
     let emp_dup = apiserver::repositories::employee::get_employee_by_id_number(
@@ -372,7 +383,8 @@ async fn test_upload_employee_csv_reuses_existing_department() {
         .await;
 
     // CSV with an employee in the same department "Sales" (case-insensitive match!)
-    let csv_content = "employee_code,full_name,hire_date,department_name\nRE001,Dana Sales,2026-03-01,sales";
+    let csv_content =
+        "employee_code,full_name,hire_date,department_name\nRE001,Dana Sales,2026-03-01,sales";
     let (content_type, body) = create_multipart_body("employees.csv", csv_content);
 
     let response = app
@@ -773,7 +785,8 @@ async fn test_upload_csv_existing_employee_new_department() {
         .await;
 
     // Upload CSV with same employee ID + a NEW department
-    let csv = "employee_code,full_name,hire_date,department_name\nEXIST001,Existing Alice,2026-01-01,R&D";
+    let csv =
+        "employee_code,full_name,hire_date,department_name\nEXIST001,Existing Alice,2026-01-01,R&D";
     let (content_type, body) = create_multipart_body("employees.csv", csv);
 
     let response = app

@@ -256,12 +256,14 @@ async fn test_get_active_employees_excludes_inactive() {
     let _e1 = factory
         .employee()
         .with_workspace(ws_id)
+        .with_employee_id_number("ACTIVE01")
         .with_full_name("Active One")
         .create()
         .await;
     let e2 = factory
         .employee()
         .with_workspace(ws_id)
+        .with_employee_id_number("INACTIVE02")
         .with_full_name("Inactive Two")
         .create()
         .await;
@@ -286,9 +288,24 @@ async fn test_get_active_employee_ids_with_filter() {
     let user_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(user_id).await;
 
-    let e1 = factory.employee().with_workspace(ws_id).create().await;
-    let _e2 = factory.employee().with_workspace(ws_id).create().await;
-    let e3 = factory.employee().with_workspace(ws_id).create().await;
+    let e1 = factory
+        .employee()
+        .with_workspace(ws_id)
+        .with_employee_id_number("FILT1")
+        .create()
+        .await;
+    let _e2 = factory
+        .employee()
+        .with_workspace(ws_id)
+        .with_employee_id_number("FILT2")
+        .create()
+        .await;
+    let e3 = factory
+        .employee()
+        .with_workspace(ws_id)
+        .with_employee_id_number("FILT3")
+        .create()
+        .await;
 
     // Request only e1 and e3
     let filter = vec![e1, e3];

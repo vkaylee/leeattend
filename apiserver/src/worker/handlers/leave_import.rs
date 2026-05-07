@@ -37,8 +37,8 @@ impl LeaveImportHandler {
 
         let service = LeaveImportService::new(db.clone());
 
-        match service
-            .process_import(
+        if service
+            .process_job(
                 payload.import_job_id,
                 job.workspace_id,
                 payload.user_id,
@@ -46,57 +46,17 @@ impl LeaveImportHandler {
                 payload.auto_approve,
             )
             .await
+            .is_ok()
         {
-            Ok(result) => {
-                tracing::info!(
-                    workspace_id = %job.workspace_id,
-                    success_count = result.success_count,
-                    error_count = result.error_count,
-                    "Leave import processing completed"
-                );
-
-                // Update import job → Completed (error_log differentiates clean vs partial)
-                let status = ImportJobStatus::Completed;
-
-                let error_log = if result.error_count > 0 {
-                    Some(
-                        serde_json::json!({
-                            "success_count": result.success_count,
-                            "error_count": result.error_count,
-                            "error_file_path": result.error_file_path,
-                        })
-                        .to_string(),
-                    )
-                } else {
-                    None
-                };
-
-                let _ = import_repo
-                    .update_job_progress(
-                        payload.import_job_id,
-                        result.success_count,
-                        status,
-                        error_log,
-                    )
-                    .await;
-
-                Ok(())
-            }
-            Err(e) => {
-                let error_msg = format!("Leave import failed: {e}");
-
-                // Update import job → Failed
-                let _ = import_repo
-                    .update_job_progress(
-                        payload.import_job_id,
-                        0,
-                        ImportJobStatus::Failed,
-                        Some(error_msg.clone()),
-                    )
-                    .await;
-
-                Err(error_msg)
-            }
+            tracing::info!(
+                workspace_id = %job.workspace_id,
+                import_job_id = %payload.import_job_id,
+                "Leave import processing completed"
+            );
+            Ok(())
+        } else {
+            let error_msg = format!("Leave import failed for job {}", payload.import_job_id);
+            Err(error_msg)
         }
     }
 }

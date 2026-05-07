@@ -66,7 +66,10 @@ impl<S: ImportStrategy> ImportPipeline<'_, S> {
         ) {
             Ok(rows) => {
                 for (current_line, row_data) in rows {
-                    match self.strategy.map_row(&row_data, current_line, self.workspace_tz) {
+                    match self
+                        .strategy
+                        .map_row(&row_data, current_line, self.workspace_tz)
+                    {
                         Ok(mapped_data) => {
                             pending_rows.push((mapped_data, row_data));
                         }
@@ -102,7 +105,10 @@ impl<S: ImportStrategy> ImportPipeline<'_, S> {
                 }
                 Ok(None) => {
                     skipped_rows += 1;
-                    failed_rows_data.push((raw_row_data, "Bỏ qua (Trùng lặp hoặc đã tồn tại)".to_string()));
+                    failed_rows_data.push((
+                        raw_row_data,
+                        "Bỏ qua (Trùng lặp hoặc đã tồn tại)".to_string(),
+                    ));
                 }
                 Err(e) => {
                     errors.push(e.clone());

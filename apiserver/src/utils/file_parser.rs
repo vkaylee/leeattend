@@ -40,7 +40,8 @@ pub fn extract_file_rows(file_bytes: &[u8]) -> Result<Vec<(usize, Vec<String>)>,
                             continue; // Skip header
                         }
                         let line_number = idx + 1;
-                        let cols: Vec<String> = row.iter().map(|c| cell_to_string(Some(c))).collect();
+                        let cols: Vec<String> =
+                            row.iter().map(|c| cell_to_string(Some(c))).collect();
                         rows.push((line_number, cols));
                     }
                     return Ok(rows);
@@ -61,7 +62,8 @@ pub fn extract_file_rows(file_bytes: &[u8]) -> Result<Vec<(usize, Vec<String>)>,
                             continue; // Skip header
                         }
                         let line_number = idx + 1;
-                        let cols: Vec<String> = row.iter().map(|c| cell_to_string(Some(c))).collect();
+                        let cols: Vec<String> =
+                            row.iter().map(|c| cell_to_string(Some(c))).collect();
                         rows.push((line_number, cols));
                     }
                     return Ok(rows);
@@ -113,7 +115,10 @@ pub fn extract_mapped_rows(
     file_bytes: &[u8],
     expected_headers: &[&str],
 ) -> Result<Vec<(usize, HashMap<String, String>)>, String> {
-    let expected_normalized: Vec<String> = expected_headers.iter().map(|&s| normalize_header(s)).collect();
+    let expected_normalized: Vec<String> = expected_headers
+        .iter()
+        .map(|&s| normalize_header(s))
+        .collect();
     let mut header_map: HashMap<String, usize> = HashMap::new(); // normalized header -> col index
     let mut rows = Vec::new();
 
@@ -121,7 +126,7 @@ pub fn extract_mapped_rows(
     let process_sheet = |mut row_iter: Box<dyn Iterator<Item = (usize, Vec<String>)>>| -> Result<Vec<(usize, HashMap<String, String>)>, String> {
         let mut missing_headers = Vec::new();
         let mut duplicate_headers = Vec::new();
-        
+
         // Process Header
         if let Some((_, header_cols)) = row_iter.next() {
             for (idx, col) in header_cols.into_iter().enumerate() {
@@ -289,7 +294,9 @@ mod tests {
         let result = extract_mapped_rows(csv_data.as_bytes(), &expected);
 
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("Thiếu các cột bắt buộc: department_name"));
+        assert!(result
+            .unwrap_err()
+            .contains("Thiếu các cột bắt buộc: department_name"));
     }
 
     #[test]
@@ -300,7 +307,9 @@ mod tests {
         let result = extract_mapped_rows(csv_data.as_bytes(), &expected);
 
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("Phát hiện các cột bị trùng lặp: employee_code"));
+        assert!(result
+            .unwrap_err()
+            .contains("Phát hiện các cột bị trùng lặp: employee_code"));
     }
 
     #[test]
@@ -310,7 +319,10 @@ mod tests {
         let expected = ["employee_code", "full_name", "hire_date", "department_name"];
         let result = extract_mapped_rows(csv_data.as_bytes(), &expected);
 
-        assert!(result.is_ok(), "Should ignore duplicates of headers we don't care about");
+        assert!(
+            result.is_ok(),
+            "Should ignore duplicates of headers we don't care about"
+        );
         let rows = result.unwrap();
         assert_eq!(rows.len(), 1);
     }
@@ -335,7 +347,9 @@ mod tests {
         let result = extract_mapped_rows(csv_data.as_bytes(), &expected);
 
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("File is empty or contains only headers"));
+        assert!(result
+            .unwrap_err()
+            .contains("File is empty or contains only headers"));
     }
 
     #[test]

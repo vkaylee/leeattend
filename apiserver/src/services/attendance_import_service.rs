@@ -57,10 +57,23 @@ impl ImportStrategy for EmployeeImportStrategy {
         current_line: usize,
         workspace_tz: Tz,
     ) -> Result<Self::RowData, String> {
-        let raw_id = row_data.get("employee_code").map(std::string::String::as_str).unwrap_or("").trim();
+        let raw_id = row_data
+            .get("employee_code")
+            .map(std::string::String::as_str)
+            .unwrap_or("")
+            .trim();
         let id_number = crate::utils::normalize_employee_id(raw_id);
-        let full_name = row_data.get("full_name").map(std::string::String::as_str).unwrap_or("").trim().to_string();
-        let hire_date_raw = row_data.get("hire_date").map(std::string::String::as_str).unwrap_or("").trim();
+        let full_name = row_data
+            .get("full_name")
+            .map(std::string::String::as_str)
+            .unwrap_or("")
+            .trim()
+            .to_string();
+        let hire_date_raw = row_data
+            .get("hire_date")
+            .map(std::string::String::as_str)
+            .unwrap_or("")
+            .trim();
 
         if id_number.is_empty() || full_name.is_empty() {
             return Err(fmt_msg(
@@ -79,7 +92,10 @@ impl ImportStrategy for EmployeeImportStrategy {
                 .unwrap_or_else(|_| Utc::now().with_timezone(&workspace_tz).date_naive())
         };
 
-        let department_name = row_data.get("department_name").map(|s| s.trim().to_string()).filter(|s| !s.is_empty());
+        let department_name = row_data
+            .get("department_name")
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty());
 
         Ok(PendingEmployee {
             id_number,
@@ -153,13 +169,17 @@ impl ImportStrategy for EmployeeImportStrategy {
                             }
                         }
                     };
-                    if !dept_id.is_nil() && crate::repositories::department_repository::transfer_employee(
-                        pool,
-                        employee_id,
-                        dept_id,
-                        emp.hire_date,
-                        Some("Auto-assigned via bulk import".to_string()),
-                    ).await.is_ok() {
+                    if !dept_id.is_nil()
+                        && crate::repositories::department_repository::transfer_employee(
+                            pool,
+                            employee_id,
+                            dept_id,
+                            emp.hire_date,
+                            Some("Auto-assigned via bulk import".to_string()),
+                        )
+                        .await
+                        .is_ok()
+                    {
                         department_updated = true;
                     }
                 }
@@ -527,8 +547,6 @@ impl AttendanceImportService {
         let _ = tokio::fs::remove_file(file_path).await;
         Ok(())
     }
-
-
 
     async fn process_employee_job(
         &self,
