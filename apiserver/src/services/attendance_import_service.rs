@@ -5,7 +5,6 @@ use crate::errors::AppError;
 use chrono::{DateTime, NaiveDate, Utc};
 use chrono_tz::Tz;
 use sqlx::PgPool;
-use std::collections::HashSet;
 use tracing::{error, info};
 use uuid::Uuid;
 
@@ -18,7 +17,6 @@ use crate::repositories::import_job_repository::ImportJobRepository;
 use crate::repositories::{employee, EmployeeRepository, TimeEntryRepository};
 use crate::services::attendance_adjustment_service::AttendanceAdjustmentService;
 use crate::services::import_messages::{fmt_msg, AttendanceImportMessages};
-use crate::utils::normalize_employee_id;
 use std::collections::HashMap;
 
 struct PendingRow {
@@ -249,14 +247,14 @@ impl ImportStrategy for PunchImportStrategy {
 
         if emp_id_number.is_empty() || emp_dt_str.is_empty() {
             return Err(fmt_msg(
-                self.msgs.missing_employee_or_time.clone(),
+                self.msgs.missing_employee_or_time,
                 &[("line", &current_line.to_string())],
             ));
         }
 
         match AttendanceAdjustmentService::parse_datetime(
             emp_dt_str,
-            &workspace_tz,
+            workspace_tz.name(),
             Some(&self.date_format),
             Some(&self.time_format),
         ) {
@@ -268,7 +266,7 @@ impl ImportStrategy for PunchImportStrategy {
             Err(_) => Err(format!(
                 "{} [Raw: '{emp_dt_str}']",
                 fmt_msg(
-                    self.msgs.missing_employee_or_time.clone(),
+                    self.msgs.missing_employee_or_time,
                     &[("line", &current_line.to_string())],
                 )
             )),
@@ -324,25 +322,30 @@ impl ImportStrategy for PunchImportStrategy {
         job: &AttendanceImportJob,
         row: &Self::RowData,
     ) -> Result<Option<Uuid>, String> {
-        let employee = match self
+        let Ok(Some(employee)) = self
             .employee_repo
             .get_employee_by_id_number(&row.emp_id_number, job.workspace_id)
             .await
-        {
-            Ok(Some(emp)) => emp,
-            _ => {
+        else {
+            return Err(fmt_msg(
+                self.msgs.system_save_error,
+                &[
+                    ("emp", &row.emp_id_number),
+                    ("line", &row.line_number.to_string()),
+                ],
+            ));
+        };
+
+        if job.target_type == ImportTargetType::Log {
+            let Some(log_svc) = self.log_svc.as_ref() else {
                 return Err(fmt_msg(
-                    self.msgs.system_save_error.clone(),
+                    self.msgs.system_save_error,
                     &[
                         ("emp", &row.emp_id_number),
                         ("line", &row.line_number.to_string()),
                     ],
                 ));
-            }
-        };
-
-        if job.target_type == ImportTargetType::Log {
-            let log_svc = self.log_svc.as_ref().unwrap();
+            };
             match log_svc
                 .process_parsed_log(
                     job.workspace_id,
@@ -359,7 +362,7 @@ impl ImportStrategy for PunchImportStrategy {
                 Err(e) => {
                     error!("UNIFIED_LOG_SERVICE_ERROR: {}", e);
                     Err(fmt_msg(
-                        self.msgs.system_save_error.clone(),
+                        self.msgs.system_save_error,
                         &[
                             ("emp", &row.emp_id_number),
                             ("line", &row.line_number.to_string()),
@@ -401,7 +404,7 @@ impl ImportStrategy for PunchImportStrategy {
                 Err(e) => {
                     error!("ADJUSTMENT_SUBMIT_ERROR: {}", e);
                     Err(fmt_msg(
-                        self.msgs.system_save_error.clone(),
+                        self.msgs.system_save_error,
                         &[
                             ("emp", &row.emp_id_number),
                             ("line", &row.line_number.to_string()),

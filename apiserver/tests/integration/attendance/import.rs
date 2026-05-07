@@ -26,7 +26,7 @@ async fn test_import_csv_with_line_errors() {
         .await;
 
     let csv_content = format!(
-        "empNo,empName,empDt\n{emp_id_number},User 1,14/01/2026 08:00\n{emp_id_number},User 1,not-a-date\n{emp_id_number},User 1,"
+        "employee_code,full_name,punch_time\n{emp_id_number},User 1,14/01/2026 08:00\n{emp_id_number},User 1,not-a-date\n{emp_id_number},User 1,"
     );
 
     let file_path = format!("storage/test_imports/{}.csv", uuid::Uuid::new_v4());
