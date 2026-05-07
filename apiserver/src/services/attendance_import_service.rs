@@ -211,6 +211,208 @@ impl ImportStrategy for EmployeeImportStrategy {
     }
 }
 
+struct PunchImportStrategy {
+    msgs: AttendanceImportMessages,
+    date_format: String,
+    time_format: String,
+    adj_repo: Arc<dyn AttendanceAdjustmentRepository>,
+    time_entry_repo: Arc<dyn TimeEntryRepository>,
+    employee_repo: Arc<dyn EmployeeRepository>,
+    log_svc: Option<crate::services::attendance_log_service::AttendanceLogService>,
+}
+
+#[async_trait::async_trait]
+impl ImportStrategy for PunchImportStrategy {
+    type RowData = PendingRow;
+
+    fn expected_headers(&self) -> &'static [&'static str] {
+        &["employee_code", "punch_time"]
+    }
+
+    fn map_row(
+        &mut self,
+        row_data: &HashMap<String, String>,
+        current_line: usize,
+        workspace_tz: Tz,
+    ) -> Result<Self::RowData, String> {
+        let raw_id = row_data
+            .get("employee_code")
+            .map(std::string::String::as_str)
+            .unwrap_or("")
+            .trim();
+        let emp_id_number = crate::utils::normalize_employee_id(raw_id);
+        let emp_dt_str = row_data
+            .get("punch_time")
+            .map(std::string::String::as_str)
+            .unwrap_or("")
+            .trim();
+
+        if emp_id_number.is_empty() || emp_dt_str.is_empty() {
+            return Err(fmt_msg(
+                self.msgs.missing_employee_or_time.clone(),
+                &[("line", &current_line.to_string())],
+            ));
+        }
+
+        match AttendanceAdjustmentService::parse_datetime(
+            emp_dt_str,
+            &workspace_tz,
+            Some(&self.date_format),
+            Some(&self.time_format),
+        ) {
+            Ok(dt) => Ok(PendingRow {
+                emp_id_number,
+                punch_time: dt,
+                line_number: current_line,
+            }),
+            Err(_) => Err(format!(
+                "{} [Raw: '{emp_dt_str}']",
+                fmt_msg(
+                    self.msgs.missing_employee_or_time.clone(),
+                    &[("line", &current_line.to_string())],
+                )
+            )),
+        }
+    }
+
+    async fn init(&mut self, pool: &PgPool, job: &AttendanceImportJob) -> Result<(), String> {
+        if job.target_type == ImportTargetType::Log {
+            let te_repo = Arc::clone(&self.time_entry_repo);
+            let ps = Arc::new(crate::services::pairing_service::PairingService::new(
+                te_repo,
+                Arc::new(crate::repositories::roster::SqlxRosterRepository::new(
+                    pool.clone(),
+                )),
+                pool.clone(),
+            ));
+            let emp_repo: Arc<dyn EmployeeRepository> = Arc::new(
+                crate::repositories::SqlxEmployeeRepository::new(pool.clone()),
+            );
+            let rl_repo: Arc<dyn crate::repositories::raw_attendance_log_repository::RawAttendanceLogRepository> = Arc::new(crate::repositories::raw_attendance_log_repository::SqlxRawAttendanceLogRepository::new(pool.clone()));
+            let st_repo: Arc<
+                dyn crate::repositories::staging_log_repository::StagingLogRepository,
+            > = Arc::new(
+                crate::repositories::staging_log_repository::SqlxStagingLogRepository::new(
+                    pool.clone(),
+                ),
+            );
+            let er_repo: Arc<dyn crate::repositories::attendance_log_error_repository::AttendanceLogErrorRepository> = Arc::new(crate::repositories::attendance_log_error_repository::SqlxAttendanceLogErrorRepository::new(pool.clone()));
+
+            let (log_svc, _) = crate::services::attendance_log_service::AttendanceLogService::new(
+                pool.clone(),
+                ps,
+                crate::services::attendance_log_service::AttendanceLogServiceConfig {
+                    buffer_capacity: 1,
+                    batch_size: 1,
+                    flush_interval_ms: 1000,
+                },
+                crate::services::attendance_log_service::AttendanceLogServiceDeps {
+                    employee_repo: emp_repo,
+                    raw_log_repo: rl_repo,
+                    staging_repo: st_repo,
+                    error_repo: er_repo,
+                },
+            );
+            self.log_svc = Some(log_svc);
+        }
+        Ok(())
+    }
+
+    async fn process_row(
+        &mut self,
+        pool: &PgPool,
+        job: &AttendanceImportJob,
+        row: &Self::RowData,
+    ) -> Result<Option<Uuid>, String> {
+        let employee = match self
+            .employee_repo
+            .get_employee_by_id_number(&row.emp_id_number, job.workspace_id)
+            .await
+        {
+            Ok(Some(emp)) => emp,
+            _ => {
+                return Err(fmt_msg(
+                    self.msgs.system_save_error.clone(),
+                    &[
+                        ("emp", &row.emp_id_number),
+                        ("line", &row.line_number.to_string()),
+                    ],
+                ));
+            }
+        };
+
+        if job.target_type == ImportTargetType::Log {
+            let log_svc = self.log_svc.as_ref().unwrap();
+            match log_svc
+                .process_parsed_log(
+                    job.workspace_id,
+                    employee.id,
+                    row.punch_time,
+                    LogSource::Import,
+                    None,
+                    None,
+                )
+                .await
+            {
+                Ok(true) => Ok(Some(Uuid::new_v4())),
+                Ok(false) => Ok(None),
+                Err(e) => {
+                    error!("UNIFIED_LOG_SERVICE_ERROR: {}", e);
+                    Err(fmt_msg(
+                        self.msgs.system_save_error.clone(),
+                        &[
+                            ("emp", &row.emp_id_number),
+                            ("line", &row.line_number.to_string()),
+                        ],
+                    ))
+                }
+            }
+        } else {
+            let req = CreateAttendanceAdjustmentRequest {
+                employee_id: employee.id,
+                time_entry_id: None,
+                requested_punch_in_time: row.punch_time,
+                requested_punch_out_time: None,
+                is_break_overtime: false,
+                reason: Some("Import from Excel/CSV".to_string()),
+            };
+
+            let adj_svc = AttendanceAdjustmentService::new(
+                Arc::clone(&self.adj_repo),
+                Arc::clone(&self.time_entry_repo),
+                pool.clone(),
+            );
+
+            match adj_svc
+                .submit_request(job.workspace_id, job.user_id, req)
+                .await
+            {
+                Ok(adjustment) => {
+                    let _ = adj_svc
+                        .approve_request(
+                            job.workspace_id,
+                            job.user_id,
+                            adjustment.id,
+                            AdjustmentStatus::Approved,
+                        )
+                        .await;
+                    Ok(Some(adjustment.id))
+                }
+                Err(e) => {
+                    error!("ADJUSTMENT_SUBMIT_ERROR: {}", e);
+                    Err(fmt_msg(
+                        self.msgs.system_save_error.clone(),
+                        &[
+                            ("emp", &row.emp_id_number),
+                            ("line", &row.line_number.to_string()),
+                        ],
+                    ))
+                }
+            }
+        }
+    }
+}
+
 #[derive(Clone)]
 pub struct AttendanceImportService {
     import_repo: Arc<dyn ImportJobRepository>,
@@ -307,7 +509,6 @@ impl AttendanceImportService {
     }
 
     #[tracing::instrument(skip_all)]
-    #[allow(clippy::too_many_lines)]
     pub async fn process_job(&self, job_id: Uuid) -> Result<(), ()> {
         let Ok(Some(job)) = self.import_repo.get_job_by_id(job_id).await else {
             return Err(());
@@ -362,190 +563,28 @@ impl AttendanceImportService {
             }
         };
 
-        let mut processed_rows = job.processed_rows;
-        let mut errors = Vec::new();
-        let mut pending_rows: Vec<PendingRow> = Vec::new();
+        let workspace_tz = timezone.parse::<Tz>().unwrap_or(Tz::UTC);
 
-        match crate::utils::file_parser::extract_file_rows(&file_bytes) {
-            Ok(rows) => {
-                for (current_line, cols) in rows {
-                    let raw_emp_id = cols
-                        .first()
-                        .map(std::string::String::as_str)
-                        .unwrap_or("")
-                        .trim();
-                    let emp_id_number = normalize_employee_id(raw_emp_id);
-                    let emp_dt_str = cols
-                        .get(2)
-                        .map(std::string::String::as_str)
-                        .unwrap_or("")
-                        .trim();
-
-                    if emp_id_number.is_empty() || emp_dt_str.is_empty() {
-                        errors.push(fmt_msg(
-                            msgs.missing_employee_or_time,
-                            &[("line", &current_line.to_string())],
-                        ));
-                        continue;
-                    }
-
-                    match AttendanceAdjustmentService::parse_datetime(
-                        emp_dt_str,
-                        &timezone,
-                        Some(&date_format),
-                        Some(&time_format),
-                    ) {
-                        Ok(dt) => {
-                            pending_rows.push(PendingRow {
-                                emp_id_number,
-                                punch_time: dt,
-                                line_number: current_line,
-                            });
-                        }
-                        Err(_e) => {
-                            errors.push(format!(
-                                "{} [Raw: '{emp_dt_str}']",
-                                fmt_msg(
-                                    msgs.missing_employee_or_time,
-                                    &[("line", &current_line.to_string())],
-                                )
-                            ));
-                        }
-                    }
-                }
-            }
-            Err(e) => {
-                errors.push(e);
-            }
-        }
-
-        let total_rows = pending_rows.len() as i32 + errors.len() as i32;
-
-        let _ = self
-            .import_repo
-            .update_job_total_rows(job_id, total_rows)
-            .await;
-
-        if !errors.is_empty() {
-            let _ = self
-                .import_repo
-                .update_job_progress(job_id, 0, ImportJobStatus::Failed, Some(errors.join("\n")))
-                .await;
-            let _ = tokio::fs::remove_file(file_path).await;
-            return Err(());
-        }
-
-        let unique_emp_ids: HashSet<String> = pending_rows
-            .iter()
-            .map(|r| r.emp_id_number.clone())
-            .collect();
-        let unique_emp_ids_vec: Vec<String> = unique_emp_ids.iter().cloned().collect();
-
-        let known_emp_ids: HashSet<String> = match self
-            .employee_repo
-            .get_existing_employee_ids_by_numbers(job.workspace_id, &unique_emp_ids_vec)
-            .await
-        {
-            Ok(existing_ids) => {
-                let known: HashSet<String> = existing_ids.into_iter().collect();
-                let missing_ids: Vec<String> = unique_emp_ids.difference(&known).cloned().collect();
-
-                if !missing_ids.is_empty() {
-                    errors.push(fmt_msg(
-                        msgs.skipped_unknown_employees,
-                        &[
-                            ("count", &missing_ids.len().to_string()),
-                            ("ids", &missing_ids.join(", ")),
-                        ],
-                    ));
-                }
-                known
-            }
-            Err(e) => {
-                error!("VALIDATION_ERROR: {:?}", e);
-                let _ = self
-                    .import_repo
-                    .update_job_progress(
-                        job_id,
-                        0,
-                        ImportJobStatus::Failed,
-                        Some("Database error during validation".to_string()),
-                    )
-                    .await;
-                let _ = tokio::fs::remove_file(file_path).await;
-                return Err(());
-            }
+        let strategy = PunchImportStrategy {
+            msgs: msgs.clone(),
+            date_format,
+            time_format,
+            adj_repo: Arc::clone(&self.adj_repo),
+            time_entry_repo: Arc::clone(&self.time_entry_repo),
+            employee_repo: Arc::clone(&self.employee_repo),
+            log_svc: None,
         };
 
-        let mut skipped_rows = 0;
-        let rows_to_process = pending_rows.into_iter().skip(processed_rows as usize);
-
-        for row in rows_to_process {
-            if !known_emp_ids.contains(&row.emp_id_number) {
-                skipped_rows += 1;
-                continue;
-            }
-
-            match self
-                .process_import_row(&job, &row.emp_id_number, row.punch_time)
-                .await
-            {
-                Ok(inserted) => {
-                    if inserted > 0 {
-                        processed_rows += 1;
-                    } else {
-                        skipped_rows += 1;
-                    }
-
-                    if (processed_rows + skipped_rows) % 10 == 0 {
-                        let _ = self
-                            .import_repo
-                            .update_job_progress(
-                                job_id,
-                                processed_rows,
-                                ImportJobStatus::Processing,
-                                None,
-                            )
-                            .await;
-                    }
-                }
-                Err(_) => {
-                    errors.push(fmt_msg(
-                        msgs.system_save_error,
-                        &[
-                            ("emp", &row.emp_id_number),
-                            ("line", &row.line_number.to_string()),
-                        ],
-                    ));
-                }
-            }
-        }
-
-        if skipped_rows > 0 {
-            errors.push(fmt_msg(
-                msgs.skipped_rows,
-                &[("count", &skipped_rows.to_string())],
-            ));
-        }
-
-        let status = if errors.is_empty() || processed_rows > 0 {
-            ImportJobStatus::Completed
-        } else {
-            ImportJobStatus::Failed
+        let pipeline = ImportPipeline {
+            strategy,
+            pool: self.pool.clone(),
+            import_repo: &*self.import_repo,
+            job: &job,
+            file_bytes,
+            workspace_tz,
         };
 
-        let error_log = if errors.is_empty() {
-            None
-        } else {
-            Some(errors.join("\n"))
-        };
-        let _ = self
-            .import_repo
-            .update_job_progress(job_id, processed_rows, status, error_log)
-            .await;
-
-        let _ = tokio::fs::remove_file(file_path).await;
-        Ok(())
+        pipeline.run().await
     }
 
     async fn process_employee_job(
@@ -636,119 +675,6 @@ impl AttendanceImportService {
             Ok(Some(employee_id))
         } else {
             Ok(None)
-        }
-    }
-
-    #[allow(clippy::too_many_lines)]
-    async fn process_import_row(
-        &self,
-        job: &AttendanceImportJob,
-        emp_id_number: &str,
-        punch_time_utc: DateTime<Utc>,
-    ) -> Result<usize, AppError> {
-        let pool = self.pool.clone();
-        let Ok(Some(employee)) = self
-            .employee_repo
-            .get_employee_by_id_number(emp_id_number, job.workspace_id)
-            .await
-        else {
-            error!(
-                "EMPLOYEE_NOT_FOUND: {} in WS {}",
-                emp_id_number, job.workspace_id
-            );
-            return Ok(0);
-        };
-
-        if job.target_type == ImportTargetType::Log {
-            let te_repo = Arc::clone(&self.time_entry_repo);
-            let ps = std::sync::Arc::new(crate::services::pairing_service::PairingService::new(
-                te_repo,
-                std::sync::Arc::new(crate::repositories::roster::SqlxRosterRepository::new(
-                    pool.clone(),
-                )),
-                pool.clone(),
-            ));
-            let emp_repo: std::sync::Arc<dyn crate::repositories::EmployeeRepository> =
-                std::sync::Arc::new(crate::repositories::SqlxEmployeeRepository::new(
-                    pool.clone(),
-                ));
-            let rl_repo: std::sync::Arc<dyn crate::repositories::raw_attendance_log_repository::RawAttendanceLogRepository> = std::sync::Arc::new(crate::repositories::raw_attendance_log_repository::SqlxRawAttendanceLogRepository::new(pool.clone()));
-            let st_repo: std::sync::Arc<
-                dyn crate::repositories::staging_log_repository::StagingLogRepository,
-            > = std::sync::Arc::new(
-                crate::repositories::staging_log_repository::SqlxStagingLogRepository::new(
-                    pool.clone(),
-                ),
-            );
-            let er_repo: std::sync::Arc<dyn crate::repositories::attendance_log_error_repository::AttendanceLogErrorRepository> = std::sync::Arc::new(crate::repositories::attendance_log_error_repository::SqlxAttendanceLogErrorRepository::new(pool.clone()));
-            let (log_svc, _h) = crate::services::AttendanceLogService::new(
-                pool.clone(),
-                ps,
-                crate::services::attendance_log_service::AttendanceLogServiceConfig {
-                    buffer_capacity: 1,
-                    batch_size: 1,
-                    flush_interval_ms: 1000,
-                },
-                crate::services::attendance_log_service::AttendanceLogServiceDeps {
-                    employee_repo: emp_repo,
-                    raw_log_repo: rl_repo,
-                    staging_repo: st_repo,
-                    error_repo: er_repo,
-                },
-            );
-            match log_svc
-                .process_parsed_log(
-                    job.workspace_id,
-                    employee.id,
-                    punch_time_utc,
-                    LogSource::Import,
-                    None,
-                    None,
-                )
-                .await
-            {
-                Ok(true) => Ok(1),
-                Ok(false) => Ok(0),
-                Err(e) => {
-                    error!("UNIFIED_LOG_SERVICE_ERROR: {}", e);
-                    Err(AppError::Internal("Internal error".into()))
-                }
-            }
-        } else {
-            let req = CreateAttendanceAdjustmentRequest {
-                employee_id: employee.id,
-                time_entry_id: None,
-                requested_punch_in_time: punch_time_utc,
-                requested_punch_out_time: None,
-                is_break_overtime: false,
-                reason: Some("Import from Excel/CSV".to_string()),
-            };
-
-            let adj_svc = {
-                let adj_repo = Arc::clone(&self.adj_repo);
-                let te_repo = Arc::clone(&self.time_entry_repo);
-                crate::services::attendance_adjustment_service::AttendanceAdjustmentService::new(
-                    adj_repo,
-                    te_repo,
-                    pool.clone(),
-                )
-            };
-            if let Ok(adjustment) = adj_svc
-                .submit_request(job.workspace_id, job.user_id, req)
-                .await
-            {
-                let _ = adj_svc
-                    .approve_request(
-                        job.workspace_id,
-                        job.user_id,
-                        adjustment.id,
-                        AdjustmentStatus::Approved,
-                    )
-                    .await;
-
-                return Ok(1);
-            }
-            Ok(0)
         }
     }
 }
