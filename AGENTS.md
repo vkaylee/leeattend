@@ -18,22 +18,27 @@ All standard development tools run inside isolated Podman containers. You MUST e
 | SQLx/DB | `sqlx migrate run` | `./scripts/_sqlx.sh migrate run` | `apiserver_test` |
 | SQLx Prepare | `cargo sqlx prepare` | `./scripts/_sqlx.sh prepare --workspace` | `apiserver_test` |
 
-### 2. Git & Multiline Strings
+### 2. Test Execution & Coverage (MANDATORY)
+- **Running Tests:** NEVER run `cargo test` directly on the host (especially on WSL2 due to I/O freezes). ALWAYS use the `./test.sh` script.
+  - Examples: `./test.sh api`, `./test.sh web`, `./test.sh all`
+- **Checking Coverage:** When asked to check test coverage, use the `--coverage` flag (e.g., `./test.sh api --coverage`). This flag will enforce the 100% threshold.
+
+### 3. Git & Multiline Strings
 - **Git Protocol:** NEVER run `git` directly. ALWAYS use the `./scripts/git.sh` wrapper (e.g., `./scripts/git.sh commit -m "msg"`) to prevent PTY hangs.
 - **Multiline Strings:** NEVER pass strings containing literal newlines into terminal commands. Write multi-line content to a temp file (`/tmp/msg.txt`), then execute the command reading from that file (`-F /tmp/msg.txt`).
 
-### 3. Background Execution & Services
+### 4. Background Execution & Services
 - **BANNED:** Never use the bash background operator (`&`) for ANY command (tests, servers, builds). 
 - **BANNED:** Never use `tail -f` or similar blocking pagers.
 - *Note:* The AI's native terminal tool automatically handles long-running processes safely. You must run all commands normally without manual shell redirection or backgrounding.
 
-### 4. Banned Inline Commands & Patterns
+### 5. Banned Inline Commands & Patterns
 > **Do NOT use these via AI terminal tools.** They cause infinite PTY hangs due to unclosed quotes or waiting for stdin.
 - Heredocs (`cat <<EOF` or `cat >> file <<EOF`)
 - Pager commands (`git log`, `less`, `more`). Always use `--no-pager`.
 - Piped commands holding PTY (`rg | awk`, `grep | sed`). Append `</dev/null`.
 
-### 5. Safe Inline Code Runner
+### 6. Safe Inline Code Runner
 > **NEVER use `python -c`, `python3 -c`, `node -e`, `bash -c` for inline code.**
 Use `run-inline` instead — writes code to a temp file, executes via `_safe_run.py`:
 - `echo 'print(1)' | ./scripts/ai-tools/run-inline -l python`

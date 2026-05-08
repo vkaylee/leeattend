@@ -1,11 +1,13 @@
-
+use chrono::NaiveDate;
 use sqlx::postgres::PgPoolOptions;
 use std::sync::Arc;
 use uuid::Uuid;
-use chrono::NaiveDate;
 
 use apiserver::cache::CacheManager;
-use apiserver::queue::{Job, JobMetadata, JobStatus, TaskType, ReportType, JobQueue, DateRange, JobPriority, JobPayload, ReportPayload, ReportConfig, RedisPool};
+use apiserver::queue::{
+    DateRange, Job, JobMetadata, JobPayload, JobPriority, JobQueue, JobStatus, RedisPool,
+    ReportConfig, ReportPayload, ReportType, TaskType,
+};
 
 use apiserver::worker::handlers::AttendanceHandler;
 
@@ -29,9 +31,10 @@ async fn test_worker_uses_only_one_connection_per_job() {
         .expect("Failed to connect to DB");
 
     // 2. Setup mock dependencies
-    let redis_url = std::env::var("REDIS_URL").unwrap_or_else(|_| "redis://127.0.0.1:6379".to_string());
+    let redis_url =
+        std::env::var("REDIS_URL").unwrap_or_else(|_| "redis://127.0.0.1:6379".to_string());
     let redis_pool = RedisPool::new(&redis_url).await.unwrap();
-    
+
     let cache = Arc::new(CacheManager::new(redis_pool.clone(), pool.clone()));
     let queue = JobQueue::new(redis_pool.clone());
 
@@ -222,13 +225,15 @@ async fn test_worker_uses_only_one_connection_per_job() {
             task_type: TaskType::EmployeeImportChunk,
             retry_count: 0,
             max_retries: 3,
-            payload: JobPayload::EmployeeImportChunk(apiserver::queue::EmployeeImportChunkPayload {
-                import_job_id: Uuid::new_v4(),
-                user_id,
-                file_path: "test.csv".to_string(),
-                start_index: 0,
-                end_index: 10,
-            }),
+            payload: JobPayload::EmployeeImportChunk(
+                apiserver::queue::EmployeeImportChunkPayload {
+                    import_job_id: Uuid::new_v4(),
+                    user_id,
+                    file_path: "test.csv".to_string(),
+                    start_index: 0,
+                    end_index: 10,
+                },
+            ),
         },
         Job {
             job_id: Uuid::new_v4(),
@@ -280,7 +285,7 @@ async fn test_worker_uses_only_one_connection_per_job() {
             completed_at: None,
             error_message: None,
         };
-        
+
         let _ = queue.create_job_metadata(&meta).await;
 
         let handler_future = worker.process_job(job.clone());
@@ -293,7 +298,10 @@ async fn test_worker_uses_only_one_connection_per_job() {
                 // Success! The handler completed without deadlocking.
             }
             Err(_) => {
-                panic!("DEADLOCK DETECTED! TaskType {:?} timed out waiting for a database connection.", job.task_type);
+                panic!(
+                    "DEADLOCK DETECTED! TaskType {:?} timed out waiting for a database connection.",
+                    job.task_type
+                );
             }
         }
     }

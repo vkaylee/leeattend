@@ -48,21 +48,25 @@ All standard development tools run inside isolated Podman containers. You MUST e
 - SQLx/DB: `./scripts/_sqlx.sh migrate run` (Container: `apiserver_test`)
 - SQLx Prepare: `./scripts/_sqlx.sh prepare --workspace` (Must be run after tests fail with SQLX_OFFLINE=true error, requires test DB to be up)
 
-**2. Git & Multiline Strings**
+**2. Test Execution & Coverage**
+- NEVER run `cargo test` directly on the host (especially on WSL2 due to I/O freezes). ALWAYS use `./test.sh`.
+- When asked to check coverage, append `--coverage` (e.g., `./test.sh api --coverage`). This enforces the 100% threshold.
+
+**3. Git & Multiline Strings**
 - NEVER run `git` directly. ALWAYS use the `./scripts/git.sh` wrapper.
 - NEVER pass strings containing literal newlines into terminal commands. Write to `/tmp/msg.txt`, then execute with `-F /tmp/msg.txt`.
 
-**3. Background Execution & Services**
+**4. Background Execution & Services**
 - **BANNED:** Never use the bash background operator (`&`) for ANY command (tests, servers, builds). 
 - **BANNED:** Never use `tail -f` or similar blocking pagers.
 - *Note:* The AI's native terminal tool automatically handles long-running processes safely. You must run all commands normally without manual shell redirection or backgrounding.
 
-**4. Banned Inline Commands & Patterns**
+**5. Banned Inline Commands & Patterns**
 - Heredocs (`cat <<EOF` or `cat >> file <<EOF`)
 - Pager commands (`git log`, `less`, `more`). Always use `--no-pager`.
 - Piped commands holding PTY (`rg | awk`, `grep | sed`). Append `</dev/null`.
 
-**5. Safe Inline Code Runner**
+**6. Safe Inline Code Runner**
 - **NEVER use `python -c`, `python3 -c`, `node -e`, `bash -c` for inline code.**
 - Use `run-inline` instead: `echo 'print(1)' | ./scripts/ai-tools/run-inline -l python`
 
