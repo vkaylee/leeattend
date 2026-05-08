@@ -40,7 +40,7 @@ impl Drop for ImportTimeoutGuard {
                         job_id,
                         current_rows,
                         ImportJobStatus::Failed,
-                        Some("System timeout: Job took too long and was terminated (exceeded 5 minutes).".to_string()),
+                        Some("System timeout: Job took too long and was terminated by the worker.".to_string()),
                     )
                     .await;
             });
