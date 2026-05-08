@@ -84,3 +84,62 @@ async fn test_import_csv_with_line_errors() {
         "Should identify recognition error, got: {errors}"
     );
 }
+
+#[tokio::test]
+async fn test_import_timeout_guard_updates_db_on_drop() {
+    use apiserver::repositories::import_job_repository::ImportJobRepository;
+    use apiserver::worker::handlers::utils::ImportTimeoutGuard;
+    use std::sync::atomic::{AtomicBool, Ordering};
+    use std::sync::Arc;
+
+    let test_db = TestDatabase::new().await;
+    let pool = test_db.pool().clone();
+    let factory = TestFactory::new(pool.clone());
+
+    let user_id = factory.user().create().await;
+    let ws_id = factory.workspace().create_with_owner(user_id).await;
+
+    let import_repo =
+        apiserver::repositories::import_job_repository::SqlxImportJobRepository::new(pool.clone());
+
+    let job_id = uuid::Uuid::new_v4();
+    let job = AttendanceImportJob {
+        id: job_id,
+        workspace_id: ws_id,
+        user_id,
+        target_type: ImportTargetType::Employee,
+        file_path: Some("test.csv".to_string()),
+        total_rows: 100,
+        processed_rows: 50,
+        status: ImportJobStatus::Processing,
+        error_log: None,
+        created_at: chrono::Utc::now(),
+        updated_at: chrono::Utc::now(),
+    };
+
+    import_repo.create_job(&job).await.unwrap();
+
+    let completed = Arc::new(AtomicBool::new(false));
+    {
+        let _guard = ImportTimeoutGuard::new(pool.clone(), job_id, Arc::clone(&completed));
+        // Guard drops here as it goes out of scope (simulating a tokio timeout cancellation)
+    }
+
+    // The drop implementation spawns a tokio task, so we must wait slightly for it to complete
+    sleep(Duration::from_millis(500)).await;
+
+    let updated_job = import_repo.get_job_by_id(job_id).await.unwrap().unwrap();
+
+    assert_eq!(updated_job.status, ImportJobStatus::Failed);
+    assert_eq!(
+        updated_job.processed_rows, 50,
+        "Should preserve processed_rows on timeout"
+    );
+    let error_log = updated_job
+        .error_log
+        .expect("Error log should be populated");
+    assert!(
+        error_log.contains("timeout"),
+        "Error log should mention timeout"
+    );
+}

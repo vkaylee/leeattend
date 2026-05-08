@@ -9,6 +9,7 @@ pub mod leave_import;
 pub mod log_ingestion;
 pub mod merge;
 pub mod reprocess_attendance;
+pub mod utils;
 
 pub use accrual::AccrualHandler;
 pub use attendance::AttendanceHandler;

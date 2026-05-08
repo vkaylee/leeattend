@@ -4,12 +4,15 @@
 //! Manages job tracking via the `attendance_import_jobs` table.
 
 use sqlx::PgPool;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
 use crate::models::ImportJobStatus;
 use crate::queue::{Job, RedisPool};
 use crate::repositories::import_job_repository::{ImportJobRepository, SqlxImportJobRepository};
 use crate::services::attendance_import_service::AttendanceImportService;
+
+use crate::worker::handlers::utils::ImportTimeoutGuard;
 
 pub struct EmployeeImportHandler;
 
@@ -34,6 +37,10 @@ impl EmployeeImportHandler {
             "Starting employee import processing"
         );
 
+        let completed = Arc::new(AtomicBool::new(false));
+        let _guard =
+            ImportTimeoutGuard::new(db.clone(), payload.import_job_id, Arc::clone(&completed));
+
         let import_repo_arc = Arc::new(import_repo);
         let adj_repo = Arc::new(crate::repositories::attendance_adjustment_repository::SqlxAttendanceAdjustmentRepository::new(db.clone()));
         let employee_repo = Arc::new(crate::repositories::SqlxEmployeeRepository::new(db.clone()));
@@ -55,7 +62,10 @@ impl EmployeeImportHandler {
 
         // Process the job
         // Note: process_job internally updates the DB to Completed or Failed.
-        if service.process_job(payload.import_job_id).await.is_ok() {
+        let process_result = service.process_job(payload.import_job_id).await;
+        completed.store(true, Ordering::SeqCst);
+
+        if process_result.is_ok() {
             tracing::info!(
                 workspace_id = %job.workspace_id,
                 import_job_id = %payload.import_job_id,

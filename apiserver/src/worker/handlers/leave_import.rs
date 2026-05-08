@@ -9,6 +9,10 @@ use crate::repositories::import_job_repository::ImportJobRepository;
 use crate::repositories::import_job_repository::SqlxImportJobRepository;
 use crate::services::leave_import_service::LeaveImportService;
 use sqlx::PgPool;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
+
+use crate::worker::handlers::utils::ImportTimeoutGuard;
 
 pub struct LeaveImportHandler;
 
@@ -35,9 +39,13 @@ impl LeaveImportHandler {
             "Starting leave import processing"
         );
 
+        let completed = Arc::new(AtomicBool::new(false));
+        let _guard =
+            ImportTimeoutGuard::new(db.clone(), payload.import_job_id, Arc::clone(&completed));
+
         let service = LeaveImportService::new(db.clone());
 
-        if service
+        let process_result = service
             .process_job(
                 payload.import_job_id,
                 job.workspace_id,
@@ -45,9 +53,10 @@ impl LeaveImportHandler {
                 &payload.file_path,
                 payload.auto_approve,
             )
-            .await
-            .is_ok()
-        {
+            .await;
+        completed.store(true, Ordering::SeqCst);
+
+        if process_result.is_ok() {
             tracing::info!(
                 workspace_id = %job.workspace_id,
                 import_job_id = %payload.import_job_id,
