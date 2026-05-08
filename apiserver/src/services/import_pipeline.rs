@@ -43,6 +43,10 @@ pub struct ImportPipeline<'a, S: ImportStrategy> {
     pub job: &'a AttendanceImportJob,
     pub file_bytes: Vec<u8>,
     pub workspace_tz: Tz,
+    pub start_index: Option<usize>,
+    pub end_index: Option<usize>,
+    pub is_chunk: bool,
+    pub redis: Option<crate::queue::RedisPool>,
 }
 
 impl<S: ImportStrategy> ImportPipeline<'_, S> {
@@ -66,6 +70,17 @@ impl<S: ImportStrategy> ImportPipeline<'_, S> {
         ) {
             Ok(rows) => {
                 for (current_line, row_data) in rows {
+                    if let Some(start) = self.start_index {
+                        if current_line < start {
+                            continue;
+                        }
+                    }
+                    if let Some(end) = self.end_index {
+                        if current_line > end {
+                            continue;
+                        }
+                    }
+
                     match self
                         .strategy
                         .map_row(&row_data, current_line, self.workspace_tz)
@@ -85,11 +100,13 @@ impl<S: ImportStrategy> ImportPipeline<'_, S> {
             }
         }
 
-        let total_rows = pending_rows.len() as i32 + failed_rows_data.len() as i32;
-        let _ = self
-            .import_repo
-            .update_job_total_rows(self.job.id, total_rows)
-            .await;
+        if !self.is_chunk {
+            let total_rows = pending_rows.len() as i32 + failed_rows_data.len() as i32;
+            let _ = self
+                .import_repo
+                .update_job_total_rows(self.job.id, total_rows)
+                .await;
+        }
 
         let mut processed_rows = 0;
         let mut skipped_rows = 0;
@@ -117,15 +134,28 @@ impl<S: ImportStrategy> ImportPipeline<'_, S> {
             }
 
             if (processed_rows + skipped_rows) % 10 == 0 {
-                let _ = self
-                    .import_repo
-                    .update_job_progress(
-                        self.job.id,
-                        processed_rows,
-                        ImportJobStatus::Processing,
-                        None,
-                    )
-                    .await;
+                if self.is_chunk {
+                    if let Some(ref redis) = self.redis {
+                        let mut conn = redis.conn();
+                        let key = format!("import_progress:{}", self.job.id);
+                        let _: () = redis::cmd("INCRBY")
+                            .arg(&key)
+                            .arg(10)
+                            .query_async(&mut conn)
+                            .await
+                            .unwrap_or(());
+                    }
+                } else {
+                    let _ = self
+                        .import_repo
+                        .update_job_progress(
+                            self.job.id,
+                            processed_rows,
+                            ImportJobStatus::Processing,
+                            None,
+                        )
+                        .await;
+                }
             }
         }
 
@@ -195,15 +225,58 @@ impl<S: ImportStrategy> ImportPipeline<'_, S> {
             }
         }
 
-        let _ = self
-            .import_repo
-            .update_job_progress(self.job.id, processed_rows, status, final_log)
-            .await;
+        if self.is_chunk {
+            // Push errors to Redis if any
+            if let Some(final_msg) = final_log {
+                if let Some(ref redis) = self.redis {
+                    let mut conn = redis.conn();
+                    let key = format!("import_errors:{}", self.job.id);
+                    let field = format!(
+                        "chunk_{}_{}",
+                        self.start_index.unwrap_or(0),
+                        self.end_index.unwrap_or(0)
+                    );
+                    let _: () = redis::cmd("HSET")
+                        .arg(&key)
+                        .arg(&field)
+                        .arg(&final_msg)
+                        .query_async(&mut conn)
+                        .await
+                        .unwrap_or(());
+                }
+            }
 
-        if let Some(file_path) = &self.job.file_path {
-            let _ = tokio::fs::remove_file(file_path).await;
+            // Add any remainder to progress
+            let remainder = (processed_rows + skipped_rows) % 10;
+            if remainder > 0 {
+                if let Some(ref redis) = self.redis {
+                    let mut conn = redis.conn();
+                    let key = format!("import_progress:{}", self.job.id);
+                    let _: () = redis::cmd("INCRBY")
+                        .arg(&key)
+                        .arg(remainder)
+                        .query_async(&mut conn)
+                        .await
+                        .unwrap_or(());
+                }
+            }
+
+            Ok(())
+        } else {
+            let _ = self
+                .import_repo
+                .update_job_progress(self.job.id, processed_rows, status, final_log)
+                .await;
+
+            if let Some(file_path) = &self.job.file_path {
+                let _ = tokio::fs::remove_file(file_path).await;
+            }
+
+            if errors.is_empty() {
+                Ok(())
+            } else {
+                Err(())
+            }
         }
-
-        Ok(())
     }
 }

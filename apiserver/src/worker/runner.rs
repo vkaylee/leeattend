@@ -18,9 +18,9 @@ use crate::cache::{CacheManager, RosterCache};
 use crate::queue::{Job, JobQueue, RedisPool, TaskType};
 use crate::services::ReportCoordinator;
 use crate::worker::handlers::{
-    AccrualHandler, AttendanceHandler, ClaimStagedLogsHandler, EmployeeImportHandler,
-    LeaveImportHandler, LogIngestionHandler, MergeHandler, NightlyHousekeepingHandler,
-    ReprocessAttendanceHandler,
+    AccrualHandler, AttendanceHandler, ClaimStagedLogsHandler, EmployeeImportChunkHandler,
+    EmployeeImportHandler, FinalizeImportHandler, LeaveImportHandler, LogIngestionHandler,
+    MergeHandler, NightlyHousekeepingHandler, ReprocessAttendanceHandler,
 };
 
 // Redis key patterns for monitoring
@@ -409,6 +409,20 @@ impl JobWorker {
             TaskType::EmployeeImport => {
                 EmployeeImportHandler::handle(&self.db, &job, &self.redis).await
             }
+            TaskType::EmployeeImportChunk => {
+                EmployeeImportChunkHandler::handle(&self.db, &job, &self.redis).await
+            }
+            TaskType::FinalizeImport => {
+                FinalizeImportHandler::handle(&self.db, &job, &self.redis).await
+            }
+            TaskType::LeaveImportChunk => {
+                crate::worker::handlers::LeaveImportChunkHandler::handle(
+                    &self.db,
+                    &job,
+                    &self.redis,
+                )
+                .await
+            }
             TaskType::NightlyHousekeeping => {
                 NightlyHousekeepingHandler::handle(&self.db, &job).await
             }
@@ -435,6 +449,9 @@ impl JobWorker {
                 | TaskType::ClaimStagedLogs
                 | TaskType::LeaveImport
                 | TaskType::EmployeeImport
+                | TaskType::EmployeeImportChunk
+                | TaskType::LeaveImportChunk
+                | TaskType::FinalizeImport
                 | TaskType::NightlyHousekeeping
         ) {
             let success = result.is_ok();
@@ -607,6 +624,9 @@ mod tests {
                     | TaskType::ClaimStagedLogs
                     | TaskType::LeaveImport
                     | TaskType::EmployeeImport
+                    | TaskType::EmployeeImportChunk
+                    | TaskType::LeaveImportChunk
+                    | TaskType::FinalizeImport
                     | TaskType::NightlyHousekeeping
             );
 

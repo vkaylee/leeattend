@@ -38,13 +38,13 @@ pub struct LeaveImportService {
     pool: PgPool,
 }
 
-struct LeaveImportStrategy {
-    msgs: LeaveImportMessages,
-    auto_approve: bool,
-    user_id: Uuid,
-    employees_cache: std::collections::HashMap<String, Uuid>,
-    leave_types_cache: std::collections::HashMap<String, Uuid>,
-    leave_service: LeaveService,
+pub struct LeaveImportStrategy {
+    pub msgs: LeaveImportMessages,
+    pub auto_approve: bool,
+    pub user_id: Uuid,
+    pub employees_cache: std::collections::HashMap<String, Uuid>,
+    pub leave_types_cache: std::collections::HashMap<String, Uuid>,
+    pub leave_service: LeaveService,
 }
 
 #[async_trait::async_trait]
@@ -278,6 +278,10 @@ impl LeaveImportService {
             job: &job,
             file_bytes,
             workspace_tz,
+            start_index: None,
+            end_index: None,
+            is_chunk: false,
+            redis: None,
         };
 
         pipeline.run().await

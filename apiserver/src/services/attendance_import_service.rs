@@ -25,20 +25,21 @@ struct PendingRow {
     line_number: usize,
 }
 
-struct PendingEmployee {
-    id_number: String,
-    full_name: String,
-    hire_date: NaiveDate,
-    department_name: Option<String>,
-    line_number: usize,
+#[derive(Debug, Clone)]
+pub struct PendingEmployee {
+    pub id_number: String,
+    pub full_name: String,
+    pub hire_date: chrono::NaiveDate,
+    pub department_name: Option<String>,
+    pub line_number: usize,
 }
 
 use crate::services::import_pipeline::{ImportPipeline, ImportStrategy};
 
-struct EmployeeImportStrategy {
-    msgs: AttendanceImportMessages,
-    employee_repo: Arc<dyn EmployeeRepository>,
-    dept_cache: HashMap<String, Uuid>,
+pub struct EmployeeImportStrategy {
+    pub msgs: AttendanceImportMessages,
+    pub employee_repo: Arc<dyn EmployeeRepository>,
+    pub dept_cache: HashMap<String, Uuid>,
 }
 
 #[async_trait::async_trait]
@@ -585,6 +586,10 @@ impl AttendanceImportService {
             job: &job,
             file_bytes,
             workspace_tz,
+            start_index: None,
+            end_index: None,
+            is_chunk: false,
+            redis: None,
         };
 
         pipeline.run().await
@@ -640,6 +645,10 @@ impl AttendanceImportService {
             job,
             file_bytes,
             workspace_tz,
+            start_index: None,
+            end_index: None,
+            is_chunk: false,
+            redis: None,
         };
 
         pipeline.run().await

@@ -143,3 +143,228 @@ async fn test_import_timeout_guard_updates_db_on_drop() {
         "Error log should mention timeout"
     );
 }
+
+#[tokio::test]
+async fn test_employee_import_chunking() {
+    use crate::common::app::setup_app_tower;
+    use apiserver::queue::{EmployeeImportPayload, Job, JobPayload, JobQueue, TaskType};
+    use apiserver::repositories::import_job_repository::ImportJobRepository;
+    use apiserver::worker::handlers::EmployeeImportHandler;
+    use redis::AsyncCommands;
+
+    let (_test_db, factory, app_state, _router) = setup_app_tower().await;
+    let pool = _test_db.pool().clone();
+
+    // Check if Redis is enabled
+    let redis_pool = match app_state.infra.redis.clone() {
+        Some(r) => r,
+        None => {
+            println!("Skipping test: REDIS_URL not set");
+            return;
+        }
+    };
+
+    let user_id = factory.user().create().await;
+    let ws_id = factory.workspace().create_with_owner(user_id).await;
+
+    let job_id = uuid::Uuid::new_v4();
+    let import_repo =
+        apiserver::repositories::import_job_repository::SqlxImportJobRepository::new(pool.clone());
+
+    // Create a fake CSV file
+    let mut csv_content = String::from("employee_code,full_name,hire_date,department_name\n");
+    for i in 1..=1050 {
+        csv_content.push_str(&format!("EMP{i},User {i},2023-01-01,IT\n"));
+    }
+
+    let file_path = format!("storage/test_imports/{}.csv", job_id);
+    tokio::fs::create_dir_all("storage/test_imports")
+        .await
+        .unwrap();
+    tokio::fs::write(&file_path, csv_content).await.unwrap();
+
+    let job = AttendanceImportJob {
+        id: job_id,
+        workspace_id: ws_id,
+        user_id,
+        target_type: ImportTargetType::Employee,
+        file_path: Some(file_path.clone()),
+        total_rows: 1050,
+        processed_rows: 0,
+        status: ImportJobStatus::Processing,
+        error_log: None,
+        created_at: chrono::Utc::now(),
+        updated_at: chrono::Utc::now(),
+    };
+    import_repo.create_job(&job).await.unwrap();
+
+    let payload = EmployeeImportPayload {
+        user_id,
+        import_job_id: job_id,
+    };
+
+    let worker_job = Job {
+        job_id: uuid::Uuid::new_v4(),
+        parent_job_id: job_id,
+        batch_index: 0,
+        task_type: TaskType::EmployeeImport,
+        payload: JobPayload::EmployeeImport(payload),
+        priority: apiserver::queue::JobPriority::High,
+        created_at: chrono::Utc::now(),
+        workspace_id: ws_id,
+        retry_count: 0,
+        max_retries: 3,
+    };
+
+    let result = EmployeeImportHandler::handle(&pool, &worker_job, &redis_pool).await;
+
+    if let Err(e) = &result {
+        println!("Handler failed with error: {}", e);
+    }
+    assert!(
+        result.is_ok(),
+        "Handler should succeed, got: {:?}",
+        result.err()
+    );
+
+    // Verify Redis chunking keys
+    let mut conn = redis_pool.conn();
+
+    let total_chunks: u32 = redis::cmd("GET")
+        .arg(format!("import_total_chunks:{}", job_id))
+        .query_async(&mut conn)
+        .await
+        .unwrap_or(0);
+
+    // 1050 / 500 = 2 remainder 50 -> 3 chunks
+    assert_eq!(total_chunks, 3, "Should split 1050 rows into 3 chunks");
+
+    let queue = JobQueue::new(redis_pool.clone());
+    // Dequeue exactly 3 chunks
+    let mut chunk_count = 0;
+    for _ in 0..3 {
+        if let Ok(Some(job)) = queue.dequeue_job(1.0).await {
+            if let TaskType::EmployeeImportChunk = job.task_type {
+                if let JobPayload::EmployeeImportChunk(chunk) = job.payload {
+                    if chunk.import_job_id == job_id {
+                        chunk_count += 1;
+                    }
+                }
+            }
+        }
+    }
+
+    assert_eq!(chunk_count, 3, "Should have enqueued 3 chunk jobs");
+
+    let _ = tokio::fs::remove_file(&file_path).await;
+}
+
+#[tokio::test]
+async fn test_leave_import_chunking() {
+    use crate::common::app::setup_app_tower;
+    use apiserver::models::{enums::ImportTargetType, AttendanceImportJob, ImportJobStatus};
+    use apiserver::queue::{Job, JobPayload, JobQueue, LeaveImportPayload, TaskType};
+    use apiserver::repositories::import_job_repository::ImportJobRepository;
+    use apiserver::worker::handlers::LeaveImportHandler;
+    use redis::AsyncCommands;
+
+    let (_test_db, factory, app_state, _router) = setup_app_tower().await;
+    let pool = _test_db.pool().clone();
+
+    let redis_pool = match app_state.infra.redis.clone() {
+        Some(r) => r,
+        None => return,
+    };
+
+    let user_id = factory.user().create().await;
+    let ws_id = factory.workspace().create_with_owner(user_id).await;
+
+    let job_id = uuid::Uuid::new_v4();
+    let import_repo =
+        apiserver::repositories::import_job_repository::SqlxImportJobRepository::new(pool.clone());
+
+    // Create a fake CSV file for leaves
+    let mut csv_content =
+        String::from("employee_code,leave_type_code,start_date,end_date,reason,duration_type\n");
+    for i in 1..=600 {
+        csv_content.push_str(&format!(
+            "EMP{i},AL,2023-01-01,2023-01-02,Vacation,FullDay\n"
+        ));
+    }
+
+    let file_path = format!("storage/test_imports/{}.csv", job_id);
+    tokio::fs::create_dir_all("storage/test_imports")
+        .await
+        .unwrap();
+    tokio::fs::write(&file_path, csv_content).await.unwrap();
+
+    let job = AttendanceImportJob {
+        id: job_id,
+        workspace_id: ws_id,
+        user_id,
+        target_type: ImportTargetType::LeaveImport,
+        file_path: Some(file_path.clone()),
+        total_rows: 600,
+        processed_rows: 0,
+        status: ImportJobStatus::Processing,
+        error_log: None,
+        created_at: chrono::Utc::now(),
+        updated_at: chrono::Utc::now(),
+    };
+    import_repo.create_job(&job).await.unwrap();
+
+    let payload = LeaveImportPayload {
+        user_id,
+        import_job_id: job_id,
+        file_path: file_path.clone(),
+        auto_approve: true,
+    };
+
+    let worker_job = Job {
+        job_id: uuid::Uuid::new_v4(),
+        parent_job_id: job_id,
+        batch_index: 0,
+        task_type: TaskType::LeaveImport,
+        payload: JobPayload::LeaveImport(payload),
+        priority: apiserver::queue::JobPriority::High,
+        created_at: chrono::Utc::now(),
+        workspace_id: ws_id,
+        retry_count: 0,
+        max_retries: 3,
+    };
+
+    let result = LeaveImportHandler::handle(&pool, &worker_job, &redis_pool).await;
+
+    if let Err(e) = &result {
+        println!("Handler failed with error: {}", e);
+    }
+    assert!(
+        result.is_ok(),
+        "Handler should succeed, got: {:?}",
+        result.err()
+    );
+
+    let mut conn = redis_pool.conn();
+    let total_chunks: u32 = redis::cmd("GET")
+        .arg(format!("import_total_chunks:{}", job_id))
+        .query_async(&mut conn)
+        .await
+        .expect("import_total_chunks should be set");
+
+    assert_eq!(total_chunks, 2, "Should split 600 rows into 2 chunks");
+
+    let queue = JobQueue::new(redis_pool.clone());
+    let mut chunk_count = 0;
+    for _ in 0..2 {
+        if let Ok(Some(job)) = queue.dequeue_job(1.0).await {
+            if let TaskType::LeaveImportChunk = job.task_type {
+                if let JobPayload::LeaveImportChunk(chunk) = job.payload {
+                    if chunk.import_job_id == job_id {
+                        chunk_count += 1;
+                    }
+                }
+            }
+        }
+    }
+    assert_eq!(chunk_count, 2, "Should have enqueued exactly 2 chunk jobs");
+}
