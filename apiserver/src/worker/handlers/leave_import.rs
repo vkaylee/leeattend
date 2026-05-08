@@ -65,10 +65,7 @@ impl LeaveImportHandler {
             return Ok(());
         }
 
-        let chunk_size = std::env::var("IMPORT_CHUNK_SIZE")
-            .unwrap_or_else(|_| "500".to_string())
-            .parse::<usize>()
-            .unwrap_or(500);
+        let chunk_size = crate::worker::handlers::utils::get_import_chunk_size();
         let mut chunks = Vec::new();
         let mut i = 0;
         while i < rows.len() {

@@ -50,3 +50,41 @@ impl Drop for ImportTimeoutGuard {
         }
     }
 }
+
+/// Get the chunk size for import jobs from the environment, defaulting to 500.
+pub fn get_import_chunk_size() -> usize {
+    std::env::var("IMPORT_CHUNK_SIZE")
+        .unwrap_or_else(|_| "500".to_string())
+        .parse::<usize>()
+        .unwrap_or(500)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serial_test::serial;
+    use std::env;
+
+    #[test]
+    #[serial]
+    fn test_get_import_chunk_size_default() {
+        env::remove_var("IMPORT_CHUNK_SIZE");
+        assert_eq!(get_import_chunk_size(), 500);
+    }
+
+    #[test]
+    #[serial]
+    fn test_get_import_chunk_size_custom() {
+        env::set_var("IMPORT_CHUNK_SIZE", "1000");
+        assert_eq!(get_import_chunk_size(), 1000);
+        env::remove_var("IMPORT_CHUNK_SIZE");
+    }
+
+    #[test]
+    #[serial]
+    fn test_get_import_chunk_size_invalid() {
+        env::set_var("IMPORT_CHUNK_SIZE", "invalid");
+        assert_eq!(get_import_chunk_size(), 500);
+        env::remove_var("IMPORT_CHUNK_SIZE");
+    }
+}

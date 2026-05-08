@@ -368,3 +368,94 @@ async fn test_leave_import_chunking() {
     }
     assert_eq!(chunk_count, 2, "Should have enqueued exactly 2 chunk jobs");
 }
+
+#[tokio::test]
+async fn test_employee_import_duplicate_department_prevention() {
+    use apiserver::services::attendance_import_service::{EmployeeImportStrategy, PendingEmployee};
+    use apiserver::services::import_messages::AttendanceImportMessages;
+    use apiserver::services::import_pipeline::ImportStrategy;
+    use std::collections::HashMap;
+
+    let test_db = TestDatabase::new().await;
+    let pool = test_db.pool().clone();
+    let factory = TestFactory::new(pool.clone());
+
+    let user_id = factory.user().create().await;
+    let ws_id = factory.workspace().create_with_owner(user_id).await;
+
+    let job_id = uuid::Uuid::new_v4();
+    let job = AttendanceImportJob {
+        id: job_id,
+        workspace_id: ws_id,
+        user_id,
+        target_type: ImportTargetType::Employee,
+        file_path: None,
+        total_rows: 2,
+        processed_rows: 0,
+        status: ImportJobStatus::Processing,
+        error_log: None,
+        created_at: chrono::Utc::now(),
+        updated_at: chrono::Utc::now(),
+    };
+
+    let employee_repo: std::sync::Arc<dyn apiserver::repositories::EmployeeRepository> =
+        std::sync::Arc::new(apiserver::repositories::SqlxEmployeeRepository::new(
+            pool.clone(),
+        ));
+
+    let msgs = AttendanceImportMessages::for_lang("vi");
+
+    // Strategy 1 (simulating chunk 1)
+    let mut strategy1 = EmployeeImportStrategy {
+        msgs: msgs.clone(),
+        employee_repo: std::sync::Arc::clone(&employee_repo),
+        dept_cache: HashMap::new(), // Empty cache
+    };
+
+    // Strategy 2 (simulating chunk 2 running independently)
+    let mut strategy2 = EmployeeImportStrategy {
+        msgs,
+        employee_repo: std::sync::Arc::clone(&employee_repo),
+        dept_cache: HashMap::new(), // Empty cache
+    };
+
+    let dept_name = "Engineering".to_string();
+
+    let emp1 = PendingEmployee {
+        id_number: "E001".to_string(),
+        full_name: "Alice".to_string(),
+        hire_date: chrono::Utc::now().naive_utc().date(),
+        department_name: Some(dept_name.clone()),
+        line_number: 1,
+    };
+
+    let emp2 = PendingEmployee {
+        id_number: "E002".to_string(),
+        full_name: "Bob".to_string(),
+        hire_date: chrono::Utc::now().naive_utc().date(),
+        department_name: Some(dept_name.clone()),
+        line_number: 2,
+    };
+
+    // Chunk 1 processes emp1. It should create the department.
+    let res1 = strategy1.process_row(&pool, &job, &emp1).await;
+    assert!(res1.is_ok(), "First process_row failed");
+
+    // Chunk 2 processes emp2. Cache is empty, so it will miss cache.
+    // Thanks to the DB double-check, it should NOT create a duplicate department.
+    let res2 = strategy2.process_row(&pool, &job, &emp2).await;
+    assert!(res2.is_ok(), "Second process_row failed");
+
+    // Verify exactly one department exists in the database
+    let departments = apiserver::repositories::department_repository::get_departments(&pool, ws_id)
+        .await
+        .unwrap();
+
+    assert_eq!(
+        departments.len(),
+        1,
+        "Should only create 1 department, found {}",
+        departments.len()
+    );
+    assert_eq!(departments[0].name, dept_name);
+}

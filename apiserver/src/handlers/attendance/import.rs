@@ -221,12 +221,29 @@ pub async fn get_latest_import_job(
     MemberContext { workspace_id, .. }: MemberContext,
     axum::extract::Query(query): axum::extract::Query<ImportJobQuery>,
 ) -> AppResult<Json<Option<AttendanceImportJob>>> {
-    let job = state
+    let mut job_opt = state
         .attendance
         .import_repo
         .get_latest_job(workspace_id, query.target_type)
         .await?;
-    Ok(Json(job))
+
+    if let Some(ref mut job) = job_opt {
+        if job.status == crate::models::ImportJobStatus::Processing {
+            if let Some(ref redis) = state.infra.redis {
+                let mut conn = redis.conn();
+                let key = format!("import_progress:{}", job.id);
+                if let Ok(Some(count)) = redis::cmd("GET")
+                    .arg(&key)
+                    .query_async::<Option<i32>>(&mut conn)
+                    .await
+                {
+                    job.processed_rows = count;
+                }
+            }
+        }
+    }
+
+    Ok(Json(job_opt))
 }
 
 pub async fn get_import_job_status(
@@ -234,12 +251,26 @@ pub async fn get_import_job_status(
     MemberContext { .. }: MemberContext,
     Path((_, job_id)): Path<(Uuid, Uuid)>,
 ) -> AppResult<Json<AttendanceImportJob>> {
-    let job = state
+    let mut job = state
         .attendance
         .import_repo
         .get_job_by_id(job_id)
         .await?
         .ok_or_else(|| AppError::NotFound("Job not found".to_string()))?;
+
+    if job.status == crate::models::ImportJobStatus::Processing {
+        if let Some(ref redis) = state.infra.redis {
+            let mut conn = redis.conn();
+            let key = format!("import_progress:{}", job.id);
+            if let Ok(Some(count)) = redis::cmd("GET")
+                .arg(&key)
+                .query_async::<Option<i32>>(&mut conn)
+                .await
+            {
+                job.processed_rows = count;
+            }
+        }
+    }
 
     Ok(Json(job))
 }

@@ -26,6 +26,9 @@ pub enum TaskType {
     LeaveImport,
     NightlyHousekeeping,
     EmployeeImport,
+    EmployeeImportChunk,
+    LeaveImportChunk,
+    FinalizeImport,
 }
 
 /// Job priority level. Controls which Redis queue the job is routed to.
@@ -146,6 +149,33 @@ pub struct EmployeeImportPayload {
     pub user_id: Uuid,
 }
 
+/// Payload for processing a chunk of bulk employee import.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EmployeeImportChunkPayload {
+    pub import_job_id: Uuid,
+    pub user_id: Uuid,
+    pub file_path: String,
+    pub start_index: usize,
+    pub end_index: usize,
+}
+
+/// Payload for processing a chunk of bulk leave import.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LeaveImportChunkPayload {
+    pub import_job_id: Uuid,
+    pub user_id: Uuid,
+    pub file_path: String,
+    pub auto_approve: bool,
+    pub start_index: usize,
+    pub end_index: usize,
+}
+
+/// Payload for finalizing bulk import after all chunks are done.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FinalizeImportPayload {
+    pub import_job_id: Uuid,
+}
+
 /// Job payload variants — each job type carries its own data.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", content = "data")]
@@ -160,6 +190,9 @@ pub enum JobPayload {
     LeaveImport(LeaveImportPayload),
     NightlyHousekeeping(HousekeepingPayload),
     EmployeeImport(EmployeeImportPayload),
+    EmployeeImportChunk(EmployeeImportChunkPayload),
+    LeaveImportChunk(LeaveImportChunkPayload),
+    FinalizeImport(FinalizeImportPayload),
 }
 
 /// A single worker job.
@@ -300,6 +333,27 @@ impl Job {
     pub fn employee_import_payload(&self) -> Option<&EmployeeImportPayload> {
         match &self.payload {
             JobPayload::EmployeeImport(p) => Some(p),
+            _ => None,
+        }
+    }
+
+    pub fn employee_import_chunk_payload(&self) -> Option<&EmployeeImportChunkPayload> {
+        match &self.payload {
+            JobPayload::EmployeeImportChunk(p) => Some(p),
+            _ => None,
+        }
+    }
+
+    pub fn leave_import_chunk_payload(&self) -> Option<&LeaveImportChunkPayload> {
+        match &self.payload {
+            JobPayload::LeaveImportChunk(p) => Some(p),
+            _ => None,
+        }
+    }
+
+    pub fn finalize_import_payload(&self) -> Option<&FinalizeImportPayload> {
+        match &self.payload {
+            JobPayload::FinalizeImport(p) => Some(p),
             _ => None,
         }
     }

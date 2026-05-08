@@ -42,6 +42,7 @@ pub struct EmployeeImportStrategy {
     pub dept_cache: HashMap<String, Uuid>,
 }
 
+#[allow(clippy::too_many_lines)]
 #[async_trait::async_trait]
 impl ImportStrategy for EmployeeImportStrategy {
     type RowData = PendingEmployee;
@@ -148,23 +149,54 @@ impl ImportStrategy for EmployeeImportStrategy {
                     let dept_id = if let Some(&cached_id) = self.dept_cache.get(&dept_key) {
                         cached_id
                     } else {
-                        match crate::repositories::department_repository::create_department(
-                            pool,
+                        // Double check database in case another chunk created it
+                        let existing = sqlx::query!(
+                            "SELECT id FROM departments WHERE workspace_id = $1 AND LOWER(name) = $2 LIMIT 1",
                             job.workspace_id,
-                            dept_name.clone(),
-                            None,
-                            None,
-                            None,
+                            dept_key
                         )
-                        .await
-                        {
-                            Ok(new_dept) => {
-                                self.dept_cache.insert(dept_key, new_dept.id);
-                                new_dept.id
-                            }
-                            Err(e) => {
-                                error!("Failed to create department '{}': {}", dept_name, e);
-                                Uuid::nil()
+                        .fetch_optional(pool)
+                        .await;
+
+                        if let Ok(Some(row)) = existing {
+                            self.dept_cache.insert(dept_key.clone(), row.id);
+                            row.id
+                        } else {
+                            match crate::repositories::department_repository::create_department(
+                                pool,
+                                job.workspace_id,
+                                dept_name.clone(),
+                                None,
+                                None,
+                                None,
+                            )
+                            .await
+                            {
+                                Ok(new_dept) => {
+                                    self.dept_cache.insert(dept_key.clone(), new_dept.id);
+                                    new_dept.id
+                                }
+                                Err(e) => {
+                                    // Final check in case of a unique constraint race condition
+                                    let retry = sqlx::query!(
+                                        "SELECT id FROM departments WHERE workspace_id = $1 AND LOWER(name) = $2 LIMIT 1",
+                                        job.workspace_id,
+                                        dept_key
+                                    )
+                                    .fetch_optional(pool)
+                                    .await;
+
+                                    if let Ok(Some(row)) = retry {
+                                        self.dept_cache.insert(dept_key.clone(), row.id);
+                                        row.id
+                                    } else {
+                                        error!(
+                                            "Failed to create department '{}': {}",
+                                            dept_name, e
+                                        );
+                                        Uuid::nil()
+                                    }
+                                }
                             }
                         }
                     };
