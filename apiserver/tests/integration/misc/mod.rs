@@ -10,3 +10,4 @@ mod repo_pagination;
 mod schema_isolation;
 mod timezone;
 mod websocket;
+pub mod worker_pool;

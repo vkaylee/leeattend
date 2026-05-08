@@ -41,7 +41,6 @@ services:
     environment:
       - RUST_BACKTRACE=1
       - RUST_LOG=apiserver=debug,tower_http=debug,sqlx=info
-      - WORKER_MAX_CONCURRENT=6
       - STORAGE_DIR=/app/apiserver/storage
     volumes:
       - .:/app

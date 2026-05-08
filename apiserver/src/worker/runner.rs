@@ -62,7 +62,7 @@ pub struct WorkerConfig {
 impl Default for WorkerConfig {
     fn default() -> Self {
         Self {
-            max_concurrent_jobs: 6,
+            max_concurrent_jobs: 5,
             poll_timeout_secs: 30.0,
             max_retries: 3,
             job_timeout_secs: 300,
@@ -75,11 +75,11 @@ impl WorkerConfig {
     pub fn from_env() -> Self {
         let mut config = Self::default();
 
-        if let Ok(val) = std::env::var("WORKER_MAX_CONCURRENT") {
-            if let Ok(n) = val.parse() {
-                config.max_concurrent_jobs = n;
-            }
-        }
+        let max_conn = std::env::var("DB_WORKER_MAX_CONN")
+            .ok()
+            .and_then(|v| v.parse::<usize>().ok())
+            .unwrap_or(5);
+        config.max_concurrent_jobs = max_conn;
 
         if let Ok(val) = std::env::var("WORKER_POLL_TIMEOUT_SECS") {
             match val.parse::<f64>() {
@@ -365,7 +365,7 @@ impl JobWorker {
     }
 
     /// Process a single job by routing to appropriate handler.
-    async fn process_job(&self, job: Job) -> Result<(), String> {
+    pub async fn process_job(&self, job: Job) -> Result<(), String> {
         let job_id = job.job_id;
         let parent_id = job.parent_job_id;
         let batch_index = job.batch_index;
@@ -489,7 +489,7 @@ mod tests {
     fn test_worker_config_default() {
         let config = WorkerConfig::default();
 
-        assert_eq!(config.max_concurrent_jobs, 6);
+        assert_eq!(config.max_concurrent_jobs, 5);
         assert!((config.poll_timeout_secs - 30.0).abs() < 0.01);
         assert_eq!(config.max_retries, 3);
         assert_eq!(config.job_timeout_secs, 300);
@@ -498,13 +498,13 @@ mod tests {
     #[test]
     fn test_worker_config_from_env() {
         // Test with no env vars (should use defaults)
-        std::env::remove_var("WORKER_MAX_CONCURRENT");
+        std::env::remove_var("DB_WORKER_MAX_CONN");
         std::env::remove_var("WORKER_POLL_TIMEOUT_SECS");
         std::env::remove_var("WORKER_MAX_RETRIES");
         std::env::remove_var("WORKER_JOB_TIMEOUT_SECS");
 
         let config = WorkerConfig::from_env();
-        assert_eq!(config.max_concurrent_jobs, 6);
+        assert_eq!(config.max_concurrent_jobs, 5);
         assert_eq!(config.max_retries, 3);
     }
 
@@ -562,28 +562,27 @@ mod tests {
         let config = WorkerConfig::default();
         let semaphore = Semaphore::new(config.max_concurrent_jobs);
 
-        assert_eq!(semaphore.available_permits(), 6);
+        assert_eq!(semaphore.available_permits(), 5);
 
         // Simulate acquiring permits
         let permit1 = semaphore.try_acquire();
         assert!(permit1.is_ok());
-        assert_eq!(semaphore.available_permits(), 5);
+        assert_eq!(semaphore.available_permits(), 4);
 
         let permit2 = semaphore.try_acquire();
         assert!(permit2.is_ok());
-        assert_eq!(semaphore.available_permits(), 4);
+        assert_eq!(semaphore.available_permits(), 3);
 
-        // Can acquire up to 6
+        // Can acquire up to 5
         let _p3 = semaphore.try_acquire();
         let _p4 = semaphore.try_acquire();
-        let _p5 = semaphore.try_acquire();
-        let permit6 = semaphore.try_acquire();
-        assert!(permit6.is_ok());
+        let permit5 = semaphore.try_acquire();
+        assert!(permit5.is_ok());
         assert_eq!(semaphore.available_permits(), 0);
 
-        // Seventh should fail
-        let permit7 = semaphore.try_acquire();
-        assert!(permit7.is_err());
+        // Sixth should fail
+        let permit6 = semaphore.try_acquire();
+        assert!(permit6.is_err());
     }
 
     #[test]
