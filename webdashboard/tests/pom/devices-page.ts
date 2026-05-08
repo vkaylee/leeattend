@@ -21,9 +21,6 @@ export class DevicesPage extends BasePage {
     // 2. Wait for loading to finish (either agents list or empty state appears)
     await expect(this.page.locator('[data-testid="agents-list"], [data-testid="empty-agents-state"]')).toBeVisible({ timeout: 20000 });
 
-    // 3. Wait for the Global Add Device button
-    const globalAddButton = this.page.getByTestId('global-add-device-btn');
-    await expect(globalAddButton).toBeVisible({ timeout: 15000 });
 
     // 4. Ensure accordions are expanded so devices are visible
     // We can rely on it being present if agents-list is present
@@ -36,7 +33,12 @@ export class DevicesPage extends BasePage {
   // ---------- Add/Edit form ----------
 
   async clickAddDevice() {
-    await this.page.getByTestId('global-add-device-btn').click();
+    const agentCards = this.page.locator('[data-testid^="agent-card-"]');
+    const firstCard = agentCards.first();
+    const testId = await firstCard.getAttribute('data-testid') ?? '';
+    const agentId = testId.replace('agent-card-', '');
+    await this.page.getByTestId(`agent-header-${agentId}`).click(); // Expand first
+    await this.page.getByTestId(`add-device-btn-${agentId}`).click();
     await this.page.waitForTimeout(1000);
     await this.page.screenshot({ path: 'add-device-fail.png', fullPage: true });
     await expect(this.page.getByTestId('add-device-form')).toBeVisible();

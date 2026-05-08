@@ -45,7 +45,6 @@ export default function ConnectivityTopology() {
       <ConnectivityHeader
         agents={agents} includeInactive={includeInactive}
         onAddAgent={() => { state.setShowAddForm(!state.showAddForm); }}
-        onAddDevice={() => { state.setEditingDevice(null); state.setShowAddDeviceForm(true); }}
         onCollapseAll={() => { state.expandedAgents.forEach(id => { state.toggleAgent(id); }); }}
         onExpandAll={() => { agents.forEach(a => { if (!state.expandedAgents.has(a.id)) { state.toggleAgent(a.id); } }); }}
         onToggleInactive={() => { setIncludeInactive(!includeInactive); }}

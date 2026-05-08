@@ -9,7 +9,6 @@ interface ConnectivityHeaderProps {
   agents: AuthorizedAgent[];
   includeInactive: boolean;
   onAddAgent: () => void;
-  onAddDevice: () => void;
   onCollapseAll: () => void;
   onExpandAll: () => void;
   onToggleInactive: () => void;
@@ -19,7 +18,6 @@ export function ConnectivityHeader({
   agents,
   includeInactive,
   onAddAgent,
-  onAddDevice,
   onCollapseAll,
   onExpandAll,
   onToggleInactive,
@@ -80,13 +78,6 @@ export function ConnectivityHeader({
           onClick={onAddAgent}
         >
           <Plus size={18} /> {t("agents.add_btn")}
-        </button>
-        <button
-          className="flex items-center gap-3 bg-primary-600 text-white px-8 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95"
-          data-testid="global-add-device-btn"
-          onClick={onAddDevice}
-        >
-          <Plus size={18} /> {t("devices.add_btn")}
         </button>
       </div>
     </div>
