@@ -20,43 +20,6 @@ pub trait LeaveAccrualLogRepository: super::PoolBacked + Send + Sync {
         workspace_id: Uuid,
     ) -> Result<Option<ExistingAccrualLog>, sqlx::Error>;
 
-    /// Update the amount of an existing accrual log, appending "(Re-calculated)" to notes.
-    async fn update_accrual_amount(
-        &self,
-        log_id: Uuid,
-        workspace_id: Uuid,
-        new_amount: Decimal,
-    ) -> Result<LeaveAccrualLog, sqlx::Error>;
-
-    /// Insert a new accrual log. Uses ON CONFLICT DO NOTHING to handle races.
-    async fn insert_accrual_log(
-        &self,
-        workspace_id: Uuid,
-        employee_id: Uuid,
-        assignment_id: Option<Uuid>,
-        accrual_date: NaiveDate,
-        amount: Decimal,
-        leave_type_id: Uuid,
-    ) -> Result<Option<LeaveAccrualLog>, sqlx::Error>;
-
-    /// Upsert accrued_amount into leave_balances for an employee/year/leave-type.
-    async fn upsert_balance_accrual(
-        &self,
-        employee_id: Uuid,
-        year: i32,
-        leave_type_id: Uuid,
-        amount: Decimal,
-    ) -> Result<(), sqlx::Error>;
-
-    /// Adjust existing accrued_amount by a diff (used during re-calculation).
-    async fn adjust_balance_accrual(
-        &self,
-        employee_id: Uuid,
-        year: i32,
-        leave_type_id: Uuid,
-        diff: Decimal,
-    ) -> Result<(), sqlx::Error>;
-
     /// Fetch the `effective_from` date for a leave policy assignment.
     async fn get_assignment_effective_from(
         &self,
@@ -113,56 +76,6 @@ impl LeaveAccrualLogRepository for SqlxLeaveAccrualLogRepository {
             id: r.id,
             amount: r.amount,
         }))
-    }
-
-    async fn update_accrual_amount(
-        &self,
-        log_id: Uuid,
-        workspace_id: Uuid,
-        new_amount: Decimal,
-    ) -> Result<LeaveAccrualLog, sqlx::Error> {
-        update_accrual_amount(&self.pool, log_id, workspace_id, new_amount).await
-    }
-
-    async fn insert_accrual_log(
-        &self,
-        workspace_id: Uuid,
-        employee_id: Uuid,
-        assignment_id: Option<Uuid>,
-        accrual_date: NaiveDate,
-        amount: Decimal,
-        leave_type_id: Uuid,
-    ) -> Result<Option<LeaveAccrualLog>, sqlx::Error> {
-        insert_accrual_log(
-            &self.pool,
-            workspace_id,
-            employee_id,
-            assignment_id,
-            accrual_date,
-            amount,
-            leave_type_id,
-        )
-        .await
-    }
-
-    async fn upsert_balance_accrual(
-        &self,
-        employee_id: Uuid,
-        year: i32,
-        leave_type_id: Uuid,
-        amount: Decimal,
-    ) -> Result<(), sqlx::Error> {
-        upsert_balance_accrual(&self.pool, employee_id, year, leave_type_id, amount).await
-    }
-
-    async fn adjust_balance_accrual(
-        &self,
-        employee_id: Uuid,
-        year: i32,
-        leave_type_id: Uuid,
-        diff: Decimal,
-    ) -> Result<(), sqlx::Error> {
-        adjust_balance_accrual(&self.pool, employee_id, year, leave_type_id, diff).await
     }
 
     async fn get_assignment_effective_from(
