@@ -71,46 +71,46 @@ export function ReportsTable(props: ReportsTableProps) {
   }), [t, workUnitMinutes, sortBy, handleSort]);
 
   return (
-    <NavigableList<AttendanceSummary>
-      className="animate-in slide-in-from-bottom-8 duration-700"
-      columns={reportColumns}
-      emptyMessage={t("reports.messages.no_data")}
-      fetchNextPage={fetchNextPage}
-      hasNextPage={hasNextPage}
-      headerSlot={
-        <ReportFilters
-          dateRange={dateRange}
-          departments={departments}
-          filterMode={filterMode}
-          onDateRangeChange={handleDateRangeChange}
-          onDepartmentChange={handleDepartmentChange}
-          onFilterModeChange={handleFilterModeChange}
-          onSearchKeyDown={(e) => keyDownRef.current?.(e)}
-          onSearchQueryChange={setSearchQuery}
-          onSpecificMonthChange={handleSpecificMonthChange}
-          searchInputRef={searchInputRef}
-          searchQuery={searchQuery}
-          selectedDepartmentId={selectedDepartmentId}
-          specificMonth={specificMonth}
-          statsSlot={<ReportsStats quickStats={quickStats} />}
-          t={t}
-        />
-      }
-      isFetchingNextPage={isFetchingNextPage}
-      isLoading={isLoading}
-      itemKey={(row) => row.employee_id}
-      items={filteredData}
-      maxHeightClass=""
-      onKeyDownRef={keyDownRef}
-      onSearchChange={setSearchQuery}
-      onSelect={(row) => { handleEmployeeClick(row.employee_id, row.employee_name); }}
-      resetDeps={[searchQuery, filterMode, specificMonth, dateRange]}
-      rowIdPrefix="summary-row"
-      searchInputRef={searchInputRef}
-      searchPlaceholder={t("reports.search_placeholder")}
-      searchTestId="report-search"
-      searchValue={searchQuery}
-      showChevron
-    />
+    <div className="flex flex-col gap-6">
+      <ReportFilters
+        dateRange={dateRange}
+        departments={departments}
+        filterMode={filterMode}
+        onDateRangeChange={handleDateRangeChange}
+        onDepartmentChange={handleDepartmentChange}
+        onFilterModeChange={handleFilterModeChange}
+        onSearchKeyDown={(e) => keyDownRef.current?.(e)}
+        onSearchQueryChange={setSearchQuery}
+        onSpecificMonthChange={handleSpecificMonthChange}
+        searchInputRef={searchInputRef}
+        searchQuery={searchQuery}
+        selectedDepartmentId={selectedDepartmentId}
+        specificMonth={specificMonth}
+        statsSlot={<ReportsStats quickStats={quickStats} />}
+        t={t}
+      />
+      <NavigableList<AttendanceSummary>
+        className="animate-in slide-in-from-bottom-8 duration-700"
+        columns={reportColumns}
+        emptyMessage={t("reports.messages.no_data")}
+        fetchNextPage={fetchNextPage}
+        hasNextPage={hasNextPage}
+        isFetchingNextPage={isFetchingNextPage}
+        isLoading={isLoading}
+        itemKey={(row) => row.employee_id}
+        items={filteredData}
+        maxHeightClass=""
+        onKeyDownRef={keyDownRef}
+        onSearchChange={setSearchQuery}
+        onSelect={(row) => { handleEmployeeClick(row.employee_id, row.employee_name); }}
+        resetDeps={[searchQuery, filterMode, specificMonth, dateRange]}
+        rowIdPrefix="summary-row"
+        searchInputRef={searchInputRef}
+        searchPlaceholder={t("reports.search_placeholder")}
+        searchTestId="report-search"
+        searchValue={searchQuery}
+        showChevron
+      />
+    </div>
   );
 }
