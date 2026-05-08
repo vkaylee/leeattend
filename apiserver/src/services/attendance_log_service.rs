@@ -365,6 +365,8 @@ impl AttendanceLogService {
         let mut claimed_count = 0u32;
         let mut dates_to_reprocess = std::collections::HashSet::new();
 
+        let mut tx = pool.begin().await.map_err(|e| e.to_string())?;
+
         for staged in &staged_logs {
             // 2. Create RawAttendanceLog from staging
             let (punch, status) = Self::extract_punch_status(staged.raw_data.as_ref());
@@ -382,30 +384,43 @@ impl AttendanceLogService {
                 created_at: Utc::now(),
             };
 
-            // 3. Insert to raw_attendance_logs
-            match self.raw_log_repo.create_raw_log(&raw_log).await {
+            // 3. Insert to raw_attendance_logs using standalone function with transaction
+            match crate::repositories::raw_attendance_log_repository::create_raw_log(
+                &mut *tx, &raw_log,
+            )
+            .await
+            {
                 Ok(true) => {
                     claimed_count += 1;
                     dates_to_reprocess.insert(staged.punch_time.date_naive());
 
                     // Mark staging log as processed
-                    let _ = self
-                        .staging_repo
-                        .update_staging_status(staged.id, staged.workspace_id, "processed")
-                        .await;
+                    let _ = crate::repositories::staging_log_repository::update_staging_status(
+                        &mut *tx,
+                        staged.id,
+                        staged.workspace_id,
+                        "processed",
+                    )
+                    .await;
                 }
                 Ok(false) => {
                     // Duplicate - still mark as processed
-                    let _ = self
-                        .staging_repo
-                        .update_staging_status(staged.id, staged.workspace_id, "processed")
-                        .await;
+                    let _ = crate::repositories::staging_log_repository::update_staging_status(
+                        &mut *tx,
+                        staged.id,
+                        staged.workspace_id,
+                        "processed",
+                    )
+                    .await;
                 }
                 Err(e) => {
                     error!("Failed to claim staged log {}: {}", staged.id, e);
+                    return Err(format!("Transaction aborted due to DB error: {e}"));
                 }
             }
         }
+
+        tx.commit().await.map_err(|e| e.to_string())?;
 
         // 4. Trigger pairing for all affected dates
         let ws = crate::repositories::workspace_repository::get_workspace_by_id(pool, workspace_id)

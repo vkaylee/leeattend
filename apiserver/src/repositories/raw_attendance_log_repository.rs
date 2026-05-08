@@ -109,7 +109,10 @@ impl RawAttendanceLogRepository for SqlxRawAttendanceLogRepository {
     }
 }
 
-pub async fn create_raw_log(pool: &PgPool, log: &RawAttendanceLog) -> Result<bool, sqlx::Error> {
+pub async fn create_raw_log<'c>(
+    executor: impl sqlx::PgExecutor<'c>,
+    log: &RawAttendanceLog,
+) -> Result<bool, sqlx::Error> {
     let result = query(
         "INSERT INTO raw_attendance_logs (id, workspace_id, employee_id, punch_time, source, device_id, raw_data, created_at, punch, status) 
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
@@ -125,14 +128,14 @@ pub async fn create_raw_log(pool: &PgPool, log: &RawAttendanceLog) -> Result<boo
     .bind(log.created_at)
     .bind(log.punch)
     .bind(log.status)
-    .execute(pool)
+    .execute(executor)
     .await?;
 
     Ok(result.rows_affected() > 0)
 }
 
-pub async fn get_raw_log_by_id(
-    pool: &PgPool,
+pub async fn get_raw_log_by_id<'c>(
+    executor: impl sqlx::PgExecutor<'c>,
     workspace_id: Uuid,
     id: Uuid,
 ) -> Result<Option<RawAttendanceLog>, sqlx::Error> {
@@ -141,12 +144,12 @@ pub async fn get_raw_log_by_id(
     )
     .bind(id)
     .bind(workspace_id)
-    .fetch_optional(pool)
+    .fetch_optional(executor)
     .await
 }
 
-pub async fn get_latest_log(
-    pool: &PgPool,
+pub async fn get_latest_log<'c>(
+    executor: impl sqlx::PgExecutor<'c>,
     workspace_id: Uuid,
     employee_id: Uuid,
 ) -> Result<Option<RawAttendanceLog>, sqlx::Error> {
@@ -155,12 +158,12 @@ pub async fn get_latest_log(
     )
     .bind(employee_id)
     .bind(workspace_id)
-    .fetch_optional(pool)
+    .fetch_optional(executor)
     .await
 }
 
-pub async fn get_paginated_raw_logs(
-    pool: &PgPool,
+pub async fn get_paginated_raw_logs<'c>(
+    executor: impl sqlx::PgExecutor<'c>,
     workspace_id: Uuid,
     p_employee_id: Option<Uuid>,
     p_from: Option<DateTime<Utc>>,
@@ -205,12 +208,12 @@ pub async fn get_paginated_raw_logs(
 
     query_builder
         .build_query_as::<RawAttendanceLogWithEmployee>()
-        .fetch_all(pool)
+        .fetch_all(executor)
         .await
 }
 
-pub async fn count_raw_logs(
-    pool: &PgPool,
+pub async fn count_raw_logs<'c>(
+    executor: impl sqlx::PgExecutor<'c>,
     workspace_id: Uuid,
     p_employee_id: Option<Uuid>,
     p_from: Option<DateTime<Utc>>,
@@ -237,7 +240,7 @@ pub async fn count_raw_logs(
 
     query_builder
         .build_query_as::<(i64,)>()
-        .fetch_one(pool)
+        .fetch_one(executor)
         .await
         .map(|r| r.0)
 }
@@ -245,8 +248,8 @@ pub async fn count_raw_logs(
 /// Batch insert multiple raw attendance logs
 /// Uses ON CONFLICT DO NOTHING to skip duplicates
 /// Returns count of actually inserted rows
-pub async fn create_raw_logs_batch(
-    pool: &PgPool,
+pub async fn create_raw_logs_batch<'c>(
+    executor: impl sqlx::PgExecutor<'c>,
     logs: &[&RawAttendanceLog],
 ) -> Result<usize, sqlx::Error> {
     if logs.is_empty() {
@@ -273,7 +276,7 @@ pub async fn create_raw_logs_batch(
     query_builder
         .push(" ON CONFLICT (workspace_id, employee_id, punch_time, punch, status) DO NOTHING");
 
-    let result = query_builder.build().execute(pool).await?;
+    let result = query_builder.build().execute(executor).await?;
 
     Ok(result.rows_affected() as usize)
 }

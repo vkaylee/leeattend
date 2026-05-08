@@ -103,8 +103,8 @@ pub struct StagingLog {
 
 /// Create a staging log for unknown user.
 /// Uses ON CONFLICT DO NOTHING to silently ignore duplicates.
-pub async fn create_staging_log(
-    pool: &PgPool,
+pub async fn create_staging_log<'c>(
+    executor: impl sqlx::PgExecutor<'c>,
     workspace_id: Uuid,
     device_id: Option<String>,
     raw_user_id: &str,
@@ -129,15 +129,15 @@ pub async fn create_staging_log(
     .bind(punch_time)
     .bind(raw_data)
     .bind(fingerprint)
-    .execute(pool)
+    .execute(executor)
     .await?;
 
     Ok(result.rows_affected() > 0)
 }
 
 /// Get pending staging logs for a workspace
-pub async fn get_pending_staging_logs(
-    pool: &PgPool,
+pub async fn get_pending_staging_logs<'c>(
+    executor: impl sqlx::PgExecutor<'c>,
     workspace_id: Uuid,
     limit: i64,
 ) -> Result<Vec<StagingLog>, sqlx::Error> {
@@ -152,14 +152,14 @@ pub async fn get_pending_staging_logs(
     )
     .bind(workspace_id)
     .bind(limit)
-    .fetch_all(pool)
+    .fetch_all(executor)
     .await
 }
 
 /// Update staging log status with workspace_id filtering for multi-tenant safety.
 /// Returns true if a row was actually updated.
-pub async fn update_staging_status(
-    pool: &PgPool,
+pub async fn update_staging_status<'c>(
+    executor: impl sqlx::PgExecutor<'c>,
     id: Uuid,
     workspace_id: Uuid,
     status: &str,
@@ -170,7 +170,7 @@ pub async fn update_staging_status(
     .bind(status)
     .bind(id)
     .bind(workspace_id)
-    .execute(pool)
+    .execute(executor)
     .await?;
     Ok(result.rows_affected() > 0)
 }
@@ -194,15 +194,15 @@ pub async fn update_staging_status_tx(
 }
 
 /// Count pending staging logs for a workspace
-pub async fn count_pending_staging_logs(
-    pool: &PgPool,
+pub async fn count_pending_staging_logs<'c>(
+    executor: impl sqlx::PgExecutor<'c>,
     workspace_id: Uuid,
 ) -> Result<i64, sqlx::Error> {
     let row: (i64,) = sqlx::query_as(
         "SELECT COUNT(*) FROM attendance_staging_logs WHERE workspace_id = $1 AND status = 'pending'",
     )
     .bind(workspace_id)
-    .fetch_one(pool)
+    .fetch_one(executor)
     .await?;
     Ok(row.0)
 }
