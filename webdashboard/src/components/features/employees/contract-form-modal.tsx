@@ -2,8 +2,8 @@ import { FileText } from "lucide-react";
 import React, { useEffect } from "react";
 import { useForm, useWatch } from "react-hook-form";
 
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod/v3";
+import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
+import { z } from "zod";
 
 import type { EmployeeContract } from "@/lib/api";
 
@@ -69,7 +69,7 @@ export default function ContractFormModal({
     control,
     formState: { errors, isSubmitting },
   } = useForm<ContractFormValues>({
-    resolver: zodResolver(contractSchema),
+    resolver: standardSchemaResolver(contractSchema),
     defaultValues: {
       contract_type: "probation",
       status: "active",
