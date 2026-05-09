@@ -1,9 +1,9 @@
 import type { TFunction } from "i18next";
 
 import { LayoutGrid, UserCircle, CalendarDays } from "lucide-react";
-import React from "react";
+import React, { useMemo } from "react";
 
-import type { Department, User, WorkingPattern } from "@/lib/api";
+import type { Department, Employee, WorkingPattern } from "@/lib/api";
 
 import Button from "@/components/ui/button";
 import { Combobox } from "@/components/ui/combobox";
@@ -14,15 +14,15 @@ import { useDepartmentForm } from "./hooks/use-department-form";
 
 export interface DepartmentFormModalProps {
   editingDept: Department | null;
+  employees: Employee[];
   isOpen: boolean;
   onClose: () => void;
   patterns: WorkingPattern[];
   t: TFunction;
-  users: User[];
   wsId: string;
 }
 
-export function DepartmentFormModal({ editingDept, isOpen, onClose, wsId, users, patterns, t }: DepartmentFormModalProps) {
+export function DepartmentFormModal({ editingDept, isOpen, onClose, wsId, employees, patterns, t }: DepartmentFormModalProps) {
   const { 
     selectedManagerId, 
     setSelectedManagerId, 
@@ -32,13 +32,20 @@ export function DepartmentFormModal({ editingDept, isOpen, onClose, wsId, users,
     isLoading 
   } = useDepartmentForm(wsId, editingDept, onClose, t);
 
+  const sortedEmployees = useMemo(() => {
+    if (!editingDept) return employees;
+    const thisDept = employees.filter(e => e.department_name === editingDept.name);
+    const others = employees.filter(e => e.department_name !== editingDept.name);
+    return [...thisDept, ...others];
+  }, [employees, editingDept]);
+
   return (
     <Modal icon={<LayoutGrid size={24} />} isOpen={isOpen} maxWidth="lg" onClose={onClose} subtitle={t("departments.modal.subtitle")} title={editingDept ? t("departments.modal.edit_title") : t("departments.modal.add_title")}>
       <form className="space-y-8 pt-4 animate-in fade-in duration-500" onSubmit={handleSubmit}>
         <FormField defaultValue={editingDept?.name} id="dept-name" label={t("departments.form.name_label")} name="name" placeholder={t("departments.form.name_placeholder")} required />
         <FormField defaultValue={editingDept?.description ?? undefined} id="dept-desc" label={t("common.description")} name="description" placeholder={t("departments.form.desc_placeholder")} rows={4} type="textarea" />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div className="space-y-3 px-1"><label className={LABEL_BASE} htmlFor="dept-manager">{t("departments.manager_label")}</label><Combobox className="bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 h-14" id="dept-manager" onChange={setSelectedManagerId} options={users.map(u => ({ value: u.id, label: (u.full_name ?? u.email).toUpperCase(), icon: <UserCircle size={14} /> }))} placeholder={t("departments.form.manager_placeholder")} value={selectedManagerId} /></div>
+          <div className="space-y-3 px-1"><label className={LABEL_BASE} htmlFor="dept-manager">{t("departments.manager_label")}</label><Combobox className="bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 h-14" data-testid="dept-manager" id="dept-manager" onChange={setSelectedManagerId} options={sortedEmployees.map(e => ({ value: e.id, label: e.full_name.toUpperCase(), description: e.department_name ? `${e.employee_id_number} • ${e.department_name}` : e.employee_id_number, icon: <UserCircle size={14} /> }))} placeholder={t("departments.form.manager_placeholder")} value={selectedManagerId} /></div>
           <div className="space-y-3 px-1"><label className={LABEL_BASE} htmlFor="dept-pattern">{t("departments.default_pattern_label")}</label><Combobox className="bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 h-14" data-testid="dept-pattern" id="dept-pattern" onChange={setSelectedPatternId} options={patterns.map(p => ({ value: p.id, label: p.name.toUpperCase(), icon: <CalendarDays size={14} /> }))} placeholder={t("departments.form.pattern_placeholder")} value={selectedPatternId} /></div>
         </div>
         <div className="pt-6 grid grid-cols-2 gap-6 border-t border-slate-50 dark:border-slate-800">

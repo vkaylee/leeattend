@@ -10,7 +10,7 @@ import Button from "@/components/ui/button";
 import EmptyState from "@/components/ui/empty-state";
 import PageHeader from "@/components/ui/page-header";
 
-import { fetchDepartments, deleteDepartment, getCurrentWorkspaceId, fetchUsers, fetchWorkingPatterns, Department } from "../lib/api";
+import { fetchDepartments, deleteDepartment, getCurrentWorkspaceId, fetchEmployees, fetchWorkingPatterns, Department } from "../lib/api";
 
 export default function DepartmentsPage() {
   const { t } = useTranslation();
@@ -21,7 +21,8 @@ export default function DepartmentsPage() {
   const [editingDept, setEditingDept] = useState<Department | null>(null);
 
   const { data: departments = [], isLoading } = useQuery({ queryKey: ["departments", wsId], queryFn: () => fetchDepartments(wsId), enabled: !!wsId });
-  const { data: users = [] } = useQuery({ queryKey: ["users"], queryFn: fetchUsers });
+  const { data: employeesData } = useQuery({ queryKey: ["employees", wsId], queryFn: () => fetchEmployees(wsId, 1, 1000), enabled: !!wsId });
+  const employees = employeesData?.data ?? [];
   const { data: patterns = [] } = useQuery({ queryKey: ["working-patterns", wsId], queryFn: () => fetchWorkingPatterns(wsId), enabled: !!wsId });
 
   const deleteMutation = useMutation({
@@ -58,12 +59,12 @@ export default function DepartmentsPage() {
           <DepartmentCard
             deleteMutationMutate={deleteMutation.mutate}
             dept={dept}
+            employees={employees}
             key={dept.id}
             onConfig={(d) => { setEditingDept(d); setIsConfigModalOpen(true); }}
             onEdit={(d) => { setEditingDept(d); setIsModalOpen(true); }}
             patterns={patterns}
             t={t}
-            users={users}
           />
         ))}
       </div>
@@ -78,11 +79,11 @@ export default function DepartmentsPage() {
 
       <DepartmentFormModal
         editingDept={editingDept}
+        employees={employees}
         isOpen={isModalOpen}
         onClose={() => { setIsModalOpen(false); setEditingDept(null); }}
         patterns={patterns}
         t={t}
-        users={users}
         wsId={wsId}
       />
     </div>

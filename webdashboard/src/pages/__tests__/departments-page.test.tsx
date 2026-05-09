@@ -7,7 +7,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import { ToastProvider } from "../../components/ui/toast";
 import * as api from "../../lib/api";
-import { Department, WorkingPattern } from "../../lib/api/types";
+import { Department, WorkingPattern, Employee, PaginatedResponse } from "../../lib/api/types";
 import DepartmentsPage from "../departments-page";
 
 
@@ -26,7 +26,7 @@ vi.mock("../../lib/api", () => ({
   updateDepartment: vi.fn(),
   deleteDepartment: vi.fn(),
   getCurrentWorkspaceId: vi.fn(),
-  fetchUsers: vi.fn(),
+  fetchEmployees: vi.fn(),
   fetchWorkingPatterns: vi.fn(),
   fetchDepartmentPayrollConfigs: vi.fn(),
   setDepartmentPayrollConfig: vi.fn(),
@@ -68,9 +68,15 @@ describe("DepartmentsPage", () => {
       { id: "dept-1", name: "Engineering", description: "Tech stuff", manager_id: "user-1", active_employee_count: 5 }
     ] as unknown as Department[]);
  
-    vi.mocked(api.fetchUsers).mockResolvedValue([
-      { id: "user-1", full_name: "Manager One", email: "manager1@example.com" }
-    ]);
+    vi.mocked(api.fetchEmployees).mockResolvedValue({
+      data: [
+        { id: "user-2", full_name: "Manager Two", employee_id_number: "EMP002", department_name: "HR" },
+        { id: "user-1", full_name: "Manager One", employee_id_number: "EMP001", department_name: "Engineering" }
+      ],
+      total: 2,
+      page: 1,
+      limit: 1000
+    } as unknown as PaginatedResponse<Employee>);
  
     vi.mocked(api.fetchWorkingPatterns).mockResolvedValue([
       { id: "pat-1", name: "Standard Pattern" }
@@ -176,5 +182,31 @@ describe("DepartmentsPage", () => {
     await waitFor(() => {
       expect(api.deleteDepartment).toHaveBeenCalledWith("test-ws-id", "dept-1");
     });
+  });
+
+  it("sorts employees prioritizing current department members in edit modal", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<DepartmentsPage />);
+    
+    // Wait for departments to load
+    await screen.findByText("Engineering");
+    
+    // Open edit modal
+    const editButton = await screen.findByTitle(/common.edit/i);
+    await user.click(editButton);
+    
+    // Find the hidden select element used for the combobox
+    // The Combobox is mocked in setup.tsx to render a select with the exact data-testid
+    const managerSelect = await screen.findByTestId("dept-manager");
+    
+    // Get all options except the placeholder
+    const options = Array.from(managerSelect.querySelectorAll("option")).filter(opt => opt.value !== "");
+    
+    // Original array has "Manager Two" (HR) then "Manager One" (Engineering).
+    // Because we are editing "Engineering", "Manager One" should be sorted first.
+    expect(options[0].value).toBe("user-1");
+    expect(options[0].text).toBe("MANAGER ONE");
+    expect(options[1].value).toBe("user-2");
+    expect(options[1].text).toBe("MANAGER TWO");
   });
 });
