@@ -16,7 +16,7 @@ import { useEmployeeContracts } from "@/pages/employees/hooks/use-employee-contr
 const contractSchema = z.object({
   contract_number: z.string().optional().or(z.literal("")),
   contract_type: z.enum(["probation", "training", "fixed_term", "indefinite"]),
-  status: z.enum(["draft", "active", "expired", "terminated"]).optional(),
+  status: z.enum(["draft", "active", "expired", "terminated"]),
   start_date: z.string().min(1, { message: "Ngày hiệu lực là bắt buộc" }),
   end_date: z.string().optional().or(z.literal("")),
   notes: z.string().optional().or(z.literal("")),
