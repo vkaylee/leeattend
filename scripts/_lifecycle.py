@@ -79,7 +79,10 @@ def lifecycle_up(mode: str = "all") -> bool:
     compose_base = env["DOCKER_COMPOSE_BASE"].split()
 
     # Bring services up (idempotent — no pre-cleanup needed)
-    _run(compose_base + profiles + ["up", "-d"], silent=False, capture=False)
+    # CRITICAL: We must use silent=True (which sets stdout/stderr to DEVNULL)
+    # to prevent podman system service and conmon daemons from inheriting the PTY!
+    # Inheriting the PTY causes the terminal to hang indefinitely after the script exits.
+    _run(compose_base + profiles + ["up", "-d"], silent=True, capture=False)
 
     # Health check
     project_name = os.environ.get("COMPOSE_PROJECT_NAME", "leeattend-test")
@@ -266,6 +269,7 @@ def lifecycle_down(mode: str = "all") -> None:
 
     # Finally run compose down to clean up networks and any dangling state
     # We MUST NOT use -v here, otherwise we will delete the shared Cargo/Bun cache volumes!
+    # CRITICAL: Use silent=True to prevent PTY hang from leftover daemons.
     _run(
         compose_base + ["down", "--remove-orphans", "--timeout", "1"],
         silent=True,

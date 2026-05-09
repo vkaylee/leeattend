@@ -100,3 +100,68 @@ async fn test_update_workspace_time_format() {
             .unwrap();
     assert_eq!(persisted_ws.time_format, "12h");
 }
+
+#[tokio::test]
+async fn test_update_workspace_all_fields() {
+    let test_db = TestDatabase::new().await;
+    let pool = test_db.pool();
+    let factory = TestFactory::new(pool.clone());
+
+    let user_id: Uuid = factory.user().create().await;
+    let ws_id: Uuid = factory.workspace().create_with_owner(user_id).await;
+
+    let updated_ws = WorkspaceService::new(pool.clone())
+        .update_workspace(
+            apiserver::services::workspace_service::UpdateWorkspaceArgs {
+                ws_id,
+                name: Some("New Name".to_string()),
+                date_format: Some("YYYY-MM-DD".to_string()),
+                time_format: Some("12h".to_string()),
+                timezone: Some("Asia/Ho_Chi_Minh".to_string()),
+                theme_primary_color: Some("#ffffff".to_string()),
+                default_language: Some("vi".to_string()),
+                holiday_overnight_strategy: Some("split".to_string()),
+                default_holiday_ot_multiplier: Some(rust_decimal::Decimal::new(20, 1)),
+                logo_url: Some("https://example.com/logo.png".to_string()),
+                tagline: Some("My Tagline".to_string()),
+            },
+        )
+        .await
+        .expect("Failed to update workspace");
+
+    assert_eq!(updated_ws.name, "New Name");
+    assert_eq!(updated_ws.date_format, "YYYY-MM-DD");
+    assert_eq!(updated_ws.timezone, "Asia/Ho_Chi_Minh");
+    assert_eq!(updated_ws.default_language, "vi");
+}
+
+#[tokio::test]
+async fn test_update_workspace_no_fields() {
+    let test_db = TestDatabase::new().await;
+    let pool = test_db.pool();
+    let factory = TestFactory::new(pool.clone());
+
+    let user_id: Uuid = factory.user().create().await;
+    let ws_id: Uuid = factory.workspace().create_with_owner(user_id).await;
+
+    let result = WorkspaceService::new(pool.clone())
+        .update_workspace(
+            apiserver::services::workspace_service::UpdateWorkspaceArgs {
+                ws_id,
+                name: None,
+                date_format: None,
+                time_format: None,
+                timezone: None,
+                theme_primary_color: None,
+                default_language: None,
+                holiday_overnight_strategy: None,
+                default_holiday_ot_multiplier: None,
+                logo_url: None,
+                tagline: None,
+            },
+        )
+        .await;
+
+    assert!(result.is_err());
+    assert_eq!(result.unwrap_err(), "No fields to update");
+}

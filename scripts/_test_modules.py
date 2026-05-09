@@ -163,10 +163,10 @@ def leeattend_run_coverage(component_filter: str = "", mode: str = "all") -> boo
             f"mkdir -p /workspace/.test_logs && "
             f"SQLX_OFFLINE=true SQLX_OFFLINE_DIR=/workspace/apiserver/.sqlx {coverage_env} cargo llvm-cov nextest --lib --test integration {pkg_flag} "
             f"--lcov --output-path /workspace/.test_logs/coverage-apiserver.lcov "
-            f"--no-tests=pass 2>&1 && "
+            f"--no-tests=pass 2>&1 </dev/null && "
             f"SQLX_OFFLINE=true SQLX_OFFLINE_DIR=/workspace/apiserver/.sqlx {coverage_env} cargo llvm-cov report --html "
-            f"--output-dir /workspace/.test_logs/coverage-apiserver-html 2>&1 && "
-            f"SQLX_OFFLINE=true SQLX_OFFLINE_DIR=/workspace/apiserver/.sqlx {coverage_env} cargo llvm-cov report --summary-only 2>&1"
+            f"--output-dir /workspace/.test_logs/coverage-apiserver-html 2>&1 </dev/null && "
+            f"SQLX_OFFLINE=true SQLX_OFFLINE_DIR=/workspace/apiserver/.sqlx {coverage_env} cargo llvm-cov report --summary-only 2>&1 </dev/null"
         )
         task_name = (
             f"rust-backend-coverage-{component_filter}"
@@ -180,7 +180,7 @@ def leeattend_run_coverage(component_filter: str = "", mode: str = "all") -> boo
     if mode in ("all", "web"):
         tasks.append(
             (
-                "webdashboard",
+                "webdashboard-coverage",
                 "webdashboard",
                 build_compose_exec("webdashboard", "bun run test:coverage", mode=mode),
             )

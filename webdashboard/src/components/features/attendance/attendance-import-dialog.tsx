@@ -56,7 +56,7 @@ function ErrorLog({ errorLog, t }: { errorLog: string; t: (key: string) => strin
           if (error.startsWith("DL_LINK:")) {
             const url = error.replace("DL_LINK:", "").trim();
             return (
-              <a href={url} download key={index} className="mb-4 text-[11px] bg-rose-50 dark:bg-rose-900/30 p-3 rounded-lg border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-400 font-bold flex items-center gap-2 hover:bg-rose-100 dark:hover:bg-rose-900/50 transition-colors">
+              <a className="mb-4 text-[11px] bg-rose-50 dark:bg-rose-900/30 p-3 rounded-lg border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-400 font-bold flex items-center gap-2 hover:bg-rose-100 dark:hover:bg-rose-900/50 transition-colors" download href={url} key={index}>
                 <FileText size={16} /> Tải file Excel chứa danh sách các dòng lỗi / bỏ qua
               </a>
             );
@@ -138,7 +138,7 @@ function ImportRequirements({ t, customRequirements, targetType }: { t: (key: st
         </ul>
         {targetType === "employee" && (
           <div className="mt-4 flex items-center">
-            <a href="/templates/employee_import_template.xlsx" download className="text-[10px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest hover:text-primary-700 hover:underline flex items-center gap-1.5">
+            <a className="text-[10px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest hover:text-primary-700 hover:underline flex items-center gap-1.5" download href="/templates/employee_import_template.xlsx">
               <FileText size={14} /> Tải file Excel mẫu (Template)
             </a>
           </div>
@@ -181,6 +181,7 @@ function ImportActions({ onClose, file, uploading, handleUpload, t }: { onClose:
   );
 }
 
+// eslint-disable-next-line complexity
 export default function AttendanceImportDialog({ 
   isOpen, 
   onClose, 

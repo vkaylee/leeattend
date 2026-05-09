@@ -145,6 +145,15 @@ class Orchestrator:
                 pass
             self.lock_fd = None
 
+        # Fix PTY hang by restoring sane terminal state at exit
+        if sys.stdout.isatty():  # pragma: no cover
+            subprocess.run(
+                ["/bin/stty", "sane"],
+                stderr=subprocess.DEVNULL,
+                stdout=subprocess.DEVNULL,
+                check=False,
+            )
+
     @property
     def engine(self) -> str:
         """Detect container engine (podman or docker)."""
@@ -310,7 +319,7 @@ class Orchestrator:
         elif args.command == "run":
             self.handle_run(args)
 
-    def handle_test(self, args: argparse.Namespace) -> None:
+    def handle_test(self, args: argparse.Namespace) -> None:  # noqa: PLR0915
         target = getattr(args, "target", None)
 
         if target == "infra":
@@ -369,6 +378,10 @@ class Orchestrator:
 
         if args.lint_only:
             run_lint = True
+
+        if args.coverage:
+            run_unit = False
+            run_e2e = False
 
         if (run_lint or run_unit or run_e2e) and mode in ["api", "all"]:
             log_info("🔹 Generating SQLx metadata cache before tests...")

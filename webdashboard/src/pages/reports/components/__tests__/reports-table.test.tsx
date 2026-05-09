@@ -1,8 +1,10 @@
 import { render, screen } from "@testing-library/react";
 import React from "react";
+
 import { describe, it, expect, vi } from "vitest";
 
 import { AttendanceSummary, Department } from "@/lib/api/types";
+
 import { ReportsTable } from "../reports-table";
 
 // Mock the child components to simplify testing the DOM layout
@@ -15,10 +17,10 @@ vi.mock("@/components/common/navigable-list", () => ({
 }));
 
 describe("ReportsTable", () => {
-  const mockDepartments: Department[] = [
+  const mockDepartments = [
     { id: "d1", name: "Engineering" },
     { id: "d2", name: "HR" }
-  ];
+  ] as Department[];
 
   const defaultProps = {
     dateRange: { start: "2024-03-01", end: "2024-03-31" },
@@ -47,7 +49,7 @@ describe("ReportsTable", () => {
   };
 
   it("renders ReportFilters and NavigableList as siblings in a flex-col container to prevent layout squashing", () => {
-    const { container } = render(<ReportsTable {...defaultProps} />);
+    render(<ReportsTable {...defaultProps} />);
 
     const filters = screen.getByTestId("mock-report-filters");
     const list = screen.getByTestId("mock-navigable-list");

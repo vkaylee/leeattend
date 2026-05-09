@@ -14,3 +14,11 @@ fi
 
 export SKIP_SAFE_RUN=1 # Orchestrator handles safe-run internally
 "$PYTHON_BIN" "$SCRIPT_DIR/scripts/_orchestrator.py" test "$@"
+EXIT_CODE=$?
+
+# Restore PTY state to prevent hang
+if [ -t 1 ]; then
+    stty sane 2>/dev/null || true
+fi
+
+exit $EXIT_CODE

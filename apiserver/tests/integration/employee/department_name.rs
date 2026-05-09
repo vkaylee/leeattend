@@ -128,8 +128,14 @@ async fn test_get_all_employees_includes_department_name() {
 
     assert_eq!(total, 2);
 
-    let alice = employees.iter().find(|e| e.id == emp1).unwrap();
-    let bob = employees.iter().find(|e| e.id == emp2).unwrap();
+    let alice = employees
+        .iter()
+        .find(|e| e.id == emp1)
+        .expect("Alice should be in the results");
+    let bob = employees
+        .iter()
+        .find(|e| e.id == emp2)
+        .expect("Bob should be in the results");
 
     assert_eq!(alice.department_name.as_deref(), Some("Sales"));
     assert!(bob.department_name.is_none());

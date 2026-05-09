@@ -11,6 +11,7 @@ mod ot_extended;
 mod pairing;
 mod paper_forms;
 mod policies;
+mod policy_assignments;
 mod policy_resolver;
 mod reprocess;
 mod service;

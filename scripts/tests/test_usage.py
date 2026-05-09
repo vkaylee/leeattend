@@ -71,7 +71,7 @@ def test_no_garbage_flags_in_test_parser(orchestrator: _orchestrator.Orchestrato
     args_dict["component"] = ""
     args_dict["pattern"] = "auth"
     args_dict["command"] = "test"
-    args_dict["coverage"] = True
+    args_dict["coverage"] = False
     args_dict["timeout"] = 100
 
     args = TrackingNamespace(**args_dict)

@@ -178,10 +178,9 @@ class TestLifecycleComposeCommand:
             up_cmd = " ".join(first_call_args[0][0])
             assert "web" in up_cmd
 
-            # Verify that silent=False is passed so podman-compose does not fail
-            # when run in a redirected output environment
+            # Verify that silent=True is passed to prevent PTY hang
             kwargs = first_call_args[1]
-            assert kwargs.get("silent") is False
+            assert kwargs.get("silent") is True
 
     def test_run_executes_subprocess(self) -> None:
         """Verify _run executes subprocess with correct args and handles check correctly."""

@@ -2,9 +2,11 @@
 
 mod api;
 mod calculation;
+mod export_api;
 mod export_security;
 mod export_smoke_test;
 mod filtering;
 mod system;
 mod websocket_auth;
+mod worker_handler;
 // mod streaming; // Skipping streaming tests for now as they require complex Redis setup and might be redundant with system tests for type checking

@@ -216,3 +216,18 @@ impl super::PoolBacked for SqlxLeaveAccrualLogRepository {
         &self.pool
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::repositories::PoolBacked;
+
+    #[tokio::test]
+    async fn test_pool_backed() {
+        let pool = sqlx::postgres::PgPoolOptions::new()
+            .connect_lazy("postgres://fake:fake@localhost:5432/fake")
+            .unwrap();
+        let repo = SqlxLeaveAccrualLogRepository::from_pool(pool);
+        assert!(!repo.pool().is_closed());
+    }
+}
