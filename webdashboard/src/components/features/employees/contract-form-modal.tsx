@@ -14,12 +14,12 @@ import { useToast } from "@/components/ui/toast";
 import { useEmployeeContracts } from "@/pages/employees/hooks/use-employee-contracts";
 
 const contractSchema = z.object({
-  contract_number: z.string().optional(),
+  contract_number: z.string().optional().or(z.literal("")),
   contract_type: z.enum(["probation", "training", "fixed_term", "indefinite"]),
   status: z.enum(["draft", "active", "expired", "terminated"]).optional(),
   start_date: z.string().min(1, { message: "Ngày hiệu lực là bắt buộc" }),
-  end_date: z.string().optional(),
-  notes: z.string().optional(),
+  end_date: z.string().optional().or(z.literal("")),
+  notes: z.string().optional().or(z.literal("")),
 }).superRefine((data, ctx) => {
   if (data.contract_type !== "indefinite") {
     if (!data.end_date || data.end_date.trim() === "") {
