@@ -32,6 +32,8 @@ export interface FormFieldProps {
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => void;
   placeholder?: string;
+  /** React 19: ref is a regular prop */
+  ref?: React.Ref<HTMLInputElement | HTMLTextAreaElement>;
   required?: boolean;
   /** Textarea rows (default: 5) */
   rows?: number;
@@ -40,83 +42,76 @@ export interface FormFieldProps {
   value?: string;
 }
 
-const FormField = memo(
-  React.forwardRef<HTMLInputElement | HTMLTextAreaElement, FormFieldProps>(
-    function FormField(
-      {
-        label,
-        name,
-        type = "text",
-        required,
-        defaultValue,
-        value,
-        onChange,
-        onBlur,
-        placeholder,
-        inputClassName,
-        id,
-        "data-testid": testId,
-        rows = 5,
-        className,
-        disabled,
-        error,
-      },
-      ref,
-    ) {
-      const inputId = id ?? name;
+const FormField = memo(function FormField({
+  label,
+  name,
+  type = "text",
+  required,
+  defaultValue,
+  value,
+  onChange,
+  onBlur,
+  placeholder,
+  inputClassName,
+  id,
+  "data-testid": testId,
+  rows = 5,
+  className,
+  disabled,
+  error,
+  ref,
+}: FormFieldProps) {
+  const inputId = id ?? name;
 
-      const sharedProps = {
-        id: inputId,
-        name,
-        required,
-        defaultValue,
-        value,
-        onChange,
-        onBlur,
-        placeholder,
-        "data-testid": testId,
-        disabled,
-      };
+  const sharedProps = {
+    id: inputId,
+    name,
+    required,
+    defaultValue,
+    value,
+    onChange,
+    onBlur,
+    placeholder,
+    "data-testid": testId,
+    disabled,
+  };
 
-      return (
-        <div className={cn("space-y-3 px-1", className)}>
-          <label className={LABEL_BASE} htmlFor={inputId}>
-            {label}
-          </label>
-          {type === "textarea" ? (
-            <textarea
-              ref={ref as React.Ref<HTMLTextAreaElement>}
-              {...sharedProps}
-              className={cn(
-                INPUT_BASE,
-                "py-4 font-medium text-sm resize-none",
-                inputClassName,
-              )}
-              onChange={onChange}
-              rows={rows}
-            />
-          ) : (
-            <input
-              ref={ref as React.Ref<HTMLInputElement>}
-              {...sharedProps}
-              className={cn(
-                INPUT_BASE,
-                "h-[var(--ui-height-md)] font-medium text-sm",
-                inputClassName,
-              )}
-              onChange={onChange}
-              type={type}
-            />
+  return (
+    <div className={cn("space-y-3 px-1", className)}>
+      <label className={LABEL_BASE} htmlFor={inputId}>
+        {label}
+      </label>
+      {type === "textarea" ? (
+        <textarea
+          ref={ref as React.Ref<HTMLTextAreaElement>}
+          {...sharedProps}
+          className={cn(
+            INPUT_BASE,
+            "py-4 font-medium text-sm resize-none",
+            inputClassName,
           )}
-          {!!error && (
-            <p className="text-xs text-rose-500 font-medium px-1 mt-1">{error}</p>
+          onChange={onChange}
+          rows={rows}
+        />
+      ) : (
+        <input
+          ref={ref as React.Ref<HTMLInputElement>}
+          {...sharedProps}
+          className={cn(
+            INPUT_BASE,
+            "h-[var(--ui-height-md)] font-medium text-sm",
+            inputClassName,
           )}
-        </div>
-      );
-    },
-  ),
-);
+          onChange={onChange}
+          type={type}
+        />
+      )}
+      {!!error && (
+        <p className="text-xs text-rose-500 font-medium px-1 mt-1">{error}</p>
+      )}
+    </div>
+  );
+});
 
 export { INPUT_BASE, LABEL_BASE };
 export default FormField;
-
