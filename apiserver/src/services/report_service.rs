@@ -395,6 +395,12 @@ impl ReportService {
                     std_work_units,
                     ot_work_units,
                     ot_claim_status: ot_status_map.get(&(emp_sched.employee_id, date)).cloned(),
+                    unit_type: crate::models::enums::TimekeepingUnit::DAY,
+                    unit_coefficient_hours: emp_attendance_rules.work_unit_minutes as f64 / 60.0,
+                    computed_std_hours: std_work_units as f64
+                        * (emp_attendance_rules.work_unit_minutes as f64 / 60.0),
+                    computed_ot_hours: ot_work_units as f64
+                        * (emp_attendance_rules.work_unit_minutes as f64 / 60.0),
                     status,
                     is_holiday: is_hol,
                     is_unscheduled: status
@@ -557,7 +563,7 @@ impl ReportService {
         .map_err(AppError::Sqlx)?;
 
         // 7. Calculate work units per employee using the SAME logic as daily report
-        let mut employee_totals: HashMap<Uuid, (i32, i32)> = HashMap::new();
+        let mut employee_totals: HashMap<Uuid, (i32, i32, i32)> = HashMap::new();
 
         for emp_sched in schedules {
             let entries = entries_map
@@ -610,7 +616,11 @@ impl ReportService {
 
             employee_totals.insert(
                 emp_sched.employee_id,
-                (employee_total_std, employee_total_ot),
+                (
+                    employee_total_std,
+                    employee_total_ot,
+                    emp_attendance_rules.work_unit_minutes,
+                ),
             );
         }
 
@@ -618,7 +628,9 @@ impl ReportService {
         let mut results: Vec<AttendanceSummary> = paginated_employees
             .iter()
             .map(|emp| {
-                let (std, ot) = employee_totals.get(&emp.id).copied().unwrap_or((0, 0));
+                let (std, ot, work_unit_minutes) =
+                    employee_totals.get(&emp.id).copied().unwrap_or((0, 0, 30));
+                let coeff = work_unit_minutes as f64 / 60.0;
                 AttendanceSummary {
                     employee_id: emp.id,
                     employee_name: emp.full_name.clone(),
@@ -626,6 +638,10 @@ impl ReportService {
                     total_std_units: std,
                     total_ot_units: ot,
                     total_leave_days: leave_data.get(&emp.id).copied().unwrap_or(0),
+                    unit_type: crate::models::enums::TimekeepingUnit::DAY,
+                    unit_coefficient_hours: coeff,
+                    computed_std_hours: std as f64 * coeff,
+                    computed_ot_hours: ot as f64 * coeff,
                 }
             })
             .collect();
@@ -736,6 +752,10 @@ mod tests {
             std_work_units: 0,
             ot_work_units: 0,
             ot_claim_status: None,
+            unit_type: crate::models::enums::TimekeepingUnit::DAY,
+            unit_coefficient_hours: 8.0,
+            computed_std_hours: 0.0,
+            computed_ot_hours: 0.0,
             status,
             is_holiday: false,
             is_unscheduled: status == AttendanceStatus::Unscheduled,

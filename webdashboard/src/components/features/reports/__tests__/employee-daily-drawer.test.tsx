@@ -62,6 +62,10 @@ describe("EmployeeDailyDrawer", () => {
         is_break_auto_deduct: false,
         std_work_units: 480,
         ot_work_units: 1, // 1 hour OT
+        computed_std_hours: 8.0,
+        computed_ot_hours: 1.0,
+        unit_type: "DAY",
+        unit_coefficient_hours: 8.0,
         status: "present",
         ot_claim_status: "pending_manager",
         generation_metadata: null,
@@ -74,7 +78,6 @@ describe("EmployeeDailyDrawer", () => {
         employeeId: "emp-1",
         employeeName: "John Doe",
         dateRange: { start: "2026-01-01", end: "2026-01-31" },
-        workUnitMinutes: 60,
     };
 
     beforeEach(() => {
@@ -148,11 +151,11 @@ describe("EmployeeDailyDrawer", () => {
         // Wait for data to load
         await screen.findByText(/08:00 — 17:00/i);
 
-        // std_work_units=480, workUnitMinutes=60 → 480h (appears in summary + row)
-        const stdElements = await screen.findAllByText("480h");
+        // computed_std_hours=8.0 -> 8h
+        const stdElements = await screen.findAllByText("8h");
         expect(stdElements.length).toBeGreaterThanOrEqual(1);
 
-        // ot_work_units=1, workUnitMinutes=60 → 1h (appears in summary + row)
+        // computed_ot_hours=1.0 -> 1h
         const otElements = await screen.findAllByText("1h");
         expect(otElements.length).toBeGreaterThanOrEqual(1);
 

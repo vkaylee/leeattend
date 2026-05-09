@@ -102,7 +102,7 @@ describe("ReportsPage", () => {
     vi.mocked(api.searchEmployees).mockResolvedValue({ data: [{ id: "emp-1", full_name: "John Doe", workspace_id: "test-ws-id", employee_id_number: "E01", hire_date: "2025-01-01", is_active: true, created_at: "2025-01-01T00:00:00Z", updated_at: "2025-01-01T00:00:00Z" }], total: 1, page: 1, limit: 50 });
     vi.mocked(api.fetchDepartments).mockResolvedValue([]);
     vi.mocked(api.fetchAttendanceReport).mockImplementation(() => Promise.resolve({
-      data: [{ employee_id: "emp-1", employee_name: "John Doe", total_std_units: 440, total_ot_units: 40, total_leave_days: 0 }],
+      data: [{ employee_id: "emp-1", employee_name: "John Doe", total_std_units: 440, total_ot_units: 40, total_leave_days: 0, computed_std_hours: 800, computed_ot_hours: 100 }],
       total: 1,
       page: 1,
       limit: 50
@@ -163,8 +163,8 @@ describe("ReportsPage", () => {
         // Full stats query — return all employees
         return Promise.resolve({
           data: [
-            { employee_id: "emp-1", employee_name: "John Doe", total_std_units: 440, total_ot_units: 40, total_leave_days: 0 },
-            { employee_id: "emp-2", employee_name: "Jane Smith", total_std_units: 360, total_ot_units: 60, total_leave_days: 1 },
+            { employee_id: "emp-1", employee_name: "John Doe", total_std_units: 440, total_ot_units: 40, total_leave_days: 0, computed_std_hours: 440, computed_ot_hours: 40 },
+            { employee_id: "emp-2", employee_name: "Jane Smith", total_std_units: 360, total_ot_units: 60, total_leave_days: 1, computed_std_hours: 360, computed_ot_hours: 60 },
           ],
  
           total: 2,
@@ -175,7 +175,7 @@ describe("ReportsPage", () => {
       }
       // Paginated query — return only page 1
       return Promise.resolve({
-        data: [{ employee_id: "emp-1", employee_name: "John Doe", total_std_units: 440, total_ot_units: 40, total_leave_days: 0 }],
+        data: [{ employee_id: "emp-1", employee_name: "John Doe", total_std_units: 440, total_ot_units: 40, total_leave_days: 0, computed_std_hours: 800, computed_ot_hours: 100 }],
         total: 2,
         page: 1,
         limit: 50
@@ -196,8 +196,10 @@ describe("ReportsPage", () => {
     // formatUnitsToHours: 800 * 60min / 60 = 800, 100 * 60min / 60 = 100
     // The "h" suffix is added by JSX: {quickStats.stdHours}h
     await waitFor(() => {
-      expect(screen.getByText("800h")).toBeInTheDocument();
-      expect(screen.getByText("100h")).toBeInTheDocument();
+      const stdElements = screen.getAllByText("800h");
+      expect(stdElements.length).toBeGreaterThan(0);
+      const otElements = screen.getAllByText("100h");
+      expect(otElements.length).toBeGreaterThan(0);
       expect(screen.getByText("2")).toBeInTheDocument();
     });
   });
@@ -247,7 +249,7 @@ describe("ReportsPage", () => {
         }
  
         return Promise.resolve({
-          data: [{ employee_id: "emp-1", employee_name: "John Doe", total_std_units: 440, total_ot_units: 40, total_leave_days: 0 }],
+          data: [{ employee_id: "emp-1", employee_name: "John Doe", total_std_units: 440, total_ot_units: 40, total_leave_days: 0, computed_std_hours: 800, computed_ot_hours: 100 }],
           total: 1,
           page: 1,
           limit: 50
@@ -322,7 +324,7 @@ describe("ReportsPage", () => {
     };
     vi.mocked(api.fetchAttendanceReport).mockImplementation(({ type }) => {
       if (type === "daily") return Promise.resolve({ data: [mockDailyRow], total: 1, page: 1, limit: 50 } as unknown as PaginatedResponse<DailyAttendanceReport>);
-      return Promise.resolve({ data: [{ employee_id: "emp-1", employee_name: "John Doe", total_std_units: 440, total_ot_units: 40, total_leave_days: 0 }], total: 1, page: 1, limit: 50 } as unknown as PaginatedResponse<AttendanceSummary>);
+      return Promise.resolve({ data: [{ employee_id: "emp-1", employee_name: "John Doe", total_std_units: 440, total_ot_units: 40, total_leave_days: 0, computed_std_hours: 800, computed_ot_hours: 100 }], total: 1, page: 1, limit: 50 } as unknown as PaginatedResponse<AttendanceSummary>);
     });
 
     renderWithProviders(<ReportsPage />);
@@ -388,7 +390,7 @@ describe("ReportsPage", () => {
     };
     vi.mocked(api.fetchAttendanceReport).mockImplementation(({ type }) => {
       if (type === "daily") return Promise.resolve({ data: [mockDailyRow], total: 1, page: 1, limit: 50 } as unknown as PaginatedResponse<DailyAttendanceReport>);
-      return Promise.resolve({ data: [{ employee_id: "emp-1", employee_name: "John Doe", total_std_units: 440, total_ot_units: 40, total_leave_days: 0 }], total: 1, page: 1, limit: 50 } as unknown as PaginatedResponse<AttendanceSummary>);
+      return Promise.resolve({ data: [{ employee_id: "emp-1", employee_name: "John Doe", total_std_units: 440, total_ot_units: 40, total_leave_days: 0, computed_std_hours: 800, computed_ot_hours: 100 }], total: 1, page: 1, limit: 50 } as unknown as PaginatedResponse<AttendanceSummary>);
     });
 
     renderWithProviders(<ReportsPage />);
@@ -436,7 +438,7 @@ describe("ReportsPage", () => {
     };
     vi.mocked(api.fetchAttendanceReport).mockImplementation(({ type }) => {
       if (type === "daily") return Promise.resolve({ data: [mockDailyRow], total: 1, page: 1, limit: 50 } as unknown as PaginatedResponse<DailyAttendanceReport>);
-      return Promise.resolve({ data: [{ employee_id: "emp-1", employee_name: "John Doe", total_std_units: 440, total_ot_units: 40, total_leave_days: 0 }], total: 1, page: 1, limit: 50 } as unknown as PaginatedResponse<AttendanceSummary>);
+      return Promise.resolve({ data: [{ employee_id: "emp-1", employee_name: "John Doe", total_std_units: 440, total_ot_units: 40, total_leave_days: 0, computed_std_hours: 800, computed_ot_hours: 100 }], total: 1, page: 1, limit: 50 } as unknown as PaginatedResponse<AttendanceSummary>);
     });
 
     renderWithProviders(<ReportsPage />);
@@ -499,8 +501,8 @@ describe("ReportsPage", () => {
       if (type === "daily") return Promise.resolve({ data: [mockDailyRow], total: 1, page: 1, limit: 50 } as unknown as PaginatedResponse<DailyAttendanceReport>);
       return Promise.resolve({
         data: [
-          { employee_id: "emp-1", employee_name: "John Doe", total_std_units: 440, total_ot_units: 40, total_leave_days: 0 },
-          { employee_id: "emp-2", employee_name: "Jane Smith", total_std_units: 440, total_ot_units: 40, total_leave_days: 0 }
+          { employee_id: "emp-1", employee_name: "John Doe", total_std_units: 440, total_ot_units: 40, total_leave_days: 0, computed_std_hours: 800, computed_ot_hours: 100 },
+          { employee_id: "emp-2", employee_name: "Jane Smith", total_std_units: 440, total_ot_units: 40, total_leave_days: 0, computed_std_hours: 800, computed_ot_hours: 100 }
         ],
         total: 2,
         page: 1,
@@ -660,7 +662,7 @@ describe("ReportsPage", () => {
     renderWithProviders(<ReportsPage />);
     await screen.findByText(/John Doe/i);
 
-    // Total hours = 440 std + 40 ot = 480 units = 480h (with work_unit_minutes=60)
+    // Total hours = 800 std + 100 ot = 900
     expect(screen.getByTitle("480 total units")).toBeInTheDocument();
  
 

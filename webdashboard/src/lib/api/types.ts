@@ -267,12 +267,16 @@ export type AttendanceReportSort =
   | "total_hours_desc";
 
 export interface AttendanceSummary {
+  computed_ot_hours: number;
+  computed_std_hours: number;
   employee_id: string;
   employee_id_number?: string;
   employee_name: string;
   total_leave_days: number;
   total_ot_units: number;
   total_std_units: number;
+  unit_coefficient_hours: number;
+  unit_type: 'DAY' | 'SHIFT' | 'HOUR' | 'MINUTE';
 }
 
 export interface AuditLog {
@@ -311,6 +315,8 @@ export interface DailyAttendanceReport {
   break_duration_minutes: number | null;
   break_end: string | null;
   break_start: string | null;
+  computed_ot_hours: number;
+  computed_std_hours: number;
   date: string;
   employee_id: string;
   employee_name: string;
@@ -324,8 +330,9 @@ export interface DailyAttendanceReport {
   scheduled_end: string | null;
   scheduled_start: string | null;
   status: string;
- 
   std_work_units: number;
+  unit_coefficient_hours: number;
+  unit_type: 'DAY' | 'SHIFT' | 'HOUR' | 'MINUTE';
 }
 
 // --- Payroll and Shift Models ---

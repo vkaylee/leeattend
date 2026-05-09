@@ -236,6 +236,31 @@ pub enum AccrualFrequency {
 }
 
 #[derive(
+    Debug,
+    Serialize,
+    Deserialize,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    sqlx::Type,
+    strum_macros::Display,
+    strum_macros::EnumString,
+    ToSchema,
+    Default,
+)]
+#[sqlx(type_name = "VARCHAR", rename_all = "snake_case")]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+#[strum(serialize_all = "SCREAMING_SNAKE_CASE")]
+pub enum TimekeepingUnit {
+    #[default]
+    DAY,
+    SHIFT,
+    HOUR,
+    MINUTE,
+}
+
+#[derive(
     Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, sqlx::Type, strum_macros::Display,
 )]
 #[sqlx(type_name = "recruitment_source_type", rename_all = "snake_case")]
@@ -645,6 +670,20 @@ mod tests {
         ] {
             let json = serde_json::to_string(&f).unwrap();
             let _back: AccrualFrequency = serde_json::from_str(&json).unwrap();
+        }
+    }
+
+    #[test]
+    fn test_timekeeping_unit_serde() {
+        for u in [
+            TimekeepingUnit::DAY,
+            TimekeepingUnit::SHIFT,
+            TimekeepingUnit::HOUR,
+            TimekeepingUnit::MINUTE,
+        ] {
+            let json = serde_json::to_string(&u).unwrap();
+            let back: TimekeepingUnit = serde_json::from_str(&json).unwrap();
+            assert_eq!(u, back);
         }
     }
 

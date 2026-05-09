@@ -32,7 +32,6 @@ interface ReportsTableProps {
   setSearchQuery: (q: string) => void;
   sortBy: AttendanceReportSort | undefined;
   specificMonth: { month: number; year: number };
-  workUnitMinutes: number;
 }
 
 export function ReportsTable(props: ReportsTableProps) {
@@ -60,15 +59,13 @@ export function ReportsTable(props: ReportsTableProps) {
     setSearchQuery,
     sortBy,
     specificMonth,
-    workUnitMinutes,
   } = props;
 
   const reportColumns = useMemo(() => getReportColumns({
     handleSort,
     sortBy,
     t,
-    workUnitMinutes,
-  }), [t, workUnitMinutes, sortBy, handleSort]);
+  }), [t, sortBy, handleSort]);
 
   return (
     <div className="flex flex-col gap-6">

@@ -21,7 +21,6 @@ export interface DailyReportTableProps {
   onToggleExpandRow: (rowKey: string) => void;
   reprocessingRow: string | null;
   t: (key: string) => string;
-  workUnitMinutes: number;
 }
 
 function TableHeader({ hideEmployeeName, isDebugMode, t }: { hideEmployeeName: boolean; isDebugMode: boolean; t: (k: string) => string }) {
@@ -68,7 +67,6 @@ export default function DailyReportTable({
   onToggleExpandRow,
   reprocessingRow,
   t,
-  workUnitMinutes,
 }: DailyReportTableProps) {
   const colSpan = isDebugMode ? (hideEmployeeName ? 9 : 10) : (hideEmployeeName ? 8 : 9);
 
@@ -108,7 +106,6 @@ export default function DailyReportTable({
                 reprocessingRow={reprocessingRow}
                 row={row}
                 t={t}
-                workUnitMinutes={workUnitMinutes}
               />
             ))
           )}

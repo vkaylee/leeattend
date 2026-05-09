@@ -9,7 +9,7 @@ import {
     fetchRawAttendanceLogs,
     fetchShifts,
 } from "@/lib/api";
-import { formatUnitsToHours } from "@/lib/utils/attendance";
+import { formatHours } from "@/lib/utils/attendance";
 
 interface UseDailyDrawerQueriesProps {
     dateRange: { start: string; end: string };
@@ -17,7 +17,6 @@ interface UseDailyDrawerQueriesProps {
     isOpen: boolean;
     viewMode: "daily" | "raw";
     workspaceId: string;
-    workUnitMinutes: number;
 }
 
 export function useDailyDrawerQueries({
@@ -26,7 +25,6 @@ export function useDailyDrawerQueries({
     dateRange,
     isOpen,
     viewMode,
-    workUnitMinutes,
 }: UseDailyDrawerQueriesProps) {
     const { data: reportResponse, isLoading } = useQuery({
         queryKey: ["attendance-report", workspaceId, dateRange, "daily", 1, 100, undefined, [employeeId]],
@@ -96,13 +94,13 @@ export function useDailyDrawerQueries({
     );
 
     const { totalStdHours, totalOtHours } = useMemo(() => {
-        const stdUnits = reportData.reduce((sum: number, r: DailyAttendanceReport) => sum + (r.std_work_units || 0), 0);
-        const otUnits = reportData.reduce((sum: number, r: DailyAttendanceReport) => sum + (r.ot_work_units || 0), 0);
+        const stdHours = reportData.reduce((sum: number, r: DailyAttendanceReport) => sum + (r.computed_std_hours || 0), 0);
+        const otHours = reportData.reduce((sum: number, r: DailyAttendanceReport) => sum + (r.computed_ot_hours || 0), 0);
         return {
-            totalStdHours: formatUnitsToHours(stdUnits, workUnitMinutes),
-            totalOtHours: formatUnitsToHours(otUnits, workUnitMinutes),
+            totalStdHours: formatHours(stdHours),
+            totalOtHours: formatHours(otHours),
         };
-    }, [reportData, workUnitMinutes]);
+    }, [reportData]);
 
     return {
         isLoading,

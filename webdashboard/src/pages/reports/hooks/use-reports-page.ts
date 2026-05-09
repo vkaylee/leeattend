@@ -44,7 +44,6 @@ export interface UseReportsPageReturn {
   setSortBy: (v: AttendanceReportSort | undefined) => void;
   sortBy: AttendanceReportSort | undefined;
   specificMonth: { month: number; year: number };
-  workUnitMinutes: number;
   wsId: string | null;
 }
 
@@ -68,7 +67,6 @@ export function useReportsPage(): UseReportsPageReturn {
   const debouncedSearch = useDebounce(searchQuery, 400);
 
   const {
-    workspace,
     departments,
     isLoading,
     fetchNextPage,
@@ -103,8 +101,6 @@ export function useReportsPage(): UseReportsPageReturn {
     focusSearch
   });
 
-  const workUnitMinutes = workspace?.work_unit_minutes ?? 60;
-
   return {
     dateRange,
     departments,
@@ -135,7 +131,6 @@ export function useReportsPage(): UseReportsPageReturn {
     setSortBy,
     sortBy,
     specificMonth,
-    workUnitMinutes,
     wsId,
   };
 }

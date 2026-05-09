@@ -1,38 +1,30 @@
 import { FileBarChart, Users2, Clock } from "lucide-react";
 
 import { AttendanceSummary, DailyAttendanceReport } from "@/lib/api";
-import { formatUnitsToHours } from "@/lib/utils/attendance";
+import { formatHours } from "@/lib/utils/attendance";
 
 interface ReportStatsProps {
   filteredData: AttendanceSummary[] | DailyAttendanceReport[];
   reportType: "summary" | "daily";
   t: (key: string) => string;
-  workUnitMinutes: number;
 }
 
 export default function ReportStats({
   reportType,
   filteredData,
-  workUnitMinutes,
   t,
 }: ReportStatsProps) {
-  const stdHours = formatUnitsToHours(
-    reportType === "summary"
- 
-      ? (filteredData as AttendanceSummary[]).reduce((accumulator: number, r: AttendanceSummary) => accumulator + (r.total_std_units || 0), 0)
- 
-      : (filteredData as DailyAttendanceReport[]).reduce((accumulator: number, r: DailyAttendanceReport) => accumulator + r.std_work_units, 0),
-    workUnitMinutes
-  );
+  const stdHoursNum = reportType === "summary"
+      ? (filteredData as AttendanceSummary[]).reduce((accumulator: number, r: AttendanceSummary) => accumulator + (r.computed_std_hours || 0), 0)
+      : (filteredData as DailyAttendanceReport[]).reduce((accumulator: number, r: DailyAttendanceReport) => accumulator + (r.computed_std_hours || 0), 0);
+      
+  const stdHours = formatHours(stdHoursNum);
 
-  const otHours = formatUnitsToHours(
-    reportType === "summary"
- 
-      ? (filteredData as AttendanceSummary[]).reduce((accumulator: number, r: AttendanceSummary) => accumulator + (r.total_ot_units || 0), 0)
- 
-      : (filteredData as DailyAttendanceReport[]).reduce((accumulator: number, r: DailyAttendanceReport) => accumulator + (r.ot_work_units || 0), 0),
-    workUnitMinutes
-  );
+  const otHoursNum = reportType === "summary"
+      ? (filteredData as AttendanceSummary[]).reduce((accumulator: number, r: AttendanceSummary) => accumulator + (r.computed_ot_hours || 0), 0)
+      : (filteredData as DailyAttendanceReport[]).reduce((accumulator: number, r: DailyAttendanceReport) => accumulator + (r.computed_ot_hours || 0), 0);
+      
+  const otHours = formatHours(otHoursNum);
 
  
   const totalEmployees = new Set(filteredData.map((r) => r.employee_id)).size;

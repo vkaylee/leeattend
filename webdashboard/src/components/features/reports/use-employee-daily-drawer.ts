@@ -14,7 +14,6 @@ interface UseEmployeeDailyDrawerProps {
     employeeId: string;
     isOpen: boolean;
     workspaceId: string;
-    workUnitMinutes: number;
 }
 
 export function useEmployeeDailyDrawer({
@@ -22,7 +21,6 @@ export function useEmployeeDailyDrawer({
     workspaceId,
     employeeId,
     dateRange,
-    workUnitMinutes,
 }: UseEmployeeDailyDrawerProps) {
     const [viewMode, setViewMode] = useState<"daily" | "raw">("daily");
 
@@ -44,7 +42,7 @@ export function useEmployeeDailyDrawer({
         isLoading, reportData, adjustmentMap, shifts, rawLogsData, rawLogsLoading,
         hasNextPage, isFetchingNextPage, fetchNextPage, totalStdHours, totalOtHours,
     } = useDailyDrawerQueries({
-        workspaceId, employeeId, dateRange, isOpen, viewMode, workUnitMinutes,
+        workspaceId, employeeId, dateRange, isOpen, viewMode,
     });
 
     const toggleExpandRow = (rowKey: string) => {
@@ -59,7 +57,6 @@ export function useEmployeeDailyDrawer({
         reprocessMutation, confirmMutation, approveOtMutation, resolveUnscheduledMutation,
     } = useDailyDrawerMutations({
         workspaceId,
-        workUnitMinutes,
         onReprocessSuccess: () => { setReprocessingRow(null); setConfirmDialog(null); },
         onConfirmSuccess: () => { setConfirmingRow(null); setConfirmModalData(null); },
         onResolveSuccess: () => { setResolveModalData(null); },

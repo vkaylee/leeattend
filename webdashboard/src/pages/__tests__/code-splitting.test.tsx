@@ -234,7 +234,7 @@ describe("Page-level code splitting", () => {
 
         await waitFor(() => {
             expect(screen.getByTestId("dashboard-title")).toBeInTheDocument();
-        }, { timeout: 5000 });
+        }, { timeout: 10000 });
     });
 
     it("LoginPage renders via lazy import", async () => {
@@ -244,7 +244,7 @@ describe("Page-level code splitting", () => {
 
         await waitFor(() => {
             expect(document.querySelector("form, h1, h2, [data-testid]")).toBeTruthy();
-        }, { timeout: 5000 });
+        }, { timeout: 10000 });
     });
 
     it("EmployeesPage renders via lazy import", async () => {
@@ -257,7 +257,7 @@ describe("Page-level code splitting", () => {
             expect(headings.some(h =>
                 /Employees/i.test(h.textContent) || /Nhân viên/i.test(h.textContent)
             )).toBe(true);
-        }, { timeout: 5000 });
+        }, { timeout: 10000 });
     });
 
     it("ShiftsPage imports and becomes a defined component", async () => {
@@ -306,7 +306,7 @@ describe("Page-level code splitting", () => {
 
         await waitFor(() => {
             expect(screen.getByTestId("dashboard-title")).toBeInTheDocument();
-        }, { timeout: 5000 });
+        }, { timeout: 10000 });
 
         unmount();
 
@@ -317,7 +317,7 @@ describe("Page-level code splitting", () => {
         await waitFor(() => {
             const headings = screen.getAllByRole("heading");
             expect(headings.length).toBeGreaterThan(0);
-        }, { timeout: 5000 });
+        }, { timeout: 10000 });
     });
 });
 

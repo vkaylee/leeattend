@@ -29,7 +29,6 @@ export default function ReportsPage() {
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-    workUnitMinutes,
     searchInputRef,
     keyDownRef,
     handleFilterModeChange,
@@ -79,7 +78,6 @@ export default function ReportsPage() {
         setSearchQuery={setSearchQuery}
         sortBy={sortBy}
         specificMonth={specificMonth}
-        workUnitMinutes={workUnitMinutes}
       />
 
       <EmployeeDailyDrawer
@@ -90,7 +88,6 @@ export default function ReportsPage() {
         key={selectedEmployee?.id ?? "closed"}
         onClose={handleDrawerClose}
         workspaceId={wsId}
-        workUnitMinutes={workUnitMinutes}
       />
 
       <ReportExportDialog

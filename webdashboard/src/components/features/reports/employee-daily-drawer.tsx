@@ -24,7 +24,6 @@ interface EmployeeDailyDrawerProps {
     isOpen: boolean;
     onClose: () => void;
     workspaceId: string;
-    workUnitMinutes: number;
 }
 
 interface EmployeeDailyDrawerHeaderProps {
@@ -179,7 +178,7 @@ function useDrawerKeyboardNavigation(isOpen: boolean, viewMode: "daily" | "raw",
 }
 
 export default function EmployeeDailyDrawer(props: EmployeeDailyDrawerProps) {
-    const { isOpen, onClose, employeeName, dateRange, workUnitMinutes } = props;
+    const { isOpen, onClose, employeeName, dateRange } = props;
     const { t } = useTranslation();
     const { formatDate, formatTime } = useDateTimeFormatter();
     const { isEnabled: isDebugMode } = useDebug();
@@ -238,7 +237,6 @@ export default function EmployeeDailyDrawer(props: EmployeeDailyDrawerProps) {
                             onToggleExpandRow={data.toggleExpandRow}
                             reprocessingRow={data.reprocessingRow}
                             t={t}
-                            workUnitMinutes={workUnitMinutes}
                         />
                     )}
                 </div>

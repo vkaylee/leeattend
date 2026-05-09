@@ -14,7 +14,6 @@ interface UseReportsQueriesProps {
   debouncedSearch: string;
   selectedDepartmentId: string | null;
   sortBy: AttendanceReportSort | undefined;
-  workUnitMinutes?: number;
   wsId: string | null;
 }
 
@@ -23,8 +22,7 @@ export function useReportsQueries({
   debouncedSearch,
   dateRange,
   sortBy,
-  selectedDepartmentId,
-  workUnitMinutes = 60
+  selectedDepartmentId
 }: UseReportsQueriesProps) {
   const { workspace, departments } = useReportsMetadata({ wsId });
   const { employeeIdsFilter } = useReportsEmployeeSearch({ wsId, debouncedSearch });
@@ -71,8 +69,7 @@ export function useReportsQueries({
     dateRange,
     sortBy,
     employeeIdsFilter,
-    selectedDepartmentId,
-    workUnitMinutes
+    selectedDepartmentId
   });
 
   return {

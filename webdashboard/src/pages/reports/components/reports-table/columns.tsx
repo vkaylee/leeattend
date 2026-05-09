@@ -5,20 +5,18 @@ import { TFunction } from "i18next";
 
 import { NavigableListColumn } from "@/components/common/navigable-list";
 import { AttendanceSummary, AttendanceReportSort } from "@/lib/api/types";
-import { formatUnitsToHours } from "@/lib/utils/attendance";
+import { formatHours } from "@/lib/utils/attendance";
 
 interface GetReportColumnsProps {
   handleSort: (field: "name" | "work_hours" | "leave_days" | "ot_hours" | "total_hours") => void;
   sortBy: AttendanceReportSort | undefined;
   t: TFunction;
-  workUnitMinutes: number;
 }
 
 export const getReportColumns = ({
   handleSort,
   sortBy,
   t,
-  workUnitMinutes,
 }: GetReportColumnsProps): NavigableListColumn<AttendanceSummary>[] => {
   const getSortIcon = (field: "name" | "work_hours" | "leave_days" | "ot_hours" | "total_hours") => {
     if (sortBy === `${field}_asc`) return <ArrowUp className="ml-1 text-primary-600 dark:text-primary-400" size={12} />;
@@ -43,7 +41,7 @@ export const getReportColumns = ({
     {
       render: (row) => (
         <div className="font-mono font-bold text-primary-600 dark:text-primary-400 text-base tracking-tighter cursor-default" title={`${row.total_std_units} units`}>
-          {formatUnitsToHours(row.total_std_units, workUnitMinutes)}h
+          {formatHours(row.computed_std_hours)}h
         </div>
       ),
       cellClassName: "py-6 text-right",
@@ -55,7 +53,7 @@ export const getReportColumns = ({
     {
       render: (row) => row.total_ot_units > 0 ? (
         <div className="font-mono font-bold text-orange-600 dark:text-orange-400 text-base tracking-tighter cursor-default" title={`${row.total_ot_units} OT units`}>
-          {formatUnitsToHours(row.total_ot_units, workUnitMinutes)}h
+          {formatHours(row.computed_ot_hours)}h
         </div>
       ) : (
         <span className="text-slate-200 dark:text-slate-700 font-bold">—</span>
@@ -69,7 +67,7 @@ export const getReportColumns = ({
     {
       render: (row) => (
         <div className="font-mono font-bold text-slate-700 dark:text-slate-200 text-base tracking-tighter cursor-default" title={`${row.total_std_units + row.total_ot_units} total units`}>
-          {formatUnitsToHours(row.total_std_units + row.total_ot_units, workUnitMinutes)}h
+          {formatHours(row.computed_std_hours + row.computed_ot_hours)}h
         </div>
       ),
       cellClassName: "py-6 text-right",

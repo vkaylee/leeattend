@@ -367,6 +367,10 @@ mod tests {
             total_std_units: 160,
             total_ot_units: 0,
             total_leave_days: 2,
+            unit_type: crate::models::enums::TimekeepingUnit::DAY,
+            unit_coefficient_hours: 8.0,
+            computed_std_hours: 160.0,
+            computed_ot_hours: 0.0,
         }];
         let summaries2 = vec![AttendanceSummary {
             employee_id: Uuid::new_v4(),
@@ -375,6 +379,10 @@ mod tests {
             total_std_units: 152,
             total_ot_units: 0,
             total_leave_days: 4,
+            unit_type: crate::models::enums::TimekeepingUnit::DAY,
+            unit_coefficient_hours: 8.0,
+            computed_std_hours: 152.0,
+            computed_ot_hours: 0.0,
         }];
 
         let batch_results: Vec<(String, String)> = vec![
@@ -421,6 +429,10 @@ mod tests {
             std_work_units: 8,
             ot_work_units: 0,
             ot_claim_status: None,
+            unit_type: crate::models::enums::TimekeepingUnit::DAY,
+            unit_coefficient_hours: 8.0,
+            computed_std_hours: 8.0,
+            computed_ot_hours: 0.0,
             status: crate::services::attendance_utils::AttendanceStatus::Present,
             is_holiday: false,
             is_unscheduled: false,
@@ -444,6 +456,10 @@ mod tests {
             std_work_units: 8,
             ot_work_units: 0,
             ot_claim_status: None,
+            unit_type: crate::models::enums::TimekeepingUnit::DAY,
+            unit_coefficient_hours: 8.0,
+            computed_std_hours: 8.0,
+            computed_ot_hours: 0.0,
             status: crate::services::attendance_utils::AttendanceStatus::Present,
             is_holiday: false,
             is_unscheduled: false,
@@ -510,6 +526,10 @@ mod tests {
                 total_std_units: 160,
                 total_ot_units: 0,
                 total_leave_days: 0,
+                unit_type: crate::models::enums::TimekeepingUnit::DAY,
+                unit_coefficient_hours: 8.0,
+                computed_std_hours: 160.0,
+                computed_ot_hours: 0.0,
             },
             AttendanceSummary {
                 employee_id: Uuid::new_v4(),
@@ -518,6 +538,10 @@ mod tests {
                 total_std_units: 120,
                 total_ot_units: 0,
                 total_leave_days: 3,
+                unit_type: crate::models::enums::TimekeepingUnit::DAY,
+                unit_coefficient_hours: 8.0,
+                computed_std_hours: 120.0,
+                computed_ot_hours: 0.0,
             },
         ];
         let s2 = vec![AttendanceSummary {
@@ -527,6 +551,10 @@ mod tests {
             total_std_units: 80,
             total_ot_units: 0,
             total_leave_days: 1,
+            unit_type: crate::models::enums::TimekeepingUnit::DAY,
+            unit_coefficient_hours: 8.0,
+            computed_std_hours: 80.0,
+            computed_ot_hours: 0.0,
         }];
 
         let batch_results = vec![
@@ -575,6 +603,10 @@ mod tests {
             std_work_units: 8,
             ot_work_units: 0,
             ot_claim_status: None,
+            unit_type: crate::models::enums::TimekeepingUnit::DAY,
+            unit_coefficient_hours: 8.0,
+            computed_std_hours: 8.0,
+            computed_ot_hours: 0.0,
             status: crate::services::attendance_utils::AttendanceStatus::Present,
             is_holiday: false,
             is_unscheduled: false,
@@ -626,6 +658,10 @@ mod tests {
             total_std_units: 160,
             total_ot_units: 0,
             total_leave_days: 2,
+            unit_type: crate::models::enums::TimekeepingUnit::DAY,
+            unit_coefficient_hours: 8.0,
+            computed_std_hours: 160.0,
+            computed_ot_hours: 0.0,
         };
         let json = serde_json::to_string(&summary).unwrap();
         assert!(json.contains("EMP-001"));
@@ -652,6 +688,10 @@ mod tests {
             std_work_units: 8,
             ot_work_units: 0,
             ot_claim_status: None,
+            unit_type: crate::models::enums::TimekeepingUnit::DAY,
+            unit_coefficient_hours: 8.0,
+            computed_std_hours: 8.0,
+            computed_ot_hours: 0.0,
             status: crate::services::attendance_utils::AttendanceStatus::Present,
             is_holiday: false,
             is_unscheduled: false,

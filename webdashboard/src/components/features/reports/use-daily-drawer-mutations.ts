@@ -15,12 +15,10 @@ interface UseDailyDrawerMutationsProps {
     onReprocessSuccess: () => void;
     onResolveSuccess: () => void;
     workspaceId: string;
-    workUnitMinutes: number;
 }
 
 export function useDailyDrawerMutations({
     workspaceId,
-    workUnitMinutes,
     onReprocessSuccess,
     onConfirmSuccess,
     onResolveSuccess,
@@ -64,7 +62,7 @@ export function useDailyDrawerMutations({
         mutationFn: ({ row, action }: { row: DailyAttendanceReport; action: "approved" | "rejected" }) =>
             approveOt(workspaceId, row.employee_id, {
                 date: row.date,
-                approved_minutes: row.ot_work_units * (workUnitMinutes || 60),
+                approved_minutes: Math.round(row.computed_ot_hours * 60),
                 status: action,
             }),
         onSuccess: (_data, variables) => {

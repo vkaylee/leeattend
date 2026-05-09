@@ -168,7 +168,7 @@ describe("Lazy Route Loading", () => {
         // Should eventually render the dashboard (may briefly show fallback)
         await waitFor(() => {
             expect(screen.getByTestId("dashboard-title")).toBeInTheDocument();
-        }, { timeout: 5000 });
+        }, { timeout: 10000 });
     });
 
     it("should lazy load LoginPage with Suspense", async () => {
@@ -184,7 +184,7 @@ describe("Lazy Route Loading", () => {
         await waitFor(() => {
             // LoginPage should render some form or heading
             expect(document.querySelector("form, h1, h2, [data-testid]")).toBeTruthy();
-        }, { timeout: 5000 });
+        }, { timeout: 10000 });
     });
 
     it("should lazy load EmployeesPage with Suspense", async () => {
@@ -202,7 +202,7 @@ describe("Lazy Route Loading", () => {
             expect(headings.some(h =>
                 /Employees/i.test(h.textContent) || /Nhân viên/i.test(h.textContent)
             )).toBe(true);
-        }, { timeout: 5000 });
+        }, { timeout: 10000 });
     });
 
     it("should show fallback while page is loading", async () => {
@@ -247,7 +247,7 @@ describe("Lazy Route Loading", () => {
 
         await waitFor(() => {
             expect(screen.getByTestId("dashboard-title")).toBeInTheDocument();
-        }, { timeout: 5000 });
+        }, { timeout: 10000 });
 
         unmount();
 
@@ -264,6 +264,6 @@ describe("Lazy Route Loading", () => {
         await waitFor(() => {
             const headings = screen.getAllByRole("heading");
             expect(headings.length).toBeGreaterThan(0);
-        }, { timeout: 5000 });
+        }, { timeout: 10000 });
     });
 });

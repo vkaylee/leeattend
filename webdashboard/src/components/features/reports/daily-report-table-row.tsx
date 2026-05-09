@@ -3,7 +3,7 @@ import React from "react";
 
 import { DailyAttendanceReport, AttendanceAdjustmentRequest } from "@/lib/api";
 import { cn } from "@/lib/utils";
-import { formatUnitsToHours } from "@/lib/utils/attendance";
+import { formatHours } from "@/lib/utils/attendance";
 
 import { ReportOtStatusBadge } from "./report-ot-status-badge";
 import { ReportStatusBadge } from "./report-status-badge";
@@ -69,12 +69,10 @@ function OtCell({
   onApproveOt,
   row,
   t,
-  workUnitMinutes,
 }: {
   onApproveOt?: (row: DailyAttendanceReport, action: "approved" | "rejected") => void;
   row: DailyAttendanceReport;
   t: (k: string) => string;
-  workUnitMinutes: number;
 }) {
   if (row.ot_work_units <= 0) {
     return <span className="text-slate-200 dark:text-slate-700 font-bold">—</span>;
@@ -82,9 +80,12 @@ function OtCell({
 
   return (
     <div className="flex flex-col items-end gap-1">
-      <div>
+      <div
+        className="cursor-help"
+        title={`Đã chấm: ${formatHours(row.computed_ot_hours)} Giờ (Hệ số: ${row.unit_coefficient_hours}h/${row.unit_type})`}
+      >
         <span className="font-mono font-bold text-orange-600 dark:text-orange-400 text-base tracking-tighter leading-none">
-          {formatUnitsToHours(row.ot_work_units, workUnitMinutes)}h
+          {row.ot_work_units} <span className="text-[10px] uppercase opacity-70 ml-0.5">{row.unit_type}</span>
         </span>
       </div>
       <ReportOtStatusBadge status={row.ot_claim_status} t={t} />
@@ -163,7 +164,6 @@ export interface DailyReportTableRowProps {
   reprocessingRow: string | null;
   row: DailyAttendanceReport;
   t: (key: string) => string;
-  workUnitMinutes: number;
 }
 
 export function DailyReportTableRow({
@@ -182,7 +182,6 @@ export function DailyReportTableRow({
   reprocessingRow,
   row,
   t,
-  workUnitMinutes,
 }: DailyReportTableRowProps) {
   const rowKey = `${row.employee_id}-${row.date}`;
   const isReprocessing = reprocessingRow === rowKey;
@@ -209,9 +208,14 @@ export function DailyReportTableRow({
           <div className="shadow-inner bg-slate-50 dark:bg-slate-800/50 rounded-md py-1 px-2 inline-block">{formatTime(row.actual_punch_out)}</div>
         </td>
         <td className="px-4 py-2.5 text-right">
-          <div className="font-mono font-bold text-primary-600 dark:text-primary-400 text-base tracking-tighter leading-none">{formatUnitsToHours(row.std_work_units, workUnitMinutes)}h</div>
+          <div 
+            className="font-mono font-bold text-primary-600 dark:text-primary-400 text-base tracking-tighter leading-none cursor-help"
+            title={`Đã chấm: ${formatHours(row.computed_std_hours)} Giờ (Hệ số: ${row.unit_coefficient_hours}h/${row.unit_type})`}
+          >
+            {row.std_work_units} <span className="text-[10px] uppercase opacity-70 ml-0.5">{row.unit_type}</span>
+          </div>
         </td>
-        <td className="px-4 py-2.5 text-right"><OtCell onApproveOt={onApproveOt} row={row} t={t} workUnitMinutes={workUnitMinutes} /></td>
+        <td className="px-4 py-2.5 text-right"><OtCell onApproveOt={onApproveOt} row={row} t={t} /></td>
         <td className="px-4 py-2.5 text-center"><ReportStatusBadge onResolveUnscheduled={onResolveUnscheduled} row={row} status={row.status} t={t} /></td>
         {isDebugMode ? (
           <td className="px-4 py-2.5 text-center">

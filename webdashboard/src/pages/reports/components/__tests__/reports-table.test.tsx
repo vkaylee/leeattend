@@ -45,7 +45,6 @@ describe("ReportsTable", () => {
     setSearchQuery: vi.fn(),
     sortBy: undefined,
     specificMonth: { month: 3, year: 2024 },
-    workUnitMinutes: 60,
   };
 
   it("renders ReportFilters and NavigableList as siblings in a flex-col container to prevent layout squashing", () => {

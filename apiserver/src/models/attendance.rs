@@ -4,6 +4,7 @@ use uuid::Uuid;
 
 use crate::models::enums::{
     AdjustmentStatus, EarlyArrivalStrategy, ImportJobStatus, ImportTargetType, LogSource, OtStatus,
+    TimekeepingUnit,
 };
 use crate::services::attendance_utils::AttendanceStatus;
 
@@ -47,6 +48,14 @@ pub struct AttendanceSummary {
     pub total_std_units: i32,
     pub total_ot_units: i32,
     pub total_leave_days: i64,
+    #[serde(default)]
+    pub unit_type: TimekeepingUnit,
+    #[serde(default)]
+    pub unit_coefficient_hours: f64,
+    #[serde(default)]
+    pub computed_std_hours: f64,
+    #[serde(default)]
+    pub computed_ot_hours: f64,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -77,6 +86,14 @@ pub struct DailyAttendanceReport {
     pub ot_work_units: i32,
     #[serde(default)]
     pub ot_claim_status: Option<String>,
+    #[serde(default)]
+    pub unit_type: TimekeepingUnit,
+    #[serde(default)]
+    pub unit_coefficient_hours: f64,
+    #[serde(default)]
+    pub computed_std_hours: f64,
+    #[serde(default)]
+    pub computed_ot_hours: f64,
     pub status: AttendanceStatus,
     #[serde(default)]
     pub is_holiday: bool,
@@ -210,4 +227,54 @@ pub struct AttendancePolicyAssignment {
     pub valid_to: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn test_attendance_summary_backward_compatibility() {
+        // Old payload missing the multi-unit fields
+        let old_json = json!({
+            "employee_id": Uuid::new_v4(),
+            "employee_name": "Test User",
+            "employee_id_number": "EMP001",
+            "total_std_units": 160,
+            "total_ot_units": 20,
+            "total_leave_days": 2
+        });
+
+        let summary: AttendanceSummary = serde_json::from_value(old_json).unwrap();
+        
+        // Ensure defaults are applied correctly
+        assert_eq!(summary.total_std_units, 160);
+        assert!(matches!(summary.unit_type, TimekeepingUnit::DAY));
+        assert_eq!(summary.unit_coefficient_hours, 0.0);
+        assert_eq!(summary.computed_std_hours, 0.0);
+        assert_eq!(summary.computed_ot_hours, 0.0);
+    }
+
+    #[test]
+    fn test_attendance_summary_multi_unit_serialization() {
+        let summary = AttendanceSummary {
+            employee_id: Uuid::new_v4(),
+            employee_name: "Test User".to_string(),
+            employee_id_number: "EMP001".to_string(),
+            total_std_units: 160,
+            total_ot_units: 20,
+            total_leave_days: 2,
+            unit_type: TimekeepingUnit::DAY,
+            unit_coefficient_hours: 8.0,
+            computed_std_hours: 1280.0,
+            computed_ot_hours: 160.0,
+        };
+
+        let serialized = serde_json::to_string(&summary).unwrap();
+        
+        let deserialized: AttendanceSummary = serde_json::from_str(&serialized).unwrap();
+        assert_eq!(deserialized.computed_ot_hours, 160.0);
+        assert_eq!(deserialized.unit_coefficient_hours, 8.0);
+    }
 }

@@ -358,6 +358,12 @@ impl AttendanceHandler {
                 total_std_units,
                 total_ot_units,
                 total_leave_days: leave_data.get(&emp_sched.employee_id).copied().unwrap_or(0),
+                unit_type: crate::models::enums::TimekeepingUnit::DAY,
+                unit_coefficient_hours: emp_attendance_rules.work_unit_minutes as f64 / 60.0,
+                computed_std_hours: total_std_units as f64
+                    * (emp_attendance_rules.work_unit_minutes as f64 / 60.0),
+                computed_ot_hours: total_ot_units as f64
+                    * (emp_attendance_rules.work_unit_minutes as f64 / 60.0),
             });
         }
 
@@ -553,6 +559,12 @@ impl AttendanceHandler {
                     std_work_units,
                     ot_work_units,
                     ot_claim_status: None,
+                    unit_type: crate::models::enums::TimekeepingUnit::DAY,
+                    unit_coefficient_hours: emp_attendance_rules.work_unit_minutes as f64 / 60.0,
+                    computed_std_hours: std_work_units as f64
+                        * (emp_attendance_rules.work_unit_minutes as f64 / 60.0),
+                    computed_ot_hours: ot_work_units as f64
+                        * (emp_attendance_rules.work_unit_minutes as f64 / 60.0),
                     status,
                     is_holiday: false,
                     is_unscheduled: status
@@ -681,6 +693,10 @@ mod tests {
                 total_std_units: 140,
                 total_ot_units: 20,
                 total_leave_days: 2,
+                unit_type: crate::models::enums::TimekeepingUnit::DAY,
+                unit_coefficient_hours: 8.0,
+                computed_std_hours: 140.0,
+                computed_ot_hours: 20.0,
             },
             AttendanceSummary {
                 employee_id: Uuid::new_v4(),
@@ -689,6 +705,10 @@ mod tests {
                 total_std_units: 152,
                 total_ot_units: 0,
                 total_leave_days: 4,
+                unit_type: crate::models::enums::TimekeepingUnit::DAY,
+                unit_coefficient_hours: 8.0,
+                computed_std_hours: 152.0,
+                computed_ot_hours: 0.0,
             },
         ];
 
@@ -720,6 +740,10 @@ mod tests {
             std_work_units: 0,
             ot_work_units: 0,
             ot_claim_status: None,
+            unit_type: crate::models::enums::TimekeepingUnit::DAY,
+            unit_coefficient_hours: 8.0,
+            computed_std_hours: 0.0,
+            computed_ot_hours: 0.0,
             status: crate::services::attendance_utils::AttendanceStatus::Absent,
             is_holiday: false,
             is_unscheduled: false,
