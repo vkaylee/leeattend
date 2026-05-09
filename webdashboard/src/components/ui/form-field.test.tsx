@@ -1,5 +1,5 @@
 import { render, screen, fireEvent } from "@testing-library/react";
-import React from "react";
+import React, { createRef } from "react";
 
 import { describe, it, expect, vi } from "vitest";
 
@@ -118,6 +118,51 @@ describe("FormField Component", () => {
   it("merges inputClassName on input", () => {
     render(<FormField inputClassName="font-mono" label="Font" />);
     expect(screen.getByRole("textbox").className).toContain("font-mono");
+  });
+
+  // ── Ref forwarding (React 19) ──────────────────────────────────
+
+  it("forwards ref to input element", () => {
+    const ref = createRef<HTMLInputElement>();
+    render(<FormField label="Ref test" ref={ref} />);
+    expect(ref.current).toBeInstanceOf(HTMLInputElement);
+    expect(ref.current?.tagName).toBe("INPUT");
+  });
+
+  it("forwards ref to textarea element", () => {
+    const ref = createRef<HTMLTextAreaElement>();
+    render(<FormField label="Textarea ref" ref={ref as React.Ref<HTMLInputElement | HTMLTextAreaElement>} type="textarea" />);
+    expect(ref.current).toBeInstanceOf(HTMLTextAreaElement);
+    expect(ref.current?.tagName).toBe("TEXTAREA");
+  });
+
+  // ── onBlur ─────────────────────────────────────────────────────
+
+  it("calls onBlur handler when input loses focus", () => {
+    const onBlur = vi.fn();
+    render(<FormField label="Blur test" onBlur={onBlur} />);
+    const input = screen.getByRole("textbox");
+    fireEvent.blur(input);
+    expect(onBlur).toHaveBeenCalledTimes(1);
+  });
+
+  // ── Error display ──────────────────────────────────────────────
+
+  it("displays error message when error prop is provided", () => {
+    render(<FormField error="This field is required" label="Error field" />);
+    expect(screen.getByText("This field is required")).toBeInTheDocument();
+  });
+
+  it("does not display error message when error prop is empty", () => {
+    render(<FormField label="No error" />);
+    expect(screen.queryByText(/required/i)).not.toBeInTheDocument();
+  });
+
+  // ── Disabled ───────────────────────────────────────────────────
+
+  it("disables input when disabled prop is true", () => {
+    render(<FormField disabled label="Disabled field" />);
+    expect(screen.getByRole("textbox")).toBeDisabled();
   });
 });
 
