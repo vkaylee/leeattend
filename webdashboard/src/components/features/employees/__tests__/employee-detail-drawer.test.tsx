@@ -27,6 +27,9 @@ vi.mock("@/components/payroll/employee-salary-config", () => ({
 vi.mock("@/components/employees/working-condition-config", () => ({
     default: () => <div data-testid="working-condition">WorkingCondition</div>,
 }));
+vi.mock("../employee-contracts-tab", () => ({
+    default: () => <div data-testid="contracts-tab">ContractsTab</div>,
+}));
 
 const mockMembers = [
     {
@@ -279,6 +282,10 @@ describe("EmployeeDetailDrawer", () => {
         // Start on Profile (has edit button)
         expect(screen.getByTestId("employees-btn-edit")).toBeDefined();
 
+        // ArrowRight → Contracts
+        await user.keyboard("{ArrowRight}");
+        expect(screen.getByTestId("contracts-tab")).toBeDefined();
+
         // ArrowRight → Salary
         await user.keyboard("{ArrowRight}");
         expect(screen.getByTestId("salary-config")).toBeDefined();
@@ -292,9 +299,9 @@ describe("EmployeeDetailDrawer", () => {
         const user = userEvent.setup();
         renderWithClient(<EmployeeDetailDrawer {...defaultProps} />);
 
-        // ArrowRight to Salary first
+        // ArrowRight to Contracts first
         await user.keyboard("{ArrowRight}");
-        expect(screen.getByTestId("salary-config")).toBeDefined();
+        expect(screen.getByTestId("contracts-tab")).toBeDefined();
 
         // ArrowLeft back to Profile
         await user.keyboard("{ArrowLeft}");
@@ -314,8 +321,8 @@ describe("EmployeeDetailDrawer", () => {
         const user = userEvent.setup();
         renderWithClient(<EmployeeDetailDrawer {...defaultProps} />);
 
-        // Navigate to History (last tab): Profile → Salary → Policies → History
-        await user.keyboard("{ArrowRight}{ArrowRight}{ArrowRight}");
+        // Navigate to History (last tab): Profile → Contracts → Salary → Policies → History
+        await user.keyboard("{ArrowRight}{ArrowRight}{ArrowRight}{ArrowRight}");
         expect(screen.getByText(/employees.details.joined/i)).toBeDefined();
 
         // ArrowRight → should wrap to Profile

@@ -415,6 +415,9 @@ impl JobWorker {
             TaskType::FinalizeImport => {
                 FinalizeImportHandler::handle(&self.db, &job, &self.redis).await
             }
+            TaskType::ExpiringContractsCheck => {
+                crate::worker::handlers::ExpiringContractsHandler::handle(&self.db, &job).await
+            }
             TaskType::LeaveImportChunk => {
                 crate::worker::handlers::LeaveImportChunkHandler::handle(
                     &self.db,

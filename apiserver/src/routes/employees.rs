@@ -43,6 +43,18 @@ pub fn router() -> Router<Arc<AppState>> {
             "/workspaces/:ws_id/employees/:id/departments",
             get(handlers::get_employee_department_history).post(handlers::transfer_employee),
         )
+        // Employee Contracts (v1 prefix as requested)
+        .route(
+            "/v1/workspaces/:ws_id/employees/:employee_id/contracts",
+            get(handlers::employee_contracts::list_employee_contracts)
+                .post(handlers::employee_contracts::create_contract),
+        )
+        .route(
+            "/v1/workspaces/:ws_id/employees/:employee_id/contracts/:contract_id",
+            get(handlers::employee_contracts::get_contract)
+                .patch(handlers::employee_contracts::update_contract)
+                .delete(handlers::employee_contracts::delete_contract),
+        )
         // Recruitment sources
         .route(
             "/workspaces/:ws_id/recruitment-sources",

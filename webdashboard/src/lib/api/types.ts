@@ -698,6 +698,13 @@ export interface LeavePolicy {
 
 export type AccrualFrequency = "monthly" | "quarterly" | "yearly";
 
+export interface ProcessResponse {
+  logs_deleted: number;
+  logs_processed: number;
+}
+
+export * from "./contract-types";
+
 export interface SeniorityBonus {
   extra_days: number;
   min_years: number;

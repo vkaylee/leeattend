@@ -247,7 +247,7 @@ mod tests {
         });
 
         let summary: AttendanceSummary = serde_json::from_value(old_json).unwrap();
-        
+
         // Ensure defaults are applied correctly
         assert_eq!(summary.total_std_units, 160);
         assert!(matches!(summary.unit_type, TimekeepingUnit::DAY));
@@ -272,7 +272,7 @@ mod tests {
         };
 
         let serialized = serde_json::to_string(&summary).unwrap();
-        
+
         let deserialized: AttendanceSummary = serde_json::from_str(&serialized).unwrap();
         assert_eq!(deserialized.computed_ot_hours, 160.0);
         assert_eq!(deserialized.unit_coefficient_hours, 8.0);

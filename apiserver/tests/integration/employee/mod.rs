@@ -1,6 +1,7 @@
 //! Employee domain integration tests
 
 mod bulk_import;
+mod contracts;
 mod department_name;
 mod employment_phases;
 mod id_normalization;

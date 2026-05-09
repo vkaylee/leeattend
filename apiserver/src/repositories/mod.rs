@@ -42,6 +42,7 @@ pub mod shift_repository;
 pub mod shift_swap_repository;
 pub mod time_entry_repository;
 pub use time_entry_repository::{SqlxTimeEntryRepository, TimeEntryRepository};
+pub mod employee_contract_repository;
 pub mod employment_phase_repository;
 pub mod payroll_rule_repository;
 pub mod salary_base_repository;
@@ -50,6 +51,7 @@ pub mod working_pattern_repository;
 pub mod workspace_repository;
 
 pub use agent_repository::{AgentRepository, SqlxAgentRepository};
+pub use employee_contract_repository::*;
 pub use employment_phase_repository::EmploymentPhaseRepository;
 pub use payroll_rule_repository::PayrollRuleRepository;
 pub use workspace_repository::{SqlxWorkspaceRepository, WorkspaceRepository};

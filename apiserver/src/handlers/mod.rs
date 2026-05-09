@@ -39,6 +39,7 @@ pub use workspaces::*;
 pub mod overtime;
 pub use overtime::*;
 pub mod dashboard_preferences;
+pub mod employee_contracts;
 pub mod feature_flags;
 pub mod holidays;
 pub mod leave_types;

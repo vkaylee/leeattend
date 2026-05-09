@@ -11,6 +11,52 @@ use utoipa::ToSchema;
     Eq,
     sqlx::Type,
     strum_macros::Display,
+    strum_macros::EnumString,
+    ToSchema,
+)]
+#[sqlx(type_name = "contract_type_enum", rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
+#[strum(serialize_all = "snake_case")]
+pub enum ContractType {
+    Probation,
+    Training,
+    FixedTerm,
+    Indefinite,
+}
+
+#[derive(
+    Debug,
+    Serialize,
+    Deserialize,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    sqlx::Type,
+    strum_macros::Display,
+    strum_macros::EnumString,
+    ToSchema,
+)]
+#[sqlx(type_name = "contract_status_enum", rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
+#[strum(serialize_all = "snake_case")]
+pub enum ContractStatus {
+    Draft,
+    Active,
+    Expired,
+    Terminated,
+}
+
+#[derive(
+    Debug,
+    Serialize,
+    Deserialize,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    sqlx::Type,
+    strum_macros::Display,
     ToSchema,
 )]
 #[sqlx(type_name = "leave_status_type", rename_all = "snake_case")]

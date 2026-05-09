@@ -29,6 +29,7 @@ pub enum TaskType {
     EmployeeImportChunk,
     LeaveImportChunk,
     FinalizeImport,
+    ExpiringContractsCheck,
 }
 
 /// Job priority level. Controls which Redis queue the job is routed to.
@@ -140,6 +141,12 @@ pub struct HousekeepingPayload {
     pub reference_date: NaiveDate,
 }
 
+/// Payload for expiring contracts check.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ExpiringContractsPayload {
+    pub reference_date: NaiveDate,
+}
+
 /// Payload for bulk employee import from Excel.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EmployeeImportPayload {
@@ -193,6 +200,7 @@ pub enum JobPayload {
     EmployeeImportChunk(EmployeeImportChunkPayload),
     LeaveImportChunk(LeaveImportChunkPayload),
     FinalizeImport(FinalizeImportPayload),
+    ExpiringContractsCheck(ExpiringContractsPayload),
 }
 
 /// A single worker job.
@@ -354,6 +362,13 @@ impl Job {
     pub fn finalize_import_payload(&self) -> Option<&FinalizeImportPayload> {
         match &self.payload {
             JobPayload::FinalizeImport(p) => Some(p),
+            _ => None,
+        }
+    }
+
+    pub fn expiring_contracts_payload(&self) -> Option<&ExpiringContractsPayload> {
+        match &self.payload {
+            JobPayload::ExpiringContractsCheck(p) => Some(p),
             _ => None,
         }
     }

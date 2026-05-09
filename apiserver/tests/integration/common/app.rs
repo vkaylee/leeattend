@@ -196,6 +196,7 @@ pub async fn spawn_app() -> (String, TestDatabase) {
         employees: apiserver::EmployeeState {
             service: employee_service,
             repo: employee_repo.clone(),
+            contract_repo: Arc::new(apiserver::repositories::employee_contract_repository::SqlxEmployeeContractRepository { pool: pool.clone() }),
         },
         attendance: apiserver::AttendanceState {
             time_tracking_service,
@@ -498,6 +499,7 @@ pub async fn spawn_app_with_factory() -> (String, Uuid, Uuid, TestFactory, TestD
         employees: apiserver::EmployeeState {
             service: employee_service,
             repo: employee_repo.clone(),
+            contract_repo: Arc::new(apiserver::repositories::employee_contract_repository::SqlxEmployeeContractRepository { pool: db_pool.clone() }),
         },
         attendance: apiserver::AttendanceState {
             time_tracking_service,
@@ -827,6 +829,7 @@ pub async fn setup_app_tower() -> (TestDatabase, TestFactory, Arc<AppState>, axu
         employees: apiserver::EmployeeState {
             service: employee_service,
             repo: employee_repo.clone(),
+            contract_repo: Arc::new(apiserver::repositories::employee_contract_repository::SqlxEmployeeContractRepository { pool: pool.clone() }),
         },
         attendance: apiserver::AttendanceState {
             time_tracking_service,

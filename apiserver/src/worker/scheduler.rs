@@ -61,6 +61,22 @@ impl HousekeepingScheduler {
                             if let Err(e) = self.queue.enqueue_single(job).await {
                                 error!(error = %e, "Failed to enqueue nightly housekeeping job");
                             }
+
+                            // Enqueue expiring contracts check
+                            let contracts_job = Job::with_priority(
+                                Uuid::nil(),
+                                0,
+                                TaskType::ExpiringContractsCheck,
+                                Uuid::nil(),
+                                JobPayload::ExpiringContractsCheck(crate::queue::ExpiringContractsPayload {
+                                    reference_date: today,
+                                }),
+                                JobPriority::Low,
+                            );
+
+                            if let Err(e) = self.queue.enqueue_single(contracts_job).await {
+                                error!(error = %e, "Failed to enqueue expiring contracts check job");
+                            }
                         }
                     }
                 }

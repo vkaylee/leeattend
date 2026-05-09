@@ -21,9 +21,11 @@ import Sheet from "@/components/ui/sheet";
 import { fetchWorkspaceMembers } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
+import EmployeeContractsTab from "./employee-contracts-tab";
 
-type DetailTabType = "profile" | "salary" | "history" | "policies";
-const TAB_ORDER: DetailTabType[] = ["profile", "salary", "policies", "history"];
+
+type DetailTabType = "profile" | "salary" | "history" | "policies" | "contracts";
+const TAB_ORDER: DetailTabType[] = ["profile", "contracts", "salary", "policies", "history"];
 const SCROLL_STEP = 80;
 
 interface DeptHistoryEntry {
@@ -88,6 +90,7 @@ function DrawerHeader({
             <div className="flex bg-white dark:bg-slate-900/50 p-1.5 rounded-[22px] w-fit border border-slate-200 dark:border-slate-700/50 shadow-inner">
                 {[
                     { id: "profile", label: t("common.profile") },
+                    { id: "contracts", label: "Hợp đồng" },
                     { id: "salary", label: t("employees.details.salary_benefits") },
                     { id: "policies", label: t("employees.details.special_policies") },
                     { id: "history", label: t("employees.details.work_history") }
@@ -220,6 +223,7 @@ function ProfileTab({
     );
 }
 
+// eslint-disable-next-line max-lines-per-function
 export default function EmployeeDetailDrawer({
     isOpen,
     onClose,
@@ -302,6 +306,14 @@ export default function EmployeeDetailDrawer({
                         onTerminate={onTerminate}
                         onTransfer={onTransfer}
                         t={t}
+                    />
+                )}
+
+                {activeDetailTab === "contracts" && (
+                    <EmployeeContractsTab
+                        employeeId={employee.id}
+                        formatDate={formatDate}
+                        wsId={wsId}
                     />
                 )}
 

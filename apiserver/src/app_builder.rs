@@ -5,6 +5,7 @@ use tokio_util::sync::CancellationToken;
 use crate::agent_manager::AgentManager;
 use crate::db_pool::DbPools;
 use crate::queue::RedisPool;
+use crate::repositories::PoolBacked;
 use crate::services::{AttendanceLogService, ReportCoordinator};
 use crate::state::AppState;
 use crate::worker::{HousekeepingScheduler, JobWorker, WorkerConfig};
@@ -58,6 +59,8 @@ impl AppState {
             Arc::clone(&employee_repo),
             pool.clone(),
         ));
+        let contract_repo =
+            Arc::new(crate::repositories::SqlxEmployeeContractRepository::from_pool(pool.clone()));
         let time_entry_repo: Arc<
             dyn crate::repositories::time_entry_repository::TimeEntryRepository,
         > = Arc::new(crate::repositories::SqlxTimeEntryRepository::new(
@@ -318,6 +321,7 @@ impl AppState {
             employees: crate::EmployeeState {
                 service: employee_service,
                 repo: employee_repo,
+                contract_repo,
             },
             attendance: crate::AttendanceState {
                 time_tracking_service,

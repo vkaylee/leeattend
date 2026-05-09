@@ -5,10 +5,10 @@ mod redis_client;
 
 pub use job::{
     AccrualPayload, ClaimStagedLogsPayload, DateRange, EmployeeImportChunkPayload,
-    EmployeeImportPayload, FinalizeImportPayload, HousekeepingPayload, Job, JobMetadata,
-    JobPayload, JobPriority, JobStatus, LeaveImportChunkPayload, LeaveImportPayload,
-    LogIngestionPayload, MergePayload, ReportConfig, ReportPayload, ReportType, ReprocessPayload,
-    TaskType,
+    EmployeeImportPayload, ExpiringContractsPayload, FinalizeImportPayload, HousekeepingPayload,
+    Job, JobMetadata, JobPayload, JobPriority, JobStatus, LeaveImportChunkPayload,
+    LeaveImportPayload, LogIngestionPayload, MergePayload, ReportConfig, ReportPayload, ReportType,
+    ReprocessPayload, TaskType,
 };
 pub use job_queue::JobQueue;
 pub use pubsub::{ReportPublisher, ReportSubscriber, StreamMessage};

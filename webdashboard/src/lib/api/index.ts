@@ -17,3 +17,4 @@ export * from "./audit";
 export * from "./system";
 export * from "./shifts";
 export * from "./notifications";
+export * from "./contracts";

@@ -16,7 +16,9 @@ use crate::repositories::staging_log_repository::StagingLogRepository;
 use crate::repositories::time_entry_repository::TimeEntryRepository;
 use crate::repositories::user_repository::UserRepository;
 use crate::repositories::workspace_stats_repository::WorkspaceStatsRepository;
-use crate::repositories::{AgentRepository, EmployeeRepository, WorkspaceRepository};
+use crate::repositories::{
+    AgentRepository, EmployeeRepository, SqlxEmployeeContractRepository, WorkspaceRepository,
+};
 use crate::services::attendance_adjustment_service::AttendanceAdjustmentService;
 use crate::services::attendance_import_service::AttendanceImportService;
 use crate::services::auth_service::AuthService;
@@ -41,6 +43,7 @@ pub use crate::queue::RedisPool;
 pub struct EmployeeState {
     pub service: Arc<EmployeeService>,
     pub repo: Arc<dyn EmployeeRepository>,
+    pub contract_repo: Arc<SqlxEmployeeContractRepository>,
 }
 
 /// Time & attendance tracking, summaries, logs, staging, adjustments, imports

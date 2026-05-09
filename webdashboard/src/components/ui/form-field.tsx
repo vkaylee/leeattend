@@ -18,6 +18,8 @@ export interface FormFieldProps {
   "data-testid"?: string;
   defaultValue?: string;
   disabled?: boolean;
+  /** Error message to display */
+  error?: string;
   /** HTML id */
   id?: string;
   /** Extra className for the input element (e.g. "font-mono") */
@@ -53,6 +55,7 @@ const FormField = memo(function FormField({
   rows = 5,
   className,
   disabled,
+  error,
 }: FormFieldProps) {
   const inputId = id ?? name;
 
@@ -95,6 +98,9 @@ const FormField = memo(function FormField({
           onChange={onChange}
           type={type}
         />
+      )}
+      {!!error && (
+        <p className="text-xs text-rose-500 font-medium px-1 mt-1">{error}</p>
       )}
     </div>
   );
