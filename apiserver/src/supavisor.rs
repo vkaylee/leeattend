@@ -11,12 +11,12 @@ pub(crate) fn build_tenant_payload(db_url: &str) -> Option<(String, serde_json::
         .ok()
         .filter(|s| !s.is_empty())
         .unwrap_or_else(|| parsed_url.username().to_string());
-        
+
     let db_password = std::env::var("SUPAVISOR_POOL_PASSWORD")
         .ok()
         .filter(|s| !s.is_empty())
         .unwrap_or_else(|| parsed_url.password().unwrap_or("").to_string());
-        
+
     let db_host = parsed_url.host_str().unwrap_or("db").to_string();
     let db_port = parsed_url.port().unwrap_or(5432);
     let db_name = parsed_url.path().trim_start_matches('/').to_string();
@@ -40,8 +40,8 @@ pub(crate) fn build_tenant_payload(db_url: &str) -> Option<(String, serde_json::
         .and_then(|v| v.parse().ok())
         .unwrap_or(20);
 
-    let mode_type = std::env::var("SUPAVISOR_MODE_TYPE")
-        .unwrap_or_else(|_| "transaction".to_string());
+    let mode_type =
+        std::env::var("SUPAVISOR_MODE_TYPE").unwrap_or_else(|_| "transaction".to_string());
 
     let payload = json!({
         "tenant": {
@@ -76,7 +76,9 @@ pub async fn init_supavisor_tenant() {
     };
 
     let Ok(jwt_secret) = std::env::var("API_JWT_SECRET") else {
-        tracing::warn!("SUPAVISOR_API_URL is set but API_JWT_SECRET is missing. Cannot initialize Supavisor.");
+        tracing::warn!(
+            "SUPAVISOR_API_URL is set but API_JWT_SECRET is missing. Cannot initialize Supavisor."
+        );
         return;
     };
 
@@ -99,7 +101,8 @@ pub async fn init_supavisor_tenant() {
     let client = Client::new();
     let url = format!("{}/api/tenants/{tenant_id}", api_url.trim_end_matches('/'));
 
-    match client.put(&url)
+    match client
+        .put(&url)
         .header("Authorization", format!("Bearer {token}"))
         .json(&payload)
         .send()
@@ -126,8 +129,8 @@ pub async fn init_supavisor_tenant() {
 }
 
 fn generate_supavisor_token(secret: &str) -> Result<String, jsonwebtoken::errors::Error> {
-    use jsonwebtoken::{encode, EncodingKey, Header, Algorithm};
-    use serde::{Serialize, Deserialize};
+    use jsonwebtoken::{encode, Algorithm, EncodingKey, Header};
+    use serde::{Deserialize, Serialize};
 
     #[derive(Debug, Serialize, Deserialize)]
     struct Claims {
@@ -141,7 +144,89 @@ fn generate_supavisor_token(secret: &str) -> Result<String, jsonwebtoken::errors
     let claims = Claims { iat, exp };
     let header = Header::new(Algorithm::HS256);
 
-    encode(&header, &claims, &EncodingKey::from_secret(secret.as_bytes()))
+    encode(
+        &header,
+        &claims,
+        &EncodingKey::from_secret(secret.as_bytes()),
+    )
+}
+
+/// Deletes a tenant from Supavisor.
+pub async fn delete_tenant(tenant_id: &str) -> crate::errors::AppResult<()> {
+    let api_url = std::env::var("SUPAVISOR_API_URL").map_err(|_err| {
+        crate::errors::AppError::Internal("SUPAVISOR_API_URL not set".to_string())
+    })?;
+    let jwt_secret = std::env::var("API_JWT_SECRET")
+        .map_err(|_err| crate::errors::AppError::Internal("API_JWT_SECRET not set".to_string()))?;
+    let token = generate_supavisor_token(&jwt_secret)
+        .map_err(|e| crate::errors::AppError::Internal(format!("Failed to generate token: {e}")))?;
+
+    let client = Client::new();
+    let url = format!(
+        "{}/api/tenants/{}",
+        api_url.trim_end_matches('/'),
+        tenant_id
+    );
+
+    let response = client
+        .delete(&url)
+        .header("Authorization", format!("Bearer {token}"))
+        .send()
+        .await
+        .map_err(|e| {
+            crate::errors::AppError::Internal(format!("Failed to reach Supavisor API: {e}"))
+        })?;
+
+    let status = response.status();
+    if status.is_success() {
+        Ok(())
+    } else {
+        let text = response.text().await.unwrap_or_default();
+        Err(crate::errors::AppError::Internal(format!(
+            "Supavisor returned {status}: {text}"
+        )))
+    }
+}
+
+/// Dynamically registers a tenant in Supavisor using the provided payload.
+pub async fn register_tenant_dynamic(
+    tenant_id: &str,
+    payload: &serde_json::Value,
+) -> crate::errors::AppResult<()> {
+    let api_url = std::env::var("SUPAVISOR_API_URL").map_err(|_err| {
+        crate::errors::AppError::Internal("SUPAVISOR_API_URL not set".to_string())
+    })?;
+    let jwt_secret = std::env::var("API_JWT_SECRET")
+        .map_err(|_err| crate::errors::AppError::Internal("API_JWT_SECRET not set".to_string()))?;
+    let token = generate_supavisor_token(&jwt_secret)
+        .map_err(|e| crate::errors::AppError::Internal(format!("Failed to generate token: {e}")))?;
+
+    let client = Client::new();
+    let url = format!(
+        "{}/api/tenants/{}",
+        api_url.trim_end_matches('/'),
+        tenant_id
+    );
+
+    let response = client
+        .put(&url)
+        .header("Authorization", format!("Bearer {token}"))
+        .json(payload)
+        .send()
+        .await
+        .map_err(|e| {
+            crate::errors::AppError::Internal(format!("Failed to reach Supavisor API: {e}"))
+        })?;
+
+    let status = response.status();
+    if status.is_success() {
+        Ok(())
+    } else {
+        let text = response.text().await.unwrap_or_default();
+        Err(crate::errors::AppError::Internal(format!(
+            "Supavisor returned {status}: {text}"
+        )))
+    }
 }
 
 #[cfg(test)]
@@ -152,14 +237,14 @@ mod tests {
     fn test_build_tenant_payload_valid() {
         let url = "postgres://my_user:my_secret@my_db_host:5433/my_company_db";
         let (tenant_id, payload) = build_tenant_payload(url).expect("Should build payload");
-        
+
         assert_eq!(tenant_id, "my_company_db");
-        
+
         let tenant = payload.get("tenant").expect("missing tenant key");
         assert_eq!(tenant["db_host"], "my_db_host");
         assert_eq!(tenant["db_port"], 5433);
         assert_eq!(tenant["db_database"], "my_company_db");
-        
+
         let users = tenant["users"].as_array().expect("missing users array");
         assert_eq!(users.len(), 1);
         assert_eq!(users[0]["db_user"], "my_user");
@@ -186,12 +271,15 @@ mod tests {
         std::env::set_var("SUPAVISOR_TENANT_ID", "custom_tenant_name");
         let url = "postgres://my_user:my_secret@my_db_host:5433/my_company_db";
         let (tenant_id, payload) = build_tenant_payload(url).expect("Should build payload");
-        
+
         assert_eq!(tenant_id, "custom_tenant_name");
-        
+
         let tenant = payload.get("tenant").expect("missing tenant key");
-        assert_eq!(tenant["db_database"], "my_company_db", "DB name should still be the original");
-        
+        assert_eq!(
+            tenant["db_database"], "my_company_db",
+            "DB name should still be the original"
+        );
+
         std::env::remove_var("SUPAVISOR_TENANT_ID");
     }
 
@@ -199,17 +287,17 @@ mod tests {
     fn test_build_tenant_payload_with_custom_user_and_password() {
         std::env::set_var("SUPAVISOR_POOL_USER", "custom_pool_user");
         std::env::set_var("SUPAVISOR_POOL_PASSWORD", "custom_pool_secret");
-        
+
         let url = "postgres://my_user:my_secret@my_db_host:5433/my_company_db";
         let (_, payload) = build_tenant_payload(url).expect("Should build payload");
-        
+
         let tenant = payload.get("tenant").expect("missing tenant key");
         let users = tenant["users"].as_array().expect("missing users array");
         assert_eq!(users[0]["db_user"], "custom_pool_user");
         assert_eq!(users[0]["db_password"], "custom_pool_secret");
         assert_eq!(users[0]["pool_size"], 20); // Default
         assert_eq!(users[0]["mode_type"], "transaction"); // Default
-        
+
         std::env::remove_var("SUPAVISOR_POOL_USER");
         std::env::remove_var("SUPAVISOR_POOL_PASSWORD");
     }
@@ -218,15 +306,15 @@ mod tests {
     fn test_build_tenant_payload_with_custom_pool_settings() {
         std::env::set_var("SUPAVISOR_POOL_SIZE", "50");
         std::env::set_var("SUPAVISOR_MODE_TYPE", "session");
-        
+
         let url = "postgres://my_user:my_secret@my_db_host:5433/my_company_db";
         let (_, payload) = build_tenant_payload(url).expect("Should build payload");
-        
+
         let tenant = payload.get("tenant").expect("missing tenant key");
         let users = tenant["users"].as_array().expect("missing users array");
         assert_eq!(users[0]["pool_size"], 50);
         assert_eq!(users[0]["mode_type"], "session");
-        
+
         std::env::remove_var("SUPAVISOR_POOL_SIZE");
         std::env::remove_var("SUPAVISOR_MODE_TYPE");
     }
@@ -235,7 +323,10 @@ mod tests {
     fn test_build_tenant_payload_missing_password() {
         let url = "postgres://my_user@my_db_host:5432/my_company_db";
         let result = build_tenant_payload(url);
-        assert!(result.is_none(), "Should return None if password is missing");
+        assert!(
+            result.is_none(),
+            "Should return None if password is missing"
+        );
     }
 
     #[test]
@@ -263,10 +354,14 @@ mod tests {
     fn test_build_tenant_payload_with_query_params() {
         // Query parameters like sslmode or application_name should not break the path extraction
         let url = "postgres://my_user:my_secret@my_db_host:5432/my_company_db?sslmode=disable&application_name=leeattend";
-        let (tenant_id, payload) = build_tenant_payload(url).expect("Should build payload correctly even with query params");
-        
-        assert_eq!(tenant_id, "my_company_db", "DB name should not include query params");
-        
+        let (tenant_id, payload) = build_tenant_payload(url)
+            .expect("Should build payload correctly even with query params");
+
+        assert_eq!(
+            tenant_id, "my_company_db",
+            "DB name should not include query params"
+        );
+
         let tenant = payload.get("tenant").expect("missing tenant key");
         assert_eq!(tenant["db_database"], "my_company_db");
     }
@@ -275,7 +370,7 @@ mod tests {
     fn test_generate_supavisor_token_valid() {
         let secret = "super_secret_test_key_with_at_least_32_bytes_length";
         let token = generate_supavisor_token(secret).expect("Should generate token");
-        
+
         // Ensure we can decode it back with the same secret
         use jsonwebtoken::{decode, DecodingKey, Validation};
         #[derive(serde::Deserialize)]
@@ -283,14 +378,18 @@ mod tests {
             iat: usize,
             exp: usize,
         }
-        
+
         let mut validation = Validation::default();
         validation.leeway = 60;
         validation.validate_exp = false; // We just want to check the structure
-        
-        let token_data = decode::<Claims>(&token, &DecodingKey::from_secret(secret.as_bytes()), &validation)
-            .expect("Should decode successfully");
-            
+
+        let token_data = decode::<Claims>(
+            &token,
+            &DecodingKey::from_secret(secret.as_bytes()),
+            &validation,
+        )
+        .expect("Should decode successfully");
+
         // Check expiration is 1 hour ahead
         assert_eq!(token_data.claims.exp - token_data.claims.iat, 3600);
     }

@@ -69,7 +69,7 @@ impl DbPoolConfig {
     pub fn resolve_pool_urls(&self) -> (&str, &str, &str) {
         let api_worker_url = self.pooler_url.as_deref().unwrap_or(&self.primary_url);
         let reader_url = self.reader_url.as_deref().unwrap_or(api_worker_url);
-        
+
         (api_worker_url, api_worker_url, reader_url)
     }
 }
@@ -169,7 +169,7 @@ impl DbPools {
     /// Run database migrations on the primary database.
     pub async fn run_migrations(config: &DbPoolConfig) {
         tracing::info!("Running database migrations directly on primary database...");
-        
+
         #[allow(clippy::expect_used)]
         let pool = PgPoolOptions::new()
             .max_connections(1)
@@ -183,7 +183,7 @@ impl DbPools {
             .run(&pool)
             .await
             .expect("Failed to run migrations");
-            
+
         pool.close().await;
         tracing::info!("Database migrations completed successfully");
     }
@@ -465,7 +465,9 @@ mod tests {
 
         let config = DbPoolConfig {
             primary_url,
-            pooler_url: Some("postgres://dummy_user:dummy_pass@localhost:9999/dummy_db".to_string()),
+            pooler_url: Some(
+                "postgres://dummy_user:dummy_pass@localhost:9999/dummy_db".to_string(),
+            ),
             reader_url: None,
             api_max_conn: 1,
             // Very short timeout so the test doesn't hang forever
@@ -484,7 +486,10 @@ mod tests {
             .acquire_timeout(std::time::Duration::from_secs(1))
             .connect(api_conn_url)
             .await;
-            
-        assert!(api_result.is_err(), "API pool MUST fail to connect to the dead pooler port");
+
+        assert!(
+            api_result.is_err(),
+            "API pool MUST fail to connect to the dead pooler port"
+        );
     }
 }

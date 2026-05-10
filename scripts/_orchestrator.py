@@ -584,6 +584,16 @@ class Orchestrator:
         ]
 
         if tool in ["cargo", "sqlx"]:
+            if os.environ.get("POOLER") == "true":
+                log_info("ℹ️ 🔹 Bringing up backend dependencies for supavisor pooler...")
+                self.execute_safe([*self.compose_engine, "--profile", "infra-pooler", "up", "-d", "supavisor"])
+                log_info("ℹ️ 🔹 Waiting for supavisor to be healthy...")
+                for _ in range(30):
+                    res = subprocess.run([*self.compose_engine, "ps"], capture_output=True, text=True)
+                    if "supavisor" in res.stdout and "healthy" in res.stdout:
+                        break
+                    time.sleep(1)
+
             log_info(f"🔹 Bringing up backend dependencies for {tool}...")
             _lifecycle_up("infra-db")
             compose_cmd.extend(

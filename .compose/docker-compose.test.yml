@@ -147,10 +147,13 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      supavisor:
+        condition: service_healthy
+        required: false
     working_dir: /workspace/apiserver
     environment:
-      - DATABASE_URL=postgres://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
-      - DATABASE_POOLER_URL=postgres://${SUPAVISOR_POOL_USER:-${DB_USER}}.${SUPAVISOR_TENANT_ID:-${DB_NAME}}:${SUPAVISOR_POOL_PASSWORD:-${DB_PASSWORD}}@${SUPAVISOR_HOST:-supavisor}:${SUPAVISOR_PORT:-6543}/${DB_NAME}
+      - DATABASE_URL=postgres://test_user:test_password@db:5432/test_database
+      - DATABASE_POOLER_URL=postgres://${SUPAVISOR_POOL_USER:-test_user}.${SUPAVISOR_TENANT_ID:-test_database}:${SUPAVISOR_POOL_PASSWORD:-test_password}@${SUPAVISOR_HOST:-supavisor}:${SUPAVISOR_PORT:-6543}/test_database
       - SUPAVISOR_API_URL=http://${SUPAVISOR_HOST:-supavisor}:${SUPAVISOR_API_PORT:-4000}
       - SUPAVISOR_TENANT_ID=${SUPAVISOR_TENANT_ID:-}
       - SUPAVISOR_POOL_USER=${SUPAVISOR_POOL_USER:-}

@@ -5,6 +5,7 @@ use axum::{
 use std::sync::Arc;
 
 use crate::handlers::system_admin;
+use crate::handlers::system_tenants;
 use crate::AppState;
 
 pub fn router() -> Router<Arc<AppState>> {
@@ -21,4 +22,12 @@ pub fn router() -> Router<Arc<AppState>> {
         )
         // Infrastructure health (PlatformAdmin + Support)
         .route("/system/health", get(system_admin::system_health))
+        .route(
+            "/system/tenants",
+            get(system_tenants::list_tenants).post(system_tenants::create_tenant),
+        )
+        .route(
+            "/system/tenants/:tenant_id",
+            delete(system_tenants::delete_tenant_handler),
+        )
 }
