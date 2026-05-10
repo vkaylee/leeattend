@@ -9,7 +9,6 @@ import {
   Employee,
   fetchDepartments,
   fetchEmployeeDepartmentHistory,
-  fetchEmploymentHistory,
 } from "@/lib/api";
 
 import type { SortKey, SortDir } from "./use-employees-state";
@@ -93,11 +92,7 @@ export const useEmployeesData = ({
     enabled: !!selectedEmployee 
   });
 
-  const { data: employmentHistory } = useQuery({ 
-    queryKey: ["employmentHistory", selectedEmployee?.id], 
-    queryFn: () => selectedEmployee ? fetchEmploymentHistory(wsId, selectedEmployee.id) : Promise.reject(new Error("No employee selected")), 
-    enabled: !!selectedEmployee 
-  });
+
 
   const updateMutation = useMutation({
     mutationFn: (data: { id: string; employee: Partial<Employee> }) => updateEmployee(wsId, data.id, data.employee),
@@ -114,7 +109,7 @@ export const useEmployeesData = ({
     totalItems,
     departments,
     deptHistory,
-    employmentHistory,
+
     updateMutation,
     isLoading,
     isFetching,

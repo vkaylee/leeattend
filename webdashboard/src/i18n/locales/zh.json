@@ -1652,7 +1652,22 @@
       "work_history": "工作历史",
       "view_details": "查看详情 →",
       "joined": "入职公司",
-      "returned": "返回工作岗位"
+      "returned": "返回工作岗位",
+      "contracts": {
+        "title": "合同历史",
+        "sign_contract": "签订合同",
+        "no_contracts": "暂无合同",
+        "effective_date": "生效日期",
+        "expiration_date": "到期日期",
+        "indefinite_duration": "无固定期限",
+        "contract_number": "合同编号: {{number}}",
+        "types": {
+          "probation": "试用期",
+          "training": "培训",
+          "fixed_term": "固定期限",
+          "indefinite": "无固定期限"
+        }
+      }
     },
     "form": {
       "add_title": "添加员工",

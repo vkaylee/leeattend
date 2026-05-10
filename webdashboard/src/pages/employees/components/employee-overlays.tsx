@@ -4,21 +4,20 @@ import { useTranslation } from "react-i18next";
 import AttendanceImportDialog from "@/components/features/attendance/attendance-import-dialog";
 import EmployeeDetailDrawer from "@/components/features/employees/employee-detail-drawer";
 import EmployeeFormModal from "@/components/features/employees/employee-form-modal";
-import EmploymentHistoryModal from "@/components/features/employees/employment-history-modal";
 import RehireEmployeeModal from "@/components/features/employees/rehire-employee-modal";
 import TransferEmployeeModal from "@/components/features/employees/transfer-employee-modal";
 
-import type { Employee, Department, EmploymentPeriod, EmployeeDepartmentHistory } from "../../../lib/api/types";
+import type { Employee, Department, EmployeeDepartmentHistory } from "../../../lib/api/types";
 
 interface EmployeeOverlaysProps {
   departments: Department[] | undefined;
   deptHistory: EmployeeDepartmentHistory[] | undefined;
   editingEmployee: Employee | null;
-  employmentHistory: EmploymentPeriod[] | undefined;
+
   formatDate: (date: string) => string;
   handleDrawerClose: () => void;
   handleTerminate: (emp: Employee) => Promise<void>;
-  isHistoryModalOpen: boolean;
+
   isImportDialogOpen: boolean;
   isModalOpen: boolean;
   isRehireModalOpen: boolean;
@@ -27,7 +26,7 @@ interface EmployeeOverlaysProps {
   selectedDeptId: string;
   selectedEmployee: Employee | null;
   setEditingEmployee: (emp: Employee | null) => void;
-  setIsHistoryModalOpen: (open: boolean) => void;
+
   setIsImportDialogOpen: (open: boolean) => void;
   setIsModalOpen: (open: boolean) => void;
   setIsRehireModalOpen: (open: boolean) => void;
@@ -44,11 +43,11 @@ export function EmployeeOverlays(props: EmployeeOverlaysProps) {
     departments,
     deptHistory,
     editingEmployee,
-    employmentHistory,
+
     formatDate,
     handleDrawerClose,
     handleTerminate,
-    isHistoryModalOpen,
+
     isImportDialogOpen,
     isModalOpen,
     isRehireModalOpen,
@@ -57,7 +56,7 @@ export function EmployeeOverlays(props: EmployeeOverlaysProps) {
     selectedDeptId,
     selectedEmployee,
     setEditingEmployee,
-    setIsHistoryModalOpen,
+
     setIsImportDialogOpen,
     setIsModalOpen,
     setIsRehireModalOpen,
@@ -74,7 +73,7 @@ export function EmployeeOverlays(props: EmployeeOverlaysProps) {
         departments={departments}
         deptHistory={deptHistory}
         employee={selectedEmployee}
-        employmentHistory={employmentHistory}
+
         formatDate={formatDate}
         isOpen={!!selectedEmployee}
         key={selectedEmployee?.id ?? "closed"}
@@ -111,12 +110,7 @@ export function EmployeeOverlays(props: EmployeeOverlaysProps) {
         wsId={wsId}
       />
 
-      <EmploymentHistoryModal
-        employmentHistory={employmentHistory}
-        formatDate={formatDate}
-        isOpen={isHistoryModalOpen}
-        onClose={() => { setIsHistoryModalOpen(false); }}
-      />
+
 
       <RehireEmployeeModal
         employeeId={selectedEmployee?.id ?? null}

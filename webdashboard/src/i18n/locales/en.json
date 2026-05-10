@@ -1652,7 +1652,22 @@
       "work_history": "Work History",
       "view_details": "View details →",
       "joined": "Joined company",
-      "returned": "Returned to work"
+      "returned": "Returned to work",
+      "contracts": {
+        "title": "Contract History",
+        "sign_contract": "Sign Contract",
+        "no_contracts": "No contracts found",
+        "effective_date": "Effective Date",
+        "expiration_date": "Expiration Date",
+        "indefinite_duration": "Indefinite",
+        "contract_number": "Contract No: {{number}}",
+        "types": {
+          "probation": "Probation",
+          "training": "Training",
+          "fixed_term": "Fixed Term",
+          "indefinite": "Indefinite"
+        }
+      }
     },
     "form": {
       "add_title": "Add Employee",

@@ -1652,7 +1652,22 @@
       "work_history": "Lịch sử công tác",
       "view_details": "Xem chi tiết →",
       "joined": "Gia nhập công ty",
-      "returned": "Quay lại làm việc"
+      "returned": "Quay lại làm việc",
+      "contracts": {
+        "title": "Hợp đồng lao động",
+        "sign_contract": "Ký hợp đồng",
+        "no_contracts": "Chưa có hợp đồng nào",
+        "effective_date": "Ngày hiệu lực",
+        "expiration_date": "Ngày hết hạn",
+        "indefinite_duration": "Không thời hạn",
+        "contract_number": "Số HĐ: {{number}}",
+        "types": {
+          "probation": "Thử việc",
+          "training": "Đào tạo",
+          "fixed_term": "Xác định thời hạn",
+          "indefinite": "Không xác định thời hạn"
+        }
+      }
     },
     "form": {
       "add_title": "Thêm nhân viên",

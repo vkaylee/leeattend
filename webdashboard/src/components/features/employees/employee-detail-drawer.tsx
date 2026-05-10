@@ -1,4 +1,4 @@
-/* eslint-disable complexity */
+
 import { useQuery } from "@tanstack/react-query";
 import {
     Trash2,
@@ -7,7 +7,6 @@ import {
     UserPlus,
     X,
     Pencil,
-    Calendar as CalendarIcon,
     User,
 } from "lucide-react";
 import React, { useState, useEffect, useRef } from "react";
@@ -26,8 +25,8 @@ import EmployeeContractsTab from "./employee-contracts-tab";
 import EmployeePhasesTab from "./employee-phases-tab";
 
 
-type DetailTabType = "profile" | "contracts" | "phases" | "salary" | "policies" | "history";
-const TAB_ORDER: DetailTabType[] = ["profile", "contracts", "phases", "salary", "policies", "history"];
+type DetailTabType = "profile" | "contracts" | "phases" | "salary" | "policies";
+const TAB_ORDER: DetailTabType[] = ["profile", "contracts", "phases", "salary", "policies"];
 const SCROLL_STEP = 80;
 
 interface DeptHistoryEntry {
@@ -37,18 +36,10 @@ interface DeptHistoryEntry {
 }
  
 
-interface EmploymentPeriodEntry {
-    hire_date: string;
-    id: string;
-    is_rehire?: boolean;
-    termination_date?: string | null;
-}
-
 interface EmployeeDetailDrawerProps {
     departments?: Department[];
     deptHistory?: DeptHistoryEntry[];
     employee: Employee | null;
-    employmentHistory?: EmploymentPeriodEntry[];
     formatDate: (date: string) => string;
     isOpen: boolean;
     onClose: () => void;
@@ -95,8 +86,7 @@ function DrawerHeader({
                     { id: "contracts", label: "Hợp đồng" },
                     { id: "phases", label: "Hành trình" },
                     { id: "salary", label: t("employees.details.salary_benefits") },
-                    { id: "policies", label: t("employees.details.special_policies") },
-                    { id: "history", label: t("employees.details.work_history") }
+                    { id: "policies", label: t("employees.details.special_policies") }
                 ].map(tab => (
                     <button className={cn("px-5 py-2.5 shrink-0 whitespace-nowrap rounded-[18px] text-[10px] font-bold uppercase tracking-widest transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500", activeDetailTab === tab.id ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 border border-transparent")} data-testid={`employees-tab-${tab.id}`} key={tab.id} onClick={() => { setActiveDetailTab(tab.id as DetailTabType); }}>{tab.label.toUpperCase()}</button>
                 ))}
@@ -105,43 +95,7 @@ function DrawerHeader({
     );
 }
 
-function HistoryTab({
-    employmentHistory,
-    formatDate,
-    t
-}: {
-    employmentHistory?: EmploymentPeriodEntry[];
-    formatDate: (date: string) => string;
-    t: (k: string) => string;
-}) {
-    return (
-        <div className="space-y-12 px-2 pt-4">
-            <div className="relative pl-12 space-y-12 before:absolute before:left-[11px] before:top-4 before:bottom-4 before:w-px before:bg-slate-100 dark:bg-slate-700">
-                {employmentHistory?.map((period, index) => (
-                    <React.Fragment key={period.id}>
-                        {!!period.termination_date && (
-                            <div className="relative animate-in slide-in-from-left duration-500">
-                                <div className="absolute -left-[3.15rem] top-1 w-6 h-6 rounded-full bg-rose-50 dark:bg-rose-950 border-4 border-white shadow-xl ring-4 ring-rose-50 z-10"></div>
-                                <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 p-6 rounded-[2rem] shadow-inner group hover:bg-white dark:hover:bg-slate-900 transition-all">
-                                    <div className="text-sm font-bold text-slate-800 dark:text-slate-100 uppercase tracking-widest mb-1.5">{t("employees.table.terminated")}</div>
-                                    <div className="text-[10px] text-rose-500 font-bold uppercase tracking-[0.2em] font-mono">{formatDate(period.termination_date)}</div>
-                                </div>
-                            </div>
-                        )}
-                        <div className="relative animate-in slide-in-from-left duration-500">
-                            <div className={cn("absolute -left-[3.15rem] top-1 w-6 h-6 rounded-full border-4 border-white shadow-xl ring-4 z-10", index === 0 && !period.termination_date ? 'bg-emerald-50 dark:bg-emerald-950 ring-emerald-50 animate-pulse' : 'bg-primary-600 ring-primary-50')}></div>
-                            <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 rounded-[2rem] shadow-sm hover:shadow-xl hover:shadow-primary-100/10 transition-all group overflow-hidden">
-                                <div className="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-widest mb-1.5">{period.is_rehire ? t("employees.details.returned") : t("employees.details.joined")}</div>
-                                <div className={cn("text-[10px] font-bold uppercase tracking-[0.2em] font-mono", index === 0 && !period.termination_date ? "text-emerald-600 dark:text-emerald-300" : "text-slate-500 dark:text-slate-400")}>{formatDate(period.hire_date)}</div>
-                                <CalendarIcon className="absolute -right-4 -bottom-4 w-16 h-16 text-slate-100 opacity-20 -rotate-12 group-hover:rotate-0 transition-transform duration-700" />
-                            </div>
-                        </div>
-                    </React.Fragment>
-                ))}
-            </div>
-        </div>
-    );
-}
+
 
 function ProfileTab({
     employee,
@@ -242,7 +196,6 @@ export default function EmployeeDetailDrawer({
     wsId,
     departments,
     deptHistory,
-    employmentHistory,
     formatDate,
     onEdit,
     onTerminate,
@@ -348,13 +301,7 @@ export default function EmployeeDetailDrawer({
                     </div>
                 )}
 
-                {activeDetailTab === "history" && (
-                    <HistoryTab
-                        employmentHistory={employmentHistory}
-                        formatDate={formatDate}
-                        t={t}
-                    />
-                )}
+
             </div>
         </Sheet>
     );

@@ -3,18 +3,15 @@ import { useTranslation } from "react-i18next";
 
 import AttendanceImportDialog from "@/components/features/attendance/attendance-import-dialog";
 import EmployeeFormModal from "@/components/features/employees/employee-form-modal";
-import EmploymentHistoryModal from "@/components/features/employees/employment-history-modal";
 import RehireEmployeeModal from "@/components/features/employees/rehire-employee-modal";
 import TransferEmployeeModal from "@/components/features/employees/transfer-employee-modal";
 
-import type { Employee, Department, EmploymentPeriod } from "../../../lib/api/types";
+import type { Employee, Department } from "../../../lib/api/types";
 
 interface EmployeeModalsProps {
   departments: Department[] | undefined;
   editingEmployee: Employee | null;
-  employmentHistory: EmploymentPeriod[] | undefined;
-  formatDate: (date: string) => string;
-  isHistoryModalOpen: boolean;
+
   isImportDialogOpen: boolean;
   isModalOpen: boolean;
   isRehireModalOpen: boolean;
@@ -22,7 +19,6 @@ interface EmployeeModalsProps {
   prefillEnrollmentId: string;
   selectedDeptId: string;
   selectedEmployee: Employee | null;
-  setIsHistoryModalOpen: (open: boolean) => void;
   setIsImportDialogOpen: (open: boolean) => void;
   setIsModalOpen: (open: boolean) => void;
   setIsRehireModalOpen: (open: boolean) => void;
@@ -38,9 +34,7 @@ export function EmployeeModals(props: EmployeeModalsProps) {
   const {
     departments,
     editingEmployee,
-    employmentHistory,
-    formatDate,
-    isHistoryModalOpen,
+
     isImportDialogOpen,
     isModalOpen,
     isRehireModalOpen,
@@ -48,7 +42,6 @@ export function EmployeeModals(props: EmployeeModalsProps) {
     prefillEnrollmentId,
     selectedDeptId,
     selectedEmployee,
-    setIsHistoryModalOpen,
     setIsImportDialogOpen,
     setIsModalOpen,
     setIsRehireModalOpen,
@@ -82,13 +75,7 @@ export function EmployeeModals(props: EmployeeModalsProps) {
         wsId={wsId}
       />
 
-      {/* History Modal */}
-      <EmploymentHistoryModal
-        employmentHistory={employmentHistory}
-        formatDate={formatDate}
-        isOpen={isHistoryModalOpen}
-        onClose={() => { setIsHistoryModalOpen(false); }}
-      />
+
 
       {/* Rehire Modal */}
       <RehireEmployeeModal

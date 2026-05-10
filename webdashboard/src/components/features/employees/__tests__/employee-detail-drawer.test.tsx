@@ -96,9 +96,6 @@ const mockDeptHistory = [
     { department_id: "dept-1", effective_date: "2024-06-15" },
 ];
 
-const mockEmploymentHistory = [
-    { id: "h-1", original_hire_date: "2020-01-01", hire_date: "2024-06-15", termination_date: null, is_rehire: false },
-];
 
 const defaultProps = {
     isOpen: true,
@@ -107,7 +104,6 @@ const defaultProps = {
     wsId: "ws-1",
     departments: mockDepartments,
     deptHistory: mockDeptHistory,
-    employmentHistory: mockEmploymentHistory,
     formatDate: (d: string) => d,
     onEdit: vi.fn(),
     onTerminate: vi.fn(),
@@ -185,12 +181,12 @@ describe("EmployeeDetailDrawer", () => {
         expect(screen.getByTestId("working-condition")).toBeDefined();
     });
 
-    it("switches to History tab on click", async () => {
+    it("switches to Contracts tab on click", async () => {
         const user = userEvent.setup();
         renderWithClient(<EmployeeDetailDrawer {...defaultProps} />);
 
-        await user.click(screen.getByTestId("employees-tab-history"));
-        expect(screen.getByText(/employees.details.joined/i)).toBeDefined();
+        await user.click(screen.getByTestId("employees-tab-contracts"));
+        expect(screen.getByTestId("contracts-tab")).toBeDefined();
     });
 
     // ── Profile tab actions ────────────────────────────────────
@@ -319,18 +315,18 @@ describe("EmployeeDetailDrawer", () => {
         const user = userEvent.setup();
         renderWithClient(<EmployeeDetailDrawer {...defaultProps} />);
 
-        // On Profile → ArrowLeft → should wrap to History (last tab)
+        // On Profile → ArrowLeft → should wrap to Policies (last tab)
         await user.keyboard("{ArrowLeft}");
-        expect(screen.getByText(/employees.details.joined/i)).toBeDefined();
+        expect(screen.getByTestId("working-condition")).toBeDefined();
     });
 
     it("ArrowRight wraps from last tab to first tab", async () => {
         const user = userEvent.setup();
         renderWithClient(<EmployeeDetailDrawer {...defaultProps} />);
 
-        // Navigate to History (last tab): Profile → Contracts → Phases → Salary → Policies → History
-        await user.keyboard("{ArrowRight}{ArrowRight}{ArrowRight}{ArrowRight}{ArrowRight}");
-        expect(screen.getByText(/employees.details.joined/i)).toBeDefined();
+        // Navigate to Policies (last tab): Profile → Contracts → Phases → Salary → Policies
+        await user.keyboard("{ArrowRight}{ArrowRight}{ArrowRight}{ArrowRight}");
+        expect(screen.getByTestId("working-condition")).toBeDefined();
 
         // ArrowRight → should wrap to Profile
         await user.keyboard("{ArrowRight}");
