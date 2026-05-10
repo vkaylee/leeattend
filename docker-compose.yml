@@ -39,7 +39,7 @@ services:
       test: [ "CMD", "sh", "-c", "redis-cli -a ${REDIS_PASSWORD} ping" ]
 
   supavisor:
-    image: supabase/supavisor:1.1.56
+    image: supabase/supavisor:2.7.4
     restart: always
     networks:
       - backend_net
@@ -58,7 +58,6 @@ services:
       - REGION=local
     command: >
       sh -c "
-      psql postgres://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME} -c 'CREATE SCHEMA IF NOT EXISTS _supavisor;';
       /app/bin/migrate;
       exec /app/bin/server
       "

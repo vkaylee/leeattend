@@ -584,7 +584,19 @@ class Orchestrator:
         ]
 
         if tool in ["cargo", "sqlx"]:
+            log_info(f"🔹 Bringing up backend dependencies for {tool}...")
+            _lifecycle_up("infra-db")
+
             if os.environ.get("POOLER") == "true":
+                # Ensure migrations are run so the _supavisor schema exists before supavisor boots
+                if tool_args and tool_args[0] == "prepare":
+                    log_info("ℹ️ 🔹 Running migrations before starting pooler...")
+                    self.execute_safe([
+                        *self.compose_engine, "-p", self.env_vars.get("COMPOSE_PROJECT_NAME", "leeattend-test"),
+                        "--profile", "int-api", "--profile", "infra-db", "run", "-T", "--rm", 
+                        "--workdir", "/workspace/apiserver", "--entrypoint", "cargo", "apiserver", "sqlx", "migrate", "run"
+                    ])
+
                 log_info("ℹ️ 🔹 Bringing up backend dependencies for supavisor pooler...")
                 self.execute_safe([*self.compose_engine, "--profile", "infra-pooler", "up", "-d", "supavisor"])
                 log_info("ℹ️ 🔹 Waiting for supavisor to be healthy...")
@@ -593,9 +605,6 @@ class Orchestrator:
                     if "supavisor" in res.stdout and "healthy" in res.stdout:
                         break
                     time.sleep(1)
-
-            log_info(f"🔹 Bringing up backend dependencies for {tool}...")
-            _lifecycle_up("infra-db")
             compose_cmd.extend(
                 [
                     "--profile",

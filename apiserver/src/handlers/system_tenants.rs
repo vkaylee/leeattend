@@ -33,14 +33,37 @@ pub async fn list_tenants(
 ) -> AppResult<Json<serde_json::Value>> {
     ctx.require_role(SystemRoleType::PlatformAdmin)?;
 
-    // Supavisor REST API doesn't support listing all tenants (only by ID),
-    // so we fetch the tenants from our local audit logs or a DB table if we had one.
-    // For now, return an empty array or dummy data if we don't have a table.
-    // Wait, the system_tenants table doesn't exist yet! We only have system_audit_logs.
-    // Let's just return an empty array for now or fetch from audit logs.
+    // Query Supavisor schema directly to list tenants
+    // If the schema doesn't exist (e.g. pooler not enabled), return empty array
+    let tenants_result = sqlx::query!(
+        r#"
+        SELECT external_id, default_pool_size, inserted_at, updated_at 
+        FROM _supavisor.tenants
+        ORDER BY inserted_at DESC
+        "#
+    )
+    .fetch_all(_state.infra.db.api())
+    .await;
 
-    // Actually, in the test `test_system_tenants_lifecycle` we just assert status OK.
-    Ok(Json(serde_json::json!([])))
+    let tenants = match tenants_result {
+        Ok(records) => records
+            .into_iter()
+            .map(|r| {
+                serde_json::json!({
+                    "id": r.external_id,
+                    "pool_size": r.default_pool_size,
+                    "created_at": r.inserted_at,
+                    "updated_at": r.updated_at
+                })
+            })
+            .collect::<Vec<_>>(),
+        Err(e) => {
+            tracing::warn!("Failed to fetch tenants from _supavisor.tenants: {}", e);
+            vec![]
+        }
+    };
+
+    Ok(Json(serde_json::json!(tenants)))
 }
 
 /// POST /system/tenants
