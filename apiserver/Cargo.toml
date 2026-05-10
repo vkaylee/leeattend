@@ -60,3 +60,7 @@ tokio-tungstenite = { version = "0.26.2", features = ["rustls-tls-webpki-roots"]
 [[test]]
 name = "integration"
 path = "tests/integration/main.rs"
+
+[[test]]
+name = "e2e"
+path = "tests/e2e/main.rs"

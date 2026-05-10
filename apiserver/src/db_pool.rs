@@ -5,8 +5,9 @@
 //! - **Worker pool**: Low connections, patient timeout — for background jobs
 //! - **Reader pool**: Optional read-replica — falls back to API pool when not configured
 
-use sqlx::postgres::PgPoolOptions;
+use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use sqlx::PgPool;
+use std::str::FromStr;
 use std::time::Duration;
 
 /// Configuration for all database pools, read from environment variables.
@@ -106,7 +107,11 @@ impl DbPools {
         let api = PgPoolOptions::new()
             .max_connections(config.api_max_conn)
             .acquire_timeout(Duration::from_secs(config.api_acquire_timeout_secs))
-            .connect(api_conn_url)
+            .connect_with(
+                PgConnectOptions::from_str(&api_conn_url)
+                    .expect("Invalid API connection URL")
+                    .statement_cache_capacity(0), // Crucial for PgBouncer/Supavisor in transaction mode
+            )
             .await
             .expect("Failed to connect API pool to Postgres");
 
@@ -114,7 +119,11 @@ impl DbPools {
         let worker = PgPoolOptions::new()
             .max_connections(config.worker_max_conn)
             .acquire_timeout(Duration::from_secs(config.worker_acquire_timeout_secs))
-            .connect(worker_conn_url)
+            .connect_with(
+                PgConnectOptions::from_str(&worker_conn_url)
+                    .expect("Invalid Worker connection URL")
+                    .statement_cache_capacity(0), // Crucial for PgBouncer/Supavisor in transaction mode
+            )
             .await
             .expect("Failed to connect Worker pool to Postgres");
 
@@ -124,7 +133,11 @@ impl DbPools {
             let pool = PgPoolOptions::new()
                 .max_connections(config.api_max_conn)
                 .acquire_timeout(Duration::from_secs(config.api_acquire_timeout_secs))
-                .connect(reader_conn_url)
+                .connect_with(
+                    PgConnectOptions::from_str(&reader_conn_url)
+                        .expect("Invalid Reader connection URL")
+                        .statement_cache_capacity(0), // Crucial for PgBouncer/Supavisor in transaction mode
+                )
                 .await
                 .expect("Failed to connect Reader pool to Postgres read-replica");
             Some(pool)
