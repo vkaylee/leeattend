@@ -81,6 +81,35 @@ impl EmploymentPhaseRepository {
         end_date: chrono::NaiveDate,
         override_config: Option<&serde_json::Value>,
     ) -> Result<EmployeePhase, AppError> {
+        let mut tx = pool.begin().await.map_err(|e| {
+            AppError::Internal(format!("Failed to start transaction for assign_phase: {e}"))
+        })?;
+
+        // Auto-close any active phases that started before or on the new start_date
+        let auto_close_date = start_date
+            .checked_sub_days(chrono::Days::new(1))
+            .unwrap_or(start_date);
+
+        sqlx::query!(
+            r#"
+            UPDATE employee_phases
+            SET status = 'completed', 
+                end_date = LEAST(end_date, GREATEST(start_date, $1)),
+                completed_at = CURRENT_TIMESTAMP,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE workspace_id = $2 AND employee_id = $3
+              AND status = 'active'
+              AND start_date <= $4
+            "#,
+            auto_close_date,
+            workspace_id,
+            employee_id,
+            start_date
+        )
+        .execute(&mut *tx)
+        .await
+        .map_err(|e| AppError::Internal(format!("Failed to auto-close overlapping phases: {e}")))?;
+
         let row = sqlx::query_as!(
             EmployeePhase,
             r#"
@@ -97,9 +126,15 @@ impl EmploymentPhaseRepository {
             end_date,
             override_config
         )
-        .fetch_one(pool)
+        .fetch_one(&mut *tx)
         .await
         .map_err(|e| AppError::Internal(format!("Failed to assign employment phase: {e}")))?;
+
+        tx.commit().await.map_err(|e| {
+            AppError::Internal(format!(
+                "Failed to commit transaction for assign_phase: {e}"
+            ))
+        })?;
 
         Ok(row)
     }
@@ -133,5 +168,27 @@ impl EmploymentPhaseRepository {
         .map_err(|e| AppError::Internal(format!("Failed to update employment phase status: {e}")))?;
 
         row.ok_or_else(|| AppError::NotFound("Employee phase not found".to_string()))
+    }
+
+    pub async fn get_employee_phases(
+        pool: &PgPool,
+        workspace_id: Uuid,
+        employee_id: Uuid,
+    ) -> Result<Vec<EmployeePhase>, AppError> {
+        let rows = sqlx::query_as!(
+            EmployeePhase,
+            r#"
+            SELECT * FROM employee_phases
+            WHERE workspace_id = $1 AND employee_id = $2
+            ORDER BY start_date ASC, created_at DESC
+            "#,
+            workspace_id,
+            employee_id
+        )
+        .fetch_all(pool)
+        .await
+        .map_err(|e| AppError::Internal(format!("Failed to fetch employee phases: {e}")))?;
+
+        Ok(rows)
     }
 }

@@ -14,6 +14,16 @@ import ContractFormModal from "../contract-form-modal";
 // Mock useEmployeeContracts hook
 const mockCreateMutateAsync = vi.fn();
 const mockUpdateMutateAsync = vi.fn();
+const mockUseQuery = vi.fn();
+
+vi.mock("@tanstack/react-query", async () => {
+  const actual = await vi.importActual("@tanstack/react-query");
+  return {
+    ...actual,
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-argument
+    useQuery: (...args: any[]) => mockUseQuery(...args),
+  };
+});
 
 vi.mock("@/pages/employees/hooks/use-employee-contracts", () => ({
   useEmployeeContracts: () => ({
@@ -63,6 +73,14 @@ describe("ContractFormModal", () => {
     });
     mockCreateMutateAsync.mockResolvedValue({ id: "new-contract" });
     mockUpdateMutateAsync.mockResolvedValue({ id: "contract-1" });
+    
+    mockUseQuery.mockReturnValue({
+      data: [
+        { id: "phase-1", name: "Thử việc", is_active: true, phase_type: "probation" },
+        { id: "phase-2", name: "Chính thức", is_active: true, phase_type: "official" }
+      ],
+      isLoading: false,
+    });
   });
 
   const renderModal = (props: Partial<typeof defaultProps> = {}) => {
@@ -79,12 +97,12 @@ describe("ContractFormModal", () => {
 
   it("renders create modal title when no editingContract", () => {
     renderModal();
-    expect(screen.getByText("Tạo hợp đồng mới")).toBeDefined();
+    expect(screen.getByText("Tạo Hợp đồng Mới")).toBeDefined();
   });
 
   it("renders update modal title when editingContract is provided", () => {
     renderModal({ editingContract: mockExistingContract });
-    expect(screen.getByText("Cập nhật hợp đồng")).toBeDefined();
+    expect(screen.getByText("Chỉnh sửa Hợp đồng")).toBeDefined();
   });
 
   it("renders nothing when isOpen is false", () => {
@@ -98,6 +116,7 @@ describe("ContractFormModal", () => {
     renderModal();
     expect(screen.getByLabelText(/Số hợp đồng/i)).toBeDefined();
     expect(screen.getByLabelText(/Loại hợp đồng/i)).toBeDefined();
+    expect(screen.getByLabelText(/Chọn Cột mốc Khởi đầu/i)).toBeDefined();
     expect(screen.getByLabelText(/Ngày hiệu lực/i)).toBeDefined();
     expect(screen.getByLabelText(/Ngày hết hạn/i)).toBeDefined();
     expect(screen.getByLabelText(/Ghi chú/i)).toBeDefined();
@@ -165,6 +184,10 @@ describe("ContractFormModal", () => {
     const endDateInput = screen.getByLabelText(/Ngày hết hạn/i);
     await user.clear(endDateInput);
     await user.type(endDateInput, "2026-12-31");
+    
+    // Fill assign_phase_id
+    const phaseSelect = screen.getByLabelText(/Chọn Cột mốc Khởi đầu/i);
+    await user.selectOptions(phaseSelect, "phase-1");
 
     await user.click(screen.getByText("TẠO MỚI"));
 
@@ -227,6 +250,9 @@ describe("ContractFormModal", () => {
     const endDateInput = screen.getByLabelText(/Ngày hết hạn/i);
     await user.clear(endDateInput);
     await user.type(endDateInput, "2026-12-31");
+
+    const phaseSelect = screen.getByLabelText(/Chọn Cột mốc Khởi đầu/i);
+    await user.selectOptions(phaseSelect, "phase-1");
 
     await user.click(screen.getByText("TẠO MỚI"));
 

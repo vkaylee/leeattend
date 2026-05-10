@@ -93,58 +93,24 @@ pub async fn create_contract(
         .create_contract(workspace_id, &payload)
         .await?;
 
-    // Auto-create employment phase for probation/training
-    if matches!(
-        contract.contract_type,
-        crate::models::enums::ContractType::Probation
-            | crate::models::enums::ContractType::Training
-    ) {
-        if let Some(end_date) = contract.end_date {
-            let phase_type = match contract.contract_type {
-                crate::models::enums::ContractType::Probation => "probation",
-                crate::models::enums::ContractType::Training => "training",
-                _ => unreachable!(),
-            };
-
-            let pool = state.infra.db.api();
-            let definitions = crate::repositories::employment_phase_repository::EmploymentPhaseRepository::get_definitions(
-                pool,
-                workspace_id,
-            ).await.unwrap_or_default();
-
-            let target_def = definitions.into_iter().find(|d| d.phase_type == phase_type);
-
-            let def_id = if let Some(def) = target_def {
-                Some(def.id)
-            } else {
-                let name = if phase_type == "probation" {
-                    "Thử việc"
-                } else {
-                    "Đào tạo"
-                };
-                crate::repositories::employment_phase_repository::EmploymentPhaseRepository::create_definition(
-                    pool,
-                    workspace_id,
-                    name,
-                    None,
-                    phase_type,
-                    &serde_json::json!({}),
-                    1,
-                ).await.map(|d| d.id).ok()
-            };
-
-            if let Some(did) = def_id {
-                let _ = crate::repositories::employment_phase_repository::EmploymentPhaseRepository::assign_phase(
-                    pool,
-                    workspace_id,
-                    contract.employee_id,
-                    did,
-                    contract.start_date,
-                    end_date,
-                    None,
-                ).await;
-            }
-        }
+    // Assign employment phase if requested
+    if let Some(phase_id) = payload.assign_phase_id {
+        let end_date = contract.end_date.unwrap_or_else(|| {
+            contract
+                .start_date
+                .checked_add_months(chrono::Months::new(12))
+                .unwrap_or(contract.start_date)
+        });
+        let pool = state.infra.db.api();
+        let _ = crate::repositories::employment_phase_repository::EmploymentPhaseRepository::assign_phase(
+            pool,
+            workspace_id,
+            contract.employee_id,
+            phase_id,
+            contract.start_date,
+            end_date,
+            None,
+        ).await;
     }
 
     Ok((StatusCode::CREATED, Json(contract)))

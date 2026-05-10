@@ -1,6 +1,6 @@
 import { API_BASE_URL } from "./config";
 import { apiFetch } from "./helpers";
-import { Employee, EmploymentPeriod, EmployeeDepartmentHistory, WorkingCondition, PaginatedResponse, EmploymentPhaseDefinition } from "./types";
+import { Employee, EmploymentPeriod, EmployeeDepartmentHistory, WorkingCondition, PaginatedResponse, EmploymentPhaseDefinition, EmployeePhase } from "./types";
 
 export async function fetchEmployees(
   wsId: string,
@@ -32,6 +32,39 @@ export async function createEmploymentPhase(wsId: string, data: Partial<Employme
   });
   if (!response.ok) throw new Error("Failed to create employment phase");
   return response.json() as Promise<EmploymentPhaseDefinition>;
+}
+
+export async function fetchEmployeePhases(wsId: string, employeeId: string): Promise<EmployeePhase[]> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${employeeId}/phases`);
+  if (!response.ok) throw new Error("Failed to fetch employee phases");
+  return response.json() as Promise<EmployeePhase[]>;
+}
+
+export async function assignEmployeePhase(
+  wsId: string,
+  employeeId: string,
+  data: { phase_definition_id: string; start_date: string; end_date: string; override_config?: unknown }
+): Promise<EmployeePhase> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${employeeId}/phases`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error("Failed to assign phase");
+  return response.json() as Promise<EmployeePhase>;
+}
+
+export async function updateEmployeePhaseStatus(
+  wsId: string,
+  employeeId: string,
+  phaseId: string,
+  data: { status: string; evaluation_notes?: string }
+): Promise<EmployeePhase> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${employeeId}/phases/${phaseId}/status`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error("Failed to update phase status");
+  return response.json() as Promise<EmployeePhase>;
 }
 
 export async function fetchWorkingConditions(wsId: string, employeeId: string): Promise<WorkingCondition[]> {

@@ -24,7 +24,18 @@ export async function createEmployeeContract(
     method: "POST",
     body: JSON.stringify(data),
   });
-  if (!response.ok) throw new Error("Failed to create employee contract");
+  if (!response.ok) {
+    let errMsg = "Failed to create employee contract";
+    try {
+      const errBody = await response.json() as { error?: { message?: string } | string };
+      if (typeof errBody.error === 'string') {
+        errMsg = errBody.error;
+      } else if (errBody.error?.message) {
+        errMsg = errBody.error.message;
+      }
+    } catch { /* ignore */ }
+    throw new Error(errMsg);
+  }
   return response.json() as Promise<EmployeeContract>;
 }
 
@@ -38,7 +49,18 @@ export async function updateEmployeeContract(
     method: "PATCH",
     body: JSON.stringify(data),
   });
-  if (!response.ok) throw new Error("Failed to update employee contract");
+  if (!response.ok) {
+    let errMsg = "Failed to update employee contract";
+    try {
+      const errBody = await response.json() as { error?: { message?: string } | string };
+      if (typeof errBody.error === 'string') {
+        errMsg = errBody.error;
+      } else if (errBody.error?.message) {
+        errMsg = errBody.error.message;
+      }
+    } catch { /* ignore */ }
+    throw new Error(errMsg);
+  }
   return response.json() as Promise<EmployeeContract>;
 }
 
@@ -46,5 +68,16 @@ export async function deleteEmployeeContract(wsId: string, employeeId: string, c
   const response = await apiFetch(`${API_BASE_URL}/v1/workspaces/${wsId}/employees/${employeeId}/contracts/${contractId}`, {
     method: "DELETE",
   });
-  if (!response.ok) throw new Error("Failed to delete employee contract");
+  if (!response.ok) {
+    let errMsg = "Failed to delete employee contract";
+    try {
+      const errBody = await response.json() as { error?: { message?: string } | string };
+      if (typeof errBody.error === 'string') {
+        errMsg = errBody.error;
+      } else if (errBody.error?.message) {
+        errMsg = errBody.error.message;
+      }
+    } catch { /* ignore */ }
+    throw new Error(errMsg);
+  }
 }

@@ -322,7 +322,7 @@ impl EmployeeBuilder {
             workspace_id: None,
             user_id: None,
             full_name: "Test Employee".to_string(),
-            employee_id_number: format!("EMP-{}", &id[..8]),
+            employee_id_number: format!("EMP-{}", Uuid::new_v4().as_u128() % 1_000_000_000),
             hire_date: chrono::Utc::now().date_naive(),
         }
     }

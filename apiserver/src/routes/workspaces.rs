@@ -107,7 +107,8 @@ pub fn router() -> Router<Arc<AppState>> {
         )
         .route(
             "/workspaces/:ws_id/employees/:user_id/phases",
-            post(handlers::employment_phases::assign_employee_phase),
+            get(handlers::employment_phases::get_employee_phases)
+                .post(handlers::employment_phases::assign_employee_phase),
         )
         .route(
             "/workspaces/:ws_id/employees/:user_id/phases/:phase_id/status",

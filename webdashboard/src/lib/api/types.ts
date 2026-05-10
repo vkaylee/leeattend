@@ -1068,23 +1068,32 @@ export interface PayrollRuleAssignment {
  
 export interface EmploymentPhaseDefinition {
   created_at: string;
-  default_duration_days?: number;
   description?: string;
   display_order: number;
   id: string;
   is_active: boolean;
   name: string;
   phase_type: "probation" | "internship" | "official" | "contract";
+  rule_config?: {
+    duration_days?: number;
+    [key: string]: unknown;
+  };
   workspace_id: string;
 }
 
-export interface EmploymentPhaseAssignment {
+export interface EmployeePhase {
+  completed_at?: string;
+  created_at: string;
   employee_id: string;
-  end_date?: string;
+  end_date: string;
+  evaluated_by?: string;
+  evaluation_notes?: string;
   id: string;
-  notes?: string;
+  override_config?: unknown;
   phase_definition_id: string;
   start_date: string;
-  status: "active" | "completed" | "terminated";
+  status: string; // "active", "completed", "terminated"
+  updated_at: string;
+  workspace_id: string;
 }
  

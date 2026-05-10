@@ -66,10 +66,10 @@ describe("EmploymentPhaseManager", () => {
     vi.mocked(api.createEmploymentPhase).mockResolvedValue({ id: "2" } as unknown as never);
     renderWithProviders(<EmploymentPhaseManager wsId={mockWsId} />);
 
-    const addButton = screen.getByText(/common.add/i);
+    const addButton = screen.getByText(/Thêm Cột mốc/i);
     fireEvent.click(addButton);
 
-    const nameInput = await screen.findByLabelText(/common.name/i);
+    const nameInput = await screen.findByLabelText(/Tên Cột mốc/i);
     fireEvent.change(nameInput, { target: { value: "Internship" } });
     
     const typeSelect = screen.getByLabelText(/Type/i);

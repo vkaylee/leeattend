@@ -142,7 +142,7 @@ async fn test_employee_contracts_crud() {
 }
 
 #[tokio::test]
-async fn test_auto_create_employment_phase_for_probation_contract() {
+async fn test_explicitly_assign_employment_phase_during_contract_creation() {
     let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
         setup_app_tower().await;
 
@@ -150,14 +150,30 @@ async fn test_auto_create_employment_phase_for_probation_contract() {
     let ws_id = factory.workspace().create_with_owner(user_id).await;
     let emp_id = factory.employee().with_workspace(ws_id).create().await;
 
+    // Create a phase definition first
+    let phase_def_id = Uuid::new_v4();
+    let pool = _test_db.pool();
+    sqlx::query(
+        r#"
+        INSERT INTO employment_phase_definitions (id, workspace_id, name, phase_type, rule_config)
+        VALUES ($1, $2, 'Custom Phase', 'probation', '{"duration_days": 60}')
+        "#,
+    )
+    .bind(phase_def_id)
+    .bind(ws_id)
+    .execute(&pool)
+    .await
+    .unwrap();
+
     let create_payload = json!({
         "employee_id": emp_id,
         "contract_type": "probation",
         "start_date": "2026-05-01",
         "end_date": "2026-07-01",
+        "assign_phase_id": phase_def_id
     });
 
-    // Create Probation Contract
+    // Create Contract with assign_phase_id
     let response = app
         .clone()
         .oneshot(make_req(
@@ -172,10 +188,9 @@ async fn test_auto_create_employment_phase_for_probation_contract() {
 
     assert_eq!(response.status(), StatusCode::CREATED);
 
-    // Verify that the Employee was assigned to a Probation phase automatically
-    let pool = _test_db.pool();
+    // Verify that the Employee was assigned to the explicit phase
     let phases =
-        sqlx::query("SELECT start_date, end_date FROM employee_phases WHERE employee_id = $1")
+        sqlx::query("SELECT phase_definition_id, start_date, end_date FROM employee_phases WHERE employee_id = $1")
             .bind(emp_id)
             .fetch_all(&pool)
             .await
@@ -185,14 +200,116 @@ async fn test_auto_create_employment_phase_for_probation_contract() {
     assert_eq!(
         phases.len(),
         1,
-        "Employee should have 1 auto-assigned phase"
+        "Employee should have 1 explicitly assigned phase"
     );
 
     use sqlx::Row;
     let phase = &phases[0];
+    let assigned_def_id: Uuid = phase.get("phase_definition_id");
     let start_date: chrono::NaiveDate = phase.get("start_date");
     let end_date: Option<chrono::NaiveDate> = phase.get("end_date");
 
+    assert_eq!(assigned_def_id, phase_def_id);
     assert_eq!(start_date.to_string(), "2026-05-01");
     assert_eq!(end_date.unwrap().to_string(), "2026-07-01");
+}
+
+#[tokio::test]
+async fn test_employee_contracts_overlap_auto_close() {
+    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
+
+    let user_id = factory.user().create().await;
+    let ws_id = factory.workspace().create_with_owner(user_id).await;
+    let emp_id = factory.employee().with_workspace(ws_id).create().await;
+
+    // 1. Create first contract
+    let create_payload_1 = json!({
+        "employee_id": emp_id,
+        "contract_type": "fixed_term",
+        "status": "active",
+        "start_date": "2026-01-01",
+        "end_date": "2026-12-31",
+        "contract_number": "HD-001",
+        "notes": "Original note"
+    });
+
+    let res1 = app
+        .clone()
+        .oneshot(make_req(
+            "POST",
+            &format!("/api/v1/workspaces/{ws_id}/employees/{emp_id}/contracts"),
+            ws_id,
+            user_id,
+            Some(create_payload_1),
+        ))
+        .await
+        .unwrap();
+    assert_eq!(res1.status(), StatusCode::CREATED);
+
+    let body1 = axum::body::to_bytes(res1.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let created1: serde_json::Value = serde_json::from_slice(&body1).unwrap();
+    let contract1_id = created1["id"].as_str().unwrap().to_string();
+
+    // 2. Create second contract that overlaps
+    let create_payload_2 = json!({
+        "employee_id": emp_id,
+        "contract_type": "fixed_term",
+        "status": "active",
+        "start_date": "2026-06-01",
+        "end_date": "2027-05-31",
+        "contract_number": "HD-002",
+        "auto_close_overlapping": true
+    });
+
+    let res2 = app
+        .clone()
+        .oneshot(make_req(
+            "POST",
+            &format!("/api/v1/workspaces/{ws_id}/employees/{emp_id}/contracts"),
+            ws_id,
+            user_id,
+            Some(create_payload_2),
+        ))
+        .await
+        .unwrap();
+
+    assert_eq!(
+        res2.status(),
+        StatusCode::CREATED,
+        "Should succeed with auto_close_overlapping"
+    );
+
+    // 3. Verify the old contract has been updated
+    let get_res = app
+        .clone()
+        .oneshot(make_req(
+            "GET",
+            &format!("/api/v1/workspaces/{ws_id}/employees/{emp_id}/contracts"),
+            ws_id,
+            user_id,
+            None,
+        ))
+        .await
+        .unwrap();
+
+    assert_eq!(get_res.status(), StatusCode::OK);
+    let body = axum::body::to_bytes(get_res.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let contracts: Vec<serde_json::Value> = serde_json::from_slice(&body).unwrap();
+
+    let old_contract = contracts.iter().find(|c| c["id"] == contract1_id).unwrap();
+
+    // Verify status is expired, end_date is updated
+    assert_eq!(old_contract["status"], "expired");
+    assert_eq!(old_contract["end_date"], "2026-05-31");
+
+    // Verify notes contain the auto-generated string
+    let notes = old_contract["notes"].as_str().unwrap();
+    assert!(notes.contains("Hệ thống tự động chấm dứt sớm vào ngày 31/05/2026"));
+    assert!(notes.contains("để ký hợp đồng mới HD-002"));
+    assert!(notes.contains("Original note"));
 }

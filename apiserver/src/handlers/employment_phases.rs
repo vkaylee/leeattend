@@ -113,3 +113,18 @@ pub async fn update_employee_phase_status(
 
     Ok(Json(phase))
 }
+
+pub async fn get_employee_phases(
+    State(state): State<Arc<AppState>>,
+    ctx: MemberContext,
+    Path((_ws_id, emp_id)): Path<(Uuid, Uuid)>,
+) -> Result<Json<Vec<EmployeePhase>>, AppError> {
+    let phases = EmploymentPhaseRepository::get_employee_phases(
+        state.infra.db.api(),
+        ctx.workspace_id,
+        emp_id,
+    )
+    .await?;
+
+    Ok(Json(phases))
+}

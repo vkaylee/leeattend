@@ -27,6 +27,72 @@ impl SqlxEmployeeContractRepository {
         workspace_id: Uuid,
         req: &CreateContractRequest,
     ) -> Result<EmployeeContract, AppError> {
+        let mut tx = self
+            .pool
+            .begin()
+            .await
+            .map_err(|e| AppError::Internal(format!("Failed to start transaction: {e}")))?;
+
+        // 1. Check for overlapping active contracts
+        let overlaps = sqlx::query!(
+            r#"
+            SELECT id FROM employee_contracts
+            WHERE workspace_id = $1 AND employee_id = $2 AND status = 'active'
+              AND start_date <= $3
+              AND (end_date IS NULL OR end_date >= $3)
+            "#,
+            workspace_id,
+            req.employee_id,
+            req.start_date
+        )
+        .fetch_all(&mut *tx)
+        .await?;
+
+        if !overlaps.is_empty() {
+            if req.auto_close_overlapping.unwrap_or(false) {
+                // Auto close overlapping contracts by truncating their end_date to start_date - 1 day
+                let new_end_date = req.start_date.pred_opt().unwrap_or(req.start_date);
+                let auto_close_note = format!(
+                    "Hệ thống tự động chấm dứt sớm vào ngày {} để ký hợp đồng mới{}.",
+                    new_end_date.format("%d/%m/%Y"),
+                    if let Some(ref num) = req.contract_number {
+                        format!(" {num}")
+                    } else {
+                        String::new()
+                    }
+                );
+
+                sqlx::query!(
+                    r#"
+                    UPDATE employee_contracts
+                    SET 
+                        end_date = $4, 
+                        status = 'expired', 
+                        notes = CASE 
+                            WHEN notes IS NULL OR notes = '' THEN $5
+                            ELSE notes || E'\n---\n' || $5
+                        END,
+                        updated_at = NOW()
+                    WHERE workspace_id = $1 AND employee_id = $2 AND status = 'active'
+                      AND start_date <= $3
+                      AND (end_date IS NULL OR end_date >= $3)
+                    "#,
+                    workspace_id,
+                    req.employee_id,
+                    req.start_date,
+                    new_end_date,
+                    auto_close_note
+                )
+                .execute(&mut *tx)
+                .await?;
+            } else {
+                return Err(AppError::Conflict(
+                    "overlapping_contract_exists".to_string(),
+                ));
+            }
+        }
+
+        // 2. Insert the new contract
         let contract = sqlx::query_as::<_, EmployeeContract>(
             r#"
             INSERT INTO employee_contracts (
@@ -45,8 +111,12 @@ impl SqlxEmployeeContractRepository {
         .bind(req.end_date)
         .bind(req.document_id)
         .bind(&req.notes)
-        .fetch_one(&self.pool)
+        .fetch_one(&mut *tx)
         .await?;
+
+        tx.commit()
+            .await
+            .map_err(|e| AppError::Internal(format!("Failed to commit transaction: {e}")))?;
 
         Ok(contract)
     }

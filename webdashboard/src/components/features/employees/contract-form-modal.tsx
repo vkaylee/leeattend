@@ -1,21 +1,28 @@
+/* eslint-disable complexity */
+/* eslint-disable perfectionist/sort-imports */
+import { useQuery } from "@tanstack/react-query";
 import { FileText } from "lucide-react";
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
+
+import { addMonths, addYears, format, subDays } from "date-fns";
 
 import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
 import { z } from "zod";
 
-import type { EmployeeContract } from "@/lib/api";
+import type { CreateContractRequest, EmployeeContract } from "@/lib/api";
 
 import Button from "@/components/ui/button";
 import FormField from "@/components/ui/form-field";
 import Modal from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
+import { fetchEmploymentPhases } from "@/lib/api/employees";
 import { useEmployeeContracts } from "@/pages/employees/hooks/use-employee-contracts";
 
 const contractSchema = z.object({
   contract_number: z.string().optional(),
   contract_type: z.enum(["probation", "training", "fixed_term", "indefinite"]),
+  assign_phase_id: z.string().optional(),
   status: z.enum(["draft", "active", "expired", "terminated"]).optional(),
   start_date: z.string().min(1, { message: "Ngày hiệu lực là bắt buộc" }),
   end_date: z.string().optional(),
@@ -61,12 +68,16 @@ export default function ContractFormModal({
 }: ContractFormModalProps) {
   const toast = useToast();
   const { createContract, updateContract } = useEmployeeContracts(wsId, employeeId);
+  const { data: phases } = useQuery({ queryKey: ["employment-phases", wsId], queryFn: () => fetchEmploymentPhases(wsId), enabled: !!wsId });
+  const [overlapData, setOverlapData] = useState<CreateContractRequest | null>(null);
+  const [isConfirmingOverlap, setIsConfirmingOverlap] = useState(false);
 
   const {
     register,
     handleSubmit,
     reset,
     control,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<ContractFormValues>({
     resolver: standardSchemaResolver(contractSchema),
@@ -77,6 +88,7 @@ export default function ContractFormModal({
       end_date: "",
       contract_number: "",
       notes: "",
+      assign_phase_id: "",
     },
   });
 
@@ -85,6 +97,26 @@ export default function ContractFormModal({
     name: "contract_type",
   });
   const isIndefinite = contractType === "indefinite";
+
+  const startDateValue = useWatch({ control, name: "start_date" });
+
+  const applyDuration = (months?: number, years?: number) => {
+    if (!startDateValue) return;
+    const start = new Date(startDateValue);
+    if (isNaN(start.getTime())) return;
+
+    let end = start;
+    if (months) end = addMonths(end, months);
+    if (years) end = addYears(end, years);
+    
+    end = subDays(end, 1);
+    
+    setValue("end_date", format(end, "yyyy-MM-dd"), { shouldValidate: true });
+    
+    if (contractType === "indefinite") {
+      setValue("contract_type", "fixed_term", { shouldValidate: true });
+    }
+  };
 
   useEffect(() => {
     if (isOpen) {
@@ -105,6 +137,7 @@ export default function ContractFormModal({
           end_date: "",
           contract_number: "",
           notes: "",
+          assign_phase_id: "",
         });
       }
     }
@@ -124,29 +157,65 @@ export default function ContractFormModal({
           },
         });
         toast.success("Đã cập nhật hợp đồng thành công");
+        onClose();
       } else {
-        await createContract.mutateAsync({
+        if (!data.assign_phase_id) {
+          toast.error("Vui lòng chọn Cột mốc khởi đầu"); return;
+        }
+
+        const payload: CreateContractRequest = {
           ...data,
           employee_id: employeeId,
           end_date: payloadDate,
-        });
-        toast.success("Đã tạo hợp đồng thành công");
+          assign_phase_id: data.assign_phase_id ?? undefined,
+        };
+
+        try {
+          await createContract.mutateAsync(payload);
+          toast.success("Đã tạo hợp đồng thành công");
+          onClose();
+        } catch (err: unknown) {
+          const error = err as Error;
+          if (error.message.includes("overlapping_contract_exists")) {
+            setOverlapData(payload);
+            setIsConfirmingOverlap(true);
+          } else {
+            toast.error(error.message || "Có lỗi xảy ra");
+          }
+        }
       }
-      onClose();
     } catch {
-      toast.error("Có lỗi xảy ra khi lưu hợp đồng");
+      toast.error("Có lỗi xảy ra");
+    }
+  };
+
+  const handleConfirmOverlap = async () => {
+    if (!overlapData) return;
+    try {
+      await createContract.mutateAsync({
+        ...overlapData,
+        auto_close_overlapping: true,
+      });
+      toast.success("Đã tạo hợp đồng thành công và tự động kết thúc hợp đồng cũ");
+      setIsConfirmingOverlap(false);
+      setOverlapData(null);
+      onClose();
+    } catch (err: unknown) {
+      const error = err as Error;
+      toast.error(error.message || "Có lỗi xảy ra");
     }
   };
 
   return (
-    <Modal
-      icon={<FileText size={24} />}
-      isOpen={isOpen}
-      maxWidth="md"
-      onClose={onClose}
-      subtitle="Vui lòng điền các thông tin bên dưới"
-      title={editingContract ? "Cập nhật hợp đồng" : "Tạo hợp đồng mới"}
-    >
+    <>
+      <Modal
+        icon={<FileText size={24} />}
+        isOpen={isOpen ? !isConfirmingOverlap : false}
+        maxWidth="md"
+        onClose={onClose}
+        subtitle={editingContract ? "Cập nhật thông tin hợp đồng nhân sự" : "Tạo hợp đồng mới cho nhân viên"}
+        title={editingContract ? "Chỉnh sửa Hợp đồng" : "Tạo Hợp đồng Mới"}
+      >
       <form className="space-y-6 pt-4" onSubmit={handleSubmit(onSubmit)}>
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
@@ -194,6 +263,62 @@ export default function ContractFormModal({
             />
           </div>
 
+          <div className="flex flex-wrap items-center gap-2 pt-1">
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mr-1">Tính nhanh:</span>
+            {[
+              { label: "1 Tháng", months: 1 },
+              { label: "2 Tháng", months: 2 },
+              { label: "3 Tháng", months: 3 },
+              { label: "6 Tháng", months: 6 },
+              { label: "1 Năm", years: 1 },
+              { label: "2 Năm", years: 2 },
+              { label: "3 Năm", years: 3 },
+            ].map((option) => (
+              <button
+                className="px-2.5 py-1.5 text-[11px] font-medium bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-300"
+                key={option.label}
+                onClick={() => { applyDuration(option.months, option.years); }}
+                type="button"
+              >
+                {option.label}
+              </button>
+            ))}
+            <button
+              className={`px-2.5 py-1.5 text-[11px] font-medium rounded-lg transition-colors ${
+                isIndefinite 
+                  ? "bg-primary-100 text-primary-700 dark:bg-primary-900/40 dark:text-primary-400 ring-1 ring-primary-500/50" 
+                  : "bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-300"
+              }`}
+              onClick={() => {
+                setValue("contract_type", "indefinite", { shouldValidate: true });
+                setValue("end_date", "", { shouldValidate: true });
+              }}
+              type="button"
+            >
+              Lâu dài
+            </button>
+          </div>
+
+          {!editingContract && (
+            <div className="space-y-2">
+              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest" htmlFor="assign_phase_id">
+                Chọn Cột Mốc Khởi Đầu
+                <select
+                  className="w-full h-10 px-3 mt-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-primary-500 focus:border-primary-500 dark:bg-slate-900/50 dark:border-slate-800 text-sm"
+                  id="assign_phase_id"
+                  {...register("assign_phase_id")}
+                  required
+                >
+                  <option value="">-- Bắt buộc chọn Cột mốc --</option>
+                  {phases?.filter(p => p.is_active).map(phase => (
+                    <option key={phase.id} value={phase.id}>{phase.name} ({phase.phase_type})</option>
+                  ))}
+                </select>
+              </label>
+              {!!errors.assign_phase_id && <p className="text-xs text-rose-500 font-medium">{errors.assign_phase_id.message}</p>}
+            </div>
+          )}
+
           {!!editingContract && (
             <div className="space-y-2">
               <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest" htmlFor="status">
@@ -230,5 +355,31 @@ export default function ContractFormModal({
         </div>
       </form>
     </Modal>
+
+      <Modal
+        icon={<FileText size={24} />}
+        isOpen={isConfirmingOverlap}
+        onClose={() => { setIsConfirmingOverlap(false); }}
+        subtitle="Hệ thống phát hiện có sự trùng lặp thời gian"
+        title="Trùng Lặp Hợp Đồng"
+      >
+        <div className="space-y-6 pt-4">
+          <p className="text-sm text-slate-600 dark:text-slate-300">
+            Ngày bắt đầu của hợp đồng mới đang giao nhau với một hợp đồng hiện tại đang còn hiệu lực của nhân viên.
+          </p>
+          <p className="text-sm text-slate-600 dark:text-slate-300">
+            Bạn có muốn hệ thống tự động kết thúc hợp đồng cũ vào ngày trước đó để nhường chỗ cho hợp đồng mới này không?
+          </p>
+          <div className="flex items-center justify-end gap-3 pt-6 border-t border-slate-100 dark:border-slate-800">
+            <Button onClick={() => { setIsConfirmingOverlap(false); }} type="button" variant="outline">
+              QUAY LẠI SỬA NGÀY
+            </Button>
+            <Button loading={createContract.isPending} onClick={() => { void handleConfirmOverlap(); }} type="button" variant="secondary">
+              TỰ ĐỘNG ĐÓNG & TẠO MỚI
+            </Button>
+          </div>
+        </div>
+      </Modal>
+    </>
   );
 }

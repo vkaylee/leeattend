@@ -71,11 +71,11 @@ async fn test_employment_phases_crud_api() {
     let defs: Vec<serde_json::Value> = serde_json::from_slice(&body_bytes).unwrap();
     assert_eq!(defs.len(), 1);
 
-    // 3. Assign Phase to Employee
-    let assign_payload = json!({
+    // 3. Assign Phase 1 to Employee
+    let assign_payload_1 = json!({
         "phase_definition_id": phase_def_id,
         "start_date": "2026-01-01",
-        "end_date": "2026-02-28",
+        "end_date": "2026-03-31",
         "override_config": null
     });
 
@@ -88,7 +88,7 @@ async fn test_employment_phases_crud_api() {
         .header("X-User-Id", user_id.to_string())
         .header("Content-Type", "application/json")
         .body(axum::body::Body::from(
-            serde_json::to_string(&assign_payload).unwrap(),
+            serde_json::to_string(&assign_payload_1).unwrap(),
         ))
         .unwrap();
 
@@ -98,31 +98,69 @@ async fn test_employment_phases_crud_api() {
     let body_bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
         .await
         .unwrap();
-    let created_assignment: serde_json::Value = serde_json::from_slice(&body_bytes).unwrap();
-    let _assignment_id = created_assignment["id"].as_str().unwrap().to_string();
-    assert_eq!(created_assignment["status"], "active");
+    let created_assignment_1: serde_json::Value = serde_json::from_slice(&body_bytes).unwrap();
+    let assignment_id_1 = created_assignment_1["id"].as_str().unwrap().to_string();
+    assert_eq!(created_assignment_1["status"], "active");
 
-    // 4. Update phase status
-    let status_payload = json!({
-        "status": "completed",
-        "evaluation_notes": "Passed probation"
+    // 4. Assign Phase 2 (Overlapping) to Employee -> Should Auto-Close Phase 1
+    let assign_payload_2 = json!({
+        "phase_definition_id": phase_def_id,
+        "start_date": "2026-02-15",
+        "end_date": "2026-05-31",
+        "override_config": null
     });
 
     let req = axum::http::Request::builder()
-        .method("PUT")
+        .method("POST")
         .uri(format!(
-            "/api/workspaces/{ws_id}/employees/{employee_id}/phases/{_assignment_id}/status"
+            "/api/workspaces/{ws_id}/employees/{employee_id}/phases"
         ))
         .header("X-Workspace-Id", ws_id.to_string())
         .header("X-User-Id", user_id.to_string())
         .header("Content-Type", "application/json")
         .body(axum::body::Body::from(
-            serde_json::to_string(&status_payload).unwrap(),
+            serde_json::to_string(&assign_payload_2).unwrap(),
         ))
         .unwrap();
 
     let response = app.clone().oneshot(req).await.unwrap();
     assert_eq!(response.status(), StatusCode::OK);
+
+    // 5. Verify Phase 1 is auto-closed
+    let pool = _test_db.pool();
+    let phases =
+        sqlx::query("SELECT id, status, end_date FROM employee_phases WHERE employee_id = $1 ORDER BY start_date ASC")
+            .bind(employee_id)
+            .fetch_all(&pool)
+            .await
+            .unwrap();
+
+    assert_eq!(phases.len(), 2);
+
+    use sqlx::Row;
+    let phase_1 = &phases[0];
+    let p1_id: Uuid = phase_1.get("id");
+    let p1_status: String = phase_1.get("status");
+    let p1_end_date: Option<chrono::NaiveDate> = phase_1.get("end_date");
+
+    assert_eq!(p1_id.to_string(), assignment_id_1);
+    assert_eq!(p1_status, "completed", "Phase 1 should be auto-closed");
+    assert_eq!(
+        p1_end_date.unwrap().to_string(),
+        "2026-02-14",
+        "Phase 1 end_date should be truncated to day before Phase 2"
+    );
+
+    let phase_2 = &phases[1];
+    let p2_status: String = phase_2.get("status");
+    let p2_end_date: Option<chrono::NaiveDate> = phase_2.get("end_date");
+
+    assert_eq!(p2_status, "active", "Phase 2 should be active");
+    assert_eq!(
+        p2_end_date.unwrap().to_string(),
+        "2026-05-31",
+        "Phase 2 end_date should be untouched"
+    );
 }
 
 #[tokio::test]

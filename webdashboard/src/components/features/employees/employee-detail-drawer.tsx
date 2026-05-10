@@ -1,3 +1,4 @@
+/* eslint-disable complexity */
 import { useQuery } from "@tanstack/react-query";
 import {
     Trash2,
@@ -22,10 +23,11 @@ import { fetchWorkspaceMembers } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 import EmployeeContractsTab from "./employee-contracts-tab";
+import EmployeePhasesTab from "./employee-phases-tab";
 
 
-type DetailTabType = "profile" | "salary" | "history" | "policies" | "contracts";
-const TAB_ORDER: DetailTabType[] = ["profile", "contracts", "salary", "policies", "history"];
+type DetailTabType = "profile" | "contracts" | "phases" | "salary" | "policies" | "history";
+const TAB_ORDER: DetailTabType[] = ["profile", "contracts", "phases", "salary", "policies", "history"];
 const SCROLL_STEP = 80;
 
 interface DeptHistoryEntry {
@@ -87,15 +89,16 @@ function DrawerHeader({
                 <button className="p-3 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-[1.25rem] transition-all shadow-md active:scale-90 border border-slate-100 dark:border-slate-800 text-slate-300 dark:text-slate-600 hover:text-rose-600 dark:text-rose-300" onClick={onClose}><X size={24} /></button>
             </div>
 
-            <div className="flex bg-white dark:bg-slate-900/50 p-1.5 rounded-[22px] w-fit border border-slate-200 dark:border-slate-700/50 shadow-inner">
+            <div className="flex overflow-x-auto scrollbar-hide bg-white dark:bg-slate-900/50 p-1.5 rounded-[22px] border border-slate-200 dark:border-slate-700/50 shadow-inner w-full max-w-full relative">
                 {[
                     { id: "profile", label: t("common.profile") },
                     { id: "contracts", label: "Hợp đồng" },
+                    { id: "phases", label: "Hành trình" },
                     { id: "salary", label: t("employees.details.salary_benefits") },
                     { id: "policies", label: t("employees.details.special_policies") },
                     { id: "history", label: t("employees.details.work_history") }
                 ].map(tab => (
-                    <button className={cn("px-8 py-2.5 rounded-[18px] text-[10px] font-bold uppercase tracking-widest transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500", activeDetailTab === tab.id ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 border border-transparent")} data-testid={`employees-tab-${tab.id}`} key={tab.id} onClick={() => { setActiveDetailTab(tab.id as DetailTabType); }}>{tab.label.toUpperCase()}</button>
+                    <button className={cn("px-5 py-2.5 shrink-0 whitespace-nowrap rounded-[18px] text-[10px] font-bold uppercase tracking-widest transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500", activeDetailTab === tab.id ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 border border-transparent")} data-testid={`employees-tab-${tab.id}`} key={tab.id} onClick={() => { setActiveDetailTab(tab.id as DetailTabType); }}>{tab.label.toUpperCase()}</button>
                 ))}
             </div>
         </div>
@@ -279,7 +282,7 @@ export default function EmployeeDetailDrawer({
 
     return (
         <Sheet
-            className="!max-w-2xl"
+            className="!max-w-4xl"
             contentClassName="!p-0"
             hideHeader
             isOpen={isOpen}
@@ -311,6 +314,14 @@ export default function EmployeeDetailDrawer({
 
                 {activeDetailTab === "contracts" && (
                     <EmployeeContractsTab
+                        employeeId={employee.id}
+                        formatDate={formatDate}
+                        wsId={wsId}
+                    />
+                )}
+
+                {activeDetailTab === "phases" && (
+                    <EmployeePhasesTab
                         employeeId={employee.id}
                         formatDate={formatDate}
                         wsId={wsId}

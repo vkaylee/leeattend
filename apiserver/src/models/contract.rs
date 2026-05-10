@@ -30,6 +30,8 @@ pub struct CreateContractRequest {
     pub end_date: Option<NaiveDate>,
     pub document_id: Option<Uuid>,
     pub notes: Option<String>,
+    pub assign_phase_id: Option<Uuid>,
+    pub auto_close_overlapping: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]

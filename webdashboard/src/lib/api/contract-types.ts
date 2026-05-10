@@ -17,6 +17,8 @@ export interface EmployeeContract {
 }
 
 export interface CreateContractRequest {
+  assign_phase_id?: string;
+  auto_close_overlapping?: boolean;
   contract_number?: string | null;
   contract_type: ContractType;
   document_id?: string | null;
