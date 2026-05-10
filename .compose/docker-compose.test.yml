@@ -66,6 +66,37 @@ services:
       timeout: 5s
       retries: 5
 
+  supavisor:
+    image: supabase/supavisor:1.1.56
+    profiles:
+      - infra-pooler
+    networks:
+      - test_net
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=ecto://test_user:test_password@db:5432/test_database
+      - CLUSTER_POSTGRES=true
+      - SECRET_KEY_BASE=this_is_a_64_character_secret_key_base_that_needs_to_be_long_enough_12345678901234
+      - VAULT_ENC_KEY=this-is-a-32-character-secret-32
+      - API_JWT_SECRET=your-super-secret-jwt-token-with-at-least-32-bytes-long
+      - PORT=4000
+      - PROXY_PORT_TRANSACTION=6543
+      - PROXY_PORT_SESSION=5452
+      - REGION=local
+    command: >
+      sh -c "
+      psql postgres://test_user:test_password@db:5432/test_database -c 'CREATE SCHEMA IF NOT EXISTS _supavisor;';
+      /app/bin/migrate;
+      exec /app/bin/server
+      "
+    healthcheck:
+      test: [ "CMD", "curl", "-s", "-o", "/dev/null", "http://localhost:4000" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   db_init:
     profiles:
       - infra-db
@@ -118,7 +149,15 @@ services:
         condition: service_healthy
     working_dir: /workspace/apiserver
     environment:
-      - DATABASE_URL=postgres://test_user:test_password@db:5432/test_database
+      - DATABASE_URL=postgres://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
+      - DATABASE_POOLER_URL=postgres://${SUPAVISOR_POOL_USER:-${DB_USER}}.${SUPAVISOR_TENANT_ID:-${DB_NAME}}:${SUPAVISOR_POOL_PASSWORD:-${DB_PASSWORD}}@${SUPAVISOR_HOST:-supavisor}:${SUPAVISOR_PORT:-6543}/${DB_NAME}
+      - SUPAVISOR_API_URL=http://${SUPAVISOR_HOST:-supavisor}:${SUPAVISOR_API_PORT:-4000}
+      - SUPAVISOR_TENANT_ID=${SUPAVISOR_TENANT_ID:-}
+      - SUPAVISOR_POOL_USER=${SUPAVISOR_POOL_USER:-}
+      - SUPAVISOR_POOL_PASSWORD=${SUPAVISOR_POOL_PASSWORD:-}
+      - SUPAVISOR_POOL_SIZE=${SUPAVISOR_POOL_SIZE:-20}
+      - SUPAVISOR_MODE_TYPE=${SUPAVISOR_MODE_TYPE:-transaction}
+      - API_JWT_SECRET=${SUPAVISOR_API_JWT:-your-super-secret-jwt-token-with-at-least-32-bytes-long}
       - REDIS_URL=redis://redis:6379
       - STORAGE_DIR=/workspace/apiserver/storage
     healthcheck:

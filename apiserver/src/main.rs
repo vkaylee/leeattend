@@ -56,8 +56,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Initialize configurable database pools (API + Worker + optional Reader)
     let db_config = DbPoolConfig::from_env();
+    DbPools::run_migrations(&db_config).await;
     let db_pools = DbPools::connect(&db_config).await;
-    db_pools.run_migrations().await;
+
+    // Initialize Supavisor pooler tenant configuration if required
+    apiserver::supavisor::init_supavisor_tenant().await;
 
     // ╔═══════════════════════════════════════════════════════════════╗
     // ║  POOL ASSIGNMENT RULES                                       ║

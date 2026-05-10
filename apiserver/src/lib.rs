@@ -83,6 +83,7 @@ pub mod repositories;
 pub mod routes;
 pub mod services;
 pub mod state;
+pub mod supavisor;
 pub mod utils;
 pub mod worker;
 #[cfg(test)]

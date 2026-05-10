@@ -225,6 +225,9 @@ class Orchestrator:
         test_parser.add_argument(
             "--timeout", type=int, default=1800, help="Test execution timeout in seconds"
         )
+        test_parser.add_argument(
+            "--pooler", action="store_true", help="Enable Supavisor pooler for tests"
+        )
 
     def _setup_manage_parser(
         self,
@@ -281,6 +284,7 @@ class Orchestrator:
     ) -> None:
         run_p = subparsers.add_parser("run", help="Run toolbox command", parents=[parent_parser])
         run_p.add_argument("tool", choices=list(self.tool_map.keys()), help="Tool to run")
+        run_p.add_argument("--pooler", action="store_true", help="Enable Supavisor pooler")
         run_p.add_argument("args", nargs=argparse.REMAINDER, help="Arguments for the tool")
 
     def run(self) -> None:
@@ -355,6 +359,13 @@ class Orchestrator:
             self.env_vars["TIMEOUT_UNIT"] = timeout_str
             self.env_vars["TIMEOUT_INTEGRATION"] = timeout_str
             self.env_vars["TIMEOUT_BUILD"] = timeout_str
+
+        if getattr(args, "pooler", False):
+            # This triggers infra-pooler in handle_run
+            supavisor_host = os.environ.get("SUPAVISOR_HOST", "supavisor")
+            supavisor_port = os.environ.get("SUPAVISOR_PORT", "6543")
+            os.environ["DATABASE_POOLER_URL"] = f"postgres://test_user.test_database:test_password@{supavisor_host}:{supavisor_port}/test_database"
+            self.env_vars["DATABASE_POOLER_URL"] = os.environ["DATABASE_POOLER_URL"]
 
         if target == "all" and not (args.lint_only or args.unit_only or args.e2e_only):
             # Run entirely isolated targets sequentially for true independence
@@ -539,6 +550,12 @@ class Orchestrator:
         tool = args.tool
         tool_args = args.args
 
+        if getattr(args, "pooler", False):
+            supavisor_host = os.environ.get("SUPAVISOR_HOST", "supavisor")
+            supavisor_port = os.environ.get("SUPAVISOR_PORT", "6543")
+            os.environ["DATABASE_POOLER_URL"] = f"postgres://test_user.test_database:test_password@{supavisor_host}:{supavisor_port}/test_database"
+            self.env_vars["DATABASE_POOLER_URL"] = os.environ["DATABASE_POOLER_URL"]
+
         # Resolve target service dynamically based on context
         caller_dir = Path.cwd()
         rel_dir = ""
@@ -579,6 +596,9 @@ class Orchestrator:
                     "infra-redis",
                 ]
             )
+            if "DATABASE_POOLER_URL" in os.environ:
+                _lifecycle_up("infra-pooler")
+                compose_cmd.extend(["--profile", "infra-pooler"])
         else:
             compose_cmd.extend(["--profile", "frontend"])
 

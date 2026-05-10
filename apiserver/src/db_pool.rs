@@ -12,9 +12,11 @@ use std::time::Duration;
 /// Configuration for all database pools, read from environment variables.
 #[derive(Debug, Clone)]
 pub struct DbPoolConfig {
-    /// Primary database URL (read + write).
+    /// Primary database URL (read + write). Used for migrations.
     pub primary_url: String,
-    /// Optional read-replica URL. Falls back to `primary_url` if not set.
+    /// Connection pooler URL (e.g., Supavisor). Used for API and Worker pools.
+    pub pooler_url: Option<String>,
+    /// Optional read-replica URL. Falls back to `pooler_url` then `primary_url`.
     pub reader_url: Option<String>,
 
     /// API pool: max connections (default: 20)
@@ -43,18 +45,32 @@ impl DbPoolConfig {
         #[allow(clippy::expect_used)]
         let primary_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
 
+        let pooler_url = std::env::var("DATABASE_POOLER_URL")
+            .ok()
+            .filter(|s| !s.trim().is_empty());
+
         let reader_url = std::env::var("DATABASE_READER_URL")
             .ok()
             .filter(|s| !s.trim().is_empty());
 
         Self {
             primary_url,
+            pooler_url,
             reader_url,
             api_max_conn: env_parse("DB_API_MAX_CONN", 20),
             api_acquire_timeout_secs: env_parse("DB_API_ACQUIRE_TIMEOUT_SECS", 5),
             worker_max_conn: env_parse("DB_WORKER_MAX_CONN", 5),
             worker_acquire_timeout_secs: env_parse("DB_WORKER_ACQUIRE_TIMEOUT_SECS", 30),
         }
+    }
+
+    /// Resolves the actual database URLs that will be used for each connection pool.
+    /// Returns a tuple: `(api_url, worker_url, reader_url)`
+    pub fn resolve_pool_urls(&self) -> (&str, &str, &str) {
+        let api_worker_url = self.pooler_url.as_deref().unwrap_or(&self.primary_url);
+        let reader_url = self.reader_url.as_deref().unwrap_or(api_worker_url);
+        
+        (api_worker_url, api_worker_url, reader_url)
     }
 }
 
@@ -79,15 +95,18 @@ impl DbPools {
             api_timeout_s = config.api_acquire_timeout_secs,
             worker_max = config.worker_max_conn,
             worker_timeout_s = config.worker_acquire_timeout_secs,
+            has_pooler = config.pooler_url.is_some(),
             has_reader = config.reader_url.is_some(),
             "Initializing database pools"
         );
+
+        let (api_conn_url, worker_conn_url, reader_conn_url) = config.resolve_pool_urls();
 
         #[allow(clippy::expect_used)]
         let api = PgPoolOptions::new()
             .max_connections(config.api_max_conn)
             .acquire_timeout(Duration::from_secs(config.api_acquire_timeout_secs))
-            .connect(&config.primary_url)
+            .connect(api_conn_url)
             .await
             .expect("Failed to connect API pool to Postgres");
 
@@ -95,17 +114,17 @@ impl DbPools {
         let worker = PgPoolOptions::new()
             .max_connections(config.worker_max_conn)
             .acquire_timeout(Duration::from_secs(config.worker_acquire_timeout_secs))
-            .connect(&config.primary_url)
+            .connect(worker_conn_url)
             .await
             .expect("Failed to connect Worker pool to Postgres");
 
-        let reader = if let Some(ref reader_url) = config.reader_url {
+        let reader = if config.reader_url.is_some() {
             tracing::info!("Connecting read-replica pool...");
             #[allow(clippy::expect_used)]
             let pool = PgPoolOptions::new()
                 .max_connections(config.api_max_conn)
                 .acquire_timeout(Duration::from_secs(config.api_acquire_timeout_secs))
-                .connect(reader_url)
+                .connect(reader_conn_url)
                 .await
                 .expect("Failed to connect Reader pool to Postgres read-replica");
             Some(pool)
@@ -147,13 +166,26 @@ impl DbPools {
         self.reader.as_ref().unwrap_or(&self.api)
     }
 
-    /// Run database migrations on the primary pool.
-    pub async fn run_migrations(&self) {
+    /// Run database migrations on the primary database.
+    pub async fn run_migrations(config: &DbPoolConfig) {
+        tracing::info!("Running database migrations directly on primary database...");
+        
+        #[allow(clippy::expect_used)]
+        let pool = PgPoolOptions::new()
+            .max_connections(1)
+            .acquire_timeout(Duration::from_secs(30))
+            .connect(&config.primary_url)
+            .await
+            .expect("Failed to connect to primary database for migrations");
+
         #[allow(clippy::expect_used)]
         sqlx::migrate!("./migrations")
-            .run(&self.api)
+            .run(&pool)
             .await
             .expect("Failed to run migrations");
+            
+        pool.close().await;
+        tracing::info!("Database migrations completed successfully");
     }
 
     /// Create a DbPools instance using a single PgPool for all workloads.
@@ -183,6 +215,7 @@ mod tests {
     fn test_default_config_values() {
         let config = DbPoolConfig {
             primary_url: "postgres://test".to_string(),
+            pooler_url: None,
             reader_url: None,
             api_max_conn: 20,
             api_acquire_timeout_secs: 5,
@@ -194,6 +227,7 @@ mod tests {
         assert_eq!(config.api_acquire_timeout_secs, 5);
         assert_eq!(config.worker_max_conn, 5);
         assert_eq!(config.worker_acquire_timeout_secs, 30);
+        assert!(config.pooler_url.is_none());
         assert!(config.reader_url.is_none());
     }
 
@@ -247,6 +281,7 @@ mod tests {
     fn test_reader_fallback_when_no_reader_url() {
         let config = DbPoolConfig {
             primary_url: "postgres://test".to_string(),
+            pooler_url: None,
             reader_url: None,
             api_max_conn: 20,
             api_acquire_timeout_secs: 5,
@@ -261,6 +296,7 @@ mod tests {
     fn test_reader_configured_when_url_set() {
         let config = DbPoolConfig {
             primary_url: "postgres://primary".to_string(),
+            pooler_url: None,
             reader_url: Some("postgres://replica".to_string()),
             api_max_conn: 20,
             api_acquire_timeout_secs: 5,
@@ -279,6 +315,7 @@ mod tests {
     fn test_api_and_worker_have_different_configs() {
         let config = DbPoolConfig {
             primary_url: "postgres://test".to_string(),
+            pooler_url: None,
             reader_url: None,
             api_max_conn: 20,
             api_acquire_timeout_secs: 5,
@@ -347,6 +384,7 @@ mod tests {
         // (Can't test with real PgPool in unit tests, but verify the logic)
         let config = DbPoolConfig {
             primary_url: "postgres://test".to_string(),
+            pooler_url: None,
             reader_url: None,
             api_max_conn: 1,
             api_acquire_timeout_secs: 1,
@@ -358,5 +396,95 @@ mod tests {
         assert!(config.reader_url.is_none());
         // But for_test() explicitly sets reader = Some(pool)
         // verifying via code inspection (no PgPool available in unit test)
+    }
+
+    // ── Supavisor Routing Tests ───────────────────────────────────
+
+    #[test]
+    fn test_resolve_pool_urls_without_pooler() {
+        let config = DbPoolConfig {
+            primary_url: "postgres://primary_db:5432".to_string(),
+            pooler_url: None,
+            reader_url: None,
+            api_max_conn: 20,
+            api_acquire_timeout_secs: 5,
+            worker_max_conn: 5,
+            worker_acquire_timeout_secs: 30,
+        };
+
+        let (api_url, worker_url, reader_url) = config.resolve_pool_urls();
+        assert_eq!(api_url, "postgres://primary_db:5432");
+        assert_eq!(worker_url, "postgres://primary_db:5432");
+        assert_eq!(reader_url, "postgres://primary_db:5432");
+    }
+
+    #[test]
+    fn test_resolve_pool_urls_with_pooler_but_no_reader() {
+        let config = DbPoolConfig {
+            primary_url: "postgres://primary_db:5432".to_string(),
+            pooler_url: Some("postgres://supavisor:6543".to_string()),
+            reader_url: None,
+            api_max_conn: 20,
+            api_acquire_timeout_secs: 5,
+            worker_max_conn: 5,
+            worker_acquire_timeout_secs: 30,
+        };
+
+        let (api_url, worker_url, reader_url) = config.resolve_pool_urls();
+        assert_eq!(api_url, "postgres://supavisor:6543");
+        assert_eq!(worker_url, "postgres://supavisor:6543");
+        assert_eq!(reader_url, "postgres://supavisor:6543");
+    }
+
+    #[test]
+    fn test_resolve_pool_urls_with_pooler_and_reader() {
+        let config = DbPoolConfig {
+            primary_url: "postgres://primary_db:5432".to_string(),
+            pooler_url: Some("postgres://supavisor:6543".to_string()),
+            reader_url: Some("postgres://read_replica:5432".to_string()),
+            api_max_conn: 20,
+            api_acquire_timeout_secs: 5,
+            worker_max_conn: 5,
+            worker_acquire_timeout_secs: 30,
+        };
+
+        let (api_url, worker_url, reader_url) = config.resolve_pool_urls();
+        assert_eq!(api_url, "postgres://supavisor:6543");
+        assert_eq!(worker_url, "postgres://supavisor:6543");
+        assert_eq!(reader_url, "postgres://read_replica:5432");
+    }
+
+    #[tokio::test]
+    async fn test_negative_integration_pooler_routing() {
+        // Setup: Valid primary database but an invalid/dead pooler port (e.g. 9999).
+        // This ensures the routing logic correctly tries to hit the pooler for API/Worker,
+        // and hits the primary database for Migrations.
+        let primary_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://test_user:test_password@db:5432/test_database".to_string()
+        });
+
+        let config = DbPoolConfig {
+            primary_url,
+            pooler_url: Some("postgres://dummy_user:dummy_pass@localhost:9999/dummy_db".to_string()),
+            reader_url: None,
+            api_max_conn: 1,
+            // Very short timeout so the test doesn't hang forever
+            api_acquire_timeout_secs: 1,
+            worker_max_conn: 1,
+            worker_acquire_timeout_secs: 1,
+        };
+
+        // 1. run_migrations MUST succeed because it connects to primary_url directly
+        DbPools::run_migrations(&config).await;
+
+        // 2. We can manually test that PgPoolOptions fails to connect to the dead pooler port.
+        // This is equivalent to what DbPools::connect does internally for the api and worker pools.
+        let (api_conn_url, _, _) = config.resolve_pool_urls();
+        let api_result = sqlx::postgres::PgPoolOptions::new()
+            .acquire_timeout(std::time::Duration::from_secs(1))
+            .connect(api_conn_url)
+            .await;
+            
+        assert!(api_result.is_err(), "API pool MUST fail to connect to the dead pooler port");
     }
 }

@@ -38,12 +38,55 @@ services:
       <<: *healthcheck-base
       test: [ "CMD", "sh", "-c", "redis-cli -a ${REDIS_PASSWORD} ping" ]
 
+  supavisor:
+    image: supabase/supavisor:1.1.56
+    restart: always
+    networks:
+      - backend_net
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=ecto://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
+      - CLUSTER_POSTGRES=true
+      - SECRET_KEY_BASE=${SUPAVISOR_SECRET_KEY:-this_is_a_64_character_secret_key_base_that_needs_to_be_long_enough_12345678901234}
+      - VAULT_ENC_KEY=${SUPAVISOR_VAULT_KEY:-this-is-a-32-character-secret-32}
+      - API_JWT_SECRET=${SUPAVISOR_API_JWT:-your-super-secret-jwt-token-with-at-least-32-bytes-long}
+      - PORT=4000
+      - PROXY_PORT_TRANSACTION=6543
+      - PROXY_PORT_SESSION=5452
+      - REGION=local
+    command: >
+      sh -c "
+      psql postgres://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME} -c 'CREATE SCHEMA IF NOT EXISTS _supavisor;';
+      /app/bin/migrate;
+      exec /app/bin/server
+      "
+    healthcheck:
+      <<: *healthcheck-base
+      # Note: Supavisor does not have a standard /api/health out-of-the-box on 4000, 
+      # but checking if the port is open is sufficient for healthcheck
+      test: [ "CMD", "curl", "-s", "-o", "/dev/null", "http://localhost:4000" ]
+
   apiserver:
     image: localhost/leeattend_apiserver
     build:
       context: .
       dockerfile: apiserver/Dockerfile
       target: runtime
+    environment:
+      - DATABASE_URL=postgres://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
+      - DATABASE_POOLER_URL=postgres://${SUPAVISOR_POOL_USER:-${DB_USER}}.${SUPAVISOR_TENANT_ID:-${DB_NAME}}:${SUPAVISOR_POOL_PASSWORD:-${DB_PASSWORD}}@${SUPAVISOR_HOST:-supavisor}:${SUPAVISOR_PORT:-6543}/${DB_NAME}
+      - SUPAVISOR_API_URL=http://${SUPAVISOR_HOST:-supavisor}:${SUPAVISOR_API_PORT:-4000}
+      - SUPAVISOR_TENANT_ID=${SUPAVISOR_TENANT_ID:-}
+      - SUPAVISOR_POOL_USER=${SUPAVISOR_POOL_USER:-}
+      - SUPAVISOR_POOL_PASSWORD=${SUPAVISOR_POOL_PASSWORD:-}
+      - SUPAVISOR_POOL_SIZE=${SUPAVISOR_POOL_SIZE:-20}
+      - SUPAVISOR_MODE_TYPE=${SUPAVISOR_MODE_TYPE:-transaction}
+      - API_JWT_SECRET=${SUPAVISOR_API_JWT:-your-super-secret-jwt-token-with-at-least-32-bytes-long}
+      - DB_API_MAX_CONN=${DB_API_MAX_CONN:-20}
+      - DB_WORKER_MAX_CONN=${DB_WORKER_MAX_CONN:-5}
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379
     restart: always
     networks:
       - backend_net
@@ -55,15 +98,12 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      supavisor:
+        condition: service_healthy
     healthcheck:
       <<: *healthcheck-base
       test: "wget -qO- http://localhost:3000/api/health > /dev/null || exit 1"
     environment:
-      - DATABASE_URL=postgres://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
-      - DATABASE_READER_URL=${DATABASE_READER_URL:-}
-      - DB_API_MAX_CONN=${DB_API_MAX_CONN:-20}
-      - DB_WORKER_MAX_CONN=${DB_WORKER_MAX_CONN:-5}
-      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379
       - API_HOST=0.0.0.0
       - API_PORT=3000
       - JWT_SECRET=${JWT_SECRET}
