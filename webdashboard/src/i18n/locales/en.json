@@ -3250,8 +3250,35 @@
     "messages": {
       "assign_error": "Failed to assign role",
       "revoke_error": "Failed to revoke role",
-      "revoke_success": "system_roles.messages.revoke_success",
-      "assign_success": "system_roles.messages.assign_success"
+      "revoke_success": "system_roles.messages.revoke_success"
+    }
+  },
+  "system_admin": {
+    "tenants": {
+      "title": "Tenants Management",
+      "subtitle": "Manage databases and Supavisor connection pools",
+      "add_btn": "Add Tenant",
+      "table": {
+        "id": "Tenant ID (UUID)",
+        "pool_size": "Pool Size",
+        "created_at": "Created At",
+        "updated_at": "Last Updated",
+        "actions": "Actions"
+      },
+      "modal": {
+        "create_title": "Create New Tenant",
+        "db_name_label": "Database Name",
+        "db_name_placeholder": "Ex: tenant_abc_db",
+        "create_db_label": "Create physical database",
+        "pool_size_label": "Pool Size (Optional)",
+        "submit_btn": "Create",
+        "creating": "Creating..."
+      },
+      "messages": {
+        "create_success": "Tenant created successfully",
+        "delete_success": "Tenant deleted successfully"
+      },
+      "confirm_delete": "Are you sure you want to delete this tenant? This will remove its configuration from Supavisor."
     }
   },
   "notifications": {

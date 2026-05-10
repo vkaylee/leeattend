@@ -52,3 +52,40 @@ export async function fetchSystemHealth(): Promise<Record<string, unknown>> {
   if (!response.ok) throw new Error("Failed to fetch system health");
   return response.json() as Promise<Record<string, unknown>>;
 }
+
+export interface SystemTenant {
+  created_at: string;
+  id: string;
+  pool_size: number;
+  updated_at: string;
+}
+
+export interface CreateTenantRequestPayload {
+  create_db: boolean;
+  db_name: string;
+  pool_size?: number;
+}
+
+export async function fetchSystemTenants(): Promise<SystemTenant[]> {
+  const response = await apiFetch(`${API_BASE_URL}/system/tenants`);
+  if (!response.ok) throw new Error("Failed to fetch system tenants");
+  return response.json() as Promise<SystemTenant[]>;
+}
+
+export async function createSystemTenant(request: CreateTenantRequestPayload): Promise<void> {
+  const response = await apiFetch(`${API_BASE_URL}/system/tenants`, {
+    method: "POST",
+    body: JSON.stringify(request),
+  });
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(errText || "Failed to create system tenant");
+  }
+}
+
+export async function deleteSystemTenant(tenantId: string): Promise<void> {
+  const response = await apiFetch(`${API_BASE_URL}/system/tenants/${tenantId}`, {
+    method: "DELETE",
+  });
+  if (!response.ok) throw new Error("Failed to delete system tenant");
+}

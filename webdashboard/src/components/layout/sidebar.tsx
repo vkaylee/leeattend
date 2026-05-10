@@ -6,6 +6,7 @@ import {
   UserCircle,
   Users,
   Clock,
+  Database,
   CheckCircle,
   UserRound,
   CalendarRange,
@@ -188,6 +189,7 @@ function useSidebarMenuItems(): MenuItem[] {
       section: "system", sectionIcon: Wrench, label: t("settings.title"), testId: "sidebar-section-system", items: [
         { to: ROUTES.INFRA_MONITOR, icon: Activity, label: t("monitor.title"), testId: "sidebar-link-monitor", systemRoles: ["platform_admin", "support"] },
         { to: ROUTES.SYSTEM_ROLES, icon: ShieldCheck, label: "Platform Admins", testId: "sidebar-link-system-roles", systemRoles: ["platform_admin"] },
+        { to: ROUTES.SYSTEM_TENANTS, icon: Database, label: t("system_admin.tenants.title"), testId: "sidebar-link-system-tenants", systemRoles: ["platform_admin"] },
         { to: ROUTES.SETTINGS.ROOT, icon: Settings, label: t("settings.title"), testId: "sidebar-link-settings-root", permissions: ["workspace:settings:read", "members:roles:manage"] }
       ]
     },

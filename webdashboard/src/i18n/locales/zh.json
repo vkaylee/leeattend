@@ -3247,8 +3247,35 @@
     "messages": {
       "assign_error": "分配角色失败",
       "revoke_error": "撤销角色失败",
-      "revoke_success": "system_roles.messages.revoke_success",
-      "assign_success": "system_roles.messages.assign_success"
+      "revoke_success": "system_roles.messages.revoke_success"
+    }
+  },
+  "system_admin": {
+    "tenants": {
+      "title": "租户管理",
+      "subtitle": "管理数据库和 Supavisor 连接池",
+      "add_btn": "添加租户",
+      "table": {
+        "id": "租户 ID (UUID)",
+        "pool_size": "连接池大小",
+        "created_at": "创建时间",
+        "updated_at": "最后更新",
+        "actions": "操作"
+      },
+      "modal": {
+        "create_title": "创建新租户",
+        "db_name_label": "数据库名称",
+        "db_name_placeholder": "例: tenant_abc_db",
+        "create_db_label": "创建物理数据库",
+        "pool_size_label": "连接池大小 (可选)",
+        "submit_btn": "创建",
+        "creating": "创建中..."
+      },
+      "messages": {
+        "create_success": "租户创建成功",
+        "delete_success": "租户删除成功"
+      },
+      "confirm_delete": "您确定要删除此租户吗？这将从 Supavisor 中删除其配置。"
     }
   },
   "status_active_caps": "活动",

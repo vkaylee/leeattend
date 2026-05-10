@@ -1157,8 +1157,35 @@
       "descriptions": {
         "platform_admin": "Toàn quyền nền tảng. Có thể quản lý workspace, cài đặt toàn cục và các vai trò hệ thống khác.",
         "support": "Chỉ xem dữ liệu theo dõi cơ sở hạ tầng và hỗ trợ đa workspace.",
-        "billing_admin": "Quản lý thanh toán nền tảng, đăng ký và hạn ngạch trên tất cả workspace.",
-        "default": "Vai trò cấp hệ thống."
+        "billing_admin": "Quản lý thanh toán nền tảng, đăng ký và hạn ngạch trên tất cả workspace."
+      }
+    },
+    "system_admin": {
+      "tenants": {
+        "title": "Quản lý Tenants",
+        "subtitle": "Quản lý cơ sở dữ liệu và kết nối Supavisor",
+        "add_btn": "Thêm Tenant",
+        "table": {
+          "id": "Tenant ID (UUID)",
+          "pool_size": "Kích thước Pool",
+          "created_at": "Ngày tạo",
+          "updated_at": "Cập nhật lần cuối",
+          "actions": "Thao tác"
+        },
+        "modal": {
+          "create_title": "Tạo Tenant Mới",
+          "db_name_label": "Tên Cơ Sở Dữ Liệu",
+          "db_name_placeholder": "VD: tenant_abc_db",
+          "create_db_label": "Tạo physical database mới",
+          "pool_size_label": "Kích thước Pool (Tùy chọn)",
+          "submit_btn": "Tạo",
+          "creating": "Đang tạo..."
+        },
+        "messages": {
+          "create_success": "Tạo tenant thành công",
+          "delete_success": "Xóa tenant thành công"
+        },
+        "confirm_delete": "Bạn có chắc chắn muốn xóa tenant này không? Thao tác này sẽ xóa cấu hình khỏi Supavisor."
       }
     },
     "delete_confirm": "common.delete_confirm",

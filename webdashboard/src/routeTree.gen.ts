@@ -38,6 +38,7 @@ import { Route as AuthenticatedWorkspaceEssClockRouteImport } from './routes/_au
 import { Route as AuthenticatedWorkspaceEssAttendanceRouteImport } from './routes/_authenticated/_workspace/ess/attendance'
 import { Route as AuthenticatedWorkspaceApprovalsOtRouteImport } from './routes/_authenticated/_workspace/approvals/ot'
 import { Route as AuthenticatedInfraSystemRolesRouteImport } from './routes/_authenticated/_infra/system/roles'
+import { Route as AuthenticatedInfraSystemTenantsRouteImport } from './routes/_authenticated/_infra/system/tenants'
 import { Route as AuthenticatedInfraInfraMonitorRouteImport } from './routes/_authenticated/_infra/infra/monitor'
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsIndexRouteImport } from './routes/_authenticated/_workspace/workspace/settings/index'
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsTimeRouteImport } from './routes/_authenticated/_workspace/workspace/settings/time'
@@ -305,6 +306,16 @@ const AuthenticatedInfraSystemRolesRoute =
       (d) => d.Route,
     ),
   )
+const AuthenticatedInfraSystemTenantsRoute =
+  AuthenticatedInfraSystemTenantsRouteImport.update({
+    id: '/system/tenants',
+    path: '/system/tenants',
+    getParentRoute: () => AuthenticatedInfraRoute,
+  } as any).lazy(() =>
+    import('./routes/_authenticated/_infra/system/tenants.lazy').then(
+      (d) => d.Route,
+    ),
+  )
 const AuthenticatedInfraInfraMonitorRoute =
   AuthenticatedInfraInfraMonitorRouteImport.update({
     id: '/infra/monitor',
@@ -474,6 +485,7 @@ export interface FileRoutesByFullPath {
   '/working-patterns': typeof AuthenticatedWorkspaceWorkingPatternsRoute
   '/infra/monitor': typeof AuthenticatedInfraInfraMonitorRoute
   '/system/roles': typeof AuthenticatedInfraSystemRolesRoute
+  '/system/tenants': typeof AuthenticatedInfraSystemTenantsRoute
   '/approvals/ot': typeof AuthenticatedWorkspaceApprovalsOtRoute
   '/ess/attendance': typeof AuthenticatedWorkspaceEssAttendanceRoute
   '/ess/clock': typeof AuthenticatedWorkspaceEssClockRoute
@@ -517,6 +529,7 @@ export interface FileRoutesByTo {
   '/working-patterns': typeof AuthenticatedWorkspaceWorkingPatternsRoute
   '/infra/monitor': typeof AuthenticatedInfraInfraMonitorRoute
   '/system/roles': typeof AuthenticatedInfraSystemRolesRoute
+  '/system/tenants': typeof AuthenticatedInfraSystemTenantsRoute
   '/approvals/ot': typeof AuthenticatedWorkspaceApprovalsOtRoute
   '/ess/attendance': typeof AuthenticatedWorkspaceEssAttendanceRoute
   '/ess/clock': typeof AuthenticatedWorkspaceEssClockRoute
@@ -563,6 +576,7 @@ export interface FileRoutesById {
   '/_authenticated/_workspace/': typeof AuthenticatedWorkspaceIndexRoute
   '/_authenticated/_infra/infra/monitor': typeof AuthenticatedInfraInfraMonitorRoute
   '/_authenticated/_infra/system/roles': typeof AuthenticatedInfraSystemRolesRoute
+  '/_authenticated/_infra/system/tenants': typeof AuthenticatedInfraSystemTenantsRoute
   '/_authenticated/_workspace/approvals/ot': typeof AuthenticatedWorkspaceApprovalsOtRoute
   '/_authenticated/_workspace/ess/attendance': typeof AuthenticatedWorkspaceEssAttendanceRoute
   '/_authenticated/_workspace/ess/clock': typeof AuthenticatedWorkspaceEssClockRoute
@@ -608,6 +622,7 @@ export interface FileRouteTypes {
     | '/working-patterns'
     | '/infra/monitor'
     | '/system/roles'
+    | '/system/tenants'
     | '/approvals/ot'
     | '/ess/attendance'
     | '/ess/clock'
@@ -651,6 +666,7 @@ export interface FileRouteTypes {
     | '/working-patterns'
     | '/infra/monitor'
     | '/system/roles'
+    | '/system/tenants'
     | '/approvals/ot'
     | '/ess/attendance'
     | '/ess/clock'
@@ -696,6 +712,7 @@ export interface FileRouteTypes {
     | '/_authenticated/_workspace/'
     | '/_authenticated/_infra/infra/monitor'
     | '/_authenticated/_infra/system/roles'
+    | '/_authenticated/_infra/system/tenants'
     | '/_authenticated/_workspace/approvals/ot'
     | '/_authenticated/_workspace/ess/attendance'
     | '/_authenticated/_workspace/ess/clock'
@@ -927,6 +944,13 @@ declare module '@tanstack/react-router' {
       path: '/system/roles'
       fullPath: '/system/roles'
       preLoaderRoute: typeof AuthenticatedInfraSystemRolesRouteImport
+      parentRoute: typeof AuthenticatedInfraRoute
+    }
+    '/_authenticated/_infra/system/tenants': {
+      id: '/_authenticated/_infra/system/tenants'
+      path: '/system/tenants'
+      fullPath: '/system/tenants'
+      preLoaderRoute: typeof AuthenticatedInfraSystemTenantsRouteImport
       parentRoute: typeof AuthenticatedInfraRoute
     }
     '/_authenticated/_infra/infra/monitor': {
