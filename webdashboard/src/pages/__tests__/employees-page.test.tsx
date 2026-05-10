@@ -75,7 +75,7 @@ const mockEmployee = (id: string, name: string, active = true, department?: stri
     employee_id_number: `EMP-${id}`,
     workspace_id: "test-ws-id",
     is_active: active,
-    hire_date: "2025-01-01",
+    original_hire_date: "2020-01-01", hire_date: "2025-01-01",
     created_at: "2025-01-01T00:00:00Z",
     updated_at: "2025-01-01T00:00:00Z",
     ...(department ? { department_name: department } : {}),

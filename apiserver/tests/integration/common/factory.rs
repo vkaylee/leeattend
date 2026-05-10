@@ -368,7 +368,7 @@ impl EmployeeBuilder {
 
             let normalized_id = apiserver::utils::normalize_employee_id(&self.employee_id_number);
             let id: Uuid = sqlx::query_scalar(
-                "INSERT INTO employees (workspace_id, user_id, full_name, employee_id_number, hire_date) VALUES ($1, $2, $3, $4, $5) RETURNING id",
+                "INSERT INTO employees (workspace_id, user_id, full_name, employee_id_number, original_hire_date, hire_date) VALUES ($1, $2, $3, $4, $5, $5) RETURNING id",
             )
             .bind(self.workspace_id.expect("Workspace ID is required for Employee"))
             .bind(self.user_id)

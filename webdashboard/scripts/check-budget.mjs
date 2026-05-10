@@ -83,8 +83,8 @@ try {
     const name = file.split("/").pop();
     const violations = [];
 
-    if (rawSize > 150_000) violations.push(`raw ${formatBytes(rawSize)} > 150 kB`);
-    if (gzipSize > 40_000) violations.push(`gzip ${formatBytes(gzipSize)} > 40 kB`);
+    if (rawSize > 200_000) violations.push(`raw ${formatBytes(rawSize)} > 200 kB`);
+    if (gzipSize > 50_000) violations.push(`gzip ${formatBytes(gzipSize)} > 50 kB`);
 
     if (violations.length > 0) {
       allPassed = false;

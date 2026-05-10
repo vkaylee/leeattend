@@ -1637,6 +1637,7 @@
     },
     "details": {
       "edit_profile": "Sửa hồ sơ",
+      "original_hire_date": "Ngày gia nhập gốc",
       "terminate": "Nghỉ việc",
       "rehire": "Vào làm lại",
       "terminate_confirm": "Bạn có chắc muốn cho nhân viên này nghỉ việc?",

@@ -1637,7 +1637,8 @@
     },
     "details": {
       "edit_profile": "编辑档案",
-      "terminate": "离职",
+      "original_hire_date": "原始入职日期",
+      "terminate": "终止",
       "rehire": "重新入职",
       "terminate_confirm": "您确定要让该员工离职吗？",
       "current_dept": "当前部门",

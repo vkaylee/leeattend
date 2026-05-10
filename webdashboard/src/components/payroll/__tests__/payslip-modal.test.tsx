@@ -46,7 +46,7 @@ const mockEmployee: Employee = {
   full_name: "Nguyen Van A",
   employee_id_number: "EMP001",
   department_name: "Engineering",
-  hire_date: "2024-01-01",
+  original_hire_date: "2020-01-01", hire_date: "2024-01-01",
   is_active: true,
   created_at: "2024-01-01T00:00:00Z",
   updated_at: "2024-01-01T00:00:00Z",

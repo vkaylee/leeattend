@@ -26,6 +26,7 @@ pub async fn get_my_profile(
     let emp = sqlx::query_as::<_, Employee>(
         r#"
         SELECT e.id, e.workspace_id, e.user_id, e.full_name, e.employee_id_number,
+               e.original_hire_date,
                COALESCE(e.hire_date, CURRENT_DATE) as hire_date,
                e.termination_date,
                e.tags, e.is_active, e.created_at, e.updated_at,

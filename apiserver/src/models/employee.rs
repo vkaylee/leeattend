@@ -123,6 +123,7 @@ pub struct Employee {
     pub user_id: Option<Uuid>,
     pub full_name: String,
     pub employee_id_number: String,
+    pub original_hire_date: NaiveDate,
     pub hire_date: NaiveDate,
     pub termination_date: Option<NaiveDate>,
     pub tags: Vec<String>,

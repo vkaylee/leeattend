@@ -1637,6 +1637,7 @@
     },
     "details": {
       "edit_profile": "Edit Profile",
+      "original_hire_date": "Original Hire Date",
       "terminate": "Terminate",
       "rehire": "Rehire",
       "terminate_confirm": "Are you sure you want to terminate this employee?",

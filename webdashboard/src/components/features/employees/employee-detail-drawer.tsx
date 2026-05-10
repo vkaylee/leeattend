@@ -219,8 +219,16 @@ function ProfileTab({
             </section>
 
             <section className="space-y-5">
-                <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.3em] flex items-center gap-2 px-2 opacity-70"><Calendar className="text-emerald-500" size={14} /> {t("employees.table.hire_date").toUpperCase()}</span>
-                <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 p-8 rounded-[2.5rem] font-bold text-slate-800 dark:text-slate-100 text-2xl tracking-tighter shadow-inner uppercase font-mono">{formatDate(employee.hire_date)}</div>
+                <div className="grid grid-cols-2 gap-6">
+                    <div>
+                        <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.3em] flex items-center gap-2 px-2 mb-5 opacity-70"><Calendar className="text-emerald-500" size={14} /> {t("employees.details.original_hire_date").toUpperCase()}</span>
+                        <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 p-8 rounded-[2.5rem] font-bold text-slate-800 dark:text-slate-100 text-2xl tracking-tighter shadow-inner uppercase font-mono">{employee.original_hire_date ? formatDate(employee.original_hire_date) : formatDate(employee.hire_date)}</div>
+                    </div>
+                    <div>
+                        <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.3em] flex items-center gap-2 px-2 mb-5 opacity-70"><Calendar className="text-emerald-500" size={14} /> {t("employees.table.hire_date").toUpperCase()}</span>
+                        <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 p-8 rounded-[2.5rem] font-bold text-slate-800 dark:text-slate-100 text-2xl tracking-tighter shadow-inner uppercase font-mono">{formatDate(employee.hire_date)}</div>
+                    </div>
+                </div>
             </section>
         </div>
     );

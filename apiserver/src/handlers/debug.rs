@@ -177,7 +177,7 @@ pub async fn clear_debug_db(
                 for (name, email, code, dept_id) in employees {
                     let emp_id = crate::utils::id::new_id();
                     sqlx::query(
-                         "INSERT INTO employees (id, workspace_id, full_name, email, employee_id_number, hire_date, is_active) VALUES ($1, $2, $3, $4, $5, CURRENT_DATE, true)"
+                         "INSERT INTO employees (id, workspace_id, full_name, email, employee_id_number, original_hire_date, hire_date, is_active) VALUES ($1, $2, $3, $4, $5, CURRENT_DATE, CURRENT_DATE, true)"
                      )
                      .bind(emp_id)
                      .bind(ws_id)

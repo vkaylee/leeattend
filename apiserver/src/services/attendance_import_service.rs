@@ -700,6 +700,7 @@ impl AttendanceImportService {
             user_id: None,
             full_name: emp.full_name.clone(),
             employee_id_number: emp.id_number.clone(),
+            original_hire_date: emp.hire_date,
             hire_date: emp.hire_date,
             termination_date: None,
             tags: Vec::new(),

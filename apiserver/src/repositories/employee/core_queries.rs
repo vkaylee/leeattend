@@ -21,7 +21,7 @@ use super::EmployeeBasicInfo;
 pub(crate) const EMPLOYEE_SELECT_QUERY: &str = r#"
     SELECT 
         e.id, e.workspace_id, e.user_id, e.full_name, e.employee_id_number, 
-        e.hire_date, e.termination_date, 
+        e.original_hire_date, e.hire_date, e.termination_date, 
         e.tags, e.is_active, e.created_at, e.updated_at,
         d_cur.name as department_name
     FROM employees e
@@ -346,7 +346,7 @@ pub async fn create_employee_tx(
 ) -> Result<(), sqlx::Error> {
     let normalized_id = normalize_employee_id(&employee.employee_id_number);
     sqlx::query(
-        "INSERT INTO employees (id, workspace_id, user_id, full_name, employee_id_number, tags, is_active, created_at, updated_at, hire_date, termination_date) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)",
+        "INSERT INTO employees (id, workspace_id, user_id, full_name, employee_id_number, tags, is_active, created_at, updated_at, original_hire_date, hire_date, termination_date) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)",
     )
     .bind(employee.id)
     .bind(employee.workspace_id)
@@ -357,6 +357,7 @@ pub async fn create_employee_tx(
     .bind(employee.is_active)
     .bind(employee.created_at)
     .bind(employee.updated_at)
+    .bind(employee.original_hire_date)
     .bind(employee.hire_date)
     .bind(employee.termination_date)
     .execute(&mut **tx)
@@ -371,8 +372,8 @@ pub async fn create_employee_tx_skip_duplicates(
 ) -> Result<bool, sqlx::Error> {
     let normalized_id = normalize_employee_id(&employee.employee_id_number);
     let result = sqlx::query(
-        "INSERT INTO employees (id, workspace_id, user_id, full_name, employee_id_number, tags, is_active, created_at, updated_at, hire_date, termination_date) 
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        "INSERT INTO employees (id, workspace_id, user_id, full_name, employee_id_number, tags, is_active, created_at, updated_at, original_hire_date, hire_date, termination_date) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
          ON CONFLICT (workspace_id, employee_id_number) DO NOTHING",
     )
     .bind(employee.id)
@@ -384,6 +385,7 @@ pub async fn create_employee_tx_skip_duplicates(
     .bind(employee.is_active)
     .bind(employee.created_at)
     .bind(employee.updated_at)
+    .bind(employee.original_hire_date)
     .bind(employee.hire_date)
     .bind(employee.termination_date)
     .execute(&mut **tx)

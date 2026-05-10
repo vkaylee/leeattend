@@ -98,8 +98,8 @@ describe("ReportsPage", () => {
       default_language: "en",
       created_at: "2025-01-01T00:00:00Z",
     });
-    vi.mocked(api.fetchEmployees).mockResolvedValue({ data: [{ id: "emp-1", full_name: "John Doe", workspace_id: "test-ws-id", employee_id_number: "E01", hire_date: "2025-01-01", is_active: true, created_at: "2025-01-01T00:00:00Z", updated_at: "2025-01-01T00:00:00Z" }], total: 1, page: 1, limit: 50 });
-    vi.mocked(api.searchEmployees).mockResolvedValue({ data: [{ id: "emp-1", full_name: "John Doe", workspace_id: "test-ws-id", employee_id_number: "E01", hire_date: "2025-01-01", is_active: true, created_at: "2025-01-01T00:00:00Z", updated_at: "2025-01-01T00:00:00Z" }], total: 1, page: 1, limit: 50 });
+    vi.mocked(api.fetchEmployees).mockResolvedValue({ data: [{ id: "emp-1", full_name: "John Doe", workspace_id: "test-ws-id", employee_id_number: "E01", original_hire_date: "2020-01-01", hire_date: "2025-01-01", is_active: true, created_at: "2025-01-01T00:00:00Z", updated_at: "2025-01-01T00:00:00Z" }], total: 1, page: 1, limit: 50 });
+    vi.mocked(api.searchEmployees).mockResolvedValue({ data: [{ id: "emp-1", full_name: "John Doe", workspace_id: "test-ws-id", employee_id_number: "E01", original_hire_date: "2020-01-01", hire_date: "2025-01-01", is_active: true, created_at: "2025-01-01T00:00:00Z", updated_at: "2025-01-01T00:00:00Z" }], total: 1, page: 1, limit: 50 });
     vi.mocked(api.fetchDepartments).mockResolvedValue([]);
     vi.mocked(api.fetchAttendanceReport).mockImplementation(() => Promise.resolve({
       data: [{ employee_id: "emp-1", employee_name: "John Doe", total_std_units: 440, total_ot_units: 40, total_leave_days: 0, computed_std_hours: 800, computed_ot_hours: 100 }],

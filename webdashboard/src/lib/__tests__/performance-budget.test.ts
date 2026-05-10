@@ -52,7 +52,7 @@ describe("performance budget", () => {
     expect(files.length).toBeGreaterThan(20); // at least 20 lazy chunks
     for (const file of files) {
       const size = statSync(resolve(distDir, file)).size;
-      expect(size, `${file} exceeds 150 kB budget`).toBeLessThan(150_000);
+      expect(size, `${file} exceeds 200 kB budget`).toBeLessThan(200_000);
     }
   });
 

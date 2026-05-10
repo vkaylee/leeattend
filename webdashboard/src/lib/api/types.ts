@@ -144,6 +144,7 @@ export interface Employee {
   hire_date: string;
   id: string;
   is_active: boolean;
+  original_hire_date: string;
   termination_date?: string;
   updated_at: string;
   user_id?: string;
