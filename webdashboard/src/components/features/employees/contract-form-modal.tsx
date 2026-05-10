@@ -16,7 +16,7 @@ import Button from "@/components/ui/button";
 import FormField from "@/components/ui/form-field";
 import Modal from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
-import { fetchEmploymentPhases } from "@/lib/api/employees";
+import { fetchEmploymentPhases, fetchEmployee } from "@/lib/api/employees";
 import { useEmployeeContracts } from "@/pages/employees/hooks/use-employee-contracts";
 
 const contractSchema = z.object({
@@ -69,6 +69,7 @@ export default function ContractFormModal({
   const toast = useToast();
   const { createContract, updateContract } = useEmployeeContracts(wsId, employeeId);
   const { data: phases } = useQuery({ queryKey: ["employment-phases", wsId], queryFn: () => fetchEmploymentPhases(wsId), enabled: !!wsId });
+  const { data: employee } = useQuery({ queryKey: ["employee", wsId, employeeId], queryFn: () => fetchEmployee(wsId, employeeId), enabled: !!wsId && !!employeeId && isOpen });
   const [overlapData, setOverlapData] = useState<CreateContractRequest | null>(null);
   const [isConfirmingOverlap, setIsConfirmingOverlap] = useState(false);
 
@@ -133,7 +134,7 @@ export default function ContractFormModal({
         reset({
           contract_type: "probation",
           status: "active",
-          start_date: new Date().toISOString().split("T")[0],
+          start_date: employee?.hire_date ?? new Date().toISOString().split("T")[0],
           end_date: "",
           contract_number: "",
           notes: "",
@@ -141,7 +142,7 @@ export default function ContractFormModal({
         });
       }
     }
-  }, [isOpen, editingContract, reset]);
+  }, [isOpen, editingContract, reset, employee?.hire_date]);
 
   const onSubmit = async (data: ContractFormValues) => {
     try {
@@ -245,13 +246,18 @@ export default function ContractFormModal({
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <FormField
-              label="Ngày hiệu lực"
-              type="date"
-              {...register("start_date")}
-              error={errors.start_date?.message}
-              required
-            />
+            <div className="space-y-1">
+              <FormField
+                label="Ngày hiệu lực"
+                type="date"
+                {...register("start_date")}
+                error={errors.start_date?.message}
+                required
+              />
+              <p className="text-[10px] text-slate-500 italic px-1">
+                Lưu ý: Ngày bắt đầu hợp đồng cũ nhất sẽ tự động cập nhật lại thành Ngày vào làm của nhân viên.
+              </p>
+            </div>
             
             <FormField
               disabled={isIndefinite}

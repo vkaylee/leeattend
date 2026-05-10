@@ -8,8 +8,8 @@ use crate::utils::id::new_id;
 
 use crate::errors::AppError;
 use crate::models::{
-    CreateEmployeeRequest, CreateWorkingConditionRequest, Employee, EmploymentPeriod,
-    RehireEmployeeRequest, UpdateEmployeeRequest, WorkingCondition,
+    CreateEmployeeRequest, CreateWorkingConditionRequest, Employee, RehireEmployeeRequest,
+    UpdateEmployeeRequest, WorkingCondition,
 };
 use crate::repositories::{employee, user_repository, EmployeeRepository};
 
@@ -185,7 +185,7 @@ impl EmployeeService {
             }
         }
 
-        let tx = self.pool.begin().await.map_err(AppError::Sqlx)?;
+        let _tx = self.pool.begin().await.map_err(AppError::Sqlx)?;
 
         let update_req = UpdateEmployeeRequest {
             user_id: None,
@@ -204,45 +204,20 @@ impl EmployeeService {
             .await
             .map_err(AppError::Sqlx)?;
 
-        let period = EmploymentPeriod {
-            id: new_id(),
+        sqlx::query!(
+            "UPDATE employees SET hire_date = $1, termination_date = NULL WHERE id = $2 AND workspace_id = $3",
+            req.hire_date,
             employee_id,
-            hire_date: req.hire_date,
-            termination_date: None,
-            is_rehire: true,
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
-        };
-
-        self.repo
-            .create_employment_period(&period)
-            .await
-            .map_err(AppError::Sqlx)?;
-
-        tx.commit().await.map_err(AppError::Sqlx)?;
+            workspace_id
+        )
+        .execute(&self.pool)
+        .await
+        .map_err(AppError::Sqlx)?;
 
         self.repo
             .get_employee_by_id(employee_id, workspace_id)
             .await?
             .ok_or(AppError::NotFound("Employee not found after rehire".into()))
-    }
-
-    #[tracing::instrument(skip_all, err)]
-    pub async fn get_employment_history(
-        &self,
-        employee_id: Uuid,
-        workspace_id: Uuid,
-    ) -> Result<Vec<EmploymentPeriod>, AppError> {
-        let _ = self
-            .repo
-            .get_employee_by_id(employee_id, workspace_id)
-            .await?
-            .ok_or(AppError::NotFound("Employee not found".into()))?;
-
-        self.repo
-            .get_employment_history(workspace_id, employee_id)
-            .await
-            .map_err(AppError::Sqlx)
     }
 
     #[tracing::instrument(skip_all, err)]
@@ -533,7 +508,6 @@ mod tests {
         working_conditions: Mutex<Vec<WorkingCondition>>,
         delete_wc_result: Mutex<bool>,
         delete_emp_rows: Mutex<u64>,
-        employment_history: Mutex<Vec<EmploymentPeriod>>,
         updated_employee: Mutex<Option<Employee>>,
         recruitment_sources: Mutex<Vec<RecruitmentSource>>,
         delete_rs_rows: Mutex<u64>,
@@ -551,7 +525,7 @@ mod tests {
                 working_conditions: Mutex::new(vec![]),
                 delete_wc_result: Mutex::new(false),
                 delete_emp_rows: Mutex::new(0),
-                employment_history: Mutex::new(vec![]),
+
                 updated_employee: Mutex::new(None),
                 recruitment_sources: Mutex::new(vec![]),
                 delete_rs_rows: Mutex::new(0),
@@ -670,21 +644,6 @@ mod tests {
             _emp: Uuid,
         ) -> Result<bool, sqlx::Error> {
             Ok(*self.delete_wc_result.lock().expect("lock"))
-        }
-
-        async fn get_employment_history(
-            &self,
-            _ws: Uuid,
-            _emp: Uuid,
-        ) -> Result<Vec<EmploymentPeriod>, sqlx::Error> {
-            Ok(self.employment_history.lock().expect("lock").clone())
-        }
-
-        async fn create_employment_period(
-            &self,
-            _period: &EmploymentPeriod,
-        ) -> Result<(), sqlx::Error> {
-            Ok(())
         }
 
         async fn get_existing_employee_ids_by_numbers(
@@ -992,40 +951,6 @@ mod tests {
     async fn delete_employee_not_found() {
         let svc = make_service(MockEmployeeRepo::empty());
         let result = svc.delete_employee(Uuid::new_v4(), Uuid::new_v4()).await;
-        assert!(matches!(result.unwrap_err(), AppError::NotFound(_)));
-    }
-
-    // ── Tests: get_employment_history ────────────────────────────────
-
-    #[tokio::test]
-    async fn get_employment_history_returns_periods() {
-        let ws = Uuid::new_v4();
-        let emp = make_employee(ws);
-        let period = EmploymentPeriod {
-            id: Uuid::new_v4(),
-            employee_id: emp.id,
-            hire_date: NaiveDate::from_ymd_opt(2026, 1, 1).expect("valid date"),
-            termination_date: None,
-            is_rehire: false,
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
-        };
-
-        let mock = MockEmployeeRepo::with_employee(emp.clone());
-        *mock.employment_history.lock().expect("lock") = vec![period];
-
-        let svc = make_service(mock);
-        let result = svc.get_employment_history(emp.id, ws).await.expect("ok");
-        assert_eq!(result.len(), 1);
-        assert!(!result[0].is_rehire);
-    }
-
-    #[tokio::test]
-    async fn get_employment_history_employee_not_found() {
-        let svc = make_service(MockEmployeeRepo::empty());
-        let result = svc
-            .get_employment_history(Uuid::new_v4(), Uuid::new_v4())
-            .await;
         assert!(matches!(result.unwrap_err(), AppError::NotFound(_)));
     }
 

@@ -30,6 +30,7 @@ pub enum TaskType {
     LeaveImportChunk,
     FinalizeImport,
     ExpiringContractsCheck,
+    SyncEmployeeHireDate,
 }
 
 /// Job priority level. Controls which Redis queue the job is routed to.
@@ -183,6 +184,13 @@ pub struct FinalizeImportPayload {
     pub import_job_id: Uuid,
 }
 
+/// Payload for syncing an employee's hire date based on their earliest contract.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SyncHireDatePayload {
+    pub employee_id: Uuid,
+    pub triggered_by_contract_id: Option<Uuid>,
+}
+
 /// Job payload variants — each job type carries its own data.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", content = "data")]
@@ -201,6 +209,7 @@ pub enum JobPayload {
     LeaveImportChunk(LeaveImportChunkPayload),
     FinalizeImport(FinalizeImportPayload),
     ExpiringContractsCheck(ExpiringContractsPayload),
+    SyncEmployeeHireDate(SyncHireDatePayload),
 }
 
 /// A single worker job.
@@ -369,6 +378,13 @@ impl Job {
     pub fn expiring_contracts_payload(&self) -> Option<&ExpiringContractsPayload> {
         match &self.payload {
             JobPayload::ExpiringContractsCheck(p) => Some(p),
+            _ => None,
+        }
+    }
+
+    pub fn sync_hire_date_payload(&self) -> Option<&SyncHireDatePayload> {
+        match &self.payload {
+            JobPayload::SyncEmployeeHireDate(p) => Some(p),
             _ => None,
         }
     }

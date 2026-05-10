@@ -13,7 +13,7 @@ use rust_decimal::Decimal;
 use sqlx::{query, query_as, query_scalar, PgPool, Postgres, Transaction};
 use uuid::Uuid;
 
-use crate::models::{Employee, EmployeePayrollConfig, EmploymentPeriod};
+use crate::models::{Employee, EmployeePayrollConfig};
 use crate::utils::normalize_employee_id;
 
 use super::EmployeeBasicInfo;
@@ -21,15 +21,10 @@ use super::EmployeeBasicInfo;
 pub(crate) const EMPLOYEE_SELECT_QUERY: &str = r#"
     SELECT 
         e.id, e.workspace_id, e.user_id, e.full_name, e.employee_id_number, 
-        COALESCE(ep.hire_date, CURRENT_DATE) as hire_date, ep.termination_date, 
+        e.hire_date, e.termination_date, 
         e.tags, e.is_active, e.created_at, e.updated_at,
         d_cur.name as department_name
     FROM employees e
-    LEFT JOIN (
-        SELECT DISTINCT ON (employee_id) employee_id, hire_date, termination_date
-        FROM employment_periods
-        ORDER BY employee_id, hire_date DESC
-    ) ep ON e.id = ep.employee_id
     LEFT JOIN (
         SELECT DISTINCT ON (employee_id) employee_id, department_id
         FROM employee_department_history
@@ -269,7 +264,9 @@ pub async fn update_employee(
             employee_id_number = COALESCE($5, employee_id_number),
             tags = COALESCE($6, tags),
             is_active = COALESCE($7, is_active),
-            updated_at = $8
+            hire_date = COALESCE($8, hire_date),
+            termination_date = $9,
+            updated_at = $10
         WHERE id = $1 AND workspace_id = $2",
     )
     .bind(id)
@@ -279,36 +276,11 @@ pub async fn update_employee(
     .bind(normalized_id)
     .bind(req.tags.as_deref())
     .bind(req.is_active)
+    .bind(req.hire_date)
+    .bind(req.termination_date)
     .bind(Utc::now())
     .execute(&mut *tx)
     .await?;
-
-    // Update latest employment period if hire_date or termination_date is provided
-    if req.hire_date.is_some() || req.termination_date.is_some() {
-        // Find the latest period id
-        let latest_period_id = query_scalar!(
-            "SELECT id FROM employment_periods WHERE employee_id = $1 ORDER BY hire_date DESC LIMIT 1",
-            id
-        )
-        .fetch_optional(&mut *tx)
-        .await?;
-
-        if let Some(pid) = latest_period_id {
-            query!(
-                "UPDATE employment_periods SET
-                    hire_date = COALESCE($2, hire_date),
-                    termination_date = COALESCE($3, termination_date),
-                    updated_at = $4
-                WHERE id = $1",
-                pid,
-                req.hire_date,
-                req.termination_date,
-                Utc::now()
-            )
-            .execute(&mut *tx)
-            .await?;
-        }
-    }
 
     tx.commit().await?;
 
@@ -368,52 +340,13 @@ pub async fn get_existing_employee_ids_by_numbers(
     Ok(result)
 }
 
-pub async fn get_employment_history(
-    pool: &PgPool,
-    workspace_id: Uuid,
-    employee_id: Uuid,
-) -> Result<Vec<EmploymentPeriod>, sqlx::Error> {
-    query_as!(
-        EmploymentPeriod,
-        "SELECT ep.id, ep.employee_id, ep.hire_date, ep.termination_date, ep.is_rehire, ep.created_at as \"created_at!\", ep.updated_at as \"updated_at!\" 
-         FROM employment_periods ep
-         JOIN employees e ON e.id = ep.employee_id
-         WHERE ep.employee_id = $1 AND e.workspace_id = $2
-         ORDER BY ep.hire_date DESC",
-        employee_id,
-        workspace_id
-    )
-    .fetch_all(pool)
-    .await
-}
-
-pub async fn create_employment_period(
-    pool: &PgPool,
-    period: &EmploymentPeriod,
-) -> Result<(), sqlx::Error> {
-    query!(
-        "INSERT INTO employment_periods (id, employee_id, hire_date, termination_date, is_rehire, created_at, updated_at) 
-         VALUES ($1, $2, $3, $4, $5, $6, $7)",
-        period.id,
-        period.employee_id,
-        period.hire_date,
-        period.termination_date,
-        period.is_rehire,
-        period.created_at,
-        period.updated_at
-    )
-    .execute(pool)
-    .await?;
-    Ok(())
-}
-
 pub async fn create_employee_tx(
     tx: &mut Transaction<'_, Postgres>,
     employee: &Employee,
 ) -> Result<(), sqlx::Error> {
     let normalized_id = normalize_employee_id(&employee.employee_id_number);
     sqlx::query(
-        "INSERT INTO employees (id, workspace_id, user_id, full_name, employee_id_number, tags, is_active, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
+        "INSERT INTO employees (id, workspace_id, user_id, full_name, employee_id_number, tags, is_active, created_at, updated_at, hire_date, termination_date) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)",
     )
     .bind(employee.id)
     .bind(employee.workspace_id)
@@ -424,13 +357,6 @@ pub async fn create_employee_tx(
     .bind(employee.is_active)
     .bind(employee.created_at)
     .bind(employee.updated_at)
-    .execute(&mut **tx)
-    .await?;
-
-    sqlx::query(
-        "INSERT INTO employment_periods (employee_id, hire_date, termination_date) VALUES ($1, $2, $3)",
-    )
-    .bind(employee.id)
     .bind(employee.hire_date)
     .bind(employee.termination_date)
     .execute(&mut **tx)
@@ -445,8 +371,8 @@ pub async fn create_employee_tx_skip_duplicates(
 ) -> Result<bool, sqlx::Error> {
     let normalized_id = normalize_employee_id(&employee.employee_id_number);
     let result = sqlx::query(
-        "INSERT INTO employees (id, workspace_id, user_id, full_name, employee_id_number, tags, is_active, created_at, updated_at) 
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        "INSERT INTO employees (id, workspace_id, user_id, full_name, employee_id_number, tags, is_active, created_at, updated_at, hire_date, termination_date) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
          ON CONFLICT (workspace_id, employee_id_number) DO NOTHING",
     )
     .bind(employee.id)
@@ -458,18 +384,12 @@ pub async fn create_employee_tx_skip_duplicates(
     .bind(employee.is_active)
     .bind(employee.created_at)
     .bind(employee.updated_at)
+    .bind(employee.hire_date)
+    .bind(employee.termination_date)
     .execute(&mut **tx)
     .await?;
 
     if result.rows_affected() > 0 {
-        sqlx::query(
-            "INSERT INTO employment_periods (employee_id, hire_date, termination_date) VALUES ($1, $2, $3)",
-        )
-        .bind(employee.id)
-        .bind(employee.hire_date)
-        .bind(employee.termination_date)
-        .execute(&mut **tx)
-        .await?;
         Ok(true)
     } else {
         Ok(false)

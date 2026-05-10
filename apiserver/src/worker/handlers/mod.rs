@@ -11,6 +11,7 @@ pub mod leave_import;
 pub mod log_ingestion;
 pub mod merge;
 pub mod reprocess_attendance;
+pub mod sync_hire_date;
 pub mod utils;
 
 pub use accrual::AccrualHandler;
@@ -24,3 +25,4 @@ pub use leave_import::{LeaveImportChunkHandler, LeaveImportHandler};
 pub use log_ingestion::LogIngestionHandler;
 pub use merge::MergeHandler;
 pub use reprocess_attendance::ReprocessAttendanceHandler;
+pub use sync_hire_date::SyncHireDateHandler;

@@ -25,21 +25,13 @@ async fn test_employee_pagination_logic() {
         let id_num = format!("EMP{i:02}");
 
         sqlx::query(
-            r"INSERT INTO employees (id, workspace_id, full_name, employee_id_number, is_active, created_at, updated_at) 
-             VALUES ($1, $2, $3, $4, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
+            r"INSERT INTO employees (id, workspace_id, full_name, employee_id_number, is_active, hire_date, created_at, updated_at) 
+             VALUES ($1, $2, $3, $4, true, CURRENT_DATE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
         )
         .bind(employee_id)
         .bind(ws_id)
         .bind(&name)
         .bind(&id_num)
-        .execute(&pool)
-        .await
-        .unwrap();
-
-        sqlx::query(
-            r"INSERT INTO employment_periods (employee_id, hire_date) VALUES ($1, CURRENT_DATE)",
-        )
-        .bind(employee_id)
         .execute(&pool)
         .await
         .unwrap();
@@ -105,21 +97,13 @@ async fn test_employee_search_limit() {
         let id_num = format!("ST{i:02}");
 
         sqlx::query(
-            r"INSERT INTO employees (id, workspace_id, full_name, employee_id_number, is_active, created_at, updated_at) 
-             VALUES ($1, $2, $3, $4, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
+            r"INSERT INTO employees (id, workspace_id, full_name, employee_id_number, is_active, hire_date, created_at, updated_at) 
+             VALUES ($1, $2, $3, $4, true, CURRENT_DATE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
         )
         .bind(employee_id)
         .bind(ws_id)
         .bind(&name)
         .bind(&id_num)
-        .execute(&pool)
-        .await
-        .unwrap();
-
-        sqlx::query(
-            r"INSERT INTO employment_periods (employee_id, hire_date) VALUES ($1, CURRENT_DATE)",
-        )
-        .bind(employee_id)
         .execute(&pool)
         .await
         .unwrap();

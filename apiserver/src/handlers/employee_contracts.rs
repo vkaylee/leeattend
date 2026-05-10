@@ -11,8 +11,38 @@ use crate::{
     errors::AppResult,
     handlers::common::MemberContext,
     models::contract::{CreateContractRequest, EmployeeContract, UpdateContractRequest},
+    queue::{Job, JobPayload, JobQueue, SyncHireDatePayload, TaskType},
     AppState,
 };
+
+async fn dispatch_sync_hire_date(
+    state: &Arc<AppState>,
+    workspace_id: Uuid,
+    employee_id: Uuid,
+    contract_id: Uuid,
+) {
+    if let Some(redis) = state.infra.redis.as_ref() {
+        let payload = SyncHireDatePayload {
+            employee_id,
+            triggered_by_contract_id: Some(contract_id),
+        };
+
+        let job = Job::new(
+            Uuid::new_v4(),
+            0,
+            TaskType::SyncEmployeeHireDate,
+            workspace_id,
+            JobPayload::SyncEmployeeHireDate(payload),
+        );
+
+        let queue = JobQueue::new(redis.clone());
+        if let Err(e) = queue.enqueue_jobs(vec![job]).await {
+            tracing::error!("Failed to enqueue SyncEmployeeHireDate job: {}", e);
+        }
+    } else {
+        tracing::warn!("Redis not available, skipping SyncEmployeeHireDate job");
+    }
+}
 
 /// Lấy danh sách hợp đồng của một nhân viên
 #[utoipa::path(
@@ -113,6 +143,8 @@ pub async fn create_contract(
         ).await;
     }
 
+    dispatch_sync_hire_date(&state, workspace_id, contract.employee_id, contract.id).await;
+
     Ok((StatusCode::CREATED, Json(contract)))
 }
 
@@ -142,6 +174,8 @@ pub async fn update_contract(
         .update_contract(workspace_id, contract_id, &payload)
         .await?;
 
+    dispatch_sync_hire_date(&state, workspace_id, contract.employee_id, contract.id).await;
+
     Ok(Json(contract))
 }
 
@@ -168,6 +202,10 @@ pub async fn delete_contract(
         .contract_repo
         .delete_contract(workspace_id, contract_id)
         .await?;
+
+    // Since we don't return the contract, we use the employee_id from path
+    let employee_id = _employee_id;
+    dispatch_sync_hire_date(&state, workspace_id, employee_id, contract_id).await;
 
     Ok(StatusCode::NO_CONTENT)
 }

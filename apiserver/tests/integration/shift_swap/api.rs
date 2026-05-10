@@ -586,7 +586,7 @@ async fn test_same_shift_swap_rejected() {
     // Create employee C with the SAME shift as employee A (Morning) via direct SQL
     let emp_c = Uuid::new_v4();
     sqlx::query(
-        "INSERT INTO employees (id, workspace_id, full_name, employee_id_number, is_active) VALUES ($1, $2, $3, $4, true)",
+        "INSERT INTO employees (id, workspace_id, full_name, employee_id_number, hire_date, is_active) VALUES ($1, $2, $3, $4, CURRENT_DATE, true)",
     )
     .bind(emp_c)
     .bind(s.workspace_id)

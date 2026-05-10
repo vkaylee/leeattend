@@ -226,47 +226,6 @@ async fn test_employee_transfer_permission_enforcement() {
 }
 
 #[tokio::test]
-async fn test_employee_employment_history() {
-    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
-        setup_app_tower().await;
-
-    let owner_id = factory
-        .user()
-        .with_email("owner@emphistory.test")
-        .create()
-        .await;
-    let ws_id = factory.workspace().create_with_owner(owner_id).await;
-    let emp_id = factory.employee().with_workspace(ws_id).create().await;
-
-    // Get employment history – should have initial hire period
-    let response = app
-        .clone()
-        .oneshot(make_req(
-            "GET",
-            &format!("/api/workspaces/{ws_id}/employees/{emp_id}/history"),
-            ws_id,
-            owner_id,
-            None,
-        ))
-        .await
-        .unwrap();
-
-    assert_eq!(response.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(response.into_body(), usize::MAX)
-        .await
-        .unwrap();
-    let periods: Vec<serde_json::Value> = serde_json::from_slice(&body).unwrap();
-    assert!(
-        !periods.is_empty(),
-        "Should have at least one employment period from initial hire"
-    );
-    assert_eq!(
-        periods[0]["is_rehire"], false,
-        "Initial period is not a rehire"
-    );
-}
-
-#[tokio::test]
 async fn test_employee_rehire_lifecycle() {
     let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
         setup_app_tower().await;
@@ -329,12 +288,12 @@ async fn test_employee_rehire_lifecycle() {
     let emp: serde_json::Value = serde_json::from_slice(&body).unwrap();
     assert_eq!(emp["is_active"], true, "Rehired employee should be active");
 
-    // Step 3: Employment history should now show rehire period
+    // Step 3: Fetch employee details to verify rehire date
     let response = app
         .clone()
         .oneshot(make_req(
             "GET",
-            &format!("/api/workspaces/{ws_id}/employees/{emp_id}/history"),
+            &format!("/api/workspaces/{ws_id}/employees/{emp_id}"),
             ws_id,
             owner_id,
             None,
@@ -346,15 +305,6 @@ async fn test_employee_rehire_lifecycle() {
     let body = axum::body::to_bytes(response.into_body(), usize::MAX)
         .await
         .unwrap();
-    let periods: Vec<serde_json::Value> = serde_json::from_slice(&body).unwrap();
-    assert!(
-        periods.len() >= 2,
-        "Should have at least 2 periods (original + rehire)"
-    );
-
-    let rehire_period = periods
-        .iter()
-        .find(|p| p["is_rehire"] == true)
-        .expect("Should find a rehire period");
-    assert_eq!(rehire_period["hire_date"], "2026-06-01");
+    let emp_details: serde_json::Value = serde_json::from_slice(&body).unwrap();
+    assert_eq!(emp_details["hire_date"], "2026-06-01");
 }

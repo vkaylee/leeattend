@@ -170,23 +170,55 @@ impl LeaveAccrualService {
         Ok(qualifying_days.len() as i32)
     }
 
-    /// Helper to calculate full months of service across multiple periods
+    /// Helper to calculate full months of service across multiple contracts
     pub fn calculate_total_months_seniority(
-        periods: &[crate::models::EmploymentPeriod],
+        contracts: &[crate::models::contract::EmployeeContract],
         as_of: NaiveDate,
     ) -> i32 {
-        let mut total_days = 0;
-        for period in periods {
-            if period.hire_date > as_of {
+        use crate::models::enums::ContractStatus;
+
+        let mut valid_intervals = Vec::new();
+
+        for c in contracts {
+            if c.status == ContractStatus::Draft {
                 continue;
             }
-            let end_date = period.termination_date.unwrap_or(as_of);
+
+            if c.start_date > as_of {
+                continue;
+            }
+
+            let end_date = c.end_date.unwrap_or(as_of);
             let end_date = if end_date > as_of { as_of } else { end_date };
 
-            if end_date >= period.hire_date {
-                total_days += (end_date - period.hire_date).num_days() + 1;
+            if end_date >= c.start_date {
+                valid_intervals.push((c.start_date, end_date));
             }
         }
+
+        if valid_intervals.is_empty() {
+            return 0;
+        }
+
+        valid_intervals.sort_by_key(|i| i.0);
+
+        let mut total_days = 0;
+        let mut current_start = valid_intervals[0].0;
+        let mut current_end = valid_intervals[0].1;
+
+        for interval in valid_intervals.into_iter().skip(1) {
+            let threshold = current_end.succ_opt().unwrap_or(current_end);
+            if interval.0 <= threshold {
+                if interval.1 > current_end {
+                    current_end = interval.1;
+                }
+            } else {
+                total_days += (current_end - current_start).num_days() + 1;
+                current_start = interval.0;
+                current_end = interval.1;
+            }
+        }
+        total_days += (current_end - current_start).num_days() + 1;
 
         (total_days / 30) as i32 // Approximate month
     }
@@ -514,11 +546,18 @@ impl LeaveAccrualService {
             HashMap::new()
         };
 
-        // Pre-fetch employment history once per employee
-        let periods = self
-            .employee_repo
-            .get_employment_history(emp.workspace_id, emp.id)
-            .await?;
+        // Pre-fetch employment history once per employee using contracts
+        let contracts: Vec<crate::models::contract::EmployeeContract> = sqlx::query_as(
+            r#"
+            SELECT id, workspace_id, employee_id, contract_number, contract_type, status, start_date, end_date, document_id, notes, created_at, updated_at
+            FROM employee_contracts
+            WHERE employee_id = $1 AND workspace_id = $2
+            "#,
+        )
+        .bind(emp.id)
+        .bind(workspace_id)
+        .fetch_all(&self.pool)
+        .await?;
 
         let ctx = AccrualContext {
             workspace_id,
@@ -528,7 +567,7 @@ impl LeaveAccrualService {
         };
 
         for accrual_date in accrual_dates {
-            let months_service = Self::calculate_total_months_seniority(&periods, accrual_date);
+            let months_service = Self::calculate_total_months_seniority(&contracts, accrual_date);
             let work_days =
                 Self::resolve_qualifying_days(config, accrual_date, &qualifying_days_map);
             let amount = Self::calculate_accrual_amount(config, months_service, work_days);
@@ -681,7 +720,7 @@ use crate::utils::chrono_helpers::local_to_utc_sqlx as local_to_utc;
 #[allow(clippy::float_cmp)]
 mod tests {
     use super::*;
-    use crate::models::{AccrualFrequency, EmploymentPeriod, LeavePolicyConfig, SeniorityBonus};
+    use crate::models::{AccrualFrequency, LeavePolicyConfig, SeniorityBonus};
     use chrono::NaiveDate;
     use uuid::Uuid;
 
@@ -689,13 +728,21 @@ mod tests {
         NaiveDate::from_ymd_opt(y, m, d).expect("valid test date")
     }
 
-    fn mock_period(hire: NaiveDate, term: Option<NaiveDate>) -> EmploymentPeriod {
-        EmploymentPeriod {
+    fn mock_contract(
+        hire: NaiveDate,
+        term: Option<NaiveDate>,
+    ) -> crate::models::contract::EmployeeContract {
+        crate::models::contract::EmployeeContract {
             id: Uuid::new_v4(),
+            workspace_id: Uuid::new_v4(),
             employee_id: Uuid::new_v4(),
-            hire_date: hire,
-            termination_date: term,
-            is_rehire: false,
+            contract_number: None,
+            contract_type: crate::models::enums::ContractType::Indefinite,
+            status: crate::models::enums::ContractStatus::Active,
+            start_date: hire,
+            end_date: term,
+            document_id: None,
+            notes: None,
             created_at: chrono::Utc::now(),
             updated_at: chrono::Utc::now(),
         }
@@ -854,7 +901,7 @@ mod tests {
     #[test]
     fn test_seniority_single_period_no_termination() {
         // Hired 2025-01-01, as_of 2026-01-01 → ~12 months (365 days / 30 ≈ 12)
-        let periods = vec![mock_period(nd(2025, 1, 1), None)];
+        let periods = vec![mock_contract(nd(2025, 1, 1), None)];
         let months =
             LeaveAccrualService::calculate_total_months_seniority(&periods, nd(2026, 1, 1));
         // 366 days (2025 not a leap year but 2025-01-01 to 2026-01-01 = 365 days +1 = 366 / 30 = 12)
@@ -864,7 +911,7 @@ mod tests {
     #[test]
     fn test_seniority_terminated_before_as_of() {
         // Hired 2024-01-01, terminated 2024-06-30 → 181 days / 30 = 6 months
-        let periods = vec![mock_period(nd(2024, 1, 1), Some(nd(2024, 6, 30)))];
+        let periods = vec![mock_contract(nd(2024, 1, 1), Some(nd(2024, 6, 30)))];
         let months =
             LeaveAccrualService::calculate_total_months_seniority(&periods, nd(2026, 1, 1));
         assert_eq!(months, 6);
@@ -873,7 +920,7 @@ mod tests {
     #[test]
     fn test_seniority_future_hire_date_excluded() {
         // Hired in the future → 0 months
-        let periods = vec![mock_period(nd(2030, 1, 1), None)];
+        let periods = vec![mock_contract(nd(2030, 1, 1), None)];
         let months =
             LeaveAccrualService::calculate_total_months_seniority(&periods, nd(2026, 1, 1));
         assert_eq!(months, 0);
@@ -885,8 +932,8 @@ mod tests {
         // Period 2: 2022-01-01 → unspecified, as_of = 2022-07-01 (6 months)
         // Total ≈ 18 months
         let periods = vec![
-            mock_period(nd(2020, 1, 1), Some(nd(2021, 1, 1))),
-            mock_period(nd(2022, 1, 1), None),
+            mock_contract(nd(2020, 1, 1), Some(nd(2021, 1, 1))),
+            mock_contract(nd(2022, 1, 1), None),
         ];
         let months =
             LeaveAccrualService::calculate_total_months_seniority(&periods, nd(2022, 7, 1));
@@ -1036,7 +1083,7 @@ mod tests {
     #[test]
     fn test_seniority_same_day_hire_and_as_of() {
         // Hired today, as_of today → 1 day / 30 = 0 months
-        let periods = vec![mock_period(nd(2026, 1, 1), None)];
+        let periods = vec![mock_contract(nd(2026, 1, 1), None)];
         let months =
             LeaveAccrualService::calculate_total_months_seniority(&periods, nd(2026, 1, 1));
         assert_eq!(months, 0); // 1 day / 30 = 0

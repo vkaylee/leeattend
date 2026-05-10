@@ -6,7 +6,7 @@
 
 use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
-use apiserver::models::{EmploymentPeriod, WorkingCondition};
+use apiserver::models::WorkingCondition;
 use apiserver::repositories::employee;
 use chrono::{NaiveDate, Utc};
 use rust_decimal::Decimal;
@@ -85,60 +85,6 @@ async fn test_delete_nonexistent_working_condition_returns_false() {
         .unwrap();
     assert!(!deleted, "Should return false for non-existent condition");
 }
-
-// ── Employment History ──────────────────────────────────────────────
-
-#[tokio::test]
-async fn test_employment_history_lifecycle() {
-    let (test_db, factory) = setup_db().await;
-    let pool = test_db.pool();
-
-    let user_id = factory.user().create().await;
-    let ws_id = factory.workspace().create_with_owner(user_id).await;
-    let emp_id = factory
-        .employee()
-        .with_workspace(ws_id)
-        .with_hire_date(NaiveDate::from_ymd_opt(2024, 1, 1).unwrap())
-        .create()
-        .await;
-
-    // Factory already inserts an initial employment period
-    let history = employee::get_employment_history(&pool, ws_id, emp_id)
-        .await
-        .unwrap();
-    assert_eq!(history.len(), 1, "Should have initial period from factory");
-    assert_eq!(
-        history[0].hire_date,
-        NaiveDate::from_ymd_opt(2024, 1, 1).unwrap()
-    );
-
-    // Add a rehire period
-    let rehire_period = EmploymentPeriod {
-        id: Uuid::new_v4(),
-        employee_id: emp_id,
-        hire_date: NaiveDate::from_ymd_opt(2025, 6, 1).unwrap(),
-        termination_date: None,
-        is_rehire: true,
-        created_at: Utc::now(),
-        updated_at: Utc::now(),
-    };
-    employee::create_employment_period(&pool, &rehire_period)
-        .await
-        .unwrap();
-
-    let history = employee::get_employment_history(&pool, ws_id, emp_id)
-        .await
-        .unwrap();
-    assert_eq!(history.len(), 2, "Should have original + rehire period");
-    // Ordered by hire_date DESC, so rehire is first
-    assert!(history[0].is_rehire);
-    assert_eq!(
-        history[0].hire_date,
-        NaiveDate::from_ymd_opt(2025, 6, 1).unwrap()
-    );
-}
-
-// ── Payroll Config ──────────────────────────────────────────────────
 
 #[tokio::test]
 async fn test_payroll_config_upsert_and_lookup() {
@@ -391,4 +337,105 @@ async fn test_get_existing_employee_ids_by_numbers() {
         .await
         .unwrap();
     assert!(empty_result.is_empty());
+}
+
+// ── Analytics Queries ───────────────────────────────────────────────
+
+#[tokio::test]
+async fn test_get_turnover_analytics_direct() {
+    let (test_db, factory) = setup_db().await;
+    let pool = test_db.pool();
+
+    let user_id = factory.user().create().await;
+    let ws_id = factory.workspace().create_with_owner(user_id).await;
+
+    // Create a terminated employee
+    let emp_id = factory
+        .employee()
+        .with_workspace(ws_id)
+        .with_full_name("Terminated Emp")
+        .create()
+        .await;
+
+    // Manually set hire_date and termination_date
+    sqlx::query(
+        "UPDATE employees SET is_active = false, hire_date = $1, termination_date = $2 WHERE id = $3",
+    )
+    .bind(NaiveDate::from_ymd_opt(2025, 1, 1).unwrap())
+    .bind(NaiveDate::from_ymd_opt(2025, 6, 1).unwrap()) // 5 months tenure
+    .bind(emp_id)
+    .execute(&pool)
+    .await
+    .unwrap();
+
+    let start_date = NaiveDate::from_ymd_opt(2025, 1, 1).unwrap();
+    let end_date = NaiveDate::from_ymd_opt(2025, 12, 31).unwrap();
+
+    let analytics = employee::get_turnover_analytics(&pool, ws_id, start_date, end_date)
+        .await
+        .unwrap();
+
+    assert_eq!(analytics.total_terminated, 1);
+
+    // Check tenure distribution: 5 months should be in "3-6 months"
+    let bucket = analytics
+        .tenure_distribution
+        .iter()
+        .find(|b| b.bucket == "3-6 months");
+    assert!(bucket.is_some());
+    assert_eq!(bucket.unwrap().count, 1);
+}
+
+// ── Recruitment Queries ─────────────────────────────────────────────
+
+#[tokio::test]
+async fn test_recruitment_source_breakdown_direct() {
+    let (test_db, factory) = setup_db().await;
+    let pool = test_db.pool();
+
+    let user_id = factory.user().create().await;
+    let ws_id = factory.workspace().create_with_owner(user_id).await;
+
+    // Create a recruitment source
+    let source_id = Uuid::new_v4();
+    let source = apiserver::models::RecruitmentSource {
+        id: source_id,
+        workspace_id: ws_id,
+        source_type: apiserver::models::enums::RecruitmentSourceType::Agency,
+        name: "Top Recruiting".to_string(),
+        referrer_employee_id: None,
+        referral_bonus_amount: None,
+        referral_bonus_paid: false,
+        agency_contact_name: None,
+        agency_contact_email: None,
+        agency_fee_amount: None,
+        agency_fee_paid: false,
+        notes: None,
+        created_at: chrono::Utc::now(),
+        updated_at: chrono::Utc::now(),
+    };
+    employee::create_recruitment_source(&pool, &source)
+        .await
+        .unwrap();
+
+    // Create an employee and set recruitment source
+    let emp_id = factory
+        .employee()
+        .with_workspace(ws_id)
+        .with_full_name("Sourced Emp")
+        .create()
+        .await;
+
+    employee::set_employee_recruitment_source(&pool, emp_id, Some(source_id))
+        .await
+        .unwrap();
+
+    let breakdown = employee::get_recruitment_source_breakdown(&pool, ws_id)
+        .await
+        .unwrap();
+
+    assert_eq!(breakdown.len(), 1);
+    assert_eq!(breakdown[0].source_type, "agency");
+    assert_eq!(breakdown[0].source_name, "Top Recruiting");
+    assert_eq!(breakdown[0].count, 1);
 }

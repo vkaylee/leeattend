@@ -368,22 +368,14 @@ impl EmployeeBuilder {
 
             let normalized_id = apiserver::utils::normalize_employee_id(&self.employee_id_number);
             let id: Uuid = sqlx::query_scalar(
-                "INSERT INTO employees (workspace_id, user_id, full_name, employee_id_number) VALUES ($1, $2, $3, $4) RETURNING id",
+                "INSERT INTO employees (workspace_id, user_id, full_name, employee_id_number, hire_date) VALUES ($1, $2, $3, $4, $5) RETURNING id",
             )
             .bind(self.workspace_id.expect("Workspace ID is required for Employee"))
             .bind(self.user_id)
             .bind(self.full_name)
             .bind(normalized_id)
-            .fetch_one(&mut *tx)
-            .await
-            .unwrap();
-
-            sqlx::query(
-                "INSERT INTO employment_periods (employee_id, hire_date) VALUES ($1, $2)",
-            )
-            .bind(id)
             .bind(self.hire_date)
-            .execute(&mut *tx)
+            .fetch_one(&mut *tx)
             .await
             .unwrap();
 
@@ -673,10 +665,6 @@ impl TestFactory {
     #[allow(dead_code)]
     pub async fn cleanup(&self) {
         tokio::time::timeout(std::time::Duration::from_secs(10), async {
-            sqlx::query("DELETE FROM employment_periods CASCADE")
-                .execute(&self.pool)
-                .await
-                .unwrap();
             sqlx::query("DELETE FROM time_entries CASCADE")
                 .execute(&self.pool)
                 .await

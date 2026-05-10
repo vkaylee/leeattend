@@ -103,7 +103,6 @@ pub async fn clear_debug_db(
                     "DELETE FROM employee_documents WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)",
                     "DELETE FROM employee_profiles WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)",
                     "DELETE FROM employee_department_history WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)",
-                    "DELETE FROM employment_periods WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)",
                     "DELETE FROM employees WHERE workspace_id = $1",
                 ];
                 for q in queries {
@@ -132,7 +131,6 @@ pub async fn clear_debug_db(
                     "DELETE FROM employee_documents WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)",
                     "DELETE FROM employee_profiles WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)",
                     "DELETE FROM employee_department_history WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)",
-                    "DELETE FROM employment_periods WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)",
                     "DELETE FROM employees WHERE workspace_id = $1",
                     "DELETE FROM assignment_rules WHERE workspace_id = $1",
                     "DELETE FROM working_patterns WHERE workspace_id = $1",
@@ -179,7 +177,7 @@ pub async fn clear_debug_db(
                 for (name, email, code, dept_id) in employees {
                     let emp_id = crate::utils::id::new_id();
                     sqlx::query(
-                         "INSERT INTO employees (id, workspace_id, full_name, email, employee_id_number, is_active) VALUES ($1, $2, $3, $4, $5, true)"
+                         "INSERT INTO employees (id, workspace_id, full_name, email, employee_id_number, hire_date, is_active) VALUES ($1, $2, $3, $4, $5, CURRENT_DATE, true)"
                      )
                      .bind(emp_id)
                      .bind(ws_id)
@@ -194,13 +192,6 @@ pub async fn clear_debug_db(
                      )
                      .bind(emp_id)
                      .bind(dept_id)
-                     .execute(&mut *tx)
-                     .await?;
-
-                    sqlx::query(
-                        "INSERT INTO employment_periods (employee_id, hire_date, type) VALUES ($1, CURRENT_DATE, 'FullTime')"
-                     )
-                     .bind(emp_id)
                      .execute(&mut *tx)
                      .await?;
                 }

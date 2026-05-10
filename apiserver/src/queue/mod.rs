@@ -8,7 +8,7 @@ pub use job::{
     EmployeeImportPayload, ExpiringContractsPayload, FinalizeImportPayload, HousekeepingPayload,
     Job, JobMetadata, JobPayload, JobPriority, JobStatus, LeaveImportChunkPayload,
     LeaveImportPayload, LogIngestionPayload, MergePayload, ReportConfig, ReportPayload, ReportType,
-    ReprocessPayload, TaskType,
+    ReprocessPayload, SyncHireDatePayload, TaskType,
 };
 pub use job_queue::JobQueue;
 pub use pubsub::{ReportPublisher, ReportSubscriber, StreamMessage};

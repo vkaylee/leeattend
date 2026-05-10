@@ -22,8 +22,8 @@ use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::models::{
-    Employee, EmployeePayrollConfig, EmploymentPeriod, RecruitmentSource,
-    RecruitmentSourceBreakdown, TurnoverAnalytics, WorkingCondition,
+    Employee, EmployeePayrollConfig, RecruitmentSource, RecruitmentSourceBreakdown,
+    TurnoverAnalytics, WorkingCondition,
 };
 
 /// Minimal employee info for paginated reports
@@ -102,14 +102,6 @@ pub trait EmployeeRepository: super::PoolBacked + Send + Sync {
         id: Uuid,
         employee_id: Uuid,
     ) -> Result<bool, sqlx::Error>;
-
-    async fn get_employment_history(
-        &self,
-        workspace_id: Uuid,
-        employee_id: Uuid,
-    ) -> Result<Vec<EmploymentPeriod>, sqlx::Error>;
-
-    async fn create_employment_period(&self, period: &EmploymentPeriod) -> Result<(), sqlx::Error>;
 
     async fn get_existing_employee_ids_by_numbers(
         &self,
@@ -292,18 +284,6 @@ impl EmployeeRepository for SqlxEmployeeRepository {
         employee_id: Uuid,
     ) -> Result<bool, sqlx::Error> {
         core_queries::delete_working_condition(&self.pool, id, employee_id).await
-    }
-
-    async fn get_employment_history(
-        &self,
-        workspace_id: Uuid,
-        employee_id: Uuid,
-    ) -> Result<Vec<EmploymentPeriod>, sqlx::Error> {
-        core_queries::get_employment_history(&self.pool, workspace_id, employee_id).await
-    }
-
-    async fn create_employment_period(&self, period: &EmploymentPeriod) -> Result<(), sqlx::Error> {
-        core_queries::create_employment_period(&self.pool, period).await
     }
 
     async fn get_existing_employee_ids_by_numbers(

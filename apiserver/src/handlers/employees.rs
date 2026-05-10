@@ -3,8 +3,8 @@ use crate::errors::{AppError, AppResult};
 use crate::handlers::common::{self, MemberContext};
 use crate::models::{
     CreateEmployeeRequest, CreateWorkingConditionRequest, Employee, EmployeeDepartmentHistory,
-    EmploymentPeriod, PaginatedResponse, PaginationParams, RehireEmployeeRequest,
-    TransferEmployeeRequest, UpdateEmployeeRequest, WorkingCondition,
+    PaginatedResponse, PaginationParams, RehireEmployeeRequest, TransferEmployeeRequest,
+    UpdateEmployeeRequest, WorkingCondition,
 };
 use crate::AppState;
 use axum::{
@@ -162,19 +162,6 @@ pub async fn delete_employee(
         .await
         .map_err(|_e| AppError::NotFound("Employee not found".to_string()))?;
     Ok(StatusCode::NO_CONTENT)
-}
-
-pub async fn get_employee_history(
-    Path((_, id)): Path<(Uuid, Uuid)>,
-    State(state): State<Arc<AppState>>,
-    MemberContext { workspace_id, .. }: MemberContext,
-) -> AppResult<Json<Vec<EmploymentPeriod>>> {
-    let history = state
-        .employees
-        .service
-        .get_employment_history(id, workspace_id)
-        .await?;
-    Ok(Json(history))
 }
 
 pub async fn rehire_employee(

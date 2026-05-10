@@ -21,10 +21,9 @@ pub async fn get_turnover_analytics(
     // 1. Total terminated count
     let total: i64 = query_scalar(
         r#"SELECT COUNT(*) FROM employees e
-           JOIN employment_periods ep ON ep.employee_id = e.id
            WHERE e.workspace_id = $1 AND e.is_active = FALSE
-             AND ep.termination_date IS NOT NULL
-             AND ep.termination_date >= $2 AND ep.termination_date <= $3"#,
+             AND e.termination_date IS NOT NULL
+             AND e.termination_date >= $2 AND e.termination_date <= $3"#,
     )
     .bind(workspace_id)
     .bind(start_date)
@@ -43,18 +42,17 @@ pub async fn get_turnover_analytics(
         r#"
         SELECT bucket, COUNT(*) AS count FROM (
             SELECT CASE
-                WHEN ep.termination_date - ep.hire_date < 90 THEN '< 3 months'
-                WHEN ep.termination_date - ep.hire_date < 180 THEN '3-6 months'
-                WHEN ep.termination_date - ep.hire_date < 365 THEN '6-12 months'
-                WHEN ep.termination_date - ep.hire_date < 730 THEN '1-2 years'
-                WHEN ep.termination_date - ep.hire_date < 1825 THEN '2-5 years'
+                WHEN e.termination_date - e.hire_date < 90 THEN '< 3 months'
+                WHEN e.termination_date - e.hire_date < 180 THEN '3-6 months'
+                WHEN e.termination_date - e.hire_date < 365 THEN '6-12 months'
+                WHEN e.termination_date - e.hire_date < 730 THEN '1-2 years'
+                WHEN e.termination_date - e.hire_date < 1825 THEN '2-5 years'
                 ELSE '> 5 years'
             END AS bucket
             FROM employees e
-            JOIN employment_periods ep ON ep.employee_id = e.id
             WHERE e.workspace_id = $1 AND e.is_active = FALSE
-              AND ep.termination_date IS NOT NULL
-              AND ep.termination_date >= $2 AND ep.termination_date <= $3
+              AND e.termination_date IS NOT NULL
+              AND e.termination_date >= $2 AND e.termination_date <= $3
         ) sub
         GROUP BY bucket
         ORDER BY CASE bucket
@@ -88,11 +86,10 @@ pub async fn get_turnover_analytics(
             COALESCE(rs.name, 'Direct Hire') AS source_name,
             COUNT(*) AS count
         FROM employees e
-        JOIN employment_periods ep ON ep.employee_id = e.id
         LEFT JOIN recruitment_sources rs ON e.recruitment_source_id = rs.id
         WHERE e.workspace_id = $1 AND e.is_active = FALSE
-          AND ep.termination_date IS NOT NULL
-          AND ep.termination_date >= $2 AND ep.termination_date <= $3
+          AND e.termination_date IS NOT NULL
+          AND e.termination_date >= $2 AND e.termination_date <= $3
         GROUP BY rs.source_type, rs.name
         ORDER BY count DESC
         "#,
@@ -116,7 +113,6 @@ pub async fn get_turnover_analytics(
             COALESCE(d.name, 'Unassigned') AS department_name,
             COUNT(*) AS count
         FROM employees e
-        JOIN employment_periods ep ON ep.employee_id = e.id
         LEFT JOIN LATERAL (
             SELECT edh.department_id
             FROM employee_department_history edh
@@ -126,8 +122,8 @@ pub async fn get_turnover_analytics(
         ) latest_dept ON TRUE
         LEFT JOIN departments d ON d.id = latest_dept.department_id
         WHERE e.workspace_id = $1 AND e.is_active = FALSE
-          AND ep.termination_date IS NOT NULL
-          AND ep.termination_date >= $2 AND ep.termination_date <= $3
+          AND e.termination_date IS NOT NULL
+          AND e.termination_date >= $2 AND e.termination_date <= $3
         GROUP BY d.name
         ORDER BY count DESC
         "#,

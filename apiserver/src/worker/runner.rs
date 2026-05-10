@@ -20,7 +20,7 @@ use crate::services::ReportCoordinator;
 use crate::worker::handlers::{
     AccrualHandler, AttendanceHandler, ClaimStagedLogsHandler, EmployeeImportChunkHandler,
     EmployeeImportHandler, FinalizeImportHandler, LeaveImportHandler, LogIngestionHandler,
-    MergeHandler, NightlyHousekeepingHandler, ReprocessAttendanceHandler,
+    MergeHandler, NightlyHousekeepingHandler, ReprocessAttendanceHandler, SyncHireDateHandler,
 };
 
 // Redis key patterns for monitoring
@@ -365,6 +365,7 @@ impl JobWorker {
     }
 
     /// Process a single job by routing to appropriate handler.
+    #[allow(clippy::too_many_lines)]
     pub async fn process_job(&self, job: Job) -> Result<(), String> {
         let job_id = job.job_id;
         let parent_id = job.parent_job_id;
@@ -429,6 +430,7 @@ impl JobWorker {
             TaskType::NightlyHousekeeping => {
                 NightlyHousekeepingHandler::handle(&self.db, &job).await
             }
+            TaskType::SyncEmployeeHireDate => SyncHireDateHandler::process(&job, &self.db).await,
         };
 
         let elapsed = start.elapsed();
@@ -456,6 +458,7 @@ impl JobWorker {
                 | TaskType::LeaveImportChunk
                 | TaskType::FinalizeImport
                 | TaskType::NightlyHousekeeping
+                | TaskType::SyncEmployeeHireDate
         ) {
             let success = result.is_ok();
             if let Err(e) = self

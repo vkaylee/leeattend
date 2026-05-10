@@ -24,10 +24,6 @@ pub fn router() -> Router<Arc<AppState>> {
                 .delete(handlers::delete_employee),
         )
         .route(
-            "/workspaces/:ws_id/employees/:id/history",
-            get(handlers::get_employee_history),
-        )
-        .route(
             "/workspaces/:ws_id/employees/:id/rehire",
             post(handlers::rehire_employee),
         )

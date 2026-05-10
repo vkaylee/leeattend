@@ -26,16 +26,11 @@ pub async fn get_my_profile(
     let emp = sqlx::query_as::<_, Employee>(
         r#"
         SELECT e.id, e.workspace_id, e.user_id, e.full_name, e.employee_id_number,
-               COALESCE(ep.hire_date, CURRENT_DATE) as hire_date,
-               ep.termination_date,
+               COALESCE(e.hire_date, CURRENT_DATE) as hire_date,
+               e.termination_date,
                e.tags, e.is_active, e.created_at, e.updated_at,
                d_cur.name as department_name
         FROM employees e
-        LEFT JOIN (
-            SELECT DISTINCT ON (employee_id) employee_id, hire_date, termination_date
-            FROM employment_periods
-            ORDER BY employee_id, hire_date DESC
-        ) ep ON e.id = ep.employee_id
         LEFT JOIN (
             SELECT DISTINCT ON (employee_id) employee_id, department_id
             FROM employee_department_history
