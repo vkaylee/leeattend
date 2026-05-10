@@ -237,12 +237,13 @@ pub async fn get_effective_shift(
         SELECT e.workspace_id, e.employee_id_number, e.tags, edh.department_id as "department_id?"
         FROM employees e
         LEFT JOIN employee_department_history edh ON edh.employee_id = e.id AND edh.effective_date <= $2
-        WHERE e.id = $1
+        WHERE e.id = $1 AND e.workspace_id = $3
         ORDER BY edh.effective_date DESC
         LIMIT 1
         "#,
         employee_id,
-        date
+        date,
+        workspace_id
     )
     .fetch_optional(pool)
     .await?;

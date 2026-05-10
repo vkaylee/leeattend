@@ -125,6 +125,7 @@ pub trait EmployeeRepository: super::PoolBacked + Send + Sync {
 
     async fn set_employee_recruitment_source(
         &self,
+        workspace_id: Uuid,
         employee_id: Uuid,
         recruitment_source_id: Option<Uuid>,
     ) -> Result<(), sqlx::Error>;
@@ -322,11 +323,13 @@ impl EmployeeRepository for SqlxEmployeeRepository {
 
     async fn set_employee_recruitment_source(
         &self,
+        workspace_id: Uuid,
         employee_id: Uuid,
         recruitment_source_id: Option<Uuid>,
     ) -> Result<(), sqlx::Error> {
         recruitment_queries::set_employee_recruitment_source(
             &self.pool,
+            workspace_id,
             employee_id,
             recruitment_source_id,
         )

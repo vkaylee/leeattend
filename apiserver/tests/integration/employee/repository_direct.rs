@@ -426,9 +426,9 @@ async fn test_recruitment_source_breakdown_direct() {
         .create()
         .await;
 
-    employee::set_employee_recruitment_source(&pool, emp_id, Some(source_id))
+    employee::set_employee_recruitment_source(&pool, ws_id, emp_id, Some(source_id))
         .await
-        .unwrap();
+        .expect("Failed to link employee to source");
 
     let breakdown = employee::get_recruitment_source_breakdown(&pool, ws_id)
         .await

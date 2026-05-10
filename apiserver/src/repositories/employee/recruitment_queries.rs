@@ -156,13 +156,15 @@ pub async fn get_recruitment_source_breakdown(
 
 pub async fn set_employee_recruitment_source(
     pool: &PgPool,
+    workspace_id: Uuid,
     employee_id: Uuid,
     recruitment_source_id: Option<Uuid>,
 ) -> Result<(), sqlx::Error> {
     sqlx::query(
-        "UPDATE employees SET recruitment_source_id = $2, updated_at = NOW() WHERE id = $1",
+        "UPDATE employees SET recruitment_source_id = $3, updated_at = NOW() WHERE id = $1 AND workspace_id = $2",
     )
     .bind(employee_id)
+    .bind(workspace_id)
     .bind(recruitment_source_id)
     .execute(pool)
     .await?;

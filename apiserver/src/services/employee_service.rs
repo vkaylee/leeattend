@@ -136,7 +136,7 @@ impl EmployeeService {
         // Set recruitment source if provided
         if let Some(source_id) = req.recruitment_source_id {
             self.repo
-                .set_employee_recruitment_source(employee.id, Some(source_id))
+                .set_employee_recruitment_source(workspace_id, employee.id, Some(source_id))
                 .await
                 .map_err(AppError::Sqlx)?;
         }
@@ -267,7 +267,7 @@ impl EmployeeService {
         // Update recruitment source if provided
         if req.recruitment_source_id.is_some() {
             self.repo
-                .set_employee_recruitment_source(id, req.recruitment_source_id)
+                .set_employee_recruitment_source(workspace_id, id, req.recruitment_source_id)
                 .await
                 .map_err(AppError::Sqlx)?;
         }
@@ -681,8 +681,9 @@ mod tests {
 
         async fn set_employee_recruitment_source(
             &self,
-            _emp: Uuid,
-            _src: Option<Uuid>,
+            _workspace_id: Uuid,
+            _employee_id: Uuid,
+            _recruitment_source_id: Option<Uuid>,
         ) -> Result<(), sqlx::Error> {
             Ok(())
         }
