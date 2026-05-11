@@ -1,0 +1,266 @@
+use async_trait::async_trait;
+use chrono::{NaiveDate, Utc};
+use diesel::prelude::*;
+use diesel_async::RunQueryDsl;
+use uuid::Uuid;
+
+use crate::diesel_pool::DieselPools;
+use crate::models::diesel::roster::{EmployeeShiftEntity, ShiftEntity};
+use crate::models::shift::Shift;
+use crate::repositories::shift_repository::ShiftRepository;
+use crate::schema::{employee_shifts, shifts};
+
+pub struct DieselShiftRepository {
+    pub sqlx_pool: sqlx::PgPool,
+    pub diesel_pools: DieselPools,
+}
+
+impl DieselShiftRepository {
+    pub fn new(sqlx_pool: sqlx::PgPool, diesel_pools: DieselPools) -> Self {
+        Self {
+            sqlx_pool,
+            diesel_pools,
+        }
+    }
+}
+
+#[async_trait]
+impl ShiftRepository for DieselShiftRepository {
+    async fn create_shift(
+        &self,
+        workspace_id: Uuid,
+        req: &crate::models::CreateShiftRequest,
+        is_active: bool,
+        parent_shift_id: Option<Uuid>,
+    ) -> Result<Shift, sqlx::Error> {
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+
+        let new_shift = ShiftEntity {
+            id: Uuid::new_v4(),
+            workspace_id,
+            name: req.name.clone(),
+            start_time: req.start_time,
+            end_time: req.end_time,
+            break_duration_minutes: req.break_duration_minutes,
+            created_at: Some(Utc::now()),
+            updated_at: Some(Utc::now()),
+            break_is_overtime: req.break_is_overtime,
+            early_punch_in_grace_period_minutes: req.early_punch_in_grace_period_minutes,
+            break_start: req.break_start,
+            break_end: req.break_end,
+            is_break_auto_deduct: req.is_break_auto_deduct,
+            is_active,
+            parent_shift_id,
+            allow_early_ot: req.allow_early_ot,
+            report_symbol: req.report_symbol.clone(),
+        };
+
+        let entity: ShiftEntity = diesel::insert_into(shifts::table)
+            .values(&new_shift)
+            .get_result(&mut conn)
+            .await
+            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+
+        Ok(entity.into())
+    }
+
+    async fn get_shift_by_id(
+        &self,
+        workspace_id: Uuid,
+        id: Uuid,
+    ) -> Result<Option<Shift>, sqlx::Error> {
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+
+        let entity: Option<ShiftEntity> = shifts::table
+            .filter(shifts::id.eq(id))
+            .filter(shifts::workspace_id.eq(workspace_id))
+            .first(&mut conn)
+            .await
+            .optional()
+            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+
+        Ok(entity.map(Into::into))
+    }
+
+    async fn get_workspace_shifts(&self, workspace_id: Uuid) -> Result<Vec<Shift>, sqlx::Error> {
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+
+        let entities: Vec<ShiftEntity> = shifts::table
+            .filter(shifts::workspace_id.eq(workspace_id))
+            .filter(shifts::is_active.eq(true))
+            .order(shifts::name.asc())
+            .load(&mut conn)
+            .await
+            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+
+        Ok(entities.into_iter().map(Into::into).collect())
+    }
+
+    async fn update_shift_direct(
+        &self,
+        workspace_id: Uuid,
+        id: Uuid,
+        req: &crate::models::UpdateShiftRequest,
+    ) -> Result<Shift, sqlx::Error> {
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+
+        let entity: ShiftEntity = diesel::update(shifts::table)
+            .filter(shifts::id.eq(id))
+            .filter(shifts::workspace_id.eq(workspace_id))
+            .set((
+                shifts::name.eq(&req.name),
+                shifts::report_symbol.eq(&req.report_symbol),
+                shifts::start_time.eq(req.start_time),
+                shifts::end_time.eq(req.end_time),
+                shifts::break_duration_minutes.eq(req.break_duration_minutes),
+                shifts::break_start.eq(req.break_start),
+                shifts::break_end.eq(req.break_end),
+                shifts::is_break_auto_deduct.eq(req.is_break_auto_deduct),
+                shifts::break_is_overtime.eq(req.break_is_overtime),
+                shifts::early_punch_in_grace_period_minutes
+                    .eq(req.early_punch_in_grace_period_minutes),
+                shifts::allow_early_ot.eq(req.allow_early_ot),
+                shifts::updated_at.eq(Utc::now()),
+            ))
+            .get_result(&mut conn)
+            .await
+            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+
+        Ok(entity.into())
+    }
+
+    async fn archive_shift(&self, workspace_id: Uuid, id: Uuid) -> Result<(), sqlx::Error> {
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+
+        diesel::update(shifts::table)
+            .filter(shifts::id.eq(id))
+            .filter(shifts::workspace_id.eq(workspace_id))
+            .set((
+                shifts::is_active.eq(false),
+                shifts::updated_at.eq(Utc::now()),
+            ))
+            .execute(&mut conn)
+            .await
+            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+
+        Ok(())
+    }
+
+    async fn assign_employee_shift(
+        &self,
+        employee_id: Uuid,
+        shift_id: Uuid,
+        start_date: NaiveDate,
+        end_date: Option<NaiveDate>,
+    ) -> Result<(), sqlx::Error> {
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+
+        let new_assignment = EmployeeShiftEntity {
+            id: Uuid::new_v4(),
+            employee_id,
+            shift_id,
+            start_date,
+            end_date,
+            created_at: Some(Utc::now()),
+            updated_at: Some(Utc::now()),
+        };
+
+        diesel::insert_into(employee_shifts::table)
+            .values(&new_assignment)
+            .execute(&mut conn)
+            .await
+            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+
+        Ok(())
+    }
+
+    async fn get_employee_active_shift(
+        &self,
+        employee_id: Uuid,
+        date: NaiveDate,
+    ) -> Result<Option<Shift>, sqlx::Error> {
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+
+        let entity: Option<ShiftEntity> = shifts::table
+            .inner_join(employee_shifts::table.on(shifts::id.eq(employee_shifts::shift_id)))
+            .filter(employee_shifts::employee_id.eq(employee_id))
+            .filter(employee_shifts::start_date.le(date))
+            .filter(
+                employee_shifts::end_date
+                    .is_null()
+                    .or(employee_shifts::end_date.ge(date)),
+            )
+            .order(employee_shifts::created_at.desc())
+            .select(ShiftEntity::as_select())
+            .first(&mut conn)
+            .await
+            .optional()
+            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+
+        Ok(entity.map(Into::into))
+    }
+
+    async fn update_assignments_to_new_version(
+        &self,
+        old_shift_id: Uuid,
+        new_shift_id: Uuid,
+        effective_date: NaiveDate,
+    ) -> Result<(), sqlx::Error> {
+        let mut tx = self.sqlx_pool.begin().await?;
+        crate::repositories::shift_repository::update_assignments_to_new_version_tx(
+            &mut tx,
+            old_shift_id,
+            new_shift_id,
+            effective_date,
+        )
+        .await?;
+        tx.commit().await?;
+        Ok(())
+    }
+}
+
+impl crate::repositories::PoolBacked for DieselShiftRepository {
+    #[allow(clippy::panic)]
+    #[allow(clippy::panic)]
+    fn from_pool(_pool: sqlx::PgPool) -> Self {
+        panic!("DieselShiftRepository requires DieselPools. Use new() instead.");
+    }
+    fn pool(&self) -> &sqlx::PgPool {
+        &self.sqlx_pool
+    }
+}

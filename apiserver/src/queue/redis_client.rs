@@ -197,12 +197,9 @@ mod tests {
         let pool_result =
             tokio::time::timeout(Duration::from_secs(2), RedisPool::new(&redis_url)).await;
 
-        let pool = match pool_result {
-            Ok(Ok(p)) => p,
-            _ => {
-                println!("SKIPPED: Real Redis not available for health_check test");
-                return;
-            }
+        let Ok(Ok(pool)) = pool_result else {
+            println!("SKIPPED: Real Redis not available for health_check test");
+            return;
         };
 
         let health_res = tokio::time::timeout(Duration::from_secs(2), pool.health_check()).await;

@@ -1,3 +1,5 @@
+#![allow(warnings)]
+#![allow(clippy::all)]
 //! Workspace theme and settings tests
 
 use crate::common::app::spawn_app_with_factory;
@@ -57,6 +59,14 @@ async fn test_update_workspace_time_format() {
     let test_db = TestDatabase::new().await;
     let pool = test_db.pool();
     let factory = TestFactory::new(pool.clone());
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
+    let workspace_repo = std::sync::Arc::new(
+        apiserver::repositories::DieselWorkspaceRepository::new(pool.clone(), diesel_pools.clone()),
+    );
+    let user_repo = std::sync::Arc::new(apiserver::repositories::DieselUserRepository::new(
+        pool.clone(),
+        diesel_pools.clone(),
+    ));
 
     let user_id: Uuid = factory.user().create().await;
     let ws_id: Uuid = factory.workspace().create_with_owner(user_id).await;
@@ -70,7 +80,7 @@ async fn test_update_workspace_time_format() {
     assert_eq!(ws.time_format, "24h");
 
     // 2. Update to 12h
-    let updated_ws = WorkspaceService::new(pool.clone())
+    let updated_ws = WorkspaceService::new(workspace_repo.clone(), user_repo.clone())
         .update_workspace(
             apiserver::services::workspace_service::UpdateWorkspaceArgs {
                 ws_id,
@@ -106,11 +116,19 @@ async fn test_update_workspace_all_fields() {
     let test_db = TestDatabase::new().await;
     let pool = test_db.pool();
     let factory = TestFactory::new(pool.clone());
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
+    let workspace_repo = std::sync::Arc::new(
+        apiserver::repositories::DieselWorkspaceRepository::new(pool.clone(), diesel_pools.clone()),
+    );
+    let user_repo = std::sync::Arc::new(apiserver::repositories::DieselUserRepository::new(
+        pool.clone(),
+        diesel_pools.clone(),
+    ));
 
     let user_id: Uuid = factory.user().create().await;
     let ws_id: Uuid = factory.workspace().create_with_owner(user_id).await;
 
-    let updated_ws = WorkspaceService::new(pool.clone())
+    let updated_ws = WorkspaceService::new(workspace_repo.clone(), user_repo.clone())
         .update_workspace(
             apiserver::services::workspace_service::UpdateWorkspaceArgs {
                 ws_id,
@@ -140,11 +158,19 @@ async fn test_update_workspace_no_fields() {
     let test_db = TestDatabase::new().await;
     let pool = test_db.pool();
     let factory = TestFactory::new(pool.clone());
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
+    let workspace_repo = std::sync::Arc::new(
+        apiserver::repositories::DieselWorkspaceRepository::new(pool.clone(), diesel_pools.clone()),
+    );
+    let user_repo = std::sync::Arc::new(apiserver::repositories::DieselUserRepository::new(
+        pool.clone(),
+        diesel_pools.clone(),
+    ));
 
     let user_id: Uuid = factory.user().create().await;
     let ws_id: Uuid = factory.workspace().create_with_owner(user_id).await;
 
-    let result = WorkspaceService::new(pool.clone())
+    let result = WorkspaceService::new(workspace_repo.clone(), user_repo.clone())
         .update_workspace(
             apiserver::services::workspace_service::UpdateWorkspaceArgs {
                 ws_id,

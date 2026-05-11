@@ -105,6 +105,8 @@ impl AuditLogRepository for DieselAuditLogRepository {
 
 impl crate::repositories::PoolBacked for DieselAuditLogRepository {
     #[allow(clippy::panic)]
+    #[allow(clippy::panic)]
+    #[allow(clippy::panic)]
     fn from_pool(_pool: PgPool) -> Self {
         panic!("DieselAuditLogRepository requires diesel_pools to be manually injected via new()");
     }

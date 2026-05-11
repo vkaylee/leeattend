@@ -228,6 +228,8 @@ impl DepartmentRepository for DieselDepartmentRepository {
 
 impl crate::repositories::PoolBacked for DieselDepartmentRepository {
     #[allow(clippy::panic)]
+    #[allow(clippy::panic)]
+    #[allow(clippy::panic)]
     fn from_pool(_pool: sqlx::PgPool) -> Self {
         panic!(
             "DieselDepartmentRepository requires diesel_pools to be manually injected via new()"

@@ -72,7 +72,7 @@ impl TimeTrackingService {
             let workspace = workspace_repo
                 .get_workspace_by_id(workspace_id)
                 .await
-                .map_err(AppError::Internal)?
+                .map_err(AppError::Sqlx)?
                 .ok_or(AppError::Internal("Workspace not found".into()))?;
 
             let tz: chrono_tz::Tz = crate::utils::tz::parse_workspace_tz(&workspace.timezone);

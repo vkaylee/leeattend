@@ -15,7 +15,6 @@ use crate::{
         enums::{AssigneeType, PayrollCalculationMethod, PayrollRuleCategory, RuleAppliesTo},
         PayrollRuleAssignment, PayrollRuleDefinition, PayrollRuleTier,
     },
-    repositories::PayrollRuleRepository,
     AppState,
 };
 
@@ -55,22 +54,24 @@ pub async fn create_payroll_rule_definition(
     ctx: MemberContext,
     Json(payload): Json<CreatePayrollRuleDefinitionRequest>,
 ) -> Result<Json<PayrollRuleDefinition>, AppError> {
-    let def = PayrollRuleRepository::create_definition(
-        crate::repositories::payroll_rule_repository::CreatePayrollRuleDefinitionArgs {
-            pool: state.infra.db.api(),
-            workspace_id: ctx.workspace_id,
-            name: &payload.name,
-            description: payload.description.as_deref(),
-            code: &payload.code,
-            category: payload.category,
-            applies_to: payload.applies_to,
-            calculation_method: payload.calculation_method,
-            rule_config: &payload.rule_config,
-            is_mandatory: payload.is_mandatory.unwrap_or(false),
-            display_order: payload.display_order.unwrap_or(0),
-        },
-    )
-    .await?;
+    let def = state
+        .payroll
+        .rule_repo
+        .create_definition(
+            crate::repositories::payroll_rule_repository::CreatePayrollRuleDefinitionArgs {
+                workspace_id: ctx.workspace_id,
+                name: payload.name,
+                description: payload.description,
+                code: payload.code,
+                category: payload.category,
+                applies_to: payload.applies_to,
+                calculation_method: payload.calculation_method,
+                rule_config: payload.rule_config,
+                is_mandatory: payload.is_mandatory.unwrap_or(false),
+                display_order: payload.display_order.unwrap_or(0),
+            },
+        )
+        .await?;
 
     Ok(Json(def))
 }
@@ -79,8 +80,11 @@ pub async fn get_payroll_rule_definitions(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> Result<Json<Vec<PayrollRuleDefinition>>, AppError> {
-    let defs =
-        PayrollRuleRepository::get_definitions(state.infra.db.api(), ctx.workspace_id).await?;
+    let defs = state
+        .payroll
+        .rule_repo
+        .get_definitions(ctx.workspace_id)
+        .await?;
     Ok(Json(defs))
 }
 
@@ -89,19 +93,18 @@ pub async fn create_payroll_rule_tier(
     Path((_ws_id, rule_id)): Path<(Uuid, Uuid)>,
     Json(payload): Json<CreatePayrollRuleTierRequest>,
 ) -> Result<Json<PayrollRuleTier>, AppError> {
-    // Note: A robust system should verify that `rule_id` belongs to `ws_id`.
-    // In our repository pattern we might either check that first, or pass ws_id down.
-
-    let tier = PayrollRuleRepository::create_tier(
-        state.infra.db.api(),
-        rule_id,
-        payload.tier_order,
-        payload.min_amount,
-        payload.max_amount,
-        payload.rate,
-        payload.fixed_amount.unwrap_or(Decimal::new(0, 0)),
-    )
-    .await?;
+    let tier = state
+        .payroll
+        .rule_repo
+        .create_tier(
+            rule_id,
+            payload.tier_order,
+            payload.min_amount,
+            payload.max_amount,
+            payload.rate,
+            payload.fixed_amount.unwrap_or(Decimal::new(0, 0)),
+        )
+        .await?;
 
     Ok(Json(tier))
 }
@@ -110,7 +113,7 @@ pub async fn get_payroll_rule_tiers(
     State(state): State<Arc<AppState>>,
     Path((_ws_id, rule_id)): Path<(Uuid, Uuid)>,
 ) -> Result<Json<Vec<PayrollRuleTier>>, AppError> {
-    let tiers = PayrollRuleRepository::get_tiers_for_rule(state.infra.db.api(), rule_id).await?;
+    let tiers = state.payroll.rule_repo.get_tiers_for_rule(rule_id).await?;
     Ok(Json(tiers))
 }
 
@@ -120,19 +123,21 @@ pub async fn assign_payroll_rule(
     Path((_ws_id, rule_id)): Path<(Uuid, Uuid)>,
     Json(payload): Json<AssignPayrollRuleRequest>,
 ) -> Result<Json<PayrollRuleAssignment>, AppError> {
-    let assignment = PayrollRuleRepository::assign_rule(
-        crate::repositories::payroll_rule_repository::AssignPayrollRuleArgs {
-            pool: state.infra.db.api(),
-            workspace_id: ctx.workspace_id,
-            rule_definition_id: rule_id,
-            assignee_type: payload.assignee_type,
-            assignee_id: payload.assignee_id,
-            effective_from: payload.effective_from,
-            effective_to: payload.effective_to,
-            override_config: payload.override_config.as_ref(),
-        },
-    )
-    .await?;
+    let assignment = state
+        .payroll
+        .rule_repo
+        .assign_rule(
+            crate::repositories::payroll_rule_repository::AssignPayrollRuleArgs {
+                workspace_id: ctx.workspace_id,
+                rule_definition_id: rule_id,
+                assignee_type: payload.assignee_type,
+                assignee_id: payload.assignee_id,
+                effective_from: payload.effective_from,
+                effective_to: payload.effective_to,
+                override_config: payload.override_config,
+            },
+        )
+        .await?;
 
     Ok(Json(assignment))
 }
@@ -142,12 +147,11 @@ pub async fn get_payroll_rule_assignments(
     ctx: MemberContext,
     Path((_ws_id, rule_id)): Path<(Uuid, Uuid)>,
 ) -> Result<Json<Vec<PayrollRuleAssignment>>, AppError> {
-    let assignments = PayrollRuleRepository::get_assignments_for_rule(
-        state.infra.db.api(),
-        ctx.workspace_id,
-        rule_id,
-    )
-    .await?;
+    let assignments = state
+        .payroll
+        .rule_repo
+        .get_assignments_for_rule(ctx.workspace_id, rule_id)
+        .await?;
     Ok(Json(assignments))
 }
 
@@ -156,13 +160,11 @@ pub async fn delete_payroll_rule_assignment(
     ctx: MemberContext,
     Path((_ws_id, rule_id, assignment_id)): Path<(Uuid, Uuid, Uuid)>,
 ) -> Result<Json<()>, AppError> {
-    PayrollRuleRepository::delete_assignment(
-        state.infra.db.api(),
-        ctx.workspace_id,
-        rule_id,
-        assignment_id,
-    )
-    .await?;
+    state
+        .payroll
+        .rule_repo
+        .delete_assignment(ctx.workspace_id, rule_id, assignment_id)
+        .await?;
     Ok(Json(()))
 }
 
@@ -170,6 +172,10 @@ pub async fn delete_payroll_rule_tier(
     State(state): State<Arc<AppState>>,
     Path((_ws_id, rule_id, tier_id)): Path<(Uuid, Uuid, Uuid)>,
 ) -> Result<Json<()>, AppError> {
-    PayrollRuleRepository::delete_tier(state.infra.db.api(), rule_id, tier_id).await?;
+    state
+        .payroll
+        .rule_repo
+        .delete_tier(rule_id, tier_id)
+        .await?;
     Ok(Json(()))
 }

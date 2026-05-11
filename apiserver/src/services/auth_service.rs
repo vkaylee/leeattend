@@ -1,9 +1,9 @@
-use crate::models::{AuthResponse, User, UserResponse};
+use crate::models::{AuthResponse, UserResponse};
 use bcrypt::{hash, verify, DEFAULT_COST};
 use chrono::{Duration, Utc};
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
 use serde::{Deserialize, Serialize};
-use sqlx::{Executor, PgPool, Postgres};
+use sqlx::{Executor, Postgres};
 use uuid::Uuid;
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -13,13 +13,24 @@ pub struct Claims {
     pub iat: i64,
 }
 
+use crate::repositories::session_repository::SessionRepository;
+use crate::repositories::user_repository::UserRepository;
+use std::sync::Arc;
+
 pub struct AuthService {
-    pool: PgPool,
+    user_repo: Arc<dyn UserRepository>,
+    session_repo: Arc<dyn SessionRepository>,
 }
 
 impl AuthService {
-    pub fn new(pool: PgPool) -> Self {
-        Self { pool }
+    pub fn new(
+        user_repo: Arc<dyn UserRepository>,
+        session_repo: Arc<dyn SessionRepository>,
+    ) -> Self {
+        Self {
+            user_repo,
+            session_repo,
+        }
     }
 
     // --- Pure functions (no pool needed) — kept as associated functions ---
@@ -75,17 +86,15 @@ impl AuthService {
         let token = Uuid::new_v4().to_string();
         let expires_at = Utc::now() + Duration::days(7);
 
-        sqlx::query("INSERT INTO sessions (user_id, token, expires_at) VALUES ($1, $2, $3)")
-            .bind(user_id)
-            .bind(&token)
-            .bind(expires_at)
-            .execute(&self.pool)
+        self.session_repo
+            .create_session(user_id, &token, expires_at)
             .await
             .map_err(|e| e.to_string())?;
 
         Ok(token)
     }
 
+    // Kept for backward compatibility with SQLx handlers during transition
     pub async fn create_session_tx<'e, E>(executor: E, user_id: Uuid) -> Result<String, String>
     where
         E: Executor<'e, Database = Postgres>,
@@ -110,39 +119,35 @@ impl AuthService {
         refresh_token: &str,
         secret: &str,
     ) -> Result<AuthResponse, String> {
-        let session: (Uuid, Uuid) = sqlx::query_as("SELECT id, user_id FROM sessions WHERE token = $1 AND expires_at > NOW() AND revoked_at IS NULL")
-            .bind(refresh_token)
-            .fetch_one(&self.pool)
+        let session = self
+            .session_repo
+            .get_session_by_token(refresh_token)
             .await
-            .map_err(|_e| "Invalid or expired refresh token".to_string())?;
+            .map_err(|e| e.to_string())?
+            .ok_or_else(|| "Invalid or expired refresh token".to_string())?;
 
-        let user = sqlx::query_as::<_, User>("SELECT id, email, password_hash, created_at, full_name, avatar_url, bio, preferred_language FROM users WHERE id = $1")
-            .bind(session.1)
-            .fetch_one(&self.pool)
+        let user = self
+            .user_repo
+            .get_user_by_id(session.user_id)
             .await
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| e.to_string())?
+            .ok_or_else(|| "User not found".to_string())?;
 
         let access_token = Self::generate_token(user.id, secret, 60)?; // 1 hour access
 
         // Rotate refresh token
         let new_refresh_token = Uuid::new_v4().to_string();
-        sqlx::query("UPDATE sessions SET token = $1 WHERE id = $2")
-            .bind(&new_refresh_token)
-            .bind(session.0)
-            .execute(&self.pool)
+        self.session_repo
+            .rotate_refresh_token(session.id, &new_refresh_token)
             .await
             .map_err(|e| e.to_string())?;
 
         // Fetch system-level roles for this user
-        let system_roles: Vec<String> = sqlx::query_scalar(
-            "SELECT sr.name FROM user_system_roles usr \
-             JOIN system_roles sr ON sr.id = usr.role_id \
-             WHERE usr.user_id = $1",
-        )
-        .bind(user.id)
-        .fetch_all(&self.pool)
-        .await
-        .map_err(|e| e.to_string())?;
+        let system_roles = self
+            .user_repo
+            .get_system_roles_for_user(user.id)
+            .await
+            .map_err(|e| e.to_string())?;
 
         Ok(AuthResponse {
             access_token,
@@ -162,21 +167,17 @@ impl AuthService {
 
     #[tracing::instrument(skip_all, err)]
     pub async fn revoke_session(&self, refresh_token: &str) -> Result<(), String> {
-        sqlx::query("UPDATE sessions SET revoked_at = NOW() WHERE token = $1")
-            .bind(refresh_token)
-            .execute(&self.pool)
+        self.session_repo
+            .revoke_session(refresh_token)
             .await
-            .map_err(|e| e.to_string())?;
-        Ok(())
+            .map_err(|e| e.to_string())
     }
 
     #[tracing::instrument(skip_all, err)]
     pub async fn revoke_all_sessions_for_user(&self, user_id: Uuid) -> Result<(), String> {
-        sqlx::query("UPDATE sessions SET revoked_at = NOW() WHERE user_id = $1")
-            .bind(user_id)
-            .execute(&self.pool)
+        self.session_repo
+            .revoke_all_sessions_for_user(user_id)
             .await
-            .map_err(|e| e.to_string())?;
-        Ok(())
+            .map_err(|e| e.to_string())
     }
 }

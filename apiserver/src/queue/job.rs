@@ -1224,8 +1224,8 @@ mod tests {
         let user_id = Uuid::new_v4();
         let import_job_id = Uuid::new_v4();
         let payload = EmployeeImportPayload {
-            user_id,
             import_job_id,
+            user_id,
         };
 
         let json = serde_json::to_string(&payload).unwrap();
@@ -1272,8 +1272,8 @@ mod tests {
             TaskType::EmployeeImport,
             ws_id,
             JobPayload::EmployeeImport(EmployeeImportPayload {
-                user_id,
                 import_job_id,
+                user_id,
             }),
         );
 

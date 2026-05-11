@@ -107,12 +107,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_scheduler_enqueues_housekeeping_job() {
-        let pool = match get_test_redis().await {
-            Some(p) => p,
-            None => {
-                println!("SKIPPED: Redis not available");
-                return;
-            }
+        let Some(pool) = get_test_redis().await else {
+            println!("SKIPPED: Redis not available");
+            return;
         };
 
         // Ensure clean state for today's lock

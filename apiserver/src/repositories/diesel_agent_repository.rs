@@ -488,6 +488,8 @@ impl AgentRepository for DieselAgentRepository {
 
 impl crate::repositories::PoolBacked for DieselAgentRepository {
     #[allow(clippy::panic)]
+    #[allow(clippy::panic)]
+    #[allow(clippy::panic)]
     fn from_pool(_pool: PgPool) -> Self {
         panic!("DieselAgentRepository requires diesel_pools to be manually injected via new()");
     }

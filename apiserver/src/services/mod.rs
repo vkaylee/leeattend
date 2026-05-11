@@ -49,4 +49,5 @@ pub mod attendance_summary_service;
 pub use attendance_summary_service::AttendanceSummaryService;
 pub mod holiday_leave_service;
 
+pub use auth_service::AuthService;
 pub use holiday_leave_service::HolidayLeaveService;

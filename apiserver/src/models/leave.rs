@@ -103,7 +103,7 @@ pub struct UpdateLeaveBalanceRequest {
     pub carried_over: Option<i32>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct SeniorityBonus {
     pub months: i32,
     pub bonus_amount: f64,
@@ -132,7 +132,7 @@ pub struct LeaveType {
     pub created_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct LeavePolicyConfig {
     pub frequency: AccrualFrequency,
     pub accrual_amount: f64,

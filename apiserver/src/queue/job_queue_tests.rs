@@ -37,13 +37,11 @@ mod tests {
 
     macro_rules! setup_redis_or_skip {
         () => {{
-            match get_test_redis().await {
-                Some(pool) => pool,
-                None => {
-                    println!("SKIPPED: Redis not available (5s timeout)");
-                    return;
-                }
-            }
+            let Some(pool) = get_test_redis().await else {
+                println!("SKIPPED: Redis not available (5s timeout)");
+                return;
+            };
+            pool
         }};
     }
 

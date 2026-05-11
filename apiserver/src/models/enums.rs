@@ -64,7 +64,10 @@ pub enum ContractStatus {
     sqlx::Type,
     strum_macros::Display,
     ToSchema,
+    diesel::expression::AsExpression,
+    diesel::deserialize::FromSqlRow,
 )]
+#[diesel(sql_type = crate::schema::sql_types::LeaveStatusType)]
 #[sqlx(type_name = "leave_status_type", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 pub enum LeaveStatus {
@@ -85,6 +88,7 @@ pub enum LeaveStatus {
     Eq,
     sqlx::Type,
     strum_macros::Display,
+    strum_macros::EnumString,
     ToSchema,
     Default,
 )]
@@ -109,7 +113,10 @@ pub enum LeaveDurationType {
     sqlx::Type,
     strum_macros::Display,
     ToSchema,
+    diesel::expression::AsExpression,
+    diesel::deserialize::FromSqlRow,
 )]
+#[diesel(sql_type = crate::schema::sql_types::AdjustmentStatusType)]
 #[sqlx(type_name = "adjustment_status_type", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 pub enum AdjustmentStatus {
@@ -129,7 +136,10 @@ pub enum AdjustmentStatus {
     sqlx::Type,
     strum_macros::Display,
     ToSchema,
+    diesel::expression::AsExpression,
+    diesel::deserialize::FromSqlRow,
 )]
+#[diesel(sql_type = crate::schema::sql_types::LogSourceType)]
 #[sqlx(type_name = "log_source_type", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 pub enum LogSource {
@@ -252,8 +262,19 @@ pub enum AssignmentHistoryType {
 }
 
 #[derive(
-    Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, sqlx::Type, strum_macros::Display,
+    Debug,
+    Serialize,
+    Deserialize,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    sqlx::Type,
+    strum_macros::Display,
+    diesel::expression::AsExpression,
+    diesel::deserialize::FromSqlRow,
 )]
+#[diesel(sql_type = crate::schema::sql_types::OtStatusType)]
 #[sqlx(type_name = "ot_status_type", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 pub enum OtStatus {
@@ -279,9 +300,10 @@ pub enum AttendanceReportSort {
     TotalHoursDesc,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum AccrualFrequency {
+    #[default]
     Monthly,
     Quarterly,
     Yearly,

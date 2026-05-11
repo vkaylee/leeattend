@@ -1,12 +1,12 @@
 use crate::common::app::spawn_app_with_factory;
 use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
-use apiserver::repositories::{SqlxWorkspaceRepository, WorkspaceRepository};
+use apiserver::repositories::{DieselWorkspaceRepository, WorkspaceRepository};
 use uuid::Uuid;
 
 #[tokio::test]
 async fn test_workspace_creation_no_default_leave_types() {
-    let (_address, _, user_id, factory, _db): (String, Uuid, Uuid, TestFactory, TestDatabase) =
+    let (_address, _, user_id, factory, test_db): (String, Uuid, Uuid, TestFactory, TestDatabase) =
         spawn_app_with_factory().await;
 
     // 1. Grant platform_admin to create workspace
@@ -20,13 +20,12 @@ async fn test_workspace_creation_no_default_leave_types() {
     .await
     .expect("Failed to seed platform_admin role");
 
-    let repo = SqlxWorkspaceRepository {
-        pool: factory.pool.clone(),
-    };
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
+    let repo = DieselWorkspaceRepository::new(factory.pool.clone(), diesel_pools.clone());
 
     // 2. Create workspace using repository directly (which is used by Service)
     let workspace = repo
-        .create_workspace("Fresh Start WS")
+        .create_workspace_with_owner("Fresh Start WS", user_id)
         .await
         .expect("Failed to create workspace");
 

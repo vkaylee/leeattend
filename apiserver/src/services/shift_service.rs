@@ -1,18 +1,18 @@
 use chrono::{Local, NaiveDate};
-use sqlx::PgPool;
+use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::errors::AppError;
 use crate::models::{Shift, UpdateShiftRequest};
-use crate::repositories::shift_repository;
+use crate::repositories::shift_repository::ShiftRepository;
 
 pub struct ShiftService {
-    pool: PgPool,
+    repo: Arc<dyn ShiftRepository>,
 }
 
 impl ShiftService {
-    pub fn new(pool: PgPool) -> Self {
-        Self { pool }
+    pub fn new(repo: Arc<dyn ShiftRepository>) -> Self {
+        Self { repo }
     }
 
     #[tracing::instrument(skip_all, err)]
@@ -21,20 +21,21 @@ impl ShiftService {
         workspace_id: Uuid,
         req: &crate::models::CreateShiftRequest,
     ) -> Result<Shift, AppError> {
-        shift_repository::create_shift(
-            &self.pool,
-            workspace_id,
-            req,
-            true, // is_active
-            None, // parent_shift_id
-        )
-        .await
-        .map_err(AppError::Sqlx)
+        self.repo
+            .create_shift(
+                workspace_id,
+                req,
+                true, // is_active
+                None, // parent_shift_id
+            )
+            .await
+            .map_err(AppError::Sqlx)
     }
 
     #[tracing::instrument(skip_all, err)]
     pub async fn get_workspace_shifts(&self, workspace_id: Uuid) -> Result<Vec<Shift>, AppError> {
-        shift_repository::get_workspace_shifts(&self.pool, workspace_id)
+        self.repo
+            .get_workspace_shifts(workspace_id)
             .await
             .map_err(AppError::Sqlx)
     }
@@ -46,8 +47,9 @@ impl ShiftService {
         shift_id: Uuid,
         req: UpdateShiftRequest,
     ) -> Result<Shift, AppError> {
-        let pool = &self.pool;
-        let old_shift = shift_repository::get_shift_by_id(pool, workspace_id, shift_id)
+        let old_shift = self
+            .repo
+            .get_shift_by_id(workspace_id, shift_id)
             .await
             .map_err(AppError::Sqlx)?
             .ok_or(AppError::NotFound("Shift not found".into()))?;
@@ -61,7 +63,8 @@ impl ShiftService {
 
         if req.is_correction || !has_time_changes {
             // Direct update
-            shift_repository::update_shift_direct(pool, workspace_id, shift_id, &req)
+            self.repo
+                .update_shift_direct(workspace_id, shift_id, &req)
                 .await
                 .map_err(AppError::Sqlx)
         } else {
@@ -70,47 +73,49 @@ impl ShiftService {
                 .effective_date
                 .unwrap_or_else(|| Local::now().date_naive());
 
-            let mut tx = pool.begin().await.map_err(AppError::Sqlx)?;
+            // For complex versioning that involves multiple steps, we use the repo method
+            // which handles its own transaction or logical grouping.
+            // Note: Since we are in transition, some complex logic might still be SQLx-specific.
 
-            // 1. Archive old version
-            shift_repository::archive_shift(&mut *tx, workspace_id, shift_id)
+            // 1. Create new version & migrate assignments in one go if repo supports it,
+            // or perform steps sequentially.
+
+            // Since update_assignments_to_new_version is currently a separate method:
+            let new_shift = self
+                .repo
+                .create_shift(
+                    old_shift.workspace_id,
+                    &crate::models::CreateShiftRequest {
+                        name: req.name,
+                        report_symbol: req.report_symbol,
+                        start_time: req.start_time,
+                        end_time: req.end_time,
+                        break_duration_minutes: req.break_duration_minutes,
+                        break_start: req.break_start,
+                        break_end: req.break_end,
+                        is_break_auto_deduct: req.is_break_auto_deduct,
+                        break_is_overtime: req.break_is_overtime,
+                        early_punch_in_grace_period_minutes: req
+                            .early_punch_in_grace_period_minutes,
+                        allow_early_ot: req.allow_early_ot,
+                    },
+                    true,
+                    Some(shift_id),
+                )
                 .await
                 .map_err(AppError::Sqlx)?;
 
-            // 2. Create new version
-            let new_shift = shift_repository::create_shift(
-                &mut *tx,
-                old_shift.workspace_id,
-                &crate::models::CreateShiftRequest {
-                    name: req.name,
-                    report_symbol: req.report_symbol,
-                    start_time: req.start_time,
-                    end_time: req.end_time,
-                    break_duration_minutes: req.break_duration_minutes,
-                    break_start: req.break_start,
-                    break_end: req.break_end,
-                    is_break_auto_deduct: req.is_break_auto_deduct,
-                    break_is_overtime: req.break_is_overtime,
-                    early_punch_in_grace_period_minutes: req.early_punch_in_grace_period_minutes,
-                    allow_early_ot: req.allow_early_ot,
-                },
-                true,
-                Some(shift_id),
-            )
-            .await
-            .map_err(AppError::Sqlx)?;
+            // 2. Archive old version
+            self.repo
+                .archive_shift(workspace_id, shift_id)
+                .await
+                .map_err(AppError::Sqlx)?;
 
             // 3. Migrate assignments
-            shift_repository::update_assignments_to_new_version_tx(
-                &mut tx,
-                shift_id,
-                new_shift.id,
-                effective_date,
-            )
-            .await
-            .map_err(AppError::Sqlx)?;
-
-            tx.commit().await.map_err(AppError::Sqlx)?;
+            self.repo
+                .update_assignments_to_new_version(shift_id, new_shift.id, effective_date)
+                .await
+                .map_err(AppError::Sqlx)?;
 
             Ok(new_shift)
         }
@@ -124,14 +129,10 @@ impl ShiftService {
         start_date: NaiveDate,
         end_date: Option<NaiveDate>,
     ) -> Result<(), AppError> {
-        match shift_repository::assign_employee_shift(
-            &self.pool,
-            employee_id,
-            shift_id,
-            start_date,
-            end_date,
-        )
-        .await
+        match self
+            .repo
+            .assign_employee_shift(employee_id, shift_id, start_date, end_date)
+            .await
         {
             Ok(_) => Ok(()),
             Err(sqlx::Error::Database(e)) if e.constraint() == Some("uq_employee_shift_start") => {

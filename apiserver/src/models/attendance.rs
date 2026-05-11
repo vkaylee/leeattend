@@ -274,7 +274,8 @@ mod tests {
         let serialized = serde_json::to_string(&summary).unwrap();
 
         let deserialized: AttendanceSummary = serde_json::from_str(&serialized).unwrap();
-        assert_eq!(deserialized.computed_ot_hours, 160.0);
-        assert_eq!(deserialized.unit_coefficient_hours, 8.0);
+        // Use a small epsilon for float comparison to avoid clippy::float_cmp
+        assert!((deserialized.computed_ot_hours - 160.0).abs() < f64::EPSILON);
+        assert!((deserialized.unit_coefficient_hours - 8.0).abs() < f64::EPSILON);
     }
 }

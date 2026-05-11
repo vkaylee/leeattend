@@ -1,9 +1,11 @@
+#![allow(warnings)]
+#![allow(clippy::all)]
 //! Workspace management and RBAC integration tests
 
 use crate::common::app::{setup_app_tower, spawn_app_with_factory};
 use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
-use apiserver::repositories::{SqlxWorkspaceRepository, WorkspaceRepository};
+use apiserver::repositories::{DieselWorkspaceRepository, WorkspaceRepository};
 use apiserver::AppState;
 use axum::http::StatusCode;
 use reqwest;
@@ -192,42 +194,55 @@ async fn test_workspace_rbac_flow() {
 async fn test_workspace_repository_directly() {
     let test_db = TestDatabase::new().await;
     let pool = test_db.pool();
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
     let factory = TestFactory::new(pool.clone());
-    let repo = SqlxWorkspaceRepository { pool: pool.clone() };
+    let repo = DieselWorkspaceRepository::new(pool.clone(), diesel_pools.clone());
 
     let user_id: Uuid = factory.user().create().await;
-    let ws = repo.create_workspace("Test WS").await.unwrap();
+    let ws = repo
+        .create_workspace_with_owner("Test WS", user_id)
+        .await
+        .unwrap();
 
+    // Owner should have role ...0001 (Owner)
+    let role = repo.find_primary_role(ws.id, user_id).await.unwrap();
+    assert_eq!(
+        role.unwrap(),
+        uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000001").unwrap()
+    );
+
+    // Add another member
+    let member_id: Uuid = factory.user().create().await;
     repo.add_member(
         ws.id,
-        user_id,
+        member_id,
         uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000002").unwrap(),
     )
     .await
     .unwrap();
 
-    let role = repo.find_primary_role(ws.id, user_id).await.unwrap();
+    let role = repo.find_primary_role(ws.id, member_id).await.unwrap();
     assert_eq!(
         role.unwrap(),
         uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000002").unwrap()
     );
 
-    // Update
+    // Update member role
     repo.update_member_role(
         ws.id,
-        user_id,
+        member_id,
         uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap(),
     )
     .await
     .unwrap();
-    let role = repo.find_primary_role(ws.id, user_id).await.unwrap();
+    let role = repo.find_primary_role(ws.id, member_id).await.unwrap();
     assert_eq!(
         role.unwrap(),
         uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap()
     );
 
-    // Remove
-    repo.remove_member(ws.id, user_id).await.unwrap();
-    let role = repo.find_primary_role(ws.id, user_id).await.unwrap();
+    // Remove member
+    repo.remove_member(ws.id, member_id).await.unwrap();
+    let role = repo.find_primary_role(ws.id, member_id).await.unwrap();
     assert!(role.is_none());
 }

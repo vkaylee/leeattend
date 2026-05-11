@@ -226,7 +226,8 @@ impl MemberContext {
             .core
             .workspace_repo
             .find_primary_role(workspace_id, user_id)
-            .await?
+            .await
+            .map_err(|e| e.to_string())?
             .ok_or_else(|| "Not a member of this workspace".to_string())?;
 
         // 2. Fetch Active Extra Roles
@@ -234,7 +235,8 @@ impl MemberContext {
             .core
             .workspace_repo
             .find_extra_roles(workspace_id, user_id)
-            .await?;
+            .await
+            .map_err(|e| e.to_string())?;
 
         let mut roles: Vec<Uuid> = all_extra_roles
             .into_iter()

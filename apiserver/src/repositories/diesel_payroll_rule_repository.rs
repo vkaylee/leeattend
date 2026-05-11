@@ -1,0 +1,243 @@
+use crate::diesel_pool::DieselPools;
+use crate::errors::AppError;
+use crate::models::diesel::payroll_rule::*;
+use crate::models::payroll_rule::*;
+use crate::repositories::payroll_rule_repository::{
+    AssignPayrollRuleArgs, CreatePayrollRuleDefinitionArgs, PayrollRuleRepository,
+    SqlxPayrollRuleRepository,
+};
+use crate::repositories::PoolBacked;
+use crate::schema::*;
+use async_trait::async_trait;
+use bigdecimal::BigDecimal;
+use diesel::prelude::*;
+use diesel_async::RunQueryDsl;
+use rust_decimal::Decimal;
+use sqlx::PgPool;
+use std::str::FromStr;
+use uuid::Uuid;
+
+pub struct DieselPayrollRuleRepository {
+    pub sqlx_pool: PgPool,
+    pub diesel_pools: DieselPools,
+}
+
+impl DieselPayrollRuleRepository {
+    pub fn new(sqlx_pool: PgPool, diesel_pools: DieselPools) -> Self {
+        Self {
+            sqlx_pool,
+            diesel_pools,
+        }
+    }
+}
+
+impl PoolBacked for DieselPayrollRuleRepository {
+    #[allow(clippy::panic)]
+    #[allow(clippy::panic)]
+    #[allow(clippy::panic)]
+    fn from_pool(_pool: PgPool) -> Self {
+        panic!(
+            "DieselPayrollRuleRepository requires diesel_pools to be manually injected via new()"
+        );
+    }
+
+    fn pool(&self) -> &PgPool {
+        &self.sqlx_pool
+    }
+}
+
+#[async_trait]
+impl PayrollRuleRepository for DieselPayrollRuleRepository {
+    async fn create_definition(
+        &self,
+        args: CreatePayrollRuleDefinitionArgs,
+    ) -> Result<PayrollRuleDefinition, AppError> {
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(format!("Failed to get diesel connection: {e}")))?;
+
+        let entity = PayrollRuleDefinitionEntity {
+            id: Uuid::new_v4(),
+            workspace_id: args.workspace_id,
+            name: args.name,
+            description: args.description,
+            code: args.code,
+            category: args.category.to_string(),
+            applies_to: args.applies_to.to_string(),
+            calculation_method: args.calculation_method.to_string(),
+            rule_config: args.rule_config,
+            is_mandatory: args.is_mandatory,
+            is_active: true,
+            display_order: args.display_order,
+            created_at: chrono::Utc::now(),
+            updated_at: chrono::Utc::now(),
+        };
+
+        let result = diesel::insert_into(payroll_rule_definitions::table)
+            .values(&entity)
+            .get_result::<PayrollRuleDefinitionEntity>(&mut conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("Failed to create definition: {e}")))?;
+
+        Ok(result.into())
+    }
+
+    async fn get_definitions(
+        &self,
+        workspace_id: Uuid,
+    ) -> Result<Vec<PayrollRuleDefinition>, AppError> {
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(format!("Failed to get diesel connection: {e}")))?;
+
+        let entities = payroll_rule_definitions::table
+            .filter(payroll_rule_definitions::workspace_id.eq(workspace_id))
+            .order((
+                payroll_rule_definitions::display_order.asc(),
+                payroll_rule_definitions::created_at.desc(),
+            ))
+            .load::<PayrollRuleDefinitionEntity>(&mut conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("Failed to fetch definitions: {e}")))?;
+
+        Ok(entities.into_iter().map(Into::into).collect())
+    }
+
+    async fn create_tier(
+        &self,
+        rule_definition_id: Uuid,
+        tier_order: i32,
+        min_amount: Decimal,
+        max_amount: Option<Decimal>,
+        rate: Decimal,
+        fixed_amount: Decimal,
+    ) -> Result<PayrollRuleTier, AppError> {
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(format!("Failed to get diesel connection: {e}")))?;
+
+        let entity = PayrollRuleTierEntity {
+            id: Uuid::new_v4(),
+            rule_definition_id,
+            tier_order,
+            min_amount: BigDecimal::from_str(&min_amount.to_string()).unwrap_or_default(),
+            max_amount: max_amount
+                .map(|m| BigDecimal::from_str(&m.to_string()).unwrap_or_default()),
+            rate: BigDecimal::from_str(&rate.to_string()).unwrap_or_default(),
+            fixed_amount: BigDecimal::from_str(&fixed_amount.to_string()).unwrap_or_default(),
+            created_at: chrono::Utc::now(),
+        };
+
+        let result = diesel::insert_into(payroll_rule_tiers::table)
+            .values(&entity)
+            .get_result::<PayrollRuleTierEntity>(&mut conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("Failed to create tier: {e}")))?;
+
+        Ok(result.into())
+    }
+
+    async fn get_tiers_for_rule(
+        &self,
+        rule_definition_id: Uuid,
+    ) -> Result<Vec<PayrollRuleTier>, AppError> {
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(format!("Failed to get diesel connection: {e}")))?;
+
+        let entities = payroll_rule_tiers::table
+            .filter(payroll_rule_tiers::rule_definition_id.eq(rule_definition_id))
+            .order(payroll_rule_tiers::tier_order.asc())
+            .load::<PayrollRuleTierEntity>(&mut conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("Failed to fetch tiers: {e}")))?;
+
+        Ok(entities.into_iter().map(Into::into).collect())
+    }
+
+    async fn delete_tier(&self, rule_definition_id: Uuid, tier_id: Uuid) -> Result<(), AppError> {
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(format!("Failed to get diesel connection: {e}")))?;
+
+        diesel::delete(payroll_rule_tiers::table)
+            .filter(payroll_rule_tiers::id.eq(tier_id))
+            .filter(payroll_rule_tiers::rule_definition_id.eq(rule_definition_id))
+            .execute(&mut conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("Failed to delete tier: {e}")))?;
+
+        Ok(())
+    }
+
+    async fn assign_rule(
+        &self,
+        args: AssignPayrollRuleArgs,
+    ) -> Result<PayrollRuleAssignment, AppError> {
+        // Complex overlap check is better done in SQLx for now
+        let repo = SqlxPayrollRuleRepository::new(self.sqlx_pool.clone());
+        repo.assign_rule(args).await
+    }
+
+    async fn get_assignments_for_rule(
+        &self,
+        workspace_id: Uuid,
+        rule_definition_id: Uuid,
+    ) -> Result<Vec<PayrollRuleAssignment>, AppError> {
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(format!("Failed to get diesel connection: {e}")))?;
+
+        let entities = payroll_rule_assignments::table
+            .filter(payroll_rule_assignments::workspace_id.eq(workspace_id))
+            .filter(payroll_rule_assignments::rule_definition_id.eq(rule_definition_id))
+            .order(payroll_rule_assignments::created_at.desc())
+            .load::<PayrollRuleAssignmentEntity>(&mut conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("Failed to fetch assignments: {e}")))?;
+
+        Ok(entities.into_iter().map(Into::into).collect())
+    }
+
+    async fn delete_assignment(
+        &self,
+        workspace_id: Uuid,
+        rule_definition_id: Uuid,
+        assignment_id: Uuid,
+    ) -> Result<(), AppError> {
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(format!("Failed to get diesel connection: {e}")))?;
+
+        diesel::delete(payroll_rule_assignments::table)
+            .filter(payroll_rule_assignments::id.eq(assignment_id))
+            .filter(payroll_rule_assignments::workspace_id.eq(workspace_id))
+            .filter(payroll_rule_assignments::rule_definition_id.eq(rule_definition_id))
+            .execute(&mut conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("Failed to delete assignment: {e}")))?;
+
+        Ok(())
+    }
+}

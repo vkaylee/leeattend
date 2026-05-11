@@ -1,5 +1,15 @@
 pub mod agent;
+pub mod attendance_adjustment;
+pub mod attendance_log;
+pub mod attendance_policy;
 pub mod audit_log;
+pub mod core;
 pub mod department;
 pub mod employee;
 pub mod employee_contract;
+pub mod holiday;
+pub mod leave;
+pub mod payroll;
+pub mod payroll_rule;
+pub mod roster;
+pub mod time_entry;

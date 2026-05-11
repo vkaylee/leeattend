@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use crate::agent_manager::AgentManager;
 use crate::db_pool::DbPools;
+use crate::repositories::attendance_log_error_repository::AttendanceLogErrorRepository;
 use crate::repositories::audit_log_repository::AuditLogRepository;
 use crate::repositories::department_repository::DepartmentRepository;
 use crate::repositories::holiday_repository::HolidayRepositoryTrait;
@@ -9,8 +10,10 @@ use crate::repositories::import_job_repository::ImportJobRepository;
 use crate::repositories::leave_policy_repository::LeavePolicyRepository;
 use crate::repositories::leave_request_repository::LeaveRequestRepository;
 use crate::repositories::payroll_repository::PayrollRepository;
+use crate::repositories::payroll_rule_repository::PayrollRuleRepository;
 use crate::repositories::raw_attendance_log_repository::RawAttendanceLogRepository;
 use crate::repositories::roster::RosterRepository;
+use crate::repositories::shift_repository::ShiftRepository;
 use crate::repositories::shift_swap_repository::ShiftSwapRepository;
 use crate::repositories::staging_log_repository::StagingLogRepository;
 use crate::repositories::time_entry_repository::TimeEntryRepository;
@@ -58,6 +61,9 @@ pub struct AttendanceState {
     pub staging_repo: Arc<dyn StagingLogRepository>,
     pub raw_log_repo: Arc<dyn RawAttendanceLogRepository>,
     pub import_repo: Arc<dyn ImportJobRepository>,
+    pub error_repo: Arc<dyn AttendanceLogErrorRepository>,
+    pub policy_repo:
+        Arc<dyn crate::repositories::attendance_policy_repository::AttendancePolicyRepository>,
 }
 
 /// Shift management — shifts, rosters, swaps, patterns
@@ -65,6 +71,7 @@ pub struct ShiftState {
     pub service: Arc<ShiftService>,
     pub swap_service: Arc<ShiftSwapService>,
     pub roster_repo: Arc<dyn RosterRepository>,
+    pub shift_repo: Arc<dyn ShiftRepository>,
     pub swap_repo: Arc<dyn ShiftSwapRepository>,
 }
 
@@ -82,6 +89,7 @@ pub struct LeaveState {
 pub struct PayrollState {
     pub service: Arc<PayrollService>,
     pub repo: Arc<dyn PayrollRepository>,
+    pub rule_repo: Arc<dyn PayrollRuleRepository>,
     pub department_repo: Arc<dyn DepartmentRepository>,
 }
 
@@ -99,6 +107,7 @@ pub struct CoreState {
     pub workspace_repo: Arc<dyn WorkspaceRepository>,
     pub audit_repo: Arc<dyn AuditLogRepository>,
     pub user_repo: Arc<dyn UserRepository>,
+    pub session_repo: Arc<dyn crate::repositories::session_repository::SessionRepository>,
     pub jwt_secret: String,
 }
 
