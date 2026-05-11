@@ -1,4 +1,5 @@
 pub mod agent;
+pub mod assignment_rule;
 pub mod attendance_adjustment;
 pub mod attendance_log;
 pub mod attendance_policy;
@@ -7,6 +8,7 @@ pub mod core;
 pub mod department;
 pub mod employee;
 pub mod employee_contract;
+pub mod feature_flag;
 pub mod holiday;
 pub mod leave;
 pub mod payroll;

@@ -352,6 +352,18 @@ impl AppState {
             pool.clone(),
             diesel_pools.clone(),
         ));
+        let feature_flag_repo: Arc<
+            dyn crate::repositories::feature_flag_repository::FeatureFlagRepositoryTrait,
+        > = Arc::new(crate::repositories::DieselFeatureFlagRepository::new(
+            pool.clone(),
+            diesel_pools.clone(),
+        ));
+        let assignment_rule_repo: Arc<
+            dyn crate::repositories::assignment_rule_repository::AssignmentRuleRepositoryTrait,
+        > = Arc::new(crate::repositories::DieselAssignmentRuleRepository::new(
+            pool.clone(),
+            diesel_pools.clone(),
+        ));
         let session_repo_core = session_repo.clone();
         let user_repo_core = user_repo.clone();
 
@@ -381,6 +393,7 @@ impl AppState {
                 roster_repo,
                 shift_repo,
                 swap_repo: shift_swap_repo,
+                assignment_rule_repo: assignment_rule_repo.clone(),
             },
             leaves: crate::LeaveState {
                 service: leave_service,
@@ -395,6 +408,7 @@ impl AppState {
                 repo: payroll_repo,
                 rule_repo: payroll_rule_repo,
                 department_repo,
+                feature_flag_repo: feature_flag_repo.clone(),
             },
             reports: crate::ReportState {
                 service: report_service,

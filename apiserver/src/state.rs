@@ -4,7 +4,9 @@ use crate::agent_manager::AgentManager;
 use crate::db_pool::DbPools;
 use crate::repositories::attendance_log_error_repository::AttendanceLogErrorRepository;
 use crate::repositories::audit_log_repository::AuditLogRepository;
+use crate::repositories::assignment_rule_repository::AssignmentRuleRepositoryTrait;
 use crate::repositories::department_repository::DepartmentRepository;
+use crate::repositories::feature_flag_repository::FeatureFlagRepositoryTrait;
 use crate::repositories::holiday_repository::HolidayRepositoryTrait;
 use crate::repositories::import_job_repository::ImportJobRepository;
 use crate::repositories::leave_policy_repository::LeavePolicyRepository;
@@ -73,6 +75,7 @@ pub struct ShiftState {
     pub roster_repo: Arc<dyn RosterRepository>,
     pub shift_repo: Arc<dyn ShiftRepository>,
     pub swap_repo: Arc<dyn ShiftSwapRepository>,
+    pub assignment_rule_repo: Arc<dyn AssignmentRuleRepositoryTrait>,
 }
 
 /// Leave management — requests, policies, holidays, accrual
@@ -91,6 +94,7 @@ pub struct PayrollState {
     pub repo: Arc<dyn PayrollRepository>,
     pub rule_repo: Arc<dyn PayrollRuleRepository>,
     pub department_repo: Arc<dyn DepartmentRepository>,
+    pub feature_flag_repo: Arc<dyn FeatureFlagRepositoryTrait>,
 }
 
 /// Reports & async coordination

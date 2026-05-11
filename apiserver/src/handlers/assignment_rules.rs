@@ -11,7 +11,6 @@ use crate::domain::permissions::Permission;
 use crate::errors::AppResult;
 use crate::handlers::common::MemberContext;
 use crate::models::{AssignmentRule, CreateAssignmentRuleRequest, UpdateAssignmentRuleRequest};
-use crate::repositories::assignment_rule_repository::AssignmentRuleRepository;
 use crate::AppState;
 
 pub async fn get_assignment_rules(
@@ -20,7 +19,7 @@ pub async fn get_assignment_rules(
 ) -> AppResult<Json<Vec<AssignmentRule>>> {
     ctx.require_permission(Permission::AssignmentRulesManage)?;
 
-    let rules = AssignmentRuleRepository::get_rules(state.infra.db.api(), ctx.workspace_id).await?;
+    let rules = state.shifts.assignment_rule_repo.get_rules(ctx.workspace_id).await?;
     Ok(Json(rules))
 }
 
@@ -31,8 +30,11 @@ pub async fn create_assignment_rule(
 ) -> AppResult<impl IntoResponse> {
     ctx.require_permission(Permission::AssignmentRulesManage)?;
 
-    let rule =
-        AssignmentRuleRepository::create_rule(state.infra.db.api(), ctx.workspace_id, &req).await?;
+    let rule = state
+        .shifts
+        .assignment_rule_repo
+        .create_rule(ctx.workspace_id, &req)
+        .await?;
 
     if let Some(cache) = &state.infra.roster_cache {
         cache.invalidate(ctx.workspace_id).await;
@@ -49,13 +51,11 @@ pub async fn update_assignment_rule(
 ) -> AppResult<Json<AssignmentRule>> {
     ctx.require_permission(Permission::AssignmentRulesManage)?;
 
-    let rule = AssignmentRuleRepository::update_rule(
-        state.infra.db.api(),
-        ctx.workspace_id,
-        rule_id,
-        &req,
-    )
-    .await?;
+    let rule = state
+        .shifts
+        .assignment_rule_repo
+        .update_rule(ctx.workspace_id, rule_id, &req)
+        .await?;
 
     if let Some(cache) = &state.infra.roster_cache {
         cache.invalidate(ctx.workspace_id).await;
@@ -71,7 +71,11 @@ pub async fn delete_assignment_rule(
 ) -> AppResult<StatusCode> {
     ctx.require_permission(Permission::AssignmentRulesManage)?;
 
-    AssignmentRuleRepository::delete_rule(state.infra.db.api(), ctx.workspace_id, rule_id).await?;
+    state
+        .shifts
+        .assignment_rule_repo
+        .delete_rule(ctx.workspace_id, rule_id)
+        .await?;
 
     if let Some(cache) = &state.infra.roster_cache {
         cache.invalidate(ctx.workspace_id).await;

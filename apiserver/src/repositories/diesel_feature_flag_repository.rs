@@ -1,0 +1,221 @@
+use async_trait::async_trait;
+use chrono::Utc;
+use diesel::prelude::*;
+use diesel_async::RunQueryDsl;
+use sqlx::PgPool;
+use uuid::Uuid;
+
+use crate::diesel_pool::DieselPools;
+use crate::errors::AppError;
+use crate::models::diesel::feature_flag::FeatureFlagEntity;
+use crate::models::feature_flag::FeatureFlag;
+use crate::repositories::feature_flag_repository::FeatureFlagRepositoryTrait;
+use crate::schema::feature_flags;
+
+pub struct DieselFeatureFlagRepository {
+    pub sqlx_pool: PgPool,
+    pub diesel_pools: DieselPools,
+}
+
+impl DieselFeatureFlagRepository {
+    pub fn new(sqlx_pool: PgPool, diesel_pools: DieselPools) -> Self {
+        Self {
+            sqlx_pool,
+            diesel_pools,
+        }
+    }
+}
+
+#[async_trait]
+impl FeatureFlagRepositoryTrait for DieselFeatureFlagRepository {
+    async fn list_flags(&self, workspace_id: Uuid) -> Result<Vec<FeatureFlag>, AppError> {
+        let mut conn = self.diesel_pools.api.get().await.map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        feature_flags::table
+            .filter(feature_flags::workspace_id.eq(workspace_id))
+            .order(feature_flags::flag_key.asc())
+            .select(FeatureFlagEntity::as_select())
+            .load::<FeatureFlagEntity>(&mut conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))
+            .map(|rows| rows.into_iter().map(Into::into).collect())
+    }
+
+    async fn get_flag_by_key(
+        &self,
+        workspace_id: Uuid,
+        flag_key: &str,
+    ) -> Result<Option<FeatureFlag>, AppError> {
+        let mut conn = self.diesel_pools.api.get().await.map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        feature_flags::table
+            .filter(feature_flags::workspace_id.eq(workspace_id))
+            .filter(feature_flags::flag_key.eq(flag_key))
+            .select(FeatureFlagEntity::as_select())
+            .first::<FeatureFlagEntity>(&mut conn)
+            .await
+            .optional()
+            .map_err(|e| AppError::Internal(format!("db: {e}")))
+            .map(|r| r.map(Into::into))
+    }
+
+    async fn get_flag_by_id(
+        &self,
+        workspace_id: Uuid,
+        id: Uuid,
+    ) -> Result<Option<FeatureFlag>, AppError> {
+        let mut conn = self.diesel_pools.api.get().await.map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        feature_flags::table
+            .filter(feature_flags::workspace_id.eq(workspace_id))
+            .filter(feature_flags::id.eq(id))
+            .select(FeatureFlagEntity::as_select())
+            .first::<FeatureFlagEntity>(&mut conn)
+            .await
+            .optional()
+            .map_err(|e| AppError::Internal(format!("db: {e}")))
+            .map(|r| r.map(Into::into))
+    }
+
+    async fn is_enabled_flag(
+        &self,
+        workspace_id: Uuid,
+        flag_key: &str,
+    ) -> Result<bool, AppError> {
+        let mut conn = self.diesel_pools.api.get().await.map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        let enabled = feature_flags::table
+            .filter(feature_flags::workspace_id.eq(workspace_id))
+            .filter(feature_flags::flag_key.eq(flag_key))
+            .select(feature_flags::enabled)
+            .first::<bool>(&mut conn)
+            .await
+            .optional()
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        Ok(enabled.unwrap_or(false))
+    }
+
+    async fn create_flag(
+        &self,
+        workspace_id: Uuid,
+        flag_key: &str,
+        enabled: bool,
+        description: Option<&str>,
+        metadata: &serde_json::Value,
+    ) -> Result<FeatureFlag, AppError> {
+        let mut conn = self.diesel_pools.api.get().await.map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let now = Utc::now();
+
+        let entity = FeatureFlagEntity {
+            id: Uuid::new_v4(),
+            workspace_id,
+            flag_key: flag_key.to_string(),
+            enabled,
+            description: description.map(|s| s.to_string()),
+            metadata: metadata.clone(),
+            created_at: now,
+            updated_at: now,
+        };
+
+        diesel::insert_into(feature_flags::table)
+            .values(&entity)
+            .returning(FeatureFlagEntity::as_returning())
+            .get_result(&mut conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))
+            .map(Into::into)
+    }
+
+    async fn update_flag(
+        &self,
+        workspace_id: Uuid,
+        id: Uuid,
+        enabled: Option<bool>,
+        description: Option<&str>,
+        metadata: Option<&serde_json::Value>,
+    ) -> Result<Option<FeatureFlag>, AppError> {
+        let mut conn = self.diesel_pools.api.get().await.map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        let target = feature_flags::table
+            .filter(feature_flags::workspace_id.eq(workspace_id))
+            .filter(feature_flags::id.eq(id));
+
+        diesel::update(target)
+            .set((
+                enabled.map(|v| feature_flags::enabled.eq(v)),
+                description.map(|s| feature_flags::description.eq(s.to_string())),
+                metadata.map(|v| feature_flags::metadata.eq(v.clone())),
+                feature_flags::updated_at.eq(Utc::now()),
+            ))
+            .returning(FeatureFlagEntity::as_returning())
+            .get_result(&mut conn)
+            .await
+            .optional()
+            .map_err(|e| AppError::Internal(format!("db: {e}")))
+            .map(|r| r.map(Into::into))
+    }
+
+    async fn delete_flag(&self, workspace_id: Uuid, id: Uuid) -> Result<bool, AppError> {
+        let mut conn = self.diesel_pools.api.get().await.map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        diesel::delete(
+            feature_flags::table
+                .filter(feature_flags::workspace_id.eq(workspace_id))
+                .filter(feature_flags::id.eq(id)),
+        )
+        .execute(&mut conn)
+        .await
+        .map_err(|e| AppError::Internal(format!("db: {e}")))
+        .map(|count| count > 0)
+    }
+
+    async fn upsert_flag(
+        &self,
+        workspace_id: Uuid,
+        flag_key: &str,
+        enabled: bool,
+        description: Option<&str>,
+        metadata: &serde_json::Value,
+    ) -> Result<FeatureFlag, AppError> {
+        let mut conn = self.diesel_pools.api.get().await.map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let now = Utc::now();
+
+        let entity = FeatureFlagEntity {
+            id: Uuid::new_v4(),
+            workspace_id,
+            flag_key: flag_key.to_string(),
+            enabled,
+            description: description.map(|s| s.to_string()),
+            metadata: metadata.clone(),
+            created_at: now,
+            updated_at: now,
+        };
+
+        diesel::insert_into(feature_flags::table)
+            .values(&entity)
+            .on_conflict((feature_flags::workspace_id, feature_flags::flag_key))
+            .do_update()
+            .set((
+                feature_flags::enabled.eq(enabled),
+                feature_flags::description.eq(description.map(|s| s.to_string())),
+                feature_flags::metadata.eq(metadata.clone()),
+                feature_flags::updated_at.eq(Utc::now()),
+            ))
+            .returning(FeatureFlagEntity::as_returning())
+            .get_result(&mut conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))
+            .map(Into::into)
+    }
+}
+
+impl crate::repositories::PoolBacked for DieselFeatureFlagRepository {
+    fn from_pool(_pool: PgPool) -> Self {
+        panic!("DieselFeatureFlagRepository requires DieselPools. Use new() instead.");
+    }
+
+    fn pool(&self) -> &PgPool {
+        &self.sqlx_pool
+    }
+}

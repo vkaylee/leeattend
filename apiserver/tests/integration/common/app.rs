@@ -200,6 +200,16 @@ pub async fn spawn_app() -> (String, TestDatabase) {
             pool.clone(),
         ),
     );
+    let feature_flag_repo: Arc<
+        dyn apiserver::repositories::feature_flag_repository::FeatureFlagRepositoryTrait,
+    > = Arc::new(
+        apiserver::repositories::DieselFeatureFlagRepository::new(pool.clone(), diesel_pools.clone()),
+    );
+    let assignment_rule_repo: Arc<
+        dyn apiserver::repositories::assignment_rule_repository::AssignmentRuleRepositoryTrait,
+    > = Arc::new(
+        apiserver::repositories::DieselAssignmentRuleRepository::new(pool.clone(), diesel_pools.clone()),
+    );
     let leave_policy_repo: Arc<
         dyn apiserver::repositories::leave_policy_repository::LeavePolicyRepository,
     > = Arc::new(apiserver::repositories::DieselLeavePolicyRepository::new(
@@ -296,6 +306,7 @@ pub async fn spawn_app() -> (String, TestDatabase) {
             roster_repo: roster_repo.clone(),
             shift_repo: shift_repo.clone(),
             swap_repo: shift_swap_repo.clone(),
+            assignment_rule_repo: assignment_rule_repo.clone(),
         },
         leaves: apiserver::LeaveState {
             service: leave_service,
@@ -310,6 +321,7 @@ pub async fn spawn_app() -> (String, TestDatabase) {
             repo: payroll_repo.clone(),
             rule_repo: payroll_rule_repo.clone(),
             department_repo: department_repo.clone(),
+            feature_flag_repo: feature_flag_repo.clone(),
         },
         reports: apiserver::ReportState {
             service: report_service,
@@ -555,6 +567,16 @@ pub async fn spawn_app_with_factory() -> (String, Uuid, Uuid, TestFactory, TestD
             pool.clone(),
         ),
     );
+    let feature_flag_repo: Arc<
+        dyn apiserver::repositories::feature_flag_repository::FeatureFlagRepositoryTrait,
+    > = Arc::new(
+        apiserver::repositories::DieselFeatureFlagRepository::new(pool.clone(), diesel_pools.clone()),
+    );
+    let assignment_rule_repo: Arc<
+        dyn apiserver::repositories::assignment_rule_repository::AssignmentRuleRepositoryTrait,
+    > = Arc::new(
+        apiserver::repositories::DieselAssignmentRuleRepository::new(pool.clone(), diesel_pools.clone()),
+    );
     let leave_policy_repo: Arc<
         dyn apiserver::repositories::leave_policy_repository::LeavePolicyRepository,
     > = Arc::new(apiserver::repositories::DieselLeavePolicyRepository::new(
@@ -651,6 +673,7 @@ pub async fn spawn_app_with_factory() -> (String, Uuid, Uuid, TestFactory, TestD
             roster_repo: roster_repo.clone(),
             shift_repo: shift_repo.clone(),
             swap_repo: shift_swap_repo.clone(),
+            assignment_rule_repo: assignment_rule_repo.clone(),
         },
         leaves: apiserver::LeaveState {
             service: leave_service,
@@ -665,6 +688,7 @@ pub async fn spawn_app_with_factory() -> (String, Uuid, Uuid, TestFactory, TestD
             repo: payroll_repo.clone(),
             rule_repo: payroll_rule_repo.clone(),
             department_repo: department_repo.clone(),
+            feature_flag_repo: feature_flag_repo.clone(),
         },
         reports: apiserver::ReportState {
             service: report_service,
@@ -946,6 +970,16 @@ pub async fn setup_app_tower() -> (TestDatabase, TestFactory, Arc<AppState>, axu
             pool.clone(),
         ),
     );
+    let feature_flag_repo: Arc<
+        dyn apiserver::repositories::feature_flag_repository::FeatureFlagRepositoryTrait,
+    > = Arc::new(
+        apiserver::repositories::DieselFeatureFlagRepository::new(pool.clone(), diesel_pools.clone()),
+    );
+    let assignment_rule_repo: Arc<
+        dyn apiserver::repositories::assignment_rule_repository::AssignmentRuleRepositoryTrait,
+    > = Arc::new(
+        apiserver::repositories::DieselAssignmentRuleRepository::new(pool.clone(), diesel_pools.clone()),
+    );
     let leave_policy_repo: Arc<
         dyn apiserver::repositories::leave_policy_repository::LeavePolicyRepository,
     > = Arc::new(apiserver::repositories::DieselLeavePolicyRepository::new(
@@ -1047,6 +1081,7 @@ pub async fn setup_app_tower() -> (TestDatabase, TestFactory, Arc<AppState>, axu
             roster_repo: roster_repo.clone(),
             shift_repo: shift_repo.clone(),
             swap_repo: shift_swap_repo.clone(),
+            assignment_rule_repo: assignment_rule_repo.clone(),
         },
         leaves: apiserver::LeaveState {
             service: leave_service,
@@ -1061,6 +1096,7 @@ pub async fn setup_app_tower() -> (TestDatabase, TestFactory, Arc<AppState>, axu
             repo: payroll_repo.clone(),
             rule_repo: payroll_rule_repo.clone(),
             department_repo: department_repo.clone(),
+            feature_flag_repo: feature_flag_repo.clone(),
         },
         reports: apiserver::ReportState {
             service: report_service,

@@ -118,3 +118,7 @@ pub mod diesel_shift_swap_repository;
 pub use diesel_shift_swap_repository::DieselShiftSwapRepository;
 pub mod diesel_holiday_repository;
 pub use diesel_holiday_repository::DieselHolidayRepository;
+pub mod diesel_feature_flag_repository;
+pub use diesel_feature_flag_repository::DieselFeatureFlagRepository;
+pub mod diesel_assignment_rule_repository;
+pub use diesel_assignment_rule_repository::DieselAssignmentRuleRepository;
