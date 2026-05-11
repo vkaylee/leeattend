@@ -1,4 +1,6 @@
 # mypy: ignore-errors
+import argparse
+import fcntl
 import signal
 import sys
 from pathlib import Path
@@ -884,3 +886,52 @@ class TestOrchestratorLocking:
         with patch("_orchestrator.lifecycle_down"):
             orchestrator.cleanup()
         assert orchestrator.lock_fd is None
+
+    @patch("_orchestrator.subprocess.run")
+    @patch("os.environ.copy", return_value={"POOLER": "true"})
+    def test_pooler_logic_handle_run_prepare(
+        self, mock_env_copy, mock_run, orchestrator, monkeypatch
+    ) -> None:
+        # Test handle_run pooler logic (lines 557-562, 597-633, 645-646)
+        monkeypatch.setenv("POOLER", "true")
+        args = argparse.Namespace(pooler=True, tool="sqlx", args=["prepare", "--", "--tests"])
+
+        class MockCompletedProcess:
+            def __init__(self, stdout, returncode=0):
+                self.stdout = stdout
+                self.returncode = returncode
+
+        call_count = [0]
+
+        def mock_run_effect(*args, **kwargs):
+            call_count[0] += 1
+            if args and "ps" in args[0]:
+                if call_count[0] > 3:  # After a few calls, return healthy
+                    return MockCompletedProcess(stdout="supavisor healthy")
+                return MockCompletedProcess(stdout="supavisor starting")
+            return MockCompletedProcess(stdout="")
+
+        mock_run.side_effect = mock_run_effect
+
+        with patch("time.sleep"):
+            orchestrator.handle_run(args)
+
+        assert mock_run.call_count >= 1
+
+    def test_pooler_logic_handle_test(self, orchestrator) -> None:
+        # Test handle_test pooler logic (lines 366-371)
+        args = argparse.Namespace(
+            target="api",
+            pooler=True,
+            timeout=100,
+            lint_only=False,
+            unit_only=True,
+            e2e_only=False,
+            skip_lint=False,
+            coverage=False,
+            component=None,
+            pattern=None,
+        )
+        orchestrator.dry_run = True
+        orchestrator.handle_test(args)
+        assert orchestrator.env_vars["DATABASE_POOLER_URL"].startswith("postgres://")

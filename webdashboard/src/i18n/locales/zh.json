@@ -1164,7 +1164,35 @@
     "delete_confirm": "common.delete_confirm",
     "present": "common.present",
     "notifications": "通知",
-    "load_more": "加载更多"
+    "load_more": "加载更多",
+    "system_admin": {
+      "tenants": {
+        "modal": {
+          "creating": "Đang tạo...",
+          "create_title": "Tạo Tenant Mới",
+          "submit_btn": "Tạo",
+          "pool_size_label": "Kích thước Pool (Tùy chọn)",
+          "db_name_label": "Tên Cơ Sở Dữ Liệu",
+          "create_db_label": "Tạo physical database mới",
+          "db_name_placeholder": "VD: tenant_abc_db"
+        },
+        "table": {
+          "created_at": "Ngày tạo",
+          "actions": "Thao tác",
+          "updated_at": "Cập nhật lần cuối",
+          "pool_size": "Kích thước Pool",
+          "id": "Tenant ID (UUID)"
+        },
+        "title": "Quản lý Tenants",
+        "messages": {
+          "delete_success": "Xóa tenant thành công",
+          "create_success": "Tạo tenant thành công"
+        },
+        "subtitle": "Quản lý cơ sở dữ liệu và kết nối Supavisor",
+        "confirm_delete": "Bạn có chắc chắn muốn xóa tenant này không? Thao tác này sẽ xóa cấu hình khỏi Supavisor.",
+        "add_btn": "Thêm Tenant"
+      }
+    }
   },
   "dashboard": {
     "title": "仪表板",
@@ -3247,7 +3275,8 @@
     "messages": {
       "assign_error": "分配角色失败",
       "revoke_error": "撤销角色失败",
-      "revoke_success": "system_roles.messages.revoke_success"
+      "revoke_success": "system_roles.messages.revoke_success",
+      "assign_success": "分配角色成功"
     }
   },
   "system_admin": {
@@ -3275,7 +3304,8 @@
         "create_success": "租户创建成功",
         "delete_success": "租户删除成功"
       },
-      "confirm_delete": "您确定要删除此租户吗？这将从 Supavisor 中删除其配置。"
+      "confirm_delete": "您确定要删除此租户吗？这将从 Supavisor 中删除其配置。",
+      "description": "Quản lý các kết nối cơ sở dữ liệu và pools của tenants"
     }
   },
   "status_active_caps": "活动",

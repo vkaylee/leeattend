@@ -38,9 +38,12 @@ async fn test_process_log_success_with_timezone() {
         pool.clone(),
     ));
     let emp_repo: std::sync::Arc<dyn apiserver::repositories::EmployeeRepository> =
-        std::sync::Arc::new(apiserver::repositories::SqlxEmployeeRepository::new(
-            pool.clone(),
-        ));
+        std::sync::Arc::new(
+            apiserver::repositories::diesel_employee_repository::DieselEmployeeRepository::new(
+                pool.clone(),
+                apiserver::diesel_pool::DieselPools::for_test(&test_db.url()),
+            ),
+        );
     let rl_repo: std::sync::Arc<
         dyn apiserver::repositories::raw_attendance_log_repository::RawAttendanceLogRepository,
     > = std::sync::Arc::new(
@@ -137,9 +140,12 @@ async fn test_same_second_punch_with_different_status_allowed() {
         pool.clone(),
     ));
     let emp_repo: std::sync::Arc<dyn apiserver::repositories::EmployeeRepository> =
-        std::sync::Arc::new(apiserver::repositories::SqlxEmployeeRepository::new(
-            pool.clone(),
-        ));
+        std::sync::Arc::new(
+            apiserver::repositories::diesel_employee_repository::DieselEmployeeRepository::new(
+                pool.clone(),
+                apiserver::diesel_pool::DieselPools::for_test(&test_db.url()),
+            ),
+        );
     let rl_repo: std::sync::Arc<
         dyn apiserver::repositories::raw_attendance_log_repository::RawAttendanceLogRepository,
     > = std::sync::Arc::new(

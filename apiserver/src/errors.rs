@@ -12,6 +12,9 @@ pub enum AppError {
     #[error("Database error: {0}")]
     Sqlx(#[from] sqlx::Error),
 
+    #[error("Database error: {0}")]
+    Diesel(#[from] diesel::result::Error),
+
     #[error("Redis error: {0}")]
     Redis(String),
 
@@ -83,7 +86,9 @@ impl From<(StatusCode, String)> for AppError {
 impl AppError {
     pub fn status_code(&self) -> StatusCode {
         match self {
-            Self::Sqlx(_) | Self::Redis(_) | Self::Internal(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            Self::Sqlx(_) | Self::Diesel(_) | Self::Redis(_) | Self::Internal(_) => {
+                StatusCode::INTERNAL_SERVER_ERROR
+            }
             Self::Auth(_) => StatusCode::UNAUTHORIZED,
             Self::Forbidden(_) => StatusCode::FORBIDDEN,
             Self::NotFound(_) => StatusCode::NOT_FOUND,
@@ -95,7 +100,7 @@ impl AppError {
 
     pub fn error_code(&self) -> &'static str {
         match self {
-            Self::Sqlx(_) => "DATABASE_ERROR",
+            Self::Sqlx(_) | Self::Diesel(_) => "DATABASE_ERROR",
             Self::Redis(_) => "REDIS_ERROR",
             Self::Auth(_) => "UNAUTHORIZED",
             Self::Forbidden(_) => "FORBIDDEN",
@@ -116,7 +121,7 @@ impl IntoResponse for AppError {
         // Determine the message to send to the client
         let message = match &self {
             // Hide internal details in production
-            Self::Sqlx(_) | Self::Redis(_) | Self::Internal(_) => {
+            Self::Sqlx(_) | Self::Diesel(_) | Self::Redis(_) | Self::Internal(_) => {
                 // Log the full error for debugging
                 error!(error = ?self, "Internal API Error");
                 "An internal server error occurred.".to_string()

@@ -1,6 +1,5 @@
 use crate::common::E2eTestDatabase;
 
-
 #[tokio::test]
 async fn test_supavisor_connection_and_prepared_statements() {
     let test_db = E2eTestDatabase::new().await;
@@ -21,10 +20,10 @@ async fn test_supavisor_connection_and_prepared_statements() {
         tasks.push(tokio::spawn(async move {
             let row: (Option<i32>,) = sqlx::query_as("SELECT $1::INT as value")
                 .bind(i as i32)
-            .fetch_one(&pool_clone)
-            .await
-            .expect("Failed concurrent query execution");
-            
+                .fetch_one(&pool_clone)
+                .await
+                .expect("Failed concurrent query execution");
+
             assert_eq!(row.0, Some(i as i32));
         }));
     }

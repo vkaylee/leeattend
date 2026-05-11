@@ -13,7 +13,10 @@ use utoipa::ToSchema;
     strum_macros::Display,
     strum_macros::EnumString,
     ToSchema,
+    diesel::expression::AsExpression,
+    diesel::deserialize::FromSqlRow,
 )]
+#[diesel(sql_type = crate::schema::sql_types::ContractTypeEnum)]
 #[sqlx(type_name = "contract_type_enum", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 #[strum(serialize_all = "snake_case")]
@@ -36,7 +39,10 @@ pub enum ContractType {
     strum_macros::Display,
     strum_macros::EnumString,
     ToSchema,
+    diesel::expression::AsExpression,
+    diesel::deserialize::FromSqlRow,
 )]
+#[diesel(sql_type = crate::schema::sql_types::ContractStatusEnum)]
 #[sqlx(type_name = "contract_status_enum", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 #[strum(serialize_all = "snake_case")]

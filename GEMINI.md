@@ -47,6 +47,7 @@ All standard development tools run inside isolated Podman containers. You MUST e
 - Node/NPM: `./scripts/_npm.sh install` (Container: `web_test`)
 - SQLx/DB: `./scripts/_sqlx.sh migrate run` (Container: `apiserver_test`)
 - SQLx Prepare: `./scripts/_sqlx.sh prepare --workspace` (Must be run after tests fail with SQLX_OFFLINE=true error, requires test DB to be up)
+- Diesel/DB: `./scripts/_diesel.sh print-schema` (Container: `apiserver_test`)
 
 **2. Test Execution & Coverage**
 - NEVER run `cargo test` directly on the host (especially on WSL2 due to I/O freezes). ALWAYS use `./test.sh`.

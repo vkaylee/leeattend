@@ -17,7 +17,7 @@ use crate::repositories::time_entry_repository::TimeEntryRepository;
 use crate::repositories::user_repository::UserRepository;
 use crate::repositories::workspace_stats_repository::WorkspaceStatsRepository;
 use crate::repositories::{
-    AgentRepository, EmployeeRepository, SqlxEmployeeContractRepository, WorkspaceRepository,
+    AgentRepository, DieselEmployeeContractRepository, EmployeeRepository, WorkspaceRepository,
 };
 use crate::services::attendance_adjustment_service::AttendanceAdjustmentService;
 use crate::services::attendance_import_service::AttendanceImportService;
@@ -43,7 +43,7 @@ pub use crate::queue::RedisPool;
 pub struct EmployeeState {
     pub service: Arc<EmployeeService>,
     pub repo: Arc<dyn EmployeeRepository>,
-    pub contract_repo: Arc<SqlxEmployeeContractRepository>,
+    pub contract_repo: Arc<DieselEmployeeContractRepository>,
 }
 
 /// Time & attendance tracking, summaries, logs, staging, adjustments, imports
@@ -112,6 +112,7 @@ pub struct AgentState {
 /// Infrastructure — DB, Redis, caches
 pub struct InfraState {
     pub db: DbPools,
+    pub diesel: crate::diesel_pool::DieselPools,
     pub redis: Option<RedisPool>,
     pub roster_cache: Option<Arc<crate::cache::RosterCache>>,
 }

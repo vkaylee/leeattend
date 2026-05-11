@@ -59,7 +59,10 @@ async fn test_accrual_scenarios() {
 
     // Run Accrual for Jan 1, 2026
     let employee_repo: Arc<dyn apiserver::repositories::EmployeeRepository> = Arc::new(
-        apiserver::repositories::SqlxEmployeeRepository::new(pool.clone()),
+        apiserver::repositories::diesel_employee_repository::DieselEmployeeRepository::new(
+            pool.clone(),
+            apiserver::diesel_pool::DieselPools::for_test(&test_db.url()),
+        ),
     );
     let department_repo: Arc<
         dyn apiserver::repositories::department_repository::DepartmentRepository,
@@ -136,7 +139,10 @@ async fn test_performance_based_accrual() {
 
     // Run accrual for Feb 1 (checking Jan)
     let employee_repo: Arc<dyn apiserver::repositories::EmployeeRepository> = Arc::new(
-        apiserver::repositories::SqlxEmployeeRepository::new(pool.clone()),
+        apiserver::repositories::diesel_employee_repository::DieselEmployeeRepository::new(
+            pool.clone(),
+            apiserver::diesel_pool::DieselPools::for_test(&test_db.url()),
+        ),
     );
     let department_repo: Arc<
         dyn apiserver::repositories::department_repository::DepartmentRepository,
@@ -218,7 +224,10 @@ async fn test_accrual_recalculation() {
         .await;
 
     let employee_repo: Arc<dyn apiserver::repositories::EmployeeRepository> = Arc::new(
-        apiserver::repositories::SqlxEmployeeRepository::new(pool.clone()),
+        apiserver::repositories::diesel_employee_repository::DieselEmployeeRepository::new(
+            pool.clone(),
+            apiserver::diesel_pool::DieselPools::for_test(&test_db.url()),
+        ),
     );
     let department_repo: Arc<
         dyn apiserver::repositories::department_repository::DepartmentRepository,

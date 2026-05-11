@@ -45,9 +45,12 @@ async fn test_import_csv_with_line_errors() {
     );
     let adj_repo: std::sync::Arc<dyn apiserver::repositories::attendance_adjustment_repository::AttendanceAdjustmentRepository> = std::sync::Arc::new(apiserver::repositories::attendance_adjustment_repository::SqlxAttendanceAdjustmentRepository::new(pool.clone()));
     let employee_repo: std::sync::Arc<dyn apiserver::repositories::EmployeeRepository> =
-        std::sync::Arc::new(apiserver::repositories::SqlxEmployeeRepository::new(
-            pool.clone(),
-        ));
+        std::sync::Arc::new(
+            apiserver::repositories::diesel_employee_repository::DieselEmployeeRepository::new(
+                pool.clone(),
+                apiserver::diesel_pool::DieselPools::for_test(&test_db.url()),
+            ),
+        );
     let job_id = AttendanceImportService::new(
         import_repo,
         adj_repo,
@@ -399,9 +402,12 @@ async fn test_employee_import_duplicate_department_prevention() {
     };
 
     let employee_repo: std::sync::Arc<dyn apiserver::repositories::EmployeeRepository> =
-        std::sync::Arc::new(apiserver::repositories::SqlxEmployeeRepository::new(
-            pool.clone(),
-        ));
+        std::sync::Arc::new(
+            apiserver::repositories::diesel_employee_repository::DieselEmployeeRepository::new(
+                pool.clone(),
+                apiserver::diesel_pool::DieselPools::for_test(&test_db.url()),
+            ),
+        );
 
     let msgs = AttendanceImportMessages::for_lang("vi");
 

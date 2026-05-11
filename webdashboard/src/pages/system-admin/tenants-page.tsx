@@ -71,7 +71,7 @@ export default function TenantsPage() {
 
   const handleDelete = async (id: string) => {
     const isConfirmed = await confirm({
-      title: t("delete_confirm"),
+      title: t("common.delete_confirm"),
       message: t("system_admin.tenants.confirm_delete"),
       variant: "danger",
     });

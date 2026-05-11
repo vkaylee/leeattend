@@ -108,6 +108,7 @@ impl DbPools {
             .max_connections(config.api_max_conn)
             .acquire_timeout(Duration::from_secs(config.api_acquire_timeout_secs))
             .connect_with(
+                #[allow(clippy::needless_borrow)]
                 PgConnectOptions::from_str(&api_conn_url)
                     .expect("Invalid API connection URL")
                     .statement_cache_capacity(0), // Crucial for PgBouncer/Supavisor in transaction mode
@@ -120,6 +121,7 @@ impl DbPools {
             .max_connections(config.worker_max_conn)
             .acquire_timeout(Duration::from_secs(config.worker_acquire_timeout_secs))
             .connect_with(
+                #[allow(clippy::needless_borrow)]
                 PgConnectOptions::from_str(&worker_conn_url)
                     .expect("Invalid Worker connection URL")
                     .statement_cache_capacity(0), // Crucial for PgBouncer/Supavisor in transaction mode
@@ -134,6 +136,7 @@ impl DbPools {
                 .max_connections(config.api_max_conn)
                 .acquire_timeout(Duration::from_secs(config.api_acquire_timeout_secs))
                 .connect_with(
+                    #[allow(clippy::needless_borrow)]
                     PgConnectOptions::from_str(&reader_conn_url)
                         .expect("Invalid Reader connection URL")
                         .statement_cache_capacity(0), // Crucial for PgBouncer/Supavisor in transaction mode

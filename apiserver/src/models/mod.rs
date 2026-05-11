@@ -11,6 +11,7 @@ pub mod auth;
 pub mod common;
 pub mod contract;
 pub mod department;
+pub mod diesel;
 pub mod employee;
 pub mod employment_phase;
 pub mod enums;

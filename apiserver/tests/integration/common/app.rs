@@ -18,9 +18,15 @@ use super::factory::TestFactory;
 pub async fn spawn_app() -> (String, TestDatabase) {
     let test_db = TestDatabase::new().await;
     let pool = test_db.pool();
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
 
     let agent_manager = AgentManager::new(None);
-    let agent_repo = Arc::new(apiserver::repositories::SqlxAgentRepository { pool: pool.clone() });
+    let agent_repo = Arc::new(
+        apiserver::repositories::diesel_agent_repository::DieselAgentRepository::new(
+            pool.clone(),
+            diesel_pools.clone(),
+        ),
+    );
     let workspace_repo =
         Arc::new(apiserver::repositories::SqlxWorkspaceRepository { pool: pool.clone() });
     let agent_service = Arc::new(apiserver::services::AgentService::new(
@@ -28,9 +34,12 @@ pub async fn spawn_app() -> (String, TestDatabase) {
         agent_manager.clone(),
     ));
 
-    let employee_repo = Arc::new(apiserver::repositories::SqlxEmployeeRepository::new(
-        pool.clone(),
-    ));
+    let employee_repo = Arc::new(
+        apiserver::repositories::diesel_employee_repository::DieselEmployeeRepository::new(
+            pool.clone(),
+            diesel_pools.clone(),
+        ),
+    );
     let employee_service = Arc::new(apiserver::services::EmployeeService::new(
         employee_repo.clone(),
         pool.clone(),
@@ -196,7 +205,7 @@ pub async fn spawn_app() -> (String, TestDatabase) {
         employees: apiserver::EmployeeState {
             service: employee_service,
             repo: employee_repo.clone(),
-            contract_repo: Arc::new(apiserver::repositories::employee_contract_repository::SqlxEmployeeContractRepository { pool: pool.clone() }),
+            contract_repo: Arc::new(apiserver::repositories::diesel_employee_contract_repository::DieselEmployeeContractRepository::new(pool.clone(), diesel_pools.clone())),
         },
         attendance: apiserver::AttendanceState {
             time_tracking_service,
@@ -260,8 +269,9 @@ pub async fn spawn_app() -> (String, TestDatabase) {
             workspace_service,
             workspace_repo: workspace_repo.clone(),
             audit_repo: Arc::new(
-                apiserver::repositories::audit_log_repository::SqlxAuditLogRepository::new(
+                apiserver::repositories::diesel_audit_log_repository::DieselAuditLogRepository::new(
                     pool.clone(),
+                    diesel_pools.clone(),
                 ),
             ),
             user_repo: Arc::new(
@@ -275,6 +285,7 @@ pub async fn spawn_app() -> (String, TestDatabase) {
             repo: agent_repo.clone(),
         },
         infra: apiserver::InfraState {
+            diesel: diesel_pools.clone(),
             db: apiserver::db_pool::DbPools::for_test(pool.clone()),
             redis: if let Ok(url) = std::env::var("REDIS_URL") {
                 Some(
@@ -307,6 +318,7 @@ pub async fn spawn_app() -> (String, TestDatabase) {
 pub async fn spawn_app_with_factory() -> (String, Uuid, Uuid, TestFactory, TestDatabase) {
     let test_db = TestDatabase::new().await;
     let db_pool = test_db.pool();
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
 
     let factory = TestFactory::new(db_pool.clone());
 
@@ -319,9 +331,12 @@ pub async fn spawn_app_with_factory() -> (String, Uuid, Uuid, TestFactory, TestD
         .await;
 
     let agent_manager = AgentManager::new(None);
-    let agent_repo = Arc::new(apiserver::repositories::SqlxAgentRepository {
-        pool: db_pool.clone(),
-    });
+    let agent_repo = Arc::new(
+        apiserver::repositories::diesel_agent_repository::DieselAgentRepository::new(
+            db_pool.clone(),
+            diesel_pools.clone(),
+        ),
+    );
     let workspace_repo = Arc::new(apiserver::repositories::SqlxWorkspaceRepository {
         pool: db_pool.clone(),
     });
@@ -331,9 +346,12 @@ pub async fn spawn_app_with_factory() -> (String, Uuid, Uuid, TestFactory, TestD
     ));
 
     let pool = db_pool.clone();
-    let employee_repo = Arc::new(apiserver::repositories::SqlxEmployeeRepository::new(
-        pool.clone(),
-    ));
+    let employee_repo = Arc::new(
+        apiserver::repositories::diesel_employee_repository::DieselEmployeeRepository::new(
+            pool.clone(),
+            diesel_pools.clone(),
+        ),
+    );
     let employee_service = Arc::new(apiserver::services::EmployeeService::new(
         employee_repo.clone(),
         pool.clone(),
@@ -499,7 +517,7 @@ pub async fn spawn_app_with_factory() -> (String, Uuid, Uuid, TestFactory, TestD
         employees: apiserver::EmployeeState {
             service: employee_service,
             repo: employee_repo.clone(),
-            contract_repo: Arc::new(apiserver::repositories::employee_contract_repository::SqlxEmployeeContractRepository { pool: db_pool.clone() }),
+            contract_repo: Arc::new(apiserver::repositories::diesel_employee_contract_repository::DieselEmployeeContractRepository::new(db_pool.clone(), diesel_pools.clone())),
         },
         attendance: apiserver::AttendanceState {
             time_tracking_service,
@@ -563,8 +581,9 @@ pub async fn spawn_app_with_factory() -> (String, Uuid, Uuid, TestFactory, TestD
             workspace_service,
             workspace_repo: workspace_repo.clone(),
             audit_repo: Arc::new(
-                apiserver::repositories::audit_log_repository::SqlxAuditLogRepository::new(
+                apiserver::repositories::diesel_audit_log_repository::DieselAuditLogRepository::new(
                     db_pool.clone(),
+                    diesel_pools.clone(),
                 ),
             ),
             user_repo: Arc::new(
@@ -578,6 +597,7 @@ pub async fn spawn_app_with_factory() -> (String, Uuid, Uuid, TestFactory, TestD
             repo: agent_repo.clone(),
         },
             infra: apiserver::InfraState {
+                diesel: diesel_pools.clone(),
             db: apiserver::db_pool::DbPools::for_test(db_pool.clone()),
             redis: if let Ok(url) = std::env::var("REDIS_URL") {
                 let mut pool = None;
@@ -648,11 +668,15 @@ pub async fn spawn_app_with_member() -> (String, Uuid, Uuid, Uuid, TestFactory, 
 pub async fn setup_app_tower() -> (TestDatabase, TestFactory, Arc<AppState>, axum::Router) {
     let test_db = TestDatabase::new().await;
     let pool = test_db.pool().clone();
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
     let factory = TestFactory::new(pool.clone());
 
-    let agent_repo = Arc::new(apiserver::repositories::SqlxAgentRepository::new(
-        pool.clone(),
-    ));
+    let agent_repo = Arc::new(
+        apiserver::repositories::diesel_agent_repository::DieselAgentRepository::new(
+            pool.clone(),
+            diesel_pools.clone(),
+        ),
+    );
     let workspace_repo =
         Arc::new(apiserver::repositories::SqlxWorkspaceRepository { pool: pool.clone() });
     let agent_manager = AgentManager::new(None);
@@ -661,9 +685,12 @@ pub async fn setup_app_tower() -> (TestDatabase, TestFactory, Arc<AppState>, axu
         agent_manager.clone(),
     ));
 
-    let employee_repo = Arc::new(apiserver::repositories::SqlxEmployeeRepository::new(
-        pool.clone(),
-    ));
+    let employee_repo = Arc::new(
+        apiserver::repositories::diesel_employee_repository::DieselEmployeeRepository::new(
+            pool.clone(),
+            diesel_pools.clone(),
+        ),
+    );
     let employee_service = Arc::new(apiserver::services::EmployeeService::new(
         employee_repo.clone(),
         pool.clone(),
@@ -829,7 +856,7 @@ pub async fn setup_app_tower() -> (TestDatabase, TestFactory, Arc<AppState>, axu
         employees: apiserver::EmployeeState {
             service: employee_service,
             repo: employee_repo.clone(),
-            contract_repo: Arc::new(apiserver::repositories::employee_contract_repository::SqlxEmployeeContractRepository { pool: pool.clone() }),
+            contract_repo: Arc::new(apiserver::repositories::diesel_employee_contract_repository::DieselEmployeeContractRepository::new(pool.clone(), diesel_pools.clone())),
         },
         attendance: apiserver::AttendanceState {
             time_tracking_service,
@@ -889,8 +916,9 @@ pub async fn setup_app_tower() -> (TestDatabase, TestFactory, Arc<AppState>, axu
             workspace_service,
             workspace_repo: workspace_repo.clone(),
             audit_repo: Arc::new(
-                apiserver::repositories::audit_log_repository::SqlxAuditLogRepository::new(
+                apiserver::repositories::diesel_audit_log_repository::DieselAuditLogRepository::new(
                     pool.clone(),
+                    diesel_pools.clone(),
                 ),
             ),
             user_repo: Arc::new(
@@ -904,6 +932,7 @@ pub async fn setup_app_tower() -> (TestDatabase, TestFactory, Arc<AppState>, axu
             repo: agent_repo.clone(),
         },
         infra: apiserver::InfraState {
+            diesel: diesel_pools.clone(),
             db: apiserver::db_pool::DbPools::for_test(pool.clone()),
             redis: if let Ok(url) = std::env::var("REDIS_URL") {
                 let mut redis_pool = None;

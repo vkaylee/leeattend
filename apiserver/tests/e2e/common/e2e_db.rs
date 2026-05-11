@@ -28,7 +28,10 @@ impl E2eTestDatabase {
             .or_else(|_| std::env::var("DATABASE_URL"))
             .expect("DATABASE_URL_FOR_TEST_GENERATION or DATABASE_URL must be set");
 
-        assert!(!base_url.contains("leeattzkt"), "SAFETY TRIGGERED: Tests are attempting to run against production!");
+        assert!(
+            !base_url.contains("leeattzkt"),
+            "SAFETY TRIGGERED: Tests are attempting to run against production!"
+        );
 
         let mut url_parts: Vec<&str> = base_url.split('/').collect();
         let _ = url_parts.pop().unwrap_or("postgres");
@@ -43,7 +46,7 @@ impl E2eTestDatabase {
         // 1. Create Physical Database via Direct Connection
         let mut connection = Self::connect_with_retries(&admin_url).await;
         let sql = format!("CREATE DATABASE \"{db_name}\" TEMPLATE leeattend_test_template");
-        
+
         let mut create_result = Err(sqlx::Error::PoolClosed);
         for attempt in 0..5 {
             create_result = connection.execute(sql.as_str()).await;
@@ -55,8 +58,11 @@ impl E2eTestDatabase {
 
         if let Err(e) = create_result {
             eprintln!("Warning: Failed to create database from template: {e}. Falling back to manual migration.");
-            connection.execute(format!("CREATE DATABASE \"{db_name}\"").as_str()).await.expect("Fallback failed");
-            
+            connection
+                .execute(format!("CREATE DATABASE \"{db_name}\"").as_str())
+                .await
+                .expect("Fallback failed");
+
             let direct_db_url = format!("{base_connection_string}/{db_name}");
             let pool = PgPool::connect(&direct_db_url).await.unwrap();
             sqlx::migrate!("../migrations").run(&pool).await.unwrap();
@@ -73,12 +79,13 @@ impl E2eTestDatabase {
 
         // 3. Connect via Supavisor Pooler
         let supavisor_port = std::env::var("SUPAVISOR_PORT").unwrap_or_else(|_| "5452".to_string());
-        let supavisor_host = std::env::var("SUPAVISOR_HOST").unwrap_or_else(|_| "supavisor".to_string());
-        
+        let supavisor_host =
+            std::env::var("SUPAVISOR_HOST").unwrap_or_else(|_| "supavisor".to_string());
+
         let parsed_url = reqwest::Url::parse(&base_url).unwrap();
         let pooler_user = parsed_url.username().to_string();
         let pooler_pass = parsed_url.password().unwrap_or("").to_string();
-        
+
         // Supavisor connection string: postgres://{user}.{tenant}:{password}@{host}:{port}/{dbname}
         let pooler_url = format!(
             "postgres://{}.{}:{}@{}:{}/{}",
@@ -108,37 +115,49 @@ impl E2eTestDatabase {
     }
 
     async fn register_tenant(db_name: &str, tenant_id: &str) {
-        let api_url = std::env::var("SUPAVISOR_API_URL").unwrap_or_else(|_| "http://supavisor:4000".to_string());
-        let jwt_secret = std::env::var("API_JWT_SECRET").unwrap_or_else(|_| "your-super-secret-jwt-token-with-at-least-32-bytes-long".to_string());
-        
+        let api_url = std::env::var("SUPAVISOR_API_URL")
+            .unwrap_or_else(|_| "http://supavisor:4000".to_string());
+        let jwt_secret = std::env::var("API_JWT_SECRET").unwrap_or_else(|_| {
+            "your-super-secret-jwt-token-with-at-least-32-bytes-long".to_string()
+        });
+
         let token = Self::generate_jwt(&jwt_secret);
         let payload = Self::build_payload(db_name);
 
         let client = reqwest::Client::new();
         let url = format!("{}/api/tenants/{tenant_id}", api_url.trim_end_matches('/'));
 
-        let resp = client.put(&url)
+        let resp = client
+            .put(&url)
             .header("Authorization", format!("Bearer {token}"))
             .json(&payload)
             .send()
             .await
             .expect("Failed to reach Supavisor API");
-        
-        assert!(resp.status().is_success(), "Failed to register tenant: {:?}", resp.text().await);
-        
+
+        assert!(
+            resp.status().is_success(),
+            "Failed to register tenant: {:?}",
+            resp.text().await
+        );
+
         // Sleep a tiny bit to ensure Supavisor propagates the new tenant config internally
         tokio::time::sleep(std::time::Duration::from_millis(100)).await;
     }
 
     async fn delete_tenant(tenant_id: &str) {
-        let api_url = std::env::var("SUPAVISOR_API_URL").unwrap_or_else(|_| "http://supavisor:4000".to_string());
-        let jwt_secret = std::env::var("API_JWT_SECRET").unwrap_or_else(|_| "your-super-secret-jwt-token-with-at-least-32-bytes-long".to_string());
+        let api_url = std::env::var("SUPAVISOR_API_URL")
+            .unwrap_or_else(|_| "http://supavisor:4000".to_string());
+        let jwt_secret = std::env::var("API_JWT_SECRET").unwrap_or_else(|_| {
+            "your-super-secret-jwt-token-with-at-least-32-bytes-long".to_string()
+        });
         let token = Self::generate_jwt(&jwt_secret);
 
         let client = reqwest::Client::new();
         let url = format!("{}/api/tenants/{tenant_id}", api_url.trim_end_matches('/'));
 
-        let _ = client.delete(&url)
+        let _ = client
+            .delete(&url)
             .header("Authorization", format!("Bearer {token}"))
             .send()
             .await;
@@ -146,16 +165,27 @@ impl E2eTestDatabase {
 
     fn generate_jwt(secret: &str) -> String {
         #[derive(Debug, Serialize, Deserialize)]
-        struct Claims { iat: usize, exp: usize }
+        struct Claims {
+            iat: usize,
+            exp: usize,
+        }
         let iat = chrono::Utc::now().timestamp() as usize;
-        let claims = Claims { iat, exp: iat + 3600 };
-        encode(&Header::new(Algorithm::HS256), &claims, &EncodingKey::from_secret(secret.as_bytes())).unwrap()
+        let claims = Claims {
+            iat,
+            exp: iat + 3600,
+        };
+        encode(
+            &Header::new(Algorithm::HS256),
+            &claims,
+            &EncodingKey::from_secret(secret.as_bytes()),
+        )
+        .unwrap()
     }
 
     fn build_payload(db_name: &str) -> serde_json::Value {
         let base_url = std::env::var("DATABASE_URL").unwrap();
         let parsed_url = reqwest::Url::parse(&base_url).unwrap();
-        
+
         let db_user = parsed_url.username().to_string();
         let db_password = parsed_url.password().unwrap_or("").to_string();
         let db_host = parsed_url.host_str().unwrap_or("db").to_string();
@@ -223,7 +253,10 @@ impl E2eTestDatabase {
 
     fn cleanup_blocking(tenant_id: String, admin_url: String) {
         let handle = std::thread::spawn(move || {
-            if let Ok(rt) = tokio::runtime::Builder::new_current_thread().enable_all().build() {
+            if let Ok(rt) = tokio::runtime::Builder::new_current_thread()
+                .enable_all()
+                .build()
+            {
                 let _ = rt.block_on(Self::cleanup_database_async(&tenant_id, &admin_url));
             }
         });

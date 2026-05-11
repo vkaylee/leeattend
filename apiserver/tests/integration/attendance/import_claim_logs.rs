@@ -57,9 +57,12 @@ async fn test_import_employee_claims_staged_logs() -> Result<(), Box<dyn std::er
     );
     let adj_repo: std::sync::Arc<dyn apiserver::repositories::attendance_adjustment_repository::AttendanceAdjustmentRepository> = std::sync::Arc::new(apiserver::repositories::attendance_adjustment_repository::SqlxAttendanceAdjustmentRepository::new(pool.clone()));
     let emp_repo: std::sync::Arc<dyn apiserver::repositories::EmployeeRepository> =
-        std::sync::Arc::new(apiserver::repositories::SqlxEmployeeRepository::new(
-            pool.clone(),
-        ));
+        std::sync::Arc::new(
+            apiserver::repositories::diesel_employee_repository::DieselEmployeeRepository::new(
+                pool.clone(),
+                apiserver::diesel_pool::DieselPools::for_test(&test_db.url()),
+            ),
+        );
     let import_service = AttendanceImportService::new(
         import_repo,
         adj_repo,
@@ -182,9 +185,12 @@ async fn test_import_existing_employee_claims_staged_logs() -> Result<(), Box<dy
     );
     let adj_repo: std::sync::Arc<dyn apiserver::repositories::attendance_adjustment_repository::AttendanceAdjustmentRepository> = std::sync::Arc::new(apiserver::repositories::attendance_adjustment_repository::SqlxAttendanceAdjustmentRepository::new(pool.clone()));
     let emp_repo: std::sync::Arc<dyn apiserver::repositories::EmployeeRepository> =
-        std::sync::Arc::new(apiserver::repositories::SqlxEmployeeRepository::new(
-            pool.clone(),
-        ));
+        std::sync::Arc::new(
+            apiserver::repositories::diesel_employee_repository::DieselEmployeeRepository::new(
+                pool.clone(),
+                apiserver::diesel_pool::DieselPools::for_test(&test_db.url()),
+            ),
+        );
     let import_service = AttendanceImportService::new(
         import_repo,
         adj_repo,

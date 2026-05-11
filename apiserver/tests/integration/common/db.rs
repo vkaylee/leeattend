@@ -120,6 +120,13 @@ impl TestDatabase {
         }
     }
 
+    pub fn url(&self) -> String {
+        let mut url_parts: Vec<&str> = self.base_url.split('/').collect();
+        url_parts.pop();
+        let base = url_parts.join("/");
+        format!("{}/{}", base, self.db_name)
+    }
+
     fn init_trap() {
         SIGNAL_HANDLER_INITIALIZED.get_or_init(|| {
             tokio::spawn(async move {

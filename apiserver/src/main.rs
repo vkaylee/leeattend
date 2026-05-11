@@ -64,6 +64,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     apiserver::supavisor::init_supavisor_tenant().await;
 
     let db_pools = DbPools::connect(&db_config).await;
+    let diesel_pools = apiserver::diesel_pool::DieselPools::connect(&db_config).await;
 
     // ╔═══════════════════════════════════════════════════════════════╗
     // ║  POOL ASSIGNMENT RULES                                       ║
@@ -81,7 +82,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let redis_pool = init_redis().await;
     tracing::info!("Redis initialization complete");
 
-    let (state, workers) = AppState::build(db_pools, redis_pool).await?;
+    let (state, workers) = AppState::build(db_pools, diesel_pools, redis_pool).await?;
 
     let app = create_app(state.clone());
 

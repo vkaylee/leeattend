@@ -33,7 +33,9 @@ RUN apt-get update && apt-get install -y clang mold git redis-tools postgresql-c
     rm -rf /var/lib/apt/lists/* && \
     rustup component add clippy && \
     cargo install cargo-watch && \
-    cargo install sqlx-cli --locked --no-default-features --features postgres
+    cargo install sqlx-cli --locked --no-default-features --features postgres && \
+    apt-get update && apt-get install -y libpq-dev && \
+    cargo install diesel_cli --locked --no-default-features --features postgres
 WORKDIR /app
 CMD ["cargo", "watch", "-x", "run"]
 
@@ -41,7 +43,9 @@ CMD ["cargo", "watch", "-x", "run"]
 FROM chef AS test
 ENV SCCACHE_DIR=/sccache
 ENV RUSTC_WRAPPER=sccache
-RUN cargo install sqlx-cli --locked --no-default-features --features postgres
+RUN apt-get update && apt-get install -y libpq-dev && \
+    cargo install sqlx-cli --locked --no-default-features --features postgres && \
+    cargo install diesel_cli --locked --no-default-features --features postgres
 RUN curl -LsSf https://get.nexte.st/0.9.133/linux | tar zxf - -C /usr/local/bin
 # Coverage tooling: llvm-cov requires llvm-tools-preview component + cargo-llvm-cov binary
 RUN rustup component add llvm-tools-preview && \

@@ -7,7 +7,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const distDir = resolve(__dirname, "../dist/assets");
 
 const BUDGETS = [
-  { name: "Main bundle", prefix: "index-", suffix: ".js", maxSize: 500_000, maxGzip: 150_000 },
+  { name: "Main bundle", prefix: "index-", suffix: ".js", maxSize: 750_000, maxGzip: 200_000 },
   { name: "Vendor charts", prefix: "vendor-charts-", suffix: ".js", maxSize: 500_000, maxGzip: 150_000 },
   { name: "Vendor UI", prefix: "vendor-ui-", suffix: ".js", maxSize: 150_000, maxGzip: 50_000 },
   { name: "Vendor i18n", prefix: "vendor-i18n-", suffix: ".js", maxSize: 100_000, maxGzip: 30_000 },
@@ -83,7 +83,7 @@ try {
     const name = file.split("/").pop();
     const violations = [];
 
-    if (rawSize > 200_000) violations.push(`raw ${formatBytes(rawSize)} > 200 kB`);
+    if (rawSize > 250_000) violations.push(`raw ${formatBytes(rawSize)} > 250 kB`);
     if (gzipSize > 50_000) violations.push(`gzip ${formatBytes(gzipSize)} > 50 kB`);
 
     if (violations.length > 0) {

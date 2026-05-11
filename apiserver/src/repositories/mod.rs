@@ -26,6 +26,7 @@ pub mod agent_repository;
 pub mod assignment_rule_repository;
 pub mod attendance_adjustment_repository;
 pub mod department_repository;
+pub mod diesel_department_repository;
 pub mod employee;
 pub use employee::{EmployeeRepository, SqlxEmployeeRepository};
 pub mod feature_flag_repository;
@@ -61,10 +62,17 @@ pub mod leave_accrual_log_repository;
 pub mod leave_policy_repository;
 pub mod overtime_policy_repository;
 pub mod staging_log_repository;
-pub use audit_log_repository::{AuditLogRepository, SqlxAuditLogRepository};
+pub use audit_log_repository::AuditLogRepository;
 pub mod attendance_policy_repository;
 pub use attendance_policy_repository::{
     AttendancePolicyRepository, SqlxAttendancePolicyRepository,
 };
 pub mod workspace_stats_repository;
 pub use workspace_stats_repository::{SqlxWorkspaceStatsRepository, WorkspaceStatsRepository};
+pub mod diesel_employee_contract_repository;
+pub mod diesel_employee_repository;
+pub use diesel_employee_contract_repository::DieselEmployeeContractRepository;
+pub mod diesel_agent_repository;
+pub use diesel_agent_repository::DieselAgentRepository;
+pub mod diesel_audit_log_repository;
+pub use diesel_audit_log_repository::DieselAuditLogRepository;

@@ -5,7 +5,6 @@ use tokio_util::sync::CancellationToken;
 use crate::agent_manager::AgentManager;
 use crate::db_pool::DbPools;
 use crate::queue::RedisPool;
-use crate::repositories::PoolBacked;
 use crate::services::{AttendanceLogService, ReportCoordinator};
 use crate::state::AppState;
 use crate::worker::{HousekeepingScheduler, JobWorker, WorkerConfig};
@@ -21,6 +20,7 @@ impl AppState {
     #[allow(clippy::too_many_lines)]
     pub async fn build(
         db_pools: DbPools,
+        diesel_pools: crate::diesel_pool::DieselPools,
         redis_pool: Option<RedisPool>,
     ) -> Result<(Arc<Self>, AppWorkers), Box<dyn std::error::Error>> {
         // Use API pool for application-level initialization (HTTP handlers, CRUD)
@@ -35,8 +35,12 @@ impl AppState {
                 .clone()
                 .map(|p| Arc::new(p) as Arc<dyn crate::agent_manager::PresenceStore>),
         );
-        let agent_repo: Arc<dyn crate::repositories::agent_repository::AgentRepository> =
-            Arc::new(crate::repositories::SqlxAgentRepository::new(pool.clone()));
+        let agent_repo: Arc<dyn crate::repositories::agent_repository::AgentRepository> = Arc::new(
+            crate::repositories::diesel_agent_repository::DieselAgentRepository::new(
+                pool.clone(),
+                diesel_pools.clone(),
+            ),
+        );
         let workspace_repo: Arc<
             dyn crate::repositories::workspace_repository::WorkspaceRepository,
         > = Arc::new(crate::repositories::SqlxWorkspaceRepository::new(
@@ -44,8 +48,9 @@ impl AppState {
         ));
         let audit_repo: Arc<dyn crate::repositories::audit_log_repository::AuditLogRepository> =
             Arc::new(
-                crate::repositories::audit_log_repository::SqlxAuditLogRepository::new(
+                crate::repositories::diesel_audit_log_repository::DieselAuditLogRepository::new(
                     pool.clone(),
+                    diesel_pools.clone(),
                 ),
             );
         let agent_service = Arc::new(crate::services::AgentService::new(
@@ -53,14 +58,17 @@ impl AppState {
             agent_manager.clone(),
         ));
         let employee_repo: Arc<dyn crate::repositories::employee::EmployeeRepository> = Arc::new(
-            crate::repositories::SqlxEmployeeRepository::new(pool.clone()),
+            crate::repositories::diesel_employee_repository::DieselEmployeeRepository::new(
+                pool.clone(),
+                diesel_pools.clone(),
+            ),
         );
         let employee_service = Arc::new(crate::services::EmployeeService::new(
             Arc::clone(&employee_repo),
             pool.clone(),
         ));
         let contract_repo =
-            Arc::new(crate::repositories::SqlxEmployeeContractRepository::from_pool(pool.clone()));
+            Arc::new(crate::repositories::diesel_employee_contract_repository::DieselEmployeeContractRepository::new(pool.clone(), diesel_pools.clone()));
         let time_entry_repo: Arc<
             dyn crate::repositories::time_entry_repository::TimeEntryRepository,
         > = Arc::new(crate::repositories::SqlxTimeEntryRepository::new(
@@ -177,7 +185,10 @@ impl AppState {
         let department_repo: Arc<
             dyn crate::repositories::department_repository::DepartmentRepository,
         > = Arc::new(
-            crate::repositories::department_repository::SqlxDepartmentRepository::new(pool.clone()),
+            crate::repositories::diesel_department_repository::DieselDepartmentRepository::new(
+                pool.clone(),
+                diesel_pools.clone(),
+            ),
         );
         let leave_policy_repo: Arc<
             dyn crate::repositories::leave_policy_repository::LeavePolicyRepository,
@@ -374,6 +385,7 @@ impl AppState {
             },
             infra: crate::InfraState {
                 db: db_pools,
+                diesel: diesel_pools,
                 redis: redis_pool,
                 roster_cache,
             },

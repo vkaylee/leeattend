@@ -78,6 +78,7 @@ class Orchestrator:
             "npm": "webdashboard",
             "cargo": "apiserver",
             "sqlx": "apiserver",
+            "diesel": "apiserver",
         }
         self.setup_parser()
         self.dry_run = False
@@ -364,7 +365,9 @@ class Orchestrator:
             # This triggers infra-pooler in handle_run
             supavisor_host = os.environ.get("SUPAVISOR_HOST", "supavisor")
             supavisor_port = os.environ.get("SUPAVISOR_PORT", "6543")
-            os.environ["DATABASE_POOLER_URL"] = f"postgres://test_user.test_database:test_password@{supavisor_host}:{supavisor_port}/test_database"
+            os.environ["DATABASE_POOLER_URL"] = (
+                f"postgres://test_user.test_database:test_password@{supavisor_host}:{supavisor_port}/test_database"
+            )
             self.env_vars["DATABASE_POOLER_URL"] = os.environ["DATABASE_POOLER_URL"]
 
         if target == "all" and not (args.lint_only or args.unit_only or args.e2e_only):
@@ -553,7 +556,9 @@ class Orchestrator:
         if getattr(args, "pooler", False):
             supavisor_host = os.environ.get("SUPAVISOR_HOST", "supavisor")
             supavisor_port = os.environ.get("SUPAVISOR_PORT", "6543")
-            os.environ["DATABASE_POOLER_URL"] = f"postgres://test_user.test_database:test_password@{supavisor_host}:{supavisor_port}/test_database"
+            os.environ["DATABASE_POOLER_URL"] = (
+                f"postgres://test_user.test_database:test_password@{supavisor_host}:{supavisor_port}/test_database"
+            )
             self.env_vars["DATABASE_POOLER_URL"] = os.environ["DATABASE_POOLER_URL"]
 
         # Resolve target service dynamically based on context
@@ -583,7 +588,7 @@ class Orchestrator:
             self.env_vars.get("COMPOSE_PROJECT_NAME", "leeattend-test"),
         ]
 
-        if tool in ["cargo", "sqlx"]:
+        if tool in ["cargo", "sqlx", "diesel"]:
             log_info(f"🔹 Bringing up backend dependencies for {tool}...")
             _lifecycle_up("infra-db")
 
@@ -591,17 +596,38 @@ class Orchestrator:
                 # Ensure migrations are run so the _supavisor schema exists before supavisor boots
                 if tool_args and tool_args[0] == "prepare":
                     log_info("ℹ️ 🔹 Running migrations before starting pooler...")
-                    self.execute_safe([
-                        *self.compose_engine, "-p", self.env_vars.get("COMPOSE_PROJECT_NAME", "leeattend-test"),
-                        "--profile", "int-api", "--profile", "infra-db", "run", "-T", "--rm", 
-                        "--workdir", "/workspace/apiserver", "--entrypoint", "cargo", "apiserver", "sqlx", "migrate", "run"
-                    ])
+                    self.execute_safe(
+                        [
+                            *self.compose_engine,
+                            "-p",
+                            self.env_vars.get("COMPOSE_PROJECT_NAME", "leeattend-test"),
+                            "--profile",
+                            "int-api",
+                            "--profile",
+                            "infra-db",
+                            "run",
+                            "-T",
+                            "--rm",
+                            "--workdir",
+                            "/workspace/apiserver",
+                            "--entrypoint",
+                            "cargo",
+                            "apiserver",
+                            "sqlx",
+                            "migrate",
+                            "run",
+                        ]
+                    )
 
                 log_info("ℹ️ 🔹 Bringing up backend dependencies for supavisor pooler...")
-                self.execute_safe([*self.compose_engine, "--profile", "infra-pooler", "up", "-d", "supavisor"])
+                self.execute_safe(
+                    [*self.compose_engine, "--profile", "infra-pooler", "up", "-d", "supavisor"]
+                )
                 log_info("ℹ️ 🔹 Waiting for supavisor to be healthy...")
                 for _ in range(30):
-                    res = subprocess.run([*self.compose_engine, "ps"], capture_output=True, text=True)
+                    res = subprocess.run(
+                        [*self.compose_engine, "ps"], capture_output=True, text=True
+                    )
                     if "supavisor" in res.stdout and "healthy" in res.stdout:
                         break
                     time.sleep(1)
@@ -664,7 +690,7 @@ class Orchestrator:
                 ]
             )
             compose_cmd.extend(tool_args)
-        else:  # sqlx
+        else:  # sqlx, diesel
             compose_cmd.extend(["run", "-T", "--rm", "--entrypoint", tool, service])
             if tool_args:
                 compose_cmd.extend(tool_args)

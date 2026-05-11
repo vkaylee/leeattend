@@ -1157,7 +1157,8 @@
       "descriptions": {
         "platform_admin": "Toàn quyền nền tảng. Có thể quản lý workspace, cài đặt toàn cục và các vai trò hệ thống khác.",
         "support": "Chỉ xem dữ liệu theo dõi cơ sở hạ tầng và hỗ trợ đa workspace.",
-        "billing_admin": "Quản lý thanh toán nền tảng, đăng ký và hạn ngạch trên tất cả workspace."
+        "billing_admin": "Quản lý thanh toán nền tảng, đăng ký và hạn ngạch trên tất cả workspace.",
+        "default": "System level role."
       }
     },
     "system_admin": {
@@ -3287,5 +3288,34 @@
     "no_notifications": "Không có thông báo nào",
     "empty_state": "Bạn chưa có thông báo nào. Các cập nhật quan trọng sẽ xuất hiện ở đây.",
     "mark_as_read": "Đánh dấu đã đọc"
+  },
+  "system_admin": {
+    "tenants": {
+      "title": "Quản lý Tenant",
+      "description": "Quản lý các kết nối cơ sở dữ liệu và pools của tenants",
+      "add_btn": "Thêm Tenant",
+      "table": {
+        "id": "Mã Tenant",
+        "pool_size": "Kích thước Pool",
+        "created_at": "Ngày tạo",
+        "updated_at": "Cập nhật lần cuối",
+        "actions": "Thao tác"
+      },
+      "modal": {
+        "create_title": "Tạo Tenant mới",
+        "db_name_label": "Tên Database",
+        "db_name_placeholder": "Nhập tên database",
+        "create_db_label": "Tạo Database mới?",
+        "pool_size_label": "Kích thước Pool",
+        "creating": "Đang tạo...",
+        "submit_btn": "Tạo"
+      },
+      "messages": {
+        "create_success": "Tạo Tenant thành công",
+        "delete_success": "Xóa Tenant thành công"
+      },
+      "confirm_delete": "Bạn có chắc chắn muốn xóa tenant này không?",
+      "subtitle": "Quản lý tenant"
+    }
   }
 }
