@@ -443,7 +443,9 @@ async fn test_employee_import_duplicate_department_prevention() {
 
     let msgs = AttendanceImportMessages::for_lang("vi");
 
-    let department_repo: std::sync::Arc<dyn apiserver::repositories::department_repository::DepartmentRepository> = std::sync::Arc::new(
+    let department_repo: std::sync::Arc<
+        dyn apiserver::repositories::department_repository::DepartmentRepository,
+    > = std::sync::Arc::new(
         apiserver::repositories::department_repository::SqlxDepartmentRepository::new(pool.clone()),
     );
 

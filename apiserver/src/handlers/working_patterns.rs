@@ -27,7 +27,7 @@ pub async fn create_pattern(
     ctx.require_permission(Permission::PatternsCreate)?;
     let pattern = service::create_working_pattern(
         state.infra.db.api(),
-        state.shifts.shift_repo.clone(),
+        Arc::clone(&state.shifts.shift_repo),
         ctx.workspace_id,
         req,
     )

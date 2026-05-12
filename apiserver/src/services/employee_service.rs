@@ -176,23 +176,6 @@ impl EmployeeService {
             }
         }
 
-        let _tx = self.pool.begin().await.map_err(AppError::Sqlx)?;
-
-        let _update_req = UpdateEmployeeRequest {
-            user_id: None,
-            full_name: None,
-            employee_id_number: None,
-            hire_date: None,
-            termination_date: None,
-            tags: None,
-            is_active: Some(true),
-            max_concurrent_workers: None,
-            recruitment_source_id: None,
-        };
-
-        // If there were any other fields, we could update them here.
-        // For rehire, we explicitly clear the termination_date and set the hire_date.
-
         self.repo
             .rehire_employee(workspace_id, employee_id, req.hire_date)
             .await?

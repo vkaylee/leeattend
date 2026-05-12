@@ -281,7 +281,9 @@ impl EmployeeRepository for SqlxEmployeeRepository {
         _employee_id: Uuid,
         _hire_date: NaiveDate,
     ) -> Result<Option<Employee>, AppError> {
-        Err(AppError::Internal("SqlxEmployeeRepository::rehire_employee not implemented".into()))
+        Err(AppError::Internal(
+            "SqlxEmployeeRepository::rehire_employee not implemented".into(),
+        ))
     }
 
     async fn delete_employee(&self, id: Uuid, workspace_id: Uuid) -> Result<u64, AppError> {

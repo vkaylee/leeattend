@@ -212,15 +212,16 @@ impl FinancialCalculator {
         }
 
         // Deductions for unpaid holidays where employee has no leave request
-        let unpaid_holiday_days: i64 = leave_request_repository::get_unpaid_holiday_days_without_leave(
-            pool,
-            args.workspace_id,
-            args.employee_id,
-            args.start_date,
-            args.end_date,
-        )
-        .await
-        .unwrap_or(0);
+        let unpaid_holiday_days: i64 =
+            leave_request_repository::get_unpaid_holiday_days_without_leave(
+                pool,
+                args.workspace_id,
+                args.employee_id,
+                args.start_date,
+                args.end_date,
+            )
+            .await
+            .unwrap_or(0);
 
         if unpaid_holiday_days > 0 {
             if let Some(last_snap) = args.segment_snapshots.last() {

@@ -21,7 +21,8 @@ pub struct LeaveService {
     leave_request_repo: Arc<dyn LeaveRequestRepository>,
     employee_repo: Arc<dyn EmployeeRepository>,
     roster_repo: Arc<dyn RosterRepository>,
-    leave_accrual_log_repo: Arc<dyn crate::repositories::leave_accrual_log_repository::LeaveAccrualLogRepository>,
+    leave_accrual_log_repo:
+        Arc<dyn crate::repositories::leave_accrual_log_repository::LeaveAccrualLogRepository>,
 }
 
 impl LeaveService {
@@ -30,7 +31,9 @@ impl LeaveService {
         leave_request_repo: Arc<dyn LeaveRequestRepository>,
         employee_repo: Arc<dyn EmployeeRepository>,
         roster_repo: Arc<dyn RosterRepository>,
-        leave_accrual_log_repo: Arc<dyn crate::repositories::leave_accrual_log_repository::LeaveAccrualLogRepository>,
+        leave_accrual_log_repo: Arc<
+            dyn crate::repositories::leave_accrual_log_repository::LeaveAccrualLogRepository,
+        >,
     ) -> Self {
         Self {
             leave_balance_repo,
@@ -77,11 +80,13 @@ impl LeaveService {
         year: i32,
         leave_type_id: Option<Uuid>,
     ) -> Result<Vec<LeaveHistoryItem>, AppError> {
-        let logs = self.leave_accrual_log_repo
+        let logs = self
+            .leave_accrual_log_repo
             .get_employee_leave_history_logs(workspace_id, employee_id, year, leave_type_id)
             .await?;
 
-        let requests = self.leave_request_repo
+        let requests = self
+            .leave_request_repo
             .get_employee_leave_history_requests(workspace_id, employee_id, year, leave_type_id)
             .await?;
 
@@ -195,7 +200,6 @@ impl LeaveService {
         req: SubmitLeaveRequest,
         auto_approve: bool,
     ) -> Result<LeaveRequest, AppError> {
-
         // Verify employee belongs to workspace
         let _ = self
             .employee_repo
@@ -204,7 +208,11 @@ impl LeaveService {
             .ok_or(AppError::NotFound("Not found".into()))?;
 
         // Validate leave_type_id exists for this workspace
-        if !self.leave_request_repo.check_leave_type_exists(workspace_id, req.leave_type_id).await? {
+        if !self
+            .leave_request_repo
+            .check_leave_type_exists(workspace_id, req.leave_type_id)
+            .await?
+        {
             return Err(AppError::Validation("Invalid request".into()));
         }
 
@@ -285,7 +293,8 @@ impl LeaveService {
         workspace_id: Uuid,
         request: &LeaveRequest,
     ) -> Result<(), AppError> {
-        let leave_type_name = self.leave_request_repo
+        let leave_type_name = self
+            .leave_request_repo
             .get_leave_type_name(workspace_id, request.leave_type_id)
             .await?
             .unwrap_or_else(|| "Leave".to_string());

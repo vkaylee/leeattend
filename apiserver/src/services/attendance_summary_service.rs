@@ -200,7 +200,10 @@ impl AttendanceSummaryService {
         // 4c. Holiday leave conflict detection
         if is_holiday && actual_work_minutes > 0 {
             if let Some(ref hol) = holiday {
-                let leave_repo = crate::repositories::DieselLeaveRequestRepository::new(self.pool.clone(), self.diesel.clone());
+                let leave_repo = crate::repositories::DieselLeaveRequestRepository::new(
+                    self.pool.clone(),
+                    self.diesel.clone(),
+                );
                 let system_leave = leave_repo
                     .get_system_generated_holiday_leave(workspace_id, employee_id, date)
                     .await
@@ -230,7 +233,9 @@ impl AttendanceSummaryService {
                     };
 
                     if work_percent >= threshold {
-                        let _ = leave_repo.cancel_leave_request(workspace_id, leave_request_id).await;
+                        let _ = leave_repo
+                            .cancel_leave_request(workspace_id, leave_request_id)
+                            .await;
 
                         tracing::info!(
                             employee_id = %employee_id,
@@ -314,7 +319,7 @@ impl AttendanceSummaryService {
         );
 
         use crate::repositories::attendance_daily_summary_repository::AttendanceDailySummaryRepository;
-        
+
         let rows_affected = summary_repo
             .claim_ot(workspace_id, employee_id, date, claimed_minutes, reason)
             .await
@@ -342,9 +347,16 @@ impl AttendanceSummaryService {
         );
 
         use crate::repositories::attendance_daily_summary_repository::AttendanceDailySummaryRepository;
-        
+
         let rows_affected = summary_repo
-            .approve_ot(workspace_id, employee_id, date, approved_minutes, manager_note, status)
+            .approve_ot(
+                workspace_id,
+                employee_id,
+                date,
+                approved_minutes,
+                manager_note,
+                status,
+            )
             .await
             .map_err(|e| e.to_string())?;
 

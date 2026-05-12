@@ -87,66 +87,64 @@ impl ShiftSwapService {
         //    This is a best-effort guard; actual OT depends on punch times.
         if let (Some(req_shift_id), Some(tgt_shift_id)) = (requester_shift_id, target_shift_id) {
             let ws_id = workspace_id;
-                if let Ok(Some(ps)) =
-                    crate::repositories::payroll_repository::get_payroll_settings_at(
-                        pool, ws_id, swap_date,
+            if let Ok(Some(ps)) = crate::repositories::payroll_repository::get_payroll_settings_at(
+                pool, ws_id, swap_date,
+            )
+            .await
+            {
+                if let Some(max_daily) = ps.max_ot_hours_per_day {
+                    // Compare shift durations: will the receiving employee get a much longer shift?
+                    let req_shift = crate::repositories::shift_repository::get_shift_by_id(
+                        pool,
+                        ws_id,
+                        req_shift_id,
                     )
                     .await
-                {
-                    if let Some(max_daily) = ps.max_ot_hours_per_day {
-                        // Compare shift durations: will the receiving employee get a much longer shift?
-                        let req_shift = crate::repositories::shift_repository::get_shift_by_id(
-                            pool,
-                            ws_id,
-                            req_shift_id,
-                        )
-                        .await
-                        .unwrap_or(None);
-                        let tgt_shift = crate::repositories::shift_repository::get_shift_by_id(
-                            pool,
-                            ws_id,
-                            tgt_shift_id,
-                        )
-                        .await
-                        .unwrap_or(None);
-                        if let (Some(rs), Some(ts)) = (req_shift, tgt_shift) {
-                            let compute_duration_minutes = |s: &crate::models::Shift| -> i64 {
-                                let mut dur = (s.end_time - s.start_time).num_minutes();
-                                if dur <= 0 {
-                                    dur += 24 * 60;
-                                } // overnight shift
-                                dur - s.break_duration_minutes as i64
-                            };
-                            let std_hours = ps.hours_per_day;
-                            let max_total_minutes =
-                                (std_hours + max_daily) * rust_decimal::Decimal::from(60);
+                    .unwrap_or(None);
+                    let tgt_shift = crate::repositories::shift_repository::get_shift_by_id(
+                        pool,
+                        ws_id,
+                        tgt_shift_id,
+                    )
+                    .await
+                    .unwrap_or(None);
+                    if let (Some(rs), Some(ts)) = (req_shift, tgt_shift) {
+                        let compute_duration_minutes = |s: &crate::models::Shift| -> i64 {
+                            let mut dur = (s.end_time - s.start_time).num_minutes();
+                            if dur <= 0 {
+                                dur += 24 * 60;
+                            } // overnight shift
+                            dur - s.break_duration_minutes as i64
+                        };
+                        let std_hours = ps.hours_per_day;
+                        let max_total_minutes =
+                            (std_hours + max_daily) * rust_decimal::Decimal::from(60);
 
-                            // Requester gets target's shift
-                            let req_new_dur = compute_duration_minutes(&ts);
-                            // Target gets requester's shift
-                            let tgt_new_dur = compute_duration_minutes(&rs);
+                        // Requester gets target's shift
+                        let req_new_dur = compute_duration_minutes(&ts);
+                        // Target gets requester's shift
+                        let tgt_new_dur = compute_duration_minutes(&rs);
 
-                            use rust_decimal::prelude::ToPrimitive;
-                            let max_minutes = max_total_minutes.to_i64().unwrap_or(i64::MAX);
-                            if req_new_dur > max_minutes || tgt_new_dur > max_minutes {
-                                tracing::warn!(
-                                    requester_id = %requester_id,
-                                    target_id = %target_id,
-                                    "Shift swap may cause daily OT to exceed max {} hours",
-                                    max_daily
-                                );
-                                // Warning only — we don't block, just log.
-                                // If hard-block is desired in the future, uncomment:
-                                // return Err(StatusCode::UNPROCESSABLE_ENTITY);
-                            }
+                        use rust_decimal::prelude::ToPrimitive;
+                        let max_minutes = max_total_minutes.to_i64().unwrap_or(i64::MAX);
+                        if req_new_dur > max_minutes || tgt_new_dur > max_minutes {
+                            tracing::warn!(
+                                requester_id = %requester_id,
+                                target_id = %target_id,
+                                "Shift swap may cause daily OT to exceed max {} hours",
+                                max_daily
+                            );
+                            // Warning only — we don't block, just log.
+                            // If hard-block is desired in the future, uncomment:
+                            // return Err(StatusCode::UNPROCESSABLE_ENTITY);
                         }
                     }
                 }
             }
+        }
 
         Ok(())
     }
-
 
     /// Admin creates a swap request (Phase 1).
     /// Automatically looks up the effective shifts for both employees on the swap date.
@@ -157,14 +155,19 @@ impl ShiftSwapService {
         user_id: Uuid,
         req: CreateShiftSwapRequest,
     ) -> Result<ShiftSwapRequest, AppError> {
-
         if req.requester_id == req.target_id {
             return Err(AppError::Validation("Invalid request".into()));
         }
 
         // Validate both employees belong to this workspace
-        let req_emp = self.employee_repo.get_employee_by_id(req.requester_id, workspace_id).await?;
-        let tgt_emp = self.employee_repo.get_employee_by_id(req.target_id, workspace_id).await?;
+        let req_emp = self
+            .employee_repo
+            .get_employee_by_id(req.requester_id, workspace_id)
+            .await?;
+        let tgt_emp = self
+            .employee_repo
+            .get_employee_by_id(req.target_id, workspace_id)
+            .await?;
 
         if req_emp.is_none() || tgt_emp.is_none() {
             return Err(AppError::Validation("Invalid request".into()));
@@ -332,7 +335,6 @@ impl ShiftSwapService {
         user_id: Uuid,
         req: crate::models::shift_swap::EssCreateShiftSwapRequest,
     ) -> Result<ShiftSwapRequest, AppError> {
-
         if requester_employee_id == req.target_id {
             return Err(AppError::Validation("Invalid request".into()));
         }

@@ -50,7 +50,7 @@ pub trait LeaveRequestRepository: super::PoolBacked + Send + Sync {
     ) -> Result<Option<Uuid>, AppError>;
     /// List all leave types (code, name) for a workspace.
     async fn get_leave_types(&self, workspace_id: Uuid) -> Result<Vec<(String, String)>, AppError>;
-    
+
     async fn get_system_generated_holiday_leave(
         &self,
         workspace_id: Uuid,
@@ -273,7 +273,7 @@ impl LeaveRequestRepository for SqlxLeaveRequestRepository {
         leave_type_id: Uuid,
     ) -> Result<bool, AppError> {
         let exists: bool = sqlx::query_scalar(
-            "SELECT EXISTS(SELECT 1 FROM leave_types WHERE id = $1 AND workspace_id = $2)"
+            "SELECT EXISTS(SELECT 1 FROM leave_types WHERE id = $1 AND workspace_id = $2)",
         )
         .bind(leave_type_id)
         .bind(workspace_id)
@@ -288,14 +288,13 @@ impl LeaveRequestRepository for SqlxLeaveRequestRepository {
         workspace_id: Uuid,
         leave_type_id: Uuid,
     ) -> Result<Option<String>, AppError> {
-        let name: Option<String> = sqlx::query_scalar(
-            "SELECT name FROM leave_types WHERE id = $1 AND workspace_id = $2"
-        )
-        .bind(leave_type_id)
-        .bind(workspace_id)
-        .fetch_optional(&self.pool)
-        .await
-        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let name: Option<String> =
+            sqlx::query_scalar("SELECT name FROM leave_types WHERE id = $1 AND workspace_id = $2")
+                .bind(leave_type_id)
+                .bind(workspace_id)
+                .fetch_optional(&self.pool)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?;
         Ok(name)
     }
 }

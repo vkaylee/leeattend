@@ -94,7 +94,6 @@ impl AuthService {
         Ok(token)
     }
 
-
     #[tracing::instrument(skip_all, err)]
     pub async fn refresh_session(
         &self,

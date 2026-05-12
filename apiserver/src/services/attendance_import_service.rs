@@ -147,20 +147,25 @@ impl ImportStrategy for EmployeeImportStrategy {
                     let dept_id = if let Some(&cached_id) = self.dept_cache.get(&dept_key) {
                         cached_id
                     } else {
-                        let existing = self.department_repo.get_department_by_name(job.workspace_id, &dept_key).await;
+                        let existing = self
+                            .department_repo
+                            .get_department_by_name(job.workspace_id, &dept_key)
+                            .await;
 
                         if let Ok(Some(id)) = existing {
                             self.dept_cache.insert(dept_key.clone(), id);
                             id
                         } else {
-                            match self.department_repo.create_department(
-                                job.workspace_id,
-                                dept_name.clone(),
-                                None,
-                                None,
-                                None,
-                            )
-                            .await
+                            match self
+                                .department_repo
+                                .create_department(
+                                    job.workspace_id,
+                                    dept_name.clone(),
+                                    None,
+                                    None,
+                                    None,
+                                )
+                                .await
                             {
                                 Ok(new_dept) => {
                                     self.dept_cache.insert(dept_key.clone(), new_dept.id);
@@ -168,7 +173,10 @@ impl ImportStrategy for EmployeeImportStrategy {
                                 }
                                 Err(e) => {
                                     // Final check in case of a unique constraint race condition
-                                    let retry = self.department_repo.get_department_by_name(job.workspace_id, &dept_key).await;
+                                    let retry = self
+                                        .department_repo
+                                        .get_department_by_name(job.workspace_id, &dept_key)
+                                        .await;
 
                                     if let Ok(Some(id)) = retry {
                                         self.dept_cache.insert(dept_key.clone(), id);
@@ -185,14 +193,16 @@ impl ImportStrategy for EmployeeImportStrategy {
                         }
                     };
                     if !dept_id.is_nil()
-                        && self.department_repo.transfer_employee(
-                            employee_id,
-                            dept_id,
-                            emp.hire_date,
-                            Some("Auto-assigned via bulk import".to_string()),
-                        )
-                        .await
-                        .is_ok()
+                        && self
+                            .department_repo
+                            .transfer_employee(
+                                employee_id,
+                                dept_id,
+                                emp.hire_date,
+                                Some("Auto-assigned via bulk import".to_string()),
+                            )
+                            .await
+                            .is_ok()
                     {
                         department_updated = true;
                     }
@@ -662,7 +672,12 @@ impl AttendanceImportService {
         let strategy = EmployeeImportStrategy {
             msgs: msgs.clone(),
             employee_repo: std::sync::Arc::clone(&self.employee_repo),
-            department_repo: Arc::new(crate::repositories::diesel_department_repository::DieselDepartmentRepository::new(pool.clone(), self.diesel_pools.clone())),
+            department_repo: Arc::new(
+                crate::repositories::diesel_department_repository::DieselDepartmentRepository::new(
+                    pool.clone(),
+                    self.diesel_pools.clone(),
+                ),
+            ),
             dept_cache: HashMap::new(),
         };
 

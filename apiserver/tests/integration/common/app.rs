@@ -190,8 +190,13 @@ pub async fn spawn_app() -> (String, TestDatabase) {
             user_repo.clone(),
         ),
     );
-    let leave_accrual_log_repo: Arc<dyn apiserver::repositories::leave_accrual_log_repository::LeaveAccrualLogRepository> = Arc::new(
-        apiserver::repositories::DieselLeaveAccrualLogRepository::new(pool.clone(), diesel_pools.clone()),
+    let leave_accrual_log_repo: Arc<
+        dyn apiserver::repositories::leave_accrual_log_repository::LeaveAccrualLogRepository,
+    > = Arc::new(
+        apiserver::repositories::DieselLeaveAccrualLogRepository::new(
+            pool.clone(),
+            diesel_pools.clone(),
+        ),
     );
     let leave_service = Arc::new(apiserver::services::leave_service::LeaveService::new(
         leave_balance_repo.clone(),
@@ -570,8 +575,13 @@ pub async fn spawn_app_with_factory() -> (String, Uuid, Uuid, TestFactory, TestD
             user_repo.clone(),
         ),
     );
-    let leave_accrual_log_repo: Arc<dyn apiserver::repositories::leave_accrual_log_repository::LeaveAccrualLogRepository> = Arc::new(
-        apiserver::repositories::DieselLeaveAccrualLogRepository::new(pool.clone(), diesel_pools.clone()),
+    let leave_accrual_log_repo: Arc<
+        dyn apiserver::repositories::leave_accrual_log_repository::LeaveAccrualLogRepository,
+    > = Arc::new(
+        apiserver::repositories::DieselLeaveAccrualLogRepository::new(
+            pool.clone(),
+            diesel_pools.clone(),
+        ),
     );
     let leave_service = Arc::new(apiserver::services::leave_service::LeaveService::new(
         leave_balance_repo.clone(),
@@ -986,8 +996,13 @@ pub async fn setup_app_tower() -> (TestDatabase, TestFactory, Arc<AppState>, axu
             user_repo.clone(),
         ),
     );
-    let leave_accrual_log_repo: Arc<dyn apiserver::repositories::leave_accrual_log_repository::LeaveAccrualLogRepository> = Arc::new(
-        apiserver::repositories::DieselLeaveAccrualLogRepository::new(pool.clone(), diesel_pools.clone()),
+    let leave_accrual_log_repo: Arc<
+        dyn apiserver::repositories::leave_accrual_log_repository::LeaveAccrualLogRepository,
+    > = Arc::new(
+        apiserver::repositories::DieselLeaveAccrualLogRepository::new(
+            pool.clone(),
+            diesel_pools.clone(),
+        ),
     );
     let leave_service = Arc::new(apiserver::services::leave_service::LeaveService::new(
         leave_balance_repo.clone(),

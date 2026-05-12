@@ -119,10 +119,14 @@ impl DepartmentRepository for SqlxDepartmentRepository {
         name: &str,
     ) -> Result<Option<Uuid>, AppError> {
         let name_lower = name.to_lowercase();
-        let record = sqlx::query!("SELECT id FROM departments WHERE workspace_id = $1 AND LOWER(name) = $2 LIMIT 1", workspace_id, name_lower)
-            .fetch_optional(&self.pool)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let record = sqlx::query!(
+            "SELECT id FROM departments WHERE workspace_id = $1 AND LOWER(name) = $2 LIMIT 1",
+            workspace_id,
+            name_lower
+        )
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
         Ok(record.map(|r| r.id))
     }
     async fn update_department(

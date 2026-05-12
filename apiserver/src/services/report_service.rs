@@ -234,14 +234,15 @@ impl ReportService {
         .await?;
 
         // 5b. BATCH fetch OT claim statuses from attendance_daily_summaries
-        let ot_status_map = crate::repositories::attendance_daily_summary_repository::get_batch_ot_statuses(
-            &self.pool,
-            args.workspace_id,
-            &emp_ids,
-            args.start_date,
-            args.end_date,
-        )
-        .await?;
+        let ot_status_map =
+            crate::repositories::attendance_daily_summary_repository::get_batch_ot_statuses(
+                &self.pool,
+                args.workspace_id,
+                &emp_ids,
+                args.start_date,
+                args.end_date,
+            )
+            .await?;
 
         // 5c. BATCH fetch approved leave requests for holiday-leave status detection
         let leave_date_set = crate::services::attendance_utils::build_leave_date_set(
@@ -416,7 +417,6 @@ impl ReportService {
         &self,
         args: AttendanceReportArgs,
     ) -> Result<PaginatedResponse<AttendanceSummary>, AppError> {
-
         use std::collections::HashMap;
 
         // 0. Get Workspace Settings

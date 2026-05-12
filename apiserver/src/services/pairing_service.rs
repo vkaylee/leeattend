@@ -8,8 +8,8 @@ use tracing::info;
 use uuid::Uuid;
 
 use crate::repositories::raw_attendance_log_repository::RawAttendanceLogRepository;
-use crate::repositories::workspace_repository::WorkspaceRepository;
 use crate::repositories::shift_repository::ShiftRepository;
+use crate::repositories::workspace_repository::WorkspaceRepository;
 
 use crate::models::RawAttendanceLog;
 use crate::repositories::roster::RosterRepository;
@@ -326,10 +326,8 @@ impl PairingService {
         start: DateTime<Utc>,
         end: DateTime<Utc>,
     ) -> Result<(), AppError> {
-        let repo = crate::repositories::DieselTimeEntryRepository::new(
-            pool.clone(),
-            diesel_pools.clone(),
-        );
+        let repo =
+            crate::repositories::DieselTimeEntryRepository::new(pool.clone(), diesel_pools.clone());
         repo.replace_time_entries(workspace_id, employee_id, start, end, Vec::new())
             .await
     }

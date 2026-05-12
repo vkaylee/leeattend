@@ -159,13 +159,10 @@ impl PayrollService {
                 AppError::Internal("Internal error".into())
             })?;
 
-        let employee = crate::repositories::employee::get_employee_by_id(
-            pool,
-            employee_id,
-            workspace_id,
-        )
-        .await?
-        .ok_or(AppError::NotFound("Employee not found".into()))?;
+        let employee =
+            crate::repositories::employee::get_employee_by_id(pool, employee_id, workspace_id)
+                .await?
+                .ok_or(AppError::NotFound("Employee not found".into()))?;
 
         let emp_id_number = employee.employee_id_number;
         let emp_tags = Some(employee.tags);

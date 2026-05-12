@@ -411,10 +411,11 @@ impl ReportCoordinator {
         &self,
         workspace_id: Uuid,
     ) -> Result<WorkspaceConfig, ReportError> {
-        let workspace = crate::repositories::workspace_repository::get_workspace_by_id(&self.db, workspace_id)
-            .await
-            .map_err(|e| ReportError::DatabaseError(e.to_string()))?
-            .ok_or_else(|| ReportError::DatabaseError("Workspace not found".into()))?;
+        let workspace =
+            crate::repositories::workspace_repository::get_workspace_by_id(&self.db, workspace_id)
+                .await
+                .map_err(|e| ReportError::DatabaseError(e.to_string()))?
+                .ok_or_else(|| ReportError::DatabaseError("Workspace not found".into()))?;
 
         Ok(WorkspaceConfig {
             timezone: workspace.timezone,

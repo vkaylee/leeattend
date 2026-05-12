@@ -215,9 +215,11 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
         employee_id: Uuid,
         year: i32,
         leave_type_id: Option<Uuid>,
-    ) -> Result<Vec<crate::repositories::leave_request_repository::LeaveHistoryRequestItem>, AppError> {
+    ) -> Result<Vec<crate::repositories::leave_request_repository::LeaveHistoryRequestItem>, AppError>
+    {
         let repo = SqlxLeaveRequestRepository::new(self.sqlx_pool.clone());
-        repo.get_employee_leave_history_requests(workspace_id, employee_id, year, leave_type_id).await
+        repo.get_employee_leave_history_requests(workspace_id, employee_id, year, leave_type_id)
+            .await
     }
 
     async fn check_leave_type_exists(
@@ -226,7 +228,8 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
         leave_type_id: Uuid,
     ) -> Result<bool, AppError> {
         let repo = SqlxLeaveRequestRepository::new(self.sqlx_pool.clone());
-        repo.check_leave_type_exists(workspace_id, leave_type_id).await
+        repo.check_leave_type_exists(workspace_id, leave_type_id)
+            .await
     }
 
     async fn get_leave_type_name(

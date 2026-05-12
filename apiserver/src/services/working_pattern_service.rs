@@ -72,17 +72,17 @@ pub async fn create_working_pattern(
                 .filter_map(|id| shift_map.get(id).map(|s| (*id, s.start_time, s.end_time)))
                 .collect();
 
-        // Pairwise overlap check
-        for i in 0..times.len() {
-            for j in (i + 1)..times.len() {
-                if times_overlap(times[i].1, times[i].2, times[j].1, times[j].2) {
-                    return Err(crate::errors::AppError::Validation(format!(
-                        "Shifts overlap on the same day: shifts {} and {} have conflicting time ranges",
-                        times[i].0, times[j].0
-                    )));
+            // Pairwise overlap check
+            for i in 0..times.len() {
+                for j in (i + 1)..times.len() {
+                    if times_overlap(times[i].1, times[i].2, times[j].1, times[j].2) {
+                        return Err(crate::errors::AppError::Validation(format!(
+                            "Shifts overlap on the same day: shifts {} and {} have conflicting time ranges",
+                            times[i].0, times[j].0
+                        )));
+                    }
                 }
             }
-        }
         }
     }
 
