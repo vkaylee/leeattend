@@ -232,12 +232,18 @@ impl LeaveImportChunkHandler {
         let roster_repo: Arc<dyn crate::repositories::roster::RosterRepository> = Arc::new(
             crate::repositories::DieselRosterRepository::new(db.clone(), diesel.clone()),
         );
+        let leave_accrual_log_repo: Arc<
+            dyn crate::repositories::leave_accrual_log_repository::LeaveAccrualLogRepository,
+        > = Arc::new(crate::repositories::DieselLeaveAccrualLogRepository::new(
+            db.clone(),
+            diesel.clone(),
+        ));
         let leave_service = LeaveService::new(
             leave_balance_repo,
             leave_request_repo,
             Arc::clone(&employee_repo),
             roster_repo,
-            db.clone(),
+            leave_accrual_log_repo,
         );
 
         let strategy = LeaveImportStrategy {

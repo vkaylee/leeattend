@@ -224,6 +224,10 @@ impl EmployeeImportChunkHandler {
                 db.clone(),
                 diesel.clone(),
             )),
+            department_repo: Arc::new(crate::repositories::diesel_department_repository::DieselDepartmentRepository::new(
+                db.clone(),
+                diesel.clone(),
+            )),
             dept_cache: HashMap::new(),
         };
 

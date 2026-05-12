@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::errors::AppError;
 use chrono::{Datelike, Utc};
-use sqlx::PgPool;
+
 use uuid::Uuid;
 
 use crate::models::{
@@ -21,8 +21,7 @@ pub struct LeaveService {
     leave_request_repo: Arc<dyn LeaveRequestRepository>,
     employee_repo: Arc<dyn EmployeeRepository>,
     roster_repo: Arc<dyn RosterRepository>,
-    /// Kept for raw SQL queries
-    pool: PgPool,
+    leave_accrual_log_repo: Arc<dyn crate::repositories::leave_accrual_log_repository::LeaveAccrualLogRepository>,
 }
 
 impl LeaveService {
@@ -31,14 +30,14 @@ impl LeaveService {
         leave_request_repo: Arc<dyn LeaveRequestRepository>,
         employee_repo: Arc<dyn EmployeeRepository>,
         roster_repo: Arc<dyn RosterRepository>,
-        pool: PgPool,
+        leave_accrual_log_repo: Arc<dyn crate::repositories::leave_accrual_log_repository::LeaveAccrualLogRepository>,
     ) -> Self {
         Self {
             leave_balance_repo,
             leave_request_repo,
             employee_repo,
             roster_repo,
-            pool,
+            leave_accrual_log_repo,
         }
     }
 
@@ -78,57 +77,13 @@ impl LeaveService {
         year: i32,
         leave_type_id: Option<Uuid>,
     ) -> Result<Vec<LeaveHistoryItem>, AppError> {
-        let pool = &self.pool;
-        // Get Accruals & Adjustments with leave type info via FK join
-        let logs: Vec<_> = sqlx::query!(
-            r#"
-            SELECT lal.id, lal.accrual_date, lal.amount, lt.name as leave_type_name,
-                   lal.notes, lal.created_at, lal.policy_assignment_id
-            FROM leave_accrual_logs lal
-            JOIN leave_types lt ON lal.leave_type_id = lt.id
-            JOIN employees e ON lal.employee_id = e.id
-            WHERE lal.employee_id = $1
-              AND e.workspace_id = $4
-              AND EXTRACT(YEAR FROM lal.accrual_date) = $2
-              AND (lt.id = $3 OR $3 IS NULL)
-            "#,
-            employee_id,
-            year as f64,
-            leave_type_id,
-            workspace_id
-        )
-        .fetch_all(pool)
-        .await
-        .map_err(|e| {
-            tracing::error!(error = %e, "SQLx Error in get_employee_leave_history logs");
-            AppError::Internal("Internal error".into())
-        })?;
+        let logs = self.leave_accrual_log_repo
+            .get_employee_leave_history_logs(workspace_id, employee_id, year, leave_type_id)
+            .await?;
 
-        // Get Usage (Approved Requests) with leave type info via FK join
-        let requests: Vec<_> = sqlx::query!(
-            r#"
-            SELECT lr.id, lr.start_date, lr.end_date, lt.name as leave_type_name,
-                   lr.reason, lr.created_at
-            FROM leave_requests lr
-            JOIN leave_types lt ON lr.leave_type_id = lt.id
-            JOIN employees e ON lr.employee_id = e.id
-            WHERE lr.employee_id = $1
-              AND e.workspace_id = $4
-              AND lr.status IN ('approved', 'pre_approved')
-              AND EXTRACT(YEAR FROM lr.start_date) = $2
-              AND (lt.id = $3 OR $3 IS NULL)
-            "#,
-            employee_id,
-            year as f64,
-            leave_type_id,
-            workspace_id
-        )
-        .fetch_all(pool)
-        .await
-        .map_err(|e| {
-            tracing::error!(error = %e, "SQLx Error in get_employee_leave_history requests");
-            AppError::Internal("Internal error".into())
-        })?;
+        let requests = self.leave_request_repo
+            .get_employee_leave_history_requests(workspace_id, employee_id, year, leave_type_id)
+            .await?;
 
         let mut history: Vec<LeaveHistoryItem> = Vec::new();
 
@@ -240,7 +195,7 @@ impl LeaveService {
         req: SubmitLeaveRequest,
         auto_approve: bool,
     ) -> Result<LeaveRequest, AppError> {
-        let pool = &self.pool;
+
         // Verify employee belongs to workspace
         let _ = self
             .employee_repo
@@ -249,14 +204,9 @@ impl LeaveService {
             .ok_or(AppError::NotFound("Not found".into()))?;
 
         // Validate leave_type_id exists for this workspace
-        let leave_type = sqlx::query!(
-            "SELECT id FROM leave_types WHERE id = $1 AND workspace_id = $2",
-            req.leave_type_id,
-            workspace_id
-        )
-        .fetch_optional(pool)
-        .await?
-        .ok_or(AppError::Validation("Invalid request".into()))?;
+        if !self.leave_request_repo.check_leave_type_exists(workspace_id, req.leave_type_id).await? {
+            return Err(AppError::Validation("Invalid request".into()));
+        }
 
         // Validate partial day constraints
         match req.duration_type {
@@ -298,7 +248,7 @@ impl LeaveService {
         let request = LeaveRequest {
             id: Uuid::new_v4(),
             employee_id: req.employee_id,
-            leave_type_id: leave_type.id,
+            leave_type_id: req.leave_type_id,
             start_date: req.start_date,
             end_date: req.end_date,
             reason: req.reason,
@@ -335,15 +285,10 @@ impl LeaveService {
         workspace_id: Uuid,
         request: &LeaveRequest,
     ) -> Result<(), AppError> {
-        let pool = &self.pool;
-        let leave_type_name = sqlx::query_scalar!(
-            "SELECT name FROM leave_types WHERE id = $1 AND workspace_id = $2",
-            request.leave_type_id,
-            workspace_id
-        )
-        .fetch_optional(pool)
-        .await?
-        .unwrap_or_else(|| "Leave".to_string());
+        let leave_type_name = self.leave_request_repo
+            .get_leave_type_name(workspace_id, request.leave_type_id)
+            .await?
+            .unwrap_or_else(|| "Leave".to_string());
 
         let duration_label = match request.duration_type {
             LeaveDurationType::FirstHalf => " (Nửa ngày sáng)",

@@ -118,7 +118,6 @@ impl AppState {
             crate::services::attendance_adjustment_service::AttendanceAdjustmentService::new(
                 Arc::clone(&adj_repo),
                 Arc::clone(&time_entry_repo),
-                pool.clone(),
             ),
         );
         let import_repo: Arc<dyn crate::repositories::import_job_repository::ImportJobRepository> =
@@ -174,12 +173,18 @@ impl AppState {
             pool.clone(),
             diesel_pools.clone(),
         ));
+        let leave_accrual_log_repo: Arc<
+            dyn crate::repositories::leave_accrual_log_repository::LeaveAccrualLogRepository,
+        > = Arc::new(crate::repositories::DieselLeaveAccrualLogRepository::new(
+            pool.clone(),
+            diesel_pools.clone(),
+        ));
         let leave_service = Arc::new(crate::services::leave_service::LeaveService::new(
             Arc::clone(&leave_balance_repo),
             Arc::clone(&leave_request_repo),
             Arc::clone(&employee_repo),
             Arc::clone(&roster_repo),
-            pool.clone(),
+            Arc::clone(&leave_accrual_log_repo),
         ));
         let shift_swap_repo: Arc<
             dyn crate::repositories::shift_swap_repository::ShiftSwapRepository,
@@ -217,12 +222,7 @@ impl AppState {
             pool.clone(),
             diesel_pools.clone(),
         ));
-        let leave_accrual_log_repo: Arc<
-            dyn crate::repositories::leave_accrual_log_repository::LeaveAccrualLogRepository,
-        > = Arc::new(crate::repositories::DieselLeaveAccrualLogRepository::new(
-            pool.clone(),
-            diesel_pools.clone(),
-        ));
+
         let leave_accrual_service = Arc::new(
             crate::services::leave_accrual_service::LeaveAccrualService::new(
                 Arc::clone(&employee_repo),

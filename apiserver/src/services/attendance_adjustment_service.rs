@@ -18,20 +18,16 @@ use crate::services::attendance_import_service::AttendanceImportService;
 pub struct AttendanceAdjustmentService {
     adj_repo: Arc<dyn AttendanceAdjustmentRepository>,
     time_entry_repo: Arc<dyn TimeEntryRepository>,
-    /// Kept for operations not yet abstracted (raw SQL)
-    pool: PgPool,
 }
 
 impl AttendanceAdjustmentService {
     pub fn new(
         adj_repo: Arc<dyn AttendanceAdjustmentRepository>,
         time_entry_repo: Arc<dyn TimeEntryRepository>,
-        pool: PgPool,
     ) -> Self {
         Self {
             adj_repo,
             time_entry_repo,
-            pool,
         }
     }
 

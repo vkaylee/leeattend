@@ -404,8 +404,8 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
                         entry_type: entry.entry_type.clone(),
                         note: entry.note.clone(),
                         generation_metadata: entry.generation_metadata.clone(),
-                        created_at: entry.created_at,
-                        updated_at: entry.updated_at,
+                        created_at: Some(entry.created_at),
+                        updated_at: Some(entry.updated_at),
                     })
                     .collect();
 

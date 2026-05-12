@@ -208,7 +208,7 @@ impl TimeEntryRepository for SqlxTimeEntryRepository {
         .map_err(Into::<AppError>::into)?;
 
         for entry in entries {
-            let mut final_metadata = entry.generation_metadata.clone().unwrap_or(serde_json::json!({}));
+            let final_metadata = entry.generation_metadata.clone().unwrap_or(serde_json::json!({}));
             sqlx::query!(
                 "INSERT INTO time_entries 
                 (id, employee_id, workspace_id, shift_id, punch_in_time, punch_out_time, duration_minutes, entry_type, note, is_break_overtime, generation_metadata, created_at, updated_at)

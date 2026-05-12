@@ -107,7 +107,7 @@ impl ImportStrategy for EmployeeImportStrategy {
         })
     }
 
-    async fn init(&mut self, pool: &PgPool, job: &AttendanceImportJob) -> Result<(), String> {
+    async fn init(&mut self, _pool: &PgPool, job: &AttendanceImportJob) -> Result<(), String> {
         if let Ok(existing_depts) = self.department_repo.get_departments(job.workspace_id).await {
             for dept in existing_depts {
                 self.dept_cache.insert(dept.name.to_lowercase(), dept.id);
@@ -343,7 +343,7 @@ impl ImportStrategy for PunchImportStrategy {
 
     async fn process_row(
         &mut self,
-        pool: &PgPool,
+        _pool: &PgPool,
         job: &AttendanceImportJob,
         row: &Self::RowData,
     ) -> Result<Option<Uuid>, String> {
@@ -408,7 +408,6 @@ impl ImportStrategy for PunchImportStrategy {
             let adj_svc = AttendanceAdjustmentService::new(
                 Arc::clone(&self.adj_repo),
                 Arc::clone(&self.time_entry_repo),
-                pool.clone(),
             );
 
             match adj_svc

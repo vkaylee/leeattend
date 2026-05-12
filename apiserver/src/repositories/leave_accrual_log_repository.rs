@@ -30,12 +30,30 @@ pub trait LeaveAccrualLogRepository: super::PoolBacked + Send + Sync {
 
     /// Fetch the workspace timezone string.
     async fn get_workspace_timezone(&self, workspace_id: Uuid) -> Result<String, AppError>;
+
+    async fn get_employee_leave_history_logs(
+        &self,
+        workspace_id: Uuid,
+        employee_id: Uuid,
+        year: i32,
+        leave_type_id: Option<Uuid>,
+    ) -> Result<Vec<LeaveHistoryLogItem>, AppError>;
 }
 
 /// Minimal view of an existing accrual log (only the fields the orchestrator needs).
 pub struct ExistingAccrualLog {
     pub id: Uuid,
     pub amount: Decimal,
+}
+
+pub struct LeaveHistoryLogItem {
+    pub id: Uuid,
+    pub accrual_date: NaiveDate,
+    pub amount: Decimal,
+    pub leave_type_name: String,
+    pub notes: Option<String>,
+    pub created_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub policy_assignment_id: Option<Uuid>,
 }
 
 // ---------------------------------------------------------------------------
@@ -102,6 +120,48 @@ impl LeaveAccrualLogRepository for SqlxLeaveAccrualLogRepository {
         .fetch_one(&self.pool)
         .await?;
         Ok(row.timezone)
+    }
+
+    async fn get_employee_leave_history_logs(
+        &self,
+        workspace_id: Uuid,
+        employee_id: Uuid,
+        year: i32,
+        leave_type_id: Option<Uuid>,
+    ) -> Result<Vec<LeaveHistoryLogItem>, AppError> {
+        let rows = sqlx::query!(
+            r#"
+            SELECT lal.id, lal.accrual_date, lal.amount, lt.name as leave_type_name,
+                   lal.notes, lal.created_at, lal.policy_assignment_id
+            FROM leave_accrual_logs lal
+            JOIN leave_types lt ON lal.leave_type_id = lt.id
+            JOIN employees e ON lal.employee_id = e.id
+            WHERE lal.employee_id = $1
+              AND e.workspace_id = $4
+              AND EXTRACT(YEAR FROM lal.accrual_date) = $2
+              AND (lt.id = $3 OR $3 IS NULL)
+            "#,
+            employee_id,
+            year as f64,
+            leave_type_id,
+            workspace_id
+        )
+        .fetch_all(&self.pool)
+        .await
+        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        Ok(rows
+            .into_iter()
+            .map(|row| LeaveHistoryLogItem {
+                id: row.id,
+                accrual_date: row.accrual_date,
+                amount: row.amount,
+                leave_type_name: row.leave_type_name,
+                notes: row.notes,
+                created_at: row.created_at,
+                policy_assignment_id: row.policy_assignment_id,
+            })
+            .collect())
     }
 }
 

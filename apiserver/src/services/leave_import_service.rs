@@ -267,12 +267,18 @@ impl LeaveImportService {
             self.pool.clone(),
             self.diesel.clone(),
         ));
+        let leave_accrual_log_repo: Arc<
+            dyn crate::repositories::leave_accrual_log_repository::LeaveAccrualLogRepository,
+        > = Arc::new(crate::repositories::DieselLeaveAccrualLogRepository::new(
+            self.pool.clone(),
+            self.diesel.clone(),
+        ));
         let leave_service = LeaveService::new(
             leave_balance_repo,
             leave_request_repo,
             Arc::clone(&employee_repo),
             roster_repo,
-            self.pool.clone(),
+            leave_accrual_log_repo,
         );
 
         let strategy = LeaveImportStrategy {

@@ -112,4 +112,15 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
 
         Ok(tz)
     }
+
+    async fn get_employee_leave_history_logs(
+        &self,
+        workspace_id: Uuid,
+        employee_id: Uuid,
+        year: i32,
+        leave_type_id: Option<Uuid>,
+    ) -> Result<Vec<crate::repositories::leave_accrual_log_repository::LeaveHistoryLogItem>, AppError> {
+        let repo = SqlxLeaveAccrualLogRepository::new(self.sqlx_pool.clone());
+        repo.get_employee_leave_history_logs(workspace_id, employee_id, year, leave_type_id).await
+    }
 }

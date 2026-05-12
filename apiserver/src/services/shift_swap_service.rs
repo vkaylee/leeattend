@@ -157,7 +157,7 @@ impl ShiftSwapService {
         user_id: Uuid,
         req: CreateShiftSwapRequest,
     ) -> Result<ShiftSwapRequest, AppError> {
-        let pool = &self.pool;
+
         if req.requester_id == req.target_id {
             return Err(AppError::Validation("Invalid request".into()));
         }
@@ -332,7 +332,7 @@ impl ShiftSwapService {
         user_id: Uuid,
         req: crate::models::shift_swap::EssCreateShiftSwapRequest,
     ) -> Result<ShiftSwapRequest, AppError> {
-        let pool = &self.pool;
+
         if requester_employee_id == req.target_id {
             return Err(AppError::Validation("Invalid request".into()));
         }

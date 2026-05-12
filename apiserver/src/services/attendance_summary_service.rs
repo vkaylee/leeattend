@@ -1,9 +1,12 @@
 use std::sync::Arc;
 
-use chrono::{NaiveDate, TimeZone, Utc};
+use chrono::{NaiveDate, TimeZone};
 use chrono_tz::Tz;
 use sqlx::PgPool;
 use uuid::Uuid;
+
+use crate::repositories::attendance_daily_summary_repository::AttendanceDailySummaryRepository;
+use crate::repositories::leave_request_repository::LeaveRequestRepository;
 
 use crate::domain::policy::defaults::DEFAULT_WORK_MINUTES_PER_DAY;
 
@@ -257,11 +260,10 @@ impl AttendanceSummaryService {
             self.diesel.clone(),
         );
 
-        use crate::repositories::attendance_daily_summary_repository::AttendanceDailySummaryRepository;
-        
         let existing = summary_repo
             .get_summary(workspace_id, employee_id, date)
-            .await?;
+            .await
+            .map_err(|e| e.to_string())?;
 
         let new_status = match existing {
             Some(ref s) => {
@@ -291,7 +293,8 @@ impl AttendanceSummaryService {
                 is_holiday,
                 holiday_name,
             )
-            .await?;
+            .await
+            .map_err(|e| e.to_string())?;
 
         Ok(())
     }

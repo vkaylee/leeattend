@@ -59,6 +59,35 @@ pub trait LeaveRequestRepository: super::PoolBacked + Send + Sync {
     ) -> Result<Option<(Uuid, Uuid, String)>, AppError>;
 
     async fn cancel_leave_request(&self, workspace_id: Uuid, id: Uuid) -> Result<(), AppError>;
+
+    async fn get_employee_leave_history_requests(
+        &self,
+        workspace_id: Uuid,
+        employee_id: Uuid,
+        year: i32,
+        leave_type_id: Option<Uuid>,
+    ) -> Result<Vec<LeaveHistoryRequestItem>, AppError>;
+
+    async fn check_leave_type_exists(
+        &self,
+        workspace_id: Uuid,
+        leave_type_id: Uuid,
+    ) -> Result<bool, AppError>;
+
+    async fn get_leave_type_name(
+        &self,
+        workspace_id: Uuid,
+        leave_type_id: Uuid,
+    ) -> Result<Option<String>, AppError>;
+}
+
+pub struct LeaveHistoryRequestItem {
+    pub id: Uuid,
+    pub start_date: NaiveDate,
+    pub end_date: NaiveDate,
+    pub leave_type_name: String,
+    pub reason: Option<String>,
+    pub created_at: Option<chrono::DateTime<Utc>>,
 }
 
 // ---------------------------------------------------------------------------
@@ -194,6 +223,80 @@ impl LeaveRequestRepository for SqlxLeaveRequestRepository {
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
         Ok(())
+    }
+
+    async fn get_employee_leave_history_requests(
+        &self,
+        workspace_id: Uuid,
+        employee_id: Uuid,
+        year: i32,
+        leave_type_id: Option<Uuid>,
+    ) -> Result<Vec<LeaveHistoryRequestItem>, AppError> {
+        let rows = sqlx::query!(
+            r#"
+            SELECT lr.id, lr.start_date, lr.end_date, lt.name as leave_type_name,
+                   lr.reason, lr.created_at
+            FROM leave_requests lr
+            JOIN leave_types lt ON lr.leave_type_id = lt.id
+            JOIN employees e ON lr.employee_id = e.id
+            WHERE lr.employee_id = $1
+              AND e.workspace_id = $4
+              AND lr.status IN ('approved', 'pre_approved')
+              AND EXTRACT(YEAR FROM lr.start_date) = $2
+              AND (lt.id = $3 OR $3 IS NULL)
+            "#,
+            employee_id,
+            year as f64,
+            leave_type_id,
+            workspace_id
+        )
+        .fetch_all(&self.pool)
+        .await
+        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        Ok(rows
+            .into_iter()
+            .map(|row| LeaveHistoryRequestItem {
+                id: row.id,
+                start_date: row.start_date,
+                end_date: row.end_date,
+                leave_type_name: row.leave_type_name,
+                reason: row.reason,
+                created_at: row.created_at,
+            })
+            .collect())
+    }
+
+    async fn check_leave_type_exists(
+        &self,
+        workspace_id: Uuid,
+        leave_type_id: Uuid,
+    ) -> Result<bool, AppError> {
+        let exists: bool = sqlx::query_scalar(
+            "SELECT EXISTS(SELECT 1 FROM leave_types WHERE id = $1 AND workspace_id = $2)"
+        )
+        .bind(leave_type_id)
+        .bind(workspace_id)
+        .fetch_one(&self.pool)
+        .await
+        .unwrap_or(false);
+        Ok(exists)
+    }
+
+    async fn get_leave_type_name(
+        &self,
+        workspace_id: Uuid,
+        leave_type_id: Uuid,
+    ) -> Result<Option<String>, AppError> {
+        let name: Option<String> = sqlx::query_scalar(
+            "SELECT name FROM leave_types WHERE id = $1 AND workspace_id = $2"
+        )
+        .bind(leave_type_id)
+        .bind(workspace_id)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        Ok(name)
     }
 }
 

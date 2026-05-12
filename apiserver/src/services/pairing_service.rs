@@ -7,6 +7,10 @@ use sqlx::PgPool;
 use tracing::info;
 use uuid::Uuid;
 
+use crate::repositories::raw_attendance_log_repository::RawAttendanceLogRepository;
+use crate::repositories::workspace_repository::WorkspaceRepository;
+use crate::repositories::shift_repository::ShiftRepository;
+
 use crate::models::RawAttendanceLog;
 use crate::repositories::roster::RosterRepository;
 use crate::repositories::TimeEntryRepository;
@@ -215,6 +219,7 @@ impl PairingService {
         if filtered_log_events.is_empty() {
             Self::clear_auto_entries(
                 &self.pool,
+                &self.diesel_pools,
                 employee_id,
                 workspace_id,
                 start_of_day_utc,
@@ -315,6 +320,7 @@ impl PairingService {
 
     async fn clear_auto_entries(
         pool: &PgPool,
+        diesel_pools: &crate::diesel_pool::DieselPools,
         employee_id: Uuid,
         workspace_id: Uuid,
         start: DateTime<Utc>,
@@ -322,7 +328,7 @@ impl PairingService {
     ) -> Result<(), AppError> {
         let repo = crate::repositories::DieselTimeEntryRepository::new(
             pool.clone(),
-            crate::diesel_pool::DieselPools::from_pg_pool(pool.clone()),
+            diesel_pools.clone(),
         );
         repo.replace_time_entries(workspace_id, employee_id, start, end, Vec::new())
             .await
