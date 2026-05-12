@@ -35,8 +35,8 @@ impl From<AssignmentRuleEntity> for AssignmentRule {
                 },
             )),
             is_active: e.is_active,
-            created_at: e.created_at.unwrap_or_else(|| Utc::now()),
-            updated_at: e.updated_at.unwrap_or_else(|| Utc::now()),
+            created_at: e.created_at.unwrap_or_else(Utc::now),
+            updated_at: e.updated_at.unwrap_or_else(Utc::now),
         }
     }
 }

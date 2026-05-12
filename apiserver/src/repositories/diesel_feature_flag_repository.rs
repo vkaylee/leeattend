@@ -112,7 +112,7 @@ impl FeatureFlagRepositoryTrait for DieselFeatureFlagRepository {
             workspace_id,
             flag_key: flag_key.to_string(),
             enabled,
-            description: description.map(|s| s.to_string()),
+            description: description.map(String::from),
             metadata: metadata.clone(),
             created_at: now,
             updated_at: now,
@@ -186,7 +186,7 @@ impl FeatureFlagRepositoryTrait for DieselFeatureFlagRepository {
             workspace_id,
             flag_key: flag_key.to_string(),
             enabled,
-            description: description.map(|s| s.to_string()),
+            description: description.map(String::from),
             metadata: metadata.clone(),
             created_at: now,
             updated_at: now,
@@ -198,7 +198,7 @@ impl FeatureFlagRepositoryTrait for DieselFeatureFlagRepository {
             .do_update()
             .set((
                 feature_flags::enabled.eq(enabled),
-                feature_flags::description.eq(description.map(|s| s.to_string())),
+                feature_flags::description.eq(description.map(String::from)),
                 feature_flags::metadata.eq(metadata.clone()),
                 feature_flags::updated_at.eq(Utc::now()),
             ))
@@ -210,6 +210,7 @@ impl FeatureFlagRepositoryTrait for DieselFeatureFlagRepository {
     }
 }
 
+#[allow(clippy::panic)]
 impl crate::repositories::PoolBacked for DieselFeatureFlagRepository {
     fn from_pool(_pool: PgPool) -> Self {
         panic!("DieselFeatureFlagRepository requires DieselPools. Use new() instead.");

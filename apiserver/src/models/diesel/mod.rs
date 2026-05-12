@@ -15,3 +15,7 @@ pub mod payroll;
 pub mod payroll_rule;
 pub mod roster;
 pub mod time_entry;
+pub mod employment_phase;
+pub mod import_job;
+pub mod overtime_policy;
+pub mod working_pattern;

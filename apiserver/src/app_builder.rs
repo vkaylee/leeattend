@@ -113,8 +113,9 @@ impl AppState {
         );
         let import_repo: Arc<dyn crate::repositories::import_job_repository::ImportJobRepository> =
             Arc::new(
-                crate::repositories::import_job_repository::SqlxImportJobRepository::new(
+                crate::repositories::DieselImportJobRepository::new(
                     pool.clone(),
+                    diesel_pools.clone(),
                 ),
             );
         let import_service = Arc::new(
@@ -174,7 +175,10 @@ impl AppState {
         let shift_swap_repo: Arc<
             dyn crate::repositories::shift_swap_repository::ShiftSwapRepository,
         > = Arc::new(
-            crate::repositories::shift_swap_repository::SqlxShiftSwapRepository::new(pool.clone()),
+            crate::repositories::DieselShiftSwapRepository::new(
+                pool.clone(),
+                diesel_pools.clone(),
+            ),
         );
         let shift_swap_service =
             Arc::new(crate::services::shift_swap_service::ShiftSwapService::new(
@@ -266,15 +270,17 @@ impl AppState {
         let raw_log_repo: Arc<
             dyn crate::repositories::raw_attendance_log_repository::RawAttendanceLogRepository,
         > = Arc::new(
-            crate::repositories::raw_attendance_log_repository::SqlxRawAttendanceLogRepository::new(
+            crate::repositories::DieselRawAttendanceLogRepository::new(
                 pool.clone(),
+                diesel_pools.clone(),
             ),
         );
         let staging_repo: Arc<
             dyn crate::repositories::staging_log_repository::StagingLogRepository,
         > = Arc::new(
-            crate::repositories::staging_log_repository::SqlxStagingLogRepository::new(
+            crate::repositories::DieselStagingLogRepository::new(
                 pool.clone(),
+                diesel_pools.clone(),
             ),
         );
         let error_repo: Arc<
