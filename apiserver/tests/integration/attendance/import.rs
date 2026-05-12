@@ -443,10 +443,15 @@ async fn test_employee_import_duplicate_department_prevention() {
 
     let msgs = AttendanceImportMessages::for_lang("vi");
 
+    let department_repo: std::sync::Arc<dyn apiserver::repositories::department_repository::DepartmentRepository> = std::sync::Arc::new(
+        apiserver::repositories::department_repository::SqlxDepartmentRepository::new(pool.clone()),
+    );
+
     // Strategy 1 (simulating chunk 1)
     let mut strategy1 = EmployeeImportStrategy {
         msgs: msgs.clone(),
         employee_repo: std::sync::Arc::clone(&employee_repo),
+        department_repo: std::sync::Arc::clone(&department_repo),
         dept_cache: HashMap::new(), // Empty cache
     };
 
@@ -454,6 +459,7 @@ async fn test_employee_import_duplicate_department_prevention() {
     let mut strategy2 = EmployeeImportStrategy {
         msgs,
         employee_repo: std::sync::Arc::clone(&employee_repo),
+        department_repo: std::sync::Arc::clone(&department_repo),
         dept_cache: HashMap::new(), // Empty cache
     };
 

@@ -25,8 +25,13 @@ pub async fn create_pattern(
     Json(req): Json<CreateWorkingPatternRequest>,
 ) -> AppResult<impl IntoResponse> {
     ctx.require_permission(Permission::PatternsCreate)?;
-    let pattern =
-        service::create_working_pattern(state.infra.db.api(), ctx.workspace_id, req).await?;
+    let pattern = service::create_working_pattern(
+        state.infra.db.api(),
+        state.shifts.shift_repo.clone(),
+        ctx.workspace_id,
+        req,
+    )
+    .await?;
 
     if let Some(cache) = &state.infra.roster_cache {
         cache.invalidate(ctx.workspace_id).await;

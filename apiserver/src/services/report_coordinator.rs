@@ -411,17 +411,14 @@ impl ReportCoordinator {
         &self,
         workspace_id: Uuid,
     ) -> Result<WorkspaceConfig, ReportError> {
-        let row = sqlx::query_as!(
-            WorkspaceConfig,
-            r#"SELECT timezone
-               FROM workspaces WHERE id = $1"#,
-            workspace_id
-        )
-        .fetch_one(&self.db)
-        .await
-        .map_err(|e: sqlx::Error| ReportError::DatabaseError(e.to_string()))?;
+        let workspace = crate::repositories::workspace_repository::get_workspace_by_id(&self.db, workspace_id)
+            .await
+            .map_err(|e| ReportError::DatabaseError(e.to_string()))?
+            .ok_or_else(|| ReportError::DatabaseError("Workspace not found".into()))?;
 
-        Ok(row)
+        Ok(WorkspaceConfig {
+            timezone: workspace.timezone,
+        })
     }
 }
 

@@ -212,26 +212,13 @@ impl FinancialCalculator {
         }
 
         // Deductions for unpaid holidays where employee has no leave request
-        let unpaid_holiday_days: i64 = sqlx::query_scalar!(
-            r#"SELECT COUNT(*) as "count!"
-               FROM holidays h
-               WHERE h.workspace_id = $1
-                 AND h.is_paid = false
-                 AND h.date >= $2
-                 AND h.date <= $3
-                 AND NOT EXISTS (
-                     SELECT 1 FROM leave_requests lr
-                     WHERE lr.employee_id = $4
-                       AND lr.status IN ('approved', 'pre_approved')
-                       AND lr.start_date <= h.date
-                       AND lr.end_date >= h.date
-                 )"#,
+        let unpaid_holiday_days: i64 = leave_request_repository::get_unpaid_holiday_days_without_leave(
+            pool,
             args.workspace_id,
+            args.employee_id,
             args.start_date,
             args.end_date,
-            args.employee_id
         )
-        .fetch_one(pool)
         .await
         .unwrap_or(0);
 

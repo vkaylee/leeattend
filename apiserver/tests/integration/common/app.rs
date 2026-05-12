@@ -133,7 +133,6 @@ pub async fn spawn_app() -> (String, TestDatabase) {
         apiserver::services::attendance_adjustment_service::AttendanceAdjustmentService::new(
             adj_repo.clone(),
             time_entry_repo.clone(),
-            pool.clone(),
         ),
     );
     let import_service = Arc::new(
@@ -191,17 +190,21 @@ pub async fn spawn_app() -> (String, TestDatabase) {
             user_repo.clone(),
         ),
     );
+    let leave_accrual_log_repo: Arc<dyn apiserver::repositories::leave_accrual_log_repository::LeaveAccrualLogRepository> = Arc::new(
+        apiserver::repositories::DieselLeaveAccrualLogRepository::new(pool.clone(), diesel_pools.clone()),
+    );
     let leave_service = Arc::new(apiserver::services::leave_service::LeaveService::new(
         leave_balance_repo.clone(),
         leave_request_repo.clone(),
         employee_repo.clone(),
         roster_repo.clone(),
-        pool.clone(),
+        leave_accrual_log_repo.clone(),
     ));
     let shift_swap_service = Arc::new(
         apiserver::services::shift_swap_service::ShiftSwapService::new(
             shift_swap_repo.clone(),
             roster_repo.clone(),
+            employee_repo.clone(),
             pool.clone(),
         ),
     );
@@ -510,7 +513,6 @@ pub async fn spawn_app_with_factory() -> (String, Uuid, Uuid, TestFactory, TestD
         apiserver::services::attendance_adjustment_service::AttendanceAdjustmentService::new(
             adj_repo.clone(),
             time_entry_repo.clone(),
-            pool.clone(),
         ),
     );
     let import_service = Arc::new(
@@ -568,17 +570,21 @@ pub async fn spawn_app_with_factory() -> (String, Uuid, Uuid, TestFactory, TestD
             user_repo.clone(),
         ),
     );
+    let leave_accrual_log_repo: Arc<dyn apiserver::repositories::leave_accrual_log_repository::LeaveAccrualLogRepository> = Arc::new(
+        apiserver::repositories::DieselLeaveAccrualLogRepository::new(pool.clone(), diesel_pools.clone()),
+    );
     let leave_service = Arc::new(apiserver::services::leave_service::LeaveService::new(
         leave_balance_repo.clone(),
         leave_request_repo.clone(),
         employee_repo.clone(),
         roster_repo.clone(),
-        pool.clone(),
+        leave_accrual_log_repo.clone(),
     ));
     let shift_swap_service = Arc::new(
         apiserver::services::shift_swap_service::ShiftSwapService::new(
             shift_swap_repo.clone(),
             roster_repo.clone(),
+            employee_repo.clone(),
             pool.clone(),
         ),
     );
@@ -923,7 +929,6 @@ pub async fn setup_app_tower() -> (TestDatabase, TestFactory, Arc<AppState>, axu
         apiserver::services::attendance_adjustment_service::AttendanceAdjustmentService::new(
             adj_repo.clone(),
             time_entry_repo.clone(),
-            pool.clone(),
         ),
     );
     let import_service = Arc::new(
@@ -981,17 +986,21 @@ pub async fn setup_app_tower() -> (TestDatabase, TestFactory, Arc<AppState>, axu
             user_repo.clone(),
         ),
     );
+    let leave_accrual_log_repo: Arc<dyn apiserver::repositories::leave_accrual_log_repository::LeaveAccrualLogRepository> = Arc::new(
+        apiserver::repositories::DieselLeaveAccrualLogRepository::new(pool.clone(), diesel_pools.clone()),
+    );
     let leave_service = Arc::new(apiserver::services::leave_service::LeaveService::new(
         leave_balance_repo.clone(),
         leave_request_repo.clone(),
         employee_repo.clone(),
         roster_repo.clone(),
-        pool.clone(),
+        leave_accrual_log_repo.clone(),
     ));
     let shift_swap_service = Arc::new(
         apiserver::services::shift_swap_service::ShiftSwapService::new(
             shift_swap_repo.clone(),
             roster_repo.clone(),
+            employee_repo.clone(),
             pool.clone(),
         ),
     );

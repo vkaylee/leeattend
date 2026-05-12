@@ -36,9 +36,12 @@ fn times_overlap(s1: NaiveTime, e1: NaiveTime, s2: NaiveTime, e2: NaiveTime) -> 
     overlaps || overlaps_shifted_b || overlaps_shifted_a
 }
 
+use std::sync::Arc;
+
 #[tracing::instrument(skip_all, err)]
 pub async fn create_working_pattern(
     pool: &PgPool,
+    shift_repo: Arc<dyn crate::repositories::shift_repository::ShiftRepository>,
     workspace_id: Uuid,
     req: CreateWorkingPatternRequest,
 ) -> Result<WorkingPattern, crate::errors::AppError> {
@@ -55,24 +58,19 @@ pub async fn create_working_pattern(
     }
 
     // For days with >1 shift, validate no time overlaps
-    for shift_ids in day_shifts.values() {
-        if shift_ids.len() < 2 {
-            continue;
-        }
+    if !day_shifts.is_empty() {
+        let all_shifts = shift_repo.get_workspace_shifts(workspace_id).await?;
+        let shift_map: HashMap<Uuid, _> = all_shifts.into_iter().map(|s| (s.id, s)).collect();
 
-        // Fetch shift times for all shift_ids on this day
-        let rows = sqlx::query!(
-            "SELECT id, start_time, end_time FROM shifts WHERE id = ANY($1) AND workspace_id = $2",
-            &shift_ids[..],
-            workspace_id
-        )
-        .fetch_all(pool)
-        .await?;
+        for shift_ids in day_shifts.values() {
+            if shift_ids.len() < 2 {
+                continue;
+            }
 
-        let times: Vec<(Uuid, NaiveTime, NaiveTime)> = rows
-            .into_iter()
-            .map(|r| (r.id, r.start_time, r.end_time))
-            .collect();
+            let times: Vec<(Uuid, NaiveTime, NaiveTime)> = shift_ids
+                .iter()
+                .filter_map(|id| shift_map.get(id).map(|s| (*id, s.start_time, s.end_time)))
+                .collect();
 
         // Pairwise overlap check
         for i in 0..times.len() {
@@ -84,6 +82,7 @@ pub async fn create_working_pattern(
                     )));
                 }
             }
+        }
         }
     }
 

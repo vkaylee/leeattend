@@ -159,20 +159,16 @@ impl PayrollService {
                 AppError::Internal("Internal error".into())
             })?;
 
-        let emp_row = sqlx::query("SELECT employee_id_number, tags FROM employees WHERE id = $1")
-            .bind(employee_id)
-            .fetch_optional(pool)
-            .await?
-            .ok_or(AppError::NotFound("Not found".into()))?;
+        let employee = crate::repositories::employee::get_employee_by_id(
+            pool,
+            employee_id,
+            workspace_id,
+        )
+        .await?
+        .ok_or(AppError::NotFound("Employee not found".into()))?;
 
-        let emp_id_number: String = {
-            use sqlx::Row;
-            emp_row.get("employee_id_number")
-        };
-        let emp_tags: Option<Vec<String>> = {
-            use sqlx::Row;
-            emp_row.get("tags")
-        };
+        let emp_id_number = employee.employee_id_number;
+        let emp_tags = Some(employee.tags);
 
         let rosters = self
             .roster_repo

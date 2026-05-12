@@ -4,7 +4,7 @@ use crate::errors::AppError;
 use chrono::{NaiveDate, TimeZone, Utc};
 use chrono_tz::Tz;
 use sqlx::PgPool;
-use std::collections::HashMap;
+
 use uuid::Uuid;
 
 use crate::domain::policy::resolver::{PolicyResolver, ShiftPolicyOverrides};
@@ -234,29 +234,14 @@ impl ReportService {
         .await?;
 
         // 5b. BATCH fetch OT claim statuses from attendance_daily_summaries
-        let ot_status_rows = sqlx::query!(
-            r#"SELECT employee_id, date, ot_status as "ot_status: crate::models::OtStatus"
-               FROM attendance_daily_summaries
-               WHERE workspace_id = $1
-                 AND employee_id = ANY($2)
-                 AND date >= $3 AND date <= $4"#,
+        let ot_status_map = crate::repositories::attendance_daily_summary_repository::get_batch_ot_statuses(
+            &self.pool,
             args.workspace_id,
             &emp_ids,
             args.start_date,
-            args.end_date
+            args.end_date,
         )
-        .fetch_all(&self.pool)
         .await?;
-
-        let ot_status_map: HashMap<(Uuid, NaiveDate), String> = ot_status_rows
-            .into_iter()
-            .map(|r| {
-                (
-                    (r.employee_id, r.date),
-                    r.ot_status.to_string().to_lowercase(),
-                )
-            })
-            .collect();
 
         // 5c. BATCH fetch approved leave requests for holiday-leave status detection
         let leave_date_set = crate::services::attendance_utils::build_leave_date_set(
@@ -431,7 +416,7 @@ impl ReportService {
         &self,
         args: AttendanceReportArgs,
     ) -> Result<PaginatedResponse<AttendanceSummary>, AppError> {
-        use sqlx::Row;
+
         use std::collections::HashMap;
 
         // 0. Get Workspace Settings
@@ -512,36 +497,13 @@ impl ReportService {
             .await?;
 
         // 6. Fetch leave days for paginated employees (batch query)
-        let leave_data: HashMap<Uuid, i64> = sqlx::query(
-            r#"
-            SELECT
-                lr.employee_id,
-                SUM(lr.end_date - lr.start_date + 1)::bigint as leave_days
-            FROM leave_requests lr
-            WHERE lr.employee_id = ANY($1)
-              AND lr.status IN ('approved', 'pre_approved')
-              AND lr.start_date >= $2::date
-              AND lr.end_date <= $3::date
-            GROUP BY lr.employee_id
-            "#,
+        let leave_data = crate::repositories::leave_request_repository::get_batch_leave_days(
+            &self.pool,
+            &emp_ids,
+            args.start_date,
+            args.end_date,
         )
-        .bind(&emp_ids)
-        .bind(args.start_date)
-        .bind(args.end_date)
-        .fetch_all(&self.pool)
-        .await
-        .map_err(|e| {
-            tracing::error!("Error fetching leave data: {}", e);
-            AppError::Internal("Internal error".into())
-        })?
-        .into_iter()
-        .map(|row| {
-            (
-                row.get::<Uuid, _>("employee_id"),
-                row.get::<i64, _>("leave_days"),
-            )
-        })
-        .collect();
+        .await?;
 
         // 6b. BATCH fetch attendance rules (SCD Type 2)
         let attendance_rules_map = PolicyResolver::resolve_attendance_policy_batch(

@@ -519,6 +519,78 @@ pub async fn get_approved_leave_breakdown(
     Ok(breakdown)
 }
 
+pub async fn get_unpaid_holiday_days_without_leave(
+    pool: &PgPool,
+    workspace_id: Uuid,
+    employee_id: Uuid,
+    start_date: NaiveDate,
+    end_date: NaiveDate,
+) -> Result<i64, AppError> {
+    sqlx::query_scalar!(
+        r#"SELECT COUNT(*) as "count!"
+           FROM holidays h
+           WHERE h.workspace_id = $1
+             AND h.is_paid = false
+             AND h.date >= $2
+             AND h.date <= $3
+             AND NOT EXISTS (
+                 SELECT 1 FROM leave_requests lr
+                 WHERE lr.employee_id = $4
+                   AND lr.status IN ('approved', 'pre_approved')
+                   AND lr.start_date <= h.date
+                   AND lr.end_date >= h.date
+             )"#,
+        workspace_id,
+        start_date,
+        end_date,
+        employee_id
+    )
+    .fetch_one(pool)
+    .await
+    .map_err(Into::into)
+}
+
+pub async fn get_batch_leave_days(
+    pool: &sqlx::PgPool,
+    employee_ids: &[Uuid],
+    start_date: NaiveDate,
+    end_date: NaiveDate,
+) -> Result<std::collections::HashMap<Uuid, i64>, AppError> {
+    use sqlx::Row;
+    let rows = sqlx::query(
+        r#"
+        SELECT
+            lr.employee_id,
+            SUM(lr.end_date - lr.start_date + 1)::bigint as leave_days
+        FROM leave_requests lr
+        WHERE lr.employee_id = ANY($1)
+          AND lr.status IN ('approved', 'pre_approved')
+          AND lr.start_date >= $2::date
+          AND lr.end_date <= $3::date
+        GROUP BY lr.employee_id
+        "#,
+    )
+    .bind(employee_ids)
+    .bind(start_date)
+    .bind(end_date)
+    .fetch_all(pool)
+    .await
+    .map_err(|e| {
+        tracing::error!("Error fetching leave data: {}", e);
+        AppError::Internal("Internal error".into())
+    })?;
+
+    Ok(rows
+        .into_iter()
+        .map(|row| {
+            (
+                row.get::<Uuid, _>("employee_id"),
+                row.get::<i64, _>("leave_days"),
+            )
+        })
+        .collect())
+}
+
 impl super::PoolBacked for SqlxLeaveRequestRepository {
     fn from_pool(pool: sqlx::PgPool) -> Self {
         Self::new(pool)

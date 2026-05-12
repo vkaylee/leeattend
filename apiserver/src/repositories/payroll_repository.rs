@@ -328,6 +328,80 @@ impl PayrollRepository for SqlxPayrollRepository {
     }
 }
 
+pub struct ResolvedRuleAssignment {
+    pub rule_definition_id: Uuid,
+    pub override_config: Option<serde_json::Value>,
+    pub code: String,
+    pub calculation_method: crate::models::enums::PayrollCalculationMethod,
+    pub default_config: serde_json::Value,
+    pub category: crate::models::enums::PayrollRuleCategory,
+}
+
+pub async fn get_resolved_rule_assignments(
+    pool: &PgPool,
+    workspace_id: Uuid,
+    employee_id: Uuid,
+    department_id: Option<Uuid>,
+    start_date: NaiveDate,
+    end_date: NaiveDate,
+) -> Result<Vec<ResolvedRuleAssignment>, sqlx::Error> {
+    sqlx::query_as!(
+        ResolvedRuleAssignment,
+        r#"
+        WITH RECURSIVE resolved_assignments AS (
+            SELECT DISTINCT ON (rule_definition_id)
+                rule_definition_id, override_config, assignee_type
+            FROM payroll_rule_assignments
+            WHERE workspace_id = $1
+              AND effective_from <= $5
+              AND (effective_to IS NULL OR effective_to >= $4)
+              AND (
+                  (assignee_type = 'employee' AND assignee_id = $2)
+                  OR (assignee_type = 'department' AND assignee_id = $3)
+                  OR (assignee_type = 'workspace')
+              )
+            ORDER BY rule_definition_id, 
+                     CASE assignee_type 
+                        WHEN 'employee' THEN 1 
+                        WHEN 'department' THEN 2 
+                        WHEN 'workspace' THEN 3 
+                     END
+        )
+        SELECT 
+            r.rule_definition_id,
+            r.override_config,
+            d.code,
+            d.calculation_method as "calculation_method: _",
+            d.rule_config as default_config,
+            d.category as "category: _"
+        FROM resolved_assignments r
+        JOIN payroll_rule_definitions d ON d.id = r.rule_definition_id
+        WHERE d.is_active = true
+        ORDER BY d.display_order
+        "#,
+        workspace_id,
+        employee_id,
+        department_id,
+        start_date,
+        end_date
+    )
+    .fetch_all(pool)
+    .await
+}
+
+pub async fn get_payroll_rule_tiers(
+    pool: &PgPool,
+    rule_definition_id: Uuid,
+) -> Result<Vec<crate::models::PayrollRuleTier>, sqlx::Error> {
+    sqlx::query_as!(
+        crate::models::PayrollRuleTier,
+        "SELECT * FROM payroll_rule_tiers WHERE rule_definition_id = $1 ORDER BY tier_order ASC",
+        rule_definition_id
+    )
+    .fetch_all(pool)
+    .await
+}
+
 pub async fn get_active_incentive_policies(
     pool: &PgPool,
     workspace_id: Uuid,

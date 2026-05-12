@@ -1,6 +1,5 @@
 use crate::errors::AppError;
-use crate::models::enums::{PayrollCalculationMethod, PayrollRuleCategory};
-use crate::models::PayrollRuleTier;
+use crate::models::enums::PayrollCalculationMethod;
 use chrono::NaiveDate;
 use rust_decimal::prelude::FromPrimitive;
 use rust_decimal::Decimal;
@@ -26,46 +25,14 @@ impl PayrollRuleEvaluator {
         end_date: NaiveDate,
         base_values: &std::collections::HashMap<String, Decimal>,
     ) -> Result<Vec<RuleEvaluationResult>, AppError> {
-        let assignments = sqlx::query!(
-            r#"
-            WITH RECURSIVE resolved_assignments AS (
-                SELECT DISTINCT ON (rule_definition_id)
-                    rule_definition_id, override_config, assignee_type
-                FROM payroll_rule_assignments
-                WHERE workspace_id = $1
-                  AND effective_from <= $5
-                  AND (effective_to IS NULL OR effective_to >= $4)
-                  AND (
-                      (assignee_type = 'employee' AND assignee_id = $2)
-                      OR (assignee_type = 'department' AND assignee_id = $3)
-                      OR (assignee_type = 'workspace')
-                  )
-                ORDER BY rule_definition_id, 
-                         CASE assignee_type 
-                            WHEN 'employee' THEN 1 
-                            WHEN 'department' THEN 2 
-                            WHEN 'workspace' THEN 3 
-                         END
-            )
-            SELECT 
-                r.rule_definition_id,
-                r.override_config,
-                d.code,
-                d.calculation_method as "calculation_method: PayrollCalculationMethod",
-                d.rule_config as default_config,
-                d.category as "category: PayrollRuleCategory"
-            FROM resolved_assignments r
-            JOIN payroll_rule_definitions d ON d.id = r.rule_definition_id
-            WHERE d.is_active = true
-            ORDER BY d.display_order
-            "#,
+        let assignments = crate::repositories::payroll_repository::get_resolved_rule_assignments(
+            pool,
             workspace_id,
             employee_id,
             department_id,
             start_date,
-            end_date
+            end_date,
         )
-        .fetch_all(pool)
         .await
         .map_err(|e| AppError::Internal(format!("Failed to resolve rules: {e}")))?;
 
@@ -109,12 +76,10 @@ impl PayrollRuleEvaluator {
                     }
                 }
                 PayrollCalculationMethod::Tiered => {
-                    let tiers = sqlx::query_as!(
-                        PayrollRuleTier,
-                        "SELECT * FROM payroll_rule_tiers WHERE rule_definition_id = $1 ORDER BY tier_order ASC",
-                        assignment.rule_definition_id
+                    let tiers = crate::repositories::payroll_repository::get_payroll_rule_tiers(
+                        pool,
+                        assignment.rule_definition_id,
                     )
-                    .fetch_all(pool)
                     .await
                     .map_err(|e| AppError::Internal(format!("Failed to fetch tiers: {e}")))?;
 

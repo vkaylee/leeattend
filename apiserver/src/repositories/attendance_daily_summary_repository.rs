@@ -252,3 +252,36 @@ impl AttendanceDailySummaryRepository for SqlxAttendanceDailySummaryRepository {
         Ok(result)
     }
 }
+
+pub async fn get_batch_ot_statuses(
+    pool: &sqlx::PgPool,
+    workspace_id: Uuid,
+    employee_ids: &[Uuid],
+    start_date: NaiveDate,
+    end_date: NaiveDate,
+) -> Result<std::collections::HashMap<(Uuid, NaiveDate), String>, AppError> {
+    let rows = sqlx::query!(
+        r#"SELECT employee_id, date, ot_status as "ot_status: crate::models::OtStatus"
+           FROM attendance_daily_summaries
+           WHERE workspace_id = $1
+             AND employee_id = ANY($2)
+             AND date >= $3 AND date <= $4"#,
+        workspace_id,
+        employee_ids,
+        start_date,
+        end_date
+    )
+    .fetch_all(pool)
+    .await
+    .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+    Ok(rows
+        .into_iter()
+        .map(|r| {
+            (
+                (r.employee_id, r.date),
+                r.ot_status.to_string().to_lowercase(),
+            )
+        })
+        .collect())
+}
