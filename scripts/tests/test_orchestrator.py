@@ -917,21 +917,3 @@ class TestOrchestratorLocking:
             orchestrator.handle_run(args)
 
         assert mock_run.call_count >= 1
-
-    def test_pooler_logic_handle_test(self, orchestrator) -> None:
-        # Test handle_test pooler logic (lines 366-371)
-        args = argparse.Namespace(
-            target="api",
-            pooler=True,
-            timeout=100,
-            lint_only=False,
-            unit_only=True,
-            e2e_only=False,
-            skip_lint=False,
-            coverage=False,
-            component=None,
-            pattern=None,
-        )
-        orchestrator.dry_run = True
-        orchestrator.handle_test(args)
-        assert orchestrator.env_vars["DATABASE_POOLER_URL"].startswith("postgres://")

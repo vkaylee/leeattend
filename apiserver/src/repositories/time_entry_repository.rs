@@ -75,38 +75,50 @@ impl SqlxTimeEntryRepository {
 #[async_trait]
 impl TimeEntryRepository for SqlxTimeEntryRepository {
     async fn create_time_entry(&self, entry: &TimeEntry) -> Result<(), AppError> {
-        create_time_entry(&self.pool, entry).await.map_err(Into::into)
+        create_time_entry(&self.pool, entry)
+            .await
+            .map_err(Into::into)
     }
     async fn get_time_entry_by_id(
         &self,
         workspace_id: Uuid,
         id: Uuid,
     ) -> Result<Option<TimeEntry>, AppError> {
-        get_time_entry_by_id(&self.pool, workspace_id, id).await.map_err(Into::into)
+        get_time_entry_by_id(&self.pool, workspace_id, id)
+            .await
+            .map_err(Into::into)
     }
     async fn get_active_time_entry(
         &self,
         workspace_id: Uuid,
         employee_id: Uuid,
     ) -> Result<Option<TimeEntry>, AppError> {
-        get_active_time_entry(&self.pool, workspace_id, employee_id).await.map_err(Into::into)
+        get_active_time_entry(&self.pool, workspace_id, employee_id)
+            .await
+            .map_err(Into::into)
     }
     async fn get_latest_active_entry(
         &self,
         workspace_id: Uuid,
         employee_id: Uuid,
     ) -> Result<Option<TimeEntry>, AppError> {
-        get_latest_active_entry(&self.pool, workspace_id, employee_id).await.map_err(Into::into)
+        get_latest_active_entry(&self.pool, workspace_id, employee_id)
+            .await
+            .map_err(Into::into)
     }
     async fn update_time_entry(
         &self,
         workspace_id: Uuid,
         entry: &TimeEntry,
     ) -> Result<(), AppError> {
-        update_time_entry(&self.pool, workspace_id, entry).await.map_err(Into::into)
+        update_time_entry(&self.pool, workspace_id, entry)
+            .await
+            .map_err(Into::into)
     }
     async fn delete_time_entry(&self, workspace_id: Uuid, id: Uuid) -> Result<(), AppError> {
-        delete_time_entry(&self.pool, workspace_id, id).await.map_err(Into::into)
+        delete_time_entry(&self.pool, workspace_id, id)
+            .await
+            .map_err(Into::into)
     }
     async fn get_employee_time_entries(
         &self,
@@ -115,14 +127,18 @@ impl TimeEntryRepository for SqlxTimeEntryRepository {
         from: DateTime<Utc>,
         to: DateTime<Utc>,
     ) -> Result<Vec<TimeEntry>, AppError> {
-        get_employee_time_entries(&self.pool, workspace_id, employee_id, from, to).await.map_err(Into::into)
+        get_employee_time_entries(&self.pool, workspace_id, employee_id, from, to)
+            .await
+            .map_err(Into::into)
     }
     async fn get_paginated_logs(
         &self,
         workspace_id: Uuid,
         filter: crate::models::TimeEntryLogFilter,
     ) -> Result<Vec<TimeEntryWithEmployee>, AppError> {
-        get_paginated_logs(&self.pool, workspace_id, filter).await.map_err(Into::into)
+        get_paginated_logs(&self.pool, workspace_id, filter)
+            .await
+            .map_err(Into::into)
     }
     async fn count_logs(
         &self,
@@ -131,7 +147,9 @@ impl TimeEntryRepository for SqlxTimeEntryRepository {
         p_from: Option<DateTime<Utc>>,
         p_to: Option<DateTime<Utc>>,
     ) -> Result<i64, AppError> {
-        count_logs(&self.pool, workspace_id, p_employee_id, p_from, p_to).await.map_err(Into::into)
+        count_logs(&self.pool, workspace_id, p_employee_id, p_from, p_to)
+            .await
+            .map_err(Into::into)
     }
     async fn get_workspace_time_entries_batch(
         &self,
@@ -140,7 +158,9 @@ impl TimeEntryRepository for SqlxTimeEntryRepository {
         from: DateTime<Utc>,
         to: DateTime<Utc>,
     ) -> Result<HashMap<Uuid, Vec<TimeEntry>>, AppError> {
-        get_workspace_time_entries_batch(&self.pool, workspace_id, employee_ids, from, to).await.map_err(Into::into)
+        get_workspace_time_entries_batch(&self.pool, workspace_id, employee_ids, from, to)
+            .await
+            .map_err(Into::into)
     }
 }
 

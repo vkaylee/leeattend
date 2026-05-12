@@ -71,21 +71,27 @@ impl ShiftSwapRepository for SqlxShiftSwapRepository {
         &self,
         request: &ShiftSwapRequest,
     ) -> Result<ShiftSwapRequest, AppError> {
-        create_swap_request(&self.pool, request).await.map_err(Into::into)
+        create_swap_request(&self.pool, request)
+            .await
+            .map_err(Into::into)
     }
     async fn get_swap_request_by_id(
         &self,
         id: Uuid,
         workspace_id: Uuid,
     ) -> Result<Option<ShiftSwapRequest>, AppError> {
-        get_swap_request_by_id(&self.pool, id, workspace_id).await.map_err(Into::into)
+        get_swap_request_by_id(&self.pool, id, workspace_id)
+            .await
+            .map_err(Into::into)
     }
     async fn get_workspace_swaps(
         &self,
         workspace_id: Uuid,
         status_filter: Option<ShiftSwapStatus>,
     ) -> Result<Vec<ShiftSwapRequestWithNames>, AppError> {
-        get_workspace_swaps(&self.pool, workspace_id, status_filter).await.map_err(Into::into)
+        get_workspace_swaps(&self.pool, workspace_id, status_filter)
+            .await
+            .map_err(Into::into)
     }
     async fn update_swap_status(
         &self,
@@ -94,14 +100,18 @@ impl ShiftSwapRepository for SqlxShiftSwapRepository {
         status: ShiftSwapStatus,
         approver_id: Option<Uuid>,
     ) -> Result<(), AppError> {
-        update_swap_status(&self.pool, id, workspace_id, status, approver_id).await.map_err(Into::into)
+        update_swap_status(&self.pool, id, workspace_id, status, approver_id)
+            .await
+            .map_err(Into::into)
     }
     async fn get_employee_swaps(
         &self,
         employee_id: Uuid,
         workspace_id: Uuid,
     ) -> Result<Vec<ShiftSwapRequestWithNames>, AppError> {
-        get_employee_swaps(&self.pool, employee_id, workspace_id).await.map_err(Into::into)
+        get_employee_swaps(&self.pool, employee_id, workspace_id)
+            .await
+            .map_err(Into::into)
     }
     async fn has_active_swap(
         &self,
@@ -110,7 +120,9 @@ impl ShiftSwapRepository for SqlxShiftSwapRepository {
         target_id: Uuid,
         swap_date: chrono::NaiveDate,
     ) -> Result<bool, AppError> {
-        has_active_swap(&self.pool, workspace_id, requester_id, target_id, swap_date).await.map_err(Into::into)
+        has_active_swap(&self.pool, workspace_id, requester_id, target_id, swap_date)
+            .await
+            .map_err(Into::into)
     }
     async fn has_approved_swap_on_date(
         &self,
@@ -118,10 +130,14 @@ impl ShiftSwapRepository for SqlxShiftSwapRepository {
         employee_id: Uuid,
         swap_date: chrono::NaiveDate,
     ) -> Result<bool, AppError> {
-        has_approved_swap_on_date(&self.pool, workspace_id, employee_id, swap_date).await.map_err(Into::into)
+        has_approved_swap_on_date(&self.pool, workspace_id, employee_id, swap_date)
+            .await
+            .map_err(Into::into)
     }
     async fn get_workspace_swap_stats(&self, workspace_id: Uuid) -> Result<SwapStats, AppError> {
-        get_workspace_swap_stats(&self.pool, workspace_id).await.map_err(Into::into)
+        get_workspace_swap_stats(&self.pool, workspace_id)
+            .await
+            .map_err(Into::into)
     }
 }
 

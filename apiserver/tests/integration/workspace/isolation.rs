@@ -26,6 +26,11 @@ async fn test_get_employee_time_entries_isolated_by_workspace() {
     let test_db = TestDatabase::new().await;
     let pool = test_db.pool();
     let factory = TestFactory::new(pool.clone());
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(
+        &std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://postgres:postgres@localhost:5432/leeattend".to_string()
+        }),
+    );
 
     // Create two workspaces each with an employee
     let (ws_a, emp_a) = create_workspace_with_employee(&factory).await;
@@ -72,6 +77,11 @@ async fn test_get_latest_active_entry_isolated_by_workspace() {
     let test_db = TestDatabase::new().await;
     let pool = test_db.pool();
     let factory = TestFactory::new(pool.clone());
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(
+        &std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://postgres:postgres@localhost:5432/leeattend".to_string()
+        }),
+    );
 
     let (ws_a, emp_a) = create_workspace_with_employee(&factory).await;
     let (ws_b, _emp_b) = create_workspace_with_employee(&factory).await;
@@ -107,6 +117,11 @@ async fn test_get_workspace_time_entries_batch_isolated() {
     let test_db = TestDatabase::new().await;
     let pool = test_db.pool();
     let factory = TestFactory::new(pool.clone());
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(
+        &std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://postgres:postgres@localhost:5432/leeattend".to_string()
+        }),
+    );
 
     let (ws_a, emp_a) = create_workspace_with_employee(&factory).await;
     let (ws_b, _emp_b) = create_workspace_with_employee(&factory).await;
@@ -149,6 +164,11 @@ async fn test_department_history_isolated_by_workspace() {
     let test_db = TestDatabase::new().await;
     let pool = test_db.pool();
     let factory = TestFactory::new(pool.clone());
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(
+        &std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://postgres:postgres@localhost:5432/leeattend".to_string()
+        }),
+    );
 
     let (ws_a, emp_a) = create_workspace_with_employee(&factory).await;
     let (ws_b, _emp_b) = create_workspace_with_employee(&factory).await;
@@ -191,6 +211,11 @@ async fn test_get_current_department_isolated_by_workspace() {
     let test_db = TestDatabase::new().await;
     let pool = test_db.pool();
     let factory = TestFactory::new(pool.clone());
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(
+        &std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://postgres:postgres@localhost:5432/leeattend".to_string()
+        }),
+    );
 
     let (ws_a, emp_a) = create_workspace_with_employee(&factory).await;
     let (ws_b, _emp_b) = create_workspace_with_employee(&factory).await;
@@ -232,6 +257,11 @@ async fn test_employee_pattern_history_isolated_by_workspace() {
     let test_db = TestDatabase::new().await;
     let pool = test_db.pool();
     let factory = TestFactory::new(pool.clone());
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(
+        &std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://postgres:postgres@localhost:5432/leeattend".to_string()
+        }),
+    );
 
     let (ws_a, emp_a) = create_workspace_with_employee(&factory).await;
     let (ws_b, _emp_b) = create_workspace_with_employee(&factory).await;

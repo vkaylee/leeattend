@@ -12,6 +12,11 @@ async fn test_process_log_success_with_timezone() {
     let test_db = TestDatabase::new().await;
     let pool = test_db.pool();
     let factory = TestFactory::new(pool.clone());
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(
+        &std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://postgres:postgres@localhost:5432/leeattend".to_string()
+        }),
+    );
 
     let workspace_id = factory
         .workspace()
@@ -36,6 +41,7 @@ async fn test_process_log_success_with_timezone() {
             pool.clone(),
         )),
         pool.clone(),
+        diesel_pools.clone(),
     ));
     let emp_repo: std::sync::Arc<dyn apiserver::repositories::EmployeeRepository> =
         std::sync::Arc::new(
@@ -118,6 +124,11 @@ async fn test_same_second_punch_with_different_status_allowed() {
     let test_db = TestDatabase::new().await;
     let pool = test_db.pool();
     let factory = TestFactory::new(pool.clone());
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(
+        &std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://postgres:postgres@localhost:5432/leeattend".to_string()
+        }),
+    );
 
     let workspace_id = factory.workspace().create().await;
     let _employee_id = factory
@@ -138,6 +149,7 @@ async fn test_same_second_punch_with_different_status_allowed() {
             pool.clone(),
         )),
         pool.clone(),
+        diesel_pools.clone(),
     ));
     let emp_repo: std::sync::Arc<dyn apiserver::repositories::EmployeeRepository> =
         std::sync::Arc::new(

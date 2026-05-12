@@ -9,6 +9,7 @@ use std::collections::HashMap;
 use uuid::Uuid;
 
 use crate::cache::{RedisCache, DEFAULT_CACHE_TTL};
+use crate::repositories::shift_repository::ShiftRepository;
 
 /// Cached shift data.
 /// Contains all fields needed for attendance calculations.
@@ -30,12 +31,13 @@ pub struct CachedShift {
 pub struct ShiftCache {
     cache: RedisCache,
     db: PgPool,
+    diesel: crate::diesel_pool::DieselPools,
 }
 
 impl ShiftCache {
     /// Create a new ShiftCache.
-    pub fn new(cache: RedisCache, db: PgPool) -> Self {
-        Self { cache, db }
+    pub fn new(cache: RedisCache, db: PgPool, diesel: crate::diesel_pool::DieselPools) -> Self {
+        Self { cache, db, diesel }
     }
 
     /// Generate cache key for shifts of a workspace.
@@ -49,34 +51,20 @@ impl ShiftCache {
     pub async fn get_map(&self, workspace_id: Uuid) -> Result<HashMap<Uuid, CachedShift>, String> {
         let key = Self::key(workspace_id);
         let db = self.db.clone();
+        let diesel = self.diesel.clone();
 
         let shifts: Vec<CachedShift> = self
             .cache
             .get_or_fetch(&key, DEFAULT_CACHE_TTL, || async move {
-                let rows = sqlx::query!(
-                    r#"
-                    SELECT
-                        id,
-                        name,
-                        start_time,
-                        end_time,
-                        break_duration_minutes,
-                        break_start,
-                        break_end,
-                        is_break_auto_deduct,
-                        allow_early_ot,
-                        early_punch_in_grace_period_minutes
-                    FROM shifts
-                    WHERE workspace_id = $1 AND is_active = true
-                    "#,
-                    workspace_id
-                )
-                .fetch_all(&db)
-                .await
-                .map_err(|e| format!("Failed to fetch shifts: {e}"))?;
+                let repo = crate::repositories::DieselShiftRepository::new(db.clone(), diesel);
+                let rows = repo
+                    .get_workspace_shifts(workspace_id)
+                    .await
+                    .map_err(|e| format!("Failed to fetch shifts: {e}"))?;
 
                 let shifts: Vec<CachedShift> = rows
                     .into_iter()
+                    .filter(|s| s.is_active)
                     .map(|row| CachedShift {
                         id: row.id,
                         name: row.name,

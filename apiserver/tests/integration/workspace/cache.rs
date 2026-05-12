@@ -17,12 +17,17 @@ async fn test_workspace_cache_get_and_invalidate() {
         .await
         .expect("Failed to create Redis pool");
     let factory = TestFactory::new(pool.clone());
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(
+        &std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://postgres:postgres@localhost:5432/leeattend".to_string()
+        }),
+    );
 
     let user_id: Uuid = factory.user().create().await;
     let ws_id: Uuid = factory.workspace().create_with_owner(user_id).await;
 
     let redis_cache = RedisCache::new(redis_pool.clone());
-    let workspace_cache = WorkspaceCache::new(redis_cache, pool.clone());
+    let workspace_cache = WorkspaceCache::new(redis_cache, pool.clone(), diesel_pools.clone());
 
     // 1. First `get` should fetch from DB and populate cache
     let config = workspace_cache

@@ -150,7 +150,7 @@ mod tests {
             &self,
             _workspace_id: Uuid,
             _include_inactive: bool,
-        ) -> Result<Vec<AuthorizedAgent>, sqlx::Error> {
+        ) -> Result<Vec<AuthorizedAgent>, crate::errors::AppError> {
             Ok(vec![])
         }
 
@@ -163,7 +163,7 @@ mod tests {
             _max_concurrent_workers: i32,
             _success_cooldown_secs: i32,
             _retention_days: i32,
-        ) -> Result<(), sqlx::Error> {
+        ) -> Result<(), crate::errors::AppError> {
             Ok(())
         }
 
@@ -171,14 +171,14 @@ mod tests {
             &self,
             _agent_id: &str,
             _workspace_id: Uuid,
-        ) -> Result<bool, sqlx::Error> {
+        ) -> Result<bool, crate::errors::AppError> {
             Ok(true)
         }
 
         async fn get_workspace_devices(
             &self,
             _workspace_id: Uuid,
-        ) -> Result<Vec<Device>, sqlx::Error> {
+        ) -> Result<Vec<Device>, crate::errors::AppError> {
             Ok(vec![])
         }
 
@@ -186,7 +186,7 @@ mod tests {
             &self,
             _agent_ids: &[String],
             _workspace_id: Uuid,
-        ) -> Result<Vec<Device>, sqlx::Error> {
+        ) -> Result<Vec<Device>, crate::errors::AppError> {
             Ok(vec![])
         }
 
@@ -201,7 +201,7 @@ mod tests {
             _brand: &str,
             _password: &str,
             _timezone: &str,
-        ) -> Result<(), sqlx::Error> {
+        ) -> Result<(), crate::errors::AppError> {
             Ok(())
         }
 
@@ -209,7 +209,7 @@ mod tests {
             &self,
             _id: Uuid,
             _workspace_id: Uuid,
-        ) -> Result<Option<Device>, sqlx::Error> {
+        ) -> Result<Option<Device>, crate::errors::AppError> {
             Ok(None)
         }
 
@@ -224,7 +224,7 @@ mod tests {
             _brand: &str,
             _password: Option<&str>,
             _timezone: &str,
-        ) -> Result<(), sqlx::Error> {
+        ) -> Result<(), crate::errors::AppError> {
             Ok(())
         }
 
@@ -232,7 +232,7 @@ mod tests {
             &self,
             _device_id: Uuid,
             _workspace_id: Uuid,
-        ) -> Result<Option<String>, sqlx::Error> {
+        ) -> Result<Option<String>, crate::errors::AppError> {
             Ok(None)
         }
 
@@ -240,7 +240,7 @@ mod tests {
             &self,
             _device_id: Uuid,
             _workspace_id: Uuid,
-        ) -> Result<u64, sqlx::Error> {
+        ) -> Result<u64, crate::errors::AppError> {
             Ok(1)
         }
 
@@ -249,7 +249,7 @@ mod tests {
             _agent_id: &str,
             _workspace_id: Uuid,
             _is_trusted: bool,
-        ) -> Result<u64, sqlx::Error> {
+        ) -> Result<u64, crate::errors::AppError> {
             Ok(1)
         }
 
@@ -257,7 +257,7 @@ mod tests {
             &self,
             _agent_id: &str,
             _workspace_id: Uuid,
-        ) -> Result<Option<AuthorizedAgent>, sqlx::Error> {
+        ) -> Result<Option<AuthorizedAgent>, crate::errors::AppError> {
             Ok(None)
         }
 
@@ -265,7 +265,7 @@ mod tests {
             &self,
             _agent_id: &str,
             _workspace_id: Uuid,
-        ) -> Result<u64, sqlx::Error> {
+        ) -> Result<u64, crate::errors::AppError> {
             Ok(1)
         }
     }

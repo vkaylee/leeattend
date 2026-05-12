@@ -10,6 +10,11 @@ async fn test_roster_pattern_resolution() {
     let test_db = TestDatabase::new().await;
     let pool = test_db.pool();
     let factory = TestFactory::new(pool.clone());
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(
+        &std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://postgres:postgres@localhost:5432/leeattend".to_string()
+        }),
+    );
 
     let workspace_id = factory.workspace().create().await;
     let employee_id = factory

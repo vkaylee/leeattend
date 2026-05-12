@@ -1,5 +1,5 @@
-use std::sync::Arc;
 use crate::errors::AppError;
+use std::sync::Arc;
 
 use chrono::{DateTime, Duration, NaiveDate, Timelike, Utc};
 use chrono_tz::Tz;
@@ -17,6 +17,7 @@ pub struct PairingService {
     roster_repo: Arc<dyn RosterRepository>,
     /// Kept for operations not yet abstracted
     pool: PgPool,
+    diesel_pools: crate::diesel_pool::DieselPools,
 }
 
 impl PairingService {
@@ -24,16 +25,18 @@ impl PairingService {
         time_entry_repo: Arc<dyn TimeEntryRepository>,
         roster_repo: Arc<dyn RosterRepository>,
         pool: PgPool,
+        diesel_pools: crate::diesel_pool::DieselPools,
     ) -> Self {
         Self {
             time_entry_repo,
             roster_repo,
             pool,
+            diesel_pools,
         }
     }
 
     #[tracing::instrument(skip_all, err)]
-    pub async fn process_new_raw_log(&self, log: &RawAttendanceLog)  -> Result<(), AppError> {
+    pub async fn process_new_raw_log(&self, log: &RawAttendanceLog) -> Result<(), AppError> {
         // 1. Deduplication (exact match check)
         let is_duplicate = sqlx::query_scalar!(
             r#"
@@ -101,7 +104,7 @@ impl PairingService {
         employee_id: Uuid,
         date: NaiveDate,
         tz: Tz,
-    )  -> Result<(), AppError> {
+    ) -> Result<(), AppError> {
         info!(
             "Reprocessing attendance for emp {} on date {}",
             employee_id, date
@@ -227,6 +230,7 @@ impl PairingService {
                 Arc::clone(&self.time_entry_repo),
                 Arc::clone(&self.roster_repo),
                 self.pool.clone(),
+                self.diesel_pools.clone(),
             );
             let _ = summary_svc
                 .recalculate_daily_summary(workspace_id, employee_id, date)
@@ -305,6 +309,7 @@ impl PairingService {
             Arc::clone(&self.time_entry_repo),
             Arc::clone(&self.roster_repo),
             self.pool.clone(),
+            self.diesel_pools.clone(),
         );
         if let Err(e) = summary_svc
             .recalculate_daily_summary(workspace_id, employee_id, date)
@@ -326,7 +331,7 @@ impl PairingService {
         workspace_id: Uuid,
         start: DateTime<Utc>,
         end: DateTime<Utc>,
-    )  -> Result<(), AppError> {
+    ) -> Result<(), AppError> {
         sqlx::query!(
             "DELETE FROM time_entries WHERE employee_id = $1 AND workspace_id = $2 AND punch_in_time >= $3 AND punch_in_time < $4",
             employee_id, workspace_id, start, end

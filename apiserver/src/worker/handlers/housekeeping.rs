@@ -7,7 +7,11 @@ use crate::queue::Job;
 pub struct NightlyHousekeepingHandler;
 
 impl NightlyHousekeepingHandler {
-    pub async fn handle(db: &PgPool, job: &Job) -> Result<(), String> {
+    pub async fn handle(
+        db: &PgPool,
+        _diesel: &crate::diesel_pool::DieselPools,
+        job: &Job,
+    ) -> Result<(), String> {
         let payload = job
             .housekeeping_payload()
             .ok_or("Missing housekeeping payload")?;

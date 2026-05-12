@@ -7,7 +7,11 @@ pub struct ExpiringContractsHandler;
 
 impl ExpiringContractsHandler {
     #[allow(clippy::too_many_lines)]
-    pub async fn handle(db: &PgPool, job: &Job) -> Result<(), String> {
+    pub async fn handle(
+        db: &PgPool,
+        _diesel: &crate::diesel_pool::DieselPools,
+        job: &Job,
+    ) -> Result<(), String> {
         let _payload = job
             .expiring_contracts_payload()
             .ok_or("Missing expiring contracts payload")?;

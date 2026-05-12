@@ -14,6 +14,11 @@ async fn test_leave_import_worker_handlers() {
     let test_db = TestDatabase::new().await;
     let pool = test_db.pool();
     let factory = TestFactory::new(pool.clone());
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(
+        &std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://postgres:postgres@localhost:5432/leeattend".to_string()
+        }),
+    );
     let redis_url =
         std::env::var("REDIS_URL").unwrap_or_else(|_| "redis://127.0.0.1:6379".to_string());
     let redis_pool = RedisPool::new(&redis_url).await.unwrap();
@@ -71,7 +76,7 @@ async fn test_leave_import_worker_handlers() {
         JobPriority::Normal,
     );
 
-    let res = LeaveImportHandler::handle(&pool, &master_job, &redis_pool).await;
+    let res = LeaveImportHandler::handle(&pool, &diesel_pools, &master_job, &redis_pool).await;
     res.expect("Master handler should succeed");
 
     let status: String =
@@ -99,7 +104,7 @@ async fn test_leave_import_worker_handlers() {
         JobPriority::High,
     );
 
-    let res = LeaveImportChunkHandler::handle(&pool, &chunk_job, &redis_pool).await;
+    let res = LeaveImportChunkHandler::handle(&pool, &diesel_pools, &chunk_job, &redis_pool).await;
     res.expect("Chunk handler should succeed");
 
     // We can also verify that Finalize was enqueued, but for coverage, testing the handler code is enough
@@ -112,6 +117,11 @@ async fn test_leave_import_handler_empty_file() {
     let test_db = TestDatabase::new().await;
     let pool = test_db.pool();
     let factory = TestFactory::new(pool.clone());
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(
+        &std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://postgres:postgres@localhost:5432/leeattend".to_string()
+        }),
+    );
     let redis_url =
         std::env::var("REDIS_URL").unwrap_or_else(|_| "redis://127.0.0.1:6379".to_string());
     let redis_pool = RedisPool::new(&redis_url).await.unwrap();
@@ -142,7 +152,7 @@ async fn test_leave_import_handler_empty_file() {
         }),
         JobPriority::Normal,
     );
-    let res = LeaveImportHandler::handle(&pool, &master_job, &redis_pool).await;
+    let res = LeaveImportHandler::handle(&pool, &diesel_pools, &master_job, &redis_pool).await;
     assert!(res.is_err());
     assert_eq!(
         res.unwrap_err(),

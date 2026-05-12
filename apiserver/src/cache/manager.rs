@@ -19,12 +19,12 @@ pub struct CacheManager {
 
 impl CacheManager {
     /// Create a new CacheManager.
-    pub fn new(redis: RedisPool, db: PgPool) -> Self {
+    pub fn new(redis: RedisPool, db: PgPool, diesel: crate::diesel_pool::DieselPools) -> Self {
         let cache = RedisCache::new(redis);
 
         Self {
-            workspace: WorkspaceCache::new(cache.clone(), db.clone()),
-            shifts: ShiftCache::new(cache, db),
+            workspace: WorkspaceCache::new(cache.clone(), db.clone(), diesel.clone()),
+            shifts: ShiftCache::new(cache, db, diesel),
         }
     }
 

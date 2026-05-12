@@ -76,17 +76,23 @@ impl OvertimePolicyRepositoryTrait for SqlxOvertimePolicyRepository {
         &self,
         workspace_id: Uuid,
     ) -> Result<Vec<OvertimePolicy>, AppError> {
-        OvertimePolicyRepository::get_policy_definitions(&self.pool, workspace_id).await.map_err(Into::into)
+        OvertimePolicyRepository::get_policy_definitions(&self.pool, workspace_id)
+            .await
+            .map_err(Into::into)
     }
     async fn get_policy_with_rules(
         &self,
         workspace_id: Uuid,
         id: Uuid,
     ) -> Result<Option<(OvertimePolicy, Vec<OvertimeRule>)>, AppError> {
-        OvertimePolicyRepository::get_policy_with_rules(&self.pool, workspace_id, id).await.map_err(Into::into)
+        OvertimePolicyRepository::get_policy_with_rules(&self.pool, workspace_id, id)
+            .await
+            .map_err(Into::into)
     }
     async fn add_rule(&self, rule: &OvertimeRule) -> Result<OvertimeRule, AppError> {
-        OvertimePolicyRepository::add_rule(&self.pool, rule).await.map_err(Into::into)
+        OvertimePolicyRepository::add_rule(&self.pool, rule)
+            .await
+            .map_err(Into::into)
     }
     async fn resolve_policy_for_employee(
         &self,

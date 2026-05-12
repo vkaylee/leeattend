@@ -85,11 +85,7 @@ pub trait AgentRepository: super::PoolBacked + Send + Sync {
         agent_id: &str,
         workspace_id: Uuid,
     ) -> Result<Option<AuthorizedAgent>, AppError>;
-    async fn deactivate_agent(
-        &self,
-        agent_id: &str,
-        workspace_id: Uuid,
-    ) -> Result<u64, AppError>;
+    async fn deactivate_agent(&self, agent_id: &str, workspace_id: Uuid) -> Result<u64, AppError>;
 }
 
 pub struct SqlxAgentRepository {
@@ -357,11 +353,7 @@ impl AgentRepository for SqlxAgentRepository {
         .map_err(Into::into)
     }
 
-    async fn deactivate_agent(
-        &self,
-        agent_id: &str,
-        workspace_id: Uuid,
-    ) -> Result<u64, AppError> {
+    async fn deactivate_agent(&self, agent_id: &str, workspace_id: Uuid) -> Result<u64, AppError> {
         let result = sqlx::query(
             "UPDATE authorized_agents SET is_active = FALSE WHERE id = $1 AND workspace_id = $2",
         )

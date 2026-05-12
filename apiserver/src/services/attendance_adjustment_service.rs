@@ -37,20 +37,29 @@ impl AttendanceAdjustmentService {
 
     /// Resume all jobs that were interrupted by a server restart
     #[tracing::instrument(skip_all)]
-    pub async fn resume_all_pending_jobs(pool: PgPool) {
-        let import_repo = Arc::new(
-            crate::repositories::import_job_repository::SqlxImportJobRepository::new(pool.clone()),
-        );
-        let adj_repo = Arc::new(crate::repositories::attendance_adjustment_repository::SqlxAttendanceAdjustmentRepository::new(pool.clone()));
-        let employee_repo = Arc::new(crate::repositories::SqlxEmployeeRepository::new(
+    pub async fn resume_all_pending_jobs(pool: PgPool, diesel: crate::diesel_pool::DieselPools) {
+        let import_repo = Arc::new(crate::repositories::DieselImportJobRepository::new(
             pool.clone(),
+            diesel.clone(),
         ));
-        let te_repo = Arc::new(crate::repositories::SqlxTimeEntryRepository::new(
-            pool.clone(),
-        ));
-        let workspace_repo = Arc::new(
-            crate::repositories::workspace_repository::SqlxWorkspaceRepository::new(pool.clone()),
+        let adj_repo = Arc::new(
+            crate::repositories::DieselAttendanceAdjustmentRepository::new(
+                pool.clone(),
+                diesel.clone(),
+            ),
         );
+        let employee_repo = Arc::new(crate::repositories::DieselEmployeeRepository::new(
+            pool.clone(),
+            diesel.clone(),
+        ));
+        let te_repo = Arc::new(crate::repositories::DieselTimeEntryRepository::new(
+            pool.clone(),
+            diesel.clone(),
+        ));
+        let workspace_repo = Arc::new(crate::repositories::DieselWorkspaceRepository::new(
+            pool.clone(),
+            diesel.clone(),
+        ));
         let import_svc = AttendanceImportService::new(
             import_repo,
             adj_repo,
@@ -58,6 +67,7 @@ impl AttendanceAdjustmentService {
             te_repo,
             workspace_repo,
             pool,
+            diesel,
         );
         import_svc.resume_all_pending_jobs().await;
     }
@@ -162,9 +172,7 @@ impl AttendanceAdjustmentService {
                     updated_at: Utc::now(),
                 };
 
-                self.time_entry_repo
-                    .create_time_entry(&entry)
-                    .await?;
+                self.time_entry_repo.create_time_entry(&entry).await?;
             }
         }
 

@@ -69,10 +69,7 @@ impl SessionRepository for DieselSessionRepository {
         Ok(())
     }
 
-    async fn get_session_by_token(
-        &self,
-        token: &str,
-    ) -> Result<Option<SessionEntity>, AppError> {
+    async fn get_session_by_token(&self, token: &str) -> Result<Option<SessionEntity>, AppError> {
         let mut conn = self
             .diesel_pools
             .api

@@ -125,6 +125,7 @@ pub struct JobWorker {
     queue: JobQueue,
     redis: RedisPool,
     db: PgPool,
+    diesel: crate::diesel_pool::DieselPools,
     config: WorkerConfig,
     coordinator: Arc<ReportCoordinator>,
     cache: Arc<CacheManager>,
@@ -141,11 +142,12 @@ impl JobWorker {
     pub fn new(
         redis: RedisPool,
         db: PgPool,
+        diesel: crate::diesel_pool::DieselPools,
         config: WorkerConfig,
         coordinator: Arc<ReportCoordinator>,
         roster_cache: Option<Arc<RosterCache>>,
     ) -> Self {
-        let cache = Arc::new(CacheManager::new(redis.clone(), db.clone()));
+        let cache = Arc::new(CacheManager::new(redis.clone(), db.clone(), diesel.clone()));
         let hostname = std::env::var("HOSTNAME")
             .or_else(|_| std::env::var("COMPUTERNAME"))
             .unwrap_or_else(|_| "unknown".to_string());
@@ -154,6 +156,7 @@ impl JobWorker {
             queue: JobQueue::new(redis.clone()),
             redis,
             db,
+            diesel,
             config,
             coordinator,
             cache,
@@ -385,6 +388,7 @@ impl JobWorker {
             TaskType::AttendanceReport => {
                 AttendanceHandler::handle(
                     &self.db,
+                    &self.diesel,
                     &self.queue,
                     &self.cache,
                     &job,
@@ -400,37 +404,53 @@ impl JobWorker {
                 // Future implementation
                 Err("PayrollReport not implemented".to_string())
             }
-            TaskType::LeaveAccrual => AccrualHandler::handle(&self.db, &job, &self.redis).await,
-            TaskType::LogIngestion => LogIngestionHandler::handle(&self.db, &job).await,
-            TaskType::ReprocessAttendance => {
-                ReprocessAttendanceHandler::handle(&self.db, &job, &self.redis).await
+            TaskType::LeaveAccrual => {
+                AccrualHandler::handle(&self.db, &self.diesel, &job, &self.redis).await
             }
-            TaskType::ClaimStagedLogs => ClaimStagedLogsHandler::handle(&self.db, &job).await,
-            TaskType::LeaveImport => LeaveImportHandler::handle(&self.db, &job, &self.redis).await,
+            TaskType::LogIngestion => {
+                LogIngestionHandler::handle(&self.db, &self.diesel, &job).await
+            }
+            TaskType::ReprocessAttendance => {
+                ReprocessAttendanceHandler::handle(&self.db, &self.diesel, &job, &self.redis).await
+            }
+            TaskType::ClaimStagedLogs => {
+                ClaimStagedLogsHandler::handle(&self.db, &self.diesel, &job).await
+            }
+            TaskType::LeaveImport => {
+                LeaveImportHandler::handle(&self.db, &self.diesel, &job, &self.redis).await
+            }
             TaskType::EmployeeImport => {
-                EmployeeImportHandler::handle(&self.db, &job, &self.redis).await
+                EmployeeImportHandler::handle(&self.db, &self.diesel, &job, &self.redis).await
             }
             TaskType::EmployeeImportChunk => {
-                EmployeeImportChunkHandler::handle(&self.db, &job, &self.redis).await
+                EmployeeImportChunkHandler::handle(&self.db, &self.diesel, &job, &self.redis).await
             }
             TaskType::FinalizeImport => {
-                FinalizeImportHandler::handle(&self.db, &job, &self.redis).await
+                FinalizeImportHandler::handle(&self.db, &self.diesel, &job, &self.redis).await
             }
             TaskType::ExpiringContractsCheck => {
-                crate::worker::handlers::ExpiringContractsHandler::handle(&self.db, &job).await
+                crate::worker::handlers::ExpiringContractsHandler::handle(
+                    &self.db,
+                    &self.diesel,
+                    &job,
+                )
+                .await
             }
             TaskType::LeaveImportChunk => {
                 crate::worker::handlers::LeaveImportChunkHandler::handle(
                     &self.db,
+                    &self.diesel,
                     &job,
                     &self.redis,
                 )
                 .await
             }
             TaskType::NightlyHousekeeping => {
-                NightlyHousekeepingHandler::handle(&self.db, &job).await
+                NightlyHousekeepingHandler::handle(&self.db, &self.diesel, &job).await
             }
-            TaskType::SyncEmployeeHireDate => SyncHireDateHandler::process(&job, &self.db).await,
+            TaskType::SyncEmployeeHireDate => {
+                SyncHireDateHandler::process(&job, &self.db, &self.diesel).await
+            }
         };
 
         let elapsed = start.elapsed();

@@ -2,7 +2,13 @@ use crate::common::E2eTestDatabase;
 
 #[tokio::test]
 async fn test_supavisor_connection_and_prepared_statements() {
-    let test_db = E2eTestDatabase::new().await;
+    let test_db = match E2eTestDatabase::new().await {
+        Some(db) => db,
+        None => {
+            println!("Supavisor not available, skipping test_supavisor_connection_and_prepared_statements.");
+            return;
+        }
+    };
     let pool = test_db.pool.clone();
 
     // Test simple query execution

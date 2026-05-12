@@ -49,10 +49,7 @@ pub trait LeaveRequestRepository: super::PoolBacked + Send + Sync {
         workspace_id: Uuid,
     ) -> Result<Option<Uuid>, AppError>;
     /// List all leave types (code, name) for a workspace.
-    async fn get_leave_types(
-        &self,
-        workspace_id: Uuid,
-    ) -> Result<Vec<(String, String)>, AppError>;
+    async fn get_leave_types(&self, workspace_id: Uuid) -> Result<Vec<(String, String)>, AppError>;
 }
 
 // ---------------------------------------------------------------------------
@@ -71,14 +68,18 @@ impl SqlxLeaveRequestRepository {
 #[async_trait]
 impl LeaveRequestRepository for SqlxLeaveRequestRepository {
     async fn create_leave_request(&self, request: &LeaveRequest) -> Result<(), AppError> {
-        create_leave_request(&self.pool, request).await.map_err(Into::into)
+        create_leave_request(&self.pool, request)
+            .await
+            .map_err(Into::into)
     }
     async fn get_leave_request_by_id(
         &self,
         workspace_id: Uuid,
         id: Uuid,
     ) -> Result<Option<LeaveRequest>, AppError> {
-        get_leave_request_by_id(&self.pool, workspace_id, id).await.map_err(Into::into)
+        get_leave_request_by_id(&self.pool, workspace_id, id)
+            .await
+            .map_err(Into::into)
     }
     async fn update_leave_request_status(
         &self,
@@ -87,21 +88,27 @@ impl LeaveRequestRepository for SqlxLeaveRequestRepository {
         status: LeaveStatus,
         approved_by: Option<Uuid>,
     ) -> Result<(), AppError> {
-        update_leave_request_status(&self.pool, workspace_id, id, status, approved_by).await.map_err(Into::into)
+        update_leave_request_status(&self.pool, workspace_id, id, status, approved_by)
+            .await
+            .map_err(Into::into)
     }
     async fn get_employee_leave_requests(
         &self,
         workspace_id: Uuid,
         employee_id: Uuid,
     ) -> Result<Vec<LeaveRequest>, AppError> {
-        get_employee_leave_requests(&self.pool, workspace_id, employee_id).await.map_err(Into::into)
+        get_employee_leave_requests(&self.pool, workspace_id, employee_id)
+            .await
+            .map_err(Into::into)
     }
     async fn get_workspace_leave_requests(
         &self,
         workspace_id: Uuid,
         status: Option<LeaveStatus>,
     ) -> Result<Vec<LeaveRequest>, AppError> {
-        get_workspace_leave_requests(&self.pool, workspace_id, status).await.map_err(Into::into)
+        get_workspace_leave_requests(&self.pool, workspace_id, status)
+            .await
+            .map_err(Into::into)
     }
     async fn get_approved_leave_breakdown(
         &self,
@@ -136,18 +143,13 @@ impl LeaveRequestRepository for SqlxLeaveRequestRepository {
         .await
         .map_err(Into::into)
     }
-    async fn get_leave_types(
-        &self,
-        workspace_id: Uuid,
-    ) -> Result<Vec<(String, String)>, AppError> {
-        sqlx::query(
-            "SELECT code, name FROM leave_types WHERE workspace_id = $1 ORDER BY code ASC",
-        )
-        .bind(workspace_id)
-        .fetch_all(&self.pool)
-        .await
-        .map_err(Into::into)
-        .map(|rows| rows.iter().map(|r| (r.get(0), r.get(1))).collect())
+    async fn get_leave_types(&self, workspace_id: Uuid) -> Result<Vec<(String, String)>, AppError> {
+        sqlx::query("SELECT code, name FROM leave_types WHERE workspace_id = $1 ORDER BY code ASC")
+            .bind(workspace_id)
+            .fetch_all(&self.pool)
+            .await
+            .map_err(Into::into)
+            .map(|rows| rows.iter().map(|r| (r.get(0), r.get(1))).collect())
     }
 }
 

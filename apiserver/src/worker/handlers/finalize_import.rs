@@ -6,12 +6,18 @@ use sqlx::PgPool;
 
 use crate::models::ImportJobStatus;
 use crate::queue::{Job, RedisPool};
-use crate::repositories::import_job_repository::{ImportJobRepository, SqlxImportJobRepository};
+use crate::repositories::import_job_repository::ImportJobRepository;
+use crate::repositories::DieselImportJobRepository;
 
 pub struct FinalizeImportHandler;
 
 impl FinalizeImportHandler {
-    pub async fn handle(db: &PgPool, job: &Job, redis: &RedisPool) -> Result<(), String> {
+    pub async fn handle(
+        db: &PgPool,
+        diesel: &crate::diesel_pool::DieselPools,
+        job: &Job,
+        redis: &RedisPool,
+    ) -> Result<(), String> {
         let payload = job
             .finalize_import_payload()
             .ok_or("Missing finalize payload")?;
@@ -21,7 +27,7 @@ impl FinalizeImportHandler {
             "Finalizing import job"
         );
 
-        let import_repo = SqlxImportJobRepository::new(db.clone());
+        let import_repo = DieselImportJobRepository::new(db.clone(), diesel.clone());
 
         let mut conn = redis.conn();
 

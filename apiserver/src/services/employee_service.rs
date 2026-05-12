@@ -36,9 +36,7 @@ impl EmployeeService {
             .await?
             .ok_or(AppError::NotFound("Employee not found".into()))?;
 
-        self.repo
-            .get_working_conditions(workspace_id, emp.id)
-            .await
+        self.repo.get_working_conditions(workspace_id, emp.id).await
     }
 
     #[tracing::instrument(skip_all, err)]
@@ -64,9 +62,7 @@ impl EmployeeService {
             end_date: req.end_date,
         };
 
-        self.repo
-            .create_working_condition(&condition)
-            .await?;
+        self.repo.create_working_condition(&condition).await?;
 
         Ok(condition)
     }
@@ -126,8 +122,7 @@ impl EmployeeService {
 
         // Transaction-based creation still uses pool directly
         let mut tx = self.pool.begin().await.map_err(AppError::Sqlx)?;
-        employee::create_employee_tx(&mut tx, &employee)
-            .await?;
+        employee::create_employee_tx(&mut tx, &employee).await?;
         tx.commit().await.map_err(AppError::Sqlx)?;
 
         // Set recruitment source if provided
@@ -232,9 +227,7 @@ impl EmployeeService {
         workspace_id: Uuid,
         options: crate::models::EmployeeFilterOptions,
     ) -> Result<(Vec<Employee>, i64), AppError> {
-        self.repo
-            .get_all_employees(workspace_id, options)
-            .await
+        self.repo.get_all_employees(workspace_id, options).await
     }
 
     #[tracing::instrument(skip_all, err)]
@@ -310,9 +303,7 @@ impl EmployeeService {
             created_at: Utc::now(),
             updated_at: Utc::now(),
         };
-        self.repo
-            .create_recruitment_source(&source)
-            .await?;
+        self.repo.create_recruitment_source(&source).await?;
         Ok(source)
     }
 
@@ -321,9 +312,7 @@ impl EmployeeService {
         &self,
         workspace_id: Uuid,
     ) -> Result<Vec<crate::models::RecruitmentSource>, AppError> {
-        self.repo
-            .get_recruitment_sources(workspace_id)
-            .await
+        self.repo.get_recruitment_sources(workspace_id).await
     }
 
     #[tracing::instrument(skip_all, err)]
@@ -367,10 +356,7 @@ impl EmployeeService {
 
     #[tracing::instrument(skip_all, err)]
     pub async fn delete_employee(&self, id: Uuid, workspace_id: Uuid) -> Result<(), AppError> {
-        let rows_affected = self
-            .repo
-            .delete_employee(id, workspace_id)
-            .await?;
+        let rows_affected = self.repo.delete_employee(id, workspace_id).await?;
 
         if rows_affected == 0 {
             Err(AppError::NotFound("Employee not found".into()))
@@ -547,7 +533,7 @@ mod tests {
             &self,
             _ws: Uuid,
             _num: &str,
-        ) -> Result<Option<Employee>, sqlx::Error> {
+        ) -> Result<Option<Employee>, AppError> {
             Ok(self.employee.lock().expect("lock").clone())
         }
 
@@ -555,7 +541,7 @@ mod tests {
             &self,
             _id: Uuid,
             _ws: Uuid,
-        ) -> Result<Option<Employee>, sqlx::Error> {
+        ) -> Result<Option<Employee>, AppError> {
             Ok(self.employee.lock().expect("lock").clone())
         }
 
@@ -563,7 +549,7 @@ mod tests {
             &self,
             _num: &str,
             _ws: Uuid,
-        ) -> Result<Option<Employee>, sqlx::Error> {
+        ) -> Result<Option<Employee>, AppError> {
             Ok(self.employee.lock().expect("lock").clone())
         }
 
@@ -571,13 +557,13 @@ mod tests {
             &self,
             _ws: Uuid,
             _opts: EmployeeFilterOptions,
-        ) -> Result<(Vec<Employee>, i64), sqlx::Error> {
+        ) -> Result<(Vec<Employee>, i64), AppError> {
             let emps = self.employees.lock().expect("lock").clone();
             let total = *self.total.lock().expect("lock");
             Ok((emps, total))
         }
 
-        async fn get_active_employees(&self, _ws: Uuid) -> Result<Vec<Employee>, sqlx::Error> {
+        async fn get_active_employees(&self, _ws: Uuid) -> Result<Vec<Employee>, AppError> {
             Ok(self.employees.lock().expect("lock").clone())
         }
 
@@ -585,7 +571,7 @@ mod tests {
             &self,
             _ws: Uuid,
             _filter: Option<&Vec<Uuid>>,
-        ) -> Result<Vec<Uuid>, sqlx::Error> {
+        ) -> Result<Vec<Uuid>, AppError> {
             Ok(vec![])
         }
 
@@ -593,7 +579,7 @@ mod tests {
             &self,
             _ws: Uuid,
             _args: crate::models::EmployeePaginationArgs<'_>,
-        ) -> Result<(Vec<EmployeeBasicInfo>, i64), sqlx::Error> {
+        ) -> Result<(Vec<EmployeeBasicInfo>, i64), AppError> {
             Ok((vec![], 0))
         }
 
@@ -602,11 +588,11 @@ mod tests {
             _id: Uuid,
             _ws: Uuid,
             _req: &crate::models::UpdateEmployeeRequest,
-        ) -> Result<Option<Employee>, sqlx::Error> {
+        ) -> Result<Option<Employee>, AppError> {
             Ok(self.updated_employee.lock().expect("lock").clone())
         }
 
-        async fn delete_employee(&self, _id: Uuid, _ws: Uuid) -> Result<u64, sqlx::Error> {
+        async fn delete_employee(&self, _id: Uuid, _ws: Uuid) -> Result<u64, AppError> {
             Ok(*self.delete_emp_rows.lock().expect("lock"))
         }
 
@@ -614,22 +600,15 @@ mod tests {
             &self,
             _ws: Uuid,
             _emp: Uuid,
-        ) -> Result<Vec<WorkingCondition>, sqlx::Error> {
+        ) -> Result<Vec<WorkingCondition>, AppError> {
             Ok(self.working_conditions.lock().expect("lock").clone())
         }
 
-        async fn create_working_condition(
-            &self,
-            _cond: &WorkingCondition,
-        ) -> Result<(), sqlx::Error> {
+        async fn create_working_condition(&self, _cond: &WorkingCondition) -> Result<(), AppError> {
             Ok(())
         }
 
-        async fn delete_working_condition(
-            &self,
-            _id: Uuid,
-            _emp: Uuid,
-        ) -> Result<bool, sqlx::Error> {
+        async fn delete_working_condition(&self, _id: Uuid, _emp: Uuid) -> Result<bool, AppError> {
             Ok(*self.delete_wc_result.lock().expect("lock"))
         }
 
@@ -637,7 +616,7 @@ mod tests {
             &self,
             _ws: Uuid,
             _nums: &[String],
-        ) -> Result<Vec<String>, sqlx::Error> {
+        ) -> Result<Vec<String>, AppError> {
             Ok(vec![])
         }
 
@@ -647,7 +626,7 @@ mod tests {
             std_working_days: Decimal,
             hours_per_day: Decimal,
             effective_date: NaiveDate,
-        ) -> Result<crate::models::EmployeePayrollConfig, sqlx::Error> {
+        ) -> Result<crate::models::EmployeePayrollConfig, AppError> {
             Ok(crate::models::EmployeePayrollConfig {
                 id: Uuid::new_v4(),
                 employee_id,
@@ -662,7 +641,7 @@ mod tests {
             &self,
             _emp: Uuid,
             _date: NaiveDate,
-        ) -> Result<Option<crate::models::EmployeePayrollConfig>, sqlx::Error> {
+        ) -> Result<Option<crate::models::EmployeePayrollConfig>, AppError> {
             Ok(None)
         }
 
@@ -671,21 +650,21 @@ mod tests {
             _workspace_id: Uuid,
             _employee_id: Uuid,
             _recruitment_source_id: Option<Uuid>,
-        ) -> Result<(), sqlx::Error> {
+        ) -> Result<(), AppError> {
             Ok(())
         }
 
         async fn create_recruitment_source(
             &self,
             _source: &RecruitmentSource,
-        ) -> Result<(), sqlx::Error> {
+        ) -> Result<(), AppError> {
             Ok(())
         }
 
         async fn get_recruitment_sources(
             &self,
             _ws: Uuid,
-        ) -> Result<Vec<RecruitmentSource>, sqlx::Error> {
+        ) -> Result<Vec<RecruitmentSource>, AppError> {
             Ok(self.recruitment_sources.lock().expect("lock").clone())
         }
 
@@ -693,7 +672,7 @@ mod tests {
             &self,
             _id: Uuid,
             _ws: Uuid,
-        ) -> Result<Option<RecruitmentSource>, sqlx::Error> {
+        ) -> Result<Option<RecruitmentSource>, AppError> {
             Ok(None)
         }
 
@@ -702,7 +681,7 @@ mod tests {
             _id: Uuid,
             _ws: Uuid,
             _req: &crate::models::UpdateRecruitmentSourceRequest,
-        ) -> Result<Option<RecruitmentSource>, sqlx::Error> {
+        ) -> Result<Option<RecruitmentSource>, AppError> {
             Ok(self
                 .updated_recruitment_source
                 .lock()
@@ -710,18 +689,14 @@ mod tests {
                 .clone())
         }
 
-        async fn delete_recruitment_source(
-            &self,
-            _id: Uuid,
-            _ws: Uuid,
-        ) -> Result<u64, sqlx::Error> {
+        async fn delete_recruitment_source(&self, _id: Uuid, _ws: Uuid) -> Result<u64, AppError> {
             Ok(*self.delete_rs_rows.lock().expect("lock"))
         }
 
         async fn get_recruitment_source_breakdown(
             &self,
             _ws: Uuid,
-        ) -> Result<Vec<RecruitmentSourceBreakdown>, sqlx::Error> {
+        ) -> Result<Vec<RecruitmentSourceBreakdown>, AppError> {
             Ok(self
                 .recruitment_source_breakdown
                 .lock()
@@ -734,7 +709,7 @@ mod tests {
             _ws: Uuid,
             start_date: NaiveDate,
             end_date: NaiveDate,
-        ) -> Result<TurnoverAnalytics, sqlx::Error> {
+        ) -> Result<TurnoverAnalytics, AppError> {
             Ok(self
                 .turnover
                 .lock()
@@ -754,7 +729,7 @@ mod tests {
             &self,
             _ws: Uuid,
             _user: Uuid,
-        ) -> Result<Vec<Uuid>, sqlx::Error> {
+        ) -> Result<Vec<Uuid>, AppError> {
             Ok(vec![])
         }
 
@@ -762,7 +737,7 @@ mod tests {
             &self,
             _ws: Uuid,
             _user: Uuid,
-        ) -> Result<Option<Uuid>, sqlx::Error> {
+        ) -> Result<Option<Uuid>, AppError> {
             Ok(None)
         }
     }

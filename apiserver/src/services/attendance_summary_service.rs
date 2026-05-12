@@ -12,7 +12,7 @@ use crate::models::{AttendanceDailySummary, OtStatus};
 use crate::repositories::holiday_repository::HolidayRepository;
 use crate::repositories::roster::RosterRepository;
 use crate::repositories::{
-    workspace_repository::WorkspaceRepository, SqlxWorkspaceRepository, TimeEntryRepository,
+    workspace_repository::WorkspaceRepository, DieselWorkspaceRepository, TimeEntryRepository,
 };
 use crate::services::AttendanceCalculator;
 
@@ -31,6 +31,7 @@ pub struct AttendanceSummaryService {
     time_entry_repo: Arc<dyn TimeEntryRepository>,
     roster_repo: Arc<dyn RosterRepository>,
     pool: PgPool,
+    diesel: crate::diesel_pool::DieselPools,
 }
 
 impl AttendanceSummaryService {
@@ -38,11 +39,13 @@ impl AttendanceSummaryService {
         time_entry_repo: Arc<dyn TimeEntryRepository>,
         roster_repo: Arc<dyn RosterRepository>,
         pool: PgPool,
+        diesel: crate::diesel_pool::DieselPools,
     ) -> Self {
         Self {
             time_entry_repo,
             roster_repo,
             pool,
+            diesel,
         }
     }
 
@@ -57,9 +60,7 @@ impl AttendanceSummaryService {
         date: NaiveDate,
     ) -> Result<(), String> {
         // 1. Get Workspace Settings
-        let workspace_repo = SqlxWorkspaceRepository {
-            pool: self.pool.clone(),
-        };
+        let workspace_repo = DieselWorkspaceRepository::new(self.pool.clone(), self.diesel.clone());
         let workspace = workspace_repo
             .get_workspace_by_id(workspace_id)
             .await

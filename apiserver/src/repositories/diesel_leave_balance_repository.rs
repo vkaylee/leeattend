@@ -52,7 +52,9 @@ impl LeaveBalanceRepository for DieselLeaveBalanceRepository {
         employee_id: Uuid,
         year: i32,
     ) -> Result<Vec<EmployeeLeaveBalance>, AppError> {
-        get_employee_balances(&self.sqlx_pool, workspace_id, employee_id, year).await.map_err(Into::into)
+        get_employee_balances(&self.sqlx_pool, workspace_id, employee_id, year)
+            .await
+            .map_err(Into::into)
     }
 
     async fn get_workspace_balances(
@@ -63,7 +65,9 @@ impl LeaveBalanceRepository for DieselLeaveBalanceRepository {
         offset: i64,
         search: Option<String>,
     ) -> Result<(Vec<WorkspaceLeaveBalance>, i64), AppError> {
-        get_workspace_balances(&self.sqlx_pool, workspace_id, year, limit, offset, search).await.map_err(Into::into)
+        get_workspace_balances(&self.sqlx_pool, workspace_id, year, limit, offset, search)
+            .await
+            .map_err(Into::into)
     }
 
     async fn upsert_leave_balance(&self, balance: &LeaveBalance) -> Result<(), AppError> {

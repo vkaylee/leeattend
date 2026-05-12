@@ -31,7 +31,8 @@ impl From<ImportJobEntity> for AttendanceImportJob {
             "failed" => ImportJobStatus::Failed,
             _ => ImportJobStatus::Pending,
         };
-        let target_type = ImportTargetType::from_str(&entity.target_type).unwrap_or(ImportTargetType::Log);
+        let target_type =
+            ImportTargetType::from_str(&entity.target_type).unwrap_or(ImportTargetType::Log);
         Self {
             id: entity.id,
             workspace_id: entity.workspace_id,

@@ -250,6 +250,7 @@ struct PunchImportStrategy {
     time_entry_repo: Arc<dyn TimeEntryRepository>,
     employee_repo: Arc<dyn EmployeeRepository>,
     log_svc: Option<crate::services::attendance_log_service::AttendanceLogService>,
+    diesel_pools: crate::diesel_pool::DieselPools,
 }
 
 #[async_trait::async_trait]
@@ -311,23 +312,31 @@ impl ImportStrategy for PunchImportStrategy {
             let te_repo = Arc::clone(&self.time_entry_repo);
             let ps = Arc::new(crate::services::pairing_service::PairingService::new(
                 te_repo,
-                Arc::new(crate::repositories::roster::SqlxRosterRepository::new(
+                Arc::new(crate::repositories::DieselRosterRepository::new(
                     pool.clone(),
+                    self.diesel_pools.clone(),
                 )),
                 pool.clone(),
+                self.diesel_pools.clone(),
             ));
-            let emp_repo: Arc<dyn EmployeeRepository> = Arc::new(
-                crate::repositories::SqlxEmployeeRepository::new(pool.clone()),
-            );
-            let rl_repo: Arc<dyn crate::repositories::raw_attendance_log_repository::RawAttendanceLogRepository> = Arc::new(crate::repositories::raw_attendance_log_repository::SqlxRawAttendanceLogRepository::new(pool.clone()));
+            let emp_repo: Arc<dyn EmployeeRepository> =
+                Arc::new(crate::repositories::DieselEmployeeRepository::new(
+                    pool.clone(),
+                    self.diesel_pools.clone(),
+                ));
+            let rl_repo: Arc<
+                dyn crate::repositories::raw_attendance_log_repository::RawAttendanceLogRepository,
+            > = Arc::new(crate::repositories::DieselRawAttendanceLogRepository::new(
+                pool.clone(),
+                self.diesel_pools.clone(),
+            ));
             let st_repo: Arc<
                 dyn crate::repositories::staging_log_repository::StagingLogRepository,
-            > = Arc::new(
-                crate::repositories::staging_log_repository::SqlxStagingLogRepository::new(
-                    pool.clone(),
-                ),
-            );
-            let er_repo: Arc<dyn crate::repositories::attendance_log_error_repository::AttendanceLogErrorRepository> = Arc::new(crate::repositories::attendance_log_error_repository::SqlxAttendanceLogErrorRepository::new(pool.clone()));
+            > = Arc::new(crate::repositories::DieselStagingLogRepository::new(
+                pool.clone(),
+                self.diesel_pools.clone(),
+            ));
+            let er_repo: Arc<dyn crate::repositories::attendance_log_error_repository::AttendanceLogErrorRepository> = Arc::new(crate::repositories::DieselAttendanceLogErrorRepository::new(pool.clone(), self.diesel_pools.clone()));
 
             let (log_svc, _) = crate::services::attendance_log_service::AttendanceLogService::new(
                 pool.clone(),
@@ -457,6 +466,7 @@ pub struct AttendanceImportService {
     time_entry_repo: Arc<dyn TimeEntryRepository>,
     workspace_repo: Arc<dyn crate::repositories::workspace_repository::WorkspaceRepository>,
     pool: PgPool,
+    diesel_pools: crate::diesel_pool::DieselPools,
 }
 
 impl AttendanceImportService {
@@ -467,6 +477,7 @@ impl AttendanceImportService {
         time_entry_repo: Arc<dyn TimeEntryRepository>,
         workspace_repo: Arc<dyn crate::repositories::workspace_repository::WorkspaceRepository>,
         pool: PgPool,
+        diesel_pools: crate::diesel_pool::DieselPools,
     ) -> Self {
         Self {
             import_repo,
@@ -475,6 +486,7 @@ impl AttendanceImportService {
             time_entry_repo,
             workspace_repo,
             pool,
+            diesel_pools,
         }
     }
     #[tracing::instrument(skip_all, err)]
@@ -609,6 +621,7 @@ impl AttendanceImportService {
             time_entry_repo: Arc::clone(&self.time_entry_repo),
             employee_repo: Arc::clone(&self.employee_repo),
             log_svc: None,
+            diesel_pools: self.diesel_pools.clone(),
         };
 
         let pipeline = ImportPipeline {

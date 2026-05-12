@@ -14,6 +14,11 @@ use uuid::Uuid;
 async fn test_import_employee_claims_staged_logs() -> Result<(), Box<dyn std::error::Error>> {
     let test_db = TestDatabase::new().await;
     let pool = test_db.pool().clone();
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(
+        &std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://postgres:postgres@localhost:5432/leeattend".to_string()
+        }),
+    );
     let factory = TestFactory::new(pool.clone());
 
     let user_id = factory.user().create().await;
@@ -72,6 +77,7 @@ async fn test_import_employee_claims_staged_logs() -> Result<(), Box<dyn std::er
             pool: pool.clone(),
         }),
         pool.clone(),
+        diesel_pools.clone(),
     );
     let job_id = import_service
         .batch_import_from_file(ws_id, user_id, file_path, ImportTargetType::Employee)
@@ -133,6 +139,11 @@ async fn test_import_existing_employee_claims_staged_logs() -> Result<(), Box<dy
 {
     let test_db = TestDatabase::new().await;
     let pool = test_db.pool().clone();
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(
+        &std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://postgres:postgres@localhost:5432/leeattend".to_string()
+        }),
+    );
     let factory = TestFactory::new(pool.clone());
 
     let user_id = factory.user().create().await;
@@ -200,6 +211,7 @@ async fn test_import_existing_employee_claims_staged_logs() -> Result<(), Box<dy
             pool: pool.clone(),
         }),
         pool.clone(),
+        diesel_pools.clone(),
     );
     let job_id = import_service
         .batch_import_from_file(ws_id, user_id, file_path, ImportTargetType::Employee)

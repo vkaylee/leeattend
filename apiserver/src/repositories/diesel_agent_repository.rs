@@ -198,10 +198,7 @@ impl AgentRepository for DieselAgentRepository {
         Ok(count > 0)
     }
 
-    async fn get_workspace_devices(
-        &self,
-        workspace_id_val: Uuid,
-    ) -> Result<Vec<Device>, AppError> {
+    async fn get_workspace_devices(&self, workspace_id_val: Uuid) -> Result<Vec<Device>, AppError> {
         let mut conn = self
             .diesel_pools
             .api

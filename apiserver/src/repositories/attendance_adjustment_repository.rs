@@ -9,10 +9,7 @@ use uuid::Uuid;
 // ---------------------------------------------------------------------------
 #[async_trait]
 pub trait AttendanceAdjustmentRepository: super::PoolBacked + Send + Sync {
-    async fn create_request(
-        &self,
-        request: &AttendanceAdjustmentRequest,
-    ) -> Result<(), AppError>;
+    async fn create_request(&self, request: &AttendanceAdjustmentRequest) -> Result<(), AppError>;
     async fn get_request_by_id(
         &self,
         workspace_id: Uuid,
@@ -52,18 +49,19 @@ impl SqlxAttendanceAdjustmentRepository {
 
 #[async_trait]
 impl AttendanceAdjustmentRepository for SqlxAttendanceAdjustmentRepository {
-    async fn create_request(
-        &self,
-        request: &AttendanceAdjustmentRequest,
-    ) -> Result<(), AppError> {
-        create_request(&self.pool, request).await.map_err(Into::into)
+    async fn create_request(&self, request: &AttendanceAdjustmentRequest) -> Result<(), AppError> {
+        create_request(&self.pool, request)
+            .await
+            .map_err(Into::into)
     }
     async fn get_request_by_id(
         &self,
         workspace_id: Uuid,
         id: Uuid,
     ) -> Result<Option<AttendanceAdjustmentRequest>, AppError> {
-        get_request_by_id(&self.pool, workspace_id, id).await.map_err(Into::into)
+        get_request_by_id(&self.pool, workspace_id, id)
+            .await
+            .map_err(Into::into)
     }
     async fn update_adjustment_status(
         &self,
@@ -72,21 +70,27 @@ impl AttendanceAdjustmentRepository for SqlxAttendanceAdjustmentRepository {
         status: AdjustmentStatus,
         approved_by: Option<Uuid>,
     ) -> Result<(), AppError> {
-        update_adjustment_status(&self.pool, workspace_id, id, status, approved_by).await.map_err(Into::into)
+        update_adjustment_status(&self.pool, workspace_id, id, status, approved_by)
+            .await
+            .map_err(Into::into)
     }
     async fn get_workspace_adjustment_requests(
         &self,
         workspace_id: Uuid,
         status: Option<AdjustmentStatus>,
     ) -> Result<Vec<AttendanceAdjustmentRequest>, AppError> {
-        get_workspace_adjustment_requests(&self.pool, workspace_id, status).await.map_err(Into::into)
+        get_workspace_adjustment_requests(&self.pool, workspace_id, status)
+            .await
+            .map_err(Into::into)
     }
     async fn get_employee_adjustment_requests(
         &self,
         workspace_id: Uuid,
         employee_id: Uuid,
     ) -> Result<Vec<AttendanceAdjustmentRequest>, AppError> {
-        get_employee_adjustment_requests(&self.pool, workspace_id, employee_id).await.map_err(Into::into)
+        get_employee_adjustment_requests(&self.pool, workspace_id, employee_id)
+            .await
+            .map_err(Into::into)
     }
 }
 

@@ -4,10 +4,7 @@ use async_trait::async_trait;
 use sqlx::PgPool;
 use uuid::Uuid;
 
-pub async fn get_workspace_by_id(
-    pool: &PgPool,
-    id: Uuid,
-) -> Result<Option<Workspace>, AppError> {
+pub async fn get_workspace_by_id(pool: &PgPool, id: Uuid) -> Result<Option<Workspace>, AppError> {
     sqlx::query_as::<_, Workspace>("SELECT * FROM workspaces WHERE id = $1")
         .bind(id)
         .fetch_optional(pool)
@@ -52,10 +49,7 @@ pub trait WorkspaceRepository: super::PoolBacked + Send + Sync {
         user_id: Uuid,
     ) -> Result<Vec<String>, AppError>;
     /// Get all permission names for a set of role IDs.
-    async fn get_permissions_for_roles(
-        &self,
-        role_ids: &[Uuid],
-    ) -> Result<Vec<String>, AppError>;
+    async fn get_permissions_for_roles(&self, role_ids: &[Uuid]) -> Result<Vec<String>, AppError>;
     #[allow(clippy::too_many_arguments)]
     async fn update_workspace(
         &self,
@@ -125,9 +119,9 @@ impl WorkspaceRepository for SqlxWorkspaceRepository {
     async fn get_workspace_by_id(&self, id: Uuid) -> Result<Option<Workspace>, AppError> {
         sqlx::query_as::<_, Workspace>("SELECT * FROM workspaces WHERE id = $1")
             .bind(id)
-        .fetch_optional(&self.pool)
-        .await
-        .map_err(Into::into)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(Into::into)
     }
 
     async fn add_member(
@@ -224,10 +218,7 @@ impl WorkspaceRepository for SqlxWorkspaceRepository {
         .map_err(Into::into)
     }
 
-    async fn get_permissions_for_roles(
-        &self,
-        role_ids: &[Uuid],
-    ) -> Result<Vec<String>, AppError> {
+    async fn get_permissions_for_roles(&self, role_ids: &[Uuid]) -> Result<Vec<String>, AppError> {
         sqlx::query_scalar(
             "SELECT permission_name FROM workspace_role_permissions WHERE role_id = ANY($1)",
         )

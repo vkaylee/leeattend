@@ -277,10 +277,7 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
         Ok(permissions)
     }
 
-    async fn get_permissions_for_roles(
-        &self,
-        role_ids: &[Uuid],
-    ) -> Result<Vec<String>, AppError> {
+    async fn get_permissions_for_roles(&self, role_ids: &[Uuid]) -> Result<Vec<String>, AppError> {
         let mut conn = self
             .diesel_pools
             .api

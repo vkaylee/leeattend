@@ -1,5 +1,5 @@
-use crate::errors::AppError;
 use crate::diesel_pool::DieselPools;
+use crate::errors::AppError;
 use crate::models::diesel::payroll::*;
 use crate::models::{
     EmployeeSalaryComponent, IncentiveEvaluationResult, IncentiveTier, PayrollIncentivePolicy,
@@ -230,7 +230,8 @@ impl PayrollRepository for DieselPayrollRepository {
         workspace_id: Uuid,
     ) -> Result<Option<PayrollSettings>, AppError> {
         self.get_payroll_settings_at(workspace_id, Utc::now().date_naive())
-            .await}
+            .await
+    }
 
     async fn get_payroll_settings_at(
         &self,
@@ -396,7 +397,9 @@ impl PayrollRepository for DieselPayrollRepository {
         reference_date: NaiveDate,
     ) -> Result<Vec<(EmployeeSalaryComponent, SalaryComponentDefinition)>, AppError> {
         get_employee_salary_components(&self.sqlx_pool, workspace_id, employee_id, reference_date)
-            .await.map_err(Into::into)}
+            .await
+            .map_err(Into::into)
+    }
 
     async fn create_payslip(&self, payslip: &Payslip) -> Result<Payslip, AppError> {
         use std::str::FromStr;
@@ -507,7 +510,9 @@ impl PayrollRepository for DieselPayrollRepository {
             start_date,
             end_date,
         )
-        .await.map_err(Into::into)}
+        .await
+        .map_err(Into::into)
+    }
 
     async fn create_payslip_segment(
         &self,

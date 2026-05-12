@@ -91,7 +91,9 @@ impl EmployeeRepository for DieselEmployeeRepository {
         workspace_id: Uuid,
         options: EmployeeFilterOptions,
     ) -> Result<(Vec<Employee>, i64), AppError> {
-        employee::get_all_employees(&self.sqlx_pool, workspace_id, options).await.map_err(Into::into)
+        employee::get_all_employees(&self.sqlx_pool, workspace_id, options)
+            .await
+            .map_err(Into::into)
     }
 
     async fn get_active_employees(&self, workspace_id: Uuid) -> Result<Vec<Employee>, AppError> {
@@ -118,7 +120,9 @@ impl EmployeeRepository for DieselEmployeeRepository {
         workspace_id: Uuid,
         filter_ids: Option<&Vec<Uuid>>,
     ) -> Result<Vec<Uuid>, AppError> {
-        employee::get_active_employee_ids(&self.sqlx_pool, workspace_id, filter_ids).await.map_err(Into::into)
+        employee::get_active_employee_ids(&self.sqlx_pool, workspace_id, filter_ids)
+            .await
+            .map_err(Into::into)
     }
 
     async fn get_paginated_employee_ids(
@@ -126,7 +130,9 @@ impl EmployeeRepository for DieselEmployeeRepository {
         workspace_id: Uuid,
         args: EmployeePaginationArgs<'_>,
     ) -> Result<(Vec<EmployeeBasicInfo>, i64), AppError> {
-        employee::get_paginated_employee_ids(&self.sqlx_pool, workspace_id, args).await.map_err(Into::into)
+        employee::get_paginated_employee_ids(&self.sqlx_pool, workspace_id, args)
+            .await
+            .map_err(Into::into)
     }
 
     async fn update_employee(
@@ -199,14 +205,15 @@ impl EmployeeRepository for DieselEmployeeRepository {
         workspace_id: Uuid,
         employee_id: Uuid,
     ) -> Result<Vec<WorkingCondition>, AppError> {
-        employee::get_working_conditions(&self.sqlx_pool, workspace_id, employee_id).await.map_err(Into::into)
+        employee::get_working_conditions(&self.sqlx_pool, workspace_id, employee_id)
+            .await
+            .map_err(Into::into)
     }
 
-    async fn create_working_condition(
-        &self,
-        condition: &WorkingCondition,
-    ) -> Result<(), AppError> {
-        employee::create_working_condition(&self.sqlx_pool, condition).await.map_err(Into::into)
+    async fn create_working_condition(&self, condition: &WorkingCondition) -> Result<(), AppError> {
+        employee::create_working_condition(&self.sqlx_pool, condition)
+            .await
+            .map_err(Into::into)
     }
 
     async fn delete_working_condition(
@@ -214,7 +221,9 @@ impl EmployeeRepository for DieselEmployeeRepository {
         id: Uuid,
         employee_id: Uuid,
     ) -> Result<bool, AppError> {
-        employee::delete_working_condition(&self.sqlx_pool, id, employee_id).await.map_err(Into::into)
+        employee::delete_working_condition(&self.sqlx_pool, id, employee_id)
+            .await
+            .map_err(Into::into)
     }
 
     async fn get_existing_employee_ids_by_numbers(
@@ -223,7 +232,9 @@ impl EmployeeRepository for DieselEmployeeRepository {
         id_numbers: &[String],
     ) -> Result<Vec<String>, AppError> {
         employee::get_existing_employee_ids_by_numbers(&self.sqlx_pool, workspace_id, id_numbers)
-            .await.map_err(Into::into)}
+            .await
+            .map_err(Into::into)
+    }
 
     async fn upsert_employee_payroll_config(
         &self,
@@ -239,14 +250,18 @@ impl EmployeeRepository for DieselEmployeeRepository {
             hours_per_day,
             effective_date,
         )
-        .await.map_err(Into::into)}
+        .await
+        .map_err(Into::into)
+    }
 
     async fn get_employee_payroll_config_at(
         &self,
         employee_id: Uuid,
         date: NaiveDate,
     ) -> Result<Option<EmployeePayrollConfig>, AppError> {
-        employee::get_employee_payroll_config_at(&self.sqlx_pool, employee_id, date).await.map_err(Into::into)
+        employee::get_employee_payroll_config_at(&self.sqlx_pool, employee_id, date)
+            .await
+            .map_err(Into::into)
     }
 
     async fn set_employee_recruitment_source(
@@ -261,20 +276,23 @@ impl EmployeeRepository for DieselEmployeeRepository {
             employee_id,
             recruitment_source_id,
         )
-        .await.map_err(Into::into)}
+        .await
+        .map_err(Into::into)
+    }
 
-    async fn create_recruitment_source(
-        &self,
-        source: &RecruitmentSource,
-    ) -> Result<(), AppError> {
-        employee::create_recruitment_source(&self.sqlx_pool, source).await.map_err(Into::into)
+    async fn create_recruitment_source(&self, source: &RecruitmentSource) -> Result<(), AppError> {
+        employee::create_recruitment_source(&self.sqlx_pool, source)
+            .await
+            .map_err(Into::into)
     }
 
     async fn get_recruitment_sources(
         &self,
         workspace_id: Uuid,
     ) -> Result<Vec<RecruitmentSource>, AppError> {
-        employee::get_recruitment_sources(&self.sqlx_pool, workspace_id).await.map_err(Into::into)
+        employee::get_recruitment_sources(&self.sqlx_pool, workspace_id)
+            .await
+            .map_err(Into::into)
     }
 
     async fn get_recruitment_source_by_id(
@@ -282,7 +300,9 @@ impl EmployeeRepository for DieselEmployeeRepository {
         id: Uuid,
         workspace_id: Uuid,
     ) -> Result<Option<RecruitmentSource>, AppError> {
-        employee::get_recruitment_source_by_id(&self.sqlx_pool, id, workspace_id).await.map_err(Into::into)
+        employee::get_recruitment_source_by_id(&self.sqlx_pool, id, workspace_id)
+            .await
+            .map_err(Into::into)
     }
 
     async fn update_recruitment_source(
@@ -291,7 +311,9 @@ impl EmployeeRepository for DieselEmployeeRepository {
         workspace_id: Uuid,
         req: &crate::models::UpdateRecruitmentSourceRequest,
     ) -> Result<Option<RecruitmentSource>, AppError> {
-        employee::update_recruitment_source(&self.sqlx_pool, id, workspace_id, req).await.map_err(Into::into)
+        employee::update_recruitment_source(&self.sqlx_pool, id, workspace_id, req)
+            .await
+            .map_err(Into::into)
     }
 
     async fn delete_recruitment_source(
@@ -299,14 +321,18 @@ impl EmployeeRepository for DieselEmployeeRepository {
         id: Uuid,
         workspace_id: Uuid,
     ) -> Result<u64, AppError> {
-        employee::delete_recruitment_source(&self.sqlx_pool, id, workspace_id).await.map_err(Into::into)
+        employee::delete_recruitment_source(&self.sqlx_pool, id, workspace_id)
+            .await
+            .map_err(Into::into)
     }
 
     async fn get_recruitment_source_breakdown(
         &self,
         workspace_id: Uuid,
     ) -> Result<Vec<RecruitmentSourceBreakdown>, AppError> {
-        employee::get_recruitment_source_breakdown(&self.sqlx_pool, workspace_id).await.map_err(Into::into)
+        employee::get_recruitment_source_breakdown(&self.sqlx_pool, workspace_id)
+            .await
+            .map_err(Into::into)
     }
 
     async fn get_turnover_analytics(
@@ -315,7 +341,9 @@ impl EmployeeRepository for DieselEmployeeRepository {
         start_date: NaiveDate,
         end_date: NaiveDate,
     ) -> Result<TurnoverAnalytics, AppError> {
-        employee::get_turnover_analytics(&self.sqlx_pool, workspace_id, start_date, end_date).await.map_err(Into::into)
+        employee::get_turnover_analytics(&self.sqlx_pool, workspace_id, start_date, end_date)
+            .await
+            .map_err(Into::into)
     }
 
     async fn get_managed_departments(

@@ -37,8 +37,7 @@ pub trait RawAttendanceLogRepository: super::PoolBacked + Send + Sync {
         p_from: Option<DateTime<Utc>>,
         p_to: Option<DateTime<Utc>>,
     ) -> Result<i64, AppError>;
-    async fn create_raw_logs_batch(&self, logs: &[&RawAttendanceLog])
-        -> Result<usize, AppError>;
+    async fn create_raw_logs_batch(&self, logs: &[&RawAttendanceLog]) -> Result<usize, AppError>;
 }
 
 // ---------------------------------------------------------------------------
@@ -64,14 +63,18 @@ impl RawAttendanceLogRepository for SqlxRawAttendanceLogRepository {
         workspace_id: Uuid,
         id: Uuid,
     ) -> Result<Option<RawAttendanceLog>, AppError> {
-        get_raw_log_by_id(&self.pool, workspace_id, id).await.map_err(Into::into)
+        get_raw_log_by_id(&self.pool, workspace_id, id)
+            .await
+            .map_err(Into::into)
     }
     async fn get_latest_log(
         &self,
         workspace_id: Uuid,
         employee_id: Uuid,
     ) -> Result<Option<RawAttendanceLog>, AppError> {
-        get_latest_log(&self.pool, workspace_id, employee_id).await.map_err(Into::into)
+        get_latest_log(&self.pool, workspace_id, employee_id)
+            .await
+            .map_err(Into::into)
     }
     async fn get_paginated_raw_logs(
         &self,
@@ -101,13 +104,14 @@ impl RawAttendanceLogRepository for SqlxRawAttendanceLogRepository {
         p_from: Option<DateTime<Utc>>,
         p_to: Option<DateTime<Utc>>,
     ) -> Result<i64, AppError> {
-        count_raw_logs(&self.pool, workspace_id, p_employee_id, p_from, p_to).await.map_err(Into::into)
+        count_raw_logs(&self.pool, workspace_id, p_employee_id, p_from, p_to)
+            .await
+            .map_err(Into::into)
     }
-    async fn create_raw_logs_batch(
-        &self,
-        logs: &[&RawAttendanceLog],
-    ) -> Result<usize, AppError> {
-        create_raw_logs_batch(&self.pool, logs).await.map_err(Into::into)
+    async fn create_raw_logs_batch(&self, logs: &[&RawAttendanceLog]) -> Result<usize, AppError> {
+        create_raw_logs_batch(&self.pool, logs)
+            .await
+            .map_err(Into::into)
     }
 }
 

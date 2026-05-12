@@ -14,7 +14,7 @@ use crate::models::{
 use crate::repositories::holiday_repository::HolidayRepository;
 use crate::repositories::roster::RosterRepository;
 use crate::repositories::workspace_repository::WorkspaceRepository;
-use crate::repositories::{employee, SqlxWorkspaceRepository, TimeEntryRepository};
+use crate::repositories::{employee, DieselWorkspaceRepository, TimeEntryRepository};
 use crate::services::AttendanceCalculator;
 
 pub struct AttendanceReportArgs {
@@ -44,6 +44,7 @@ pub struct ReportService {
     time_entry_repo: Arc<dyn TimeEntryRepository>,
     roster_repo: Arc<dyn RosterRepository>,
     pool: PgPool,
+    diesel: crate::diesel_pool::DieselPools,
 }
 
 impl ReportService {
@@ -51,11 +52,13 @@ impl ReportService {
         time_entry_repo: Arc<dyn TimeEntryRepository>,
         roster_repo: Arc<dyn RosterRepository>,
         pool: PgPool,
+        diesel: crate::diesel_pool::DieselPools,
     ) -> Self {
         Self {
             time_entry_repo,
             roster_repo,
             pool,
+            diesel,
         }
     }
 
@@ -148,9 +151,7 @@ impl ReportService {
         args: AttendanceReportArgs,
     ) -> Result<PaginatedResponse<DailyAttendanceReport>, AppError> {
         // 0. Get Workspace Settings for Timezone & Rounding Logic
-        let workspace_repo = SqlxWorkspaceRepository {
-            pool: self.pool.clone(),
-        };
+        let workspace_repo = DieselWorkspaceRepository::new(self.pool.clone(), self.diesel.clone());
         let workspace = workspace_repo
             .get_workspace_by_id(args.workspace_id)
             .await
@@ -434,9 +435,7 @@ impl ReportService {
         use std::collections::HashMap;
 
         // 0. Get Workspace Settings
-        let workspace_repo = SqlxWorkspaceRepository {
-            pool: self.pool.clone(),
-        };
+        let workspace_repo = DieselWorkspaceRepository::new(self.pool.clone(), self.diesel.clone());
         let workspace = workspace_repo
             .get_workspace_by_id(args.workspace_id)
             .await

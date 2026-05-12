@@ -28,11 +28,7 @@ impl DieselHolidayRepository {
 
 #[async_trait]
 impl HolidayRepositoryTrait for DieselHolidayRepository {
-    async fn list(
-        &self,
-        workspace_id: Uuid,
-        year: Option<i32>,
-    ) -> Result<Vec<Holiday>, AppError> {
+    async fn list(&self, workspace_id: Uuid, year: Option<i32>) -> Result<Vec<Holiday>, AppError> {
         let mut conn = self
             .diesel_pools
             .api
@@ -64,11 +60,7 @@ impl HolidayRepositoryTrait for DieselHolidayRepository {
         Ok(entities.into_iter().map(Into::into).collect())
     }
 
-    async fn get_by_id(
-        &self,
-        workspace_id: Uuid,
-        id: Uuid,
-    ) -> Result<Option<Holiday>, AppError> {
+    async fn get_by_id(&self, workspace_id: Uuid, id: Uuid) -> Result<Option<Holiday>, AppError> {
         let mut conn = self
             .diesel_pools
             .api

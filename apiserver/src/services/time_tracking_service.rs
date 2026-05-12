@@ -10,14 +10,15 @@ use crate::models::{TimeEntry, UpdateTimeEntryRequest};
 use crate::repositories::employee;
 
 use crate::repositories::roster::RosterRepository;
-use crate::repositories::workspace_repository::{SqlxWorkspaceRepository, WorkspaceRepository};
+use crate::repositories::workspace_repository::WorkspaceRepository;
+use crate::repositories::DieselWorkspaceRepository;
 use crate::repositories::TimeEntryRepository;
 
 pub struct TimeTrackingService {
     repo: Arc<dyn TimeEntryRepository>,
     roster_repo: Arc<dyn RosterRepository>,
-    /// Kept for operations not yet abstracted
     pool: PgPool,
+    diesel: crate::diesel_pool::DieselPools,
 }
 
 impl TimeTrackingService {
@@ -25,11 +26,13 @@ impl TimeTrackingService {
         repo: Arc<dyn TimeEntryRepository>,
         roster_repo: Arc<dyn RosterRepository>,
         pool: PgPool,
+        diesel: crate::diesel_pool::DieselPools,
     ) -> Self {
         Self {
             repo,
             roster_repo,
             pool,
+            diesel,
         }
     }
 
@@ -63,10 +66,10 @@ impl TimeTrackingService {
 
         if is_in {
             // Get Workspace Timezone
-            let workspace_repo =
-                crate::repositories::workspace_repository::SqlxWorkspaceRepository {
-                    pool: self.pool.clone(),
-                };
+            let workspace_repo = crate::repositories::DieselWorkspaceRepository::new(
+                self.pool.clone(),
+                self.diesel.clone(),
+            );
             let workspace = workspace_repo
                 .get_workspace_by_id(workspace_id)
                 .await?
@@ -200,14 +203,10 @@ impl TimeTrackingService {
             entry.duration_minutes = Some(duration.num_minutes() as i32);
         }
 
-        self.repo
-            .update_time_entry(workspace_id, &entry)
-            .await?;
+        self.repo.update_time_entry(workspace_id, &entry).await?;
 
         // Recalculate summary
-        let workspace_repo = SqlxWorkspaceRepository {
-            pool: self.pool.clone(),
-        };
+        let workspace_repo = DieselWorkspaceRepository::new(self.pool.clone(), self.diesel.clone());
         if let Ok(Some(ws)) = workspace_repo.get_workspace_by_id(workspace_id).await {
             let tz: Tz = crate::utils::tz::parse_workspace_tz(&ws.timezone);
             let local_date = entry.punch_in_time.with_timezone(&tz).date_naive();
@@ -215,6 +214,7 @@ impl TimeTrackingService {
                 Arc::clone(&self.repo),
                 Arc::clone(&self.roster_repo),
                 self.pool.clone(),
+                self.diesel.clone(),
             );
             let _ = summary_svc
                 .recalculate_daily_summary(workspace_id, entry.employee_id, local_date)
@@ -239,9 +239,7 @@ impl TimeTrackingService {
                 "Employee does not belong to workspace".into(),
             ))?;
 
-        self.repo
-            .delete_time_entry(workspace_id, id)
-            .await?;
+        self.repo.delete_time_entry(workspace_id, id).await?;
 
         Ok(())
     }

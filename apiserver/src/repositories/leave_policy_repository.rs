@@ -31,11 +31,8 @@ pub trait LeavePolicyRepository: super::PoolBacked + Send + Sync {
         leave_type_id: Option<Uuid>,
         rule_config: Option<LeavePolicyConfig>,
     ) -> Result<LeavePolicyDefinition, AppError>;
-    async fn delete_policy_definition(
-        &self,
-        id: Uuid,
-        workspace_id: Uuid,
-    ) -> Result<u64, AppError>;
+    async fn delete_policy_definition(&self, id: Uuid, workspace_id: Uuid)
+        -> Result<u64, AppError>;
     async fn create_policy_assignment(
         &self,
         assignment: &LeavePolicyAssignment,
@@ -91,7 +88,9 @@ impl LeavePolicyRepository for SqlxLeavePolicyRepository {
         &self,
         workspace_id: Uuid,
     ) -> Result<Vec<LeavePolicyDefinition>, AppError> {
-        get_policy_definitions(&self.pool, workspace_id).await.map_err(Into::into)
+        get_policy_definitions(&self.pool, workspace_id)
+            .await
+            .map_err(Into::into)
     }
     async fn update_policy_definition(
         &self,
@@ -119,13 +118,17 @@ impl LeavePolicyRepository for SqlxLeavePolicyRepository {
         id: Uuid,
         workspace_id: Uuid,
     ) -> Result<u64, AppError> {
-        delete_policy_definition(&self.pool, id, workspace_id).await.map_err(Into::into)
+        delete_policy_definition(&self.pool, id, workspace_id)
+            .await
+            .map_err(Into::into)
     }
     async fn create_policy_assignment(
         &self,
         assignment: &LeavePolicyAssignment,
     ) -> Result<LeavePolicyAssignment, AppError> {
-        create_policy_assignment(&self.pool, assignment).await.map_err(Into::into)
+        create_policy_assignment(&self.pool, assignment)
+            .await
+            .map_err(Into::into)
     }
     async fn find_active_assignment_for_employee(
         &self,
@@ -148,7 +151,9 @@ impl LeavePolicyRepository for SqlxLeavePolicyRepository {
         &self,
         workspace_id: Uuid,
     ) -> Result<Vec<crate::models::LeavePolicyAssignmentDetail>, AppError> {
-        get_policy_assignments(&self.pool, workspace_id).await.map_err(Into::into)
+        get_policy_assignments(&self.pool, workspace_id)
+            .await
+            .map_err(Into::into)
     }
 }
 

@@ -11,13 +11,9 @@ pub trait SessionRepository: super::PoolBacked + Send + Sync {
         token: &str,
         expires_at: chrono::DateTime<chrono::Utc>,
     ) -> Result<(), AppError>;
-    async fn get_session_by_token(&self, token: &str)
-        -> Result<Option<SessionEntity>, AppError>;
-    async fn rotate_refresh_token(
-        &self,
-        session_id: Uuid,
-        new_token: &str,
-    ) -> Result<(), AppError>;
+    async fn get_session_by_token(&self, token: &str) -> Result<Option<SessionEntity>, AppError>;
+    async fn rotate_refresh_token(&self, session_id: Uuid, new_token: &str)
+        -> Result<(), AppError>;
     async fn revoke_session(&self, token: &str) -> Result<(), AppError>;
     async fn revoke_all_sessions_for_user(&self, user_id: Uuid) -> Result<(), AppError>;
 }

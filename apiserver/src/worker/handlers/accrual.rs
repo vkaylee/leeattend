@@ -13,7 +13,12 @@ pub struct AccrualHandler;
 impl AccrualHandler {
     /// Handle a leave accrual job.
     /// Updates JobMetadata status throughout the lifecycle.
-    pub async fn handle(db: &PgPool, job: &Job, redis: &RedisPool) -> Result<(), String> {
+    pub async fn handle(
+        db: &PgPool,
+        diesel: &crate::diesel_pool::DieselPools,
+        job: &Job,
+        redis: &RedisPool,
+    ) -> Result<(), String> {
         let payload = job.accrual_payload().ok_or("Missing accrual payload")?;
 
         let queue = JobQueue::new(redis.clone());
@@ -32,26 +37,30 @@ impl AccrualHandler {
         );
 
         let employee_repo: std::sync::Arc<dyn crate::repositories::EmployeeRepository> =
-            std::sync::Arc::new(crate::repositories::SqlxEmployeeRepository::new(db.clone()));
+            std::sync::Arc::new(crate::repositories::DieselEmployeeRepository::new(
+                db.clone(),
+                diesel.clone(),
+            ));
         let department_repo: std::sync::Arc<
             dyn crate::repositories::department_repository::DepartmentRepository,
         > = std::sync::Arc::new(
-            crate::repositories::department_repository::SqlxDepartmentRepository::new(db.clone()),
+            crate::repositories::diesel_department_repository::DieselDepartmentRepository::new(
+                db.clone(),
+                diesel.clone(),
+            ),
         );
         let leave_policy_repo: std::sync::Arc<
             dyn crate::repositories::leave_policy_repository::LeavePolicyRepository,
-        > = std::sync::Arc::new(
-            crate::repositories::leave_policy_repository::SqlxLeavePolicyRepository::new(
-                db.clone(),
-            ),
-        );
+        > = std::sync::Arc::new(crate::repositories::DieselLeavePolicyRepository::new(
+            db.clone(),
+            diesel.clone(),
+        ));
         let accrual_log_repo: std::sync::Arc<
             dyn crate::repositories::leave_accrual_log_repository::LeaveAccrualLogRepository,
-        > = std::sync::Arc::new(
-            crate::repositories::leave_accrual_log_repository::SqlxLeaveAccrualLogRepository::new(
-                db.clone(),
-            ),
-        );
+        > = std::sync::Arc::new(crate::repositories::DieselLeaveAccrualLogRepository::new(
+            db.clone(),
+            diesel.clone(),
+        ));
         let accrual_service = LeaveAccrualService::new(
             employee_repo,
             department_repo,

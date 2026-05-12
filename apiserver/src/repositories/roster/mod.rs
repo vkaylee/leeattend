@@ -15,9 +15,9 @@ pub use roster_crud::{
 pub use schedule_queries::{get_effective_shift, get_workspace_schedules};
 pub use shift_resolution::resolve_effective_shift_from_data;
 
+use crate::errors::AppError;
 use crate::models::{EmployeeSchedule, ShiftRoster};
 use async_trait::async_trait;
-use crate::errors::AppError;
 use chrono::NaiveDate;
 use sqlx::PgPool;
 use uuid::Uuid;
@@ -92,7 +92,8 @@ impl RosterRepository for SqlxRosterRepository {
             end_date,
             employee_ids,
         )
-        .await.map_err(Into::into)
+        .await
+        .map_err(Into::into)
     }
 
     async fn get_assignment_history(
@@ -100,7 +101,9 @@ impl RosterRepository for SqlxRosterRepository {
         workspace_id: Uuid,
         limit: i64,
     ) -> Result<Vec<crate::models::AssignmentHistory>, AppError> {
-        roster_crud::get_assignment_history(&self.pool, workspace_id, limit).await.map_err(Into::into)
+        roster_crud::get_assignment_history(&self.pool, workspace_id, limit)
+            .await
+            .map_err(Into::into)
     }
 
     async fn get_employee_rosters(
@@ -109,11 +112,15 @@ impl RosterRepository for SqlxRosterRepository {
         start_date: NaiveDate,
         end_date: NaiveDate,
     ) -> Result<Vec<ShiftRoster>, AppError> {
-        roster_crud::get_employee_rosters(&self.pool, employee_id, start_date, end_date).await.map_err(Into::into)
+        roster_crud::get_employee_rosters(&self.pool, employee_id, start_date, end_date)
+            .await
+            .map_err(Into::into)
     }
 
     async fn upsert_roster(&self, roster: &ShiftRoster) -> Result<ShiftRoster, AppError> {
-        roster_crud::upsert_roster(&self.pool, roster).await.map_err(Into::into)
+        roster_crud::upsert_roster(&self.pool, roster)
+            .await
+            .map_err(Into::into)
     }
 
     async fn bulk_upsert_roster(
@@ -121,7 +128,9 @@ impl RosterRepository for SqlxRosterRepository {
         employee_id: Uuid,
         items: Vec<crate::models::RosterItem>,
     ) -> Result<(), AppError> {
-        roster_crud::bulk_upsert_roster(&self.pool, employee_id, items).await.map_err(Into::into)
+        roster_crud::bulk_upsert_roster(&self.pool, employee_id, items)
+            .await
+            .map_err(Into::into)
     }
 
     async fn get_effective_shift(
@@ -130,11 +139,15 @@ impl RosterRepository for SqlxRosterRepository {
         employee_id: Uuid,
         date: NaiveDate,
     ) -> Result<(Option<Uuid>, Vec<crate::models::ScheduleTrace>), AppError> {
-        schedule_queries::get_effective_shift(&self.pool, workspace_id, employee_id, date).await.map_err(Into::into)
+        schedule_queries::get_effective_shift(&self.pool, workspace_id, employee_id, date)
+            .await
+            .map_err(Into::into)
     }
 
     async fn delete_roster(&self, employee_id: Uuid, date: NaiveDate) -> Result<(), AppError> {
-        roster_crud::delete_roster(&self.pool, employee_id, date).await.map_err(Into::into)
+        roster_crud::delete_roster(&self.pool, employee_id, date)
+            .await
+            .map_err(Into::into)
     }
 }
 

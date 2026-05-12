@@ -11,15 +11,16 @@ use uuid::Uuid;
 
 use crate::errors::AppResult;
 use crate::models::{LeaveDurationType, SubmitLeaveRequest};
-use crate::repositories::leave_balance_repository::SqlxLeaveBalanceRepository;
-use crate::repositories::leave_request_repository::SqlxLeaveRequestRepository;
-use crate::repositories::roster::SqlxRosterRepository;
-use crate::repositories::{EmployeeRepository, SqlxEmployeeRepository};
+use crate::repositories::DieselLeaveBalanceRepository;
+use crate::repositories::DieselLeaveRequestRepository;
+use crate::repositories::DieselRosterRepository;
+use crate::repositories::{DieselEmployeeRepository, EmployeeRepository};
 use crate::services::import_messages::LeaveImportMessages;
 use crate::services::leave_service::LeaveService;
 
 use crate::models::AttendanceImportJob;
-use crate::repositories::import_job_repository::{ImportJobRepository, SqlxImportJobRepository};
+use crate::repositories::import_job_repository::ImportJobRepository;
+use crate::repositories::DieselImportJobRepository;
 use crate::services::import_pipeline::{ImportPipeline, ImportStrategy};
 
 /// A parsed row from the Excel file, pending validation.
@@ -36,6 +37,7 @@ pub struct PendingLeaveRow {
 
 pub struct LeaveImportService {
     pool: PgPool,
+    diesel: crate::diesel_pool::DieselPools,
 }
 
 pub struct LeaveImportStrategy {
@@ -207,8 +209,8 @@ impl ImportStrategy for LeaveImportStrategy {
 }
 
 impl LeaveImportService {
-    pub fn new(pool: PgPool) -> Self {
-        Self { pool }
+    pub fn new(pool: PgPool, diesel: crate::diesel_pool::DieselPools) -> Self {
+        Self { pool, diesel }
     }
 
     /// Process an imported Excel file of leave requests.
@@ -223,7 +225,7 @@ impl LeaveImportService {
     ) -> Result<(), ()> {
         let file_bytes = tokio::fs::read(file_path).await.map_err(|_e| ())?;
 
-        let import_repo = SqlxImportJobRepository::new(self.pool.clone());
+        let import_repo = DieselImportJobRepository::new(self.pool.clone(), self.diesel.clone());
         let Ok(Some(job)) = import_repo.get_job_by_id(import_job_id).await else {
             return Err(());
         };
@@ -249,11 +251,22 @@ impl LeaveImportService {
 
         let msgs = LeaveImportMessages::for_lang(&lang);
 
-        let employee_repo: Arc<dyn EmployeeRepository> =
-            Arc::new(SqlxEmployeeRepository::new(self.pool.clone()));
-        let leave_balance_repo = Arc::new(SqlxLeaveBalanceRepository::new(self.pool.clone()));
-        let leave_request_repo = Arc::new(SqlxLeaveRequestRepository::new(self.pool.clone()));
-        let roster_repo = Arc::new(SqlxRosterRepository::new(self.pool.clone()));
+        let employee_repo: Arc<dyn EmployeeRepository> = Arc::new(DieselEmployeeRepository::new(
+            self.pool.clone(),
+            self.diesel.clone(),
+        ));
+        let leave_balance_repo = Arc::new(DieselLeaveBalanceRepository::new(
+            self.pool.clone(),
+            self.diesel.clone(),
+        ));
+        let leave_request_repo = Arc::new(DieselLeaveRequestRepository::new(
+            self.pool.clone(),
+            self.diesel.clone(),
+        ));
+        let roster_repo = Arc::new(DieselRosterRepository::new(
+            self.pool.clone(),
+            self.diesel.clone(),
+        ));
         let leave_service = LeaveService::new(
             leave_balance_repo,
             leave_request_repo,

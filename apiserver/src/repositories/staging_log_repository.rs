@@ -74,7 +74,9 @@ impl StagingLogRepository for SqlxStagingLogRepository {
         workspace_id: Uuid,
         limit: i64,
     ) -> Result<Vec<StagingLog>, AppError> {
-        get_pending_staging_logs(&self.pool, workspace_id, limit).await.map_err(Into::into)
+        get_pending_staging_logs(&self.pool, workspace_id, limit)
+            .await
+            .map_err(Into::into)
     }
     async fn update_staging_status(
         &self,
@@ -82,10 +84,14 @@ impl StagingLogRepository for SqlxStagingLogRepository {
         workspace_id: Uuid,
         status: &str,
     ) -> Result<bool, AppError> {
-        update_staging_status(&self.pool, id, workspace_id, status).await.map_err(Into::into)
+        update_staging_status(&self.pool, id, workspace_id, status)
+            .await
+            .map_err(Into::into)
     }
     async fn count_pending_staging_logs(&self, workspace_id: Uuid) -> Result<i64, AppError> {
-        count_pending_staging_logs(&self.pool, workspace_id).await.map_err(Into::into)
+        count_pending_staging_logs(&self.pool, workspace_id)
+            .await
+            .map_err(Into::into)
     }
 }
 

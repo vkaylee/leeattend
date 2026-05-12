@@ -48,7 +48,9 @@ impl UserRepository for SqlxUserRepository {
         create_user(&self.pool, user).await.map_err(Into::into)
     }
     async fn get_user_by_email(&self, email: &str) -> Result<Option<User>, AppError> {
-        get_user_by_email(&self.pool, email).await.map_err(Into::into)
+        get_user_by_email(&self.pool, email)
+            .await
+            .map_err(Into::into)
     }
     async fn get_user_by_id(&self, id: Uuid) -> Result<Option<User>, AppError> {
         get_user_by_id(&self.pool, id).await.map_err(Into::into)

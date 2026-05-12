@@ -78,16 +78,19 @@ impl AppState {
             Arc::clone(&time_entry_repo),
             Arc::clone(&roster_repo),
             pool.clone(),
+            diesel_pools.clone(),
         ));
         let attendance_summary_service = Arc::new(crate::services::AttendanceSummaryService::new(
             Arc::clone(&time_entry_repo),
             Arc::clone(&roster_repo),
             pool.clone(),
+            diesel_pools.clone(),
         ));
         let report_service = Arc::new(crate::services::ReportService::new(
             Arc::clone(&time_entry_repo),
             Arc::clone(&roster_repo),
             pool.clone(),
+            diesel_pools.clone(),
         ));
         let stats_repo: Arc<
             dyn crate::repositories::workspace_stats_repository::WorkspaceStatsRepository,
@@ -100,6 +103,7 @@ impl AppState {
             Arc::clone(&time_entry_repo),
             Arc::clone(&roster_repo),
             pool.clone(),
+            diesel_pools.clone(),
         ));
         let adj_repo: Arc<dyn crate::repositories::attendance_adjustment_repository::AttendanceAdjustmentRepository> = Arc::new(
             crate::repositories::DieselAttendanceAdjustmentRepository::new(pool.clone(), diesel_pools.clone()),
@@ -112,12 +116,10 @@ impl AppState {
             ),
         );
         let import_repo: Arc<dyn crate::repositories::import_job_repository::ImportJobRepository> =
-            Arc::new(
-                crate::repositories::DieselImportJobRepository::new(
-                    pool.clone(),
-                    diesel_pools.clone(),
-                ),
-            );
+            Arc::new(crate::repositories::DieselImportJobRepository::new(
+                pool.clone(),
+                diesel_pools.clone(),
+            ));
         let import_service = Arc::new(
             crate::services::attendance_import_service::AttendanceImportService::new(
                 Arc::clone(&import_repo),
@@ -126,6 +128,7 @@ impl AppState {
                 Arc::clone(&time_entry_repo),
                 Arc::clone(&workspace_repo),
                 worker_pool.clone(),
+                diesel_pools.clone(),
             ),
         );
         import_service.resume_all_pending_jobs().await;
@@ -174,12 +177,10 @@ impl AppState {
         ));
         let shift_swap_repo: Arc<
             dyn crate::repositories::shift_swap_repository::ShiftSwapRepository,
-        > = Arc::new(
-            crate::repositories::DieselShiftSwapRepository::new(
-                pool.clone(),
-                diesel_pools.clone(),
-            ),
-        );
+        > = Arc::new(crate::repositories::DieselShiftSwapRepository::new(
+            pool.clone(),
+            diesel_pools.clone(),
+        ));
         let shift_swap_service =
             Arc::new(crate::services::shift_swap_service::ShiftSwapService::new(
                 Arc::clone(&shift_swap_repo),
@@ -269,20 +270,16 @@ impl AppState {
 
         let raw_log_repo: Arc<
             dyn crate::repositories::raw_attendance_log_repository::RawAttendanceLogRepository,
-        > = Arc::new(
-            crate::repositories::DieselRawAttendanceLogRepository::new(
-                pool.clone(),
-                diesel_pools.clone(),
-            ),
-        );
+        > = Arc::new(crate::repositories::DieselRawAttendanceLogRepository::new(
+            pool.clone(),
+            diesel_pools.clone(),
+        ));
         let staging_repo: Arc<
             dyn crate::repositories::staging_log_repository::StagingLogRepository,
-        > = Arc::new(
-            crate::repositories::DieselStagingLogRepository::new(
-                pool.clone(),
-                diesel_pools.clone(),
-            ),
-        );
+        > = Arc::new(crate::repositories::DieselStagingLogRepository::new(
+            pool.clone(),
+            diesel_pools.clone(),
+        ));
         let error_repo: Arc<
             dyn crate::repositories::attendance_log_error_repository::AttendanceLogErrorRepository,
         > = Arc::new(
@@ -331,6 +328,7 @@ impl AppState {
                 let worker = JobWorker::new(
                     redis.clone(),
                     db_pools.worker().clone(),
+                    diesel_pools.clone(),
                     worker_config,
                     Arc::clone(&coordinator),
                     roster_cache.clone(),

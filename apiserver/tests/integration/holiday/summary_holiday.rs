@@ -17,6 +17,11 @@ struct SummaryRow {
 /// Create a holiday, trigger recalculation, verify the summary record has `is_holiday=true`
 #[tokio::test]
 async fn test_summary_records_holiday_flag_after_recalculate() {
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(
+        &std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://postgres:postgres@localhost:5432/leeattend".to_string()
+        }),
+    );
     let (address, test_db) = spawn_app().await;
     let pool = test_db.pool();
     let factory = crate::common::factory::TestFactory::new(pool.clone());
@@ -83,6 +88,7 @@ async fn test_summary_records_holiday_flag_after_recalculate() {
             pool.clone(),
         )),
         pool.clone(),
+        diesel_pools.clone(),
     )
     .recalculate_daily_summary(workspace_id, emp, today)
     .await

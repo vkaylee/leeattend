@@ -235,6 +235,7 @@ mod tests {
     use serde_json::json;
 
     #[test]
+    #[allow(clippy::float_cmp)]
     fn test_attendance_summary_backward_compatibility() {
         // Old payload missing the multi-unit fields
         let old_json = json!({

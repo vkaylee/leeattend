@@ -8,7 +8,9 @@ use crate::errors::AppError;
 use crate::models::diesel::working_pattern::{
     EmployeeWorkingPatternEntity, WorkingPatternDetailEntity, WorkingPatternEntity,
 };
-use crate::models::{BulkAssignResponse, EmployeeWorkingPattern, WorkingPattern, WorkingPatternDetail};
+use crate::models::{
+    BulkAssignResponse, EmployeeWorkingPattern, WorkingPattern, WorkingPatternDetail,
+};
 use crate::schema::{employee_working_patterns, working_pattern_details, working_patterns};
 
 pub struct DieselWorkingPatternRepository {
@@ -86,10 +88,7 @@ impl DieselWorkingPatternRepository {
         .map(Into::into)
     }
 
-    pub async fn get_patterns(
-        &self,
-        workspace_id: Uuid,
-    ) -> Result<Vec<WorkingPattern>, AppError> {
+    pub async fn get_patterns(&self, workspace_id: Uuid) -> Result<Vec<WorkingPattern>, AppError> {
         let mut conn = self
             .diesel_pools
             .api
@@ -249,10 +248,13 @@ impl DieselWorkingPatternRepository {
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
-        diesel::delete(working_pattern_details::table.filter(working_pattern_details::pattern_id.eq(pattern_id)))
-            .execute(&mut conn)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        diesel::delete(
+            working_pattern_details::table
+                .filter(working_pattern_details::pattern_id.eq(pattern_id)),
+        )
+        .execute(&mut conn)
+        .await
+        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         diesel::delete(
             working_patterns::table

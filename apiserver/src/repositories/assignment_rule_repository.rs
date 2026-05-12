@@ -19,10 +19,7 @@ pub trait AssignmentRuleRepositoryTrait: super::PoolBacked + Send + Sync {
         req: &CreateAssignmentRuleRequest,
     ) -> Result<AssignmentRule, AppError>;
     async fn get_rules(&self, workspace_id: Uuid) -> Result<Vec<AssignmentRule>, AppError>;
-    async fn get_active_rules(
-        &self,
-        workspace_id: Uuid,
-    ) -> Result<Vec<AssignmentRule>, AppError>;
+    async fn get_active_rules(&self, workspace_id: Uuid) -> Result<Vec<AssignmentRule>, AppError>;
     async fn update_rule(
         &self,
         workspace_id: Uuid,
@@ -52,16 +49,19 @@ impl AssignmentRuleRepositoryTrait for SqlxAssignmentRuleRepository {
         workspace_id: Uuid,
         req: &CreateAssignmentRuleRequest,
     ) -> Result<AssignmentRule, AppError> {
-        AssignmentRuleRepository::create_rule(&self.pool, workspace_id, req).await.map_err(Into::into)
+        AssignmentRuleRepository::create_rule(&self.pool, workspace_id, req)
+            .await
+            .map_err(Into::into)
     }
     async fn get_rules(&self, workspace_id: Uuid) -> Result<Vec<AssignmentRule>, AppError> {
-        AssignmentRuleRepository::get_rules(&self.pool, workspace_id).await.map_err(Into::into)
+        AssignmentRuleRepository::get_rules(&self.pool, workspace_id)
+            .await
+            .map_err(Into::into)
     }
-    async fn get_active_rules(
-        &self,
-        workspace_id: Uuid,
-    ) -> Result<Vec<AssignmentRule>, AppError> {
-        AssignmentRuleRepository::get_active_rules(&self.pool, workspace_id).await.map_err(Into::into)
+    async fn get_active_rules(&self, workspace_id: Uuid) -> Result<Vec<AssignmentRule>, AppError> {
+        AssignmentRuleRepository::get_active_rules(&self.pool, workspace_id)
+            .await
+            .map_err(Into::into)
     }
     async fn update_rule(
         &self,
@@ -69,10 +69,14 @@ impl AssignmentRuleRepositoryTrait for SqlxAssignmentRuleRepository {
         id: Uuid,
         req: &UpdateAssignmentRuleRequest,
     ) -> Result<AssignmentRule, AppError> {
-        AssignmentRuleRepository::update_rule(&self.pool, workspace_id, id, req).await.map_err(Into::into)
+        AssignmentRuleRepository::update_rule(&self.pool, workspace_id, id, req)
+            .await
+            .map_err(Into::into)
     }
     async fn delete_rule(&self, workspace_id: Uuid, id: Uuid) -> Result<(), AppError> {
-        AssignmentRuleRepository::delete_rule(&self.pool, workspace_id, id).await.map_err(Into::into)
+        AssignmentRuleRepository::delete_rule(&self.pool, workspace_id, id)
+            .await
+            .map_err(Into::into)
     }
 }
 

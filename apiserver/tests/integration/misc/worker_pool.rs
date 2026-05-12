@@ -20,6 +20,11 @@ use apiserver::worker::runner::JobWorker;
 /// By setting max_connections(1), this test will deadlock and timeout if any handler violates the rule.
 #[tokio::test]
 async fn test_worker_uses_only_one_connection_per_job() {
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(
+        &std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://postgres:postgres@localhost:5432/leeattend".to_string()
+        }),
+    );
     let _ = tracing_subscriber::fmt::try_init();
 
     // 1. Create a DB pool with EXACTLY ONE connection.
@@ -35,7 +40,11 @@ async fn test_worker_uses_only_one_connection_per_job() {
         std::env::var("REDIS_URL").unwrap_or_else(|_| "redis://127.0.0.1:6379".to_string());
     let redis_pool = RedisPool::new(&redis_url).await.unwrap();
 
-    let cache = Arc::new(CacheManager::new(redis_pool.clone(), pool.clone()));
+    let cache = Arc::new(CacheManager::new(
+        redis_pool.clone(),
+        pool.clone(),
+        diesel_pools.clone(),
+    ));
     let queue = JobQueue::new(redis_pool.clone());
 
     let coordinator = Arc::new(ReportCoordinator::new(redis_pool.clone(), pool.clone()));
@@ -45,7 +54,14 @@ async fn test_worker_uses_only_one_connection_per_job() {
         max_retries: 0,
         job_timeout_secs: 5,
     };
-    let worker = JobWorker::new(redis_pool.clone(), pool.clone(), config, coordinator, None);
+    let worker = JobWorker::new(
+        redis_pool.clone(),
+        pool.clone(),
+        diesel_pools.clone(),
+        config,
+        coordinator,
+        None,
+    );
 
     let workspace_id = Uuid::new_v4();
     let user_id = Uuid::new_v4();

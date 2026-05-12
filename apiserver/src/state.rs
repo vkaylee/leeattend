@@ -2,9 +2,9 @@ use std::sync::Arc;
 
 use crate::agent_manager::AgentManager;
 use crate::db_pool::DbPools;
+use crate::repositories::assignment_rule_repository::AssignmentRuleRepositoryTrait;
 use crate::repositories::attendance_log_error_repository::AttendanceLogErrorRepository;
 use crate::repositories::audit_log_repository::AuditLogRepository;
-use crate::repositories::assignment_rule_repository::AssignmentRuleRepositoryTrait;
 use crate::repositories::department_repository::DepartmentRepository;
 use crate::repositories::feature_flag_repository::FeatureFlagRepositoryTrait;
 use crate::repositories::holiday_repository::HolidayRepositoryTrait;

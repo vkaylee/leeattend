@@ -10,6 +10,11 @@ async fn test_daily_report_employee_filtering() {
     let test_db = TestDatabase::new().await;
     let pool = test_db.pool();
     let factory = TestFactory::new(pool.clone());
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(
+        &std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://postgres:postgres@localhost:5432/leeattend".to_string()
+        }),
+    );
 
     let workspace_id = factory.workspace().create().await;
 
@@ -39,6 +44,7 @@ async fn test_daily_report_employee_filtering() {
             pool.clone(),
         )),
         pool.clone(),
+        diesel_pools.clone(),
     );
 
     // Filter by emp1

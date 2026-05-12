@@ -9,8 +9,7 @@ use crate::diesel_pool::DieselPools;
 use crate::errors::AppError;
 use crate::models::diesel::assignment_rule::AssignmentRuleEntity;
 use crate::models::employee::{
-    AssignmentRule, CreateAssignmentRuleRequest,
-    UpdateAssignmentRuleRequest,
+    AssignmentRule, CreateAssignmentRuleRequest, UpdateAssignmentRuleRequest,
 };
 use crate::repositories::assignment_rule_repository::AssignmentRuleRepositoryTrait;
 use crate::schema::assignment_rules;
@@ -78,7 +77,10 @@ impl AssignmentRuleRepositoryTrait for DieselAssignmentRuleRepository {
 
         assignment_rules::table
             .filter(assignment_rules::workspace_id.eq(workspace_id))
-            .order((assignment_rules::priority.desc(), assignment_rules::created_at.asc()))
+            .order((
+                assignment_rules::priority.desc(),
+                assignment_rules::created_at.asc(),
+            ))
             .select(AssignmentRuleEntity::as_select())
             .load::<AssignmentRuleEntity>(&mut conn)
             .await
@@ -86,10 +88,7 @@ impl AssignmentRuleRepositoryTrait for DieselAssignmentRuleRepository {
             .map(|rows| rows.into_iter().map(Into::into).collect())
     }
 
-    async fn get_active_rules(
-        &self,
-        workspace_id: Uuid,
-    ) -> Result<Vec<AssignmentRule>, AppError> {
+    async fn get_active_rules(&self, workspace_id: Uuid) -> Result<Vec<AssignmentRule>, AppError> {
         let mut conn = self
             .diesel_pools
             .api
@@ -100,7 +99,10 @@ impl AssignmentRuleRepositoryTrait for DieselAssignmentRuleRepository {
         assignment_rules::table
             .filter(assignment_rules::workspace_id.eq(workspace_id))
             .filter(assignment_rules::is_active.eq(true))
-            .order((assignment_rules::priority.desc(), assignment_rules::created_at.asc()))
+            .order((
+                assignment_rules::priority.desc(),
+                assignment_rules::created_at.asc(),
+            ))
             .select(AssignmentRuleEntity::as_select())
             .load::<AssignmentRuleEntity>(&mut conn)
             .await
@@ -134,7 +136,9 @@ impl AssignmentRuleRepositoryTrait for DieselAssignmentRuleRepository {
         diesel::update(target)
             .set((
                 req.pattern_id.map(|v| assignment_rules::pattern_id.eq(v)),
-                req.name.as_ref().map(|v| assignment_rules::name.eq(v.clone())),
+                req.name
+                    .as_ref()
+                    .map(|v| assignment_rules::name.eq(v.clone())),
                 req.priority.map(|v| assignment_rules::priority.eq(v)),
                 conditions_json.map(|v| assignment_rules::conditions.eq(v)),
                 req.is_active.map(|v| assignment_rules::is_active.eq(v)),

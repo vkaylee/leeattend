@@ -21,11 +21,7 @@ pub trait FeatureFlagRepositoryTrait: super::PoolBacked + Send + Sync {
         workspace_id: Uuid,
         id: Uuid,
     ) -> Result<Option<FeatureFlag>, AppError>;
-    async fn is_enabled_flag(
-        &self,
-        workspace_id: Uuid,
-        flag_key: &str,
-    ) -> Result<bool, AppError>;
+    async fn is_enabled_flag(&self, workspace_id: Uuid, flag_key: &str) -> Result<bool, AppError>;
     async fn create_flag(
         &self,
         workspace_id: Uuid,

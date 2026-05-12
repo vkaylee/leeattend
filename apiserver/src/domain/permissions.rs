@@ -497,6 +497,7 @@ mod tests {
     /// Every Permission enum variant is covered by all_permission_strings().
     /// We verify this indirectly: to_str_permission for each variant must appear in the vec.
     #[test]
+    #[allow(clippy::too_many_lines)]
     fn test_all_enum_variants_covered() {
         let all_set: HashSet<&str> = Permission::all_permission_strings().into_iter().collect();
 

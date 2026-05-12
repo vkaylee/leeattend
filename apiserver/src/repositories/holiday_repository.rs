@@ -28,13 +28,8 @@ pub enum HolidayLeaveResult {
 #[async_trait]
 #[async_trait]
 pub trait HolidayRepositoryTrait: super::PoolBacked + Send + Sync {
-    async fn list(
-        &self,
-        workspace_id: Uuid,
-        year: Option<i32>,
-    ) -> Result<Vec<Holiday>, AppError>;
-    async fn get_by_id(&self, workspace_id: Uuid, id: Uuid)
-        -> Result<Option<Holiday>, AppError>;
+    async fn list(&self, workspace_id: Uuid, year: Option<i32>) -> Result<Vec<Holiday>, AppError>;
+    async fn get_by_id(&self, workspace_id: Uuid, id: Uuid) -> Result<Option<Holiday>, AppError>;
     async fn create_holiday(
         &self,
         workspace_id: Uuid,
@@ -75,26 +70,24 @@ impl SqlxHolidayRepository {
 
 #[async_trait]
 impl HolidayRepositoryTrait for SqlxHolidayRepository {
-    async fn list(
-        &self,
-        workspace_id: Uuid,
-        year: Option<i32>,
-    ) -> Result<Vec<Holiday>, AppError> {
-        HolidayRepository::list(&self.pool, workspace_id, year).await.map_err(Into::into)
+    async fn list(&self, workspace_id: Uuid, year: Option<i32>) -> Result<Vec<Holiday>, AppError> {
+        HolidayRepository::list(&self.pool, workspace_id, year)
+            .await
+            .map_err(Into::into)
     }
-    async fn get_by_id(
-        &self,
-        workspace_id: Uuid,
-        id: Uuid,
-    ) -> Result<Option<Holiday>, AppError> {
-        HolidayRepository::get_by_id(&self.pool, workspace_id, id).await.map_err(Into::into)
+    async fn get_by_id(&self, workspace_id: Uuid, id: Uuid) -> Result<Option<Holiday>, AppError> {
+        HolidayRepository::get_by_id(&self.pool, workspace_id, id)
+            .await
+            .map_err(Into::into)
     }
     async fn create_holiday(
         &self,
         workspace_id: Uuid,
         req: &crate::models::CreateHolidayRequest,
     ) -> Result<Holiday, AppError> {
-        HolidayRepository::create(&self.pool, workspace_id, req).await.map_err(Into::into)
+        HolidayRepository::create(&self.pool, workspace_id, req)
+            .await
+            .map_err(Into::into)
     }
     async fn update_holiday(
         &self,
@@ -102,10 +95,14 @@ impl HolidayRepositoryTrait for SqlxHolidayRepository {
         id: Uuid,
         req: &crate::models::UpdateHolidayRequest,
     ) -> Result<Option<Holiday>, AppError> {
-        HolidayRepository::update(&self.pool, workspace_id, id, req).await.map_err(Into::into)
+        HolidayRepository::update(&self.pool, workspace_id, id, req)
+            .await
+            .map_err(Into::into)
     }
     async fn delete(&self, workspace_id: Uuid, id: Uuid) -> Result<bool, AppError> {
-        HolidayRepository::delete(&self.pool, workspace_id, id).await.map_err(Into::into)
+        HolidayRepository::delete(&self.pool, workspace_id, id)
+            .await
+            .map_err(Into::into)
     }
     async fn get_holidays_in_range(
         &self,
@@ -122,7 +119,9 @@ impl HolidayRepositoryTrait for SqlxHolidayRepository {
         workspace_id: Uuid,
         date: NaiveDate,
     ) -> Result<Option<Holiday>, AppError> {
-        HolidayRepository::is_holiday(&self.pool, workspace_id, date).await.map_err(Into::into)
+        HolidayRepository::is_holiday(&self.pool, workspace_id, date)
+            .await
+            .map_err(Into::into)
     }
 }
 

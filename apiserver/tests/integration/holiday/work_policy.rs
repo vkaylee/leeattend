@@ -592,6 +592,11 @@ async fn test_leave_reversal_full_shift() {
 
 #[tokio::test]
 async fn test_leave_kept_partial_work() {
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(
+        &std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://postgres:postgres@localhost:5432/leeattend".to_string()
+        }),
+    );
     let (_address, test_db) = spawn_app().await;
     let pool = test_db.pool();
     let factory = crate::common::factory::TestFactory::new(pool.clone());
@@ -678,6 +683,7 @@ async fn test_leave_kept_partial_work() {
             pool.clone(),
         )),
         pool.clone(),
+        diesel_pools.clone(),
     )
     .recalculate_daily_summary(workspace_id, emp, today)
     .await
@@ -813,6 +819,11 @@ async fn test_leave_reversal_custom_threshold() {
 
 #[tokio::test]
 async fn test_leave_reversal_only_system() {
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(
+        &std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://postgres:postgres@localhost:5432/leeattend".to_string()
+        }),
+    );
     let (_address, test_db) = spawn_app().await;
     let pool = test_db.pool();
     let factory = crate::common::factory::TestFactory::new(pool.clone());
@@ -900,6 +911,7 @@ async fn test_leave_reversal_only_system() {
             pool.clone(),
         )),
         pool.clone(),
+        diesel_pools.clone(),
     )
     .recalculate_daily_summary(workspace_id, emp, today)
     .await

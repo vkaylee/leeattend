@@ -31,6 +31,11 @@ fn create_multipart_body(filename: &str, content: &str) -> (String, Vec<u8>) {
 
 #[tokio::test]
 async fn test_upload_leave_csv_api() {
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(
+        &std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://postgres:postgres@localhost:5432/leeattend".to_string()
+        }),
+    );
     let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
         setup_app_tower().await;
 
@@ -101,8 +106,10 @@ async fn test_upload_leave_csv_api() {
     let job_uuid = Uuid::parse_str(job_id).unwrap();
 
     // The background worker is not running in the setup_app_tower context, so we process it manually.
-    let import_service =
-        apiserver::services::leave_import_service::LeaveImportService::new(factory.pool.clone());
+    let import_service = apiserver::services::leave_import_service::LeaveImportService::new(
+        factory.pool.clone(),
+        diesel_pools.clone(),
+    );
 
     let job_opt =
         apiserver::repositories::import_job_repository::get_job_by_id(&factory.pool, job_uuid)

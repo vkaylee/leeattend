@@ -33,9 +33,7 @@ impl ShiftService {
 
     #[tracing::instrument(skip_all, err)]
     pub async fn get_workspace_shifts(&self, workspace_id: Uuid) -> Result<Vec<Shift>, AppError> {
-        self.repo
-            .get_workspace_shifts(workspace_id)
-            .await
+        self.repo.get_workspace_shifts(workspace_id).await
     }
 
     #[tracing::instrument(skip_all, err)]
@@ -101,9 +99,7 @@ impl ShiftService {
                 .await?;
 
             // 2. Archive old version
-            self.repo
-                .archive_shift(workspace_id, shift_id)
-                .await?;
+            self.repo.archive_shift(workspace_id, shift_id).await?;
 
             // 3. Migrate assignments
             self.repo
@@ -128,7 +124,9 @@ impl ShiftService {
             .await
         {
             Ok(_) => Ok(()),
-            Err(AppError::Sqlx(sqlx::Error::Database(e))) if e.constraint() == Some("uq_employee_shift_start") => {
+            Err(AppError::Sqlx(sqlx::Error::Database(e)))
+                if e.constraint() == Some("uq_employee_shift_start") =>
+            {
                 Err(AppError::Conflict(
                     "Shift assignment already exists for this date".into(),
                 ))

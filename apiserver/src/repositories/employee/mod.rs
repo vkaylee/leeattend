@@ -15,8 +15,8 @@ pub use analytics_queries::*;
 pub use core_queries::*;
 pub use recruitment_queries::*;
 
-use async_trait::async_trait;
 use crate::errors::AppError;
+use async_trait::async_trait;
 use chrono::NaiveDate;
 use rust_decimal::Decimal;
 use sqlx::PgPool;
@@ -93,16 +93,10 @@ pub trait EmployeeRepository: super::PoolBacked + Send + Sync {
         employee_id: Uuid,
     ) -> Result<Vec<WorkingCondition>, AppError>;
 
-    async fn create_working_condition(
-        &self,
-        condition: &WorkingCondition,
-    ) -> Result<(), AppError>;
+    async fn create_working_condition(&self, condition: &WorkingCondition) -> Result<(), AppError>;
 
-    async fn delete_working_condition(
-        &self,
-        id: Uuid,
-        employee_id: Uuid,
-    ) -> Result<bool, AppError>;
+    async fn delete_working_condition(&self, id: Uuid, employee_id: Uuid)
+        -> Result<bool, AppError>;
 
     async fn get_existing_employee_ids_by_numbers(
         &self,
@@ -131,10 +125,7 @@ pub trait EmployeeRepository: super::PoolBacked + Send + Sync {
         recruitment_source_id: Option<Uuid>,
     ) -> Result<(), AppError>;
 
-    async fn create_recruitment_source(
-        &self,
-        source: &RecruitmentSource,
-    ) -> Result<(), AppError>;
+    async fn create_recruitment_source(&self, source: &RecruitmentSource) -> Result<(), AppError>;
 
     async fn get_recruitment_sources(
         &self,
@@ -205,7 +196,9 @@ impl EmployeeRepository for SqlxEmployeeRepository {
         workspace_id: Uuid,
         employee_id_number: &str,
     ) -> Result<Option<Employee>, AppError> {
-        core_queries::find_by_number(&self.pool, workspace_id, employee_id_number).await.map_err(Into::into)
+        core_queries::find_by_number(&self.pool, workspace_id, employee_id_number)
+            .await
+            .map_err(Into::into)
     }
 
     async fn get_employee_by_id(
@@ -213,7 +206,9 @@ impl EmployeeRepository for SqlxEmployeeRepository {
         id: Uuid,
         workspace_id: Uuid,
     ) -> Result<Option<Employee>, AppError> {
-        core_queries::get_employee_by_id(&self.pool, id, workspace_id).await.map_err(Into::into)
+        core_queries::get_employee_by_id(&self.pool, id, workspace_id)
+            .await
+            .map_err(Into::into)
     }
 
     async fn get_employee_by_id_number(
@@ -221,7 +216,9 @@ impl EmployeeRepository for SqlxEmployeeRepository {
         id_number: &str,
         workspace_id: Uuid,
     ) -> Result<Option<Employee>, AppError> {
-        core_queries::get_employee_by_id_number(&self.pool, id_number, workspace_id).await.map_err(Into::into)
+        core_queries::get_employee_by_id_number(&self.pool, id_number, workspace_id)
+            .await
+            .map_err(Into::into)
     }
 
     async fn get_all_employees(
@@ -229,11 +226,15 @@ impl EmployeeRepository for SqlxEmployeeRepository {
         workspace_id: Uuid,
         options: crate::models::EmployeeFilterOptions,
     ) -> Result<(Vec<Employee>, i64), AppError> {
-        core_queries::get_all_employees(&self.pool, workspace_id, options).await.map_err(Into::into)
+        core_queries::get_all_employees(&self.pool, workspace_id, options)
+            .await
+            .map_err(Into::into)
     }
 
     async fn get_active_employees(&self, workspace_id: Uuid) -> Result<Vec<Employee>, AppError> {
-        core_queries::get_active_employees(&self.pool, workspace_id).await.map_err(Into::into)
+        core_queries::get_active_employees(&self.pool, workspace_id)
+            .await
+            .map_err(Into::into)
     }
 
     async fn get_active_employee_ids(
@@ -241,7 +242,9 @@ impl EmployeeRepository for SqlxEmployeeRepository {
         workspace_id: Uuid,
         filter_ids: Option<&Vec<Uuid>>,
     ) -> Result<Vec<Uuid>, AppError> {
-        core_queries::get_active_employee_ids(&self.pool, workspace_id, filter_ids).await.map_err(Into::into)
+        core_queries::get_active_employee_ids(&self.pool, workspace_id, filter_ids)
+            .await
+            .map_err(Into::into)
     }
 
     async fn get_paginated_employee_ids(
@@ -249,7 +252,9 @@ impl EmployeeRepository for SqlxEmployeeRepository {
         workspace_id: Uuid,
         args: crate::models::EmployeePaginationArgs<'_>,
     ) -> Result<(Vec<EmployeeBasicInfo>, i64), AppError> {
-        core_queries::get_paginated_employee_ids(&self.pool, workspace_id, args).await.map_err(Into::into)
+        core_queries::get_paginated_employee_ids(&self.pool, workspace_id, args)
+            .await
+            .map_err(Into::into)
     }
 
     async fn update_employee(
@@ -258,11 +263,15 @@ impl EmployeeRepository for SqlxEmployeeRepository {
         workspace_id: Uuid,
         req: &crate::models::UpdateEmployeeRequest,
     ) -> Result<Option<Employee>, AppError> {
-        core_queries::update_employee(&self.pool, id, workspace_id, req).await.map_err(Into::into)
+        core_queries::update_employee(&self.pool, id, workspace_id, req)
+            .await
+            .map_err(Into::into)
     }
 
     async fn delete_employee(&self, id: Uuid, workspace_id: Uuid) -> Result<u64, AppError> {
-        core_queries::delete_employee(&self.pool, id, workspace_id).await.map_err(Into::into)
+        core_queries::delete_employee(&self.pool, id, workspace_id)
+            .await
+            .map_err(Into::into)
     }
 
     async fn get_working_conditions(
@@ -270,14 +279,15 @@ impl EmployeeRepository for SqlxEmployeeRepository {
         workspace_id: Uuid,
         employee_id: Uuid,
     ) -> Result<Vec<WorkingCondition>, AppError> {
-        core_queries::get_working_conditions(&self.pool, workspace_id, employee_id).await.map_err(Into::into)
+        core_queries::get_working_conditions(&self.pool, workspace_id, employee_id)
+            .await
+            .map_err(Into::into)
     }
 
-    async fn create_working_condition(
-        &self,
-        condition: &WorkingCondition,
-    ) -> Result<(), AppError> {
-        core_queries::create_working_condition(&self.pool, condition).await.map_err(Into::into)
+    async fn create_working_condition(&self, condition: &WorkingCondition) -> Result<(), AppError> {
+        core_queries::create_working_condition(&self.pool, condition)
+            .await
+            .map_err(Into::into)
     }
 
     async fn delete_working_condition(
@@ -285,7 +295,9 @@ impl EmployeeRepository for SqlxEmployeeRepository {
         id: Uuid,
         employee_id: Uuid,
     ) -> Result<bool, AppError> {
-        core_queries::delete_working_condition(&self.pool, id, employee_id).await.map_err(Into::into)
+        core_queries::delete_working_condition(&self.pool, id, employee_id)
+            .await
+            .map_err(Into::into)
     }
 
     async fn get_existing_employee_ids_by_numbers(
@@ -294,7 +306,9 @@ impl EmployeeRepository for SqlxEmployeeRepository {
         id_numbers: &[String],
     ) -> Result<Vec<String>, AppError> {
         core_queries::get_existing_employee_ids_by_numbers(&self.pool, workspace_id, id_numbers)
-            .await.map_err(Into::into)}
+            .await
+            .map_err(Into::into)
+    }
 
     async fn upsert_employee_payroll_config(
         &self,
@@ -310,7 +324,8 @@ impl EmployeeRepository for SqlxEmployeeRepository {
             hours_per_day,
             effective_date,
         )
-        .await.map_err(Into::into)
+        .await
+        .map_err(Into::into)
     }
 
     async fn get_employee_payroll_config_at(
@@ -318,7 +333,9 @@ impl EmployeeRepository for SqlxEmployeeRepository {
         employee_id: Uuid,
         date: NaiveDate,
     ) -> Result<Option<EmployeePayrollConfig>, AppError> {
-        core_queries::get_employee_payroll_config_at(&self.pool, employee_id, date).await.map_err(Into::into)
+        core_queries::get_employee_payroll_config_at(&self.pool, employee_id, date)
+            .await
+            .map_err(Into::into)
     }
 
     async fn set_employee_recruitment_source(
@@ -333,21 +350,23 @@ impl EmployeeRepository for SqlxEmployeeRepository {
             employee_id,
             recruitment_source_id,
         )
-        .await.map_err(Into::into)
+        .await
+        .map_err(Into::into)
     }
 
-    async fn create_recruitment_source(
-        &self,
-        source: &RecruitmentSource,
-    ) -> Result<(), AppError> {
-        recruitment_queries::create_recruitment_source(&self.pool, source).await.map_err(Into::into)
+    async fn create_recruitment_source(&self, source: &RecruitmentSource) -> Result<(), AppError> {
+        recruitment_queries::create_recruitment_source(&self.pool, source)
+            .await
+            .map_err(Into::into)
     }
 
     async fn get_recruitment_sources(
         &self,
         workspace_id: Uuid,
     ) -> Result<Vec<RecruitmentSource>, AppError> {
-        recruitment_queries::get_recruitment_sources(&self.pool, workspace_id).await.map_err(Into::into)
+        recruitment_queries::get_recruitment_sources(&self.pool, workspace_id)
+            .await
+            .map_err(Into::into)
     }
 
     async fn get_recruitment_source_by_id(
@@ -355,7 +374,9 @@ impl EmployeeRepository for SqlxEmployeeRepository {
         id: Uuid,
         workspace_id: Uuid,
     ) -> Result<Option<RecruitmentSource>, AppError> {
-        recruitment_queries::get_recruitment_source_by_id(&self.pool, id, workspace_id).await.map_err(Into::into)
+        recruitment_queries::get_recruitment_source_by_id(&self.pool, id, workspace_id)
+            .await
+            .map_err(Into::into)
     }
 
     async fn update_recruitment_source(
@@ -364,7 +385,9 @@ impl EmployeeRepository for SqlxEmployeeRepository {
         workspace_id: Uuid,
         req: &crate::models::UpdateRecruitmentSourceRequest,
     ) -> Result<Option<RecruitmentSource>, AppError> {
-        recruitment_queries::update_recruitment_source(&self.pool, id, workspace_id, req).await.map_err(Into::into)
+        recruitment_queries::update_recruitment_source(&self.pool, id, workspace_id, req)
+            .await
+            .map_err(Into::into)
     }
 
     async fn delete_recruitment_source(
@@ -372,14 +395,18 @@ impl EmployeeRepository for SqlxEmployeeRepository {
         id: Uuid,
         workspace_id: Uuid,
     ) -> Result<u64, AppError> {
-        recruitment_queries::delete_recruitment_source(&self.pool, id, workspace_id).await.map_err(Into::into)
+        recruitment_queries::delete_recruitment_source(&self.pool, id, workspace_id)
+            .await
+            .map_err(Into::into)
     }
 
     async fn get_recruitment_source_breakdown(
         &self,
         workspace_id: Uuid,
     ) -> Result<Vec<RecruitmentSourceBreakdown>, AppError> {
-        recruitment_queries::get_recruitment_source_breakdown(&self.pool, workspace_id).await.map_err(Into::into)
+        recruitment_queries::get_recruitment_source_breakdown(&self.pool, workspace_id)
+            .await
+            .map_err(Into::into)
     }
 
     async fn get_turnover_analytics(
@@ -389,7 +416,9 @@ impl EmployeeRepository for SqlxEmployeeRepository {
         end_date: NaiveDate,
     ) -> Result<TurnoverAnalytics, AppError> {
         analytics_queries::get_turnover_analytics(&self.pool, workspace_id, start_date, end_date)
-            .await.map_err(Into::into)}
+            .await
+            .map_err(Into::into)
+    }
 
     async fn get_managed_departments(
         &self,

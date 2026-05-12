@@ -7,7 +7,11 @@ use crate::queue::Job;
 pub struct SyncHireDateHandler;
 
 impl SyncHireDateHandler {
-    pub async fn process(job: &Job, pool: &PgPool) -> Result<(), String> {
+    pub async fn process(
+        job: &Job,
+        pool: &PgPool,
+        _diesel: &crate::diesel_pool::DieselPools,
+    ) -> Result<(), String> {
         let Some(payload) = job.sync_hire_date_payload() else {
             error!("Missing or invalid payload for SyncEmployeeHireDate job");
             return Err("Invalid payload".to_string());

@@ -18,6 +18,11 @@ async fn test_employee_import_worker_handlers() {
     let test_db = TestDatabase::new().await;
     let pool = test_db.pool();
     let factory = TestFactory::new(pool.clone());
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(
+        &std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://postgres:postgres@localhost:5432/leeattend".to_string()
+        }),
+    );
     let redis_url =
         std::env::var("REDIS_URL").unwrap_or_else(|_| "redis://127.0.0.1:6379".to_string());
     let redis_pool = RedisPool::new(&redis_url).await.unwrap();
@@ -58,7 +63,7 @@ async fn test_employee_import_worker_handlers() {
         JobPriority::Normal,
     );
 
-    let res = EmployeeImportHandler::handle(&pool, &master_job, &redis_pool).await;
+    let res = EmployeeImportHandler::handle(&pool, &diesel_pools, &master_job, &redis_pool).await;
     res.expect("Master handler should succeed");
 
     // Check DB status is processing or completed
@@ -87,7 +92,8 @@ async fn test_employee_import_worker_handlers() {
         JobPriority::High,
     );
 
-    let res = EmployeeImportChunkHandler::handle(&pool, &chunk_job, &redis_pool).await;
+    let res =
+        EmployeeImportChunkHandler::handle(&pool, &diesel_pools, &chunk_job, &redis_pool).await;
     res.expect("Chunk handler should succeed");
 
     // 5. Test Finalize Handler
@@ -100,7 +106,7 @@ async fn test_employee_import_worker_handlers() {
         JobPriority::High,
     );
 
-    let res = FinalizeImportHandler::handle(&pool, &finalize_job, &redis_pool).await;
+    let res = FinalizeImportHandler::handle(&pool, &diesel_pools, &finalize_job, &redis_pool).await;
     res.expect("Finalize handler should succeed");
 
     // Verify status is completed
@@ -128,6 +134,11 @@ async fn test_employee_import_handler_empty_file() {
     let test_db = TestDatabase::new().await;
     let pool = test_db.pool();
     let factory = TestFactory::new(pool.clone());
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(
+        &std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://postgres:postgres@localhost:5432/leeattend".to_string()
+        }),
+    );
     let redis_url =
         std::env::var("REDIS_URL").unwrap_or_else(|_| "redis://127.0.0.1:6379".to_string());
     let redis_pool = RedisPool::new(&redis_url).await.unwrap();
@@ -156,7 +167,7 @@ async fn test_employee_import_handler_empty_file() {
         }),
         JobPriority::Normal,
     );
-    let res = EmployeeImportHandler::handle(&pool, &master_job, &redis_pool).await;
+    let res = EmployeeImportHandler::handle(&pool, &diesel_pools, &master_job, &redis_pool).await;
     assert!(res.is_err());
     assert_eq!(
         res.unwrap_err(),

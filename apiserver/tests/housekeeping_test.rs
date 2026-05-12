@@ -19,7 +19,9 @@ async fn test_housekeeping_execution(pool: PgPool) {
         JobPriority::Low,
     );
 
-    let result = NightlyHousekeepingHandler::handle(&pool, &job).await;
+    let diesel_url = std::env::var("DATABASE_URL").unwrap();
+    let diesel = apiserver::diesel_pool::DieselPools::for_test(&diesel_url);
+    let result = NightlyHousekeepingHandler::handle(&pool, &diesel, &job).await;
     assert!(result.is_ok(), "Handler should execute successfully");
 
     // Verify partitions are created for target date and next 3 months (May, Jun, Jul, Aug)

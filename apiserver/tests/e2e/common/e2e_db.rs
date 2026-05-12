@@ -23,7 +23,7 @@ pub struct E2eTestDatabase {
 }
 
 impl E2eTestDatabase {
-    pub async fn new() -> Self {
+    pub async fn new() -> Option<Self> {
         let base_url = std::env::var("DATABASE_URL_FOR_TEST_GENERATION")
             .or_else(|_| std::env::var("DATABASE_URL"))
             .expect("DATABASE_URL_FOR_TEST_GENERATION or DATABASE_URL must be set");
@@ -42,6 +42,15 @@ impl E2eTestDatabase {
         let tenant_id = db_name.clone();
 
         Self::init_trap();
+
+        let api_url = std::env::var("SUPAVISOR_API_URL")
+            .unwrap_or_else(|_| "http://supavisor:4000".to_string());
+
+        let client = reqwest::Client::new();
+        if client.get(&api_url).send().await.is_err() {
+            println!("Supavisor API is unreachable at {}. Skipping E2E test database creation.", api_url);
+            return None;
+        }
 
         // 1. Create Physical Database via Direct Connection
         let mut connection = Self::connect_with_retries(&admin_url).await;
@@ -96,12 +105,12 @@ impl E2eTestDatabase {
             .await
             .unwrap_or_else(|_| panic!("Failed to connect to Supavisor Pooler at {}", pooler_url));
 
-        Self {
+        Some(Self {
             pool,
             db_name,
             base_url: base_url.clone(),
             tenant_id,
-        }
+        })
     }
 
     async fn connect_with_retries(url: &str) -> PgConnection {

@@ -53,7 +53,9 @@ impl ImportJobRepository for SqlxImportJobRepository {
         status: ImportJobStatus,
         error_log: Option<String>,
     ) -> Result<(), AppError> {
-        update_job_progress(&self.pool, id, processed_rows, status, error_log).await.map_err(Into::into)
+        update_job_progress(&self.pool, id, processed_rows, status, error_log)
+            .await
+            .map_err(Into::into)
     }
     async fn get_job_by_id(&self, id: Uuid) -> Result<Option<AttendanceImportJob>, AppError> {
         get_job_by_id(&self.pool, id).await.map_err(Into::into)
@@ -63,13 +65,17 @@ impl ImportJobRepository for SqlxImportJobRepository {
         workspace_id: Uuid,
         target_type: Option<ImportTargetType>,
     ) -> Result<Option<AttendanceImportJob>, AppError> {
-        get_latest_job(&self.pool, workspace_id, target_type).await.map_err(Into::into)
+        get_latest_job(&self.pool, workspace_id, target_type)
+            .await
+            .map_err(Into::into)
     }
     async fn get_pending_jobs(&self) -> Result<Vec<AttendanceImportJob>, AppError> {
         get_pending_jobs(&self.pool).await.map_err(Into::into)
     }
     async fn update_job_total_rows(&self, id: Uuid, total_rows: i32) -> Result<(), AppError> {
-        update_job_total_rows(&self.pool, id, total_rows).await.map_err(Into::into)
+        update_job_total_rows(&self.pool, id, total_rows)
+            .await
+            .map_err(Into::into)
     }
 }
 

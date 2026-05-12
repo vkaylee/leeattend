@@ -480,10 +480,7 @@ impl PayrollService {
         incentive_results: Vec<crate::models::IncentiveEvaluationResult>,
         rule_results: Vec<crate::services::payroll_rule_evaluator::RuleEvaluationResult>,
     ) -> Result<Payslip, AppError> {
-        let created_payslip = self
-            .payroll_repo
-            .create_payslip(&payslip)
-            .await?;
+        let created_payslip = self.payroll_repo.create_payslip(&payslip).await?;
 
         for snap in segment_snapshots {
             self.payroll_repo

@@ -112,6 +112,11 @@ async fn test_force_reprocess_all_attendance_api() {
 
     let base_date = NaiveDate::from_ymd_opt(2026, 1, 14).unwrap();
     // Use UTC times that result in the SAME DAY for Asia/Ho_Chi_Minh (UTC+7)
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(
+        &std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://postgres:postgres@localhost:5432/leeattend".to_string()
+        }),
+    );
     let start_time = Utc.with_ymd_and_hms(2026, 1, 14, 1, 0, 0).unwrap();
     let end_time = Utc.with_ymd_and_hms(2026, 1, 14, 10, 0, 0).unwrap();
 
@@ -214,6 +219,7 @@ async fn test_force_reprocess_all_attendance_api() {
 
         apiserver::worker::handlers::reprocess_attendance::ReprocessAttendanceHandler::handle(
             _state.infra.db.api(),
+            &diesel_pools,
             &job,
             redis,
         )

@@ -13,36 +13,48 @@ use crate::services::AttendanceLogService;
 pub struct ClaimStagedLogsHandler;
 
 impl ClaimStagedLogsHandler {
-    pub async fn handle(db: &PgPool, job: &Job) -> Result<(), String> {
+    pub async fn handle(
+        db: &PgPool,
+        diesel: &crate::diesel_pool::DieselPools,
+        job: &Job,
+    ) -> Result<(), String> {
         let payload = job
             .claim_staged_logs_payload()
             .ok_or("Invalid payload for ClaimStagedLogs job")?;
 
         let time_entry_repo = std::sync::Arc::new(
-            crate::repositories::SqlxTimeEntryRepository::new(db.clone()),
+            crate::repositories::DieselTimeEntryRepository::new(db.clone(), diesel.clone()),
         );
         let pairing_svc =
             std::sync::Arc::new(crate::services::pairing_service::PairingService::new(
                 time_entry_repo,
-                std::sync::Arc::new(crate::repositories::roster::SqlxRosterRepository::new(
+                std::sync::Arc::new(crate::repositories::DieselRosterRepository::new(
                     db.clone(),
+                    diesel.clone(),
                 )),
                 db.clone(),
+                diesel.clone(),
             ));
         let (log_svc, _handle) = {
             let employee_repo: std::sync::Arc<dyn crate::repositories::EmployeeRepository> =
-                std::sync::Arc::new(crate::repositories::SqlxEmployeeRepository::new(db.clone()));
-            let raw_log_repo: std::sync::Arc<dyn crate::repositories::raw_attendance_log_repository::RawAttendanceLogRepository> =
-                std::sync::Arc::new(crate::repositories::raw_attendance_log_repository::SqlxRawAttendanceLogRepository::new(db.clone()));
+                std::sync::Arc::new(crate::repositories::DieselEmployeeRepository::new(
+                    db.clone(),
+                    diesel.clone(),
+                ));
+            let raw_log_repo: std::sync::Arc<
+                dyn crate::repositories::raw_attendance_log_repository::RawAttendanceLogRepository,
+            > = std::sync::Arc::new(crate::repositories::DieselRawAttendanceLogRepository::new(
+                db.clone(),
+                diesel.clone(),
+            ));
             let staging_repo: std::sync::Arc<
                 dyn crate::repositories::staging_log_repository::StagingLogRepository,
-            > = std::sync::Arc::new(
-                crate::repositories::staging_log_repository::SqlxStagingLogRepository::new(
-                    db.clone(),
-                ),
-            );
+            > = std::sync::Arc::new(crate::repositories::DieselStagingLogRepository::new(
+                db.clone(),
+                diesel.clone(),
+            ));
             let error_repo: std::sync::Arc<dyn crate::repositories::attendance_log_error_repository::AttendanceLogErrorRepository> =
-                std::sync::Arc::new(crate::repositories::attendance_log_error_repository::SqlxAttendanceLogErrorRepository::new(db.clone()));
+                std::sync::Arc::new(crate::repositories::DieselAttendanceLogErrorRepository::new(db.clone(), diesel.clone()));
             AttendanceLogService::new(
                 db.clone(),
                 pairing_svc,

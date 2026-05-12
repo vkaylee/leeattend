@@ -8,8 +8,8 @@ use crate::queue::{
     Job, JobPayload, JobPriority, JobQueue, LeaveImportChunkPayload, RedisPool, TaskType,
 };
 use crate::repositories::import_job_repository::ImportJobRepository;
-use crate::repositories::import_job_repository::SqlxImportJobRepository;
 use crate::repositories::workspace_repository::WorkspaceRepository;
+use crate::repositories::DieselImportJobRepository;
 use crate::services::import_messages::LeaveImportMessages;
 use crate::services::import_pipeline::ImportPipeline;
 use crate::services::leave_import_service::LeaveImportStrategy;
@@ -26,12 +26,17 @@ pub struct LeaveImportHandler;
 
 impl LeaveImportHandler {
     #[allow(clippy::too_many_lines)]
-    pub async fn handle(db: &PgPool, job: &Job, redis: &RedisPool) -> Result<(), String> {
+    pub async fn handle(
+        db: &PgPool,
+        diesel: &crate::diesel_pool::DieselPools,
+        job: &Job,
+        redis: &RedisPool,
+    ) -> Result<(), String> {
         let payload = job
             .leave_import_payload()
             .ok_or("Missing leave import payload")?;
 
-        let import_repo = SqlxImportJobRepository::new(db.clone());
+        let import_repo = DieselImportJobRepository::new(db.clone(), diesel.clone());
 
         // Update import job → Processing
         let _ = import_repo
@@ -150,7 +155,12 @@ pub struct LeaveImportChunkHandler;
 
 impl LeaveImportChunkHandler {
     #[allow(clippy::too_many_lines)]
-    pub async fn handle(db: &PgPool, job: &Job, redis: &RedisPool) -> Result<(), String> {
+    pub async fn handle(
+        db: &PgPool,
+        diesel: &crate::diesel_pool::DieselPools,
+        job: &Job,
+        redis: &RedisPool,
+    ) -> Result<(), String> {
         let payload = job
             .leave_import_chunk_payload()
             .ok_or("Missing chunk payload")?;
@@ -164,10 +174,14 @@ impl LeaveImportChunkHandler {
         );
 
         let completed = Arc::new(AtomicBool::new(false));
-        let _guard =
-            ImportTimeoutGuard::new(db.clone(), payload.import_job_id, Arc::clone(&completed));
+        let _guard = ImportTimeoutGuard::new(
+            db.clone(),
+            payload.import_job_id,
+            Arc::clone(&completed),
+            diesel.clone(),
+        );
 
-        let import_repo = SqlxImportJobRepository::new(db.clone());
+        let import_repo = DieselImportJobRepository::new(db.clone(), diesel.clone());
         let import_job = import_repo
             .get_job_by_id(payload.import_job_id)
             .await
@@ -178,8 +192,9 @@ impl LeaveImportChunkHandler {
             .await
             .map_err(|e| format!("Could not read file: {e}"))?;
 
-        let workspace_repo = Arc::new(crate::repositories::SqlxWorkspaceRepository::new(
+        let workspace_repo = Arc::new(crate::repositories::DieselWorkspaceRepository::new(
             db.clone(),
+            diesel.clone(),
         ));
         let workspace_tz = match workspace_repo
             .get_workspace_by_id(import_job.workspace_id)
@@ -199,24 +214,23 @@ impl LeaveImportChunkHandler {
 
         let msgs = LeaveImportMessages::for_lang(&lang);
 
-        let employee_repo: Arc<dyn crate::repositories::EmployeeRepository> =
-            Arc::new(crate::repositories::SqlxEmployeeRepository::new(db.clone()));
+        let employee_repo: Arc<dyn crate::repositories::EmployeeRepository> = Arc::new(
+            crate::repositories::DieselEmployeeRepository::new(db.clone(), diesel.clone()),
+        );
         let leave_balance_repo: Arc<
             dyn crate::repositories::leave_balance_repository::LeaveBalanceRepository,
-        > = Arc::new(
-            crate::repositories::leave_balance_repository::SqlxLeaveBalanceRepository::new(
-                db.clone(),
-            ),
-        );
+        > = Arc::new(crate::repositories::DieselLeaveBalanceRepository::new(
+            db.clone(),
+            diesel.clone(),
+        ));
         let leave_request_repo: Arc<
             dyn crate::repositories::leave_request_repository::LeaveRequestRepository,
-        > = Arc::new(
-            crate::repositories::leave_request_repository::SqlxLeaveRequestRepository::new(
-                db.clone(),
-            ),
-        );
+        > = Arc::new(crate::repositories::DieselLeaveRequestRepository::new(
+            db.clone(),
+            diesel.clone(),
+        ));
         let roster_repo: Arc<dyn crate::repositories::roster::RosterRepository> = Arc::new(
-            crate::repositories::roster::SqlxRosterRepository::new(db.clone()),
+            crate::repositories::DieselRosterRepository::new(db.clone(), diesel.clone()),
         );
         let leave_service = LeaveService::new(
             leave_balance_repo,

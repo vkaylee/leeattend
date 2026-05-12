@@ -29,6 +29,7 @@ impl AttendanceHandler {
     #[allow(clippy::too_many_lines)]
     pub async fn handle(
         pool: &PgPool,
+        diesel: &crate::diesel_pool::DieselPools,
         queue: &JobQueue,
         cache: &Arc<CacheManager>,
         job: &Job,
@@ -71,7 +72,8 @@ impl AttendanceHandler {
                 .ok_or("Invalid or ambiguous date range")?;
 
         // 3. Fetch schedules AND time entries in parallel (biggest latency win)
-        let roster_repo = crate::repositories::roster::SqlxRosterRepository::new(pool.clone());
+        let roster_repo =
+            crate::repositories::DieselRosterRepository::new(pool.clone(), diesel.clone());
         let (schedules_result, entries_result) = tokio::join!(
             roster_repo.get_workspace_schedules(
                 roster_cache,

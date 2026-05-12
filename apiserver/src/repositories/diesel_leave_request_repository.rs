@@ -47,7 +47,9 @@ impl PoolBacked for DieselLeaveRequestRepository {
 #[async_trait]
 impl LeaveRequestRepository for DieselLeaveRequestRepository {
     async fn create_leave_request(&self, request: &LeaveRequest) -> Result<(), AppError> {
-        create_leave_request(&self.sqlx_pool, request).await.map_err(Into::into)
+        create_leave_request(&self.sqlx_pool, request)
+            .await
+            .map_err(Into::into)
     }
 
     async fn get_leave_request_by_id(
@@ -82,7 +84,9 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
         status: LeaveStatus,
         approved_by: Option<Uuid>,
     ) -> Result<(), AppError> {
-        update_leave_request_status(&self.sqlx_pool, workspace_id, id, status, approved_by).await.map_err(Into::into)
+        update_leave_request_status(&self.sqlx_pool, workspace_id, id, status, approved_by)
+            .await
+            .map_err(Into::into)
     }
 
     async fn get_employee_leave_requests(
@@ -170,10 +174,7 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
             .await
     }
 
-    async fn get_leave_types(
-        &self,
-        workspace_id: Uuid,
-    ) -> Result<Vec<(String, String)>, AppError> {
+    async fn get_leave_types(&self, workspace_id: Uuid) -> Result<Vec<(String, String)>, AppError> {
         let mut conn = self
             .diesel_pools
             .api

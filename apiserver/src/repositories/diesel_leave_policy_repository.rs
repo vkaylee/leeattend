@@ -117,14 +117,18 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
         id: Uuid,
         workspace_id: Uuid,
     ) -> Result<u64, AppError> {
-        delete_policy_definition(&self.sqlx_pool, id, workspace_id).await.map_err(Into::into)
+        delete_policy_definition(&self.sqlx_pool, id, workspace_id)
+            .await
+            .map_err(Into::into)
     }
 
     async fn create_policy_assignment(
         &self,
         assignment: &LeavePolicyAssignment,
     ) -> Result<LeavePolicyAssignment, AppError> {
-        create_policy_assignment(&self.sqlx_pool, assignment).await.map_err(Into::into)
+        create_policy_assignment(&self.sqlx_pool, assignment)
+            .await
+            .map_err(Into::into)
     }
 
     async fn find_active_assignment_for_employee(
@@ -149,6 +153,8 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
         &self,
         workspace_id: Uuid,
     ) -> Result<Vec<LeavePolicyAssignmentDetail>, AppError> {
-        get_policy_assignments(&self.sqlx_pool, workspace_id).await.map_err(Into::into)
+        get_policy_assignments(&self.sqlx_pool, workspace_id)
+            .await
+            .map_err(Into::into)
     }
 }

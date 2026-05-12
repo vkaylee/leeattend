@@ -13,6 +13,11 @@ async fn test_payroll_std_days_source_traceability() {
     let db = TestDatabase::new().await;
     let pool = db.pool();
     let factory = TestFactory::new(pool.clone());
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(
+        &std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://postgres:postgres@localhost:5432/leeattend".to_string()
+        }),
+    );
 
     // 1. Setup Workspace & Employee
     let user_id = factory.user().create().await;

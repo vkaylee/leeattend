@@ -226,9 +226,6 @@ class Orchestrator:
         test_parser.add_argument(
             "--timeout", type=int, default=1800, help="Test execution timeout in seconds"
         )
-        test_parser.add_argument(
-            "--pooler", action="store_true", help="Enable Supavisor pooler for tests"
-        )
 
     def _setup_manage_parser(
         self,
@@ -360,8 +357,6 @@ class Orchestrator:
             self.env_vars["TIMEOUT_UNIT"] = timeout_str
             self.env_vars["TIMEOUT_INTEGRATION"] = timeout_str
             self.env_vars["TIMEOUT_BUILD"] = timeout_str
-
-
 
         if target == "all" and not (args.lint_only or args.unit_only or args.e2e_only):
             # Run entirely isolated targets sequentially for true independence

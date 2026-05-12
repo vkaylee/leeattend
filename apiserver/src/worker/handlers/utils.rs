@@ -3,7 +3,8 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
 use crate::models::ImportJobStatus;
-use crate::repositories::import_job_repository::{ImportJobRepository, SqlxImportJobRepository};
+use crate::repositories::import_job_repository::ImportJobRepository;
+use crate::repositories::DieselImportJobRepository;
 
 /// Guard to prevent import jobs from getting stuck in "Processing" state
 /// when the job runner terminates the task due to timeout.
@@ -11,14 +12,21 @@ pub struct ImportTimeoutGuard {
     db: PgPool,
     job_id: uuid::Uuid,
     completed: Arc<AtomicBool>,
+    diesel_pools: crate::diesel_pool::DieselPools,
 }
 
 impl ImportTimeoutGuard {
-    pub fn new(db: PgPool, job_id: uuid::Uuid, completed: Arc<AtomicBool>) -> Self {
+    pub fn new(
+        db: PgPool,
+        job_id: uuid::Uuid,
+        completed: Arc<AtomicBool>,
+        diesel_pools: crate::diesel_pool::DieselPools,
+    ) -> Self {
         Self {
             db,
             job_id,
             completed,
+            diesel_pools,
         }
     }
 }
@@ -28,8 +36,9 @@ impl Drop for ImportTimeoutGuard {
         if !self.completed.load(Ordering::SeqCst) {
             let db = self.db.clone();
             let job_id = self.job_id;
+            let diesel_pools = self.diesel_pools.clone();
             tokio::spawn(async move {
-                let repo = SqlxImportJobRepository::new(db);
+                let repo = DieselImportJobRepository::new(db.clone(), diesel_pools.clone());
                 let current_rows = if let Ok(Some(job)) = repo.get_job_by_id(job_id).await {
                     job.processed_rows
                 } else {

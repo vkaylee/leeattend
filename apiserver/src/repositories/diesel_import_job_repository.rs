@@ -141,7 +141,7 @@ impl ImportJobRepository for DieselImportJobRepository {
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         diesel::sql_query(
-            "UPDATE attendance_import_jobs SET total_rows = $1, updated_at = $2 WHERE id = $3"
+            "UPDATE attendance_import_jobs SET total_rows = $1, updated_at = $2 WHERE id = $3",
         )
         .bind::<diesel::sql_types::Int4, _>(total_rows)
         .bind::<diesel::sql_types::Timestamptz, _>(Utc::now())

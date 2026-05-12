@@ -16,6 +16,11 @@ use uuid::Uuid;
 async fn test_handler_claims_staged_logs_for_employee() {
     let test_db = TestDatabase::new().await;
     let pool = test_db.pool().clone();
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(
+        &std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://postgres:postgres@localhost:5432/leeattend".to_string()
+        }),
+    );
     let factory = TestFactory::new(pool.clone());
 
     let user_id = factory.user().create().await;
@@ -62,7 +67,9 @@ async fn test_handler_claims_staged_logs_for_employee() {
         }),
     );
 
-    ClaimStagedLogsHandler::handle(&pool, &job).await.unwrap();
+    ClaimStagedLogsHandler::handle(&pool, &diesel_pools, &job)
+        .await
+        .unwrap();
 
     // 3. Verify staged log is no longer pending
     let pending_after = staging_log_repository::count_pending_staging_logs(&pool, ws_id)
@@ -91,6 +98,11 @@ async fn test_handler_claims_staged_logs_for_employee() {
 async fn test_handler_no_staged_logs_is_ok() {
     let test_db = TestDatabase::new().await;
     let pool = test_db.pool().clone();
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(
+        &std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://postgres:postgres@localhost:5432/leeattend".to_string()
+        }),
+    );
     let factory = TestFactory::new(pool.clone());
 
     let user_id = factory.user().create().await;
@@ -115,7 +127,7 @@ async fn test_handler_no_staged_logs_is_ok() {
     );
 
     // Should succeed even with no staged logs
-    let result = ClaimStagedLogsHandler::handle(&pool, &job).await;
+    let result = ClaimStagedLogsHandler::handle(&pool, &diesel_pools, &job).await;
     assert!(result.is_ok(), "Handler should succeed with no staged logs");
 }
 
@@ -124,6 +136,11 @@ async fn test_handler_no_staged_logs_is_ok() {
 async fn test_handler_claims_multiple_staged_logs() {
     let test_db = TestDatabase::new().await;
     let pool = test_db.pool().clone();
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(
+        &std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://postgres:postgres@localhost:5432/leeattend".to_string()
+        }),
+    );
     let factory = TestFactory::new(pool.clone());
 
     let user_id = factory.user().create().await;
@@ -171,7 +188,9 @@ async fn test_handler_claims_multiple_staged_logs() {
         }),
     );
 
-    ClaimStagedLogsHandler::handle(&pool, &job).await.unwrap();
+    ClaimStagedLogsHandler::handle(&pool, &diesel_pools, &job)
+        .await
+        .unwrap();
 
     // Verify all claimed
     let pending_after = staging_log_repository::count_pending_staging_logs(&pool, ws_id)
@@ -198,6 +217,11 @@ async fn test_handler_claims_multiple_staged_logs() {
 async fn test_handler_only_claims_matching_employee() {
     let test_db = TestDatabase::new().await;
     let pool = test_db.pool().clone();
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(
+        &std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://postgres:postgres@localhost:5432/leeattend".to_string()
+        }),
+    );
     let factory = TestFactory::new(pool.clone());
 
     let user_id = factory.user().create().await;
@@ -253,7 +277,9 @@ async fn test_handler_only_claims_matching_employee() {
         }),
     );
 
-    ClaimStagedLogsHandler::handle(&pool, &job).await.unwrap();
+    ClaimStagedLogsHandler::handle(&pool, &diesel_pools, &job)
+        .await
+        .unwrap();
 
     // Employee B's staged log should still be pending
     let pending_after = staging_log_repository::count_pending_staging_logs(&pool, ws_id)

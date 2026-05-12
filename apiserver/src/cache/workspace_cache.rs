@@ -7,6 +7,7 @@ use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::cache::{RedisCache, DEFAULT_CACHE_TTL};
+use crate::repositories::WorkspaceRepository;
 
 /// Cached workspace configuration.
 /// Contains fields needed for attendance calculations.
@@ -20,12 +21,13 @@ pub struct CachedWorkspaceConfig {
 pub struct WorkspaceCache {
     cache: RedisCache,
     db: PgPool,
+    diesel: crate::diesel_pool::DieselPools,
 }
 
 impl WorkspaceCache {
     /// Create a new WorkspaceCache.
-    pub fn new(cache: RedisCache, db: PgPool) -> Self {
-        Self { cache, db }
+    pub fn new(cache: RedisCache, db: PgPool, diesel: crate::diesel_pool::DieselPools) -> Self {
+        Self { cache, db, diesel }
     }
 
     /// Generate cache key for a workspace.
@@ -41,26 +43,20 @@ impl WorkspaceCache {
     pub async fn get(&self, workspace_id: Uuid) -> Result<CachedWorkspaceConfig, String> {
         let key = Self::key(workspace_id);
         let db = self.db.clone();
+        let diesel = self.diesel.clone();
 
         self.cache
             .get_or_fetch(&key, DEFAULT_CACHE_TTL, || async move {
-                let row = sqlx::query!(
-                    r#"
-                    SELECT
-                        id,
-                        timezone
-                    FROM workspaces
-                    WHERE id = $1
-                    "#,
-                    workspace_id
-                )
-                .fetch_one(&db)
-                .await
-                .map_err(|e| format!("Failed to fetch workspace config: {e}"))?;
+                let repo = crate::repositories::DieselWorkspaceRepository::new(db.clone(), diesel);
+                let ws = repo
+                    .get_workspace_by_id(workspace_id)
+                    .await
+                    .map_err(|e| format!("Failed to fetch workspace config: {e}"))?
+                    .ok_or_else(|| "Workspace not found".to_string())?;
 
                 Ok(CachedWorkspaceConfig {
-                    id: row.id,
-                    timezone: row.timezone,
+                    id: ws.id,
+                    timezone: ws.timezone,
                 })
             })
             .await

@@ -12,6 +12,11 @@ async fn test_overnight_shift_pairing() {
     let test_db = TestDatabase::new().await;
     let pool = test_db.pool();
     let factory = TestFactory::new(pool.clone());
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(
+        &std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://postgres:postgres@localhost:5432/leeattend".to_string()
+        }),
+    );
 
     let user_id = factory.user().create().await;
     let ws_id = factory
@@ -75,6 +80,7 @@ async fn test_overnight_shift_pairing() {
             pool.clone(),
         )),
         pool.clone(),
+        diesel_pools.clone(),
     )
     .reprocess_daily_attendance(ws_id, employee_id, shift_date, tz)
     .await

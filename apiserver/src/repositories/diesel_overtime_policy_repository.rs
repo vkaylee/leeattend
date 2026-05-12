@@ -6,9 +6,7 @@ use uuid::Uuid;
 
 use crate::diesel_pool::DieselPools;
 use crate::errors::AppError;
-use crate::models::diesel::overtime_policy::{
-    OvertimePolicyEntity, OvertimeRuleEntity,
-};
+use crate::models::diesel::overtime_policy::{OvertimePolicyEntity, OvertimeRuleEntity};
 use crate::models::{OvertimePolicy, OvertimeRule};
 use crate::repositories::overtime_policy_repository::OvertimePolicyRepositoryTrait;
 use crate::schema::{
@@ -107,9 +105,12 @@ impl OvertimePolicyRepositoryTrait for DieselOvertimePolicyRepository {
                 .select(OvertimeRuleEntity::as_select())
                 .load(&mut conn)
                 .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
-            Ok(Some((p.into(), rules.into_iter().map(Into::into).collect())))
+            Ok(Some((
+                p.into(),
+                rules.into_iter().map(Into::into).collect(),
+            )))
         } else {
             Ok(None)
         }
@@ -262,9 +263,7 @@ impl OvertimePolicyRepositoryTrait for DieselOvertimePolicyRepository {
 impl crate::repositories::PoolBacked for DieselOvertimePolicyRepository {
     #[allow(clippy::panic)]
     fn from_pool(_pool: sqlx::PgPool) -> Self {
-        panic!(
-            "DieselOvertimePolicyRepository requires DieselPools. Use new() instead."
-        );
+        panic!("DieselOvertimePolicyRepository requires DieselPools. Use new() instead.");
     }
 
     fn pool(&self) -> &sqlx::PgPool {

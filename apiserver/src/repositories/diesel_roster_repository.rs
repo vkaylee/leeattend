@@ -43,7 +43,9 @@ impl RosterRepository for DieselRosterRepository {
             end_date,
             employee_ids,
         )
-        .await.map_err(Into::into)}
+        .await
+        .map_err(Into::into)
+    }
 
     async fn get_assignment_history(
         &self,
@@ -55,7 +57,9 @@ impl RosterRepository for DieselRosterRepository {
             workspace_id,
             limit,
         )
-        .await.map_err(Into::into)}
+        .await
+        .map_err(Into::into)
+    }
 
     async fn get_employee_rosters(
         &self,
@@ -128,7 +132,9 @@ impl RosterRepository for DieselRosterRepository {
             employee_id,
             items,
         )
-        .await.map_err(Into::into)}
+        .await
+        .map_err(Into::into)
+    }
 
     async fn get_effective_shift(
         &self,
@@ -142,7 +148,9 @@ impl RosterRepository for DieselRosterRepository {
             employee_id,
             date,
         )
-        .await.map_err(Into::into)}
+        .await
+        .map_err(Into::into)
+    }
 
     async fn delete_roster(&self, employee_id: Uuid, date: NaiveDate) -> Result<(), AppError> {
         let mut conn = self

@@ -57,7 +57,9 @@ impl LeaveBalanceRepository for SqlxLeaveBalanceRepository {
         employee_id: Uuid,
         year: i32,
     ) -> Result<Vec<EmployeeLeaveBalance>, AppError> {
-        get_employee_balances(&self.pool, workspace_id, employee_id, year).await.map_err(Into::into)
+        get_employee_balances(&self.pool, workspace_id, employee_id, year)
+            .await
+            .map_err(Into::into)
     }
     async fn get_workspace_balances(
         &self,
@@ -67,10 +69,14 @@ impl LeaveBalanceRepository for SqlxLeaveBalanceRepository {
         offset: i64,
         search: Option<String>,
     ) -> Result<(Vec<WorkspaceLeaveBalance>, i64), AppError> {
-        get_workspace_balances(&self.pool, workspace_id, year, limit, offset, search).await.map_err(Into::into)
+        get_workspace_balances(&self.pool, workspace_id, year, limit, offset, search)
+            .await
+            .map_err(Into::into)
     }
     async fn upsert_leave_balance(&self, balance: &LeaveBalance) -> Result<(), AppError> {
-        upsert_leave_balance(&self.pool, balance).await.map_err(Into::into)
+        upsert_leave_balance(&self.pool, balance)
+            .await
+            .map_err(Into::into)
     }
     async fn adjust_balance(
         &self,

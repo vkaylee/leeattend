@@ -19,7 +19,11 @@ pub async fn get_assignment_rules(
 ) -> AppResult<Json<Vec<AssignmentRule>>> {
     ctx.require_permission(Permission::AssignmentRulesManage)?;
 
-    let rules = state.shifts.assignment_rule_repo.get_rules(ctx.workspace_id).await?;
+    let rules = state
+        .shifts
+        .assignment_rule_repo
+        .get_rules(ctx.workspace_id)
+        .await?;
     Ok(Json(rules))
 }
 

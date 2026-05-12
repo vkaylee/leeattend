@@ -226,10 +226,7 @@ impl RawAttendanceLogRepository for DieselRawAttendanceLogRepository {
         Ok(count)
     }
 
-    async fn create_raw_logs_batch(
-        &self,
-        logs: &[&RawAttendanceLog],
-    ) -> Result<usize, AppError> {
+    async fn create_raw_logs_batch(&self, logs: &[&RawAttendanceLog]) -> Result<usize, AppError> {
         if logs.is_empty() {
             return Ok(0);
         }

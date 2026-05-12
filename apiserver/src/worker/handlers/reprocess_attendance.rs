@@ -9,13 +9,18 @@ use std::sync::Arc;
 use tracing::{info, warn};
 
 use crate::queue::{Job, JobQueue, JobStatus, RedisPool};
-use crate::repositories::{SqlxRosterRepository, SqlxTimeEntryRepository};
+use crate::repositories::{DieselRosterRepository, DieselTimeEntryRepository};
 use crate::services::pairing_service::PairingService;
 
 pub struct ReprocessAttendanceHandler;
 
 impl ReprocessAttendanceHandler {
-    pub async fn handle(db: &PgPool, job: &Job, redis: &RedisPool) -> Result<(), String> {
+    pub async fn handle(
+        db: &PgPool,
+        diesel: &crate::diesel_pool::DieselPools,
+        job: &Job,
+        redis: &RedisPool,
+    ) -> Result<(), String> {
         let payload = job
             .reprocess_payload()
             .ok_or_else(|| "Missing reprocess payload".to_string())?;
@@ -51,9 +56,10 @@ impl ReprocessAttendanceHandler {
         let tz: Tz = tz_str.parse().unwrap_or(chrono_tz::UTC);
 
         // Initialize pairing service
-        let roster_repo = Arc::new(SqlxRosterRepository::new(db.clone()));
-        let time_entry_repo = Arc::new(SqlxTimeEntryRepository::new(db.clone()));
-        let pairing_service = PairingService::new(time_entry_repo, roster_repo, db.clone());
+        let roster_repo = Arc::new(DieselRosterRepository::new(db.clone(), diesel.clone()));
+        let time_entry_repo = Arc::new(DieselTimeEntryRepository::new(db.clone(), diesel.clone()));
+        let pairing_service =
+            PairingService::new(time_entry_repo, roster_repo, db.clone(), diesel.clone());
 
         let mut current_date = payload.date_range.start;
         let end_date = payload.date_range.end;

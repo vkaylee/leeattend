@@ -41,7 +41,7 @@ pub async fn create_working_pattern(
     pool: &PgPool,
     workspace_id: Uuid,
     req: CreateWorkingPatternRequest,
-) -> Result<WorkingPattern, sqlx::Error> {
+) -> Result<WorkingPattern, crate::errors::AppError> {
     // --- Split-shift overlap validation ---
     // Group details by day_of_week to find days with multiple shifts
     let mut day_shifts: HashMap<i32, Vec<Uuid>> = HashMap::new();
@@ -78,7 +78,7 @@ pub async fn create_working_pattern(
         for i in 0..times.len() {
             for j in (i + 1)..times.len() {
                 if times_overlap(times[i].1, times[i].2, times[j].1, times[j].2) {
-                    return Err(sqlx::Error::Protocol(format!(
+                    return Err(crate::errors::AppError::Validation(format!(
                         "Shifts overlap on the same day: shifts {} and {} have conflicting time ranges",
                         times[i].0, times[j].0
                     )));
@@ -112,16 +112,20 @@ pub async fn create_working_pattern(
 pub async fn list_patterns(
     pool: &PgPool,
     workspace_id: Uuid,
-) -> Result<Vec<WorkingPattern>, sqlx::Error> {
-    repo::get_patterns(pool, workspace_id).await
+) -> Result<Vec<WorkingPattern>, crate::errors::AppError> {
+    repo::get_patterns(pool, workspace_id)
+        .await
+        .map_err(Into::into)
 }
 
 #[tracing::instrument(skip_all, err)]
 pub async fn get_pattern_details(
     pool: &PgPool,
     pattern_id: Uuid,
-) -> Result<Vec<WorkingPatternDetail>, sqlx::Error> {
-    repo::get_pattern_details(pool, pattern_id).await
+) -> Result<Vec<WorkingPatternDetail>, crate::errors::AppError> {
+    repo::get_pattern_details(pool, pattern_id)
+        .await
+        .map_err(Into::into)
 }
 
 #[tracing::instrument(skip_all, err)]
@@ -130,7 +134,7 @@ pub async fn assign_pattern(
     workspace_id: Uuid,
     employee_id: Uuid,
     req: AssignPatternRequest,
-) -> Result<EmployeeWorkingPattern, sqlx::Error> {
+) -> Result<EmployeeWorkingPattern, crate::errors::AppError> {
     repo::assign_pattern(
         pool,
         workspace_id,
@@ -140,6 +144,7 @@ pub async fn assign_pattern(
         req.end_date,
     )
     .await
+    .map_err(Into::into)
 }
 
 #[tracing::instrument(skip_all, err)]
@@ -147,7 +152,7 @@ pub async fn bulk_assign_pattern(
     pool: &PgPool,
     workspace_id: Uuid,
     req: BulkAssignPatternRequest,
-) -> Result<BulkAssignResponse, sqlx::Error> {
+) -> Result<BulkAssignResponse, crate::errors::AppError> {
     repo::bulk_assign_pattern(
         pool,
         workspace_id,
@@ -157,6 +162,7 @@ pub async fn bulk_assign_pattern(
         req.end_date,
     )
     .await
+    .map_err(Into::into)
 }
 
 #[tracing::instrument(skip_all, err)]
@@ -164,8 +170,10 @@ pub async fn get_employee_pattern_history(
     pool: &PgPool,
     workspace_id: Uuid,
     employee_id: Uuid,
-) -> Result<Vec<EmployeeWorkingPattern>, sqlx::Error> {
-    repo::get_employee_pattern_history(pool, workspace_id, employee_id).await
+) -> Result<Vec<EmployeeWorkingPattern>, crate::errors::AppError> {
+    repo::get_employee_pattern_history(pool, workspace_id, employee_id)
+        .await
+        .map_err(Into::into)
 }
 
 #[tracing::instrument(skip_all, err)]
@@ -173,8 +181,10 @@ pub async fn delete_working_pattern(
     pool: &PgPool,
     workspace_id: Uuid,
     pattern_id: Uuid,
-) -> Result<(), sqlx::Error> {
-    repo::delete_pattern(pool, workspace_id, pattern_id).await
+) -> Result<(), crate::errors::AppError> {
+    repo::delete_pattern(pool, workspace_id, pattern_id)
+        .await
+        .map_err(Into::into)
 }
 
 #[cfg(test)]
