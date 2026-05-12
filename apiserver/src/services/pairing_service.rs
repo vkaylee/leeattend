@@ -37,24 +37,15 @@ impl PairingService {
 
     #[tracing::instrument(skip_all, err)]
     pub async fn process_new_raw_log(&self, log: &RawAttendanceLog) -> Result<(), AppError> {
+        let raw_log_repo = crate::repositories::DieselRawAttendanceLogRepository::new(
+            self.pool.clone(),
+            self.diesel_pools.clone(),
+        );
+
         // 1. Deduplication (exact match check)
-        let is_duplicate = sqlx::query_scalar!(
-            r#"
-            SELECT EXISTS (
-                SELECT 1 FROM raw_attendance_logs 
-                WHERE employee_id = $1 
-                AND id != $2
-                AND punch_time = $3
-                LIMIT 1
-            )
-            "#,
-            log.employee_id,
-            log.id,
-            log.punch_time
-        )
-        .fetch_one(&self.pool)
-        .await?
-        .unwrap_or(false);
+        let is_duplicate = raw_log_repo
+            .has_duplicate_raw_log(log.workspace_id, log.employee_id, log.id, log.punch_time)
+            .await?;
 
         if is_duplicate {
             info!(
@@ -65,13 +56,15 @@ impl PairingService {
         }
 
         // 2. Fetch Workspace Config
-        let timezone_str = sqlx::query_scalar!(
-            "SELECT timezone FROM workspaces WHERE id = $1",
-            log.workspace_id
-        )
-        .fetch_optional(&self.pool)
-        .await?
-        .unwrap_or_else(|| "UTC".to_string());
+        let workspace_repo = crate::repositories::DieselWorkspaceRepository::new(
+            self.pool.clone(),
+            self.diesel_pools.clone(),
+        );
+        let workspace = workspace_repo
+            .get_workspace_by_id(log.workspace_id)
+            .await?
+            .ok_or_else(|| AppError::NotFound("Workspace not found".into()))?;
+        let timezone_str = workspace.timezone;
         let tz: Tz = crate::utils::tz::parse_workspace_tz(&timezone_str);
 
         // 3. Determine Local Date
@@ -118,12 +111,11 @@ impl PairingService {
 
         let mut shift_config = None;
         if let Some(shift_id) = shift_id_opt {
-            let shift = sqlx::query!(
-                "SELECT start_time, end_time, break_start, break_end FROM shifts WHERE id = $1",
-                shift_id
-            )
-            .fetch_optional(&self.pool)
-            .await?;
+            let shift_repo = crate::repositories::DieselShiftRepository::new(
+                self.pool.clone(),
+                self.diesel_pools.clone(),
+            );
+            let shift = shift_repo.get_shift_by_id(workspace_id, shift_id).await?;
 
             if let Some(s) = shift {
                 let start_m = s.start_time.hour() * 60 + s.start_time.minute();
@@ -183,14 +175,18 @@ impl PairingService {
 
         let next_day_utc = (start_of_day_local + Duration::days(1)).with_timezone(&Utc);
 
-        let logs: Vec<_> = sqlx::query!(
-            "SELECT id, punch_time, raw_data FROM raw_attendance_logs WHERE employee_id = $1 AND punch_time >= $2 AND punch_time < $3 ORDER BY punch_time ASC",
-            employee_id,
-            window_start_utc,
-            window_end_utc
-        )
-        .fetch_all(&self.pool)
-        .await?;
+        let raw_log_repo = crate::repositories::DieselRawAttendanceLogRepository::new(
+            self.pool.clone(),
+            self.diesel_pools.clone(),
+        );
+        let logs = raw_log_repo
+            .get_employee_logs_in_time_range(
+                workspace_id,
+                employee_id,
+                window_start_utc,
+                window_end_utc,
+            )
+            .await?;
 
         // 3. Filter and Linearize Logs
         let mut filtered_log_events = Vec::new();
@@ -244,18 +240,7 @@ impl PairingService {
         let sessions = strategy.pair(&filtered_log_events, shift_config.as_ref());
 
         // 5. Update Database
-        let mut tx = self.pool.begin().await?;
-
-        sqlx::query!(
-            "DELETE FROM time_entries WHERE employee_id = $1 AND workspace_id = $2 AND punch_in_time >= $3 AND punch_in_time < $4",
-            employee_id,
-            workspace_id,
-            start_of_day_utc,
-            next_day_utc
-        )
-        .execute(&mut *tx)
-        .await?;
-
+        let mut new_entries = Vec::new();
         for session in sessions {
             let start_dt_local = crate::utils::tz::local_to_tz(&tz, date, 0, 0, 0)?
                 + Duration::minutes(session.start_minutes as i64);
@@ -280,29 +265,32 @@ impl PairingService {
                 map.insert("schedule_traces".to_string(), serde_json::json!(traces));
             }
 
-            sqlx::query!(
-                r#"
-                INSERT INTO time_entries 
-                (id, employee_id, workspace_id, shift_id, punch_in_time, punch_out_time, duration_minutes, entry_type, note, is_break_overtime, generation_metadata, created_at, updated_at)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW(), NOW())
-                "#,
-                crate::utils::id::new_id(),
-                employee_id,
+            new_entries.push(crate::models::TimeEntry {
+                id: crate::utils::id::new_id(),
                 workspace_id,
-                shift_id_opt,
-                start_dt_utc,
-                end_dt_utc,
-                duration,
-                session.entry_type,
-                session.note,
-                session.is_break_overtime,
-                Some(final_metadata)
-            )
-            .execute(&mut *tx)
-            .await?;
+                employee_id,
+                shift_id: shift_id_opt,
+                punch_in_time: start_dt_utc,
+                punch_out_time: end_dt_utc,
+                duration_minutes: duration,
+                is_break_overtime: session.is_break_overtime,
+                entry_type: session.entry_type,
+                note: session.note,
+                generation_metadata: Some(final_metadata),
+                created_at: Utc::now(),
+                updated_at: Utc::now(),
+            });
         }
 
-        tx.commit().await?;
+        self.time_entry_repo
+            .replace_time_entries(
+                workspace_id,
+                employee_id,
+                start_of_day_utc,
+                next_day_utc,
+                new_entries,
+            )
+            .await?;
 
         // Recalculate daily summary for OT workflow
         let summary_svc = crate::services::AttendanceSummaryService::new(
@@ -332,13 +320,12 @@ impl PairingService {
         start: DateTime<Utc>,
         end: DateTime<Utc>,
     ) -> Result<(), AppError> {
-        sqlx::query!(
-            "DELETE FROM time_entries WHERE employee_id = $1 AND workspace_id = $2 AND punch_in_time >= $3 AND punch_in_time < $4",
-            employee_id, workspace_id, start, end
-        )
-        .execute(pool)
-        .await?;
-        Ok(())
+        let repo = crate::repositories::DieselTimeEntryRepository::new(
+            pool.clone(),
+            crate::diesel_pool::DieselPools::from_pg_pool(pool.clone()),
+        );
+        repo.replace_time_entries(workspace_id, employee_id, start, end, Vec::new())
+            .await
     }
 }
 

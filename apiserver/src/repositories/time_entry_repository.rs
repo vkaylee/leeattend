@@ -66,6 +66,14 @@ pub trait TimeEntryRepository: super::PoolBacked + Send + Sync {
         from: DateTime<Utc>,
         to: DateTime<Utc>,
     ) -> Result<HashMap<Uuid, Vec<TimeEntry>>, AppError>;
+    async fn replace_time_entries(
+        &self,
+        workspace_id: Uuid,
+        employee_id: Uuid,
+        start_time: DateTime<Utc>,
+        end_time: DateTime<Utc>,
+        entries: Vec<TimeEntry>,
+    ) -> Result<(), AppError>;
 }
 
 pub struct SqlxTimeEntryRepository {
@@ -177,6 +185,55 @@ impl TimeEntryRepository for SqlxTimeEntryRepository {
         get_workspace_time_entries_batch(&self.pool, workspace_id, employee_ids, from, to)
             .await
             .map_err(Into::into)
+    }
+    async fn replace_time_entries(
+        &self,
+        workspace_id: Uuid,
+        employee_id: Uuid,
+        start_time: DateTime<Utc>,
+        end_time: DateTime<Utc>,
+        entries: Vec<TimeEntry>,
+    ) -> Result<(), AppError> {
+        let mut tx = self.pool.begin().await.map_err(Into::<AppError>::into)?;
+
+        sqlx::query!(
+            "DELETE FROM time_entries WHERE workspace_id = $1 AND employee_id = $2 AND punch_in_time >= $3 AND punch_in_time < $4",
+            workspace_id,
+            employee_id,
+            start_time,
+            end_time
+        )
+        .execute(&mut *tx)
+        .await
+        .map_err(Into::<AppError>::into)?;
+
+        for entry in entries {
+            let mut final_metadata = entry.generation_metadata.clone().unwrap_or(serde_json::json!({}));
+            sqlx::query!(
+                "INSERT INTO time_entries 
+                (id, employee_id, workspace_id, shift_id, punch_in_time, punch_out_time, duration_minutes, entry_type, note, is_break_overtime, generation_metadata, created_at, updated_at)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)",
+                entry.id,
+                entry.employee_id,
+                entry.workspace_id,
+                entry.shift_id,
+                entry.punch_in_time,
+                entry.punch_out_time,
+                entry.duration_minutes,
+                entry.entry_type,
+                entry.note,
+                entry.is_break_overtime,
+                Some(final_metadata),
+                entry.created_at,
+                entry.updated_at
+            )
+            .execute(&mut *tx)
+            .await
+            .map_err(Into::<AppError>::into)?;
+        }
+
+        tx.commit().await.map_err(Into::<AppError>::into)?;
+        Ok(())
     }
 }
 

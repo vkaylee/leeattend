@@ -360,6 +360,68 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
 
         Ok(result_map)
     }
+
+    async fn replace_time_entries(
+        &self,
+        workspace_id: Uuid,
+        employee_id: Uuid,
+        start_time: DateTime<Utc>,
+        end_time: DateTime<Utc>,
+        entries: Vec<TimeEntry>,
+    ) -> Result<(), AppError> {
+        use diesel_async::AsyncConnection;
+        
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        conn.transaction::<_, diesel::result::Error, _>(|conn| Box::pin(async move {
+            diesel::delete(
+                time_entries::table
+                    .filter(time_entries::workspace_id.eq(workspace_id))
+                    .filter(time_entries::employee_id.eq(employee_id))
+                    .filter(time_entries::punch_in_time.ge(start_time))
+                    .filter(time_entries::punch_in_time.lt(end_time))
+            )
+            .execute(conn)
+            .await?;
+
+            if !entries.is_empty() {
+                let entities: Vec<TimeEntryEntity> = entries
+                    .into_iter()
+                    .map(|entry| TimeEntryEntity {
+                        id: entry.id,
+                        workspace_id: entry.workspace_id,
+                        employee_id: entry.employee_id,
+                        shift_id: entry.shift_id,
+                        punch_in_time: entry.punch_in_time,
+                        punch_out_time: entry.punch_out_time,
+                        duration_minutes: entry.duration_minutes,
+                        is_break_overtime: entry.is_break_overtime,
+                        entry_type: entry.entry_type.clone(),
+                        note: entry.note.clone(),
+                        generation_metadata: entry.generation_metadata.clone(),
+                        created_at: entry.created_at,
+                        updated_at: entry.updated_at,
+                    })
+                    .collect();
+
+                diesel::insert_into(time_entries::table)
+                    .values(&entities)
+                    .execute(conn)
+                    .await?;
+            }
+
+            Ok(())
+        }))
+        .await
+        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        Ok(())
+    }
 }
 
 impl crate::repositories::PoolBacked for DieselTimeEntryRepository {

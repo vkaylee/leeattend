@@ -38,6 +38,20 @@ pub trait RawAttendanceLogRepository: super::PoolBacked + Send + Sync {
         p_to: Option<DateTime<Utc>>,
     ) -> Result<i64, AppError>;
     async fn create_raw_logs_batch(&self, logs: &[&RawAttendanceLog]) -> Result<usize, AppError>;
+    async fn has_duplicate_raw_log(
+        &self,
+        workspace_id: Uuid,
+        employee_id: Uuid,
+        log_id: Uuid,
+        punch_time: DateTime<Utc>,
+    ) -> Result<bool, AppError>;
+    async fn get_employee_logs_in_time_range(
+        &self,
+        workspace_id: Uuid,
+        employee_id: Uuid,
+        start_time: DateTime<Utc>,
+        end_time: DateTime<Utc>,
+    ) -> Result<Vec<RawAttendanceLog>, AppError>;
 }
 
 // ---------------------------------------------------------------------------
@@ -112,6 +126,52 @@ impl RawAttendanceLogRepository for SqlxRawAttendanceLogRepository {
         create_raw_logs_batch(&self.pool, logs)
             .await
             .map_err(Into::into)
+    }
+    async fn has_duplicate_raw_log(
+        &self,
+        workspace_id: Uuid,
+        employee_id: Uuid,
+        log_id: Uuid,
+        punch_time: DateTime<Utc>,
+    ) -> Result<bool, AppError> {
+        let is_duplicate = query!(
+            r#"
+            SELECT EXISTS (
+                SELECT 1 FROM raw_attendance_logs 
+                WHERE workspace_id = $1 AND employee_id = $2 
+                AND id != $3
+                AND punch_time = $4
+                LIMIT 1
+            ) as "exists!"
+            "#,
+            workspace_id,
+            employee_id,
+            log_id,
+            punch_time
+        )
+        .fetch_one(&self.pool)
+        .await
+        .map_err(Into::<AppError>::into)?;
+
+        Ok(is_duplicate.exists)
+    }
+    async fn get_employee_logs_in_time_range(
+        &self,
+        workspace_id: Uuid,
+        employee_id: Uuid,
+        start_time: DateTime<Utc>,
+        end_time: DateTime<Utc>,
+    ) -> Result<Vec<RawAttendanceLog>, AppError> {
+        query_as::<_, RawAttendanceLog>(
+            "SELECT * FROM raw_attendance_logs WHERE workspace_id = $1 AND employee_id = $2 AND punch_time >= $3 AND punch_time < $4 ORDER BY punch_time ASC",
+        )
+        .bind(workspace_id)
+        .bind(employee_id)
+        .bind(start_time)
+        .bind(end_time)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(Into::into)
     }
 }
 

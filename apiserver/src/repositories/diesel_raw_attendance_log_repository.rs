@@ -270,6 +270,61 @@ impl RawAttendanceLogRepository for DieselRawAttendanceLogRepository {
 
         Ok(rows_affected)
     }
+
+    async fn has_duplicate_raw_log(
+        &self,
+        workspace_id: Uuid,
+        employee_id: Uuid,
+        log_id: Uuid,
+        punch_time: DateTime<Utc>,
+    ) -> Result<bool, AppError> {
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        let duplicate_exists = diesel::select(diesel::dsl::exists(
+            raw_attendance_logs::table
+                .filter(raw_attendance_logs::workspace_id.eq(workspace_id))
+                .filter(raw_attendance_logs::employee_id.eq(employee_id))
+                .filter(raw_attendance_logs::id.ne(log_id))
+                .filter(raw_attendance_logs::punch_time.eq(punch_time)),
+        ))
+        .get_result::<bool>(&mut conn)
+        .await
+        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        Ok(duplicate_exists)
+    }
+
+    async fn get_employee_logs_in_time_range(
+        &self,
+        workspace_id: Uuid,
+        employee_id: Uuid,
+        start_time: DateTime<Utc>,
+        end_time: DateTime<Utc>,
+    ) -> Result<Vec<RawAttendanceLog>, AppError> {
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        let results = raw_attendance_logs::table
+            .filter(raw_attendance_logs::workspace_id.eq(workspace_id))
+            .filter(raw_attendance_logs::employee_id.eq(employee_id))
+            .filter(raw_attendance_logs::punch_time.ge(start_time))
+            .filter(raw_attendance_logs::punch_time.lt(end_time))
+            .order(raw_attendance_logs::punch_time.asc())
+            .load::<RawAttendanceLogEntity>(&mut conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        Ok(results.into_iter().map(Into::into).collect())
+    }
 }
 
 impl crate::repositories::PoolBacked for DieselRawAttendanceLogRepository {
