@@ -100,8 +100,9 @@ impl AppState {
         let stats_repo: Arc<
             dyn crate::repositories::workspace_stats_repository::WorkspaceStatsRepository,
         > = Arc::new(
-            crate::repositories::workspace_stats_repository::SqlxWorkspaceStatsRepository::new(
+            crate::repositories::workspace_stats_repository::DieselWorkspaceStatsRepository::new(
                 pool.clone(),
+                diesel_pools.clone(),
             ),
         );
         let pairing_service = Arc::new(crate::services::pairing_service::PairingService::new(

@@ -1,3 +1,4 @@
+use crate::diesel_pool::DieselPools;
 use crate::errors::AppError;
 use crate::models::{
     AttendanceTrendPoint, DepartmentAttendancePoint, LatenessByDay, LeaveTypeBreakdown,
@@ -5,6 +6,8 @@ use crate::models::{
 };
 use async_trait::async_trait;
 use chrono::{Datelike, NaiveDate, Utc};
+use diesel::prelude::*;
+use diesel_async::RunQueryDsl;
 use sqlx::PgPool;
 use uuid::Uuid;
 
@@ -35,45 +38,67 @@ pub trait WorkspaceStatsRepository: super::PoolBacked + Send + Sync {
     ) -> Result<Vec<LatenessByDay>, AppError>;
 }
 
-pub struct SqlxWorkspaceStatsRepository {
-    pub pool: PgPool,
+pub struct DieselWorkspaceStatsRepository {
+    pub sqlx_pool: PgPool,
+    pub diesel_pools: DieselPools,
 }
 
-impl SqlxWorkspaceStatsRepository {
-    pub fn new(pool: PgPool) -> Self {
-        Self { pool }
+impl DieselWorkspaceStatsRepository {
+    pub fn new(sqlx_pool: PgPool, diesel_pools: DieselPools) -> Self {
+        Self {
+            sqlx_pool,
+            diesel_pools,
+        }
     }
 
     async fn get_timezone(&self, workspace_id: Uuid) -> String {
-        sqlx::query_scalar("SELECT timezone FROM workspaces WHERE id = $1")
-            .bind(workspace_id)
-            .fetch_one(&self.pool)
+        #[derive(QueryableByName)]
+        struct TzRow {
+            #[diesel(sql_type = diesel::sql_types::Text)]
+            timezone: String,
+        }
+
+        let Ok(mut conn) = self.diesel_pools.api.get().await else {
+            return "UTC".to_string();
+        };
+
+        diesel::sql_query("SELECT timezone::text FROM workspaces WHERE id = $1")
+            .bind::<diesel::sql_types::Uuid, _>(workspace_id)
+            .get_result::<TzRow>(&mut conn)
             .await
+            .map(|r| r.timezone)
             .unwrap_or_else(|_| "UTC".to_string())
     }
 }
 
 #[async_trait]
-impl WorkspaceStatsRepository for SqlxWorkspaceStatsRepository {
+impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
     #[allow(clippy::too_many_lines)]
     async fn fetch_attendance_trend(
         &self,
         workspace_id: Uuid,
     ) -> Result<Vec<AttendanceTrendPoint>, AppError> {
         let today = Utc::now().date_naive();
-
-        // Fetch workspace timezone for correct UTC→local conversion
         let tz_str = self.get_timezone(workspace_id).await;
 
-        // Main query: present + on_leave per day (uses only guaranteed tables)
-        #[derive(Debug, sqlx::FromRow)]
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(format!("db error: {e}")))?;
+
+        #[derive(QueryableByName)]
         struct BaseRow {
+            #[diesel(sql_type = diesel::sql_types::Date)]
             date: NaiveDate,
+            #[diesel(sql_type = diesel::sql_types::BigInt)]
             present: i64,
+            #[diesel(sql_type = diesel::sql_types::BigInt)]
             on_leave: i64,
         }
 
-        let base_rows = sqlx::query_as::<_, BaseRow>(
+        let base_rows: Vec<BaseRow> = diesel::sql_query(
             r#"
         WITH days AS (
             SELECT d::date AS date
@@ -103,31 +128,29 @@ impl WorkspaceStatsRepository for SqlxWorkspaceStatsRepository {
             GROUP BY d.date
         )
         SELECT dp.date,
-               COALESCE(dp.present, 0) AS present,
-               COALESCE(dle.on_leave, 0) AS on_leave
+               COALESCE(dp.present, 0)::bigint AS present,
+               COALESCE(dle.on_leave, 0)::bigint AS on_leave
         FROM daily_present dp
         LEFT JOIN daily_leave dle ON dp.date = dle.date
         ORDER BY dp.date ASC
         "#,
         )
-        .bind(today)
-        .bind(workspace_id)
-        .bind(&tz_str)
-        .fetch_all(&self.pool)
+        .bind::<diesel::sql_types::Date, _>(today)
+        .bind::<diesel::sql_types::Uuid, _>(workspace_id)
+        .bind::<diesel::sql_types::Text, _>(&tz_str)
+        .load(&mut conn)
         .await?;
 
-        // Late detection: SQL-based with 6-priority shift resolution
-        // Covers: shift_rosters > employee working patterns > assignment rules*
-        //         > dept working patterns > employee_shifts > dept default shifts
-        // *Assignment rules are skipped in SQL (too complex) — this covers 95%+ of cases.
-        #[derive(Debug, sqlx::FromRow)]
+        #[derive(QueryableByName)]
         struct LateRow {
+            #[diesel(sql_type = diesel::sql_types::Date)]
             work_date: NaiveDate,
+            #[diesel(sql_type = diesel::sql_types::BigInt)]
             late_count: i64,
         }
 
-        let late_map: std::collections::HashMap<NaiveDate, i64> = sqlx::query_as::<_, LateRow>(
-        r#"
+        let late_rows: Vec<LateRow> = diesel::sql_query(
+            r#"
         WITH first_punches AS (
             SELECT te.employee_id,
                    (te.punch_in_time AT TIME ZONE $3)::date AS work_date,
@@ -139,33 +162,44 @@ impl WorkspaceStatsRepository for SqlxWorkspaceStatsRepository {
             GROUP BY te.employee_id, (te.punch_in_time AT TIME ZONE $3)::date
         )
         SELECT fp.work_date,
-               COUNT(DISTINCT fp.employee_id) AS late_count
+               COUNT(DISTINCT fp.employee_id)::bigint AS late_count
         FROM first_punches fp
         JOIN resolve_employee_shift($2, fp.work_date) ar ON ar.employee_id = fp.employee_id
         WHERE fp.first_punch > ar.start_time
         GROUP BY fp.work_date
         "#,
-    )
-    .bind(today)
-    .bind(workspace_id)
-    .bind(&tz_str)
-    .fetch_all(&self.pool)
-    .await
-    .unwrap_or_else(|e| { tracing::warn!(error = %e, "late detection query failed, degrading gracefully"); vec![] })
-    .into_iter()
-    .map(|r| (r.work_date, r.late_count))
-    .collect();
-
-        // Total active employees for absent calculation
-        let total_active: i64 = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM employees WHERE workspace_id = $1 AND is_active = TRUE",
         )
-        .bind(workspace_id)
-        .fetch_one(&self.pool)
+        .bind::<diesel::sql_types::Date, _>(today)
+        .bind::<diesel::sql_types::Uuid, _>(workspace_id)
+        .bind::<diesel::sql_types::Text, _>(&tz_str)
+        .load(&mut conn)
         .await
+        .unwrap_or_else(|e| {
+            tracing::warn!(error = %e, "late detection query failed, degrading gracefully");
+            vec![]
+        });
+
+        let late_map: std::collections::HashMap<NaiveDate, i64> = late_rows
+            .into_iter()
+            .map(|r| (r.work_date, r.late_count))
+            .collect();
+
+        #[derive(QueryableByName)]
+        struct CountRow {
+            #[diesel(sql_type = diesel::sql_types::BigInt)]
+            count: i64,
+        }
+
+        let total_active: i64 = diesel::sql_query(
+            "SELECT COUNT(*)::bigint as count FROM employees WHERE workspace_id = $1 AND is_active = TRUE",
+        )
+        .bind::<diesel::sql_types::Uuid, _>(workspace_id)
+        .get_result::<CountRow>(&mut conn)
+        .await
+        .map(|r| r.count)
         .unwrap_or(0);
 
-        let trend: Vec<AttendanceTrendPoint> = base_rows
+        let trend = base_rows
             .into_iter()
             .map(|r| {
                 let late = *late_map.get(&r.date).unwrap_or(&0);
@@ -195,19 +229,28 @@ impl WorkspaceStatsRepository for SqlxWorkspaceStatsRepository {
             _ => today,
         };
 
-        // Departments with employee counts
-        #[derive(Debug, sqlx::FromRow)]
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(format!("db error: {e}")))?;
+
+        #[derive(QueryableByName)]
         struct DeptRow {
+            #[diesel(sql_type = diesel::sql_types::Uuid)]
             department_id: Uuid,
+            #[diesel(sql_type = diesel::sql_types::Text)]
             department_name: String,
+            #[diesel(sql_type = diesel::sql_types::BigInt)]
             total_employees: i64,
         }
 
-        let departments = sqlx::query_as::<_, DeptRow>(
+        let departments: Vec<DeptRow> = diesel::sql_query(
             r#"
         SELECT d.id AS department_id,
-               d.name AS department_name,
-               COUNT(DISTINCT e.id) AS total_employees
+               d.name::text AS department_name,
+               COUNT(DISTINCT e.id)::bigint AS total_employees
         FROM departments d
         JOIN employee_department_history edh ON edh.department_id = d.id
         JOIN employees e ON e.id = edh.employee_id AND e.is_active = TRUE AND e.workspace_id = $1
@@ -221,20 +264,13 @@ impl WorkspaceStatsRepository for SqlxWorkspaceStatsRepository {
         GROUP BY d.id, d.name
         "#,
         )
-        .bind(workspace_id)
-        .bind(today)
-        .fetch_all(&self.pool)
+        .bind::<diesel::sql_types::Uuid, _>(workspace_id)
+        .bind::<diesel::sql_types::Date, _>(today)
+        .load(&mut conn)
         .await?;
 
         if departments.is_empty() {
             return Ok(vec![]);
-        }
-
-        // Present per department in date range
-        #[derive(Debug, sqlx::FromRow)]
-        struct PresentRow {
-            department_id: Uuid,
-            present_count: i64,
         }
 
         let start_dt = start_date
@@ -242,8 +278,16 @@ impl WorkspaceStatsRepository for SqlxWorkspaceStatsRepository {
             .and_then(|t| t.and_local_timezone(Utc).single())
             .ok_or_else(|| AppError::Internal("Invalid date".to_string()))?;
 
-        let present_rows = sqlx::query_as::<_, PresentRow>(
-        r#"
+        #[derive(QueryableByName)]
+        struct PresentRow {
+            #[diesel(sql_type = diesel::sql_types::Uuid)]
+            department_id: Uuid,
+            #[diesel(sql_type = diesel::sql_types::BigInt)]
+            present_count: i64,
+        }
+
+        let present_rows: Vec<PresentRow> = diesel::sql_query(
+            r#"
         WITH latest_dept AS (
             SELECT DISTINCT ON (edh.employee_id) edh.employee_id, edh.department_id
             FROM employee_department_history edh
@@ -252,37 +296,40 @@ impl WorkspaceStatsRepository for SqlxWorkspaceStatsRepository {
             ORDER BY edh.employee_id, edh.effective_date DESC
         )
         SELECT ld.department_id,
-               COUNT(DISTINCT te.employee_id) AS present_count
+               COUNT(DISTINCT te.employee_id)::bigint AS present_count
         FROM time_entries te
         JOIN latest_dept ld ON ld.employee_id = te.employee_id
         WHERE te.punch_in_time >= $2
         GROUP BY ld.department_id
         "#,
-    )
-    .bind(workspace_id)
-    .bind(start_dt)
-    .bind(today)
-    .fetch_all(&self.pool)
-    .await
-    .unwrap_or_else(|e| { tracing::warn!(error = %e, "present count query failed, degrading gracefully"); vec![] });
+        )
+        .bind::<diesel::sql_types::Uuid, _>(workspace_id)
+        .bind::<diesel::sql_types::Timestamptz, _>(start_dt)
+        .bind::<diesel::sql_types::Date, _>(today)
+        .load(&mut conn)
+        .await
+        .unwrap_or_else(|e| {
+            tracing::warn!(error = %e, "present count query failed, degrading gracefully");
+            vec![]
+        });
 
         let present_map: std::collections::HashMap<Uuid, i64> = present_rows
             .into_iter()
             .map(|r| (r.department_id, r.present_count))
             .collect();
 
-        // Late per department (only for "today")
         let late_map: std::collections::HashMap<Uuid, i64> = if range == "today" {
-            // Fetch workspace timezone for correct UTC→local conversion
             let tz_str = self.get_timezone(workspace_id).await;
 
-            #[derive(Debug, sqlx::FromRow)]
+            #[derive(QueryableByName)]
             struct LateRow {
+                #[diesel(sql_type = diesel::sql_types::Uuid)]
                 department_id: Uuid,
+                #[diesel(sql_type = diesel::sql_types::BigInt)]
                 late_count: i64,
             }
-            sqlx::query_as::<_, LateRow>(
-            r#"
+            let late_rows: Vec<LateRow> = diesel::sql_query(
+                r#"
             WITH latest_dept AS (
                 SELECT DISTINCT ON (edh.employee_id) edh.employee_id, edh.department_id
                 FROM employee_department_history edh
@@ -298,7 +345,7 @@ impl WorkspaceStatsRepository for SqlxWorkspaceStatsRepository {
                 GROUP BY te.employee_id
             )
             SELECT ld.department_id,
-                   COUNT(DISTINCT fp.employee_id) AS late_count
+                   COUNT(DISTINCT fp.employee_id)::bigint AS late_count
             FROM first_punches fp
             JOIN latest_dept ld ON ld.employee_id = fp.employee_id
             JOIN shift_rosters re ON re.employee_id = fp.employee_id AND re.date = $3
@@ -306,30 +353,35 @@ impl WorkspaceStatsRepository for SqlxWorkspaceStatsRepository {
             WHERE fp.first_punch::time > s.start_time
             GROUP BY ld.department_id
             "#,
-        )
-        .bind(workspace_id)
-        .bind(start_dt)
-        .bind(today)
-        .bind(&tz_str)
-        .fetch_all(&self.pool)
-        .await
-        .unwrap_or_else(|e| { tracing::warn!(error = %e, "late detection query failed, degrading gracefully"); vec![] })
-        .into_iter()
-        .map(|r| (r.department_id, r.late_count))
-        .collect()
+            )
+            .bind::<diesel::sql_types::Uuid, _>(workspace_id)
+            .bind::<diesel::sql_types::Timestamptz, _>(start_dt)
+            .bind::<diesel::sql_types::Date, _>(today)
+            .bind::<diesel::sql_types::Text, _>(&tz_str)
+            .load(&mut conn)
+            .await
+            .unwrap_or_else(|e| {
+                tracing::warn!(error = %e, "late detection query failed, degrading gracefully");
+                vec![]
+            });
+            late_rows
+                .into_iter()
+                .map(|r| (r.department_id, r.late_count))
+                .collect()
         } else {
             std::collections::HashMap::new()
         };
 
-        // On leave per department
-        #[derive(Debug, sqlx::FromRow)]
+        #[derive(QueryableByName)]
         struct LeaveRow {
+            #[diesel(sql_type = diesel::sql_types::Uuid)]
             department_id: Uuid,
+            #[diesel(sql_type = diesel::sql_types::BigInt)]
             leave_count: i64,
         }
 
-        let leave_rows = sqlx::query_as::<_, LeaveRow>(
-        r#"
+        let leave_rows: Vec<LeaveRow> = diesel::sql_query(
+            r#"
         WITH latest_dept AS (
             SELECT DISTINCT ON (edh.employee_id) edh.employee_id, edh.department_id
             FROM employee_department_history edh
@@ -338,28 +390,30 @@ impl WorkspaceStatsRepository for SqlxWorkspaceStatsRepository {
             ORDER BY edh.employee_id, edh.effective_date DESC
         )
         SELECT ld.department_id,
-               COUNT(DISTINCT lr.employee_id) AS leave_count
+               COUNT(DISTINCT lr.employee_id)::bigint AS leave_count
         FROM leave_requests lr
         JOIN latest_dept ld ON ld.employee_id = lr.employee_id
         WHERE lr.status IN ('approved', 'pre_approved')
           AND lr.start_date <= $3 AND lr.end_date >= $2
         GROUP BY ld.department_id
         "#,
-    )
-    .bind(workspace_id)
-    .bind(start_date)
-    .bind(today)
-    .fetch_all(&self.pool)
-    .await
-    .unwrap_or_else(|e| { tracing::warn!(error = %e, "leave count query failed, degrading gracefully"); vec![] });
+        )
+        .bind::<diesel::sql_types::Uuid, _>(workspace_id)
+        .bind::<diesel::sql_types::Date, _>(start_date)
+        .bind::<diesel::sql_types::Date, _>(today)
+        .load(&mut conn)
+        .await
+        .unwrap_or_else(|e| {
+            tracing::warn!(error = %e, "leave count query failed, degrading gracefully");
+            vec![]
+        });
 
         let leave_map: std::collections::HashMap<Uuid, i64> = leave_rows
             .into_iter()
             .map(|r| (r.department_id, r.leave_count))
             .collect();
 
-        // Build result
-        let result: Vec<DepartmentAttendancePoint> = departments
+        let result = departments
             .into_iter()
             .map(|dept| {
                 let present = *present_map.get(&dept.department_id).unwrap_or(&0);
@@ -386,19 +440,28 @@ impl WorkspaceStatsRepository for SqlxWorkspaceStatsRepository {
         workspace_id: Uuid,
     ) -> Result<Vec<OvertimeTrendPoint>, AppError> {
         let today = Utc::now().date_naive();
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(format!("db error: {e}")))?;
 
-        #[derive(Debug, sqlx::FromRow)]
+        #[derive(QueryableByName)]
         struct OtRow {
+            #[diesel(sql_type = diesel::sql_types::Date)]
             date: NaiveDate,
+            #[diesel(sql_type = diesel::sql_types::BigInt)]
             system_ot_minutes: i64,
+            #[diesel(sql_type = diesel::sql_types::BigInt)]
             approved_ot_minutes: i64,
         }
 
-        let rows = sqlx::query_as::<_, OtRow>(
+        let rows: Vec<OtRow> = diesel::sql_query(
             r#"
         SELECT ads.date,
-               COALESCE(SUM(ads.system_detected_ot_minutes), 0) AS system_ot_minutes,
-               COALESCE(SUM(ads.approved_ot_minutes), 0) AS approved_ot_minutes
+               COALESCE(SUM(ads.system_detected_ot_minutes), 0)::bigint AS system_ot_minutes,
+               COALESCE(SUM(ads.approved_ot_minutes), 0)::bigint AS approved_ot_minutes
         FROM attendance_daily_summaries ads
         WHERE ads.workspace_id = $1
           AND ads.date >= ($2::date - INTERVAL '29 days')
@@ -407,16 +470,16 @@ impl WorkspaceStatsRepository for SqlxWorkspaceStatsRepository {
         ORDER BY ads.date ASC
         "#,
         )
-        .bind(workspace_id)
-        .bind(today)
-        .fetch_all(&self.pool)
+        .bind::<diesel::sql_types::Uuid, _>(workspace_id)
+        .bind::<diesel::sql_types::Date, _>(today)
+        .load(&mut conn)
         .await
         .unwrap_or_else(|e| {
             tracing::warn!(error = %e, "overtime trend query failed, degrading gracefully");
             vec![]
         });
 
-        let trend: Vec<OvertimeTrendPoint> = rows
+        let trend = rows
             .into_iter()
             .map(|r| OvertimeTrendPoint {
                 date: r.date,
@@ -430,51 +493,66 @@ impl WorkspaceStatsRepository for SqlxWorkspaceStatsRepository {
 
     #[allow(clippy::too_many_lines)]
     async fn fetch_workspace_stats(&self, workspace_id: Uuid) -> Result<WorkspaceStats, AppError> {
-        // 1. Total Employees
-        let total_employees: i64 = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM employees WHERE workspace_id = $1 AND is_active = TRUE",
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(format!("db error: {e}")))?;
+
+        #[derive(QueryableByName)]
+        struct CountRow {
+            #[diesel(sql_type = diesel::sql_types::BigInt)]
+            count: i64,
+        }
+
+        let total_employees: i64 = diesel::sql_query(
+            "SELECT COUNT(*)::bigint as count FROM employees WHERE workspace_id = $1 AND is_active = TRUE",
         )
-        .bind(workspace_id)
-        .fetch_one(&self.pool)
+        .bind::<diesel::sql_types::Uuid, _>(workspace_id)
+        .get_result::<CountRow>(&mut conn)
         .await
+        .map(|r| r.count)
         .unwrap_or(0);
 
-        // Fetch workspace timezone for correct UTC→local conversion
         let tz_str = self.get_timezone(workspace_id).await;
-
-        // 2. Present Today (Employees with at least one punch-in today)
         let today = Utc::now().date_naive();
         let start_of_day = today
             .and_hms_opt(0, 0, 0)
             .and_then(|t| t.and_local_timezone(Utc).single())
             .ok_or_else(|| AppError::Internal("Invalid date calculation".to_string()))?;
 
-        let present_today: i64 = sqlx::query_scalar(
-            "SELECT COUNT(DISTINCT employee_id) FROM time_entries
+        let present_today: i64 = diesel::sql_query(
+            "SELECT COUNT(DISTINCT employee_id)::bigint as count FROM time_entries
          WHERE (punch_in_time AT TIME ZONE $3)::date = $1::date
          AND employee_id IN (SELECT id FROM employees WHERE workspace_id = $2)",
         )
-        .bind(today)
-        .bind(workspace_id)
-        .bind(&tz_str)
-        .fetch_one(&self.pool)
+        .bind::<diesel::sql_types::Date, _>(today)
+        .bind::<diesel::sql_types::Uuid, _>(workspace_id)
+        .bind::<diesel::sql_types::Text, _>(&tz_str)
+        .get_result::<CountRow>(&mut conn)
         .await
+        .map(|r| r.count)
         .unwrap_or(0);
 
-        // 3. Pending Leave Requests
-        let pending_leave: i64 = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM leave_requests
+        let pending_leave: i64 = diesel::sql_query(
+            "SELECT COUNT(*)::bigint as count FROM leave_requests
          WHERE status = 'pending'
          AND employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)",
         )
-        .bind(workspace_id)
-        .fetch_one(&self.pool)
+        .bind::<diesel::sql_types::Uuid, _>(workspace_id)
+        .get_result::<CountRow>(&mut conn)
         .await
+        .map(|r| r.count)
         .unwrap_or(0);
 
-        // 4. Estimated Monthly Payroll (Sum of latest base salaries)
-        // Priority: employee_salary_components -> fallback to salary_history
-        let payroll: rust_decimal::Decimal = sqlx::query_scalar(
+        #[derive(QueryableByName)]
+        struct DecimalRow {
+            #[diesel(sql_type = diesel::sql_types::Numeric)]
+            amount: rust_decimal::Decimal,
+        }
+
+        let payroll: rust_decimal::Decimal = diesel::sql_query(
             r#"
         WITH active_emps AS (
             SELECT id FROM employees WHERE workspace_id = $1 AND is_active = TRUE
@@ -493,34 +571,31 @@ impl WorkspaceStatsRepository for SqlxWorkspaceStatsRepository {
             WHERE esc.employee_id IN (SELECT id FROM active_emps)
             GROUP BY esc.employee_id
         )
-        SELECT COALESCE(SUM(total_amount), 0) FROM dynamic_payroll
+        SELECT COALESCE(SUM(total_amount), 0)::numeric as amount FROM dynamic_payroll
         "#,
         )
-        .bind(workspace_id)
-        .fetch_one(&self.pool)
+        .bind::<diesel::sql_types::Uuid, _>(workspace_id)
+        .get_result::<DecimalRow>(&mut conn)
         .await
+        .map(|r| r.amount)
         .unwrap_or(rust_decimal::Decimal::ZERO);
 
-        // 5. On Leave Today (approved leave requests spanning today)
-        let on_leave_today: i64 = sqlx::query_scalar(
-        "SELECT COUNT(DISTINCT lr.employee_id) FROM leave_requests lr
+        let on_leave_today: i64 = diesel::sql_query(
+        "SELECT COUNT(DISTINCT lr.employee_id)::bigint as count FROM leave_requests lr
          WHERE lr.status IN ('approved', 'pre_approved')
          AND lr.start_date <= $1 AND lr.end_date >= $1
          AND lr.employee_id IN (SELECT id FROM employees WHERE workspace_id = $2 AND is_active = TRUE)",
     )
-    .bind(today)
-    .bind(workspace_id)
-    .fetch_one(&self.pool)
+    .bind::<diesel::sql_types::Date, _>(today)
+    .bind::<diesel::sql_types::Uuid, _>(workspace_id)
+    .get_result::<CountRow>(&mut conn)
     .await
+    .map(|r| r.count)
     .unwrap_or(0);
 
-        // 6. Absent Today = total_employees - present_today - on_leave_today
         let absent_today = (total_employees - present_today - on_leave_today).max(0);
 
-        // 7. Late Today (employees whose earliest punch-in is after scheduled shift start)
-        // Uses 6-priority shift resolution: shift_rosters > employee working patterns
-        //   > dept working patterns > employee_shifts > department default shifts
-        let late_today: i64 = sqlx::query_scalar(
+        let late_today: i64 = diesel::sql_query(
         r#"
         WITH today_punches AS (
             SELECT te.employee_id,
@@ -530,23 +605,22 @@ impl WorkspaceStatsRepository for SqlxWorkspaceStatsRepository {
               AND te.employee_id IN (SELECT id FROM employees WHERE workspace_id = $2 AND is_active = TRUE)
             GROUP BY te.employee_id
         )
-        SELECT COUNT(*)
+        SELECT COUNT(*)::bigint as count
         FROM today_punches tp
         JOIN resolve_employee_shift($2, $3) ar ON ar.employee_id = tp.employee_id
         WHERE tp.first_punch > ar.start_time
         "#,
     )
-    .bind(start_of_day)
-    .bind(workspace_id)
-    .bind(today)
-    .bind(&tz_str)
-    .fetch_one(&self.pool)
+    .bind::<diesel::sql_types::Timestamptz, _>(start_of_day)
+    .bind::<diesel::sql_types::Uuid, _>(workspace_id)
+    .bind::<diesel::sql_types::Date, _>(today)
+    .bind::<diesel::sql_types::Text, _>(&tz_str)
+    .get_result::<CountRow>(&mut conn)
     .await
+    .map(|r| r.count)
     .unwrap_or(0);
 
-        // 8. Early Departure Today (employees who punched out before scheduled end)
-        // Uses same 6-priority shift resolution as late detection
-        let early_departure_today: i64 = sqlx::query_scalar(
+        let early_departure_today: i64 = diesel::sql_query(
         r#"
         WITH today_completed AS (
             SELECT te.employee_id,
@@ -557,33 +631,40 @@ impl WorkspaceStatsRepository for SqlxWorkspaceStatsRepository {
               AND te.employee_id IN (SELECT id FROM employees WHERE workspace_id = $2 AND is_active = TRUE)
             GROUP BY te.employee_id
         )
-        SELECT COUNT(*)
+        SELECT COUNT(*)::bigint as count
         FROM today_completed tc
         JOIN resolve_employee_shift($2, $3) ar ON ar.employee_id = tc.employee_id
         WHERE tc.last_punch_out < ar.end_time
         "#,
     )
-    .bind(start_of_day)
-    .bind(workspace_id)
-    .bind(today)
-    .bind(&tz_str)
-    .fetch_one(&self.pool)
+    .bind::<diesel::sql_types::Timestamptz, _>(start_of_day)
+    .bind::<diesel::sql_types::Uuid, _>(workspace_id)
+    .bind::<diesel::sql_types::Date, _>(today)
+    .bind::<diesel::sql_types::Text, _>(&tz_str)
+    .get_result::<CountRow>(&mut conn)
     .await
+    .map(|r| r.count)
     .unwrap_or(0);
 
-        // 9. Average work hours today
-        let avg_work_minutes: Option<f64> = sqlx::query_scalar(
-        "SELECT AVG(duration_minutes)::float8 FROM time_entries
+        #[derive(QueryableByName)]
+        struct FloatRow {
+            #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Double>)]
+            amount: Option<f64>,
+        }
+
+        let avg_work_minutes: Option<f64> = diesel::sql_query(
+        "SELECT AVG(duration_minutes)::float8 as amount FROM time_entries
          WHERE punch_in_time >= $1
          AND punch_out_time IS NOT NULL
          AND duration_minutes > 0
          AND employee_id IN (SELECT id FROM employees WHERE workspace_id = $2 AND is_active = TRUE)",
     )
-    .bind(start_of_day)
-    .bind(workspace_id)
-    .fetch_one(&self.pool)
+    .bind::<diesel::sql_types::Timestamptz, _>(start_of_day)
+    .bind::<diesel::sql_types::Uuid, _>(workspace_id)
+    .get_result::<FloatRow>(&mut conn)
     .await
-    .unwrap_or(None);
+    .ok()
+    .and_then(|r| r.amount);
 
         let avg_work_hours_today = avg_work_minutes.unwrap_or(0.0) / 60.0;
 
@@ -607,15 +688,24 @@ impl WorkspaceStatsRepository for SqlxWorkspaceStatsRepository {
             .and_then(|t| t.and_local_timezone(Utc).single())
             .ok_or_else(|| AppError::Internal("Invalid date".to_string()))?;
 
-        // Generate 30-minute time slots and count check-ins/check-outs per slot
-        #[derive(Debug, sqlx::FromRow)]
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(format!("db error: {e}")))?;
+
+        #[derive(QueryableByName)]
         struct SlotRow {
+            #[diesel(sql_type = diesel::sql_types::Text)]
             time_slot: String,
+            #[diesel(sql_type = diesel::sql_types::BigInt)]
             check_in: i64,
+            #[diesel(sql_type = diesel::sql_types::BigInt)]
             check_out: i64,
         }
 
-        let rows = sqlx::query_as::<_, SlotRow>(
+        let rows: Vec<SlotRow> = diesel::sql_query(
         r#"
         WITH slots AS (
             SELECT generate_series(0, 47) AS slot_index
@@ -636,14 +726,14 @@ impl WorkspaceStatsRepository for SqlxWorkspaceStatsRepository {
             WHERE punch_in_time >= $1
               AND employee_id IN (SELECT id FROM employees WHERE workspace_id = $2 AND is_active = TRUE)
         )
-        SELECT sl.time_slot,
+        SELECT sl.time_slot::text,
                COALESCE(SUM(CASE WHEN te.punch_in_time::time >= sl.slot_start
                                   AND te.punch_in_time::time < sl.slot_end
-                                 THEN 1 ELSE 0 END), 0) AS check_in,
+                                 THEN 1 ELSE 0 END), 0)::bigint AS check_in,
                COALESCE(SUM(CASE WHEN te.punch_out_time IS NOT NULL
                                   AND te.punch_out_time::time >= sl.slot_start
                                   AND te.punch_out_time::time < sl.slot_end
-                                 THEN 1 ELSE 0 END), 0) AS check_out
+                                 THEN 1 ELSE 0 END), 0)::bigint AS check_out
         FROM slot_labels sl
         LEFT JOIN today_entries te ON TRUE
         GROUP BY sl.slot_index, sl.time_slot
@@ -657,13 +747,13 @@ impl WorkspaceStatsRepository for SqlxWorkspaceStatsRepository {
         ORDER BY sl.slot_index
         "#,
     )
-    .bind(start_of_day)
-    .bind(workspace_id)
-    .fetch_all(&self.pool)
+    .bind::<diesel::sql_types::Timestamptz, _>(start_of_day)
+    .bind::<diesel::sql_types::Uuid, _>(workspace_id)
+    .load(&mut conn)
     .await
     .unwrap_or_else(|e| { tracing::warn!(error = %e, "peak times query failed, degrading gracefully"); vec![] });
 
-        let result: Vec<PeakTimeSlot> = rows
+        let result = rows
             .into_iter()
             .map(|r| PeakTimeSlot {
                 time_slot: r.time_slot,
@@ -683,16 +773,25 @@ impl WorkspaceStatsRepository for SqlxWorkspaceStatsRepository {
         let month_start = NaiveDate::from_ymd_opt(today.year(), today.month(), 1)
             .ok_or_else(|| AppError::Internal("Invalid date".to_string()))?;
 
-        #[derive(Debug, sqlx::FromRow)]
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(format!("db error: {e}")))?;
+
+        #[derive(QueryableByName)]
         struct LtRow {
+            #[diesel(sql_type = diesel::sql_types::Text)]
             leave_type: String,
+            #[diesel(sql_type = diesel::sql_types::BigInt)]
             count: i64,
         }
 
-        let rows = sqlx::query_as::<_, LtRow>(
+        let rows: Vec<LtRow> = diesel::sql_query(
             r#"
-        SELECT COALESCE(lt.name, 'Other') AS leave_type,
-               COUNT(*) AS count
+        SELECT COALESCE(lt.name, 'Other')::text AS leave_type,
+               COUNT(*)::bigint AS count
         FROM leave_requests lr
         LEFT JOIN leave_types lt ON lt.id = lr.leave_type_id
         WHERE lr.status IN ('approved', 'pre_approved')
@@ -705,17 +804,17 @@ impl WorkspaceStatsRepository for SqlxWorkspaceStatsRepository {
         ORDER BY count DESC
         "#,
         )
-        .bind(month_start)
-        .bind(today)
-        .bind(workspace_id)
-        .fetch_all(&self.pool)
+        .bind::<diesel::sql_types::Date, _>(month_start)
+        .bind::<diesel::sql_types::Date, _>(today)
+        .bind::<diesel::sql_types::Uuid, _>(workspace_id)
+        .load(&mut conn)
         .await
         .unwrap_or_else(|e| {
             tracing::warn!(error = %e, "leave types query failed, degrading gracefully");
             vec![]
         });
 
-        let result: Vec<LeaveTypeBreakdown> = rows
+        let result = rows
             .into_iter()
             .map(|r| LeaveTypeBreakdown {
                 leave_type: r.leave_type,
@@ -732,18 +831,26 @@ impl WorkspaceStatsRepository for SqlxWorkspaceStatsRepository {
         workspace_id: Uuid,
     ) -> Result<Vec<LatenessByDay>, AppError> {
         let today = Utc::now().date_naive();
-
-        // Fetch workspace timezone for correct UTC→local conversion
         let tz_str = self.get_timezone(workspace_id).await;
 
-        #[derive(Debug, sqlx::FromRow)]
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(format!("db error: {e}")))?;
+
+        #[derive(QueryableByName)]
         struct DayRow {
+            #[diesel(sql_type = diesel::sql_types::Integer)]
             dow: i32,
+            #[diesel(sql_type = diesel::sql_types::BigInt)]
             late_count: i64,
+            #[diesel(sql_type = diesel::sql_types::Double)]
             avg_late_minutes: f64,
         }
 
-        let rows = sqlx::query_as::<_, DayRow>(
+        let rows: Vec<DayRow> = diesel::sql_query(
         r#"
         WITH first_punches AS (
             SELECT te.employee_id,
@@ -765,23 +872,23 @@ impl WorkspaceStatsRepository for SqlxWorkspaceStatsRepository {
               AND fp.first_punch > rs.start_time
         )
         SELECT dow,
-               COUNT(*) AS late_count,
+               COUNT(*)::bigint AS late_count,
                COALESCE(AVG(late_minutes), 0)::float8 AS avg_late_minutes
         FROM late_entries
         GROUP BY dow
         ORDER BY dow
         "#,
     )
-    .bind(today)
-    .bind(workspace_id)
-    .bind(&tz_str)
-    .fetch_all(&self.pool)
+    .bind::<diesel::sql_types::Date, _>(today)
+    .bind::<diesel::sql_types::Uuid, _>(workspace_id)
+    .bind::<diesel::sql_types::Text, _>(&tz_str)
+    .load(&mut conn)
     .await
     .unwrap_or_else(|e| { tracing::warn!(error = %e, "lateness by day query failed, degrading gracefully"); vec![] });
 
         let day_names = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-        let result: Vec<LatenessByDay> = rows
+        let result = rows
             .into_iter()
             .map(|r| {
                 let day_idx = (r.dow - 1).clamp(0, 6) as usize;
@@ -797,11 +904,12 @@ impl WorkspaceStatsRepository for SqlxWorkspaceStatsRepository {
     }
 }
 
-impl super::PoolBacked for SqlxWorkspaceStatsRepository {
-    fn from_pool(pool: PgPool) -> Self {
-        Self::new(pool)
+impl super::PoolBacked for DieselWorkspaceStatsRepository {
+    #[allow(clippy::panic)]
+    fn from_pool(_pool: PgPool) -> Self {
+        panic!("DieselWorkspaceStatsRepository requires diesel_pools to be manually injected via new()");
     }
     fn pool(&self) -> &PgPool {
-        &self.pool
+        &self.sqlx_pool
     }
 }

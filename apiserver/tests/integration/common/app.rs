@@ -340,7 +340,7 @@ pub async fn spawn_app() -> (String, TestDatabase) {
                     Some(Arc::new(apiserver::services::ReportCoordinator::new(redis, pool.clone())))
                 } else { None }
             } else { None },
-            stats_repo: Arc::new(apiserver::repositories::workspace_stats_repository::SqlxWorkspaceStatsRepository::new(pool.clone())),
+            stats_repo: Arc::new(apiserver::repositories::workspace_stats_repository::DieselWorkspaceStatsRepository::new(pool.clone(), diesel_pools.clone())),
         },
         core: apiserver::CoreState {
             auth_service,
@@ -717,7 +717,7 @@ pub async fn spawn_app_with_factory() -> (String, Uuid, Uuid, TestFactory, TestD
                     Some(Arc::new(apiserver::services::ReportCoordinator::new(redis, pool.clone())))
                 } else { None }
             } else { None },
-            stats_repo: Arc::new(apiserver::repositories::workspace_stats_repository::SqlxWorkspaceStatsRepository::new(pool.clone())),
+            stats_repo: Arc::new(apiserver::repositories::workspace_stats_repository::DieselWorkspaceStatsRepository::new(pool.clone(), diesel_pools.clone())),
         },
         core: apiserver::CoreState {
             auth_service,
@@ -1136,7 +1136,7 @@ pub async fn setup_app_tower() -> (TestDatabase, TestFactory, Arc<AppState>, axu
         reports: apiserver::ReportState {
             service: report_service,
             coordinator: None,
-            stats_repo: Arc::new(apiserver::repositories::workspace_stats_repository::SqlxWorkspaceStatsRepository::new(pool.clone())),
+            stats_repo: Arc::new(apiserver::repositories::workspace_stats_repository::DieselWorkspaceStatsRepository::new(pool.clone(), diesel_pools.clone())),
         },
         core: apiserver::CoreState {
             auth_service,

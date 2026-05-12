@@ -48,7 +48,10 @@ impl E2eTestDatabase {
 
         let client = reqwest::Client::new();
         if client.get(&api_url).send().await.is_err() {
-            println!("Supavisor API is unreachable at {}. Skipping E2E test database creation.", api_url);
+            println!(
+                "Supavisor API is unreachable at {}. Skipping E2E test database creation.",
+                api_url
+            );
             return None;
         }
 

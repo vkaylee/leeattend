@@ -69,7 +69,7 @@ pub use attendance_policy_repository::{
     AttendancePolicyRepository, SqlxAttendancePolicyRepository,
 };
 pub mod workspace_stats_repository;
-pub use workspace_stats_repository::{SqlxWorkspaceStatsRepository, WorkspaceStatsRepository};
+pub use workspace_stats_repository::{DieselWorkspaceStatsRepository, WorkspaceStatsRepository};
 pub mod diesel_employee_contract_repository;
 pub mod diesel_employee_repository;
 pub use diesel_employee_contract_repository::DieselEmployeeContractRepository;
