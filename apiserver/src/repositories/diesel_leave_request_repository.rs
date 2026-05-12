@@ -1,4 +1,5 @@
 use crate::diesel_pool::DieselPools;
+use crate::errors::AppError;
 use crate::models::diesel::leave::*;
 use crate::models::{LeaveRequest, LeaveStatus};
 use crate::repositories::leave_request_repository::{
@@ -45,21 +46,21 @@ impl PoolBacked for DieselLeaveRequestRepository {
 
 #[async_trait]
 impl LeaveRequestRepository for DieselLeaveRequestRepository {
-    async fn create_leave_request(&self, request: &LeaveRequest) -> Result<(), sqlx::Error> {
-        create_leave_request(&self.sqlx_pool, request).await
+    async fn create_leave_request(&self, request: &LeaveRequest) -> Result<(), AppError> {
+        create_leave_request(&self.sqlx_pool, request).await.map_err(Into::into)
     }
 
     async fn get_leave_request_by_id(
         &self,
         workspace_id: Uuid,
         id: Uuid,
-    ) -> Result<Option<LeaveRequest>, sqlx::Error> {
+    ) -> Result<Option<LeaveRequest>, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let entity = leave_requests::table
             .inner_join(employees::table)
@@ -69,7 +70,7 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
             .first::<LeaveRequestEntity>(&mut conn)
             .await
             .optional()
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(entity.map(Into::into))
     }
@@ -80,21 +81,21 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
         id: Uuid,
         status: LeaveStatus,
         approved_by: Option<Uuid>,
-    ) -> Result<(), sqlx::Error> {
-        update_leave_request_status(&self.sqlx_pool, workspace_id, id, status, approved_by).await
+    ) -> Result<(), AppError> {
+        update_leave_request_status(&self.sqlx_pool, workspace_id, id, status, approved_by).await.map_err(Into::into)
     }
 
     async fn get_employee_leave_requests(
         &self,
         workspace_id: Uuid,
         employee_id: Uuid,
-    ) -> Result<Vec<LeaveRequest>, sqlx::Error> {
+    ) -> Result<Vec<LeaveRequest>, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let entities = leave_requests::table
             .inner_join(employees::table)
@@ -104,7 +105,7 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
             .select(LeaveRequestEntity::as_select())
             .load::<LeaveRequestEntity>(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(entities.into_iter().map(Into::into).collect())
     }
@@ -113,13 +114,13 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
         &self,
         workspace_id: Uuid,
         status: Option<LeaveStatus>,
-    ) -> Result<Vec<LeaveRequest>, sqlx::Error> {
+    ) -> Result<Vec<LeaveRequest>, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let mut query = leave_requests::table
             .inner_join(employees::table)
@@ -135,7 +136,7 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
             .select(LeaveRequestEntity::as_select())
             .load::<LeaveRequestEntity>(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(entities.into_iter().map(Into::into).collect())
     }
@@ -146,7 +147,7 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
         start_date: NaiveDate,
         end_date: NaiveDate,
         workspace_id: Uuid,
-    ) -> Result<LeaveBreakdown, sqlx::Error> {
+    ) -> Result<LeaveBreakdown, AppError> {
         get_approved_leave_breakdown(
             &self.sqlx_pool,
             employee_id,
@@ -155,13 +156,14 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
             workspace_id,
         )
         .await
+        .map_err(Into::into)
     }
 
     async fn get_employee_department_for_request(
         &self,
         request_id: Uuid,
         workspace_id: Uuid,
-    ) -> Result<Option<Uuid>, sqlx::Error> {
+    ) -> Result<Option<Uuid>, AppError> {
         // Complex history join, fallback to SQLx
         let repo = SqlxLeaveRequestRepository::new(self.sqlx_pool.clone());
         repo.get_employee_department_for_request(request_id, workspace_id)
@@ -171,13 +173,13 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
     async fn get_leave_types(
         &self,
         workspace_id: Uuid,
-    ) -> Result<Vec<(String, String)>, sqlx::Error> {
+    ) -> Result<Vec<(String, String)>, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let rows = leave_types::table
             .filter(leave_types::workspace_id.eq(workspace_id))
@@ -185,7 +187,7 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
             .select((leave_types::code, leave_types::name))
             .load::<(String, String)>(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(rows)
     }

@@ -1,6 +1,7 @@
 use crate::domain::policy::defaults::{
     DEFAULT_GRACE_PERIOD_MINUTES, DEFAULT_HOURS_PER_DAY, DEFAULT_STD_WORKING_DAYS,
 };
+use crate::errors::AppError;
 use crate::models::{AttendanceRules, EarlyArrivalStrategy, PolicyRules, WorkingCondition};
 use crate::repositories::{AttendancePolicyRepository, PoolBacked, SqlxAttendancePolicyRepository};
 use chrono::NaiveDate;
@@ -25,7 +26,7 @@ impl PolicyResolver {
         department_id: Option<Uuid>,
         workspace_id: Uuid,
         date: NaiveDate,
-    ) -> Result<StandardMonthConfig, sqlx::Error> {
+    ) -> Result<StandardMonthConfig, AppError> {
         // 1. Check Individual Override (Highest Priority)
         let emp_config =
             crate::repositories::employee::get_employee_payroll_config_at(pool, employee_id, date)
@@ -87,7 +88,7 @@ impl PolicyResolver {
         department_id: Option<Uuid>,
         workspace_id: Uuid,
         date: NaiveDate,
-    ) -> Result<Decimal, sqlx::Error> {
+    ) -> Result<Decimal, AppError> {
         let config =
             Self::resolve_standard_month(pool, employee_id, department_id, workspace_id, date)
                 .await?;
@@ -99,7 +100,7 @@ impl PolicyResolver {
         employee_id: Uuid,
         workspace_id: Uuid,
         date: NaiveDate,
-    ) -> Result<AttendanceRules, sqlx::Error> {
+    ) -> Result<AttendanceRules, AppError> {
         let repo = SqlxAttendancePolicyRepository::from_pool(pool.clone());
         // Convert NaiveDate to UTC start of day
         let effective_time = date.and_hms_opt(0, 0, 0).unwrap_or_default().and_utc();
@@ -125,7 +126,7 @@ impl PolicyResolver {
         employee_ids: &[Uuid],
         workspace_id: Uuid,
         date: NaiveDate,
-    ) -> Result<std::collections::HashMap<Uuid, AttendanceRules>, sqlx::Error> {
+    ) -> Result<std::collections::HashMap<Uuid, AttendanceRules>, AppError> {
         if employee_ids.is_empty() {
             return Ok(std::collections::HashMap::new());
         }
@@ -161,7 +162,7 @@ impl PolicyResolver {
         employee_id: Uuid,
         workspace_id: Uuid,
         date: NaiveDate,
-    ) -> Result<PolicyRules, sqlx::Error> {
+    ) -> Result<PolicyRules, AppError> {
         // 1. Get Attendance Policy rules
         let attendance_rules =
             Self::resolve_attendance_policy(pool, employee_id, workspace_id, date).await?;
@@ -209,7 +210,7 @@ impl PolicyResolver {
         employee_id: Uuid,
         workspace_id: Uuid,
         date: NaiveDate,
-    ) -> Result<Vec<WorkingCondition>, sqlx::Error> {
+    ) -> Result<Vec<WorkingCondition>, AppError> {
         let conditions = sqlx::query_as!(
             WorkingCondition,
             r#"
@@ -240,7 +241,7 @@ impl PolicyResolver {
         workspace_id: Uuid,
         start_date: NaiveDate,
         end_date: NaiveDate,
-    ) -> Result<HashMap<Uuid, Vec<WorkingCondition>>, sqlx::Error> {
+    ) -> Result<HashMap<Uuid, Vec<WorkingCondition>>, AppError> {
         if employee_ids.is_empty() {
             return Ok(HashMap::new());
         }

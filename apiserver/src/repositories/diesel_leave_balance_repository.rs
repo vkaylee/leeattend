@@ -1,4 +1,5 @@
 use crate::diesel_pool::DieselPools;
+use crate::errors::AppError;
 use crate::models::diesel::leave::*;
 use crate::models::{EmployeeLeaveBalance, LeaveBalance, WorkspaceLeaveBalance};
 use crate::repositories::leave_balance_repository::{
@@ -50,8 +51,8 @@ impl LeaveBalanceRepository for DieselLeaveBalanceRepository {
         workspace_id: Uuid,
         employee_id: Uuid,
         year: i32,
-    ) -> Result<Vec<EmployeeLeaveBalance>, sqlx::Error> {
-        get_employee_balances(&self.sqlx_pool, workspace_id, employee_id, year).await
+    ) -> Result<Vec<EmployeeLeaveBalance>, AppError> {
+        get_employee_balances(&self.sqlx_pool, workspace_id, employee_id, year).await.map_err(Into::into)
     }
 
     async fn get_workspace_balances(
@@ -61,17 +62,17 @@ impl LeaveBalanceRepository for DieselLeaveBalanceRepository {
         limit: i64,
         offset: i64,
         search: Option<String>,
-    ) -> Result<(Vec<WorkspaceLeaveBalance>, i64), sqlx::Error> {
-        get_workspace_balances(&self.sqlx_pool, workspace_id, year, limit, offset, search).await
+    ) -> Result<(Vec<WorkspaceLeaveBalance>, i64), AppError> {
+        get_workspace_balances(&self.sqlx_pool, workspace_id, year, limit, offset, search).await.map_err(Into::into)
     }
 
-    async fn upsert_leave_balance(&self, balance: &LeaveBalance) -> Result<(), sqlx::Error> {
+    async fn upsert_leave_balance(&self, balance: &LeaveBalance) -> Result<(), AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let entity = LeaveBalanceEntity {
             id: balance.id,
@@ -101,7 +102,7 @@ impl LeaveBalanceRepository for DieselLeaveBalanceRepository {
             ))
             .execute(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(())
     }
@@ -114,7 +115,7 @@ impl LeaveBalanceRepository for DieselLeaveBalanceRepository {
         amount: rust_decimal::Decimal,
         transaction_date: chrono::NaiveDate,
         reason: &str,
-    ) -> Result<(), sqlx::Error> {
+    ) -> Result<(), AppError> {
         // Complex transaction logic, fallback to SQLx
         adjust_balance(
             &self.sqlx_pool,
@@ -126,5 +127,6 @@ impl LeaveBalanceRepository for DieselLeaveBalanceRepository {
             reason,
         )
         .await
+        .map_err(Into::into)
     }
 }

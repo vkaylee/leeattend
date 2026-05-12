@@ -29,7 +29,6 @@ impl ShiftService {
                 None, // parent_shift_id
             )
             .await
-            .map_err(AppError::Sqlx)
     }
 
     #[tracing::instrument(skip_all, err)]
@@ -37,7 +36,6 @@ impl ShiftService {
         self.repo
             .get_workspace_shifts(workspace_id)
             .await
-            .map_err(AppError::Sqlx)
     }
 
     #[tracing::instrument(skip_all, err)]
@@ -50,8 +48,7 @@ impl ShiftService {
         let old_shift = self
             .repo
             .get_shift_by_id(workspace_id, shift_id)
-            .await
-            .map_err(AppError::Sqlx)?
+            .await?
             .ok_or(AppError::NotFound("Shift not found".into()))?;
 
         let has_time_changes = old_shift.start_time != req.start_time
@@ -66,7 +63,6 @@ impl ShiftService {
             self.repo
                 .update_shift_direct(workspace_id, shift_id, &req)
                 .await
-                .map_err(AppError::Sqlx)
         } else {
             // Create new version
             let effective_date = req
@@ -102,20 +98,17 @@ impl ShiftService {
                     true,
                     Some(shift_id),
                 )
-                .await
-                .map_err(AppError::Sqlx)?;
+                .await?;
 
             // 2. Archive old version
             self.repo
                 .archive_shift(workspace_id, shift_id)
-                .await
-                .map_err(AppError::Sqlx)?;
+                .await?;
 
             // 3. Migrate assignments
             self.repo
                 .update_assignments_to_new_version(shift_id, new_shift.id, effective_date)
-                .await
-                .map_err(AppError::Sqlx)?;
+                .await?;
 
             Ok(new_shift)
         }
@@ -135,12 +128,12 @@ impl ShiftService {
             .await
         {
             Ok(_) => Ok(()),
-            Err(sqlx::Error::Database(e)) if e.constraint() == Some("uq_employee_shift_start") => {
+            Err(AppError::Sqlx(sqlx::Error::Database(e))) if e.constraint() == Some("uq_employee_shift_start") => {
                 Err(AppError::Conflict(
                     "Shift assignment already exists for this date".into(),
                 ))
             }
-            Err(e) => Err(AppError::Sqlx(e)),
+            Err(e) => Err(e),
         }
     }
 }

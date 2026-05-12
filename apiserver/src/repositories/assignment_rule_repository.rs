@@ -1,3 +1,4 @@
+use crate::errors::AppError;
 #[allow(unused_imports)]
 use crate::models::{
     AssignmentRule, AssignmentRuleConditions, CreateAssignmentRuleRequest,
@@ -16,19 +17,19 @@ pub trait AssignmentRuleRepositoryTrait: super::PoolBacked + Send + Sync {
         &self,
         workspace_id: Uuid,
         req: &CreateAssignmentRuleRequest,
-    ) -> Result<AssignmentRule, sqlx::Error>;
-    async fn get_rules(&self, workspace_id: Uuid) -> Result<Vec<AssignmentRule>, sqlx::Error>;
+    ) -> Result<AssignmentRule, AppError>;
+    async fn get_rules(&self, workspace_id: Uuid) -> Result<Vec<AssignmentRule>, AppError>;
     async fn get_active_rules(
         &self,
         workspace_id: Uuid,
-    ) -> Result<Vec<AssignmentRule>, sqlx::Error>;
+    ) -> Result<Vec<AssignmentRule>, AppError>;
     async fn update_rule(
         &self,
         workspace_id: Uuid,
         id: Uuid,
         req: &UpdateAssignmentRuleRequest,
-    ) -> Result<AssignmentRule, sqlx::Error>;
-    async fn delete_rule(&self, workspace_id: Uuid, id: Uuid) -> Result<(), sqlx::Error>;
+    ) -> Result<AssignmentRule, AppError>;
+    async fn delete_rule(&self, workspace_id: Uuid, id: Uuid) -> Result<(), AppError>;
 }
 
 // ---------------------------------------------------------------------------
@@ -50,28 +51,28 @@ impl AssignmentRuleRepositoryTrait for SqlxAssignmentRuleRepository {
         &self,
         workspace_id: Uuid,
         req: &CreateAssignmentRuleRequest,
-    ) -> Result<AssignmentRule, sqlx::Error> {
-        AssignmentRuleRepository::create_rule(&self.pool, workspace_id, req).await
+    ) -> Result<AssignmentRule, AppError> {
+        AssignmentRuleRepository::create_rule(&self.pool, workspace_id, req).await.map_err(Into::into)
     }
-    async fn get_rules(&self, workspace_id: Uuid) -> Result<Vec<AssignmentRule>, sqlx::Error> {
-        AssignmentRuleRepository::get_rules(&self.pool, workspace_id).await
+    async fn get_rules(&self, workspace_id: Uuid) -> Result<Vec<AssignmentRule>, AppError> {
+        AssignmentRuleRepository::get_rules(&self.pool, workspace_id).await.map_err(Into::into)
     }
     async fn get_active_rules(
         &self,
         workspace_id: Uuid,
-    ) -> Result<Vec<AssignmentRule>, sqlx::Error> {
-        AssignmentRuleRepository::get_active_rules(&self.pool, workspace_id).await
+    ) -> Result<Vec<AssignmentRule>, AppError> {
+        AssignmentRuleRepository::get_active_rules(&self.pool, workspace_id).await.map_err(Into::into)
     }
     async fn update_rule(
         &self,
         workspace_id: Uuid,
         id: Uuid,
         req: &UpdateAssignmentRuleRequest,
-    ) -> Result<AssignmentRule, sqlx::Error> {
-        AssignmentRuleRepository::update_rule(&self.pool, workspace_id, id, req).await
+    ) -> Result<AssignmentRule, AppError> {
+        AssignmentRuleRepository::update_rule(&self.pool, workspace_id, id, req).await.map_err(Into::into)
     }
-    async fn delete_rule(&self, workspace_id: Uuid, id: Uuid) -> Result<(), sqlx::Error> {
-        AssignmentRuleRepository::delete_rule(&self.pool, workspace_id, id).await
+    async fn delete_rule(&self, workspace_id: Uuid, id: Uuid) -> Result<(), AppError> {
+        AssignmentRuleRepository::delete_rule(&self.pool, workspace_id, id).await.map_err(Into::into)
     }
 }
 

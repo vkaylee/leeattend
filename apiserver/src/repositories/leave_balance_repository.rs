@@ -1,3 +1,4 @@
+use crate::errors::AppError;
 use crate::models::{EmployeeLeaveBalance, LeaveBalance, WorkspaceLeaveBalance};
 use async_trait::async_trait;
 use chrono::Datelike;
@@ -14,7 +15,7 @@ pub trait LeaveBalanceRepository: super::PoolBacked + Send + Sync {
         workspace_id: Uuid,
         employee_id: Uuid,
         year: i32,
-    ) -> Result<Vec<EmployeeLeaveBalance>, sqlx::Error>;
+    ) -> Result<Vec<EmployeeLeaveBalance>, AppError>;
     async fn get_workspace_balances(
         &self,
         workspace_id: Uuid,
@@ -22,8 +23,8 @@ pub trait LeaveBalanceRepository: super::PoolBacked + Send + Sync {
         limit: i64,
         offset: i64,
         search: Option<String>,
-    ) -> Result<(Vec<WorkspaceLeaveBalance>, i64), sqlx::Error>;
-    async fn upsert_leave_balance(&self, balance: &LeaveBalance) -> Result<(), sqlx::Error>;
+    ) -> Result<(Vec<WorkspaceLeaveBalance>, i64), AppError>;
+    async fn upsert_leave_balance(&self, balance: &LeaveBalance) -> Result<(), AppError>;
     async fn adjust_balance(
         &self,
         workspace_id: Uuid,
@@ -32,7 +33,7 @@ pub trait LeaveBalanceRepository: super::PoolBacked + Send + Sync {
         amount: rust_decimal::Decimal,
         transaction_date: chrono::NaiveDate,
         reason: &str,
-    ) -> Result<(), sqlx::Error>;
+    ) -> Result<(), AppError>;
 }
 
 // ---------------------------------------------------------------------------
@@ -55,8 +56,8 @@ impl LeaveBalanceRepository for SqlxLeaveBalanceRepository {
         workspace_id: Uuid,
         employee_id: Uuid,
         year: i32,
-    ) -> Result<Vec<EmployeeLeaveBalance>, sqlx::Error> {
-        get_employee_balances(&self.pool, workspace_id, employee_id, year).await
+    ) -> Result<Vec<EmployeeLeaveBalance>, AppError> {
+        get_employee_balances(&self.pool, workspace_id, employee_id, year).await.map_err(Into::into)
     }
     async fn get_workspace_balances(
         &self,
@@ -65,11 +66,11 @@ impl LeaveBalanceRepository for SqlxLeaveBalanceRepository {
         limit: i64,
         offset: i64,
         search: Option<String>,
-    ) -> Result<(Vec<WorkspaceLeaveBalance>, i64), sqlx::Error> {
-        get_workspace_balances(&self.pool, workspace_id, year, limit, offset, search).await
+    ) -> Result<(Vec<WorkspaceLeaveBalance>, i64), AppError> {
+        get_workspace_balances(&self.pool, workspace_id, year, limit, offset, search).await.map_err(Into::into)
     }
-    async fn upsert_leave_balance(&self, balance: &LeaveBalance) -> Result<(), sqlx::Error> {
-        upsert_leave_balance(&self.pool, balance).await
+    async fn upsert_leave_balance(&self, balance: &LeaveBalance) -> Result<(), AppError> {
+        upsert_leave_balance(&self.pool, balance).await.map_err(Into::into)
     }
     async fn adjust_balance(
         &self,
@@ -79,7 +80,7 @@ impl LeaveBalanceRepository for SqlxLeaveBalanceRepository {
         amount: rust_decimal::Decimal,
         transaction_date: chrono::NaiveDate,
         reason: &str,
-    ) -> Result<(), sqlx::Error> {
+    ) -> Result<(), AppError> {
         adjust_balance(
             &self.pool,
             workspace_id,
@@ -90,6 +91,7 @@ impl LeaveBalanceRepository for SqlxLeaveBalanceRepository {
             reason,
         )
         .await
+        .map_err(Into::into)
     }
 }
 

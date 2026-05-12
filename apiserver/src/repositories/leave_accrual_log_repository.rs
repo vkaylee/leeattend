@@ -4,6 +4,7 @@ use rust_decimal::Decimal;
 use sqlx::PgPool;
 use uuid::Uuid;
 
+use crate::errors::AppError;
 use crate::models::LeaveAccrualLog;
 
 // ---------------------------------------------------------------------------
@@ -18,17 +19,17 @@ pub trait LeaveAccrualLogRepository: super::PoolBacked + Send + Sync {
         leave_type_id: Uuid,
         accrual_date: NaiveDate,
         workspace_id: Uuid,
-    ) -> Result<Option<ExistingAccrualLog>, sqlx::Error>;
+    ) -> Result<Option<ExistingAccrualLog>, AppError>;
 
     /// Fetch the `effective_from` date for a leave policy assignment.
     async fn get_assignment_effective_from(
         &self,
         assignment_id: Uuid,
         workspace_id: Uuid,
-    ) -> Result<NaiveDate, sqlx::Error>;
+    ) -> Result<NaiveDate, AppError>;
 
     /// Fetch the workspace timezone string.
-    async fn get_workspace_timezone(&self, workspace_id: Uuid) -> Result<String, sqlx::Error>;
+    async fn get_workspace_timezone(&self, workspace_id: Uuid) -> Result<String, AppError>;
 }
 
 /// Minimal view of an existing accrual log (only the fields the orchestrator needs).
@@ -58,7 +59,7 @@ impl LeaveAccrualLogRepository for SqlxLeaveAccrualLogRepository {
         leave_type_id: Uuid,
         accrual_date: NaiveDate,
         workspace_id: Uuid,
-    ) -> Result<Option<ExistingAccrualLog>, sqlx::Error> {
+    ) -> Result<Option<ExistingAccrualLog>, AppError> {
         let row = sqlx::query!(
             r#"
             SELECT id, amount FROM leave_accrual_logs
@@ -82,7 +83,7 @@ impl LeaveAccrualLogRepository for SqlxLeaveAccrualLogRepository {
         &self,
         assignment_id: Uuid,
         workspace_id: Uuid,
-    ) -> Result<NaiveDate, sqlx::Error> {
+    ) -> Result<NaiveDate, AppError> {
         let row = sqlx::query!(
             "SELECT effective_from FROM leave_policy_assignments WHERE id = $1 AND workspace_id = $2",
             assignment_id,
@@ -93,7 +94,7 @@ impl LeaveAccrualLogRepository for SqlxLeaveAccrualLogRepository {
         Ok(row.effective_from)
     }
 
-    async fn get_workspace_timezone(&self, workspace_id: Uuid) -> Result<String, sqlx::Error> {
+    async fn get_workspace_timezone(&self, workspace_id: Uuid) -> Result<String, AppError> {
         let row = sqlx::query!(
             "SELECT timezone FROM workspaces WHERE id = $1",
             workspace_id

@@ -211,7 +211,6 @@ impl LeaveService {
                 &req.reason,
             )
             .await
-            .map_err(AppError::Sqlx)
     }
 
     #[tracing::instrument(skip_all, err)]
@@ -225,14 +224,12 @@ impl LeaveService {
         let _ = self
             .employee_repo
             .get_employee_by_id(employee_id, workspace_id)
-            .await
-            .map_err(AppError::Sqlx)?
+            .await?
             .ok_or(AppError::NotFound("Not found".into()))?;
 
         self.leave_balance_repo
             .get_employee_balances(workspace_id, employee_id, year)
             .await
-            .map_err(AppError::Sqlx)
     }
 
     #[tracing::instrument(skip_all, err)]
@@ -248,8 +245,7 @@ impl LeaveService {
         let _ = self
             .employee_repo
             .get_employee_by_id(req.employee_id, workspace_id)
-            .await
-            .map_err(AppError::Sqlx)?
+            .await?
             .ok_or(AppError::NotFound("Not found".into()))?;
 
         // Validate leave_type_id exists for this workspace
@@ -259,8 +255,7 @@ impl LeaveService {
             workspace_id
         )
         .fetch_optional(pool)
-        .await
-        .map_err(AppError::Sqlx)?
+        .await?
         .ok_or(AppError::Validation("Invalid request".into()))?;
 
         // Validate partial day constraints
@@ -347,8 +342,7 @@ impl LeaveService {
             workspace_id
         )
         .fetch_optional(pool)
-        .await
-        .map_err(AppError::Sqlx)?
+        .await?
         .unwrap_or_else(|| "Leave".to_string());
 
         let duration_label = match request.duration_type {
@@ -406,16 +400,14 @@ impl LeaveService {
         let request = self
             .leave_request_repo
             .get_leave_request_by_id(workspace_id, request_id)
-            .await
-            .map_err(AppError::Sqlx)?
+            .await?
             .ok_or(AppError::NotFound("Not found".into()))?;
 
         // Verify employee of this request belongs to the workspace
         let _ = self
             .employee_repo
             .get_employee_by_id(request.employee_id, workspace_id)
-            .await
-            .map_err(AppError::Sqlx)?
+            .await?
             .ok_or(AppError::Forbidden("Forbidden".into()))?;
 
         self.leave_request_repo
@@ -444,14 +436,12 @@ impl LeaveService {
         let _ = self
             .employee_repo
             .get_employee_by_id(employee_id, workspace_id)
-            .await
-            .map_err(AppError::Sqlx)?
+            .await?
             .ok_or(AppError::NotFound("Not found".into()))?;
 
         self.leave_request_repo
             .get_employee_leave_requests(workspace_id, employee_id)
             .await
-            .map_err(AppError::Sqlx)
     }
 
     #[tracing::instrument(skip_all, err)]
@@ -463,6 +453,5 @@ impl LeaveService {
         self.leave_request_repo
             .get_workspace_leave_requests(workspace_id, status)
             .await
-            .map_err(AppError::Sqlx)
     }
 }

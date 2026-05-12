@@ -5,6 +5,7 @@ use diesel_async::RunQueryDsl;
 use uuid::Uuid;
 
 use crate::diesel_pool::DieselPools;
+use crate::errors::AppError;
 use crate::models::diesel::roster::ShiftSwapRequestEntity;
 use crate::models::shift_swap::{ShiftSwapRequest, ShiftSwapRequestWithNames, ShiftSwapStatus};
 use crate::repositories::shift_swap_repository::{ShiftSwapRepository, SwapStats};
@@ -29,13 +30,13 @@ impl ShiftSwapRepository for DieselShiftSwapRepository {
     async fn create_swap_request(
         &self,
         request: &ShiftSwapRequest,
-    ) -> Result<ShiftSwapRequest, sqlx::Error> {
+    ) -> Result<ShiftSwapRequest, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let entity = ShiftSwapRequestEntity {
             id: request.id,
@@ -63,7 +64,7 @@ impl ShiftSwapRepository for DieselShiftSwapRepository {
             .values(&entity)
             .get_result(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(result.into())
     }
@@ -72,13 +73,13 @@ impl ShiftSwapRepository for DieselShiftSwapRepository {
         &self,
         id: Uuid,
         workspace_id: Uuid,
-    ) -> Result<Option<ShiftSwapRequest>, sqlx::Error> {
+    ) -> Result<Option<ShiftSwapRequest>, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let entity: Option<ShiftSwapRequestEntity> = shift_swap_requests::table
             .filter(shift_swap_requests::id.eq(id))
@@ -86,7 +87,7 @@ impl ShiftSwapRepository for DieselShiftSwapRepository {
             .first(&mut conn)
             .await
             .optional()
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(entity.map(Into::into))
     }
@@ -95,13 +96,14 @@ impl ShiftSwapRepository for DieselShiftSwapRepository {
         &self,
         workspace_id: Uuid,
         status_filter: Option<ShiftSwapStatus>,
-    ) -> Result<Vec<ShiftSwapRequestWithNames>, sqlx::Error> {
+    ) -> Result<Vec<ShiftSwapRequestWithNames>, AppError> {
         crate::repositories::shift_swap_repository::get_workspace_swaps(
             &self.sqlx_pool,
             workspace_id,
             status_filter,
         )
         .await
+        .map_err(Into::into)
     }
 
     async fn update_swap_status(
@@ -110,13 +112,13 @@ impl ShiftSwapRepository for DieselShiftSwapRepository {
         workspace_id: Uuid,
         status: ShiftSwapStatus,
         approver_id: Option<Uuid>,
-    ) -> Result<(), sqlx::Error> {
+    ) -> Result<(), AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let status_str = match status {
             ShiftSwapStatus::PendingTarget => "pending_target",
@@ -136,7 +138,7 @@ impl ShiftSwapRepository for DieselShiftSwapRepository {
             ))
             .execute(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(())
     }
@@ -145,13 +147,14 @@ impl ShiftSwapRepository for DieselShiftSwapRepository {
         &self,
         employee_id: Uuid,
         workspace_id: Uuid,
-    ) -> Result<Vec<ShiftSwapRequestWithNames>, sqlx::Error> {
+    ) -> Result<Vec<ShiftSwapRequestWithNames>, AppError> {
         crate::repositories::shift_swap_repository::get_employee_swaps(
             &self.sqlx_pool,
             employee_id,
             workspace_id,
         )
         .await
+        .map_err(Into::into)
     }
 
     async fn has_active_swap(
@@ -160,13 +163,13 @@ impl ShiftSwapRepository for DieselShiftSwapRepository {
         requester_id: Uuid,
         target_id: Uuid,
         swap_date: NaiveDate,
-    ) -> Result<bool, sqlx::Error> {
+    ) -> Result<bool, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let exists: bool = diesel::select(diesel::dsl::exists(
             shift_swap_requests::table
@@ -178,7 +181,7 @@ impl ShiftSwapRepository for DieselShiftSwapRepository {
         ))
         .get_result(&mut conn)
         .await
-        .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(exists)
     }
@@ -188,13 +191,13 @@ impl ShiftSwapRepository for DieselShiftSwapRepository {
         workspace_id: Uuid,
         employee_id: Uuid,
         swap_date: NaiveDate,
-    ) -> Result<bool, sqlx::Error> {
+    ) -> Result<bool, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let exists: bool = diesel::select(diesel::dsl::exists(
             shift_swap_requests::table
@@ -209,17 +212,18 @@ impl ShiftSwapRepository for DieselShiftSwapRepository {
         ))
         .get_result(&mut conn)
         .await
-        .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(exists)
     }
 
-    async fn get_workspace_swap_stats(&self, workspace_id: Uuid) -> Result<SwapStats, sqlx::Error> {
+    async fn get_workspace_swap_stats(&self, workspace_id: Uuid) -> Result<SwapStats, AppError> {
         crate::repositories::shift_swap_repository::get_workspace_swap_stats(
             &self.sqlx_pool,
             workspace_id,
         )
         .await
+        .map_err(Into::into)
     }
 }
 

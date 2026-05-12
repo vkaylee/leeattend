@@ -1,3 +1,4 @@
+use crate::errors::AppError;
 use crate::models::{LeavePolicyAssignment, LeavePolicyConfig, LeavePolicyDefinition};
 use async_trait::async_trait;
 use chrono::NaiveDate;
@@ -16,11 +17,11 @@ pub trait LeavePolicyRepository: super::PoolBacked + Send + Sync {
         description: Option<&str>,
         leave_type_id: Uuid,
         rule_config: LeavePolicyConfig,
-    ) -> Result<LeavePolicyDefinition, sqlx::Error>;
+    ) -> Result<LeavePolicyDefinition, AppError>;
     async fn get_policy_definitions(
         &self,
         workspace_id: Uuid,
-    ) -> Result<Vec<LeavePolicyDefinition>, sqlx::Error>;
+    ) -> Result<Vec<LeavePolicyDefinition>, AppError>;
     async fn update_policy_definition(
         &self,
         id: Uuid,
@@ -29,27 +30,27 @@ pub trait LeavePolicyRepository: super::PoolBacked + Send + Sync {
         description: Option<&str>,
         leave_type_id: Option<Uuid>,
         rule_config: Option<LeavePolicyConfig>,
-    ) -> Result<LeavePolicyDefinition, sqlx::Error>;
+    ) -> Result<LeavePolicyDefinition, AppError>;
     async fn delete_policy_definition(
         &self,
         id: Uuid,
         workspace_id: Uuid,
-    ) -> Result<u64, sqlx::Error>;
+    ) -> Result<u64, AppError>;
     async fn create_policy_assignment(
         &self,
         assignment: &LeavePolicyAssignment,
-    ) -> Result<LeavePolicyAssignment, sqlx::Error>;
+    ) -> Result<LeavePolicyAssignment, AppError>;
     async fn find_active_assignment_for_employee(
         &self,
         workspace_id: Uuid,
         employee_id: Uuid,
         department_id: Option<Uuid>,
         date: NaiveDate,
-    ) -> Result<Option<(LeavePolicyDefinition, Uuid, String)>, sqlx::Error>;
+    ) -> Result<Option<(LeavePolicyDefinition, Uuid, String)>, AppError>;
     async fn get_policy_assignments(
         &self,
         workspace_id: Uuid,
-    ) -> Result<Vec<crate::models::LeavePolicyAssignmentDetail>, sqlx::Error>;
+    ) -> Result<Vec<crate::models::LeavePolicyAssignmentDetail>, AppError>;
 }
 
 // ---------------------------------------------------------------------------
@@ -74,7 +75,7 @@ impl LeavePolicyRepository for SqlxLeavePolicyRepository {
         description: Option<&str>,
         leave_type_id: Uuid,
         rule_config: LeavePolicyConfig,
-    ) -> Result<LeavePolicyDefinition, sqlx::Error> {
+    ) -> Result<LeavePolicyDefinition, AppError> {
         create_policy_definition(
             &self.pool,
             workspace_id,
@@ -84,12 +85,13 @@ impl LeavePolicyRepository for SqlxLeavePolicyRepository {
             rule_config,
         )
         .await
+        .map_err(Into::into)
     }
     async fn get_policy_definitions(
         &self,
         workspace_id: Uuid,
-    ) -> Result<Vec<LeavePolicyDefinition>, sqlx::Error> {
-        get_policy_definitions(&self.pool, workspace_id).await
+    ) -> Result<Vec<LeavePolicyDefinition>, AppError> {
+        get_policy_definitions(&self.pool, workspace_id).await.map_err(Into::into)
     }
     async fn update_policy_definition(
         &self,
@@ -99,7 +101,7 @@ impl LeavePolicyRepository for SqlxLeavePolicyRepository {
         description: Option<&str>,
         leave_type_id: Option<Uuid>,
         rule_config: Option<LeavePolicyConfig>,
-    ) -> Result<LeavePolicyDefinition, sqlx::Error> {
+    ) -> Result<LeavePolicyDefinition, AppError> {
         update_policy_definition(
             &self.pool,
             id,
@@ -110,19 +112,20 @@ impl LeavePolicyRepository for SqlxLeavePolicyRepository {
             rule_config,
         )
         .await
+        .map_err(Into::into)
     }
     async fn delete_policy_definition(
         &self,
         id: Uuid,
         workspace_id: Uuid,
-    ) -> Result<u64, sqlx::Error> {
-        delete_policy_definition(&self.pool, id, workspace_id).await
+    ) -> Result<u64, AppError> {
+        delete_policy_definition(&self.pool, id, workspace_id).await.map_err(Into::into)
     }
     async fn create_policy_assignment(
         &self,
         assignment: &LeavePolicyAssignment,
-    ) -> Result<LeavePolicyAssignment, sqlx::Error> {
-        create_policy_assignment(&self.pool, assignment).await
+    ) -> Result<LeavePolicyAssignment, AppError> {
+        create_policy_assignment(&self.pool, assignment).await.map_err(Into::into)
     }
     async fn find_active_assignment_for_employee(
         &self,
@@ -130,7 +133,7 @@ impl LeavePolicyRepository for SqlxLeavePolicyRepository {
         employee_id: Uuid,
         department_id: Option<Uuid>,
         date: NaiveDate,
-    ) -> Result<Option<(LeavePolicyDefinition, Uuid, String)>, sqlx::Error> {
+    ) -> Result<Option<(LeavePolicyDefinition, Uuid, String)>, AppError> {
         find_active_assignment_for_employee(
             &self.pool,
             workspace_id,
@@ -139,12 +142,13 @@ impl LeavePolicyRepository for SqlxLeavePolicyRepository {
             date,
         )
         .await
+        .map_err(Into::into)
     }
     async fn get_policy_assignments(
         &self,
         workspace_id: Uuid,
-    ) -> Result<Vec<crate::models::LeavePolicyAssignmentDetail>, sqlx::Error> {
-        get_policy_assignments(&self.pool, workspace_id).await
+    ) -> Result<Vec<crate::models::LeavePolicyAssignmentDetail>, AppError> {
+        get_policy_assignments(&self.pool, workspace_id).await.map_err(Into::into)
     }
 }
 

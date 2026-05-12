@@ -129,8 +129,7 @@ pub async fn force_reprocess_attendance(
         pool: state.infra.db.api().clone(),
     }
     .get_workspace_by_id(ctx.workspace_id)
-    .await
-    .map_err(AppError::from)?
+    .await?
     .ok_or_else(|| AppError::NotFound("Workspace not found".to_string()))?;
 
     let tz: chrono_tz::Tz = workspace

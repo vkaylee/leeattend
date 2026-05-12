@@ -1,3 +1,4 @@
+use crate::errors::AppError;
 use crate::models::{AdjustmentStatus, AttendanceAdjustmentRequest};
 use async_trait::async_trait;
 use sqlx::{query, query_as, PgPool};
@@ -11,29 +12,29 @@ pub trait AttendanceAdjustmentRepository: super::PoolBacked + Send + Sync {
     async fn create_request(
         &self,
         request: &AttendanceAdjustmentRequest,
-    ) -> Result<(), sqlx::Error>;
+    ) -> Result<(), AppError>;
     async fn get_request_by_id(
         &self,
         workspace_id: Uuid,
         id: Uuid,
-    ) -> Result<Option<AttendanceAdjustmentRequest>, sqlx::Error>;
+    ) -> Result<Option<AttendanceAdjustmentRequest>, AppError>;
     async fn update_adjustment_status(
         &self,
         workspace_id: Uuid,
         id: Uuid,
         status: AdjustmentStatus,
         approved_by: Option<Uuid>,
-    ) -> Result<(), sqlx::Error>;
+    ) -> Result<(), AppError>;
     async fn get_workspace_adjustment_requests(
         &self,
         workspace_id: Uuid,
         status: Option<AdjustmentStatus>,
-    ) -> Result<Vec<AttendanceAdjustmentRequest>, sqlx::Error>;
+    ) -> Result<Vec<AttendanceAdjustmentRequest>, AppError>;
     async fn get_employee_adjustment_requests(
         &self,
         workspace_id: Uuid,
         employee_id: Uuid,
-    ) -> Result<Vec<AttendanceAdjustmentRequest>, sqlx::Error>;
+    ) -> Result<Vec<AttendanceAdjustmentRequest>, AppError>;
 }
 
 // ---------------------------------------------------------------------------
@@ -54,15 +55,15 @@ impl AttendanceAdjustmentRepository for SqlxAttendanceAdjustmentRepository {
     async fn create_request(
         &self,
         request: &AttendanceAdjustmentRequest,
-    ) -> Result<(), sqlx::Error> {
-        create_request(&self.pool, request).await
+    ) -> Result<(), AppError> {
+        create_request(&self.pool, request).await.map_err(Into::into)
     }
     async fn get_request_by_id(
         &self,
         workspace_id: Uuid,
         id: Uuid,
-    ) -> Result<Option<AttendanceAdjustmentRequest>, sqlx::Error> {
-        get_request_by_id(&self.pool, workspace_id, id).await
+    ) -> Result<Option<AttendanceAdjustmentRequest>, AppError> {
+        get_request_by_id(&self.pool, workspace_id, id).await.map_err(Into::into)
     }
     async fn update_adjustment_status(
         &self,
@@ -70,22 +71,22 @@ impl AttendanceAdjustmentRepository for SqlxAttendanceAdjustmentRepository {
         id: Uuid,
         status: AdjustmentStatus,
         approved_by: Option<Uuid>,
-    ) -> Result<(), sqlx::Error> {
-        update_adjustment_status(&self.pool, workspace_id, id, status, approved_by).await
+    ) -> Result<(), AppError> {
+        update_adjustment_status(&self.pool, workspace_id, id, status, approved_by).await.map_err(Into::into)
     }
     async fn get_workspace_adjustment_requests(
         &self,
         workspace_id: Uuid,
         status: Option<AdjustmentStatus>,
-    ) -> Result<Vec<AttendanceAdjustmentRequest>, sqlx::Error> {
-        get_workspace_adjustment_requests(&self.pool, workspace_id, status).await
+    ) -> Result<Vec<AttendanceAdjustmentRequest>, AppError> {
+        get_workspace_adjustment_requests(&self.pool, workspace_id, status).await.map_err(Into::into)
     }
     async fn get_employee_adjustment_requests(
         &self,
         workspace_id: Uuid,
         employee_id: Uuid,
-    ) -> Result<Vec<AttendanceAdjustmentRequest>, sqlx::Error> {
-        get_employee_adjustment_requests(&self.pool, workspace_id, employee_id).await
+    ) -> Result<Vec<AttendanceAdjustmentRequest>, AppError> {
+        get_employee_adjustment_requests(&self.pool, workspace_id, employee_id).await.map_err(Into::into)
     }
 }
 

@@ -1,4 +1,5 @@
 use crate::diesel_pool::DieselPools;
+use crate::errors::AppError;
 use crate::models::diesel::leave::*;
 use crate::models::{
     LeavePolicyAssignment, LeavePolicyAssignmentDetail, LeavePolicyConfig, LeavePolicyDefinition,
@@ -55,7 +56,7 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
         description: Option<&str>,
         leave_type_id: Uuid,
         rule_config: LeavePolicyConfig,
-    ) -> Result<LeavePolicyDefinition, sqlx::Error> {
+    ) -> Result<LeavePolicyDefinition, AppError> {
         create_policy_definition(
             &self.sqlx_pool,
             workspace_id,
@@ -65,25 +66,26 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
             rule_config,
         )
         .await
+        .map_err(Into::into)
     }
 
     async fn get_policy_definitions(
         &self,
         workspace_id: Uuid,
-    ) -> Result<Vec<LeavePolicyDefinition>, sqlx::Error> {
+    ) -> Result<Vec<LeavePolicyDefinition>, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let entities = leave_policy_definitions::table
             .filter(leave_policy_definitions::workspace_id.eq(workspace_id))
             .order(leave_policy_definitions::created_at.desc())
             .load::<LeavePolicyDefinitionEntity>(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(entities.into_iter().map(Into::into).collect())
     }
@@ -96,7 +98,7 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
         description: Option<&str>,
         leave_type_id: Option<Uuid>,
         rule_config: Option<LeavePolicyConfig>,
-    ) -> Result<LeavePolicyDefinition, sqlx::Error> {
+    ) -> Result<LeavePolicyDefinition, AppError> {
         update_policy_definition(
             &self.sqlx_pool,
             id,
@@ -107,21 +109,22 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
             rule_config,
         )
         .await
+        .map_err(Into::into)
     }
 
     async fn delete_policy_definition(
         &self,
         id: Uuid,
         workspace_id: Uuid,
-    ) -> Result<u64, sqlx::Error> {
-        delete_policy_definition(&self.sqlx_pool, id, workspace_id).await
+    ) -> Result<u64, AppError> {
+        delete_policy_definition(&self.sqlx_pool, id, workspace_id).await.map_err(Into::into)
     }
 
     async fn create_policy_assignment(
         &self,
         assignment: &LeavePolicyAssignment,
-    ) -> Result<LeavePolicyAssignment, sqlx::Error> {
-        create_policy_assignment(&self.sqlx_pool, assignment).await
+    ) -> Result<LeavePolicyAssignment, AppError> {
+        create_policy_assignment(&self.sqlx_pool, assignment).await.map_err(Into::into)
     }
 
     async fn find_active_assignment_for_employee(
@@ -130,7 +133,7 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
         employee_id: Uuid,
         department_id: Option<Uuid>,
         date: NaiveDate,
-    ) -> Result<Option<(LeavePolicyDefinition, Uuid, String)>, sqlx::Error> {
+    ) -> Result<Option<(LeavePolicyDefinition, Uuid, String)>, AppError> {
         find_active_assignment_for_employee(
             &self.sqlx_pool,
             workspace_id,
@@ -139,12 +142,13 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
             date,
         )
         .await
+        .map_err(Into::into)
     }
 
     async fn get_policy_assignments(
         &self,
         workspace_id: Uuid,
-    ) -> Result<Vec<LeavePolicyAssignmentDetail>, sqlx::Error> {
-        get_policy_assignments(&self.sqlx_pool, workspace_id).await
+    ) -> Result<Vec<LeavePolicyAssignmentDetail>, AppError> {
+        get_policy_assignments(&self.sqlx_pool, workspace_id).await.map_err(Into::into)
     }
 }

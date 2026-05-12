@@ -1,3 +1,4 @@
+use crate::errors::AppError;
 use async_trait::async_trait;
 use chrono::{NaiveDate, Utc};
 use rust_decimal::prelude::{FromPrimitive, ToPrimitive};
@@ -18,68 +19,68 @@ pub trait PayrollRepository: super::PoolBacked + Send + Sync {
     async fn get_active_incentive_policies(
         &self,
         workspace_id: Uuid,
-    ) -> Result<Vec<PayrollIncentivePolicy>, sqlx::Error>;
+    ) -> Result<Vec<PayrollIncentivePolicy>, AppError>;
 
     async fn get_active_incentive_policies_for_period(
         &self,
         workspace_id: Uuid,
         period_start: NaiveDate,
         period_end: NaiveDate,
-    ) -> Result<Vec<PayrollIncentivePolicy>, sqlx::Error>;
+    ) -> Result<Vec<PayrollIncentivePolicy>, AppError>;
 
-    async fn get_policy_tiers(&self, policy_id: Uuid) -> Result<Vec<IncentiveTier>, sqlx::Error>;
+    async fn get_policy_tiers(&self, policy_id: Uuid) -> Result<Vec<IncentiveTier>, AppError>;
 
     async fn create_payslip_incentive(
         &self,
         payslip_id: Uuid,
         result: &IncentiveEvaluationResult,
-    ) -> Result<(), sqlx::Error>;
+    ) -> Result<(), AppError>;
 
     async fn get_payslip_incentives(
         &self,
         payslip_id: Uuid,
-    ) -> Result<Vec<IncentiveEvaluationResult>, sqlx::Error>;
+    ) -> Result<Vec<IncentiveEvaluationResult>, AppError>;
 
     async fn create_payslip_rule_evaluation(
         &self,
         payslip_id: Uuid,
         rule_code: String,
         amount: Decimal,
-    ) -> Result<(), sqlx::Error>;
+    ) -> Result<(), AppError>;
 
     async fn get_payslip_rule_evaluations(
         &self,
         payslip_id: Uuid,
-    ) -> Result<Vec<crate::models::PayslipRuleEvaluation>, sqlx::Error>;
+    ) -> Result<Vec<crate::models::PayslipRuleEvaluation>, AppError>;
 
     async fn get_payroll_settings(
         &self,
         workspace_id: Uuid,
-    ) -> Result<Option<PayrollSettings>, sqlx::Error>;
+    ) -> Result<Option<PayrollSettings>, AppError>;
 
     async fn get_payroll_settings_at(
         &self,
         workspace_id: Uuid,
         date: NaiveDate,
-    ) -> Result<Option<PayrollSettings>, sqlx::Error>;
+    ) -> Result<Option<PayrollSettings>, AppError>;
 
     async fn update_payroll_settings(
         &self,
         workspace_id: Uuid,
         req: &crate::models::SavePayrollSettings,
-    ) -> Result<PayrollSettings, sqlx::Error>;
+    ) -> Result<PayrollSettings, AppError>;
 
     async fn get_salary_component_definitions(
         &self,
         workspace_id: Uuid,
-    ) -> Result<Vec<SalaryComponentDefinition>, sqlx::Error>;
+    ) -> Result<Vec<SalaryComponentDefinition>, AppError>;
 
     async fn create_salary_component_definition(
         &self,
         workspace_id: Uuid,
         name: String,
         code: String,
-    ) -> Result<SalaryComponentDefinition, sqlx::Error>;
+    ) -> Result<SalaryComponentDefinition, AppError>;
 
     async fn assign_employee_salary_component(
         &self,
@@ -87,29 +88,29 @@ pub trait PayrollRepository: super::PoolBacked + Send + Sync {
         component_definition_id: Uuid,
         amount: Decimal,
         effective_date: NaiveDate,
-    ) -> Result<EmployeeSalaryComponent, sqlx::Error>;
+    ) -> Result<EmployeeSalaryComponent, AppError>;
 
     async fn get_employee_salary_components(
         &self,
         workspace_id: Uuid,
         employee_id: Uuid,
         reference_date: NaiveDate,
-    ) -> Result<Vec<(EmployeeSalaryComponent, SalaryComponentDefinition)>, sqlx::Error>;
+    ) -> Result<Vec<(EmployeeSalaryComponent, SalaryComponentDefinition)>, AppError>;
 
-    async fn create_payslip(&self, payslip: &Payslip) -> Result<Payslip, sqlx::Error>;
+    async fn create_payslip(&self, payslip: &Payslip) -> Result<Payslip, AppError>;
 
     async fn get_payslips_by_employee(
         &self,
         workspace_id: Uuid,
         employee_id: Uuid,
-    ) -> Result<Vec<Payslip>, sqlx::Error>;
+    ) -> Result<Vec<Payslip>, AppError>;
 
     async fn get_payslips_by_workspace_period(
         &self,
         workspace_id: Uuid,
         period_start: NaiveDate,
         period_end: NaiveDate,
-    ) -> Result<Vec<Payslip>, sqlx::Error>;
+    ) -> Result<Vec<Payslip>, AppError>;
 
     async fn get_salary_components_history(
         &self,
@@ -117,18 +118,18 @@ pub trait PayrollRepository: super::PoolBacked + Send + Sync {
         employee_id: Uuid,
         start_date: NaiveDate,
         end_date: NaiveDate,
-    ) -> Result<Vec<(EmployeeSalaryComponent, SalaryComponentDefinition)>, sqlx::Error>;
+    ) -> Result<Vec<(EmployeeSalaryComponent, SalaryComponentDefinition)>, AppError>;
 
     async fn create_payslip_segment(
         &self,
         payslip_id: Uuid,
         args: &crate::models::CreatePayslipSegmentArgs,
-    ) -> Result<(), sqlx::Error>;
+    ) -> Result<(), AppError>;
 
     async fn get_payslip_segments(
         &self,
         payslip_id: Uuid,
-    ) -> Result<Vec<PayslipSegment>, sqlx::Error>;
+    ) -> Result<Vec<PayslipSegment>, AppError>;
 }
 
 // ---------------------------------------------------------------------------
@@ -149,81 +150,82 @@ impl PayrollRepository for SqlxPayrollRepository {
     async fn get_active_incentive_policies(
         &self,
         workspace_id: Uuid,
-    ) -> Result<Vec<PayrollIncentivePolicy>, sqlx::Error> {
-        get_active_incentive_policies(&self.pool, workspace_id).await
+    ) -> Result<Vec<PayrollIncentivePolicy>, AppError> {
+        get_active_incentive_policies(&self.pool, workspace_id).await.map_err(Into::into)
     }
     async fn get_active_incentive_policies_for_period(
         &self,
         workspace_id: Uuid,
         period_start: NaiveDate,
         period_end: NaiveDate,
-    ) -> Result<Vec<PayrollIncentivePolicy>, sqlx::Error> {
+    ) -> Result<Vec<PayrollIncentivePolicy>, AppError> {
         get_active_incentive_policies_for_period(&self.pool, workspace_id, period_start, period_end)
             .await
+            .map_err(Into::into)
     }
-    async fn get_policy_tiers(&self, policy_id: Uuid) -> Result<Vec<IncentiveTier>, sqlx::Error> {
-        get_policy_tiers(&self.pool, policy_id).await
+    async fn get_policy_tiers(&self, policy_id: Uuid) -> Result<Vec<IncentiveTier>, AppError> {
+        get_policy_tiers(&self.pool, policy_id).await.map_err(Into::into)
     }
     async fn create_payslip_incentive(
         &self,
         payslip_id: Uuid,
         result: &IncentiveEvaluationResult,
-    ) -> Result<(), sqlx::Error> {
-        create_payslip_incentive(&self.pool, payslip_id, result).await
+    ) -> Result<(), AppError> {
+        create_payslip_incentive(&self.pool, payslip_id, result).await.map_err(Into::into)
     }
     async fn get_payslip_incentives(
         &self,
         payslip_id: Uuid,
-    ) -> Result<Vec<IncentiveEvaluationResult>, sqlx::Error> {
-        get_payslip_incentives(&self.pool, payslip_id).await
+    ) -> Result<Vec<IncentiveEvaluationResult>, AppError> {
+        get_payslip_incentives(&self.pool, payslip_id).await.map_err(Into::into)
     }
     async fn create_payslip_rule_evaluation(
         &self,
         payslip_id: Uuid,
         rule_code: String,
         amount: Decimal,
-    ) -> Result<(), sqlx::Error> {
-        create_payslip_rule_evaluation(&self.pool, payslip_id, rule_code, amount).await
+    ) -> Result<(), AppError> {
+        create_payslip_rule_evaluation(&self.pool, payslip_id, rule_code, amount).await.map_err(Into::into)
     }
     async fn get_payslip_rule_evaluations(
         &self,
         payslip_id: Uuid,
-    ) -> Result<Vec<crate::models::PayslipRuleEvaluation>, sqlx::Error> {
-        get_payslip_rule_evaluations(&self.pool, payslip_id).await
+    ) -> Result<Vec<crate::models::PayslipRuleEvaluation>, AppError> {
+        get_payslip_rule_evaluations(&self.pool, payslip_id).await.map_err(Into::into)
     }
     async fn get_payroll_settings(
         &self,
         workspace_id: Uuid,
-    ) -> Result<Option<PayrollSettings>, sqlx::Error> {
-        get_payroll_settings(&self.pool, workspace_id).await
+    ) -> Result<Option<PayrollSettings>, AppError> {
+        get_payroll_settings(&self.pool, workspace_id).await.map_err(Into::into)
     }
     async fn get_payroll_settings_at(
         &self,
         workspace_id: Uuid,
         date: NaiveDate,
-    ) -> Result<Option<PayrollSettings>, sqlx::Error> {
-        get_payroll_settings_at(&self.pool, workspace_id, date).await
+    ) -> Result<Option<PayrollSettings>, AppError> {
+        get_payroll_settings_at(&self.pool, workspace_id, date).await.map_err(Into::into)
     }
     async fn update_payroll_settings(
         &self,
         workspace_id: Uuid,
         req: &crate::models::SavePayrollSettings,
-    ) -> Result<PayrollSettings, sqlx::Error> {
-        update_payroll_settings(&self.pool, workspace_id, req).await
+    ) -> Result<PayrollSettings, AppError> {
+        update_payroll_settings(&self.pool, workspace_id, req).await.map_err(Into::into)
     }
     async fn get_salary_component_definitions(
         &self,
         workspace_id: Uuid,
-    ) -> Result<Vec<SalaryComponentDefinition>, sqlx::Error> {
-        get_salary_component_definitions(&self.pool, workspace_id).await
+    ) -> Result<Vec<SalaryComponentDefinition>, AppError> {
+        get_salary_component_definitions(&self.pool, workspace_id).await.map_err(Into::into)
     }
     async fn create_salary_component_definition(
         &self,
         workspace_id: Uuid,
         name: String,
         code: String,
-    ) -> Result<SalaryComponentDefinition, sqlx::Error> {
-        create_salary_component_definition(&self.pool, workspace_id, name, code).await
+    ) -> Result<SalaryComponentDefinition, AppError> {
+        create_salary_component_definition(&self.pool, workspace_id, name, code).await.map_err(Into::into)
     }
     async fn assign_employee_salary_component(
         &self,
@@ -231,7 +233,7 @@ impl PayrollRepository for SqlxPayrollRepository {
         component_definition_id: Uuid,
         amount: Decimal,
         effective_date: NaiveDate,
-    ) -> Result<EmployeeSalaryComponent, sqlx::Error> {
+    ) -> Result<EmployeeSalaryComponent, AppError> {
         assign_employee_salary_component(
             &self.pool,
             employee_id,
@@ -240,32 +242,33 @@ impl PayrollRepository for SqlxPayrollRepository {
             effective_date,
         )
         .await
+        .map_err(Into::into)
     }
     async fn get_employee_salary_components(
         &self,
         workspace_id: Uuid,
         employee_id: Uuid,
         reference_date: NaiveDate,
-    ) -> Result<Vec<(EmployeeSalaryComponent, SalaryComponentDefinition)>, sqlx::Error> {
-        get_employee_salary_components(&self.pool, workspace_id, employee_id, reference_date).await
+    ) -> Result<Vec<(EmployeeSalaryComponent, SalaryComponentDefinition)>, AppError> {
+        get_employee_salary_components(&self.pool, workspace_id, employee_id, reference_date).await.map_err(Into::into)
     }
-    async fn create_payslip(&self, payslip: &Payslip) -> Result<Payslip, sqlx::Error> {
-        create_payslip(&self.pool, payslip).await
+    async fn create_payslip(&self, payslip: &Payslip) -> Result<Payslip, AppError> {
+        create_payslip(&self.pool, payslip).await.map_err(Into::into)
     }
     async fn get_payslips_by_employee(
         &self,
         workspace_id: Uuid,
         employee_id: Uuid,
-    ) -> Result<Vec<Payslip>, sqlx::Error> {
-        get_payslips_by_employee(&self.pool, workspace_id, employee_id).await
+    ) -> Result<Vec<Payslip>, AppError> {
+        get_payslips_by_employee(&self.pool, workspace_id, employee_id).await.map_err(Into::into)
     }
     async fn get_payslips_by_workspace_period(
         &self,
         workspace_id: Uuid,
         period_start: NaiveDate,
         period_end: NaiveDate,
-    ) -> Result<Vec<Payslip>, sqlx::Error> {
-        get_payslips_by_workspace_period(&self.pool, workspace_id, period_start, period_end).await
+    ) -> Result<Vec<Payslip>, AppError> {
+        get_payslips_by_workspace_period(&self.pool, workspace_id, period_start, period_end).await.map_err(Into::into)
     }
     async fn get_salary_components_history(
         &self,
@@ -273,22 +276,23 @@ impl PayrollRepository for SqlxPayrollRepository {
         employee_id: Uuid,
         start_date: NaiveDate,
         end_date: NaiveDate,
-    ) -> Result<Vec<(EmployeeSalaryComponent, SalaryComponentDefinition)>, sqlx::Error> {
+    ) -> Result<Vec<(EmployeeSalaryComponent, SalaryComponentDefinition)>, AppError> {
         get_salary_components_history(&self.pool, workspace_id, employee_id, start_date, end_date)
             .await
+            .map_err(Into::into)
     }
     async fn create_payslip_segment(
         &self,
         payslip_id: Uuid,
         args: &crate::models::CreatePayslipSegmentArgs,
-    ) -> Result<(), sqlx::Error> {
-        create_payslip_segment(&self.pool, payslip_id, args).await
+    ) -> Result<(), AppError> {
+        create_payslip_segment(&self.pool, payslip_id, args).await.map_err(Into::into)
     }
     async fn get_payslip_segments(
         &self,
         payslip_id: Uuid,
-    ) -> Result<Vec<PayslipSegment>, sqlx::Error> {
-        get_payslip_segments(&self.pool, payslip_id).await
+    ) -> Result<Vec<PayslipSegment>, AppError> {
+        get_payslip_segments(&self.pool, payslip_id).await.map_err(Into::into)
     }
 }
 

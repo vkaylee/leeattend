@@ -5,6 +5,7 @@ use diesel_async::RunQueryDsl;
 use uuid::Uuid;
 
 use crate::diesel_pool::DieselPools;
+use crate::errors::AppError;
 use crate::models::diesel::roster::{EmployeeShiftEntity, ShiftEntity};
 use crate::models::shift::Shift;
 use crate::repositories::shift_repository::ShiftRepository;
@@ -32,13 +33,13 @@ impl ShiftRepository for DieselShiftRepository {
         req: &crate::models::CreateShiftRequest,
         is_active: bool,
         parent_shift_id: Option<Uuid>,
-    ) -> Result<Shift, sqlx::Error> {
+    ) -> Result<Shift, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let new_shift = ShiftEntity {
             id: Uuid::new_v4(),
@@ -64,7 +65,7 @@ impl ShiftRepository for DieselShiftRepository {
             .values(&new_shift)
             .get_result(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(entity.into())
     }
@@ -73,13 +74,13 @@ impl ShiftRepository for DieselShiftRepository {
         &self,
         workspace_id: Uuid,
         id: Uuid,
-    ) -> Result<Option<Shift>, sqlx::Error> {
+    ) -> Result<Option<Shift>, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let entity: Option<ShiftEntity> = shifts::table
             .filter(shifts::id.eq(id))
@@ -87,18 +88,18 @@ impl ShiftRepository for DieselShiftRepository {
             .first(&mut conn)
             .await
             .optional()
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(entity.map(Into::into))
     }
 
-    async fn get_workspace_shifts(&self, workspace_id: Uuid) -> Result<Vec<Shift>, sqlx::Error> {
+    async fn get_workspace_shifts(&self, workspace_id: Uuid) -> Result<Vec<Shift>, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let entities: Vec<ShiftEntity> = shifts::table
             .filter(shifts::workspace_id.eq(workspace_id))
@@ -106,7 +107,7 @@ impl ShiftRepository for DieselShiftRepository {
             .order(shifts::name.asc())
             .load(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(entities.into_iter().map(Into::into).collect())
     }
@@ -116,13 +117,13 @@ impl ShiftRepository for DieselShiftRepository {
         workspace_id: Uuid,
         id: Uuid,
         req: &crate::models::UpdateShiftRequest,
-    ) -> Result<Shift, sqlx::Error> {
+    ) -> Result<Shift, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let entity: ShiftEntity = diesel::update(shifts::table)
             .filter(shifts::id.eq(id))
@@ -144,18 +145,18 @@ impl ShiftRepository for DieselShiftRepository {
             ))
             .get_result(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(entity.into())
     }
 
-    async fn archive_shift(&self, workspace_id: Uuid, id: Uuid) -> Result<(), sqlx::Error> {
+    async fn archive_shift(&self, workspace_id: Uuid, id: Uuid) -> Result<(), AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         diesel::update(shifts::table)
             .filter(shifts::id.eq(id))
@@ -166,7 +167,7 @@ impl ShiftRepository for DieselShiftRepository {
             ))
             .execute(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(())
     }
@@ -177,13 +178,13 @@ impl ShiftRepository for DieselShiftRepository {
         shift_id: Uuid,
         start_date: NaiveDate,
         end_date: Option<NaiveDate>,
-    ) -> Result<(), sqlx::Error> {
+    ) -> Result<(), AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let new_assignment = EmployeeShiftEntity {
             id: Uuid::new_v4(),
@@ -199,7 +200,7 @@ impl ShiftRepository for DieselShiftRepository {
             .values(&new_assignment)
             .execute(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(())
     }
@@ -208,13 +209,13 @@ impl ShiftRepository for DieselShiftRepository {
         &self,
         employee_id: Uuid,
         date: NaiveDate,
-    ) -> Result<Option<Shift>, sqlx::Error> {
+    ) -> Result<Option<Shift>, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let entity: Option<ShiftEntity> = shifts::table
             .inner_join(employee_shifts::table.on(shifts::id.eq(employee_shifts::shift_id)))
@@ -230,7 +231,7 @@ impl ShiftRepository for DieselShiftRepository {
             .first(&mut conn)
             .await
             .optional()
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(entity.map(Into::into))
     }
@@ -240,7 +241,7 @@ impl ShiftRepository for DieselShiftRepository {
         old_shift_id: Uuid,
         new_shift_id: Uuid,
         effective_date: NaiveDate,
-    ) -> Result<(), sqlx::Error> {
+    ) -> Result<(), AppError> {
         let mut tx = self.sqlx_pool.begin().await?;
         crate::repositories::shift_repository::update_assignments_to_new_version_tx(
             &mut tx,

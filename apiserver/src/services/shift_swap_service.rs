@@ -259,8 +259,7 @@ impl ShiftSwapService {
         let request = self
             .swap_repo
             .get_swap_request_by_id(request_id, _workspace_id)
-            .await
-            .map_err(AppError::Sqlx)?
+            .await?
             .ok_or(AppError::NotFound("Not found".into()))?;
 
         // Only pending requests can be approved/rejected
@@ -446,8 +445,7 @@ impl ShiftSwapService {
         let request = self
             .swap_repo
             .get_swap_request_by_id(request_id, workspace_id)
-            .await
-            .map_err(AppError::Sqlx)?
+            .await?
             .ok_or(AppError::NotFound("Not found".into()))?;
 
         // Only the target can respond
@@ -486,8 +484,7 @@ impl ShiftSwapService {
         let request = self
             .swap_repo
             .get_swap_request_by_id(request_id, workspace_id)
-            .await
-            .map_err(AppError::Sqlx)?
+            .await?
             .ok_or(AppError::NotFound("Not found".into()))?;
 
         // Only the requester can cancel

@@ -4,6 +4,7 @@ use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
 use uuid::Uuid;
 
+use crate::errors::AppError;
 use crate::models::diesel::attendance_adjustment::{
     AttendanceAdjustmentEntity, NewAttendanceAdjustmentEntity, UpdateAttendanceAdjustmentEntity,
 };
@@ -30,13 +31,13 @@ impl AttendanceAdjustmentRepository for DieselAttendanceAdjustmentRepository {
     async fn create_request(
         &self,
         request: &AttendanceAdjustmentRequest,
-    ) -> Result<(), sqlx::Error> {
+    ) -> Result<(), AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let new_entity = NewAttendanceAdjustmentEntity {
             id: request.id,
@@ -56,7 +57,7 @@ impl AttendanceAdjustmentRepository for DieselAttendanceAdjustmentRepository {
             .values(&new_entity)
             .execute(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(())
     }
@@ -65,13 +66,13 @@ impl AttendanceAdjustmentRepository for DieselAttendanceAdjustmentRepository {
         &self,
         workspace_id: Uuid,
         id: Uuid,
-    ) -> Result<Option<AttendanceAdjustmentRequest>, sqlx::Error> {
+    ) -> Result<Option<AttendanceAdjustmentRequest>, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let entry: Option<AttendanceAdjustmentEntity> = attendance_adjustment_requests::table
             .inner_join(
@@ -83,7 +84,7 @@ impl AttendanceAdjustmentRepository for DieselAttendanceAdjustmentRepository {
             .first(&mut conn)
             .await
             .optional()
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(entry.map(Into::into))
     }
@@ -94,13 +95,13 @@ impl AttendanceAdjustmentRepository for DieselAttendanceAdjustmentRepository {
         id: Uuid,
         status: AdjustmentStatus,
         approved_by: Option<Uuid>,
-    ) -> Result<(), sqlx::Error> {
+    ) -> Result<(), AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let update_model = UpdateAttendanceAdjustmentEntity {
             status: Some(status),
@@ -120,7 +121,7 @@ impl AttendanceAdjustmentRepository for DieselAttendanceAdjustmentRepository {
             .set(&update_model)
             .execute(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(())
     }
@@ -129,13 +130,13 @@ impl AttendanceAdjustmentRepository for DieselAttendanceAdjustmentRepository {
         &self,
         workspace_id: Uuid,
         status: Option<AdjustmentStatus>,
-    ) -> Result<Vec<AttendanceAdjustmentRequest>, sqlx::Error> {
+    ) -> Result<Vec<AttendanceAdjustmentRequest>, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let mut query = attendance_adjustment_requests::table
             .inner_join(
@@ -153,7 +154,7 @@ impl AttendanceAdjustmentRepository for DieselAttendanceAdjustmentRepository {
             .order(attendance_adjustment_requests::created_at.desc())
             .load(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(results.into_iter().map(Into::into).collect())
     }
@@ -162,13 +163,13 @@ impl AttendanceAdjustmentRepository for DieselAttendanceAdjustmentRepository {
         &self,
         workspace_id: Uuid,
         employee_id: Uuid,
-    ) -> Result<Vec<AttendanceAdjustmentRequest>, sqlx::Error> {
+    ) -> Result<Vec<AttendanceAdjustmentRequest>, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let results: Vec<AttendanceAdjustmentEntity> = attendance_adjustment_requests::table
             .inner_join(
@@ -180,7 +181,7 @@ impl AttendanceAdjustmentRepository for DieselAttendanceAdjustmentRepository {
             .order(attendance_adjustment_requests::created_at.desc())
             .load(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(results.into_iter().map(Into::into).collect())
     }

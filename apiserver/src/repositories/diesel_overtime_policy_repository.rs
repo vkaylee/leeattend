@@ -5,6 +5,7 @@ use diesel_async::RunQueryDsl;
 use uuid::Uuid;
 
 use crate::diesel_pool::DieselPools;
+use crate::errors::AppError;
 use crate::models::diesel::overtime_policy::{
     OvertimePolicyEntity, OvertimeRuleEntity,
 };
@@ -36,13 +37,13 @@ impl OvertimePolicyRepositoryTrait for DieselOvertimePolicyRepository {
         workspace_id: Uuid,
         name: &str,
         description: Option<&str>,
-    ) -> Result<OvertimePolicy, sqlx::Error> {
+    ) -> Result<OvertimePolicy, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Protocol(format!("db: {e}")))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         diesel::insert_into(overtime_policy_definitions::table)
             .values((
@@ -53,20 +54,20 @@ impl OvertimePolicyRepositoryTrait for DieselOvertimePolicyRepository {
             .returning(OvertimePolicyEntity::as_returning())
             .get_result(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Protocol(format!("db: {e}")))
+            .map_err(|e| AppError::Internal(format!("db: {e}")))
             .map(Into::into)
     }
 
     async fn get_policy_definitions(
         &self,
         workspace_id: Uuid,
-    ) -> Result<Vec<OvertimePolicy>, sqlx::Error> {
+    ) -> Result<Vec<OvertimePolicy>, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Protocol(format!("db: {e}")))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         overtime_policy_definitions::table
             .filter(overtime_policy_definitions::workspace_id.eq(workspace_id))
@@ -74,7 +75,7 @@ impl OvertimePolicyRepositoryTrait for DieselOvertimePolicyRepository {
             .select(OvertimePolicyEntity::as_select())
             .load(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Protocol(format!("db: {e}")))
+            .map_err(|e| AppError::Internal(format!("db: {e}")))
             .map(|rows| rows.into_iter().map(Into::into).collect())
     }
 
@@ -82,13 +83,13 @@ impl OvertimePolicyRepositoryTrait for DieselOvertimePolicyRepository {
         &self,
         workspace_id: Uuid,
         id: Uuid,
-    ) -> Result<Option<(OvertimePolicy, Vec<OvertimeRule>)>, sqlx::Error> {
+    ) -> Result<Option<(OvertimePolicy, Vec<OvertimeRule>)>, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Protocol(format!("db: {e}")))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let policy: Option<OvertimePolicyEntity> = overtime_policy_definitions::table
             .filter(overtime_policy_definitions::id.eq(id))
@@ -97,7 +98,7 @@ impl OvertimePolicyRepositoryTrait for DieselOvertimePolicyRepository {
             .first(&mut conn)
             .await
             .optional()
-            .map_err(|e| sqlx::Error::Protocol(format!("db: {e}")))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         if let Some(p) = policy {
             let rules: Vec<OvertimeRuleEntity> = overtime_rules::table
@@ -106,7 +107,7 @@ impl OvertimePolicyRepositoryTrait for DieselOvertimePolicyRepository {
                 .select(OvertimeRuleEntity::as_select())
                 .load(&mut conn)
                 .await
-            .map_err(|e| sqlx::Error::Protocol(format!("db: {e}")))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
             Ok(Some((p.into(), rules.into_iter().map(Into::into).collect())))
         } else {
@@ -114,13 +115,13 @@ impl OvertimePolicyRepositoryTrait for DieselOvertimePolicyRepository {
         }
     }
 
-    async fn add_rule(&self, rule: &OvertimeRule) -> Result<OvertimeRule, sqlx::Error> {
+    async fn add_rule(&self, rule: &OvertimeRule) -> Result<OvertimeRule, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Protocol(format!("db: {e}")))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         diesel::insert_into(overtime_rules::table)
             .values((
@@ -135,7 +136,7 @@ impl OvertimePolicyRepositoryTrait for DieselOvertimePolicyRepository {
             .returning(OvertimeRuleEntity::as_returning())
             .get_result(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Protocol(format!("db: {e}")))
+            .map_err(|e| AppError::Internal(format!("db: {e}")))
             .map(Into::into)
     }
 
@@ -144,13 +145,13 @@ impl OvertimePolicyRepositoryTrait for DieselOvertimePolicyRepository {
         employee_id: Uuid,
         workspace_id: Uuid,
         date: NaiveDate,
-    ) -> Result<Option<Uuid>, sqlx::Error> {
+    ) -> Result<Option<Uuid>, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Protocol(format!("db: {e}")))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         // 1. Employee Override
         let emp_policy: Option<Uuid> = overtime_policy_assignments::table
@@ -168,7 +169,7 @@ impl OvertimePolicyRepositoryTrait for DieselOvertimePolicyRepository {
             .first(&mut conn)
             .await
             .optional()
-            .map_err(|e| sqlx::Error::Protocol(format!("db: {e}")))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         if let Some(policy_id) = emp_policy {
             return Ok(Some(policy_id));
@@ -201,7 +202,7 @@ impl OvertimePolicyRepositoryTrait for DieselOvertimePolicyRepository {
             .first(&mut conn)
             .await
             .optional()
-            .map_err(|e| sqlx::Error::Protocol(format!("db: {e}")))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         if let Some(policy_id) = dept_policy {
             return Ok(Some(policy_id));
@@ -222,7 +223,7 @@ impl OvertimePolicyRepositoryTrait for DieselOvertimePolicyRepository {
             .first(&mut conn)
             .await
             .optional()
-            .map_err(|e| sqlx::Error::Protocol(format!("db: {e}")))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(ws_policy)
     }
@@ -234,13 +235,13 @@ impl OvertimePolicyRepositoryTrait for DieselOvertimePolicyRepository {
         assignee_id: Option<Uuid>,
         policy_id: Uuid,
         effective_from: NaiveDate,
-    ) -> Result<(), sqlx::Error> {
+    ) -> Result<(), AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Protocol(format!("db: {e}")))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         diesel::insert_into(overtime_policy_assignments::table)
             .values((
@@ -252,7 +253,7 @@ impl OvertimePolicyRepositoryTrait for DieselOvertimePolicyRepository {
             ))
             .execute(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Protocol(format!("db: {e}")))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(())
     }

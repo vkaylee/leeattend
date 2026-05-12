@@ -1,3 +1,4 @@
+use crate::errors::AppError;
 use async_trait::async_trait;
 use sqlx::PgPool;
 use uuid::Uuid;
@@ -14,7 +15,7 @@ pub trait AttendanceLogErrorRepository: super::PoolBacked + Send + Sync {
         raw_content: Option<serde_json::Value>,
         error_message: &str,
         source: &str,
-    ) -> Result<(), sqlx::Error>;
+    ) -> Result<(), AppError>;
     async fn create_error_log_with_fingerprint(
         &self,
         workspace_id: Uuid,
@@ -23,7 +24,7 @@ pub trait AttendanceLogErrorRepository: super::PoolBacked + Send + Sync {
         error_message: &str,
         source: &str,
         fingerprint: &str,
-    ) -> Result<bool, sqlx::Error>;
+    ) -> Result<bool, AppError>;
 }
 
 // ---------------------------------------------------------------------------
@@ -48,7 +49,7 @@ impl AttendanceLogErrorRepository for SqlxAttendanceLogErrorRepository {
         raw_content: Option<serde_json::Value>,
         error_message: &str,
         source: &str,
-    ) -> Result<(), sqlx::Error> {
+    ) -> Result<(), AppError> {
         create_error_log(
             &self.pool,
             workspace_id,
@@ -58,6 +59,7 @@ impl AttendanceLogErrorRepository for SqlxAttendanceLogErrorRepository {
             source,
         )
         .await
+        .map_err(Into::into)
     }
     async fn create_error_log_with_fingerprint(
         &self,
@@ -67,7 +69,7 @@ impl AttendanceLogErrorRepository for SqlxAttendanceLogErrorRepository {
         error_message: &str,
         source: &str,
         fingerprint: &str,
-    ) -> Result<bool, sqlx::Error> {
+    ) -> Result<bool, AppError> {
         create_error_log_with_fingerprint(
             &self.pool,
             workspace_id,
@@ -78,6 +80,7 @@ impl AttendanceLogErrorRepository for SqlxAttendanceLogErrorRepository {
             fingerprint,
         )
         .await
+        .map_err(Into::into)
     }
 }
 

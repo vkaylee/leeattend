@@ -1,4 +1,5 @@
 use crate::diesel_pool::DieselPools;
+use crate::errors::AppError;
 use crate::repositories::leave_accrual_log_repository::*;
 use crate::repositories::PoolBacked;
 use crate::schema::*;
@@ -46,13 +47,13 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
         leave_type_id: Uuid,
         accrual_date: NaiveDate,
         workspace_id: Uuid,
-    ) -> Result<Option<ExistingAccrualLog>, sqlx::Error> {
+    ) -> Result<Option<ExistingAccrualLog>, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let row = leave_accrual_logs::table
             .filter(leave_accrual_logs::employee_id.eq(employee_id))
@@ -63,7 +64,7 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
             .first::<(Uuid, bigdecimal::BigDecimal)>(&mut conn)
             .await
             .optional()
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(row.map(|(id, amount)| ExistingAccrualLog {
             id,
@@ -75,13 +76,13 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
         &self,
         assignment_id: Uuid,
         workspace_id: Uuid,
-    ) -> Result<NaiveDate, sqlx::Error> {
+    ) -> Result<NaiveDate, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let date = leave_policy_assignments::table
             .filter(leave_policy_assignments::id.eq(assignment_id))
@@ -89,25 +90,25 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
             .select(leave_policy_assignments::effective_from)
             .first::<NaiveDate>(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(date)
     }
 
-    async fn get_workspace_timezone(&self, workspace_id: Uuid) -> Result<String, sqlx::Error> {
+    async fn get_workspace_timezone(&self, workspace_id: Uuid) -> Result<String, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let tz = workspaces::table
             .filter(workspaces::id.eq(workspace_id))
             .select(workspaces::timezone)
             .first::<String>(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(tz)
     }

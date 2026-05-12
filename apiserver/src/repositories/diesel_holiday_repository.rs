@@ -6,6 +6,7 @@ use std::collections::HashMap;
 use uuid::Uuid;
 
 use crate::diesel_pool::DieselPools;
+use crate::errors::AppError;
 use crate::models::diesel::holiday::HolidayEntity;
 use crate::models::Holiday;
 use crate::repositories::holiday_repository::HolidayRepositoryTrait;
@@ -31,13 +32,13 @@ impl HolidayRepositoryTrait for DieselHolidayRepository {
         &self,
         workspace_id: Uuid,
         year: Option<i32>,
-    ) -> Result<Vec<Holiday>, sqlx::Error> {
+    ) -> Result<Vec<Holiday>, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let mut query = holidays::table
             .filter(holidays::workspace_id.eq(workspace_id))
@@ -58,7 +59,7 @@ impl HolidayRepositoryTrait for DieselHolidayRepository {
             .order(holidays::date.asc())
             .load(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(entities.into_iter().map(Into::into).collect())
     }
@@ -67,13 +68,13 @@ impl HolidayRepositoryTrait for DieselHolidayRepository {
         &self,
         workspace_id: Uuid,
         id: Uuid,
-    ) -> Result<Option<Holiday>, sqlx::Error> {
+    ) -> Result<Option<Holiday>, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let entity: Option<HolidayEntity> = holidays::table
             .filter(holidays::id.eq(id))
@@ -81,7 +82,7 @@ impl HolidayRepositoryTrait for DieselHolidayRepository {
             .first(&mut conn)
             .await
             .optional()
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(entity.map(Into::into))
     }
@@ -90,13 +91,13 @@ impl HolidayRepositoryTrait for DieselHolidayRepository {
         &self,
         workspace_id: Uuid,
         req: &crate::models::CreateHolidayRequest,
-    ) -> Result<Holiday, sqlx::Error> {
+    ) -> Result<Holiday, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let new_holiday = HolidayEntity {
             id: Uuid::new_v4(),
@@ -118,7 +119,7 @@ impl HolidayRepositoryTrait for DieselHolidayRepository {
             .values(&new_holiday)
             .get_result(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(result.into())
     }
@@ -128,13 +129,13 @@ impl HolidayRepositoryTrait for DieselHolidayRepository {
         workspace_id: Uuid,
         id: Uuid,
         req: &crate::models::UpdateHolidayRequest,
-    ) -> Result<Option<Holiday>, sqlx::Error> {
+    ) -> Result<Option<Holiday>, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let result: Option<HolidayEntity> = diesel::update(holidays::table)
             .filter(holidays::id.eq(id))
@@ -160,25 +161,25 @@ impl HolidayRepositoryTrait for DieselHolidayRepository {
             .get_result(&mut conn)
             .await
             .optional()
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(result.map(Into::into))
     }
 
-    async fn delete(&self, workspace_id: Uuid, id: Uuid) -> Result<bool, sqlx::Error> {
+    async fn delete(&self, workspace_id: Uuid, id: Uuid) -> Result<bool, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let affected = diesel::delete(holidays::table)
             .filter(holidays::id.eq(id))
             .filter(holidays::workspace_id.eq(workspace_id))
             .execute(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(affected > 0)
     }
@@ -188,13 +189,13 @@ impl HolidayRepositoryTrait for DieselHolidayRepository {
         workspace_id: Uuid,
         start_date: NaiveDate,
         end_date: NaiveDate,
-    ) -> Result<HashMap<NaiveDate, Holiday>, sqlx::Error> {
+    ) -> Result<HashMap<NaiveDate, Holiday>, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let entities: Vec<HolidayEntity> = holidays::table
             .filter(holidays::workspace_id.eq(workspace_id))
@@ -203,7 +204,7 @@ impl HolidayRepositoryTrait for DieselHolidayRepository {
             .order(holidays::date.asc())
             .load(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(entities.into_iter().map(|e| (e.date, e.into())).collect())
     }
@@ -212,13 +213,13 @@ impl HolidayRepositoryTrait for DieselHolidayRepository {
         &self,
         workspace_id: Uuid,
         date: NaiveDate,
-    ) -> Result<Option<Holiday>, sqlx::Error> {
+    ) -> Result<Option<Holiday>, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let entity: Option<HolidayEntity> = holidays::table
             .filter(holidays::workspace_id.eq(workspace_id))
@@ -226,7 +227,7 @@ impl HolidayRepositoryTrait for DieselHolidayRepository {
             .first(&mut conn)
             .await
             .optional()
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(entity.map(Into::into))
     }

@@ -1,3 +1,4 @@
+use crate::errors::AppError;
 use crate::models::{RawAttendanceLog, RawAttendanceLogWithEmployee};
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
@@ -9,17 +10,17 @@ use uuid::Uuid;
 // ---------------------------------------------------------------------------
 #[async_trait]
 pub trait RawAttendanceLogRepository: super::PoolBacked + Send + Sync {
-    async fn create_raw_log(&self, log: &RawAttendanceLog) -> Result<bool, sqlx::Error>;
+    async fn create_raw_log(&self, log: &RawAttendanceLog) -> Result<bool, AppError>;
     async fn get_raw_log_by_id(
         &self,
         workspace_id: Uuid,
         id: Uuid,
-    ) -> Result<Option<RawAttendanceLog>, sqlx::Error>;
+    ) -> Result<Option<RawAttendanceLog>, AppError>;
     async fn get_latest_log(
         &self,
         workspace_id: Uuid,
         employee_id: Uuid,
-    ) -> Result<Option<RawAttendanceLog>, sqlx::Error>;
+    ) -> Result<Option<RawAttendanceLog>, AppError>;
     async fn get_paginated_raw_logs(
         &self,
         workspace_id: Uuid,
@@ -28,16 +29,16 @@ pub trait RawAttendanceLogRepository: super::PoolBacked + Send + Sync {
         p_to: Option<DateTime<Utc>>,
         p_limit: i64,
         p_offset: i64,
-    ) -> Result<Vec<RawAttendanceLogWithEmployee>, sqlx::Error>;
+    ) -> Result<Vec<RawAttendanceLogWithEmployee>, AppError>;
     async fn count_raw_logs(
         &self,
         workspace_id: Uuid,
         p_employee_id: Option<Uuid>,
         p_from: Option<DateTime<Utc>>,
         p_to: Option<DateTime<Utc>>,
-    ) -> Result<i64, sqlx::Error>;
+    ) -> Result<i64, AppError>;
     async fn create_raw_logs_batch(&self, logs: &[&RawAttendanceLog])
-        -> Result<usize, sqlx::Error>;
+        -> Result<usize, AppError>;
 }
 
 // ---------------------------------------------------------------------------
@@ -55,22 +56,22 @@ impl SqlxRawAttendanceLogRepository {
 
 #[async_trait]
 impl RawAttendanceLogRepository for SqlxRawAttendanceLogRepository {
-    async fn create_raw_log(&self, log: &RawAttendanceLog) -> Result<bool, sqlx::Error> {
-        create_raw_log(&self.pool, log).await
+    async fn create_raw_log(&self, log: &RawAttendanceLog) -> Result<bool, AppError> {
+        create_raw_log(&self.pool, log).await.map_err(Into::into)
     }
     async fn get_raw_log_by_id(
         &self,
         workspace_id: Uuid,
         id: Uuid,
-    ) -> Result<Option<RawAttendanceLog>, sqlx::Error> {
-        get_raw_log_by_id(&self.pool, workspace_id, id).await
+    ) -> Result<Option<RawAttendanceLog>, AppError> {
+        get_raw_log_by_id(&self.pool, workspace_id, id).await.map_err(Into::into)
     }
     async fn get_latest_log(
         &self,
         workspace_id: Uuid,
         employee_id: Uuid,
-    ) -> Result<Option<RawAttendanceLog>, sqlx::Error> {
-        get_latest_log(&self.pool, workspace_id, employee_id).await
+    ) -> Result<Option<RawAttendanceLog>, AppError> {
+        get_latest_log(&self.pool, workspace_id, employee_id).await.map_err(Into::into)
     }
     async fn get_paginated_raw_logs(
         &self,
@@ -80,7 +81,7 @@ impl RawAttendanceLogRepository for SqlxRawAttendanceLogRepository {
         p_to: Option<DateTime<Utc>>,
         p_limit: i64,
         p_offset: i64,
-    ) -> Result<Vec<RawAttendanceLogWithEmployee>, sqlx::Error> {
+    ) -> Result<Vec<RawAttendanceLogWithEmployee>, AppError> {
         get_paginated_raw_logs(
             &self.pool,
             workspace_id,
@@ -91,6 +92,7 @@ impl RawAttendanceLogRepository for SqlxRawAttendanceLogRepository {
             p_offset,
         )
         .await
+        .map_err(Into::into)
     }
     async fn count_raw_logs(
         &self,
@@ -98,14 +100,14 @@ impl RawAttendanceLogRepository for SqlxRawAttendanceLogRepository {
         p_employee_id: Option<Uuid>,
         p_from: Option<DateTime<Utc>>,
         p_to: Option<DateTime<Utc>>,
-    ) -> Result<i64, sqlx::Error> {
-        count_raw_logs(&self.pool, workspace_id, p_employee_id, p_from, p_to).await
+    ) -> Result<i64, AppError> {
+        count_raw_logs(&self.pool, workspace_id, p_employee_id, p_from, p_to).await.map_err(Into::into)
     }
     async fn create_raw_logs_batch(
         &self,
         logs: &[&RawAttendanceLog],
-    ) -> Result<usize, sqlx::Error> {
-        create_raw_logs_batch(&self.pool, logs).await
+    ) -> Result<usize, AppError> {
+        create_raw_logs_batch(&self.pool, logs).await.map_err(Into::into)
     }
 }
 

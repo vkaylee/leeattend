@@ -5,6 +5,7 @@ use diesel_async::RunQueryDsl;
 use rust_decimal::Decimal;
 use uuid::Uuid;
 
+use crate::errors::AppError;
 use crate::models::diesel::department::{
     DieselDepartment, NewDieselDepartment, UpdateDieselDepartment,
 };
@@ -35,13 +36,13 @@ impl DepartmentRepository for DieselDepartmentRepository {
         description: Option<String>,
         manager_id: Option<Uuid>,
         default_working_pattern_id: Option<Uuid>,
-    ) -> Result<Department, sqlx::Error> {
+    ) -> Result<Department, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let new_dept = NewDieselDepartment {
             id: Uuid::new_v4(),
@@ -56,7 +57,7 @@ impl DepartmentRepository for DieselDepartmentRepository {
             .values(&new_dept)
             .get_result(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(result.into())
     }
@@ -65,13 +66,13 @@ impl DepartmentRepository for DieselDepartmentRepository {
         &self,
         workspace_id: Uuid,
         id: Uuid,
-    ) -> Result<Option<Department>, sqlx::Error> {
+    ) -> Result<Option<Department>, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let dept: Option<DieselDepartment> = departments::table
             .filter(departments::id.eq(id))
@@ -79,7 +80,7 @@ impl DepartmentRepository for DieselDepartmentRepository {
             .first(&mut conn)
             .await
             .optional()
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(dept.map(Into::into))
     }
@@ -89,13 +90,13 @@ impl DepartmentRepository for DieselDepartmentRepository {
         workspace_id: Uuid,
         id: Uuid,
         req: crate::models::UpdateDepartmentRequest,
-    ) -> Result<Department, sqlx::Error> {
+    ) -> Result<Department, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let update_model = UpdateDieselDepartment {
             name: req.name,
@@ -110,43 +111,43 @@ impl DepartmentRepository for DieselDepartmentRepository {
             .set(&update_model)
             .get_result(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(result.into())
     }
 
-    async fn delete_department(&self, workspace_id: Uuid, id: Uuid) -> Result<(), sqlx::Error> {
+    async fn delete_department(&self, workspace_id: Uuid, id: Uuid) -> Result<(), AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         diesel::delete(departments::table)
             .filter(departments::id.eq(id))
             .filter(departments::workspace_id.eq(workspace_id))
             .execute(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(())
     }
 
-    async fn get_departments(&self, workspace_id: Uuid) -> Result<Vec<Department>, sqlx::Error> {
+    async fn get_departments(&self, workspace_id: Uuid) -> Result<Vec<Department>, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let results: Vec<DieselDepartment> = departments::table
             .filter(departments::workspace_id.eq(workspace_id))
             .order(departments::name.asc())
             .load(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(results.into_iter().map(Into::into).collect())
     }
@@ -157,7 +158,7 @@ impl DepartmentRepository for DieselDepartmentRepository {
         department_id: Uuid,
         effective_date: NaiveDate,
         notes: Option<String>,
-    ) -> Result<EmployeeDepartmentHistory, sqlx::Error> {
+    ) -> Result<EmployeeDepartmentHistory, AppError> {
         // We will keep this with SQLx for now since it's just a PoC and requires complex inserts
         crate::repositories::department_repository::transfer_employee(
             &self.sqlx_pool,
@@ -167,32 +168,35 @@ impl DepartmentRepository for DieselDepartmentRepository {
             notes,
         )
         .await
+        .map_err(Into::into)
     }
 
     async fn get_employee_department_history(
         &self,
         workspace_id: Uuid,
         employee_id: Uuid,
-    ) -> Result<Vec<EmployeeDepartmentHistory>, sqlx::Error> {
+    ) -> Result<Vec<EmployeeDepartmentHistory>, AppError> {
         crate::repositories::department_repository::get_employee_department_history(
             &self.sqlx_pool,
             workspace_id,
             employee_id,
         )
         .await
+        .map_err(Into::into)
     }
 
     async fn get_current_department(
         &self,
         workspace_id: Uuid,
         employee_id: Uuid,
-    ) -> Result<Option<EmployeeDepartmentHistory>, sqlx::Error> {
+    ) -> Result<Option<EmployeeDepartmentHistory>, AppError> {
         crate::repositories::department_repository::get_current_department(
             &self.sqlx_pool,
             workspace_id,
             employee_id,
         )
         .await
+        .map_err(Into::into)
     }
 
     async fn upsert_department_payroll_config(
@@ -201,7 +205,7 @@ impl DepartmentRepository for DieselDepartmentRepository {
         std_working_days: Decimal,
         hours_per_day: Decimal,
         effective_date: NaiveDate,
-    ) -> Result<DepartmentPayrollConfig, sqlx::Error> {
+    ) -> Result<DepartmentPayrollConfig, AppError> {
         crate::repositories::department_repository::upsert_department_payroll_config(
             &self.sqlx_pool,
             department_id,
@@ -210,19 +214,21 @@ impl DepartmentRepository for DieselDepartmentRepository {
             effective_date,
         )
         .await
+        .map_err(Into::into)
     }
 
     async fn get_department_payroll_config_at(
         &self,
         department_id: Uuid,
         date: NaiveDate,
-    ) -> Result<Option<DepartmentPayrollConfig>, sqlx::Error> {
+    ) -> Result<Option<DepartmentPayrollConfig>, AppError> {
         crate::repositories::department_repository::get_department_payroll_config_at(
             &self.sqlx_pool,
             department_id,
             date,
         )
         .await
+        .map_err(Into::into)
     }
 }
 

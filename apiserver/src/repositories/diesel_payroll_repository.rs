@@ -1,3 +1,4 @@
+use crate::errors::AppError;
 use crate::diesel_pool::DieselPools;
 use crate::models::diesel::payroll::*;
 use crate::models::{
@@ -49,20 +50,20 @@ impl PayrollRepository for DieselPayrollRepository {
     async fn get_active_incentive_policies(
         &self,
         workspace_id: Uuid,
-    ) -> Result<Vec<PayrollIncentivePolicy>, sqlx::Error> {
+    ) -> Result<Vec<PayrollIncentivePolicy>, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let entities = payroll_incentive_policies::table
             .filter(payroll_incentive_policies::workspace_id.eq(workspace_id))
             .filter(payroll_incentive_policies::is_active.eq(true))
             .load::<PayrollIncentivePolicyEntity>(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(entities.into_iter().map(Into::into).collect())
     }
@@ -72,13 +73,13 @@ impl PayrollRepository for DieselPayrollRepository {
         workspace_id: Uuid,
         period_start: NaiveDate,
         period_end: NaiveDate,
-    ) -> Result<Vec<PayrollIncentivePolicy>, sqlx::Error> {
+    ) -> Result<Vec<PayrollIncentivePolicy>, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let entities = payroll_incentive_policies::table
             .filter(payroll_incentive_policies::workspace_id.eq(workspace_id))
@@ -91,25 +92,25 @@ impl PayrollRepository for DieselPayrollRepository {
             )
             .load::<PayrollIncentivePolicyEntity>(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(entities.into_iter().map(Into::into).collect())
     }
 
-    async fn get_policy_tiers(&self, policy_id: Uuid) -> Result<Vec<IncentiveTier>, sqlx::Error> {
+    async fn get_policy_tiers(&self, policy_id: Uuid) -> Result<Vec<IncentiveTier>, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let entities = payroll_incentive_tiers::table
             .filter(payroll_incentive_tiers::policy_id.eq(policy_id))
             .order(payroll_incentive_tiers::priority.asc())
             .load::<IncentiveTierEntity>(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(entities.into_iter().map(Into::into).collect())
     }
@@ -118,13 +119,13 @@ impl PayrollRepository for DieselPayrollRepository {
         &self,
         payslip_id: Uuid,
         result: &IncentiveEvaluationResult,
-    ) -> Result<(), sqlx::Error> {
+    ) -> Result<(), AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let entity = PayslipIncentiveEntity {
             id: Uuid::new_v4(),
@@ -140,7 +141,7 @@ impl PayrollRepository for DieselPayrollRepository {
             .values(&entity)
             .execute(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(())
     }
@@ -148,19 +149,19 @@ impl PayrollRepository for DieselPayrollRepository {
     async fn get_payslip_incentives(
         &self,
         payslip_id: Uuid,
-    ) -> Result<Vec<IncentiveEvaluationResult>, sqlx::Error> {
+    ) -> Result<Vec<IncentiveEvaluationResult>, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let entities = payslip_incentives::table
             .filter(payslip_incentives::payslip_id.eq(payslip_id))
             .load::<PayslipIncentiveEntity>(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(entities
             .into_iter()
@@ -178,13 +179,13 @@ impl PayrollRepository for DieselPayrollRepository {
         payslip_id: Uuid,
         rule_code: String,
         amount: Decimal,
-    ) -> Result<(), sqlx::Error> {
+    ) -> Result<(), AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let entity = PayslipRuleEvaluationEntity {
             id: Uuid::new_v4(),
@@ -198,7 +199,7 @@ impl PayrollRepository for DieselPayrollRepository {
             .values(&entity)
             .execute(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(())
     }
@@ -206,20 +207,20 @@ impl PayrollRepository for DieselPayrollRepository {
     async fn get_payslip_rule_evaluations(
         &self,
         payslip_id: Uuid,
-    ) -> Result<Vec<PayslipRuleEvaluation>, sqlx::Error> {
+    ) -> Result<Vec<PayslipRuleEvaluation>, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let entities = payslip_rule_evaluations::table
             .filter(payslip_rule_evaluations::payslip_id.eq(payslip_id))
             .select(PayslipRuleEvaluationEntity::as_select())
             .load::<PayslipRuleEvaluationEntity>(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(entities.into_iter().map(Into::into).collect())
     }
@@ -227,22 +228,21 @@ impl PayrollRepository for DieselPayrollRepository {
     async fn get_payroll_settings(
         &self,
         workspace_id: Uuid,
-    ) -> Result<Option<PayrollSettings>, sqlx::Error> {
+    ) -> Result<Option<PayrollSettings>, AppError> {
         self.get_payroll_settings_at(workspace_id, Utc::now().date_naive())
-            .await
-    }
+            .await}
 
     async fn get_payroll_settings_at(
         &self,
         workspace_id: Uuid,
         date: NaiveDate,
-    ) -> Result<Option<PayrollSettings>, sqlx::Error> {
+    ) -> Result<Option<PayrollSettings>, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let entity = payroll_settings::table
             .filter(payroll_settings::workspace_id.eq(workspace_id))
@@ -251,7 +251,7 @@ impl PayrollRepository for DieselPayrollRepository {
             .first::<PayrollSettingsEntity>(&mut conn)
             .await
             .optional()
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(entity.map(Into::into))
     }
@@ -260,13 +260,13 @@ impl PayrollRepository for DieselPayrollRepository {
         &self,
         workspace_id: Uuid,
         req: &crate::models::SavePayrollSettings,
-    ) -> Result<PayrollSettings, sqlx::Error> {
+    ) -> Result<PayrollSettings, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let entity = PayrollSettingsEntity {
             workspace_id,
@@ -297,7 +297,7 @@ impl PayrollRepository for DieselPayrollRepository {
             .set(&entity)
             .get_result::<PayrollSettingsEntity>(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(result.into())
     }
@@ -305,20 +305,20 @@ impl PayrollRepository for DieselPayrollRepository {
     async fn get_salary_component_definitions(
         &self,
         workspace_id: Uuid,
-    ) -> Result<Vec<SalaryComponentDefinition>, sqlx::Error> {
+    ) -> Result<Vec<SalaryComponentDefinition>, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let entities = salary_component_definitions::table
             .filter(salary_component_definitions::workspace_id.eq(workspace_id))
             .select(SalaryComponentDefinitionEntity::as_select())
             .load::<SalaryComponentDefinitionEntity>(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(entities.into_iter().map(Into::into).collect())
     }
@@ -328,13 +328,13 @@ impl PayrollRepository for DieselPayrollRepository {
         workspace_id: Uuid,
         name: String,
         code: String,
-    ) -> Result<SalaryComponentDefinition, sqlx::Error> {
+    ) -> Result<SalaryComponentDefinition, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let entity = SalaryComponentDefinitionEntity {
             id: Uuid::new_v4(),
@@ -351,7 +351,7 @@ impl PayrollRepository for DieselPayrollRepository {
             .values(&entity)
             .get_result::<SalaryComponentDefinitionEntity>(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(result.into())
     }
@@ -362,13 +362,13 @@ impl PayrollRepository for DieselPayrollRepository {
         component_definition_id: Uuid,
         amount: Decimal,
         effective_date: NaiveDate,
-    ) -> Result<EmployeeSalaryComponent, sqlx::Error> {
+    ) -> Result<EmployeeSalaryComponent, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let entity = EmployeeSalaryComponentEntity {
             id: Uuid::new_v4(),
@@ -384,7 +384,7 @@ impl PayrollRepository for DieselPayrollRepository {
             .values(&entity)
             .get_result::<EmployeeSalaryComponentEntity>(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(result.into())
     }
@@ -394,19 +394,18 @@ impl PayrollRepository for DieselPayrollRepository {
         workspace_id: Uuid,
         employee_id: Uuid,
         reference_date: NaiveDate,
-    ) -> Result<Vec<(EmployeeSalaryComponent, SalaryComponentDefinition)>, sqlx::Error> {
+    ) -> Result<Vec<(EmployeeSalaryComponent, SalaryComponentDefinition)>, AppError> {
         get_employee_salary_components(&self.sqlx_pool, workspace_id, employee_id, reference_date)
-            .await
-    }
+            .await.map_err(Into::into)}
 
-    async fn create_payslip(&self, payslip: &Payslip) -> Result<Payslip, sqlx::Error> {
+    async fn create_payslip(&self, payslip: &Payslip) -> Result<Payslip, AppError> {
         use std::str::FromStr;
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let entity = PayslipEntity {
             id: payslip.id,
@@ -441,7 +440,7 @@ impl PayrollRepository for DieselPayrollRepository {
             .values(&entity)
             .get_result::<PayslipEntity>(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(result.into())
     }
@@ -450,13 +449,13 @@ impl PayrollRepository for DieselPayrollRepository {
         &self,
         workspace_id: Uuid,
         employee_id: Uuid,
-    ) -> Result<Vec<Payslip>, sqlx::Error> {
+    ) -> Result<Vec<Payslip>, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let entities = payslips::table
             .filter(payslips::workspace_id.eq(workspace_id))
@@ -464,7 +463,7 @@ impl PayrollRepository for DieselPayrollRepository {
             .order(payslips::period_start.desc())
             .load::<PayslipEntity>(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(entities.into_iter().map(Into::into).collect())
     }
@@ -474,13 +473,13 @@ impl PayrollRepository for DieselPayrollRepository {
         workspace_id: Uuid,
         period_start: NaiveDate,
         period_end: NaiveDate,
-    ) -> Result<Vec<Payslip>, sqlx::Error> {
+    ) -> Result<Vec<Payslip>, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let entities = payslips::table
             .filter(payslips::workspace_id.eq(workspace_id))
@@ -489,7 +488,7 @@ impl PayrollRepository for DieselPayrollRepository {
             .order(payslips::created_at.desc())
             .load::<PayslipEntity>(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(entities.into_iter().map(Into::into).collect())
     }
@@ -500,7 +499,7 @@ impl PayrollRepository for DieselPayrollRepository {
         employee_id: Uuid,
         start_date: NaiveDate,
         end_date: NaiveDate,
-    ) -> Result<Vec<(EmployeeSalaryComponent, SalaryComponentDefinition)>, sqlx::Error> {
+    ) -> Result<Vec<(EmployeeSalaryComponent, SalaryComponentDefinition)>, AppError> {
         get_salary_components_history(
             &self.sqlx_pool,
             workspace_id,
@@ -508,21 +507,20 @@ impl PayrollRepository for DieselPayrollRepository {
             start_date,
             end_date,
         )
-        .await
-    }
+        .await.map_err(Into::into)}
 
     async fn create_payslip_segment(
         &self,
         payslip_id: Uuid,
         args: &crate::models::CreatePayslipSegmentArgs,
-    ) -> Result<(), sqlx::Error> {
+    ) -> Result<(), AppError> {
         use std::str::FromStr;
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let entity = PayslipSegmentEntity {
             id: Uuid::new_v4(),
@@ -553,7 +551,7 @@ impl PayrollRepository for DieselPayrollRepository {
             .values(&entity)
             .execute(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(())
     }
@@ -561,19 +559,19 @@ impl PayrollRepository for DieselPayrollRepository {
     async fn get_payslip_segments(
         &self,
         payslip_id: Uuid,
-    ) -> Result<Vec<PayslipSegment>, sqlx::Error> {
+    ) -> Result<Vec<PayslipSegment>, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let entities = payslip_segments::table
             .filter(payslip_segments::payslip_id.eq(payslip_id))
             .load::<PayslipSegmentEntity>(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(entities.into_iter().map(Into::into).collect())
     }

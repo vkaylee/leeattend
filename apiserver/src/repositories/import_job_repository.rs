@@ -1,3 +1,4 @@
+use crate::errors::AppError;
 use crate::models::{enums::ImportTargetType, AttendanceImportJob, ImportJobStatus};
 use async_trait::async_trait;
 use chrono::Utc;
@@ -9,22 +10,22 @@ use uuid::Uuid;
 // ---------------------------------------------------------------------------
 #[async_trait]
 pub trait ImportJobRepository: super::PoolBacked + Send + Sync {
-    async fn create_job(&self, job: &AttendanceImportJob) -> Result<(), sqlx::Error>;
+    async fn create_job(&self, job: &AttendanceImportJob) -> Result<(), AppError>;
     async fn update_job_progress(
         &self,
         id: Uuid,
         processed_rows: i32,
         status: ImportJobStatus,
         error_log: Option<String>,
-    ) -> Result<(), sqlx::Error>;
-    async fn get_job_by_id(&self, id: Uuid) -> Result<Option<AttendanceImportJob>, sqlx::Error>;
+    ) -> Result<(), AppError>;
+    async fn get_job_by_id(&self, id: Uuid) -> Result<Option<AttendanceImportJob>, AppError>;
     async fn get_latest_job(
         &self,
         workspace_id: Uuid,
         target_type: Option<ImportTargetType>,
-    ) -> Result<Option<AttendanceImportJob>, sqlx::Error>;
-    async fn get_pending_jobs(&self) -> Result<Vec<AttendanceImportJob>, sqlx::Error>;
-    async fn update_job_total_rows(&self, id: Uuid, total_rows: i32) -> Result<(), sqlx::Error>;
+    ) -> Result<Option<AttendanceImportJob>, AppError>;
+    async fn get_pending_jobs(&self) -> Result<Vec<AttendanceImportJob>, AppError>;
+    async fn update_job_total_rows(&self, id: Uuid, total_rows: i32) -> Result<(), AppError>;
 }
 
 // ---------------------------------------------------------------------------
@@ -42,8 +43,8 @@ impl SqlxImportJobRepository {
 
 #[async_trait]
 impl ImportJobRepository for SqlxImportJobRepository {
-    async fn create_job(&self, job: &AttendanceImportJob) -> Result<(), sqlx::Error> {
-        create_job(&self.pool, job).await
+    async fn create_job(&self, job: &AttendanceImportJob) -> Result<(), AppError> {
+        create_job(&self.pool, job).await.map_err(Into::into)
     }
     async fn update_job_progress(
         &self,
@@ -51,24 +52,24 @@ impl ImportJobRepository for SqlxImportJobRepository {
         processed_rows: i32,
         status: ImportJobStatus,
         error_log: Option<String>,
-    ) -> Result<(), sqlx::Error> {
-        update_job_progress(&self.pool, id, processed_rows, status, error_log).await
+    ) -> Result<(), AppError> {
+        update_job_progress(&self.pool, id, processed_rows, status, error_log).await.map_err(Into::into)
     }
-    async fn get_job_by_id(&self, id: Uuid) -> Result<Option<AttendanceImportJob>, sqlx::Error> {
-        get_job_by_id(&self.pool, id).await
+    async fn get_job_by_id(&self, id: Uuid) -> Result<Option<AttendanceImportJob>, AppError> {
+        get_job_by_id(&self.pool, id).await.map_err(Into::into)
     }
     async fn get_latest_job(
         &self,
         workspace_id: Uuid,
         target_type: Option<ImportTargetType>,
-    ) -> Result<Option<AttendanceImportJob>, sqlx::Error> {
-        get_latest_job(&self.pool, workspace_id, target_type).await
+    ) -> Result<Option<AttendanceImportJob>, AppError> {
+        get_latest_job(&self.pool, workspace_id, target_type).await.map_err(Into::into)
     }
-    async fn get_pending_jobs(&self) -> Result<Vec<AttendanceImportJob>, sqlx::Error> {
-        get_pending_jobs(&self.pool).await
+    async fn get_pending_jobs(&self) -> Result<Vec<AttendanceImportJob>, AppError> {
+        get_pending_jobs(&self.pool).await.map_err(Into::into)
     }
-    async fn update_job_total_rows(&self, id: Uuid, total_rows: i32) -> Result<(), sqlx::Error> {
-        update_job_total_rows(&self.pool, id, total_rows).await
+    async fn update_job_total_rows(&self, id: Uuid, total_rows: i32) -> Result<(), AppError> {
+        update_job_total_rows(&self.pool, id, total_rows).await.map_err(Into::into)
     }
 }
 

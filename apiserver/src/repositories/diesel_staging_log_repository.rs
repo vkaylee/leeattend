@@ -4,6 +4,7 @@ use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
 use uuid::Uuid;
 
+use crate::errors::AppError;
 use crate::models::diesel::attendance_log::AttendanceStagingLogEntity;
 use crate::repositories::staging_log_repository::{StagingLog, StagingLogRepository};
 use crate::schema::attendance_staging_logs;
@@ -32,13 +33,13 @@ impl StagingLogRepository for DieselStagingLogRepository {
         punch_time: DateTime<Utc>,
         raw_data: Option<serde_json::Value>,
         fingerprint: &str,
-    ) -> Result<bool, sqlx::Error> {
+    ) -> Result<bool, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         // Logic from SQLx: INSERT ... WHERE NOT EXISTS
         // Diesel doesn't have a direct "INSERT ... WHERE NOT EXISTS" DSL easily.
@@ -63,7 +64,7 @@ impl StagingLogRepository for DieselStagingLogRepository {
             .do_nothing()
             .execute(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(rows_affected > 0)
     }
@@ -72,13 +73,13 @@ impl StagingLogRepository for DieselStagingLogRepository {
         &self,
         workspace_id: Uuid,
         limit: i64,
-    ) -> Result<Vec<StagingLog>, sqlx::Error> {
+    ) -> Result<Vec<StagingLog>, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let results: Vec<AttendanceStagingLogEntity> = attendance_staging_logs::table
             .filter(attendance_staging_logs::workspace_id.eq(workspace_id))
@@ -87,7 +88,7 @@ impl StagingLogRepository for DieselStagingLogRepository {
             .limit(limit)
             .load(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(results
             .into_iter()
@@ -110,13 +111,13 @@ impl StagingLogRepository for DieselStagingLogRepository {
         id: Uuid,
         workspace_id: Uuid,
         status: &str,
-    ) -> Result<bool, sqlx::Error> {
+    ) -> Result<bool, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let rows_affected = diesel::update(attendance_staging_logs::table)
             .filter(attendance_staging_logs::id.eq(id))
@@ -124,18 +125,18 @@ impl StagingLogRepository for DieselStagingLogRepository {
             .set(attendance_staging_logs::status.eq(status))
             .execute(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(rows_affected > 0)
     }
 
-    async fn count_pending_staging_logs(&self, workspace_id: Uuid) -> Result<i64, sqlx::Error> {
+    async fn count_pending_staging_logs(&self, workspace_id: Uuid) -> Result<i64, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let count = attendance_staging_logs::table
             .filter(attendance_staging_logs::workspace_id.eq(workspace_id))
@@ -143,7 +144,7 @@ impl StagingLogRepository for DieselStagingLogRepository {
             .count()
             .get_result::<i64>(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(count)
     }

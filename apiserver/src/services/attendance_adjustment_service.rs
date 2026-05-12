@@ -106,22 +106,19 @@ impl AttendanceAdjustmentService {
         let request = self
             .adj_repo
             .get_request_by_id(workspace_id, request_id)
-            .await
-            .map_err(AppError::Sqlx)?
+            .await?
             .ok_or(AppError::NotFound("Not found".into()))?;
 
         self.adj_repo
             .update_adjustment_status(workspace_id, request_id, status, Some(approver_id))
-            .await
-            .map_err(AppError::Sqlx)?;
+            .await?;
 
         if status == AdjustmentStatus::Approved {
             if let Some(time_entry_id) = request.time_entry_id {
                 let mut entry = self
                     .time_entry_repo
                     .get_time_entry_by_id(workspace_id, time_entry_id)
-                    .await
-                    .map_err(AppError::Sqlx)?
+                    .await?
                     .ok_or(AppError::NotFound("Not found".into()))?;
 
                 entry.punch_in_time = request.requested_punch_in_time;
@@ -135,8 +132,7 @@ impl AttendanceAdjustmentService {
 
                 self.time_entry_repo
                     .update_time_entry(workspace_id, &entry)
-                    .await
-                    .map_err(AppError::Sqlx)?;
+                    .await?;
             } else {
                 let duration_minutes = request.requested_punch_out_time.map(|punch_out| {
                     let duration = punch_out.signed_duration_since(request.requested_punch_in_time);
@@ -168,8 +164,7 @@ impl AttendanceAdjustmentService {
 
                 self.time_entry_repo
                     .create_time_entry(&entry)
-                    .await
-                    .map_err(AppError::Sqlx)?;
+                    .await?;
             }
         }
 
@@ -199,7 +194,6 @@ impl AttendanceAdjustmentService {
         self.adj_repo
             .get_workspace_adjustment_requests(workspace_id, status)
             .await
-            .map_err(AppError::Sqlx)
     }
 
     #[tracing::instrument(skip_all, err)]
@@ -211,7 +205,6 @@ impl AttendanceAdjustmentService {
         self.adj_repo
             .get_employee_adjustment_requests(workspace_id, employee_id)
             .await
-            .map_err(AppError::Sqlx)
     }
 }
 

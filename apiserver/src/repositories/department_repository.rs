@@ -4,6 +4,7 @@ use rust_decimal::Decimal;
 use sqlx::PgPool;
 use uuid::Uuid;
 
+use crate::errors::AppError;
 use crate::models::{Department, DepartmentPayrollConfig, EmployeeDepartmentHistory};
 
 // ---------------------------------------------------------------------------
@@ -19,49 +20,49 @@ pub trait DepartmentRepository: super::PoolBacked + Send + Sync {
         description: Option<String>,
         manager_id: Option<Uuid>,
         default_working_pattern_id: Option<Uuid>,
-    ) -> Result<Department, sqlx::Error>;
+    ) -> Result<Department, AppError>;
     async fn get_department_by_id(
         &self,
         workspace_id: Uuid,
         id: Uuid,
-    ) -> Result<Option<Department>, sqlx::Error>;
+    ) -> Result<Option<Department>, AppError>;
     async fn update_department(
         &self,
         workspace_id: Uuid,
         id: Uuid,
         req: crate::models::UpdateDepartmentRequest,
-    ) -> Result<Department, sqlx::Error>;
-    async fn delete_department(&self, workspace_id: Uuid, id: Uuid) -> Result<(), sqlx::Error>;
-    async fn get_departments(&self, workspace_id: Uuid) -> Result<Vec<Department>, sqlx::Error>;
+    ) -> Result<Department, AppError>;
+    async fn delete_department(&self, workspace_id: Uuid, id: Uuid) -> Result<(), AppError>;
+    async fn get_departments(&self, workspace_id: Uuid) -> Result<Vec<Department>, AppError>;
     async fn transfer_employee(
         &self,
         employee_id: Uuid,
         department_id: Uuid,
         effective_date: NaiveDate,
         notes: Option<String>,
-    ) -> Result<EmployeeDepartmentHistory, sqlx::Error>;
+    ) -> Result<EmployeeDepartmentHistory, AppError>;
     async fn get_employee_department_history(
         &self,
         workspace_id: Uuid,
         employee_id: Uuid,
-    ) -> Result<Vec<EmployeeDepartmentHistory>, sqlx::Error>;
+    ) -> Result<Vec<EmployeeDepartmentHistory>, AppError>;
     async fn get_current_department(
         &self,
         workspace_id: Uuid,
         employee_id: Uuid,
-    ) -> Result<Option<EmployeeDepartmentHistory>, sqlx::Error>;
+    ) -> Result<Option<EmployeeDepartmentHistory>, AppError>;
     async fn upsert_department_payroll_config(
         &self,
         department_id: Uuid,
         std_working_days: Decimal,
         hours_per_day: Decimal,
         effective_date: NaiveDate,
-    ) -> Result<DepartmentPayrollConfig, sqlx::Error>;
+    ) -> Result<DepartmentPayrollConfig, AppError>;
     async fn get_department_payroll_config_at(
         &self,
         department_id: Uuid,
         date: NaiveDate,
-    ) -> Result<Option<DepartmentPayrollConfig>, sqlx::Error>;
+    ) -> Result<Option<DepartmentPayrollConfig>, AppError>;
 }
 
 // ---------------------------------------------------------------------------
@@ -86,7 +87,7 @@ impl DepartmentRepository for SqlxDepartmentRepository {
         description: Option<String>,
         manager_id: Option<Uuid>,
         default_working_pattern_id: Option<Uuid>,
-    ) -> Result<Department, sqlx::Error> {
+    ) -> Result<Department, AppError> {
         create_department(
             &self.pool,
             workspace_id,
@@ -96,27 +97,28 @@ impl DepartmentRepository for SqlxDepartmentRepository {
             default_working_pattern_id,
         )
         .await
+        .map_err(Into::into)
     }
     async fn get_department_by_id(
         &self,
         workspace_id: Uuid,
         id: Uuid,
-    ) -> Result<Option<Department>, sqlx::Error> {
-        get_department_by_id(&self.pool, workspace_id, id).await
+    ) -> Result<Option<Department>, AppError> {
+        get_department_by_id(&self.pool, workspace_id, id).await.map_err(Into::into)
     }
     async fn update_department(
         &self,
         workspace_id: Uuid,
         id: Uuid,
         req: crate::models::UpdateDepartmentRequest,
-    ) -> Result<Department, sqlx::Error> {
-        update_department(&self.pool, workspace_id, id, req).await
+    ) -> Result<Department, AppError> {
+        update_department(&self.pool, workspace_id, id, req).await.map_err(Into::into)
     }
-    async fn delete_department(&self, workspace_id: Uuid, id: Uuid) -> Result<(), sqlx::Error> {
-        delete_department(&self.pool, workspace_id, id).await
+    async fn delete_department(&self, workspace_id: Uuid, id: Uuid) -> Result<(), AppError> {
+        delete_department(&self.pool, workspace_id, id).await.map_err(Into::into)
     }
-    async fn get_departments(&self, workspace_id: Uuid) -> Result<Vec<Department>, sqlx::Error> {
-        get_departments(&self.pool, workspace_id).await
+    async fn get_departments(&self, workspace_id: Uuid) -> Result<Vec<Department>, AppError> {
+        get_departments(&self.pool, workspace_id).await.map_err(Into::into)
     }
     async fn transfer_employee(
         &self,
@@ -124,7 +126,7 @@ impl DepartmentRepository for SqlxDepartmentRepository {
         department_id: Uuid,
         effective_date: NaiveDate,
         notes: Option<String>,
-    ) -> Result<EmployeeDepartmentHistory, sqlx::Error> {
+    ) -> Result<EmployeeDepartmentHistory, AppError> {
         transfer_employee(
             &self.pool,
             employee_id,
@@ -133,20 +135,21 @@ impl DepartmentRepository for SqlxDepartmentRepository {
             notes,
         )
         .await
+        .map_err(Into::into)
     }
     async fn get_employee_department_history(
         &self,
         workspace_id: Uuid,
         employee_id: Uuid,
-    ) -> Result<Vec<EmployeeDepartmentHistory>, sqlx::Error> {
-        get_employee_department_history(&self.pool, workspace_id, employee_id).await
+    ) -> Result<Vec<EmployeeDepartmentHistory>, AppError> {
+        get_employee_department_history(&self.pool, workspace_id, employee_id).await.map_err(Into::into)
     }
     async fn get_current_department(
         &self,
         workspace_id: Uuid,
         employee_id: Uuid,
-    ) -> Result<Option<EmployeeDepartmentHistory>, sqlx::Error> {
-        get_current_department(&self.pool, workspace_id, employee_id).await
+    ) -> Result<Option<EmployeeDepartmentHistory>, AppError> {
+        get_current_department(&self.pool, workspace_id, employee_id).await.map_err(Into::into)
     }
     async fn upsert_department_payroll_config(
         &self,
@@ -154,7 +157,7 @@ impl DepartmentRepository for SqlxDepartmentRepository {
         std_working_days: Decimal,
         hours_per_day: Decimal,
         effective_date: NaiveDate,
-    ) -> Result<DepartmentPayrollConfig, sqlx::Error> {
+    ) -> Result<DepartmentPayrollConfig, AppError> {
         upsert_department_payroll_config(
             &self.pool,
             department_id,
@@ -163,13 +166,14 @@ impl DepartmentRepository for SqlxDepartmentRepository {
             effective_date,
         )
         .await
+        .map_err(Into::into)
     }
     async fn get_department_payroll_config_at(
         &self,
         department_id: Uuid,
         date: NaiveDate,
-    ) -> Result<Option<DepartmentPayrollConfig>, sqlx::Error> {
-        get_department_payroll_config_at(&self.pool, department_id, date).await
+    ) -> Result<Option<DepartmentPayrollConfig>, AppError> {
+        get_department_payroll_config_at(&self.pool, department_id, date).await.map_err(Into::into)
     }
 }
 

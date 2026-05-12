@@ -7,6 +7,7 @@ use uuid::Uuid;
 
 use crate::{
     diesel_pool::DieselPools,
+    errors::AppError,
     models::{
         diesel::agent::{AuthorizedAgentEntity, DeviceEntity, UpdateDieselDevice},
         AuthorizedAgent, Device,
@@ -107,13 +108,13 @@ impl AgentRepository for DieselAgentRepository {
         &self,
         workspace_id_val: Uuid,
         include_inactive: bool,
-    ) -> Result<Vec<AuthorizedAgent>, sqlx::Error> {
+    ) -> Result<Vec<AuthorizedAgent>, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let mut query = authorized_agents::table
             .filter(authorized_agents::workspace_id.eq(workspace_id_val))
@@ -127,7 +128,7 @@ impl AgentRepository for DieselAgentRepository {
             .order(authorized_agents::created_at.desc())
             .load::<AuthorizedAgentEntity>(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(agents.into_iter().map(Into::into).collect())
     }
@@ -141,13 +142,13 @@ impl AgentRepository for DieselAgentRepository {
         max_concurrent_workers_val: i32,
         success_cooldown_secs_val: i32,
         retention_days_val: i32,
-    ) -> Result<(), sqlx::Error> {
+    ) -> Result<(), AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let agent = AuthorizedAgentEntity {
             id: id_val.to_string(),
@@ -168,7 +169,7 @@ impl AgentRepository for DieselAgentRepository {
             .values(&agent)
             .execute(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(())
     }
@@ -177,13 +178,13 @@ impl AgentRepository for DieselAgentRepository {
         &self,
         agent_id_val: &str,
         workspace_id_val: Uuid,
-    ) -> Result<bool, sqlx::Error> {
+    ) -> Result<bool, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let count: i64 = authorized_agents::table
             .filter(authorized_agents::id.eq(agent_id_val))
@@ -192,7 +193,7 @@ impl AgentRepository for DieselAgentRepository {
             .count()
             .get_result(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(count > 0)
     }
@@ -200,20 +201,20 @@ impl AgentRepository for DieselAgentRepository {
     async fn get_workspace_devices(
         &self,
         workspace_id_val: Uuid,
-    ) -> Result<Vec<Device>, sqlx::Error> {
+    ) -> Result<Vec<Device>, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let devices_result = devices::table
             .filter(devices::workspace_id.eq(workspace_id_val))
             .order(devices::created_at.desc())
             .load::<DeviceEntity>(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(devices_result.into_iter().map(Into::into).collect())
     }
@@ -222,13 +223,13 @@ impl AgentRepository for DieselAgentRepository {
         &self,
         agent_ids_val: &[String],
         workspace_id_val: Uuid,
-    ) -> Result<Vec<Device>, sqlx::Error> {
+    ) -> Result<Vec<Device>, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let devices_result = devices::table
             .filter(devices::agent_id.eq_any(agent_ids_val))
@@ -236,7 +237,7 @@ impl AgentRepository for DieselAgentRepository {
             .order(devices::created_at.desc())
             .load::<DeviceEntity>(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(devices_result.into_iter().map(Into::into).collect())
     }
@@ -252,13 +253,13 @@ impl AgentRepository for DieselAgentRepository {
         brand_val: &str,
         password_val: &str,
         timezone_val: &str,
-    ) -> Result<(), sqlx::Error> {
+    ) -> Result<(), AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let device = DeviceEntity {
             id: id_val,
@@ -279,7 +280,7 @@ impl AgentRepository for DieselAgentRepository {
             .values(&device)
             .execute(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(())
     }
@@ -288,13 +289,13 @@ impl AgentRepository for DieselAgentRepository {
         &self,
         id_val: Uuid,
         workspace_id_val: Uuid,
-    ) -> Result<Option<Device>, sqlx::Error> {
+    ) -> Result<Option<Device>, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let device = devices::table
             .filter(devices::id.eq(id_val))
@@ -302,7 +303,7 @@ impl AgentRepository for DieselAgentRepository {
             .first::<DeviceEntity>(&mut conn)
             .await
             .optional()
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(device.map(Into::into))
     }
@@ -318,13 +319,13 @@ impl AgentRepository for DieselAgentRepository {
         brand_val: &str,
         password_val: Option<&str>,
         timezone_val: &str,
-    ) -> Result<(), sqlx::Error> {
+    ) -> Result<(), AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         // Note: Password update logic. In sqlx it was: password = COALESCE($6, password).
         // Since we use AsChangeset, we can fetch existing if password is None, or we can just fetch and update.
@@ -346,7 +347,7 @@ impl AgentRepository for DieselAgentRepository {
                 .filter(devices::workspace_id.eq(workspace_id_val))
                 .first(&mut conn)
                 .await
-                .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?;
             update_model.password = existing;
         }
 
@@ -358,7 +359,7 @@ impl AgentRepository for DieselAgentRepository {
         .set(&update_model)
         .execute(&mut conn)
         .await
-        .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(())
     }
@@ -367,13 +368,13 @@ impl AgentRepository for DieselAgentRepository {
         &self,
         device_id_val: Uuid,
         workspace_id_val: Uuid,
-    ) -> Result<Option<String>, sqlx::Error> {
+    ) -> Result<Option<String>, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let agent_id = devices::table
             .select(devices::agent_id)
@@ -382,7 +383,7 @@ impl AgentRepository for DieselAgentRepository {
             .first::<String>(&mut conn)
             .await
             .optional()
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(agent_id)
     }
@@ -391,13 +392,13 @@ impl AgentRepository for DieselAgentRepository {
         &self,
         device_id_val: Uuid,
         workspace_id_val: Uuid,
-    ) -> Result<u64, sqlx::Error> {
+    ) -> Result<u64, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let affected = diesel::delete(
             devices::table
@@ -406,7 +407,7 @@ impl AgentRepository for DieselAgentRepository {
         )
         .execute(&mut conn)
         .await
-        .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(affected as u64)
     }
@@ -416,13 +417,13 @@ impl AgentRepository for DieselAgentRepository {
         agent_id_val: &str,
         workspace_id_val: Uuid,
         is_trusted_val: bool,
-    ) -> Result<u64, sqlx::Error> {
+    ) -> Result<u64, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let affected = diesel::update(
             authorized_agents::table
@@ -432,7 +433,7 @@ impl AgentRepository for DieselAgentRepository {
         .set(authorized_agents::is_trusted.eq(Some(is_trusted_val)))
         .execute(&mut conn)
         .await
-        .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(affected as u64)
     }
@@ -441,13 +442,13 @@ impl AgentRepository for DieselAgentRepository {
         &self,
         agent_id_val: &str,
         workspace_id_val: Uuid,
-    ) -> Result<Option<AuthorizedAgent>, sqlx::Error> {
+    ) -> Result<Option<AuthorizedAgent>, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let agent = authorized_agents::table
             .filter(authorized_agents::id.eq(agent_id_val))
@@ -455,7 +456,7 @@ impl AgentRepository for DieselAgentRepository {
             .first::<AuthorizedAgentEntity>(&mut conn)
             .await
             .optional()
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(agent.map(Into::into))
     }
@@ -464,13 +465,13 @@ impl AgentRepository for DieselAgentRepository {
         &self,
         agent_id_val: &str,
         workspace_id_val: Uuid,
-    ) -> Result<u64, sqlx::Error> {
+    ) -> Result<u64, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let affected = diesel::update(
             authorized_agents::table
@@ -480,7 +481,7 @@ impl AgentRepository for DieselAgentRepository {
         .set(authorized_agents::is_active.eq(false))
         .execute(&mut conn)
         .await
-        .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(affected as u64)
     }

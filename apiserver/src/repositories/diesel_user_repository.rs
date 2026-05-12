@@ -1,4 +1,5 @@
 use crate::diesel_pool::DieselPools;
+use crate::errors::AppError;
 use crate::models::diesel::core::UserEntity;
 use crate::models::User;
 use crate::repositories::user_repository::UserRepository;
@@ -37,13 +38,13 @@ impl crate::repositories::PoolBacked for DieselUserRepository {
 
 #[async_trait]
 impl UserRepository for DieselUserRepository {
-    async fn create_user(&self, user: &User) -> Result<(), sqlx::Error> {
+    async fn create_user(&self, user: &User) -> Result<(), AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let entity = UserEntity {
             id: user.id,
@@ -60,18 +61,18 @@ impl UserRepository for DieselUserRepository {
             .values(&entity)
             .execute(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(())
     }
 
-    async fn get_user_by_email(&self, email: &str) -> Result<Option<User>, sqlx::Error> {
+    async fn get_user_by_email(&self, email: &str) -> Result<Option<User>, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let entity = users::table
             .filter(users::email.eq(email))
@@ -79,18 +80,18 @@ impl UserRepository for DieselUserRepository {
             .first::<UserEntity>(&mut conn)
             .await
             .optional()
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(entity.map(Into::into))
     }
 
-    async fn get_user_by_id(&self, id: Uuid) -> Result<Option<User>, sqlx::Error> {
+    async fn get_user_by_id(&self, id: Uuid) -> Result<Option<User>, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let entity = users::table
             .find(id)
@@ -98,7 +99,7 @@ impl UserRepository for DieselUserRepository {
             .first::<UserEntity>(&mut conn)
             .await
             .optional()
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(entity.map(Into::into))
     }
@@ -107,30 +108,30 @@ impl UserRepository for DieselUserRepository {
         &self,
         user_id: Uuid,
         password_hash: &str,
-    ) -> Result<(), sqlx::Error> {
+    ) -> Result<(), AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         diesel::update(users::table.find(user_id))
             .set(users::password_hash.eq(password_hash))
             .execute(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(())
     }
 
-    async fn get_system_roles_for_user(&self, user_id: Uuid) -> Result<Vec<String>, sqlx::Error> {
+    async fn get_system_roles_for_user(&self, user_id: Uuid) -> Result<Vec<String>, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let roles = user_system_roles::table
             .inner_join(system_roles::table.on(system_roles::id.eq(user_system_roles::role_id)))
@@ -138,7 +139,7 @@ impl UserRepository for DieselUserRepository {
             .select(system_roles::name)
             .load::<String>(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(roles)
     }
@@ -149,13 +150,13 @@ impl UserRepository for DieselUserRepository {
         full_name: Option<String>,
         avatar_url: Option<String>,
         bio: Option<String>,
-    ) -> Result<User, sqlx::Error> {
+    ) -> Result<User, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let entity = diesel::update(users::table.find(user_id))
             .set((
@@ -165,18 +166,18 @@ impl UserRepository for DieselUserRepository {
             ))
             .get_result::<UserEntity>(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(entity.into())
     }
 
-    async fn get_workspace_users(&self, workspace_id: Uuid) -> Result<Vec<User>, sqlx::Error> {
+    async fn get_workspace_users(&self, workspace_id: Uuid) -> Result<Vec<User>, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let entities = users::table
             .inner_join(workspace_members::table)
@@ -185,7 +186,7 @@ impl UserRepository for DieselUserRepository {
             .order(users::created_at.desc())
             .load::<UserEntity>(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(entities.into_iter().map(Into::into).collect())
     }

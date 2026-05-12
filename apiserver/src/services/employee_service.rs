@@ -39,7 +39,6 @@ impl EmployeeService {
         self.repo
             .get_working_conditions(workspace_id, emp.id)
             .await
-            .map_err(AppError::Sqlx)
     }
 
     #[tracing::instrument(skip_all, err)]
@@ -67,8 +66,7 @@ impl EmployeeService {
 
         self.repo
             .create_working_condition(&condition)
-            .await
-            .map_err(AppError::Sqlx)?;
+            .await?;
 
         Ok(condition)
     }
@@ -89,8 +87,7 @@ impl EmployeeService {
         let deleted = self
             .repo
             .delete_working_condition(condition_id, emp.id)
-            .await
-            .map_err(AppError::Sqlx)?;
+            .await?;
 
         if !deleted {
             return Err(AppError::NotFound("Working condition not found".into()));
@@ -130,16 +127,14 @@ impl EmployeeService {
         // Transaction-based creation still uses pool directly
         let mut tx = self.pool.begin().await.map_err(AppError::Sqlx)?;
         employee::create_employee_tx(&mut tx, &employee)
-            .await
-            .map_err(AppError::Sqlx)?;
+            .await?;
         tx.commit().await.map_err(AppError::Sqlx)?;
 
         // Set recruitment source if provided
         if let Some(source_id) = req.recruitment_source_id {
             self.repo
                 .set_employee_recruitment_source(workspace_id, employee.id, Some(source_id))
-                .await
-                .map_err(AppError::Sqlx)?;
+                .await?;
         }
 
         // Claim staged logs directly for the new employee
@@ -202,8 +197,7 @@ impl EmployeeService {
 
         self.repo
             .update_employee(employee_id, workspace_id, &update_req)
-            .await
-            .map_err(AppError::Sqlx)?;
+            .await?;
 
         sqlx::query!(
             "UPDATE employees SET hire_date = $1, termination_date = NULL WHERE id = $2 AND workspace_id = $3",
@@ -212,8 +206,7 @@ impl EmployeeService {
             workspace_id
         )
         .execute(&self.pool)
-        .await
-        .map_err(AppError::Sqlx)?;
+        .await?;
 
         self.repo
             .get_employee_by_id(employee_id, workspace_id)
@@ -242,7 +235,6 @@ impl EmployeeService {
         self.repo
             .get_all_employees(workspace_id, options)
             .await
-            .map_err(AppError::Sqlx)
     }
 
     #[tracing::instrument(skip_all, err)]
@@ -269,8 +261,7 @@ impl EmployeeService {
         if req.recruitment_source_id.is_some() {
             self.repo
                 .set_employee_recruitment_source(workspace_id, id, req.recruitment_source_id)
-                .await
-                .map_err(AppError::Sqlx)?;
+                .await?;
         }
 
         // If employee_id_number was updated, claim staged logs directly
@@ -321,8 +312,7 @@ impl EmployeeService {
         };
         self.repo
             .create_recruitment_source(&source)
-            .await
-            .map_err(AppError::Sqlx)?;
+            .await?;
         Ok(source)
     }
 
@@ -334,7 +324,6 @@ impl EmployeeService {
         self.repo
             .get_recruitment_sources(workspace_id)
             .await
-            .map_err(AppError::Sqlx)
     }
 
     #[tracing::instrument(skip_all, err)]
@@ -359,8 +348,7 @@ impl EmployeeService {
         let rows = self
             .repo
             .delete_recruitment_source(id, workspace_id)
-            .await
-            .map_err(AppError::Sqlx)?;
+            .await?;
         if rows == 0 {
             return Err(AppError::NotFound("Recruitment source not found".into()));
         }
@@ -375,7 +363,6 @@ impl EmployeeService {
         self.repo
             .get_recruitment_source_breakdown(workspace_id)
             .await
-            .map_err(AppError::Sqlx)
     }
 
     #[tracing::instrument(skip_all, err)]
@@ -383,8 +370,7 @@ impl EmployeeService {
         let rows_affected = self
             .repo
             .delete_employee(id, workspace_id)
-            .await
-            .map_err(AppError::Sqlx)?;
+            .await?;
 
         if rows_affected == 0 {
             Err(AppError::NotFound("Employee not found".into()))
@@ -411,7 +397,7 @@ impl EmployeeService {
             employee_id,
         )
         .await
-        .map_err(AppError::Sqlx)
+        .map_err(Into::into)
     }
 
     #[tracing::instrument(skip_all, err)]
@@ -435,7 +421,7 @@ impl EmployeeService {
             req.notes,
         )
         .await
-        .map_err(AppError::Sqlx)
+        .map_err(Into::into)
     }
 
     #[tracing::instrument(skip_all, err)]
@@ -448,7 +434,6 @@ impl EmployeeService {
         self.repo
             .get_turnover_analytics(workspace_id, start_date, end_date)
             .await
-            .map_err(AppError::Sqlx)
     }
 }
 

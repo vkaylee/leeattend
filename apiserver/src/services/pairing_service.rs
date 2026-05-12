@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use crate::errors::AppError;
 
 use chrono::{DateTime, Duration, NaiveDate, Timelike, Utc};
 use chrono_tz::Tz;
@@ -32,7 +33,7 @@ impl PairingService {
     }
 
     #[tracing::instrument(skip_all, err)]
-    pub async fn process_new_raw_log(&self, log: &RawAttendanceLog) -> Result<(), sqlx::Error> {
+    pub async fn process_new_raw_log(&self, log: &RawAttendanceLog)  -> Result<(), AppError> {
         // 1. Deduplication (exact match check)
         let is_duplicate = sqlx::query_scalar!(
             r#"
@@ -100,7 +101,7 @@ impl PairingService {
         employee_id: Uuid,
         date: NaiveDate,
         tz: Tz,
-    ) -> Result<(), sqlx::Error> {
+    )  -> Result<(), AppError> {
         info!(
             "Reprocessing attendance for emp {} on date {}",
             employee_id, date
@@ -325,7 +326,7 @@ impl PairingService {
         workspace_id: Uuid,
         start: DateTime<Utc>,
         end: DateTime<Utc>,
-    ) -> Result<(), sqlx::Error> {
+    )  -> Result<(), AppError> {
         sqlx::query!(
             "DELETE FROM time_entries WHERE employee_id = $1 AND workspace_id = $2 AND punch_in_time >= $3 AND punch_in_time < $4",
             employee_id, workspace_id, start, end

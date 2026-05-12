@@ -4,6 +4,7 @@ use sqlx::PgPool;
 use std::collections::HashMap;
 use uuid::Uuid;
 
+use crate::errors::AppError;
 use crate::models::Holiday;
 
 /// Result of processing holiday leave deductions for employees.
@@ -31,32 +32,32 @@ pub trait HolidayRepositoryTrait: super::PoolBacked + Send + Sync {
         &self,
         workspace_id: Uuid,
         year: Option<i32>,
-    ) -> Result<Vec<Holiday>, sqlx::Error>;
+    ) -> Result<Vec<Holiday>, AppError>;
     async fn get_by_id(&self, workspace_id: Uuid, id: Uuid)
-        -> Result<Option<Holiday>, sqlx::Error>;
+        -> Result<Option<Holiday>, AppError>;
     async fn create_holiday(
         &self,
         workspace_id: Uuid,
         req: &crate::models::CreateHolidayRequest,
-    ) -> Result<Holiday, sqlx::Error>;
+    ) -> Result<Holiday, AppError>;
     async fn update_holiday(
         &self,
         workspace_id: Uuid,
         id: Uuid,
         req: &crate::models::UpdateHolidayRequest,
-    ) -> Result<Option<Holiday>, sqlx::Error>;
-    async fn delete(&self, workspace_id: Uuid, id: Uuid) -> Result<bool, sqlx::Error>;
+    ) -> Result<Option<Holiday>, AppError>;
+    async fn delete(&self, workspace_id: Uuid, id: Uuid) -> Result<bool, AppError>;
     async fn get_holidays_in_range(
         &self,
         workspace_id: Uuid,
         start_date: NaiveDate,
         end_date: NaiveDate,
-    ) -> Result<HashMap<NaiveDate, Holiday>, sqlx::Error>;
+    ) -> Result<HashMap<NaiveDate, Holiday>, AppError>;
     async fn is_holiday(
         &self,
         workspace_id: Uuid,
         date: NaiveDate,
-    ) -> Result<Option<Holiday>, sqlx::Error>;
+    ) -> Result<Option<Holiday>, AppError>;
 }
 
 // ---------------------------------------------------------------------------
@@ -78,49 +79,50 @@ impl HolidayRepositoryTrait for SqlxHolidayRepository {
         &self,
         workspace_id: Uuid,
         year: Option<i32>,
-    ) -> Result<Vec<Holiday>, sqlx::Error> {
-        HolidayRepository::list(&self.pool, workspace_id, year).await
+    ) -> Result<Vec<Holiday>, AppError> {
+        HolidayRepository::list(&self.pool, workspace_id, year).await.map_err(Into::into)
     }
     async fn get_by_id(
         &self,
         workspace_id: Uuid,
         id: Uuid,
-    ) -> Result<Option<Holiday>, sqlx::Error> {
-        HolidayRepository::get_by_id(&self.pool, workspace_id, id).await
+    ) -> Result<Option<Holiday>, AppError> {
+        HolidayRepository::get_by_id(&self.pool, workspace_id, id).await.map_err(Into::into)
     }
     async fn create_holiday(
         &self,
         workspace_id: Uuid,
         req: &crate::models::CreateHolidayRequest,
-    ) -> Result<Holiday, sqlx::Error> {
-        HolidayRepository::create(&self.pool, workspace_id, req).await
+    ) -> Result<Holiday, AppError> {
+        HolidayRepository::create(&self.pool, workspace_id, req).await.map_err(Into::into)
     }
     async fn update_holiday(
         &self,
         workspace_id: Uuid,
         id: Uuid,
         req: &crate::models::UpdateHolidayRequest,
-    ) -> Result<Option<Holiday>, sqlx::Error> {
-        HolidayRepository::update(&self.pool, workspace_id, id, req).await
+    ) -> Result<Option<Holiday>, AppError> {
+        HolidayRepository::update(&self.pool, workspace_id, id, req).await.map_err(Into::into)
     }
-    async fn delete(&self, workspace_id: Uuid, id: Uuid) -> Result<bool, sqlx::Error> {
-        HolidayRepository::delete(&self.pool, workspace_id, id).await
+    async fn delete(&self, workspace_id: Uuid, id: Uuid) -> Result<bool, AppError> {
+        HolidayRepository::delete(&self.pool, workspace_id, id).await.map_err(Into::into)
     }
     async fn get_holidays_in_range(
         &self,
         workspace_id: Uuid,
         start_date: NaiveDate,
         end_date: NaiveDate,
-    ) -> Result<HashMap<NaiveDate, Holiday>, sqlx::Error> {
+    ) -> Result<HashMap<NaiveDate, Holiday>, AppError> {
         HolidayRepository::get_holidays_in_range(&self.pool, workspace_id, start_date, end_date)
             .await
+            .map_err(Into::into)
     }
     async fn is_holiday(
         &self,
         workspace_id: Uuid,
         date: NaiveDate,
-    ) -> Result<Option<Holiday>, sqlx::Error> {
-        HolidayRepository::is_holiday(&self.pool, workspace_id, date).await
+    ) -> Result<Option<Holiday>, AppError> {
+        HolidayRepository::is_holiday(&self.pool, workspace_id, date).await.map_err(Into::into)
     }
 }
 

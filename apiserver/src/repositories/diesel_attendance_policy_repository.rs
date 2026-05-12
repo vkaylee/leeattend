@@ -5,6 +5,7 @@ use sqlx::PgPool;
 use std::collections::HashMap;
 use uuid::Uuid;
 
+use crate::errors::AppError;
 use crate::models::AttendancePolicyVersion;
 use crate::repositories::attendance_policy_repository::{
     AttendancePolicyRepository, SqlxAttendancePolicyRepository,
@@ -31,7 +32,7 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
         workspace_id: Uuid,
         employee_id: Uuid,
         effective_time: DateTime<Utc>,
-    ) -> Result<Option<AttendancePolicyVersion>, sqlx::Error> {
+    ) -> Result<Option<AttendancePolicyVersion>, AppError> {
         // Complex CTE query - fallback to SQLx for now
         let repo = SqlxAttendancePolicyRepository::from_pool(self.sqlx_pool.clone());
         repo.get_employee_effective_policy(workspace_id, employee_id, effective_time)
@@ -43,7 +44,7 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
         workspace_id: Uuid,
         employee_ids: &[Uuid],
         effective_time: DateTime<Utc>,
-    ) -> Result<HashMap<Uuid, AttendancePolicyVersion>, sqlx::Error> {
+    ) -> Result<HashMap<Uuid, AttendancePolicyVersion>, AppError> {
         // Complex CTE query - fallback to SQLx for now
         let repo = SqlxAttendancePolicyRepository::from_pool(self.sqlx_pool.clone());
         repo.get_employee_effective_policies_batch(workspace_id, employee_ids, effective_time)

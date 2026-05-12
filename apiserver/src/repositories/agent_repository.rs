@@ -1,3 +1,4 @@
+use crate::errors::AppError;
 use crate::models::{AuthorizedAgent, Device};
 use async_trait::async_trait;
 use sqlx::PgPool;
@@ -13,7 +14,7 @@ pub trait AgentRepository: super::PoolBacked + Send + Sync {
         &self,
         workspace_id: Uuid,
         include_inactive: bool,
-    ) -> Result<Vec<AuthorizedAgent>, sqlx::Error>;
+    ) -> Result<Vec<AuthorizedAgent>, AppError>;
     #[allow(clippy::too_many_arguments)]
     async fn create_authorized_agent(
         &self,
@@ -24,18 +25,18 @@ pub trait AgentRepository: super::PoolBacked + Send + Sync {
         max_concurrent_workers: i32,
         success_cooldown_secs: i32,
         retention_days: i32,
-    ) -> Result<(), sqlx::Error>;
+    ) -> Result<(), AppError>;
     async fn agent_exists_in_workspace(
         &self,
         agent_id: &str,
         workspace_id: Uuid,
-    ) -> Result<bool, sqlx::Error>;
-    async fn get_workspace_devices(&self, workspace_id: Uuid) -> Result<Vec<Device>, sqlx::Error>;
+    ) -> Result<bool, AppError>;
+    async fn get_workspace_devices(&self, workspace_id: Uuid) -> Result<Vec<Device>, AppError>;
     async fn get_devices_by_agent_ids(
         &self,
         agent_ids: &[String],
         workspace_id: Uuid,
-    ) -> Result<Vec<Device>, sqlx::Error>;
+    ) -> Result<Vec<Device>, AppError>;
     #[allow(clippy::too_many_arguments)]
     async fn create_device(
         &self,
@@ -48,12 +49,12 @@ pub trait AgentRepository: super::PoolBacked + Send + Sync {
         brand: &str,
         password: &str,
         timezone: &str,
-    ) -> Result<(), sqlx::Error>;
+    ) -> Result<(), AppError>;
     async fn get_device_by_id(
         &self,
         id: Uuid,
         workspace_id: Uuid,
-    ) -> Result<Option<Device>, sqlx::Error>;
+    ) -> Result<Option<Device>, AppError>;
     #[allow(clippy::too_many_arguments)]
     async fn update_device(
         &self,
@@ -66,29 +67,29 @@ pub trait AgentRepository: super::PoolBacked + Send + Sync {
         brand: &str,
         password: Option<&str>,
         timezone: &str,
-    ) -> Result<(), sqlx::Error>;
+    ) -> Result<(), AppError>;
     async fn get_agent_id_for_device(
         &self,
         device_id: Uuid,
         workspace_id: Uuid,
-    ) -> Result<Option<String>, sqlx::Error>;
-    async fn delete_device(&self, device_id: Uuid, workspace_id: Uuid) -> Result<u64, sqlx::Error>;
+    ) -> Result<Option<String>, AppError>;
+    async fn delete_device(&self, device_id: Uuid, workspace_id: Uuid) -> Result<u64, AppError>;
     async fn update_agent_trust(
         &self,
         agent_id: &str,
         workspace_id: Uuid,
         is_trusted: bool,
-    ) -> Result<u64, sqlx::Error>;
+    ) -> Result<u64, AppError>;
     async fn get_agent_by_id_in_workspace(
         &self,
         agent_id: &str,
         workspace_id: Uuid,
-    ) -> Result<Option<AuthorizedAgent>, sqlx::Error>;
+    ) -> Result<Option<AuthorizedAgent>, AppError>;
     async fn deactivate_agent(
         &self,
         agent_id: &str,
         workspace_id: Uuid,
-    ) -> Result<u64, sqlx::Error>;
+    ) -> Result<u64, AppError>;
 }
 
 pub struct SqlxAgentRepository {
@@ -153,7 +154,7 @@ impl AgentRepository for SqlxAgentRepository {
         &self,
         workspace_id: Uuid,
         include_inactive: bool,
-    ) -> Result<Vec<AuthorizedAgent>, sqlx::Error> {
+    ) -> Result<Vec<AuthorizedAgent>, AppError> {
         let query = if include_inactive {
             "SELECT * FROM authorized_agents WHERE workspace_id = $1 ORDER BY created_at DESC"
         } else {
@@ -163,6 +164,7 @@ impl AgentRepository for SqlxAgentRepository {
             .bind(workspace_id)
             .fetch_all(&self.pool)
             .await
+            .map_err(Into::into)
     }
 
     async fn create_authorized_agent(
@@ -174,7 +176,7 @@ impl AgentRepository for SqlxAgentRepository {
         max_concurrent_workers: i32,
         success_cooldown_secs: i32,
         retention_days: i32,
-    ) -> Result<(), sqlx::Error> {
+    ) -> Result<(), AppError> {
         sqlx::query(
             "INSERT INTO authorized_agents (id, name, token, workspace_id, max_concurrent_workers, success_cooldown_secs, retention_days) VALUES ($1, $2, $3, $4, $5, $6, $7)",
         )
@@ -194,7 +196,7 @@ impl AgentRepository for SqlxAgentRepository {
         &self,
         agent_id: &str,
         workspace_id: Uuid,
-    ) -> Result<bool, sqlx::Error> {
+    ) -> Result<bool, AppError> {
         sqlx::query_scalar::<_, bool>(
             "SELECT EXISTS(SELECT 1 FROM authorized_agents WHERE id = $1 AND workspace_id = $2 AND is_active = TRUE)",
         )
@@ -202,22 +204,24 @@ impl AgentRepository for SqlxAgentRepository {
         .bind(workspace_id)
         .fetch_one(&self.pool)
         .await
+        .map_err(Into::into)
     }
 
-    async fn get_workspace_devices(&self, workspace_id: Uuid) -> Result<Vec<Device>, sqlx::Error> {
+    async fn get_workspace_devices(&self, workspace_id: Uuid) -> Result<Vec<Device>, AppError> {
         sqlx::query_as::<_, Device>(
             "SELECT * FROM devices WHERE workspace_id = $1 ORDER BY created_at DESC",
         )
         .bind(workspace_id)
         .fetch_all(&self.pool)
         .await
+        .map_err(Into::into)
     }
 
     async fn get_devices_by_agent_ids(
         &self,
         agent_ids: &[String],
         workspace_id: Uuid,
-    ) -> Result<Vec<Device>, sqlx::Error> {
+    ) -> Result<Vec<Device>, AppError> {
         sqlx::query_as::<_, Device>(
             "SELECT * FROM devices WHERE agent_id = ANY($1) AND workspace_id = $2 ORDER BY created_at DESC",
         )
@@ -225,6 +229,7 @@ impl AgentRepository for SqlxAgentRepository {
         .bind(workspace_id)
         .fetch_all(&self.pool)
         .await
+        .map_err(Into::into)
     }
 
     async fn create_device(
@@ -238,7 +243,7 @@ impl AgentRepository for SqlxAgentRepository {
         brand: &str,
         password: &str,
         timezone: &str,
-    ) -> Result<(), sqlx::Error> {
+    ) -> Result<(), AppError> {
         sqlx::query(
             "INSERT INTO devices (id, agent_id, name, ip, port, workspace_id, brand, password, timezone) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
         )
@@ -260,12 +265,13 @@ impl AgentRepository for SqlxAgentRepository {
         &self,
         id: Uuid,
         workspace_id: Uuid,
-    ) -> Result<Option<Device>, sqlx::Error> {
+    ) -> Result<Option<Device>, AppError> {
         sqlx::query_as::<_, Device>("SELECT * FROM devices WHERE id = $1 AND workspace_id = $2")
             .bind(id)
             .bind(workspace_id)
             .fetch_optional(&self.pool)
             .await
+            .map_err(Into::into)
     }
 
     async fn update_device(
@@ -279,7 +285,7 @@ impl AgentRepository for SqlxAgentRepository {
         brand: &str,
         password: Option<&str>,
         timezone: &str,
-    ) -> Result<(), sqlx::Error> {
+    ) -> Result<(), AppError> {
         sqlx::query(
             "UPDATE devices SET name = $1, ip = $2, port = $3, is_enabled = $4, brand = $5, password = COALESCE($6, password), timezone = $7 WHERE id = $8 AND workspace_id = $9",
         )
@@ -301,15 +307,16 @@ impl AgentRepository for SqlxAgentRepository {
         &self,
         device_id: Uuid,
         workspace_id: Uuid,
-    ) -> Result<Option<String>, sqlx::Error> {
+    ) -> Result<Option<String>, AppError> {
         sqlx::query_scalar("SELECT agent_id FROM devices WHERE id = $1 AND workspace_id = $2")
             .bind(device_id)
             .bind(workspace_id)
             .fetch_optional(&self.pool)
             .await
+            .map_err(Into::into)
     }
 
-    async fn delete_device(&self, device_id: Uuid, workspace_id: Uuid) -> Result<u64, sqlx::Error> {
+    async fn delete_device(&self, device_id: Uuid, workspace_id: Uuid) -> Result<u64, AppError> {
         let result = sqlx::query("DELETE FROM devices WHERE id = $1 AND workspace_id = $2")
             .bind(device_id)
             .bind(workspace_id)
@@ -323,7 +330,7 @@ impl AgentRepository for SqlxAgentRepository {
         agent_id: &str,
         workspace_id: Uuid,
         is_trusted: bool,
-    ) -> Result<u64, sqlx::Error> {
+    ) -> Result<u64, AppError> {
         let result = sqlx::query(
             "UPDATE authorized_agents SET is_trusted = $1 WHERE id = $2 AND workspace_id = $3",
         )
@@ -339,7 +346,7 @@ impl AgentRepository for SqlxAgentRepository {
         &self,
         agent_id: &str,
         workspace_id: Uuid,
-    ) -> Result<Option<AuthorizedAgent>, sqlx::Error> {
+    ) -> Result<Option<AuthorizedAgent>, AppError> {
         sqlx::query_as::<_, AuthorizedAgent>(
             "SELECT * FROM authorized_agents WHERE id = $1 AND workspace_id = $2",
         )
@@ -347,13 +354,14 @@ impl AgentRepository for SqlxAgentRepository {
         .bind(workspace_id)
         .fetch_optional(&self.pool)
         .await
+        .map_err(Into::into)
     }
 
     async fn deactivate_agent(
         &self,
         agent_id: &str,
         workspace_id: Uuid,
-    ) -> Result<u64, sqlx::Error> {
+    ) -> Result<u64, AppError> {
         let result = sqlx::query(
             "UPDATE authorized_agents SET is_active = FALSE WHERE id = $1 AND workspace_id = $2",
         )

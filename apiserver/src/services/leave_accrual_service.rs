@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use crate::errors::AppError;
 use crate::models::{AccrualFrequency, LeaveAccrualLog, LeavePolicyConfig};
 use crate::repositories::department_repository::DepartmentRepository;
 use crate::repositories::leave_accrual_log_repository::LeaveAccrualLogRepository;
@@ -100,7 +101,7 @@ impl LeaveAccrualService {
         start_date: NaiveDate,
         end_date: NaiveDate,
         tz: Tz,
-    ) -> Result<i32, sqlx::Error> {
+    ) -> Result<i32, AppError> {
         let pool = &self.pool;
         use std::collections::HashSet;
         let mut qualifying_days = HashSet::new();
@@ -381,7 +382,7 @@ impl LeaveAccrualService {
         range_start: NaiveDate,
         range_end: NaiveDate,
         tz: Tz,
-    ) -> Result<HashMap<NaiveDate, i32>, sqlx::Error> {
+    ) -> Result<HashMap<NaiveDate, i32>, AppError> {
         let pool = &self.pool;
         let start_dt = local_to_utc(&tz, range_start, 0, 0, 0)?;
         let end_dt = local_to_utc(&tz, range_end, 23, 59, 59)?;
@@ -462,7 +463,7 @@ impl LeaveAccrualService {
         workspace_id: Uuid,
         date: NaiveDate,
         force: bool,
-    ) -> Result<Vec<LeaveAccrualLog>, sqlx::Error> {
+    ) -> Result<Vec<LeaveAccrualLog>, AppError> {
         // Get workspace timezone via repository
         let tz_str = self
             .accrual_log_repo
@@ -494,7 +495,7 @@ impl LeaveAccrualService {
         force: bool,
         tz: Tz,
         all_logs: &mut Vec<LeaveAccrualLog>,
-    ) -> Result<(), sqlx::Error> {
+    ) -> Result<(), AppError> {
         let dept_hist = self
             .department_repo
             .get_current_department(workspace_id, emp.id)
@@ -631,11 +632,11 @@ impl LeaveAccrualService {
         amount: f64,
         force: bool,
         all_logs: &mut Vec<LeaveAccrualLog>,
-    ) -> Result<(), sqlx::Error> {
+    ) -> Result<(), AppError> {
         use rust_decimal::prelude::FromPrimitive;
         let decimal_amount = rust_decimal::Decimal::from_f64(amount).ok_or_else(|| {
             tracing::error!(amount, "Invalid f64 for leave accrual Decimal conversion");
-            sqlx::Error::Protocol(format!("Cannot convert {amount} to Decimal"))
+            AppError::Internal(format!("Cannot convert {amount} to Decimal"))
         })?;
 
         let existing = self

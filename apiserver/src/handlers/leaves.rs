@@ -68,8 +68,7 @@ pub async fn approve_leave_request(
         .leaves
         .request_repo
         .get_employee_department_for_request(id, ctx.workspace_id)
-        .await
-        .map_err(AppError::Sqlx)?;
+        .await?;
 
     ctx.require_any_scoped_permission(
         &[
@@ -653,8 +652,7 @@ pub async fn download_leave_import_template(
         .leaves
         .request_repo
         .get_leave_types(ctx.workspace_id)
-        .await
-        .map_err(AppError::Sqlx)?;
+        .await?;
 
     let lang = query.lang.as_deref().unwrap_or("en");
     let bytes = crate::services::leave_import_service::LeaveImportService::generate_template(

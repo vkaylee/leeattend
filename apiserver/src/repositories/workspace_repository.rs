@@ -1,3 +1,4 @@
+use crate::errors::AppError;
 use crate::models::{MemberExtraRole, Workspace};
 use async_trait::async_trait;
 use sqlx::PgPool;
@@ -6,11 +7,12 @@ use uuid::Uuid;
 pub async fn get_workspace_by_id(
     pool: &PgPool,
     id: Uuid,
-) -> Result<Option<Workspace>, sqlx::Error> {
+) -> Result<Option<Workspace>, AppError> {
     sqlx::query_as::<_, Workspace>("SELECT * FROM workspaces WHERE id = $1")
         .bind(id)
         .fetch_optional(pool)
         .await
+        .map_err(Into::into)
 }
 
 #[async_trait]
@@ -19,41 +21,41 @@ pub trait WorkspaceRepository: super::PoolBacked + Send + Sync {
         &self,
         name: &str,
         owner_id: Uuid,
-    ) -> Result<Workspace, sqlx::Error>;
-    async fn get_workspace_by_id(&self, id: Uuid) -> Result<Option<Workspace>, sqlx::Error>;
+    ) -> Result<Workspace, AppError>;
+    async fn get_workspace_by_id(&self, id: Uuid) -> Result<Option<Workspace>, AppError>;
     async fn add_member(
         &self,
         workspace_id: Uuid,
         user_id: Uuid,
         role_id: Uuid,
-    ) -> Result<(), sqlx::Error>;
+    ) -> Result<(), AppError>;
     async fn update_member_role(
         &self,
         workspace_id: Uuid,
         user_id: Uuid,
         role_id: Uuid,
-    ) -> Result<(), sqlx::Error>;
-    async fn remove_member(&self, workspace_id: Uuid, user_id: Uuid) -> Result<(), sqlx::Error>;
+    ) -> Result<(), AppError>;
+    async fn remove_member(&self, workspace_id: Uuid, user_id: Uuid) -> Result<(), AppError>;
     async fn find_primary_role(
         &self,
         workspace_id: Uuid,
         user_id: Uuid,
-    ) -> Result<Option<Uuid>, sqlx::Error>;
+    ) -> Result<Option<Uuid>, AppError>;
     async fn find_extra_roles(
         &self,
         workspace_id: Uuid,
         user_id: Uuid,
-    ) -> Result<Vec<MemberExtraRole>, sqlx::Error>;
+    ) -> Result<Vec<MemberExtraRole>, AppError>;
     async fn find_extra_permissions(
         &self,
         workspace_id: Uuid,
         user_id: Uuid,
-    ) -> Result<Vec<String>, sqlx::Error>;
+    ) -> Result<Vec<String>, AppError>;
     /// Get all permission names for a set of role IDs.
     async fn get_permissions_for_roles(
         &self,
         role_ids: &[Uuid],
-    ) -> Result<Vec<String>, sqlx::Error>;
+    ) -> Result<Vec<String>, AppError>;
     #[allow(clippy::too_many_arguments)]
     async fn update_workspace(
         &self,
@@ -68,9 +70,9 @@ pub trait WorkspaceRepository: super::PoolBacked + Send + Sync {
         default_holiday_ot_multiplier: Option<bigdecimal::BigDecimal>,
         logo_url: Option<String>,
         tagline: Option<String>,
-    ) -> Result<Workspace, sqlx::Error>;
+    ) -> Result<Workspace, AppError>;
     /// Check if any role in the set has global scope.
-    async fn is_any_role_global(&self, role_ids: &[Uuid]) -> Result<bool, sqlx::Error>;
+    async fn is_any_role_global(&self, role_ids: &[Uuid]) -> Result<bool, AppError>;
 }
 
 pub struct SqlxWorkspaceRepository {
@@ -89,7 +91,7 @@ impl WorkspaceRepository for SqlxWorkspaceRepository {
         &self,
         name: &str,
         owner_id: Uuid,
-    ) -> Result<Workspace, sqlx::Error> {
+    ) -> Result<Workspace, AppError> {
         let mut tx = self.pool.begin().await?;
 
         let ws = sqlx::query_as::<_, Workspace>(
@@ -103,7 +105,7 @@ impl WorkspaceRepository for SqlxWorkspaceRepository {
         .await?;
 
         let owner_role_id = Uuid::parse_str("a0000000-0000-0000-0000-000000000001")
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         sqlx::query(
             "INSERT INTO workspace_members (workspace_id, user_id, role_id) 
@@ -120,11 +122,12 @@ impl WorkspaceRepository for SqlxWorkspaceRepository {
         Ok(ws)
     }
 
-    async fn get_workspace_by_id(&self, id: Uuid) -> Result<Option<Workspace>, sqlx::Error> {
+    async fn get_workspace_by_id(&self, id: Uuid) -> Result<Option<Workspace>, AppError> {
         sqlx::query_as::<_, Workspace>("SELECT * FROM workspaces WHERE id = $1")
             .bind(id)
-            .fetch_optional(&self.pool)
-            .await
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(Into::into)
     }
 
     async fn add_member(
@@ -132,7 +135,7 @@ impl WorkspaceRepository for SqlxWorkspaceRepository {
         workspace_id: Uuid,
         user_id: Uuid,
         role_id: Uuid,
-    ) -> Result<(), sqlx::Error> {
+    ) -> Result<(), AppError> {
         sqlx::query(
             "INSERT INTO workspace_members (workspace_id, user_id, role_id) 
              VALUES ($1, $2, $3)",
@@ -151,7 +154,7 @@ impl WorkspaceRepository for SqlxWorkspaceRepository {
         workspace_id: Uuid,
         user_id: Uuid,
         role_id: Uuid,
-    ) -> Result<(), sqlx::Error> {
+    ) -> Result<(), AppError> {
         sqlx::query(
             "UPDATE workspace_members SET role_id = $1 WHERE workspace_id = $2 AND user_id = $3",
         )
@@ -164,7 +167,7 @@ impl WorkspaceRepository for SqlxWorkspaceRepository {
         Ok(())
     }
 
-    async fn remove_member(&self, workspace_id: Uuid, user_id: Uuid) -> Result<(), sqlx::Error> {
+    async fn remove_member(&self, workspace_id: Uuid, user_id: Uuid) -> Result<(), AppError> {
         sqlx::query("DELETE FROM workspace_members WHERE workspace_id = $1 AND user_id = $2")
             .bind(workspace_id)
             .bind(user_id)
@@ -178,7 +181,7 @@ impl WorkspaceRepository for SqlxWorkspaceRepository {
         &self,
         workspace_id: Uuid,
         user_id: Uuid,
-    ) -> Result<Option<Uuid>, sqlx::Error> {
+    ) -> Result<Option<Uuid>, AppError> {
         let row: Option<(Uuid,)> = sqlx::query_as(
             "SELECT role_id FROM workspace_members WHERE workspace_id = $1 AND user_id = $2",
         )
@@ -194,7 +197,7 @@ impl WorkspaceRepository for SqlxWorkspaceRepository {
         &self,
         workspace_id: Uuid,
         user_id: Uuid,
-    ) -> Result<Vec<MemberExtraRole>, sqlx::Error> {
+    ) -> Result<Vec<MemberExtraRole>, AppError> {
         sqlx::query_as::<_, MemberExtraRole>(
             "SELECT * FROM member_extra_roles WHERE workspace_id = $1 AND user_id = $2",
         )
@@ -202,13 +205,14 @@ impl WorkspaceRepository for SqlxWorkspaceRepository {
         .bind(user_id)
         .fetch_all(&self.pool)
         .await
+        .map_err(Into::into)
     }
 
     async fn find_extra_permissions(
         &self,
         workspace_id: Uuid,
         user_id: Uuid,
-    ) -> Result<Vec<String>, sqlx::Error> {
+    ) -> Result<Vec<String>, AppError> {
         sqlx::query_scalar(
             "SELECT permission FROM workspace_member_extra_permissions \
              WHERE workspace_id = $1 AND user_id = $2",
@@ -217,18 +221,20 @@ impl WorkspaceRepository for SqlxWorkspaceRepository {
         .bind(user_id)
         .fetch_all(&self.pool)
         .await
+        .map_err(Into::into)
     }
 
     async fn get_permissions_for_roles(
         &self,
         role_ids: &[Uuid],
-    ) -> Result<Vec<String>, sqlx::Error> {
+    ) -> Result<Vec<String>, AppError> {
         sqlx::query_scalar(
             "SELECT permission_name FROM workspace_role_permissions WHERE role_id = ANY($1)",
         )
         .bind(role_ids)
         .fetch_all(&self.pool)
         .await
+        .map_err(Into::into)
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -245,7 +251,7 @@ impl WorkspaceRepository for SqlxWorkspaceRepository {
         _default_holiday_ot_multiplier: Option<bigdecimal::BigDecimal>,
         _logo_url: Option<String>,
         _tagline: Option<String>,
-    ) -> Result<Workspace, sqlx::Error> {
+    ) -> Result<Workspace, AppError> {
         let ws = sqlx::query_as::<_, Workspace>("SELECT * FROM workspaces WHERE id = $1")
             .bind(id)
             .fetch_one(&self.pool)
@@ -253,7 +259,7 @@ impl WorkspaceRepository for SqlxWorkspaceRepository {
         Ok(ws)
     }
 
-    async fn is_any_role_global(&self, role_ids: &[Uuid]) -> Result<bool, sqlx::Error> {
+    async fn is_any_role_global(&self, role_ids: &[Uuid]) -> Result<bool, AppError> {
         let is_global: bool = sqlx::query_scalar(
             "SELECT EXISTS(SELECT 1 FROM workspace_roles WHERE id = ANY($1) AND scope_type = 'global')"
         )

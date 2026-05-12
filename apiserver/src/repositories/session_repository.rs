@@ -1,3 +1,4 @@
+use crate::errors::AppError;
 use crate::models::diesel::core::SessionEntity;
 use async_trait::async_trait;
 use uuid::Uuid;
@@ -9,14 +10,14 @@ pub trait SessionRepository: super::PoolBacked + Send + Sync {
         user_id: Uuid,
         token: &str,
         expires_at: chrono::DateTime<chrono::Utc>,
-    ) -> Result<(), sqlx::Error>;
+    ) -> Result<(), AppError>;
     async fn get_session_by_token(&self, token: &str)
-        -> Result<Option<SessionEntity>, sqlx::Error>;
+        -> Result<Option<SessionEntity>, AppError>;
     async fn rotate_refresh_token(
         &self,
         session_id: Uuid,
         new_token: &str,
-    ) -> Result<(), sqlx::Error>;
-    async fn revoke_session(&self, token: &str) -> Result<(), sqlx::Error>;
-    async fn revoke_all_sessions_for_user(&self, user_id: Uuid) -> Result<(), sqlx::Error>;
+    ) -> Result<(), AppError>;
+    async fn revoke_session(&self, token: &str) -> Result<(), AppError>;
+    async fn revoke_all_sessions_for_user(&self, user_id: Uuid) -> Result<(), AppError>;
 }

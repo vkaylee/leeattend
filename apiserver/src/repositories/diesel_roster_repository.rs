@@ -1,3 +1,4 @@
+use crate::errors::AppError;
 use async_trait::async_trait;
 use chrono::{NaiveDate, Utc};
 use diesel::prelude::*;
@@ -33,7 +34,7 @@ impl RosterRepository for DieselRosterRepository {
         start_date: NaiveDate,
         end_date: NaiveDate,
         employee_ids: Option<&Vec<Uuid>>,
-    ) -> Result<Vec<EmployeeSchedule>, sqlx::Error> {
+    ) -> Result<Vec<EmployeeSchedule>, AppError> {
         crate::repositories::roster::schedule_queries::get_workspace_schedules(
             &self.sqlx_pool,
             roster_cache,
@@ -42,34 +43,32 @@ impl RosterRepository for DieselRosterRepository {
             end_date,
             employee_ids,
         )
-        .await
-    }
+        .await.map_err(Into::into)}
 
     async fn get_assignment_history(
         &self,
         workspace_id: Uuid,
         limit: i64,
-    ) -> Result<Vec<AssignmentHistory>, sqlx::Error> {
+    ) -> Result<Vec<AssignmentHistory>, AppError> {
         crate::repositories::roster::roster_crud::get_assignment_history(
             &self.sqlx_pool,
             workspace_id,
             limit,
         )
-        .await
-    }
+        .await.map_err(Into::into)}
 
     async fn get_employee_rosters(
         &self,
         employee_id: Uuid,
         start_date: NaiveDate,
         end_date: NaiveDate,
-    ) -> Result<Vec<ShiftRoster>, sqlx::Error> {
+    ) -> Result<Vec<ShiftRoster>, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let entities: Vec<ShiftRosterEntity> = shift_rosters::table
             .filter(shift_rosters::employee_id.eq(employee_id))
@@ -78,18 +77,18 @@ impl RosterRepository for DieselRosterRepository {
             .order(shift_rosters::date.asc())
             .load(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(entities.into_iter().map(Into::into).collect())
     }
 
-    async fn upsert_roster(&self, roster: &ShiftRoster) -> Result<ShiftRoster, sqlx::Error> {
+    async fn upsert_roster(&self, roster: &ShiftRoster) -> Result<ShiftRoster, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let entity = ShiftRosterEntity {
             id: roster.id,
@@ -114,7 +113,7 @@ impl RosterRepository for DieselRosterRepository {
             ))
             .get_result(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(result.into())
     }
@@ -123,44 +122,42 @@ impl RosterRepository for DieselRosterRepository {
         &self,
         employee_id: Uuid,
         items: Vec<RosterItem>,
-    ) -> Result<(), sqlx::Error> {
+    ) -> Result<(), AppError> {
         crate::repositories::roster::roster_crud::bulk_upsert_roster(
             &self.sqlx_pool,
             employee_id,
             items,
         )
-        .await
-    }
+        .await.map_err(Into::into)}
 
     async fn get_effective_shift(
         &self,
         workspace_id: Uuid,
         employee_id: Uuid,
         date: NaiveDate,
-    ) -> Result<(Option<Uuid>, Vec<ScheduleTrace>), sqlx::Error> {
+    ) -> Result<(Option<Uuid>, Vec<ScheduleTrace>), AppError> {
         crate::repositories::roster::schedule_queries::get_effective_shift(
             &self.sqlx_pool,
             workspace_id,
             employee_id,
             date,
         )
-        .await
-    }
+        .await.map_err(Into::into)}
 
-    async fn delete_roster(&self, employee_id: Uuid, date: NaiveDate) -> Result<(), sqlx::Error> {
+    async fn delete_roster(&self, employee_id: Uuid, date: NaiveDate) -> Result<(), AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         diesel::delete(shift_rosters::table)
             .filter(shift_rosters::employee_id.eq(employee_id))
             .filter(shift_rosters::date.eq(date))
             .execute(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(())
     }

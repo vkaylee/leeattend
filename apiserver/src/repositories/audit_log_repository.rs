@@ -1,11 +1,12 @@
 use crate::domain::audit::AuditLog;
+use crate::errors::AppError;
 use async_trait::async_trait;
 use sqlx::PgPool;
 use uuid::Uuid;
 
 #[async_trait]
 pub trait AuditLogRepository: super::PoolBacked + Send + Sync {
-    async fn create_log(&self, config: &AuditLog) -> Result<AuditLog, sqlx::Error>;
+    async fn create_log(&self, config: &AuditLog) -> Result<AuditLog, AppError>;
 
     // Retrieves audit logs for a workspace, ordered by created_at DESC
     async fn find_by_workspace(
@@ -16,7 +17,7 @@ pub trait AuditLogRepository: super::PoolBacked + Send + Sync {
         action: Option<String>,
         start_date: Option<chrono::DateTime<chrono::Utc>>,
         end_date: Option<chrono::DateTime<chrono::Utc>>,
-    ) -> Result<(Vec<AuditLog>, i64), sqlx::Error>;
+    ) -> Result<(Vec<AuditLog>, i64), AppError>;
 }
 
 pub struct SqlxAuditLogRepository {
@@ -31,7 +32,7 @@ impl SqlxAuditLogRepository {
 
 #[async_trait]
 impl AuditLogRepository for SqlxAuditLogRepository {
-    async fn create_log(&self, log: &AuditLog) -> Result<AuditLog, sqlx::Error> {
+    async fn create_log(&self, log: &AuditLog) -> Result<AuditLog, AppError> {
         let rec = sqlx::query_as!(
             AuditLog,
             r#"
@@ -63,7 +64,7 @@ impl AuditLogRepository for SqlxAuditLogRepository {
         action: Option<String>,
         start_date: Option<chrono::DateTime<chrono::Utc>>,
         end_date: Option<chrono::DateTime<chrono::Utc>>,
-    ) -> Result<(Vec<AuditLog>, i64), sqlx::Error> {
+    ) -> Result<(Vec<AuditLog>, i64), AppError> {
         let mut count_qb: sqlx::QueryBuilder<sqlx::Postgres> =
             sqlx::QueryBuilder::new("SELECT count(*) FROM audit_logs WHERE workspace_id = ");
         count_qb.push_bind(workspace_id);

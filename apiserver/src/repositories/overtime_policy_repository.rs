@@ -1,3 +1,4 @@
+use crate::errors::AppError;
 use crate::models::{OvertimePolicy, OvertimeRule};
 use async_trait::async_trait;
 use chrono::NaiveDate;
@@ -14,23 +15,23 @@ pub trait OvertimePolicyRepositoryTrait: super::PoolBacked + Send + Sync {
         workspace_id: Uuid,
         name: &str,
         description: Option<&str>,
-    ) -> Result<OvertimePolicy, sqlx::Error>;
+    ) -> Result<OvertimePolicy, AppError>;
     async fn get_policy_definitions(
         &self,
         workspace_id: Uuid,
-    ) -> Result<Vec<OvertimePolicy>, sqlx::Error>;
+    ) -> Result<Vec<OvertimePolicy>, AppError>;
     async fn get_policy_with_rules(
         &self,
         workspace_id: Uuid,
         id: Uuid,
-    ) -> Result<Option<(OvertimePolicy, Vec<OvertimeRule>)>, sqlx::Error>;
-    async fn add_rule(&self, rule: &OvertimeRule) -> Result<OvertimeRule, sqlx::Error>;
+    ) -> Result<Option<(OvertimePolicy, Vec<OvertimeRule>)>, AppError>;
+    async fn add_rule(&self, rule: &OvertimeRule) -> Result<OvertimeRule, AppError>;
     async fn resolve_policy_for_employee(
         &self,
         employee_id: Uuid,
         workspace_id: Uuid,
         date: NaiveDate,
-    ) -> Result<Option<Uuid>, sqlx::Error>;
+    ) -> Result<Option<Uuid>, AppError>;
     async fn create_policy_assignment(
         &self,
         workspace_id: Uuid,
@@ -38,7 +39,7 @@ pub trait OvertimePolicyRepositoryTrait: super::PoolBacked + Send + Sync {
         assignee_id: Option<Uuid>,
         policy_id: Uuid,
         effective_from: NaiveDate,
-    ) -> Result<(), sqlx::Error>;
+    ) -> Result<(), AppError>;
 }
 
 // ---------------------------------------------------------------------------
@@ -61,7 +62,7 @@ impl OvertimePolicyRepositoryTrait for SqlxOvertimePolicyRepository {
         workspace_id: Uuid,
         name: &str,
         description: Option<&str>,
-    ) -> Result<OvertimePolicy, sqlx::Error> {
+    ) -> Result<OvertimePolicy, AppError> {
         OvertimePolicyRepository::create_policy_definition(
             &self.pool,
             workspace_id,
@@ -69,29 +70,30 @@ impl OvertimePolicyRepositoryTrait for SqlxOvertimePolicyRepository {
             description,
         )
         .await
+        .map_err(Into::into)
     }
     async fn get_policy_definitions(
         &self,
         workspace_id: Uuid,
-    ) -> Result<Vec<OvertimePolicy>, sqlx::Error> {
-        OvertimePolicyRepository::get_policy_definitions(&self.pool, workspace_id).await
+    ) -> Result<Vec<OvertimePolicy>, AppError> {
+        OvertimePolicyRepository::get_policy_definitions(&self.pool, workspace_id).await.map_err(Into::into)
     }
     async fn get_policy_with_rules(
         &self,
         workspace_id: Uuid,
         id: Uuid,
-    ) -> Result<Option<(OvertimePolicy, Vec<OvertimeRule>)>, sqlx::Error> {
-        OvertimePolicyRepository::get_policy_with_rules(&self.pool, workspace_id, id).await
+    ) -> Result<Option<(OvertimePolicy, Vec<OvertimeRule>)>, AppError> {
+        OvertimePolicyRepository::get_policy_with_rules(&self.pool, workspace_id, id).await.map_err(Into::into)
     }
-    async fn add_rule(&self, rule: &OvertimeRule) -> Result<OvertimeRule, sqlx::Error> {
-        OvertimePolicyRepository::add_rule(&self.pool, rule).await
+    async fn add_rule(&self, rule: &OvertimeRule) -> Result<OvertimeRule, AppError> {
+        OvertimePolicyRepository::add_rule(&self.pool, rule).await.map_err(Into::into)
     }
     async fn resolve_policy_for_employee(
         &self,
         employee_id: Uuid,
         workspace_id: Uuid,
         date: NaiveDate,
-    ) -> Result<Option<Uuid>, sqlx::Error> {
+    ) -> Result<Option<Uuid>, AppError> {
         OvertimePolicyRepository::resolve_policy_for_employee(
             &self.pool,
             employee_id,
@@ -99,6 +101,7 @@ impl OvertimePolicyRepositoryTrait for SqlxOvertimePolicyRepository {
             date,
         )
         .await
+        .map_err(Into::into)
     }
     async fn create_policy_assignment(
         &self,
@@ -107,7 +110,7 @@ impl OvertimePolicyRepositoryTrait for SqlxOvertimePolicyRepository {
         assignee_id: Option<Uuid>,
         policy_id: Uuid,
         effective_from: NaiveDate,
-    ) -> Result<(), sqlx::Error> {
+    ) -> Result<(), AppError> {
         OvertimePolicyRepository::create_policy_assignment(
             &self.pool,
             workspace_id,
@@ -117,6 +120,7 @@ impl OvertimePolicyRepositoryTrait for SqlxOvertimePolicyRepository {
             effective_from,
         )
         .await
+        .map_err(Into::into)
     }
 }
 

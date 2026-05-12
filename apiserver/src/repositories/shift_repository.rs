@@ -3,6 +3,7 @@ use chrono::NaiveDate;
 use sqlx::{query, query_as, PgPool};
 use uuid::Uuid;
 
+use crate::errors::AppError;
 use crate::models::Shift;
 
 #[async_trait]
@@ -13,24 +14,24 @@ pub trait ShiftRepository: super::PoolBacked + Send + Sync {
         req: &crate::models::CreateShiftRequest,
         is_active: bool,
         parent_shift_id: Option<Uuid>,
-    ) -> Result<Shift, sqlx::Error>;
+    ) -> Result<Shift, AppError>;
 
     async fn get_shift_by_id(
         &self,
         workspace_id: Uuid,
         id: Uuid,
-    ) -> Result<Option<Shift>, sqlx::Error>;
+    ) -> Result<Option<Shift>, AppError>;
 
-    async fn get_workspace_shifts(&self, workspace_id: Uuid) -> Result<Vec<Shift>, sqlx::Error>;
+    async fn get_workspace_shifts(&self, workspace_id: Uuid) -> Result<Vec<Shift>, AppError>;
 
     async fn update_shift_direct(
         &self,
         workspace_id: Uuid,
         id: Uuid,
         req: &crate::models::UpdateShiftRequest,
-    ) -> Result<Shift, sqlx::Error>;
+    ) -> Result<Shift, AppError>;
 
-    async fn archive_shift(&self, workspace_id: Uuid, id: Uuid) -> Result<(), sqlx::Error>;
+    async fn archive_shift(&self, workspace_id: Uuid, id: Uuid) -> Result<(), AppError>;
 
     async fn assign_employee_shift(
         &self,
@@ -38,20 +39,20 @@ pub trait ShiftRepository: super::PoolBacked + Send + Sync {
         shift_id: Uuid,
         start_date: NaiveDate,
         end_date: Option<NaiveDate>,
-    ) -> Result<(), sqlx::Error>;
+    ) -> Result<(), AppError>;
 
     async fn get_employee_active_shift(
         &self,
         employee_id: Uuid,
         date: NaiveDate,
-    ) -> Result<Option<Shift>, sqlx::Error>;
+    ) -> Result<Option<Shift>, AppError>;
 
     async fn update_assignments_to_new_version(
         &self,
         old_shift_id: Uuid,
         new_shift_id: Uuid,
         effective_date: NaiveDate,
-    ) -> Result<(), sqlx::Error>;
+    ) -> Result<(), AppError>;
 }
 
 pub struct SqlxShiftRepository {
@@ -72,7 +73,7 @@ impl ShiftRepository for SqlxShiftRepository {
         req: &crate::models::CreateShiftRequest,
         is_active: bool,
         parent_shift_id: Option<Uuid>,
-    ) -> Result<Shift, sqlx::Error> {
+    ) -> Result<Shift, AppError> {
         query_as!(
             Shift,
             r#"INSERT INTO shifts (
@@ -105,13 +106,14 @@ impl ShiftRepository for SqlxShiftRepository {
         )
         .fetch_one(&self.pool)
         .await
+        .map_err(Into::into)
     }
 
     async fn get_shift_by_id(
         &self,
         workspace_id: Uuid,
         id: Uuid,
-    ) -> Result<Option<Shift>, sqlx::Error> {
+    ) -> Result<Option<Shift>, AppError> {
         query_as!(
             Shift,
             r#"SELECT 
@@ -126,9 +128,10 @@ impl ShiftRepository for SqlxShiftRepository {
         )
         .fetch_optional(&self.pool)
         .await
+        .map_err(Into::into)
     }
 
-    async fn get_workspace_shifts(&self, workspace_id: Uuid) -> Result<Vec<Shift>, sqlx::Error> {
+    async fn get_workspace_shifts(&self, workspace_id: Uuid) -> Result<Vec<Shift>, AppError> {
         query_as!(
             Shift,
             r#"SELECT 
@@ -144,6 +147,7 @@ impl ShiftRepository for SqlxShiftRepository {
         )
         .fetch_all(&self.pool)
         .await
+        .map_err(Into::into)
     }
 
     async fn update_shift_direct(
@@ -151,7 +155,7 @@ impl ShiftRepository for SqlxShiftRepository {
         workspace_id: Uuid,
         id: Uuid,
         req: &crate::models::UpdateShiftRequest,
-    ) -> Result<Shift, sqlx::Error> {
+    ) -> Result<Shift, AppError> {
         query_as!(
             Shift,
             r#"UPDATE shifts 
@@ -182,9 +186,10 @@ impl ShiftRepository for SqlxShiftRepository {
         )
         .fetch_one(&self.pool)
         .await
+        .map_err(Into::into)
     }
 
-    async fn archive_shift(&self, workspace_id: Uuid, id: Uuid) -> Result<(), sqlx::Error> {
+    async fn archive_shift(&self, workspace_id: Uuid, id: Uuid) -> Result<(), AppError> {
         query!(
             "UPDATE shifts SET is_active = FALSE, updated_at = CURRENT_TIMESTAMP WHERE id = $1 AND workspace_id = $2",
             id,
@@ -201,7 +206,7 @@ impl ShiftRepository for SqlxShiftRepository {
         shift_id: Uuid,
         start_date: NaiveDate,
         end_date: Option<NaiveDate>,
-    ) -> Result<(), sqlx::Error> {
+    ) -> Result<(), AppError> {
         query!(
             "INSERT INTO employee_shifts (employee_id, shift_id, start_date, end_date)
          VALUES ($1, $2, $3, $4)",
@@ -219,7 +224,7 @@ impl ShiftRepository for SqlxShiftRepository {
         &self,
         employee_id: Uuid,
         date: NaiveDate,
-    ) -> Result<Option<Shift>, sqlx::Error> {
+    ) -> Result<Option<Shift>, AppError> {
         query_as!(
             Shift,
             r#"SELECT 
@@ -240,6 +245,7 @@ impl ShiftRepository for SqlxShiftRepository {
         )
         .fetch_optional(&self.pool)
         .await
+        .map_err(Into::into)
     }
 
     async fn update_assignments_to_new_version(
@@ -247,7 +253,7 @@ impl ShiftRepository for SqlxShiftRepository {
         old_shift_id: Uuid,
         new_shift_id: Uuid,
         effective_date: NaiveDate,
-    ) -> Result<(), sqlx::Error> {
+    ) -> Result<(), AppError> {
         let mut tx = self.pool.begin().await?;
         let yesterday = effective_date.pred_opt().unwrap_or(effective_date);
 
@@ -341,7 +347,7 @@ pub async fn get_shift_by_id(
     pool: &PgPool,
     workspace_id: Uuid,
     id: Uuid,
-) -> Result<Option<Shift>, sqlx::Error> {
+) -> Result<Option<Shift>, AppError> {
     SqlxShiftRepository::new(pool.clone())
         .get_shift_by_id(workspace_id, id)
         .await
@@ -350,7 +356,7 @@ pub async fn get_shift_by_id(
 pub async fn get_workspace_shifts(
     pool: &PgPool,
     workspace_id: Uuid,
-) -> Result<Vec<Shift>, sqlx::Error> {
+) -> Result<Vec<Shift>, AppError> {
     SqlxShiftRepository::new(pool.clone())
         .get_workspace_shifts(workspace_id)
         .await

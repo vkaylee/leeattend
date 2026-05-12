@@ -394,8 +394,7 @@ pub async fn get_workspace_by_id(
         .core
         .workspace_repo
         .get_workspace_by_id(ws_id)
-        .await
-        .map_err(AppError::Sqlx)?
+        .await?
         .ok_or_else(|| AppError::NotFound("Workspace not found".to_string()))?;
 
     Ok(Json(workspace))

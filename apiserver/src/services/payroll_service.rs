@@ -132,14 +132,12 @@ impl PayrollService {
         let salary_history = self
             .payroll_repo
             .get_salary_components_history(workspace_id, employee_id, start_date, end_date)
-            .await
-            .map_err(AppError::Sqlx)?;
+            .await?;
 
         let all_dept_history = self
             .department_repo
             .get_employee_department_history(workspace_id, employee_id)
-            .await
-            .map_err(AppError::Sqlx)?;
+            .await?;
 
         let start_dt = local_to_utc(&tz, start_date, 0, 0, 0).map_err(AppError::Internal)?;
         let end_dt = local_to_utc(&tz, end_date, 23, 59, 59).map_err(AppError::Internal)?;
@@ -147,14 +145,12 @@ impl PayrollService {
         let time_entries = self
             .time_entry_repo
             .get_employee_time_entries(workspace_id, employee_id, start_dt, end_dt)
-            .await
-            .map_err(AppError::Sqlx)?;
+            .await?;
 
         let holidays_map = self
             .holiday_repo
             .get_holidays_in_range(workspace_id, start_date, end_date)
-            .await
-            .map_err(AppError::Sqlx)?;
+            .await?;
 
         let roster_data = crate::cache::build_roster_data(pool, workspace_id)
             .await
@@ -166,8 +162,7 @@ impl PayrollService {
         let emp_row = sqlx::query("SELECT employee_id_number, tags FROM employees WHERE id = $1")
             .bind(employee_id)
             .fetch_optional(pool)
-            .await
-            .map_err(AppError::Sqlx)?
+            .await?
             .ok_or(AppError::NotFound("Not found".into()))?;
 
         let emp_id_number: String = {
@@ -182,8 +177,7 @@ impl PayrollService {
         let rosters = self
             .roster_repo
             .get_employee_rosters(employee_id, start_date, end_date)
-            .await
-            .map_err(AppError::Sqlx)?;
+            .await?;
         let payroll_roster_map: HashMap<(Uuid, NaiveDate), Option<Uuid>> = rosters
             .into_iter()
             .map(|r| ((r.employee_id, r.date), r.shift_id))
@@ -302,8 +296,7 @@ impl PayrollService {
                 workspace_id,
                 seg_start,
             )
-            .await
-            .map_err(AppError::Sqlx)?;
+            .await?;
 
             let attendance_policy = PolicyResolver::resolve_attendance_policy(
                 pool,
@@ -311,8 +304,7 @@ impl PayrollService {
                 workspace_id,
                 seg_start,
             )
-            .await
-            .map_err(AppError::Sqlx)?;
+            .await?;
 
             let seg_units_per_day = (std_config.hours_per_day * Decimal::from(60))
                 / Decimal::from(attendance_policy.work_unit_minutes);
@@ -377,8 +369,7 @@ impl PayrollService {
                     workspace_id,
                     ctx.end_date,
                 )
-                .await
-                .map_err(AppError::Sqlx)?;
+                .await?;
 
                 let (capped_units, capped_pay) = FinancialCalculator::apply_ot_cap(
                     total_ot_units,
@@ -492,8 +483,7 @@ impl PayrollService {
         let created_payslip = self
             .payroll_repo
             .create_payslip(&payslip)
-            .await
-            .map_err(AppError::Sqlx)?;
+            .await?;
 
         for snap in segment_snapshots {
             self.payroll_repo
@@ -512,8 +502,7 @@ impl PayrollService {
                         std_days_source: Some(snap.source),
                     },
                 )
-                .await
-                .map_err(AppError::Sqlx)?;
+                .await?;
         }
 
         for res in incentive_results {

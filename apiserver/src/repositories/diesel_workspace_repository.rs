@@ -1,4 +1,5 @@
 use crate::diesel_pool::DieselPools;
+use crate::errors::AppError;
 use crate::models::diesel::core::{MemberExtraRoleEntity, WorkspaceEntity, WorkspaceMemberEntity};
 use crate::models::{MemberExtraRole, Workspace};
 use crate::repositories::workspace_repository::WorkspaceRepository;
@@ -45,13 +46,13 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
         &self,
         name: &str,
         owner_id: Uuid,
-    ) -> Result<Workspace, sqlx::Error> {
+    ) -> Result<Workspace, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let workspace_id = crate::utils::id::new_id();
         let entity = WorkspaceEntity {
@@ -70,7 +71,7 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
         };
 
         let owner_role_id = Uuid::parse_str("a0000000-0000-0000-0000-000000000001")
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let member_entity = WorkspaceMemberEntity {
             workspace_id,
@@ -95,18 +96,18 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
             })
         })
         .await
-        .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(entity_clone.into())
     }
 
-    async fn get_workspace_by_id(&self, id: Uuid) -> Result<Option<Workspace>, sqlx::Error> {
+    async fn get_workspace_by_id(&self, id: Uuid) -> Result<Option<Workspace>, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let entity = workspaces::table
             .find(id)
@@ -114,7 +115,7 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
             .first::<WorkspaceEntity>(&mut conn)
             .await
             .optional()
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(entity.map(Into::into))
     }
@@ -124,13 +125,13 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
         workspace_id: Uuid,
         user_id: Uuid,
         role_id: Uuid,
-    ) -> Result<(), sqlx::Error> {
+    ) -> Result<(), AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let entity = WorkspaceMemberEntity {
             workspace_id,
@@ -142,7 +143,7 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
             .values(&entity)
             .execute(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(())
     }
@@ -152,13 +153,13 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
         workspace_id: Uuid,
         user_id: Uuid,
         role_id: Uuid,
-    ) -> Result<(), sqlx::Error> {
+    ) -> Result<(), AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         diesel::update(
             workspace_members::table.filter(
@@ -170,18 +171,18 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
         .set(workspace_members::role_id.eq(role_id))
         .execute(&mut conn)
         .await
-        .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(())
     }
 
-    async fn remove_member(&self, workspace_id: Uuid, user_id: Uuid) -> Result<(), sqlx::Error> {
+    async fn remove_member(&self, workspace_id: Uuid, user_id: Uuid) -> Result<(), AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         diesel::delete(
             workspace_members::table.filter(
@@ -192,7 +193,7 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
         )
         .execute(&mut conn)
         .await
-        .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(())
     }
@@ -201,13 +202,13 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
         &self,
         workspace_id: Uuid,
         user_id: Uuid,
-    ) -> Result<Option<Uuid>, sqlx::Error> {
+    ) -> Result<Option<Uuid>, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let role_id = workspace_members::table
             .filter(
@@ -219,7 +220,7 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
             .first::<Uuid>(&mut conn)
             .await
             .optional()
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(role_id)
     }
@@ -228,13 +229,13 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
         &self,
         workspace_id: Uuid,
         user_id: Uuid,
-    ) -> Result<Vec<MemberExtraRole>, sqlx::Error> {
+    ) -> Result<Vec<MemberExtraRole>, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let entities = member_extra_roles::table
             .filter(
@@ -244,7 +245,7 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
             )
             .load::<MemberExtraRoleEntity>(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(entities.into_iter().map(Into::into).collect())
     }
@@ -253,13 +254,13 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
         &self,
         workspace_id: Uuid,
         user_id: Uuid,
-    ) -> Result<Vec<String>, sqlx::Error> {
+    ) -> Result<Vec<String>, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let permissions = workspace_member_extra_permissions::table
             .filter(
@@ -271,7 +272,7 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
             .select(workspace_member_extra_permissions::permission)
             .load::<String>(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(permissions)
     }
@@ -279,20 +280,20 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
     async fn get_permissions_for_roles(
         &self,
         role_ids: &[Uuid],
-    ) -> Result<Vec<String>, sqlx::Error> {
+    ) -> Result<Vec<String>, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let permissions = workspace_role_permissions::table
             .filter(workspace_role_permissions::role_id.eq_any(role_ids))
             .select(workspace_role_permissions::permission_name)
             .load::<String>(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(permissions)
     }
@@ -311,13 +312,13 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
         default_holiday_ot_multiplier: Option<bigdecimal::BigDecimal>,
         logo_url: Option<String>,
         tagline: Option<String>,
-    ) -> Result<Workspace, sqlx::Error> {
+    ) -> Result<Workspace, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         #[derive(AsChangeset)]
         #[diesel(table_name = workspaces)]
@@ -350,7 +351,7 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
             return self
                 .get_workspace_by_id(id)
                 .await?
-                .ok_or(sqlx::Error::RowNotFound);
+                .ok_or(AppError::NotFound("Workspace not found".to_string()));
         }
 
         let update = WorkspaceUpdate {
@@ -370,18 +371,18 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
             .set(&update)
             .get_result(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(result.into())
     }
 
-    async fn is_any_role_global(&self, role_ids: &[Uuid]) -> Result<bool, sqlx::Error> {
+    async fn is_any_role_global(&self, role_ids: &[Uuid]) -> Result<bool, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let query = workspace_roles::table
             .filter(workspace_roles::id.eq_any(role_ids))
@@ -390,7 +391,7 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
         let is_global: bool = diesel::select(diesel::dsl::exists(query))
             .get_result(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(is_global)
     }

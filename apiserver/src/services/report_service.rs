@@ -207,8 +207,7 @@ impl ReportService {
                 args.end_date,
                 Some(&emp_ids),
             )
-            .await
-            .map_err(AppError::Sqlx)?;
+            .await?;
 
         // 4. Convert NaiveDate to DateTime<Utc> using Workspace Timezone
         let (start_dt, end_dt) = crate::services::attendance_utils::date_range_to_utc_checked(
@@ -222,8 +221,7 @@ impl ReportService {
         let entries_map = self
             .time_entry_repo
             .get_workspace_time_entries_batch(args.workspace_id, &emp_ids, start_dt, end_dt)
-            .await
-            .map_err(AppError::Sqlx)?;
+            .await?;
 
         // 5a. BATCH fetch holidays for the date range
         let holidays_map = HolidayRepository::get_holidays_in_range(
@@ -232,8 +230,7 @@ impl ReportService {
             args.start_date,
             args.end_date,
         )
-        .await
-        .map_err(AppError::Sqlx)?;
+        .await?;
 
         // 5b. BATCH fetch OT claim statuses from attendance_daily_summaries
         let ot_status_rows = sqlx::query!(
@@ -248,8 +245,7 @@ impl ReportService {
             args.end_date
         )
         .fetch_all(&self.pool)
-        .await
-        .map_err(AppError::Sqlx)?;
+        .await?;
 
         let ot_status_map: HashMap<(Uuid, NaiveDate), String> = ot_status_rows
             .into_iter()
@@ -269,8 +265,7 @@ impl ReportService {
             args.start_date,
             args.end_date,
         )
-        .await
-        .map_err(AppError::Sqlx)?;
+        .await?;
 
         // 5d. BATCH fetch attendance rules (SCD Type 2)
         let attendance_rules_map = PolicyResolver::resolve_attendance_policy_batch(
@@ -279,8 +274,7 @@ impl ReportService {
             args.workspace_id,
             args.start_date, // proxy date for the report period
         )
-        .await
-        .map_err(AppError::Sqlx)?;
+        .await?;
 
         // 6. Calculate reports (same logic as before)
         let mut reports = Vec::new();
@@ -502,8 +496,7 @@ impl ReportService {
                 args.end_date,
                 Some(&emp_ids),
             )
-            .await
-            .map_err(AppError::Sqlx)?;
+            .await?;
 
         // 4. Convert dates to UTC for time entry query
         let (start_dt, end_dt) = crate::services::attendance_utils::date_range_to_utc_checked(
@@ -517,8 +510,7 @@ impl ReportService {
         let entries_map = self
             .time_entry_repo
             .get_workspace_time_entries_batch(args.workspace_id, &emp_ids, start_dt, end_dt)
-            .await
-            .map_err(AppError::Sqlx)?;
+            .await?;
 
         // 6. Fetch leave days for paginated employees (batch query)
         let leave_data: HashMap<Uuid, i64> = sqlx::query(
@@ -559,8 +551,7 @@ impl ReportService {
             workspace.id,
             args.start_date, // proxy date for the report period
         )
-        .await
-        .map_err(AppError::Sqlx)?;
+        .await?;
 
         // 7. Calculate work units per employee using the SAME logic as daily report
         let mut employee_totals: HashMap<Uuid, (i32, i32, i32)> = HashMap::new();

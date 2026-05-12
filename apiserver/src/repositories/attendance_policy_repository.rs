@@ -1,3 +1,4 @@
+use crate::errors::AppError;
 use chrono::{DateTime, Utc};
 use sqlx::PgPool;
 use uuid::Uuid;
@@ -12,14 +13,14 @@ pub trait AttendancePolicyRepository: PoolBacked {
         workspace_id: Uuid,
         employee_id: Uuid,
         effective_time: DateTime<Utc>,
-    ) -> Result<Option<AttendancePolicyVersion>, sqlx::Error>;
+    ) -> Result<Option<AttendancePolicyVersion>, AppError>;
 
     async fn get_employee_effective_policies_batch(
         &self,
         workspace_id: Uuid,
         employee_ids: &[Uuid],
         effective_time: DateTime<Utc>,
-    ) -> Result<std::collections::HashMap<Uuid, AttendancePolicyVersion>, sqlx::Error>;
+    ) -> Result<std::collections::HashMap<Uuid, AttendancePolicyVersion>, AppError>;
 }
 
 pub struct SqlxAttendancePolicyRepository {
@@ -43,7 +44,7 @@ impl AttendancePolicyRepository for SqlxAttendancePolicyRepository {
         workspace_id: Uuid,
         employee_id: Uuid,
         effective_time: DateTime<Utc>,
-    ) -> Result<Option<AttendancePolicyVersion>, sqlx::Error> {
+    ) -> Result<Option<AttendancePolicyVersion>, AppError> {
         let row = sqlx::query_as!(
             AttendancePolicyVersion,
             r#"
@@ -123,7 +124,7 @@ impl AttendancePolicyRepository for SqlxAttendancePolicyRepository {
         workspace_id: Uuid,
         employee_ids: &[Uuid],
         effective_time: DateTime<Utc>,
-    ) -> Result<std::collections::HashMap<Uuid, AttendancePolicyVersion>, sqlx::Error> {
+    ) -> Result<std::collections::HashMap<Uuid, AttendancePolicyVersion>, AppError> {
         let mut result = std::collections::HashMap::new();
 
         if employee_ids.is_empty() {

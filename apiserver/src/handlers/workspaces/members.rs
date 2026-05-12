@@ -128,8 +128,7 @@ pub async fn update_workspace_member_role(
         .core
         .workspace_repo
         .update_member_role(ctx.workspace_id, user_id, req.role_id)
-        .await
-        .map_err(AppError::from)?;
+        .await?;
 
     AuditHelper::log(crate::services::audit_service::AuditLogArgs {
         repo: &state.core.audit_repo,
@@ -178,8 +177,7 @@ pub async fn remove_workspace_member(
         .core
         .workspace_repo
         .remove_member(ctx.workspace_id, user_id)
-        .await
-        .map_err(AppError::from)?;
+        .await?;
 
     AuditHelper::log(crate::services::audit_service::AuditLogArgs {
         repo: &state.core.audit_repo,

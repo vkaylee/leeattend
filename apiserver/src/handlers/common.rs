@@ -342,8 +342,7 @@ where
             .employees
             .repo
             .get_employee_id_by_user_id(workspace_id, user_id)
-            .await
-            .map_err(AppError::Sqlx)?
+            .await?
             .ok_or_else(|| {
                 AppError::Forbidden("No employee record linked to your account".to_string())
             })?;

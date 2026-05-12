@@ -2,6 +2,7 @@ use async_trait::async_trait;
 use diesel_async::RunQueryDsl;
 use uuid::Uuid;
 
+use crate::errors::AppError;
 use crate::models::diesel::attendance_log::AttendanceLogErrorEntity;
 use crate::repositories::attendance_log_error_repository::AttendanceLogErrorRepository;
 use crate::schema::attendance_log_errors;
@@ -29,13 +30,13 @@ impl AttendanceLogErrorRepository for DieselAttendanceLogErrorRepository {
         raw_content: Option<serde_json::Value>,
         error_message: &str,
         source: &str,
-    ) -> Result<(), sqlx::Error> {
+    ) -> Result<(), AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let entity = AttendanceLogErrorEntity {
             id: crate::utils::id::new_id(),
@@ -52,7 +53,7 @@ impl AttendanceLogErrorRepository for DieselAttendanceLogErrorRepository {
             .values(&entity)
             .execute(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(())
     }
@@ -65,13 +66,13 @@ impl AttendanceLogErrorRepository for DieselAttendanceLogErrorRepository {
         error_message: &str,
         source: &str,
         fingerprint: &str,
-    ) -> Result<bool, sqlx::Error> {
+    ) -> Result<bool, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let entity = AttendanceLogErrorEntity {
             id: crate::utils::id::new_id(),
@@ -93,7 +94,7 @@ impl AttendanceLogErrorRepository for DieselAttendanceLogErrorRepository {
             .do_nothing()
             .execute(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(rows_affected > 0)
     }

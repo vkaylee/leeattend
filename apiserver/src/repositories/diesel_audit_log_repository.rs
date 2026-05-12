@@ -5,8 +5,8 @@ use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::{
-    diesel_pool::DieselPools, domain::audit::AuditLog, models::diesel::audit_log::AuditLogEntity,
-    schema::audit_logs,
+    diesel_pool::DieselPools, domain::audit::AuditLog, errors::AppError,
+    models::diesel::audit_log::AuditLogEntity, schema::audit_logs,
 };
 
 use super::AuditLogRepository;
@@ -27,13 +27,13 @@ impl DieselAuditLogRepository {
 
 #[async_trait]
 impl AuditLogRepository for DieselAuditLogRepository {
-    async fn create_log(&self, log: &AuditLog) -> Result<AuditLog, sqlx::Error> {
+    async fn create_log(&self, log: &AuditLog) -> Result<AuditLog, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let entity: AuditLogEntity = log.clone().into();
 
@@ -41,7 +41,7 @@ impl AuditLogRepository for DieselAuditLogRepository {
             .values(&entity)
             .get_result(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(inserted.into())
     }
@@ -54,13 +54,13 @@ impl AuditLogRepository for DieselAuditLogRepository {
         action_val: Option<String>,
         start_date_val: Option<chrono::DateTime<chrono::Utc>>,
         end_date_val: Option<chrono::DateTime<chrono::Utc>>,
-    ) -> Result<(Vec<AuditLog>, i64), sqlx::Error> {
+    ) -> Result<(Vec<AuditLog>, i64), AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let mut query = audit_logs::table
             .filter(audit_logs::workspace_id.eq(workspace_id_val))
@@ -89,7 +89,7 @@ impl AuditLogRepository for DieselAuditLogRepository {
             .count()
             .get_result(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let logs_result = query
             .order(audit_logs::created_at.desc())
@@ -97,7 +97,7 @@ impl AuditLogRepository for DieselAuditLogRepository {
             .offset(offset)
             .load::<AuditLogEntity>(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok((logs_result.into_iter().map(Into::into).collect(), count))
     }

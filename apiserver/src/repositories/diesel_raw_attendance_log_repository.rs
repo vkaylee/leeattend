@@ -4,6 +4,7 @@ use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
 use uuid::Uuid;
 
+use crate::errors::AppError;
 use crate::models::attendance::{RawAttendanceLog, RawAttendanceLogWithEmployee};
 use crate::models::diesel::attendance_log::RawAttendanceLogEntity;
 use crate::repositories::raw_attendance_log_repository::RawAttendanceLogRepository;
@@ -25,13 +26,13 @@ impl DieselRawAttendanceLogRepository {
 
 #[async_trait]
 impl RawAttendanceLogRepository for DieselRawAttendanceLogRepository {
-    async fn create_raw_log(&self, log: &RawAttendanceLog) -> Result<bool, sqlx::Error> {
+    async fn create_raw_log(&self, log: &RawAttendanceLog) -> Result<bool, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let entity = RawAttendanceLogEntity {
             id: log.id,
@@ -58,7 +59,7 @@ impl RawAttendanceLogRepository for DieselRawAttendanceLogRepository {
             .do_nothing()
             .execute(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(rows_affected > 0)
     }
@@ -67,13 +68,13 @@ impl RawAttendanceLogRepository for DieselRawAttendanceLogRepository {
         &self,
         workspace_id: Uuid,
         id: Uuid,
-    ) -> Result<Option<RawAttendanceLog>, sqlx::Error> {
+    ) -> Result<Option<RawAttendanceLog>, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let res: Option<RawAttendanceLogEntity> = raw_attendance_logs::table
             .filter(raw_attendance_logs::id.eq(id))
@@ -81,7 +82,7 @@ impl RawAttendanceLogRepository for DieselRawAttendanceLogRepository {
             .first(&mut conn)
             .await
             .optional()
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(res.map(Into::into))
     }
@@ -90,13 +91,13 @@ impl RawAttendanceLogRepository for DieselRawAttendanceLogRepository {
         &self,
         workspace_id: Uuid,
         employee_id: Uuid,
-    ) -> Result<Option<RawAttendanceLog>, sqlx::Error> {
+    ) -> Result<Option<RawAttendanceLog>, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let res: Option<RawAttendanceLogEntity> = raw_attendance_logs::table
             .filter(raw_attendance_logs::employee_id.eq(employee_id))
@@ -105,7 +106,7 @@ impl RawAttendanceLogRepository for DieselRawAttendanceLogRepository {
             .first(&mut conn)
             .await
             .optional()
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(res.map(Into::into))
     }
@@ -118,13 +119,13 @@ impl RawAttendanceLogRepository for DieselRawAttendanceLogRepository {
         p_to: Option<DateTime<Utc>>,
         p_limit: i64,
         p_offset: i64,
-    ) -> Result<Vec<RawAttendanceLogWithEmployee>, sqlx::Error> {
+    ) -> Result<Vec<RawAttendanceLogWithEmployee>, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let mut query = raw_attendance_logs::table
             .inner_join(employees::table.on(raw_attendance_logs::employee_id.eq(employees::id)))
@@ -161,7 +162,7 @@ impl RawAttendanceLogRepository for DieselRawAttendanceLogRepository {
             .offset(p_offset)
             .load::<(RawAttendanceLogEntity, String, String, Option<String>)>(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(results
             .into_iter()
@@ -192,13 +193,13 @@ impl RawAttendanceLogRepository for DieselRawAttendanceLogRepository {
         p_employee_id: Option<Uuid>,
         p_from: Option<DateTime<Utc>>,
         p_to: Option<DateTime<Utc>>,
-    ) -> Result<i64, sqlx::Error> {
+    ) -> Result<i64, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let mut query = raw_attendance_logs::table
             .filter(raw_attendance_logs::workspace_id.eq(workspace_id))
@@ -220,7 +221,7 @@ impl RawAttendanceLogRepository for DieselRawAttendanceLogRepository {
             .count()
             .get_result::<i64>(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(count)
     }
@@ -228,7 +229,7 @@ impl RawAttendanceLogRepository for DieselRawAttendanceLogRepository {
     async fn create_raw_logs_batch(
         &self,
         logs: &[&RawAttendanceLog],
-    ) -> Result<usize, sqlx::Error> {
+    ) -> Result<usize, AppError> {
         if logs.is_empty() {
             return Ok(0);
         }
@@ -238,7 +239,7 @@ impl RawAttendanceLogRepository for DieselRawAttendanceLogRepository {
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let entities: Vec<RawAttendanceLogEntity> = logs
             .iter()
@@ -268,7 +269,7 @@ impl RawAttendanceLogRepository for DieselRawAttendanceLogRepository {
             .do_nothing()
             .execute(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(rows_affected)
     }

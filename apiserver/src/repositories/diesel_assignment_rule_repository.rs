@@ -6,6 +6,7 @@ use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::diesel_pool::DieselPools;
+use crate::errors::AppError;
 use crate::models::diesel::assignment_rule::AssignmentRuleEntity;
 use crate::models::employee::{
     AssignmentRule, CreateAssignmentRuleRequest,
@@ -34,16 +35,16 @@ impl AssignmentRuleRepositoryTrait for DieselAssignmentRuleRepository {
         &self,
         workspace_id: Uuid,
         req: &CreateAssignmentRuleRequest,
-    ) -> Result<AssignmentRule, sqlx::Error> {
+    ) -> Result<AssignmentRule, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Io(std::io::Error::other(format!("db: {e}"))))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let conditions = serde_json::to_value(&req.conditions)
-            .map_err(|e| sqlx::Error::Decode(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("serde: {e}")))?;
         let now = Utc::now();
 
         let entity = AssignmentRuleEntity {
@@ -63,17 +64,17 @@ impl AssignmentRuleRepositoryTrait for DieselAssignmentRuleRepository {
             .returning(AssignmentRuleEntity::as_returning())
             .get_result(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Io(std::io::Error::other(format!("db: {e}"))))
+            .map_err(|e| AppError::Internal(format!("db: {e}")))
             .map(Into::into)
     }
 
-    async fn get_rules(&self, workspace_id: Uuid) -> Result<Vec<AssignmentRule>, sqlx::Error> {
+    async fn get_rules(&self, workspace_id: Uuid) -> Result<Vec<AssignmentRule>, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Io(std::io::Error::other(format!("db: {e}"))))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         assignment_rules::table
             .filter(assignment_rules::workspace_id.eq(workspace_id))
@@ -81,20 +82,20 @@ impl AssignmentRuleRepositoryTrait for DieselAssignmentRuleRepository {
             .select(AssignmentRuleEntity::as_select())
             .load::<AssignmentRuleEntity>(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Io(std::io::Error::other(format!("db: {e}"))))
+            .map_err(|e| AppError::Internal(format!("db: {e}")))
             .map(|rows| rows.into_iter().map(Into::into).collect())
     }
 
     async fn get_active_rules(
         &self,
         workspace_id: Uuid,
-    ) -> Result<Vec<AssignmentRule>, sqlx::Error> {
+    ) -> Result<Vec<AssignmentRule>, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Io(std::io::Error::other(format!("db: {e}"))))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         assignment_rules::table
             .filter(assignment_rules::workspace_id.eq(workspace_id))
@@ -103,7 +104,7 @@ impl AssignmentRuleRepositoryTrait for DieselAssignmentRuleRepository {
             .select(AssignmentRuleEntity::as_select())
             .load::<AssignmentRuleEntity>(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Io(std::io::Error::other(format!("db: {e}"))))
+            .map_err(|e| AppError::Internal(format!("db: {e}")))
             .map(|rows| rows.into_iter().map(Into::into).collect())
     }
 
@@ -112,18 +113,18 @@ impl AssignmentRuleRepositoryTrait for DieselAssignmentRuleRepository {
         workspace_id: Uuid,
         id: Uuid,
         req: &UpdateAssignmentRuleRequest,
-    ) -> Result<AssignmentRule, sqlx::Error> {
+    ) -> Result<AssignmentRule, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Io(std::io::Error::other(format!("db: {e}"))))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let conditions_json = req
             .conditions
             .as_ref()
-            .map(|c| serde_json::to_value(c).map_err(|e| sqlx::Error::Decode(Box::new(e))))
+            .map(|c| serde_json::to_value(c).map_err(|e| AppError::Internal(format!("serde: {e}"))))
             .transpose()?;
 
         let target = assignment_rules::table
@@ -142,17 +143,17 @@ impl AssignmentRuleRepositoryTrait for DieselAssignmentRuleRepository {
             .returning(AssignmentRuleEntity::as_returning())
             .get_result(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Io(std::io::Error::other(format!("db: {e}"))))
+            .map_err(|e| AppError::Internal(format!("db: {e}")))
             .map(Into::into)
     }
 
-    async fn delete_rule(&self, workspace_id: Uuid, id: Uuid) -> Result<(), sqlx::Error> {
+    async fn delete_rule(&self, workspace_id: Uuid, id: Uuid) -> Result<(), AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Io(std::io::Error::other(format!("db: {e}"))))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         diesel::delete(
             assignment_rules::table
@@ -161,7 +162,7 @@ impl AssignmentRuleRepositoryTrait for DieselAssignmentRuleRepository {
         )
         .execute(&mut conn)
         .await
-        .map_err(|e| sqlx::Error::Io(std::io::Error::other(format!("db: {e}"))))?;
+        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(())
     }

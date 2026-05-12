@@ -1,4 +1,5 @@
 use crate::diesel_pool::DieselPools;
+use crate::errors::AppError;
 use crate::models::diesel::core::SessionEntity;
 use crate::repositories::session_repository::SessionRepository;
 use crate::schema::sessions;
@@ -42,13 +43,13 @@ impl SessionRepository for DieselSessionRepository {
         user_id: Uuid,
         token: &str,
         expires_at: chrono::DateTime<chrono::Utc>,
-    ) -> Result<(), sqlx::Error> {
+    ) -> Result<(), AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let entity = SessionEntity {
             id: Uuid::new_v4(),
@@ -63,7 +64,7 @@ impl SessionRepository for DieselSessionRepository {
             .values(&entity)
             .execute(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(())
     }
@@ -71,13 +72,13 @@ impl SessionRepository for DieselSessionRepository {
     async fn get_session_by_token(
         &self,
         token: &str,
-    ) -> Result<Option<SessionEntity>, sqlx::Error> {
+    ) -> Result<Option<SessionEntity>, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let session = sessions::table
             .filter(sessions::token.eq(token))
@@ -87,7 +88,7 @@ impl SessionRepository for DieselSessionRepository {
             .first::<SessionEntity>(&mut conn)
             .await
             .optional()
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(session)
     }
@@ -96,53 +97,53 @@ impl SessionRepository for DieselSessionRepository {
         &self,
         session_id: Uuid,
         new_token: &str,
-    ) -> Result<(), sqlx::Error> {
+    ) -> Result<(), AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         diesel::update(sessions::table.find(session_id))
             .set(sessions::token.eq(new_token))
             .execute(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(())
     }
 
-    async fn revoke_session(&self, token: &str) -> Result<(), sqlx::Error> {
+    async fn revoke_session(&self, token: &str) -> Result<(), AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         diesel::update(sessions::table.filter(sessions::token.eq(token)))
             .set(sessions::revoked_at.eq(Utc::now()))
             .execute(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(())
     }
 
-    async fn revoke_all_sessions_for_user(&self, user_id: Uuid) -> Result<(), sqlx::Error> {
+    async fn revoke_all_sessions_for_user(&self, user_id: Uuid) -> Result<(), AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         diesel::update(sessions::table.filter(sessions::user_id.eq(user_id)))
             .set(sessions::revoked_at.eq(Utc::now()))
             .execute(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(())
     }

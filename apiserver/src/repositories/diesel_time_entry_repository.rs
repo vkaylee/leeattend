@@ -5,6 +5,7 @@ use diesel_async::RunQueryDsl;
 use std::collections::HashMap;
 use uuid::Uuid;
 
+use crate::errors::AppError;
 use crate::models::diesel::time_entry::{
     NewTimeEntryEntity, TimeEntryEntity, UpdateTimeEntryEntity,
 };
@@ -28,13 +29,13 @@ impl DieselTimeEntryRepository {
 
 #[async_trait]
 impl TimeEntryRepository for DieselTimeEntryRepository {
-    async fn create_time_entry(&self, entry: &TimeEntry) -> Result<(), sqlx::Error> {
+    async fn create_time_entry(&self, entry: &TimeEntry) -> Result<(), AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let new_entry = NewTimeEntryEntity {
             id: entry.id,
@@ -52,7 +53,7 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
             .values(&new_entry)
             .execute(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(())
     }
@@ -61,13 +62,13 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
         &self,
         workspace_id: Uuid,
         id: Uuid,
-    ) -> Result<Option<TimeEntry>, sqlx::Error> {
+    ) -> Result<Option<TimeEntry>, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let entry: Option<TimeEntryEntity> = time_entries::table
             .filter(time_entries::workspace_id.eq(workspace_id))
@@ -75,7 +76,7 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
             .first(&mut conn)
             .await
             .optional()
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(entry.map(Into::into))
     }
@@ -84,13 +85,13 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
         &self,
         workspace_id: Uuid,
         employee_id: Uuid,
-    ) -> Result<Option<TimeEntry>, sqlx::Error> {
+    ) -> Result<Option<TimeEntry>, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let entry: Option<TimeEntryEntity> = time_entries::table
             .filter(time_entries::workspace_id.eq(workspace_id))
@@ -100,7 +101,7 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
             .first(&mut conn)
             .await
             .optional()
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(entry.map(Into::into))
     }
@@ -109,7 +110,7 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
         &self,
         workspace_id: Uuid,
         employee_id: Uuid,
-    ) -> Result<Option<TimeEntry>, sqlx::Error> {
+    ) -> Result<Option<TimeEntry>, AppError> {
         self.get_active_time_entry(workspace_id, employee_id).await
     }
 
@@ -117,13 +118,13 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
         &self,
         workspace_id: Uuid,
         entry: &TimeEntry,
-    ) -> Result<(), sqlx::Error> {
+    ) -> Result<(), AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let update_model = UpdateTimeEntryEntity {
             punch_in_time: Some(entry.punch_in_time),
@@ -139,25 +140,25 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
             .set(&update_model)
             .execute(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(())
     }
 
-    async fn delete_time_entry(&self, workspace_id: Uuid, id: Uuid) -> Result<(), sqlx::Error> {
+    async fn delete_time_entry(&self, workspace_id: Uuid, id: Uuid) -> Result<(), AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         diesel::delete(time_entries::table)
             .filter(time_entries::id.eq(id))
             .filter(time_entries::workspace_id.eq(workspace_id))
             .execute(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(())
     }
@@ -168,13 +169,13 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
         employee_id: Uuid,
         from: DateTime<Utc>,
         to: DateTime<Utc>,
-    ) -> Result<Vec<TimeEntry>, sqlx::Error> {
+    ) -> Result<Vec<TimeEntry>, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let entries: Vec<TimeEntryEntity> = time_entries::table
             .filter(time_entries::workspace_id.eq(workspace_id))
@@ -184,7 +185,7 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
             .order(time_entries::punch_in_time.desc())
             .load(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(entries.into_iter().map(Into::into).collect())
     }
@@ -193,14 +194,14 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
         &self,
         workspace_id: Uuid,
         filter: TimeEntryLogFilter,
-    ) -> Result<Vec<TimeEntryWithEmployee>, sqlx::Error> {
+    ) -> Result<Vec<TimeEntryWithEmployee>, AppError> {
         // Dynamic SQL with Diesel boxed query
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let mut query = time_entries::table
             .inner_join(employees::table.on(time_entries::employee_id.eq(employees::id)))
@@ -228,7 +229,7 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
             .offset(filter.offset)
             .load::<(TimeEntryEntity, String, String)>(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(results
             .into_iter()
@@ -261,13 +262,13 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
         p_employee_id: Option<Uuid>,
         p_from: Option<DateTime<Utc>>,
         p_to: Option<DateTime<Utc>>,
-    ) -> Result<i64, sqlx::Error> {
+    ) -> Result<i64, AppError> {
         let mut conn = self
             .diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let mut query = time_entries::table
             .inner_join(employees::table.on(time_entries::employee_id.eq(employees::id)))
@@ -288,7 +289,7 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
             .count()
             .get_result(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(count)
     }
@@ -299,7 +300,7 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
         employee_ids: &[Uuid],
         from: DateTime<Utc>,
         to: DateTime<Utc>,
-    ) -> Result<HashMap<Uuid, Vec<TimeEntry>>, sqlx::Error> {
+    ) -> Result<HashMap<Uuid, Vec<TimeEntry>>, AppError> {
         if employee_ids.is_empty() {
             return Ok(HashMap::new());
         }
@@ -309,7 +310,7 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
             .api
             .get()
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let results: Vec<TimeEntryEntity> = time_entries::table
             .filter(time_entries::workspace_id.eq(workspace_id))
@@ -322,7 +323,7 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
             ))
             .load(&mut conn)
             .await
-            .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let mut result_map: HashMap<Uuid, Vec<TimeEntry>> = HashMap::new();
         for entry in results {
