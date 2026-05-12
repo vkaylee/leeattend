@@ -126,5 +126,7 @@ pub mod diesel_import_job_repository;
 pub use diesel_import_job_repository::DieselImportJobRepository;
 pub mod diesel_overtime_policy_repository;
 pub use diesel_overtime_policy_repository::DieselOvertimePolicyRepository;
+pub mod diesel_employment_phase_repository;
+pub use diesel_employment_phase_repository::DieselEmploymentPhaseRepository;
 pub mod diesel_working_pattern_repository;
 pub use diesel_working_pattern_repository::DieselWorkingPatternRepository;

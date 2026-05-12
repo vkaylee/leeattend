@@ -65,6 +65,11 @@ impl AppState {
             pool.clone(),
             diesel_pools.clone(),
         ));
+        let employment_phase_repo =
+            Arc::new(crate::repositories::DieselEmploymentPhaseRepository::new(
+                pool.clone(),
+                diesel_pools.clone(),
+            ));
         let time_entry_repo: Arc<
             dyn crate::repositories::time_entry_repository::TimeEntryRepository,
         > = Arc::new(crate::repositories::DieselTimeEntryRepository::new(
@@ -376,6 +381,7 @@ impl AppState {
                 service: employee_service,
                 repo: employee_repo,
                 contract_repo,
+                employment_phase_repo,
             },
             attendance: crate::AttendanceState {
                 time_tracking_service,

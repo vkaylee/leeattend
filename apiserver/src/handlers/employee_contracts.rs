@@ -131,16 +131,18 @@ pub async fn create_contract(
                 .checked_add_months(chrono::Months::new(12))
                 .unwrap_or(contract.start_date)
         });
-        let pool = state.infra.db.api();
-        let _ = crate::repositories::employment_phase_repository::EmploymentPhaseRepository::assign_phase(
-            pool,
-            workspace_id,
-            contract.employee_id,
-            phase_id,
-            contract.start_date,
-            end_date,
-            None,
-        ).await;
+        let _ = state
+            .employees
+            .employment_phase_repo
+            .assign_phase(
+                workspace_id,
+                contract.employee_id,
+                phase_id,
+                contract.start_date,
+                end_date,
+                None,
+            )
+            .await;
     }
 
     dispatch_sync_hire_date(&state, workspace_id, contract.employee_id, contract.id).await;

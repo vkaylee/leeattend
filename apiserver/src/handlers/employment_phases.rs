@@ -13,7 +13,6 @@ use crate::{
     errors::AppError,
     handlers::common::MemberContext,
     models::{EmployeePhase, EmploymentPhaseDefinition},
-    repositories::EmploymentPhaseRepository,
     AppState,
 };
 
@@ -47,16 +46,18 @@ pub async fn create_employment_phase_definition(
 ) -> Result<(StatusCode, Json<EmploymentPhaseDefinition>), AppError> {
     ctx.require_permission(Permission::EmploymentPhasesManage)?;
 
-    let def = EmploymentPhaseRepository::create_definition(
-        state.infra.db.api(),
-        ctx.workspace_id,
-        &payload.name,
-        payload.description.as_deref(),
-        &payload.phase_type,
-        &payload.rule_config,
-        payload.display_order.unwrap_or(0),
-    )
-    .await?;
+    let def = state
+        .employees
+        .employment_phase_repo
+        .create_definition(
+            ctx.workspace_id,
+            &payload.name,
+            payload.description.as_deref(),
+            &payload.phase_type,
+            &payload.rule_config,
+            payload.display_order.unwrap_or(0),
+        )
+        .await?;
 
     Ok((StatusCode::CREATED, Json(def)))
 }
@@ -65,8 +66,11 @@ pub async fn get_employment_phase_definitions(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> Result<Json<Vec<EmploymentPhaseDefinition>>, AppError> {
-    let defs =
-        EmploymentPhaseRepository::get_definitions(state.infra.db.api(), ctx.workspace_id).await?;
+    let defs = state
+        .employees
+        .employment_phase_repo
+        .get_definitions(ctx.workspace_id)
+        .await?;
     Ok(Json(defs))
 }
 
@@ -78,16 +82,18 @@ pub async fn assign_employee_phase(
 ) -> Result<Json<EmployeePhase>, AppError> {
     ctx.require_permission(Permission::EmploymentPhasesManage)?;
 
-    let phase = EmploymentPhaseRepository::assign_phase(
-        state.infra.db.api(),
-        ctx.workspace_id,
-        emp_id,
-        payload.phase_definition_id,
-        payload.start_date,
-        payload.end_date,
-        payload.override_config.as_ref(),
-    )
-    .await?;
+    let phase = state
+        .employees
+        .employment_phase_repo
+        .assign_phase(
+            ctx.workspace_id,
+            emp_id,
+            payload.phase_definition_id,
+            payload.start_date,
+            payload.end_date,
+            payload.override_config.as_ref(),
+        )
+        .await?;
 
     Ok(Json(phase))
 }
@@ -100,16 +106,18 @@ pub async fn update_employee_phase_status(
 ) -> Result<Json<EmployeePhase>, AppError> {
     ctx.require_permission(Permission::EmploymentPhasesManage)?;
 
-    let phase = EmploymentPhaseRepository::update_phase_status(
-        state.infra.db.api(),
-        ctx.workspace_id,
-        emp_id,
-        phase_id,
-        &payload.status,
-        payload.evaluation_notes.as_deref(),
-        ctx.user_id,
-    )
-    .await?;
+    let phase = state
+        .employees
+        .employment_phase_repo
+        .update_phase_status(
+            ctx.workspace_id,
+            emp_id,
+            phase_id,
+            &payload.status,
+            payload.evaluation_notes.as_deref(),
+            ctx.user_id,
+        )
+        .await?;
 
     Ok(Json(phase))
 }
@@ -119,12 +127,11 @@ pub async fn get_employee_phases(
     ctx: MemberContext,
     Path((_ws_id, emp_id)): Path<(Uuid, Uuid)>,
 ) -> Result<Json<Vec<EmployeePhase>>, AppError> {
-    let phases = EmploymentPhaseRepository::get_employee_phases(
-        state.infra.db.api(),
-        ctx.workspace_id,
-        emp_id,
-    )
-    .await?;
+    let phases = state
+        .employees
+        .employment_phase_repo
+        .get_employee_phases(ctx.workspace_id, emp_id)
+        .await?;
 
     Ok(Json(phases))
 }

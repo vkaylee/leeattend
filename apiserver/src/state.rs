@@ -49,6 +49,7 @@ pub struct EmployeeState {
     pub service: Arc<EmployeeService>,
     pub repo: Arc<dyn EmployeeRepository>,
     pub contract_repo: Arc<DieselEmployeeContractRepository>,
+    pub employment_phase_repo: Arc<crate::repositories::DieselEmploymentPhaseRepository>,
 }
 
 /// Time & attendance tracking, summaries, logs, staging, adjustments, imports

@@ -277,6 +277,7 @@ pub async fn spawn_app() -> (String, TestDatabase) {
             service: employee_service,
             repo: employee_repo.clone(),
             contract_repo: Arc::new(apiserver::repositories::diesel_employee_contract_repository::DieselEmployeeContractRepository::new(pool.clone(), diesel_pools.clone())),
+            employment_phase_repo: Arc::new(apiserver::repositories::DieselEmploymentPhaseRepository::new(pool.clone(), diesel_pools.clone())),
         },
         attendance: apiserver::AttendanceState {
             time_tracking_service,
@@ -653,6 +654,7 @@ pub async fn spawn_app_with_factory() -> (String, Uuid, Uuid, TestFactory, TestD
             service: employee_service,
             repo: employee_repo.clone(),
             contract_repo: Arc::new(apiserver::repositories::diesel_employee_contract_repository::DieselEmployeeContractRepository::new(pool.clone(), diesel_pools.clone())),
+            employment_phase_repo: Arc::new(apiserver::repositories::DieselEmploymentPhaseRepository::new(pool.clone(), diesel_pools.clone())),
         },
         attendance: apiserver::AttendanceState {
             time_tracking_service,
@@ -1066,6 +1068,12 @@ pub async fn setup_app_tower() -> (TestDatabase, TestFactory, Arc<AppState>, axu
             repo: employee_repo.clone(),
             contract_repo: Arc::new(
                 apiserver::repositories::diesel_employee_contract_repository::DieselEmployeeContractRepository::new(
+                    pool.clone(),
+                    diesel_pools.clone(),
+                ),
+            ),
+            employment_phase_repo: Arc::new(
+                apiserver::repositories::DieselEmploymentPhaseRepository::new(
                     pool.clone(),
                     diesel_pools.clone(),
                 ),
