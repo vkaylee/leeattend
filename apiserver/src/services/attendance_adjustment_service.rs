@@ -149,13 +149,6 @@ impl AttendanceAdjustmentService {
                     duration.num_minutes() as i32
                 });
 
-                let workspace_id: Uuid = sqlx::query_scalar!(
-                    "SELECT workspace_id FROM employees WHERE id = $1",
-                    request.employee_id
-                )
-                .fetch_one(&self.pool)
-                .await
-                .map_err(AppError::Sqlx)?;
                 let entry = TimeEntry {
                     id: new_id(),
                     employee_id: request.employee_id,

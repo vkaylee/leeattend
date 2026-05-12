@@ -39,6 +39,7 @@ use crate::services::import_pipeline::{ImportPipeline, ImportStrategy};
 pub struct EmployeeImportStrategy {
     pub msgs: AttendanceImportMessages,
     pub employee_repo: Arc<dyn EmployeeRepository>,
+    pub department_repo: Arc<dyn crate::repositories::department_repository::DepartmentRepository>,
     pub dept_cache: HashMap<String, Uuid>,
 }
 
@@ -107,10 +108,7 @@ impl ImportStrategy for EmployeeImportStrategy {
     }
 
     async fn init(&mut self, pool: &PgPool, job: &AttendanceImportJob) -> Result<(), String> {
-        if let Ok(existing_depts) =
-            crate::repositories::department_repository::get_departments(pool, job.workspace_id)
-                .await
-        {
+        if let Ok(existing_depts) = self.department_repo.get_departments(job.workspace_id).await {
             for dept in existing_depts {
                 self.dept_cache.insert(dept.name.to_lowercase(), dept.id);
             }
@@ -149,21 +147,13 @@ impl ImportStrategy for EmployeeImportStrategy {
                     let dept_id = if let Some(&cached_id) = self.dept_cache.get(&dept_key) {
                         cached_id
                     } else {
-                        // Double check database in case another chunk created it
-                        let existing = sqlx::query!(
-                            "SELECT id FROM departments WHERE workspace_id = $1 AND LOWER(name) = $2 LIMIT 1",
-                            job.workspace_id,
-                            dept_key
-                        )
-                        .fetch_optional(pool)
-                        .await;
+                        let existing = self.department_repo.get_department_by_name(job.workspace_id, &dept_key).await;
 
-                        if let Ok(Some(row)) = existing {
-                            self.dept_cache.insert(dept_key.clone(), row.id);
-                            row.id
+                        if let Ok(Some(id)) = existing {
+                            self.dept_cache.insert(dept_key.clone(), id);
+                            id
                         } else {
-                            match crate::repositories::department_repository::create_department(
-                                pool,
+                            match self.department_repo.create_department(
                                 job.workspace_id,
                                 dept_name.clone(),
                                 None,
@@ -178,17 +168,11 @@ impl ImportStrategy for EmployeeImportStrategy {
                                 }
                                 Err(e) => {
                                     // Final check in case of a unique constraint race condition
-                                    let retry = sqlx::query!(
-                                        "SELECT id FROM departments WHERE workspace_id = $1 AND LOWER(name) = $2 LIMIT 1",
-                                        job.workspace_id,
-                                        dept_key
-                                    )
-                                    .fetch_optional(pool)
-                                    .await;
+                                    let retry = self.department_repo.get_department_by_name(job.workspace_id, &dept_key).await;
 
-                                    if let Ok(Some(row)) = retry {
-                                        self.dept_cache.insert(dept_key.clone(), row.id);
-                                        row.id
+                                    if let Ok(Some(id)) = retry {
+                                        self.dept_cache.insert(dept_key.clone(), id);
+                                        id
                                     } else {
                                         error!(
                                             "Failed to create department '{}': {}",
@@ -201,8 +185,7 @@ impl ImportStrategy for EmployeeImportStrategy {
                         }
                     };
                     if !dept_id.is_nil()
-                        && crate::repositories::department_repository::transfer_employee(
-                            pool,
+                        && self.department_repo.transfer_employee(
                             employee_id,
                             dept_id,
                             emp.hire_date,
@@ -680,6 +663,7 @@ impl AttendanceImportService {
         let strategy = EmployeeImportStrategy {
             msgs: msgs.clone(),
             employee_repo: std::sync::Arc::clone(&self.employee_repo),
+            department_repo: Arc::new(crate::repositories::diesel_department_repository::DieselDepartmentRepository::new(pool.clone(), self.diesel_pools.clone())),
             dept_cache: HashMap::new(),
         };
 

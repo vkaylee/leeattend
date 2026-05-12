@@ -197,24 +197,11 @@ impl AttendanceSummaryService {
         // 4c. Holiday leave conflict detection
         if is_holiday && actual_work_minutes > 0 {
             if let Some(ref hol) = holiday {
-                let system_leave: Option<(Uuid, Uuid, String)> = sqlx::query_as(
-                    r#"SELECT lr.id, lr.leave_type_id, lt.code
-                       FROM leave_requests lr
-                       JOIN leave_types lt ON lt.id = lr.leave_type_id
-                       JOIN employees e ON e.id = lr.employee_id
-                       WHERE lr.employee_id = $1
-                         AND e.workspace_id = $3
-                         AND lr.status IN ('approved'::leave_status_type, 'pre_approved'::leave_status_type)
-                         AND lr.start_date <= $2
-                         AND lr.end_date >= $2
-                         AND lr.requested_by_user_id IS NULL"#,
-                )
-                .bind(employee_id)
-                .bind(date)
-                .bind(workspace_id)
-                .fetch_optional(&self.pool)
-                .await
-                .unwrap_or(None);
+                let leave_repo = crate::repositories::DieselLeaveRequestRepository::new(self.pool.clone(), self.diesel.clone());
+                let system_leave = leave_repo
+                    .get_system_generated_holiday_leave(workspace_id, employee_id, date)
+                    .await
+                    .unwrap_or(None);
 
                 if let Some((leave_request_id, _leave_type_id, _leave_code)) = system_leave {
                     let shift_minutes = daily_schedule
@@ -240,12 +227,7 @@ impl AttendanceSummaryService {
                     };
 
                     if work_percent >= threshold {
-                        let _ = sqlx::query(
-                            "UPDATE leave_requests SET status = 'cancelled'::leave_status_type, updated_at = NOW() WHERE id = $1"
-                        )
-                        .bind(leave_request_id)
-                        .execute(&self.pool)
-                        .await;
+                        let _ = leave_repo.cancel_leave_request(workspace_id, leave_request_id).await;
 
                         tracing::info!(
                             employee_id = %employee_id,
@@ -270,14 +252,16 @@ impl AttendanceSummaryService {
         }
 
         // 5. Upsert into DB
-        let existing: Option<AttendanceDailySummary> = sqlx::query_as!(
-            AttendanceDailySummary,
-            "SELECT id, workspace_id, employee_id, date, actual_work_minutes, system_detected_ot_minutes, claimed_ot_minutes, approved_ot_minutes, ot_status as \"ot_status: OtStatus\", ot_reason, manager_note, claim_entered_by_user_id, claim_entered_at, paper_form_photo_url, entered_via, is_holiday, holiday_name, created_at, updated_at FROM attendance_daily_summaries WHERE employee_id = $1 AND workspace_id = $2 AND date = $3",
-            employee_id, workspace_id, date
-        )
-        .fetch_optional(&self.pool)
-        .await
-        .map_err(|e: sqlx::Error| e.to_string())?;
+        let summary_repo = crate::repositories::DieselAttendanceDailySummaryRepository::new(
+            self.pool.clone(),
+            self.diesel.clone(),
+        );
+
+        use crate::repositories::attendance_daily_summary_repository::AttendanceDailySummaryRepository;
+        
+        let existing = summary_repo
+            .get_summary(workspace_id, employee_id, date)
+            .await?;
 
         let new_status = match existing {
             Some(ref s) => {
@@ -296,37 +280,18 @@ impl AttendanceSummaryService {
             }
         };
 
-        let _result: sqlx::postgres::PgQueryResult = sqlx::query!(
-            r#"
-            INSERT INTO attendance_daily_summaries (
-                workspace_id, employee_id, date, 
-                actual_work_minutes, system_detected_ot_minutes, 
-                ot_status, is_holiday, holiday_name
+        summary_repo
+            .upsert_calculated_summary(
+                workspace_id,
+                employee_id,
+                date,
+                actual_work_minutes,
+                system_detected_ot_minutes,
+                new_status,
+                is_holiday,
+                holiday_name,
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-            ON CONFLICT (employee_id, date) DO UPDATE SET
-                actual_work_minutes = EXCLUDED.actual_work_minutes,
-                system_detected_ot_minutes = EXCLUDED.system_detected_ot_minutes,
-                is_holiday = EXCLUDED.is_holiday,
-                holiday_name = EXCLUDED.holiday_name,
-                ot_status = CASE 
-                    WHEN attendance_daily_summaries.ot_status = 'none'::ot_status_type AND EXCLUDED.system_detected_ot_minutes > 0 THEN 'pending_employee'::ot_status_type
-                    ELSE attendance_daily_summaries.ot_status 
-                END,
-                updated_at = CURRENT_TIMESTAMP
-            "#,
-            workspace_id,
-            employee_id,
-            date,
-            actual_work_minutes,
-            system_detected_ot_minutes,
-            new_status as OtStatus,
-            is_holiday,
-            holiday_name as Option<String>
-        )
-        .execute(&self.pool)
-        .await
-        .map_err(|e: sqlx::Error| e.to_string())?;
+            .await?;
 
         Ok(())
     }
@@ -340,27 +305,19 @@ impl AttendanceSummaryService {
         claimed_minutes: i32,
         reason: Option<String>,
     ) -> Result<(), String> {
-        let result: sqlx::postgres::PgQueryResult = sqlx::query!(
-            r#"
-            UPDATE attendance_daily_summaries
-            SET 
-                claimed_ot_minutes = $1,
-                ot_reason = $2,
-                ot_status = 'pending_manager',
-                updated_at = CURRENT_TIMESTAMP
-            WHERE employee_id = $3 AND workspace_id = $4 AND date = $5
-            "#,
-            claimed_minutes,
-            reason,
-            employee_id,
-            workspace_id,
-            date
-        )
-        .execute(&self.pool)
-        .await
-        .map_err(|e: sqlx::Error| e.to_string())?;
+        let summary_repo = crate::repositories::DieselAttendanceDailySummaryRepository::new(
+            self.pool.clone(),
+            self.diesel.clone(),
+        );
 
-        if result.rows_affected() == 0 {
+        use crate::repositories::attendance_daily_summary_repository::AttendanceDailySummaryRepository;
+        
+        let rows_affected = summary_repo
+            .claim_ot(workspace_id, employee_id, date, claimed_minutes, reason)
+            .await
+            .map_err(|e| e.to_string())?;
+
+        if rows_affected == 0 {
             return Err("Record not found".to_string());
         }
         Ok(())
@@ -376,28 +333,19 @@ impl AttendanceSummaryService {
         manager_note: Option<String>,
         status: OtStatus, // Approved or Rejected
     ) -> Result<(), String> {
-        let result: sqlx::postgres::PgQueryResult = sqlx::query!(
-            r#"
-            UPDATE attendance_daily_summaries
-            SET
-                approved_ot_minutes = $1,
-                manager_note = $2,
-                ot_status = $3,
-                updated_at = CURRENT_TIMESTAMP
-            WHERE employee_id = $4 AND workspace_id = $5 AND date = $6
-            "#,
-            approved_minutes,
-            manager_note,
-            status as OtStatus,
-            employee_id,
-            workspace_id,
-            date
-        )
-        .execute(&self.pool)
-        .await
-        .map_err(|e: sqlx::Error| e.to_string())?;
+        let summary_repo = crate::repositories::DieselAttendanceDailySummaryRepository::new(
+            self.pool.clone(),
+            self.diesel.clone(),
+        );
 
-        if result.rows_affected() == 0 {
+        use crate::repositories::attendance_daily_summary_repository::AttendanceDailySummaryRepository;
+        
+        let rows_affected = summary_repo
+            .approve_ot(workspace_id, employee_id, date, approved_minutes, manager_note, status)
+            .await
+            .map_err(|e| e.to_string())?;
+
+        if rows_affected == 0 {
             return Err("Record not found".to_string());
         }
         Ok(())
@@ -408,15 +356,18 @@ impl AttendanceSummaryService {
         &self,
         args: EnterPaperOtArgs,
     ) -> Result<AttendanceDailySummary, String> {
+        let summary_repo = crate::repositories::DieselAttendanceDailySummaryRepository::new(
+            self.pool.clone(),
+            self.diesel.clone(),
+        );
+
+        use crate::repositories::attendance_daily_summary_repository::AttendanceDailySummaryRepository;
+
         // 1. Check existing summary
-        let existing: Option<AttendanceDailySummary> = sqlx::query_as!(
-            AttendanceDailySummary,
-            "SELECT id, workspace_id, employee_id, date, actual_work_minutes, system_detected_ot_minutes, claimed_ot_minutes, approved_ot_minutes, ot_status as \"ot_status: OtStatus\", ot_reason, manager_note, claim_entered_by_user_id, claim_entered_at, paper_form_photo_url, entered_via, is_holiday, holiday_name, created_at, updated_at FROM attendance_daily_summaries WHERE employee_id = $1 AND workspace_id = $2 AND date = $3",
-            args.employee_id, args.workspace_id, args.date
-        )
-        .fetch_optional(&self.pool)
-        .await
-        .map_err(|e: sqlx::Error| e.to_string())?;
+        let existing = summary_repo
+            .get_summary(args.workspace_id, args.employee_id, args.date)
+            .await
+            .map_err(|e| e.to_string())?;
 
         // 2. Validate against system detected (if not allowing exceed)
         if !args.allow_exceed {
@@ -430,40 +381,19 @@ impl AttendanceSummaryService {
             }
         }
 
-        let now = Utc::now();
-
         // 3. Upsert with paper form metadata
-        let result: AttendanceDailySummary = sqlx::query_as!(
-            AttendanceDailySummary,
-            r#"
-            INSERT INTO attendance_daily_summaries (
-                workspace_id, employee_id, date,
-                claimed_ot_minutes, ot_reason, ot_status,
-                claim_entered_by_user_id, claim_entered_at,
-                paper_form_photo_url, entered_via
+        let result = summary_repo
+            .upsert_paper_ot(
+                args.workspace_id,
+                args.employee_id,
+                args.date,
+                args.claimed_minutes,
+                args.reason,
+                args.entered_by_user_id,
+                args.photo_url,
             )
-            SELECT
-                e.workspace_id, $1, $2,
-                $3, $4, 'pending_manager',
-                $5, $6, $7, 'paper_form'
-            FROM employees e WHERE e.id = $1
-            ON CONFLICT (employee_id, date) DO UPDATE SET
-                claimed_ot_minutes = EXCLUDED.claimed_ot_minutes,
-                ot_reason = EXCLUDED.ot_reason,
-                ot_status = 'pending_manager',
-                claim_entered_by_user_id = EXCLUDED.claim_entered_by_user_id,
-                claim_entered_at = EXCLUDED.claim_entered_at,
-                paper_form_photo_url = EXCLUDED.paper_form_photo_url,
-                entered_via = 'paper_form',
-                updated_at = CURRENT_TIMESTAMP
-            RETURNING id, workspace_id, employee_id, date, actual_work_minutes, system_detected_ot_minutes, claimed_ot_minutes, approved_ot_minutes, ot_status as "ot_status: OtStatus", ot_reason, manager_note, claim_entered_by_user_id, claim_entered_at, paper_form_photo_url, entered_via, is_holiday, holiday_name, created_at, updated_at
-            "#,
-            args.employee_id, args.date, args.claimed_minutes, args.reason,
-            args.entered_by_user_id, now, args.photo_url
-        )
-        .fetch_one(&self.pool)
-        .await
-        .map_err(|e: sqlx::Error| e.to_string())?;
+            .await
+            .map_err(|e| e.to_string())?;
 
         Ok(result)
     }

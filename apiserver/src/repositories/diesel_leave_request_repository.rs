@@ -192,4 +192,20 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
 
         Ok(rows)
     }
+
+    async fn get_system_generated_holiday_leave(
+        &self,
+        workspace_id: Uuid,
+        employee_id: Uuid,
+        date: NaiveDate,
+    ) -> Result<Option<(Uuid, Uuid, String)>, AppError> {
+        let repo = SqlxLeaveRequestRepository::new(self.sqlx_pool.clone());
+        repo.get_system_generated_holiday_leave(workspace_id, employee_id, date)
+            .await
+    }
+
+    async fn cancel_leave_request(&self, workspace_id: Uuid, id: Uuid) -> Result<(), AppError> {
+        let repo = SqlxLeaveRequestRepository::new(self.sqlx_pool.clone());
+        repo.cancel_leave_request(workspace_id, id).await
+    }
 }

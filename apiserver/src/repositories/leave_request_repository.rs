@@ -50,6 +50,15 @@ pub trait LeaveRequestRepository: super::PoolBacked + Send + Sync {
     ) -> Result<Option<Uuid>, AppError>;
     /// List all leave types (code, name) for a workspace.
     async fn get_leave_types(&self, workspace_id: Uuid) -> Result<Vec<(String, String)>, AppError>;
+    
+    async fn get_system_generated_holiday_leave(
+        &self,
+        workspace_id: Uuid,
+        employee_id: Uuid,
+        date: NaiveDate,
+    ) -> Result<Option<(Uuid, Uuid, String)>, AppError>;
+
+    async fn cancel_leave_request(&self, workspace_id: Uuid, id: Uuid) -> Result<(), AppError>;
 }
 
 // ---------------------------------------------------------------------------
@@ -150,6 +159,41 @@ impl LeaveRequestRepository for SqlxLeaveRequestRepository {
             .await
             .map_err(Into::into)
             .map(|rows| rows.iter().map(|r| (r.get(0), r.get(1))).collect())
+    }
+
+    async fn get_system_generated_holiday_leave(
+        &self,
+        workspace_id: Uuid,
+        employee_id: Uuid,
+        date: NaiveDate,
+    ) -> Result<Option<(Uuid, Uuid, String)>, AppError> {
+        sqlx::query_as(
+            r#"SELECT lr.id, lr.leave_type_id, lt.code
+               FROM leave_requests lr
+               JOIN leave_types lt ON lt.id = lr.leave_type_id
+               JOIN employees e ON e.id = lr.employee_id
+               WHERE lr.employee_id = $1
+                 AND e.workspace_id = $3
+                 AND lr.status IN ('approved'::leave_status_type, 'pre_approved'::leave_status_type)
+                 AND lr.start_date <= $2
+                 AND lr.end_date >= $2
+                 AND lr.requested_by_user_id IS NULL"#,
+        )
+        .bind(employee_id)
+        .bind(date)
+        .bind(workspace_id)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|e| AppError::Internal(format!("db: {e}")))
+    }
+
+    async fn cancel_leave_request(&self, _workspace_id: Uuid, id: Uuid) -> Result<(), AppError> {
+        sqlx::query("UPDATE leave_requests SET status = 'cancelled'::leave_status_type, updated_at = NOW() WHERE id = $1")
+            .bind(id)
+            .execute(&self.pool)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        Ok(())
     }
 }
 

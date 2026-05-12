@@ -85,6 +85,15 @@ impl DepartmentRepository for DieselDepartmentRepository {
         Ok(dept.map(Into::into))
     }
 
+    async fn get_department_by_name(
+        &self,
+        workspace_id: Uuid,
+        name: &str,
+    ) -> Result<Option<Uuid>, AppError> {
+        let repo = crate::repositories::department_repository::SqlxDepartmentRepository::new(self.sqlx_pool.clone());
+        repo.get_department_by_name(workspace_id, name).await
+    }
+
     async fn update_department(
         &self,
         workspace_id: Uuid,

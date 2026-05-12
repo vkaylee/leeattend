@@ -26,6 +26,11 @@ pub trait DepartmentRepository: super::PoolBacked + Send + Sync {
         workspace_id: Uuid,
         id: Uuid,
     ) -> Result<Option<Department>, AppError>;
+    async fn get_department_by_name(
+        &self,
+        workspace_id: Uuid,
+        name: &str,
+    ) -> Result<Option<Uuid>, AppError>;
     async fn update_department(
         &self,
         workspace_id: Uuid,
@@ -107,6 +112,18 @@ impl DepartmentRepository for SqlxDepartmentRepository {
         get_department_by_id(&self.pool, workspace_id, id)
             .await
             .map_err(Into::into)
+    }
+    async fn get_department_by_name(
+        &self,
+        workspace_id: Uuid,
+        name: &str,
+    ) -> Result<Option<Uuid>, AppError> {
+        let name_lower = name.to_lowercase();
+        let record = sqlx::query!("SELECT id FROM departments WHERE workspace_id = $1 AND LOWER(name) = $2 LIMIT 1", workspace_id, name_lower)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        Ok(record.map(|r| r.id))
     }
     async fn update_department(
         &self,

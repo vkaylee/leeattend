@@ -94,6 +94,12 @@ pub mod diesel_leave_accrual_log_repository;
 pub use diesel_leave_accrual_log_repository::DieselLeaveAccrualLogRepository;
 pub mod diesel_attendance_adjustment_repository;
 pub use diesel_attendance_adjustment_repository::DieselAttendanceAdjustmentRepository;
+pub mod attendance_daily_summary_repository;
+pub use attendance_daily_summary_repository::{
+    AttendanceDailySummaryRepository, SqlxAttendanceDailySummaryRepository,
+};
+pub mod diesel_attendance_daily_summary_repository;
+pub use diesel_attendance_daily_summary_repository::DieselAttendanceDailySummaryRepository;
 pub mod diesel_raw_attendance_log_repository;
 pub use diesel_raw_attendance_log_repository::DieselRawAttendanceLogRepository;
 pub mod diesel_staging_log_repository;
