@@ -1,5 +1,6 @@
 use async_trait::async_trait;
 use chrono::Utc;
+use diesel::OptionalExtension;
 use diesel_async::RunQueryDsl;
 use uuid::Uuid;
 
@@ -85,12 +86,20 @@ impl ImportJobRepository for DieselImportJobRepository {
     }
 
     async fn get_job_by_id(&self, id: Uuid) -> Result<Option<AttendanceImportJob>, AppError> {
-        let row: Option<ImportJobEntity> = sqlx::query_as(
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        let row: Option<ImportJobEntity> = diesel::sql_query(
             "SELECT id, workspace_id, user_id, status::text, total_rows, processed_rows, file_path, error_log, target_type::text, created_at, updated_at FROM attendance_import_jobs WHERE id = $1"
         )
-        .bind(id)
-        .fetch_optional(&self.sqlx_pool)
+        .bind::<diesel::sql_types::Uuid, _>(id)
+        .get_result(&mut conn)
         .await
+        .optional()
         .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(row.map(Into::into))
@@ -101,31 +110,47 @@ impl ImportJobRepository for DieselImportJobRepository {
         workspace_id: Uuid,
         target_type: Option<ImportTargetType>,
     ) -> Result<Option<AttendanceImportJob>, AppError> {
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
         let row: Option<ImportJobEntity> = if let Some(tt) = target_type {
-            sqlx::query_as(
+            diesel::sql_query(
                 "SELECT id, workspace_id, user_id, status::text, total_rows, processed_rows, file_path, error_log, target_type::text, created_at, updated_at FROM attendance_import_jobs WHERE workspace_id = $1 AND target_type = $2 ORDER BY created_at DESC LIMIT 1"
             )
-            .bind(workspace_id)
-            .bind(tt.to_string())
-            .fetch_optional(&self.sqlx_pool)
-            .await?
+            .bind::<diesel::sql_types::Uuid, _>(workspace_id)
+            .bind::<diesel::sql_types::Text, _>(tt.to_string())
+            .get_result(&mut conn)
+            .await
+            .optional()?
         } else {
-            sqlx::query_as(
+            diesel::sql_query(
                 "SELECT id, workspace_id, user_id, status::text, total_rows, processed_rows, file_path, error_log, target_type::text, created_at, updated_at FROM attendance_import_jobs WHERE workspace_id = $1 ORDER BY created_at DESC LIMIT 1"
             )
-            .bind(workspace_id)
-            .fetch_optional(&self.sqlx_pool)
-            .await?
+            .bind::<diesel::sql_types::Uuid, _>(workspace_id)
+            .get_result(&mut conn)
+            .await
+            .optional()?
         };
 
         Ok(row.map(Into::into))
     }
 
     async fn get_pending_jobs(&self) -> Result<Vec<AttendanceImportJob>, AppError> {
-        let rows: Vec<ImportJobEntity> = sqlx::query_as(
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        let rows: Vec<ImportJobEntity> = diesel::sql_query(
             "SELECT id, workspace_id, user_id, status::text, total_rows, processed_rows, file_path, error_log, target_type::text, created_at, updated_at FROM attendance_import_jobs WHERE status = 'processing'"
         )
-        .fetch_all(&self.sqlx_pool)
+        .load(&mut conn)
         .await
         .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
