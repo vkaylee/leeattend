@@ -184,17 +184,16 @@ pub async fn register(
         );
     }
 
-    // 5. Create session within transaction
-    let refresh_token = match AuthService::create_session_tx(&mut *tx, user.id).await {
-        Ok(t) => t,
-        Err(e) => {
-            let _ = tx.rollback().await;
-            return Err(AppError::from(e));
-        }
-    };
-
-    // 6. Commit transaction
+    // 5. Commit user creation transaction
     tx.commit().await?;
+
+    // 6. Create session (post-commit — session is ephemeral, safe outside tx)
+    let refresh_token = state
+        .core
+        .auth_service
+        .create_session(user.id)
+        .await
+        .map_err(AppError::from)?;
 
     // Convert to UserResponse for the client
     let user_response = UserResponse {

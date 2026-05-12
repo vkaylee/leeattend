@@ -114,6 +114,30 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
         self.get_active_time_entry(workspace_id, employee_id).await
     }
 
+    async fn get_latest_entry_for_employee(
+        &self,
+        workspace_id: Uuid,
+        employee_id: Uuid,
+    ) -> Result<Option<TimeEntry>, AppError> {
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        let entry: Option<TimeEntryEntity> = time_entries::table
+            .filter(time_entries::workspace_id.eq(workspace_id))
+            .filter(time_entries::employee_id.eq(employee_id))
+            .order(time_entries::punch_in_time.desc())
+            .first(&mut conn)
+            .await
+            .optional()
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        Ok(entry.map(Into::into))
+    }
+
     async fn update_time_entry(
         &self,
         workspace_id: Uuid,

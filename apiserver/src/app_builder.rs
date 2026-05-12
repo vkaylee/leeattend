@@ -191,6 +191,7 @@ impl AppState {
             Arc::new(crate::services::shift_swap_service::ShiftSwapService::new(
                 Arc::clone(&shift_swap_repo),
                 Arc::clone(&roster_repo),
+                Arc::clone(&employee_repo),
                 pool.clone(),
             ));
         let holiday_leave_service = Arc::new(

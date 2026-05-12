@@ -136,13 +136,11 @@ impl TimeTrackingService {
             .await
             .map_err(AppError::Internal)?;
 
-        let entry = sqlx::query_as::<_, TimeEntry>(
-            "SELECT * FROM time_entries WHERE employee_id = $1 AND workspace_id = $2 ORDER BY punch_in_time DESC LIMIT 1"
-        )
-        .bind(employee_id)
-        .bind(workspace_id)
-        .fetch_one(&self.pool)
-        .await?;
+        let entry = self
+            .repo
+            .get_latest_entry_for_employee(workspace_id, employee_id)
+            .await?
+            .ok_or(AppError::Internal("Failed to fetch punched entry".into()))?;
 
         Ok(entry)
     }

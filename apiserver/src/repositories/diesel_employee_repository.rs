@@ -182,6 +182,36 @@ impl EmployeeRepository for DieselEmployeeRepository {
         Ok(result.map(Into::into))
     }
 
+    async fn rehire_employee(
+        &self,
+        workspace_id: Uuid,
+        employee_id: Uuid,
+        hire_date: chrono::NaiveDate,
+    ) -> Result<Option<Employee>, AppError> {
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        let result: Option<EmployeeEntity> = diesel::update(employees::table)
+            .filter(employees::id.eq(employee_id))
+            .filter(employees::workspace_id.eq(workspace_id))
+            .set((
+                employees::is_active.eq(true),
+                employees::hire_date.eq(hire_date),
+                employees::termination_date.eq(None::<chrono::NaiveDate>),
+                employees::updated_at.eq(Some(chrono::Utc::now())),
+            ))
+            .get_result(&mut conn)
+            .await
+            .optional()
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        Ok(result.map(Into::into))
+    }
+
     async fn delete_employee(&self, id: Uuid, workspace_id: Uuid) -> Result<u64, AppError> {
         let mut conn = self
             .diesel_pools

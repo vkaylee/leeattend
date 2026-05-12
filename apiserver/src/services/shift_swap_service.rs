@@ -11,12 +11,14 @@ use crate::models::shift_swap::{
 };
 use crate::models::ShiftRoster;
 
+use crate::repositories::employee::EmployeeRepository;
 use crate::repositories::roster::RosterRepository;
 use crate::repositories::shift_swap_repository::ShiftSwapRepository;
 
 pub struct ShiftSwapService {
     swap_repo: Arc<dyn ShiftSwapRepository>,
     roster_repo: Arc<dyn RosterRepository>,
+    employee_repo: Arc<dyn EmployeeRepository>,
     /// Kept for raw SQL calls not yet abstracted
     pool: PgPool,
 }
@@ -25,11 +27,13 @@ impl ShiftSwapService {
     pub fn new(
         swap_repo: Arc<dyn ShiftSwapRepository>,
         roster_repo: Arc<dyn RosterRepository>,
+        employee_repo: Arc<dyn EmployeeRepository>,
         pool: PgPool,
     ) -> Self {
         Self {
             swap_repo,
             roster_repo,
+            employee_repo,
             pool,
         }
     }
@@ -82,7 +86,7 @@ impl ShiftSwapService {
         //    and could push the employee beyond the configured max_ot_hours_per_day.
         //    This is a best-effort guard; actual OT depends on punch times.
         if let (Some(req_shift_id), Some(tgt_shift_id)) = (requester_shift_id, target_shift_id) {
-            if let Ok(Some(ws_id)) = self.get_workspace_id_for_employee(requester_id).await {
+            let ws_id = workspace_id;
                 if let Ok(Some(ps)) =
                     crate::repositories::payroll_repository::get_payroll_settings_at(
                         pool, ws_id, swap_date,
@@ -139,25 +143,10 @@ impl ShiftSwapService {
                     }
                 }
             }
-        }
 
         Ok(())
     }
 
-    /// Helper: get workspace_id from employee_id
-    async fn get_workspace_id_for_employee(
-        &self,
-        employee_id: Uuid,
-    ) -> Result<Option<Uuid>, AppError> {
-        let pool = &self.pool;
-        let ws: Option<Uuid> =
-            sqlx::query_scalar("SELECT workspace_id FROM employees WHERE id = $1")
-                .bind(employee_id)
-                .fetch_optional(pool)
-                .await
-                .map_err(AppError::Sqlx)?;
-        Ok(ws)
-    }
 
     /// Admin creates a swap request (Phase 1).
     /// Automatically looks up the effective shifts for both employees on the swap date.
@@ -174,20 +163,10 @@ impl ShiftSwapService {
         }
 
         // Validate both employees belong to this workspace
-        let count: i64 = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM employees WHERE id IN ($1, $2) AND workspace_id = $3",
-        )
-        .bind(req.requester_id)
-        .bind(req.target_id)
-        .bind(workspace_id)
-        .fetch_one(pool)
-        .await
-        .map_err(|e| {
-            error!("SHIFT_SWAP_VALIDATE_ERROR: {:?}", e);
-            AppError::Internal("Internal error".into())
-        })?;
+        let req_emp = self.employee_repo.get_employee_by_id(req.requester_id, workspace_id).await?;
+        let tgt_emp = self.employee_repo.get_employee_by_id(req.target_id, workspace_id).await?;
 
-        if count != 2 {
+        if req_emp.is_none() || tgt_emp.is_none() {
             return Err(AppError::Validation("Invalid request".into()));
         }
 
@@ -359,19 +338,12 @@ impl ShiftSwapService {
         }
 
         // Validate target belongs to same workspace
-        let target_exists: bool = sqlx::query_scalar(
-            "SELECT EXISTS(SELECT 1 FROM employees WHERE id = $1 AND workspace_id = $2 AND is_active = true)",
-        )
-        .bind(req.target_id)
-        .bind(workspace_id)
-        .fetch_one(pool)
-        .await
-        .map_err(|e| {
-            error!("ESS_SWAP_VALIDATE_TARGET: {:?}", e);
-            AppError::Internal("Internal error".into())
-        })?;
+        let target_emp = self
+            .employee_repo
+            .get_employee_by_id(req.target_id, workspace_id)
+            .await?;
 
-        if !target_exists {
+        if target_emp.map(|e| !e.is_active).unwrap_or(true) {
             return Err(AppError::Validation("Invalid request".into()));
         }
 

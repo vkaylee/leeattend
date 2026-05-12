@@ -178,7 +178,7 @@ impl EmployeeService {
 
         let _tx = self.pool.begin().await.map_err(AppError::Sqlx)?;
 
-        let update_req = UpdateEmployeeRequest {
+        let _update_req = UpdateEmployeeRequest {
             user_id: None,
             full_name: None,
             employee_id_number: None,
@@ -190,21 +190,11 @@ impl EmployeeService {
             recruitment_source_id: None,
         };
 
-        self.repo
-            .update_employee(employee_id, workspace_id, &update_req)
-            .await?;
-
-        sqlx::query!(
-            "UPDATE employees SET hire_date = $1, termination_date = NULL WHERE id = $2 AND workspace_id = $3",
-            req.hire_date,
-            employee_id,
-            workspace_id
-        )
-        .execute(&self.pool)
-        .await?;
+        // If there were any other fields, we could update them here.
+        // For rehire, we explicitly clear the termination_date and set the hire_date.
 
         self.repo
-            .get_employee_by_id(employee_id, workspace_id)
+            .rehire_employee(workspace_id, employee_id, req.hire_date)
             .await?
             .ok_or(AppError::NotFound("Employee not found after rehire".into()))
     }
@@ -588,6 +578,15 @@ mod tests {
             _id: Uuid,
             _ws: Uuid,
             _req: &crate::models::UpdateEmployeeRequest,
+        ) -> Result<Option<Employee>, AppError> {
+            Ok(self.updated_employee.lock().expect("lock").clone())
+        }
+
+        async fn rehire_employee(
+            &self,
+            _ws: Uuid,
+            _emp: Uuid,
+            _date: NaiveDate,
         ) -> Result<Option<Employee>, AppError> {
             Ok(self.updated_employee.lock().expect("lock").clone())
         }

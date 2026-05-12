@@ -28,6 +28,12 @@ pub trait TimeEntryRepository: super::PoolBacked + Send + Sync {
         workspace_id: Uuid,
         employee_id: Uuid,
     ) -> Result<Option<TimeEntry>, AppError>;
+
+    async fn get_latest_entry_for_employee(
+        &self,
+        workspace_id: Uuid,
+        employee_id: Uuid,
+    ) -> Result<Option<TimeEntry>, AppError>;
     async fn update_time_entry(
         &self,
         workspace_id: Uuid,
@@ -103,6 +109,16 @@ impl TimeEntryRepository for SqlxTimeEntryRepository {
         employee_id: Uuid,
     ) -> Result<Option<TimeEntry>, AppError> {
         get_latest_active_entry(&self.pool, workspace_id, employee_id)
+            .await
+            .map_err(Into::into)
+    }
+
+    async fn get_latest_entry_for_employee(
+        &self,
+        workspace_id: Uuid,
+        employee_id: Uuid,
+    ) -> Result<Option<TimeEntry>, AppError> {
+        get_latest_entry_for_employee(&self.pool, workspace_id, employee_id)
             .await
             .map_err(Into::into)
     }
@@ -218,6 +234,20 @@ pub async fn get_latest_active_entry(
 ) -> Result<Option<TimeEntry>, sqlx::Error> {
     query_as::<_, TimeEntry>(
         "SELECT * FROM time_entries WHERE employee_id = $1 AND workspace_id = $2 AND punch_out_time IS NULL ORDER BY punch_in_time DESC LIMIT 1"
+    )
+    .bind(employee_id)
+    .bind(workspace_id)
+    .fetch_optional(pool)
+    .await
+}
+
+pub async fn get_latest_entry_for_employee(
+    pool: &PgPool,
+    workspace_id: Uuid,
+    employee_id: Uuid,
+) -> Result<Option<TimeEntry>, sqlx::Error> {
+    query_as::<_, TimeEntry>(
+        "SELECT * FROM time_entries WHERE employee_id = $1 AND workspace_id = $2 ORDER BY punch_in_time DESC LIMIT 1"
     )
     .bind(employee_id)
     .bind(workspace_id)

@@ -85,6 +85,13 @@ pub trait EmployeeRepository: super::PoolBacked + Send + Sync {
         req: &crate::models::UpdateEmployeeRequest,
     ) -> Result<Option<Employee>, AppError>;
 
+    async fn rehire_employee(
+        &self,
+        workspace_id: Uuid,
+        employee_id: Uuid,
+        hire_date: NaiveDate,
+    ) -> Result<Option<Employee>, AppError>;
+
     async fn delete_employee(&self, id: Uuid, workspace_id: Uuid) -> Result<u64, AppError>;
 
     async fn get_working_conditions(
@@ -266,6 +273,15 @@ impl EmployeeRepository for SqlxEmployeeRepository {
         core_queries::update_employee(&self.pool, id, workspace_id, req)
             .await
             .map_err(Into::into)
+    }
+
+    async fn rehire_employee(
+        &self,
+        _workspace_id: Uuid,
+        _employee_id: Uuid,
+        _hire_date: NaiveDate,
+    ) -> Result<Option<Employee>, AppError> {
+        Err(AppError::Internal("SqlxEmployeeRepository::rehire_employee not implemented".into()))
     }
 
     async fn delete_employee(&self, id: Uuid, workspace_id: Uuid) -> Result<u64, AppError> {
