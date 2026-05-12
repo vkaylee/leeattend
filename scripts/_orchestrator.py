@@ -361,14 +361,7 @@ class Orchestrator:
             self.env_vars["TIMEOUT_INTEGRATION"] = timeout_str
             self.env_vars["TIMEOUT_BUILD"] = timeout_str
 
-        if getattr(args, "pooler", False):
-            # This triggers infra-pooler in handle_run
-            supavisor_host = os.environ.get("SUPAVISOR_HOST", "supavisor")
-            supavisor_port = os.environ.get("SUPAVISOR_PORT", "6543")
-            os.environ["DATABASE_POOLER_URL"] = (
-                f"postgres://test_user.test_database:test_password@{supavisor_host}:{supavisor_port}/test_database"
-            )
-            self.env_vars["DATABASE_POOLER_URL"] = os.environ["DATABASE_POOLER_URL"]
+
 
         if target == "all" and not (args.lint_only or args.unit_only or args.e2e_only):
             # Run entirely isolated targets sequentially for true independence
@@ -442,6 +435,7 @@ class Orchestrator:
             if phase_name == "Integration Tests" and granular_mode in ("int-api", "api"):
                 _lifecycle_up("infra-db")
                 _lifecycle_up("infra-redis")
+                _lifecycle_up("infra-pooler")
 
         log_info(f"🔹 Running {phase_name}...")
         func_map: dict[str, typing.Callable[..., typing.Any]] = {
