@@ -122,7 +122,9 @@ impl ImportStrategy for EmployeeImportStrategy {
         job: &AttendanceImportJob,
         emp: &Self::RowData,
     ) -> Result<Option<Uuid>, String> {
-        match AttendanceImportService::process_employee_import_row(&self.employee_repo, job, emp).await {
+        match AttendanceImportService::process_employee_import_row(&self.employee_repo, job, emp)
+            .await
+        {
             Ok(maybe_id) => {
                 let mut was_new = true;
                 let employee_id = if let Some(id) = maybe_id {
@@ -705,7 +707,8 @@ impl AttendanceImportService {
         employee_repo: &Arc<dyn EmployeeRepository>,
         job: &AttendanceImportJob,
         emp: &PendingEmployee,
-    ) -> Result<Option<Uuid>, String> {        let employee_id = Uuid::new_v4();
+    ) -> Result<Option<Uuid>, String> {
+        let employee_id = Uuid::new_v4();
         let employee = Employee {
             id: employee_id,
             workspace_id: job.workspace_id,
@@ -722,7 +725,8 @@ impl AttendanceImportService {
             department_name: None,
         };
 
-        let inserted = employee_repo.create_employee_skip_duplicates(&employee)
+        let inserted = employee_repo
+            .create_employee_skip_duplicates(&employee)
             .await
             .map_err(|e| e.to_string())?;
 

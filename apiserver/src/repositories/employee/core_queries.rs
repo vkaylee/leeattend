@@ -148,8 +148,6 @@ pub(crate) fn build_employee_search_sql(
     }
 }
 
-
-
 pub async fn get_existing_employee_ids_by_numbers(
     pool: &PgPool,
     workspace_id: Uuid,
@@ -173,10 +171,6 @@ pub async fn get_existing_employee_ids_by_numbers(
 
     Ok(result)
 }
-
-
-
-
 
 pub async fn upsert_employee_payroll_config(
     pool: &PgPool,

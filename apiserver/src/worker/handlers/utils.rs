@@ -54,7 +54,10 @@ impl Drop for ImportTimeoutGuard {
                                 .to_string(),
                         ),
                     )
-                    .await { tracing::error!("Timeout Update Error: {}", e); }
+                    .await
+                {
+                    tracing::error!("Timeout Update Error: {}", e);
+                }
             });
         }
     }

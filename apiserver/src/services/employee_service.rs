@@ -500,6 +500,16 @@ mod tests {
 
     #[async_trait]
     impl EmployeeRepository for MockEmployeeRepo {
+        async fn create_employee(&self, _employee: &Employee) -> Result<(), AppError> {
+            Ok(())
+        }
+
+        async fn create_employee_skip_duplicates(
+            &self,
+            _employee: &Employee,
+        ) -> Result<bool, AppError> {
+            Ok(true)
+        }
         async fn find_by_number(
             &self,
             _ws: Uuid,

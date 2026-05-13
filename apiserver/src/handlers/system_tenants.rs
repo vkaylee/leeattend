@@ -48,7 +48,7 @@ pub async fn list_tenants(
         SELECT external_id, default_pool_size, inserted_at, updated_at 
         FROM _supavisor.tenants
         ORDER BY inserted_at DESC
-        "#
+        "#,
     )
     .fetch_all(_state.infra.db.api())
     .await;

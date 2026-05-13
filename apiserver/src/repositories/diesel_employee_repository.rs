@@ -8,9 +8,8 @@ use uuid::Uuid;
 
 use crate::models::diesel::employee::{EmployeeEntity, UpdateDieselEmployee};
 use crate::models::{
-    Employee, EmployeeFilterOptions, EmployeePaginationArgs,
-    RecruitmentSource, RecruitmentSourceBreakdown, TurnoverAnalytics, UpdateEmployeeRequest,
-    WorkingCondition,
+    Employee, EmployeeFilterOptions, EmployeePaginationArgs, RecruitmentSource,
+    RecruitmentSourceBreakdown, TurnoverAnalytics, UpdateEmployeeRequest, WorkingCondition,
 };
 use crate::repositories::employee::{self, EmployeeBasicInfo, EmployeeRepository};
 use crate::schema::employees;
@@ -44,10 +43,14 @@ impl EmployeeRepository for DieselEmployeeRepository {
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let normalized_id = crate::utils::normalize_employee_id(employee_id_number);
-        let emp: Option<EmployeeEntity> = employees::table
-            .filter(employees::workspace_id.eq(workspace_id))
-            .filter(employees::employee_id_number.eq(normalized_id))
-            .first(&mut conn)
+        let query = format!(
+            "{} WHERE e.workspace_id = $1 AND e.employee_id_number = $2",
+            employee::EMPLOYEE_SELECT_QUERY
+        );
+        let emp: Option<crate::models::diesel::employee::EmployeeRow> = diesel::sql_query(&query)
+            .bind::<diesel::sql_types::Uuid, _>(workspace_id)
+            .bind::<diesel::sql_types::Text, _>(normalized_id)
+            .get_result(&mut conn)
             .await
             .optional()
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -67,10 +70,14 @@ impl EmployeeRepository for DieselEmployeeRepository {
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
-        let emp: Option<EmployeeEntity> = employees::table
-            .filter(employees::workspace_id.eq(workspace_id))
-            .filter(employees::id.eq(id))
-            .first(&mut conn)
+        let query = format!(
+            "{} WHERE e.id = $1 AND e.workspace_id = $2",
+            employee::EMPLOYEE_SELECT_QUERY
+        );
+        let emp: Option<crate::models::diesel::employee::EmployeeRow> = diesel::sql_query(&query)
+            .bind::<diesel::sql_types::Uuid, _>(id)
+            .bind::<diesel::sql_types::Uuid, _>(workspace_id)
+            .get_result(&mut conn)
             .await
             .optional()
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -213,10 +220,12 @@ impl EmployeeRepository for DieselEmployeeRepository {
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
-        let emps: Vec<EmployeeEntity> = employees::table
-            .filter(employees::workspace_id.eq(workspace_id))
-            .filter(employees::is_active.eq(true))
-            .order(employees::full_name.asc())
+        let query = format!(
+            "{} WHERE e.workspace_id = $1 AND e.is_active = true ORDER BY e.full_name ASC",
+            employee::EMPLOYEE_SELECT_QUERY
+        );
+        let emps: Vec<crate::models::diesel::employee::EmployeeRow> = diesel::sql_query(&query)
+            .bind::<diesel::sql_types::Uuid, _>(workspace_id)
             .load(&mut conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -281,7 +290,7 @@ impl EmployeeRepository for DieselEmployeeRepository {
             ));
         }
 
-        if let Some(ids) = args.filter_ids.clone() {
+        if let Some(ids) = args.filter_ids {
             count_query = count_query.filter(employees::id.eq_any(ids));
         }
 
@@ -353,10 +362,7 @@ impl EmployeeRepository for DieselEmployeeRepository {
         Ok(())
     }
 
-    async fn create_employee_skip_duplicates(
-        &self,
-        employee: &Employee,
-    ) -> Result<bool, AppError> {
+    async fn create_employee_skip_duplicates(&self, employee: &Employee) -> Result<bool, AppError> {
         use crate::schema::employees;
 
         let mut conn = self
@@ -516,15 +522,17 @@ impl EmployeeRepository for DieselEmployeeRepository {
 
         Ok(result
             .into_iter()
-            .map(|(id, emp_id, type_, min, paid, start, end)| WorkingCondition {
-                id,
-                employee_id: emp_id,
-                type_,
-                minute_allowance: min,
-                is_paid: paid,
-                start_date: start,
-                end_date: end,
-            })
+            .map(
+                |(id, emp_id, type_, min, paid, start, end)| WorkingCondition {
+                    id,
+                    employee_id: emp_id,
+                    type_,
+                    minute_allowance: min,
+                    is_paid: paid,
+                    start_date: start,
+                    end_date: end,
+                },
+            )
             .collect())
     }
 

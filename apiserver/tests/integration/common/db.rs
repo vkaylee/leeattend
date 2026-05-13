@@ -15,6 +15,7 @@ fn get_active_dbs() -> &'static ActiveDbSet {
 #[allow(dead_code)]
 pub struct TestDatabase {
     pub pool: PgPool,
+    pub diesel_pools: apiserver::diesel_pool::DieselPools,
     db_name: String,
     base_url: String,
 }
@@ -98,6 +99,7 @@ impl TestDatabase {
 
             return Self {
                 pool,
+                diesel_pools: apiserver::diesel_pool::DieselPools::for_test(&db_url),
                 db_name,
                 base_url: base_url.clone(),
             };
@@ -115,6 +117,7 @@ impl TestDatabase {
 
         Self {
             pool,
+            diesel_pools: apiserver::diesel_pool::DieselPools::for_test(&db_url),
             db_name,
             base_url: base_url.clone(),
         }

@@ -614,7 +614,6 @@ async fn test_leave_reversal_full_shift() {
 
 #[tokio::test]
 async fn test_leave_kept_partial_work() {
-
     let (_address, test_db) = spawn_app().await;
     let pool = test_db.pool();
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
@@ -845,7 +844,6 @@ async fn test_leave_reversal_custom_threshold() {
 
 #[tokio::test]
 async fn test_leave_reversal_only_system() {
-
     let (_address, test_db) = spawn_app().await;
     let pool = test_db.pool();
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());

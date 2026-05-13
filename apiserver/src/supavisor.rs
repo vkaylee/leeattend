@@ -123,7 +123,7 @@ pub async fn init_supavisor_tenant() {
             }
         }
         Err(e) => {
-            tracing::warn!("Failed to reach Supavisor API: {e}");
+            tracing::warn!("Failed to reach Supavisor API: {e:?}");
         }
     }
 }
@@ -215,7 +215,8 @@ pub async fn register_tenant_dynamic(
         .send()
         .await
         .map_err(|e| {
-            crate::errors::AppError::Internal(format!("Failed to reach Supavisor API: {e}"))
+            println!("Failed to reach Supavisor API: {e:?}");
+            crate::errors::AppError::Internal(format!("Failed to reach Supavisor API: {e:?}"))
         })?;
 
     let status = response.status();
@@ -223,6 +224,7 @@ pub async fn register_tenant_dynamic(
         Ok(())
     } else {
         let text = response.text().await.unwrap_or_default();
+        println!("Supavisor returned {status}: {text}");
         Err(crate::errors::AppError::Internal(format!(
             "Supavisor returned {status}: {text}"
         )))

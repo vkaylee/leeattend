@@ -7,7 +7,9 @@
 use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
 use apiserver::models::WorkingCondition;
-use apiserver::repositories::employee;
+use apiserver::repositories::{
+    diesel_employee_repository::DieselEmployeeRepository, employee, EmployeeRepository,
+};
 use chrono::{NaiveDate, Utc};
 use rust_decimal::Decimal;
 use uuid::Uuid;
@@ -45,29 +47,22 @@ async fn test_working_condition_crud() {
         start_date: NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
         end_date: None,
     };
-    employee::create_working_condition(&pool, &wc)
-        .await
-        .unwrap();
+    let repo = DieselEmployeeRepository::new(pool.clone(), test_db.diesel_pools.clone());
+    repo.create_working_condition(&wc).await.unwrap();
 
     // Read back
-    let conditions = employee::get_working_conditions(&pool, ws_id, emp_id)
-        .await
-        .unwrap();
+    let conditions = repo.get_working_conditions(ws_id, emp_id).await.unwrap();
     assert_eq!(conditions.len(), 1);
     assert_eq!(conditions[0].type_, "late_arrival");
     assert_eq!(conditions[0].minute_allowance, 15);
     assert!(conditions[0].is_paid);
 
     // Delete
-    let deleted = employee::delete_working_condition(&pool, wc.id, emp_id)
-        .await
-        .unwrap();
+    let deleted = repo.delete_working_condition(wc.id, emp_id).await.unwrap();
     assert!(deleted);
 
     // Confirm empty
-    let conditions = employee::get_working_conditions(&pool, ws_id, emp_id)
-        .await
-        .unwrap();
+    let conditions = repo.get_working_conditions(ws_id, emp_id).await.unwrap();
     assert!(conditions.is_empty());
 }
 
@@ -80,7 +75,9 @@ async fn test_delete_nonexistent_working_condition_returns_false() {
     let ws_id = factory.workspace().create_with_owner(user_id).await;
     let emp_id = factory.employee().with_workspace(ws_id).create().await;
 
-    let deleted = employee::delete_working_condition(&pool, Uuid::new_v4(), emp_id)
+    let repo = DieselEmployeeRepository::new(pool.clone(), test_db.diesel_pools.clone());
+    let deleted = repo
+        .delete_working_condition(Uuid::new_v4(), emp_id)
         .await
         .unwrap();
     assert!(!deleted, "Should return false for non-existent condition");
@@ -97,35 +94,28 @@ async fn test_payroll_config_upsert_and_lookup() {
 
     let effective = NaiveDate::from_ymd_opt(2026, 1, 1).unwrap();
 
+    let repo = DieselEmployeeRepository::new(pool.clone(), test_db.diesel_pools.clone());
+
     // Insert
-    let config = employee::upsert_employee_payroll_config(
-        &pool,
-        emp_id,
-        Decimal::from(22),
-        Decimal::from(8),
-        effective,
-    )
-    .await
-    .unwrap();
+    let config = repo
+        .upsert_employee_payroll_config(emp_id, Decimal::from(22), Decimal::from(8), effective)
+        .await
+        .unwrap();
     assert_eq!(config.std_working_days, Decimal::from(22));
     assert_eq!(config.hours_per_day, Decimal::from(8));
     assert_eq!(config.effective_date, effective);
 
     // Upsert (same effective_date → update)
-    let updated = employee::upsert_employee_payroll_config(
-        &pool,
-        emp_id,
-        Decimal::from(20),
-        Decimal::from(7),
-        effective,
-    )
-    .await
-    .unwrap();
+    let updated = repo
+        .upsert_employee_payroll_config(emp_id, Decimal::from(20), Decimal::from(7), effective)
+        .await
+        .unwrap();
     assert_eq!(updated.std_working_days, Decimal::from(20));
     assert_eq!(updated.hours_per_day, Decimal::from(7));
 
     // Lookup at exactly the effective date
-    let found = employee::get_employee_payroll_config_at(&pool, emp_id, effective)
+    let found = repo
+        .get_employee_payroll_config_at(emp_id, effective)
         .await
         .unwrap();
     assert!(found.is_some());
@@ -133,7 +123,8 @@ async fn test_payroll_config_upsert_and_lookup() {
 
     // Lookup before effective date → should return None
     let before = NaiveDate::from_ymd_opt(2025, 12, 31).unwrap();
-    let not_found = employee::get_employee_payroll_config_at(&pool, emp_id, before)
+    let not_found = repo
+        .get_employee_payroll_config_at(emp_id, before)
         .await
         .unwrap();
     assert!(not_found.is_none());
@@ -152,28 +143,19 @@ async fn test_payroll_config_returns_closest_effective() {
     let jan = NaiveDate::from_ymd_opt(2026, 1, 1).unwrap();
     let jul = NaiveDate::from_ymd_opt(2026, 7, 1).unwrap();
 
-    employee::upsert_employee_payroll_config(
-        &pool,
-        emp_id,
-        Decimal::from(22),
-        Decimal::from(8),
-        jan,
-    )
-    .await
-    .unwrap();
-    employee::upsert_employee_payroll_config(
-        &pool,
-        emp_id,
-        Decimal::from(20),
-        Decimal::from(7),
-        jul,
-    )
-    .await
-    .unwrap();
+    let repo = DieselEmployeeRepository::new(pool.clone(), test_db.diesel_pools.clone());
+
+    repo.upsert_employee_payroll_config(emp_id, Decimal::from(22), Decimal::from(8), jan)
+        .await
+        .unwrap();
+    repo.upsert_employee_payroll_config(emp_id, Decimal::from(20), Decimal::from(7), jul)
+        .await
+        .unwrap();
 
     // Lookup in March → should get Jan config
     let march = NaiveDate::from_ymd_opt(2026, 3, 15).unwrap();
-    let config = employee::get_employee_payroll_config_at(&pool, emp_id, march)
+    let config = repo
+        .get_employee_payroll_config_at(emp_id, march)
         .await
         .unwrap()
         .unwrap();
@@ -181,7 +163,8 @@ async fn test_payroll_config_returns_closest_effective() {
 
     // Lookup in August → should get Jul config
     let august = NaiveDate::from_ymd_opt(2026, 8, 15).unwrap();
-    let config = employee::get_employee_payroll_config_at(&pool, emp_id, august)
+    let config = repo
+        .get_employee_payroll_config_at(emp_id, august)
         .await
         .unwrap()
         .unwrap();
@@ -221,7 +204,8 @@ async fn test_get_active_employees_excludes_inactive() {
         .await
         .unwrap();
 
-    let active = employee::get_active_employees(&pool, ws_id).await.unwrap();
+    let repo = DieselEmployeeRepository::new(pool.clone(), test_db.diesel_pools.clone());
+    let active = repo.get_active_employees(ws_id).await.unwrap();
     assert_eq!(active.len(), 1);
     assert_eq!(active[0].full_name, "Active One");
 }
@@ -255,7 +239,9 @@ async fn test_get_active_employee_ids_with_filter() {
 
     // Request only e1 and e3
     let filter = vec![e1, e3];
-    let ids = employee::get_active_employee_ids(&pool, ws_id, Some(&filter))
+    let repo = DieselEmployeeRepository::new(pool.clone(), test_db.diesel_pools.clone());
+    let ids = repo
+        .get_active_employee_ids(ws_id, Some(&filter))
         .await
         .unwrap();
     assert_eq!(ids.len(), 2);
@@ -263,9 +249,7 @@ async fn test_get_active_employee_ids_with_filter() {
     assert!(ids.contains(&e3));
 
     // Without filter → all 3
-    let all_ids = employee::get_active_employee_ids(&pool, ws_id, None)
-        .await
-        .unwrap();
+    let all_ids = repo.get_active_employee_ids(ws_id, None).await.unwrap();
     assert_eq!(all_ids.len(), 3);
 }
 
@@ -288,16 +272,13 @@ async fn test_find_by_number_normalizes_input() {
         .await;
 
     // Search with leading zeros → should still find due to normalization
-    let found = employee::find_by_number(&pool, ws_id, "0042")
-        .await
-        .unwrap();
+    let repo = DieselEmployeeRepository::new(pool.clone(), test_db.diesel_pools.clone());
+    let found = repo.find_by_number(ws_id, "0042").await.unwrap();
     assert!(found.is_some());
     assert_eq!(found.unwrap().full_name, "Number Test");
 
     // Search non-existent
-    let not_found = employee::find_by_number(&pool, ws_id, "999999")
-        .await
-        .unwrap();
+    let not_found = repo.find_by_number(ws_id, "999999").await.unwrap();
     assert!(not_found.is_none());
 }
 
@@ -325,7 +306,9 @@ async fn test_get_existing_employee_ids_by_numbers() {
         .await;
 
     let to_check = vec!["100".to_string(), "200".to_string(), "300".to_string()];
-    let existing = employee::get_existing_employee_ids_by_numbers(&pool, ws_id, &to_check)
+    let repo = DieselEmployeeRepository::new(pool.clone(), test_db.diesel_pools.clone());
+    let existing = repo
+        .get_existing_employee_ids_by_numbers(ws_id, &to_check)
         .await
         .unwrap();
     assert_eq!(existing.len(), 2);
@@ -333,7 +316,8 @@ async fn test_get_existing_employee_ids_by_numbers() {
     assert!(existing.contains(&"200".to_string()));
 
     // Empty input → empty result
-    let empty_result = employee::get_existing_employee_ids_by_numbers(&pool, ws_id, &[])
+    let empty_result = repo
+        .get_existing_employee_ids_by_numbers(ws_id, &[])
         .await
         .unwrap();
     assert!(empty_result.is_empty());
@@ -371,7 +355,9 @@ async fn test_get_turnover_analytics_direct() {
     let start_date = NaiveDate::from_ymd_opt(2025, 1, 1).unwrap();
     let end_date = NaiveDate::from_ymd_opt(2025, 12, 31).unwrap();
 
-    let analytics = employee::get_turnover_analytics(&pool, ws_id, start_date, end_date)
+    let repo = DieselEmployeeRepository::new(pool.clone(), test_db.diesel_pools.clone());
+    let analytics = repo
+        .get_turnover_analytics(ws_id, start_date, end_date)
         .await
         .unwrap();
 
@@ -414,9 +400,8 @@ async fn test_recruitment_source_breakdown_direct() {
         created_at: chrono::Utc::now(),
         updated_at: chrono::Utc::now(),
     };
-    employee::create_recruitment_source(&pool, &source)
-        .await
-        .unwrap();
+    let repo = DieselEmployeeRepository::new(pool.clone(), test_db.diesel_pools.clone());
+    repo.create_recruitment_source(&source).await.unwrap();
 
     // Create an employee and set recruitment source
     let emp_id = factory
@@ -426,13 +411,11 @@ async fn test_recruitment_source_breakdown_direct() {
         .create()
         .await;
 
-    employee::set_employee_recruitment_source(&pool, ws_id, emp_id, Some(source_id))
+    repo.set_employee_recruitment_source(ws_id, emp_id, Some(source_id))
         .await
         .expect("Failed to link employee to source");
 
-    let breakdown = employee::get_recruitment_source_breakdown(&pool, ws_id)
-        .await
-        .unwrap();
+    let breakdown = repo.get_recruitment_source_breakdown(ws_id).await.unwrap();
 
     assert_eq!(breakdown.len(), 1);
     assert_eq!(breakdown[0].source_type, "agency");

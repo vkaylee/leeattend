@@ -86,10 +86,7 @@ pub trait EmployeeRepository: super::PoolBacked + Send + Sync {
 
     async fn create_employee(&self, employee: &Employee) -> Result<(), AppError>;
 
-    async fn create_employee_skip_duplicates(
-        &self,
-        employee: &Employee,
-    ) -> Result<bool, AppError>;
+    async fn create_employee_skip_duplicates(&self, employee: &Employee) -> Result<bool, AppError>;
 
     async fn rehire_employee(
         &self,
@@ -188,5 +185,3 @@ pub trait EmployeeRepository: super::PoolBacked + Send + Sync {
         user_id: Uuid,
     ) -> Result<Option<Uuid>, AppError>;
 }
-
-

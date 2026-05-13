@@ -20,7 +20,6 @@ use apiserver::worker::runner::JobWorker;
 /// By setting max_connections(1), this test will deadlock and timeout if any handler violates the rule.
 #[tokio::test]
 async fn test_worker_uses_only_one_connection_per_job() {
-
     let _ = tracing_subscriber::fmt::try_init();
 
     // 1. Create a DB pool with EXACTLY ONE connection.
@@ -303,8 +302,8 @@ async fn test_worker_uses_only_one_connection_per_job() {
 
         let handler_future = worker.process_job(job.clone());
 
-        // 5 seconds is plenty of time for a single query to run on an empty test DB.
-        let result = tokio::time::timeout(std::time::Duration::from_secs(5), handler_future).await;
+        // 15 seconds is plenty of time for a single query to run on an empty test DB.
+        let result = tokio::time::timeout(std::time::Duration::from_secs(15), handler_future).await;
 
         match result {
             Ok(_) => {

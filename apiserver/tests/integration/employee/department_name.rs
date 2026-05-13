@@ -2,7 +2,9 @@
 
 use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
-use apiserver::repositories::employee;
+use apiserver::repositories::{
+    diesel_employee_repository::DieselEmployeeRepository, EmployeeRepository,
+};
 use chrono::NaiveDate;
 use uuid::Uuid;
 
@@ -38,7 +40,9 @@ async fn test_employee_without_department_has_null_department_name() {
     let ws_id = factory.workspace().create_with_owner(user_id).await;
     let emp_id = factory.employee().with_workspace(ws_id).create().await;
 
-    let emp = employee::get_employee_by_id(&pool, emp_id, ws_id)
+    let repo = DieselEmployeeRepository::new(pool.clone(), test_db.diesel_pools.clone());
+    let emp = repo
+        .get_employee_by_id(emp_id, ws_id)
         .await
         .unwrap()
         .unwrap();
@@ -66,7 +70,9 @@ async fn test_employee_with_department_returns_department_name() {
     let today = chrono::Utc::now().date_naive();
     transfer(&pool, emp_id, dept_id, today).await;
 
-    let emp = employee::get_employee_by_id(&pool, emp_id, ws_id)
+    let repo = DieselEmployeeRepository::new(pool.clone(), test_db.diesel_pools.clone());
+    let emp = repo
+        .get_employee_by_id(emp_id, ws_id)
         .await
         .unwrap()
         .unwrap();
@@ -111,20 +117,21 @@ async fn test_get_all_employees_includes_department_name() {
     transfer(&pool, emp1, dept_id, today).await;
     // emp2 has no department
 
-    let (employees, total) = employee::get_all_employees(
-        &pool,
-        ws_id,
-        apiserver::models::EmployeeFilterOptions {
-            search_query: None,
-            page: 1,
-            limit: 50,
-            sort_by: None,
-            sort_dir: None,
-            department_ids: None,
-        },
-    )
-    .await
-    .unwrap();
+    let repo = DieselEmployeeRepository::new(pool.clone(), test_db.diesel_pools.clone());
+    let (employees, total) = repo
+        .get_all_employees(
+            ws_id,
+            apiserver::models::EmployeeFilterOptions {
+                search_query: None,
+                page: 1,
+                limit: 50,
+                sort_by: None,
+                sort_dir: None,
+                department_ids: None,
+            },
+        )
+        .await
+        .unwrap();
 
     assert_eq!(total, 2);
 
@@ -180,7 +187,9 @@ async fn test_department_name_uses_latest_transfer() {
     )
     .await;
 
-    let emp = employee::get_employee_by_id(&pool, emp_id, ws_id)
+    let repo = DieselEmployeeRepository::new(pool.clone(), test_db.diesel_pools.clone());
+    let emp = repo
+        .get_employee_by_id(emp_id, ws_id)
         .await
         .unwrap()
         .unwrap();
@@ -217,10 +226,8 @@ async fn test_find_by_number_includes_department_name() {
     let today = chrono::Utc::now().date_naive();
     transfer(&pool, _emp_id, dept_id, today).await;
 
-    let emp = employee::find_by_number(&pool, ws_id, "DN001")
-        .await
-        .unwrap()
-        .unwrap();
+    let repo = DieselEmployeeRepository::new(pool.clone(), test_db.diesel_pools.clone());
+    let emp = repo.find_by_number(ws_id, "DN001").await.unwrap().unwrap();
     assert_eq!(emp.department_name.as_deref(), Some("R&D"));
 }
 
@@ -250,7 +257,8 @@ async fn test_get_active_employees_includes_department_name() {
     let today = chrono::Utc::now().date_naive();
     transfer(&pool, emp_id, dept_id, today).await;
 
-    let actives = employee::get_active_employees(&pool, ws_id).await.unwrap();
+    let repo = DieselEmployeeRepository::new(pool.clone(), test_db.diesel_pools.clone());
+    let actives = repo.get_active_employees(ws_id).await.unwrap();
     assert_eq!(actives.len(), 1);
     assert_eq!(actives[0].department_name.as_deref(), Some("Operations"));
 }

@@ -101,7 +101,17 @@ async fn test_system_tenants_lifecycle() {
         ))
         .await
         .unwrap();
-    assert_eq!(res.status(), StatusCode::CREATED);
+    let status = res.status();
+    if status != StatusCode::CREATED {
+        let bytes = axum::body::to_bytes(res.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        println!(
+            "POST /api/system/tenants failed: {:?}",
+            String::from_utf8(bytes.to_vec())
+        );
+    }
+    assert_eq!(status, StatusCode::CREATED);
 
     // 4. Verify tenant is in GET list
     let res = app
