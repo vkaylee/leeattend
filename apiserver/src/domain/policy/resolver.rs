@@ -42,11 +42,18 @@ impl PolicyResolver {
 
         // 2. Check Department Override
         if let Some(dept_id) = department_id {
-            let dept_config =
-                crate::repositories::department_repository::get_department_payroll_config_at(
-                    pool, dept_id, date,
+            let dept_config: Option<crate::models::DepartmentPayrollConfig> =
+                sqlx::query_as::<_, crate::models::DepartmentPayrollConfig>(
+                    r#"SELECT id, department_id, std_working_days, hours_per_day, effective_date, created_at
+                       FROM department_payroll_configs
+                       WHERE department_id = $1 AND effective_date <= $2
+                       ORDER BY effective_date DESC LIMIT 1"#,
                 )
-                .await?;
+                .bind(dept_id)
+                .bind(date)
+                .fetch_optional(pool)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
             if let Some(config) = dept_config {
                 return Ok(StandardMonthConfig {

@@ -359,7 +359,7 @@ pub enum RecruitmentSourceType {
     strum_macros::EnumString,
     ToSchema,
 )]
-#[sqlx(type_name = "VARCHAR", rename_all = "snake_case")]
+#[sqlx(type_name = "TEXT", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 #[strum(serialize_all = "snake_case")]
 pub enum AssigneeType {
@@ -381,7 +381,7 @@ pub enum AssigneeType {
     strum_macros::EnumString,
     ToSchema,
 )]
-#[sqlx(type_name = "VARCHAR", rename_all = "snake_case")]
+#[sqlx(type_name = "TEXT", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 #[strum(serialize_all = "snake_case")]
 pub enum PayrollCalculationMethod {
@@ -403,7 +403,7 @@ pub enum PayrollCalculationMethod {
     strum_macros::EnumString,
     ToSchema,
 )]
-#[sqlx(type_name = "VARCHAR", rename_all = "snake_case")]
+#[sqlx(type_name = "TEXT", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 #[strum(serialize_all = "snake_case")]
 pub enum PayrollRuleCategory {
@@ -426,7 +426,7 @@ pub enum PayrollRuleCategory {
     strum_macros::EnumString,
     ToSchema,
 )]
-#[sqlx(type_name = "VARCHAR", rename_all = "snake_case")]
+#[sqlx(type_name = "TEXT", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 #[strum(serialize_all = "snake_case")]
 pub enum RuleAppliesTo {

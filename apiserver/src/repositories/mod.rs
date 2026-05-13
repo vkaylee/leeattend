@@ -27,6 +27,7 @@ pub mod assignment_rule_repository;
 pub mod attendance_adjustment_repository;
 pub mod department_repository;
 pub mod diesel_department_repository;
+pub use diesel_department_repository::DieselDepartmentRepository;
 pub mod employee;
 pub use employee::EmployeeRepository;
 pub mod feature_flag_repository;

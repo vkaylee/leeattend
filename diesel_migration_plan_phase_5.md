@@ -12,8 +12,8 @@ Nhiều repository đã được tạo phiên bản `Diesel...Repository` và đ
 2. Sau khi đã tự chủ hoàn toàn 100%, tiến hành xóa bỏ struct `Sqlx...Repository` và tất cả các macro `sqlx::query` trong các file repository tương ứng.
 
 * [ ] `DepartmentRepository` (`diesel_department_repository.rs` đang gọi về sqlx)
-* [ ] `ShiftSwapRepository` (`diesel_shift_swap_repository.rs` đang gọi về sqlx)
-* [ ] `ImportJobRepository` (`import_job_repository.rs`) - **Repo này đã hoàn toàn dùng diesel::sql_query, có thể xóa sqlx ngay.**
+* [x] `ShiftSwapRepository` (`diesel_shift_swap_repository.rs` đang gọi về sqlx)
+* [x] `ImportJobRepository` (`import_job_repository.rs`) - **Repo này đã hoàn toàn dùng diesel::sql_query, có thể xóa sqlx ngay.**
 * [ ] `SalaryBaseRepository` (`salary_base_repository.rs`)
 * [ ] `EmploymentPhaseRepository` (`employment_phase_repository.rs`)
 * [ ] `FeatureFlagRepository` (`feature_flag_repository.rs`)

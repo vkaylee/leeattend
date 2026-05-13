@@ -438,9 +438,10 @@ async fn test_employee_import_duplicate_department_prevention() {
 
     let department_repo: std::sync::Arc<
         dyn apiserver::repositories::department_repository::DepartmentRepository,
-    > = std::sync::Arc::new(
-        apiserver::repositories::department_repository::SqlxDepartmentRepository::new(pool.clone()),
-    );
+    > = std::sync::Arc::new(apiserver::repositories::DieselDepartmentRepository::new(
+        pool.clone(),
+        diesel_pools.clone(),
+    ));
 
     // Strategy 1 (simulating chunk 1)
     let mut strategy1 = EmployeeImportStrategy {

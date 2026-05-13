@@ -67,9 +67,10 @@ async fn test_accrual_scenarios() {
     );
     let department_repo: Arc<
         dyn apiserver::repositories::department_repository::DepartmentRepository,
-    > = Arc::new(
-        apiserver::repositories::department_repository::SqlxDepartmentRepository::new(pool.clone()),
-    );
+    > = Arc::new(apiserver::repositories::DieselDepartmentRepository::new(
+        pool.clone(),
+        diesel_pools.clone(),
+    ));
     let leave_policy_repo: Arc<
         dyn apiserver::repositories::leave_policy_repository::LeavePolicyRepository,
     > = Arc::new(
@@ -148,9 +149,10 @@ async fn test_performance_based_accrual() {
     );
     let department_repo: Arc<
         dyn apiserver::repositories::department_repository::DepartmentRepository,
-    > = Arc::new(
-        apiserver::repositories::department_repository::SqlxDepartmentRepository::new(pool.clone()),
-    );
+    > = Arc::new(apiserver::repositories::DieselDepartmentRepository::new(
+        pool.clone(),
+        diesel_pools.clone(),
+    ));
     let leave_policy_repo: Arc<
         dyn apiserver::repositories::leave_policy_repository::LeavePolicyRepository,
     > = Arc::new(
@@ -234,9 +236,10 @@ async fn test_accrual_recalculation() {
     );
     let department_repo: Arc<
         dyn apiserver::repositories::department_repository::DepartmentRepository,
-    > = Arc::new(
-        apiserver::repositories::department_repository::SqlxDepartmentRepository::new(pool.clone()),
-    );
+    > = Arc::new(apiserver::repositories::DieselDepartmentRepository::new(
+        pool.clone(),
+        diesel_pools.clone(),
+    ));
     let leave_policy_repo: Arc<
         dyn apiserver::repositories::leave_policy_repository::LeavePolicyRepository,
     > = Arc::new(

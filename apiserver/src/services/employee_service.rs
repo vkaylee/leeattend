@@ -11,17 +11,28 @@ use crate::models::{
     CreateEmployeeRequest, CreateWorkingConditionRequest, Employee, RehireEmployeeRequest,
     UpdateEmployeeRequest, WorkingCondition,
 };
-use crate::repositories::{user_repository, EmployeeRepository};
+use crate::repositories::{
+    department_repository::DepartmentRepository, user_repository, EmployeeRepository,
+};
 
 pub struct EmployeeService {
     repo: Arc<dyn EmployeeRepository>,
+    dept_repo: Arc<dyn DepartmentRepository>,
     /// Kept for operations not yet abstracted (transactions, user_repository, etc.)
     pool: PgPool,
 }
 
 impl EmployeeService {
-    pub fn new(repo: Arc<dyn EmployeeRepository>, pool: PgPool) -> Self {
-        Self { repo, pool }
+    pub fn new(
+        repo: Arc<dyn EmployeeRepository>,
+        dept_repo: Arc<dyn DepartmentRepository>,
+        pool: PgPool,
+    ) -> Self {
+        Self {
+            repo,
+            dept_repo,
+            pool,
+        }
     }
 
     #[tracing::instrument(skip_all, err)]
@@ -348,13 +359,9 @@ impl EmployeeService {
             .await?
             .ok_or(AppError::NotFound("Employee not found".into()))?;
 
-        crate::repositories::department_repository::get_employee_department_history(
-            &self.pool,
-            workspace_id,
-            employee_id,
-        )
-        .await
-        .map_err(Into::into)
+        self.dept_repo
+            .get_employee_department_history(workspace_id, employee_id)
+            .await
     }
 
     #[tracing::instrument(skip_all, err)]
@@ -370,15 +377,14 @@ impl EmployeeService {
             .await?
             .ok_or(AppError::NotFound("Employee not found".into()))?;
 
-        crate::repositories::department_repository::transfer_employee(
-            &self.pool,
-            employee_id,
-            req.department_id,
-            req.effective_date,
-            req.notes,
-        )
-        .await
-        .map_err(Into::into)
+        self.dept_repo
+            .transfer_employee(
+                employee_id,
+                req.department_id,
+                req.effective_date,
+                req.notes,
+            )
+            .await
     }
 
     #[tracing::instrument(skip_all, err)]
@@ -732,13 +738,109 @@ mod tests {
         }
     }
 
+    /// Minimal no-op DepartmentRepository for unit tests.
+    struct NopDepartmentRepo;
+
+    impl crate::repositories::PoolBacked for NopDepartmentRepo {
+        fn from_pool(_pool: sqlx::PgPool) -> Self {
+            Self
+        }
+        fn pool(&self) -> &sqlx::PgPool {
+            unimplemented!("NopDepartmentRepo has no pool")
+        }
+    }
+
+    #[async_trait]
+    impl crate::repositories::department_repository::DepartmentRepository for NopDepartmentRepo {
+        async fn create_department(
+            &self,
+            _ws: Uuid,
+            _name: String,
+            _desc: Option<String>,
+            _mgr: Option<Uuid>,
+            _pat: Option<Uuid>,
+        ) -> Result<crate::models::Department, AppError> {
+            unimplemented!()
+        }
+        async fn get_department_by_id(
+            &self,
+            _ws: Uuid,
+            _id: Uuid,
+        ) -> Result<Option<crate::models::Department>, AppError> {
+            unimplemented!()
+        }
+        async fn get_department_by_name(
+            &self,
+            _ws: Uuid,
+            _name: &str,
+        ) -> Result<Option<Uuid>, AppError> {
+            unimplemented!()
+        }
+        async fn update_department(
+            &self,
+            _ws: Uuid,
+            _id: Uuid,
+            _req: crate::models::UpdateDepartmentRequest,
+        ) -> Result<crate::models::Department, AppError> {
+            unimplemented!()
+        }
+        async fn delete_department(&self, _ws: Uuid, _id: Uuid) -> Result<(), AppError> {
+            unimplemented!()
+        }
+        async fn get_departments(
+            &self,
+            _ws: Uuid,
+        ) -> Result<Vec<crate::models::Department>, AppError> {
+            unimplemented!()
+        }
+        async fn transfer_employee(
+            &self,
+            _emp: Uuid,
+            _dept: Uuid,
+            _date: chrono::NaiveDate,
+            _notes: Option<String>,
+        ) -> Result<crate::models::EmployeeDepartmentHistory, AppError> {
+            unimplemented!()
+        }
+        async fn get_employee_department_history(
+            &self,
+            _ws: Uuid,
+            _emp: Uuid,
+        ) -> Result<Vec<crate::models::EmployeeDepartmentHistory>, AppError> {
+            unimplemented!()
+        }
+        async fn get_current_department(
+            &self,
+            _ws: Uuid,
+            _emp: Uuid,
+        ) -> Result<Option<crate::models::EmployeeDepartmentHistory>, AppError> {
+            unimplemented!()
+        }
+        async fn upsert_department_payroll_config(
+            &self,
+            _dept: Uuid,
+            _std_wd: rust_decimal::Decimal,
+            _hpd: rust_decimal::Decimal,
+            _date: chrono::NaiveDate,
+        ) -> Result<crate::models::DepartmentPayrollConfig, AppError> {
+            unimplemented!()
+        }
+        async fn get_department_payroll_config_at(
+            &self,
+            _dept: Uuid,
+            _date: chrono::NaiveDate,
+        ) -> Result<Option<crate::models::DepartmentPayrollConfig>, AppError> {
+            unimplemented!()
+        }
+    }
+
     /// Helper: create a service backed by the mock (pool is unused in mock-only paths).
     fn make_service(mock: MockEmployeeRepo) -> EmployeeService {
         let pool = sqlx::postgres::PgPoolOptions::new()
             .max_connections(1)
             .connect_lazy("postgres://mock:mock@localhost/mock")
             .expect("lazy pool creation");
-        EmployeeService::new(Arc::new(mock), pool)
+        EmployeeService::new(Arc::new(mock), Arc::new(NopDepartmentRepo), pool)
     }
 
     // ── Tests: get_employee_by_id ────────────────────────────────────

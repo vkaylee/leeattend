@@ -111,11 +111,10 @@ async fn test_grace_period_zero_shift_uses_policy_default() {
             );
         let dr: std::sync::Arc<
             dyn apiserver::repositories::department_repository::DepartmentRepository,
-        > = std::sync::Arc::new(
-            apiserver::repositories::department_repository::SqlxDepartmentRepository::new(
-                pool.clone(),
-            ),
-        );
+        > = std::sync::Arc::new(apiserver::repositories::DieselDepartmentRepository::new(
+            pool.clone(),
+            diesel_pools.clone(),
+        ));
         let tr: std::sync::Arc<
             dyn apiserver::repositories::time_entry_repository::TimeEntryRepository,
         > = std::sync::Arc::new(apiserver::repositories::SqlxTimeEntryRepository::new(
@@ -258,11 +257,10 @@ async fn test_grace_period_nonzero_shift_overrides() {
             );
         let dr: std::sync::Arc<
             dyn apiserver::repositories::department_repository::DepartmentRepository,
-        > = std::sync::Arc::new(
-            apiserver::repositories::department_repository::SqlxDepartmentRepository::new(
-                pool.clone(),
-            ),
-        );
+        > = std::sync::Arc::new(apiserver::repositories::DieselDepartmentRepository::new(
+            pool.clone(),
+            diesel_pools.clone(),
+        ));
         let tr: std::sync::Arc<
             dyn apiserver::repositories::time_entry_repository::TimeEntryRepository,
         > = std::sync::Arc::new(apiserver::repositories::SqlxTimeEntryRepository::new(

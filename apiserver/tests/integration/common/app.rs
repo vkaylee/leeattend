@@ -64,6 +64,10 @@ pub async fn spawn_app() -> (String, TestDatabase) {
     );
     let employee_service = Arc::new(apiserver::services::EmployeeService::new(
         employee_repo.clone(),
+        Arc::new(apiserver::repositories::DieselDepartmentRepository::new(
+            pool.clone(),
+            diesel_pools.clone(),
+        )),
         pool.clone(),
     ));
     let time_entry_repo: Arc<
@@ -131,9 +135,10 @@ pub async fn spawn_app() -> (String, TestDatabase) {
     ));
     let shift_swap_repo: Arc<
         dyn apiserver::repositories::shift_swap_repository::ShiftSwapRepository,
-    > = Arc::new(
-        apiserver::repositories::shift_swap_repository::SqlxShiftSwapRepository::new(pool.clone()),
-    );
+    > = Arc::new(apiserver::repositories::DieselShiftSwapRepository::new(
+        pool.clone(),
+        diesel_pools.clone(),
+    ));
     let adjustment_service = Arc::new(
         apiserver::services::attendance_adjustment_service::AttendanceAdjustmentService::new(
             adj_repo.clone(),
@@ -168,9 +173,10 @@ pub async fn spawn_app() -> (String, TestDatabase) {
         );
     let department_repo: Arc<
         dyn apiserver::repositories::department_repository::DepartmentRepository,
-    > = Arc::new(
-        apiserver::repositories::department_repository::SqlxDepartmentRepository::new(pool.clone()),
-    );
+    > = Arc::new(apiserver::repositories::DieselDepartmentRepository::new(
+        pool.clone(),
+        diesel_pools.clone(),
+    ));
     let payroll_service = Arc::new(apiserver::services::payroll_service::PayrollService::new(
         apiserver::services::payroll_service::PayrollServiceArgs {
             payroll_repo: payroll_repo.clone(),
@@ -463,6 +469,10 @@ pub async fn spawn_app_with_factory() -> (String, Uuid, Uuid, TestFactory, TestD
     );
     let employee_service = Arc::new(apiserver::services::EmployeeService::new(
         employee_repo.clone(),
+        Arc::new(apiserver::repositories::DieselDepartmentRepository::new(
+            pool.clone(),
+            diesel_pools.clone(),
+        )),
         pool.clone(),
     ));
     let time_entry_repo: Arc<
@@ -529,9 +539,10 @@ pub async fn spawn_app_with_factory() -> (String, Uuid, Uuid, TestFactory, TestD
     ));
     let shift_swap_repo: Arc<
         dyn apiserver::repositories::shift_swap_repository::ShiftSwapRepository,
-    > = Arc::new(
-        apiserver::repositories::shift_swap_repository::SqlxShiftSwapRepository::new(pool.clone()),
-    );
+    > = Arc::new(apiserver::repositories::DieselShiftSwapRepository::new(
+        pool.clone(),
+        diesel_pools.clone(),
+    ));
     let adjustment_service = Arc::new(
         apiserver::services::attendance_adjustment_service::AttendanceAdjustmentService::new(
             adj_repo.clone(),
@@ -566,9 +577,10 @@ pub async fn spawn_app_with_factory() -> (String, Uuid, Uuid, TestFactory, TestD
         );
     let department_repo: Arc<
         dyn apiserver::repositories::department_repository::DepartmentRepository,
-    > = Arc::new(
-        apiserver::repositories::department_repository::SqlxDepartmentRepository::new(pool.clone()),
-    );
+    > = Arc::new(apiserver::repositories::DieselDepartmentRepository::new(
+        pool.clone(),
+        diesel_pools.clone(),
+    ));
     let payroll_service = Arc::new(apiserver::services::payroll_service::PayrollService::new(
         apiserver::services::payroll_service::PayrollServiceArgs {
             payroll_repo: payroll_repo.clone(),
@@ -889,6 +901,10 @@ pub async fn setup_app_tower() -> (TestDatabase, TestFactory, Arc<AppState>, axu
     );
     let employee_service = Arc::new(apiserver::services::EmployeeService::new(
         employee_repo.clone(),
+        Arc::new(apiserver::repositories::DieselDepartmentRepository::new(
+            pool.clone(),
+            diesel_pools.clone(),
+        )),
         pool.clone(),
     ));
     let time_entry_repo: Arc<
@@ -963,9 +979,10 @@ pub async fn setup_app_tower() -> (TestDatabase, TestFactory, Arc<AppState>, axu
     ));
     let shift_swap_repo: Arc<
         dyn apiserver::repositories::shift_swap_repository::ShiftSwapRepository,
-    > = Arc::new(
-        apiserver::repositories::shift_swap_repository::SqlxShiftSwapRepository::new(pool.clone()),
-    );
+    > = Arc::new(apiserver::repositories::DieselShiftSwapRepository::new(
+        pool.clone(),
+        diesel_pools.clone(),
+    ));
     let adjustment_service = Arc::new(
         apiserver::services::attendance_adjustment_service::AttendanceAdjustmentService::new(
             adj_repo.clone(),
@@ -1000,9 +1017,10 @@ pub async fn setup_app_tower() -> (TestDatabase, TestFactory, Arc<AppState>, axu
         );
     let department_repo: Arc<
         dyn apiserver::repositories::department_repository::DepartmentRepository,
-    > = Arc::new(
-        apiserver::repositories::department_repository::SqlxDepartmentRepository::new(pool.clone()),
-    );
+    > = Arc::new(apiserver::repositories::DieselDepartmentRepository::new(
+        pool.clone(),
+        diesel_pools.clone(),
+    ));
     let payroll_service = Arc::new(apiserver::services::payroll_service::PayrollService::new(
         apiserver::services::payroll_service::PayrollServiceArgs {
             payroll_repo: payroll_repo.clone(),

@@ -162,6 +162,22 @@ mod tests {
             "department_payroll_configs",
             "department_id has workspace FK",
         ),
+        (
+            "diesel_department_repository.rs",
+            "employee_department_history",
+            "department_id has workspace FK",
+        ),
+        (
+            "diesel_department_repository.rs",
+            "department_payroll_configs",
+            "department_id has workspace FK",
+        ),
+        // Resolver: config resolution via department_id which has workspace FK
+        (
+            "resolver.rs",
+            "department_payroll_configs",
+            "department_id has workspace FK",
+        ),
         // Shift-related: some queries by shift_id which already belongs to a workspace
         (
             "shift_repository.rs",

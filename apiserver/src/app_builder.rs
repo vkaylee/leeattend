@@ -55,10 +55,22 @@ impl AppState {
             agent_manager.clone(),
         ));
         let employee_repo: Arc<dyn crate::repositories::employee::EmployeeRepository> = Arc::new(
-            crate::repositories::DieselEmployeeRepository::new(pool.clone(), diesel_pools.clone()),
+            crate::repositories::diesel_employee_repository::DieselEmployeeRepository::new(
+                pool.clone(),
+                diesel_pools.clone(),
+            ),
+        );
+        let department_repo: Arc<
+            dyn crate::repositories::department_repository::DepartmentRepository,
+        > = Arc::new(
+            crate::repositories::diesel_department_repository::DieselDepartmentRepository::new(
+                pool.clone(),
+                diesel_pools.clone(),
+            ),
         );
         let employee_service = Arc::new(crate::services::EmployeeService::new(
             Arc::clone(&employee_repo),
+            Arc::clone(&department_repo),
             pool.clone(),
         ));
         let contract_repo = Arc::new(crate::repositories::DieselEmployeeContractRepository::new(
@@ -120,8 +132,13 @@ impl AppState {
             pool.clone(),
             diesel_pools.clone(),
         ));
-        let adj_repo: Arc<dyn crate::repositories::attendance_adjustment_repository::AttendanceAdjustmentRepository> = Arc::new(
-            crate::repositories::DieselAttendanceAdjustmentRepository::new(pool.clone(), diesel_pools.clone()),
+        let adj_repo: Arc<
+            dyn crate::repositories::attendance_adjustment_repository::AttendanceAdjustmentRepository,
+        > = Arc::new(
+            crate::repositories::DieselAttendanceAdjustmentRepository::new(
+                pool.clone(),
+                diesel_pools.clone(),
+            ),
         );
         let adjustment_service = Arc::new(
             crate::services::attendance_adjustment_service::AttendanceAdjustmentService::new(
@@ -218,14 +235,7 @@ impl AppState {
                 pool.clone(),
             ),
         );
-        let department_repo: Arc<
-            dyn crate::repositories::department_repository::DepartmentRepository,
-        > = Arc::new(
-            crate::repositories::diesel_department_repository::DieselDepartmentRepository::new(
-                pool.clone(),
-                diesel_pools.clone(),
-            ),
-        );
+
         let leave_policy_repo: Arc<
             dyn crate::repositories::leave_policy_repository::LeavePolicyRepository,
         > = Arc::new(crate::repositories::DieselLeavePolicyRepository::new(

@@ -128,11 +128,10 @@ async fn test_payroll_holiday_work_with_multiplier() {
             );
         let dr: std::sync::Arc<
             dyn apiserver::repositories::department_repository::DepartmentRepository,
-        > = std::sync::Arc::new(
-            apiserver::repositories::department_repository::SqlxDepartmentRepository::new(
-                pool.clone(),
-            ),
-        );
+        > = std::sync::Arc::new(apiserver::repositories::DieselDepartmentRepository::new(
+            pool.clone(),
+            diesel_pools.clone(),
+        ));
         let tr: std::sync::Arc<
             dyn apiserver::repositories::time_entry_repository::TimeEntryRepository,
         > = std::sync::Arc::new(apiserver::repositories::SqlxTimeEntryRepository::new(
@@ -298,11 +297,10 @@ async fn test_payroll_holiday_work_no_credit() {
             );
         let dr: std::sync::Arc<
             dyn apiserver::repositories::department_repository::DepartmentRepository,
-        > = std::sync::Arc::new(
-            apiserver::repositories::department_repository::SqlxDepartmentRepository::new(
-                pool.clone(),
-            ),
-        );
+        > = std::sync::Arc::new(apiserver::repositories::DieselDepartmentRepository::new(
+            pool.clone(),
+            diesel_pools.clone(),
+        ));
         let tr: std::sync::Arc<
             dyn apiserver::repositories::time_entry_repository::TimeEntryRepository,
         > = std::sync::Arc::new(apiserver::repositories::SqlxTimeEntryRepository::new(
@@ -455,11 +453,10 @@ async fn test_payroll_holiday_work_unpaid_no_premium() {
             );
         let dr: std::sync::Arc<
             dyn apiserver::repositories::department_repository::DepartmentRepository,
-        > = std::sync::Arc::new(
-            apiserver::repositories::department_repository::SqlxDepartmentRepository::new(
-                pool.clone(),
-            ),
-        );
+        > = std::sync::Arc::new(apiserver::repositories::DieselDepartmentRepository::new(
+            pool.clone(),
+            diesel_pools.clone(),
+        ));
         let tr: std::sync::Arc<
             dyn apiserver::repositories::time_entry_repository::TimeEntryRepository,
         > = std::sync::Arc::new(apiserver::repositories::SqlxTimeEntryRepository::new(
