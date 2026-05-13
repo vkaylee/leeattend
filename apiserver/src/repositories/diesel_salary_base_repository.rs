@@ -1,139 +1,178 @@
-use async_trait::async_trait;
 use chrono::Utc;
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
-use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::{
     diesel_pool::DieselPools,
     errors::AppError,
-    models::diesel::payroll::{SalaryBaseGroupEntity, SalaryBaseGroupMemberEntity},
     models::{SalaryBaseGroup, SalaryBaseGroupMember},
-    repositories::salary_base_repository::SalaryBaseRepository,
 };
+use crate::schema::{salary_base_groups, salary_component_base_members};
 
-pub struct DieselSalaryBaseRepository {
-    pub sqlx_pool: PgPool,
-    pub diesel_pools: DieselPools,
+// ---------------------------------------------------------------------------
+// Diesel-native query structs
+// ---------------------------------------------------------------------------
+
+#[derive(Queryable, Selectable, Insertable)]
+#[diesel(table_name = salary_base_groups)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+struct SalaryBaseGroupRow {
+    id: Uuid,
+    workspace_id: Option<Uuid>,
+    name: String,
+    slug: String,
+    description: Option<String>,
+    is_system: bool,
+    created_at: chrono::DateTime<chrono::Utc>,
+    updated_at: chrono::DateTime<chrono::Utc>,
 }
 
-impl DieselSalaryBaseRepository {
-    pub fn new(sqlx_pool: PgPool, diesel_pools: DieselPools) -> Self {
+impl From<SalaryBaseGroupRow> for SalaryBaseGroup {
+    fn from(r: SalaryBaseGroupRow) -> Self {
         Self {
-            sqlx_pool,
-            diesel_pools,
+            id: r.id,
+            workspace_id: r.workspace_id,
+            name: r.name,
+            slug: r.slug,
+            description: r.description,
+            is_system: r.is_system,
+            created_at: r.created_at,
+            updated_at: r.updated_at,
         }
     }
 }
 
-#[async_trait]
-impl SalaryBaseRepository for DieselSalaryBaseRepository {
-    async fn get_groups(&self, workspace_id_val: Uuid) -> Result<Vec<SalaryBaseGroup>, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .api
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("Failed to get connection: {e}")))?;
+#[derive(Queryable, Selectable, Insertable)]
+#[diesel(table_name = salary_component_base_members)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+struct SalaryBaseGroupMemberRow {
+    component_definition_id: Uuid,
+    base_group_id: Uuid,
+    created_at: chrono::DateTime<chrono::Utc>,
+}
 
-        let groups = crate::schema::salary_base_groups::table
-            .filter(
-                crate::schema::salary_base_groups::workspace_id
-                    .eq(workspace_id_val)
-                    .or(crate::schema::salary_base_groups::workspace_id.is_null()),
-            )
-            .order((
-                crate::schema::salary_base_groups::is_system.desc(),
-                crate::schema::salary_base_groups::name.asc(),
-            ))
-            .load::<SalaryBaseGroupEntity>(&mut conn)
-            .await
-            .map_err(|e| AppError::Internal(format!("Failed to fetch salary bases: {e}")))?;
+impl From<SalaryBaseGroupMemberRow> for SalaryBaseGroupMember {
+    fn from(r: SalaryBaseGroupMemberRow) -> Self {
+        Self {
+            component_definition_id: r.component_definition_id,
+            base_group_id: r.base_group_id,
+            created_at: r.created_at,
+        }
+    }
+}
 
-        Ok(groups.into_iter().map(Into::into).collect())
+// ---------------------------------------------------------------------------
+// Repository
+// ---------------------------------------------------------------------------
+
+pub struct DieselSalaryBaseRepository {
+    pub diesel_pools: DieselPools,
+}
+
+impl DieselSalaryBaseRepository {
+    pub fn new(diesel_pools: DieselPools) -> Self {
+        Self { diesel_pools }
     }
 
-    async fn create_group(
+    async fn conn(
         &self,
-        workspace_id_val: Uuid,
-        name_val: &str,
-        slug_val: &str,
-        description_val: Option<&str>,
-    ) -> Result<SalaryBaseGroup, AppError> {
-        let mut conn = self
-            .diesel_pools
+    ) -> Result<diesel_async::pooled_connection::deadpool::Object<diesel_async::AsyncPgConnection>, AppError>
+    {
+        self.diesel_pools
             .api
             .get()
             .await
-            .map_err(|e| AppError::Internal(format!("Failed to get connection: {e}")))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))
+    }
 
-        let new_group = SalaryBaseGroupEntity {
+    pub async fn get_groups(&self, workspace_id: Uuid) -> Result<Vec<SalaryBaseGroup>, AppError> {
+        let mut conn = self.conn().await?;
+
+        salary_base_groups::table
+            .filter(
+                salary_base_groups::workspace_id
+                    .eq(workspace_id)
+                    .or(salary_base_groups::workspace_id.is_null()),
+            )
+            .order((
+                salary_base_groups::is_system.desc(),
+                salary_base_groups::name.asc(),
+            ))
+            .select(SalaryBaseGroupRow::as_select())
+            .load(&mut conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("Failed to fetch salary bases: {e}")))
+            .map(|rows| rows.into_iter().map(Into::into).collect())
+    }
+
+    pub async fn create_group(
+        &self,
+        workspace_id: Uuid,
+        name: &str,
+        slug: &str,
+        description: Option<&str>,
+    ) -> Result<SalaryBaseGroup, AppError> {
+        let mut conn = self.conn().await?;
+
+        let new_group = SalaryBaseGroupRow {
             id: Uuid::new_v4(),
-            workspace_id: Some(workspace_id_val),
-            name: name_val.to_string(),
-            slug: slug_val.to_string(),
-            description: description_val.map(String::from),
+            workspace_id: Some(workspace_id),
+            name: name.to_string(),
+            slug: slug.to_string(),
+            description: description.map(String::from),
             is_system: false,
             created_at: Utc::now(),
             updated_at: Utc::now(),
         };
 
-        let group = diesel::insert_into(crate::schema::salary_base_groups::table)
+        diesel::insert_into(salary_base_groups::table)
             .values(&new_group)
-            .get_result::<SalaryBaseGroupEntity>(&mut conn)
+            .returning(SalaryBaseGroupRow::as_returning())
+            .get_result(&mut conn)
             .await
-            .map_err(|e| AppError::Internal(format!("Failed to create salary base group: {e}")))?;
-
-        Ok(group.into())
+            .map_err(|e| AppError::Internal(format!("Failed to create salary base group: {e}")))
+            .map(Into::into)
     }
 
-    async fn get_group_members(&self, workspace_id_val: Uuid) -> Result<Vec<SalaryBaseGroupMember>, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .api
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("Failed to get connection: {e}")))?;
-
-        let members = crate::schema::salary_component_base_members::table
-            .inner_join(crate::schema::salary_base_groups::table)
-            .filter(
-                crate::schema::salary_base_groups::workspace_id
-                    .eq(workspace_id_val)
-                    .or(crate::schema::salary_base_groups::workspace_id.is_null()),
-            )
-            .select(SalaryBaseGroupMemberEntity::as_select())
-            .load::<SalaryBaseGroupMemberEntity>(&mut conn)
-            .await
-            .map_err(|e| AppError::Internal(format!("Failed to fetch salary base members: {e}")))?;
-
-        Ok(members.into_iter().map(Into::into).collect())
-    }
-
-    async fn assign_component_to_group(
+    pub async fn get_group_members(
         &self,
-        component_id_val: Uuid,
-        base_group_id_val: Uuid,
-    ) -> Result<(), AppError> {
-        let mut conn = self
-            .diesel_pools
-            .api
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("Failed to get connection: {e}")))?;
+        workspace_id: Uuid,
+    ) -> Result<Vec<SalaryBaseGroupMember>, AppError> {
+        let mut conn = self.conn().await?;
 
-        let new_member = SalaryBaseGroupMemberEntity {
-            component_definition_id: component_id_val,
-            base_group_id: base_group_id_val,
+        salary_component_base_members::table
+            .inner_join(salary_base_groups::table)
+            .filter(
+                salary_base_groups::workspace_id
+                    .eq(workspace_id)
+                    .or(salary_base_groups::workspace_id.is_null()),
+            )
+            .select(SalaryBaseGroupMemberRow::as_select())
+            .load(&mut conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("Failed to fetch salary base members: {e}")))
+            .map(|rows| rows.into_iter().map(Into::into).collect())
+    }
+
+    pub async fn assign_component_to_group(
+        &self,
+        component_id: Uuid,
+        base_group_id: Uuid,
+    ) -> Result<(), AppError> {
+        let mut conn = self.conn().await?;
+
+        let new_member = SalaryBaseGroupMemberRow {
+            component_definition_id: component_id,
+            base_group_id,
             created_at: Utc::now(),
         };
 
-        diesel::insert_into(crate::schema::salary_component_base_members::table)
+        diesel::insert_into(salary_component_base_members::table)
             .values(&new_member)
             .on_conflict((
-                crate::schema::salary_component_base_members::component_definition_id,
-                crate::schema::salary_component_base_members::base_group_id,
+                salary_component_base_members::component_definition_id,
+                salary_component_base_members::base_group_id,
             ))
             .do_nothing()
             .execute(&mut conn)
@@ -143,22 +182,21 @@ impl SalaryBaseRepository for DieselSalaryBaseRepository {
         Ok(())
     }
 
-    async fn unassign_component_from_group(
+    pub async fn unassign_component_from_group(
         &self,
-        component_id_val: Uuid,
-        base_group_id_val: Uuid,
+        component_id: Uuid,
+        base_group_id: Uuid,
     ) -> Result<(), AppError> {
-        let mut conn = self
-            .diesel_pools
-            .api
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("Failed to get connection: {e}")))?;
+        let mut conn = self.conn().await?;
 
         diesel::delete(
-            crate::schema::salary_component_base_members::table
-                .filter(crate::schema::salary_component_base_members::component_definition_id.eq(component_id_val))
-                .filter(crate::schema::salary_component_base_members::base_group_id.eq(base_group_id_val)),
+            salary_component_base_members::table
+                .filter(
+                    salary_component_base_members::component_definition_id.eq(component_id),
+                )
+                .filter(
+                    salary_component_base_members::base_group_id.eq(base_group_id),
+                ),
         )
         .execute(&mut conn)
         .await

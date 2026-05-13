@@ -1,9 +1,10 @@
 use crate::errors::AppError;
+use crate::repositories::employee::EmployeeRepository;
+use crate::repositories::overtime_policy_repository::OvertimePolicyRepositoryTrait;
 use chrono::NaiveDate;
 use chrono_tz::Tz;
 use futures_util::stream::{self, StreamExt};
 use rust_decimal::Decimal;
-use sqlx::PgPool;
 use std::collections::{BTreeSet, HashMap};
 use std::sync::Arc;
 use uuid::Uuid;
@@ -11,7 +12,8 @@ use uuid::Uuid;
 use crate::domain::policy::resolver::PolicyResolver;
 use crate::models::Payslip;
 use crate::repositories::department_repository::DepartmentRepository;
-use crate::repositories::holiday_repository::HolidayRepositoryTrait;
+use crate::repositories::holiday_repository::HolidayRepository;
+use crate::repositories::leave_request_repository::LeaveRequestRepository;
 use crate::repositories::payroll_repository::PayrollRepository;
 use crate::repositories::workspace_repository::WorkspaceRepository;
 use crate::repositories::{roster::RosterRepository, time_entry_repository};
@@ -24,10 +26,13 @@ pub struct PayrollService {
     department_repo: Arc<dyn DepartmentRepository>,
     time_entry_repo: Arc<dyn time_entry_repository::TimeEntryRepository>,
     workspace_repo: Arc<dyn WorkspaceRepository>,
-    pub holiday_repo: Arc<dyn HolidayRepositoryTrait>,
+    pub holiday_repo: Arc<dyn HolidayRepository>,
     pub roster_repo: Arc<dyn RosterRepository>,
+    pub leave_repo: Arc<dyn LeaveRequestRepository>,
     pub policy_repo: Arc<dyn crate::repositories::AttendancePolicyRepository>,
-    pub pool: PgPool,
+    pub employee_repo: Arc<dyn EmployeeRepository>,
+    pub overtime_policy_repo: Arc<dyn OvertimePolicyRepositoryTrait>,
+    pub diesel_pools: crate::diesel_pool::DieselPools,
 }
 
 // ---------------------------------------------------------------------------
@@ -78,10 +83,13 @@ pub struct PayrollServiceArgs {
     pub department_repo: Arc<dyn DepartmentRepository>,
     pub time_entry_repo: Arc<dyn time_entry_repository::TimeEntryRepository>,
     pub workspace_repo: Arc<dyn WorkspaceRepository>,
-    pub holiday_repo: Arc<dyn HolidayRepositoryTrait>,
+    pub holiday_repo: Arc<dyn HolidayRepository>,
     pub roster_repo: Arc<dyn RosterRepository>,
+    pub leave_repo: Arc<dyn LeaveRequestRepository>,
     pub policy_repo: Arc<dyn crate::repositories::AttendancePolicyRepository>,
-    pub pool: PgPool,
+    pub employee_repo: Arc<dyn crate::repositories::EmployeeRepository>,
+    pub overtime_policy_repo: Arc<dyn OvertimePolicyRepositoryTrait>,
+    pub diesel_pools: crate::diesel_pool::DieselPools,
 }
 
 impl PayrollService {
@@ -93,8 +101,11 @@ impl PayrollService {
             workspace_repo: args.workspace_repo,
             holiday_repo: args.holiday_repo,
             roster_repo: args.roster_repo,
+            leave_repo: args.leave_repo,
             policy_repo: args.policy_repo,
-            pool: args.pool,
+            employee_repo: args.employee_repo,
+            overtime_policy_repo: args.overtime_policy_repo,
+            diesel_pools: args.diesel_pools,
         }
     }
 
@@ -107,7 +118,6 @@ impl PayrollService {
         year: i32,
         month: u32,
     ) -> Result<PayrollContext, AppError> {
-        let pool = &self.pool;
         let workspace = self
             .workspace_repo
             .get_workspace_by_id(workspace_id)
@@ -155,17 +165,18 @@ impl PayrollService {
             .get_holidays_in_range(workspace_id, start_date, end_date)
             .await?;
 
-        let roster_data = crate::cache::build_roster_data(pool, workspace_id)
+        let roster_data = crate::cache::build_roster_data(&self.diesel_pools, workspace_id)
             .await
             .map_err(|e| {
                 tracing::error!("Failed to build roster data: {}", e);
                 AppError::Internal("Internal error".into())
             })?;
 
-        let employee =
-            crate::repositories::employee::get_employee_by_id(pool, employee_id, workspace_id)
-                .await?
-                .ok_or(AppError::NotFound("Employee not found".into()))?;
+        let employee = self
+            .employee_repo
+            .get_employee_by_id(employee_id, workspace_id)
+            .await?
+            .ok_or(AppError::NotFound("Employee not found".into()))?;
 
         let emp_id_number = employee.employee_id_number;
         let emp_tags = Some(employee.tags);
@@ -243,7 +254,6 @@ impl PayrollService {
         year: i32,
         month: u32,
     ) -> Result<Payslip, AppError> {
-        let pool = &self.pool;
         // Phase 1: Fetch all context data
         let ctx = self
             .fetch_context(employee_id, workspace_id, year, month)
@@ -284,9 +294,19 @@ impl PayrollService {
                 }
             }
 
-            // Resolve Standard Month Config
+            let _rules = PolicyResolver::resolve_with_shift_overrides(
+                &*self.policy_repo,
+                &*self.employee_repo,
+                ctx.employee_id,
+                ctx.workspace.id,
+                seg_start,
+                &Default::default(),
+            )
+            .await;
+
             let std_config = PolicyResolver::resolve_standard_month(
-                pool,
+                &*self.employee_repo,
+                &*self.payroll_repo,
                 employee_id,
                 dept_id,
                 workspace_id,
@@ -308,7 +328,6 @@ impl PayrollService {
             // B. Attendance — delegated to AttendanceMatcher
             let att = AttendanceMatcher::process_segment_attendance(
                 crate::services::attendance_matcher::ProcessSegmentAttendanceArgs {
-                    pool,
                     ctx: &ctx,
                     seg_start,
                     seg_end,
@@ -319,6 +338,8 @@ impl PayrollService {
                     seg_units_per_day,
                     policy_cache: &mut policy_cache,
                     policy_repo: &*self.policy_repo,
+                    employee_repo: &*self.employee_repo,
+                    overtime_policy_repo: &*self.overtime_policy_repo,
                 },
             )
             .await;
@@ -388,7 +409,8 @@ impl PayrollService {
 
         // Phase 5: Incentives — delegated to FinancialCalculator
         let incentives = FinancialCalculator::calculate_incentives(
-            pool,
+            self.payroll_repo.as_ref(),
+            self.leave_repo.as_ref(),
             crate::services::financial_calculator::CalculateIncentivesArgs {
                 workspace_id,
                 employee_id,
@@ -412,10 +434,10 @@ impl PayrollService {
         base_values.insert("base_pay".to_string(), total_base_pay);
 
         if let Ok(groups) =
-            crate::repositories::salary_base_repository::SalaryBaseRepository::get_groups(
-                pool,
-                workspace_id,
+            crate::repositories::diesel_salary_base_repository::DieselSalaryBaseRepository::new(
+                self.diesel_pools.clone(),
             )
+            .get_groups(workspace_id)
             .await
         {
             for group in groups {
@@ -429,7 +451,8 @@ impl PayrollService {
         }
 
         let deductions = FinancialCalculator::calculate_deductions(
-            pool,
+            self.payroll_repo.as_ref(),
+            self.leave_repo.as_ref(),
             crate::services::financial_calculator::CalculateDeductionsArgs {
                 workspace_id,
                 employee_id,
@@ -535,8 +558,11 @@ impl PayrollService {
                     workspace_repo: Arc::clone(&self.workspace_repo),
                     holiday_repo: Arc::clone(&self.holiday_repo),
                     roster_repo: Arc::clone(&self.roster_repo),
+                    leave_repo: Arc::clone(&self.leave_repo),
                     policy_repo: Arc::clone(&self.policy_repo),
-                    pool: self.pool.clone(),
+                    employee_repo: Arc::clone(&self.employee_repo),
+                    overtime_policy_repo: Arc::clone(&self.overtime_policy_repo),
+                    diesel_pools: self.diesel_pools.clone(),
                 };
                 async move {
                     match svc

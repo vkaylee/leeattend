@@ -105,33 +105,27 @@ async fn test_grace_period_zero_shift_uses_policy_default() {
     let payslip = {
         let pr: std::sync::Arc<dyn apiserver::repositories::payroll_repository::PayrollRepository> =
             std::sync::Arc::new(apiserver::repositories::DieselPayrollRepository::new(
-                pool.clone(),
                 diesel_pools.clone(),
             ));
         let dr: std::sync::Arc<
             dyn apiserver::repositories::department_repository::DepartmentRepository,
         > = std::sync::Arc::new(apiserver::repositories::DieselDepartmentRepository::new(
-            pool.clone(),
             diesel_pools.clone(),
         ));
         let tr: std::sync::Arc<
             dyn apiserver::repositories::time_entry_repository::TimeEntryRepository,
         > = std::sync::Arc::new(apiserver::repositories::DieselTimeEntryRepository::new(
-            pool.clone(),
             diesel_pools.clone(),
         ));
         let wr: std::sync::Arc<
             dyn apiserver::repositories::workspace_repository::WorkspaceRepository,
         > = std::sync::Arc::new(apiserver::repositories::DieselWorkspaceRepository::new(
-            pool.clone(),
             diesel_pools.clone(),
         ));
-        let hr: std::sync::Arc<
-            dyn apiserver::repositories::holiday_repository::HolidayRepositoryTrait,
-        > = std::sync::Arc::new(apiserver::repositories::DieselHolidayRepository::new(
-            pool.clone(),
-            diesel_pools.clone(),
-        ));
+        let hr: std::sync::Arc<dyn apiserver::repositories::holiday_repository::HolidayRepository> =
+            std::sync::Arc::new(apiserver::repositories::DieselHolidayRepository::new(
+                diesel_pools.clone(),
+            ));
         PayrollService::new(apiserver::services::payroll_service::PayrollServiceArgs {
             payroll_repo: pr,
             department_repo: dr,
@@ -139,17 +133,21 @@ async fn test_grace_period_zero_shift_uses_policy_default() {
             workspace_repo: wr,
             holiday_repo: hr,
             roster_repo: Arc::new(apiserver::repositories::DieselRosterRepository::new(
-                pool.clone(),
+                diesel_pools.clone(),
+            )),
+            leave_repo: Arc::new(apiserver::repositories::DieselLeaveRequestRepository::new(
                 diesel_pools.clone(),
             )),
             policy_repo: std::sync::Arc::new(
                 apiserver::repositories::DieselAttendancePolicyRepository::new(
-                    pool.clone(),
                     diesel_pools.clone(),
                 ),
             ),
-
-            pool: pool.clone(),
+            employee_repo: Arc::new(apiserver::repositories::DieselEmployeeRepository::new(
+                diesel_pools.clone(),
+            )),
+            overtime_policy_repo: Arc::new(apiserver::repositories::DieselOvertimePolicyRepository::new(diesel_pools.clone())),
+            diesel_pools: diesel_pools.clone(),
         })
     }
     .calculate_monthly_payslip(employee_id, workspace_id, 2026, 1)
@@ -254,33 +252,27 @@ async fn test_grace_period_nonzero_shift_overrides() {
     let payslip = {
         let pr: std::sync::Arc<dyn apiserver::repositories::payroll_repository::PayrollRepository> =
             std::sync::Arc::new(apiserver::repositories::DieselPayrollRepository::new(
-                pool.clone(),
                 diesel_pools.clone(),
             ));
         let dr: std::sync::Arc<
             dyn apiserver::repositories::department_repository::DepartmentRepository,
         > = std::sync::Arc::new(apiserver::repositories::DieselDepartmentRepository::new(
-            pool.clone(),
             diesel_pools.clone(),
         ));
         let tr: std::sync::Arc<
             dyn apiserver::repositories::time_entry_repository::TimeEntryRepository,
         > = std::sync::Arc::new(apiserver::repositories::DieselTimeEntryRepository::new(
-            pool.clone(),
             diesel_pools.clone(),
         ));
         let wr: std::sync::Arc<
             dyn apiserver::repositories::workspace_repository::WorkspaceRepository,
         > = std::sync::Arc::new(apiserver::repositories::DieselWorkspaceRepository::new(
-            pool.clone(),
             diesel_pools.clone(),
         ));
-        let hr: std::sync::Arc<
-            dyn apiserver::repositories::holiday_repository::HolidayRepositoryTrait,
-        > = std::sync::Arc::new(apiserver::repositories::DieselHolidayRepository::new(
-            pool.clone(),
-            diesel_pools.clone(),
-        ));
+        let hr: std::sync::Arc<dyn apiserver::repositories::holiday_repository::HolidayRepository> =
+            std::sync::Arc::new(apiserver::repositories::DieselHolidayRepository::new(
+                diesel_pools.clone(),
+            ));
         PayrollService::new(apiserver::services::payroll_service::PayrollServiceArgs {
             payroll_repo: pr,
             department_repo: dr,
@@ -288,17 +280,21 @@ async fn test_grace_period_nonzero_shift_overrides() {
             workspace_repo: wr,
             holiday_repo: hr,
             roster_repo: Arc::new(apiserver::repositories::DieselRosterRepository::new(
-                pool.clone(),
                 diesel_pools.clone(),
             )),
-            policy_repo: std::sync::Arc::new(
+            leave_repo: Arc::new(apiserver::repositories::DieselLeaveRequestRepository::new(
+                diesel_pools.clone(),
+            )),
+            policy_repo: Arc::new(
                 apiserver::repositories::DieselAttendancePolicyRepository::new(
-                    pool.clone(),
                     diesel_pools.clone(),
                 ),
             ),
-
-            pool: pool.clone(),
+            employee_repo: Arc::new(apiserver::repositories::DieselEmployeeRepository::new(
+                diesel_pools.clone(),
+            )),
+            overtime_policy_repo: Arc::new(apiserver::repositories::DieselOvertimePolicyRepository::new(diesel_pools.clone())),
+            diesel_pools: diesel_pools.clone(),
         })
     }
     .calculate_monthly_payslip(employee_id, workspace_id, 2026, 1)

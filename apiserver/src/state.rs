@@ -2,15 +2,16 @@ use std::sync::Arc;
 
 use crate::agent_manager::AgentManager;
 use crate::db_pool::DbPools;
-use crate::repositories::assignment_rule_repository::AssignmentRuleRepositoryTrait;
+use crate::repositories::assignment_rule_repository::AssignmentRuleRepository;
 use crate::repositories::attendance_log_error_repository::AttendanceLogErrorRepository;
 use crate::repositories::audit_log_repository::AuditLogRepository;
 use crate::repositories::department_repository::DepartmentRepository;
-use crate::repositories::feature_flag_repository::FeatureFlagRepositoryTrait;
-use crate::repositories::holiday_repository::HolidayRepositoryTrait;
+use crate::repositories::feature_flag_repository::FeatureFlagRepository;
+use crate::repositories::holiday_repository::HolidayRepository;
 use crate::repositories::import_job_repository::ImportJobRepository;
 use crate::repositories::leave_policy_repository::LeavePolicyRepository;
 use crate::repositories::leave_request_repository::LeaveRequestRepository;
+use crate::repositories::overtime_policy_repository::OvertimePolicyRepositoryTrait;
 use crate::repositories::payroll_repository::PayrollRepository;
 use crate::repositories::payroll_rule_repository::PayrollRuleRepository;
 use crate::repositories::raw_attendance_log_repository::RawAttendanceLogRepository;
@@ -67,6 +68,8 @@ pub struct AttendanceState {
     pub error_repo: Arc<dyn AttendanceLogErrorRepository>,
     pub policy_repo:
         Arc<dyn crate::repositories::attendance_policy_repository::AttendancePolicyRepository>,
+    pub attendance_daily_summary_repo:
+        Arc<dyn crate::repositories::attendance_daily_summary_repository::AttendanceDailySummaryRepository>,
 }
 
 /// Shift management — shifts, rosters, swaps, patterns
@@ -76,7 +79,7 @@ pub struct ShiftState {
     pub roster_repo: Arc<dyn RosterRepository>,
     pub shift_repo: Arc<dyn ShiftRepository>,
     pub swap_repo: Arc<dyn ShiftSwapRepository>,
-    pub assignment_rule_repo: Arc<dyn AssignmentRuleRepositoryTrait>,
+    pub assignment_rule_repo: Arc<dyn AssignmentRuleRepository>,
 }
 
 /// Leave management — requests, policies, holidays, accrual
@@ -85,8 +88,10 @@ pub struct LeaveState {
     pub holiday_leave_service: Arc<HolidayLeaveService>,
     pub accrual_service: Arc<LeaveAccrualService>,
     pub request_repo: Arc<dyn LeaveRequestRepository>,
+    pub balance_repo:
+        Arc<dyn crate::repositories::leave_balance_repository::LeaveBalanceRepository>,
     pub policy_repo: Arc<dyn LeavePolicyRepository>,
-    pub holiday_repo: Arc<dyn HolidayRepositoryTrait>,
+    pub holiday_repo: Arc<dyn HolidayRepository>,
 }
 
 /// Payroll — calculation, settings, repos
@@ -95,7 +100,8 @@ pub struct PayrollState {
     pub repo: Arc<dyn PayrollRepository>,
     pub rule_repo: Arc<dyn PayrollRuleRepository>,
     pub department_repo: Arc<dyn DepartmentRepository>,
-    pub feature_flag_repo: Arc<dyn FeatureFlagRepositoryTrait>,
+    pub feature_flag_repo: Arc<dyn FeatureFlagRepository>,
+    pub overtime_policy_repo: Arc<dyn OvertimePolicyRepositoryTrait>,
 }
 
 /// Reports & async coordination

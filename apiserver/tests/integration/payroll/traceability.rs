@@ -2,7 +2,12 @@
 
 use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
-use apiserver::repositories::{department_repository, employee, payroll_repository};
+use apiserver::repositories::{
+    department_repository::DepartmentRepository, employee::EmployeeRepository,
+    holiday_repository::HolidayRepository, leave_request_repository::LeaveRequestRepository,
+    payroll_repository::PayrollRepository, roster::RosterRepository,
+    time_entry_repository::TimeEntryRepository, workspace_repository::WorkspaceRepository,
+};
 use apiserver::services::payroll_service::PayrollService;
 use chrono::NaiveDate;
 use rust_decimal::Decimal;
@@ -40,17 +45,17 @@ async fn test_payroll_std_days_source_traceability() {
         .unwrap();
 
     // 2. Setup Base Salary
-    let base_comp = payroll_repository::create_salary_component_definition(
-        &pool,
-        workspace_id,
-        "Base Salary".to_string(),
-        "BASE".to_string(),
-    )
-    .await
-    .unwrap();
+    let pr = apiserver::repositories::DieselPayrollRepository::new(diesel_pools.clone());
+    let base_comp = pr
+        .create_salary_component_definition(
+            workspace_id,
+            "Base Salary".to_string(),
+            "BASE".to_string(),
+        )
+        .await
+        .unwrap();
 
-    payroll_repository::assign_employee_salary_component(
-        &pool,
+    pr.assign_employee_salary_component(
         employee_id,
         base_comp.id,
         Decimal::from(10_000_000),
@@ -61,59 +66,51 @@ async fn test_payroll_std_days_source_traceability() {
 
     // 3. Scenario A: System Default (No overrides)
     let payslip_a = {
-        let pr: std::sync::Arc<dyn apiserver::repositories::payroll_repository::PayrollRepository> =
-            std::sync::Arc::new(apiserver::repositories::DieselPayrollRepository::new(
-                pool.clone(),
-                diesel_pools.clone(),
-            ));
-        let dr: std::sync::Arc<
-            dyn apiserver::repositories::department_repository::DepartmentRepository,
-        > = std::sync::Arc::new(apiserver::repositories::DieselDepartmentRepository::new(
-            pool.clone(),
+        let dr = Arc::new(apiserver::repositories::DieselDepartmentRepository::new(
             diesel_pools.clone(),
         ));
-        let tr: std::sync::Arc<
-            dyn apiserver::repositories::time_entry_repository::TimeEntryRepository,
-        > = std::sync::Arc::new(apiserver::repositories::DieselTimeEntryRepository::new(
-            pool.clone(),
+        let tr = Arc::new(apiserver::repositories::DieselTimeEntryRepository::new(
             diesel_pools.clone(),
         ));
-        let wr: std::sync::Arc<
-            dyn apiserver::repositories::workspace_repository::WorkspaceRepository,
-        > = std::sync::Arc::new(apiserver::repositories::DieselWorkspaceRepository::new(
-            pool.clone(),
+        let wr = Arc::new(apiserver::repositories::DieselWorkspaceRepository::new(
             diesel_pools.clone(),
         ));
-        let hr: std::sync::Arc<
-            dyn apiserver::repositories::holiday_repository::HolidayRepositoryTrait,
-        > = std::sync::Arc::new(apiserver::repositories::DieselHolidayRepository::new(
-            pool.clone(),
+        let hr = Arc::new(apiserver::repositories::DieselHolidayRepository::new(
             diesel_pools.clone(),
         ));
+        let rr = Arc::new(apiserver::repositories::DieselRosterRepository::new(
+            diesel_pools.clone(),
+        ));
+        let lr = Arc::new(apiserver::repositories::DieselLeaveRequestRepository::new(
+            diesel_pools.clone(),
+        ));
+        let er = Arc::new(apiserver::repositories::DieselEmployeeRepository::new(
+            diesel_pools.clone(),
+        ));
+        let atr = Arc::new(
+            apiserver::repositories::DieselAttendancePolicyRepository::new(diesel_pools.clone()),
+        );
+
         PayrollService::new(apiserver::services::payroll_service::PayrollServiceArgs {
-            payroll_repo: pr,
+            payroll_repo: Arc::new(pr),
             department_repo: dr,
             time_entry_repo: tr,
             workspace_repo: wr,
             holiday_repo: hr,
-            roster_repo: Arc::new(apiserver::repositories::DieselRosterRepository::new(
-                pool.clone(),
-                diesel_pools.clone(),
-            )),
-            policy_repo: std::sync::Arc::new(
-                apiserver::repositories::DieselAttendancePolicyRepository::new(
-                    pool.clone(),
-                    diesel_pools.clone(),
-                ),
-            ),
-
-            pool: pool.clone(),
+            roster_repo: rr,
+            leave_repo: lr,
+            employee_repo: er,
+            policy_repo: atr,
+            overtime_policy_repo: Arc::new(apiserver::repositories::DieselOvertimePolicyRepository::new(diesel_pools.clone())),
+            diesel_pools: diesel_pools.clone(),
         })
     }
     .calculate_monthly_payslip(employee_id, workspace_id, 2024, 1)
     .await
     .unwrap();
-    let segments_a = payroll_repository::get_payslip_segments(&pool, payslip_a.id)
+    let pr_instance = apiserver::repositories::DieselPayrollRepository::new(diesel_pools.clone());
+    let segments_a = pr_instance
+        .get_payslip_segments(payslip_a.id)
         .await
         .unwrap();
     assert_eq!(segments_a.len(), 1);
@@ -121,76 +118,69 @@ async fn test_payroll_std_days_source_traceability() {
     assert_eq!(segments_a[0].applied_std_days, Decimal::from(26));
 
     // 4. Scenario B: Workspace Override
-    payroll_repository::update_payroll_settings(
-        &pool,
-        workspace_id,
-        &apiserver::models::SavePayrollSettings {
-            std_working_day_mode: "fixed".to_string(),
-            fixed_std_days: Decimal::from(24),
-            working_days_per_week: 5,
-            hours_per_day: Decimal::from(8),
-            max_ot_hours_per_day: None,
-            max_ot_hours_per_month: None,
-            effective_date: NaiveDate::from_ymd_opt(2024, 2, 1).unwrap(),
-        },
-    )
-    .await
-    .unwrap();
+    pr_instance
+        .update_payroll_settings(
+            workspace_id,
+            &apiserver::models::SavePayrollSettings {
+                std_working_day_mode: "fixed".to_string(),
+                fixed_std_days: Decimal::from(24),
+                working_days_per_week: 5,
+                hours_per_day: Decimal::from(8),
+                max_ot_hours_per_day: None,
+                max_ot_hours_per_month: None,
+                effective_date: NaiveDate::from_ymd_opt(2024, 2, 1).unwrap(),
+            },
+        )
+        .await
+        .unwrap();
 
     let payslip_b = {
-        let pr: std::sync::Arc<dyn apiserver::repositories::payroll_repository::PayrollRepository> =
-            std::sync::Arc::new(apiserver::repositories::DieselPayrollRepository::new(
-                pool.clone(),
-                diesel_pools.clone(),
-            ));
-        let dr: std::sync::Arc<
-            dyn apiserver::repositories::department_repository::DepartmentRepository,
-        > = std::sync::Arc::new(apiserver::repositories::DieselDepartmentRepository::new(
-            pool.clone(),
+        let dr = Arc::new(apiserver::repositories::DieselDepartmentRepository::new(
             diesel_pools.clone(),
         ));
-        let tr: std::sync::Arc<
-            dyn apiserver::repositories::time_entry_repository::TimeEntryRepository,
-        > = std::sync::Arc::new(apiserver::repositories::DieselTimeEntryRepository::new(
-            pool.clone(),
+        let tr = Arc::new(apiserver::repositories::DieselTimeEntryRepository::new(
             diesel_pools.clone(),
         ));
-        let wr: std::sync::Arc<
-            dyn apiserver::repositories::workspace_repository::WorkspaceRepository,
-        > = std::sync::Arc::new(apiserver::repositories::DieselWorkspaceRepository::new(
-            pool.clone(),
+        let wr = Arc::new(apiserver::repositories::DieselWorkspaceRepository::new(
             diesel_pools.clone(),
         ));
-        let hr: std::sync::Arc<
-            dyn apiserver::repositories::holiday_repository::HolidayRepositoryTrait,
-        > = std::sync::Arc::new(apiserver::repositories::DieselHolidayRepository::new(
-            pool.clone(),
+        let hr = Arc::new(apiserver::repositories::DieselHolidayRepository::new(
             diesel_pools.clone(),
         ));
+        let rr = Arc::new(apiserver::repositories::DieselRosterRepository::new(
+            diesel_pools.clone(),
+        ));
+        let lr = Arc::new(apiserver::repositories::DieselLeaveRequestRepository::new(
+            diesel_pools.clone(),
+        ));
+        let er = Arc::new(apiserver::repositories::DieselEmployeeRepository::new(
+            diesel_pools.clone(),
+        ));
+        let atr = Arc::new(
+            apiserver::repositories::DieselAttendancePolicyRepository::new(diesel_pools.clone()),
+        );
+
         PayrollService::new(apiserver::services::payroll_service::PayrollServiceArgs {
-            payroll_repo: pr,
+            payroll_repo: Arc::new(apiserver::repositories::DieselPayrollRepository::new(
+                diesel_pools.clone(),
+            )),
             department_repo: dr,
             time_entry_repo: tr,
             workspace_repo: wr,
             holiday_repo: hr,
-            roster_repo: Arc::new(apiserver::repositories::DieselRosterRepository::new(
-                pool.clone(),
-                diesel_pools.clone(),
-            )),
-            policy_repo: std::sync::Arc::new(
-                apiserver::repositories::DieselAttendancePolicyRepository::new(
-                    pool.clone(),
-                    diesel_pools.clone(),
-                ),
-            ),
-
-            pool: pool.clone(),
+            roster_repo: rr,
+            leave_repo: lr,
+            employee_repo: er,
+            policy_repo: atr,
+            overtime_policy_repo: Arc::new(apiserver::repositories::DieselOvertimePolicyRepository::new(diesel_pools.clone())),
+            diesel_pools: diesel_pools.clone(),
         })
     }
     .calculate_monthly_payslip(employee_id, workspace_id, 2024, 2)
     .await
     .unwrap();
-    let segments_b = payroll_repository::get_payslip_segments(&pool, payslip_b.id)
+    let segments_b = pr_instance
+        .get_payslip_segments(payslip_b.id)
         .await
         .unwrap();
     assert_eq!(segments_b.len(), 1);
@@ -198,70 +188,64 @@ async fn test_payroll_std_days_source_traceability() {
     assert_eq!(segments_b[0].applied_std_days, Decimal::from(24));
 
     // 5. Scenario C: Department Override
-    department_repository::upsert_department_payroll_config(
-        &pool,
-        dept_id,
-        Decimal::from(22),
-        Decimal::from(8),
-        NaiveDate::from_ymd_opt(2024, 3, 1).unwrap(),
-    )
-    .await
-    .unwrap();
+    let dept_repo = apiserver::repositories::DieselDepartmentRepository::new(diesel_pools.clone());
+    dept_repo
+        .upsert_department_payroll_config(
+            dept_id,
+            Decimal::from(22),
+            Decimal::from(8),
+            NaiveDate::from_ymd_opt(2024, 3, 1).unwrap(),
+        )
+        .await
+        .unwrap();
 
     let payslip_c = {
-        let pr: std::sync::Arc<dyn apiserver::repositories::payroll_repository::PayrollRepository> =
-            std::sync::Arc::new(apiserver::repositories::DieselPayrollRepository::new(
-                pool.clone(),
-                diesel_pools.clone(),
-            ));
-        let dr: std::sync::Arc<
-            dyn apiserver::repositories::department_repository::DepartmentRepository,
-        > = std::sync::Arc::new(apiserver::repositories::DieselDepartmentRepository::new(
-            pool.clone(),
+        let dr = Arc::new(apiserver::repositories::DieselDepartmentRepository::new(
             diesel_pools.clone(),
         ));
-        let tr: std::sync::Arc<
-            dyn apiserver::repositories::time_entry_repository::TimeEntryRepository,
-        > = std::sync::Arc::new(apiserver::repositories::DieselTimeEntryRepository::new(
-            pool.clone(),
+        let tr = Arc::new(apiserver::repositories::DieselTimeEntryRepository::new(
             diesel_pools.clone(),
         ));
-        let wr: std::sync::Arc<
-            dyn apiserver::repositories::workspace_repository::WorkspaceRepository,
-        > = std::sync::Arc::new(apiserver::repositories::DieselWorkspaceRepository::new(
-            pool.clone(),
+        let wr = Arc::new(apiserver::repositories::DieselWorkspaceRepository::new(
             diesel_pools.clone(),
         ));
-        let hr: std::sync::Arc<
-            dyn apiserver::repositories::holiday_repository::HolidayRepositoryTrait,
-        > = std::sync::Arc::new(apiserver::repositories::DieselHolidayRepository::new(
-            pool.clone(),
+        let hr = Arc::new(apiserver::repositories::DieselHolidayRepository::new(
             diesel_pools.clone(),
         ));
+        let rr = Arc::new(apiserver::repositories::DieselRosterRepository::new(
+            diesel_pools.clone(),
+        ));
+        let lr = Arc::new(apiserver::repositories::DieselLeaveRequestRepository::new(
+            diesel_pools.clone(),
+        ));
+        let er = Arc::new(apiserver::repositories::DieselEmployeeRepository::new(
+            diesel_pools.clone(),
+        ));
+        let atr = Arc::new(
+            apiserver::repositories::DieselAttendancePolicyRepository::new(diesel_pools.clone()),
+        );
+
         PayrollService::new(apiserver::services::payroll_service::PayrollServiceArgs {
-            payroll_repo: pr,
+            payroll_repo: Arc::new(apiserver::repositories::DieselPayrollRepository::new(
+                diesel_pools.clone(),
+            )),
             department_repo: dr,
             time_entry_repo: tr,
             workspace_repo: wr,
             holiday_repo: hr,
-            roster_repo: Arc::new(apiserver::repositories::DieselRosterRepository::new(
-                pool.clone(),
-                diesel_pools.clone(),
-            )),
-            policy_repo: std::sync::Arc::new(
-                apiserver::repositories::DieselAttendancePolicyRepository::new(
-                    pool.clone(),
-                    diesel_pools.clone(),
-                ),
-            ),
-
-            pool: pool.clone(),
+            roster_repo: rr,
+            leave_repo: lr,
+            employee_repo: er,
+            policy_repo: atr,
+            overtime_policy_repo: Arc::new(apiserver::repositories::DieselOvertimePolicyRepository::new(diesel_pools.clone())),
+            diesel_pools: diesel_pools.clone(),
         })
     }
     .calculate_monthly_payslip(employee_id, workspace_id, 2024, 3)
     .await
     .unwrap();
-    let segments_c = payroll_repository::get_payslip_segments(&pool, payslip_c.id)
+    let segments_c = pr_instance
+        .get_payslip_segments(payslip_c.id)
         .await
         .unwrap();
     assert_eq!(segments_c.len(), 1);
@@ -269,70 +253,65 @@ async fn test_payroll_std_days_source_traceability() {
     assert_eq!(segments_c[0].applied_std_days, Decimal::from(22));
 
     // 6. Scenario D: Individual Override
-    employee::upsert_employee_payroll_config(
-        &pool,
-        employee_id,
-        Decimal::from(20),
-        Decimal::from(8),
-        NaiveDate::from_ymd_opt(2024, 4, 1).unwrap(),
-    )
-    .await
-    .unwrap();
+    let employee_repo =
+        apiserver::repositories::DieselEmployeeRepository::new(diesel_pools.clone());
+    employee_repo
+        .upsert_employee_payroll_config(
+            employee_id,
+            Decimal::from(20),
+            Decimal::from(8),
+            NaiveDate::from_ymd_opt(2024, 4, 1).unwrap(),
+        )
+        .await
+        .unwrap();
 
     let payslip_d = {
-        let pr: std::sync::Arc<dyn apiserver::repositories::payroll_repository::PayrollRepository> =
-            std::sync::Arc::new(apiserver::repositories::DieselPayrollRepository::new(
-                pool.clone(),
-                diesel_pools.clone(),
-            ));
-        let dr: std::sync::Arc<
-            dyn apiserver::repositories::department_repository::DepartmentRepository,
-        > = std::sync::Arc::new(apiserver::repositories::DieselDepartmentRepository::new(
-            pool.clone(),
+        let dr = Arc::new(apiserver::repositories::DieselDepartmentRepository::new(
             diesel_pools.clone(),
         ));
-        let tr: std::sync::Arc<
-            dyn apiserver::repositories::time_entry_repository::TimeEntryRepository,
-        > = std::sync::Arc::new(apiserver::repositories::DieselTimeEntryRepository::new(
-            pool.clone(),
+        let tr = Arc::new(apiserver::repositories::DieselTimeEntryRepository::new(
             diesel_pools.clone(),
         ));
-        let wr: std::sync::Arc<
-            dyn apiserver::repositories::workspace_repository::WorkspaceRepository,
-        > = std::sync::Arc::new(apiserver::repositories::DieselWorkspaceRepository::new(
-            pool.clone(),
+        let wr = Arc::new(apiserver::repositories::DieselWorkspaceRepository::new(
             diesel_pools.clone(),
         ));
-        let hr: std::sync::Arc<
-            dyn apiserver::repositories::holiday_repository::HolidayRepositoryTrait,
-        > = std::sync::Arc::new(apiserver::repositories::DieselHolidayRepository::new(
-            pool.clone(),
+        let hr = Arc::new(apiserver::repositories::DieselHolidayRepository::new(
             diesel_pools.clone(),
         ));
+        let rr = Arc::new(apiserver::repositories::DieselRosterRepository::new(
+            diesel_pools.clone(),
+        ));
+        let lr = Arc::new(apiserver::repositories::DieselLeaveRequestRepository::new(
+            diesel_pools.clone(),
+        ));
+        let er = Arc::new(apiserver::repositories::DieselEmployeeRepository::new(
+            diesel_pools.clone(),
+        ));
+        let atr = Arc::new(
+            apiserver::repositories::DieselAttendancePolicyRepository::new(diesel_pools.clone()),
+        );
+
         PayrollService::new(apiserver::services::payroll_service::PayrollServiceArgs {
-            payroll_repo: pr,
+            payroll_repo: Arc::new(apiserver::repositories::DieselPayrollRepository::new(
+                diesel_pools.clone(),
+            )),
             department_repo: dr,
             time_entry_repo: tr,
             workspace_repo: wr,
             holiday_repo: hr,
-            roster_repo: Arc::new(apiserver::repositories::DieselRosterRepository::new(
-                pool.clone(),
-                diesel_pools.clone(),
-            )),
-            policy_repo: std::sync::Arc::new(
-                apiserver::repositories::DieselAttendancePolicyRepository::new(
-                    pool.clone(),
-                    diesel_pools.clone(),
-                ),
-            ),
-
-            pool: pool.clone(),
+            roster_repo: rr,
+            leave_repo: lr,
+            employee_repo: er,
+            policy_repo: atr,
+            overtime_policy_repo: Arc::new(apiserver::repositories::DieselOvertimePolicyRepository::new(diesel_pools.clone())),
+            diesel_pools: diesel_pools.clone(),
         })
     }
     .calculate_monthly_payslip(employee_id, workspace_id, 2024, 4)
     .await
     .unwrap();
-    let segments_d = payroll_repository::get_payslip_segments(&pool, payslip_d.id)
+    let segments_d = pr_instance
+        .get_payslip_segments(payslip_d.id)
         .await
         .unwrap();
     assert_eq!(segments_d.len(), 1);

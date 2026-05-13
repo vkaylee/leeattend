@@ -6,15 +6,11 @@
 use chrono::{NaiveDate, TimeZone};
 use rust_decimal::prelude::{FromPrimitive, ToPrimitive};
 use rust_decimal::Decimal;
-use sqlx::PgPool;
-use std::collections::HashMap;
-use uuid::Uuid;
-
 use crate::domain::policy::defaults::DEFAULT_OT_MULTIPLIER;
 use crate::domain::policy::overtime::OvertimeEngine;
 use crate::domain::policy::resolver::PolicyResolver;
-use crate::repositories::overtime_policy_repository::OvertimePolicyRepository;
-use crate::repositories::roster;
+use crate::repositories::overtime_policy_repository::OvertimePolicyRepositoryTrait;
+use crate::repositories::roster::shift_resolution::resolve_effective_shift_from_data;
 use crate::services::AttendanceCalculator;
 
 use super::financial_calculator::FinancialCalculator;
@@ -29,8 +25,10 @@ pub struct SegmentAttendanceResult {
     pub late_early_count: i32,
 }
 
+use std::collections::HashMap;
+use uuid::Uuid;
+
 pub struct ProcessSegmentAttendanceArgs<'a> {
-    pub pool: &'a PgPool,
     pub ctx: &'a PayrollContext,
     pub seg_start: NaiveDate,
     pub seg_end: NaiveDate,
@@ -41,6 +39,8 @@ pub struct ProcessSegmentAttendanceArgs<'a> {
     pub seg_units_per_day: Decimal,
     pub policy_cache: &'a mut HashMap<Uuid, Vec<crate::models::OvertimeRule>>,
     pub policy_repo: &'a dyn crate::repositories::AttendancePolicyRepository,
+    pub employee_repo: &'a dyn crate::repositories::employee::EmployeeRepository,
+    pub overtime_policy_repo: &'a dyn OvertimePolicyRepositoryTrait,
 }
 
 pub struct AttendanceMatcher;
@@ -68,7 +68,7 @@ impl AttendanceMatcher {
         let mut current_date = args.seg_start;
         while current_date <= args.seg_end {
             // Resolve shift from pre-loaded roster data (in-memory, zero DB queries)
-            let (shift_ids, _, _) = roster::resolve_effective_shift_from_data(
+            let (shift_ids, _, _) = resolve_effective_shift_from_data(
                 &args.ctx.roster_data,
                 &args.ctx.payroll_roster_map,
                 employee_id,
@@ -152,7 +152,7 @@ impl AttendanceMatcher {
 
                                 let rules = PolicyResolver::resolve_with_shift_overrides(
                                     args.policy_repo,
-                                    args.pool,
+                                    args.employee_repo,
                                     employee_id,
                                     args.ctx.workspace.id,
                                     current_date,
@@ -213,21 +213,21 @@ impl AttendanceMatcher {
 
                                 if ot_u > 0 {
                                     if let Some(policy_id) =
-                                        OvertimePolicyRepository::resolve_policy_for_employee(
-                                            args.pool,
-                                            employee_id,
-                                            workspace_id,
-                                            current_date,
-                                        )
-                                        .await
-                                        .unwrap_or(None)
+                                        args.overtime_policy_repo
+                                            .resolve_policy_for_employee(
+                                                employee_id,
+                                                workspace_id,
+                                                current_date,
+                                            )
+                                            .await
+                                            .unwrap_or(None)
                                     {
                                         let rules = if let Some(r) =
                                             args.policy_cache.get(&policy_id)
                                         {
                                             r.clone()
                                         } else {
-                                            let r = match OvertimePolicyRepository::get_policy_with_rules(args.pool, workspace_id, policy_id).await {
+                                            let r = match args.overtime_policy_repo.get_policy_with_rules(workspace_id, policy_id).await {
                                                 Ok(Some((_, rules))) => rules,
                                                 Ok(None) => Vec::new(),
                                                 Err(e) => {

@@ -3,7 +3,6 @@ use crate::{
     errors::{AppError, AppResult},
     handlers::common::MemberContext,
     models::{OvertimePolicy, OvertimeRule},
-    repositories::overtime_policy_repository::OvertimePolicyRepository,
     AppState,
 };
 use axum::{
@@ -36,9 +35,11 @@ pub async fn list_policies(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> AppResult<Json<Vec<OvertimePolicy>>> {
-    let policies =
-        OvertimePolicyRepository::get_policy_definitions(state.infra.db.api(), ctx.workspace_id)
-            .await?;
+    let policies = state
+        .payroll
+        .overtime_policy_repo
+        .get_policy_definitions(ctx.workspace_id)
+        .await?;
     Ok(Json(policies))
 }
 
@@ -47,13 +48,12 @@ pub async fn get_policy(
     Path((_, policy_id)): Path<(Uuid, Uuid)>,
     ctx: MemberContext,
 ) -> AppResult<Json<(OvertimePolicy, Vec<OvertimeRule>)>> {
-    let result = OvertimePolicyRepository::get_policy_with_rules(
-        state.infra.db.api(),
-        ctx.workspace_id,
-        policy_id,
-    )
-    .await?
-    .ok_or_else(|| AppError::NotFound("Policy not found".to_string()))?;
+    let result = state
+        .payroll
+        .overtime_policy_repo
+        .get_policy_with_rules(ctx.workspace_id, policy_id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Policy not found".to_string()))?;
     Ok(Json(result))
 }
 
@@ -63,13 +63,11 @@ pub async fn create_policy(
     Json(req): Json<CreatePolicyRequest>,
 ) -> AppResult<Json<OvertimePolicy>> {
     ctx.require_permission(Permission::OvertimePoliciesManage)?;
-    let policy = OvertimePolicyRepository::create_policy_definition(
-        state.infra.db.api(),
-        ctx.workspace_id,
-        &req.name,
-        req.description.as_deref(),
-    )
-    .await?;
+    let policy = state
+        .payroll
+        .overtime_policy_repo
+        .create_policy_definition(ctx.workspace_id, &req.name, req.description.as_deref())
+        .await?;
     Ok(Json(policy))
 }
 
@@ -93,7 +91,7 @@ pub async fn add_rule(
         updated_at: None,
     };
 
-    let created = OvertimePolicyRepository::add_rule(state.infra.db.api(), &rule).await?;
+    let created = state.payroll.overtime_policy_repo.add_rule(&rule).await?;
     Ok(Json(created))
 }
 
@@ -111,14 +109,16 @@ pub async fn assign_policy(
     Json(req): Json<AssignPolicyRequest>,
 ) -> AppResult<StatusCode> {
     ctx.require_permission(Permission::OvertimePoliciesManage)?;
-    OvertimePolicyRepository::create_policy_assignment(
-        state.infra.db.api(),
-        ctx.workspace_id,
-        &req.assignee_type,
-        req.assignee_id,
-        req.policy_id,
-        req.effective_from,
-    )
-    .await?;
+    state
+        .payroll
+        .overtime_policy_repo
+        .create_policy_assignment(
+            ctx.workspace_id,
+            &req.assignee_type,
+            req.assignee_id,
+            req.policy_id,
+            req.effective_from,
+        )
+        .await?;
     Ok(StatusCode::OK)
 }

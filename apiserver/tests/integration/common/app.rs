@@ -26,26 +26,25 @@ pub async fn spawn_app() -> (String, TestDatabase) {
     let agent_manager = AgentManager::new(None);
 
     let workspace_repo: Arc<dyn apiserver::repositories::WorkspaceRepository> = Arc::new(
-        apiserver::repositories::DieselWorkspaceRepository::new(pool.clone(), diesel_pools.clone()),
+        apiserver::repositories::DieselWorkspaceRepository::new(diesel_pools.clone()),
     );
     let user_repo: Arc<dyn apiserver::repositories::UserRepository> = Arc::new(
-        apiserver::repositories::DieselUserRepository::new(pool.clone(), diesel_pools.clone()),
+        apiserver::repositories::DieselUserRepository::new(diesel_pools.clone()),
     );
     let session_repo: Arc<dyn apiserver::repositories::SessionRepository> = Arc::new(
         apiserver::repositories::DieselSessionRepository::new(pool.clone(), diesel_pools.clone()),
     );
     let roster_repo: Arc<dyn apiserver::repositories::roster::RosterRepository> = Arc::new(
-        apiserver::repositories::DieselRosterRepository::new(pool.clone(), diesel_pools.clone()),
+        apiserver::repositories::DieselRosterRepository::new(diesel_pools.clone()),
     );
     let shift_repo: Arc<dyn apiserver::repositories::shift_repository::ShiftRepository> = Arc::new(
-        apiserver::repositories::DieselShiftRepository::new(pool.clone(), diesel_pools.clone()),
+        apiserver::repositories::DieselShiftRepository::new(diesel_pools.clone()),
     );
     let audit_repo: Arc<dyn apiserver::repositories::AuditLogRepository> = Arc::new(
-        apiserver::repositories::DieselAuditLogRepository::new(pool.clone(), diesel_pools.clone()),
+        apiserver::repositories::DieselAuditLogRepository::new(diesel_pools.clone()),
     );
 
     let agent_repo = Arc::new(apiserver::repositories::DieselAgentRepository::new(
-        pool.clone(),
         diesel_pools.clone(),
     ));
 
@@ -55,13 +54,11 @@ pub async fn spawn_app() -> (String, TestDatabase) {
     ));
 
     let employee_repo = Arc::new(apiserver::repositories::DieselEmployeeRepository::new(
-        pool.clone(),
         diesel_pools.clone(),
     ));
     let employee_service = Arc::new(apiserver::services::EmployeeService::new(
         employee_repo.clone(),
         Arc::new(apiserver::repositories::DieselDepartmentRepository::new(
-            pool.clone(),
             diesel_pools.clone(),
         )),
         pool.clone(),
@@ -69,38 +66,44 @@ pub async fn spawn_app() -> (String, TestDatabase) {
     let time_entry_repo: Arc<
         dyn apiserver::repositories::time_entry_repository::TimeEntryRepository,
     > = Arc::new(apiserver::repositories::DieselTimeEntryRepository::new(
-        pool.clone(),
         diesel_pools.clone(),
     ));
 
     let policy_repo: Arc<
         dyn apiserver::repositories::attendance_policy_repository::AttendancePolicyRepository,
     > = Arc::new(
-        apiserver::repositories::DieselAttendancePolicyRepository::new(
-            pool.clone(),
-            diesel_pools.clone(),
-        ),
+        apiserver::repositories::DieselAttendancePolicyRepository::new(diesel_pools.clone()),
     );
     let time_tracking_service = Arc::new(apiserver::services::TimeTrackingService::new(
         time_entry_repo.clone(),
         roster_repo.clone(),
         policy_repo.clone(),
-        pool.clone(),
+        employee_repo.clone(),
         diesel_pools.clone(),
     ));
-    let attendance_summary_service = Arc::new(apiserver::services::AttendanceSummaryService::new(
-        time_entry_repo.clone(),
-        roster_repo.clone(),
-        policy_repo.clone(),
-        pool.clone(),
+    let leave_request_repo: Arc<
+        dyn apiserver::repositories::leave_request_repository::LeaveRequestRepository,
+    > = Arc::new(apiserver::repositories::DieselLeaveRequestRepository::new(
         diesel_pools.clone(),
     ));
+
+    let attendance_summary_repo: Arc<
+        dyn apiserver::repositories::attendance_daily_summary_repository::AttendanceDailySummaryRepository,
+    > = Arc::new(
+        apiserver::repositories::DieselAttendanceDailySummaryRepository::new(diesel_pools.clone()),
+    );
+
     let report_service = Arc::new(apiserver::services::ReportService::new(
-        time_entry_repo.clone(),
-        roster_repo.clone(),
-        policy_repo.clone(),
-        pool.clone(),
-        diesel_pools.clone(),
+        apiserver::services::report_service::ReportServiceArgs {
+            time_entry_repo: time_entry_repo.clone(),
+            roster_repo: roster_repo.clone(),
+            policy_repo: policy_repo.clone(),
+            employee_repo: employee_repo.clone(),
+            attendance_daily_summary_repo: attendance_summary_repo.clone(),
+            leave_repo: leave_request_repo.clone(),
+            pool: pool.clone(),
+            diesel: diesel_pools.clone(),
+        },
     ));
     let pairing_service = Arc::new(apiserver::services::pairing_service::PairingService::new(
         time_entry_repo.clone(),
@@ -109,28 +112,19 @@ pub async fn spawn_app() -> (String, TestDatabase) {
         pool.clone(),
         diesel_pools.clone(),
     ));
-    let adj_repo: Arc<dyn apiserver::repositories::attendance_adjustment_repository::AttendanceAdjustmentRepository> = Arc::new(apiserver::repositories::DieselAttendanceAdjustmentRepository::new(pool.clone(), diesel_pools.clone()));
+    let adj_repo: Arc<dyn apiserver::repositories::attendance_adjustment_repository::AttendanceAdjustmentRepository> = Arc::new(apiserver::repositories::DieselAttendanceAdjustmentRepository::new(diesel_pools.clone()));
     let import_repo: Arc<dyn apiserver::repositories::import_job_repository::ImportJobRepository> =
         Arc::new(apiserver::repositories::DieselImportJobRepository::new(
-            pool.clone(),
             diesel_pools.clone(),
         ));
     let leave_balance_repo: Arc<
         dyn apiserver::repositories::leave_balance_repository::LeaveBalanceRepository,
     > = Arc::new(apiserver::repositories::DieselLeaveBalanceRepository::new(
-        pool.clone(),
-        diesel_pools.clone(),
-    ));
-    let leave_request_repo: Arc<
-        dyn apiserver::repositories::leave_request_repository::LeaveRequestRepository,
-    > = Arc::new(apiserver::repositories::DieselLeaveRequestRepository::new(
-        pool.clone(),
         diesel_pools.clone(),
     ));
     let shift_swap_repo: Arc<
         dyn apiserver::repositories::shift_swap_repository::ShiftSwapRepository,
     > = Arc::new(apiserver::repositories::DieselShiftSwapRepository::new(
-        pool.clone(),
         diesel_pools.clone(),
     ));
     let adjustment_service = Arc::new(
@@ -152,7 +146,6 @@ pub async fn spawn_app() -> (String, TestDatabase) {
     );
     let payroll_repo: Arc<dyn apiserver::repositories::payroll_repository::PayrollRepository> =
         Arc::new(apiserver::repositories::DieselPayrollRepository::new(
-            pool.clone(),
             diesel_pools.clone(),
         ));
     let payroll_rule_repo: Arc<
@@ -161,15 +154,13 @@ pub async fn spawn_app() -> (String, TestDatabase) {
         pool.clone(),
         diesel_pools.clone(),
     ));
-    let holiday_repo: Arc<dyn apiserver::repositories::holiday_repository::HolidayRepositoryTrait> =
+    let holiday_repo: Arc<dyn apiserver::repositories::holiday_repository::HolidayRepository> =
         Arc::new(apiserver::repositories::DieselHolidayRepository::new(
-            pool.clone(),
             diesel_pools.clone(),
         ));
     let department_repo: Arc<
         dyn apiserver::repositories::department_repository::DepartmentRepository,
     > = Arc::new(apiserver::repositories::DieselDepartmentRepository::new(
-        pool.clone(),
         diesel_pools.clone(),
     ));
     let payroll_service = Arc::new(apiserver::services::payroll_service::PayrollService::new(
@@ -180,14 +171,11 @@ pub async fn spawn_app() -> (String, TestDatabase) {
             workspace_repo: workspace_repo.clone(),
             holiday_repo: holiday_repo.clone(),
             roster_repo: roster_repo.clone(),
-            policy_repo: std::sync::Arc::new(
-                apiserver::repositories::DieselAttendancePolicyRepository::new(
-                    pool.clone(),
-                    diesel_pools.clone(),
-                ),
-            ),
-
-            pool: pool.clone(),
+            leave_repo: leave_request_repo.clone(),
+            employee_repo: employee_repo.clone(),
+            policy_repo: policy_repo.clone(),
+            overtime_policy_repo: Arc::new(apiserver::repositories::DieselOvertimePolicyRepository::new(diesel_pools.clone())),
+            diesel_pools: diesel_pools.clone(),
         },
     ));
     let auth_service = Arc::new(apiserver::services::auth_service::AuthService::new(
@@ -206,10 +194,7 @@ pub async fn spawn_app() -> (String, TestDatabase) {
     let leave_accrual_log_repo: Arc<
         dyn apiserver::repositories::leave_accrual_log_repository::LeaveAccrualLogRepository,
     > = Arc::new(
-        apiserver::repositories::DieselLeaveAccrualLogRepository::new(
-            pool.clone(),
-            diesel_pools.clone(),
-        ),
+        apiserver::repositories::DieselLeaveAccrualLogRepository::new(diesel_pools.clone()),
     );
     let leave_service = Arc::new(apiserver::services::leave_service::LeaveService::new(
         leave_balance_repo.clone(),
@@ -224,27 +209,22 @@ pub async fn spawn_app() -> (String, TestDatabase) {
             roster_repo.clone(),
             employee_repo.clone(),
             shift_repo.clone(),
-            pool.clone(),
+            payroll_repo.clone(),
         ),
     );
     let feature_flag_repo: Arc<
-        dyn apiserver::repositories::feature_flag_repository::FeatureFlagRepositoryTrait,
+        dyn apiserver::repositories::feature_flag_repository::FeatureFlagRepository,
     > = Arc::new(apiserver::repositories::DieselFeatureFlagRepository::new(
-        pool.clone(),
         diesel_pools.clone(),
     ));
     let assignment_rule_repo: Arc<
-        dyn apiserver::repositories::assignment_rule_repository::AssignmentRuleRepositoryTrait,
+        dyn apiserver::repositories::assignment_rule_repository::AssignmentRuleRepository,
     > = Arc::new(
-        apiserver::repositories::DieselAssignmentRuleRepository::new(
-            pool.clone(),
-            diesel_pools.clone(),
-        ),
+        apiserver::repositories::DieselAssignmentRuleRepository::new(diesel_pools.clone()),
     );
     let leave_policy_repo: Arc<
         dyn apiserver::repositories::leave_policy_repository::LeavePolicyRepository,
     > = Arc::new(apiserver::repositories::DieselLeavePolicyRepository::new(
-        pool.clone(),
         diesel_pools.clone(),
     ));
     let holiday_leave_service = Arc::new(
@@ -262,36 +242,33 @@ pub async fn spawn_app() -> (String, TestDatabase) {
             department_repo.clone(),
             leave_policy_repo.clone(),
             Arc::new(
-                apiserver::repositories::DieselLeaveAccrualLogRepository::new(
-                    pool.clone(),
-                    diesel_pools.clone(),
-                ),
+                apiserver::repositories::DieselLeaveAccrualLogRepository::new(diesel_pools.clone()),
             ),
             pool.clone(),
         ),
     );
 
+    let attendance_summary_service = Arc::new(apiserver::services::AttendanceSummaryService::new(
+        time_entry_repo.clone(),
+        roster_repo.clone(),
+        policy_repo.clone(),
+        diesel_pools.clone(),
+    ));
+
     let raw_log_repo: Arc<
         dyn apiserver::repositories::raw_attendance_log_repository::RawAttendanceLogRepository,
     > = Arc::new(
-        apiserver::repositories::DieselRawAttendanceLogRepository::new(
-            pool.clone(),
-            diesel_pools.clone(),
-        ),
+        apiserver::repositories::DieselRawAttendanceLogRepository::new(diesel_pools.clone()),
     );
     let staging_repo: Arc<
         dyn apiserver::repositories::staging_log_repository::StagingLogRepository,
     > = Arc::new(apiserver::repositories::DieselStagingLogRepository::new(
-        pool.clone(),
         diesel_pools.clone(),
     ));
     let error_repo: Arc<
         dyn apiserver::repositories::attendance_log_error_repository::AttendanceLogErrorRepository,
     > = Arc::new(
-        apiserver::repositories::DieselAttendanceLogErrorRepository::new(
-            pool.clone(),
-            diesel_pools.clone(),
-        ),
+        apiserver::repositories::DieselAttendanceLogErrorRepository::new(diesel_pools.clone()),
     );
 
     let state = Arc::new(AppState {
@@ -305,10 +282,7 @@ pub async fn spawn_app() -> (String, TestDatabase) {
                 ),
             ),
             employment_phase_repo: Arc::new(
-                apiserver::repositories::DieselEmploymentPhaseRepository::new(
-                    pool.clone(),
-                    diesel_pools.clone(),
-                ),
+                apiserver::repositories::DieselEmploymentPhaseRepository::new(diesel_pools.clone()),
             ),
         },
         attendance: apiserver::AttendanceState {
@@ -341,6 +315,7 @@ pub async fn spawn_app() -> (String, TestDatabase) {
             import_repo: import_repo.clone(),
             error_repo: error_repo.clone(),
             policy_repo: policy_repo.clone(),
+            attendance_daily_summary_repo: attendance_summary_repo.clone(),
         },
         shifts: apiserver::ShiftState {
             service: shift_service,
@@ -357,6 +332,7 @@ pub async fn spawn_app() -> (String, TestDatabase) {
             request_repo: leave_request_repo.clone(),
             policy_repo: leave_policy_repo.clone(),
             holiday_repo: holiday_repo.clone(),
+            balance_repo: leave_balance_repo.clone(),
         },
         payroll: apiserver::PayrollState {
             service: payroll_service,
@@ -364,6 +340,7 @@ pub async fn spawn_app() -> (String, TestDatabase) {
             rule_repo: payroll_rule_repo.clone(),
             department_repo: department_repo.clone(),
             feature_flag_repo: feature_flag_repo.clone(),
+            overtime_policy_repo: Arc::new(apiserver::repositories::DieselOvertimePolicyRepository::new(diesel_pools.clone())),
         },
         reports: apiserver::ReportState {
             service: report_service,
@@ -371,7 +348,8 @@ pub async fn spawn_app() -> (String, TestDatabase) {
                 if let Ok(redis) = apiserver::queue::RedisPool::new(&url).await {
                     Some(Arc::new(apiserver::services::ReportCoordinator::new(
                         redis,
-                        pool.clone(),
+                        employee_repo.clone(),
+                        workspace_repo.clone(),
                     )))
                 } else {
                     None
@@ -449,26 +427,25 @@ pub async fn spawn_app_with_factory() -> (String, Uuid, Uuid, TestFactory, TestD
     let agent_manager = AgentManager::new(None);
 
     let workspace_repo: Arc<dyn apiserver::repositories::WorkspaceRepository> = Arc::new(
-        apiserver::repositories::DieselWorkspaceRepository::new(pool.clone(), diesel_pools.clone()),
+        apiserver::repositories::DieselWorkspaceRepository::new(diesel_pools.clone()),
     );
     let user_repo: Arc<dyn apiserver::repositories::UserRepository> = Arc::new(
-        apiserver::repositories::DieselUserRepository::new(pool.clone(), diesel_pools.clone()),
+        apiserver::repositories::DieselUserRepository::new(diesel_pools.clone()),
     );
     let session_repo: Arc<dyn apiserver::repositories::SessionRepository> = Arc::new(
         apiserver::repositories::DieselSessionRepository::new(pool.clone(), diesel_pools.clone()),
     );
     let roster_repo: Arc<dyn apiserver::repositories::roster::RosterRepository> = Arc::new(
-        apiserver::repositories::DieselRosterRepository::new(pool.clone(), diesel_pools.clone()),
+        apiserver::repositories::DieselRosterRepository::new(diesel_pools.clone()),
     );
     let shift_repo: Arc<dyn apiserver::repositories::shift_repository::ShiftRepository> = Arc::new(
-        apiserver::repositories::DieselShiftRepository::new(pool.clone(), diesel_pools.clone()),
+        apiserver::repositories::DieselShiftRepository::new(diesel_pools.clone()),
     );
     let audit_repo: Arc<dyn apiserver::repositories::AuditLogRepository> = Arc::new(
-        apiserver::repositories::DieselAuditLogRepository::new(pool.clone(), diesel_pools.clone()),
+        apiserver::repositories::DieselAuditLogRepository::new(diesel_pools.clone()),
     );
 
     let agent_repo = Arc::new(apiserver::repositories::DieselAgentRepository::new(
-        pool.clone(),
         diesel_pools.clone(),
     ));
     let agent_service = Arc::new(apiserver::services::AgentService::new(
@@ -477,13 +454,11 @@ pub async fn spawn_app_with_factory() -> (String, Uuid, Uuid, TestFactory, TestD
     ));
 
     let employee_repo = Arc::new(apiserver::repositories::DieselEmployeeRepository::new(
-        pool.clone(),
         diesel_pools.clone(),
     ));
     let employee_service = Arc::new(apiserver::services::EmployeeService::new(
         employee_repo.clone(),
         Arc::new(apiserver::repositories::DieselDepartmentRepository::new(
-            pool.clone(),
             diesel_pools.clone(),
         )),
         pool.clone(),
@@ -491,37 +466,47 @@ pub async fn spawn_app_with_factory() -> (String, Uuid, Uuid, TestFactory, TestD
     let time_entry_repo: Arc<
         dyn apiserver::repositories::time_entry_repository::TimeEntryRepository,
     > = Arc::new(apiserver::repositories::DieselTimeEntryRepository::new(
-        pool.clone(),
         diesel_pools.clone(),
     ));
     let policy_repo: Arc<
         dyn apiserver::repositories::attendance_policy_repository::AttendancePolicyRepository,
     > = Arc::new(
-        apiserver::repositories::DieselAttendancePolicyRepository::new(
-            pool.clone(),
-            diesel_pools.clone(),
-        ),
+        apiserver::repositories::DieselAttendancePolicyRepository::new(diesel_pools.clone()),
     );
     let time_tracking_service = Arc::new(apiserver::services::TimeTrackingService::new(
         time_entry_repo.clone(),
         roster_repo.clone(),
         policy_repo.clone(),
-        pool.clone(),
+        employee_repo.clone(),
         diesel_pools.clone(),
     ));
+    let attendance_summary_repo: Arc<
+        dyn apiserver::repositories::attendance_daily_summary_repository::AttendanceDailySummaryRepository,
+    > = Arc::new(
+        apiserver::repositories::DieselAttendanceDailySummaryRepository::new(diesel_pools.clone()),
+    );
     let attendance_summary_service = Arc::new(apiserver::services::AttendanceSummaryService::new(
         time_entry_repo.clone(),
         roster_repo.clone(),
         policy_repo.clone(),
-        pool.clone(),
+        diesel_pools.clone(),
+    ));
+    let leave_request_repo: Arc<
+        dyn apiserver::repositories::leave_request_repository::LeaveRequestRepository,
+    > = Arc::new(apiserver::repositories::DieselLeaveRequestRepository::new(
         diesel_pools.clone(),
     ));
     let report_service = Arc::new(apiserver::services::ReportService::new(
-        time_entry_repo.clone(),
-        roster_repo.clone(),
-        policy_repo.clone(),
-        pool.clone(),
-        diesel_pools.clone(),
+        apiserver::services::report_service::ReportServiceArgs {
+            time_entry_repo: time_entry_repo.clone(),
+            roster_repo: roster_repo.clone(),
+            policy_repo: policy_repo.clone(),
+            employee_repo: employee_repo.clone(),
+            attendance_daily_summary_repo: attendance_summary_repo.clone(),
+            leave_repo: leave_request_repo.clone(),
+            pool: pool.clone(),
+            diesel: diesel_pools.clone(),
+        },
     ));
     let pairing_service = Arc::new(apiserver::services::pairing_service::PairingService::new(
         time_entry_repo.clone(),
@@ -530,28 +515,19 @@ pub async fn spawn_app_with_factory() -> (String, Uuid, Uuid, TestFactory, TestD
         pool.clone(),
         diesel_pools.clone(),
     ));
-    let adj_repo: Arc<dyn apiserver::repositories::attendance_adjustment_repository::AttendanceAdjustmentRepository> = Arc::new(apiserver::repositories::DieselAttendanceAdjustmentRepository::new(pool.clone(), diesel_pools.clone()));
+    let adj_repo: Arc<dyn apiserver::repositories::attendance_adjustment_repository::AttendanceAdjustmentRepository> = Arc::new(apiserver::repositories::DieselAttendanceAdjustmentRepository::new(diesel_pools.clone()));
     let import_repo: Arc<dyn apiserver::repositories::import_job_repository::ImportJobRepository> =
         Arc::new(apiserver::repositories::DieselImportJobRepository::new(
-            pool.clone(),
             diesel_pools.clone(),
         ));
     let leave_balance_repo: Arc<
         dyn apiserver::repositories::leave_balance_repository::LeaveBalanceRepository,
     > = Arc::new(apiserver::repositories::DieselLeaveBalanceRepository::new(
-        pool.clone(),
-        diesel_pools.clone(),
-    ));
-    let leave_request_repo: Arc<
-        dyn apiserver::repositories::leave_request_repository::LeaveRequestRepository,
-    > = Arc::new(apiserver::repositories::DieselLeaveRequestRepository::new(
-        pool.clone(),
         diesel_pools.clone(),
     ));
     let shift_swap_repo: Arc<
         dyn apiserver::repositories::shift_swap_repository::ShiftSwapRepository,
     > = Arc::new(apiserver::repositories::DieselShiftSwapRepository::new(
-        pool.clone(),
         diesel_pools.clone(),
     ));
     let adjustment_service = Arc::new(
@@ -573,7 +549,6 @@ pub async fn spawn_app_with_factory() -> (String, Uuid, Uuid, TestFactory, TestD
     );
     let payroll_repo: Arc<dyn apiserver::repositories::payroll_repository::PayrollRepository> =
         Arc::new(apiserver::repositories::DieselPayrollRepository::new(
-            pool.clone(),
             diesel_pools.clone(),
         ));
     let payroll_rule_repo: Arc<
@@ -582,15 +557,13 @@ pub async fn spawn_app_with_factory() -> (String, Uuid, Uuid, TestFactory, TestD
         pool.clone(),
         diesel_pools.clone(),
     ));
-    let holiday_repo: Arc<dyn apiserver::repositories::holiday_repository::HolidayRepositoryTrait> =
+    let holiday_repo: Arc<dyn apiserver::repositories::holiday_repository::HolidayRepository> =
         Arc::new(apiserver::repositories::DieselHolidayRepository::new(
-            pool.clone(),
             diesel_pools.clone(),
         ));
     let department_repo: Arc<
         dyn apiserver::repositories::department_repository::DepartmentRepository,
     > = Arc::new(apiserver::repositories::DieselDepartmentRepository::new(
-        pool.clone(),
         diesel_pools.clone(),
     ));
     let payroll_service = Arc::new(apiserver::services::payroll_service::PayrollService::new(
@@ -601,14 +574,11 @@ pub async fn spawn_app_with_factory() -> (String, Uuid, Uuid, TestFactory, TestD
             workspace_repo: workspace_repo.clone(),
             holiday_repo: holiday_repo.clone(),
             roster_repo: roster_repo.clone(),
-            policy_repo: std::sync::Arc::new(
-                apiserver::repositories::DieselAttendancePolicyRepository::new(
-                    pool.clone(),
-                    diesel_pools.clone(),
-                ),
-            ),
-
-            pool: pool.clone(),
+            leave_repo: leave_request_repo.clone(),
+            employee_repo: employee_repo.clone(),
+            policy_repo: policy_repo.clone(),
+            overtime_policy_repo: Arc::new(apiserver::repositories::DieselOvertimePolicyRepository::new(diesel_pools.clone())),
+            diesel_pools: diesel_pools.clone(),
         },
     ));
     let auth_service = Arc::new(apiserver::services::auth_service::AuthService::new(
@@ -627,10 +597,7 @@ pub async fn spawn_app_with_factory() -> (String, Uuid, Uuid, TestFactory, TestD
     let leave_accrual_log_repo: Arc<
         dyn apiserver::repositories::leave_accrual_log_repository::LeaveAccrualLogRepository,
     > = Arc::new(
-        apiserver::repositories::DieselLeaveAccrualLogRepository::new(
-            pool.clone(),
-            diesel_pools.clone(),
-        ),
+        apiserver::repositories::DieselLeaveAccrualLogRepository::new(diesel_pools.clone()),
     );
     let leave_service = Arc::new(apiserver::services::leave_service::LeaveService::new(
         leave_balance_repo.clone(),
@@ -645,27 +612,22 @@ pub async fn spawn_app_with_factory() -> (String, Uuid, Uuid, TestFactory, TestD
             roster_repo.clone(),
             employee_repo.clone(),
             shift_repo.clone(),
-            pool.clone(),
+            payroll_repo.clone(),
         ),
     );
     let feature_flag_repo: Arc<
-        dyn apiserver::repositories::feature_flag_repository::FeatureFlagRepositoryTrait,
+        dyn apiserver::repositories::feature_flag_repository::FeatureFlagRepository,
     > = Arc::new(apiserver::repositories::DieselFeatureFlagRepository::new(
-        pool.clone(),
         diesel_pools.clone(),
     ));
     let assignment_rule_repo: Arc<
-        dyn apiserver::repositories::assignment_rule_repository::AssignmentRuleRepositoryTrait,
+        dyn apiserver::repositories::assignment_rule_repository::AssignmentRuleRepository,
     > = Arc::new(
-        apiserver::repositories::DieselAssignmentRuleRepository::new(
-            pool.clone(),
-            diesel_pools.clone(),
-        ),
+        apiserver::repositories::DieselAssignmentRuleRepository::new(diesel_pools.clone()),
     );
     let leave_policy_repo: Arc<
         dyn apiserver::repositories::leave_policy_repository::LeavePolicyRepository,
     > = Arc::new(apiserver::repositories::DieselLeavePolicyRepository::new(
-        pool.clone(),
         diesel_pools.clone(),
     ));
     let holiday_leave_service = Arc::new(
@@ -683,36 +645,33 @@ pub async fn spawn_app_with_factory() -> (String, Uuid, Uuid, TestFactory, TestD
             department_repo.clone(),
             leave_policy_repo.clone(),
             Arc::new(
-                apiserver::repositories::DieselLeaveAccrualLogRepository::new(
-                    pool.clone(),
-                    diesel_pools.clone(),
-                ),
+                apiserver::repositories::DieselLeaveAccrualLogRepository::new(diesel_pools.clone()),
             ),
             pool.clone(),
         ),
     );
 
+    let attendance_summary_service = Arc::new(apiserver::services::AttendanceSummaryService::new(
+        time_entry_repo.clone(),
+        roster_repo.clone(),
+        policy_repo.clone(),
+        diesel_pools.clone(),
+    ));
+
     let raw_log_repo: Arc<
         dyn apiserver::repositories::raw_attendance_log_repository::RawAttendanceLogRepository,
     > = Arc::new(
-        apiserver::repositories::DieselRawAttendanceLogRepository::new(
-            pool.clone(),
-            diesel_pools.clone(),
-        ),
+        apiserver::repositories::DieselRawAttendanceLogRepository::new(diesel_pools.clone()),
     );
     let staging_repo: Arc<
         dyn apiserver::repositories::staging_log_repository::StagingLogRepository,
     > = Arc::new(apiserver::repositories::DieselStagingLogRepository::new(
-        pool.clone(),
         diesel_pools.clone(),
     ));
     let error_repo: Arc<
         dyn apiserver::repositories::attendance_log_error_repository::AttendanceLogErrorRepository,
     > = Arc::new(
-        apiserver::repositories::DieselAttendanceLogErrorRepository::new(
-            pool.clone(),
-            diesel_pools.clone(),
-        ),
+        apiserver::repositories::DieselAttendanceLogErrorRepository::new(diesel_pools.clone()),
     );
 
     let state = Arc::new(AppState {
@@ -726,10 +685,7 @@ pub async fn spawn_app_with_factory() -> (String, Uuid, Uuid, TestFactory, TestD
                 ),
             ),
             employment_phase_repo: Arc::new(
-                apiserver::repositories::DieselEmploymentPhaseRepository::new(
-                    pool.clone(),
-                    diesel_pools.clone(),
-                ),
+                apiserver::repositories::DieselEmploymentPhaseRepository::new(diesel_pools.clone()),
             ),
         },
         attendance: apiserver::AttendanceState {
@@ -762,6 +718,7 @@ pub async fn spawn_app_with_factory() -> (String, Uuid, Uuid, TestFactory, TestD
             import_repo: import_repo.clone(),
             error_repo: error_repo.clone(),
             policy_repo: policy_repo.clone(),
+            attendance_daily_summary_repo: attendance_summary_repo.clone(),
         },
         shifts: apiserver::ShiftState {
             service: shift_service,
@@ -778,6 +735,7 @@ pub async fn spawn_app_with_factory() -> (String, Uuid, Uuid, TestFactory, TestD
             request_repo: leave_request_repo.clone(),
             policy_repo: leave_policy_repo.clone(),
             holiday_repo: holiday_repo.clone(),
+            balance_repo: leave_balance_repo.clone(),
         },
         payroll: apiserver::PayrollState {
             service: payroll_service,
@@ -785,6 +743,7 @@ pub async fn spawn_app_with_factory() -> (String, Uuid, Uuid, TestFactory, TestD
             rule_repo: payroll_rule_repo.clone(),
             department_repo: department_repo.clone(),
             feature_flag_repo: feature_flag_repo.clone(),
+            overtime_policy_repo: Arc::new(apiserver::repositories::DieselOvertimePolicyRepository::new(diesel_pools.clone())),
         },
         reports: apiserver::ReportState {
             service: report_service,
@@ -792,7 +751,8 @@ pub async fn spawn_app_with_factory() -> (String, Uuid, Uuid, TestFactory, TestD
                 if let Ok(redis) = apiserver::queue::RedisPool::new(&url).await {
                     Some(Arc::new(apiserver::services::ReportCoordinator::new(
                         redis,
-                        pool.clone(),
+                        employee_repo.clone(),
+                        workspace_repo.clone(),
                     )))
                 } else {
                     None
@@ -900,26 +860,25 @@ pub async fn setup_app_tower() -> (TestDatabase, TestFactory, Arc<AppState>, axu
     let factory = TestFactory::new(pool.clone());
 
     let agent_repo = Arc::new(apiserver::repositories::DieselAgentRepository::new(
-        pool.clone(),
         diesel_pools.clone(),
     ));
     let workspace_repo: Arc<dyn apiserver::repositories::WorkspaceRepository> = Arc::new(
-        apiserver::repositories::DieselWorkspaceRepository::new(pool.clone(), diesel_pools.clone()),
+        apiserver::repositories::DieselWorkspaceRepository::new(diesel_pools.clone()),
     );
     let user_repo: Arc<dyn apiserver::repositories::UserRepository> = Arc::new(
-        apiserver::repositories::DieselUserRepository::new(pool.clone(), diesel_pools.clone()),
+        apiserver::repositories::DieselUserRepository::new(diesel_pools.clone()),
     );
     let session_repo: Arc<dyn apiserver::repositories::SessionRepository> = Arc::new(
         apiserver::repositories::DieselSessionRepository::new(pool.clone(), diesel_pools.clone()),
     );
     let roster_repo: Arc<dyn apiserver::repositories::roster::RosterRepository> = Arc::new(
-        apiserver::repositories::DieselRosterRepository::new(pool.clone(), diesel_pools.clone()),
+        apiserver::repositories::DieselRosterRepository::new(diesel_pools.clone()),
     );
     let shift_repo: Arc<dyn apiserver::repositories::shift_repository::ShiftRepository> = Arc::new(
-        apiserver::repositories::DieselShiftRepository::new(pool.clone(), diesel_pools.clone()),
+        apiserver::repositories::DieselShiftRepository::new(diesel_pools.clone()),
     );
     let audit_repo: Arc<dyn apiserver::repositories::AuditLogRepository> = Arc::new(
-        apiserver::repositories::DieselAuditLogRepository::new(pool.clone(), diesel_pools.clone()),
+        apiserver::repositories::DieselAuditLogRepository::new(diesel_pools.clone()),
     );
 
     let agent_manager = AgentManager::new(None);
@@ -929,13 +888,11 @@ pub async fn setup_app_tower() -> (TestDatabase, TestFactory, Arc<AppState>, axu
     ));
 
     let employee_repo = Arc::new(apiserver::repositories::DieselEmployeeRepository::new(
-        pool.clone(),
         diesel_pools.clone(),
     ));
     let employee_service = Arc::new(apiserver::services::EmployeeService::new(
         employee_repo.clone(),
         Arc::new(apiserver::repositories::DieselDepartmentRepository::new(
-            pool.clone(),
             diesel_pools.clone(),
         )),
         pool.clone(),
@@ -943,38 +900,44 @@ pub async fn setup_app_tower() -> (TestDatabase, TestFactory, Arc<AppState>, axu
     let time_entry_repo: Arc<
         dyn apiserver::repositories::time_entry_repository::TimeEntryRepository,
     > = Arc::new(apiserver::repositories::DieselTimeEntryRepository::new(
-        pool.clone(),
         diesel_pools.clone(),
     ));
 
     let policy_repo: Arc<
         dyn apiserver::repositories::attendance_policy_repository::AttendancePolicyRepository,
     > = Arc::new(
-        apiserver::repositories::DieselAttendancePolicyRepository::new(
-            pool.clone(),
-            diesel_pools.clone(),
-        ),
+        apiserver::repositories::DieselAttendancePolicyRepository::new(diesel_pools.clone()),
     );
     let time_tracking_service = Arc::new(apiserver::services::TimeTrackingService::new(
         time_entry_repo.clone(),
         roster_repo.clone(),
         policy_repo.clone(),
-        pool.clone(),
+        employee_repo.clone(),
         diesel_pools.clone(),
     ));
     let attendance_summary_service = Arc::new(apiserver::services::AttendanceSummaryService::new(
         time_entry_repo.clone(),
         roster_repo.clone(),
         policy_repo.clone(),
-        pool.clone(),
         diesel_pools.clone(),
     ));
     let report_service = Arc::new(apiserver::services::ReportService::new(
-        time_entry_repo.clone(),
-        roster_repo.clone(),
-        policy_repo.clone(),
-        pool.clone(),
-        diesel_pools.clone(),
+        apiserver::services::report_service::ReportServiceArgs {
+            time_entry_repo: time_entry_repo.clone(),
+            roster_repo: roster_repo.clone(),
+            policy_repo: policy_repo.clone(),
+            employee_repo: employee_repo.clone(),
+            attendance_daily_summary_repo: Arc::new(
+                apiserver::repositories::DieselAttendanceDailySummaryRepository::new(
+                    diesel_pools.clone(),
+                ),
+            ),
+            leave_repo: Arc::new(apiserver::repositories::DieselLeaveRequestRepository::new(
+                diesel_pools.clone(),
+            )),
+            pool: pool.clone(),
+            diesel: diesel_pools.clone(),
+        },
     ));
     let pairing_service = Arc::new(apiserver::services::pairing_service::PairingService::new(
         time_entry_repo.clone(),
@@ -983,35 +946,24 @@ pub async fn setup_app_tower() -> (TestDatabase, TestFactory, Arc<AppState>, axu
         pool.clone(),
         diesel_pools.clone(),
     ));
-    let adj_repo: Arc<
-        dyn apiserver::repositories::attendance_adjustment_repository::AttendanceAdjustmentRepository,
-    > = Arc::new(
-        apiserver::repositories::DieselAttendanceAdjustmentRepository::new(
-            pool.clone(),
-            diesel_pools.clone(),
-        ),
-    );
+    let adj_repo: Arc<dyn apiserver::repositories::attendance_adjustment_repository::AttendanceAdjustmentRepository> = Arc::new(apiserver::repositories::DieselAttendanceAdjustmentRepository::new(diesel_pools.clone()));
     let import_repo: Arc<dyn apiserver::repositories::import_job_repository::ImportJobRepository> =
         Arc::new(apiserver::repositories::DieselImportJobRepository::new(
-            pool.clone(),
             diesel_pools.clone(),
         ));
     let leave_balance_repo: Arc<
         dyn apiserver::repositories::leave_balance_repository::LeaveBalanceRepository,
     > = Arc::new(apiserver::repositories::DieselLeaveBalanceRepository::new(
-        pool.clone(),
         diesel_pools.clone(),
     ));
     let leave_request_repo: Arc<
         dyn apiserver::repositories::leave_request_repository::LeaveRequestRepository,
     > = Arc::new(apiserver::repositories::DieselLeaveRequestRepository::new(
-        pool.clone(),
         diesel_pools.clone(),
     ));
     let shift_swap_repo: Arc<
         dyn apiserver::repositories::shift_swap_repository::ShiftSwapRepository,
     > = Arc::new(apiserver::repositories::DieselShiftSwapRepository::new(
-        pool.clone(),
         diesel_pools.clone(),
     ));
     let adjustment_service = Arc::new(
@@ -1033,7 +985,6 @@ pub async fn setup_app_tower() -> (TestDatabase, TestFactory, Arc<AppState>, axu
     );
     let payroll_repo: Arc<dyn apiserver::repositories::payroll_repository::PayrollRepository> =
         Arc::new(apiserver::repositories::DieselPayrollRepository::new(
-            pool.clone(),
             diesel_pools.clone(),
         ));
     let payroll_rule_repo: Arc<
@@ -1042,15 +993,13 @@ pub async fn setup_app_tower() -> (TestDatabase, TestFactory, Arc<AppState>, axu
         pool.clone(),
         diesel_pools.clone(),
     ));
-    let holiday_repo: Arc<dyn apiserver::repositories::holiday_repository::HolidayRepositoryTrait> =
+    let holiday_repo: Arc<dyn apiserver::repositories::holiday_repository::HolidayRepository> =
         Arc::new(apiserver::repositories::DieselHolidayRepository::new(
-            pool.clone(),
             diesel_pools.clone(),
         ));
     let department_repo: Arc<
         dyn apiserver::repositories::department_repository::DepartmentRepository,
     > = Arc::new(apiserver::repositories::DieselDepartmentRepository::new(
-        pool.clone(),
         diesel_pools.clone(),
     ));
     let payroll_service = Arc::new(apiserver::services::payroll_service::PayrollService::new(
@@ -1061,14 +1010,11 @@ pub async fn setup_app_tower() -> (TestDatabase, TestFactory, Arc<AppState>, axu
             workspace_repo: workspace_repo.clone(),
             holiday_repo: holiday_repo.clone(),
             roster_repo: roster_repo.clone(),
-            policy_repo: std::sync::Arc::new(
-                apiserver::repositories::DieselAttendancePolicyRepository::new(
-                    pool.clone(),
-                    diesel_pools.clone(),
-                ),
-            ),
-
-            pool: pool.clone(),
+            leave_repo: leave_request_repo.clone(),
+            employee_repo: employee_repo.clone(),
+            policy_repo: policy_repo.clone(),
+            overtime_policy_repo: Arc::new(apiserver::repositories::DieselOvertimePolicyRepository::new(diesel_pools.clone())),
+            diesel_pools: diesel_pools.clone(),
         },
     ));
     let auth_service = Arc::new(apiserver::services::auth_service::AuthService::new(
@@ -1087,10 +1033,7 @@ pub async fn setup_app_tower() -> (TestDatabase, TestFactory, Arc<AppState>, axu
     let leave_accrual_log_repo: Arc<
         dyn apiserver::repositories::leave_accrual_log_repository::LeaveAccrualLogRepository,
     > = Arc::new(
-        apiserver::repositories::DieselLeaveAccrualLogRepository::new(
-            pool.clone(),
-            diesel_pools.clone(),
-        ),
+        apiserver::repositories::DieselLeaveAccrualLogRepository::new(diesel_pools.clone()),
     );
     let leave_service = Arc::new(apiserver::services::leave_service::LeaveService::new(
         leave_balance_repo.clone(),
@@ -1105,27 +1048,22 @@ pub async fn setup_app_tower() -> (TestDatabase, TestFactory, Arc<AppState>, axu
             roster_repo.clone(),
             employee_repo.clone(),
             shift_repo.clone(),
-            pool.clone(),
+            payroll_repo.clone(),
         ),
     );
     let feature_flag_repo: Arc<
-        dyn apiserver::repositories::feature_flag_repository::FeatureFlagRepositoryTrait,
+        dyn apiserver::repositories::feature_flag_repository::FeatureFlagRepository,
     > = Arc::new(apiserver::repositories::DieselFeatureFlagRepository::new(
-        pool.clone(),
         diesel_pools.clone(),
     ));
     let assignment_rule_repo: Arc<
-        dyn apiserver::repositories::assignment_rule_repository::AssignmentRuleRepositoryTrait,
+        dyn apiserver::repositories::assignment_rule_repository::AssignmentRuleRepository,
     > = Arc::new(
-        apiserver::repositories::DieselAssignmentRuleRepository::new(
-            pool.clone(),
-            diesel_pools.clone(),
-        ),
+        apiserver::repositories::DieselAssignmentRuleRepository::new(diesel_pools.clone()),
     );
     let leave_policy_repo: Arc<
         dyn apiserver::repositories::leave_policy_repository::LeavePolicyRepository,
     > = Arc::new(apiserver::repositories::DieselLeavePolicyRepository::new(
-        pool.clone(),
         diesel_pools.clone(),
     ));
     let holiday_leave_service = Arc::new(
@@ -1143,36 +1081,33 @@ pub async fn setup_app_tower() -> (TestDatabase, TestFactory, Arc<AppState>, axu
             department_repo.clone(),
             leave_policy_repo.clone(),
             Arc::new(
-                apiserver::repositories::DieselLeaveAccrualLogRepository::new(
-                    pool.clone(),
-                    diesel_pools.clone(),
-                ),
+                apiserver::repositories::DieselLeaveAccrualLogRepository::new(diesel_pools.clone()),
             ),
             pool.clone(),
         ),
     );
 
+    let attendance_summary_service = Arc::new(apiserver::services::AttendanceSummaryService::new(
+        time_entry_repo.clone(),
+        roster_repo.clone(),
+        policy_repo.clone(),
+        diesel_pools.clone(),
+    ));
+
     let raw_log_repo: Arc<
         dyn apiserver::repositories::raw_attendance_log_repository::RawAttendanceLogRepository,
     > = Arc::new(
-        apiserver::repositories::DieselRawAttendanceLogRepository::new(
-            pool.clone(),
-            diesel_pools.clone(),
-        ),
+        apiserver::repositories::DieselRawAttendanceLogRepository::new(diesel_pools.clone()),
     );
     let staging_repo: Arc<
         dyn apiserver::repositories::staging_log_repository::StagingLogRepository,
     > = Arc::new(apiserver::repositories::DieselStagingLogRepository::new(
-        pool.clone(),
         diesel_pools.clone(),
     ));
     let error_repo: Arc<
         dyn apiserver::repositories::attendance_log_error_repository::AttendanceLogErrorRepository,
     > = Arc::new(
-        apiserver::repositories::DieselAttendanceLogErrorRepository::new(
-            pool.clone(),
-            diesel_pools.clone(),
-        ),
+        apiserver::repositories::DieselAttendanceLogErrorRepository::new(diesel_pools.clone()),
     );
 
     let app_state = Arc::new(AppState {
@@ -1186,10 +1121,7 @@ pub async fn setup_app_tower() -> (TestDatabase, TestFactory, Arc<AppState>, axu
                 ),
             ),
             employment_phase_repo: Arc::new(
-                apiserver::repositories::DieselEmploymentPhaseRepository::new(
-                    pool.clone(),
-                    diesel_pools.clone(),
-                ),
+                apiserver::repositories::DieselEmploymentPhaseRepository::new(diesel_pools.clone()),
             ),
         },
         attendance: apiserver::AttendanceState {
@@ -1222,6 +1154,11 @@ pub async fn setup_app_tower() -> (TestDatabase, TestFactory, Arc<AppState>, axu
             import_repo: import_repo.clone(),
             error_repo: error_repo.clone(),
             policy_repo: policy_repo.clone(),
+            attendance_daily_summary_repo: Arc::new(
+                apiserver::repositories::DieselAttendanceDailySummaryRepository::new(
+                    diesel_pools.clone(),
+                ),
+            ),
         },
         shifts: apiserver::ShiftState {
             service: shift_service,
@@ -1238,6 +1175,7 @@ pub async fn setup_app_tower() -> (TestDatabase, TestFactory, Arc<AppState>, axu
             request_repo: leave_request_repo.clone(),
             policy_repo: leave_policy_repo.clone(),
             holiday_repo: holiday_repo.clone(),
+            balance_repo: leave_balance_repo.clone(),
         },
         payroll: apiserver::PayrollState {
             service: payroll_service,
@@ -1245,6 +1183,7 @@ pub async fn setup_app_tower() -> (TestDatabase, TestFactory, Arc<AppState>, axu
             rule_repo: payroll_rule_repo.clone(),
             department_repo: department_repo.clone(),
             feature_flag_repo: feature_flag_repo.clone(),
+            overtime_policy_repo: Arc::new(apiserver::repositories::DieselOvertimePolicyRepository::new(diesel_pools.clone())),
         },
         reports: apiserver::ReportState {
             service: report_service,
