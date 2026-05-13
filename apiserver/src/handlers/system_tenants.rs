@@ -35,7 +35,15 @@ pub async fn list_tenants(
 
     // Query Supavisor schema directly to list tenants
     // If the schema doesn't exist (e.g. pooler not enabled), return empty array
-    let tenants_result = sqlx::query!(
+    #[derive(Debug, sqlx::FromRow)]
+    struct TenantRow {
+        external_id: String,
+        default_pool_size: i32,
+        inserted_at: chrono::NaiveDateTime,
+        updated_at: chrono::NaiveDateTime,
+    }
+
+    let tenants_result = sqlx::query_as::<_, TenantRow>(
         r#"
         SELECT external_id, default_pool_size, inserted_at, updated_at 
         FROM _supavisor.tenants
