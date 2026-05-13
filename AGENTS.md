@@ -45,6 +45,14 @@ Use `run-inline` instead — writes code to a temp file, executes via `_safe_run
 - `echo 'print(1)' | ./scripts/ai-tools/run-inline -l python`
 - `./scripts/ai-tools/run-inline -l bash -c 'echo $HOME'`
 
+
+### 7. Avoiding PTY Hangs on Scripts (MANDATORY)
+> **CRITICAL:** When running long-running scripts (`./test.sh`, `./scripts/_cargo.sh`, `npm run`, etc.) inside the AI terminal, the PTY may hang indefinitely waiting for child processes (like docker-compose or rustc) to close their file descriptors.
+- **ALWAYS redirect script output to a file** and read it via your native `view_file` tool:
+  ✅ `> run.log 2>&1 </dev/null`
+- **NEVER** pipe commands together if they spawn containers or heavy child processes (e.g., `cargo check | grep` is ❌).
+- **NEVER** run them normally if they take more than a few seconds. Redirect and poll the file!
+
 ## 📚 DOMAIN RULEBOOKS (Lazy Load Index)
 If your task touches any of these domains, use the `view_file` or `cat` tool to read the corresponding rulebook FIRST.
 

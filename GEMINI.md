@@ -71,6 +71,13 @@ All standard development tools run inside isolated Podman containers. You MUST e
 - **NEVER use `python -c`, `python3 -c`, `node -e`, `bash -c` for inline code.**
 - Use `run-inline` instead: `echo 'print(1)' | ./scripts/ai-tools/run-inline -l python`
 
+
+**7. Avoiding PTY Hangs on Scripts (MANDATORY)**
+- When running long-running scripts (`./test.sh`, `./scripts/_cargo.sh`, `npm run`, etc.), the PTY may hang indefinitely.
+- **ALWAYS redirect script output to a file** and read it via your native `view_file` tool:
+  ✅ `> run.log 2>&1 </dev/null`
+- **NEVER** pipe commands together if they spawn containers or heavy child processes (e.g., `cargo check | grep` is ❌).
+
 - **Testing Standards:** `@[.agent/rules/testing-standards.md]`
 
 ### 💻 Code & Architecture

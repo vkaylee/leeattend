@@ -91,9 +91,118 @@ impl EmployeeRepository for DieselEmployeeRepository {
         workspace_id: Uuid,
         options: EmployeeFilterOptions,
     ) -> Result<(Vec<Employee>, i64), AppError> {
-        employee::get_all_employees(&self.sqlx_pool, workspace_id, options)
+        use crate::models::diesel::employee::{CountRow, EmployeeRow};
+        use diesel::sql_types::{Array, BigInt, Nullable, Text, Uuid as UuidType};
+
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
             .await
-            .map_err(Into::into)
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        let search_sql = employee::build_employee_search_sql(
+            &options.search_query,
+            options.sort_by.as_deref(),
+            options.sort_dir.as_deref(),
+        );
+
+        let count_dept_param = if search_sql.has_search { "$3" } else { "$2" };
+        let dept_filter = format!(
+            " AND ({count_dept_param}::uuid[] IS NULL OR EXISTS (\
+                SELECT 1 FROM employee_department_history edh \
+                WHERE edh.employee_id = e.id AND edh.department_id = ANY({count_dept_param})\
+            ))"
+        );
+
+        let count_sql = format!(
+            "SELECT COUNT(*)::bigint as count FROM employees e {}{}",
+            search_sql.where_clause, dept_filter
+        );
+
+        let count_search_param = if search_sql.has_search {
+            #[allow(clippy::expect_used)]
+            let raw_q = options
+                .search_query
+                .as_ref()
+                .expect("search_query verified non-empty by has_search")
+                .trim()
+                .to_string();
+            Some(format!("%{raw_q}%"))
+        } else {
+            None
+        };
+
+        let dept_ids = options.department_ids.clone();
+
+        let total_row: CountRow = if search_sql.has_search {
+            diesel::sql_query(&count_sql)
+                .bind::<UuidType, _>(workspace_id)
+                .bind::<Nullable<Text>, _>(count_search_param)
+                .bind::<Nullable<Array<UuidType>>, _>(dept_ids)
+                .get_result(&mut conn)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?
+        } else {
+            diesel::sql_query(&count_sql)
+                .bind::<UuidType, _>(workspace_id)
+                .bind::<Nullable<Array<UuidType>>, _>(dept_ids)
+                .get_result(&mut conn)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?
+        };
+
+        let total = total_row.count;
+
+        let data_dept_filter = " AND ($6::uuid[] IS NULL OR EXISTS (\
+            SELECT 1 FROM employee_department_history edh \
+            WHERE edh.employee_id = e.id AND edh.department_id = ANY($6)\
+        ))";
+
+        let dept_join = if search_sql.needs_dept_join {
+            employee::EMPLOYEE_DEPT_JOIN
+        } else {
+            ""
+        };
+
+        let sql = format!(
+            "{} {} {}{} {} LIMIT $3 OFFSET $4",
+            employee::EMPLOYEE_SELECT_QUERY,
+            dept_join,
+            search_sql.where_clause,
+            data_dept_filter,
+            search_sql.order_clause
+        );
+
+        let (search_str_1, search_str_2) = if search_sql.has_search {
+            #[allow(clippy::expect_used)]
+            let raw_q = options
+                .search_query
+                .as_ref()
+                .expect("search_query verified non-empty by has_search")
+                .trim()
+                .to_string();
+            (Some(format!("%{raw_q}%")), Some(raw_q))
+        } else {
+            (None, None)
+        };
+
+        let offset = (options.page - 1) * options.limit;
+
+        let employee_rows: Vec<EmployeeRow> = diesel::sql_query(&sql)
+            .bind::<UuidType, _>(workspace_id)
+            .bind::<Nullable<Text>, _>(search_str_1)
+            .bind::<BigInt, _>(options.limit)
+            .bind::<BigInt, _>(offset)
+            .bind::<Nullable<Text>, _>(search_str_2)
+            .bind::<Nullable<Array<UuidType>>, _>(options.department_ids)
+            .load(&mut conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        let employees: Vec<Employee> = employee_rows.into_iter().map(Into::into).collect();
+
+        Ok((employees, total))
     }
 
     async fn get_active_employees(&self, workspace_id: Uuid) -> Result<Vec<Employee>, AppError> {
@@ -120,9 +229,30 @@ impl EmployeeRepository for DieselEmployeeRepository {
         workspace_id: Uuid,
         filter_ids: Option<&Vec<Uuid>>,
     ) -> Result<Vec<Uuid>, AppError> {
-        employee::get_active_employee_ids(&self.sqlx_pool, workspace_id, filter_ids)
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
             .await
-            .map_err(Into::into)
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        let mut query = employees::table
+            .select(employees::id)
+            .filter(employees::workspace_id.eq(workspace_id))
+            .filter(employees::is_active.eq(true))
+            .into_boxed();
+
+        if let Some(ids) = filter_ids {
+            query = query.filter(employees::id.eq_any(ids.clone()));
+        }
+
+        let result: Vec<Uuid> = query
+            .order(employees::created_at.asc())
+            .load(&mut conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        Ok(result)
     }
 
     async fn get_paginated_employee_ids(
@@ -130,9 +260,78 @@ impl EmployeeRepository for DieselEmployeeRepository {
         workspace_id: Uuid,
         args: EmployeePaginationArgs<'_>,
     ) -> Result<(Vec<EmployeeBasicInfo>, i64), AppError> {
-        employee::get_paginated_employee_ids(&self.sqlx_pool, workspace_id, args)
+        use crate::schema::employee_department_history;
+
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
             .await
-            .map_err(Into::into)
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        let mut count_query = employees::table
+            .filter(employees::workspace_id.eq(workspace_id))
+            .into_boxed();
+
+        if let Some(dept_id) = args.department_id {
+            count_query = count_query.filter(diesel::dsl::exists(
+                employee_department_history::table
+                    .filter(employee_department_history::employee_id.eq(employees::id))
+                    .filter(employee_department_history::department_id.eq(dept_id)),
+            ));
+        }
+
+        if let Some(ids) = args.filter_ids.clone() {
+            count_query = count_query.filter(employees::id.eq_any(ids));
+        }
+
+        let total: i64 = count_query
+            .count()
+            .get_result(&mut conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        if total == 0 {
+            return Ok((vec![], 0));
+        }
+
+        let mut data_query = employees::table
+            .filter(employees::workspace_id.eq(workspace_id))
+            .into_boxed();
+
+        if let Some(dept_id) = args.department_id {
+            data_query = data_query.filter(diesel::dsl::exists(
+                employee_department_history::table
+                    .filter(employee_department_history::employee_id.eq(employees::id))
+                    .filter(employee_department_history::department_id.eq(dept_id)),
+            ));
+        }
+
+        if let Some(ids) = args.filter_ids {
+            data_query = data_query.filter(employees::id.eq_any(ids.clone()));
+        }
+
+        if args.sort_desc {
+            data_query = data_query.order(employees::created_at.desc());
+        } else {
+            data_query = data_query.order(employees::created_at.asc());
+        }
+
+        let offset = (args.page - 1) * args.limit;
+
+        let result: Vec<EmployeeBasicInfo> = data_query
+            .select((
+                employees::id,
+                employees::full_name,
+                employees::employee_id_number,
+            ))
+            .limit(args.limit)
+            .offset(offset)
+            .load(&mut conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        Ok((result, total))
     }
 
     async fn update_employee(

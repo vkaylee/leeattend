@@ -28,7 +28,7 @@ use crate::models::{
 };
 
 /// Minimal employee info for paginated reports
-#[derive(Debug, Clone, sqlx::FromRow)]
+#[derive(Debug, Clone, sqlx::FromRow, diesel::Queryable)]
 pub struct EmployeeBasicInfo {
     pub id: Uuid,
     pub full_name: String,

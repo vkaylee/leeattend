@@ -66,7 +66,7 @@ pub mod staging_log_repository;
 pub use audit_log_repository::AuditLogRepository;
 pub mod attendance_policy_repository;
 pub use attendance_policy_repository::{
-    AttendancePolicyRepository, SqlxAttendancePolicyRepository,
+    AttendancePolicyRepository,
 };
 pub mod workspace_stats_repository;
 pub use workspace_stats_repository::{DieselWorkspaceStatsRepository, WorkspaceStatsRepository};
