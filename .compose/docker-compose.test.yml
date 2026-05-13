@@ -87,7 +87,7 @@ services:
       - REGION=local
     command: >
       sh -c "
-      /app/bin/migrate;
+      /app/bin/migrate &&
       exec /app/bin/server
       "
     healthcheck:

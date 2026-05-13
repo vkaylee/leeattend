@@ -86,6 +86,9 @@ impl E2eTestDatabase {
             dbs.insert((tenant_id.clone(), base_url.clone()));
         }
 
+        // Sleep to ensure postgres fully flushes the new database to its catalog
+        tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+
         // 2. Register Tenant in Supavisor
         Self::register_tenant(&db_name, &tenant_id).await;
 
@@ -139,22 +142,39 @@ impl E2eTestDatabase {
         let client = reqwest::Client::new();
         let url = format!("{}/api/tenants/{tenant_id}", api_url.trim_end_matches('/'));
 
-        let resp = client
-            .put(&url)
-            .header("Authorization", format!("Bearer {token}"))
-            .json(&payload)
-            .send()
-            .await
-            .expect("Failed to reach Supavisor API");
+        let mut attempt = 0;
+        loop {
+            let resp = client
+                .put(&url)
+                .header("Authorization", format!("Bearer {token}"))
+                .json(&payload)
+                .send()
+                .await
+                .expect("Failed to reach Supavisor API");
 
-        assert!(
-            resp.status().is_success(),
-            "Failed to register tenant: {:?}",
-            resp.text().await
-        );
+            let status = resp.status();
+            let body = resp.text().await.unwrap_or_default();
 
-        // Sleep a tiny bit to ensure Supavisor propagates the new tenant config internally
-        tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+            if status.is_success() || status.as_u16() == 409 {
+                // Sleep a tiny bit to ensure Supavisor propagates the new tenant config internally
+                tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+                return;
+            }
+
+            if attempt >= 5 {
+                println!("Supavisor Registration Failed. Payload: {payload}");
+                println!("Supavisor Registration Failed. Body: {body}");
+                panic!("Failed to register tenant after retries. Status: {status}. Body: {body}");
+            }
+
+            // If it's a 500 error, it might be because Supavisor's internal cluster registry is still initializing
+            println!(
+                "Supavisor returned {status}. Retrying in 2 seconds... (Attempt {})",
+                attempt + 1
+            );
+            tokio::time::sleep(std::time::Duration::from_millis(2000)).await;
+            attempt += 1;
+        }
     }
 
     async fn delete_tenant(tenant_id: &str) {
