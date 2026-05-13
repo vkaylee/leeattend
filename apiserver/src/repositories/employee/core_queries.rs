@@ -10,7 +10,7 @@
 
 use chrono::NaiveDate;
 use rust_decimal::Decimal;
-use sqlx::{query_as, query_scalar, PgPool, Postgres, Transaction};
+use sqlx::{query_as, query_scalar, PgPool};
 use uuid::Uuid;
 
 use crate::models::{Employee, EmployeePayrollConfig};
@@ -174,63 +174,9 @@ pub async fn get_existing_employee_ids_by_numbers(
     Ok(result)
 }
 
-pub async fn create_employee_tx(
-    tx: &mut Transaction<'_, Postgres>,
-    employee: &Employee,
-) -> Result<(), sqlx::Error> {
-    let normalized_id = normalize_employee_id(&employee.employee_id_number);
-    sqlx::query(
-        "INSERT INTO employees (id, workspace_id, user_id, full_name, employee_id_number, tags, is_active, created_at, updated_at, original_hire_date, hire_date, termination_date) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)",
-    )
-    .bind(employee.id)
-    .bind(employee.workspace_id)
-    .bind(employee.user_id)
-    .bind(&employee.full_name)
-    .bind(normalized_id)
-    .bind(&employee.tags)
-    .bind(employee.is_active)
-    .bind(employee.created_at)
-    .bind(employee.updated_at)
-    .bind(employee.original_hire_date)
-    .bind(employee.hire_date)
-    .bind(employee.termination_date)
-    .execute(&mut **tx)
-    .await?;
 
-    Ok(())
-}
 
-pub async fn create_employee_tx_skip_duplicates(
-    tx: &mut Transaction<'_, Postgres>,
-    employee: &Employee,
-) -> Result<bool, sqlx::Error> {
-    let normalized_id = normalize_employee_id(&employee.employee_id_number);
-    let result = sqlx::query(
-        "INSERT INTO employees (id, workspace_id, user_id, full_name, employee_id_number, tags, is_active, created_at, updated_at, original_hire_date, hire_date, termination_date) 
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-         ON CONFLICT (workspace_id, employee_id_number) DO NOTHING",
-    )
-    .bind(employee.id)
-    .bind(employee.workspace_id)
-    .bind(employee.user_id)
-    .bind(&employee.full_name)
-    .bind(normalized_id)
-    .bind(&employee.tags)
-    .bind(employee.is_active)
-    .bind(employee.created_at)
-    .bind(employee.updated_at)
-    .bind(employee.original_hire_date)
-    .bind(employee.hire_date)
-    .bind(employee.termination_date)
-    .execute(&mut **tx)
-    .await?;
 
-    if result.rows_affected() > 0 {
-        Ok(true)
-    } else {
-        Ok(false)
-    }
-}
 
 pub async fn upsert_employee_payroll_config(
     pool: &PgPool,

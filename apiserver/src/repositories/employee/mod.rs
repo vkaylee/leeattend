@@ -84,6 +84,13 @@ pub trait EmployeeRepository: super::PoolBacked + Send + Sync {
         req: &crate::models::UpdateEmployeeRequest,
     ) -> Result<Option<Employee>, AppError>;
 
+    async fn create_employee(&self, employee: &Employee) -> Result<(), AppError>;
+
+    async fn create_employee_skip_duplicates(
+        &self,
+        employee: &Employee,
+    ) -> Result<bool, AppError>;
+
     async fn rehire_employee(
         &self,
         workspace_id: Uuid,

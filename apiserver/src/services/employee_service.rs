@@ -11,7 +11,7 @@ use crate::models::{
     CreateEmployeeRequest, CreateWorkingConditionRequest, Employee, RehireEmployeeRequest,
     UpdateEmployeeRequest, WorkingCondition,
 };
-use crate::repositories::{employee, user_repository, EmployeeRepository};
+use crate::repositories::{user_repository, EmployeeRepository};
 
 pub struct EmployeeService {
     repo: Arc<dyn EmployeeRepository>,
@@ -120,10 +120,8 @@ impl EmployeeService {
             department_name: None,
         };
 
-        // Transaction-based creation still uses pool directly
-        let mut tx = self.pool.begin().await.map_err(AppError::Sqlx)?;
-        employee::create_employee_tx(&mut tx, &employee).await?;
-        tx.commit().await.map_err(AppError::Sqlx)?;
+        // Use repository directly to create employee
+        self.repo.create_employee(&employee).await?;
 
         // Set recruitment source if provided
         if let Some(source_id) = req.recruitment_source_id {

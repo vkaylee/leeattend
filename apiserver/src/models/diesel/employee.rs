@@ -80,6 +80,26 @@ pub struct EmployeeEntity {
     pub original_hire_date: NaiveDate,
 }
 
+impl From<Employee> for EmployeeEntity {
+    fn from(val: Employee) -> Self {
+        EmployeeEntity {
+            id: val.id,
+            workspace_id: val.workspace_id,
+            user_id: val.user_id,
+            employee_id_number: val.employee_id_number,
+            is_active: val.is_active,
+            created_at: Some(val.created_at),
+            updated_at: Some(val.updated_at),
+            tags: Some(val.tags.into_iter().map(Some).collect()),
+            full_name: val.full_name,
+            recruitment_source_id: None,
+            hire_date: val.hire_date,
+            termination_date: val.termination_date,
+            original_hire_date: val.original_hire_date,
+        }
+    }
+}
+
 impl From<EmployeeEntity> for Employee {
     fn from(val: EmployeeEntity) -> Self {
         Employee {

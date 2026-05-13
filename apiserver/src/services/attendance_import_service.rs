@@ -14,7 +14,7 @@ use crate::models::{
 };
 use crate::repositories::attendance_adjustment_repository::AttendanceAdjustmentRepository;
 use crate::repositories::import_job_repository::ImportJobRepository;
-use crate::repositories::{employee, EmployeeRepository, TimeEntryRepository};
+use crate::repositories::{EmployeeRepository, TimeEntryRepository};
 use crate::services::attendance_adjustment_service::AttendanceAdjustmentService;
 use crate::services::import_messages::{fmt_msg, AttendanceImportMessages};
 use std::collections::HashMap;
@@ -122,7 +122,7 @@ impl ImportStrategy for EmployeeImportStrategy {
         job: &AttendanceImportJob,
         emp: &Self::RowData,
     ) -> Result<Option<Uuid>, String> {
-        match AttendanceImportService::process_employee_import_row(pool, job, emp).await {
+        match AttendanceImportService::process_employee_import_row(&self.employee_repo, job, emp).await {
             Ok(maybe_id) => {
                 let mut was_new = true;
                 let employee_id = if let Some(id) = maybe_id {
@@ -702,13 +702,10 @@ impl AttendanceImportService {
     }
 
     async fn process_employee_import_row(
-        pool: &PgPool,
+        employee_repo: &Arc<dyn EmployeeRepository>,
         job: &AttendanceImportJob,
         emp: &PendingEmployee,
-    ) -> Result<Option<Uuid>, String> {
-        let mut tx = pool.begin().await.map_err(|e| e.to_string())?;
-
-        let employee_id = Uuid::new_v4();
+    ) -> Result<Option<Uuid>, String> {        let employee_id = Uuid::new_v4();
         let employee = Employee {
             id: employee_id,
             workspace_id: job.workspace_id,
@@ -725,11 +722,9 @@ impl AttendanceImportService {
             department_name: None,
         };
 
-        let inserted = employee::create_employee_tx_skip_duplicates(&mut tx, &employee)
+        let inserted = employee_repo.create_employee_skip_duplicates(&employee)
             .await
             .map_err(|e| e.to_string())?;
-
-        tx.commit().await.map_err(|e| e.to_string())?;
 
         if inserted {
             Ok(Some(employee_id))

@@ -3,12 +3,12 @@ use async_trait::async_trait;
 use chrono::NaiveDate;
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
-use rust_decimal::Decimal;
+// removed rust_decimal::Decimal
 use uuid::Uuid;
 
 use crate::models::diesel::employee::{EmployeeEntity, UpdateDieselEmployee};
 use crate::models::{
-    Employee, EmployeeFilterOptions, EmployeePaginationArgs, EmployeePayrollConfig,
+    Employee, EmployeeFilterOptions, EmployeePaginationArgs,
     RecruitmentSource, RecruitmentSourceBreakdown, TurnoverAnalytics, UpdateEmployeeRequest,
     WorkingCondition,
 };
@@ -334,6 +334,51 @@ impl EmployeeRepository for DieselEmployeeRepository {
         Ok((result, total))
     }
 
+    async fn create_employee(&self, employee: &Employee) -> Result<(), AppError> {
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        let new_entity: EmployeeEntity = employee.clone().into();
+
+        diesel::insert_into(crate::schema::employees::table)
+            .values(&new_entity)
+            .execute(&mut conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        Ok(())
+    }
+
+    async fn create_employee_skip_duplicates(
+        &self,
+        employee: &Employee,
+    ) -> Result<bool, AppError> {
+        use crate::schema::employees;
+
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        let new_entity: EmployeeEntity = employee.clone().into();
+
+        let affected = diesel::insert_into(employees::table)
+            .values(&new_entity)
+            .on_conflict((employees::workspace_id, employees::employee_id_number))
+            .do_nothing()
+            .execute(&mut conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        Ok(affected > 0)
+    }
+
     async fn update_employee(
         &self,
         id: Uuid,
@@ -434,15 +479,80 @@ impl EmployeeRepository for DieselEmployeeRepository {
         workspace_id: Uuid,
         employee_id: Uuid,
     ) -> Result<Vec<WorkingCondition>, AppError> {
-        employee::get_working_conditions(&self.sqlx_pool, workspace_id, employee_id)
+        use crate::schema::{employees, working_conditions};
+
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
             .await
-            .map_err(Into::into)
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        let result = working_conditions::table
+            .inner_join(employees::table)
+            .select((
+                working_conditions::id,
+                working_conditions::employee_id,
+                working_conditions::type_,
+                working_conditions::minute_allowance,
+                working_conditions::is_paid,
+                working_conditions::start_date,
+                working_conditions::end_date,
+            ))
+            .filter(working_conditions::employee_id.eq(employee_id))
+            .filter(employees::workspace_id.eq(workspace_id))
+            .order(working_conditions::start_date.desc())
+            .load::<(
+                Uuid,
+                Uuid,
+                String,
+                i32,
+                bool,
+                chrono::NaiveDate,
+                Option<chrono::NaiveDate>,
+            )>(&mut conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        Ok(result
+            .into_iter()
+            .map(|(id, emp_id, type_, min, paid, start, end)| WorkingCondition {
+                id,
+                employee_id: emp_id,
+                type_,
+                minute_allowance: min,
+                is_paid: paid,
+                start_date: start,
+                end_date: end,
+            })
+            .collect())
     }
 
     async fn create_working_condition(&self, condition: &WorkingCondition) -> Result<(), AppError> {
-        employee::create_working_condition(&self.sqlx_pool, condition)
+        use crate::schema::working_conditions;
+
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
             .await
-            .map_err(Into::into)
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        diesel::insert_into(working_conditions::table)
+            .values((
+                working_conditions::id.eq(condition.id),
+                working_conditions::employee_id.eq(condition.employee_id),
+                working_conditions::type_.eq(&condition.type_),
+                working_conditions::minute_allowance.eq(condition.minute_allowance),
+                working_conditions::is_paid.eq(condition.is_paid),
+                working_conditions::start_date.eq(condition.start_date),
+                working_conditions::end_date.eq(condition.end_date),
+            ))
+            .execute(&mut conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        Ok(())
     }
 
     async fn delete_working_condition(
@@ -450,9 +560,23 @@ impl EmployeeRepository for DieselEmployeeRepository {
         id: Uuid,
         employee_id: Uuid,
     ) -> Result<bool, AppError> {
-        employee::delete_working_condition(&self.sqlx_pool, id, employee_id)
+        use crate::schema::working_conditions;
+
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
             .await
-            .map_err(Into::into)
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        let affected = diesel::delete(working_conditions::table)
+            .filter(working_conditions::id.eq(id))
+            .filter(working_conditions::employee_id.eq(employee_id))
+            .execute(&mut conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        Ok(affected > 0)
     }
 
     async fn get_existing_employee_ids_by_numbers(
@@ -460,37 +584,136 @@ impl EmployeeRepository for DieselEmployeeRepository {
         workspace_id: Uuid,
         id_numbers: &[String],
     ) -> Result<Vec<String>, AppError> {
-        employee::get_existing_employee_ids_by_numbers(&self.sqlx_pool, workspace_id, id_numbers)
+        if id_numbers.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
             .await
-            .map_err(Into::into)
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        let result: Vec<String> = employees::table
+            .select(employees::employee_id_number)
+            .filter(employees::workspace_id.eq(workspace_id))
+            .filter(employees::employee_id_number.eq_any(id_numbers))
+            .load(&mut conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        Ok(result)
     }
 
     async fn upsert_employee_payroll_config(
         &self,
         employee_id: Uuid,
-        std_working_days: Decimal,
-        hours_per_day: Decimal,
-        effective_date: NaiveDate,
-    ) -> Result<EmployeePayrollConfig, AppError> {
-        employee::upsert_employee_payroll_config(
-            &self.sqlx_pool,
-            employee_id,
-            std_working_days,
-            hours_per_day,
-            effective_date,
-        )
-        .await
-        .map_err(Into::into)
+        std_working_days: rust_decimal::Decimal,
+        hours_per_day: rust_decimal::Decimal,
+        effective_date: chrono::NaiveDate,
+    ) -> Result<crate::models::EmployeePayrollConfig, AppError> {
+        use crate::schema::employee_payroll_configs;
+
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        let result = diesel::insert_into(employee_payroll_configs::table)
+            .values((
+                employee_payroll_configs::employee_id.eq(employee_id),
+                employee_payroll_configs::effective_date.eq(effective_date),
+                employee_payroll_configs::std_working_days.eq(std_working_days),
+                employee_payroll_configs::hours_per_day.eq(hours_per_day),
+                employee_payroll_configs::created_at.eq(chrono::Utc::now()),
+            ))
+            .on_conflict((
+                employee_payroll_configs::employee_id,
+                employee_payroll_configs::effective_date,
+            ))
+            .do_update()
+            .set((
+                employee_payroll_configs::std_working_days.eq(std_working_days),
+                employee_payroll_configs::hours_per_day.eq(hours_per_day),
+            ))
+            .returning((
+                employee_payroll_configs::id,
+                employee_payroll_configs::employee_id,
+                employee_payroll_configs::std_working_days,
+                employee_payroll_configs::hours_per_day,
+                employee_payroll_configs::effective_date,
+                employee_payroll_configs::created_at,
+            ))
+            .get_result::<(
+                Uuid,
+                Uuid,
+                rust_decimal::Decimal,
+                rust_decimal::Decimal,
+                chrono::NaiveDate,
+                Option<chrono::DateTime<chrono::Utc>>,
+            )>(&mut conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        Ok(crate::models::EmployeePayrollConfig {
+            id: result.0,
+            employee_id: result.1,
+            std_working_days: result.2,
+            hours_per_day: result.3,
+            effective_date: result.4,
+            created_at: result.5.unwrap_or_else(chrono::Utc::now),
+        })
     }
 
     async fn get_employee_payroll_config_at(
         &self,
         employee_id: Uuid,
-        date: NaiveDate,
-    ) -> Result<Option<EmployeePayrollConfig>, AppError> {
-        employee::get_employee_payroll_config_at(&self.sqlx_pool, employee_id, date)
+        date: chrono::NaiveDate,
+    ) -> Result<Option<crate::models::EmployeePayrollConfig>, AppError> {
+        use crate::schema::employee_payroll_configs;
+
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
             .await
-            .map_err(Into::into)
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        let result = employee_payroll_configs::table
+            .filter(employee_payroll_configs::employee_id.eq(employee_id))
+            .filter(employee_payroll_configs::effective_date.le(date))
+            .order(employee_payroll_configs::effective_date.desc())
+            .select((
+                employee_payroll_configs::id,
+                employee_payroll_configs::employee_id,
+                employee_payroll_configs::std_working_days,
+                employee_payroll_configs::hours_per_day,
+                employee_payroll_configs::effective_date,
+                employee_payroll_configs::created_at,
+            ))
+            .first::<(
+                Uuid,
+                Uuid,
+                rust_decimal::Decimal,
+                rust_decimal::Decimal,
+                chrono::NaiveDate,
+                Option<chrono::DateTime<chrono::Utc>>,
+            )>(&mut conn)
+            .await
+            .optional()
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        Ok(result.map(|t| crate::models::EmployeePayrollConfig {
+            id: t.0,
+            employee_id: t.1,
+            std_working_days: t.2,
+            hours_per_day: t.3,
+            effective_date: t.4,
+            created_at: t.5.unwrap_or_else(chrono::Utc::now),
+        }))
     }
 
     async fn set_employee_recruitment_source(
