@@ -580,10 +580,26 @@ impl EmployeeRepository for DieselEmployeeRepository {
         workspace_id: Uuid,
         user_id: Uuid,
     ) -> Result<Vec<Uuid>, AppError> {
-        // Fallback to SqlxEmployeeRepository implementation
-        let repo =
-            crate::repositories::employee::SqlxEmployeeRepository::new(self.sqlx_pool.clone());
-        repo.get_managed_departments(workspace_id, user_id).await
+        use crate::schema::employee_department_history;
+
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        let result: Vec<Uuid> = employees::table
+            .inner_join(employee_department_history::table)
+            .select(employee_department_history::department_id)
+            .filter(employees::workspace_id.eq(workspace_id))
+            .filter(employees::user_id.eq(user_id))
+            .distinct()
+            .load(&mut conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        Ok(result)
     }
 
     async fn get_employee_id_by_user_id(
@@ -591,9 +607,25 @@ impl EmployeeRepository for DieselEmployeeRepository {
         workspace_id: Uuid,
         user_id: Uuid,
     ) -> Result<Option<Uuid>, AppError> {
-        let repo =
-            crate::repositories::employee::SqlxEmployeeRepository::new(self.sqlx_pool.clone());
-        repo.get_employee_id_by_user_id(workspace_id, user_id).await
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        let result: Option<Uuid> = employees::table
+            .select(employees::id)
+            .filter(employees::workspace_id.eq(workspace_id))
+            .filter(employees::user_id.eq(user_id))
+            .filter(employees::is_active.eq(true))
+            .order(employees::updated_at.desc())
+            .first(&mut conn)
+            .await
+            .optional()
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        Ok(result)
     }
 }
 
