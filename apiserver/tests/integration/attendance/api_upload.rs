@@ -74,10 +74,12 @@ async fn test_upload_attendance_csv_api() {
     let mut completed = false;
     for _ in 0..30 {
         sleep(Duration::from_secs(1)).await;
-        let job_opt =
-            apiserver::repositories::import_job_repository::get_job_by_id(&factory.pool, job_uuid)
-                .await
-                .unwrap();
+        let job_opt = _state
+            .attendance
+            .import_repo
+            .get_job_by_id(job_uuid)
+            .await
+            .unwrap();
         if let Some(job) = job_opt {
             if job.status == ImportJobStatus::Completed {
                 completed = true;

@@ -107,11 +107,13 @@ async fn test_upload_leave_csv_api() {
         diesel_pools.clone(),
     );
 
-    let job_opt =
-        apiserver::repositories::import_job_repository::get_job_by_id(&factory.pool, job_uuid)
-            .await
-            .unwrap()
-            .unwrap();
+    let job_opt = _state
+        .attendance
+        .import_repo
+        .get_job_by_id(job_uuid)
+        .await
+        .unwrap()
+        .unwrap();
 
     tokio::time::timeout(
         std::time::Duration::from_secs(10),
@@ -121,11 +123,13 @@ async fn test_upload_leave_csv_api() {
     .expect("process_job timed out")
     .unwrap();
 
-    let job_opt =
-        apiserver::repositories::import_job_repository::get_job_by_id(&factory.pool, job_uuid)
-            .await
-            .unwrap()
-            .unwrap();
+    let job_opt = _state
+        .attendance
+        .import_repo
+        .get_job_by_id(job_uuid)
+        .await
+        .unwrap()
+        .unwrap();
     assert_eq!(
         job_opt.status,
         ImportJobStatus::Completed,

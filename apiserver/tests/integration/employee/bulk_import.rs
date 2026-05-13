@@ -78,10 +78,12 @@ async fn test_upload_employee_csv_api() {
     let mut completed = false;
     for _ in 0..30 {
         sleep(Duration::from_millis(200)).await;
-        let job_opt =
-            apiserver::repositories::import_job_repository::get_job_by_id(&factory.pool, job_uuid)
-                .await
-                .unwrap();
+        let job_opt = _state
+            .attendance
+            .import_repo
+            .get_job_by_id(job_uuid)
+            .await
+            .unwrap();
         if let Some(job) = job_opt {
             if job.status == ImportJobStatus::Completed {
                 completed = true;
@@ -170,11 +172,13 @@ async fn test_upload_employee_duplicate_id_skips() {
 
     for _ in 0..30 {
         sleep(Duration::from_millis(200)).await;
-        let job =
-            apiserver::repositories::import_job_repository::get_job_by_id(&factory.pool, job_uuid)
-                .await
-                .unwrap()
-                .unwrap();
+        let job = _state
+            .attendance
+            .import_repo
+            .get_job_by_id(job_uuid)
+            .await
+            .unwrap()
+            .unwrap();
         if job.status == ImportJobStatus::Completed {
             completed = true;
             assert_eq!(job.processed_rows, 1, "Should only process 1 new row");
@@ -187,11 +191,13 @@ async fn test_upload_employee_duplicate_id_skips() {
     assert!(completed, "Job should have completed");
 
     // Check error_log for DL_LINK
-    let job =
-        apiserver::repositories::import_job_repository::get_job_by_id(&factory.pool, job_uuid)
-            .await
-            .unwrap()
-            .unwrap();
+    let job = _state
+        .attendance
+        .import_repo
+        .get_job_by_id(job_uuid)
+        .await
+        .unwrap()
+        .unwrap();
     let error_log = job.error_log.expect("Expected error_log for skipped row");
     assert!(
         error_log.contains("DL_LINK:"),
@@ -277,11 +283,13 @@ async fn test_upload_employee_csv_with_department() {
     let mut completed = false;
     for _ in 0..30 {
         sleep(Duration::from_millis(200)).await;
-        let job =
-            apiserver::repositories::import_job_repository::get_job_by_id(&factory.pool, job_uuid)
-                .await
-                .unwrap()
-                .unwrap();
+        let job = _state
+            .attendance
+            .import_repo
+            .get_job_by_id(job_uuid)
+            .await
+            .unwrap()
+            .unwrap();
         if job.status == ImportJobStatus::Completed {
             completed = true;
             assert_eq!(job.processed_rows, 3, "All 3 employees should be processed");
@@ -419,11 +427,13 @@ async fn test_upload_employee_csv_reuses_existing_department() {
     let mut completed = false;
     for _ in 0..30 {
         sleep(Duration::from_millis(200)).await;
-        let job =
-            apiserver::repositories::import_job_repository::get_job_by_id(&factory.pool, job_uuid)
-                .await
-                .unwrap()
-                .unwrap();
+        let job = _state
+            .attendance
+            .import_repo
+            .get_job_by_id(job_uuid)
+            .await
+            .unwrap()
+            .unwrap();
         if job.status == ImportJobStatus::Completed {
             completed = true;
             break;
@@ -564,11 +574,13 @@ async fn test_upload_employee_xlsx_with_department() {
     let mut completed = false;
     for _ in 0..30 {
         sleep(Duration::from_millis(200)).await;
-        let job =
-            apiserver::repositories::import_job_repository::get_job_by_id(&factory.pool, job_uuid)
-                .await
-                .unwrap()
-                .unwrap();
+        let job = _state
+            .attendance
+            .import_repo
+            .get_job_by_id(job_uuid)
+            .await
+            .unwrap()
+            .unwrap();
         if job.status == ImportJobStatus::Completed {
             completed = true;
             assert_eq!(job.processed_rows, 3, "All 3 employees should be processed");
@@ -705,11 +717,13 @@ async fn test_upload_employee_xlsx_reuses_existing_department() {
     let mut completed = false;
     for _ in 0..30 {
         sleep(Duration::from_millis(200)).await;
-        let job =
-            apiserver::repositories::import_job_repository::get_job_by_id(&factory.pool, job_uuid)
-                .await
-                .unwrap()
-                .unwrap();
+        let job = _state
+            .attendance
+            .import_repo
+            .get_job_by_id(job_uuid)
+            .await
+            .unwrap()
+            .unwrap();
         if job.status == ImportJobStatus::Completed {
             completed = true;
             break;
@@ -821,11 +835,13 @@ async fn test_upload_csv_existing_employee_new_department() {
     let mut completed = false;
     for _ in 0..30 {
         sleep(Duration::from_millis(200)).await;
-        let job =
-            apiserver::repositories::import_job_repository::get_job_by_id(&factory.pool, job_uuid)
-                .await
-                .unwrap()
-                .unwrap();
+        let job = _state
+            .attendance
+            .import_repo
+            .get_job_by_id(job_uuid)
+            .await
+            .unwrap()
+            .unwrap();
         if job.status == ImportJobStatus::Completed {
             completed = true;
             break;
@@ -935,11 +951,13 @@ async fn test_upload_csv_existing_employee_existing_department() {
     let mut completed = false;
     for _ in 0..30 {
         sleep(Duration::from_millis(200)).await;
-        let job =
-            apiserver::repositories::import_job_repository::get_job_by_id(&factory.pool, job_uuid)
-                .await
-                .unwrap()
-                .unwrap();
+        let job = _state
+            .attendance
+            .import_repo
+            .get_job_by_id(job_uuid)
+            .await
+            .unwrap()
+            .unwrap();
         if job.status == ImportJobStatus::Completed {
             completed = true;
             break;
@@ -1044,11 +1062,13 @@ async fn test_upload_xlsx_existing_employee_new_department() {
     let mut completed = false;
     for _ in 0..30 {
         sleep(Duration::from_millis(200)).await;
-        let job =
-            apiserver::repositories::import_job_repository::get_job_by_id(&factory.pool, job_uuid)
-                .await
-                .unwrap()
-                .unwrap();
+        let job = _state
+            .attendance
+            .import_repo
+            .get_job_by_id(job_uuid)
+            .await
+            .unwrap()
+            .unwrap();
         if job.status == ImportJobStatus::Completed {
             completed = true;
             break;
@@ -1154,11 +1174,13 @@ async fn test_upload_xlsx_existing_employee_existing_department() {
     let mut completed = false;
     for _ in 0..30 {
         sleep(Duration::from_millis(200)).await;
-        let job =
-            apiserver::repositories::import_job_repository::get_job_by_id(&factory.pool, job_uuid)
-                .await
-                .unwrap()
-                .unwrap();
+        let job = _state
+            .attendance
+            .import_repo
+            .get_job_by_id(job_uuid)
+            .await
+            .unwrap()
+            .unwrap();
         if job.status == ImportJobStatus::Completed {
             completed = true;
             break;

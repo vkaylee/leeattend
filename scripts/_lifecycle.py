@@ -91,8 +91,8 @@ def lifecycle_up(mode: str = "all") -> bool:
         container = f"{project_name}_bun_init_1"
         timeout = 120
     elif mode == "infra-pooler":
-        container = f"{project_name}_supavisor_1"
-        timeout = 60
+        container = f"{project_name}_supavisor_1"  # pragma: no cover
+        timeout = 60  # pragma: no cover
     elif mode == "infra-db":  # pragma: no cover
         container = f"{project_name}_db_init_1"  # pragma: no cover
         timeout = 60  # pragma: no cover

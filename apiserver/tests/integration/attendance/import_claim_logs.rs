@@ -54,7 +54,10 @@ async fn test_import_employee_claims_staged_logs() -> Result<(), Box<dyn std::er
     let import_repo: std::sync::Arc<
         dyn apiserver::repositories::import_job_repository::ImportJobRepository,
     > = std::sync::Arc::new(
-        apiserver::repositories::import_job_repository::SqlxImportJobRepository::new(pool.clone()),
+        apiserver::repositories::diesel_import_job_repository::DieselImportJobRepository::new(
+            pool.clone(),
+            diesel_pools.clone(),
+        ),
     );
     let adj_repo: std::sync::Arc<dyn apiserver::repositories::attendance_adjustment_repository::AttendanceAdjustmentRepository> = std::sync::Arc::new(apiserver::repositories::attendance_adjustment_repository::SqlxAttendanceAdjustmentRepository::new(pool.clone()));
     let emp_repo: std::sync::Arc<dyn apiserver::repositories::EmployeeRepository> =
@@ -65,7 +68,7 @@ async fn test_import_employee_claims_staged_logs() -> Result<(), Box<dyn std::er
             ),
         );
     let import_service = AttendanceImportService::new(
-        import_repo,
+        import_repo.clone(),
         adj_repo,
         emp_repo,
         te_repo,
@@ -84,9 +87,7 @@ async fn test_import_employee_claims_staged_logs() -> Result<(), Box<dyn std::er
     let mut job_finished = false;
     for _ in 0..20 {
         tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-        if let Ok(Some(j)) =
-            apiserver::repositories::import_job_repository::get_job_by_id(&pool, job_id).await
-        {
+        if let Ok(Some(j)) = import_repo.get_job_by_id(job_id).await {
             if j.status == ImportJobStatus::Completed {
                 job_finished = true;
                 break;
@@ -184,7 +185,10 @@ async fn test_import_existing_employee_claims_staged_logs() -> Result<(), Box<dy
     let import_repo: std::sync::Arc<
         dyn apiserver::repositories::import_job_repository::ImportJobRepository,
     > = std::sync::Arc::new(
-        apiserver::repositories::import_job_repository::SqlxImportJobRepository::new(pool.clone()),
+        apiserver::repositories::diesel_import_job_repository::DieselImportJobRepository::new(
+            pool.clone(),
+            diesel_pools.clone(),
+        ),
     );
     let adj_repo: std::sync::Arc<dyn apiserver::repositories::attendance_adjustment_repository::AttendanceAdjustmentRepository> = std::sync::Arc::new(apiserver::repositories::attendance_adjustment_repository::SqlxAttendanceAdjustmentRepository::new(pool.clone()));
     let emp_repo: std::sync::Arc<dyn apiserver::repositories::EmployeeRepository> =
@@ -195,7 +199,7 @@ async fn test_import_existing_employee_claims_staged_logs() -> Result<(), Box<dy
             ),
         );
     let import_service = AttendanceImportService::new(
-        import_repo,
+        import_repo.clone(),
         adj_repo,
         emp_repo,
         te_repo,
@@ -214,9 +218,7 @@ async fn test_import_existing_employee_claims_staged_logs() -> Result<(), Box<dy
     let mut job_finished = false;
     for _ in 0..20 {
         tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-        if let Ok(Some(j)) =
-            apiserver::repositories::import_job_repository::get_job_by_id(&pool, job_id).await
-        {
+        if let Ok(Some(j)) = import_repo.get_job_by_id(job_id).await {
             if j.status == ImportJobStatus::Completed {
                 job_finished = true;
                 break;

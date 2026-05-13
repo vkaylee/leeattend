@@ -502,10 +502,10 @@ pub async fn upload_leave_excel(
     };
 
     {
-        use crate::repositories::import_job_repository::{
-            ImportJobRepository, SqlxImportJobRepository,
-        };
-        let import_repo = SqlxImportJobRepository::new(state.infra.db.api().clone());
+        use crate::repositories::import_job_repository::ImportJobRepository;
+        use crate::repositories::DieselImportJobRepository as SqlxImportJobRepository;
+        let import_repo =
+            SqlxImportJobRepository::new(state.infra.db.api().clone(), state.infra.diesel.clone());
         import_repo
             .create_job(&import_job)
             .await
@@ -556,10 +556,10 @@ pub async fn get_latest_leave_import(
 ) -> AppResult<Json<serde_json::Value>> {
     ctx.require_permission(Permission::LeaveRequestsSubmit)?;
 
-    use crate::repositories::import_job_repository::{
-        ImportJobRepository, SqlxImportJobRepository,
-    };
-    let repo = SqlxImportJobRepository::new(state.infra.db.api().clone());
+    use crate::repositories::import_job_repository::ImportJobRepository;
+    use crate::repositories::DieselImportJobRepository as SqlxImportJobRepository;
+    let repo =
+        SqlxImportJobRepository::new(state.infra.db.api().clone(), state.infra.diesel.clone());
 
     match repo
         .get_latest_job(ctx.workspace_id, Some(ImportTargetType::LeaveImport))
@@ -593,10 +593,10 @@ pub async fn download_leave_import_errors(
 ) -> AppResult<axum::response::Response> {
     ctx.require_permission(Permission::LeaveRequestsSubmit)?;
 
-    use crate::repositories::import_job_repository::{
-        ImportJobRepository, SqlxImportJobRepository,
-    };
-    let repo = SqlxImportJobRepository::new(state.infra.db.api().clone());
+    use crate::repositories::import_job_repository::ImportJobRepository;
+    use crate::repositories::DieselImportJobRepository as SqlxImportJobRepository;
+    let repo =
+        SqlxImportJobRepository::new(state.infra.db.api().clone(), state.infra.diesel.clone());
 
     let job = repo
         .get_job_by_id(job_id)

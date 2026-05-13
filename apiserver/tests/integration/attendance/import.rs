@@ -42,7 +42,10 @@ async fn test_import_csv_with_line_errors() {
     let import_repo: std::sync::Arc<
         dyn apiserver::repositories::import_job_repository::ImportJobRepository,
     > = std::sync::Arc::new(
-        apiserver::repositories::import_job_repository::SqlxImportJobRepository::new(pool.clone()),
+        apiserver::repositories::diesel_import_job_repository::DieselImportJobRepository::new(
+            pool.clone(),
+            diesel_pools.clone(),
+        ),
     );
     let adj_repo: std::sync::Arc<dyn apiserver::repositories::attendance_adjustment_repository::AttendanceAdjustmentRepository> = std::sync::Arc::new(apiserver::repositories::attendance_adjustment_repository::SqlxAttendanceAdjustmentRepository::new(pool.clone()));
     let employee_repo: std::sync::Arc<dyn apiserver::repositories::EmployeeRepository> =
@@ -53,7 +56,7 @@ async fn test_import_csv_with_line_errors() {
             ),
         );
     let job_id = AttendanceImportService::new(
-        import_repo,
+        import_repo.clone(),
         adj_repo,
         employee_repo,
         te_repo,
@@ -70,7 +73,7 @@ async fn test_import_csv_with_line_errors() {
     let mut job: Option<AttendanceImportJob> = None;
     for _ in 0..20 {
         sleep(Duration::from_millis(200)).await;
-        if let Ok(Some(j)) = import_job_repository::get_job_by_id(&pool, job_id).await {
+        if let Ok(Some(j)) = import_repo.get_job_by_id(job_id).await {
             if j.status == ImportJobStatus::Completed || j.status == ImportJobStatus::Failed {
                 job = Some(j);
                 break;
@@ -107,7 +110,10 @@ async fn test_import_timeout_guard_updates_db_on_drop() {
     let ws_id = factory.workspace().create_with_owner(user_id).await;
 
     let import_repo =
-        apiserver::repositories::import_job_repository::SqlxImportJobRepository::new(pool.clone());
+        apiserver::repositories::diesel_import_job_repository::DieselImportJobRepository::new(
+            pool.clone(),
+            diesel_pools.clone(),
+        );
 
     let job_id = uuid::Uuid::new_v4();
     let job = AttendanceImportJob {
@@ -182,7 +188,10 @@ async fn test_employee_import_chunking() {
 
     let job_id = uuid::Uuid::new_v4();
     let import_repo =
-        apiserver::repositories::import_job_repository::SqlxImportJobRepository::new(pool.clone());
+        apiserver::repositories::diesel_import_job_repository::DieselImportJobRepository::new(
+            pool.clone(),
+            diesel_pools.clone(),
+        );
 
     // Create a fake CSV file
     let mut csv_content = String::from("employee_code,full_name,hire_date,department_name\n");
@@ -296,7 +305,10 @@ async fn test_leave_import_chunking() {
 
     let job_id = uuid::Uuid::new_v4();
     let import_repo =
-        apiserver::repositories::import_job_repository::SqlxImportJobRepository::new(pool.clone());
+        apiserver::repositories::diesel_import_job_repository::DieselImportJobRepository::new(
+            pool.clone(),
+            diesel_pools.clone(),
+        );
 
     // Create a fake CSV file for leaves
     let mut csv_content =

@@ -112,8 +112,9 @@ pub async fn spawn_app() -> (String, TestDatabase) {
     let adj_repo: Arc<dyn apiserver::repositories::attendance_adjustment_repository::AttendanceAdjustmentRepository> = Arc::new(apiserver::repositories::DieselAttendanceAdjustmentRepository::new(pool.clone(), diesel_pools.clone()));
     let import_repo: Arc<dyn apiserver::repositories::import_job_repository::ImportJobRepository> =
         Arc::new(
-            apiserver::repositories::import_job_repository::SqlxImportJobRepository::new(
+            apiserver::repositories::diesel_import_job_repository::DieselImportJobRepository::new(
                 pool.clone(),
+                diesel_pools.clone(),
             ),
         );
     let leave_balance_repo: Arc<
@@ -509,8 +510,9 @@ pub async fn spawn_app_with_factory() -> (String, Uuid, Uuid, TestFactory, TestD
     let adj_repo: Arc<dyn apiserver::repositories::attendance_adjustment_repository::AttendanceAdjustmentRepository> = Arc::new(apiserver::repositories::DieselAttendanceAdjustmentRepository::new(pool.clone(), diesel_pools.clone()));
     let import_repo: Arc<dyn apiserver::repositories::import_job_repository::ImportJobRepository> =
         Arc::new(
-            apiserver::repositories::import_job_repository::SqlxImportJobRepository::new(
+            apiserver::repositories::diesel_import_job_repository::DieselImportJobRepository::new(
                 pool.clone(),
+                diesel_pools.clone(),
             ),
         );
     let leave_balance_repo: Arc<
@@ -942,8 +944,9 @@ pub async fn setup_app_tower() -> (TestDatabase, TestFactory, Arc<AppState>, axu
     );
     let import_repo: Arc<dyn apiserver::repositories::import_job_repository::ImportJobRepository> =
         Arc::new(
-            apiserver::repositories::import_job_repository::SqlxImportJobRepository::new(
+            apiserver::repositories::diesel_import_job_repository::DieselImportJobRepository::new(
                 pool.clone(),
+                diesel_pools.clone(),
             ),
         );
     let leave_balance_repo: Arc<
