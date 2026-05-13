@@ -28,18 +28,6 @@ impl DieselWorkspaceRepository {
     }
 }
 
-impl crate::repositories::PoolBacked for DieselWorkspaceRepository {
-    #[allow(clippy::panic)]
-    #[allow(clippy::panic)]
-    #[allow(clippy::panic)]
-    fn from_pool(_pool: PgPool) -> Self {
-        panic!("DieselWorkspaceRepository requires diesel_pools to be manually injected via new()");
-    }
-    fn pool(&self) -> &PgPool {
-        &self.sqlx_pool
-    }
-}
-
 #[async_trait]
 impl WorkspaceRepository for DieselWorkspaceRepository {
     async fn create_workspace_with_owner(

@@ -9,7 +9,7 @@ use uuid::Uuid;
 // (create_user_tx excluded — takes generic Executor)
 // ---------------------------------------------------------------------------
 #[async_trait]
-pub trait UserRepository: super::PoolBacked + Send + Sync {
+pub trait UserRepository: Send + Sync {
     async fn create_user(&self, user: &User) -> Result<(), AppError>;
     async fn get_user_by_email(&self, email: &str) -> Result<Option<User>, AppError>;
     async fn get_user_by_id(&self, id: Uuid) -> Result<Option<User>, AppError>;
@@ -27,87 +27,6 @@ pub trait UserRepository: super::PoolBacked + Send + Sync {
         bio: Option<String>,
     ) -> Result<User, AppError>;
     async fn get_workspace_users(&self, workspace_id: Uuid) -> Result<Vec<User>, AppError>;
-}
-
-// ---------------------------------------------------------------------------
-// SqlxUserRepository — production implementation backed by PgPool
-// ---------------------------------------------------------------------------
-pub struct SqlxUserRepository {
-    pub pool: PgPool,
-}
-
-impl SqlxUserRepository {
-    pub fn new(pool: PgPool) -> Self {
-        Self { pool }
-    }
-}
-
-#[async_trait]
-impl UserRepository for SqlxUserRepository {
-    async fn create_user(&self, user: &User) -> Result<(), AppError> {
-        create_user(&self.pool, user).await.map_err(Into::into)
-    }
-    async fn get_user_by_email(&self, email: &str) -> Result<Option<User>, AppError> {
-        get_user_by_email(&self.pool, email)
-            .await
-            .map_err(Into::into)
-    }
-    async fn get_user_by_id(&self, id: Uuid) -> Result<Option<User>, AppError> {
-        get_user_by_id(&self.pool, id).await.map_err(Into::into)
-    }
-    async fn update_password_hash(
-        &self,
-        user_id: Uuid,
-        password_hash: &str,
-    ) -> Result<(), AppError> {
-        sqlx::query("UPDATE users SET password_hash = $1 WHERE id = $2")
-            .bind(password_hash)
-            .bind(user_id)
-            .execute(&self.pool)
-            .await?;
-        Ok(())
-    }
-    async fn get_system_roles_for_user(&self, user_id: Uuid) -> Result<Vec<String>, AppError> {
-        let roles = sqlx::query_scalar::<_, String>(
-            "SELECT sr.name FROM user_system_roles usr \
-             JOIN system_roles sr ON sr.id = usr.role_id \
-             WHERE usr.user_id = $1",
-        )
-        .bind(user_id)
-        .fetch_all(&self.pool)
-        .await?;
-        Ok(roles)
-    }
-    async fn update_user_profile(
-        &self,
-        user_id: Uuid,
-        full_name: Option<String>,
-        avatar_url: Option<String>,
-        bio: Option<String>,
-    ) -> Result<User, AppError> {
-        let user = sqlx::query_as::<_, User>(
-            "UPDATE users SET full_name = COALESCE($1, full_name), avatar_url = COALESCE($2, avatar_url), bio = COALESCE($3, bio) WHERE id = $4 RETURNING *",
-        )
-        .bind(full_name)
-        .bind(avatar_url)
-        .bind(bio)
-        .bind(user_id)
-        .fetch_one(&self.pool)
-        .await?;
-        Ok(user)
-    }
-    async fn get_workspace_users(&self, workspace_id: Uuid) -> Result<Vec<User>, AppError> {
-        let users = sqlx::query_as::<_, User>(
-            "SELECT u.* FROM users u \
-             JOIN workspace_members wm ON u.id = wm.user_id \
-             WHERE wm.workspace_id = $1 \
-             ORDER BY u.created_at DESC",
-        )
-        .bind(workspace_id)
-        .fetch_all(&self.pool)
-        .await?;
-        Ok(users)
-    }
 }
 
 pub async fn create_user(pool: &PgPool, user: &User) -> Result<(), sqlx::Error> {
@@ -188,13 +107,4 @@ where
     .execute(executor)
     .await?;
     Ok(())
-}
-
-impl super::PoolBacked for SqlxUserRepository {
-    fn from_pool(pool: sqlx::PgPool) -> Self {
-        Self::new(pool)
-    }
-    fn pool(&self) -> &sqlx::PgPool {
-        &self.pool
-    }
 }

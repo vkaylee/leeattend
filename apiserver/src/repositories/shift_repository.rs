@@ -7,7 +7,7 @@ use crate::errors::AppError;
 use crate::models::Shift;
 
 #[async_trait]
-pub trait ShiftRepository: super::PoolBacked + Send + Sync {
+pub trait ShiftRepository: Send + Sync {
     async fn create_shift(
         &self,
         workspace_id: Uuid,

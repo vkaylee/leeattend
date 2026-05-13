@@ -4,9 +4,9 @@ use crate::models::diesel::leave::*;
 use crate::models::{LeaveRequest, LeaveStatus};
 use crate::repositories::leave_request_repository::{
     create_leave_request, get_approved_leave_breakdown, update_leave_request_status,
-    LeaveBreakdown, LeaveRequestRepository, SqlxLeaveRequestRepository,
+    LeaveBreakdown, LeaveRequestRepository,
 };
-use crate::repositories::PoolBacked;
+
 use crate::schema::*;
 use async_trait::async_trait;
 use chrono::NaiveDate;
@@ -26,21 +26,6 @@ impl DieselLeaveRequestRepository {
             sqlx_pool,
             diesel_pools,
         }
-    }
-}
-
-impl PoolBacked for DieselLeaveRequestRepository {
-    #[allow(clippy::panic)]
-    #[allow(clippy::panic)]
-    #[allow(clippy::panic)]
-    fn from_pool(_pool: PgPool) -> Self {
-        panic!(
-            "DieselLeaveRequestRepository requires diesel_pools to be manually injected via new()"
-        );
-    }
-
-    fn pool(&self) -> &PgPool {
-        &self.sqlx_pool
     }
 }
 
@@ -168,10 +153,22 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
         request_id: Uuid,
         workspace_id: Uuid,
     ) -> Result<Option<Uuid>, AppError> {
-        // Complex history join, fallback to SQLx
-        let repo = SqlxLeaveRequestRepository::new(self.sqlx_pool.clone());
-        repo.get_employee_department_for_request(request_id, workspace_id)
-            .await
+        sqlx::query_scalar(
+            r#"
+            SELECT edh.department_id
+            FROM leave_requests lr
+            JOIN employee_department_history edh ON lr.employee_id = edh.employee_id
+            JOIN employees e ON lr.employee_id = e.id
+            WHERE lr.id = $1 AND e.workspace_id = $2
+            ORDER BY edh.effective_date DESC
+            LIMIT 1
+            "#,
+        )
+        .bind(request_id)
+        .bind(workspace_id)
+        .fetch_optional(&self.sqlx_pool)
+        .await
+        .map_err(Into::into)
     }
 
     async fn get_leave_types(&self, workspace_id: Uuid) -> Result<Vec<(String, String)>, AppError> {
@@ -199,14 +196,33 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
         employee_id: Uuid,
         date: NaiveDate,
     ) -> Result<Option<(Uuid, Uuid, String)>, AppError> {
-        let repo = SqlxLeaveRequestRepository::new(self.sqlx_pool.clone());
-        repo.get_system_generated_holiday_leave(workspace_id, employee_id, date)
-            .await
+        sqlx::query_as(
+            r#"SELECT lr.id, lr.leave_type_id, lt.code
+               FROM leave_requests lr
+               JOIN leave_types lt ON lt.id = lr.leave_type_id
+               JOIN employees e ON e.id = lr.employee_id
+               WHERE lr.employee_id = $1
+                 AND e.workspace_id = $3
+                 AND lr.status IN ('approved'::leave_status_type, 'pre_approved'::leave_status_type)
+                 AND lr.start_date <= $2
+                 AND lr.end_date >= $2
+                 AND lr.requested_by_user_id IS NULL"#,
+        )
+        .bind(employee_id)
+        .bind(date)
+        .bind(workspace_id)
+        .fetch_optional(&self.sqlx_pool)
+        .await
+        .map_err(|e| AppError::Internal(format!("db: {e}")))
     }
 
-    async fn cancel_leave_request(&self, workspace_id: Uuid, id: Uuid) -> Result<(), AppError> {
-        let repo = SqlxLeaveRequestRepository::new(self.sqlx_pool.clone());
-        repo.cancel_leave_request(workspace_id, id).await
+    async fn cancel_leave_request(&self, _workspace_id: Uuid, id: Uuid) -> Result<(), AppError> {
+        sqlx::query("UPDATE leave_requests SET status = 'cancelled'::leave_status_type, updated_at = NOW() WHERE id = $1")
+            .bind(id)
+            .execute(&self.sqlx_pool)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        Ok(())
     }
 
     async fn get_employee_leave_history_requests(
@@ -217,9 +233,41 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
         leave_type_id: Option<Uuid>,
     ) -> Result<Vec<crate::repositories::leave_request_repository::LeaveHistoryRequestItem>, AppError>
     {
-        let repo = SqlxLeaveRequestRepository::new(self.sqlx_pool.clone());
-        repo.get_employee_leave_history_requests(workspace_id, employee_id, year, leave_type_id)
-            .await
+        let rows = sqlx::query!(
+            r#"
+            SELECT lr.id, lr.start_date, lr.end_date, lt.name as leave_type_name,
+                   lr.reason, lr.created_at
+            FROM leave_requests lr
+            JOIN leave_types lt ON lr.leave_type_id = lt.id
+            JOIN employees e ON lr.employee_id = e.id
+            WHERE lr.employee_id = $1
+              AND e.workspace_id = $4
+              AND lr.status IN ('approved', 'pre_approved')
+              AND EXTRACT(YEAR FROM lr.start_date) = $2
+              AND (lt.id = $3 OR $3 IS NULL)
+            "#,
+            employee_id,
+            year as f64,
+            leave_type_id,
+            workspace_id
+        )
+        .fetch_all(&self.sqlx_pool)
+        .await
+        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        Ok(rows
+            .into_iter()
+            .map(
+                |row| crate::repositories::leave_request_repository::LeaveHistoryRequestItem {
+                    id: row.id,
+                    start_date: row.start_date,
+                    end_date: row.end_date,
+                    leave_type_name: row.leave_type_name,
+                    reason: row.reason,
+                    created_at: row.created_at,
+                },
+            )
+            .collect())
     }
 
     async fn check_leave_type_exists(
@@ -227,9 +275,15 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
         workspace_id: Uuid,
         leave_type_id: Uuid,
     ) -> Result<bool, AppError> {
-        let repo = SqlxLeaveRequestRepository::new(self.sqlx_pool.clone());
-        repo.check_leave_type_exists(workspace_id, leave_type_id)
-            .await
+        let exists: bool = sqlx::query_scalar(
+            "SELECT EXISTS(SELECT 1 FROM leave_types WHERE id = $1 AND workspace_id = $2)",
+        )
+        .bind(leave_type_id)
+        .bind(workspace_id)
+        .fetch_one(&self.sqlx_pool)
+        .await
+        .unwrap_or(false);
+        Ok(exists)
     }
 
     async fn get_leave_type_name(
@@ -237,7 +291,13 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
         workspace_id: Uuid,
         leave_type_id: Uuid,
     ) -> Result<Option<String>, AppError> {
-        let repo = SqlxLeaveRequestRepository::new(self.sqlx_pool.clone());
-        repo.get_leave_type_name(workspace_id, leave_type_id).await
+        let name: Option<String> =
+            sqlx::query_scalar("SELECT name FROM leave_types WHERE id = $1 AND workspace_id = $2")
+                .bind(leave_type_id)
+                .bind(workspace_id)
+                .fetch_optional(&self.sqlx_pool)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        Ok(name)
     }
 }

@@ -33,11 +33,13 @@ async fn test_daily_report_employee_filtering() {
     let date = NaiveDate::from_ymd_opt(2026, 1, 1).unwrap();
 
     let report_service = ReportService::new(
-        std::sync::Arc::new(apiserver::repositories::SqlxTimeEntryRepository::new(
+        std::sync::Arc::new(apiserver::repositories::DieselTimeEntryRepository::new(
             pool.clone(),
+            diesel_pools.clone(),
         )),
-        std::sync::Arc::new(apiserver::repositories::roster::SqlxRosterRepository::new(
+        std::sync::Arc::new(apiserver::repositories::DieselRosterRepository::new(
             pool.clone(),
+            diesel_pools.clone(),
         )),
         std::sync::Arc::new(
             apiserver::repositories::DieselAttendancePolicyRepository::new(

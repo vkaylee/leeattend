@@ -26,7 +26,7 @@ async fn test_ot_claim_approval_workflow() {
 
     // 1. Create a daily summary (simulated)
     let date = NaiveDate::from_ymd_opt(2026, 1, 20).unwrap();
-    sqlx::query("INSERT INTO attendance_daily_summaries (id, workspace_id, employee_id, date, actual_work_minutes, system_detected_ot_minutes, ot_status, created_at, updated_at) VALUES ($1, $2, $3, $4, 500, 60, 'none', NOW(), NOW())")
+    sqlx::query("INSERT INTO attendance_daily_summaries (id, workspace_id, employee_id, date, actual_work_minutes, system_detected_ot_minutes, ot_status, created_at, updated_at) VALUES ($1, $2, $3, $4, 500, 60, 'pending_employee', NOW(), NOW())")
         .bind(uuid::Uuid::new_v4())
         .bind(ws_id)
         .bind(emp_id)

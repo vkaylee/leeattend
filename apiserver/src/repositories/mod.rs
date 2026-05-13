@@ -1,27 +1,3 @@
-use sqlx::PgPool;
-
-/// Enforces that every repository implementation is constructed from a `PgPool`.
-///
-/// All repository traits (e.g. `EmployeeRepository`, `TimeEntryRepository`)
-/// extend `PoolBacked` as a supertrait. This means any new concrete repo
-/// struct **must** implement `from_pool()` or the compiler will reject it.
-///
-/// # Example
-/// ```ignore
-/// impl PoolBacked for SqlxNewRepository {
-///     fn from_pool(pool: PgPool) -> Self { Self { pool } }
-///     fn pool(&self) -> &PgPool { &self.pool }
-/// }
-/// ```
-pub trait PoolBacked: Send + Sync {
-    /// Construct this repository from a database pool.
-    fn from_pool(pool: PgPool) -> Self
-    where
-        Self: Sized;
-    /// Access the underlying connection pool.
-    fn pool(&self) -> &PgPool;
-}
-
 pub mod agent_repository;
 pub mod assignment_rule_repository;
 pub mod attendance_adjustment_repository;
@@ -36,14 +12,14 @@ pub mod import_job_repository;
 pub mod leave_balance_repository;
 pub mod leave_request_repository;
 pub mod payroll_repository;
-pub use payroll_repository::{PayrollRepository, SqlxPayrollRepository};
+pub use payroll_repository::PayrollRepository;
 pub mod raw_attendance_log_repository;
 pub mod roster;
-pub use roster::{RosterRepository, SqlxRosterRepository};
+pub use roster::RosterRepository;
 pub mod shift_repository;
 pub mod shift_swap_repository;
 pub mod time_entry_repository;
-pub use time_entry_repository::{SqlxTimeEntryRepository, TimeEntryRepository};
+pub use time_entry_repository::TimeEntryRepository;
 
 pub mod employment_phase_repository;
 pub mod payroll_rule_repository;
@@ -52,12 +28,12 @@ pub mod user_repository;
 pub mod working_pattern_repository;
 pub mod workspace_repository;
 
-pub use agent_repository::{AgentRepository, SqlxAgentRepository};
+pub use agent_repository::AgentRepository;
 
 pub use employment_phase_repository::EmploymentPhaseRepository;
 pub use payroll_rule_repository::PayrollRuleRepository;
 pub use user_repository::UserRepository;
-pub use workspace_repository::{SqlxWorkspaceRepository, WorkspaceRepository};
+pub use workspace_repository::WorkspaceRepository;
 pub mod attendance_log_error_repository;
 pub mod audit_log_repository;
 pub mod leave_accrual_log_repository;
@@ -94,9 +70,7 @@ pub use diesel_leave_accrual_log_repository::DieselLeaveAccrualLogRepository;
 pub mod diesel_attendance_adjustment_repository;
 pub use diesel_attendance_adjustment_repository::DieselAttendanceAdjustmentRepository;
 pub mod attendance_daily_summary_repository;
-pub use attendance_daily_summary_repository::{
-    AttendanceDailySummaryRepository, SqlxAttendanceDailySummaryRepository,
-};
+pub use attendance_daily_summary_repository::AttendanceDailySummaryRepository;
 pub mod diesel_attendance_daily_summary_repository;
 pub use diesel_attendance_daily_summary_repository::DieselAttendanceDailySummaryRepository;
 pub mod diesel_raw_attendance_log_repository;

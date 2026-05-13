@@ -24,18 +24,6 @@ impl DieselSessionRepository {
     }
 }
 
-impl crate::repositories::PoolBacked for DieselSessionRepository {
-    #[allow(clippy::panic)]
-    #[allow(clippy::panic)]
-    #[allow(clippy::panic)]
-    fn from_pool(_pool: PgPool) -> Self {
-        panic!("DieselSessionRepository requires diesel_pools to be manually injected via new()");
-    }
-    fn pool(&self) -> &PgPool {
-        &self.sqlx_pool
-    }
-}
-
 #[async_trait]
 impl SessionRepository for DieselSessionRepository {
     async fn create_session(

@@ -2,14 +2,14 @@ use crate::errors::AppError;
 use crate::models::{RawAttendanceLog, RawAttendanceLogWithEmployee};
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
-use sqlx::{query, query_as, PgPool, QueryBuilder};
+use sqlx::{query, query_as, QueryBuilder};
 use uuid::Uuid;
 
 // ---------------------------------------------------------------------------
 // Trait: RawAttendanceLogRepository — DIP abstraction
 // ---------------------------------------------------------------------------
 #[async_trait]
-pub trait RawAttendanceLogRepository: super::PoolBacked + Send + Sync {
+pub trait RawAttendanceLogRepository: Send + Sync {
     async fn create_raw_log(&self, log: &RawAttendanceLog) -> Result<bool, AppError>;
     async fn get_raw_log_by_id(
         &self,
@@ -52,127 +52,6 @@ pub trait RawAttendanceLogRepository: super::PoolBacked + Send + Sync {
         start_time: DateTime<Utc>,
         end_time: DateTime<Utc>,
     ) -> Result<Vec<RawAttendanceLog>, AppError>;
-}
-
-// ---------------------------------------------------------------------------
-// SqlxRawAttendanceLogRepository — production implementation backed by PgPool
-// ---------------------------------------------------------------------------
-pub struct SqlxRawAttendanceLogRepository {
-    pub pool: PgPool,
-}
-
-impl SqlxRawAttendanceLogRepository {
-    pub fn new(pool: PgPool) -> Self {
-        Self { pool }
-    }
-}
-
-#[async_trait]
-impl RawAttendanceLogRepository for SqlxRawAttendanceLogRepository {
-    async fn create_raw_log(&self, log: &RawAttendanceLog) -> Result<bool, AppError> {
-        create_raw_log(&self.pool, log).await.map_err(Into::into)
-    }
-    async fn get_raw_log_by_id(
-        &self,
-        workspace_id: Uuid,
-        id: Uuid,
-    ) -> Result<Option<RawAttendanceLog>, AppError> {
-        get_raw_log_by_id(&self.pool, workspace_id, id)
-            .await
-            .map_err(Into::into)
-    }
-    async fn get_latest_log(
-        &self,
-        workspace_id: Uuid,
-        employee_id: Uuid,
-    ) -> Result<Option<RawAttendanceLog>, AppError> {
-        get_latest_log(&self.pool, workspace_id, employee_id)
-            .await
-            .map_err(Into::into)
-    }
-    async fn get_paginated_raw_logs(
-        &self,
-        workspace_id: Uuid,
-        p_employee_id: Option<Uuid>,
-        p_from: Option<DateTime<Utc>>,
-        p_to: Option<DateTime<Utc>>,
-        p_limit: i64,
-        p_offset: i64,
-    ) -> Result<Vec<RawAttendanceLogWithEmployee>, AppError> {
-        get_paginated_raw_logs(
-            &self.pool,
-            workspace_id,
-            p_employee_id,
-            p_from,
-            p_to,
-            p_limit,
-            p_offset,
-        )
-        .await
-        .map_err(Into::into)
-    }
-    async fn count_raw_logs(
-        &self,
-        workspace_id: Uuid,
-        p_employee_id: Option<Uuid>,
-        p_from: Option<DateTime<Utc>>,
-        p_to: Option<DateTime<Utc>>,
-    ) -> Result<i64, AppError> {
-        count_raw_logs(&self.pool, workspace_id, p_employee_id, p_from, p_to)
-            .await
-            .map_err(Into::into)
-    }
-    async fn create_raw_logs_batch(&self, logs: &[&RawAttendanceLog]) -> Result<usize, AppError> {
-        create_raw_logs_batch(&self.pool, logs)
-            .await
-            .map_err(Into::into)
-    }
-    async fn has_duplicate_raw_log(
-        &self,
-        workspace_id: Uuid,
-        employee_id: Uuid,
-        log_id: Uuid,
-        punch_time: DateTime<Utc>,
-    ) -> Result<bool, AppError> {
-        let is_duplicate = query!(
-            r#"
-            SELECT EXISTS (
-                SELECT 1 FROM raw_attendance_logs 
-                WHERE workspace_id = $1 AND employee_id = $2 
-                AND id != $3
-                AND punch_time = $4
-                LIMIT 1
-            ) as "exists!"
-            "#,
-            workspace_id,
-            employee_id,
-            log_id,
-            punch_time
-        )
-        .fetch_one(&self.pool)
-        .await
-        .map_err(Into::<AppError>::into)?;
-
-        Ok(is_duplicate.exists)
-    }
-    async fn get_employee_logs_in_time_range(
-        &self,
-        workspace_id: Uuid,
-        employee_id: Uuid,
-        start_time: DateTime<Utc>,
-        end_time: DateTime<Utc>,
-    ) -> Result<Vec<RawAttendanceLog>, AppError> {
-        query_as::<_, RawAttendanceLog>(
-            "SELECT * FROM raw_attendance_logs WHERE workspace_id = $1 AND employee_id = $2 AND punch_time >= $3 AND punch_time < $4 ORDER BY punch_time ASC",
-        )
-        .bind(workspace_id)
-        .bind(employee_id)
-        .bind(start_time)
-        .bind(end_time)
-        .fetch_all(&self.pool)
-        .await
-        .map_err(Into::into)
-    }
 }
 
 pub async fn create_raw_log<'c>(
@@ -345,13 +224,4 @@ pub async fn create_raw_logs_batch<'c>(
     let result = query_builder.build().execute(executor).await?;
 
     Ok(result.rows_affected() as usize)
-}
-
-impl super::PoolBacked for SqlxRawAttendanceLogRepository {
-    fn from_pool(pool: sqlx::PgPool) -> Self {
-        Self::new(pool)
-    }
-    fn pool(&self) -> &sqlx::PgPool {
-        &self.pool
-    }
 }

@@ -27,18 +27,6 @@ impl DieselSalaryBaseRepository {
     }
 }
 
-#[allow(clippy::panic)]
-    impl crate::repositories::PoolBacked for DieselSalaryBaseRepository {
-    #[allow(clippy::panic)]
-    fn from_pool(_pool: PgPool) -> Self {
-        panic!("DieselSalaryBaseRepository requires DieselPools. Use new() instead.");
-    }
-
-    fn pool(&self) -> &PgPool {
-        &self.sqlx_pool
-    }
-}
-
 #[async_trait]
 impl SalaryBaseRepository for DieselSalaryBaseRepository {
     async fn get_groups(&self, workspace_id_val: Uuid) -> Result<Vec<SalaryBaseGroup>, AppError> {

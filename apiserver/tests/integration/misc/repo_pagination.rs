@@ -2,7 +2,7 @@
 
 use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
-use apiserver::repositories::SqlxWorkspaceRepository;
+use apiserver::repositories::DieselWorkspaceRepository;
 use std::sync::Arc;
 
 #[tokio::test]
@@ -13,7 +13,10 @@ async fn test_repository_pagination() {
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
 
     let user_id = factory.user().create().await;
-    let _repo = Arc::new(SqlxWorkspaceRepository { pool: pool.clone() });
+    let _repo = Arc::new(DieselWorkspaceRepository::new(
+        pool.clone(),
+        diesel_pools.clone(),
+    ));
 
     // Create 15 workspaces
     for _ in 0..15 {

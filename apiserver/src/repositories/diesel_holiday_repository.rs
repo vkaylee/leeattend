@@ -224,14 +224,3 @@ impl HolidayRepositoryTrait for DieselHolidayRepository {
         Ok(entity.map(Into::into))
     }
 }
-
-impl crate::repositories::PoolBacked for DieselHolidayRepository {
-    #[allow(clippy::panic)]
-    #[allow(clippy::panic)]
-    fn from_pool(_pool: sqlx::PgPool) -> Self {
-        panic!("DieselHolidayRepository requires DieselPools. Use new() instead.");
-    }
-    fn pool(&self) -> &sqlx::PgPool {
-        &self.sqlx_pool
-    }
-}

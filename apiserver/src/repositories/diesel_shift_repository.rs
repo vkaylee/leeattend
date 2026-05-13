@@ -287,14 +287,3 @@ impl ShiftRepository for DieselShiftRepository {
         Ok(())
     }
 }
-
-impl crate::repositories::PoolBacked for DieselShiftRepository {
-    #[allow(clippy::panic)]
-    #[allow(clippy::panic)]
-    fn from_pool(_pool: sqlx::PgPool) -> Self {
-        panic!("DieselShiftRepository requires DieselPools. Use new() instead.");
-    }
-    fn pool(&self) -> &sqlx::PgPool {
-        &self.sqlx_pool
-    }
-}

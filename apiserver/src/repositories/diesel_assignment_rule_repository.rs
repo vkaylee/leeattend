@@ -171,14 +171,3 @@ impl AssignmentRuleRepositoryTrait for DieselAssignmentRuleRepository {
         Ok(())
     }
 }
-
-#[allow(clippy::panic)]
-impl crate::repositories::PoolBacked for DieselAssignmentRuleRepository {
-    fn from_pool(_pool: PgPool) -> Self {
-        panic!("DieselAssignmentRuleRepository requires DieselPools. Use new() instead.");
-    }
-
-    fn pool(&self) -> &PgPool {
-        &self.sqlx_pool
-    }
-}

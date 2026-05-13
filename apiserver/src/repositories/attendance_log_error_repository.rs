@@ -7,7 +7,7 @@ use uuid::Uuid;
 // Trait: AttendanceLogErrorRepository — DIP abstraction
 // ---------------------------------------------------------------------------
 #[async_trait]
-pub trait AttendanceLogErrorRepository: super::PoolBacked + Send + Sync {
+pub trait AttendanceLogErrorRepository: Send + Sync {
     async fn create_error_log(
         &self,
         workspace_id: Uuid,
@@ -25,63 +25,6 @@ pub trait AttendanceLogErrorRepository: super::PoolBacked + Send + Sync {
         source: &str,
         fingerprint: &str,
     ) -> Result<bool, AppError>;
-}
-
-// ---------------------------------------------------------------------------
-// SqlxAttendanceLogErrorRepository — production implementation backed by PgPool
-// ---------------------------------------------------------------------------
-pub struct SqlxAttendanceLogErrorRepository {
-    pub pool: PgPool,
-}
-
-impl SqlxAttendanceLogErrorRepository {
-    pub fn new(pool: PgPool) -> Self {
-        Self { pool }
-    }
-}
-
-#[async_trait]
-impl AttendanceLogErrorRepository for SqlxAttendanceLogErrorRepository {
-    async fn create_error_log(
-        &self,
-        workspace_id: Uuid,
-        agent_id: Option<String>,
-        raw_content: Option<serde_json::Value>,
-        error_message: &str,
-        source: &str,
-    ) -> Result<(), AppError> {
-        create_error_log(
-            &self.pool,
-            workspace_id,
-            agent_id,
-            raw_content,
-            error_message,
-            source,
-        )
-        .await
-        .map_err(Into::into)
-    }
-    async fn create_error_log_with_fingerprint(
-        &self,
-        workspace_id: Uuid,
-        agent_id: Option<String>,
-        raw_content: Option<serde_json::Value>,
-        error_message: &str,
-        source: &str,
-        fingerprint: &str,
-    ) -> Result<bool, AppError> {
-        create_error_log_with_fingerprint(
-            &self.pool,
-            workspace_id,
-            agent_id,
-            raw_content,
-            error_message,
-            source,
-            fingerprint,
-        )
-        .await
-        .map_err(Into::into)
-    }
 }
 
 pub async fn create_error_log(
@@ -139,13 +82,4 @@ pub async fn create_error_log_with_fingerprint(
     .await?;
 
     Ok(result.rows_affected() > 0)
-}
-
-impl super::PoolBacked for SqlxAttendanceLogErrorRepository {
-    fn from_pool(pool: sqlx::PgPool) -> Self {
-        Self::new(pool)
-    }
-    fn pool(&self) -> &sqlx::PgPool {
-        &self.pool
-    }
 }

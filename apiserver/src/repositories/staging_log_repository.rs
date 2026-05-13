@@ -9,7 +9,7 @@ use uuid::Uuid;
 // (update_staging_status_tx is excluded — it takes &mut Transaction)
 // ---------------------------------------------------------------------------
 #[async_trait]
-pub trait StagingLogRepository: super::PoolBacked + Send + Sync {
+pub trait StagingLogRepository: Send + Sync {
     async fn create_staging_log(
         &self,
         workspace_id: Uuid,
@@ -31,68 +31,6 @@ pub trait StagingLogRepository: super::PoolBacked + Send + Sync {
         status: &str,
     ) -> Result<bool, AppError>;
     async fn count_pending_staging_logs(&self, workspace_id: Uuid) -> Result<i64, AppError>;
-}
-
-// ---------------------------------------------------------------------------
-// SqlxStagingLogRepository — production implementation backed by PgPool
-// ---------------------------------------------------------------------------
-pub struct SqlxStagingLogRepository {
-    pub pool: PgPool,
-}
-
-impl SqlxStagingLogRepository {
-    pub fn new(pool: PgPool) -> Self {
-        Self { pool }
-    }
-}
-
-#[async_trait]
-impl StagingLogRepository for SqlxStagingLogRepository {
-    async fn create_staging_log(
-        &self,
-        workspace_id: Uuid,
-        device_id: Option<String>,
-        raw_user_id: &str,
-        punch_time: DateTime<Utc>,
-        raw_data: Option<serde_json::Value>,
-        fingerprint: &str,
-    ) -> Result<bool, AppError> {
-        create_staging_log(
-            &self.pool,
-            workspace_id,
-            device_id,
-            raw_user_id,
-            punch_time,
-            raw_data,
-            fingerprint,
-        )
-        .await
-        .map_err(Into::into)
-    }
-    async fn get_pending_staging_logs(
-        &self,
-        workspace_id: Uuid,
-        limit: i64,
-    ) -> Result<Vec<StagingLog>, AppError> {
-        get_pending_staging_logs(&self.pool, workspace_id, limit)
-            .await
-            .map_err(Into::into)
-    }
-    async fn update_staging_status(
-        &self,
-        id: Uuid,
-        workspace_id: Uuid,
-        status: &str,
-    ) -> Result<bool, AppError> {
-        update_staging_status(&self.pool, id, workspace_id, status)
-            .await
-            .map_err(Into::into)
-    }
-    async fn count_pending_staging_logs(&self, workspace_id: Uuid) -> Result<i64, AppError> {
-        count_pending_staging_logs(&self.pool, workspace_id)
-            .await
-            .map_err(Into::into)
-    }
 }
 
 /// Staging log for unknown users (not yet mapped to employees)
@@ -213,15 +151,6 @@ pub async fn count_pending_staging_logs<'c>(
     .fetch_one(executor)
     .await?;
     Ok(row.0)
-}
-
-impl super::PoolBacked for SqlxStagingLogRepository {
-    fn from_pool(pool: sqlx::PgPool) -> Self {
-        Self::new(pool)
-    }
-    fn pool(&self) -> &sqlx::PgPool {
-        &self.pool
-    }
 }
 
 /// Lightweight direct claim of staged logs for an employee (no queue/Redis needed).

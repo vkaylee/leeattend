@@ -7,7 +7,7 @@ use uuid::Uuid;
 // Trait: ImportJobRepository — DIP abstraction
 // ---------------------------------------------------------------------------
 #[async_trait]
-pub trait ImportJobRepository: super::PoolBacked + Send + Sync {
+pub trait ImportJobRepository: Send + Sync {
     async fn create_job(&self, job: &AttendanceImportJob) -> Result<(), AppError>;
     async fn update_job_progress(
         &self,

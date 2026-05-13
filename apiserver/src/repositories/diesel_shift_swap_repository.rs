@@ -413,13 +413,3 @@ impl ShiftSwapRepository for DieselShiftSwapRepository {
         Ok(entity.into())
     }
 }
-
-impl crate::repositories::PoolBacked for DieselShiftSwapRepository {
-    #[allow(clippy::panic)]
-    fn from_pool(_pool: sqlx::PgPool) -> Self {
-        panic!("DieselShiftSwapRepository requires DieselPools. Use new() instead.");
-    }
-    fn pool(&self) -> &sqlx::PgPool {
-        &self.sqlx_pool
-    }
-}

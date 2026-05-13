@@ -67,13 +67,15 @@ async fn test_overnight_shift_pairing() {
         .execute(&pool).await.unwrap();
 
     // 3. Process Pairing
-    let repo = std::sync::Arc::new(apiserver::repositories::SqlxTimeEntryRepository::new(
+    let repo = std::sync::Arc::new(apiserver::repositories::DieselTimeEntryRepository::new(
         pool.clone(),
+        diesel_pools.clone(),
     ));
     apiserver::services::pairing_service::PairingService::new(
         repo,
-        std::sync::Arc::new(apiserver::repositories::roster::SqlxRosterRepository::new(
+        std::sync::Arc::new(apiserver::repositories::DieselRosterRepository::new(
             pool.clone(),
+            diesel_pools.clone(),
         )),
         std::sync::Arc::new(
             apiserver::repositories::DieselAttendancePolicyRepository::new(

@@ -255,13 +255,3 @@ impl DieselEmploymentPhaseRepository {
         Ok(entities.into_iter().map(Into::into).collect())
     }
 }
-
-impl crate::repositories::PoolBacked for DieselEmploymentPhaseRepository {
-    #[allow(clippy::panic)]
-    fn from_pool(_pool: PgPool) -> Self {
-        panic!("DieselEmploymentPhaseRepository requires diesel_pools to be manually injected via new()");
-    }
-    fn pool(&self) -> &PgPool {
-        &self.sqlx_pool
-    }
-}

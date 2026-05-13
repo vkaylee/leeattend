@@ -12,7 +12,7 @@ use sqlx::PgPool;
 use uuid::Uuid;
 
 #[async_trait]
-pub trait WorkspaceStatsRepository: super::PoolBacked + Send + Sync {
+pub trait WorkspaceStatsRepository: Send + Sync {
     async fn fetch_attendance_trend(
         &self,
         workspace_id: Uuid,
@@ -901,15 +901,5 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
             .collect();
 
         Ok(result)
-    }
-}
-
-impl super::PoolBacked for DieselWorkspaceStatsRepository {
-    #[allow(clippy::panic)]
-    fn from_pool(_pool: PgPool) -> Self {
-        panic!("DieselWorkspaceStatsRepository requires diesel_pools to be manually injected via new()");
-    }
-    fn pool(&self) -> &PgPool {
-        &self.sqlx_pool
     }
 }

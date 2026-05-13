@@ -245,14 +245,3 @@ impl FeatureFlagRepositoryTrait for DieselFeatureFlagRepository {
             .map(Into::into)
     }
 }
-
-#[allow(clippy::panic)]
-impl crate::repositories::PoolBacked for DieselFeatureFlagRepository {
-    fn from_pool(_pool: PgPool) -> Self {
-        panic!("DieselFeatureFlagRepository requires DieselPools. Use new() instead.");
-    }
-
-    fn pool(&self) -> &PgPool {
-        &self.sqlx_pool
-    }
-}

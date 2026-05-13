@@ -308,14 +308,3 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
         Ok(result)
     }
 }
-
-impl crate::repositories::PoolBacked for DieselAttendancePolicyRepository {
-    #[allow(clippy::panic)]
-    fn from_pool(_pool: PgPool) -> Self {
-        panic!("DieselAttendancePolicyRepository requires diesel_pools to be manually injected via new()");
-    }
-
-    fn pool(&self) -> &PgPool {
-        &self.sqlx_pool
-    }
-}

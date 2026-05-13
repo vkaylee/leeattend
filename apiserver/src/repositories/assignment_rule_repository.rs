@@ -12,7 +12,7 @@ use uuid::Uuid;
 // Trait: AssignmentRuleRepositoryTrait — DIP abstraction
 // ---------------------------------------------------------------------------
 #[async_trait]
-pub trait AssignmentRuleRepositoryTrait: super::PoolBacked + Send + Sync {
+pub trait AssignmentRuleRepositoryTrait: Send + Sync {
     async fn create_rule(
         &self,
         workspace_id: Uuid,
@@ -27,57 +27,6 @@ pub trait AssignmentRuleRepositoryTrait: super::PoolBacked + Send + Sync {
         req: &UpdateAssignmentRuleRequest,
     ) -> Result<AssignmentRule, AppError>;
     async fn delete_rule(&self, workspace_id: Uuid, id: Uuid) -> Result<(), AppError>;
-}
-
-// ---------------------------------------------------------------------------
-// SqlxAssignmentRuleRepository — production implementation backed by PgPool
-// ---------------------------------------------------------------------------
-pub struct SqlxAssignmentRuleRepository {
-    pub pool: PgPool,
-}
-
-impl SqlxAssignmentRuleRepository {
-    pub fn new(pool: PgPool) -> Self {
-        Self { pool }
-    }
-}
-
-#[async_trait]
-impl AssignmentRuleRepositoryTrait for SqlxAssignmentRuleRepository {
-    async fn create_rule(
-        &self,
-        workspace_id: Uuid,
-        req: &CreateAssignmentRuleRequest,
-    ) -> Result<AssignmentRule, AppError> {
-        AssignmentRuleRepository::create_rule(&self.pool, workspace_id, req)
-            .await
-            .map_err(Into::into)
-    }
-    async fn get_rules(&self, workspace_id: Uuid) -> Result<Vec<AssignmentRule>, AppError> {
-        AssignmentRuleRepository::get_rules(&self.pool, workspace_id)
-            .await
-            .map_err(Into::into)
-    }
-    async fn get_active_rules(&self, workspace_id: Uuid) -> Result<Vec<AssignmentRule>, AppError> {
-        AssignmentRuleRepository::get_active_rules(&self.pool, workspace_id)
-            .await
-            .map_err(Into::into)
-    }
-    async fn update_rule(
-        &self,
-        workspace_id: Uuid,
-        id: Uuid,
-        req: &UpdateAssignmentRuleRequest,
-    ) -> Result<AssignmentRule, AppError> {
-        AssignmentRuleRepository::update_rule(&self.pool, workspace_id, id, req)
-            .await
-            .map_err(Into::into)
-    }
-    async fn delete_rule(&self, workspace_id: Uuid, id: Uuid) -> Result<(), AppError> {
-        AssignmentRuleRepository::delete_rule(&self.pool, workspace_id, id)
-            .await
-            .map_err(Into::into)
-    }
 }
 
 /// Backwards-compatible static method repository.
@@ -195,14 +144,5 @@ impl AssignmentRuleRepository {
         .execute(pool)
         .await?;
         Ok(())
-    }
-}
-
-impl super::PoolBacked for SqlxAssignmentRuleRepository {
-    fn from_pool(pool: sqlx::PgPool) -> Self {
-        Self::new(pool)
-    }
-    fn pool(&self) -> &sqlx::PgPool {
-        &self.pool
     }
 }

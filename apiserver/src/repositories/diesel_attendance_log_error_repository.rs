@@ -99,16 +99,3 @@ impl AttendanceLogErrorRepository for DieselAttendanceLogErrorRepository {
         Ok(rows_affected > 0)
     }
 }
-
-impl crate::repositories::PoolBacked for DieselAttendanceLogErrorRepository {
-    #[allow(clippy::panic)]
-    #[allow(clippy::panic)]
-    #[allow(clippy::panic)]
-    fn from_pool(_pool: sqlx::PgPool) -> Self {
-        panic!("DieselAttendanceLogErrorRepository requires diesel_pools to be manually injected via new()");
-    }
-
-    fn pool(&self) -> &sqlx::PgPool {
-        &self.sqlx_pool
-    }
-}

@@ -5,7 +5,7 @@ use crate::models::{EmployeeLeaveBalance, LeaveBalance, WorkspaceLeaveBalance};
 use crate::repositories::leave_balance_repository::{
     adjust_balance, get_employee_balances, get_workspace_balances, LeaveBalanceRepository,
 };
-use crate::repositories::PoolBacked;
+
 use crate::schema::*;
 use async_trait::async_trait;
 use bigdecimal::BigDecimal;
@@ -26,21 +26,6 @@ impl DieselLeaveBalanceRepository {
             sqlx_pool,
             diesel_pools,
         }
-    }
-}
-
-impl PoolBacked for DieselLeaveBalanceRepository {
-    #[allow(clippy::panic)]
-    #[allow(clippy::panic)]
-    #[allow(clippy::panic)]
-    fn from_pool(_pool: PgPool) -> Self {
-        panic!(
-            "DieselLeaveBalanceRepository requires diesel_pools to be manually injected via new()"
-        );
-    }
-
-    fn pool(&self) -> &PgPool {
-        &self.sqlx_pool
     }
 }
 

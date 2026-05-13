@@ -10,7 +10,7 @@ use crate::models::{Department, DepartmentPayrollConfig, EmployeeDepartmentHisto
 // Trait: DepartmentRepository — DIP abstraction
 // ---------------------------------------------------------------------------
 #[async_trait]
-pub trait DepartmentRepository: super::PoolBacked + Send + Sync {
+pub trait DepartmentRepository: Send + Sync {
     async fn create_department(
         &self,
         workspace_id: Uuid,

@@ -24,18 +24,6 @@ impl DieselUserRepository {
     }
 }
 
-impl crate::repositories::PoolBacked for DieselUserRepository {
-    #[allow(clippy::panic)]
-    #[allow(clippy::panic)]
-    #[allow(clippy::panic)]
-    fn from_pool(_pool: PgPool) -> Self {
-        panic!("DieselUserRepository requires diesel_pools to be manually injected via new()");
-    }
-    fn pool(&self) -> &PgPool {
-        &self.sqlx_pool
-    }
-}
-
 #[async_trait]
 impl UserRepository for DieselUserRepository {
     async fn create_user(&self, user: &User) -> Result<(), AppError> {

@@ -7,7 +7,7 @@ use uuid::Uuid;
 // Trait: ShiftSwapRepository — DIP abstraction
 // ---------------------------------------------------------------------------
 #[async_trait]
-pub trait ShiftSwapRepository: super::PoolBacked + Send + Sync {
+pub trait ShiftSwapRepository: Send + Sync {
     async fn create_swap_request(
         &self,
         request: &ShiftSwapRequest,

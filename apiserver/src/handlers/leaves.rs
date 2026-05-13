@@ -503,9 +503,11 @@ pub async fn upload_leave_excel(
 
     {
         use crate::repositories::import_job_repository::ImportJobRepository;
-        use crate::repositories::DieselImportJobRepository as SqlxImportJobRepository;
-        let import_repo =
-            SqlxImportJobRepository::new(state.infra.db.api().clone(), state.infra.diesel.clone());
+        use crate::repositories::DieselImportJobRepository;
+        let import_repo = DieselImportJobRepository::new(
+            state.infra.db.api().clone(),
+            state.infra.diesel.clone(),
+        );
         import_repo
             .create_job(&import_job)
             .await
@@ -557,9 +559,9 @@ pub async fn get_latest_leave_import(
     ctx.require_permission(Permission::LeaveRequestsSubmit)?;
 
     use crate::repositories::import_job_repository::ImportJobRepository;
-    use crate::repositories::DieselImportJobRepository as SqlxImportJobRepository;
+    use crate::repositories::DieselImportJobRepository;
     let repo =
-        SqlxImportJobRepository::new(state.infra.db.api().clone(), state.infra.diesel.clone());
+        DieselImportJobRepository::new(state.infra.db.api().clone(), state.infra.diesel.clone());
 
     match repo
         .get_latest_job(ctx.workspace_id, Some(ImportTargetType::LeaveImport))
@@ -594,9 +596,9 @@ pub async fn download_leave_import_errors(
     ctx.require_permission(Permission::LeaveRequestsSubmit)?;
 
     use crate::repositories::import_job_repository::ImportJobRepository;
-    use crate::repositories::DieselImportJobRepository as SqlxImportJobRepository;
+    use crate::repositories::DieselImportJobRepository;
     let repo =
-        SqlxImportJobRepository::new(state.infra.db.api().clone(), state.infra.diesel.clone());
+        DieselImportJobRepository::new(state.infra.db.api().clone(), state.infra.diesel.clone());
 
     let job = repo
         .get_job_by_id(job_id)

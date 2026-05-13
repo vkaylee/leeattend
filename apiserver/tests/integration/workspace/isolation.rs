@@ -6,7 +6,7 @@ use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
 use apiserver::repositories::{
     department_repository, time_entry_repository, working_pattern_repository,
-    SqlxTimeEntryRepository, TimeEntryRepository,
+    DieselTimeEntryRepository, TimeEntryRepository,
 };
 use chrono::{Duration, NaiveDate, Utc};
 use std::sync::Arc;
@@ -87,7 +87,10 @@ async fn test_get_latest_active_entry_isolated_by_workspace() {
         .create()
         .await;
 
-    let repo = Arc::new(SqlxTimeEntryRepository::new(pool.clone()));
+    let repo = Arc::new(DieselTimeEntryRepository::new(
+        pool.clone(),
+        diesel_pools.clone(),
+    ));
 
     // Correct workspace → should find the active entry
     let active_a = repo.get_latest_active_entry(ws_a, emp_a).await.unwrap();

@@ -77,11 +77,13 @@ async fn test_summary_records_holiday_flag_after_recalculate() {
 
     // Trigger recalculation directly via service
     apiserver::services::AttendanceSummaryService::new(
-        std::sync::Arc::new(apiserver::repositories::SqlxTimeEntryRepository::new(
+        std::sync::Arc::new(apiserver::repositories::DieselTimeEntryRepository::new(
             pool.clone(),
+            diesel_pools.clone(),
         )),
-        std::sync::Arc::new(apiserver::repositories::roster::SqlxRosterRepository::new(
+        std::sync::Arc::new(apiserver::repositories::DieselRosterRepository::new(
             pool.clone(),
+            diesel_pools.clone(),
         )),
         std::sync::Arc::new(
             apiserver::repositories::DieselAttendancePolicyRepository::new(

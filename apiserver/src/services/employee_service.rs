@@ -492,18 +492,6 @@ mod tests {
         }
     }
 
-    impl crate::repositories::PoolBacked for MockEmployeeRepo {
-        fn from_pool(_pool: sqlx::PgPool) -> Self
-        where
-            Self: Sized,
-        {
-            Self::empty()
-        }
-        fn pool(&self) -> &sqlx::PgPool {
-            unimplemented!("Mock does not provide a real pool")
-        }
-    }
-
     #[async_trait]
     impl EmployeeRepository for MockEmployeeRepo {
         async fn create_employee(&self, _employee: &Employee) -> Result<(), AppError> {
@@ -740,15 +728,6 @@ mod tests {
 
     /// Minimal no-op DepartmentRepository for unit tests.
     struct NopDepartmentRepo;
-
-    impl crate::repositories::PoolBacked for NopDepartmentRepo {
-        fn from_pool(_pool: sqlx::PgPool) -> Self {
-            Self
-        }
-        fn pool(&self) -> &sqlx::PgPool {
-            unimplemented!("NopDepartmentRepo has no pool")
-        }
-    }
 
     #[async_trait]
     impl crate::repositories::department_repository::DepartmentRepository for NopDepartmentRepo {

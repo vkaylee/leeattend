@@ -326,16 +326,3 @@ impl RawAttendanceLogRepository for DieselRawAttendanceLogRepository {
         Ok(results.into_iter().map(Into::into).collect())
     }
 }
-
-impl crate::repositories::PoolBacked for DieselRawAttendanceLogRepository {
-    #[allow(clippy::panic)]
-    #[allow(clippy::panic)]
-    #[allow(clippy::panic)]
-    fn from_pool(_pool: sqlx::PgPool) -> Self {
-        panic!("DieselRawAttendanceLogRepository requires diesel_pools to be manually injected via new()");
-    }
-
-    fn pool(&self) -> &sqlx::PgPool {
-        &self.sqlx_pool
-    }
-}

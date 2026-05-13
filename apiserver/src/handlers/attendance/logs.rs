@@ -11,7 +11,7 @@ use uuid::Uuid;
 use crate::domain::permissions::Permission;
 use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
-use crate::repositories::workspace_repository::WorkspaceRepository;
+
 use crate::AppState;
 
 #[derive(Deserialize)]
@@ -125,12 +125,12 @@ pub async fn force_reprocess_attendance(
         )));
     }
 
-    let workspace = crate::repositories::workspace_repository::SqlxWorkspaceRepository {
-        pool: state.infra.db.api().clone(),
-    }
-    .get_workspace_by_id(ctx.workspace_id)
-    .await?
-    .ok_or_else(|| AppError::NotFound("Workspace not found".to_string()))?;
+    let workspace = state
+        .core
+        .workspace_repo
+        .get_workspace_by_id(ctx.workspace_id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Workspace not found".to_string()))?;
 
     let tz: chrono_tz::Tz = workspace
         .timezone

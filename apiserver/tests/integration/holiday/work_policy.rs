@@ -121,11 +121,10 @@ async fn test_payroll_holiday_work_with_multiplier() {
     // Calculate payroll
     let result = {
         let pr: std::sync::Arc<dyn apiserver::repositories::payroll_repository::PayrollRepository> =
-            std::sync::Arc::new(
-                apiserver::repositories::payroll_repository::SqlxPayrollRepository::new(
-                    pool.clone(),
-                ),
-            );
+            std::sync::Arc::new(apiserver::repositories::DieselPayrollRepository::new(
+                pool.clone(),
+                diesel_pools.clone(),
+            ));
         let dr: std::sync::Arc<
             dyn apiserver::repositories::department_repository::DepartmentRepository,
         > = std::sync::Arc::new(apiserver::repositories::DieselDepartmentRepository::new(
@@ -134,19 +133,22 @@ async fn test_payroll_holiday_work_with_multiplier() {
         ));
         let tr: std::sync::Arc<
             dyn apiserver::repositories::time_entry_repository::TimeEntryRepository,
-        > = std::sync::Arc::new(apiserver::repositories::SqlxTimeEntryRepository::new(
+        > = std::sync::Arc::new(apiserver::repositories::DieselTimeEntryRepository::new(
             pool.clone(),
+            diesel_pools.clone(),
         ));
         let wr: std::sync::Arc<
             dyn apiserver::repositories::workspace_repository::WorkspaceRepository,
-        > = std::sync::Arc::new(apiserver::repositories::SqlxWorkspaceRepository {
-            pool: pool.clone(),
-        });
+        > = std::sync::Arc::new(apiserver::repositories::DieselWorkspaceRepository::new(
+            pool.clone(),
+            diesel_pools.clone(),
+        ));
         let hr: std::sync::Arc<
             dyn apiserver::repositories::holiday_repository::HolidayRepositoryTrait,
-        > = std::sync::Arc::new(
-            apiserver::repositories::holiday_repository::SqlxHolidayRepository::new(pool.clone()),
-        );
+        > = std::sync::Arc::new(apiserver::repositories::DieselHolidayRepository::new(
+            pool.clone(),
+            diesel_pools.clone(),
+        ));
         apiserver::services::payroll_service::PayrollService::new(
             apiserver::services::payroll_service::PayrollServiceArgs {
                 payroll_repo: pr,
@@ -154,8 +156,9 @@ async fn test_payroll_holiday_work_with_multiplier() {
                 time_entry_repo: tr,
                 workspace_repo: wr,
                 holiday_repo: hr,
-                roster_repo: Arc::new(apiserver::repositories::roster::SqlxRosterRepository::new(
+                roster_repo: Arc::new(apiserver::repositories::DieselRosterRepository::new(
                     pool.clone(),
+                    diesel_pools.clone(),
                 )),
                 policy_repo: std::sync::Arc::new(
                     apiserver::repositories::DieselAttendancePolicyRepository::new(
@@ -290,11 +293,10 @@ async fn test_payroll_holiday_work_no_credit() {
 
     let payslip = {
         let pr: std::sync::Arc<dyn apiserver::repositories::payroll_repository::PayrollRepository> =
-            std::sync::Arc::new(
-                apiserver::repositories::payroll_repository::SqlxPayrollRepository::new(
-                    pool.clone(),
-                ),
-            );
+            std::sync::Arc::new(apiserver::repositories::DieselPayrollRepository::new(
+                pool.clone(),
+                diesel_pools.clone(),
+            ));
         let dr: std::sync::Arc<
             dyn apiserver::repositories::department_repository::DepartmentRepository,
         > = std::sync::Arc::new(apiserver::repositories::DieselDepartmentRepository::new(
@@ -303,19 +305,22 @@ async fn test_payroll_holiday_work_no_credit() {
         ));
         let tr: std::sync::Arc<
             dyn apiserver::repositories::time_entry_repository::TimeEntryRepository,
-        > = std::sync::Arc::new(apiserver::repositories::SqlxTimeEntryRepository::new(
+        > = std::sync::Arc::new(apiserver::repositories::DieselTimeEntryRepository::new(
             pool.clone(),
+            diesel_pools.clone(),
         ));
         let wr: std::sync::Arc<
             dyn apiserver::repositories::workspace_repository::WorkspaceRepository,
-        > = std::sync::Arc::new(apiserver::repositories::SqlxWorkspaceRepository {
-            pool: pool.clone(),
-        });
+        > = std::sync::Arc::new(apiserver::repositories::DieselWorkspaceRepository::new(
+            pool.clone(),
+            diesel_pools.clone(),
+        ));
         let hr: std::sync::Arc<
             dyn apiserver::repositories::holiday_repository::HolidayRepositoryTrait,
-        > = std::sync::Arc::new(
-            apiserver::repositories::holiday_repository::SqlxHolidayRepository::new(pool.clone()),
-        );
+        > = std::sync::Arc::new(apiserver::repositories::DieselHolidayRepository::new(
+            pool.clone(),
+            diesel_pools.clone(),
+        ));
         apiserver::services::payroll_service::PayrollService::new(
             apiserver::services::payroll_service::PayrollServiceArgs {
                 payroll_repo: pr,
@@ -323,8 +328,9 @@ async fn test_payroll_holiday_work_no_credit() {
                 time_entry_repo: tr,
                 workspace_repo: wr,
                 holiday_repo: hr,
-                roster_repo: Arc::new(apiserver::repositories::roster::SqlxRosterRepository::new(
+                roster_repo: Arc::new(apiserver::repositories::DieselRosterRepository::new(
                     pool.clone(),
+                    diesel_pools.clone(),
                 )),
                 policy_repo: std::sync::Arc::new(
                     apiserver::repositories::DieselAttendancePolicyRepository::new(
@@ -446,11 +452,10 @@ async fn test_payroll_holiday_work_unpaid_no_premium() {
 
     let payslip = {
         let pr: std::sync::Arc<dyn apiserver::repositories::payroll_repository::PayrollRepository> =
-            std::sync::Arc::new(
-                apiserver::repositories::payroll_repository::SqlxPayrollRepository::new(
-                    pool.clone(),
-                ),
-            );
+            std::sync::Arc::new(apiserver::repositories::DieselPayrollRepository::new(
+                pool.clone(),
+                diesel_pools.clone(),
+            ));
         let dr: std::sync::Arc<
             dyn apiserver::repositories::department_repository::DepartmentRepository,
         > = std::sync::Arc::new(apiserver::repositories::DieselDepartmentRepository::new(
@@ -459,19 +464,22 @@ async fn test_payroll_holiday_work_unpaid_no_premium() {
         ));
         let tr: std::sync::Arc<
             dyn apiserver::repositories::time_entry_repository::TimeEntryRepository,
-        > = std::sync::Arc::new(apiserver::repositories::SqlxTimeEntryRepository::new(
+        > = std::sync::Arc::new(apiserver::repositories::DieselTimeEntryRepository::new(
             pool.clone(),
+            diesel_pools.clone(),
         ));
         let wr: std::sync::Arc<
             dyn apiserver::repositories::workspace_repository::WorkspaceRepository,
-        > = std::sync::Arc::new(apiserver::repositories::SqlxWorkspaceRepository {
-            pool: pool.clone(),
-        });
+        > = std::sync::Arc::new(apiserver::repositories::DieselWorkspaceRepository::new(
+            pool.clone(),
+            diesel_pools.clone(),
+        ));
         let hr: std::sync::Arc<
             dyn apiserver::repositories::holiday_repository::HolidayRepositoryTrait,
-        > = std::sync::Arc::new(
-            apiserver::repositories::holiday_repository::SqlxHolidayRepository::new(pool.clone()),
-        );
+        > = std::sync::Arc::new(apiserver::repositories::DieselHolidayRepository::new(
+            pool.clone(),
+            diesel_pools.clone(),
+        ));
         apiserver::services::payroll_service::PayrollService::new(
             apiserver::services::payroll_service::PayrollServiceArgs {
                 payroll_repo: pr,
@@ -479,8 +487,9 @@ async fn test_payroll_holiday_work_unpaid_no_premium() {
                 time_entry_repo: tr,
                 workspace_repo: wr,
                 holiday_repo: hr,
-                roster_repo: Arc::new(apiserver::repositories::roster::SqlxRosterRepository::new(
+                roster_repo: Arc::new(apiserver::repositories::DieselRosterRepository::new(
                     pool.clone(),
+                    diesel_pools.clone(),
                 )),
                 policy_repo: std::sync::Arc::new(
                     apiserver::repositories::DieselAttendancePolicyRepository::new(
@@ -691,11 +700,13 @@ async fn test_leave_kept_partial_work() {
         .await;
 
     apiserver::services::AttendanceSummaryService::new(
-        std::sync::Arc::new(apiserver::repositories::SqlxTimeEntryRepository::new(
+        std::sync::Arc::new(apiserver::repositories::DieselTimeEntryRepository::new(
             pool.clone(),
+            diesel_pools.clone(),
         )),
-        std::sync::Arc::new(apiserver::repositories::roster::SqlxRosterRepository::new(
+        std::sync::Arc::new(apiserver::repositories::DieselRosterRepository::new(
             pool.clone(),
+            diesel_pools.clone(),
         )),
         std::sync::Arc::new(
             apiserver::repositories::DieselAttendancePolicyRepository::new(
@@ -922,11 +933,13 @@ async fn test_leave_reversal_only_system() {
         .await;
 
     apiserver::services::AttendanceSummaryService::new(
-        std::sync::Arc::new(apiserver::repositories::SqlxTimeEntryRepository::new(
+        std::sync::Arc::new(apiserver::repositories::DieselTimeEntryRepository::new(
             pool.clone(),
+            diesel_pools.clone(),
         )),
-        std::sync::Arc::new(apiserver::repositories::roster::SqlxRosterRepository::new(
+        std::sync::Arc::new(apiserver::repositories::DieselRosterRepository::new(
             pool.clone(),
+            diesel_pools.clone(),
         )),
         std::sync::Arc::new(
             apiserver::repositories::DieselAttendancePolicyRepository::new(

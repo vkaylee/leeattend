@@ -178,14 +178,3 @@ impl ImportJobRepository for DieselImportJobRepository {
         Ok(())
     }
 }
-
-impl crate::repositories::PoolBacked for DieselImportJobRepository {
-    #[allow(clippy::panic)]
-    fn from_pool(_pool: sqlx::PgPool) -> Self {
-        panic!("DieselImportJobRepository requires DieselPools. Use new() instead.");
-    }
-
-    fn pool(&self) -> &sqlx::PgPool {
-        &self.sqlx_pool
-    }
-}

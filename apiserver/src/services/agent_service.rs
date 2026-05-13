@@ -87,15 +87,6 @@ mod tests {
 
     struct MockAgentRepo;
 
-    impl crate::repositories::PoolBacked for MockAgentRepo {
-        fn from_pool(_pool: sqlx::PgPool) -> Self {
-            MockAgentRepo
-        }
-        fn pool(&self) -> &sqlx::PgPool {
-            unimplemented!("mock: no pool")
-        }
-    }
-
     #[async_trait]
     impl AgentRepository for MockAgentRepo {
         async fn find_by_id(&self, id: &str) -> Result<Option<AuthorizedAgent>, String> {

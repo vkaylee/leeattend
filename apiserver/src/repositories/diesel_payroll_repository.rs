@@ -6,7 +6,7 @@ use crate::models::{
     PayrollSettings, Payslip, PayslipRuleEvaluation, PayslipSegment, SalaryComponentDefinition,
 };
 use crate::repositories::payroll_repository::*;
-use crate::repositories::PoolBacked;
+
 use crate::schema::*;
 use async_trait::async_trait;
 use chrono::{NaiveDate, Utc};
@@ -29,19 +29,6 @@ impl DieselPayrollRepository {
             sqlx_pool,
             diesel_pools,
         }
-    }
-}
-
-impl PoolBacked for DieselPayrollRepository {
-    #[allow(clippy::panic)]
-    #[allow(clippy::panic)]
-    #[allow(clippy::panic)]
-    fn from_pool(_pool: PgPool) -> Self {
-        panic!("DieselPayrollRepository requires diesel_pools to be manually injected via new()");
-    }
-
-    fn pool(&self) -> &PgPool {
-        &self.sqlx_pool
     }
 }
 

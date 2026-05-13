@@ -9,7 +9,7 @@ use uuid::Uuid;
 // Trait: LeaveBalanceRepository — DIP abstraction
 // ---------------------------------------------------------------------------
 #[async_trait]
-pub trait LeaveBalanceRepository: super::PoolBacked + Send + Sync {
+pub trait LeaveBalanceRepository: Send + Sync {
     async fn get_employee_balances(
         &self,
         workspace_id: Uuid,
@@ -34,71 +34,6 @@ pub trait LeaveBalanceRepository: super::PoolBacked + Send + Sync {
         transaction_date: chrono::NaiveDate,
         reason: &str,
     ) -> Result<(), AppError>;
-}
-
-// ---------------------------------------------------------------------------
-// SqlxLeaveBalanceRepository — production implementation backed by PgPool
-// ---------------------------------------------------------------------------
-pub struct SqlxLeaveBalanceRepository {
-    pub pool: PgPool,
-}
-
-impl SqlxLeaveBalanceRepository {
-    pub fn new(pool: PgPool) -> Self {
-        Self { pool }
-    }
-}
-
-#[async_trait]
-impl LeaveBalanceRepository for SqlxLeaveBalanceRepository {
-    async fn get_employee_balances(
-        &self,
-        workspace_id: Uuid,
-        employee_id: Uuid,
-        year: i32,
-    ) -> Result<Vec<EmployeeLeaveBalance>, AppError> {
-        get_employee_balances(&self.pool, workspace_id, employee_id, year)
-            .await
-            .map_err(Into::into)
-    }
-    async fn get_workspace_balances(
-        &self,
-        workspace_id: Uuid,
-        year: i32,
-        limit: i64,
-        offset: i64,
-        search: Option<String>,
-    ) -> Result<(Vec<WorkspaceLeaveBalance>, i64), AppError> {
-        get_workspace_balances(&self.pool, workspace_id, year, limit, offset, search)
-            .await
-            .map_err(Into::into)
-    }
-    async fn upsert_leave_balance(&self, balance: &LeaveBalance) -> Result<(), AppError> {
-        upsert_leave_balance(&self.pool, balance)
-            .await
-            .map_err(Into::into)
-    }
-    async fn adjust_balance(
-        &self,
-        workspace_id: Uuid,
-        employee_id: Uuid,
-        leave_type_id: Uuid,
-        amount: rust_decimal::Decimal,
-        transaction_date: chrono::NaiveDate,
-        reason: &str,
-    ) -> Result<(), AppError> {
-        adjust_balance(
-            &self.pool,
-            workspace_id,
-            employee_id,
-            leave_type_id,
-            amount,
-            transaction_date,
-            reason,
-        )
-        .await
-        .map_err(Into::into)
-    }
 }
 
 pub async fn get_employee_balances(
@@ -364,13 +299,4 @@ pub async fn adjust_balance(
 
     tx.commit().await?;
     Ok(())
-}
-
-impl super::PoolBacked for SqlxLeaveBalanceRepository {
-    fn from_pool(pool: sqlx::PgPool) -> Self {
-        Self::new(pool)
-    }
-    fn pool(&self) -> &sqlx::PgPool {
-        &self.pool
-    }
 }

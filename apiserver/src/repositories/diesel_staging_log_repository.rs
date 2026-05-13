@@ -149,18 +149,3 @@ impl StagingLogRepository for DieselStagingLogRepository {
         Ok(count)
     }
 }
-
-impl crate::repositories::PoolBacked for DieselStagingLogRepository {
-    #[allow(clippy::panic)]
-    #[allow(clippy::panic)]
-    #[allow(clippy::panic)]
-    fn from_pool(_pool: sqlx::PgPool) -> Self {
-        panic!(
-            "DieselStagingLogRepository requires diesel_pools to be manually injected via new()"
-        );
-    }
-
-    fn pool(&self) -> &sqlx::PgPool {
-        &self.sqlx_pool
-    }
-}

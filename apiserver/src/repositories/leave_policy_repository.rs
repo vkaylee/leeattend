@@ -9,7 +9,7 @@ use uuid::Uuid;
 // Trait: LeavePolicyRepository — DIP abstraction
 // ---------------------------------------------------------------------------
 #[async_trait]
-pub trait LeavePolicyRepository: super::PoolBacked + Send + Sync {
+pub trait LeavePolicyRepository: Send + Sync {
     async fn create_policy_definition(
         &self,
         workspace_id: Uuid,
@@ -48,113 +48,6 @@ pub trait LeavePolicyRepository: super::PoolBacked + Send + Sync {
         &self,
         workspace_id: Uuid,
     ) -> Result<Vec<crate::models::LeavePolicyAssignmentDetail>, AppError>;
-}
-
-// ---------------------------------------------------------------------------
-// SqlxLeavePolicyRepository — production implementation backed by PgPool
-// ---------------------------------------------------------------------------
-pub struct SqlxLeavePolicyRepository {
-    pub pool: PgPool,
-}
-
-impl SqlxLeavePolicyRepository {
-    pub fn new(pool: PgPool) -> Self {
-        Self { pool }
-    }
-}
-
-#[async_trait]
-impl LeavePolicyRepository for SqlxLeavePolicyRepository {
-    async fn create_policy_definition(
-        &self,
-        workspace_id: Uuid,
-        name: &str,
-        description: Option<&str>,
-        leave_type_id: Uuid,
-        rule_config: LeavePolicyConfig,
-    ) -> Result<LeavePolicyDefinition, AppError> {
-        create_policy_definition(
-            &self.pool,
-            workspace_id,
-            name,
-            description,
-            leave_type_id,
-            rule_config,
-        )
-        .await
-        .map_err(Into::into)
-    }
-    async fn get_policy_definitions(
-        &self,
-        workspace_id: Uuid,
-    ) -> Result<Vec<LeavePolicyDefinition>, AppError> {
-        get_policy_definitions(&self.pool, workspace_id)
-            .await
-            .map_err(Into::into)
-    }
-    async fn update_policy_definition(
-        &self,
-        id: Uuid,
-        workspace_id: Uuid,
-        name: Option<&str>,
-        description: Option<&str>,
-        leave_type_id: Option<Uuid>,
-        rule_config: Option<LeavePolicyConfig>,
-    ) -> Result<LeavePolicyDefinition, AppError> {
-        update_policy_definition(
-            &self.pool,
-            id,
-            workspace_id,
-            name,
-            description,
-            leave_type_id,
-            rule_config,
-        )
-        .await
-        .map_err(Into::into)
-    }
-    async fn delete_policy_definition(
-        &self,
-        id: Uuid,
-        workspace_id: Uuid,
-    ) -> Result<u64, AppError> {
-        delete_policy_definition(&self.pool, id, workspace_id)
-            .await
-            .map_err(Into::into)
-    }
-    async fn create_policy_assignment(
-        &self,
-        assignment: &LeavePolicyAssignment,
-    ) -> Result<LeavePolicyAssignment, AppError> {
-        create_policy_assignment(&self.pool, assignment)
-            .await
-            .map_err(Into::into)
-    }
-    async fn find_active_assignment_for_employee(
-        &self,
-        workspace_id: Uuid,
-        employee_id: Uuid,
-        department_id: Option<Uuid>,
-        date: NaiveDate,
-    ) -> Result<Option<(LeavePolicyDefinition, Uuid, String)>, AppError> {
-        find_active_assignment_for_employee(
-            &self.pool,
-            workspace_id,
-            employee_id,
-            department_id,
-            date,
-        )
-        .await
-        .map_err(Into::into)
-    }
-    async fn get_policy_assignments(
-        &self,
-        workspace_id: Uuid,
-    ) -> Result<Vec<crate::models::LeavePolicyAssignmentDetail>, AppError> {
-        get_policy_assignments(&self.pool, workspace_id)
-            .await
-            .map_err(Into::into)
-    }
 }
 
 pub async fn create_policy_definition(
@@ -493,13 +386,4 @@ pub async fn get_policy_assignments(
     )
     .fetch_all(pool)
     .await
-}
-
-impl super::PoolBacked for SqlxLeavePolicyRepository {
-    fn from_pool(pool: sqlx::PgPool) -> Self {
-        Self::new(pool)
-    }
-    fn pool(&self) -> &sqlx::PgPool {
-        &self.pool
-    }
 }

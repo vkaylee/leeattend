@@ -259,14 +259,3 @@ impl OvertimePolicyRepositoryTrait for DieselOvertimePolicyRepository {
         Ok(())
     }
 }
-
-impl crate::repositories::PoolBacked for DieselOvertimePolicyRepository {
-    #[allow(clippy::panic)]
-    fn from_pool(_pool: sqlx::PgPool) -> Self {
-        panic!("DieselOvertimePolicyRepository requires DieselPools. Use new() instead.");
-    }
-
-    fn pool(&self) -> &sqlx::PgPool {
-        &self.sqlx_pool
-    }
-}

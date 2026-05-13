@@ -38,7 +38,7 @@ pub struct EmployeeBasicInfo {
 // Trait: EmployeeRepository — DIP abstraction over employee data access
 // ---------------------------------------------------------------------------
 #[async_trait]
-pub trait EmployeeRepository: super::PoolBacked + Send + Sync {
+pub trait EmployeeRepository: Send + Sync {
     async fn find_by_number(
         &self,
         workspace_id: Uuid,

@@ -9,7 +9,7 @@ use uuid::Uuid;
 // Trait: OvertimePolicyRepositoryTrait — DIP abstraction
 // ---------------------------------------------------------------------------
 #[async_trait]
-pub trait OvertimePolicyRepositoryTrait: super::PoolBacked + Send + Sync {
+pub trait OvertimePolicyRepositoryTrait: Send + Sync {
     async fn create_policy_definition(
         &self,
         workspace_id: Uuid,
@@ -40,94 +40,6 @@ pub trait OvertimePolicyRepositoryTrait: super::PoolBacked + Send + Sync {
         policy_id: Uuid,
         effective_from: NaiveDate,
     ) -> Result<(), AppError>;
-}
-
-// ---------------------------------------------------------------------------
-// SqlxOvertimePolicyRepository — production implementation backed by PgPool
-// ---------------------------------------------------------------------------
-pub struct SqlxOvertimePolicyRepository {
-    pub pool: PgPool,
-}
-
-impl SqlxOvertimePolicyRepository {
-    pub fn new(pool: PgPool) -> Self {
-        Self { pool }
-    }
-}
-
-#[async_trait]
-impl OvertimePolicyRepositoryTrait for SqlxOvertimePolicyRepository {
-    async fn create_policy_definition(
-        &self,
-        workspace_id: Uuid,
-        name: &str,
-        description: Option<&str>,
-    ) -> Result<OvertimePolicy, AppError> {
-        OvertimePolicyRepository::create_policy_definition(
-            &self.pool,
-            workspace_id,
-            name,
-            description,
-        )
-        .await
-        .map_err(Into::into)
-    }
-    async fn get_policy_definitions(
-        &self,
-        workspace_id: Uuid,
-    ) -> Result<Vec<OvertimePolicy>, AppError> {
-        OvertimePolicyRepository::get_policy_definitions(&self.pool, workspace_id)
-            .await
-            .map_err(Into::into)
-    }
-    async fn get_policy_with_rules(
-        &self,
-        workspace_id: Uuid,
-        id: Uuid,
-    ) -> Result<Option<(OvertimePolicy, Vec<OvertimeRule>)>, AppError> {
-        OvertimePolicyRepository::get_policy_with_rules(&self.pool, workspace_id, id)
-            .await
-            .map_err(Into::into)
-    }
-    async fn add_rule(&self, rule: &OvertimeRule) -> Result<OvertimeRule, AppError> {
-        OvertimePolicyRepository::add_rule(&self.pool, rule)
-            .await
-            .map_err(Into::into)
-    }
-    async fn resolve_policy_for_employee(
-        &self,
-        employee_id: Uuid,
-        workspace_id: Uuid,
-        date: NaiveDate,
-    ) -> Result<Option<Uuid>, AppError> {
-        OvertimePolicyRepository::resolve_policy_for_employee(
-            &self.pool,
-            employee_id,
-            workspace_id,
-            date,
-        )
-        .await
-        .map_err(Into::into)
-    }
-    async fn create_policy_assignment(
-        &self,
-        workspace_id: Uuid,
-        assignee_type: &str,
-        assignee_id: Option<Uuid>,
-        policy_id: Uuid,
-        effective_from: NaiveDate,
-    ) -> Result<(), AppError> {
-        OvertimePolicyRepository::create_policy_assignment(
-            &self.pool,
-            workspace_id,
-            assignee_type,
-            assignee_id,
-            policy_id,
-            effective_from,
-        )
-        .await
-        .map_err(Into::into)
-    }
 }
 
 /// Backwards-compatible static method repository.
@@ -316,14 +228,5 @@ impl OvertimePolicyRepository {
         .execute(pool)
         .await?;
         Ok(())
-    }
-}
-
-impl super::PoolBacked for SqlxOvertimePolicyRepository {
-    fn from_pool(pool: sqlx::PgPool) -> Self {
-        Self::new(pool)
-    }
-    fn pool(&self) -> &sqlx::PgPool {
-        &self.pool
     }
 }

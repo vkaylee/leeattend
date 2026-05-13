@@ -4,9 +4,8 @@ use crate::models::diesel::payroll_rule::*;
 use crate::models::payroll_rule::*;
 use crate::repositories::payroll_rule_repository::{
     AssignPayrollRuleArgs, CreatePayrollRuleDefinitionArgs, PayrollRuleRepository,
-    SqlxPayrollRuleRepository,
 };
-use crate::repositories::PoolBacked;
+
 use crate::schema::*;
 use async_trait::async_trait;
 use bigdecimal::BigDecimal;
@@ -28,21 +27,6 @@ impl DieselPayrollRuleRepository {
             sqlx_pool,
             diesel_pools,
         }
-    }
-}
-
-impl PoolBacked for DieselPayrollRuleRepository {
-    #[allow(clippy::panic)]
-    #[allow(clippy::panic)]
-    #[allow(clippy::panic)]
-    fn from_pool(_pool: PgPool) -> Self {
-        panic!(
-            "DieselPayrollRuleRepository requires diesel_pools to be manually injected via new()"
-        );
-    }
-
-    fn pool(&self) -> &PgPool {
-        &self.sqlx_pool
     }
 }
 
@@ -189,9 +173,42 @@ impl PayrollRuleRepository for DieselPayrollRuleRepository {
         &self,
         args: AssignPayrollRuleArgs,
     ) -> Result<PayrollRuleAssignment, AppError> {
-        // Complex overlap check is better done in SQLx for now
-        let repo = SqlxPayrollRuleRepository::new(self.sqlx_pool.clone());
-        repo.assign_rule(args).await
+        let row = sqlx::query_as!(
+            PayrollRuleAssignment,
+            r#"
+            INSERT INTO payroll_rule_assignments (
+                workspace_id, rule_definition_id, assignee_type, assignee_id,
+                effective_from, effective_to, override_config
+            )
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            RETURNING 
+                id, workspace_id, rule_definition_id, 
+                assignee_type as "assignee_type: crate::models::enums::AssigneeType", 
+                assignee_id, effective_from, effective_to, 
+                override_config, created_at
+            "#,
+            args.workspace_id,
+            args.rule_definition_id,
+            args.assignee_type.to_string(),
+            args.assignee_id,
+            args.effective_from,
+            args.effective_to,
+            args.override_config
+        )
+        .fetch_one(&self.sqlx_pool)
+        .await
+        .map_err(|e| {
+            if let sqlx::Error::Database(db_err) = &e {
+                if db_err.constraint() == Some("payroll_rule_assignments_workspace_id_rule_definition_id_a_excl") {
+                    return AppError::Conflict(
+                        "This assignment overlaps with an existing assignment for the same rule and assignee in this time period.".to_string()
+                    );
+                }
+            }
+            AppError::Internal(format!("Failed to assign payroll rule: {e}"))
+        })?;
+
+        Ok(row)
     }
 
     async fn get_assignments_for_rule(

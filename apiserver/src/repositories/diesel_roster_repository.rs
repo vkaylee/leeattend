@@ -170,14 +170,3 @@ impl RosterRepository for DieselRosterRepository {
         Ok(())
     }
 }
-
-impl crate::repositories::PoolBacked for DieselRosterRepository {
-    #[allow(clippy::panic)]
-    #[allow(clippy::panic)]
-    fn from_pool(_pool: sqlx::PgPool) -> Self {
-        panic!("DieselRosterRepository requires DieselPools. Use new() instead.");
-    }
-    fn pool(&self) -> &sqlx::PgPool {
-        &self.sqlx_pool
-    }
-}

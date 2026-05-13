@@ -9,7 +9,7 @@ use crate::models::feature_flag::FeatureFlag;
 // Trait: FeatureFlagRepositoryTrait — DIP abstraction
 // ---------------------------------------------------------------------------
 #[async_trait]
-pub trait FeatureFlagRepositoryTrait: super::PoolBacked + Send + Sync {
+pub trait FeatureFlagRepositoryTrait: Send + Sync {
     async fn list_flags(&self, workspace_id: Uuid) -> Result<Vec<FeatureFlag>, AppError>;
     async fn get_flag_by_key(
         &self,

@@ -64,8 +64,6 @@ pub async fn get_unexcused_absences(
     MemberContext { workspace_id, .. }: MemberContext,
     Query(params): Query<UnexcusedAbsencesQuery>,
 ) -> AppResult<Json<Vec<UnexcusedAbsencesPoint>>> {
-    use crate::repositories::workspace_repository::WorkspaceRepository;
-    use crate::repositories::SqlxWorkspaceRepository;
     use crate::services::attendance_utils::{
         self, determine_daily_status, AttendanceStatus, DailyStatusInput,
     };
@@ -88,10 +86,9 @@ pub async fn get_unexcused_absences(
     let group_by = params.group_by.unwrap_or_else(|| "department".to_string());
 
     // 1. Get workspace timezone
-    let workspace_repo = SqlxWorkspaceRepository {
-        pool: state.infra.db.reader().clone(),
-    };
-    let workspace = workspace_repo
+    let workspace = state
+        .core
+        .workspace_repo
         .get_workspace_by_id(workspace_id)
         .await
         .map_err(|e| AppError::Internal(format!("Error fetching workspace: {e}")))?

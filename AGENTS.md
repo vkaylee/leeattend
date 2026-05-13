@@ -6,7 +6,9 @@
 ## ⚠️ PTY Compatibility & Execution — CRITICAL
 
 > [!CAUTION]
-> **CRITICAL:** When running commands via terminal tools, child processes can inherit PTY file descriptors and prevent command completion detection. The agent will hang waiting for a "done" status that never arrives.
+> **CRITICAL PTY HANG WARNING:** 
+> 1. NEVER pass strings containing literal newlines into terminal commands (like `git commit -m "multi\nline"` or heredocs). THIS WILL HANG THE AGENT FOREVER. Write multi-line content to a temp file (`/tmp/msg.txt`), then execute the command reading from that file (`-F /tmp/msg.txt` or `< /tmp/msg.txt`).
+> 2. When running commands via terminal tools, child processes can inherit PTY file descriptors and prevent command completion detection.
 
 ### 1. The Hermetic Toolbox (MANDATORY)
 All standard development tools run inside isolated Podman containers. You MUST execute them via these wrapper scripts instead of using native commands on the host:
@@ -24,9 +26,9 @@ All standard development tools run inside isolated Podman containers. You MUST e
   - Examples: `./test.sh api`, `./test.sh web`, `./test.sh all`
 - **Checking Coverage:** When asked to check test coverage, use the `--coverage` flag (e.g., `./test.sh api --coverage`). This flag will enforce the 100% threshold.
 
-### 3. Git & Multiline Strings
-- **Git Protocol:** NEVER run `git` directly. ALWAYS use the `./scripts/git.sh` wrapper (e.g., `./scripts/git.sh commit -m "msg"`) to prevent PTY hangs.
-- **Multiline Strings:** NEVER pass strings containing literal newlines into terminal commands. Write multi-line content to a temp file (`/tmp/msg.txt`), then execute the command reading from that file (`-F /tmp/msg.txt`).
+### 3. Git Protocol
+- **Git Protocol:** NEVER run `git` directly. ALWAYS use the `./scripts/git.sh` wrapper.
+- **Multiline Strings:** NEVER use multi-line strings in commit messages. Create `/tmp/msg.txt` using file-write tools, then run `./scripts/git.sh commit -F /tmp/msg.txt`.
 
 ### 4. Background Execution & Services
 - **BANNED:** Never use the bash background operator (`&`) for ANY command (tests, servers, builds). 

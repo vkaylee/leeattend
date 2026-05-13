@@ -1,7 +1,7 @@
 use crate::diesel_pool::DieselPools;
 use crate::errors::AppError;
 use crate::repositories::leave_accrual_log_repository::*;
-use crate::repositories::PoolBacked;
+
 use crate::schema::*;
 use async_trait::async_trait;
 use chrono::NaiveDate;
@@ -23,19 +23,6 @@ impl DieselLeaveAccrualLogRepository {
             sqlx_pool,
             diesel_pools,
         }
-    }
-}
-
-impl PoolBacked for DieselLeaveAccrualLogRepository {
-    #[allow(clippy::panic)]
-    #[allow(clippy::panic)]
-    #[allow(clippy::panic)]
-    fn from_pool(_pool: PgPool) -> Self {
-        panic!("DieselLeaveAccrualLogRepository requires diesel_pools to be manually injected via new()");
-    }
-
-    fn pool(&self) -> &PgPool {
-        &self.sqlx_pool
     }
 }
 
@@ -121,8 +108,40 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
         leave_type_id: Option<Uuid>,
     ) -> Result<Vec<crate::repositories::leave_accrual_log_repository::LeaveHistoryLogItem>, AppError>
     {
-        let repo = SqlxLeaveAccrualLogRepository::new(self.sqlx_pool.clone());
-        repo.get_employee_leave_history_logs(workspace_id, employee_id, year, leave_type_id)
-            .await
+        let rows = sqlx::query!(
+            r#"
+            SELECT lal.id, lal.accrual_date, lal.amount, lt.name as leave_type_name,
+                   lal.notes, lal.created_at, lal.policy_assignment_id
+            FROM leave_accrual_logs lal
+            JOIN leave_types lt ON lal.leave_type_id = lt.id
+            JOIN employees e ON lal.employee_id = e.id
+            WHERE lal.employee_id = $1
+              AND e.workspace_id = $4
+              AND EXTRACT(YEAR FROM lal.accrual_date) = $2
+              AND (lt.id = $3 OR $3 IS NULL)
+            "#,
+            employee_id,
+            year as f64,
+            leave_type_id,
+            workspace_id
+        )
+        .fetch_all(&self.sqlx_pool)
+        .await
+        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        Ok(rows
+            .into_iter()
+            .map(
+                |row| crate::repositories::leave_accrual_log_repository::LeaveHistoryLogItem {
+                    id: row.id,
+                    accrual_date: row.accrual_date,
+                    amount: row.amount,
+                    leave_type_name: row.leave_type_name,
+                    notes: row.notes,
+                    created_at: row.created_at,
+                    policy_assignment_id: row.policy_assignment_id,
+                },
+            )
+            .collect())
     }
 }

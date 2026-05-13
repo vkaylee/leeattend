@@ -11,7 +11,7 @@ use uuid::Uuid;
 // ---------------------------------------------------------------------------
 #[async_trait]
 
-pub trait TimeEntryRepository: super::PoolBacked + Send + Sync {
+pub trait TimeEntryRepository: Send + Sync {
     async fn create_time_entry(&self, entry: &TimeEntry) -> Result<(), AppError>;
     async fn get_time_entry_by_id(
         &self,
@@ -74,170 +74,6 @@ pub trait TimeEntryRepository: super::PoolBacked + Send + Sync {
         end_time: DateTime<Utc>,
         entries: Vec<TimeEntry>,
     ) -> Result<(), AppError>;
-}
-
-pub struct SqlxTimeEntryRepository {
-    pub pool: PgPool,
-}
-
-impl SqlxTimeEntryRepository {
-    pub fn new(pool: PgPool) -> Self {
-        Self { pool }
-    }
-}
-
-#[async_trait]
-impl TimeEntryRepository for SqlxTimeEntryRepository {
-    async fn create_time_entry(&self, entry: &TimeEntry) -> Result<(), AppError> {
-        create_time_entry(&self.pool, entry)
-            .await
-            .map_err(Into::into)
-    }
-    async fn get_time_entry_by_id(
-        &self,
-        workspace_id: Uuid,
-        id: Uuid,
-    ) -> Result<Option<TimeEntry>, AppError> {
-        get_time_entry_by_id(&self.pool, workspace_id, id)
-            .await
-            .map_err(Into::into)
-    }
-    async fn get_active_time_entry(
-        &self,
-        workspace_id: Uuid,
-        employee_id: Uuid,
-    ) -> Result<Option<TimeEntry>, AppError> {
-        get_active_time_entry(&self.pool, workspace_id, employee_id)
-            .await
-            .map_err(Into::into)
-    }
-    async fn get_latest_active_entry(
-        &self,
-        workspace_id: Uuid,
-        employee_id: Uuid,
-    ) -> Result<Option<TimeEntry>, AppError> {
-        get_latest_active_entry(&self.pool, workspace_id, employee_id)
-            .await
-            .map_err(Into::into)
-    }
-
-    async fn get_latest_entry_for_employee(
-        &self,
-        workspace_id: Uuid,
-        employee_id: Uuid,
-    ) -> Result<Option<TimeEntry>, AppError> {
-        get_latest_entry_for_employee(&self.pool, workspace_id, employee_id)
-            .await
-            .map_err(Into::into)
-    }
-    async fn update_time_entry(
-        &self,
-        workspace_id: Uuid,
-        entry: &TimeEntry,
-    ) -> Result<(), AppError> {
-        update_time_entry(&self.pool, workspace_id, entry)
-            .await
-            .map_err(Into::into)
-    }
-    async fn delete_time_entry(&self, workspace_id: Uuid, id: Uuid) -> Result<(), AppError> {
-        delete_time_entry(&self.pool, workspace_id, id)
-            .await
-            .map_err(Into::into)
-    }
-    async fn get_employee_time_entries(
-        &self,
-        workspace_id: Uuid,
-        employee_id: Uuid,
-        from: DateTime<Utc>,
-        to: DateTime<Utc>,
-    ) -> Result<Vec<TimeEntry>, AppError> {
-        get_employee_time_entries(&self.pool, workspace_id, employee_id, from, to)
-            .await
-            .map_err(Into::into)
-    }
-    async fn get_paginated_logs(
-        &self,
-        workspace_id: Uuid,
-        filter: crate::models::TimeEntryLogFilter,
-    ) -> Result<Vec<TimeEntryWithEmployee>, AppError> {
-        get_paginated_logs(&self.pool, workspace_id, filter)
-            .await
-            .map_err(Into::into)
-    }
-    async fn count_logs(
-        &self,
-        workspace_id: Uuid,
-        p_employee_id: Option<Uuid>,
-        p_from: Option<DateTime<Utc>>,
-        p_to: Option<DateTime<Utc>>,
-    ) -> Result<i64, AppError> {
-        count_logs(&self.pool, workspace_id, p_employee_id, p_from, p_to)
-            .await
-            .map_err(Into::into)
-    }
-    async fn get_workspace_time_entries_batch(
-        &self,
-        workspace_id: Uuid,
-        employee_ids: &[Uuid],
-        from: DateTime<Utc>,
-        to: DateTime<Utc>,
-    ) -> Result<HashMap<Uuid, Vec<TimeEntry>>, AppError> {
-        get_workspace_time_entries_batch(&self.pool, workspace_id, employee_ids, from, to)
-            .await
-            .map_err(Into::into)
-    }
-    async fn replace_time_entries(
-        &self,
-        workspace_id: Uuid,
-        employee_id: Uuid,
-        start_time: DateTime<Utc>,
-        end_time: DateTime<Utc>,
-        entries: Vec<TimeEntry>,
-    ) -> Result<(), AppError> {
-        let mut tx = self.pool.begin().await.map_err(Into::<AppError>::into)?;
-
-        sqlx::query!(
-            "DELETE FROM time_entries WHERE workspace_id = $1 AND employee_id = $2 AND punch_in_time >= $3 AND punch_in_time < $4",
-            workspace_id,
-            employee_id,
-            start_time,
-            end_time
-        )
-        .execute(&mut *tx)
-        .await
-        .map_err(Into::<AppError>::into)?;
-
-        for entry in entries {
-            let final_metadata = entry
-                .generation_metadata
-                .clone()
-                .unwrap_or(serde_json::json!({}));
-            sqlx::query!(
-                "INSERT INTO time_entries 
-                (id, employee_id, workspace_id, shift_id, punch_in_time, punch_out_time, duration_minutes, entry_type, note, is_break_overtime, generation_metadata, created_at, updated_at)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)",
-                entry.id,
-                entry.employee_id,
-                entry.workspace_id,
-                entry.shift_id,
-                entry.punch_in_time,
-                entry.punch_out_time,
-                entry.duration_minutes,
-                entry.entry_type,
-                entry.note,
-                entry.is_break_overtime,
-                Some(final_metadata),
-                entry.created_at,
-                entry.updated_at
-            )
-            .execute(&mut *tx)
-            .await
-            .map_err(Into::<AppError>::into)?;
-        }
-
-        tx.commit().await.map_err(Into::<AppError>::into)?;
-        Ok(())
-    }
 }
 
 pub async fn create_time_entry(pool: &PgPool, entry: &TimeEntry) -> Result<(), sqlx::Error> {
@@ -497,13 +333,4 @@ pub async fn get_workspace_time_entries_batch(
     }
 
     Ok(result)
-}
-
-impl super::PoolBacked for SqlxTimeEntryRepository {
-    fn from_pool(pool: sqlx::PgPool) -> Self {
-        Self::new(pool)
-    }
-    fn pool(&self) -> &sqlx::PgPool {
-        &self.pool
-    }
 }

@@ -59,12 +59,11 @@ async fn test_accrual_scenarios() {
         .await;
 
     // Run Accrual for Jan 1, 2026
-    let employee_repo: Arc<dyn apiserver::repositories::EmployeeRepository> = Arc::new(
-        apiserver::repositories::diesel_employee_repository::DieselEmployeeRepository::new(
+    let employee_repo: Arc<dyn apiserver::repositories::EmployeeRepository> =
+        Arc::new(apiserver::repositories::DieselEmployeeRepository::new(
             pool.clone(),
             apiserver::diesel_pool::DieselPools::for_test(&test_db.url()),
-        ),
-    );
+        ));
     let department_repo: Arc<
         dyn apiserver::repositories::department_repository::DepartmentRepository,
     > = Arc::new(apiserver::repositories::DieselDepartmentRepository::new(
@@ -73,16 +72,20 @@ async fn test_accrual_scenarios() {
     ));
     let leave_policy_repo: Arc<
         dyn apiserver::repositories::leave_policy_repository::LeavePolicyRepository,
-    > = Arc::new(
-        apiserver::repositories::leave_policy_repository::SqlxLeavePolicyRepository::new(
-            pool.clone(),
-        ),
-    );
+    > = Arc::new(apiserver::repositories::DieselLeavePolicyRepository::new(
+        pool.clone(),
+        diesel_pools.clone(),
+    ));
     let accrual_service = LeaveAccrualService::new(
         employee_repo,
         department_repo,
         leave_policy_repo,
-        Arc::new(apiserver::repositories::leave_accrual_log_repository::SqlxLeaveAccrualLogRepository::new(pool.clone())),
+        Arc::new(
+            apiserver::repositories::DieselLeaveAccrualLogRepository::new(
+                pool.clone(),
+                diesel_pools.clone(),
+            ),
+        ),
         pool.clone(),
     );
     let logs = accrual_service
@@ -141,12 +144,11 @@ async fn test_performance_based_accrual() {
     }
 
     // Run accrual for Feb 1 (checking Jan)
-    let employee_repo: Arc<dyn apiserver::repositories::EmployeeRepository> = Arc::new(
-        apiserver::repositories::diesel_employee_repository::DieselEmployeeRepository::new(
+    let employee_repo: Arc<dyn apiserver::repositories::EmployeeRepository> =
+        Arc::new(apiserver::repositories::DieselEmployeeRepository::new(
             pool.clone(),
             apiserver::diesel_pool::DieselPools::for_test(&test_db.url()),
-        ),
-    );
+        ));
     let department_repo: Arc<
         dyn apiserver::repositories::department_repository::DepartmentRepository,
     > = Arc::new(apiserver::repositories::DieselDepartmentRepository::new(
@@ -155,16 +157,20 @@ async fn test_performance_based_accrual() {
     ));
     let leave_policy_repo: Arc<
         dyn apiserver::repositories::leave_policy_repository::LeavePolicyRepository,
-    > = Arc::new(
-        apiserver::repositories::leave_policy_repository::SqlxLeavePolicyRepository::new(
-            pool.clone(),
-        ),
-    );
+    > = Arc::new(apiserver::repositories::DieselLeavePolicyRepository::new(
+        pool.clone(),
+        diesel_pools.clone(),
+    ));
     let accrual_service = LeaveAccrualService::new(
         employee_repo,
         department_repo,
         leave_policy_repo,
-        Arc::new(apiserver::repositories::leave_accrual_log_repository::SqlxLeaveAccrualLogRepository::new(pool.clone())),
+        Arc::new(
+            apiserver::repositories::DieselLeaveAccrualLogRepository::new(
+                pool.clone(),
+                diesel_pools.clone(),
+            ),
+        ),
         pool.clone(),
     );
     let logs = accrual_service
@@ -228,12 +234,11 @@ async fn test_accrual_recalculation() {
         )
         .await;
 
-    let employee_repo: Arc<dyn apiserver::repositories::EmployeeRepository> = Arc::new(
-        apiserver::repositories::diesel_employee_repository::DieselEmployeeRepository::new(
+    let employee_repo: Arc<dyn apiserver::repositories::EmployeeRepository> =
+        Arc::new(apiserver::repositories::DieselEmployeeRepository::new(
             pool.clone(),
             apiserver::diesel_pool::DieselPools::for_test(&test_db.url()),
-        ),
-    );
+        ));
     let department_repo: Arc<
         dyn apiserver::repositories::department_repository::DepartmentRepository,
     > = Arc::new(apiserver::repositories::DieselDepartmentRepository::new(
@@ -242,16 +247,20 @@ async fn test_accrual_recalculation() {
     ));
     let leave_policy_repo: Arc<
         dyn apiserver::repositories::leave_policy_repository::LeavePolicyRepository,
-    > = Arc::new(
-        apiserver::repositories::leave_policy_repository::SqlxLeavePolicyRepository::new(
-            pool.clone(),
-        ),
-    );
+    > = Arc::new(apiserver::repositories::DieselLeavePolicyRepository::new(
+        pool.clone(),
+        diesel_pools.clone(),
+    ));
     let accrual_service = LeaveAccrualService::new(
         employee_repo,
         department_repo,
         leave_policy_repo,
-        Arc::new(apiserver::repositories::leave_accrual_log_repository::SqlxLeaveAccrualLogRepository::new(pool.clone())),
+        Arc::new(
+            apiserver::repositories::DieselLeaveAccrualLogRepository::new(
+                pool.clone(),
+                diesel_pools.clone(),
+            ),
+        ),
         pool.clone(),
     );
 

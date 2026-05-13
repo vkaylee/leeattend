@@ -4,7 +4,7 @@ use async_trait::async_trait;
 use uuid::Uuid;
 
 #[async_trait]
-pub trait SessionRepository: super::PoolBacked + Send + Sync {
+pub trait SessionRepository: Send + Sync {
     async fn create_session(
         &self,
         user_id: Uuid,

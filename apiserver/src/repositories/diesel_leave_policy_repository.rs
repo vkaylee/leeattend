@@ -9,7 +9,7 @@ use crate::repositories::leave_policy_repository::{
     find_active_assignment_for_employee, get_policy_assignments, update_policy_definition,
     LeavePolicyRepository,
 };
-use crate::repositories::PoolBacked;
+
 use crate::schema::*;
 use async_trait::async_trait;
 use chrono::NaiveDate;
@@ -29,21 +29,6 @@ impl DieselLeavePolicyRepository {
             sqlx_pool,
             diesel_pools,
         }
-    }
-}
-
-impl PoolBacked for DieselLeavePolicyRepository {
-    #[allow(clippy::panic)]
-    #[allow(clippy::panic)]
-    #[allow(clippy::panic)]
-    fn from_pool(_pool: PgPool) -> Self {
-        panic!(
-            "DieselLeavePolicyRepository requires diesel_pools to be manually injected via new()"
-        );
-    }
-
-    fn pool(&self) -> &PgPool {
-        &self.sqlx_pool
     }
 }
 
