@@ -17,11 +17,7 @@ async fn test_attendance_and_merge_handlers() {
     let test_db = TestDatabase::new().await;
     let pool = test_db.pool();
     let factory = TestFactory::new(pool.clone());
-    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(
-        &std::env::var("DATABASE_URL").unwrap_or_else(|_| {
-            "postgres://postgres:postgres@localhost:5432/leeattend".to_string()
-        }),
-    );
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
     let redis_url =
         std::env::var("REDIS_URL").unwrap_or_else(|_| "redis://127.0.0.1:6379".to_string());
     let redis_pool = RedisPool::new(&redis_url).await.unwrap();

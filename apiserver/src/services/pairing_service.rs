@@ -13,12 +13,14 @@ use crate::repositories::workspace_repository::WorkspaceRepository;
 
 use crate::models::RawAttendanceLog;
 use crate::repositories::roster::RosterRepository;
+use crate::repositories::AttendancePolicyRepository;
 use crate::repositories::TimeEntryRepository;
 use crate::services::pairing_algo::{self, PairingShiftConfig};
 
 pub struct PairingService {
     time_entry_repo: Arc<dyn TimeEntryRepository>,
     roster_repo: Arc<dyn RosterRepository>,
+    policy_repo: Arc<dyn AttendancePolicyRepository>,
     /// Kept for operations not yet abstracted
     pool: PgPool,
     diesel_pools: crate::diesel_pool::DieselPools,
@@ -28,12 +30,14 @@ impl PairingService {
     pub fn new(
         time_entry_repo: Arc<dyn TimeEntryRepository>,
         roster_repo: Arc<dyn RosterRepository>,
+        policy_repo: Arc<dyn AttendancePolicyRepository>,
         pool: PgPool,
         diesel_pools: crate::diesel_pool::DieselPools,
     ) -> Self {
         Self {
             time_entry_repo,
             roster_repo,
+            policy_repo,
             pool,
             diesel_pools,
         }
@@ -230,6 +234,7 @@ impl PairingService {
             let summary_svc = crate::services::AttendanceSummaryService::new(
                 Arc::clone(&self.time_entry_repo),
                 Arc::clone(&self.roster_repo),
+                Arc::clone(&self.policy_repo),
                 self.pool.clone(),
                 self.diesel_pools.clone(),
             );
@@ -301,6 +306,7 @@ impl PairingService {
         let summary_svc = crate::services::AttendanceSummaryService::new(
             Arc::clone(&self.time_entry_repo),
             Arc::clone(&self.roster_repo),
+            Arc::clone(&self.policy_repo),
             self.pool.clone(),
             self.diesel_pools.clone(),
         );

@@ -162,6 +162,7 @@ pub enum LogSource {
 )]
 #[sqlx(type_name = "import_job_status_type", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
+#[strum(serialize_all = "snake_case")]
 pub enum ImportJobStatus {
     Pending,
     Processing,

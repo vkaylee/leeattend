@@ -31,13 +31,9 @@ fn create_multipart_body(filename: &str, content: &str) -> (String, Vec<u8>) {
 
 #[tokio::test]
 async fn test_upload_leave_csv_api() {
-    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(
-        &std::env::var("DATABASE_URL").unwrap_or_else(|_| {
-            "postgres://postgres:postgres@localhost:5432/leeattend".to_string()
-        }),
-    );
-    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+    let (test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
         setup_app_tower().await;
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
 
     let user_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(user_id).await;

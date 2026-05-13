@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use chrono::{NaiveDate, Utc};
 use diesel::prelude::*;
-use diesel_async::RunQueryDsl;
+use diesel_async::{AsyncConnection, RunQueryDsl};
 use uuid::Uuid;
 
 use crate::diesel_pool::DieselPools;
@@ -242,15 +242,48 @@ impl ShiftRepository for DieselShiftRepository {
         new_shift_id: Uuid,
         effective_date: NaiveDate,
     ) -> Result<(), AppError> {
-        let mut tx = self.sqlx_pool.begin().await?;
-        crate::repositories::shift_repository::update_assignments_to_new_version_tx(
-            &mut tx,
-            old_shift_id,
-            new_shift_id,
-            effective_date,
-        )
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        let yesterday = effective_date.pred_opt().unwrap_or(effective_date);
+
+        conn.transaction::<_, AppError, _>(|conn| {
+            Box::pin(async move {
+                diesel::sql_query(
+                    "UPDATE employee_shifts
+                     SET end_date = $2, updated_at = CURRENT_TIMESTAMP
+                     WHERE shift_id = $1 AND (end_date IS NULL OR end_date >= $3)",
+                )
+                .bind::<diesel::sql_types::Uuid, _>(old_shift_id)
+                .bind::<diesel::sql_types::Date, _>(yesterday)
+                .bind::<diesel::sql_types::Date, _>(effective_date)
+                .execute(conn)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+                diesel::sql_query(
+                    "INSERT INTO employee_shifts (employee_id, shift_id, start_date, end_date)
+                     SELECT employee_id, $2, $3, NULL
+                     FROM employee_shifts
+                     WHERE shift_id = $1 AND end_date = $4",
+                )
+                .bind::<diesel::sql_types::Uuid, _>(old_shift_id)
+                .bind::<diesel::sql_types::Uuid, _>(new_shift_id)
+                .bind::<diesel::sql_types::Date, _>(effective_date)
+                .bind::<diesel::sql_types::Date, _>(yesterday)
+                .execute(conn)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+                Ok(())
+            })
+        })
         .await?;
-        tx.commit().await?;
+
         Ok(())
     }
 }

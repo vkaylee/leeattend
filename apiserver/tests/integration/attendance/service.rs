@@ -12,11 +12,7 @@ async fn test_process_log_success_with_timezone() {
     let test_db = TestDatabase::new().await;
     let pool = test_db.pool();
     let factory = TestFactory::new(pool.clone());
-    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(
-        &std::env::var("DATABASE_URL").unwrap_or_else(|_| {
-            "postgres://postgres:postgres@localhost:5432/leeattend".to_string()
-        }),
-    );
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
 
     let workspace_id = factory
         .workspace()
@@ -40,6 +36,12 @@ async fn test_process_log_success_with_timezone() {
         std::sync::Arc::new(apiserver::repositories::roster::SqlxRosterRepository::new(
             pool.clone(),
         )),
+        std::sync::Arc::new(
+            apiserver::repositories::DieselAttendancePolicyRepository::new(
+                pool.clone(),
+                diesel_pools.clone(),
+            ),
+        ),
         pool.clone(),
         diesel_pools.clone(),
     ));
@@ -124,11 +126,7 @@ async fn test_same_second_punch_with_different_status_allowed() {
     let test_db = TestDatabase::new().await;
     let pool = test_db.pool();
     let factory = TestFactory::new(pool.clone());
-    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(
-        &std::env::var("DATABASE_URL").unwrap_or_else(|_| {
-            "postgres://postgres:postgres@localhost:5432/leeattend".to_string()
-        }),
-    );
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
 
     let workspace_id = factory.workspace().create().await;
     let _employee_id = factory
@@ -148,6 +146,12 @@ async fn test_same_second_punch_with_different_status_allowed() {
         std::sync::Arc::new(apiserver::repositories::roster::SqlxRosterRepository::new(
             pool.clone(),
         )),
+        std::sync::Arc::new(
+            apiserver::repositories::DieselAttendancePolicyRepository::new(
+                pool.clone(),
+                diesel_pools.clone(),
+            ),
+        ),
         pool.clone(),
         diesel_pools.clone(),
     ));

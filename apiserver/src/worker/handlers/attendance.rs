@@ -99,6 +99,11 @@ impl AttendanceHandler {
             entries_result.map_err(|e| format!("Failed to fetch time entries: {e}"))?;
 
         // 5. Calculate based on report type
+        let policy_repo = crate::repositories::DieselAttendancePolicyRepository::new(
+            pool.clone(),
+            diesel.clone(),
+        );
+
         let result_json = match payload.config.report_type {
             ReportType::Summary => {
                 Self::calculate_summary(CalculateBatchArgs {
@@ -110,6 +115,7 @@ impl AttendanceHandler {
                     end_date,
                     _workspace_config: &workspace_config,
                     tz,
+                    policy_repo: &policy_repo,
                 })
                 .await?
             }
@@ -123,6 +129,7 @@ impl AttendanceHandler {
                     end_date,
                     _workspace_config: &workspace_config,
                     tz,
+                    policy_repo: &policy_repo,
                 })
                 .await?
             }
@@ -187,6 +194,7 @@ struct CalculateBatchArgs<'a> {
     end_date: NaiveDate,
     _workspace_config: &'a CachedWorkspaceConfig,
     tz: Tz,
+    policy_repo: &'a dyn crate::repositories::AttendancePolicyRepository,
 }
 
 impl AttendanceHandler {
@@ -239,7 +247,7 @@ impl AttendanceHandler {
         .map_err(|e| format!("Failed to fetch working conditions: {e}"))?;
 
         let attendance_rules_map = PolicyResolver::resolve_attendance_policy_batch(
-            args.pool,
+            args.policy_repo,
             &emp_ids,
             args.workspace_id,
             args.start_date, // Using start_date as proxy for the report period
@@ -390,7 +398,7 @@ impl AttendanceHandler {
         .map_err(|e| format!("Failed to fetch working conditions: {e}"))?;
 
         let attendance_rules_map = PolicyResolver::resolve_attendance_policy_batch(
-            args.pool,
+            args.policy_repo,
             &emp_ids,
             args.workspace_id,
             args.start_date, // Using start_date as proxy for the report period

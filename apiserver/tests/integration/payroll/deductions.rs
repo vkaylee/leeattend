@@ -15,11 +15,7 @@ async fn test_net_pay_formula_with_zero_deductions() {
     let test_db = TestDatabase::new().await;
     let pool = test_db.pool();
     let factory = TestFactory::new(pool.clone());
-    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(
-        &std::env::var("DATABASE_URL").unwrap_or_else(|_| {
-            "postgres://postgres:postgres@localhost:5432/leeattend".to_string()
-        }),
-    );
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
 
     let user_id = factory.user().create().await;
     let workspace_id = factory.workspace().create_with_owner(user_id).await;
@@ -117,6 +113,13 @@ async fn test_net_pay_formula_with_zero_deductions() {
             roster_repo: Arc::new(apiserver::repositories::roster::SqlxRosterRepository::new(
                 pool.clone(),
             )),
+            policy_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselAttendancePolicyRepository::new(
+                    pool.clone(),
+                    diesel_pools.clone(),
+                ),
+            ),
+
             pool: pool.clone(),
         })
     }

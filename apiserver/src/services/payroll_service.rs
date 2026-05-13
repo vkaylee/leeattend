@@ -26,6 +26,7 @@ pub struct PayrollService {
     workspace_repo: Arc<dyn WorkspaceRepository>,
     pub holiday_repo: Arc<dyn HolidayRepositoryTrait>,
     pub roster_repo: Arc<dyn RosterRepository>,
+    pub policy_repo: Arc<dyn crate::repositories::AttendancePolicyRepository>,
     pub pool: PgPool,
 }
 
@@ -79,6 +80,7 @@ pub struct PayrollServiceArgs {
     pub workspace_repo: Arc<dyn WorkspaceRepository>,
     pub holiday_repo: Arc<dyn HolidayRepositoryTrait>,
     pub roster_repo: Arc<dyn RosterRepository>,
+    pub policy_repo: Arc<dyn crate::repositories::AttendancePolicyRepository>,
     pub pool: PgPool,
 }
 
@@ -91,6 +93,7 @@ impl PayrollService {
             workspace_repo: args.workspace_repo,
             holiday_repo: args.holiday_repo,
             roster_repo: args.roster_repo,
+            policy_repo: args.policy_repo,
             pool: args.pool,
         }
     }
@@ -292,7 +295,7 @@ impl PayrollService {
             .await?;
 
             let attendance_policy = PolicyResolver::resolve_attendance_policy(
-                pool,
+                &*self.policy_repo,
                 employee_id,
                 workspace_id,
                 seg_start,
@@ -315,6 +318,7 @@ impl PayrollService {
                     attendance_rules: &attendance_policy,
                     seg_units_per_day,
                     policy_cache: &mut policy_cache,
+                    policy_repo: &*self.policy_repo,
                 },
             )
             .await;
@@ -357,7 +361,7 @@ impl PayrollService {
         if let Some(ref ps) = payroll_settings {
             if let Some(max_monthly_hours) = ps.max_ot_hours_per_month {
                 let month_end_policy = PolicyResolver::resolve_attendance_policy(
-                    pool,
+                    &*self.policy_repo,
                     employee_id,
                     workspace_id,
                     ctx.end_date,
@@ -531,6 +535,7 @@ impl PayrollService {
                     workspace_repo: Arc::clone(&self.workspace_repo),
                     holiday_repo: Arc::clone(&self.holiday_repo),
                     roster_repo: Arc::clone(&self.roster_repo),
+                    policy_repo: Arc::clone(&self.policy_repo),
                     pool: self.pool.clone(),
                 };
                 async move {

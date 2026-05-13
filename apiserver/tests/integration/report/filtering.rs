@@ -10,11 +10,7 @@ async fn test_daily_report_employee_filtering() {
     let test_db = TestDatabase::new().await;
     let pool = test_db.pool();
     let factory = TestFactory::new(pool.clone());
-    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(
-        &std::env::var("DATABASE_URL").unwrap_or_else(|_| {
-            "postgres://postgres:postgres@localhost:5432/leeattend".to_string()
-        }),
-    );
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
 
     let workspace_id = factory.workspace().create().await;
 
@@ -43,6 +39,12 @@ async fn test_daily_report_employee_filtering() {
         std::sync::Arc::new(apiserver::repositories::roster::SqlxRosterRepository::new(
             pool.clone(),
         )),
+        std::sync::Arc::new(
+            apiserver::repositories::DieselAttendancePolicyRepository::new(
+                pool.clone(),
+                diesel_pools.clone(),
+            ),
+        ),
         pool.clone(),
         diesel_pools.clone(),
     );

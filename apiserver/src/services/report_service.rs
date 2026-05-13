@@ -14,7 +14,9 @@ use crate::models::{
 use crate::repositories::holiday_repository::HolidayRepository;
 use crate::repositories::roster::RosterRepository;
 use crate::repositories::workspace_repository::WorkspaceRepository;
-use crate::repositories::{employee, DieselWorkspaceRepository, TimeEntryRepository};
+use crate::repositories::{
+    employee, AttendancePolicyRepository, DieselWorkspaceRepository, TimeEntryRepository,
+};
 use crate::services::AttendanceCalculator;
 
 pub struct AttendanceReportArgs {
@@ -43,6 +45,7 @@ pub struct CalculateDayUnitsArgs<'a, 'b> {
 pub struct ReportService {
     time_entry_repo: Arc<dyn TimeEntryRepository>,
     roster_repo: Arc<dyn RosterRepository>,
+    policy_repo: Arc<dyn AttendancePolicyRepository>,
     pool: PgPool,
     diesel: crate::diesel_pool::DieselPools,
 }
@@ -51,12 +54,14 @@ impl ReportService {
     pub fn new(
         time_entry_repo: Arc<dyn TimeEntryRepository>,
         roster_repo: Arc<dyn RosterRepository>,
+        policy_repo: Arc<dyn AttendancePolicyRepository>,
         pool: PgPool,
         diesel: crate::diesel_pool::DieselPools,
     ) -> Self {
         Self {
             time_entry_repo,
             roster_repo,
+            policy_repo,
             pool,
             diesel,
         }
@@ -101,6 +106,7 @@ impl ReportService {
                 .and_then(|t| args.tz.from_local_datetime(&args.date.and_time(t)).single());
 
             let rules = PolicyResolver::resolve_with_shift_overrides(
+                &*self.policy_repo,
                 &self.pool,
                 args.employee_id,
                 args.workspace_id,
@@ -256,7 +262,7 @@ impl ReportService {
 
         // 5d. BATCH fetch attendance rules (SCD Type 2)
         let attendance_rules_map = PolicyResolver::resolve_attendance_policy_batch(
-            &self.pool,
+            &*self.policy_repo,
             &emp_ids,
             args.workspace_id,
             args.start_date, // proxy date for the report period
@@ -507,7 +513,7 @@ impl ReportService {
 
         // 6b. BATCH fetch attendance rules (SCD Type 2)
         let attendance_rules_map = PolicyResolver::resolve_attendance_policy_batch(
-            &self.pool,
+            &*self.policy_repo,
             &emp_ids,
             workspace.id,
             args.start_date, // proxy date for the report period

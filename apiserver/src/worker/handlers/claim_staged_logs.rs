@@ -32,6 +32,10 @@ impl ClaimStagedLogsHandler {
                     db.clone(),
                     diesel.clone(),
                 )),
+                std::sync::Arc::new(crate::repositories::DieselAttendancePolicyRepository::new(
+                    db.clone(),
+                    diesel.clone(),
+                )),
                 db.clone(),
                 diesel.clone(),
             ));

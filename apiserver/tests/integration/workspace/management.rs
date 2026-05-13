@@ -196,11 +196,7 @@ async fn test_workspace_repository_directly() {
     let pool = test_db.pool();
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
     let factory = TestFactory::new(pool.clone());
-    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(
-        &std::env::var("DATABASE_URL").unwrap_or_else(|_| {
-            "postgres://postgres:postgres@localhost:5432/leeattend".to_string()
-        }),
-    );
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
     let repo = DieselWorkspaceRepository::new(pool.clone(), diesel_pools.clone());
 
     let user_id: Uuid = factory.user().create().await;

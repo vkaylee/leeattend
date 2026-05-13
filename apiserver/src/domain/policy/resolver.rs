@@ -3,7 +3,7 @@ use crate::domain::policy::defaults::{
 };
 use crate::errors::AppError;
 use crate::models::{AttendanceRules, EarlyArrivalStrategy, PolicyRules, WorkingCondition};
-use crate::repositories::{AttendancePolicyRepository, PoolBacked, SqlxAttendancePolicyRepository};
+use crate::repositories::AttendancePolicyRepository;
 use chrono::NaiveDate;
 use rust_decimal::Decimal;
 use sqlx::PgPool;
@@ -96,16 +96,15 @@ impl PolicyResolver {
     }
 
     pub async fn resolve_attendance_policy(
-        pool: &PgPool,
+        policy_repo: &dyn AttendancePolicyRepository,
         employee_id: Uuid,
         workspace_id: Uuid,
         date: NaiveDate,
     ) -> Result<AttendanceRules, AppError> {
-        let repo = SqlxAttendancePolicyRepository::from_pool(pool.clone());
         // Convert NaiveDate to UTC start of day
         let effective_time = date.and_hms_opt(0, 0, 0).unwrap_or_default().and_utc();
 
-        let policy_version = repo
+        let policy_version = policy_repo
             .get_employee_effective_policy(workspace_id, employee_id, effective_time)
             .await?;
 
@@ -122,7 +121,7 @@ impl PolicyResolver {
     }
 
     pub async fn resolve_attendance_policy_batch(
-        pool: &PgPool,
+        policy_repo: &dyn AttendancePolicyRepository,
         employee_ids: &[Uuid],
         workspace_id: Uuid,
         date: NaiveDate,
@@ -131,10 +130,9 @@ impl PolicyResolver {
             return Ok(std::collections::HashMap::new());
         }
 
-        let repo = SqlxAttendancePolicyRepository::from_pool(pool.clone());
         let effective_time = date.and_hms_opt(0, 0, 0).unwrap_or_default().and_utc();
 
-        let versions = repo
+        let versions = policy_repo
             .get_employee_effective_policies_batch(workspace_id, employee_ids, effective_time)
             .await?;
 
@@ -158,6 +156,7 @@ impl PolicyResolver {
     }
 
     pub async fn resolve_attendance_rules(
+        policy_repo: &dyn AttendancePolicyRepository,
         pool: &PgPool,
         employee_id: Uuid,
         workspace_id: Uuid,
@@ -165,7 +164,7 @@ impl PolicyResolver {
     ) -> Result<PolicyRules, AppError> {
         // 1. Get Attendance Policy rules
         let attendance_rules =
-            Self::resolve_attendance_policy(pool, employee_id, workspace_id, date).await?;
+            Self::resolve_attendance_policy(policy_repo, employee_id, workspace_id, date).await?;
 
         // 2. Get Employee Special Conditions
         let conditions =
@@ -329,23 +328,25 @@ impl PolicyResolver {
     ///
     /// Used by: `report_service`, `payroll_service`, `attendance_summary_service`
     pub async fn resolve_with_shift_overrides(
+        policy_repo: &dyn AttendancePolicyRepository,
         pool: &PgPool,
         employee_id: Uuid,
         workspace_id: Uuid,
         date: NaiveDate,
         overrides: &ShiftPolicyOverrides,
     ) -> PolicyRules {
-        let mut rules = Self::resolve_attendance_rules(pool, employee_id, workspace_id, date)
-            .await
-            .unwrap_or(PolicyRules {
-                grace_period_minutes: overrides.grace_period_minutes.unwrap_or(0),
-                authorized_early_leave_minutes: 0,
-                is_early_leave_paid: false,
-                early_arrival_strategy: overrides.early_arrival_strategy,
-                is_break_auto_deduct: overrides.is_break_auto_deduct.unwrap_or(false),
-                is_break_overtime: overrides.is_break_overtime,
-                allow_early_ot: overrides.allow_early_ot.unwrap_or(false),
-            });
+        let mut rules =
+            Self::resolve_attendance_rules(policy_repo, pool, employee_id, workspace_id, date)
+                .await
+                .unwrap_or(PolicyRules {
+                    grace_period_minutes: overrides.grace_period_minutes.unwrap_or(0),
+                    authorized_early_leave_minutes: 0,
+                    is_early_leave_paid: false,
+                    early_arrival_strategy: overrides.early_arrival_strategy,
+                    is_break_auto_deduct: overrides.is_break_auto_deduct.unwrap_or(false),
+                    is_break_overtime: overrides.is_break_overtime,
+                    allow_early_ot: overrides.allow_early_ot.unwrap_or(false),
+                });
 
         // Apply shift-specific overrides (shift config takes precedence)
         if let Some(gp) = overrides.grace_period_minutes {

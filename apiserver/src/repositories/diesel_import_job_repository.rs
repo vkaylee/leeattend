@@ -36,7 +36,7 @@ impl ImportJobRepository for DieselImportJobRepository {
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         diesel::sql_query(
-            "INSERT INTO attendance_import_jobs (id, workspace_id, user_id, status, total_rows, processed_rows, file_path, error_log, target_type, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)"
+            "INSERT INTO attendance_import_jobs (id, workspace_id, user_id, status, total_rows, processed_rows, file_path, error_log, target_type, created_at, updated_at) VALUES ($1, $2, $3, $4::import_job_status_type, $5, $6, $7, $8, $9, $10, $11)"
         )
         .bind::<diesel::sql_types::Uuid, _>(job.id)
         .bind::<diesel::sql_types::Uuid, _>(job.workspace_id)
@@ -71,7 +71,7 @@ impl ImportJobRepository for DieselImportJobRepository {
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         diesel::sql_query(
-            "UPDATE attendance_import_jobs SET processed_rows = $1, status = $2, error_log = $3, updated_at = $4 WHERE id = $5"
+            "UPDATE attendance_import_jobs SET processed_rows = $1, status = $2::import_job_status_type, error_log = $3, updated_at = $4 WHERE id = $5"
         )
         .bind::<diesel::sql_types::Int4, _>(processed_rows)
         .bind::<diesel::sql_types::Text, _>(status.to_string())

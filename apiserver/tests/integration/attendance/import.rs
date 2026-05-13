@@ -12,11 +12,7 @@ use tokio::time::sleep;
 async fn test_import_csv_with_line_errors() {
     let test_db = TestDatabase::new().await;
     let pool = test_db.pool().clone();
-    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(
-        &std::env::var("DATABASE_URL").unwrap_or_else(|_| {
-            "postgres://postgres:postgres@localhost:5432/leeattend".to_string()
-        }),
-    );
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
     let factory = TestFactory::new(pool.clone());
 
     let user_id = factory.user().create().await;
@@ -101,13 +97,10 @@ async fn test_import_timeout_guard_updates_db_on_drop() {
     use std::sync::atomic::{AtomicBool, Ordering};
     use std::sync::Arc;
 
+    let _ = tracing_subscriber::fmt::try_init();
     let test_db = TestDatabase::new().await;
     let pool = test_db.pool().clone();
-    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(
-        &std::env::var("DATABASE_URL").unwrap_or_else(|_| {
-            "postgres://postgres:postgres@localhost:5432/leeattend".to_string()
-        }),
-    );
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
     let factory = TestFactory::new(pool.clone());
 
     let user_id = factory.user().create().await;
@@ -145,7 +138,7 @@ async fn test_import_timeout_guard_updates_db_on_drop() {
     }
 
     // The drop implementation spawns a tokio task, so we must wait slightly for it to complete
-    sleep(Duration::from_millis(500)).await;
+    sleep(Duration::from_millis(2000)).await;
 
     let updated_job = import_repo.get_job_by_id(job_id).await.unwrap().unwrap();
 
@@ -171,13 +164,9 @@ async fn test_employee_import_chunking() {
     use apiserver::worker::handlers::EmployeeImportHandler;
     use redis::AsyncCommands;
 
-    let (_test_db, factory, app_state, _router) = setup_app_tower().await;
-    let pool = _test_db.pool().clone();
-    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(
-        &std::env::var("DATABASE_URL").unwrap_or_else(|_| {
-            "postgres://postgres:postgres@localhost:5432/leeattend".to_string()
-        }),
-    );
+    let (test_db, factory, app_state, _router) = setup_app_tower().await;
+    let pool = test_db.pool().clone();
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
 
     // Check if Redis is enabled
     let redis_pool = match app_state.infra.redis.clone() {
@@ -293,13 +282,9 @@ async fn test_leave_import_chunking() {
     use apiserver::worker::handlers::LeaveImportHandler;
     use redis::AsyncCommands;
 
-    let (_test_db, factory, app_state, _router) = setup_app_tower().await;
-    let pool = _test_db.pool().clone();
-    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(
-        &std::env::var("DATABASE_URL").unwrap_or_else(|_| {
-            "postgres://postgres:postgres@localhost:5432/leeattend".to_string()
-        }),
-    );
+    let (test_db, factory, app_state, _router) = setup_app_tower().await;
+    let pool = test_db.pool().clone();
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
 
     let redis_pool = match app_state.infra.redis.clone() {
         Some(r) => r,
@@ -408,11 +393,7 @@ async fn test_employee_import_duplicate_department_prevention() {
 
     let test_db = TestDatabase::new().await;
     let pool = test_db.pool().clone();
-    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(
-        &std::env::var("DATABASE_URL").unwrap_or_else(|_| {
-            "postgres://postgres:postgres@localhost:5432/leeattend".to_string()
-        }),
-    );
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
     let factory = TestFactory::new(pool.clone());
 
     let user_id = factory.user().create().await;

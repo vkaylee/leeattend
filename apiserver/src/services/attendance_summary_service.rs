@@ -14,6 +14,7 @@ use crate::domain::policy::resolver::PolicyResolver;
 use crate::models::{AttendanceDailySummary, OtStatus};
 use crate::repositories::holiday_repository::HolidayRepository;
 use crate::repositories::roster::RosterRepository;
+use crate::repositories::AttendancePolicyRepository;
 use crate::repositories::{
     workspace_repository::WorkspaceRepository, DieselWorkspaceRepository, TimeEntryRepository,
 };
@@ -33,6 +34,7 @@ pub struct EnterPaperOtArgs {
 pub struct AttendanceSummaryService {
     time_entry_repo: Arc<dyn TimeEntryRepository>,
     roster_repo: Arc<dyn RosterRepository>,
+    policy_repo: Arc<dyn AttendancePolicyRepository>,
     pool: PgPool,
     diesel: crate::diesel_pool::DieselPools,
 }
@@ -41,12 +43,14 @@ impl AttendanceSummaryService {
     pub fn new(
         time_entry_repo: Arc<dyn TimeEntryRepository>,
         roster_repo: Arc<dyn RosterRepository>,
+        policy_repo: Arc<dyn AttendancePolicyRepository>,
         pool: PgPool,
         diesel: crate::diesel_pool::DieselPools,
     ) -> Self {
         Self {
             time_entry_repo,
             roster_repo,
+            policy_repo,
             pool,
             diesel,
         }
@@ -142,6 +146,7 @@ impl AttendanceSummaryService {
 
                     let rules =
                         crate::domain::policy::resolver::PolicyResolver::resolve_attendance_rules(
+                            &*self.policy_repo,
                             &self.pool,
                             employee_id,
                             workspace_id,
@@ -152,6 +157,7 @@ impl AttendanceSummaryService {
 
                     // Resolve Policy Rules
                     let policy_rules = PolicyResolver::resolve_with_shift_overrides(
+                        &*self.policy_repo,
                         &self.pool,
                         employee_id,
                         workspace_id,

@@ -10,10 +10,10 @@ async fn test_resolve_attendance_policy_hierarchy() {
     let test_db = TestDatabase::new().await;
     let pool = test_db.pool();
     let factory = TestFactory::new(pool.clone());
-    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(
-        &std::env::var("DATABASE_URL").unwrap_or_else(|_| {
-            "postgres://postgres:postgres@localhost:5432/leeattend".to_string()
-        }),
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
+    let policy_repo = apiserver::repositories::DieselAttendancePolicyRepository::new(
+        pool.clone(),
+        diesel_pools.clone(),
     );
 
     let admin_id = factory.user().create().await;
@@ -85,9 +85,10 @@ async fn test_resolve_attendance_policy_hierarchy() {
         serde_json::json!({ "work_unit_minutes": 10, "rounding_policy": "floor", "early_arrival_strategy": "block" })
     ).execute(&pool).await.unwrap();
 
-    let rules = PolicyResolver::resolve_attendance_policy(&pool, employee_id, ws_id, test_date)
-        .await
-        .unwrap();
+    let rules =
+        PolicyResolver::resolve_attendance_policy(&policy_repo, employee_id, ws_id, test_date)
+            .await
+            .unwrap();
     assert_eq!(rules.work_unit_minutes, 10);
     assert_eq!(rules.early_arrival_strategy, EarlyArrivalStrategy::Block);
 
@@ -109,9 +110,10 @@ async fn test_resolve_attendance_policy_hierarchy() {
         group_policy_id, dept_id
     ).execute(&pool).await.unwrap();
 
-    let rules = PolicyResolver::resolve_attendance_policy(&pool, employee_id, ws_id, test_date)
-        .await
-        .unwrap();
+    let rules =
+        PolicyResolver::resolve_attendance_policy(&policy_repo, employee_id, ws_id, test_date)
+            .await
+            .unwrap();
     assert_eq!(rules.work_unit_minutes, 20, "Should inherit from GROUP");
     assert_eq!(rules.early_arrival_strategy, EarlyArrivalStrategy::Allow);
 
@@ -133,9 +135,10 @@ async fn test_resolve_attendance_policy_hierarchy() {
         user_policy_id, employee_id
     ).execute(&pool).await.unwrap();
 
-    let rules = PolicyResolver::resolve_attendance_policy(&pool, employee_id, ws_id, test_date)
-        .await
-        .unwrap();
+    let rules =
+        PolicyResolver::resolve_attendance_policy(&policy_repo, employee_id, ws_id, test_date)
+            .await
+            .unwrap();
     assert_eq!(rules.work_unit_minutes, 30, "Should be overridden by USER");
     assert_eq!(rules.early_arrival_strategy, EarlyArrivalStrategy::Clamp);
 }

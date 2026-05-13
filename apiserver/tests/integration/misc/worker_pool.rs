@@ -20,11 +20,7 @@ use apiserver::worker::runner::JobWorker;
 /// By setting max_connections(1), this test will deadlock and timeout if any handler violates the rule.
 #[tokio::test]
 async fn test_worker_uses_only_one_connection_per_job() {
-    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(
-        &std::env::var("DATABASE_URL").unwrap_or_else(|_| {
-            "postgres://postgres:postgres@localhost:5432/leeattend".to_string()
-        }),
-    );
+
     let _ = tracing_subscriber::fmt::try_init();
 
     // 1. Create a DB pool with EXACTLY ONE connection.
@@ -34,6 +30,7 @@ async fn test_worker_uses_only_one_connection_per_job() {
         .connect(&database_url)
         .await
         .expect("Failed to connect to DB");
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&database_url);
 
     // 2. Setup mock dependencies
     let redis_url =

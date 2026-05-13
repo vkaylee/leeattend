@@ -44,7 +44,7 @@ impl Drop for ImportTimeoutGuard {
                 } else {
                     0
                 };
-                let _ = repo
+                if let Err(e) = repo
                     .update_job_progress(
                         job_id,
                         current_rows,
@@ -54,7 +54,7 @@ impl Drop for ImportTimeoutGuard {
                                 .to_string(),
                         ),
                     )
-                    .await;
+                    .await { tracing::error!("Timeout Update Error: {}", e); }
             });
         }
     }

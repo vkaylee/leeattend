@@ -12,12 +12,8 @@ use std::sync::Arc;
 async fn test_payroll_std_days_source_traceability() {
     let db = TestDatabase::new().await;
     let pool = db.pool();
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&db.url());
     let factory = TestFactory::new(pool.clone());
-    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(
-        &std::env::var("DATABASE_URL").unwrap_or_else(|_| {
-            "postgres://postgres:postgres@localhost:5432/leeattend".to_string()
-        }),
-    );
 
     // 1. Setup Workspace & Employee
     let user_id = factory.user().create().await;
@@ -102,6 +98,13 @@ async fn test_payroll_std_days_source_traceability() {
             roster_repo: Arc::new(apiserver::repositories::roster::SqlxRosterRepository::new(
                 pool.clone(),
             )),
+            policy_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselAttendancePolicyRepository::new(
+                    pool.clone(),
+                    diesel_pools.clone(),
+                ),
+            ),
+
             pool: pool.clone(),
         })
     }
@@ -170,6 +173,13 @@ async fn test_payroll_std_days_source_traceability() {
             roster_repo: Arc::new(apiserver::repositories::roster::SqlxRosterRepository::new(
                 pool.clone(),
             )),
+            policy_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselAttendancePolicyRepository::new(
+                    pool.clone(),
+                    diesel_pools.clone(),
+                ),
+            ),
+
             pool: pool.clone(),
         })
     }
@@ -232,6 +242,13 @@ async fn test_payroll_std_days_source_traceability() {
             roster_repo: Arc::new(apiserver::repositories::roster::SqlxRosterRepository::new(
                 pool.clone(),
             )),
+            policy_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselAttendancePolicyRepository::new(
+                    pool.clone(),
+                    diesel_pools.clone(),
+                ),
+            ),
+
             pool: pool.clone(),
         })
     }
@@ -294,6 +311,13 @@ async fn test_payroll_std_days_source_traceability() {
             roster_repo: Arc::new(apiserver::repositories::roster::SqlxRosterRepository::new(
                 pool.clone(),
             )),
+            policy_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselAttendancePolicyRepository::new(
+                    pool.clone(),
+                    diesel_pools.clone(),
+                ),
+            ),
+
             pool: pool.clone(),
         })
     }

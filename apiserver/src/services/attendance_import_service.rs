@@ -309,6 +309,10 @@ impl ImportStrategy for PunchImportStrategy {
                     pool.clone(),
                     self.diesel_pools.clone(),
                 )),
+                Arc::new(crate::repositories::DieselAttendancePolicyRepository::new(
+                    pool.clone(),
+                    self.diesel_pools.clone(),
+                )),
                 pool.clone(),
                 self.diesel_pools.clone(),
             ));

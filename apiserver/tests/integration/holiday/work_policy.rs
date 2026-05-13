@@ -31,6 +31,7 @@ struct HolidayResponse {
 async fn test_payroll_holiday_work_with_multiplier() {
     let (_address, test_db) = spawn_app().await;
     let pool = test_db.pool();
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
     let factory = crate::common::factory::TestFactory::new(pool.clone());
 
     let user_id = factory.user().create().await;
@@ -157,6 +158,12 @@ async fn test_payroll_holiday_work_with_multiplier() {
                 roster_repo: Arc::new(apiserver::repositories::roster::SqlxRosterRepository::new(
                     pool.clone(),
                 )),
+                policy_repo: std::sync::Arc::new(
+                    apiserver::repositories::DieselAttendancePolicyRepository::new(
+                        pool.clone(),
+                        diesel_pools.clone(),
+                    ),
+                ),
                 pool: pool.clone(),
             },
         )
@@ -198,6 +205,7 @@ async fn test_payroll_holiday_work_with_multiplier() {
 async fn test_payroll_holiday_work_no_credit() {
     let (_address, test_db) = spawn_app().await;
     let pool = test_db.pool();
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
     let factory = crate::common::factory::TestFactory::new(pool.clone());
 
     let user_id = factory.user().create().await;
@@ -320,6 +328,12 @@ async fn test_payroll_holiday_work_no_credit() {
                 roster_repo: Arc::new(apiserver::repositories::roster::SqlxRosterRepository::new(
                     pool.clone(),
                 )),
+                policy_repo: std::sync::Arc::new(
+                    apiserver::repositories::DieselAttendancePolicyRepository::new(
+                        pool.clone(),
+                        diesel_pools.clone(),
+                    ),
+                ),
                 pool: pool.clone(),
             },
         )
@@ -348,6 +362,7 @@ async fn test_payroll_holiday_work_no_credit() {
 async fn test_payroll_holiday_work_unpaid_no_premium() {
     let (_address, test_db) = spawn_app().await;
     let pool = test_db.pool();
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
     let factory = crate::common::factory::TestFactory::new(pool.clone());
 
     let user_id = factory.user().create().await;
@@ -470,6 +485,12 @@ async fn test_payroll_holiday_work_unpaid_no_premium() {
                 roster_repo: Arc::new(apiserver::repositories::roster::SqlxRosterRepository::new(
                     pool.clone(),
                 )),
+                policy_repo: std::sync::Arc::new(
+                    apiserver::repositories::DieselAttendancePolicyRepository::new(
+                        pool.clone(),
+                        diesel_pools.clone(),
+                    ),
+                ),
                 pool: pool.clone(),
             },
         )
@@ -499,6 +520,7 @@ async fn test_payroll_holiday_work_unpaid_no_premium() {
 async fn test_leave_reversal_full_shift() {
     let (_address, test_db) = spawn_app().await;
     let pool = test_db.pool();
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
     let factory = crate::common::factory::TestFactory::new(pool.clone());
 
     let user_id = factory.user().create().await;
@@ -592,13 +614,10 @@ async fn test_leave_reversal_full_shift() {
 
 #[tokio::test]
 async fn test_leave_kept_partial_work() {
-    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(
-        &std::env::var("DATABASE_URL").unwrap_or_else(|_| {
-            "postgres://postgres:postgres@localhost:5432/leeattend".to_string()
-        }),
-    );
+
     let (_address, test_db) = spawn_app().await;
     let pool = test_db.pool();
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
     let factory = crate::common::factory::TestFactory::new(pool.clone());
 
     let user_id = factory.user().create().await;
@@ -682,6 +701,12 @@ async fn test_leave_kept_partial_work() {
         std::sync::Arc::new(apiserver::repositories::roster::SqlxRosterRepository::new(
             pool.clone(),
         )),
+        std::sync::Arc::new(
+            apiserver::repositories::DieselAttendancePolicyRepository::new(
+                pool.clone(),
+                diesel_pools.clone(),
+            ),
+        ),
         pool.clone(),
         diesel_pools.clone(),
     )
@@ -710,6 +735,7 @@ async fn test_leave_kept_partial_work() {
 async fn test_leave_reversal_custom_threshold() {
     let (_address, test_db) = spawn_app().await;
     let pool = test_db.pool();
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
     let factory = crate::common::factory::TestFactory::new(pool.clone());
 
     let user_id = factory.user().create().await;
@@ -819,13 +845,10 @@ async fn test_leave_reversal_custom_threshold() {
 
 #[tokio::test]
 async fn test_leave_reversal_only_system() {
-    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(
-        &std::env::var("DATABASE_URL").unwrap_or_else(|_| {
-            "postgres://postgres:postgres@localhost:5432/leeattend".to_string()
-        }),
-    );
+
     let (_address, test_db) = spawn_app().await;
     let pool = test_db.pool();
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
     let factory = crate::common::factory::TestFactory::new(pool.clone());
 
     let user_id = factory.user().create().await;
@@ -910,6 +933,12 @@ async fn test_leave_reversal_only_system() {
         std::sync::Arc::new(apiserver::repositories::roster::SqlxRosterRepository::new(
             pool.clone(),
         )),
+        std::sync::Arc::new(
+            apiserver::repositories::DieselAttendancePolicyRepository::new(
+                pool.clone(),
+                diesel_pools.clone(),
+            ),
+        ),
         pool.clone(),
         diesel_pools.clone(),
     )
@@ -938,6 +967,7 @@ async fn test_leave_reversal_only_system() {
 async fn test_leave_breakdown_excludes_holidays() {
     let (_address, test_db) = spawn_app().await;
     let pool = test_db.pool();
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
     let factory = crate::common::factory::TestFactory::new(pool.clone());
 
     let user_id = factory.user().create().await;
@@ -1006,6 +1036,7 @@ async fn test_leave_breakdown_excludes_holidays() {
 async fn test_holiday_crud_new_fields() {
     let (address, test_db) = spawn_app().await;
     let pool = test_db.pool();
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
     let factory = crate::common::factory::TestFactory::new(pool.clone());
     let client = reqwest::Client::new();
 

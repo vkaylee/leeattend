@@ -40,6 +40,7 @@ pub struct ProcessSegmentAttendanceArgs<'a> {
     pub attendance_rules: &'a crate::models::AttendanceRules,
     pub seg_units_per_day: Decimal,
     pub policy_cache: &'a mut HashMap<Uuid, Vec<crate::models::OvertimeRule>>,
+    pub policy_repo: &'a dyn crate::repositories::AttendancePolicyRepository,
 }
 
 pub struct AttendanceMatcher;
@@ -150,6 +151,7 @@ impl AttendanceMatcher {
                                 let punch_out = punch_out_raw.with_timezone(&args.ctx.tz);
 
                                 let rules = PolicyResolver::resolve_with_shift_overrides(
+                                    args.policy_repo,
                                     args.pool,
                                     employee_id,
                                     args.ctx.workspace.id,

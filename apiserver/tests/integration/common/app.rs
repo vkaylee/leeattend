@@ -73,31 +73,6 @@ pub async fn spawn_app() -> (String, TestDatabase) {
         diesel_pools.clone(),
     ));
 
-    let time_tracking_service = Arc::new(apiserver::services::TimeTrackingService::new(
-        time_entry_repo.clone(),
-        roster_repo.clone(),
-        pool.clone(),
-        diesel_pools.clone(),
-    ));
-    let attendance_summary_service = Arc::new(apiserver::services::AttendanceSummaryService::new(
-        time_entry_repo.clone(),
-        roster_repo.clone(),
-        pool.clone(),
-        diesel_pools.clone(),
-    ));
-    let report_service = Arc::new(apiserver::services::ReportService::new(
-        time_entry_repo.clone(),
-        roster_repo.clone(),
-        pool.clone(),
-        diesel_pools.clone(),
-    ));
-    let pairing_service = Arc::new(apiserver::services::pairing_service::PairingService::new(
-        time_entry_repo.clone(),
-        roster_repo.clone(),
-        pool.clone(),
-        diesel_pools.clone(),
-    ));
-    let adj_repo: Arc<dyn apiserver::repositories::attendance_adjustment_repository::AttendanceAdjustmentRepository> = Arc::new(apiserver::repositories::DieselAttendanceAdjustmentRepository::new(pool.clone(), diesel_pools.clone()));
     let policy_repo: Arc<
         dyn apiserver::repositories::attendance_policy_repository::AttendancePolicyRepository,
     > = Arc::new(
@@ -106,6 +81,35 @@ pub async fn spawn_app() -> (String, TestDatabase) {
             diesel_pools.clone(),
         ),
     );
+    let time_tracking_service = Arc::new(apiserver::services::TimeTrackingService::new(
+        time_entry_repo.clone(),
+        roster_repo.clone(),
+        policy_repo.clone(),
+        pool.clone(),
+        diesel_pools.clone(),
+    ));
+    let attendance_summary_service = Arc::new(apiserver::services::AttendanceSummaryService::new(
+        time_entry_repo.clone(),
+        roster_repo.clone(),
+        policy_repo.clone(),
+        pool.clone(),
+        diesel_pools.clone(),
+    ));
+    let report_service = Arc::new(apiserver::services::ReportService::new(
+        time_entry_repo.clone(),
+        roster_repo.clone(),
+        policy_repo.clone(),
+        pool.clone(),
+        diesel_pools.clone(),
+    ));
+    let pairing_service = Arc::new(apiserver::services::pairing_service::PairingService::new(
+        time_entry_repo.clone(),
+        roster_repo.clone(),
+        policy_repo.clone(),
+        pool.clone(),
+        diesel_pools.clone(),
+    ));
+    let adj_repo: Arc<dyn apiserver::repositories::attendance_adjustment_repository::AttendanceAdjustmentRepository> = Arc::new(apiserver::repositories::DieselAttendanceAdjustmentRepository::new(pool.clone(), diesel_pools.clone()));
     let import_repo: Arc<dyn apiserver::repositories::import_job_repository::ImportJobRepository> =
         Arc::new(
             apiserver::repositories::import_job_repository::SqlxImportJobRepository::new(
@@ -174,6 +178,13 @@ pub async fn spawn_app() -> (String, TestDatabase) {
             workspace_repo: workspace_repo.clone(),
             holiday_repo: holiday_repo.clone(),
             roster_repo: roster_repo.clone(),
+            policy_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselAttendancePolicyRepository::new(
+                    pool.clone(),
+                    diesel_pools.clone(),
+                ),
+            ),
+
             pool: pool.clone(),
         },
     ));
@@ -210,6 +221,7 @@ pub async fn spawn_app() -> (String, TestDatabase) {
             shift_swap_repo.clone(),
             roster_repo.clone(),
             employee_repo.clone(),
+            shift_repo.clone(),
             pool.clone(),
         ),
     );
@@ -458,31 +470,6 @@ pub async fn spawn_app_with_factory() -> (String, Uuid, Uuid, TestFactory, TestD
         pool.clone(),
         diesel_pools.clone(),
     ));
-    let time_tracking_service = Arc::new(apiserver::services::TimeTrackingService::new(
-        time_entry_repo.clone(),
-        roster_repo.clone(),
-        pool.clone(),
-        diesel_pools.clone(),
-    ));
-    let attendance_summary_service = Arc::new(apiserver::services::AttendanceSummaryService::new(
-        time_entry_repo.clone(),
-        roster_repo.clone(),
-        pool.clone(),
-        diesel_pools.clone(),
-    ));
-    let report_service = Arc::new(apiserver::services::ReportService::new(
-        time_entry_repo.clone(),
-        roster_repo.clone(),
-        pool.clone(),
-        diesel_pools.clone(),
-    ));
-    let pairing_service = Arc::new(apiserver::services::pairing_service::PairingService::new(
-        time_entry_repo.clone(),
-        roster_repo.clone(),
-        pool.clone(),
-        diesel_pools.clone(),
-    ));
-    let adj_repo: Arc<dyn apiserver::repositories::attendance_adjustment_repository::AttendanceAdjustmentRepository> = Arc::new(apiserver::repositories::DieselAttendanceAdjustmentRepository::new(pool.clone(), diesel_pools.clone()));
     let policy_repo: Arc<
         dyn apiserver::repositories::attendance_policy_repository::AttendancePolicyRepository,
     > = Arc::new(
@@ -491,6 +478,35 @@ pub async fn spawn_app_with_factory() -> (String, Uuid, Uuid, TestFactory, TestD
             diesel_pools.clone(),
         ),
     );
+    let time_tracking_service = Arc::new(apiserver::services::TimeTrackingService::new(
+        time_entry_repo.clone(),
+        roster_repo.clone(),
+        policy_repo.clone(),
+        pool.clone(),
+        diesel_pools.clone(),
+    ));
+    let attendance_summary_service = Arc::new(apiserver::services::AttendanceSummaryService::new(
+        time_entry_repo.clone(),
+        roster_repo.clone(),
+        policy_repo.clone(),
+        pool.clone(),
+        diesel_pools.clone(),
+    ));
+    let report_service = Arc::new(apiserver::services::ReportService::new(
+        time_entry_repo.clone(),
+        roster_repo.clone(),
+        policy_repo.clone(),
+        pool.clone(),
+        diesel_pools.clone(),
+    ));
+    let pairing_service = Arc::new(apiserver::services::pairing_service::PairingService::new(
+        time_entry_repo.clone(),
+        roster_repo.clone(),
+        policy_repo.clone(),
+        pool.clone(),
+        diesel_pools.clone(),
+    ));
+    let adj_repo: Arc<dyn apiserver::repositories::attendance_adjustment_repository::AttendanceAdjustmentRepository> = Arc::new(apiserver::repositories::DieselAttendanceAdjustmentRepository::new(pool.clone(), diesel_pools.clone()));
     let import_repo: Arc<dyn apiserver::repositories::import_job_repository::ImportJobRepository> =
         Arc::new(
             apiserver::repositories::import_job_repository::SqlxImportJobRepository::new(
@@ -559,6 +575,13 @@ pub async fn spawn_app_with_factory() -> (String, Uuid, Uuid, TestFactory, TestD
             workspace_repo: workspace_repo.clone(),
             holiday_repo: holiday_repo.clone(),
             roster_repo: roster_repo.clone(),
+            policy_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselAttendancePolicyRepository::new(
+                    pool.clone(),
+                    diesel_pools.clone(),
+                ),
+            ),
+
             pool: pool.clone(),
         },
     ));
@@ -595,6 +618,7 @@ pub async fn spawn_app_with_factory() -> (String, Uuid, Uuid, TestFactory, TestD
             shift_swap_repo.clone(),
             roster_repo.clone(),
             employee_repo.clone(),
+            shift_repo.clone(),
             pool.clone(),
         ),
     );
@@ -872,30 +896,6 @@ pub async fn setup_app_tower() -> (TestDatabase, TestFactory, Arc<AppState>, axu
         diesel_pools.clone(),
     ));
 
-    let time_tracking_service = Arc::new(apiserver::services::TimeTrackingService::new(
-        time_entry_repo.clone(),
-        roster_repo.clone(),
-        pool.clone(),
-        diesel_pools.clone(),
-    ));
-    let attendance_summary_service = Arc::new(apiserver::services::AttendanceSummaryService::new(
-        time_entry_repo.clone(),
-        roster_repo.clone(),
-        pool.clone(),
-        diesel_pools.clone(),
-    ));
-    let report_service = Arc::new(apiserver::services::ReportService::new(
-        time_entry_repo.clone(),
-        roster_repo.clone(),
-        pool.clone(),
-        diesel_pools.clone(),
-    ));
-    let pairing_service = Arc::new(apiserver::services::pairing_service::PairingService::new(
-        time_entry_repo.clone(),
-        roster_repo.clone(),
-        pool.clone(),
-        diesel_pools.clone(),
-    ));
     let policy_repo: Arc<
         dyn apiserver::repositories::attendance_policy_repository::AttendancePolicyRepository,
     > = Arc::new(
@@ -904,6 +904,34 @@ pub async fn setup_app_tower() -> (TestDatabase, TestFactory, Arc<AppState>, axu
             diesel_pools.clone(),
         ),
     );
+    let time_tracking_service = Arc::new(apiserver::services::TimeTrackingService::new(
+        time_entry_repo.clone(),
+        roster_repo.clone(),
+        policy_repo.clone(),
+        pool.clone(),
+        diesel_pools.clone(),
+    ));
+    let attendance_summary_service = Arc::new(apiserver::services::AttendanceSummaryService::new(
+        time_entry_repo.clone(),
+        roster_repo.clone(),
+        policy_repo.clone(),
+        pool.clone(),
+        diesel_pools.clone(),
+    ));
+    let report_service = Arc::new(apiserver::services::ReportService::new(
+        time_entry_repo.clone(),
+        roster_repo.clone(),
+        policy_repo.clone(),
+        pool.clone(),
+        diesel_pools.clone(),
+    ));
+    let pairing_service = Arc::new(apiserver::services::pairing_service::PairingService::new(
+        time_entry_repo.clone(),
+        roster_repo.clone(),
+        policy_repo.clone(),
+        pool.clone(),
+        diesel_pools.clone(),
+    ));
     let adj_repo: Arc<
         dyn apiserver::repositories::attendance_adjustment_repository::AttendanceAdjustmentRepository,
     > = Arc::new(
@@ -980,6 +1008,13 @@ pub async fn setup_app_tower() -> (TestDatabase, TestFactory, Arc<AppState>, axu
             workspace_repo: workspace_repo.clone(),
             holiday_repo: holiday_repo.clone(),
             roster_repo: roster_repo.clone(),
+            policy_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselAttendancePolicyRepository::new(
+                    pool.clone(),
+                    diesel_pools.clone(),
+                ),
+            ),
+
             pool: pool.clone(),
         },
     ));
@@ -1016,6 +1051,7 @@ pub async fn setup_app_tower() -> (TestDatabase, TestFactory, Arc<AppState>, axu
             shift_swap_repo.clone(),
             roster_repo.clone(),
             employee_repo.clone(),
+            shift_repo.clone(),
             pool.clone(),
         ),
     );

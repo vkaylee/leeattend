@@ -79,21 +79,29 @@ impl AppState {
         let roster_repo: Arc<dyn crate::repositories::roster::RosterRepository> = Arc::new(
             crate::repositories::DieselRosterRepository::new(pool.clone(), diesel_pools.clone()),
         );
+        let policy_repo: Arc<dyn crate::repositories::AttendancePolicyRepository> =
+            Arc::new(crate::repositories::DieselAttendancePolicyRepository::new(
+                pool.clone(),
+                diesel_pools.clone(),
+            ));
         let time_tracking_service = Arc::new(crate::services::TimeTrackingService::new(
             Arc::clone(&time_entry_repo),
             Arc::clone(&roster_repo),
+            Arc::clone(&policy_repo),
             pool.clone(),
             diesel_pools.clone(),
         ));
         let attendance_summary_service = Arc::new(crate::services::AttendanceSummaryService::new(
             Arc::clone(&time_entry_repo),
             Arc::clone(&roster_repo),
+            Arc::clone(&policy_repo),
             pool.clone(),
             diesel_pools.clone(),
         ));
         let report_service = Arc::new(crate::services::ReportService::new(
             Arc::clone(&time_entry_repo),
             Arc::clone(&roster_repo),
+            Arc::clone(&policy_repo),
             pool.clone(),
             diesel_pools.clone(),
         ));
@@ -108,6 +116,7 @@ impl AppState {
         let pairing_service = Arc::new(crate::services::pairing_service::PairingService::new(
             Arc::clone(&time_entry_repo),
             Arc::clone(&roster_repo),
+            Arc::clone(&policy_repo),
             pool.clone(),
             diesel_pools.clone(),
         ));
@@ -197,6 +206,7 @@ impl AppState {
                 Arc::clone(&shift_swap_repo),
                 Arc::clone(&roster_repo),
                 Arc::clone(&employee_repo),
+                Arc::clone(&shift_repo),
                 pool.clone(),
             ));
         let holiday_leave_service = Arc::new(
@@ -250,6 +260,7 @@ impl AppState {
                 workspace_repo: Arc::clone(&workspace_repo),
                 holiday_repo: Arc::clone(&holiday_repo),
                 roster_repo: Arc::clone(&roster_repo),
+                policy_repo: Arc::clone(&policy_repo),
                 pool: pool.clone(),
             },
         ));

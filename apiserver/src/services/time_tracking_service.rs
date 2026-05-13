@@ -11,12 +11,14 @@ use crate::repositories::employee;
 
 use crate::repositories::roster::RosterRepository;
 use crate::repositories::workspace_repository::WorkspaceRepository;
+use crate::repositories::AttendancePolicyRepository;
 use crate::repositories::DieselWorkspaceRepository;
 use crate::repositories::TimeEntryRepository;
 
 pub struct TimeTrackingService {
     repo: Arc<dyn TimeEntryRepository>,
     roster_repo: Arc<dyn RosterRepository>,
+    policy_repo: Arc<dyn AttendancePolicyRepository>,
     pool: PgPool,
     diesel: crate::diesel_pool::DieselPools,
 }
@@ -25,12 +27,14 @@ impl TimeTrackingService {
     pub fn new(
         repo: Arc<dyn TimeEntryRepository>,
         roster_repo: Arc<dyn RosterRepository>,
+        policy_repo: Arc<dyn AttendancePolicyRepository>,
         pool: PgPool,
         diesel: crate::diesel_pool::DieselPools,
     ) -> Self {
         Self {
             repo,
             roster_repo,
+            policy_repo,
             pool,
             diesel,
         }
@@ -86,13 +90,15 @@ impl TimeTrackingService {
                 .await?;
 
             if let Some(sid) = shift_id {
-                let shift = crate::repositories::shift_repository::get_shift_by_id(
-                    &self.pool,
-                    workspace_id,
-                    sid,
-                )
-                .await?
-                .ok_or(AppError::Internal("Shift not found".into()))?;
+                let shift_repo = crate::repositories::DieselShiftRepository::new(
+                    self.pool.clone(),
+                    self.diesel.clone(),
+                );
+                use crate::repositories::shift_repository::ShiftRepository;
+                let shift = shift_repo
+                    .get_shift_by_id(workspace_id, sid)
+                    .await?
+                    .ok_or(AppError::Internal("Shift not found".into()))?;
 
                 let start_time = shift.start_time;
                 let grace_minutes = shift.early_punch_in_grace_period_minutes as u32;
@@ -102,6 +108,7 @@ impl TimeTrackingService {
 
                 let rules =
                     crate::domain::policy::resolver::PolicyResolver::resolve_attendance_rules(
+                        &*self.policy_repo,
                         &self.pool,
                         employee_id,
                         workspace_id,
@@ -211,6 +218,7 @@ impl TimeTrackingService {
             let summary_svc = crate::services::AttendanceSummaryService::new(
                 Arc::clone(&self.repo),
                 Arc::clone(&self.roster_repo),
+                Arc::clone(&self.policy_repo),
                 self.pool.clone(),
                 self.diesel.clone(),
             );
