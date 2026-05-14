@@ -47,8 +47,7 @@ trigger: always_on
 All standard development tools run inside isolated Podman containers. You MUST execute them via these wrapper scripts instead of using native commands on the host:
 - Rust/Cargo: `./scripts/_cargo.sh build` (Container: `apiserver_test`)
 - Node/NPM: `./scripts/_npm.sh install` (Container: `web_test`)
-- SQLx/DB: `./scripts/_sqlx.sh migrate run` (Container: `apiserver_test`)
-- SQLx Prepare: `./scripts/_sqlx.sh prepare --workspace` (Must be run after tests fail with SQLX_OFFLINE=true error, requires test DB to be up)
+
 - Diesel/DB: `./scripts/_diesel.sh print-schema` (Container: `apiserver_test`)
 
 **2. Test Execution & Coverage**
@@ -84,7 +83,7 @@ All standard development tools run inside isolated Podman containers. You MUST e
 
 ### 💻 Code & Architecture
 - **Coding Standards:** `@[.agent/rules/coding-standards.md]` (Clean code, errors, security, enterprise grade)
-- **Database:** `@[.agent/rules/database-rules.md]` (SQLx, migrations, indexing)
+- **Database:** `@[.agent/rules/database-rules.md]` (Diesel, migrations, indexing)
 - **Project Structure:** `@[.agent/rules/project-structure.md]`
 
 ### 🎨 Design

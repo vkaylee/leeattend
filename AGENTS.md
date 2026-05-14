@@ -17,8 +17,7 @@ All standard development tools run inside isolated Podman containers. You MUST e
 | :--- | :--- | :--- | :--- |
 | Rust/Cargo | `cargo build` | `./scripts/_cargo.sh build` | `apiserver_test` |
 | Node/NPM | `npm install` | `./scripts/_npm.sh install` | `web_test` |
-| SQLx/DB | `sqlx migrate run` | `./scripts/_sqlx.sh migrate run` | `apiserver_test` |
-| SQLx Prepare | `cargo sqlx prepare` | `./scripts/_sqlx.sh prepare --workspace` | `apiserver_test` |
+
 | Diesel/DB | `diesel print-schema` | `./scripts/_diesel.sh print-schema` | `apiserver_test` |
 
 ### 2. Test Execution & Coverage (MANDATORY)
@@ -61,7 +60,7 @@ If your task touches any of these domains, use the `view_file` or `cat` tool to 
 ### 💻 Code & Architecture
 - **Coding Standards:** `@[.agent/rules/coding-standards.md]` (Clean code, errors, security, enterprise grade)
 - **Testing Standards:** `@[.agent/rules/testing-standards.md]`
-- **Database Rules:** `@[.agent/rules/database-rules.md]` (SQLx, migrations, indexing)
+- **Database Rules:** `@[.agent/rules/database-rules.md]` (Diesel, migrations, indexing)
 - **Project Structure:** `@[.agent/rules/project-structure.md]`
 
 ### 🎨 Design
