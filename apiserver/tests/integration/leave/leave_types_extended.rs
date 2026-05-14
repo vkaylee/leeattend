@@ -194,10 +194,10 @@ async fn test_leave_type_delete_blocked_by_balance() {
     let emp_id = factory.employee().with_workspace(ws_id).create().await;
 
     // Get vacation leave type id (seeded)
-    let vacation_id: Uuid = sqlx::query_scalar!(
+    let vacation_id: Uuid = sqlx::query_scalar(
         "SELECT id FROM leave_types WHERE workspace_id = $1 AND code = 'vacation'",
-        ws_id
     )
+    .bind(ws_id)
     .fetch_one(&factory.pool)
     .await
     .unwrap();

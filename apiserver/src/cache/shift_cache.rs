@@ -4,7 +4,6 @@
 
 use chrono::NaiveTime;
 use serde::{Deserialize, Serialize};
-use sqlx::PgPool;
 use std::collections::HashMap;
 use uuid::Uuid;
 
@@ -30,14 +29,12 @@ pub struct CachedShift {
 /// Cache for shift data.
 pub struct ShiftCache {
     cache: RedisCache,
-    db: PgPool,
     diesel: crate::diesel_pool::DieselPools,
 }
 
 impl ShiftCache {
-    /// Create a new ShiftCache.
-    pub fn new(cache: RedisCache, db: PgPool, diesel: crate::diesel_pool::DieselPools) -> Self {
-        Self { cache, db, diesel }
+    pub fn new(cache: RedisCache, diesel: crate::diesel_pool::DieselPools) -> Self {
+        Self { cache, diesel }
     }
 
     /// Generate cache key for shifts of a workspace.
@@ -50,7 +47,6 @@ impl ShiftCache {
     /// Returns cached data if available, otherwise fetches from DB.
     pub async fn get_map(&self, workspace_id: Uuid) -> Result<HashMap<Uuid, CachedShift>, String> {
         let key = Self::key(workspace_id);
-        let _db = self.db.clone();
         let diesel = self.diesel.clone();
 
         let shifts: Vec<CachedShift> = self

@@ -27,13 +27,11 @@ impl From<AssignmentRuleEntity> for AssignmentRule {
             pattern_id: e.pattern_id,
             name: e.name,
             priority: e.priority,
-            conditions: sqlx::types::Json(serde_json::from_value(e.conditions).unwrap_or(
-                AssignmentRuleConditions {
-                    department_id: None,
-                    employee_id_numbers: None,
-                    tags: None,
-                },
-            )),
+            conditions: serde_json::from_value(e.conditions).unwrap_or(AssignmentRuleConditions {
+                department_id: None,
+                employee_id_numbers: None,
+                tags: None,
+            }),
             is_active: e.is_active,
             created_at: e.created_at.unwrap_or_else(Utc::now),
             updated_at: e.updated_at.unwrap_or_else(Utc::now),

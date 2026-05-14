@@ -71,17 +71,6 @@ pub fn local_to_utc(
     }
 }
 
-/// Variant that returns `sqlx::Error` for use in repository/service contexts.
-pub fn local_to_utc_sqlx(
-    tz: &Tz,
-    date: NaiveDate,
-    h: u32,
-    m: u32,
-    s: u32,
-) -> Result<DateTime<Utc>, sqlx::Error> {
-    local_to_utc(tz, date, h, m, s).map_err(sqlx::Error::Protocol)
-}
-
 // ---------------------------------------------------------------------------
 // local_to_tz — returns DateTime<Tz> instead of DateTime<Utc>
 // ---------------------------------------------------------------------------
@@ -98,10 +87,10 @@ pub fn local_to_tz(
     h: u32,
     m: u32,
     s: u32,
-) -> Result<DateTime<Tz>, sqlx::Error> {
+) -> Result<DateTime<Tz>, String> {
     let naive = date
         .and_hms_opt(h, m, s)
-        .ok_or_else(|| sqlx::Error::Protocol(format!("Invalid time: {h}:{m}:{s}")))?;
+        .ok_or_else(|| format!("Invalid time: {h}:{m}:{s}"))?;
     match tz.from_local_datetime(&naive) {
         chrono::LocalResult::Single(dt) | chrono::LocalResult::Ambiguous(dt, _) => Ok(dt),
         chrono::LocalResult::None => {
@@ -109,7 +98,7 @@ pub fn local_to_tz(
             let shifted = naive + Duration::hours(1);
             tz.from_local_datetime(&shifted)
                 .single()
-                .ok_or_else(|| sqlx::Error::Protocol("Cannot resolve DST gap".to_string()))
+                .ok_or_else(|| "Cannot resolve DST gap".to_string())
         }
     }
 }
@@ -308,38 +297,6 @@ mod tests {
         assert!(result.is_ok());
         // 09:00 JST = 00:00 UTC
         assert_eq!(result.expect("should be ok").hour(), 0);
-    }
-
-    // === local_to_utc_sqlx ===
-
-    #[test]
-    fn test_local_to_utc_sqlx_variant() {
-        let tz: Tz = "Asia/Ho_Chi_Minh".parse().expect("valid tz");
-        let result = local_to_utc_sqlx(
-            &tz,
-            NaiveDate::from_ymd_opt(2026, 1, 16).expect("valid date"),
-            8,
-            0,
-            0,
-        );
-        assert!(result.is_ok());
-    }
-
-    #[test]
-    fn test_local_to_utc_sqlx_error_type() {
-        let tz: Tz = "UTC".parse().expect("valid tz");
-        let result = local_to_utc_sqlx(
-            &tz,
-            NaiveDate::from_ymd_opt(2026, 1, 1).expect("valid date"),
-            25,
-            0,
-            0,
-        );
-        assert!(result.is_err());
-        assert!(matches!(
-            result.expect_err("should be sqlx error"),
-            sqlx::Error::Protocol(_)
-        ));
     }
 
     // === local_to_tz ===
@@ -672,40 +629,6 @@ mod tests {
             0,
         );
         assert!(result.is_err());
-    }
-
-    // --- local_to_utc_sqlx: DST handling ---
-
-    #[test]
-    fn test_local_to_utc_sqlx_dst_gap_resolved() {
-        let tz: Tz = "America/New_York".parse().expect("valid tz");
-        let result = local_to_utc_sqlx(
-            &tz,
-            NaiveDate::from_ymd_opt(2026, 3, 8).expect("valid date"),
-            2,
-            30,
-            0,
-        );
-        assert!(
-            result.is_ok(),
-            "DST gap should be resolved via sqlx variant"
-        );
-    }
-
-    #[test]
-    fn test_local_to_utc_sqlx_dst_ambiguous_resolved() {
-        let tz: Tz = "America/New_York".parse().expect("valid tz");
-        let result = local_to_utc_sqlx(
-            &tz,
-            NaiveDate::from_ymd_opt(2026, 11, 1).expect("valid date"),
-            1,
-            30,
-            0,
-        );
-        assert!(
-            result.is_ok(),
-            "Ambiguous time should be resolved via sqlx variant"
-        );
     }
 
     // --- local_to_tz: more edge cases ---

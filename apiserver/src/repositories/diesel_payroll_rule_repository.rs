@@ -12,7 +12,7 @@ use bigdecimal::BigDecimal;
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
 use rust_decimal::Decimal;
-use sqlx::PgPool;
+
 use std::str::FromStr;
 use uuid::Uuid;
 
@@ -21,7 +21,7 @@ pub struct DieselPayrollRuleRepository {
 }
 
 impl DieselPayrollRuleRepository {
-    pub fn new(_sqlx_pool: PgPool, diesel_pools: DieselPools) -> Self {
+    pub fn new(diesel_pools: DieselPools) -> Self {
         Self { diesel_pools }
     }
 }

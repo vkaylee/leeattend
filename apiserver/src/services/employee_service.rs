@@ -142,13 +142,14 @@ impl EmployeeService {
         }
 
         // Claim staged logs directly for the new employee
-        if let Err(e) = crate::repositories::staging_log_repository::claim_staged_logs_direct(
-            &self.diesel,
-            workspace_id,
-            employee.id,
-            &employee.employee_id_number,
-        )
-        .await
+        use crate::repositories::staging_log_repository::StagingLogRepository;
+        let staging_repo =
+            crate::repositories::diesel_staging_log_repository::DieselStagingLogRepository::new(
+                self.diesel.clone(),
+            );
+        if let Err(e) = staging_repo
+            .claim_staged_logs(workspace_id, &employee.employee_id_number, employee.id)
+            .await
         {
             tracing::warn!(
                 "Failed to claim staged logs for new employee {}: {}",
@@ -243,13 +244,14 @@ impl EmployeeService {
         // If employee_id_number was updated, claim staged logs directly
         if let Some(new_id_number) = req.employee_id_number {
             let normalized = new_id_number.into_inner();
-            if let Err(e) = crate::repositories::staging_log_repository::claim_staged_logs_direct(
-                &self.diesel,
-                workspace_id,
-                id,
-                &normalized,
-            )
-            .await
+            use crate::repositories::staging_log_repository::StagingLogRepository;
+            let staging_repo =
+                crate::repositories::diesel_staging_log_repository::DieselStagingLogRepository::new(
+                    self.diesel.clone(),
+                );
+            if let Err(e) = staging_repo
+                .claim_staged_logs(workspace_id, &normalized, id)
+                .await
             {
                 tracing::warn!(
                     "Failed to claim staged logs for updated employee {}: {}",
@@ -918,6 +920,12 @@ mod tests {
         async fn create_user(&self, _user: &crate::models::User) -> Result<(), AppError> {
             unimplemented!()
         }
+        async fn get_user_count(&self) -> Result<i64, AppError> {
+            unimplemented!()
+        }
+        async fn assign_platform_admin(&self, _user_id: Uuid) -> Result<(), AppError> {
+            unimplemented!()
+        }
         async fn get_user_by_email(
             &self,
             _email: &str,
@@ -989,6 +997,21 @@ mod tests {
         }
         async fn mark_all_notifications_as_read(&self, _user_id: Uuid) -> Result<(), AppError> {
             unimplemented!()
+        }
+        async fn check_recent_notification_exists(
+            &self,
+            _user_id: Uuid,
+            _notification_type: &str,
+            _link: &str,
+            _since_days: i32,
+        ) -> Result<bool, AppError> {
+            Ok(false)
+        }
+        async fn create_notification(
+            &self,
+            _notification: &crate::models::Notification,
+        ) -> Result<(), AppError> {
+            Ok(())
         }
     }
 

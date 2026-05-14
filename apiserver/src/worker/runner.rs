@@ -7,7 +7,6 @@ use std::sync::Arc;
 use chrono::{DateTime, Utc};
 use redis::AsyncCommands;
 use serde::{Deserialize, Serialize};
-use sqlx::PgPool;
 use tokio::sync::{Mutex, Semaphore};
 use tokio::time::Duration;
 use tokio_util::sync::CancellationToken;
@@ -124,7 +123,6 @@ impl WorkerConfig {
 pub struct JobWorker {
     queue: JobQueue,
     redis: RedisPool,
-    db: PgPool,
     diesel: crate::diesel_pool::DieselPools,
     config: WorkerConfig,
     coordinator: Arc<ReportCoordinator>,
@@ -143,14 +141,13 @@ impl JobWorker {
     /// Create a new JobWorker.
     pub fn new(
         redis: RedisPool,
-        db: PgPool,
         diesel: crate::diesel_pool::DieselPools,
         config: WorkerConfig,
         coordinator: Arc<ReportCoordinator>,
         roster_cache: Option<Arc<RosterCache>>,
     ) -> Self {
-        let cache = Arc::new(CacheManager::new(redis.clone(), db.clone(), diesel.clone()));
-        let deps = Arc::new(super::WorkerDeps::new(&db, &diesel));
+        let cache = Arc::new(CacheManager::new(redis.clone(), diesel.clone()));
+        let deps = Arc::new(super::WorkerDeps::new(&diesel));
         let hostname = std::env::var("HOSTNAME")
             .or_else(|_| std::env::var("COMPUTERNAME"))
             .unwrap_or_else(|_| "unknown".to_string());
@@ -158,7 +155,6 @@ impl JobWorker {
         Self {
             queue: JobQueue::new(redis.clone()),
             redis,
-            db,
             diesel,
             config,
             coordinator,
@@ -391,7 +387,6 @@ impl JobWorker {
         let result = match job.task_type {
             TaskType::AttendanceReport => {
                 AttendanceHandler::handle(
-                    &self.db,
                     &self.diesel,
                     &self.queue,
                     &self.cache,
@@ -403,55 +398,42 @@ impl JobWorker {
                 .await
             }
             TaskType::MergeResults => {
-                MergeHandler::handle(&self.db, &self.queue, &job, &self.redis).await
+                MergeHandler::handle(&self.queue, &job, &self.redis, &self.deps).await
             }
             TaskType::PayrollReport => {
                 // Future implementation
                 Err("PayrollReport not implemented".to_string())
             }
             TaskType::LeaveAccrual => {
-                AccrualHandler::handle(&self.db, &self.diesel, &job, &self.redis, &self.deps).await
+                AccrualHandler::handle(&self.diesel, &job, &self.redis, &self.deps).await
             }
             TaskType::LogIngestion => {
-                LogIngestionHandler::handle(&self.db, &self.diesel, &job, &self.deps).await
+                LogIngestionHandler::handle(&self.diesel, &job, &self.deps).await
             }
             TaskType::ReprocessAttendance => {
-                ReprocessAttendanceHandler::handle(
-                    &self.db,
-                    &self.diesel,
-                    &job,
-                    &self.redis,
-                    &self.deps,
-                )
-                .await
-            }
-            TaskType::ClaimStagedLogs => {
-                ClaimStagedLogsHandler::handle(&self.db, &self.diesel, &job, &self.deps).await
-            }
-            TaskType::LeaveImport => {
-                LeaveImportHandler::handle(&self.db, &self.diesel, &job, &self.redis, &self.deps)
+                ReprocessAttendanceHandler::handle(&self.diesel, &job, &self.redis, &self.deps)
                     .await
             }
+            TaskType::ClaimStagedLogs => {
+                ClaimStagedLogsHandler::handle(&self.diesel, &job, &self.deps).await
+            }
+            TaskType::LeaveImport => {
+                LeaveImportHandler::handle(&self.diesel, &job, &self.redis, &self.deps).await
+            }
             TaskType::EmployeeImport => {
-                EmployeeImportHandler::handle(&self.db, &self.diesel, &job, &self.redis).await
+                EmployeeImportHandler::handle(&self.diesel, &job, &self.redis).await
             }
             TaskType::EmployeeImportChunk => {
-                EmployeeImportChunkHandler::handle(&self.db, &self.diesel, &job, &self.redis).await
+                EmployeeImportChunkHandler::handle(&self.diesel, &job, &self.redis).await
             }
             TaskType::FinalizeImport => {
-                FinalizeImportHandler::handle(&self.db, &self.diesel, &job, &self.redis).await
+                FinalizeImportHandler::handle(&self.diesel, &job, &self.redis).await
             }
             TaskType::ExpiringContractsCheck => {
-                crate::worker::handlers::ExpiringContractsHandler::handle(
-                    &self.db,
-                    &self.diesel,
-                    &job,
-                )
-                .await
+                crate::worker::handlers::ExpiringContractsHandler::handle(&self.deps, &job).await
             }
             TaskType::LeaveImportChunk => {
                 crate::worker::handlers::LeaveImportChunkHandler::handle(
-                    &self.db,
                     &self.diesel,
                     &job,
                     &self.redis,
@@ -460,11 +442,9 @@ impl JobWorker {
                 .await
             }
             TaskType::NightlyHousekeeping => {
-                NightlyHousekeepingHandler::handle(&self.db, &self.diesel, &job).await
+                NightlyHousekeepingHandler::handle(&self.diesel, &job).await
             }
-            TaskType::SyncEmployeeHireDate => {
-                SyncHireDateHandler::process(&job, &self.db, &self.diesel).await
-            }
+            TaskType::SyncEmployeeHireDate => SyncHireDateHandler::process(&job, &self.deps).await,
         };
 
         let elapsed = start.elapsed();

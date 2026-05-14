@@ -20,10 +20,10 @@ async fn test_leave_adjustment() {
     let ws_id: Uuid = factory.workspace().create_with_owner(user_id).await;
     let emp_id: Uuid = factory.employee().with_workspace(ws_id).create().await;
 
-    let vacation_id: Uuid = sqlx::query_scalar!(
+    let vacation_id: Uuid = sqlx::query_scalar(
         "SELECT id FROM leave_types WHERE workspace_id = $1 AND code = 'vacation'",
-        ws_id
     )
+    .bind(ws_id)
     .fetch_one(&factory.pool)
     .await
     .unwrap();

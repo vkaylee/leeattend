@@ -32,7 +32,7 @@ pub async fn spawn_app() -> (String, TestDatabase) {
         apiserver::repositories::DieselUserRepository::new(diesel_pools.clone()),
     );
     let session_repo: Arc<dyn apiserver::repositories::SessionRepository> = Arc::new(
-        apiserver::repositories::DieselSessionRepository::new(pool.clone(), diesel_pools.clone()),
+        apiserver::repositories::DieselSessionRepository::new(diesel_pools.clone()),
     );
     let roster_repo: Arc<dyn apiserver::repositories::roster::RosterRepository> = Arc::new(
         apiserver::repositories::DieselRosterRepository::new(diesel_pools.clone()),
@@ -184,7 +184,6 @@ pub async fn spawn_app() -> (String, TestDatabase) {
     let payroll_rule_repo: Arc<
         dyn apiserver::repositories::payroll_rule_repository::PayrollRuleRepository,
     > = Arc::new(apiserver::repositories::DieselPayrollRuleRepository::new(
-        pool.clone(),
         diesel_pools.clone(),
     ));
     let holiday_repo: Arc<dyn apiserver::repositories::holiday_repository::HolidayRepository> =
@@ -343,7 +342,6 @@ pub async fn spawn_app() -> (String, TestDatabase) {
             repo: employee_repo.clone(),
             contract_repo: Arc::new(
                 apiserver::repositories::DieselEmployeeContractRepository::new(
-                    pool.clone(),
                     diesel_pools.clone(),
                 ),
             ),
@@ -356,7 +354,6 @@ pub async fn spawn_app() -> (String, TestDatabase) {
             summary_service: attendance_summary_service,
             log_service: Arc::new(
                 AttendanceLogService::new(
-                    pool.clone(),
                     pairing_service.clone(),
                     apiserver::services::attendance_log_service::AttendanceLogServiceConfig {
                         buffer_capacity: 100,
@@ -430,10 +427,7 @@ pub async fn spawn_app() -> (String, TestDatabase) {
                 None
             },
             stats_repo: Arc::new(
-                apiserver::repositories::DieselWorkspaceStatsRepository::new(
-                    pool.clone(),
-                    diesel_pools.clone(),
-                ),
+                apiserver::repositories::DieselWorkspaceStatsRepository::new(diesel_pools.clone()),
             ),
         },
         core: apiserver::CoreState {
@@ -452,7 +446,6 @@ pub async fn spawn_app() -> (String, TestDatabase) {
         },
         infra: apiserver::InfraState {
             diesel: diesel_pools.clone(),
-            db: apiserver::db_pool::DbPools::for_test(pool.clone()),
             redis: if let Ok(url) = std::env::var("REDIS_URL") {
                 Some(
                     apiserver::queue::RedisPool::new(&url)
@@ -505,7 +498,7 @@ pub async fn spawn_app_with_factory() -> (String, Uuid, Uuid, TestFactory, TestD
         apiserver::repositories::DieselUserRepository::new(diesel_pools.clone()),
     );
     let session_repo: Arc<dyn apiserver::repositories::SessionRepository> = Arc::new(
-        apiserver::repositories::DieselSessionRepository::new(pool.clone(), diesel_pools.clone()),
+        apiserver::repositories::DieselSessionRepository::new(diesel_pools.clone()),
     );
     let roster_repo: Arc<dyn apiserver::repositories::roster::RosterRepository> = Arc::new(
         apiserver::repositories::DieselRosterRepository::new(diesel_pools.clone()),
@@ -677,7 +670,6 @@ pub async fn spawn_app_with_factory() -> (String, Uuid, Uuid, TestFactory, TestD
     let payroll_rule_repo: Arc<
         dyn apiserver::repositories::payroll_rule_repository::PayrollRuleRepository,
     > = Arc::new(apiserver::repositories::DieselPayrollRuleRepository::new(
-        pool.clone(),
         diesel_pools.clone(),
     ));
     let holiday_repo: Arc<dyn apiserver::repositories::holiday_repository::HolidayRepository> =
@@ -836,7 +828,6 @@ pub async fn spawn_app_with_factory() -> (String, Uuid, Uuid, TestFactory, TestD
             repo: employee_repo.clone(),
             contract_repo: Arc::new(
                 apiserver::repositories::DieselEmployeeContractRepository::new(
-                    pool.clone(),
                     diesel_pools.clone(),
                 ),
             ),
@@ -849,7 +840,6 @@ pub async fn spawn_app_with_factory() -> (String, Uuid, Uuid, TestFactory, TestD
             summary_service: attendance_summary_service,
             log_service: Arc::new(
                 AttendanceLogService::new(
-                    pool.clone(),
                     pairing_service.clone(),
                     apiserver::services::attendance_log_service::AttendanceLogServiceConfig {
                         buffer_capacity: 100,
@@ -923,10 +913,7 @@ pub async fn spawn_app_with_factory() -> (String, Uuid, Uuid, TestFactory, TestD
                 None
             },
             stats_repo: Arc::new(
-                apiserver::repositories::DieselWorkspaceStatsRepository::new(
-                    pool.clone(),
-                    diesel_pools.clone(),
-                ),
+                apiserver::repositories::DieselWorkspaceStatsRepository::new(diesel_pools.clone()),
             ),
         },
         core: apiserver::CoreState {
@@ -945,7 +932,6 @@ pub async fn spawn_app_with_factory() -> (String, Uuid, Uuid, TestFactory, TestD
         },
         infra: apiserver::InfraState {
             diesel: diesel_pools.clone(),
-            db: apiserver::db_pool::DbPools::for_test(pool.clone()),
             redis: if let Ok(url) = std::env::var("REDIS_URL") {
                 let mut redis_p = None;
                 for attempt in 0..10 {
@@ -1031,7 +1017,7 @@ pub async fn setup_app_tower() -> (TestDatabase, TestFactory, Arc<AppState>, axu
         apiserver::repositories::DieselUserRepository::new(diesel_pools.clone()),
     );
     let session_repo: Arc<dyn apiserver::repositories::SessionRepository> = Arc::new(
-        apiserver::repositories::DieselSessionRepository::new(pool.clone(), diesel_pools.clone()),
+        apiserver::repositories::DieselSessionRepository::new(diesel_pools.clone()),
     );
     let roster_repo: Arc<dyn apiserver::repositories::roster::RosterRepository> = Arc::new(
         apiserver::repositories::DieselRosterRepository::new(diesel_pools.clone()),
@@ -1203,7 +1189,6 @@ pub async fn setup_app_tower() -> (TestDatabase, TestFactory, Arc<AppState>, axu
     let payroll_rule_repo: Arc<
         dyn apiserver::repositories::payroll_rule_repository::PayrollRuleRepository,
     > = Arc::new(apiserver::repositories::DieselPayrollRuleRepository::new(
-        pool.clone(),
         diesel_pools.clone(),
     ));
     let holiday_repo: Arc<dyn apiserver::repositories::holiday_repository::HolidayRepository> =
@@ -1362,7 +1347,6 @@ pub async fn setup_app_tower() -> (TestDatabase, TestFactory, Arc<AppState>, axu
             repo: employee_repo.clone(),
             contract_repo: Arc::new(
                 apiserver::repositories::DieselEmployeeContractRepository::new(
-                    pool.clone(),
                     diesel_pools.clone(),
                 ),
             ),
@@ -1375,7 +1359,6 @@ pub async fn setup_app_tower() -> (TestDatabase, TestFactory, Arc<AppState>, axu
             summary_service: attendance_summary_service,
             log_service: Arc::new(
                 AttendanceLogService::new(
-                    pool.clone(),
                     pairing_service.clone(),
                     apiserver::services::attendance_log_service::AttendanceLogServiceConfig {
                         buffer_capacity: 100,
@@ -1441,10 +1424,7 @@ pub async fn setup_app_tower() -> (TestDatabase, TestFactory, Arc<AppState>, axu
             service: report_service,
             coordinator: None,
             stats_repo: Arc::new(
-                apiserver::repositories::DieselWorkspaceStatsRepository::new(
-                    pool.clone(),
-                    diesel_pools.clone(),
-                ),
+                apiserver::repositories::DieselWorkspaceStatsRepository::new(diesel_pools.clone()),
             ),
         },
         core: apiserver::CoreState {
@@ -1463,7 +1443,6 @@ pub async fn setup_app_tower() -> (TestDatabase, TestFactory, Arc<AppState>, axu
         },
         infra: apiserver::InfraState {
             diesel: diesel_pools.clone(),
-            db: apiserver::db_pool::DbPools::for_test(pool.clone()),
             redis: if let Ok(url) = std::env::var("REDIS_URL") {
                 let mut redis_pool = None;
                 for attempt in 0..10 {

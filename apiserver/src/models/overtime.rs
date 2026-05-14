@@ -2,7 +2,7 @@ use chrono::{DateTime, NaiveDate, NaiveTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-#[derive(Debug, Serialize, Deserialize, Clone, Default, sqlx::FromRow)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct OvertimePolicy {
     pub id: Uuid,
     pub workspace_id: Uuid,
@@ -12,7 +12,7 @@ pub struct OvertimePolicy {
     pub updated_at: Option<DateTime<Utc>>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, sqlx::FromRow)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct OvertimeRule {
     pub id: Uuid,
     pub policy_id: Uuid,
@@ -26,7 +26,7 @@ pub struct OvertimeRule {
     pub updated_at: Option<DateTime<Utc>>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, sqlx::FromRow)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct OvertimePolicyAssignment {
     pub id: Uuid,
     pub workspace_id: Uuid,

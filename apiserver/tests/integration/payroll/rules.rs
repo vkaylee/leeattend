@@ -140,10 +140,7 @@ async fn test_payroll_rule_evaluator() {
     let employee_id = factory.employee().with_workspace(ws_id).create().await;
 
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
-    let rule_repo = apiserver::repositories::DieselPayrollRuleRepository::new(
-        test_db.pool(),
-        diesel_pools.clone(),
-    );
+    let rule_repo = apiserver::repositories::DieselPayrollRuleRepository::new(diesel_pools.clone());
 
     // 1. Insert a rule definition (10% deduction)
     let rule_def = rule_repo

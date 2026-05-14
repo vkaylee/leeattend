@@ -4,7 +4,7 @@ use uuid::Uuid;
 
 use crate::models::employee::Employee;
 
-#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct EmployeeProfile {
     pub id: Uuid,
     pub employee_id: Uuid,
@@ -44,7 +44,7 @@ pub struct UpdateEmployeeProfileRequest {
     pub bank_branch: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct EmployeeEmergencyContact {
     pub id: Uuid,
     pub employee_id: Uuid,
@@ -63,7 +63,7 @@ pub struct CreateEmergencyContactRequest {
     pub is_primary: Option<bool>,
 }
 
-#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct EmployeeDocument {
     pub id: Uuid,
     pub employee_id: Uuid,

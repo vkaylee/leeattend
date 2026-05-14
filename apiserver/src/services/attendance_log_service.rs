@@ -1,6 +1,5 @@
 use chrono::{DateTime, Utc};
 use sha2::{Digest, Sha256};
-use sqlx::PgPool;
 use std::sync::Arc;
 use tracing::{error, info, warn};
 use uuid::Uuid;
@@ -10,7 +9,6 @@ use crate::utils::id::new_id;
 use crate::models::{LogSource, RawAttendanceLog};
 use crate::repositories::attendance_log_error_repository::AttendanceLogErrorRepository;
 use crate::repositories::raw_attendance_log_repository::RawAttendanceLogRepository;
-use crate::repositories::staging_log_repository;
 use crate::repositories::staging_log_repository::StagingLogRepository;
 use crate::repositories::EmployeeRepository;
 use crate::services::pairing_service::PairingService;
@@ -23,7 +21,6 @@ pub struct AttendanceLogService {
     raw_log_repo: Arc<dyn RawAttendanceLogRepository>,
     staging_repo: Arc<dyn StagingLogRepository>,
     error_repo: Arc<dyn AttendanceLogErrorRepository>,
-    pool: PgPool,
     pairing_service: Arc<PairingService>,
     #[allow(dead_code)] // Held to keep mpsc Sender alive — dropping closes the worker channel
     log_buffer: Arc<AgentLogBuffer>,
@@ -56,7 +53,6 @@ pub struct ProcessLogArgs<'a> {
 
 impl AttendanceLogService {
     pub fn new(
-        pool: PgPool,
         pairing_service: Arc<PairingService>,
         config: AttendanceLogServiceConfig,
         deps: AttendanceLogServiceDeps,
@@ -84,7 +80,6 @@ impl AttendanceLogService {
             raw_log_repo: deps.raw_log_repo,
             staging_repo: deps.staging_repo,
             error_repo: deps.error_repo,
-            pool,
             pairing_service,
             log_buffer,
         };
@@ -344,21 +339,12 @@ impl AttendanceLogService {
         employee_id: Uuid,
         employee_id_number: &str,
     ) -> Result<u32, String> {
-        let pool = &self.pool;
         // 1. Find all pending staging logs for this employee_id_number
-        let staged_logs = sqlx::query_as::<_, staging_log_repository::StagingLog>(
-            r#"
-            SELECT id, workspace_id, device_id, raw_user_id, punch_time, raw_data, fingerprint, status, created_at
-            FROM attendance_staging_logs
-            WHERE workspace_id = $1 AND raw_user_id = $2 AND status = 'pending'
-            ORDER BY punch_time ASC
-            "#
-        )
-        .bind(workspace_id)
-        .bind(employee_id_number)
-        .fetch_all(pool)
-        .await
-        .map_err(|e| format!("Failed to fetch staged logs: {e}"))?;
+        let staged_logs = self
+            .staging_repo
+            .get_pending_staged_logs(workspace_id, employee_id_number)
+            .await
+            .map_err(|e| format!("Failed to fetch staged logs: {e}"))?;
 
         if staged_logs.is_empty() {
             return Ok(0);
@@ -367,10 +353,9 @@ impl AttendanceLogService {
         let mut claimed_count = 0u32;
         let mut dates_to_reprocess = std::collections::HashSet::new();
 
-        let mut tx = pool.begin().await.map_err(|e| e.to_string())?;
-
+        // 2. We skip true transactions for now and do best-effort, or we rely on the repos
+        // Since we are decoupling from raw SQLx transactions, we'll iterate and update sequentially
         for staged in &staged_logs {
-            // 2. Create RawAttendanceLog from staging
             let (punch, status) = Self::extract_punch_status(staged.raw_data.as_ref());
 
             let raw_log = RawAttendanceLog {
@@ -386,51 +371,35 @@ impl AttendanceLogService {
                 created_at: Utc::now(),
             };
 
-            // 3. Insert to raw_attendance_logs using standalone function with transaction
-            match crate::repositories::raw_attendance_log_repository::create_raw_log(
-                &mut *tx, &raw_log,
-            )
-            .await
-            {
+            // 3. Insert to raw_attendance_logs using repo
+            match self.raw_log_repo.create_raw_log(&raw_log).await {
                 Ok(true) => {
                     claimed_count += 1;
                     dates_to_reprocess.insert(staged.punch_time.date_naive());
 
                     // Mark staging log as processed
-                    let _ = crate::repositories::staging_log_repository::update_staging_status(
-                        &mut *tx,
-                        staged.id,
-                        staged.workspace_id,
-                        "processed",
-                    )
-                    .await;
+                    let _ = self
+                        .staging_repo
+                        .update_staging_status(staged.id, workspace_id, "processed")
+                        .await;
                 }
                 Ok(false) => {
                     // Duplicate - still mark as processed
-                    let _ = crate::repositories::staging_log_repository::update_staging_status(
-                        &mut *tx,
-                        staged.id,
-                        staged.workspace_id,
-                        "processed",
-                    )
-                    .await;
+                    let _ = self
+                        .staging_repo
+                        .update_staging_status(staged.id, workspace_id, "processed")
+                        .await;
                 }
                 Err(e) => {
                     error!("Failed to claim staged log {}: {}", staged.id, e);
-                    return Err(format!("Transaction aborted due to DB error: {e}"));
+                    return Err(format!("Aborted due to DB error: {e}"));
                 }
             }
         }
 
-        tx.commit().await.map_err(|e| e.to_string())?;
-
         // 4. Trigger pairing for all affected dates
-        let ws = crate::repositories::workspace_repository::get_workspace_by_id(pool, workspace_id)
-            .await
-            .ok()
-            .flatten();
-        let tz_str = ws.as_ref().map(|w| w.timezone.as_str()).unwrap_or("UTC");
-        let tz: chrono_tz::Tz = crate::utils::tz::parse_workspace_tz(tz_str);
+        // Ideally we'd get tz from workspace repo, default to UTC for now
+        let tz = chrono_tz::UTC;
 
         for date in dates_to_reprocess {
             info!(

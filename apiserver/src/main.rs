@@ -9,7 +9,7 @@
     clippy::style,
     clippy::correctness
 )]
-use apiserver::db_pool::{DbPoolConfig, DbPools};
+use apiserver::diesel_pool::{DbPoolConfig, DieselPools};
 use apiserver::openapi::ApiDoc;
 use apiserver::queue::RedisPool;
 use apiserver::{create_app, AppState};
@@ -56,15 +56,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Initialize configurable database pools (API + Worker + optional Reader)
     let db_config = DbPoolConfig::from_env();
-    DbPools::run_migrations(&db_config).await;
+    DieselPools::run_migrations(&db_config);
 
     // Initialize Supavisor pooler tenant configuration if required
     // This MUST run before DbPools::connect because DbPools::connect attempts to connect
     // to the Supavisor pool, which requires the tenant to be registered first.
     apiserver::supavisor::init_supavisor_tenant().await;
 
-    let db_pools = DbPools::connect(&db_config).await;
-    let diesel_pools = apiserver::diesel_pool::DieselPools::connect(&db_config).await;
+    let diesel_pools = DieselPools::connect(&db_config).await;
 
     // ╔═══════════════════════════════════════════════════════════════╗
     // ║  POOL ASSIGNMENT RULES                                       ║
@@ -82,7 +81,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let redis_pool = init_redis().await;
     tracing::info!("Redis initialization complete");
 
-    let (state, workers) = AppState::build(db_pools, diesel_pools, redis_pool).await?;
+    let (state, workers) = AppState::build(diesel_pools, redis_pool).await?;
 
     let app = create_app(state.clone());
 

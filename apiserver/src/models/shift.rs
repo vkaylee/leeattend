@@ -2,7 +2,7 @@ use chrono::{DateTime, NaiveDate, NaiveTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-#[derive(Debug, Serialize, Deserialize, Clone, sqlx::FromRow)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct EmployeeShift {
     pub id: Uuid,
     pub employee_id: Uuid,
@@ -21,7 +21,7 @@ pub struct AssignShiftRequest {
     pub end_date: Option<NaiveDate>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, sqlx::FromRow)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Shift {
     pub id: Uuid,
     pub workspace_id: Uuid,
@@ -96,7 +96,7 @@ pub struct UpdateShiftRequest {
     pub effective_date: Option<NaiveDate>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, sqlx::FromRow)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ShiftRoster {
     pub id: Uuid,
     pub employee_id: Uuid,

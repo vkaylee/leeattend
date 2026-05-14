@@ -3,6 +3,7 @@
 use crate::common::app::setup_app_tower;
 use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
+use crate::common::helpers;
 use apiserver::models::ImportJobStatus;
 use apiserver::AppState;
 use axum::http::StatusCode;
@@ -91,8 +92,9 @@ async fn test_upload_attendance_csv_api() {
     }
     assert!(completed, "CSV Job did not complete");
 
-    let entries = apiserver::repositories::time_entry_repository::get_employee_time_entries(
-        &factory.pool,
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&_test_db.url());
+    let entries = helpers::get_employee_time_entries(
+        &diesel_pools,
         ws_id,
         emp_id,
         chrono::Utc::now() - chrono::Duration::days(30),

@@ -6,7 +6,7 @@ use chrono::{DateTime, Utc};
 use std::str::FromStr;
 use uuid::Uuid;
 
-#[derive(Debug, Clone, sqlx::FromRow, diesel::QueryableByName)]
+#[derive(Debug, Clone, diesel::QueryableByName)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct ImportJobEntity {
     #[diesel(sql_type = diesel::sql_types::Uuid)]

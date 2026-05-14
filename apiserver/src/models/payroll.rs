@@ -44,7 +44,7 @@ pub struct PayslipSegment {
     pub std_days_source: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Payslip {
     pub id: Uuid,
     pub employee_id: Uuid,
@@ -173,7 +173,7 @@ pub struct BatchCalculatePayrollResponse {
     pub results: Vec<BatchCalculateResult>,
 }
 
-#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct PayrollSettings {
     pub workspace_id: Uuid,
     pub std_working_day_mode: String,
@@ -207,7 +207,7 @@ pub struct EmployeePayrollConfig {
     pub created_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SalaryComponentDefinition {
     pub id: Uuid,
     pub workspace_id: Uuid,
@@ -217,7 +217,7 @@ pub struct SalaryComponentDefinition {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct EmployeeSalaryComponent {
     pub id: Uuid,
     pub employee_id: Uuid,

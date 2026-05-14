@@ -6,7 +6,6 @@
 use crate::queue::{Job, JobQueue, JobStatus, RedisPool};
 use crate::services::leave_accrual_service::LeaveAccrualService;
 use chrono::Utc;
-use sqlx::PgPool;
 
 pub struct AccrualHandler;
 
@@ -14,7 +13,6 @@ impl AccrualHandler {
     /// Handle a leave accrual job.
     /// Updates JobMetadata status throughout the lifecycle.
     pub async fn handle(
-        _db: &PgPool,
         diesel: &crate::diesel_pool::DieselPools,
         job: &Job,
         redis: &RedisPool,

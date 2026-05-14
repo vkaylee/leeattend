@@ -190,9 +190,7 @@ impl From<LeaveTypeEntity> for LeaveType {
             code: entity.code,
             name: entity.name,
             is_paid: entity.is_paid,
-            policy_config: sqlx::types::Json(
-                serde_json::from_value(entity.policy_config).unwrap_or_default(),
-            ),
+            policy_config: serde_json::from_value(entity.policy_config).unwrap_or_default(),
             created_at: entity.created_at,
         }
     }
@@ -222,9 +220,7 @@ impl From<LeavePolicyDefinitionEntity> for LeavePolicyDefinition {
             name: entity.name,
             description: entity.description,
             leave_type_id: entity.leave_type_id,
-            rule_config: sqlx::types::Json(
-                serde_json::from_value(entity.rule_config).unwrap_or_default(),
-            ),
+            rule_config: serde_json::from_value(entity.rule_config).unwrap_or_default(),
             created_at: entity.created_at.unwrap_or_else(Utc::now),
             updated_at: entity.updated_at.unwrap_or_else(Utc::now),
         }

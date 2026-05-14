@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 /// Represents a holiday entry in the workspace calendar.
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Holiday {
     pub id: Uuid,
     pub workspace_id: Uuid,
@@ -60,8 +60,7 @@ pub struct UpdateHolidayRequest {
 
 /// Workspace-level strategy for calculating OT when a shift crosses midnight
 /// into a holiday (or vice versa).
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::Type, PartialEq, Default)]
-#[sqlx(type_name = "VARCHAR", rename_all = "snake_case")]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub enum HolidayOvernightStrategy {
     /// Split the shift at 00:00 — hours on each side get their respective rate.
     /// Most legally compliant (Vietnam, Korea, Japan).

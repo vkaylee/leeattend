@@ -12,7 +12,6 @@ use crate::services::import_pipeline::ImportPipeline;
 use crate::services::leave_import_service::LeaveImportStrategy;
 use crate::services::leave_service::LeaveService;
 use chrono_tz::Tz;
-use sqlx::PgPool;
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
@@ -24,7 +23,6 @@ pub struct LeaveImportHandler;
 impl LeaveImportHandler {
     #[allow(clippy::too_many_lines)]
     pub async fn handle(
-        _db: &PgPool,
         _diesel: &crate::diesel_pool::DieselPools,
         job: &Job,
         redis: &RedisPool,
@@ -154,7 +152,6 @@ pub struct LeaveImportChunkHandler;
 impl LeaveImportChunkHandler {
     #[allow(clippy::too_many_lines)]
     pub async fn handle(
-        _db: &PgPool,
         diesel: &crate::diesel_pool::DieselPools,
         job: &Job,
         redis: &RedisPool,

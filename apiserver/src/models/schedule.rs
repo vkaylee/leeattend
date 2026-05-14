@@ -5,7 +5,7 @@ use uuid::Uuid;
 use crate::models::attendance::ScheduleTrace;
 use crate::models::enums::AssignmentHistoryType;
 
-#[derive(Debug, Serialize, Deserialize, Clone, sqlx::FromRow)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct WorkingPattern {
     pub id: Uuid,
     pub workspace_id: Uuid,
@@ -16,7 +16,7 @@ pub struct WorkingPattern {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, sqlx::FromRow)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct WorkingPatternDetail {
     pub id: Uuid,
     pub pattern_id: Uuid,
@@ -24,7 +24,7 @@ pub struct WorkingPatternDetail {
     pub shift_id: Option<Uuid>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, sqlx::FromRow)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct EmployeeWorkingPattern {
     pub id: Uuid,
     pub workspace_id: Uuid,
@@ -101,7 +101,7 @@ pub struct EmployeeSchedule {
     pub schedules: Vec<EffectiveSchedule>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, diesel::QueryableByName, sqlx::FromRow)]
+#[derive(Debug, Serialize, Deserialize, Clone, diesel::QueryableByName)]
 pub struct AssignmentHistory {
     #[diesel(sql_type = diesel::sql_types::Uuid)]
     pub id: Uuid,
@@ -109,7 +109,7 @@ pub struct AssignmentHistory {
     pub employee_id: Uuid,
     #[diesel(sql_type = diesel::sql_types::Text)]
     pub employee_name: String,
-    #[diesel(sql_type = crate::schema::sql_types::AssignmentHistoryType)]
+    #[diesel(sql_type = crate::models::enums::AssignmentHistoryTypeSql)]
     pub assignment_type: AssignmentHistoryType,
     #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]
     pub shift_name: Option<String>,

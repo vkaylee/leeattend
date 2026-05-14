@@ -1,9 +1,8 @@
 use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
+use crate::common::helpers;
 use apiserver::models::{enums::ImportTargetType, ImportJobStatus};
-use apiserver::repositories::{
-    employee, import_job_repository, raw_attendance_log_repository, staging_log_repository,
-};
+use apiserver::repositories::{employee, import_job_repository};
 use apiserver::services::AttendanceImportService;
 use chrono::Utc;
 use std::time::Duration;
@@ -26,8 +25,8 @@ async fn test_import_employee_claims_staged_logs() -> Result<(), Box<dyn std::er
     let fingerprint = format!("fp-{}", Uuid::new_v4());
 
     // 1. Create a staged log for a non-existent employee
-    staging_log_repository::create_staging_log(
-        &pool,
+    helpers::create_staging_log(
+        &diesel_pools,
         ws_id,
         Some("device-1".to_string()),
         &normalized_id,
@@ -38,7 +37,7 @@ async fn test_import_employee_claims_staged_logs() -> Result<(), Box<dyn std::er
     .await?;
 
     // Verify it's pending
-    let pending_count = staging_log_repository::count_pending_staging_logs(&pool, ws_id).await?;
+    let pending_count = helpers::count_pending_staging_logs(&diesel_pools, ws_id).await?;
     assert_eq!(pending_count, 1);
 
     // 2. Import employee with this ID
@@ -105,21 +104,13 @@ async fn test_import_employee_claims_staged_logs() -> Result<(), Box<dyn std::er
         .ok_or("Employee should be created")?;
 
     // 4. Verify staged log was claimed
-    let pending_count_after =
-        staging_log_repository::count_pending_staging_logs(&pool, ws_id).await?;
+    let pending_count_after = helpers::count_pending_staging_logs(&diesel_pools, ws_id).await?;
     assert_eq!(pending_count_after, 0, "Staged log should be processed");
 
     // 5. Verify raw log exists for this employee
-    let raw_logs = raw_attendance_log_repository::get_paginated_raw_logs(
-        &pool,
-        ws_id,
-        Some(employee.id),
-        None,
-        None,
-        10,
-        0,
-    )
-    .await?;
+    let raw_logs =
+        helpers::get_paginated_raw_logs(&diesel_pools, ws_id, Some(employee.id), None, None, 10, 0)
+            .await?;
     assert_eq!(
         raw_logs.len(),
         1,
@@ -155,8 +146,8 @@ async fn test_import_existing_employee_claims_staged_logs() -> Result<(), Box<dy
     let fingerprint = format!("fp-{}", Uuid::new_v4());
 
     // 1. Create a staged log for this existing employee
-    staging_log_repository::create_staging_log(
-        &pool,
+    helpers::create_staging_log(
+        &diesel_pools,
         ws_id,
         Some("device-1".to_string()),
         &normalized_id,
@@ -167,7 +158,7 @@ async fn test_import_existing_employee_claims_staged_logs() -> Result<(), Box<dy
     .await?;
 
     // Verify it's pending
-    let pending_count = staging_log_repository::count_pending_staging_logs(&pool, ws_id).await?;
+    let pending_count = helpers::count_pending_staging_logs(&diesel_pools, ws_id).await?;
     assert_eq!(pending_count, 1);
 
     // 2. Import employee with same ID (will be skipped for creation but should trigger claim)
@@ -226,24 +217,16 @@ async fn test_import_existing_employee_claims_staged_logs() -> Result<(), Box<dy
     assert!(job_finished, "Job timed out");
 
     // 3. Verify staged log was claimed even though employee already existed
-    let pending_count_after =
-        staging_log_repository::count_pending_staging_logs(&pool, ws_id).await?;
+    let pending_count_after = helpers::count_pending_staging_logs(&diesel_pools, ws_id).await?;
     assert_eq!(
         pending_count_after, 0,
         "Staged log should be processed for existing employee"
     );
 
     // 4. Verify raw log exists for this employee
-    let raw_logs = raw_attendance_log_repository::get_paginated_raw_logs(
-        &pool,
-        ws_id,
-        Some(employee_id),
-        None,
-        None,
-        10,
-        0,
-    )
-    .await?;
+    let raw_logs =
+        helpers::get_paginated_raw_logs(&diesel_pools, ws_id, Some(employee_id), None, None, 10, 0)
+            .await?;
     assert_eq!(
         raw_logs.len(),
         1,

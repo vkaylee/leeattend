@@ -18,16 +18,12 @@ async fn test_attendance_and_merge_handlers() {
     let pool = test_db.pool();
     let factory = TestFactory::new(pool.clone());
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
-    let deps = apiserver::worker::deps::WorkerDeps::new(&pool, &diesel_pools.clone());
+    let deps = apiserver::worker::deps::WorkerDeps::new(&diesel_pools.clone());
     let redis_url =
         std::env::var("REDIS_URL").unwrap_or_else(|_| "redis://127.0.0.1:6379".to_string());
     let redis_pool = RedisPool::new(&redis_url).await.unwrap();
 
-    let cache = Arc::new(CacheManager::new(
-        redis_pool.clone(),
-        pool.clone(),
-        diesel_pools.clone(),
-    ));
+    let cache = Arc::new(CacheManager::new(redis_pool.clone(), diesel_pools.clone()));
     let queue = JobQueue::new(redis_pool.clone());
 
     let user_id = factory.user().create().await;
@@ -93,7 +89,6 @@ async fn test_attendance_and_merge_handlers() {
     );
 
     let res = AttendanceHandler::handle(
-        &pool,
         &diesel_pools,
         &queue,
         &cache,
@@ -128,7 +123,6 @@ async fn test_attendance_and_merge_handlers() {
     );
 
     let res = AttendanceHandler::handle(
-        &pool,
         &diesel_pools,
         &queue,
         &cache,
@@ -161,7 +155,7 @@ async fn test_attendance_and_merge_handlers() {
         JobPriority::High,
     );
 
-    let res = MergeHandler::handle(&pool, &queue, &merge_job, &redis_pool).await;
+    let res = MergeHandler::handle(&queue, &merge_job, &redis_pool, &deps).await;
     res.expect("MergeHandler should succeed");
 
     // Test MergeHandler for Detail
@@ -185,6 +179,6 @@ async fn test_attendance_and_merge_handlers() {
         JobPriority::High,
     );
 
-    let res = MergeHandler::handle(&pool, &queue, &merge_detail_job, &redis_pool).await;
+    let res = MergeHandler::handle(&queue, &merge_detail_job, &redis_pool, &deps).await;
     res.expect("MergeHandler Detail should succeed");
 }

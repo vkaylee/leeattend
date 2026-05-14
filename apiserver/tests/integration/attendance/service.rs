@@ -2,8 +2,8 @@
 
 use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
+use crate::common::helpers;
 use apiserver::models::LogSource;
-use apiserver::repositories::raw_attendance_log_repository;
 use apiserver::services::attendance_log_service::AttendanceLogService;
 use chrono::{TimeZone, Utc};
 
@@ -89,7 +89,6 @@ async fn test_process_log_success_with_timezone() {
         apiserver::repositories::DieselAttendanceLogErrorRepository::new(diesel_pools.clone()),
     );
     let (service, _) = AttendanceLogService::new(
-        pool.clone(),
         pairing,
         apiserver::services::attendance_log_service::AttendanceLogServiceConfig {
             buffer_capacity: 100,
@@ -123,17 +122,10 @@ async fn test_process_log_success_with_timezone() {
     assert!(result.unwrap());
 
     // Verify in DB
-    let logs = raw_attendance_log_repository::get_paginated_raw_logs(
-        &pool,
-        workspace_id,
-        None,
-        None,
-        None,
-        10,
-        0,
-    )
-    .await
-    .unwrap();
+    let logs =
+        helpers::get_paginated_raw_logs(&diesel_pools, workspace_id, None, None, None, 10, 0)
+            .await
+            .unwrap();
     assert_eq!(logs.len(), 1);
     // 08:00:00+07:00 -> 01:00:00 UTC
     assert_eq!(
@@ -220,7 +212,6 @@ async fn test_same_second_punch_with_different_status_allowed() {
         apiserver::repositories::DieselAttendanceLogErrorRepository::new(diesel_pools.clone()),
     );
     let (service, _) = AttendanceLogService::new(
-        pool.clone(),
         pairing,
         apiserver::services::attendance_log_service::AttendanceLogServiceConfig {
             buffer_capacity: 100,
@@ -296,17 +287,10 @@ async fn test_same_second_punch_with_different_status_allowed() {
     );
 
     // 4. Verify both unique logs are in DB
-    let logs = raw_attendance_log_repository::get_paginated_raw_logs(
-        &pool,
-        workspace_id,
-        None,
-        None,
-        None,
-        10,
-        0,
-    )
-    .await
-    .unwrap();
+    let logs =
+        helpers::get_paginated_raw_logs(&diesel_pools, workspace_id, None, None, None, 10, 0)
+            .await
+            .unwrap();
     assert_eq!(
         logs.len(),
         2,

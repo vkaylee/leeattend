@@ -367,11 +367,11 @@ mod tests {
             pattern_id,
             priority: 10,
             is_active: true,
-            conditions: sqlx::types::Json(crate::models::AssignmentRuleConditions {
+            conditions: crate::models::AssignmentRuleConditions {
                 department_id: None,
                 employee_id_numbers: None,
                 tags: None,
-            }),
+            },
             created_at: chrono::Utc::now(),
             updated_at: chrono::Utc::now(),
         });

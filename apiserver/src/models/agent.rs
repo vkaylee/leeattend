@@ -20,7 +20,7 @@ pub struct AgentStatus {
     pub devices: Vec<DeviceStatus>,
 }
 
-#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone, ToSchema)]
+#[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
 pub struct AuthorizedAgent {
     pub id: String,
     pub name: String,
@@ -31,11 +31,8 @@ pub struct AuthorizedAgent {
     pub last_seen_at: DateTime<Utc>,
     pub is_active: bool,
     pub workspace_id: Uuid,
-    #[sqlx(default)]
     pub max_concurrent_workers: i32,
-    #[sqlx(default)]
     pub success_cooldown_secs: i32,
-    #[sqlx(default)]
     pub retention_days: i32,
 }
 

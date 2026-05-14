@@ -112,7 +112,7 @@ impl PolicyResolver {
 
         // Fallback if no policy found
         if let Some(pv) = policy_version {
-            Ok(pv.rules.0)
+            Ok(pv.rules)
         } else {
             Ok(AttendanceRules {
                 work_unit_minutes: 30,
@@ -141,7 +141,7 @@ impl PolicyResolver {
         let mut result = std::collections::HashMap::with_capacity(employee_ids.len());
         for &id in employee_ids {
             if let Some(pv) = versions.get(&id) {
-                result.insert(id, pv.rules.0.clone());
+                result.insert(id, pv.rules.clone());
             } else {
                 result.insert(
                     id,
@@ -585,11 +585,11 @@ mod tests {
                 Ok(Some(AttendancePolicyVersion {
                     id: Uuid::new_v4(),
                     policy_id: Uuid::new_v4(),
-                    rules: sqlx::types::Json(AttendanceRules {
+                    rules: AttendanceRules {
                         work_unit_minutes: 15,
                         rounding_policy: "ceil".to_string(),
                         early_arrival_strategy: EarlyArrivalStrategy::Block,
-                    }),
+                    },
                     valid_from: chrono::Utc::now(),
                     valid_to: None,
                     created_by: None,

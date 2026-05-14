@@ -88,7 +88,6 @@ mod tests {
     use super::*;
     use crate::models::AssignmentRuleConditions;
     use chrono::Utc;
-    use sqlx::types::Json;
 
     fn make_rule(
         name: &str,
@@ -103,11 +102,11 @@ mod tests {
             pattern_id: Uuid::new_v4(),
             name: name.to_string(),
             priority,
-            conditions: Json(AssignmentRuleConditions {
+            conditions: AssignmentRuleConditions {
                 department_id: dept,
                 employee_id_numbers: ids,
                 tags,
-            }),
+            },
             is_active: true,
             created_at: Utc::now(),
             updated_at: Utc::now(),

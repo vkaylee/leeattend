@@ -7,7 +7,7 @@ use chrono::{Datelike, NaiveTime, TimeZone, Utc};
 use reqwest::StatusCode;
 use serde::Deserialize;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, sqlx::FromRow)]
 struct SummaryRow {
     is_holiday: bool,
     holiday_name: Option<String>,
@@ -113,12 +113,11 @@ async fn test_summary_records_holiday_flag_after_recalculate() {
     .expect("Recalculate failed");
 
     // Verify the summary record in DB directly
-    let row = sqlx::query_as!(
-        SummaryRow,
-        "SELECT is_holiday, holiday_name, actual_work_minutes FROM attendance_daily_summaries WHERE employee_id = $1 AND date = $2",
-        emp,
-        today
+    let row = sqlx::query_as::<_, SummaryRow>(
+        "SELECT is_holiday, holiday_name, actual_work_minutes FROM attendance_daily_summaries WHERE employee_id = $1 AND date = $2"
     )
+    .bind(emp)
+    .bind(today)
     .fetch_optional(&pool)
     .await
     .unwrap();

@@ -3,6 +3,7 @@
 use crate::common::app::setup_app_tower;
 use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
+use crate::common::helpers;
 use apiserver::models::{LogSource, RawAttendanceLog};
 use apiserver::AppState;
 use axum::http::{Request, StatusCode};
@@ -36,6 +37,7 @@ async fn test_force_reprocess_attendance_api() {
     let end_time = Utc.with_ymd_and_hms(2026, 1, 14, 10, 0, 0).unwrap();
 
     // 1. Create raw logs WITHOUT processing them (bypass service)
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
     let logs = vec![start_time, end_time];
     for punch_time in logs {
         let raw_log = RawAttendanceLog {
@@ -50,15 +52,11 @@ async fn test_force_reprocess_attendance_api() {
             status: -1,
             created_at: Utc::now(),
         };
-        apiserver::repositories::raw_attendance_log_repository::create_raw_log(
-            &factory.pool,
-            &raw_log,
-        )
-        .await
-        .unwrap();
+        helpers::create_raw_log(&diesel_pools, &raw_log)
+            .await
+            .unwrap();
     }
 
-    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
     let time_entry_repo =
         apiserver::repositories::DieselTimeEntryRepository::new(diesel_pools.clone());
 
@@ -119,7 +117,7 @@ async fn test_force_reprocess_all_attendance_api() {
     let base_date = NaiveDate::from_ymd_opt(2026, 1, 14).unwrap();
     // Use UTC times that result in the SAME DAY for Asia/Ho_Chi_Minh (UTC+7)
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
-    let deps = apiserver::worker::deps::WorkerDeps::new(&factory.pool, &diesel_pools.clone());
+    let deps = apiserver::worker::deps::WorkerDeps::new(&diesel_pools.clone());
     let start_time = Utc.with_ymd_and_hms(2026, 1, 14, 1, 0, 0).unwrap();
     let end_time = Utc.with_ymd_and_hms(2026, 1, 14, 10, 0, 0).unwrap();
 
@@ -139,12 +137,9 @@ async fn test_force_reprocess_all_attendance_api() {
                 status: -1,
                 created_at: Utc::now(),
             };
-            apiserver::repositories::raw_attendance_log_repository::create_raw_log(
-                &factory.pool,
-                &raw_log,
-            )
-            .await
-            .unwrap();
+            helpers::create_raw_log(&diesel_pools, &raw_log)
+                .await
+                .unwrap();
         }
     }
 
@@ -231,7 +226,6 @@ async fn test_force_reprocess_all_attendance_api() {
         );
 
         apiserver::worker::handlers::reprocess_attendance::ReprocessAttendanceHandler::handle(
-            _state.infra.db.api(),
             &diesel_pools,
             &job,
             redis,

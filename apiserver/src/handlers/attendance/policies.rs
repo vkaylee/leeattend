@@ -69,9 +69,9 @@ pub async fn list_default_attendance_policy_versions(
         .into_iter()
         .map(|v| AttendancePolicyVersionResponse {
             id: v.id.to_string(),
-            work_unit_minutes: v.rules.0.work_unit_minutes,
-            rounding_policy: v.rules.0.rounding_policy,
-            early_arrival_strategy: v.rules.0.early_arrival_strategy,
+            work_unit_minutes: v.rules.work_unit_minutes,
+            rounding_policy: v.rules.rounding_policy,
+            early_arrival_strategy: v.rules.early_arrival_strategy,
             valid_from: v.valid_from.to_rfc3339(),
             valid_to: v.valid_to.map(|dt| dt.to_rfc3339()),
             created_by: v.created_by.map(|u| u.to_string()),
@@ -99,9 +99,9 @@ pub async fn update_default_attendance_rules(
 
     Ok(Json(AttendancePolicyVersionResponse {
         id: v.id.to_string(),
-        work_unit_minutes: v.rules.0.work_unit_minutes,
-        rounding_policy: v.rules.0.rounding_policy,
-        early_arrival_strategy: v.rules.0.early_arrival_strategy,
+        work_unit_minutes: v.rules.work_unit_minutes,
+        rounding_policy: v.rules.rounding_policy,
+        early_arrival_strategy: v.rules.early_arrival_strategy,
         valid_from: v.valid_from.to_rfc3339(),
         valid_to: v.valid_to.map(|dt| dt.to_rfc3339()),
         created_by: v.created_by.map(|u| u.to_string()),

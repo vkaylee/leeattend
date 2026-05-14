@@ -22,7 +22,7 @@ bigdecimal = { version = "0.4.5", features = ["serde"] }
 uuid = { version = "1.19.0", features = ["v4", "v7", "serde"] }
 chrono = { version = "0.4.42", features = ["serde"] }
 chrono-tz = "0.9"
-sqlx = { version = "0.8.6", features = ["runtime-tokio-native-tls", "postgres", "chrono", "uuid", "macros", "json", "migrate", "rust_decimal"] }
+diesel_migrations = { version = "2.1", features = ["postgres"] }
 diesel = { version = "2.1", features = ["postgres", "chrono", "uuid", "serde_json", "numeric"] }
 diesel-async = { version = "0.4.1", features = ["postgres", "deadpool", "tokio"] }
 tower-http = { version = "0.6.8", features = ["cors", "trace"] }
@@ -60,6 +60,7 @@ serial_test = "3.3.1"
 tempfile = "3.24.0"
 tokio-test = "0.4.5"
 tokio-tungstenite = { version = "0.26.2", features = ["rustls-tls-webpki-roots"] }
+sqlx = { version = "0.8.6", features = ["runtime-tokio-native-tls", "postgres", "chrono", "uuid", "macros", "json", "migrate", "rust_decimal"] }
 
 [[test]]
 name = "integration"

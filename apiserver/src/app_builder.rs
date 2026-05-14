@@ -4,7 +4,7 @@ use tokio::task::JoinHandle;
 use tokio_util::sync::CancellationToken;
 
 use crate::agent_manager::AgentManager;
-use crate::db_pool::DbPools;
+
 use crate::queue::RedisPool;
 use crate::services::{AttendanceLogService, ReportCoordinator};
 use crate::state::AppState;
@@ -20,13 +20,12 @@ pub struct AppWorkers {
 impl AppState {
     #[allow(clippy::too_many_lines)]
     pub async fn build(
-        db_pools: DbPools,
         diesel_pools: crate::diesel_pool::DieselPools,
         redis_pool: Option<RedisPool>,
     ) -> Result<(Arc<Self>, AppWorkers), Box<dyn std::error::Error>> {
         // Use API pool for application-level initialization (HTTP handlers, CRUD)
         // Use Worker pool for background services (patient timeout, won't starve API)
-        let worker_pool = db_pools.worker().clone();
+        // Use Worker pool for background services (patient timeout, won't starve API)
 
         // Dev seed data removed — first registered user gets platform_admin automatically.
 
@@ -73,7 +72,6 @@ impl AppState {
             diesel_pools.clone(),
         ));
         let contract_repo = Arc::new(crate::repositories::DieselEmployeeContractRepository::new(
-            db_pools.api().clone(),
             diesel_pools.clone(),
         ));
         let employment_phase_repo = Arc::new(
@@ -146,7 +144,6 @@ impl AppState {
             dyn crate::repositories::workspace_stats_repository::WorkspaceStatsRepository,
         > = Arc::new(
             crate::repositories::workspace_stats_repository::DieselWorkspaceStatsRepository::new(
-                db_pools.api().clone(),
                 diesel_pools.clone(),
             ),
         );
@@ -188,7 +185,6 @@ impl AppState {
 
         let session_repo: Arc<dyn crate::repositories::session_repository::SessionRepository> =
             Arc::new(crate::repositories::DieselSessionRepository::new(
-                db_pools.api().clone(),
                 diesel_pools.clone(),
             ));
         let auth_service = Arc::new(crate::services::auth_service::AuthService::new(
@@ -281,7 +277,6 @@ impl AppState {
         let payroll_rule_repo: Arc<
             dyn crate::repositories::payroll_rule_repository::PayrollRuleRepository,
         > = Arc::new(crate::repositories::DieselPayrollRuleRepository::new(
-            db_pools.api().clone(),
             diesel_pools.clone(),
         ));
         let feature_flag_repo: Arc<
@@ -367,7 +362,6 @@ impl AppState {
         );
 
         let (attendance_service, log_worker_handle) = AttendanceLogService::new(
-            worker_pool.clone(),
             Arc::clone(&pairing_service),
             crate::services::attendance_log_service::AttendanceLogServiceConfig {
                 buffer_capacity,
@@ -422,7 +416,6 @@ impl AppState {
 
                 let worker = JobWorker::new(
                     redis.clone(),
-                    db_pools.worker().clone(),
                     diesel_pools.clone(),
                     worker_config,
                     Arc::clone(&coordinator),
@@ -511,7 +504,6 @@ impl AppState {
                 repo: agent_repo,
             },
             infra: crate::InfraState {
-                db: db_pools,
                 diesel: diesel_pools,
                 redis: redis_pool,
                 roster_cache,

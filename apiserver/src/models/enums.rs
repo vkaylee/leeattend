@@ -14,10 +14,8 @@ use utoipa::ToSchema;
     ToSchema,
     diesel::expression::AsExpression,
     diesel::deserialize::FromSqlRow,
-    sqlx::Type,
 )]
 #[diesel(sql_type = crate::schema::sql_types::ContractTypeEnum)]
-#[sqlx(type_name = "contract_type_enum", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 #[strum(serialize_all = "snake_case")]
 pub enum ContractType {
@@ -40,10 +38,8 @@ pub enum ContractType {
     ToSchema,
     diesel::expression::AsExpression,
     diesel::deserialize::FromSqlRow,
-    sqlx::Type,
 )]
 #[diesel(sql_type = crate::schema::sql_types::ContractStatusEnum)]
-#[sqlx(type_name = "contract_status_enum", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 #[strum(serialize_all = "snake_case")]
 pub enum ContractStatus {
@@ -65,10 +61,8 @@ pub enum ContractStatus {
     ToSchema,
     diesel::expression::AsExpression,
     diesel::deserialize::FromSqlRow,
-    sqlx::Type,
 )]
 #[diesel(sql_type = crate::schema::sql_types::LeaveStatusType)]
-#[sqlx(type_name = "leave_status_type", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 pub enum LeaveStatus {
     Pending,
@@ -90,9 +84,7 @@ pub enum LeaveStatus {
     strum_macros::EnumString,
     ToSchema,
     Default,
-    sqlx::Type,
 )]
-#[sqlx(type_name = "leave_duration_type", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 pub enum LeaveDurationType {
     #[default]
@@ -114,10 +106,8 @@ pub enum LeaveDurationType {
     ToSchema,
     diesel::expression::AsExpression,
     diesel::deserialize::FromSqlRow,
-    sqlx::Type,
 )]
 #[diesel(sql_type = crate::schema::sql_types::AdjustmentStatusType)]
-#[sqlx(type_name = "adjustment_status_type", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 pub enum AdjustmentStatus {
     Pending,
@@ -137,10 +127,8 @@ pub enum AdjustmentStatus {
     ToSchema,
     diesel::expression::AsExpression,
     diesel::deserialize::FromSqlRow,
-    sqlx::Type,
 )]
 #[diesel(sql_type = crate::schema::sql_types::LogSourceType)]
-#[sqlx(type_name = "log_source_type", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 pub enum LogSource {
     Device,
@@ -225,6 +213,10 @@ pub enum PayoutType {
     Percentage,
 }
 
+#[derive(diesel::sql_types::SqlType)]
+#[diesel(postgres_type(name = "assignment_history_type"))]
+pub struct AssignmentHistoryTypeSql;
+
 #[derive(
     Debug,
     Serialize,
@@ -235,10 +227,8 @@ pub enum PayoutType {
     Eq,
     diesel::expression::AsExpression,
     diesel::deserialize::FromSqlRow,
-    sqlx::Type,
 )]
-#[diesel(sql_type = crate::schema::sql_types::AssignmentHistoryType)]
-#[sqlx(type_name = "assignment_history_type", rename_all = "snake_case")]
+#[diesel(sql_type = AssignmentHistoryTypeSql)]
 #[serde(rename_all = "snake_case")]
 pub enum AssignmentHistoryType {
     Roster,
@@ -259,10 +249,8 @@ pub enum AssignmentHistoryType {
     strum_macros::Display,
     diesel::expression::AsExpression,
     diesel::deserialize::FromSqlRow,
-    sqlx::Type,
 )]
 #[diesel(sql_type = crate::schema::sql_types::OtStatusType)]
-#[sqlx(type_name = "ot_status_type", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 pub enum OtStatus {
     None,
@@ -332,10 +320,8 @@ pub enum TimekeepingUnit {
     ToSchema,
     diesel::expression::AsExpression,
     diesel::deserialize::FromSqlRow,
-    sqlx::Type,
 )]
 #[diesel(sql_type = crate::schema::sql_types::RecruitmentSourceType)]
-#[sqlx(type_name = "recruitment_source_type", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 #[strum(serialize_all = "snake_case")]
 pub enum RecruitmentSourceType {
@@ -375,10 +361,8 @@ pub enum AssigneeType {
     strum_macros::Display,
     strum_macros::EnumString,
     ToSchema,
-    sqlx::Type,
     Default,
 )]
-#[sqlx(rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 #[strum(serialize_all = "snake_case")]
 pub enum PayrollCalculationMethod {
@@ -399,10 +383,8 @@ pub enum PayrollCalculationMethod {
     strum_macros::Display,
     strum_macros::EnumString,
     ToSchema,
-    sqlx::Type,
     Default,
 )]
-#[sqlx(rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 #[strum(serialize_all = "snake_case")]
 pub enum PayrollRuleCategory {
@@ -471,9 +453,7 @@ impl From<String> for RuleAppliesTo {
     strum_macros::Display,
     strum_macros::EnumString,
     ToSchema,
-    sqlx::Type,
 )]
-#[sqlx(rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 #[strum(serialize_all = "snake_case")]
 pub enum RoleScopeType {

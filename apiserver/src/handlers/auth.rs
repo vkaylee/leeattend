@@ -11,7 +11,7 @@ use crate::models::{
     AuthResponse, ChangePasswordRequest, LoginRequest, RefreshRequest, RegisterRequest,
     UpdateUserRequest, User, UserResponse,
 };
-use crate::repositories::user_repository;
+
 use crate::services::auth_service::AuthService;
 use crate::{AppState, UserId};
 
@@ -150,10 +150,7 @@ pub async fn register(
     // 3. Hash password
     let password_hash = AuthService::hash_password(&req.password).map_err(AppError::from)?;
 
-    // 3. Begin transaction for atomicity
-    let mut tx = state.infra.db.api().begin().await?;
-
-    // 4. Create User within transaction
+    // 4. Create User
     let user_id = crate::utils::id::new_id();
     let created_at = Utc::now();
     let user = User {
@@ -167,25 +164,19 @@ pub async fn register(
         password_hash,
     };
 
-    if let Err(e) = user_repository::create_user_tx(&mut *tx, &user).await {
-        let _ = tx.rollback().await;
-        return Err(e.into());
-    }
+    state.core.user_repo.create_user(&user).await?;
 
     // 4b. Auto-assign platform_admin to the very first user registered
-    let user_count = user_repository::user_count_tx(&mut *tx).await?;
+    let user_count = state.core.user_repo.get_user_count().await?;
 
     if user_count == 1 {
-        user_repository::assign_platform_admin_tx(&mut *tx, user.id).await?;
+        state.core.user_repo.assign_platform_admin(user.id).await?;
 
         tracing::info!(
             user_id = %user.id,
             "First user registered — auto-assigned platform_admin role"
         );
     }
-
-    // 5. Commit user creation transaction
-    tx.commit().await?;
 
     // 6. Create session (post-commit — session is ephemeral, safe outside tx)
     let refresh_token = state

@@ -49,6 +49,55 @@ impl UserRepository for DieselUserRepository {
         Ok(())
     }
 
+    async fn get_user_count(&self) -> Result<i64, AppError> {
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        let count = users::table
+            .count()
+            .get_result::<i64>(&mut conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        Ok(count)
+    }
+
+    async fn assign_platform_admin(&self, user_id: Uuid) -> Result<(), AppError> {
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        let role_id_opt: Option<Uuid> = system_roles::table
+            .filter(system_roles::name.eq("platform_admin"))
+            .select(system_roles::id)
+            .first::<Uuid>(&mut conn)
+            .await
+            .optional()
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        let Some(role_id) = role_id_opt else {
+            return Err(AppError::Internal("platform_admin role not found".into()));
+        };
+
+        diesel::insert_into(user_system_roles::table)
+            .values((
+                user_system_roles::user_id.eq(user_id),
+                user_system_roles::role_id.eq(role_id),
+            ))
+            .execute(&mut conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        Ok(())
+    }
+
     async fn get_user_by_email(&self, email: &str) -> Result<Option<User>, AppError> {
         let mut conn = self
             .diesel_pools
@@ -359,6 +408,84 @@ impl UserRepository for DieselUserRepository {
         use crate::schema::notifications;
         diesel::update(notifications::table.filter(notifications::user_id.eq(user_id)))
             .set(notifications::is_read.eq(true))
+            .execute(&mut conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        Ok(())
+    }
+    async fn check_recent_notification_exists(
+        &self,
+        user_id_val: Uuid,
+        notification_type: &str,
+        link_val: &str,
+        since_days: i32,
+    ) -> Result<bool, AppError> {
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        let target_date = chrono::Utc::now() - chrono::Duration::days(since_days as i64);
+
+        use crate::schema::notifications;
+
+        let exists: bool = diesel::select(diesel::dsl::exists(
+            notifications::table
+                .filter(notifications::user_id.eq(user_id_val))
+                .filter(notifications::type_.eq(notification_type))
+                .filter(notifications::link.eq(link_val))
+                .filter(notifications::created_at.ge(target_date)),
+        ))
+        .get_result(&mut conn)
+        .await
+        .unwrap_or(false);
+
+        Ok(exists)
+    }
+
+    async fn create_notification(
+        &self,
+        notification: &crate::models::Notification,
+    ) -> Result<(), AppError> {
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        use crate::schema::notifications;
+
+        #[derive(diesel::Insertable)]
+        #[diesel(table_name = notifications)]
+        struct NewNotification<'a> {
+            id: Uuid,
+            user_id: Uuid,
+            #[diesel(column_name = "type_")]
+            type_val: &'a str,
+            title: &'a str,
+            content: &'a str,
+            is_read: bool,
+            link: Option<&'a str>,
+            created_at: chrono::DateTime<chrono::Utc>,
+        }
+
+        let new_notification = NewNotification {
+            id: notification.id,
+            user_id: notification.user_id,
+            type_val: &notification.r#type,
+            title: &notification.title,
+            content: &notification.content,
+            is_read: notification.is_read,
+            link: notification.link.as_deref(),
+            created_at: notification.created_at,
+        };
+
+        diesel::insert_into(notifications::table)
+            .values(&new_notification)
             .execute(&mut conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;

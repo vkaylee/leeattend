@@ -51,13 +51,11 @@ impl From<AttendancePolicyVersionEntity> for AttendancePolicyVersion {
         AttendancePolicyVersion {
             id: val.id,
             policy_id: val.policy_id,
-            rules: sqlx::types::Json(serde_json::from_value(val.rules).unwrap_or(
-                AttendanceRules {
-                    work_unit_minutes: 0,
-                    rounding_policy: "none".to_string(),
-                    early_arrival_strategy: crate::models::enums::EarlyArrivalStrategy::Block,
-                },
-            )),
+            rules: serde_json::from_value(val.rules).unwrap_or(AttendanceRules {
+                work_unit_minutes: 0,
+                rounding_policy: "none".to_string(),
+                early_arrival_strategy: crate::models::enums::EarlyArrivalStrategy::Block,
+            }),
             valid_from: val.valid_from,
             valid_to: val.valid_to,
             created_by: val.created_by,

@@ -4,7 +4,6 @@
 //! Receives a [`Job`] with [`MergePayload`] containing date_range and config.
 
 use chrono::{NaiveDate, Utc};
-use sqlx::PgPool;
 use tracing::{info, warn};
 
 use crate::errors::{AppError, AppResult};
@@ -32,12 +31,12 @@ impl MergeHandler {
     /// 6. Publish DONE signal to Pub/Sub
     /// 7. Cleanup batch results
     pub async fn handle(
-        pool: &PgPool,
         queue: &JobQueue,
         job: &Job,
         redis: &RedisPool,
+        deps: &crate::worker::WorkerDeps,
     ) -> Result<(), String> {
-        match Self::handle_inner(pool, queue, job, redis).await {
+        match Self::handle_inner(queue, job, redis, deps).await {
             Ok(_) => Ok(()),
             Err(e) => Err(e.to_string()),
         }
@@ -45,10 +44,10 @@ impl MergeHandler {
 
     #[allow(clippy::too_many_lines)]
     async fn handle_inner(
-        pool: &PgPool,
         queue: &JobQueue,
         job: &Job,
         redis: &RedisPool,
+        deps: &crate::worker::WorkerDeps,
     ) -> AppResult<()> {
         let parent_job_id = job.parent_job_id;
         let t0 = std::time::Instant::now();
@@ -86,7 +85,7 @@ impl MergeHandler {
 
         // 3. Get workspace name, timezone, and language for Excel title/i18n
         let (workspace_name, workspace_tz, workspace_lang) =
-            Self::get_workspace_info(pool, meta.workspace_id).await;
+            Self::get_workspace_info(deps.workspace_repo.as_ref(), meta.workspace_id).await;
         let excel_msgs = ExcelReportMessages::for_lang(&workspace_lang);
 
         // 4. Get date range
@@ -308,17 +307,15 @@ impl MergeHandler {
 
     /// Get workspace name, timezone, and default language from database.
     async fn get_workspace_info(
-        pool: &PgPool,
+        workspace_repo: &dyn crate::repositories::WorkspaceRepository,
         workspace_id: uuid::Uuid,
     ) -> (String, String, String) {
-        match sqlx::query!(
-            "SELECT name, timezone, default_language FROM workspaces WHERE id = $1",
-            workspace_id
-        )
-        .fetch_optional(pool)
-        .await
-        {
-            Ok(Some(row)) => (row.name, row.timezone, row.default_language),
+        match workspace_repo.get_workspace_by_id(workspace_id).await {
+            Ok(Some(workspace)) => (
+                workspace.name,
+                workspace.timezone,
+                workspace.default_language,
+            ),
             _ => ("Workspace".to_string(), "UTC".to_string(), "en".to_string()),
         }
     }

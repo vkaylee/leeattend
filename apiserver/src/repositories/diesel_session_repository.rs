@@ -7,7 +7,6 @@ use async_trait::async_trait;
 use chrono::Utc;
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
-use sqlx::PgPool;
 use uuid::Uuid;
 
 pub struct DieselSessionRepository {
@@ -15,7 +14,7 @@ pub struct DieselSessionRepository {
 }
 
 impl DieselSessionRepository {
-    pub fn new(_sqlx_pool: PgPool, diesel_pools: DieselPools) -> Self {
+    pub fn new(diesel_pools: DieselPools) -> Self {
         Self { diesel_pools }
     }
 }

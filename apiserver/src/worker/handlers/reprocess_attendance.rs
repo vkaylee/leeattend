@@ -4,7 +4,6 @@
 //! employee and date range. Updates JobMetadata status.
 
 use chrono_tz::Tz;
-use sqlx::PgPool;
 use std::sync::Arc;
 use tracing::{info, warn};
 
@@ -14,7 +13,6 @@ pub struct ReprocessAttendanceHandler;
 
 impl ReprocessAttendanceHandler {
     pub async fn handle(
-        db: &PgPool,
         diesel: &crate::diesel_pool::DieselPools,
         job: &Job,
         redis: &RedisPool,
@@ -43,14 +41,12 @@ impl ReprocessAttendanceHandler {
             "Starting bulk attendance reprocess"
         );
 
-        // Fetch workspace timezone
-        let tz_str: String = sqlx::query_scalar!(
-            "SELECT timezone FROM workspaces WHERE id = $1",
-            job.workspace_id
-        )
-        .fetch_one(db)
-        .await
-        .unwrap_or_else(|_| "UTC".to_string());
+        let tz_str: String = deps
+            .workspace_repo
+            .get_workspace_by_id(job.workspace_id)
+            .await
+            .map(|w| w.map(|w| w.timezone).unwrap_or_else(|| "UTC".to_string()))
+            .unwrap_or_else(|_| "UTC".to_string());
 
         let tz: Tz = tz_str.parse().unwrap_or(chrono_tz::UTC);
 

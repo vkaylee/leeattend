@@ -222,8 +222,7 @@ async fn test_employee_import_chunking() {
         max_retries: 3,
     };
 
-    let result =
-        EmployeeImportHandler::handle(&pool, &diesel_pools, &worker_job, &redis_pool).await;
+    let result = EmployeeImportHandler::handle(&diesel_pools, &worker_job, &redis_pool).await;
 
     if let Err(e) = &result {
         println!("Handler failed with error: {}", e);
@@ -340,9 +339,8 @@ async fn test_leave_import_chunking() {
         max_retries: 3,
     };
 
-    let deps = apiserver::worker::deps::WorkerDeps::new(&pool, &diesel_pools.clone());
-    let result =
-        LeaveImportHandler::handle(&pool, &diesel_pools, &worker_job, &redis_pool, &deps).await;
+    let deps = apiserver::worker::deps::WorkerDeps::new(&diesel_pools.clone());
+    let result = LeaveImportHandler::handle(&diesel_pools, &worker_job, &redis_pool, &deps).await;
 
     if let Err(e) = &result {
         println!("Handler failed with error: {}", e);

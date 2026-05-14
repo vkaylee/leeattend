@@ -70,11 +70,12 @@ async fn test_update_workspace_time_format() {
     let user_id: Uuid = factory.user().create().await;
     let ws_id: Uuid = factory.workspace().create_with_owner(user_id).await;
 
-    // 1. Verify default time format is 24h
-    let ws: apiserver::models::Workspace = sqlx::query_as("SELECT * FROM workspaces WHERE id = $1")
-        .bind(ws_id)
-        .fetch_one(&pool)
+    // 1. Verify default time format is 24h via repository
+    use apiserver::repositories::workspace_repository::WorkspaceRepository;
+    let ws = workspace_repo
+        .get_workspace_by_id(ws_id)
         .await
+        .unwrap()
         .unwrap();
     assert_eq!(ws.time_format, "24h");
 
@@ -100,13 +101,12 @@ async fn test_update_workspace_time_format() {
 
     assert_eq!(updated_ws.time_format, "12h");
 
-    // 3. Verify persistence
-    let persisted_ws: apiserver::models::Workspace =
-        sqlx::query_as("SELECT * FROM workspaces WHERE id = $1")
-            .bind(ws_id)
-            .fetch_one(&pool)
-            .await
-            .unwrap();
+    // 3. Verify persistence via repository
+    let persisted_ws = workspace_repo
+        .get_workspace_by_id(ws_id)
+        .await
+        .unwrap()
+        .unwrap();
     assert_eq!(persisted_ws.time_format, "12h");
 }
 

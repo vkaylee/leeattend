@@ -115,7 +115,7 @@ services:
       - bash
       - -c
       - |
-        sqlx migrate run
+        diesel migration run
         for i in {1..5}; do
           psql postgres://test_user:test_password@db:5432/postgres?sslmode=disable -c "CREATE DATABASE leeattend_test_template TEMPLATE test_database" && break
           echo "Retrying psql..."

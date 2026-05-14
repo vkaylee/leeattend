@@ -71,7 +71,7 @@
 pub mod agent_manager;
 pub mod app_builder;
 pub mod cache;
-pub mod db_pool;
+
 pub mod dev_initialization;
 pub mod diesel_pool;
 pub mod domain;

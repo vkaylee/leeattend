@@ -37,11 +37,12 @@ pub struct WorkerDeps {
     pub contract_repo: Arc<crate::repositories::DieselEmployeeContractRepository>,
     pub leave_accrual_log_repo: Arc<dyn crate::repositories::leave_accrual_log_repository::LeaveAccrualLogRepository>,
     pub leave_policy_repo: Arc<dyn crate::repositories::leave_policy_repository::LeavePolicyRepository>,
+    pub user_repo: Arc<dyn crate::repositories::UserRepository>,
 }
 
 impl WorkerDeps {
     /// Build all worker-scoped repositories from Diesel connection pools.
-    pub fn new(db: &sqlx::PgPool, diesel: &crate::diesel_pool::DieselPools) -> Self {
+    pub fn new(diesel: &crate::diesel_pool::DieselPools) -> Self {
         Self {
             time_entry_repo: Arc::new(crate::repositories::DieselTimeEntryRepository::new(
                 diesel.clone(),
@@ -90,20 +91,21 @@ impl WorkerDeps {
                 diesel.clone(),
             )),
             session_repo: Arc::new(crate::repositories::DieselSessionRepository::new(
-                db.clone(),
                 diesel.clone(),
             )),
             leave_balance_repo: Arc::new(crate::repositories::DieselLeaveBalanceRepository::new(
                 diesel.clone(),
             )),
             contract_repo: Arc::new(crate::repositories::DieselEmployeeContractRepository::new(
-                db.clone(),
                 diesel.clone(),
             )),
             leave_accrual_log_repo: Arc::new(
                 crate::repositories::DieselLeaveAccrualLogRepository::new(diesel.clone()),
             ),
             leave_policy_repo: Arc::new(crate::repositories::DieselLeavePolicyRepository::new(
+                diesel.clone(),
+            )),
+            user_repo: Arc::new(crate::repositories::DieselUserRepository::new(
                 diesel.clone(),
             )),
         }
@@ -135,7 +137,6 @@ impl WorkerDeps {
     /// using the shared repository instances.
     pub fn log_service(
         &self,
-        pool: &sqlx::PgPool,
         diesel: &crate::diesel_pool::DieselPools,
     ) -> (
         crate::services::AttendanceLogService,
@@ -143,7 +144,6 @@ impl WorkerDeps {
     ) {
         let pairing_svc = self.pairing_service(diesel);
         crate::services::AttendanceLogService::new(
-            pool.clone(),
             pairing_svc,
             crate::services::attendance_log_service::AttendanceLogServiceConfig {
                 buffer_capacity: 1,

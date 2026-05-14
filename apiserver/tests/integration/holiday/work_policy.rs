@@ -589,10 +589,10 @@ async fn test_leave_reversal_full_shift() {
         .create()
         .await;
 
-    let vacation_id: Uuid = sqlx::query_scalar!(
+    let vacation_id: Uuid = sqlx::query_scalar(
         "SELECT id FROM leave_types WHERE workspace_id = $1 AND code = 'vacation'",
-        workspace_id
     )
+    .bind(workspace_id)
     .fetch_one(&pool)
     .await
     .unwrap();
@@ -695,10 +695,10 @@ async fn test_leave_kept_partial_work() {
         .create()
         .await;
 
-    let vacation_id: Uuid = sqlx::query_scalar!(
+    let vacation_id: Uuid = sqlx::query_scalar(
         "SELECT id FROM leave_types WHERE workspace_id = $1 AND code = 'vacation'",
-        workspace_id
     )
+    .bind(workspace_id)
     .fetch_one(&pool)
     .await
     .unwrap();
@@ -808,10 +808,10 @@ async fn test_leave_reversal_custom_threshold() {
         .create()
         .await;
 
-    let vacation_id: Uuid = sqlx::query_scalar!(
+    let vacation_id: Uuid = sqlx::query_scalar(
         "SELECT id FROM leave_types WHERE workspace_id = $1 AND code = 'vacation'",
-        workspace_id
     )
+    .bind(workspace_id)
     .fetch_one(&pool)
     .await
     .unwrap();
@@ -940,10 +940,10 @@ async fn test_leave_reversal_only_system() {
         .create()
         .await;
 
-    let vacation_id: Uuid = sqlx::query_scalar!(
+    let vacation_id: Uuid = sqlx::query_scalar(
         "SELECT id FROM leave_types WHERE workspace_id = $1 AND code = 'vacation'",
-        workspace_id
     )
+    .bind(workspace_id)
     .fetch_one(&pool)
     .await
     .unwrap();

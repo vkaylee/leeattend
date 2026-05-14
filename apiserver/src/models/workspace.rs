@@ -36,7 +36,7 @@ pub struct CreateWorkingConditionRequest {
     pub end_date: Option<NaiveDate>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, sqlx::FromRow)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Workspace {
     pub id: Uuid,
     pub name: String,
@@ -84,7 +84,7 @@ pub struct AddMemberRequest {
     pub role_id: Uuid,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, sqlx::FromRow)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct MemberExtraRole {
     pub id: Uuid,
     pub workspace_id: Uuid,
@@ -100,7 +100,7 @@ pub struct AssignRoleRequest {
     pub expires_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, sqlx::FromRow)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct WorkspaceMemberDetail {
     pub workspace_id: Uuid,
     pub user_id: Uuid,
@@ -117,7 +117,7 @@ pub struct WorkspaceMemberDetailResponse {
     pub extra_role_ids: Vec<Uuid>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, sqlx::FromRow)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct MemberExtraPermission {
     pub id: Uuid,
     pub workspace_id: Uuid,
@@ -134,7 +134,7 @@ pub struct AssignPermissionRequest {
     pub expires_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, sqlx::FromRow)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct WorkspaceRole {
     pub id: Uuid,
     pub workspace_id: Option<Uuid>,

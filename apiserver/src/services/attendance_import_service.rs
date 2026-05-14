@@ -215,13 +215,11 @@ impl ImportStrategy for EmployeeImportStrategy {
                 }
 
                 // Claim staged logs directly
-                let _ = crate::repositories::staging_log_repository::claim_staged_logs_direct(
-                    diesel,
-                    job.workspace_id,
-                    employee_id,
-                    &emp.id_number,
-                )
-                .await;
+                use crate::repositories::staging_log_repository::StagingLogRepository;
+                let staging_repo = crate::repositories::diesel_staging_log_repository::DieselStagingLogRepository::new(diesel.clone());
+                let _ = staging_repo
+                    .claim_staged_logs(job.workspace_id, &emp.id_number, employee_id)
+                    .await;
 
                 if was_new || department_updated {
                     Ok(Some(employee_id))

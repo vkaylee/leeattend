@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::agent_manager::AgentManager;
-use crate::db_pool::DbPools;
+
 use crate::repositories::assignment_rule_repository::AssignmentRuleRepository;
 use crate::repositories::attendance_log_error_repository::AttendanceLogErrorRepository;
 use crate::repositories::audit_log_repository::AuditLogRepository;
@@ -135,7 +135,6 @@ pub struct AgentState {
 
 /// Infrastructure — DB, Redis, caches
 pub struct InfraState {
-    pub db: DbPools,
     pub diesel: crate::diesel_pool::DieselPools,
     pub redis: Option<RedisPool>,
     pub roster_cache: Option<Arc<crate::cache::RosterCache>>,

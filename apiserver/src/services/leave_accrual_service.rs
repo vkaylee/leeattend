@@ -412,8 +412,8 @@ impl LeaveAccrualService {
             .map_err(|e| AppError::Internal(e.to_string()))?;
         use diesel_async::RunQueryDsl;
 
-        let start_dt = local_to_utc(&tz, range_start, 0, 0, 0)?;
-        let end_dt = local_to_utc(&tz, range_end, 23, 59, 59)?;
+        let start_dt = local_to_utc(&tz, range_start, 0, 0, 0).map_err(AppError::Internal)?;
+        let end_dt = local_to_utc(&tz, range_end, 23, 59, 59).map_err(AppError::Internal)?;
 
         #[derive(diesel::QueryableByName)]
         struct WorkRow {
@@ -562,7 +562,7 @@ impl LeaveAccrualService {
             return Ok(());
         };
 
-        let config = &policy.rule_config.0;
+        let config = &policy.rule_config;
         let leave_type_id = policy.leave_type_id;
 
         // Fetch effective_from via repository
@@ -782,7 +782,7 @@ impl LeaveAccrualService {
     }
 }
 
-use crate::utils::chrono_helpers::local_to_utc_sqlx as local_to_utc;
+use crate::utils::chrono_helpers::local_to_utc;
 
 #[cfg(test)]
 #[allow(clippy::float_cmp)]

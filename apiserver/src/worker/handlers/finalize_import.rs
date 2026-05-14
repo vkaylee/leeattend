@@ -2,8 +2,6 @@
 //!
 //! Merges progress and errors from Redis when all chunks are completed.
 
-use sqlx::PgPool;
-
 use crate::models::ImportJobStatus;
 use crate::queue::{Job, RedisPool};
 use crate::repositories::import_job_repository::ImportJobRepository;
@@ -13,7 +11,6 @@ pub struct FinalizeImportHandler;
 
 impl FinalizeImportHandler {
     pub async fn handle(
-        _db: &PgPool,
         diesel: &crate::diesel_pool::DieselPools,
         job: &Job,
         redis: &RedisPool,

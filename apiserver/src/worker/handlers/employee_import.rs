@@ -4,7 +4,6 @@
 //! Implements a Chunking & Fan-out architecture for large files.
 
 use chrono_tz::Tz;
-use sqlx::PgPool;
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
@@ -28,7 +27,6 @@ impl EmployeeImportHandler {
     /// Splits the file into chunks and enqueues them.
     #[allow(clippy::too_many_lines)]
     pub async fn handle(
-        _db: &PgPool,
         diesel: &crate::diesel_pool::DieselPools,
         job: &Job,
         redis: &RedisPool,
@@ -159,7 +157,6 @@ pub struct EmployeeImportChunkHandler;
 impl EmployeeImportChunkHandler {
     #[allow(clippy::too_many_lines)]
     pub async fn handle(
-        _db: &PgPool,
         diesel: &crate::diesel_pool::DieselPools,
         job: &Job,
         redis: &RedisPool,

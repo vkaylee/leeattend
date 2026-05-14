@@ -1,5 +1,4 @@
 #![allow(clippy::all)]
-use sqlx::PgPool;
 use tracing::{error, info, warn};
 
 use crate::queue::Job;
@@ -7,11 +6,7 @@ use crate::queue::Job;
 pub struct SyncHireDateHandler;
 
 impl SyncHireDateHandler {
-    pub async fn process(
-        job: &Job,
-        pool: &PgPool,
-        _diesel: &crate::diesel_pool::DieselPools,
-    ) -> Result<(), String> {
+    pub async fn process(job: &Job, deps: &crate::worker::WorkerDeps) -> Result<(), String> {
         let Some(payload) = job.sync_hire_date_payload() else {
             error!("Missing or invalid payload for SyncEmployeeHireDate job");
             return Err("Invalid payload".to_string());
@@ -23,16 +18,12 @@ impl SyncHireDateHandler {
             "Starting sync_hire_date job"
         );
 
-        // Fetch the employee's current hire_date from employees table
-        let current_hire_date: Option<chrono::NaiveDate> = match sqlx::query_scalar!(
-            "SELECT hire_date FROM employees WHERE id = $1 AND workspace_id = $2",
-            payload.employee_id,
-            job.workspace_id
-        )
-        .fetch_optional(pool)
-        .await
+        let current_hire_date = match deps
+            .employee_repo
+            .get_employee_by_id(payload.employee_id, job.workspace_id)
+            .await
         {
-            Ok(Some(date)) => Some(date),
+            Ok(Some(emp)) => Some(emp.hire_date),
             Ok(None) => {
                 warn!(
                     employee_id = %payload.employee_id,
@@ -46,32 +37,16 @@ impl SyncHireDateHandler {
             }
         };
 
-        // Find the earliest active contract start_date
-        // Exclude cancelled/draft contracts if applicable. We will assume only 'Active', 'Expired', 'Pending' etc. count.
-        // Actually, let's just get the MIN(start_date) of any non-cancelled contract.
-        // Assuming ContractStatus enum in DB exists. Let's just use status != 'Cancelled' if possible.
-        // If we don't know the exact string, let's check what `contract.rs` has.
-        // I will use `status != 'cancelled'` or similar. Wait, let me check the DB schema or `ContractStatus`.
-        // Let's use `status != 'Cancelled'` for now.
-
-        // Let's execute a raw query to be safe, or a standard query.
-        let oldest_contract = match sqlx::query!(
-            r#"
-            SELECT start_date 
-            FROM employee_contracts 
-            WHERE employee_id = $1 AND workspace_id = $2 
-            AND status != 'draft'
-            ORDER BY start_date ASC 
-            LIMIT 1
-            "#,
-            payload.employee_id,
-            job.workspace_id
-        )
-        .fetch_optional(pool)
-        .await
+        let oldest_contract = match deps
+            .contract_repo
+            .list_employee_contracts(job.workspace_id, payload.employee_id)
+            .await
         {
-            Ok(Some(record)) => Some(record.start_date),
-            Ok(None) => None,
+            Ok(contracts) => contracts
+                .into_iter()
+                .filter(|c| c.status != crate::models::enums::ContractStatus::Draft)
+                .last()
+                .map(|c| c.start_date),
             Err(e) => {
                 error!("Database error fetching oldest contract: {:?}", e);
                 return Err(format!("DB error: {e}"));
@@ -89,13 +64,24 @@ impl SyncHireDateHandler {
                     "Updating employee hire_date based on earliest contract"
                 );
 
-                match sqlx::query!(
-                    "UPDATE employees SET hire_date = $1, updated_at = NOW() WHERE id = $2",
-                    earliest_date,
-                    payload.employee_id
-                )
-                .execute(pool)
-                .await
+                match deps
+                    .employee_repo
+                    .update_employee(
+                        payload.employee_id,
+                        job.workspace_id,
+                        &crate::models::UpdateEmployeeRequest {
+                            user_id: None,
+                            full_name: None,
+                            employee_id_number: None,
+                            hire_date: Some(earliest_date),
+                            termination_date: None,
+                            tags: None,
+                            is_active: None,
+                            max_concurrent_workers: None,
+                            recruitment_source_id: None,
+                        },
+                    )
+                    .await
                 {
                     Ok(_) => Ok(()),
                     Err(e) => {

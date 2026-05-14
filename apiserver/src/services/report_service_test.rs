@@ -193,6 +193,16 @@ mod tests {
         async fn is_any_role_global(&self, _r: &[Uuid]) -> Result<bool, AppError> {
             unimplemented!()
         }
+        async fn get_all_workspaces(&self) -> Result<Vec<Workspace>, AppError> {
+            unimplemented!()
+        }
+        async fn get_admins_with_permissions(
+            &self,
+            _workspace_id: Uuid,
+            _permissions: &[&str],
+        ) -> Result<Vec<Uuid>, AppError> {
+            unimplemented!()
+        }
     }
 
     struct MockEmployeeRepo;

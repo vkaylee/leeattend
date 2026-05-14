@@ -35,7 +35,7 @@ pub struct UpdateDepartmentRequest {
     pub default_working_pattern_id: Option<Option<Uuid>>,
 }
 
-#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct EmployeeDepartmentHistory {
     pub id: Uuid,
     pub employee_id: Uuid,

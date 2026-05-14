@@ -166,7 +166,7 @@ impl From<ShiftSwapRequestEntity> for ShiftSwapRequest {
     }
 }
 use crate::models::enums::AssignmentHistoryType;
-use crate::schema::sql_types::AssignmentHistoryType as AssignmentHistoryTypeSql;
+use crate::models::enums::AssignmentHistoryTypeSql;
 use diesel::deserialize::{self, FromSql};
 use diesel::pg::{Pg, PgValue};
 use diesel::serialize::{self, IsNull, ToSql};

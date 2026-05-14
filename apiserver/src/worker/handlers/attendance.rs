@@ -7,7 +7,6 @@ use std::sync::Arc;
 
 use chrono::{Duration, NaiveDate, TimeZone, Utc};
 use chrono_tz::Tz;
-use sqlx::PgPool;
 use tracing::info;
 use uuid::Uuid;
 
@@ -15,7 +14,6 @@ use crate::cache::{CacheManager, CachedWorkspaceConfig, RosterCache};
 use crate::domain::policy::resolver::PolicyResolver;
 use crate::models::{AttendanceSummary, DailyAttendanceReport, TimeEntry};
 use crate::queue::{Job, JobPayload, JobQueue, RedisPool, ReportPublisher, ReportType};
-use crate::repositories::time_entry_repository;
 use crate::services::AttendanceCalculator;
 
 /// Handler for attendance report jobs.
@@ -27,7 +25,6 @@ impl AttendanceHandler {
     /// Process an attendance job for a batch of employees.
     #[allow(clippy::too_many_lines, clippy::too_many_arguments)]
     pub async fn handle(
-        pool: &PgPool,
         diesel: &crate::diesel_pool::DieselPools,
         queue: &JobQueue,
         cache: &Arc<CacheManager>,
@@ -80,8 +77,7 @@ impl AttendanceHandler {
                 end_date,
                 Some(employee_ids),
             ),
-            time_entry_repository::get_workspace_time_entries_batch(
-                pool,
+            deps.time_entry_repo.get_workspace_time_entries_batch(
                 workspace_id,
                 employee_ids,
                 start_dt,
@@ -102,7 +98,6 @@ impl AttendanceHandler {
         let result_json = match payload.config.report_type {
             ReportType::Summary => {
                 Self::calculate_summary(CalculateBatchArgs {
-                    pool,
                     _diesel: diesel,
                     schedules: &schedules,
                     entries_map: &entries_map,
@@ -113,12 +108,12 @@ impl AttendanceHandler {
                     tz,
                     policy_repo,
                     employee_repo: deps.employee_repo.as_ref(),
+                    leave_repo: deps.leave_request_repo.as_ref(),
                 })
                 .await?
             }
             ReportType::Detail => {
                 Self::calculate_detail(CalculateBatchArgs {
-                    pool,
                     _diesel: diesel,
                     schedules: &schedules,
                     entries_map: &entries_map,
@@ -129,6 +124,7 @@ impl AttendanceHandler {
                     tz,
                     policy_repo,
                     employee_repo: deps.employee_repo.as_ref(),
+                    leave_repo: deps.leave_request_repo.as_ref(),
                 })
                 .await?
             }
@@ -185,7 +181,6 @@ impl AttendanceHandler {
 }
 
 struct CalculateBatchArgs<'a> {
-    pool: &'a PgPool,
     _diesel: &'a crate::diesel_pool::DieselPools,
     schedules: &'a [crate::models::EmployeeSchedule],
     entries_map: &'a HashMap<Uuid, Vec<TimeEntry>>,
@@ -196,45 +191,22 @@ struct CalculateBatchArgs<'a> {
     tz: Tz,
     policy_repo: &'a dyn crate::repositories::AttendancePolicyRepository,
     employee_repo: &'a dyn crate::repositories::EmployeeRepository,
+    leave_repo: &'a dyn crate::repositories::leave_request_repository::LeaveRequestRepository,
 }
 
 impl AttendanceHandler {
     /// Calculate summary attendance for batch of employees.
     #[allow(clippy::too_many_lines)]
     async fn calculate_summary(args: CalculateBatchArgs<'_>) -> Result<String, String> {
-        use sqlx::Row;
-
         let mut summaries: Vec<AttendanceSummary> = Vec::new();
         let emp_ids: Vec<Uuid> = args.schedules.iter().map(|s| s.employee_id).collect();
 
         // Batch fetch leave data
-        let leave_data: HashMap<Uuid, i64> = sqlx::query(
-            r#"
-            SELECT
-                lr.employee_id,
-                SUM(lr.end_date - lr.start_date + 1)::bigint as leave_days
-            FROM leave_requests lr
-            WHERE lr.employee_id = ANY($1)
-              AND lr.status IN ('approved', 'pre_approved')
-              AND lr.start_date >= $2::date
-              AND lr.end_date <= $3::date
-            GROUP BY lr.employee_id
-            "#,
-        )
-        .bind(&emp_ids)
-        .bind(args.start_date)
-        .bind(args.end_date)
-        .fetch_all(args.pool)
-        .await
-        .map_err(|e| format!("Failed to fetch leave data: {e}"))?
-        .into_iter()
-        .map(|row| {
-            (
-                row.get::<Uuid, _>("employee_id"),
-                row.get::<i64, _>("leave_days"),
-            )
-        })
-        .collect();
+        let leave_data = args
+            .leave_repo
+            .get_batch_leave_days(&emp_ids, args.start_date, args.end_date)
+            .await
+            .map_err(|e| format!("Failed to fetch leave data: {e}"))?;
 
         // Batch fetch working conditions for all employees (eliminates N+1)
         let conditions_map = PolicyResolver::resolve_attendance_rules_batch(

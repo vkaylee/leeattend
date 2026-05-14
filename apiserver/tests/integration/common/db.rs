@@ -87,10 +87,17 @@ impl TestDatabase {
             let pool = PgPool::connect(&db_url)
                 .await
                 .expect("Failed to connect to the new test database");
-            sqlx::migrate!("./migrations")
-                .run(&pool)
-                .await
-                .expect("Failed to run migrations");
+            apiserver::diesel_pool::DieselPools::run_migrations(
+                &apiserver::diesel_pool::DbPoolConfig {
+                    primary_url: db_url.clone(),
+                    pooler_url: None,
+                    reader_url: None,
+                    api_max_conn: 1,
+                    api_acquire_timeout_secs: 5,
+                    worker_max_conn: 1,
+                    worker_acquire_timeout_secs: 5,
+                },
+            );
 
             {
                 let mut dbs = get_active_dbs().lock().unwrap();

@@ -1,16 +1,8 @@
 use crate::errors::AppError;
 use crate::models::{MemberExtraRole, Workspace};
 use async_trait::async_trait;
-use sqlx::PgPool;
-use uuid::Uuid;
 
-pub async fn get_workspace_by_id(pool: &PgPool, id: Uuid) -> Result<Option<Workspace>, AppError> {
-    sqlx::query_as::<_, Workspace>("SELECT * FROM workspaces WHERE id = $1")
-        .bind(id)
-        .fetch_optional(pool)
-        .await
-        .map_err(Into::into)
-}
+use uuid::Uuid;
 
 #[async_trait]
 pub trait WorkspaceRepository: Send + Sync {
@@ -20,6 +12,7 @@ pub trait WorkspaceRepository: Send + Sync {
         owner_id: Uuid,
     ) -> Result<Workspace, AppError>;
     async fn get_workspace_by_id(&self, id: Uuid) -> Result<Option<Workspace>, AppError>;
+    async fn get_all_workspaces(&self) -> Result<Vec<Workspace>, AppError>;
     async fn get_user_workspaces(&self, user_id: Uuid) -> Result<Vec<Workspace>, AppError>;
     async fn clear_workspace_data(&self, workspace_id: Uuid, group: &str) -> Result<(), AppError>;
     async fn add_member(
@@ -45,6 +38,12 @@ pub trait WorkspaceRepository: Send + Sync {
         &self,
         workspace_id: Uuid,
     ) -> Result<Vec<crate::models::WorkspaceMemberDetail>, AppError>;
+
+    async fn get_admins_with_permissions(
+        &self,
+        workspace_id: Uuid,
+        permissions: &[&str],
+    ) -> Result<Vec<Uuid>, AppError>;
 
     async fn get_all_extra_roles(
         &self,

@@ -6,8 +6,7 @@ use uuid::Uuid;
 // Status enum
 // ---------------------------------------------------------------------------
 
-#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, sqlx::Type)]
-#[sqlx(type_name = "VARCHAR", rename_all = "snake_case")]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum ShiftSwapStatus {
     PendingTarget,
@@ -21,7 +20,7 @@ pub enum ShiftSwapStatus {
 // Database row model
 // ---------------------------------------------------------------------------
 
-#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ShiftSwapRequest {
     pub id: Uuid,
     pub workspace_id: Uuid,
@@ -42,7 +41,7 @@ pub struct ShiftSwapRequest {
 // Enriched response with joined employee/shift names
 // ---------------------------------------------------------------------------
 
-#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ShiftSwapRequestWithNames {
     pub id: Uuid,
     pub workspace_id: Uuid,

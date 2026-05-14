@@ -2,7 +2,7 @@
 //!
 //! New code should import from `crate::utils::tz` directly.
 
-pub use super::tz::{local_to_utc, local_to_utc_sqlx};
+pub use super::tz::local_to_utc;
 
 #[cfg(test)]
 mod tests {
@@ -63,18 +63,5 @@ mod tests {
             0,
         );
         assert!(result.is_err());
-    }
-
-    #[test]
-    fn test_local_to_utc_sqlx_variant() {
-        let tz: Tz = "Asia/Ho_Chi_Minh".parse().expect("valid tz");
-        let result = local_to_utc_sqlx(
-            &tz,
-            NaiveDate::from_ymd_opt(2026, 1, 16).expect("valid date"),
-            8,
-            0,
-            0,
-        );
-        assert!(result.is_ok());
     }
 }

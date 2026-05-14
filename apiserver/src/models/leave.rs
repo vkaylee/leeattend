@@ -6,7 +6,7 @@ use crate::models::enums::{
     AccrualFrequency, LeaveDurationType, LeaveStatus, LeaveTransactionType,
 };
 
-#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct LeaveRequest {
     pub id: Uuid,
     pub employee_id: Uuid,
@@ -54,7 +54,7 @@ pub struct ApproveLeaveRequest {
     pub status: LeaveStatus,
 }
 
-#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct LeaveBalance {
     pub id: Uuid,
     pub employee_id: Uuid,
@@ -80,7 +80,7 @@ pub struct EmployeeLeaveBalance {
     pub remaining: f64,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, sqlx::FromRow)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct WorkspaceLeaveBalance {
     pub employee_id: Uuid,
     pub employee_name: String,
@@ -121,14 +121,14 @@ pub struct LeaveTypeConfig {
     pub approval_required: bool,
 }
 
-#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct LeaveType {
     pub id: Uuid,
     pub workspace_id: Uuid,
     pub code: String,
     pub name: String,
     pub is_paid: bool,
-    pub policy_config: sqlx::types::Json<LeaveTypeConfig>,
+    pub policy_config: LeaveTypeConfig,
     pub created_at: DateTime<Utc>,
 }
 
@@ -152,12 +152,12 @@ pub struct LeavePolicyDefinition {
     pub name: String,
     pub description: Option<String>,
     pub leave_type_id: Uuid,
-    pub rule_config: sqlx::types::Json<LeavePolicyConfig>,
+    pub rule_config: LeavePolicyConfig,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct LeavePolicyAssignment {
     pub id: Uuid,
     pub workspace_id: Uuid,
@@ -228,7 +228,7 @@ pub struct AdjustBalanceRequest {
     pub transaction_date: NaiveDate,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, sqlx::FromRow)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct LeavePolicyAssignmentDetail {
     pub id: Uuid,
     pub workspace_id: Uuid,

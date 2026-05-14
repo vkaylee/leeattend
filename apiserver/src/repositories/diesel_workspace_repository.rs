@@ -103,6 +103,23 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
         Ok(entity.map(Into::into))
     }
 
+    async fn get_all_workspaces(&self) -> Result<Vec<Workspace>, AppError> {
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        let results = workspaces::table
+            .select(WorkspaceEntity::as_select())
+            .load(&mut conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        Ok(results.into_iter().map(Into::into).collect())
+    }
+
     async fn get_user_workspaces(
         &self,
         user_id: Uuid,
@@ -352,6 +369,44 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
                 avatar_url: e.avatar_url,
             })
             .collect())
+    }
+
+    async fn get_admins_with_permissions(
+        &self,
+        workspace_id_val: Uuid,
+        permissions: &[&str],
+    ) -> Result<Vec<Uuid>, AppError> {
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        #[derive(Debug, diesel::QueryableByName)]
+        struct UserIdEntity {
+            #[diesel(sql_type = diesel::sql_types::Uuid)]
+            user_id: Uuid,
+        }
+
+        // We use ANY to check against the permissions array safely
+        let results: Vec<UserIdEntity> = diesel::sql_query(
+            r#"
+            SELECT DISTINCT wm.user_id 
+            FROM workspace_members wm
+            JOIN workspace_roles wr ON wm.role_id = wr.id
+            LEFT JOIN workspace_role_permissions wrp ON wr.id = wrp.role_id
+            WHERE wm.workspace_id = $1 
+              AND (wr.scope_type = 'global' OR wrp.permission_name = ANY($2))
+            "#,
+        )
+        .bind::<diesel::sql_types::Uuid, _>(workspace_id_val)
+        .bind::<diesel::sql_types::Array<diesel::sql_types::Text>, _>(permissions)
+        .load(&mut conn)
+        .await
+        .map_err(|e| AppError::Internal(format!("db error fetching admins: {e}")))?;
+
+        Ok(results.into_iter().map(|e| e.user_id).collect())
     }
 
     async fn get_all_extra_roles(

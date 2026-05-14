@@ -124,13 +124,12 @@ impl ShiftService {
             .await
         {
             Ok(_) => Ok(()),
-            Err(AppError::Sqlx(sqlx::Error::Database(e)))
-                if e.constraint() == Some("uq_employee_shift_start") =>
-            {
-                Err(AppError::Conflict(
-                    "Shift assignment already exists for this date".into(),
-                ))
-            }
+            Err(AppError::Diesel(diesel::result::Error::DatabaseError(
+                diesel::result::DatabaseErrorKind::UniqueViolation,
+                info,
+            ))) if info.constraint_name() == Some("uq_employee_shift_start") => Err(
+                AppError::Conflict("Shift assignment already exists for this date".into()),
+            ),
             Err(e) => Err(e),
         }
     }

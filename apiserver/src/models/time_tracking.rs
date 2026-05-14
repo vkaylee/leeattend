@@ -11,7 +11,7 @@ pub struct TimeEntryLogFilter {
     pub offset: i64,
 }
 
-#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct TimeEntry {
     pub id: Uuid,
     pub employee_id: Uuid,
@@ -28,7 +28,7 @@ pub struct TimeEntry {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct TimeEntryWithEmployee {
     pub id: Uuid,
     pub employee_id: Uuid,

@@ -28,7 +28,7 @@ pub struct EmployeePaginationArgs<'a> {
 
 // ── Recruitment Source Models ───────────────────────────────────────
 
-#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct RecruitmentSource {
     pub id: Uuid,
     pub workspace_id: Uuid,
@@ -116,7 +116,7 @@ pub struct TurnoverAnalytics {
 
 // ── Employment / Employee Models ───────────────────────────────────
 
-#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Employee {
     pub id: Uuid,
     pub workspace_id: Uuid,
@@ -140,14 +140,14 @@ pub struct AssignmentRuleConditions {
     pub tags: Option<Vec<String>>,
 }
 
-#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct AssignmentRule {
     pub id: Uuid,
     pub workspace_id: Uuid,
     pub pattern_id: Uuid,
     pub name: String,
     pub priority: i32,
-    pub conditions: sqlx::types::Json<AssignmentRuleConditions>,
+    pub conditions: AssignmentRuleConditions,
     pub is_active: bool,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,

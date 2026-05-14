@@ -8,7 +8,7 @@ use crate::models::enums::{
 };
 use crate::services::attendance_utils::AttendanceStatus;
 
-#[derive(Debug, Serialize, Deserialize, Clone, sqlx::FromRow)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct AttendanceAdjustmentRequest {
     pub id: Uuid,
     pub employee_id: Uuid,
@@ -103,7 +103,7 @@ pub struct DailyAttendanceReport {
     pub generation_metadata: Option<serde_json::Value>,
 }
 
-#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct RawAttendanceLog {
     pub id: Uuid,
     pub workspace_id: Uuid,
@@ -117,7 +117,7 @@ pub struct RawAttendanceLog {
     pub created_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct RawAttendanceLogWithEmployee {
     pub id: Uuid,
     pub workspace_id: Uuid,
@@ -134,7 +134,7 @@ pub struct RawAttendanceLogWithEmployee {
     pub device_name: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, sqlx::FromRow)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct AttendanceImportJob {
     pub id: Uuid,
     pub workspace_id: Uuid,
@@ -149,7 +149,7 @@ pub struct AttendanceImportJob {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct AttendanceDailySummary {
     pub id: Uuid,
     pub workspace_id: Uuid,
@@ -188,7 +188,7 @@ pub struct BulkOtUploadResult {
     pub errors: Vec<BulkOtEntryError>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, sqlx::FromRow)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct AttendancePolicy {
     pub id: Uuid,
     pub workspace_id: Uuid,
@@ -198,11 +198,11 @@ pub struct AttendancePolicy {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, sqlx::FromRow)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct AttendancePolicyVersion {
     pub id: Uuid,
     pub policy_id: Uuid,
-    pub rules: sqlx::types::Json<AttendanceRules>,
+    pub rules: AttendanceRules,
     pub valid_from: DateTime<Utc>,
     pub valid_to: Option<DateTime<Utc>>,
     pub created_by: Option<Uuid>,
@@ -217,7 +217,7 @@ pub struct AttendanceRules {
     pub early_arrival_strategy: EarlyArrivalStrategy,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, sqlx::FromRow)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct AttendancePolicyAssignment {
     pub id: Uuid,
     pub policy_id: Uuid,

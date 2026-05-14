@@ -96,10 +96,10 @@ async fn test_teamlead_submit_own_dept_auto_approved() {
     assign_to_department(&factory.pool, emp_id, dept_id).await;
 
     // Get vacation leave type
-    let vacation_id: Uuid = sqlx::query_scalar!(
+    let vacation_id: Uuid = sqlx::query_scalar(
         "SELECT id FROM leave_types WHERE workspace_id = $1 AND code = 'vacation'",
-        ws_id
     )
+    .bind(ws_id)
     .fetch_one(&factory.pool)
     .await
     .unwrap();
@@ -187,10 +187,10 @@ async fn test_teamlead_submit_other_dept_forbidden() {
         .await;
     assign_to_department(&factory.pool, emp_id, dept_sales).await;
 
-    let vacation_id: Uuid = sqlx::query_scalar!(
+    let vacation_id: Uuid = sqlx::query_scalar(
         "SELECT id FROM leave_types WHERE workspace_id = $1 AND code = 'vacation'",
-        ws_id
     )
+    .bind(ws_id)
     .fetch_one(&factory.pool)
     .await
     .unwrap();
@@ -248,10 +248,10 @@ async fn test_hr_submit_stays_pending() {
         .create()
         .await;
 
-    let vacation_id: Uuid = sqlx::query_scalar!(
+    let vacation_id: Uuid = sqlx::query_scalar(
         "SELECT id FROM leave_types WHERE workspace_id = $1 AND code = 'vacation'",
-        ws_id
     )
+    .bind(ws_id)
     .fetch_one(&factory.pool)
     .await
     .unwrap();
@@ -312,10 +312,10 @@ async fn test_employee_submit_forbidden() {
 
     let emp_id = factory.employee().with_workspace(ws_id).create().await;
 
-    let vacation_id: Uuid = sqlx::query_scalar!(
+    let vacation_id: Uuid = sqlx::query_scalar(
         "SELECT id FROM leave_types WHERE workspace_id = $1 AND code = 'vacation'",
-        ws_id
     )
+    .bind(ws_id)
     .fetch_one(&factory.pool)
     .await
     .unwrap();

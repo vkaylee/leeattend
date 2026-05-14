@@ -10,43 +10,28 @@ pub mod sql_types {
     pub struct ContractStatusEnum;
 
     #[derive(diesel::query_builder::QueryId, Clone, diesel::sql_types::SqlType)]
-    #[diesel(postgres_type(name = "contract_type_enum", schema = "public"))]
+    #[diesel(postgres_type(name = "contract_type_enum"))]
     pub struct ContractTypeEnum;
 
     #[derive(diesel::query_builder::QueryId, Clone, diesel::sql_types::SqlType)]
-    #[diesel(postgres_type(name = "import_job_status_type", schema = "public"))]
+    #[diesel(postgres_type(name = "import_job_status_type"))]
     pub struct ImportJobStatusType;
 
     #[derive(diesel::query_builder::QueryId, Clone, diesel::sql_types::SqlType)]
-    #[diesel(postgres_type(name = "leave_status_type", schema = "public"))]
+    #[diesel(postgres_type(name = "leave_status_type"))]
     pub struct LeaveStatusType;
 
     #[derive(diesel::query_builder::QueryId, Clone, diesel::sql_types::SqlType)]
-    #[diesel(postgres_type(name = "log_source_type", schema = "public"))]
+    #[diesel(postgres_type(name = "log_source_type"))]
     pub struct LogSourceType;
 
     #[derive(diesel::query_builder::QueryId, Clone, diesel::sql_types::SqlType)]
-    #[diesel(postgres_type(name = "ot_status_type", schema = "public"))]
+    #[diesel(postgres_type(name = "ot_status_type"))]
     pub struct OtStatusType;
 
     #[derive(diesel::query_builder::QueryId, Clone, diesel::sql_types::SqlType)]
-    #[diesel(postgres_type(name = "recruitment_source_type", schema = "public"))]
+    #[diesel(postgres_type(name = "recruitment_source_type"))]
     pub struct RecruitmentSourceType;
-
-    #[derive(diesel::query_builder::QueryId, Clone, diesel::sql_types::SqlType)]
-    #[diesel(postgres_type(name = "assignment_history_type", schema = "public"))]
-    pub struct AssignmentHistoryType;
-}
-
-diesel::table! {
-    _sqlx_migrations (version) {
-        version -> Int8,
-        description -> Text,
-        installed_on -> Timestamptz,
-        success -> Bool,
-        checksum -> Bytea,
-        execution_time -> Int8,
-    }
 }
 
 diesel::table! {
@@ -1687,7 +1672,6 @@ diesel::joinable!(workspace_role_permissions -> workspace_roles (role_id));
 diesel::joinable!(workspace_roles -> workspaces (workspace_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
-    _sqlx_migrations,
     assignment_rules,
     attendance_adjustment_requests,
     attendance_daily_summaries,

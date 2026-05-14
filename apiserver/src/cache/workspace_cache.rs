@@ -3,7 +3,6 @@
 //! Caches workspace configuration for attendance calculations.
 
 use serde::{Deserialize, Serialize};
-use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::cache::{RedisCache, DEFAULT_CACHE_TTL};
@@ -20,14 +19,13 @@ pub struct CachedWorkspaceConfig {
 /// Cache for workspace configuration.
 pub struct WorkspaceCache {
     cache: RedisCache,
-    db: PgPool,
     diesel: crate::diesel_pool::DieselPools,
 }
 
 impl WorkspaceCache {
     /// Create a new WorkspaceCache.
-    pub fn new(cache: RedisCache, db: PgPool, diesel: crate::diesel_pool::DieselPools) -> Self {
-        Self { cache, db, diesel }
+    pub fn new(cache: RedisCache, diesel: crate::diesel_pool::DieselPools) -> Self {
+        Self { cache, diesel }
     }
 
     /// Generate cache key for a workspace.
@@ -42,7 +40,6 @@ impl WorkspaceCache {
     /// 3. Store in cache for future requests
     pub async fn get(&self, workspace_id: Uuid) -> Result<CachedWorkspaceConfig, String> {
         let key = Self::key(workspace_id);
-        let _db = self.db.clone();
         let diesel = self.diesel.clone();
 
         self.cache

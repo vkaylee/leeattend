@@ -151,13 +151,11 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
         Ok(row.map(|r| AttendancePolicyVersion {
             id: r.id,
             policy_id: r.policy_id,
-            rules: sqlx::types::Json(serde_json::from_value(r.rules).unwrap_or_else(|_| {
-                AttendanceRules {
-                    work_unit_minutes: 0,
-                    rounding_policy: "none".to_string(),
-                    early_arrival_strategy: crate::models::enums::EarlyArrivalStrategy::Block,
-                }
-            })),
+            rules: serde_json::from_value(r.rules).unwrap_or_else(|_| AttendanceRules {
+                work_unit_minutes: 0,
+                rounding_policy: "none".to_string(),
+                early_arrival_strategy: crate::models::enums::EarlyArrivalStrategy::Block,
+            }),
             valid_from: r.valid_from,
             valid_to: r.valid_to,
             created_by: r.created_by,
@@ -284,14 +282,11 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
                 AttendancePolicyVersion {
                     id: row.id,
                     policy_id: row.policy_id,
-                    rules: sqlx::types::Json(serde_json::from_value(row.rules).unwrap_or_else(
-                        |_| AttendanceRules {
-                            work_unit_minutes: 0,
-                            rounding_policy: "none".to_string(),
-                            early_arrival_strategy:
-                                crate::models::enums::EarlyArrivalStrategy::Block,
-                        },
-                    )),
+                    rules: serde_json::from_value(row.rules).unwrap_or_else(|_| AttendanceRules {
+                        work_unit_minutes: 0,
+                        rounding_policy: "none".to_string(),
+                        early_arrival_strategy: crate::models::enums::EarlyArrivalStrategy::Block,
+                    }),
                     valid_from: row.valid_from,
                     valid_to: row.valid_to,
                     created_by: row.created_by,
@@ -522,7 +517,7 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
                 Ok(AttendancePolicyVersion {
                     id: version_id,
                     policy_id,
-                    rules: sqlx::types::Json(new_rules),
+                    rules: new_rules,
                     valid_from,
                     valid_to: None,
                     created_by: Some(user_id),

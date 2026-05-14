@@ -36,11 +36,7 @@ async fn test_worker_uses_only_one_connection_per_job() {
         std::env::var("REDIS_URL").unwrap_or_else(|_| "redis://127.0.0.1:6379".to_string());
     let redis_pool = RedisPool::new(&redis_url).await.unwrap();
 
-    let cache = Arc::new(CacheManager::new(
-        redis_pool.clone(),
-        pool.clone(),
-        diesel_pools.clone(),
-    ));
+    let cache = Arc::new(CacheManager::new(redis_pool.clone(), diesel_pools.clone()));
     let queue = JobQueue::new(redis_pool.clone());
 
     let er = Arc::new(apiserver::repositories::DieselEmployeeRepository::new(
@@ -58,7 +54,6 @@ async fn test_worker_uses_only_one_connection_per_job() {
     };
     let worker = JobWorker::new(
         redis_pool.clone(),
-        pool.clone(),
         diesel_pools.clone(),
         config,
         coordinator,

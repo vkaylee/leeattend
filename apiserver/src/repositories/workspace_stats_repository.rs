@@ -8,7 +8,7 @@ use async_trait::async_trait;
 use chrono::{Datelike, NaiveDate, Utc};
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
-use sqlx::PgPool;
+
 use uuid::Uuid;
 
 #[async_trait]
@@ -39,16 +39,12 @@ pub trait WorkspaceStatsRepository: Send + Sync {
 }
 
 pub struct DieselWorkspaceStatsRepository {
-    pub sqlx_pool: PgPool,
     pub diesel_pools: DieselPools,
 }
 
 impl DieselWorkspaceStatsRepository {
-    pub fn new(sqlx_pool: PgPool, diesel_pools: DieselPools) -> Self {
-        Self {
-            sqlx_pool,
-            diesel_pools,
-        }
+    pub fn new(diesel_pools: DieselPools) -> Self {
+        Self { diesel_pools }
     }
 
     async fn get_timezone(&self, workspace_id: Uuid) -> String {

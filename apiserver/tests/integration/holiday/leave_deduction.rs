@@ -50,10 +50,10 @@ async fn test_create_holiday_with_leave_type_id() {
     let auth_token = factory.auth().create_token(user_id);
 
     // Get the default vacation leave type
-    let leave_type_id: Uuid = sqlx::query_scalar!(
+    let leave_type_id: Uuid = sqlx::query_scalar(
         "SELECT id FROM leave_types WHERE workspace_id = $1 AND code = 'vacation'",
-        workspace_id
     )
+    .bind(workspace_id)
     .fetch_one(&pool)
     .await
     .unwrap();
@@ -93,10 +93,10 @@ async fn test_update_holiday_with_leave_type_id() {
     let workspace_id = factory.workspace().create_with_owner(user_id).await;
     let auth_token = factory.auth().create_token(user_id);
 
-    let leave_type_id: Uuid = sqlx::query_scalar!(
+    let leave_type_id: Uuid = sqlx::query_scalar(
         "SELECT id FROM leave_types WHERE workspace_id = $1 AND code = 'vacation'",
-        workspace_id
     )
+    .bind(workspace_id)
     .fetch_one(&pool)
     .await
     .unwrap();
@@ -321,10 +321,10 @@ async fn test_process_holiday_leave_api() {
 
     let today = Utc::now().date_naive();
 
-    let vacation_id: Uuid = sqlx::query_scalar!(
+    let vacation_id: Uuid = sqlx::query_scalar(
         "SELECT id FROM leave_types WHERE workspace_id = $1 AND code = 'vacation'",
-        workspace_id
     )
+    .bind(workspace_id)
     .fetch_one(&pool)
     .await
     .unwrap();
@@ -373,13 +373,13 @@ async fn test_process_holiday_leave_api() {
     );
 
     // Verify a leave request was created for the employee
-    let leave_count: i64 = sqlx::query_scalar!(
+    let leave_count: i64 = sqlx::query_scalar(
         r#"SELECT COUNT(*) as "count!" FROM leave_requests
            WHERE employee_id = $1 AND status = 'approved'
              AND start_date = $2 AND end_date = $2"#,
-        emp,
-        today,
     )
+    .bind(emp)
+    .bind(today)
     .fetch_one(&pool)
     .await
     .unwrap();
@@ -409,10 +409,10 @@ async fn test_process_holiday_leave_insufficient_balance() {
 
     let today = Utc::now().date_naive();
 
-    let vacation_id: Uuid = sqlx::query_scalar!(
+    let vacation_id: Uuid = sqlx::query_scalar(
         "SELECT id FROM leave_types WHERE workspace_id = $1 AND code = 'vacation'",
-        workspace_id
     )
+    .bind(workspace_id)
     .fetch_one(&pool)
     .await
     .unwrap();
@@ -455,12 +455,12 @@ async fn test_process_holiday_leave_insufficient_balance() {
     assert_eq!(resp.status(), StatusCode::OK);
 
     // Should NOT have created a leave request (balance insufficient)
-    let leave_count: i64 = sqlx::query_scalar!(
+    let leave_count: i64 = sqlx::query_scalar(
         r#"SELECT COUNT(*) as "count!" FROM leave_requests
            WHERE employee_id = $1 AND start_date = $2"#,
-        emp,
-        today,
     )
+    .bind(emp)
+    .bind(today)
     .fetch_one(&pool)
     .await
     .unwrap();
@@ -490,10 +490,10 @@ async fn test_process_holiday_leave_idempotent() {
 
     let today = Utc::now().date_naive();
 
-    let vacation_id: Uuid = sqlx::query_scalar!(
+    let vacation_id: Uuid = sqlx::query_scalar(
         "SELECT id FROM leave_types WHERE workspace_id = $1 AND code = 'vacation'",
-        workspace_id
     )
+    .bind(workspace_id)
     .fetch_one(&pool)
     .await
     .unwrap();
@@ -536,12 +536,12 @@ async fn test_process_holiday_leave_idempotent() {
     }
 
     // Should still have exactly 1 leave request
-    let leave_count: i64 = sqlx::query_scalar!(
+    let leave_count: i64 = sqlx::query_scalar(
         r#"SELECT COUNT(*) as "count!" FROM leave_requests
            WHERE employee_id = $1 AND start_date = $2"#,
-        emp,
-        today,
     )
+    .bind(emp)
+    .bind(today)
     .fetch_one(&pool)
     .await
     .unwrap();

@@ -23,10 +23,10 @@ async fn test_leave_request_lifecycle_smoke() {
     let emp_id: Uuid = factory.employee().with_workspace(ws_id).create().await;
 
     // 1. Get default leave type (Vacation)
-    let vacation_id: Uuid = sqlx::query_scalar!(
+    let vacation_id: Uuid = sqlx::query_scalar(
         "SELECT id FROM leave_types WHERE workspace_id = $1 AND code = 'vacation'",
-        ws_id
     )
+    .bind(ws_id)
     .fetch_one(&factory.pool)
     .await
     .unwrap();
@@ -109,10 +109,10 @@ async fn test_leave_balances_smoke() {
     let emp_id: Uuid = factory.employee().with_workspace(ws_id).create().await;
 
     // Create a balance manually
-    let vacation_id: Uuid = sqlx::query_scalar!(
+    let vacation_id: Uuid = sqlx::query_scalar(
         "SELECT id FROM leave_types WHERE workspace_id = $1 AND code = 'vacation'",
-        ws_id
     )
+    .bind(ws_id)
     .fetch_one(&factory.pool)
     .await
     .unwrap();
@@ -162,10 +162,10 @@ async fn test_workspace_leave_balances_filtering() {
     // emp_2 will NOT have a balance and NO policy
     let emp_2: Uuid = factory.employee().with_workspace(ws_id).create().await;
 
-    let vacation_id: Uuid = sqlx::query_scalar!(
+    let vacation_id: Uuid = sqlx::query_scalar(
         "SELECT id FROM leave_types WHERE workspace_id = $1 AND code = 'vacation'",
-        ws_id
     )
+    .bind(ws_id)
     .fetch_one(&factory.pool)
     .await
     .unwrap();

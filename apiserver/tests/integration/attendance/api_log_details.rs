@@ -4,7 +4,6 @@ use crate::common::app::setup_app_tower;
 use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
 use apiserver::models::{LogSource, RawAttendanceLog, TimeEntry};
-use apiserver::repositories::{raw_attendance_log_repository, time_entry_repository};
 use apiserver::AppState;
 use axum::http::StatusCode;
 use chrono::Utc;
@@ -49,7 +48,12 @@ async fn test_attendance_logs_include_employee_details() -> Result<(), Box<dyn s
         created_at: Utc::now(),
         updated_at: Utc::now(),
     };
-    time_entry_repository::create_time_entry(&pool, &entry).await?;
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
+    let te_repo = apiserver::repositories::DieselTimeEntryRepository::new(diesel_pools.clone());
+    let raw_log_repo =
+        apiserver::repositories::DieselRawAttendanceLogRepository::new(diesel_pools.clone());
+    use apiserver::repositories::time_entry_repository::TimeEntryRepository;
+    te_repo.create_time_entry(&entry).await?;
 
     // 2. Create a Device and a RawAttendanceLog
     let device_id = Uuid::new_v4();
@@ -73,7 +77,8 @@ async fn test_attendance_logs_include_employee_details() -> Result<(), Box<dyn s
         status: 0,
         created_at: Utc::now(),
     };
-    raw_attendance_log_repository::create_raw_log(&pool, &raw_log).await?;
+    use apiserver::repositories::raw_attendance_log_repository::RawAttendanceLogRepository;
+    raw_log_repo.create_raw_log(&raw_log).await?;
 
     // 3. Request /attendance/logs and verify fields
     let response = app

@@ -23,7 +23,7 @@ async fn test_workspace_cache_get_and_invalidate() {
     let ws_id: Uuid = factory.workspace().create_with_owner(user_id).await;
 
     let redis_cache = RedisCache::new(redis_pool.clone());
-    let workspace_cache = WorkspaceCache::new(redis_cache, pool.clone(), diesel_pools.clone());
+    let workspace_cache = WorkspaceCache::new(redis_cache, diesel_pools.clone());
 
     // 1. First `get` should fetch from DB and populate cache
     let config = workspace_cache

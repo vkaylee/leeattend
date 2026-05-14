@@ -90,7 +90,6 @@ impl std::fmt::Display for ReportError {
 impl std::error::Error for ReportError {}
 
 /// Workspace config subset for report generation.
-#[derive(sqlx::FromRow)]
 struct WorkspaceConfig {
     timezone: String,
 }

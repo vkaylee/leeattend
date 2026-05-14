@@ -2,7 +2,6 @@
 //!
 //! Bundles all cache instances and provides convenience methods.
 
-use sqlx::PgPool;
 use tracing::{debug, warn};
 use uuid::Uuid;
 
@@ -19,12 +18,12 @@ pub struct CacheManager {
 
 impl CacheManager {
     /// Create a new CacheManager.
-    pub fn new(redis: RedisPool, db: PgPool, diesel: crate::diesel_pool::DieselPools) -> Self {
+    pub fn new(redis: RedisPool, diesel: crate::diesel_pool::DieselPools) -> Self {
         let cache = RedisCache::new(redis);
 
         Self {
-            workspace: WorkspaceCache::new(cache.clone(), db.clone(), diesel.clone()),
-            shifts: ShiftCache::new(cache, db, diesel),
+            workspace: WorkspaceCache::new(cache.clone(), diesel.clone()),
+            shifts: ShiftCache::new(cache, diesel),
         }
     }
 
