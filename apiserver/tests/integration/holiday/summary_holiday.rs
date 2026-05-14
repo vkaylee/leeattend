@@ -78,20 +78,14 @@ async fn test_summary_records_holiday_flag_after_recalculate() {
     // Trigger recalculation directly via service
     apiserver::services::AttendanceSummaryService::new(
         std::sync::Arc::new(apiserver::repositories::DieselTimeEntryRepository::new(
-            pool.clone(),
             diesel_pools.clone(),
         )),
         std::sync::Arc::new(apiserver::repositories::DieselRosterRepository::new(
-            pool.clone(),
             diesel_pools.clone(),
         )),
         std::sync::Arc::new(
-            apiserver::repositories::DieselAttendancePolicyRepository::new(
-                pool.clone(),
-                diesel_pools.clone(),
-            ),
+            apiserver::repositories::DieselAttendancePolicyRepository::new(diesel_pools.clone()),
         ),
-        pool.clone(),
         diesel_pools.clone(),
     )
     .recalculate_daily_summary(workspace_id, emp, today)

@@ -21,7 +21,9 @@ async fn test_empty_workspace_all_maps_empty() {
 
     let workspace_id = factory.workspace().create().await;
 
-    let data = build_roster_data(&pool, workspace_id).await.unwrap();
+    let data = build_roster_data(&diesel_pools, workspace_id)
+        .await
+        .unwrap();
 
     assert!(data.shifts.is_empty());
     assert!(data.fixed_assignments.is_empty());
@@ -48,7 +50,9 @@ async fn test_shifts_populated() {
     let s1 = factory.shift().with_workspace(workspace_id).create().await;
     let s2 = factory.shift().with_workspace(workspace_id).create().await;
 
-    let data = build_roster_data(&pool, workspace_id).await.unwrap();
+    let data = build_roster_data(&diesel_pools, workspace_id)
+        .await
+        .unwrap();
 
     assert_eq!(data.shifts.len(), 2);
     assert!(data.shifts.contains_key(&s1));
@@ -77,7 +81,7 @@ async fn test_shift_fields_mapped_correctly() {
         .create()
         .await;
 
-    let data = build_roster_data(&pool, ws).await.unwrap();
+    let data = build_roster_data(&diesel_pools, ws).await.unwrap();
     let shift = data.shifts.get(&shift_id).expect("shift must exist");
 
     assert_eq!(shift.name, "Morning Shift");
@@ -123,7 +127,7 @@ async fn test_fixed_assignments_grouped_by_employee() {
         .assign_to_employee(emp_b, start)
         .await;
 
-    let data = build_roster_data(&pool, ws).await.unwrap();
+    let data = build_roster_data(&diesel_pools, ws).await.unwrap();
 
     assert_eq!(data.fixed_assignments.len(), 2, "two employees");
     assert_eq!(data.fixed_assignments[&emp_a].len(), 2);
@@ -161,7 +165,7 @@ async fn test_dept_history_populated() {
     .await
     .unwrap();
 
-    let data = build_roster_data(&pool, ws).await.unwrap();
+    let data = build_roster_data(&diesel_pools, ws).await.unwrap();
 
     assert_eq!(data.dept_history.len(), 1);
     let entries = &data.dept_history[&emp];
@@ -189,8 +193,8 @@ async fn test_cross_workspace_isolation() {
     factory.shift().with_workspace(ws_a).create().await;
     factory.shift().with_workspace(ws_b).create().await;
 
-    let data_a = build_roster_data(&pool, ws_a).await.unwrap();
-    let data_b = build_roster_data(&pool, ws_b).await.unwrap();
+    let data_a = build_roster_data(&diesel_pools, ws_a).await.unwrap();
+    let data_b = build_roster_data(&diesel_pools, ws_b).await.unwrap();
 
     assert_eq!(data_a.shifts.len(), 2, "ws_a should have 2 shifts");
     assert_eq!(data_b.shifts.len(), 1, "ws_b should have 1 shift");
@@ -247,7 +251,7 @@ async fn test_assignment_rules_and_rule_patterns() {
         .create()
         .await;
 
-    let data = build_roster_data(&pool, ws).await.unwrap();
+    let data = build_roster_data(&diesel_pools, ws).await.unwrap();
 
     // Active rules
     assert_eq!(data.active_rules.len(), 1);
@@ -289,8 +293,8 @@ async fn test_build_returns_arc_with_consistent_data() {
         .await;
 
     // Build twice — both should be Ok and contain the same shift
-    let data1 = build_roster_data(&pool, ws).await.unwrap();
-    let data2 = build_roster_data(&pool, ws).await.unwrap();
+    let data1 = build_roster_data(&diesel_pools, ws).await.unwrap();
+    let data2 = build_roster_data(&diesel_pools, ws).await.unwrap();
 
     assert_eq!(data1.shifts.len(), data2.shifts.len());
     for (id, shift) in &data1.shifts {

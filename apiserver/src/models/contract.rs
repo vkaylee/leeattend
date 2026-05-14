@@ -5,7 +5,7 @@ use uuid::Uuid;
 
 use crate::models::enums::{ContractStatus, ContractType};
 
-#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone, ToSchema)]
+#[derive(Debug, Serialize, Deserialize, Clone, ToSchema, sqlx::FromRow)]
 pub struct EmployeeContract {
     pub id: Uuid,
     pub workspace_id: Uuid,

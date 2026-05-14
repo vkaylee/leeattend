@@ -128,7 +128,9 @@ async fn test_calculate_payroll_multi_segment() {
             leave_repo: lr,
             employee_repo: er,
             policy_repo: atr,
-            overtime_policy_repo: Arc::new(apiserver::repositories::DieselOvertimePolicyRepository::new(diesel_pools.clone())),
+            overtime_policy_repo: Arc::new(
+                apiserver::repositories::DieselOvertimePolicyRepository::new(diesel_pools.clone()),
+            ),
             diesel_pools: diesel_pools.clone(),
         })
     }

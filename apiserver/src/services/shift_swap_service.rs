@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::errors::AppError;
 use chrono::Utc;
-use sqlx::PgPool;
+
 use tracing::error;
 use uuid::Uuid;
 
@@ -20,8 +20,7 @@ pub struct ShiftSwapService {
     roster_repo: Arc<dyn RosterRepository>,
     employee_repo: Arc<dyn EmployeeRepository>,
     shift_repo: Arc<dyn crate::repositories::shift_repository::ShiftRepository>,
-    /// Kept for raw SQL calls not yet abstracted
-    pool: PgPool,
+    payroll_repo: Arc<dyn crate::repositories::payroll_repository::PayrollRepository>,
 }
 
 impl ShiftSwapService {
@@ -30,14 +29,14 @@ impl ShiftSwapService {
         roster_repo: Arc<dyn RosterRepository>,
         employee_repo: Arc<dyn EmployeeRepository>,
         shift_repo: Arc<dyn crate::repositories::shift_repository::ShiftRepository>,
-        pool: PgPool,
+        payroll_repo: Arc<dyn crate::repositories::payroll_repository::PayrollRepository>,
     ) -> Self {
         Self {
             swap_repo,
             roster_repo,
             employee_repo,
             shift_repo,
-            pool,
+            payroll_repo,
         }
     }
 
@@ -51,7 +50,6 @@ impl ShiftSwapService {
         requester_shift_id: Option<Uuid>,
         target_shift_id: Option<Uuid>,
     ) -> Result<(), AppError> {
-        let pool = &self.pool;
         // 1. Duplicate check
         let dup = self
             .swap_repo
@@ -90,10 +88,10 @@ impl ShiftSwapService {
         //    This is a best-effort guard; actual OT depends on punch times.
         if let (Some(req_shift_id), Some(tgt_shift_id)) = (requester_shift_id, target_shift_id) {
             let ws_id = workspace_id;
-            if let Ok(Some(ps)) = crate::repositories::payroll_repository::get_payroll_settings_at(
-                pool, ws_id, swap_date,
-            )
-            .await
+            if let Ok(Some(ps)) = self
+                .payroll_repo
+                .get_payroll_settings_at(ws_id, swap_date)
+                .await
             {
                 if let Some(max_daily) = ps.max_ot_hours_per_day {
                     // Compare shift durations: will the receiving employee get a much longer shift?

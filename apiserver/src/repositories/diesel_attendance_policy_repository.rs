@@ -1,6 +1,5 @@
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
-use sqlx::PgPool;
 use std::collections::HashMap;
 use uuid::Uuid;
 
@@ -52,16 +51,12 @@ struct BatchPolicyRow {
 }
 
 pub struct DieselAttendancePolicyRepository {
-    pub sqlx_pool: PgPool,
     pub diesel_pools: crate::diesel_pool::DieselPools,
 }
 
 impl DieselAttendancePolicyRepository {
-    pub fn new(sqlx_pool: PgPool, diesel_pools: crate::diesel_pool::DieselPools) -> Self {
-        Self {
-            sqlx_pool,
-            diesel_pools,
-        }
+    pub fn new(diesel_pools: crate::diesel_pool::DieselPools) -> Self {
+        Self { diesel_pools }
     }
 }
 

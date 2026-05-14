@@ -61,10 +61,9 @@ async fn test_update_workspace_time_format() {
     let factory = TestFactory::new(pool.clone());
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
     let workspace_repo = std::sync::Arc::new(
-        apiserver::repositories::DieselWorkspaceRepository::new(pool.clone(), diesel_pools.clone()),
+        apiserver::repositories::DieselWorkspaceRepository::new(diesel_pools.clone()),
     );
     let user_repo = std::sync::Arc::new(apiserver::repositories::DieselUserRepository::new(
-        pool.clone(),
         diesel_pools.clone(),
     ));
 
@@ -118,10 +117,9 @@ async fn test_update_workspace_all_fields() {
     let factory = TestFactory::new(pool.clone());
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
     let workspace_repo = std::sync::Arc::new(
-        apiserver::repositories::DieselWorkspaceRepository::new(pool.clone(), diesel_pools.clone()),
+        apiserver::repositories::DieselWorkspaceRepository::new(diesel_pools.clone()),
     );
     let user_repo = std::sync::Arc::new(apiserver::repositories::DieselUserRepository::new(
-        pool.clone(),
         diesel_pools.clone(),
     ));
 
@@ -160,10 +158,9 @@ async fn test_update_workspace_no_fields() {
     let factory = TestFactory::new(pool.clone());
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
     let workspace_repo = std::sync::Arc::new(
-        apiserver::repositories::DieselWorkspaceRepository::new(pool.clone(), diesel_pools.clone()),
+        apiserver::repositories::DieselWorkspaceRepository::new(diesel_pools.clone()),
     );
     let user_repo = std::sync::Arc::new(apiserver::repositories::DieselUserRepository::new(
-        pool.clone(),
         diesel_pools.clone(),
     ));
 

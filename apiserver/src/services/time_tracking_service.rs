@@ -2,12 +2,11 @@ use std::sync::Arc;
 
 use chrono::{DateTime, Utc};
 use chrono_tz::Tz;
-use sqlx::PgPool;
+
 use uuid::Uuid;
 
 use crate::errors::AppError;
 use crate::models::{TimeEntry, UpdateTimeEntryRequest};
-use crate::repositories::employee;
 
 use crate::repositories::roster::RosterRepository;
 use crate::repositories::workspace_repository::WorkspaceRepository;
@@ -19,7 +18,7 @@ pub struct TimeTrackingService {
     repo: Arc<dyn TimeEntryRepository>,
     roster_repo: Arc<dyn RosterRepository>,
     policy_repo: Arc<dyn AttendancePolicyRepository>,
-    pool: PgPool,
+    employee_repo: Arc<dyn crate::repositories::employee::EmployeeRepository>,
     diesel: crate::diesel_pool::DieselPools,
 }
 
@@ -28,14 +27,14 @@ impl TimeTrackingService {
         repo: Arc<dyn TimeEntryRepository>,
         roster_repo: Arc<dyn RosterRepository>,
         policy_repo: Arc<dyn AttendancePolicyRepository>,
-        pool: PgPool,
+        employee_repo: Arc<dyn crate::repositories::employee::EmployeeRepository>,
         diesel: crate::diesel_pool::DieselPools,
     ) -> Self {
         Self {
             repo,
             roster_repo,
             policy_repo,
-            pool,
+            employee_repo,
             diesel,
         }
     }
@@ -49,7 +48,9 @@ impl TimeTrackingService {
         note: Option<String>,
     ) -> Result<TimeEntry, AppError> {
         // Verify employee belongs to workspace
-        let employee = employee::get_employee_by_id(&self.pool, employee_id, workspace_id)
+        let employee = self
+            .employee_repo
+            .get_employee_by_id(employee_id, workspace_id)
             .await?
             .ok_or(AppError::NotFound("Employee not found".into()))?;
 
@@ -70,10 +71,8 @@ impl TimeTrackingService {
 
         if is_in {
             // Get Workspace Timezone
-            let workspace_repo = crate::repositories::DieselWorkspaceRepository::new(
-                self.pool.clone(),
-                self.diesel.clone(),
-            );
+            let workspace_repo =
+                crate::repositories::DieselWorkspaceRepository::new(self.diesel.clone());
             let workspace = workspace_repo
                 .get_workspace_by_id(workspace_id)
                 .await?
@@ -90,10 +89,8 @@ impl TimeTrackingService {
                 .await?;
 
             if let Some(sid) = shift_id {
-                let shift_repo = crate::repositories::DieselShiftRepository::new(
-                    self.pool.clone(),
-                    self.diesel.clone(),
-                );
+                let shift_repo =
+                    crate::repositories::DieselShiftRepository::new(self.diesel.clone());
                 use crate::repositories::shift_repository::ShiftRepository;
                 let shift = shift_repo
                     .get_shift_by_id(workspace_id, sid)
@@ -106,10 +103,12 @@ impl TimeTrackingService {
                 let shift_start = today.and_time(start_time);
                 let earliest_punch = shift_start - chrono::Duration::minutes(grace_minutes as i64);
 
+                let employee_repo =
+                    crate::repositories::DieselEmployeeRepository::new(self.diesel.clone());
                 let rules =
                     crate::domain::policy::resolver::PolicyResolver::resolve_attendance_rules(
                         &*self.policy_repo,
-                        &self.pool,
+                        &employee_repo,
                         employee_id,
                         workspace_id,
                         today,
@@ -161,7 +160,9 @@ impl TimeTrackingService {
         end_date: DateTime<Utc>,
     ) -> Result<Vec<TimeEntry>, AppError> {
         // Verify employee belongs to workspace
-        let _ = employee::get_employee_by_id(&self.pool, employee_id, workspace_id)
+        let _ = self
+            .employee_repo
+            .get_employee_by_id(employee_id, workspace_id)
             .await?
             .ok_or(AppError::NotFound("Employee not found".into()))?;
 
@@ -184,7 +185,9 @@ impl TimeTrackingService {
             .ok_or(AppError::NotFound("Time entry not found".into()))?;
 
         // Verify employee of this entry belongs to the workspace
-        let _ = employee::get_employee_by_id(&self.pool, entry.employee_id, workspace_id)
+        let _ = self
+            .employee_repo
+            .get_employee_by_id(entry.employee_id, workspace_id)
             .await?
             .ok_or(AppError::Forbidden(
                 "Employee does not belong to workspace".into(),
@@ -211,7 +214,7 @@ impl TimeTrackingService {
         self.repo.update_time_entry(workspace_id, &entry).await?;
 
         // Recalculate summary
-        let workspace_repo = DieselWorkspaceRepository::new(self.pool.clone(), self.diesel.clone());
+        let workspace_repo = DieselWorkspaceRepository::new(self.diesel.clone());
         if let Ok(Some(ws)) = workspace_repo.get_workspace_by_id(workspace_id).await {
             let tz: Tz = crate::utils::tz::parse_workspace_tz(&ws.timezone);
             let local_date = entry.punch_in_time.with_timezone(&tz).date_naive();
@@ -219,7 +222,6 @@ impl TimeTrackingService {
                 Arc::clone(&self.repo),
                 Arc::clone(&self.roster_repo),
                 Arc::clone(&self.policy_repo),
-                self.pool.clone(),
                 self.diesel.clone(),
             );
             let _ = summary_svc
@@ -239,7 +241,9 @@ impl TimeTrackingService {
             .ok_or(AppError::NotFound("Time entry not found".into()))?;
 
         // Verify employee of this entry belongs to the workspace
-        let _ = employee::get_employee_by_id(&self.pool, entry.employee_id, workspace_id)
+        let _ = self
+            .employee_repo
+            .get_employee_by_id(entry.employee_id, workspace_id)
             .await?
             .ok_or(AppError::Forbidden(
                 "Employee does not belong to workspace".into(),

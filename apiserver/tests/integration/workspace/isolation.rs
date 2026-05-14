@@ -2,11 +2,14 @@
 //! Verifies that repository queries with `workspace_id` correctly scope data,
 //! preventing cross-workspace data leaks.
 
+#![allow(clippy::unwrap_used)]
 use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
+use apiserver::models::diesel::employee::EmployeeEntity;
 use apiserver::repositories::{
-    department_repository, time_entry_repository, working_pattern_repository,
-    DieselTimeEntryRepository, TimeEntryRepository,
+    department_repository::{self, DepartmentRepository},
+    time_entry_repository, working_pattern_repository, DieselTimeEntryRepository,
+    TimeEntryRepository,
 };
 use chrono::{Duration, NaiveDate, Utc};
 use std::sync::Arc;
@@ -46,10 +49,11 @@ async fn test_get_employee_time_entries_isolated_by_workspace() {
     let end = now + Duration::hours(1);
 
     // Query with correct workspace → should find 1 entry
-    let entries_a =
-        time_entry_repository::get_employee_time_entries(&pool, ws_a, emp_a, start, end)
-            .await
-            .unwrap();
+    let repo = apiserver::repositories::DieselTimeEntryRepository::new(diesel_pools.clone());
+    let entries_a = repo
+        .get_employee_time_entries(ws_a, emp_a, start, end)
+        .await
+        .unwrap();
     assert_eq!(
         entries_a.len(),
         1,
@@ -57,10 +61,10 @@ async fn test_get_employee_time_entries_isolated_by_workspace() {
     );
 
     // Query with wrong workspace → should find 0 entries
-    let entries_b =
-        time_entry_repository::get_employee_time_entries(&pool, ws_b, emp_a, start, end)
-            .await
-            .unwrap();
+    let entries_b = repo
+        .get_employee_time_entries(ws_b, emp_a, start, end)
+        .await
+        .unwrap();
     assert_eq!(
         entries_b.len(),
         0,
@@ -87,10 +91,7 @@ async fn test_get_latest_active_entry_isolated_by_workspace() {
         .create()
         .await;
 
-    let repo = Arc::new(DieselTimeEntryRepository::new(
-        pool.clone(),
-        diesel_pools.clone(),
-    ));
+    let repo = Arc::new(DieselTimeEntryRepository::new(diesel_pools.clone()));
 
     // Correct workspace → should find the active entry
     let active_a = repo.get_latest_active_entry(ws_a, emp_a).await.unwrap();
@@ -130,17 +131,18 @@ async fn test_get_workspace_time_entries_batch_isolated() {
     let end = now + Duration::hours(1);
 
     // Batch query with correct workspace
-    let batch_a =
-        time_entry_repository::get_workspace_time_entries_batch(&pool, ws_a, &[emp_a], start, end)
-            .await
-            .unwrap();
+    let repo = apiserver::repositories::DieselTimeEntryRepository::new(diesel_pools.clone());
+    let batch_a = repo
+        .get_workspace_time_entries_batch(ws_a, &[emp_a], start, end)
+        .await
+        .unwrap();
     assert_eq!(batch_a.get(&emp_a).map_or(0, std::vec::Vec::len), 1);
 
     // Batch query with wrong workspace
-    let batch_b =
-        time_entry_repository::get_workspace_time_entries_batch(&pool, ws_b, &[emp_a], start, end)
-            .await
-            .unwrap();
+    let batch_b = repo
+        .get_workspace_time_entries_batch(ws_b, &[emp_a], start, end)
+        .await
+        .unwrap();
     assert_eq!(
         batch_b.get(&emp_a).map_or(0, std::vec::Vec::len),
         0,
@@ -162,18 +164,20 @@ async fn test_department_history_isolated_by_workspace() {
 
     // Create a department in ws_a and transfer emp_a to it
     let dept_id = factory.department().with_workspace(ws_a).create().await;
-    department_repository::transfer_employee(
-        &pool,
-        emp_a,
-        dept_id,
-        NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
-        None,
-    )
-    .await
-    .unwrap();
+    let dept_repo = apiserver::repositories::DieselDepartmentRepository::new(diesel_pools.clone());
+    dept_repo
+        .transfer_employee(
+            emp_a,
+            dept_id,
+            NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
+            None,
+        )
+        .await
+        .unwrap();
 
     // Correct workspace → should find 1 history record
-    let history_a = department_repository::get_employee_department_history(&pool, ws_a, emp_a)
+    let history_a = dept_repo
+        .get_employee_department_history(ws_a, emp_a)
         .await
         .unwrap();
     assert_eq!(
@@ -183,7 +187,8 @@ async fn test_department_history_isolated_by_workspace() {
     );
 
     // Wrong workspace → should find 0
-    let history_b = department_repository::get_employee_department_history(&pool, ws_b, emp_a)
+    let history_b = dept_repo
+        .get_employee_department_history(ws_b, emp_a)
         .await
         .unwrap();
     assert_eq!(
@@ -204,29 +209,26 @@ async fn test_get_current_department_isolated_by_workspace() {
     let (ws_b, _emp_b) = create_workspace_with_employee(&factory).await;
 
     let dept_id = factory.department().with_workspace(ws_a).create().await;
-    department_repository::transfer_employee(
-        &pool,
-        emp_a,
-        dept_id,
-        NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
-        None,
-    )
-    .await
-    .unwrap();
-
-    // Correct workspace
-    let current_a = department_repository::get_current_department(&pool, ws_a, emp_a)
+    let dept_repo = apiserver::repositories::DieselDepartmentRepository::new(diesel_pools.clone());
+    dept_repo
+        .transfer_employee(
+            emp_a,
+            dept_id,
+            NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
+            None,
+        )
         .await
         .unwrap();
+
+    // Correct workspace
+    let current_a = dept_repo.get_current_department(ws_a, emp_a).await.unwrap();
     assert!(
         current_a.is_some(),
         "Current department should exist in correct workspace"
     );
 
     // Wrong workspace
-    let current_b = department_repository::get_current_department(&pool, ws_b, emp_a)
-        .await
-        .unwrap();
+    let current_b = dept_repo.get_current_department(ws_b, emp_a).await.unwrap();
     assert!(
         current_b.is_none(),
         "Current department should NOT be visible from wrong workspace"
@@ -256,12 +258,15 @@ async fn test_employee_pattern_history_isolated_by_workspace() {
     .unwrap();
 
     let start_date = NaiveDate::from_ymd_opt(2025, 1, 1).unwrap();
-    working_pattern_repository::assign_pattern(&pool, ws_a, emp_a, pattern_id, start_date, None)
+    let repo = apiserver::repositories::DieselWorkingPatternRepository::new(diesel_pools.clone());
+    use apiserver::repositories::working_pattern_repository::WorkingPatternRepositoryTrait;
+    repo.assign_pattern(ws_a, emp_a, pattern_id, start_date, None)
         .await
         .unwrap();
 
     // Correct workspace → should find 1
-    let history_a = working_pattern_repository::get_employee_pattern_history(&pool, ws_a, emp_a)
+    let history_a = repo
+        .get_employee_pattern_history(ws_a, emp_a)
         .await
         .unwrap();
     assert_eq!(
@@ -271,7 +276,8 @@ async fn test_employee_pattern_history_isolated_by_workspace() {
     );
 
     // Wrong workspace → should find 0
-    let history_b = working_pattern_repository::get_employee_pattern_history(&pool, ws_b, emp_a)
+    let history_b = repo
+        .get_employee_pattern_history(ws_b, emp_a)
         .await
         .unwrap();
     assert_eq!(

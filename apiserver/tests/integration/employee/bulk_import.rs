@@ -96,24 +96,22 @@ async fn test_upload_employee_csv_api() {
     assert!(completed, "Employee CSV Job did not complete");
 
     // Verify employees created
-    let emp1 = apiserver::repositories::employee::get_employee_by_id_number(
-        &factory.pool,
-        "EMP001",
-        ws_id,
-    )
-    .await
-    .unwrap();
+    let emp1 = _state
+        .employees
+        .repo
+        .find_by_number(ws_id, "EMP001")
+        .await
+        .unwrap();
     assert!(emp1.is_some());
     let emp1 = emp1.unwrap();
     assert_eq!(emp1.full_name, "John Doe");
 
-    let emp2 = apiserver::repositories::employee::get_employee_by_id_number(
-        &factory.pool,
-        "EMP002",
-        ws_id,
-    )
-    .await
-    .unwrap();
+    let emp2 = _state
+        .employees
+        .repo
+        .find_by_number(ws_id, "EMP002")
+        .await
+        .unwrap();
     assert!(emp2.is_some());
 }
 
@@ -214,24 +212,22 @@ async fn test_upload_employee_duplicate_id_skips() {
     );
 
     // Verify "DUP001" is NOT updated
-    let emp_dup = apiserver::repositories::employee::get_employee_by_id_number(
-        &factory.pool,
-        "DUP001",
-        ws_id,
-    )
-    .await
-    .unwrap()
-    .unwrap();
+    let emp_dup = _state
+        .employees
+        .repo
+        .find_by_number(ws_id, "DUP001")
+        .await
+        .unwrap()
+        .unwrap();
     assert_eq!(emp_dup.full_name, "Old Name");
 
     // Verify "NEW002" IS created
-    let emp_new = apiserver::repositories::employee::get_employee_by_id_number(
-        &factory.pool,
-        "NEW002",
-        ws_id,
-    )
-    .await
-    .unwrap();
+    let emp_new = _state
+        .employees
+        .repo
+        .find_by_number(ws_id, "NEW002")
+        .await
+        .unwrap();
     assert!(emp_new.is_some());
 }
 
@@ -301,10 +297,12 @@ async fn test_upload_employee_csv_with_department() {
     assert!(completed, "Job did not complete in time");
 
     // Verify departments were created
-    let departments =
-        apiserver::repositories::department_repository::get_departments(&factory.pool, ws_id)
-            .await
-            .unwrap();
+    let departments = _state
+        .payroll
+        .department_repo
+        .get_departments(ws_id)
+        .await
+        .unwrap();
     let dept_names: Vec<&str> = departments.iter().map(|d| d.name.as_str()).collect();
     assert!(
         dept_names.contains(&"Engineering"),
@@ -316,22 +314,20 @@ async fn test_upload_employee_csv_with_department() {
     );
 
     // Verify employee DEPT001 is assigned to Engineering
-    let emp1 = apiserver::repositories::employee::get_employee_by_id_number(
-        &factory.pool,
-        "DEPT001",
-        ws_id,
-    )
-    .await
-    .unwrap()
-    .expect("Employee DEPT001 should exist");
+    let emp1 = _state
+        .employees
+        .repo
+        .find_by_number(ws_id, "DEPT001")
+        .await
+        .unwrap()
+        .expect("Employee DEPT001 should exist");
 
-    let current_dept = apiserver::repositories::department_repository::get_current_department(
-        &factory.pool,
-        ws_id,
-        emp1.id,
-    )
-    .await
-    .unwrap();
+    let current_dept = _state
+        .payroll
+        .department_repo
+        .get_current_department(ws_id, emp1.id)
+        .await
+        .unwrap();
     assert!(
         current_dept.is_some(),
         "DEPT001 should have a department assignment"
@@ -348,22 +344,20 @@ async fn test_upload_employee_csv_with_department() {
     );
 
     // Verify employee DEPT003 is assigned to Marketing
-    let emp3 = apiserver::repositories::employee::get_employee_by_id_number(
-        &factory.pool,
-        "DEPT003",
-        ws_id,
-    )
-    .await
-    .unwrap()
-    .expect("Employee DEPT003 should exist");
+    let emp3 = _state
+        .employees
+        .repo
+        .find_by_number(ws_id, "DEPT003")
+        .await
+        .unwrap()
+        .expect("Employee DEPT003 should exist");
 
-    let current_dept3 = apiserver::repositories::department_repository::get_current_department(
-        &factory.pool,
-        ws_id,
-        emp3.id,
-    )
-    .await
-    .unwrap();
+    let current_dept3 = _state
+        .payroll
+        .department_repo
+        .get_current_department(ws_id, emp3.id)
+        .await
+        .unwrap();
     assert!(current_dept3.is_some());
 
     let mkt_dept = departments.iter().find(|d| d.name == "Marketing").unwrap();
@@ -444,10 +438,12 @@ async fn test_upload_employee_csv_reuses_existing_department() {
     assert!(completed, "Job did not complete");
 
     // Verify NO duplicate department was created — should still be only 1 "Sales"
-    let departments =
-        apiserver::repositories::department_repository::get_departments(&factory.pool, ws_id)
-            .await
-            .unwrap();
+    let departments = _state
+        .payroll
+        .department_repo
+        .get_departments(ws_id)
+        .await
+        .unwrap();
     let sales_depts: Vec<_> = departments
         .iter()
         .filter(|d| d.name.to_lowercase() == "sales")
@@ -463,19 +459,20 @@ async fn test_upload_employee_csv_reuses_existing_department() {
     );
 
     // Verify employee is assigned to it
-    let emp =
-        apiserver::repositories::employee::get_employee_by_id_number(&factory.pool, "RE001", ws_id)
-            .await
-            .unwrap()
-            .expect("Employee RE001 should exist");
+    let emp = _state
+        .employees
+        .repo
+        .find_by_number(ws_id, "RE001")
+        .await
+        .unwrap()
+        .expect("Employee RE001 should exist");
 
-    let current_dept = apiserver::repositories::department_repository::get_current_department(
-        &factory.pool,
-        ws_id,
-        emp.id,
-    )
-    .await
-    .unwrap();
+    let current_dept = _state
+        .payroll
+        .department_repo
+        .get_current_department(ws_id, emp.id)
+        .await
+        .unwrap();
     assert!(current_dept.is_some());
     assert_eq!(
         current_dept.unwrap().department_id,
@@ -592,10 +589,12 @@ async fn test_upload_employee_xlsx_with_department() {
     assert!(completed, "Job did not complete in time");
 
     // Verify departments were created
-    let departments =
-        apiserver::repositories::department_repository::get_departments(&factory.pool, ws_id)
-            .await
-            .unwrap();
+    let departments = _state
+        .payroll
+        .department_repo
+        .get_departments(ws_id)
+        .await
+        .unwrap();
     let dept_names: Vec<&str> = departments.iter().map(|d| d.name.as_str()).collect();
     assert!(
         dept_names.contains(&"Engineering"),
@@ -607,22 +606,20 @@ async fn test_upload_employee_xlsx_with_department() {
     );
 
     // Verify employee XLS001 is assigned to Engineering
-    let emp1 = apiserver::repositories::employee::get_employee_by_id_number(
-        &factory.pool,
-        "XLS001",
-        ws_id,
-    )
-    .await
-    .unwrap()
-    .expect("Employee XLS001 should exist");
+    let emp1 = _state
+        .employees
+        .repo
+        .find_by_number(ws_id, "XLS001")
+        .await
+        .unwrap()
+        .expect("Employee XLS001 should exist");
 
-    let current_dept = apiserver::repositories::department_repository::get_current_department(
-        &factory.pool,
-        ws_id,
-        emp1.id,
-    )
-    .await
-    .unwrap();
+    let current_dept = _state
+        .payroll
+        .department_repo
+        .get_current_department(ws_id, emp1.id)
+        .await
+        .unwrap();
     assert!(
         current_dept.is_some(),
         "XLS001 should have a department assignment"
@@ -639,22 +636,20 @@ async fn test_upload_employee_xlsx_with_department() {
     );
 
     // Verify employee XLS003 is assigned to Marketing
-    let emp3 = apiserver::repositories::employee::get_employee_by_id_number(
-        &factory.pool,
-        "XLS003",
-        ws_id,
-    )
-    .await
-    .unwrap()
-    .expect("Employee XLS003 should exist");
+    let emp3 = _state
+        .employees
+        .repo
+        .find_by_number(ws_id, "XLS003")
+        .await
+        .unwrap()
+        .expect("Employee XLS003 should exist");
 
-    let current_dept3 = apiserver::repositories::department_repository::get_current_department(
-        &factory.pool,
-        ws_id,
-        emp3.id,
-    )
-    .await
-    .unwrap();
+    let current_dept3 = _state
+        .payroll
+        .department_repo
+        .get_current_department(ws_id, emp3.id)
+        .await
+        .unwrap();
     assert!(current_dept3.is_some());
 
     let mkt_dept = departments.iter().find(|d| d.name == "Marketing").unwrap();
@@ -734,10 +729,12 @@ async fn test_upload_employee_xlsx_reuses_existing_department() {
     assert!(completed, "Job did not complete");
 
     // Verify NO duplicate department was created — should still be only 1 "Sales"
-    let departments =
-        apiserver::repositories::department_repository::get_departments(&factory.pool, ws_id)
-            .await
-            .unwrap();
+    let departments = _state
+        .payroll
+        .department_repo
+        .get_departments(ws_id)
+        .await
+        .unwrap();
     let sales_depts: Vec<_> = departments
         .iter()
         .filter(|d| d.name.to_lowercase() == "sales")
@@ -753,22 +750,20 @@ async fn test_upload_employee_xlsx_reuses_existing_department() {
     );
 
     // Verify employee is assigned to it
-    let emp = apiserver::repositories::employee::get_employee_by_id_number(
-        &factory.pool,
-        "XLSRE001",
-        ws_id,
-    )
-    .await
-    .unwrap()
-    .expect("Employee XLSRE001 should exist");
+    let emp = _state
+        .employees
+        .repo
+        .find_by_number(ws_id, "XLSRE001")
+        .await
+        .unwrap()
+        .expect("Employee XLSRE001 should exist");
 
-    let current_dept = apiserver::repositories::department_repository::get_current_department(
-        &factory.pool,
-        ws_id,
-        emp.id,
-    )
-    .await
-    .unwrap();
+    let current_dept = _state
+        .payroll
+        .department_repo
+        .get_current_department(ws_id, emp.id)
+        .await
+        .unwrap();
     assert!(current_dept.is_some());
     assert_eq!(
         current_dept.unwrap().department_id,
@@ -852,32 +847,32 @@ async fn test_upload_csv_existing_employee_new_department() {
     assert!(completed, "Job did not complete");
 
     // Verify "R&D" department was created
-    let departments =
-        apiserver::repositories::department_repository::get_departments(&factory.pool, ws_id)
-            .await
-            .unwrap();
+    let departments = _state
+        .payroll
+        .department_repo
+        .get_departments(ws_id)
+        .await
+        .unwrap();
     let rd_dept = departments
         .iter()
         .find(|d| d.name == "R&D")
         .expect("R&D department should be created");
 
     // Verify existing employee is assigned to the new department
-    let emp = apiserver::repositories::employee::get_employee_by_id_number(
-        &factory.pool,
-        "EXIST001",
-        ws_id,
-    )
-    .await
-    .unwrap()
-    .expect("Employee EXIST001 should exist");
+    let emp = _state
+        .employees
+        .repo
+        .find_by_number(ws_id, "EXIST001")
+        .await
+        .unwrap()
+        .expect("Employee EXIST001 should exist");
 
-    let current_dept = apiserver::repositories::department_repository::get_current_department(
-        &factory.pool,
-        ws_id,
-        emp.id,
-    )
-    .await
-    .unwrap();
+    let current_dept = _state
+        .payroll
+        .department_repo
+        .get_current_department(ws_id, emp.id)
+        .await
+        .unwrap();
     assert!(
         current_dept.is_some(),
         "Existing employee should be assigned to the new department"
@@ -968,10 +963,12 @@ async fn test_upload_csv_existing_employee_existing_department() {
     assert!(completed, "Job did not complete");
 
     // Verify no duplicate department
-    let departments =
-        apiserver::repositories::department_repository::get_departments(&factory.pool, ws_id)
-            .await
-            .unwrap();
+    let departments = _state
+        .payroll
+        .department_repo
+        .get_departments(ws_id)
+        .await
+        .unwrap();
     let finance_depts: Vec<_> = departments.iter().filter(|d| d.name == "Finance").collect();
     assert_eq!(
         finance_depts.len(),
@@ -980,22 +977,20 @@ async fn test_upload_csv_existing_employee_existing_department() {
     );
 
     // Verify existing employee is assigned to existing department
-    let emp = apiserver::repositories::employee::get_employee_by_id_number(
-        &factory.pool,
-        "EXIST002",
-        ws_id,
-    )
-    .await
-    .unwrap()
-    .expect("Employee EXIST002 should exist");
+    let emp = _state
+        .employees
+        .repo
+        .find_by_number(ws_id, "EXIST002")
+        .await
+        .unwrap()
+        .expect("Employee EXIST002 should exist");
 
-    let current_dept = apiserver::repositories::department_repository::get_current_department(
-        &factory.pool,
-        ws_id,
-        emp.id,
-    )
-    .await
-    .unwrap();
+    let current_dept = _state
+        .payroll
+        .department_repo
+        .get_current_department(ws_id, emp.id)
+        .await
+        .unwrap();
     assert!(current_dept.is_some());
     assert_eq!(
         current_dept.unwrap().department_id,
@@ -1079,32 +1074,32 @@ async fn test_upload_xlsx_existing_employee_new_department() {
     assert!(completed, "Job did not complete");
 
     // Verify DevOps department was created
-    let departments =
-        apiserver::repositories::department_repository::get_departments(&factory.pool, ws_id)
-            .await
-            .unwrap();
+    let departments = _state
+        .payroll
+        .department_repo
+        .get_departments(ws_id)
+        .await
+        .unwrap();
     let devops_dept = departments
         .iter()
         .find(|d| d.name == "DevOps")
         .expect("DevOps department should be created");
 
     // Verify existing employee is assigned
-    let emp = apiserver::repositories::employee::get_employee_by_id_number(
-        &factory.pool,
-        "XLSEX001",
-        ws_id,
-    )
-    .await
-    .unwrap()
-    .expect("Employee XLSEX001 should exist");
+    let emp = _state
+        .employees
+        .repo
+        .find_by_number(ws_id, "XLSEX001")
+        .await
+        .unwrap()
+        .expect("Employee XLSEX001 should exist");
 
-    let current_dept = apiserver::repositories::department_repository::get_current_department(
-        &factory.pool,
-        ws_id,
-        emp.id,
-    )
-    .await
-    .unwrap();
+    let current_dept = _state
+        .payroll
+        .department_repo
+        .get_current_department(ws_id, emp.id)
+        .await
+        .unwrap();
     assert!(current_dept.is_some());
     assert_eq!(
         current_dept.unwrap().department_id,
@@ -1191,10 +1186,12 @@ async fn test_upload_xlsx_existing_employee_existing_department() {
     assert!(completed, "Job did not complete");
 
     // Verify no duplicate
-    let departments =
-        apiserver::repositories::department_repository::get_departments(&factory.pool, ws_id)
-            .await
-            .unwrap();
+    let departments = _state
+        .payroll
+        .department_repo
+        .get_departments(ws_id)
+        .await
+        .unwrap();
     let hr_depts: Vec<_> = departments
         .iter()
         .filter(|d| d.name.to_lowercase() == "hr")
@@ -1203,22 +1200,20 @@ async fn test_upload_xlsx_existing_employee_existing_department() {
     assert_eq!(hr_depts[0].id, pre_dept_id);
 
     // Verify existing employee is assigned
-    let emp = apiserver::repositories::employee::get_employee_by_id_number(
-        &factory.pool,
-        "XLSEX002",
-        ws_id,
-    )
-    .await
-    .unwrap()
-    .expect("Employee XLSEX002 should exist");
+    let emp = _state
+        .employees
+        .repo
+        .find_by_number(ws_id, "XLSEX002")
+        .await
+        .unwrap()
+        .expect("Employee XLSEX002 should exist");
 
-    let current_dept = apiserver::repositories::department_repository::get_current_department(
-        &factory.pool,
-        ws_id,
-        emp.id,
-    )
-    .await
-    .unwrap();
+    let current_dept = _state
+        .payroll
+        .department_repo
+        .get_current_department(ws_id, emp.id)
+        .await
+        .unwrap();
     assert!(current_dept.is_some());
     assert_eq!(
         current_dept.unwrap().department_id,

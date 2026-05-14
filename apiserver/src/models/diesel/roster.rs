@@ -80,6 +80,21 @@ impl From<ShiftRosterEntity> for ShiftRoster {
     }
 }
 
+impl From<ShiftRoster> for ShiftRosterEntity {
+    fn from(model: ShiftRoster) -> Self {
+        Self {
+            id: model.id,
+            employee_id: model.employee_id,
+            shift_id: model.shift_id,
+            date: model.date,
+            status: Some(model.status),
+            notes: model.notes,
+            created_at: Some(model.created_at),
+            updated_at: Some(model.updated_at),
+        }
+    }
+}
+
 #[derive(Debug, Queryable, Selectable, Insertable, AsChangeset, Serialize, Deserialize, Clone)]
 #[diesel(table_name = employee_shifts)]
 pub struct EmployeeShiftEntity {
@@ -148,5 +163,37 @@ impl From<ShiftSwapRequestEntity> for ShiftSwapRequest {
             created_at: entity.created_at,
             updated_at: entity.updated_at,
         }
+    }
+}
+use crate::models::enums::AssignmentHistoryType;
+use crate::schema::sql_types::AssignmentHistoryType as AssignmentHistoryTypeSql;
+use diesel::deserialize::{self, FromSql};
+use diesel::pg::{Pg, PgValue};
+use diesel::serialize::{self, IsNull, ToSql};
+use std::io::Write;
+
+impl FromSql<AssignmentHistoryTypeSql, Pg> for AssignmentHistoryType {
+    fn from_sql(bytes: PgValue<'_>) -> deserialize::Result<Self> {
+        match bytes.as_bytes() {
+            b"roster" => Ok(AssignmentHistoryType::Roster),
+            b"pattern" => Ok(AssignmentHistoryType::Pattern),
+            b"department_pattern" => Ok(AssignmentHistoryType::DepartmentPattern),
+            b"fixed" => Ok(AssignmentHistoryType::Fixed),
+            b"department_fixed" => Ok(AssignmentHistoryType::DepartmentFixed),
+            _ => Err("Unrecognized enum variant".into()),
+        }
+    }
+}
+
+impl ToSql<AssignmentHistoryTypeSql, Pg> for AssignmentHistoryType {
+    fn to_sql(&self, out: &mut serialize::Output<'_, '_, Pg>) -> serialize::Result {
+        match *self {
+            AssignmentHistoryType::Roster => out.write_all(b"roster")?,
+            AssignmentHistoryType::Pattern => out.write_all(b"pattern")?,
+            AssignmentHistoryType::DepartmentPattern => out.write_all(b"department_pattern")?,
+            AssignmentHistoryType::Fixed => out.write_all(b"fixed")?,
+            AssignmentHistoryType::DepartmentFixed => out.write_all(b"department_fixed")?,
+        }
+        Ok(IsNull::No)
     }
 }

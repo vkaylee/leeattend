@@ -45,10 +45,8 @@ impl PairingService {
 
     #[tracing::instrument(skip_all, err)]
     pub async fn process_new_raw_log(&self, log: &RawAttendanceLog) -> Result<(), AppError> {
-        let raw_log_repo = crate::repositories::DieselRawAttendanceLogRepository::new(
-            self.pool.clone(),
-            self.diesel_pools.clone(),
-        );
+        let raw_log_repo =
+            crate::repositories::DieselRawAttendanceLogRepository::new(self.diesel_pools.clone());
 
         // 1. Deduplication (exact match check)
         let is_duplicate = raw_log_repo
@@ -64,10 +62,8 @@ impl PairingService {
         }
 
         // 2. Fetch Workspace Config
-        let workspace_repo = crate::repositories::DieselWorkspaceRepository::new(
-            self.pool.clone(),
-            self.diesel_pools.clone(),
-        );
+        let workspace_repo =
+            crate::repositories::DieselWorkspaceRepository::new(self.diesel_pools.clone());
         let workspace = workspace_repo
             .get_workspace_by_id(log.workspace_id)
             .await?
@@ -119,10 +115,8 @@ impl PairingService {
 
         let mut shift_config = None;
         if let Some(shift_id) = shift_id_opt {
-            let shift_repo = crate::repositories::DieselShiftRepository::new(
-                self.pool.clone(),
-                self.diesel_pools.clone(),
-            );
+            let shift_repo =
+                crate::repositories::DieselShiftRepository::new(self.diesel_pools.clone());
             let shift = shift_repo.get_shift_by_id(workspace_id, shift_id).await?;
 
             if let Some(s) = shift {
@@ -183,10 +177,8 @@ impl PairingService {
 
         let next_day_utc = (start_of_day_local + Duration::days(1)).with_timezone(&Utc);
 
-        let raw_log_repo = crate::repositories::DieselRawAttendanceLogRepository::new(
-            self.pool.clone(),
-            self.diesel_pools.clone(),
-        );
+        let raw_log_repo =
+            crate::repositories::DieselRawAttendanceLogRepository::new(self.diesel_pools.clone());
         let logs = raw_log_repo
             .get_employee_logs_in_time_range(
                 workspace_id,
@@ -235,7 +227,6 @@ impl PairingService {
                 Arc::clone(&self.time_entry_repo),
                 Arc::clone(&self.roster_repo),
                 Arc::clone(&self.policy_repo),
-                self.pool.clone(),
                 self.diesel_pools.clone(),
             );
             let _ = summary_svc
@@ -307,7 +298,6 @@ impl PairingService {
             Arc::clone(&self.time_entry_repo),
             Arc::clone(&self.roster_repo),
             Arc::clone(&self.policy_repo),
-            self.pool.clone(),
             self.diesel_pools.clone(),
         );
         if let Err(e) = summary_svc
@@ -325,15 +315,14 @@ impl PairingService {
     }
 
     async fn clear_auto_entries(
-        pool: &PgPool,
+        _pool: &PgPool,
         diesel_pools: &crate::diesel_pool::DieselPools,
         employee_id: Uuid,
         workspace_id: Uuid,
         start: DateTime<Utc>,
         end: DateTime<Utc>,
     ) -> Result<(), AppError> {
-        let repo =
-            crate::repositories::DieselTimeEntryRepository::new(pool.clone(), diesel_pools.clone());
+        let repo = crate::repositories::DieselTimeEntryRepository::new(diesel_pools.clone());
         repo.replace_time_entries(workspace_id, employee_id, start, end, Vec::new())
             .await
     }

@@ -56,10 +56,9 @@ impl ReprocessAttendanceHandler {
         let tz: Tz = tz_str.parse().unwrap_or(chrono_tz::UTC);
 
         // Initialize pairing service
-        let roster_repo = Arc::new(DieselRosterRepository::new(db.clone(), diesel.clone()));
-        let time_entry_repo = Arc::new(DieselTimeEntryRepository::new(db.clone(), diesel.clone()));
+        let roster_repo = Arc::new(DieselRosterRepository::new(diesel.clone()));
+        let time_entry_repo = Arc::new(DieselTimeEntryRepository::new(diesel.clone()));
         let policy_repo = Arc::new(crate::repositories::DieselAttendancePolicyRepository::new(
-            db.clone(),
             diesel.clone(),
         ));
         let pairing_service = PairingService::new(

@@ -27,7 +27,7 @@ pub struct CreatePayslipSegmentArgs {
     pub std_days_source: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct PayslipSegment {
     pub id: Uuid,
     pub payslip_id: Uuid,
@@ -64,7 +64,7 @@ pub struct Payslip {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct PayrollIncentivePolicy {
     pub id: Uuid,
     pub workspace_id: Uuid,
@@ -77,7 +77,7 @@ pub struct PayrollIncentivePolicy {
     pub effective_to: Option<chrono::NaiveDate>,
 }
 
-#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct IncentiveTier {
     pub id: Uuid,
     pub policy_id: Uuid,
@@ -94,7 +94,7 @@ pub struct IncentiveEvaluationResult {
     pub tier_id: Option<Uuid>,
 }
 
-#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct PayslipRuleEvaluation {
     pub id: Uuid,
     pub payslip_id: Uuid,
@@ -115,7 +115,7 @@ pub struct CreateIncentiveTierRequest {
     pub payout_amount: f64,
 }
 
-#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct PayrollIncentiveAssignment {
     pub id: Uuid,
     pub workspace_id: Uuid,
@@ -187,7 +187,7 @@ pub struct PayrollSettings {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct DepartmentPayrollConfig {
     pub id: Uuid,
     pub department_id: Uuid,
@@ -197,7 +197,7 @@ pub struct DepartmentPayrollConfig {
     pub created_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct EmployeePayrollConfig {
     pub id: Uuid,
     pub employee_id: Uuid,
@@ -207,7 +207,7 @@ pub struct EmployeePayrollConfig {
     pub created_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
 pub struct SalaryComponentDefinition {
     pub id: Uuid,
     pub workspace_id: Uuid,
@@ -217,7 +217,7 @@ pub struct SalaryComponentDefinition {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
 pub struct EmployeeSalaryComponent {
     pub id: Uuid,
     pub employee_id: Uuid,

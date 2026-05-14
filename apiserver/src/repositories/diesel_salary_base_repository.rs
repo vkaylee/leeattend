@@ -3,12 +3,12 @@ use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
 use uuid::Uuid;
 
+use crate::schema::{salary_base_groups, salary_component_base_members};
 use crate::{
     diesel_pool::DieselPools,
     errors::AppError,
     models::{SalaryBaseGroup, SalaryBaseGroupMember},
 };
-use crate::schema::{salary_base_groups, salary_component_base_members};
 
 // ---------------------------------------------------------------------------
 // Diesel-native query structs
@@ -77,8 +77,10 @@ impl DieselSalaryBaseRepository {
 
     async fn conn(
         &self,
-    ) -> Result<diesel_async::pooled_connection::deadpool::Object<diesel_async::AsyncPgConnection>, AppError>
-    {
+    ) -> Result<
+        diesel_async::pooled_connection::deadpool::Object<diesel_async::AsyncPgConnection>,
+        AppError,
+    > {
         self.diesel_pools
             .api
             .get()
@@ -191,12 +193,8 @@ impl DieselSalaryBaseRepository {
 
         diesel::delete(
             salary_component_base_members::table
-                .filter(
-                    salary_component_base_members::component_definition_id.eq(component_id),
-                )
-                .filter(
-                    salary_component_base_members::base_group_id.eq(base_group_id),
-                ),
+                .filter(salary_component_base_members::component_definition_id.eq(component_id))
+                .filter(salary_component_base_members::base_group_id.eq(base_group_id)),
         )
         .execute(&mut conn)
         .await

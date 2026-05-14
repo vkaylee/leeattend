@@ -132,3 +132,240 @@ pub struct UpdateDieselEmployee {
     pub termination_date: Option<Option<NaiveDate>>,
     pub updated_at: Option<DateTime<Utc>>,
 }
+
+use crate::models::{RecruitmentSource, RecruitmentSourceType};
+use crate::schema::sql_types::RecruitmentSourceType as RecruitmentSourceTypeSql;
+use crate::schema::{
+    employee_documents, employee_emergency_contacts, employee_profiles, recruitment_sources,
+};
+use diesel::deserialize::{self, FromSql};
+use diesel::pg::{Pg, PgValue};
+use diesel::serialize::{self, IsNull, Output, ToSql};
+use rust_decimal::Decimal;
+use std::io::Write;
+
+impl ToSql<RecruitmentSourceTypeSql, Pg> for RecruitmentSourceType {
+    fn to_sql<'b>(&'b self, out: &mut Output<'b, '_, Pg>) -> serialize::Result {
+        match *self {
+            RecruitmentSourceType::Direct => out.write_all(b"direct")?,
+            RecruitmentSourceType::Referral => out.write_all(b"referral")?,
+            RecruitmentSourceType::Agency => out.write_all(b"agency")?,
+        }
+        Ok(IsNull::No)
+    }
+}
+
+impl FromSql<RecruitmentSourceTypeSql, Pg> for RecruitmentSourceType {
+    fn from_sql(bytes: PgValue<'_>) -> deserialize::Result<Self> {
+        match bytes.as_bytes() {
+            b"direct" => Ok(RecruitmentSourceType::Direct),
+            b"referral" => Ok(RecruitmentSourceType::Referral),
+            b"agency" => Ok(RecruitmentSourceType::Agency),
+            _ => Err("Unrecognized enum variant".into()),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Queryable, Selectable, Insertable, Identifiable, AsChangeset)]
+#[diesel(table_name = recruitment_sources)]
+pub struct RecruitmentSourceEntity {
+    pub id: Uuid,
+    pub workspace_id: Uuid,
+    pub source_type: RecruitmentSourceType,
+    pub name: String,
+    pub referrer_employee_id: Option<Uuid>,
+    pub referral_bonus_amount: Option<Decimal>,
+    pub referral_bonus_paid: bool,
+    pub agency_contact_name: Option<String>,
+    pub agency_contact_email: Option<String>,
+    pub agency_fee_amount: Option<Decimal>,
+    pub agency_fee_paid: bool,
+    pub notes: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+impl From<RecruitmentSource> for RecruitmentSourceEntity {
+    fn from(val: RecruitmentSource) -> Self {
+        Self {
+            id: val.id,
+            workspace_id: val.workspace_id,
+            source_type: val.source_type,
+            name: val.name,
+            referrer_employee_id: val.referrer_employee_id,
+            referral_bonus_amount: val.referral_bonus_amount,
+            referral_bonus_paid: val.referral_bonus_paid,
+            agency_contact_name: val.agency_contact_name,
+            agency_contact_email: val.agency_contact_email,
+            agency_fee_amount: val.agency_fee_amount,
+            agency_fee_paid: val.agency_fee_paid,
+            notes: val.notes,
+            created_at: val.created_at,
+            updated_at: val.updated_at,
+        }
+    }
+}
+
+impl From<RecruitmentSourceEntity> for RecruitmentSource {
+    fn from(val: RecruitmentSourceEntity) -> Self {
+        Self {
+            id: val.id,
+            workspace_id: val.workspace_id,
+            source_type: val.source_type,
+            name: val.name,
+            referrer_employee_id: val.referrer_employee_id,
+            referral_bonus_amount: val.referral_bonus_amount,
+            referral_bonus_paid: val.referral_bonus_paid,
+            agency_contact_name: val.agency_contact_name,
+            agency_contact_email: val.agency_contact_email,
+            agency_fee_amount: val.agency_fee_amount,
+            agency_fee_paid: val.agency_fee_paid,
+            notes: val.notes,
+            created_at: val.created_at,
+            updated_at: val.updated_at,
+        }
+    }
+}
+
+#[derive(Debug, diesel::QueryableByName)]
+pub struct RecruitmentSourceBreakdownRow {
+    #[diesel(sql_type = Text)]
+    pub source_type: String,
+    #[diesel(sql_type = Text)]
+    pub source_name: String,
+    #[diesel(sql_type = BigInt)]
+    pub count: i64,
+}
+
+#[derive(Debug, diesel::QueryableByName)]
+pub struct TenureRow {
+    #[diesel(sql_type = Text)]
+    pub bucket: String,
+    #[diesel(sql_type = BigInt)]
+    pub count: i64,
+}
+
+#[derive(Debug, diesel::QueryableByName)]
+pub struct DeptRow {
+    #[diesel(sql_type = Text)]
+    pub department_name: String,
+    #[diesel(sql_type = BigInt)]
+    pub count: i64,
+}
+
+#[derive(Debug, Clone, Queryable, Selectable, Insertable, Identifiable, AsChangeset)]
+#[diesel(table_name = employee_profiles)]
+pub struct EmployeeProfileEntity {
+    pub id: Uuid,
+    pub employee_id: Uuid,
+    pub phone: Option<String>,
+    pub address: Option<String>,
+    pub date_of_birth: Option<NaiveDate>,
+    pub gender: Option<String>,
+    pub national_id: Option<String>,
+    pub bank_name: Option<String>,
+    pub bank_account_number: Option<String>,
+    pub bank_branch: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+impl From<EmployeeProfileEntity> for crate::models::EmployeeProfile {
+    fn from(val: EmployeeProfileEntity) -> Self {
+        Self {
+            id: val.id,
+            employee_id: val.employee_id,
+            phone: val.phone,
+            address: val.address,
+            date_of_birth: val.date_of_birth,
+            gender: val.gender,
+            national_id: val.national_id,
+            bank_name: val.bank_name,
+            bank_account_number: val.bank_account_number,
+            bank_branch: val.bank_branch,
+            created_at: val.created_at,
+            updated_at: val.updated_at,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Queryable, Selectable, Insertable, Identifiable, AsChangeset)]
+#[diesel(table_name = employee_emergency_contacts)]
+pub struct EmployeeEmergencyContactEntity {
+    pub id: Uuid,
+    pub employee_id: Uuid,
+    pub contact_name: String,
+    pub relationship: String,
+    pub phone: String,
+    pub is_primary: bool,
+    pub created_at: DateTime<Utc>,
+}
+
+impl From<EmployeeEmergencyContactEntity> for crate::models::EmployeeEmergencyContact {
+    fn from(val: EmployeeEmergencyContactEntity) -> Self {
+        Self {
+            id: val.id,
+            employee_id: val.employee_id,
+            contact_name: val.contact_name,
+            relationship: val.relationship,
+            phone: val.phone,
+            is_primary: val.is_primary,
+            created_at: val.created_at,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Queryable, Selectable, Insertable, Identifiable, AsChangeset)]
+#[diesel(table_name = employee_documents)]
+pub struct EmployeeDocumentEntity {
+    pub id: Uuid,
+    pub employee_id: Uuid,
+    pub workspace_id: Uuid,
+    pub document_type: String,
+    pub file_name: String,
+    pub file_path: String,
+    pub file_size: i32,
+    pub mime_type: String,
+    pub expires_at: Option<NaiveDate>,
+    pub is_active: bool,
+    pub uploaded_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+}
+
+impl From<EmployeeDocumentEntity> for crate::models::EmployeeDocument {
+    fn from(val: EmployeeDocumentEntity) -> Self {
+        Self {
+            id: val.id,
+            employee_id: val.employee_id,
+            workspace_id: val.workspace_id,
+            document_type: val.document_type,
+            file_name: val.file_name,
+            file_path: val.file_path,
+            file_size: val.file_size,
+            mime_type: val.mime_type,
+            expires_at: val.expires_at,
+            is_active: val.is_active,
+            uploaded_by: val.uploaded_by,
+            created_at: val.created_at,
+        }
+    }
+}
+
+impl From<crate::models::EmployeeDocument> for EmployeeDocumentEntity {
+    fn from(val: crate::models::EmployeeDocument) -> Self {
+        Self {
+            id: val.id,
+            employee_id: val.employee_id,
+            workspace_id: val.workspace_id,
+            document_type: val.document_type,
+            file_name: val.file_name,
+            file_path: val.file_path,
+            file_size: val.file_size,
+            mime_type: val.mime_type,
+            expires_at: val.expires_at,
+            is_active: val.is_active,
+            uploaded_by: val.uploaded_by,
+            created_at: val.created_at,
+        }
+    }
+}

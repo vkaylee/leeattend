@@ -28,7 +28,7 @@ impl EmployeeImportHandler {
     /// Splits the file into chunks and enqueues them.
     #[allow(clippy::too_many_lines)]
     pub async fn handle(
-        db: &PgPool,
+        _db: &PgPool,
         diesel: &crate::diesel_pool::DieselPools,
         job: &Job,
         redis: &RedisPool,
@@ -37,7 +37,7 @@ impl EmployeeImportHandler {
             .employee_import_payload()
             .ok_or("Missing employee import payload")?;
 
-        let import_repo = DieselImportJobRepository::new(db.clone(), diesel.clone());
+        let import_repo = DieselImportJobRepository::new(diesel.clone());
 
         // Update import job → Processing
         let _ = import_repo
@@ -181,13 +181,12 @@ impl EmployeeImportChunkHandler {
         // Wait, if a chunk times out, the guard sets the whole job to Failed.
         // This might be correct to halt the process, but we rely on chunk completion tracking.
         let _guard = ImportTimeoutGuard::new(
-            db.clone(),
             payload.import_job_id,
             Arc::clone(&completed),
             diesel.clone(),
         );
 
-        let import_repo = DieselImportJobRepository::new(db.clone(), diesel.clone());
+        let import_repo = DieselImportJobRepository::new(diesel.clone());
         let import_job = import_repo
             .get_job_by_id(payload.import_job_id)
             .await
@@ -199,7 +198,6 @@ impl EmployeeImportChunkHandler {
             .map_err(|e| format!("Could not read file: {e}"))?;
 
         let workspace_repo = Arc::new(crate::repositories::DieselWorkspaceRepository::new(
-            db.clone(),
             diesel.clone(),
         ));
         let workspace_tz = match workspace_repo
@@ -221,12 +219,10 @@ impl EmployeeImportChunkHandler {
         let strategy = EmployeeImportStrategy {
             msgs: msgs.clone(),
             employee_repo: Arc::new(crate::repositories::DieselEmployeeRepository::new(
-                db.clone(),
                 diesel.clone(),
             )),
             department_repo: Arc::new(
                 crate::repositories::diesel_department_repository::DieselDepartmentRepository::new(
-                    db.clone(),
                     diesel.clone(),
                 ),
             ),

@@ -10,28 +10,32 @@ pub mod sql_types {
     pub struct ContractStatusEnum;
 
     #[derive(diesel::query_builder::QueryId, Clone, diesel::sql_types::SqlType)]
-    #[diesel(postgres_type(name = "contract_type_enum"))]
+    #[diesel(postgres_type(name = "contract_type_enum", schema = "public"))]
     pub struct ContractTypeEnum;
 
     #[derive(diesel::query_builder::QueryId, Clone, diesel::sql_types::SqlType)]
-    #[diesel(postgres_type(name = "import_job_status_type"))]
+    #[diesel(postgres_type(name = "import_job_status_type", schema = "public"))]
     pub struct ImportJobStatusType;
 
     #[derive(diesel::query_builder::QueryId, Clone, diesel::sql_types::SqlType)]
-    #[diesel(postgres_type(name = "leave_status_type"))]
+    #[diesel(postgres_type(name = "leave_status_type", schema = "public"))]
     pub struct LeaveStatusType;
 
     #[derive(diesel::query_builder::QueryId, Clone, diesel::sql_types::SqlType)]
-    #[diesel(postgres_type(name = "log_source_type"))]
+    #[diesel(postgres_type(name = "log_source_type", schema = "public"))]
     pub struct LogSourceType;
 
     #[derive(diesel::query_builder::QueryId, Clone, diesel::sql_types::SqlType)]
-    #[diesel(postgres_type(name = "ot_status_type"))]
+    #[diesel(postgres_type(name = "ot_status_type", schema = "public"))]
     pub struct OtStatusType;
 
     #[derive(diesel::query_builder::QueryId, Clone, diesel::sql_types::SqlType)]
-    #[diesel(postgres_type(name = "recruitment_source_type"))]
+    #[diesel(postgres_type(name = "recruitment_source_type", schema = "public"))]
     pub struct RecruitmentSourceType;
+
+    #[derive(diesel::query_builder::QueryId, Clone, diesel::sql_types::SqlType)]
+    #[diesel(postgres_type(name = "assignment_history_type", schema = "public"))]
+    pub struct AssignmentHistoryType;
 }
 
 diesel::table! {

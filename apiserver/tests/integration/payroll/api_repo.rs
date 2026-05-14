@@ -4,7 +4,7 @@ use crate::common::app::setup_app_tower;
 use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
 use apiserver::models::Payslip;
-use apiserver::repositories::payroll_repository;
+use apiserver::repositories::{payroll_repository, PayrollRepository};
 use apiserver::AppState;
 use axum::http::StatusCode;
 use chrono::Utc;
@@ -44,13 +44,13 @@ async fn test_payroll_payslips_smoke() {
     };
 
     // 1. Create payslip
-    let created = payroll_repository::create_payslip(&pool, &payslip)
-        .await
-        .unwrap();
+    let payroll_repo = apiserver::repositories::DieselPayrollRepository::new(diesel_pools.clone());
+    let created = payroll_repo.create_payslip(&payslip).await.unwrap();
     assert_eq!(created.net_pay_amount, Decimal::from_i32(4600).unwrap());
 
     // 2. Get by employee
-    let list = payroll_repository::get_payslips_by_employee(&pool, ws_id, employee_id)
+    let list = payroll_repo
+        .get_payslips_by_employee(ws_id, employee_id)
         .await
         .unwrap();
     assert_eq!(list.len(), 1);
@@ -82,30 +82,28 @@ async fn test_get_employee_payslips_api() {
         created_at: Utc::now(),
         updated_at: Utc::now(),
     };
-    payroll_repository::create_payslip(&factory.pool, &payslip)
+    _state.payroll.repo.create_payslip(&payslip).await.unwrap();
+
+    // Create a 'BASE' salary component
+    let component_def = _state
+        .payroll
+        .repo
+        .create_salary_component_definition(ws_id, "Lương cơ bản".to_string(), "BASE".to_string())
         .await
         .unwrap();
 
-    // Create a 'BASE' salary component
-    let component_def = payroll_repository::create_salary_component_definition(
-        &factory.pool,
-        ws_id,
-        "Lương cơ bản".to_string(),
-        "BASE".to_string(),
-    )
-    .await
-    .unwrap();
-
     // Assign it to employee
-    payroll_repository::assign_employee_salary_component(
-        &factory.pool,
-        emp_id,
-        component_def.id,
-        Decimal::from_i32(2000).unwrap(),
-        Utc::now().date_naive(),
-    )
-    .await
-    .unwrap();
+    _state
+        .payroll
+        .repo
+        .assign_employee_salary_component(
+            emp_id,
+            component_def.id,
+            Decimal::from_i32(2000).unwrap(),
+            Utc::now().date_naive(),
+        )
+        .await
+        .unwrap();
 
     // Test GET payslips
     let response = app

@@ -54,13 +54,13 @@ async fn test_agent_scaling_config() {
     assert_eq!(response.status(), StatusCode::CREATED);
 
     // Verify DB default
-    let agent = sqlx::query!(
-        "SELECT max_concurrent_workers FROM authorized_agents WHERE id = $1",
-        agent_id
-    )
-    .fetch_one(state.infra.db.api())
-    .await
-    .unwrap();
+    let agent = state
+        .agents
+        .repo
+        .get_agent_by_id_in_workspace(agent_id, workspace_id)
+        .await
+        .unwrap()
+        .unwrap();
     assert_eq!(agent.max_concurrent_workers, 2);
 
     // 2. Update to 5 workers
@@ -81,13 +81,13 @@ async fn test_agent_scaling_config() {
     assert_eq!(response.status(), StatusCode::OK);
 
     // Verify DB update
-    let agent = sqlx::query!(
-        "SELECT max_concurrent_workers FROM authorized_agents WHERE id = $1",
-        agent_id
-    )
-    .fetch_one(state.infra.db.api())
-    .await
-    .unwrap();
+    let agent = state
+        .agents
+        .repo
+        .get_agent_by_id_in_workspace(agent_id, workspace_id)
+        .await
+        .unwrap()
+        .unwrap();
     assert_eq!(agent.max_concurrent_workers, 5);
 
     // 3. Update to 1 worker
@@ -108,12 +108,12 @@ async fn test_agent_scaling_config() {
     assert_eq!(response.status(), StatusCode::OK);
 
     // Verify DB update
-    let agent = sqlx::query!(
-        "SELECT max_concurrent_workers FROM authorized_agents WHERE id = $1",
-        agent_id
-    )
-    .fetch_one(state.infra.db.api())
-    .await
-    .unwrap();
+    let agent = state
+        .agents
+        .repo
+        .get_agent_by_id_in_workspace(agent_id, workspace_id)
+        .await
+        .unwrap()
+        .unwrap();
     assert_eq!(agent.max_concurrent_workers, 1);
 }

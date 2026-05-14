@@ -2,32 +2,27 @@ use async_trait::async_trait;
 use chrono::Utc;
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
-use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::diesel_pool::DieselPools;
 use crate::errors::AppError;
 use crate::models::diesel::feature_flag::FeatureFlagEntity;
 use crate::models::feature_flag::FeatureFlag;
-use crate::repositories::feature_flag_repository::FeatureFlagRepositoryTrait;
+use crate::repositories::feature_flag_repository::FeatureFlagRepository;
 use crate::schema::feature_flags;
 
 pub struct DieselFeatureFlagRepository {
-    pub sqlx_pool: PgPool,
     pub diesel_pools: DieselPools,
 }
 
 impl DieselFeatureFlagRepository {
-    pub fn new(sqlx_pool: PgPool, diesel_pools: DieselPools) -> Self {
-        Self {
-            sqlx_pool,
-            diesel_pools,
-        }
+    pub fn new(diesel_pools: DieselPools) -> Self {
+        Self { diesel_pools }
     }
 }
 
 #[async_trait]
-impl FeatureFlagRepositoryTrait for DieselFeatureFlagRepository {
+impl FeatureFlagRepository for DieselFeatureFlagRepository {
     async fn list_flags(&self, workspace_id: Uuid) -> Result<Vec<FeatureFlag>, AppError> {
         let mut conn = self
             .diesel_pools

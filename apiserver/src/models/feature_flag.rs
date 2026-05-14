@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 /// A workspace-scoped feature flag.
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FeatureFlag {
     pub id: Uuid,
     pub workspace_id: Uuid,

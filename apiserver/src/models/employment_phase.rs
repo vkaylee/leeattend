@@ -2,7 +2,7 @@ use chrono::{DateTime, NaiveDate, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct EmploymentPhaseDefinition {
     pub id: Uuid,
     pub workspace_id: Uuid,
@@ -16,7 +16,7 @@ pub struct EmploymentPhaseDefinition {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct EmployeePhase {
     pub id: Uuid,
     pub workspace_id: Uuid,

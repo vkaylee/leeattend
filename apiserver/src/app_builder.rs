@@ -227,6 +227,13 @@ impl AppState {
                 Arc::clone(&shift_repo),
                 Arc::clone(&payroll_repo),
             ));
+
+        let working_pattern_repo: Arc<
+            dyn crate::repositories::working_pattern_repository::WorkingPatternRepositoryTrait,
+        > = Arc::new(crate::repositories::DieselWorkingPatternRepository::new(
+            diesel_pools.clone(),
+        ));
+
         let holiday_leave_service = Arc::new(
             crate::services::holiday_leave_service::HolidayLeaveService::new(
                 Arc::clone(&employee_repo),
@@ -279,9 +286,11 @@ impl AppState {
             diesel_pools.clone(),
         ));
 
-        let overtime_policy_repo: Arc<dyn crate::repositories::overtime_policy_repository::OvertimePolicyRepositoryTrait> = Arc::new(
-            crate::repositories::DieselOvertimePolicyRepository::new(diesel_pools.clone()),
-        );
+        let overtime_policy_repo: Arc<
+            dyn crate::repositories::overtime_policy_repository::OvertimePolicyRepositoryTrait,
+        > = Arc::new(crate::repositories::DieselOvertimePolicyRepository::new(
+            diesel_pools.clone(),
+        ));
 
         let payroll_service = Arc::new(crate::services::payroll_service::PayrollService::new(
             crate::services::payroll_service::PayrollServiceArgs {
@@ -427,6 +436,7 @@ impl AppState {
                 shift_repo,
                 swap_repo: shift_swap_repo,
                 assignment_rule_repo: assignment_rule_repo.clone(),
+                working_pattern_repo,
             },
             leaves: crate::LeaveState {
                 service: leave_service,

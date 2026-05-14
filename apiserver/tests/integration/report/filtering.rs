@@ -32,24 +32,33 @@ async fn test_daily_report_employee_filtering() {
 
     let date = NaiveDate::from_ymd_opt(2026, 1, 1).unwrap();
 
-    let report_service = ReportService::new(
-        std::sync::Arc::new(apiserver::repositories::DieselTimeEntryRepository::new(
-            pool.clone(),
-            diesel_pools.clone(),
-        )),
-        std::sync::Arc::new(apiserver::repositories::DieselRosterRepository::new(
-            pool.clone(),
-            diesel_pools.clone(),
-        )),
-        std::sync::Arc::new(
-            apiserver::repositories::DieselAttendancePolicyRepository::new(
-                pool.clone(),
-                diesel_pools.clone(),
+    let report_service =
+        ReportService::new(apiserver::services::report_service::ReportServiceArgs {
+            time_entry_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselTimeEntryRepository::new(diesel_pools.clone()),
             ),
-        ),
-        pool.clone(),
-        diesel_pools.clone(),
-    );
+            roster_repo: std::sync::Arc::new(apiserver::repositories::DieselRosterRepository::new(
+                diesel_pools.clone(),
+            )),
+            policy_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselAttendancePolicyRepository::new(
+                    diesel_pools.clone(),
+                ),
+            ),
+            employee_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselEmployeeRepository::new(diesel_pools.clone()),
+            ),
+            attendance_daily_summary_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselAttendanceDailySummaryRepository::new(
+                    diesel_pools.clone(),
+                ),
+            ),
+            leave_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselLeaveRequestRepository::new(diesel_pools.clone()),
+            ),
+            pool: pool.clone(),
+            diesel: diesel_pools.clone(),
+        });
 
     // Filter by emp1
     let result_1 = report_service

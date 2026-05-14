@@ -8,7 +8,7 @@ use crate::models::enums::{
 };
 use crate::services::attendance_utils::AttendanceStatus;
 
-#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, sqlx::FromRow)]
 pub struct AttendanceAdjustmentRequest {
     pub id: Uuid,
     pub employee_id: Uuid,
@@ -134,7 +134,7 @@ pub struct RawAttendanceLogWithEmployee {
     pub device_name: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, sqlx::FromRow)]
 pub struct AttendanceImportJob {
     pub id: Uuid,
     pub workspace_id: Uuid,
@@ -188,7 +188,7 @@ pub struct BulkOtUploadResult {
     pub errors: Vec<BulkOtEntryError>,
 }
 
-#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, sqlx::FromRow)]
 pub struct AttendancePolicy {
     pub id: Uuid,
     pub workspace_id: Uuid,
@@ -198,7 +198,7 @@ pub struct AttendancePolicy {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, sqlx::FromRow)]
 pub struct AttendancePolicyVersion {
     pub id: Uuid,
     pub policy_id: Uuid,
@@ -217,7 +217,7 @@ pub struct AttendanceRules {
     pub early_arrival_strategy: EarlyArrivalStrategy,
 }
 
-#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, sqlx::FromRow)]
 pub struct AttendancePolicyAssignment {
     pub id: Uuid,
     pub policy_id: Uuid,

@@ -146,7 +146,9 @@ async fn test_grace_period_zero_shift_uses_policy_default() {
             employee_repo: Arc::new(apiserver::repositories::DieselEmployeeRepository::new(
                 diesel_pools.clone(),
             )),
-            overtime_policy_repo: Arc::new(apiserver::repositories::DieselOvertimePolicyRepository::new(diesel_pools.clone())),
+            overtime_policy_repo: Arc::new(
+                apiserver::repositories::DieselOvertimePolicyRepository::new(diesel_pools.clone()),
+            ),
             diesel_pools: diesel_pools.clone(),
         })
     }
@@ -293,7 +295,9 @@ async fn test_grace_period_nonzero_shift_overrides() {
             employee_repo: Arc::new(apiserver::repositories::DieselEmployeeRepository::new(
                 diesel_pools.clone(),
             )),
-            overtime_policy_repo: Arc::new(apiserver::repositories::DieselOvertimePolicyRepository::new(diesel_pools.clone())),
+            overtime_policy_repo: Arc::new(
+                apiserver::repositories::DieselOvertimePolicyRepository::new(diesel_pools.clone()),
+            ),
             diesel_pools: diesel_pools.clone(),
         })
     }

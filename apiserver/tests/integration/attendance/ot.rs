@@ -26,11 +26,12 @@ async fn test_ot_claim_approval_workflow() {
 
     // 1. Create a daily summary (simulated)
     let date = NaiveDate::from_ymd_opt(2026, 1, 20).unwrap();
-    sqlx::query("INSERT INTO attendance_daily_summaries (id, workspace_id, employee_id, date, actual_work_minutes, system_detected_ot_minutes, ot_status, created_at, updated_at) VALUES ($1, $2, $3, $4, 500, 60, 'pending_employee', NOW(), NOW())")
+    sqlx::query("INSERT INTO attendance_daily_summaries (id, workspace_id, employee_id, date, actual_work_minutes, system_detected_ot_minutes, ot_status, created_at, updated_at) VALUES ($1, $2, $3, $4, 500, 60, $5, NOW(), NOW())")
         .bind(uuid::Uuid::new_v4())
         .bind(ws_id)
         .bind(emp_id)
         .bind(date)
+        .bind(OtStatus::PendingEmployee)
         .execute(&factory.pool).await.unwrap();
 
     // 2. Employee Claims OT
@@ -56,7 +57,12 @@ async fn test_ot_claim_approval_workflow() {
         .await
         .unwrap();
 
-    assert_eq!(res.status(), StatusCode::OK);
+    if res.status() != StatusCode::OK {
+        let status = res.status();
+        let body_bytes = axum::body::to_bytes(res.into_body(), 1024).await.unwrap();
+        let body_str = String::from_utf8_lossy(&body_bytes);
+        panic!("Claim OT failed with status {}. Body: {}", status, body_str);
+    }
 
     // Verify status
     let summary: AttendanceDailySummary = sqlx::query_as(

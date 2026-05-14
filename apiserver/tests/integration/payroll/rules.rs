@@ -139,34 +139,48 @@ async fn test_payroll_rule_evaluator() {
     let ws_id = factory.workspace().create_with_owner(user_id).await;
     let employee_id = factory.employee().with_workspace(ws_id).create().await;
 
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
+    let rule_repo = apiserver::repositories::DieselPayrollRuleRepository::new(
+        test_db.pool(),
+        diesel_pools.clone(),
+    );
+
     // 1. Insert a rule definition (10% deduction)
-    let rule_id = Uuid::new_v4();
-    sqlx::query!(
-        r#"
-        INSERT INTO payroll_rule_definitions (id, workspace_id, code, name, category, applies_to, calculation_method, rule_config, is_mandatory, is_active)
-        VALUES ($1, $2, 'TAX10', 'Tax 10%', 'statutory_deduction', 'employee', 'percentage', '{"rate": 10.0, "base": "gross_salary"}', true, true)
-        "#,
-        rule_id,
-        ws_id
-    )
-    .execute(&test_db.pool())
-    .await
-    .unwrap();
+    let rule_def = rule_repo
+        .create_definition(
+            apiserver::repositories::payroll_rule_repository::CreatePayrollRuleDefinitionArgs {
+                workspace_id: ws_id,
+                code: "TAX10".to_string(),
+                name: "Tax 10%".to_string(),
+                category: apiserver::models::enums::PayrollRuleCategory::StatutoryDeduction,
+                applies_to: apiserver::models::enums::RuleAppliesTo::Employee,
+                calculation_method: apiserver::models::enums::PayrollCalculationMethod::Percentage,
+                rule_config: serde_json::json!({"rate": 10.0, "base": "gross_salary"}),
+                is_mandatory: true,
+                display_order: 0,
+                description: None,
+            },
+        )
+        .await
+        .unwrap();
+    let rule_id = rule_def.id;
 
     // 2. Assign the rule to the employee
-    sqlx::query!(
-        r#"
-        INSERT INTO payroll_rule_assignments (id, workspace_id, rule_definition_id, assignee_type, assignee_id, effective_from)
-        VALUES ($1, $2, $3, 'employee', $4, '2026-01-01')
-        "#,
-        Uuid::new_v4(),
-        ws_id,
-        rule_id,
-        employee_id
-    )
-    .execute(&test_db.pool())
-    .await
-    .unwrap();
+    use apiserver::repositories::payroll_rule_repository::PayrollRuleRepository;
+    rule_repo
+        .assign_rule(
+            apiserver::repositories::payroll_rule_repository::AssignPayrollRuleArgs {
+                workspace_id: ws_id,
+                rule_definition_id: rule_id,
+                assignee_type: apiserver::models::enums::AssigneeType::Employee,
+                assignee_id: Some(employee_id),
+                effective_from: chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+                effective_to: None,
+                override_config: None,
+            },
+        )
+        .await
+        .unwrap();
 
     // 3. Evaluate the rule
     let start_date = NaiveDate::from_ymd_opt(2026, 1, 1).unwrap();
@@ -176,8 +190,11 @@ async fn test_payroll_rule_evaluator() {
     let mut base_values = HashMap::new();
     base_values.insert("gross_salary".to_string(), gross_salary);
 
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
+    let pr = apiserver::repositories::DieselPayrollRepository::new(diesel_pools.clone());
+
     let results = PayrollRuleEvaluator::evaluate_rules(
-        &test_db.pool(),
+        &pr,
         ws_id,
         employee_id,
         None,

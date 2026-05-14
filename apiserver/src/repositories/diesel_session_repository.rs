@@ -11,16 +11,12 @@ use sqlx::PgPool;
 use uuid::Uuid;
 
 pub struct DieselSessionRepository {
-    pub sqlx_pool: PgPool,
     pub diesel_pools: DieselPools,
 }
 
 impl DieselSessionRepository {
-    pub fn new(sqlx_pool: PgPool, diesel_pools: DieselPools) -> Self {
-        Self {
-            sqlx_pool,
-            diesel_pools,
-        }
+    pub fn new(_sqlx_pool: PgPool, diesel_pools: DieselPools) -> Self {
+        Self { diesel_pools }
     }
 }
 

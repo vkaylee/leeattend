@@ -113,16 +113,12 @@ impl From<SwapStatsEntity> for SwapStats {
     }
 }
 pub struct DieselShiftSwapRepository {
-    pub sqlx_pool: sqlx::PgPool,
     pub diesel_pools: DieselPools,
 }
 
 impl DieselShiftSwapRepository {
-    pub fn new(sqlx_pool: sqlx::PgPool, diesel_pools: DieselPools) -> Self {
-        Self {
-            sqlx_pool,
-            diesel_pools,
-        }
+    pub fn new(diesel_pools: DieselPools) -> Self {
+        Self { diesel_pools }
     }
 }
 

@@ -1,6 +1,6 @@
 use chrono::NaiveDate;
 use diesel::prelude::*;
-use diesel_async::RunQueryDsl;
+use diesel_async::{AsyncConnection, RunQueryDsl};
 use uuid::Uuid;
 
 use crate::diesel_pool::DieselPools;
@@ -14,16 +14,12 @@ use crate::models::{
 use crate::schema::{employee_working_patterns, working_pattern_details, working_patterns};
 
 pub struct DieselWorkingPatternRepository {
-    pub sqlx_pool: sqlx::PgPool,
     pub diesel_pools: DieselPools,
 }
 
 impl DieselWorkingPatternRepository {
-    pub fn new(sqlx_pool: sqlx::PgPool, diesel_pools: DieselPools) -> Self {
-        Self {
-            sqlx_pool,
-            diesel_pools,
-        }
+    pub fn new(diesel_pools: DieselPools) -> Self {
+        Self { diesel_pools }
     }
 }
 
@@ -33,12 +29,17 @@ macro_rules! map_db_err {
     };
 }
 
-impl DieselWorkingPatternRepository {
-    pub async fn create_pattern(
+use crate::repositories::working_pattern_repository::WorkingPatternRepositoryTrait;
+use async_trait::async_trait;
+
+#[async_trait]
+impl WorkingPatternRepositoryTrait for DieselWorkingPatternRepository {
+    async fn create_pattern_with_details(
         &self,
         workspace_id: Uuid,
         name: &str,
         description: Option<&str>,
+        details: Vec<(i32, Option<Uuid>)>,
     ) -> Result<WorkingPattern, AppError> {
         let mut conn = self
             .diesel_pools
@@ -47,48 +48,45 @@ impl DieselWorkingPatternRepository {
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
-        map_db_err!(
-            diesel::insert_into(working_patterns::table)
-                .values((
-                    working_patterns::workspace_id.eq(workspace_id),
-                    working_patterns::name.eq(name),
-                    working_patterns::description.eq(description),
-                ))
-                .returning(WorkingPatternEntity::as_returning())
-                .get_result(&mut conn)
-                .await
-        )
-        .map(Into::into)
-    }
+        let name_owned = name.to_string();
+        let description_owned = description.map(ToString::to_string);
 
-    pub async fn add_pattern_detail(
-        &self,
-        pattern_id: Uuid,
-        day_of_week: i32,
-        shift_id: Option<Uuid>,
-    ) -> Result<WorkingPatternDetail, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .api
-            .get()
+        let result = conn
+            .transaction(|mut conn| {
+                Box::pin(async move {
+                    let pattern_entity = diesel::insert_into(working_patterns::table)
+                        .values((
+                            working_patterns::workspace_id.eq(workspace_id),
+                            working_patterns::name.eq(&name_owned),
+                            working_patterns::description.eq(&description_owned),
+                        ))
+                        .returning(WorkingPatternEntity::as_returning())
+                        .get_result::<WorkingPatternEntity>(&mut conn)
+                        .await?;
+
+                    for (day_of_week, shift_id) in details {
+                        diesel::insert_into(working_pattern_details::table)
+                            .values((
+                                working_pattern_details::pattern_id.eq(pattern_entity.id),
+                                working_pattern_details::day_of_week.eq(day_of_week),
+                                working_pattern_details::shift_id.eq(shift_id),
+                            ))
+                            .execute(&mut conn)
+                            .await?;
+                    }
+
+                    Ok::<_, diesel::result::Error>(pattern_entity)
+                })
+            })
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(|e| {
+                AppError::Internal(format!("Failed to create pattern with details: {e}"))
+            })?;
 
-        map_db_err!(
-            diesel::insert_into(working_pattern_details::table)
-                .values((
-                    working_pattern_details::pattern_id.eq(pattern_id),
-                    working_pattern_details::day_of_week.eq(day_of_week),
-                    working_pattern_details::shift_id.eq(shift_id),
-                ))
-                .returning(WorkingPatternDetailEntity::as_returning())
-                .get_result(&mut conn)
-                .await
-        )
-        .map(Into::into)
+        Ok(result.into())
     }
 
-    pub async fn get_patterns(&self, workspace_id: Uuid) -> Result<Vec<WorkingPattern>, AppError> {
+    async fn get_patterns(&self, workspace_id: Uuid) -> Result<Vec<WorkingPattern>, AppError> {
         let mut conn = self
             .diesel_pools
             .api
@@ -108,7 +106,7 @@ impl DieselWorkingPatternRepository {
         .map(|rows| rows.into_iter().map(Into::into).collect())
     }
 
-    pub async fn get_pattern_details(
+    async fn get_pattern_details(
         &self,
         pattern_id: Uuid,
     ) -> Result<Vec<WorkingPatternDetail>, AppError> {
@@ -130,7 +128,7 @@ impl DieselWorkingPatternRepository {
         .map(|rows| rows.into_iter().map(Into::into).collect())
     }
 
-    pub async fn assign_pattern(
+    async fn assign_pattern(
         &self,
         workspace_id: Uuid,
         employee_id: Uuid,
@@ -161,7 +159,7 @@ impl DieselWorkingPatternRepository {
         .map(Into::into)
     }
 
-    pub async fn get_employee_pattern_history(
+    async fn get_employee_pattern_history(
         &self,
         workspace_id: Uuid,
         employee_id: Uuid,
@@ -185,7 +183,7 @@ impl DieselWorkingPatternRepository {
         .map(|rows| rows.into_iter().map(Into::into).collect())
     }
 
-    pub async fn bulk_assign_pattern(
+    async fn bulk_assign_pattern(
         &self,
         workspace_id: Uuid,
         employee_ids: &[Uuid],
@@ -236,11 +234,7 @@ impl DieselWorkingPatternRepository {
         })
     }
 
-    pub async fn delete_pattern(
-        &self,
-        workspace_id: Uuid,
-        pattern_id: Uuid,
-    ) -> Result<(), AppError> {
+    async fn delete_pattern(&self, workspace_id: Uuid, pattern_id: Uuid) -> Result<(), AppError> {
         let mut conn = self
             .diesel_pools
             .api
@@ -248,23 +242,30 @@ impl DieselWorkingPatternRepository {
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
-        diesel::delete(
-            working_pattern_details::table
-                .filter(working_pattern_details::pattern_id.eq(pattern_id)),
-        )
-        .execute(&mut conn)
-        .await
-        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let result = conn
+            .transaction(|mut conn| {
+                Box::pin(async move {
+                    diesel::delete(
+                        working_pattern_details::table
+                            .filter(working_pattern_details::pattern_id.eq(pattern_id)),
+                    )
+                    .execute(&mut conn)
+                    .await?;
 
-        diesel::delete(
-            working_patterns::table
-                .filter(working_patterns::id.eq(pattern_id))
-                .filter(working_patterns::workspace_id.eq(workspace_id)),
-        )
-        .execute(&mut conn)
-        .await
-        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+                    diesel::delete(
+                        working_patterns::table
+                            .filter(working_patterns::id.eq(pattern_id))
+                            .filter(working_patterns::workspace_id.eq(workspace_id)),
+                    )
+                    .execute(&mut conn)
+                    .await?;
 
-        Ok(())
+                    Ok::<_, diesel::result::Error>(())
+                })
+            })
+            .await
+            .map_err(|e| AppError::Internal(format!("Failed to delete pattern: {e}")))?;
+
+        Ok(result)
     }
 }

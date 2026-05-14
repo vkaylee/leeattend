@@ -6,14 +6,17 @@
 
 use chrono::{DateTime, NaiveDate, Utc};
 use serde::{Deserialize, Serialize};
-use sqlx::PgPool;
+
 use uuid::Uuid;
 
 use crate::queue::{
     DateRange, Job, JobMetadata, JobPayload, JobPriority, JobQueue, JobStatus, MergePayload,
     RedisPool, ReportConfig, ReportPayload, ReportType, TaskType,
 };
-use crate::repositories::employee;
+use crate::repositories::{
+    employee::EmployeeRepository, workspace_repository::WorkspaceRepository,
+};
+use std::sync::Arc;
 
 // Configuration constants for batch processing
 pub const BATCH_SIZE: usize = 50;
@@ -96,15 +99,21 @@ struct WorkspaceConfig {
 /// Splits requests into micro-jobs and tracks completion.
 pub struct ReportCoordinator {
     queue: JobQueue,
-    db: PgPool,
+    employee_repo: Arc<dyn EmployeeRepository>,
+    workspace_repo: Arc<dyn WorkspaceRepository>,
 }
 
 impl ReportCoordinator {
     /// Create a new ReportCoordinator.
-    pub fn new(redis: RedisPool, db: PgPool) -> Self {
+    pub fn new(
+        redis: RedisPool,
+        employee_repo: Arc<dyn EmployeeRepository>,
+        workspace_repo: Arc<dyn WorkspaceRepository>,
+    ) -> Self {
         Self {
             queue: JobQueue::new(redis),
-            db,
+            employee_repo,
+            workspace_repo,
         }
     }
 
@@ -401,7 +410,8 @@ impl ReportCoordinator {
         workspace_id: Uuid,
         filter_ids: Option<&Vec<Uuid>>,
     ) -> Result<Vec<Uuid>, ReportError> {
-        employee::get_active_employee_ids(&self.db, workspace_id, filter_ids)
+        self.employee_repo
+            .get_active_employee_ids(workspace_id, filter_ids)
             .await
             .map_err(|e| ReportError::DatabaseError(e.to_string()))
     }
@@ -411,11 +421,12 @@ impl ReportCoordinator {
         &self,
         workspace_id: Uuid,
     ) -> Result<WorkspaceConfig, ReportError> {
-        let workspace =
-            crate::repositories::workspace_repository::get_workspace_by_id(&self.db, workspace_id)
-                .await
-                .map_err(|e| ReportError::DatabaseError(e.to_string()))?
-                .ok_or_else(|| ReportError::DatabaseError("Workspace not found".into()))?;
+        let workspace = self
+            .workspace_repo
+            .get_workspace_by_id(workspace_id)
+            .await
+            .map_err(|e| ReportError::DatabaseError(e.to_string()))?
+            .ok_or_else(|| ReportError::DatabaseError("Workspace not found".into()))?;
 
         Ok(WorkspaceConfig {
             timezone: workspace.timezone,

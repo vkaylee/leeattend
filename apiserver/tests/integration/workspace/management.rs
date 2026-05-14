@@ -197,7 +197,7 @@ async fn test_workspace_repository_directly() {
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
     let factory = TestFactory::new(pool.clone());
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
-    let repo = DieselWorkspaceRepository::new(pool.clone(), diesel_pools.clone());
+    let repo = DieselWorkspaceRepository::new(diesel_pools.clone());
 
     let user_id: Uuid = factory.user().create().await;
     let ws = repo

@@ -164,7 +164,11 @@ async fn test_payroll_holiday_work_with_multiplier() {
                 employee_repo: Arc::new(apiserver::repositories::DieselEmployeeRepository::new(
                     diesel_pools.clone(),
                 )),
-            overtime_policy_repo: Arc::new(apiserver::repositories::DieselOvertimePolicyRepository::new(diesel_pools.clone())),
+                overtime_policy_repo: Arc::new(
+                    apiserver::repositories::DieselOvertimePolicyRepository::new(
+                        diesel_pools.clone(),
+                    ),
+                ),
                 diesel_pools: diesel_pools.clone(),
             },
         )
@@ -335,7 +339,11 @@ async fn test_payroll_holiday_work_no_credit() {
                 employee_repo: Arc::new(apiserver::repositories::DieselEmployeeRepository::new(
                     diesel_pools.clone(),
                 )),
-            overtime_policy_repo: Arc::new(apiserver::repositories::DieselOvertimePolicyRepository::new(diesel_pools.clone())),
+                overtime_policy_repo: Arc::new(
+                    apiserver::repositories::DieselOvertimePolicyRepository::new(
+                        diesel_pools.clone(),
+                    ),
+                ),
                 diesel_pools: diesel_pools.clone(),
             },
         )
@@ -493,7 +501,11 @@ async fn test_payroll_holiday_work_unpaid_no_premium() {
                 employee_repo: Arc::new(apiserver::repositories::DieselEmployeeRepository::new(
                     diesel_pools.clone(),
                 )),
-            overtime_policy_repo: Arc::new(apiserver::repositories::DieselOvertimePolicyRepository::new(diesel_pools.clone())),
+                overtime_policy_repo: Arc::new(
+                    apiserver::repositories::DieselOvertimePolicyRepository::new(
+                        diesel_pools.clone(),
+                    ),
+                ),
                 diesel_pools: diesel_pools.clone(),
             },
         )

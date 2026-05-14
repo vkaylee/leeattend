@@ -3,7 +3,6 @@ use crate::models::enums::PayrollCalculationMethod;
 use chrono::NaiveDate;
 use rust_decimal::prelude::FromPrimitive;
 use rust_decimal::Decimal;
-use sqlx::PgPool;
 use uuid::Uuid;
 
 pub struct PayrollRuleEvaluator;
@@ -17,7 +16,7 @@ pub struct RuleEvaluationResult {
 impl PayrollRuleEvaluator {
     #[allow(clippy::too_many_lines)]
     pub async fn evaluate_rules(
-        pool: &PgPool,
+        payroll_repo: &dyn crate::repositories::payroll_repository::PayrollRepository,
         workspace_id: Uuid,
         employee_id: Uuid,
         department_id: Option<Uuid>,
@@ -25,16 +24,15 @@ impl PayrollRuleEvaluator {
         end_date: NaiveDate,
         base_values: &std::collections::HashMap<String, Decimal>,
     ) -> Result<Vec<RuleEvaluationResult>, AppError> {
-        let assignments = crate::repositories::payroll_repository::get_resolved_rule_assignments(
-            pool,
-            workspace_id,
-            employee_id,
-            department_id,
-            start_date,
-            end_date,
-        )
-        .await
-        .map_err(|e| AppError::Internal(format!("Failed to resolve rules: {e}")))?;
+        let assignments = payroll_repo
+            .get_resolved_rule_assignments(
+                workspace_id,
+                employee_id,
+                department_id,
+                start_date,
+                end_date,
+            )
+            .await?;
 
         let mut results = Vec::new();
 
@@ -76,12 +74,9 @@ impl PayrollRuleEvaluator {
                     }
                 }
                 PayrollCalculationMethod::Tiered => {
-                    let tiers = crate::repositories::payroll_repository::get_payroll_rule_tiers(
-                        pool,
-                        assignment.rule_definition_id,
-                    )
-                    .await
-                    .map_err(|e| AppError::Internal(format!("Failed to fetch tiers: {e}")))?;
+                    let tiers = payroll_repo
+                        .get_payroll_rule_tiers(assignment.rule_definition_id)
+                        .await?;
 
                     let base_type = config
                         .get("base")

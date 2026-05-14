@@ -2,7 +2,7 @@ use chrono::{DateTime, NaiveDate, NaiveTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-#[derive(Debug, Serialize, Deserialize, Clone, sqlx::FromRow, Default)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default, sqlx::FromRow)]
 pub struct OvertimePolicy {
     pub id: Uuid,
     pub workspace_id: Uuid,

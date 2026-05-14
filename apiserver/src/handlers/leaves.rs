@@ -504,10 +504,7 @@ pub async fn upload_leave_excel(
     {
         use crate::repositories::import_job_repository::ImportJobRepository;
         use crate::repositories::DieselImportJobRepository;
-        let import_repo = DieselImportJobRepository::new(
-            state.infra.db.api().clone(),
-            state.infra.diesel.clone(),
-        );
+        let import_repo = DieselImportJobRepository::new(state.infra.diesel.clone());
         import_repo
             .create_job(&import_job)
             .await
@@ -560,8 +557,7 @@ pub async fn get_latest_leave_import(
 
     use crate::repositories::import_job_repository::ImportJobRepository;
     use crate::repositories::DieselImportJobRepository;
-    let repo =
-        DieselImportJobRepository::new(state.infra.db.api().clone(), state.infra.diesel.clone());
+    let repo = DieselImportJobRepository::new(state.infra.diesel.clone());
 
     match repo
         .get_latest_job(ctx.workspace_id, Some(ImportTargetType::LeaveImport))
@@ -597,8 +593,7 @@ pub async fn download_leave_import_errors(
 
     use crate::repositories::import_job_repository::ImportJobRepository;
     use crate::repositories::DieselImportJobRepository;
-    let repo =
-        DieselImportJobRepository::new(state.infra.db.api().clone(), state.infra.diesel.clone());
+    let repo = DieselImportJobRepository::new(state.infra.diesel.clone());
 
     let job = repo
         .get_job_by_id(job_id)

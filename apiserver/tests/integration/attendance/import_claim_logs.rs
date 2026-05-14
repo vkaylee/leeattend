@@ -49,28 +49,24 @@ async fn test_import_employee_claims_staged_logs() -> Result<(), Box<dyn std::er
     tokio::fs::write(&file_path, csv_content).await?;
 
     let te_repo = std::sync::Arc::new(apiserver::repositories::DieselTimeEntryRepository::new(
-        pool.clone(),
         diesel_pools.clone(),
     ));
     let import_repo: std::sync::Arc<
         dyn apiserver::repositories::import_job_repository::ImportJobRepository,
     > = std::sync::Arc::new(apiserver::repositories::DieselImportJobRepository::new(
-        pool.clone(),
         diesel_pools.clone(),
     ));
-    let adj_repo: std::sync::Arc<dyn apiserver::repositories::attendance_adjustment_repository::AttendanceAdjustmentRepository> = std::sync::Arc::new(apiserver::repositories::DieselAttendanceAdjustmentRepository::new(pool.clone(), diesel_pools.clone()));
+    let adj_repo: std::sync::Arc<dyn apiserver::repositories::attendance_adjustment_repository::AttendanceAdjustmentRepository> = std::sync::Arc::new(apiserver::repositories::DieselAttendanceAdjustmentRepository::new(diesel_pools.clone()));
     let emp_repo: std::sync::Arc<dyn apiserver::repositories::EmployeeRepository> =
         std::sync::Arc::new(apiserver::repositories::DieselEmployeeRepository::new(
-            pool.clone(),
-            apiserver::diesel_pool::DieselPools::for_test(&test_db.url()),
+            diesel_pools.clone(),
         ));
     let import_service = AttendanceImportService::new(
         import_repo.clone(),
         adj_repo,
-        emp_repo,
+        emp_repo.clone(),
         te_repo,
         std::sync::Arc::new(apiserver::repositories::DieselWorkspaceRepository::new(
-            pool.clone(),
             diesel_pools.clone(),
         )),
         pool.clone(),
@@ -100,7 +96,8 @@ async fn test_import_employee_claims_staged_logs() -> Result<(), Box<dyn std::er
     let normalized_id = apiserver::utils::normalize_employee_id(emp_id_number);
 
     // 3. Verify employee was created
-    let employee = employee::get_employee_by_id_number(&pool, &normalized_id, ws_id)
+    let employee = emp_repo
+        .get_employee_by_id_number(&normalized_id, ws_id)
         .await?
         .ok_or("Employee should be created")?;
 
@@ -178,28 +175,24 @@ async fn test_import_existing_employee_claims_staged_logs() -> Result<(), Box<dy
     tokio::fs::write(&file_path, csv_content).await?;
 
     let te_repo = std::sync::Arc::new(apiserver::repositories::DieselTimeEntryRepository::new(
-        pool.clone(),
         diesel_pools.clone(),
     ));
     let import_repo: std::sync::Arc<
         dyn apiserver::repositories::import_job_repository::ImportJobRepository,
     > = std::sync::Arc::new(apiserver::repositories::DieselImportJobRepository::new(
-        pool.clone(),
         diesel_pools.clone(),
     ));
-    let adj_repo: std::sync::Arc<dyn apiserver::repositories::attendance_adjustment_repository::AttendanceAdjustmentRepository> = std::sync::Arc::new(apiserver::repositories::DieselAttendanceAdjustmentRepository::new(pool.clone(), diesel_pools.clone()));
+    let adj_repo: std::sync::Arc<dyn apiserver::repositories::attendance_adjustment_repository::AttendanceAdjustmentRepository> = std::sync::Arc::new(apiserver::repositories::DieselAttendanceAdjustmentRepository::new(diesel_pools.clone()));
     let emp_repo: std::sync::Arc<dyn apiserver::repositories::EmployeeRepository> =
         std::sync::Arc::new(apiserver::repositories::DieselEmployeeRepository::new(
-            pool.clone(),
-            apiserver::diesel_pool::DieselPools::for_test(&test_db.url()),
+            diesel_pools.clone(),
         ));
     let import_service = AttendanceImportService::new(
         import_repo.clone(),
         adj_repo,
-        emp_repo,
+        emp_repo.clone(),
         te_repo,
         std::sync::Arc::new(apiserver::repositories::DieselWorkspaceRepository::new(
-            pool.clone(),
             diesel_pools.clone(),
         )),
         pool.clone(),

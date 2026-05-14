@@ -80,6 +80,8 @@ pub struct ShiftState {
     pub shift_repo: Arc<dyn ShiftRepository>,
     pub swap_repo: Arc<dyn ShiftSwapRepository>,
     pub assignment_rule_repo: Arc<dyn AssignmentRuleRepository>,
+    pub working_pattern_repo:
+        Arc<dyn crate::repositories::working_pattern_repository::WorkingPatternRepositoryTrait>,
 }
 
 /// Leave management — requests, policies, holidays, accrual

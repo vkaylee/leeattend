@@ -37,20 +37,17 @@ async fn test_import_csv_with_line_errors() {
     tokio::fs::write(&file_path, csv_content).await.unwrap();
 
     let te_repo = std::sync::Arc::new(apiserver::repositories::DieselTimeEntryRepository::new(
-        pool.clone(),
         diesel_pools.clone(),
     ));
     let import_repo: std::sync::Arc<
         dyn apiserver::repositories::import_job_repository::ImportJobRepository,
     > = std::sync::Arc::new(apiserver::repositories::DieselImportJobRepository::new(
-        pool.clone(),
         diesel_pools.clone(),
     ));
-    let adj_repo: std::sync::Arc<dyn apiserver::repositories::attendance_adjustment_repository::AttendanceAdjustmentRepository> = std::sync::Arc::new(apiserver::repositories::DieselAttendanceAdjustmentRepository::new(pool.clone(), diesel_pools.clone()));
+    let adj_repo: std::sync::Arc<dyn apiserver::repositories::attendance_adjustment_repository::AttendanceAdjustmentRepository> = std::sync::Arc::new(apiserver::repositories::DieselAttendanceAdjustmentRepository::new(diesel_pools.clone()));
     let employee_repo: std::sync::Arc<dyn apiserver::repositories::EmployeeRepository> =
         std::sync::Arc::new(apiserver::repositories::DieselEmployeeRepository::new(
-            pool.clone(),
-            apiserver::diesel_pool::DieselPools::for_test(&test_db.url()),
+            diesel_pools.clone(),
         ));
     let job_id = AttendanceImportService::new(
         import_repo.clone(),
@@ -58,7 +55,6 @@ async fn test_import_csv_with_line_errors() {
         employee_repo,
         te_repo,
         std::sync::Arc::new(apiserver::repositories::DieselWorkspaceRepository::new(
-            pool.clone(),
             diesel_pools.clone(),
         )),
         pool.clone(),
@@ -107,8 +103,7 @@ async fn test_import_timeout_guard_updates_db_on_drop() {
     let user_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(user_id).await;
 
-    let import_repo =
-        apiserver::repositories::DieselImportJobRepository::new(pool.clone(), diesel_pools.clone());
+    let import_repo = apiserver::repositories::DieselImportJobRepository::new(diesel_pools.clone());
 
     let job_id = uuid::Uuid::new_v4();
     let job = AttendanceImportJob {
@@ -129,12 +124,7 @@ async fn test_import_timeout_guard_updates_db_on_drop() {
 
     let completed = Arc::new(AtomicBool::new(false));
     {
-        let _guard = ImportTimeoutGuard::new(
-            pool.clone(),
-            job_id,
-            Arc::clone(&completed),
-            diesel_pools.clone(),
-        );
+        let _guard = ImportTimeoutGuard::new(job_id, Arc::clone(&completed), diesel_pools.clone());
         // Guard drops here as it goes out of scope (simulating a tokio timeout cancellation)
     }
 
@@ -182,8 +172,7 @@ async fn test_employee_import_chunking() {
     let ws_id = factory.workspace().create_with_owner(user_id).await;
 
     let job_id = uuid::Uuid::new_v4();
-    let import_repo =
-        apiserver::repositories::DieselImportJobRepository::new(pool.clone(), diesel_pools.clone());
+    let import_repo = apiserver::repositories::DieselImportJobRepository::new(diesel_pools.clone());
 
     // Create a fake CSV file
     let mut csv_content = String::from("employee_code,full_name,hire_date,department_name\n");
@@ -296,8 +285,7 @@ async fn test_leave_import_chunking() {
     let ws_id = factory.workspace().create_with_owner(user_id).await;
 
     let job_id = uuid::Uuid::new_v4();
-    let import_repo =
-        apiserver::repositories::DieselImportJobRepository::new(pool.clone(), diesel_pools.clone());
+    let import_repo = apiserver::repositories::DieselImportJobRepository::new(diesel_pools.clone());
 
     // Create a fake CSV file for leaves
     let mut csv_content =
@@ -417,8 +405,7 @@ async fn test_employee_import_duplicate_department_prevention() {
 
     let employee_repo: std::sync::Arc<dyn apiserver::repositories::EmployeeRepository> =
         std::sync::Arc::new(apiserver::repositories::DieselEmployeeRepository::new(
-            pool.clone(),
-            apiserver::diesel_pool::DieselPools::for_test(&test_db.url()),
+            diesel_pools.clone(),
         ));
 
     let msgs = AttendanceImportMessages::for_lang("vi");
@@ -426,7 +413,6 @@ async fn test_employee_import_duplicate_department_prevention() {
     let department_repo: std::sync::Arc<
         dyn apiserver::repositories::department_repository::DepartmentRepository,
     > = std::sync::Arc::new(apiserver::repositories::DieselDepartmentRepository::new(
-        pool.clone(),
         diesel_pools.clone(),
     ));
 
@@ -474,9 +460,7 @@ async fn test_employee_import_duplicate_department_prevention() {
     assert!(res2.is_ok(), "Second process_row failed");
 
     // Verify exactly one department exists in the database
-    let departments = apiserver::repositories::department_repository::get_departments(&pool, ws_id)
-        .await
-        .unwrap();
+    let departments = department_repo.get_departments(ws_id).await.unwrap();
 
     assert_eq!(
         departments.len(),

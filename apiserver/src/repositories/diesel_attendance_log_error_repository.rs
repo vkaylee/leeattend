@@ -8,16 +8,12 @@ use crate::repositories::attendance_log_error_repository::AttendanceLogErrorRepo
 use crate::schema::attendance_log_errors;
 
 pub struct DieselAttendanceLogErrorRepository {
-    pub sqlx_pool: sqlx::PgPool,
     pub diesel_pools: crate::diesel_pool::DieselPools,
 }
 
 impl DieselAttendanceLogErrorRepository {
-    pub fn new(sqlx_pool: sqlx::PgPool, diesel_pools: crate::diesel_pool::DieselPools) -> Self {
-        Self {
-            sqlx_pool,
-            diesel_pools,
-        }
+    pub fn new(diesel_pools: crate::diesel_pool::DieselPools) -> Self {
+        Self { diesel_pools }
     }
 }
 

@@ -17,16 +17,12 @@ use std::str::FromStr;
 use uuid::Uuid;
 
 pub struct DieselPayrollRuleRepository {
-    pub sqlx_pool: PgPool,
     pub diesel_pools: DieselPools,
 }
 
 impl DieselPayrollRuleRepository {
-    pub fn new(sqlx_pool: PgPool, diesel_pools: DieselPools) -> Self {
-        Self {
-            sqlx_pool,
-            diesel_pools,
-        }
+    pub fn new(_sqlx_pool: PgPool, diesel_pools: DieselPools) -> Self {
+        Self { diesel_pools }
     }
 }
 
@@ -173,42 +169,45 @@ impl PayrollRuleRepository for DieselPayrollRuleRepository {
         &self,
         args: AssignPayrollRuleArgs,
     ) -> Result<PayrollRuleAssignment, AppError> {
-        let row = sqlx::query_as!(
-            PayrollRuleAssignment,
-            r#"
-            INSERT INTO payroll_rule_assignments (
-                workspace_id, rule_definition_id, assignee_type, assignee_id,
-                effective_from, effective_to, override_config
-            )
-            VALUES ($1, $2, $3, $4, $5, $6, $7)
-            RETURNING 
-                id, workspace_id, rule_definition_id, 
-                assignee_type as "assignee_type: crate::models::enums::AssigneeType", 
-                assignee_id, effective_from, effective_to, 
-                override_config, created_at
-            "#,
-            args.workspace_id,
-            args.rule_definition_id,
-            args.assignee_type.to_string(),
-            args.assignee_id,
-            args.effective_from,
-            args.effective_to,
-            args.override_config
-        )
-        .fetch_one(&self.sqlx_pool)
-        .await
-        .map_err(|e| {
-            if let sqlx::Error::Database(db_err) = &e {
-                if db_err.constraint() == Some("payroll_rule_assignments_workspace_id_rule_definition_id_a_excl") {
-                    return AppError::Conflict(
-                        "This assignment overlaps with an existing assignment for the same rule and assignee in this time period.".to_string()
-                    );
-                }
-            }
-            AppError::Internal(format!("Failed to assign payroll rule: {e}"))
-        })?;
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(format!("Failed to get diesel connection: {e}")))?;
 
-        Ok(row)
+        let entity = PayrollRuleAssignmentEntity {
+            id: Uuid::new_v4(),
+            workspace_id: args.workspace_id,
+            rule_definition_id: args.rule_definition_id,
+            assignee_type: args.assignee_type.to_string(),
+            assignee_id: args.assignee_id,
+            effective_from: args.effective_from,
+            effective_to: args.effective_to,
+            override_config: args.override_config,
+            created_at: chrono::Utc::now(),
+        };
+
+        let result = diesel::insert_into(payroll_rule_assignments::table)
+            .values(&entity)
+            .get_result::<PayrollRuleAssignmentEntity>(&mut conn)
+            .await
+            .map_err(|e| {
+                if let diesel::result::Error::DatabaseError(
+                    diesel::result::DatabaseErrorKind::UniqueViolation,
+                    info,
+                ) = &e
+                {
+                    if info.constraint_name() == Some("payroll_rule_assignments_workspace_id_rule_definition_id_a_excl") {
+                        return AppError::Conflict(
+                            "This assignment overlaps with an existing assignment for the same rule and assignee in this time period.".to_string()
+                        );
+                    }
+                }
+                AppError::Internal(format!("Failed to assign payroll rule: {e}"))
+            })?;
+
+        Ok(result.into())
     }
 
     async fn get_assignments_for_rule(

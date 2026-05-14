@@ -59,21 +59,17 @@ async fn test_accrual_scenarios() {
         .await;
 
     // Run Accrual for Jan 1, 2026
-    let employee_repo: Arc<dyn apiserver::repositories::EmployeeRepository> =
-        Arc::new(apiserver::repositories::DieselEmployeeRepository::new(
-            pool.clone(),
-            apiserver::diesel_pool::DieselPools::for_test(&test_db.url()),
-        ));
+    let employee_repo: Arc<dyn apiserver::repositories::EmployeeRepository> = Arc::new(
+        apiserver::repositories::DieselEmployeeRepository::new(diesel_pools.clone()),
+    );
     let department_repo: Arc<
         dyn apiserver::repositories::department_repository::DepartmentRepository,
     > = Arc::new(apiserver::repositories::DieselDepartmentRepository::new(
-        pool.clone(),
         diesel_pools.clone(),
     ));
     let leave_policy_repo: Arc<
         dyn apiserver::repositories::leave_policy_repository::LeavePolicyRepository,
     > = Arc::new(apiserver::repositories::DieselLeavePolicyRepository::new(
-        pool.clone(),
         diesel_pools.clone(),
     ));
     let accrual_service = LeaveAccrualService::new(
@@ -81,10 +77,7 @@ async fn test_accrual_scenarios() {
         department_repo,
         leave_policy_repo,
         Arc::new(
-            apiserver::repositories::DieselLeaveAccrualLogRepository::new(
-                pool.clone(),
-                diesel_pools.clone(),
-            ),
+            apiserver::repositories::DieselLeaveAccrualLogRepository::new(diesel_pools.clone()),
         ),
         pool.clone(),
     );
@@ -137,28 +130,27 @@ async fn test_performance_based_accrual() {
     // 10 work days (below threshold)
     for i in 1..=10 {
         let dt = Utc.with_ymd_and_hms(2026, 1, i, 8, 0, 0).unwrap();
-        sqlx::query!(
-            "INSERT INTO time_entries (employee_id, workspace_id, punch_in_time, entry_type) VALUES ($1, $2, $3, 'work')",
-            emp, ws_id, dt
-        ).execute(&pool).await.unwrap();
+        factory
+            .time_entry()
+            .with_employee(emp)
+            .with_punch_in(dt)
+            .with_entry_type("work")
+            .create()
+            .await;
     }
 
     // Run accrual for Feb 1 (checking Jan)
-    let employee_repo: Arc<dyn apiserver::repositories::EmployeeRepository> =
-        Arc::new(apiserver::repositories::DieselEmployeeRepository::new(
-            pool.clone(),
-            apiserver::diesel_pool::DieselPools::for_test(&test_db.url()),
-        ));
+    let employee_repo: Arc<dyn apiserver::repositories::EmployeeRepository> = Arc::new(
+        apiserver::repositories::DieselEmployeeRepository::new(diesel_pools.clone()),
+    );
     let department_repo: Arc<
         dyn apiserver::repositories::department_repository::DepartmentRepository,
     > = Arc::new(apiserver::repositories::DieselDepartmentRepository::new(
-        pool.clone(),
         diesel_pools.clone(),
     ));
     let leave_policy_repo: Arc<
         dyn apiserver::repositories::leave_policy_repository::LeavePolicyRepository,
     > = Arc::new(apiserver::repositories::DieselLeavePolicyRepository::new(
-        pool.clone(),
         diesel_pools.clone(),
     ));
     let accrual_service = LeaveAccrualService::new(
@@ -166,10 +158,7 @@ async fn test_performance_based_accrual() {
         department_repo,
         leave_policy_repo,
         Arc::new(
-            apiserver::repositories::DieselLeaveAccrualLogRepository::new(
-                pool.clone(),
-                diesel_pools.clone(),
-            ),
+            apiserver::repositories::DieselLeaveAccrualLogRepository::new(diesel_pools.clone()),
         ),
         pool.clone(),
     );
@@ -183,10 +172,13 @@ async fn test_performance_based_accrual() {
     // Add 5 days (total 15 > 14)
     for i in 11..=15 {
         let dt = Utc.with_ymd_and_hms(2026, 1, i, 8, 0, 0).unwrap();
-        sqlx::query!(
-            "INSERT INTO time_entries (employee_id, workspace_id, punch_in_time, entry_type) VALUES ($1, $2, $3, 'work')",
-            emp, ws_id, dt
-        ).execute(&pool).await.unwrap();
+        factory
+            .time_entry()
+            .with_employee(emp)
+            .with_punch_in(dt)
+            .with_entry_type("work")
+            .create()
+            .await;
     }
 
     // Retry
@@ -234,32 +226,25 @@ async fn test_accrual_recalculation() {
         )
         .await;
 
-    let employee_repo: Arc<dyn apiserver::repositories::EmployeeRepository> =
-        Arc::new(apiserver::repositories::DieselEmployeeRepository::new(
-            pool.clone(),
-            apiserver::diesel_pool::DieselPools::for_test(&test_db.url()),
-        ));
+    let employee_repo: Arc<dyn apiserver::repositories::EmployeeRepository> = Arc::new(
+        apiserver::repositories::DieselEmployeeRepository::new(diesel_pools.clone()),
+    );
     let department_repo: Arc<
         dyn apiserver::repositories::department_repository::DepartmentRepository,
     > = Arc::new(apiserver::repositories::DieselDepartmentRepository::new(
-        pool.clone(),
         diesel_pools.clone(),
     ));
     let leave_policy_repo: Arc<
         dyn apiserver::repositories::leave_policy_repository::LeavePolicyRepository,
     > = Arc::new(apiserver::repositories::DieselLeavePolicyRepository::new(
-        pool.clone(),
         diesel_pools.clone(),
     ));
     let accrual_service = LeaveAccrualService::new(
         employee_repo,
         department_repo,
-        leave_policy_repo,
+        leave_policy_repo.clone(),
         Arc::new(
-            apiserver::repositories::DieselLeaveAccrualLogRepository::new(
-                pool.clone(),
-                diesel_pools.clone(),
-            ),
+            apiserver::repositories::DieselLeaveAccrualLogRepository::new(diesel_pools.clone()),
         ),
         pool.clone(),
     );
@@ -273,18 +258,26 @@ async fn test_accrual_recalculation() {
     assert_eq!(logs[0].amount.to_string(), "1.00");
 
     // Change policy to 2.0
-    sqlx::query!(
-        "UPDATE leave_policy_definitions SET rule_config = $1 WHERE id = $2",
-        serde_json::json!({
-            "frequency": "monthly",
-            "accrual_amount": 2.0,
-            "accrual_timing": "start_of_period"
-        }),
-        policy
-    )
-    .execute(&pool)
-    .await
-    .unwrap();
+    leave_policy_repo
+        .update_policy_definition(
+            policy,
+            ws_id,
+            None,
+            None,
+            None,
+            Some(apiserver::models::LeavePolicyConfig {
+                frequency: apiserver::models::enums::AccrualFrequency::Monthly,
+                accrual_amount: 2.0,
+                accrual_timing: "start_of_period".to_string(),
+                carry_over_limit: None,
+                max_balance: None,
+                reset_month: None,
+                min_work_days_threshold: None,
+                seniority_bonus: vec![],
+            }),
+        )
+        .await
+        .unwrap();
 
     // 2nd run (force = true)
     let logs_2 = accrual_service

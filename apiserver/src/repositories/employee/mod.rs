@@ -1,19 +1,4 @@
-//! Employee repository — split into sub-modules for maintainability.
-//!
-//! | File                    | Contents                                         |
-//! |-------------------------|--------------------------------------------------|
-//! | `core_queries.rs`       | CRUD, search, employment periods, payroll config |
-//! | `recruitment_queries.rs`| Recruitment source CRUD + breakdown              |
-//! | `analytics_queries.rs`  | Turnover analytics dashboard queries             |
-
-mod analytics_queries;
-mod core_queries;
-mod recruitment_queries;
-
-// Re-export free functions so existing callers (e.g. services) keep working.
-pub use analytics_queries::*;
-pub use core_queries::*;
-pub use recruitment_queries::*;
+//! Employee repository — abstraction over employee data access.
 
 use crate::errors::AppError;
 use async_trait::async_trait;
@@ -27,7 +12,7 @@ use crate::models::{
 };
 
 /// Minimal employee info for paginated reports
-#[derive(Debug, Clone, sqlx::FromRow, diesel::Queryable)]
+#[derive(Debug, Clone, diesel::Queryable, serde::Serialize)]
 pub struct EmployeeBasicInfo {
     pub id: Uuid,
     pub full_name: String,
@@ -184,4 +169,61 @@ pub trait EmployeeRepository: Send + Sync {
         workspace_id: Uuid,
         user_id: Uuid,
     ) -> Result<Option<Uuid>, AppError>;
+    async fn get_working_conditions_at(
+        &self,
+        workspace_id: Uuid,
+        employee_id: Uuid,
+        date: NaiveDate,
+    ) -> Result<Vec<WorkingCondition>, AppError>;
+
+    async fn get_working_conditions_batch(
+        &self,
+        workspace_id: Uuid,
+        employee_ids: &[Uuid],
+        start_date: NaiveDate,
+        end_date: NaiveDate,
+    ) -> Result<std::collections::HashMap<Uuid, Vec<WorkingCondition>>, AppError>;
+
+    // --- ESS (Employee Self Service) ---
+    async fn get_employee_profile(
+        &self,
+        workspace_id: Uuid,
+        employee_id: Uuid,
+    ) -> Result<Option<crate::models::EmployeeProfile>, AppError>;
+
+    async fn upsert_employee_profile(
+        &self,
+        employee_id: Uuid,
+        req: &crate::models::UpdateEmployeeProfileRequest,
+    ) -> Result<crate::models::EmployeeProfile, AppError>;
+
+    async fn get_emergency_contacts(
+        &self,
+        workspace_id: Uuid,
+        employee_id: Uuid,
+    ) -> Result<Vec<crate::models::EmployeeEmergencyContact>, AppError>;
+
+    async fn upsert_emergency_contact(
+        &self,
+        employee_id: Uuid,
+        req: &crate::models::CreateEmergencyContactRequest,
+    ) -> Result<crate::models::EmployeeEmergencyContact, AppError>;
+
+    async fn delete_emergency_contact(
+        &self,
+        workspace_id: Uuid,
+        employee_id: Uuid,
+        contact_id: Uuid,
+    ) -> Result<u64, AppError>;
+
+    async fn get_employee_documents(
+        &self,
+        workspace_id: Uuid,
+        employee_id: Uuid,
+    ) -> Result<Vec<crate::models::EmployeeDocument>, AppError>;
+
+    async fn create_employee_document(
+        &self,
+        doc: &crate::models::EmployeeDocument,
+    ) -> Result<(), AppError>;
 }

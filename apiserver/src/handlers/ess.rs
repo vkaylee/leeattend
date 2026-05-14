@@ -10,8 +10,8 @@ use uuid::Uuid;
 use crate::errors::{AppError, AppResult};
 use crate::handlers::EmployeeContext;
 use crate::models::{
-    CreateEmergencyContactRequest, Employee, EmployeeDocument, EmployeeEmergencyContact,
-    EmployeeProfile, MyProfileResponse, TimeEntry, UpdateEmployeeProfileRequest,
+    CreateEmergencyContactRequest, EmployeeDocument, EmployeeEmergencyContact, EmployeeProfile,
+    MyProfileResponse, TimeEntry, UpdateEmployeeProfileRequest,
 };
 use crate::AppState;
 
@@ -23,46 +23,26 @@ pub async fn get_my_profile(
     employee: EmployeeContext,
 ) -> AppResult<Json<MyProfileResponse>> {
     // Get employee record
-    let emp = sqlx::query_as::<_, Employee>(
-        r#"
-        SELECT e.id, e.workspace_id, e.user_id, e.full_name, e.employee_id_number,
-               e.original_hire_date,
-               COALESCE(e.hire_date, CURRENT_DATE) as hire_date,
-               e.termination_date,
-               e.tags, e.is_active, e.created_at, e.updated_at,
-               d_cur.name as department_name
-        FROM employees e
-        LEFT JOIN (
-            SELECT DISTINCT ON (employee_id) employee_id, department_id
-            FROM employee_department_history
-            ORDER BY employee_id, effective_date DESC
-        ) edh_cur ON e.id = edh_cur.employee_id
-        LEFT JOIN departments d_cur ON edh_cur.department_id = d_cur.id
-        WHERE e.id = $1 AND e.workspace_id = $2
-        "#,
-    )
-    .bind(employee.employee_id)
-    .bind(employee.workspace_id)
-    .fetch_one(state.infra.db.reader())
-    .await?;
+    let emp = state
+        .employees
+        .repo
+        .get_employee_by_id(employee.employee_id, employee.workspace_id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Employee not found".to_string()))?;
 
     // Get profile (may not exist yet)
-    let profile = sqlx::query_as::<_, EmployeeProfile>(
-        "SELECT ep.* FROM employee_profiles ep JOIN employees e ON e.id = ep.employee_id WHERE ep.employee_id = $1 AND e.workspace_id = $2",
-    )
-    .bind(employee.employee_id)
-    .bind(employee.workspace_id)
-    .fetch_optional(state.infra.db.reader())
-    .await?;
+    let profile = state
+        .employees
+        .repo
+        .get_employee_profile(employee.workspace_id, employee.employee_id)
+        .await?;
 
     // Get emergency contacts
-    let contacts = sqlx::query_as::<_, EmployeeEmergencyContact>(
-        "SELECT ec.* FROM employee_emergency_contacts ec JOIN employees e ON e.id = ec.employee_id WHERE ec.employee_id = $1 AND e.workspace_id = $2 ORDER BY ec.is_primary DESC, ec.created_at",
-    )
-    .bind(employee.employee_id)
-    .bind(employee.workspace_id)
-    .fetch_all(state.infra.db.reader())
-    .await?;
+    let contacts = state
+        .employees
+        .repo
+        .get_emergency_contacts(employee.workspace_id, employee.employee_id)
+        .await?;
 
     Ok(Json(MyProfileResponse {
         employee: emp,
@@ -77,35 +57,12 @@ pub async fn update_my_profile(
     employee: EmployeeContext,
     Json(req): Json<UpdateEmployeeProfileRequest>,
 ) -> AppResult<Json<EmployeeProfile>> {
-    // Upsert profile (create if not exists, update if exists)
-    let profile = sqlx::query_as::<_, EmployeeProfile>(
-        r#"
-        INSERT INTO employee_profiles (employee_id, phone, address, date_of_birth, gender, national_id, bank_name, bank_account_number, bank_branch)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-        ON CONFLICT (employee_id) DO UPDATE SET
-            phone = COALESCE(EXCLUDED.phone, employee_profiles.phone),
-            address = COALESCE(EXCLUDED.address, employee_profiles.address),
-            date_of_birth = COALESCE(EXCLUDED.date_of_birth, employee_profiles.date_of_birth),
-            gender = COALESCE(EXCLUDED.gender, employee_profiles.gender),
-            national_id = COALESCE(EXCLUDED.national_id, employee_profiles.national_id),
-            bank_name = COALESCE(EXCLUDED.bank_name, employee_profiles.bank_name),
-            bank_account_number = COALESCE(EXCLUDED.bank_account_number, employee_profiles.bank_account_number),
-            bank_branch = COALESCE(EXCLUDED.bank_branch, employee_profiles.bank_branch),
-            updated_at = NOW()
-        RETURNING *
-        "#,
-    )
-    .bind(employee.employee_id)
-    .bind(&req.phone)
-    .bind(&req.address)
-    .bind(req.date_of_birth)
-    .bind(&req.gender)
-    .bind(&req.national_id)
-    .bind(&req.bank_name)
-    .bind(&req.bank_account_number)
-    .bind(&req.bank_branch)
-    .fetch_one(state.infra.db.api())
-    .await?;
+    // Upsert profile
+    let profile = state
+        .employees
+        .repo
+        .upsert_employee_profile(employee.employee_id, &req)
+        .await?;
 
     Ok(Json(profile))
 }
@@ -117,13 +74,11 @@ pub async fn get_my_emergency_contacts(
     State(state): State<Arc<AppState>>,
     employee: EmployeeContext,
 ) -> AppResult<Json<Vec<EmployeeEmergencyContact>>> {
-    let contacts = sqlx::query_as::<_, EmployeeEmergencyContact>(
-        "SELECT ec.* FROM employee_emergency_contacts ec JOIN employees e ON e.id = ec.employee_id WHERE ec.employee_id = $1 AND e.workspace_id = $2 ORDER BY ec.is_primary DESC, ec.created_at",
-    )
-    .bind(employee.employee_id)
-    .bind(employee.workspace_id)
-    .fetch_all(state.infra.db.reader())
-    .await?;
+    let contacts = state
+        .employees
+        .repo
+        .get_emergency_contacts(employee.workspace_id, employee.employee_id)
+        .await?;
 
     Ok(Json(contacts))
 }
@@ -134,32 +89,11 @@ pub async fn add_emergency_contact(
     employee: EmployeeContext,
     Json(req): Json<CreateEmergencyContactRequest>,
 ) -> AppResult<impl IntoResponse> {
-    let is_primary = req.is_primary.unwrap_or(false);
-
-    // If setting as primary, unset other primary contacts first
-    if is_primary {
-        sqlx::query(
-            "UPDATE employee_emergency_contacts SET is_primary = false WHERE employee_id = $1",
-        )
-        .bind(employee.employee_id)
-        .execute(state.infra.db.api())
+    let contact = state
+        .employees
+        .repo
+        .upsert_emergency_contact(employee.employee_id, &req)
         .await?;
-    }
-
-    let contact = sqlx::query_as::<_, EmployeeEmergencyContact>(
-        r#"
-        INSERT INTO employee_emergency_contacts (employee_id, contact_name, relationship, phone, is_primary)
-        VALUES ($1, $2, $3, $4, $5)
-        RETURNING *
-        "#,
-    )
-    .bind(employee.employee_id)
-    .bind(&req.contact_name)
-    .bind(&req.relationship)
-    .bind(&req.phone)
-    .bind(is_primary)
-    .fetch_one(state.infra.db.api())
-    .await?;
 
     Ok((StatusCode::CREATED, Json(contact)))
 }
@@ -171,14 +105,13 @@ pub async fn delete_emergency_contact(
     Path(contact_id): Path<Uuid>,
 ) -> AppResult<StatusCode> {
     // Verify ownership and delete
-    let result =
-        sqlx::query("DELETE FROM employee_emergency_contacts WHERE id = $1 AND employee_id = $2")
-            .bind(contact_id)
-            .bind(employee.employee_id)
-            .execute(state.infra.db.api())
-            .await?;
+    let affected = state
+        .employees
+        .repo
+        .delete_emergency_contact(employee.workspace_id, employee.employee_id, contact_id)
+        .await?;
 
-    if result.rows_affected() == 0 {
+    if affected == 0 {
         return Err(AppError::NotFound("Contact not found".to_string()));
     }
 
@@ -192,13 +125,11 @@ pub async fn get_my_documents(
     State(state): State<Arc<AppState>>,
     employee: EmployeeContext,
 ) -> AppResult<Json<Vec<EmployeeDocument>>> {
-    let docs = sqlx::query_as::<_, EmployeeDocument>(
-        "SELECT ed.* FROM employee_documents ed JOIN employees e ON e.id = ed.employee_id WHERE ed.employee_id = $1 AND e.workspace_id = $2 AND ed.is_active = true ORDER BY ed.created_at DESC",
-    )
-    .bind(employee.employee_id)
-    .bind(employee.workspace_id)
-    .fetch_all(state.infra.db.reader())
-    .await?;
+    let docs = state
+        .employees
+        .repo
+        .get_employee_documents(employee.workspace_id, employee.employee_id)
+        .await?;
 
     Ok(Json(docs))
 }
@@ -210,13 +141,11 @@ pub async fn get_my_payslips(
     State(state): State<Arc<AppState>>,
     employee: EmployeeContext,
 ) -> AppResult<Json<Vec<crate::models::Payslip>>> {
-    let payslips = sqlx::query_as::<_, crate::models::Payslip>(
-        "SELECT p.* FROM payslips p JOIN employees e ON e.id = p.employee_id WHERE p.employee_id = $1 AND e.workspace_id = $2 ORDER BY p.period_start DESC",
-    )
-    .bind(employee.employee_id)
-    .bind(employee.workspace_id)
-    .fetch_all(state.infra.db.reader())
-    .await?;
+    let payslips = state
+        .payroll
+        .repo
+        .get_payslips_by_employee(employee.workspace_id, employee.employee_id)
+        .await?;
 
     Ok(Json(payslips))
 }
@@ -242,21 +171,20 @@ pub async fn get_my_attendance(
         .end_date
         .unwrap_or_else(|| chrono::Utc::now().date_naive());
 
-    let entries = sqlx::query_as::<_, TimeEntry>(
-        r#"
-        SELECT * FROM time_entries
-        WHERE employee_id = $1 AND workspace_id = $2
-          AND punch_in_time >= $3::date
-          AND punch_in_time < ($4::date + INTERVAL '1 day')
-        ORDER BY punch_in_time DESC
-        "#,
-    )
-    .bind(employee.employee_id)
-    .bind(employee.workspace_id)
-    .bind(start)
-    .bind(end)
-    .fetch_all(state.infra.db.reader())
-    .await?;
+    let from = start
+        .and_hms_opt(0, 0, 0)
+        .map(|t| t.and_utc())
+        .ok_or_else(|| AppError::Internal("Invalid start date".to_string()))?;
+    let to = end
+        .and_hms_opt(23, 59, 59)
+        .map(|t| t.and_utc())
+        .ok_or_else(|| AppError::Internal("Invalid end date".to_string()))?;
+
+    let entries = state
+        .attendance
+        .time_entry_repo
+        .get_employee_time_entries(employee.workspace_id, employee.employee_id, from, to)
+        .await?;
 
     Ok(Json(entries))
 }
@@ -315,7 +243,7 @@ pub async fn get_my_time_entries(
 // --- Leave Endpoints ---
 
 /// ESS Leave Balance Response
-#[derive(Debug, serde::Serialize, sqlx::FromRow)]
+#[derive(Debug, serde::Serialize)]
 pub struct EssLeaveBalance {
     pub leave_type: String,
     pub entitlement: i32,
@@ -332,41 +260,25 @@ pub async fn get_my_leave_balances(
 ) -> AppResult<Json<Vec<EssLeaveBalance>>> {
     let year = chrono::Utc::now().year();
 
-    let balances = sqlx::query_as::<_, EssLeaveBalance>(
-        r#"
-        SELECT
-            lt.code as leave_type,
-            lb.entitlement,
-            CAST(lb.accrued_amount AS FLOAT8) as accrued_amount,
-            lb.carried_over,
-            COALESCE(
-                (SELECT COUNT(*) FROM leave_requests lr
-                 WHERE lr.employee_id = $1
-                   AND lr.leave_type_id = lb.leave_type_id
-                   AND lr.status IN ('approved', 'pre_approved')
-                   AND CAST(EXTRACT(YEAR FROM lr.start_date) AS INTEGER) = $2),
-                0
-            ) as used,
-            CAST(lb.entitlement + lb.accrued_amount + lb.carried_over AS FLOAT8) - COALESCE(
-                (SELECT COUNT(*) FROM leave_requests lr
-                 WHERE lr.employee_id = $1
-                   AND lr.leave_type_id = lb.leave_type_id
-                   AND lr.status IN ('approved', 'pre_approved')
-                   AND CAST(EXTRACT(YEAR FROM lr.start_date) AS INTEGER) = $2),
-                0
-            ) as remaining
-        FROM leave_balances lb
-        JOIN leave_types lt ON lb.leave_type_id = lt.id
-        WHERE lb.employee_id = $1 AND lb.year = $2 AND lt.workspace_id = $3
-        "#,
-    )
-    .bind(employee.employee_id)
-    .bind(year)
-    .bind(employee.workspace_id)
-    .fetch_all(state.infra.db.reader())
-    .await?;
+    let balances = state
+        .leaves
+        .balance_repo
+        .get_employee_balances(employee.workspace_id, employee.employee_id, year)
+        .await?;
 
-    Ok(Json(balances))
+    let ess_balances = balances
+        .into_iter()
+        .map(|b| EssLeaveBalance {
+            leave_type: b.leave_type_code,
+            entitlement: b.entitlement,
+            accrued_amount: b.accrued_amount,
+            carried_over: b.carried_over,
+            used: i64::from(b.used),
+            remaining: b.remaining,
+        })
+        .collect();
+
+    Ok(Json(ess_balances))
 }
 
 /// Get leave requests for the current employee (ESS version - avoids name conflict)
@@ -374,13 +286,11 @@ pub async fn ess_get_my_leave_requests(
     State(state): State<Arc<AppState>>,
     employee: EmployeeContext,
 ) -> AppResult<Json<Vec<crate::models::LeaveRequest>>> {
-    let requests = sqlx::query_as::<_, crate::models::LeaveRequest>(
-        "SELECT lr.* FROM leave_requests lr JOIN employees e ON e.id = lr.employee_id WHERE lr.employee_id = $1 AND e.workspace_id = $2 ORDER BY lr.created_at DESC",
-    )
-    .bind(employee.employee_id)
-    .bind(employee.workspace_id)
-    .fetch_all(state.infra.db.reader())
-    .await?;
+    let requests = state
+        .leaves
+        .request_repo
+        .get_employee_leave_requests(employee.workspace_id, employee.employee_id)
+        .await?;
 
     Ok(Json(requests))
 }

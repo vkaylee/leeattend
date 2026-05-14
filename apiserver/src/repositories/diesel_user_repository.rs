@@ -7,20 +7,15 @@ use crate::schema::{system_roles, user_system_roles, users, workspace_members};
 use async_trait::async_trait;
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
-use sqlx::PgPool;
 use uuid::Uuid;
 
 pub struct DieselUserRepository {
-    pub sqlx_pool: PgPool,
     pub diesel_pools: DieselPools,
 }
 
 impl DieselUserRepository {
-    pub fn new(sqlx_pool: PgPool, diesel_pools: DieselPools) -> Self {
-        Self {
-            sqlx_pool,
-            diesel_pools,
-        }
+    pub fn new(diesel_pools: DieselPools) -> Self {
+        Self { diesel_pools }
     }
 }
 

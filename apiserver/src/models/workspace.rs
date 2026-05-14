@@ -16,12 +16,11 @@ pub struct PolicyRules {
     pub allow_early_ot: bool,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WorkingCondition {
     pub id: Uuid,
     pub employee_id: Uuid,
-    #[sqlx(rename = "type")]
-    pub type_: String, // Keep as string for now to match DB, but we can parse to enum
+    pub type_: String,
     pub minute_allowance: i32,
     pub is_paid: bool,
     pub start_date: NaiveDate,
@@ -37,7 +36,7 @@ pub struct CreateWorkingConditionRequest {
     pub end_date: Option<NaiveDate>,
 }
 
-#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, sqlx::FromRow)]
 pub struct Workspace {
     pub id: Uuid,
     pub name: String,
@@ -72,7 +71,7 @@ pub struct UpdateWorkspaceRequest {
     pub default_holiday_ot_multiplier: Option<Decimal>,
 }
 
-#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct WorkspaceMember {
     pub workspace_id: Uuid,
     pub user_id: Uuid,
@@ -85,7 +84,7 @@ pub struct AddMemberRequest {
     pub role_id: Uuid,
 }
 
-#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, sqlx::FromRow)]
 pub struct MemberExtraRole {
     pub id: Uuid,
     pub workspace_id: Uuid,
@@ -101,7 +100,7 @@ pub struct AssignRoleRequest {
     pub expires_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, sqlx::FromRow)]
 pub struct WorkspaceMemberDetail {
     pub workspace_id: Uuid,
     pub user_id: Uuid,
@@ -118,7 +117,7 @@ pub struct WorkspaceMemberDetailResponse {
     pub extra_role_ids: Vec<Uuid>,
 }
 
-#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, sqlx::FromRow)]
 pub struct MemberExtraPermission {
     pub id: Uuid,
     pub workspace_id: Uuid,
@@ -135,7 +134,7 @@ pub struct AssignPermissionRequest {
     pub expires_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, sqlx::FromRow)]
 pub struct WorkspaceRole {
     pub id: Uuid,
     pub workspace_id: Option<Uuid>,
@@ -148,7 +147,7 @@ pub struct WorkspaceRole {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct WorkspaceRolePermission {
     pub role_id: Uuid,
     pub permission_name: String,

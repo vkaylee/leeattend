@@ -11,20 +11,15 @@ use async_trait::async_trait;
 use chrono::Utc;
 use diesel::prelude::*;
 use diesel_async::{AsyncConnection, RunQueryDsl};
-use sqlx::PgPool;
 use uuid::Uuid;
 
 pub struct DieselWorkspaceRepository {
-    pub sqlx_pool: PgPool,
     pub diesel_pools: DieselPools,
 }
 
 impl DieselWorkspaceRepository {
-    pub fn new(sqlx_pool: PgPool, diesel_pools: DieselPools) -> Self {
-        Self {
-            sqlx_pool,
-            diesel_pools,
-        }
+    pub fn new(diesel_pools: DieselPools) -> Self {
+        Self { diesel_pools }
     }
 }
 

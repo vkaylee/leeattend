@@ -122,17 +122,12 @@ pub async fn get_attendance_summaries(
     let target_employee_id = if has_read_perm {
         query.employee_id
     } else {
-        let emp_record = sqlx::query!(
-            "SELECT id FROM employees WHERE workspace_id = $1 AND user_id = $2",
-            ctx.workspace_id,
-            ctx.user_id
-        )
-        .fetch_optional(state.infra.db.api())
-        .await?;
-
-        let my_id = emp_record
-            .ok_or_else(|| AppError::Forbidden("Forbidden".to_string()))?
-            .id;
+        let my_id = state
+            .employees
+            .repo
+            .get_employee_id_by_user_id(ctx.workspace_id, ctx.user_id)
+            .await?
+            .ok_or_else(|| AppError::Forbidden("Forbidden".to_string()))?;
 
         if let Some(req_id) = query.employee_id {
             if req_id != my_id {
@@ -142,23 +137,16 @@ pub async fn get_attendance_summaries(
         Some(my_id)
     };
 
-    let summaries = if let Some(emp_id) = target_employee_id {
-        sqlx::query_as!(
-            crate::models::AttendanceDailySummary,
-            "SELECT id, workspace_id, employee_id, date, actual_work_minutes, system_detected_ot_minutes, claimed_ot_minutes, approved_ot_minutes, ot_status as \"ot_status: crate::models::OtStatus\", ot_reason, manager_note, claim_entered_by_user_id, claim_entered_at, paper_form_photo_url, entered_via, is_holiday, holiday_name, created_at, updated_at FROM attendance_daily_summaries WHERE workspace_id = $1 AND employee_id = $2 AND date >= $3 AND date <= $4 ORDER BY date ASC",
-            ctx.workspace_id, emp_id, query.start_date, query.end_date
+    let summaries = state
+        .attendance
+        .attendance_daily_summary_repo
+        .get_summaries(
+            ctx.workspace_id,
+            target_employee_id,
+            query.start_date,
+            query.end_date,
         )
-        .fetch_all(state.infra.db.api())
-        .await?
-    } else {
-        sqlx::query_as!(
-            crate::models::AttendanceDailySummary,
-            "SELECT id, workspace_id, employee_id, date, actual_work_minutes, system_detected_ot_minutes, claimed_ot_minutes, approved_ot_minutes, ot_status as \"ot_status: crate::models::OtStatus\", ot_reason, manager_note, claim_entered_by_user_id, claim_entered_at, paper_form_photo_url, entered_via, is_holiday, holiday_name, created_at, updated_at FROM attendance_daily_summaries WHERE workspace_id = $1 AND date >= $2 AND date <= $3 ORDER BY date ASC, employee_id ASC",
-            ctx.workspace_id, query.start_date, query.end_date
-        )
-        .fetch_all(state.infra.db.api())
-        .await?
-    };
+        .await?;
 
     Ok(Json(summaries))
 }

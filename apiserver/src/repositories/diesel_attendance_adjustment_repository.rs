@@ -13,16 +13,12 @@ use crate::repositories::attendance_adjustment_repository::AttendanceAdjustmentR
 use crate::schema::{attendance_adjustment_requests, employees};
 
 pub struct DieselAttendanceAdjustmentRepository {
-    pub sqlx_pool: sqlx::PgPool,
     pub diesel_pools: crate::diesel_pool::DieselPools,
 }
 
 impl DieselAttendanceAdjustmentRepository {
-    pub fn new(sqlx_pool: sqlx::PgPool, diesel_pools: crate::diesel_pool::DieselPools) -> Self {
-        Self {
-            sqlx_pool,
-            diesel_pools,
-        }
+    pub fn new(diesel_pools: crate::diesel_pool::DieselPools) -> Self {
+        Self { diesel_pools }
     }
 }
 

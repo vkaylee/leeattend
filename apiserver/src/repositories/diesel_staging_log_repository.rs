@@ -10,16 +10,12 @@ use crate::repositories::staging_log_repository::{StagingLog, StagingLogReposito
 use crate::schema::attendance_staging_logs;
 
 pub struct DieselStagingLogRepository {
-    pub sqlx_pool: sqlx::PgPool,
     pub diesel_pools: crate::diesel_pool::DieselPools,
 }
 
 impl DieselStagingLogRepository {
-    pub fn new(sqlx_pool: sqlx::PgPool, diesel_pools: crate::diesel_pool::DieselPools) -> Self {
-        Self {
-            sqlx_pool,
-            diesel_pools,
-        }
+    pub fn new(diesel_pools: crate::diesel_pool::DieselPools) -> Self {
+        Self { diesel_pools }
     }
 }
 

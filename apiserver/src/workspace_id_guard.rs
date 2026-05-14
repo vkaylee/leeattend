@@ -85,6 +85,16 @@ mod tests {
             "leave_balances",
             "employee_id from workspace-validated context",
         ),
+        (
+            "diesel_leave_request_repository.rs",
+            "leave_requests",
+            "employee_id from workspace-validated context",
+        ),
+        (
+            "diesel_leave_request_repository.rs",
+            "leave_balances",
+            "employee_id from workspace-validated context",
+        ),
         // Payslip segment/incentive: accessed via payslip_id (already workspace-scoped)
         (
             "payroll_repository.rs",
@@ -104,6 +114,11 @@ mod tests {
         // Employee salary components: joined with salary_component_definitions.workspace_id
         (
             "payroll_repository.rs",
+            "employee_salary_components",
+            "joined with scd.workspace_id filter",
+        ),
+        (
+            "diesel_payroll_repository.rs",
             "employee_salary_components",
             "joined with scd.workspace_id filter",
         ),
@@ -217,6 +232,11 @@ mod tests {
         // Leave accrual log repo: balance updates via employee_id FK-scoped from accrual job
         (
             "leave_accrual_log_repository.rs",
+            "leave_balances",
+            "employee_id from workspace-scoped accrual job",
+        ),
+        (
+            "diesel_leave_accrual_log_repository.rs",
             "leave_balances",
             "employee_id from workspace-scoped accrual job",
         ),

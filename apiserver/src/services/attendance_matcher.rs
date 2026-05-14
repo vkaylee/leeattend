@@ -3,15 +3,15 @@
 //!
 //! Extracted from `PayrollService::calculate_monthly_payslip` to satisfy SRP.
 
-use chrono::{NaiveDate, TimeZone};
-use rust_decimal::prelude::{FromPrimitive, ToPrimitive};
-use rust_decimal::Decimal;
 use crate::domain::policy::defaults::DEFAULT_OT_MULTIPLIER;
 use crate::domain::policy::overtime::OvertimeEngine;
 use crate::domain::policy::resolver::PolicyResolver;
 use crate::repositories::overtime_policy_repository::OvertimePolicyRepositoryTrait;
 use crate::repositories::roster::shift_resolution::resolve_effective_shift_from_data;
 use crate::services::AttendanceCalculator;
+use chrono::{NaiveDate, TimeZone};
+use rust_decimal::prelude::{FromPrimitive, ToPrimitive};
+use rust_decimal::Decimal;
 
 use super::financial_calculator::FinancialCalculator;
 use super::payroll_service::PayrollContext;
@@ -212,22 +212,26 @@ impl AttendanceMatcher {
                                 }
 
                                 if ot_u > 0 {
-                                    if let Some(policy_id) =
-                                        args.overtime_policy_repo
-                                            .resolve_policy_for_employee(
-                                                employee_id,
-                                                workspace_id,
-                                                current_date,
-                                            )
-                                            .await
-                                            .unwrap_or(None)
+                                    if let Some(policy_id) = args
+                                        .overtime_policy_repo
+                                        .resolve_policy_for_employee(
+                                            employee_id,
+                                            workspace_id,
+                                            current_date,
+                                        )
+                                        .await
+                                        .unwrap_or(None)
                                     {
                                         let rules = if let Some(r) =
                                             args.policy_cache.get(&policy_id)
                                         {
                                             r.clone()
                                         } else {
-                                            let r = match args.overtime_policy_repo.get_policy_with_rules(workspace_id, policy_id).await {
+                                            let r = match args
+                                                .overtime_policy_repo
+                                                .get_policy_with_rules(workspace_id, policy_id)
+                                                .await
+                                            {
                                                 Ok(Some((_, rules))) => rules,
                                                 Ok(None) => Vec::new(),
                                                 Err(e) => {

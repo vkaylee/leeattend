@@ -14,16 +14,12 @@ use crate::repositories::time_entry_repository::TimeEntryRepository;
 use crate::schema::{employees, time_entries};
 
 pub struct DieselTimeEntryRepository {
-    pub sqlx_pool: sqlx::PgPool,
     pub diesel_pools: crate::diesel_pool::DieselPools,
 }
 
 impl DieselTimeEntryRepository {
-    pub fn new(sqlx_pool: sqlx::PgPool, diesel_pools: crate::diesel_pool::DieselPools) -> Self {
-        Self {
-            sqlx_pool,
-            diesel_pools,
-        }
+    pub fn new(diesel_pools: crate::diesel_pool::DieselPools) -> Self {
+        Self { diesel_pools }
     }
 }
 

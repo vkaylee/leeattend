@@ -5,7 +5,6 @@
 //! processed by a background worker that batch-inserts to the database.
 
 use chrono::Utc;
-use sqlx::PgPool;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::mpsc;
@@ -13,10 +12,12 @@ use tokio::time::{interval, timeout};
 use tracing::{error, info, warn};
 use uuid::Uuid;
 
+use crate::models::{LogSource, RawAttendanceLog};
 use crate::utils::id::new_id;
 
-use crate::models::{LogSource, RawAttendanceLog};
-use crate::repositories::{employee, raw_attendance_log_repository};
+use crate::repositories::{
+    employee::EmployeeRepository, raw_attendance_log_repository::RawAttendanceLogRepository,
+};
 use crate::services::pairing_service::PairingService;
 use crate::utils::datetime::parse_datetime_with_tz;
 
@@ -124,7 +125,8 @@ struct ParsedLogEntry {
 /// and batch-inserts them into the database
 #[tracing::instrument(skip_all)]
 pub async fn run_log_worker(
-    pool: PgPool,
+    employee_repo: Arc<dyn EmployeeRepository>,
+    raw_log_repo: Arc<dyn RawAttendanceLogRepository>,
     pairing_service: Arc<PairingService>,
     mut receiver: mpsc::Receiver<AgentLogEntry>,
     batch_size: usize,
@@ -145,13 +147,13 @@ pub async fn run_log_worker(
                 if let Some(log_entry) = entry {
                     batch.push(log_entry);
                     if batch.len() >= batch_size {
-                        process_batch(&pool, &pairing_service, &mut batch).await;
+                        process_batch(&*employee_repo, &*raw_log_repo, &pairing_service, &mut batch).await;
                     }
                 } else {
                     // Channel closed, drain remaining logs
                     info!("Agent log buffer closed, draining {} remaining logs", batch.len());
                     if !batch.is_empty() {
-                        process_batch(&pool, &pairing_service, &mut batch).await;
+                        process_batch(&*employee_repo, &*raw_log_repo, &pairing_service, &mut batch).await;
                     }
                     break;
                 }
@@ -159,7 +161,7 @@ pub async fn run_log_worker(
             // Flush timer tick
             _ = flush_timer.tick() => {
                 if !batch.is_empty() {
-                    process_batch(&pool, &pairing_service, &mut batch).await;
+                    process_batch(&*employee_repo, &*raw_log_repo, &pairing_service, &mut batch).await;
                 }
             }
         }
@@ -170,7 +172,8 @@ pub async fn run_log_worker(
 
 /// Process a batch of log entries: parse, insert, and trigger pairing
 async fn process_batch(
-    pool: &PgPool,
+    employee_repo: &dyn EmployeeRepository,
+    raw_log_repo: &dyn RawAttendanceLogRepository,
     pairing_service: &PairingService,
     batch: &mut Vec<AgentLogEntry>,
 ) {
@@ -184,7 +187,7 @@ async fn process_batch(
 
     // Parse and validate each entry
     for entry in batch.drain(..) {
-        match parse_log_entry(pool, &entry).await {
+        match parse_log_entry(employee_repo, &entry).await {
             Ok(parsed) => parsed_logs.push(parsed),
             Err(e) => {
                 parse_errors += 1;
@@ -210,7 +213,7 @@ async fn process_batch(
     let raw_logs: Vec<&RawAttendanceLog> = parsed_logs.iter().map(|p| &p.raw_log).collect();
 
     // Batch insert to database
-    match raw_attendance_log_repository::create_raw_logs_batch(pool, &raw_logs).await {
+    match raw_log_repo.create_raw_logs_batch(&raw_logs).await {
         Ok(inserted_count) => {
             info!(
                 "Batch insert complete: {}/{} logs inserted ({} duplicates skipped, {} parse errors)",
@@ -236,21 +239,26 @@ async fn process_batch(
 }
 
 /// Parse a raw log entry into a validated RawAttendanceLog
-async fn parse_log_entry(pool: &PgPool, entry: &AgentLogEntry) -> Result<ParsedLogEntry, String> {
+async fn parse_log_entry(
+    employee_repo: &dyn EmployeeRepository,
+    entry: &AgentLogEntry,
+) -> Result<ParsedLogEntry, String> {
     // Resolve employee_id from employee_id_number
-    let employee =
-        match employee::find_by_number(pool, entry.workspace_id, &entry.employee_id_number).await {
-            Ok(Some(emp)) => emp,
-            Ok(None) => {
-                return Err(format!(
-                    "Employee not found: {} in workspace {}",
-                    entry.employee_id_number, entry.workspace_id
-                ));
-            }
-            Err(e) => {
-                return Err(format!("Database error finding employee: {e}"));
-            }
-        };
+    let employee = match employee_repo
+        .find_by_number(entry.workspace_id, &entry.employee_id_number)
+        .await
+    {
+        Ok(Some(emp)) => emp,
+        Ok(None) => {
+            return Err(format!(
+                "Employee not found: {} in workspace {}",
+                entry.employee_id_number, entry.workspace_id
+            ));
+        }
+        Err(e) => {
+            return Err(format!("Database error finding employee: {e}"));
+        }
+    };
 
     // Parse punch_time with workspace timezone
     let punch_time = parse_datetime_with_tz(

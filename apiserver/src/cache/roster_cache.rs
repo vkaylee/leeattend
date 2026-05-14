@@ -9,10 +9,12 @@ use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::Mutex;
 
+use crate::repositories::diesel_department_repository::EmployeeDepartmentHistoryEntity;
 use chrono::{NaiveDate, NaiveTime, Utc};
+use diesel::prelude::*;
+use diesel_async::RunQueryDsl;
 use moka::future::Cache;
 use redis::AsyncCommands;
-use sqlx::PgPool;
 use tokio::sync::watch;
 use uuid::Uuid;
 
@@ -113,154 +115,152 @@ pub struct RosterData {
 /// as a fallback when Redis is unavailable.
 #[allow(clippy::too_many_lines)]
 pub async fn build_roster_data(
-    pool: &PgPool,
+    diesel_pools: &crate::diesel_pool::DieselPools,
     workspace_id: Uuid,
 ) -> Result<Arc<RosterData>, String> {
-    // Create futures at top level for sqlx::query! type inference to work
-    let q1 = sqlx::query!(
-        r#"
-        SELECT id, name, report_symbol, start_time, end_time, break_duration_minutes,
-               break_start, break_end, is_break_auto_deduct,
-               early_punch_in_grace_period_minutes, allow_early_ot
-        FROM shifts WHERE workspace_id = $1
-        "#,
-        workspace_id,
-    )
-    .fetch_all(pool);
+    let mut conn = diesel_pools
+        .api
+        .get()
+        .await
+        .map_err(|e| format!("db connection: {e}"))?;
 
-    let q2 = sqlx::query!(
-        r#"
-        SELECT employee_id, shift_id, start_date, end_date
-        FROM employee_shifts
-        WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)
-        ORDER BY created_at DESC
-        "#,
-        workspace_id,
-    )
-    .fetch_all(pool);
+    use crate::schema::{
+        assignment_rules, department_default_shifts, departments, employee_department_history,
+        employee_shifts, employee_working_patterns, employees, shifts, working_pattern_details,
+    };
 
-    let q3 = sqlx::query!(
-        r#"
-        SELECT ewp.employee_id, ewp.pattern_id, ewp.start_date, ewp.end_date,
-               wpd.day_of_week, wpd.shift_id as pattern_shift_id
-        FROM employee_working_patterns ewp
-        JOIN working_pattern_details wpd ON ewp.pattern_id = wpd.pattern_id
-        WHERE ewp.workspace_id = $1
-        ORDER BY ewp.created_at DESC
-        "#,
-        workspace_id,
-    )
-    .fetch_all(pool);
+    // 1. Shifts
+    let shift_rows = shifts::table
+        .filter(shifts::workspace_id.eq(workspace_id))
+        .load::<crate::models::diesel::roster::ShiftEntity>(&mut conn)
+        .await
+        .map_err(|e| format!("shifts: {e}"))?;
 
-    let q4 = sqlx::query!(
-        r#"
-        SELECT edh.employee_id, d.default_working_pattern_id, edh.effective_date,
-               wpd.day_of_week, wpd.shift_id as pattern_shift_id
-        FROM employee_department_history edh
-        JOIN departments d ON edh.department_id = d.id
-        JOIN working_pattern_details wpd ON d.default_working_pattern_id = wpd.pattern_id
-        WHERE d.workspace_id = $1
-        ORDER BY edh.effective_date DESC
-        "#,
-        workspace_id,
-    )
-    .fetch_all(pool);
-
-    let q5 = sqlx::query!(
-        r#"
-        SELECT edh.employee_id, dds.shift_id, edh.effective_date
-        FROM employee_department_history edh
-        JOIN department_default_shifts dds ON edh.department_id = dds.department_id
-        JOIN departments d ON dds.department_id = d.id
-        WHERE d.workspace_id = $1
-        ORDER BY edh.effective_date DESC
-        "#,
-        workspace_id,
-    )
-    .fetch_all(pool);
-
-    let q6 =
-        crate::repositories::assignment_rule_repository::AssignmentRuleRepository::get_active_rules(
-            pool,
-            workspace_id,
-        );
-
-    let q7 = sqlx::query!(
-        r#"
-        SELECT pattern_id, day_of_week, shift_id
-        FROM working_pattern_details
-        WHERE pattern_id IN (
-            SELECT pattern_id FROM assignment_rules
-            WHERE workspace_id = $1 AND is_active = true
+    // 2. Fixed Assignments
+    let fixed_rows = employee_shifts::table
+        .filter(
+            employee_shifts::employee_id.eq_any(
+                employees::table
+                    .filter(employees::workspace_id.eq(workspace_id))
+                    .select(employees::id),
+            ),
         )
-        "#,
-        workspace_id,
-    )
-    .fetch_all(pool);
+        .order(employee_shifts::created_at.desc())
+        .load::<crate::models::diesel::roster::EmployeeShiftEntity>(&mut conn)
+        .await
+        .map_err(|e| format!("fixed_assignments: {e}"))?;
 
-    let q8 = sqlx::query!(
-        r#"
-        SELECT edh.employee_id, edh.department_id, edh.effective_date
-        FROM employee_department_history edh
-        WHERE edh.employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)
-        ORDER BY edh.effective_date DESC
-        "#,
-        workspace_id,
-    )
-    .fetch_all(pool);
+    // 3. Pattern Assignments
+    let pattern_rows = employee_working_patterns::table
+        .inner_join(
+            working_pattern_details::table
+                .on(employee_working_patterns::pattern_id.eq(working_pattern_details::pattern_id)),
+        )
+        .filter(employee_working_patterns::workspace_id.eq(workspace_id))
+        .order(employee_working_patterns::created_at.desc())
+        .select((
+            employee_working_patterns::employee_id,
+            employee_working_patterns::pattern_id,
+            employee_working_patterns::start_date,
+            employee_working_patterns::end_date,
+            working_pattern_details::day_of_week,
+            working_pattern_details::shift_id,
+        ))
+        .load::<(Uuid, Uuid, NaiveDate, Option<NaiveDate>, i32, Option<Uuid>)>(&mut conn)
+        .await
+        .map_err(|e| format!("pattern_assignments: {e}"))?;
 
-    let (
-        shift_rows,
-        fixed_rows,
-        pattern_rows,
-        dept_pattern_rows,
-        dept_fixed_rows,
-        active_rules,
-        rule_pattern_rows,
-        dept_history_rows,
-    ): (
-        Vec<_>,
-        Vec<_>,
-        Vec<_>,
-        Vec<_>,
-        Vec<_>,
-        Vec<crate::models::AssignmentRule>,
-        Vec<_>,
-        Vec<_>,
-    ) = tokio::try_join!(
-        async { q1.await.map_err(|e: sqlx::Error| format!("shifts: {e}")) },
-        async {
-            q2.await
-                .map_err(|e: sqlx::Error| format!("fixed_assignments: {e}"))
-        },
-        async {
-            q3.await
-                .map_err(|e: sqlx::Error| format!("pattern_assignments: {e}"))
-        },
-        async {
-            q4.await
-                .map_err(|e: sqlx::Error| format!("dept_patterns: {e}"))
-        },
-        async {
-            q5.await
-                .map_err(|e: sqlx::Error| format!("dept_fixed_shifts: {e}"))
-        },
-        async {
-            q6.await
-                .map_err(|e: sqlx::Error| format!("active_rules: {e}"))
-        },
-        async {
-            q7.await
-                .map_err(|e: sqlx::Error| format!("rule_patterns: {e}"))
-        },
-        async {
-            q8.await
-                .map_err(|e: sqlx::Error| format!("dept_history: {e}"))
-        },
-    )?;
+    // 4. Dept Patterns
+    let dept_pattern_rows = employee_department_history::table
+        .inner_join(
+            departments::table.on(employee_department_history::department_id.eq(departments::id)),
+        )
+        .inner_join(
+            working_pattern_details::table.on(departments::default_working_pattern_id
+                .eq(working_pattern_details::pattern_id.nullable())),
+        )
+        .filter(departments::workspace_id.eq(workspace_id))
+        .order(employee_department_history::effective_date.desc())
+        .select((
+            employee_department_history::employee_id,
+            departments::default_working_pattern_id,
+            employee_department_history::effective_date,
+            working_pattern_details::day_of_week,
+            working_pattern_details::shift_id,
+        ))
+        .load::<(Uuid, Option<Uuid>, NaiveDate, i32, Option<Uuid>)>(&mut conn)
+        .await
+        .map_err(|e| format!("dept_patterns: {e}"))?;
+
+    // 5. Dept Fixed Shifts
+    let dept_fixed_rows = employee_department_history::table
+        .inner_join(department_default_shifts::table.on(
+            employee_department_history::department_id.eq(department_default_shifts::department_id),
+        ))
+        .inner_join(
+            departments::table.on(department_default_shifts::department_id.eq(departments::id)),
+        )
+        .filter(departments::workspace_id.eq(workspace_id))
+        .order(employee_department_history::effective_date.desc())
+        .select((
+            employee_department_history::employee_id,
+            department_default_shifts::shift_id,
+            employee_department_history::effective_date,
+        ))
+        .load::<(Uuid, Uuid, NaiveDate)>(&mut conn)
+        .await
+        .map_err(|e| format!("dept_fixed_shifts: {e}"))?;
+
+    // 6. Active Rules
+    let active_rules_entities = assignment_rules::table
+        .filter(assignment_rules::workspace_id.eq(workspace_id))
+        .filter(assignment_rules::is_active.eq(true))
+        .order((
+            assignment_rules::priority.desc(),
+            assignment_rules::created_at.asc(),
+        ))
+        .load::<crate::models::diesel::assignment_rule::AssignmentRuleEntity>(&mut conn)
+        .await
+        .map_err(|e| format!("active_rules: {e}"))?;
+
+    let active_rules: Vec<crate::models::AssignmentRule> =
+        active_rules_entities.into_iter().map(Into::into).collect();
+
+    // 7. Rule Patterns
+    let rule_pattern_rows = working_pattern_details::table
+        .filter(
+            working_pattern_details::pattern_id.eq_any(
+                assignment_rules::table
+                    .filter(assignment_rules::workspace_id.eq(workspace_id))
+                    .filter(assignment_rules::is_active.eq(true))
+                    .select(assignment_rules::pattern_id),
+            ),
+        )
+        .select((
+            working_pattern_details::pattern_id,
+            working_pattern_details::day_of_week,
+            working_pattern_details::shift_id,
+        ))
+        .load::<(Uuid, i32, Option<Uuid>)>(&mut conn)
+        .await
+        .map_err(|e| format!("rule_patterns: {e}"))?;
+
+    // 8. Dept History
+    let dept_history_rows = employee_department_history::table
+        .filter(
+            employee_department_history::employee_id.eq_any(
+                employees::table
+                    .filter(employees::workspace_id.eq(workspace_id))
+                    .select(employees::id),
+            ),
+        )
+        .order(employee_department_history::effective_date.desc())
+        .load::<EmployeeDepartmentHistoryEntity>(&mut conn)
+        .await
+        .map_err(|e| format!("dept_history: {e}"))?;
 
     // Transform rows into lookup structures
-    let shifts: HashMap<Uuid, RosterShift> = shift_rows
+    let shifts_map: HashMap<Uuid, RosterShift> = shift_rows
         .into_iter()
         .map(|r| {
             (
@@ -294,49 +294,46 @@ pub async fn build_roster_data(
     }
 
     let mut pattern_assignments: HashMap<Uuid, Vec<RosterPatternEntry>> = HashMap::new();
-    for r in pattern_rows {
+    for (emp_id, pat_id, s_date, e_date, dow, s_id) in pattern_rows {
         pattern_assignments
-            .entry(r.employee_id)
+            .entry(emp_id)
             .or_default()
             .push(RosterPatternEntry {
-                pattern_id: r.pattern_id,
-                start_date: r.start_date,
-                end_date: r.end_date,
-                day_of_week: r.day_of_week,
-                shift_id: r.pattern_shift_id,
+                pattern_id: pat_id,
+                start_date: s_date,
+                end_date: e_date,
+                day_of_week: dow,
+                shift_id: s_id,
             });
     }
 
     let mut dept_patterns: HashMap<Uuid, Vec<RosterDeptPattern>> = HashMap::new();
-    for r in dept_pattern_rows {
+    for (emp_id, pat_id, eff_date, dow, s_id) in dept_pattern_rows {
         dept_patterns
-            .entry(r.employee_id)
+            .entry(emp_id)
             .or_default()
             .push(RosterDeptPattern {
-                default_working_pattern_id: r.default_working_pattern_id,
-                effective_date: r.effective_date,
-                day_of_week: r.day_of_week,
-                shift_id: r.pattern_shift_id,
+                default_working_pattern_id: pat_id,
+                effective_date: eff_date,
+                day_of_week: dow,
+                shift_id: s_id,
             });
     }
 
     let mut dept_fixed_shifts: HashMap<Uuid, Vec<RosterDeptFixedShift>> = HashMap::new();
-    for r in dept_fixed_rows {
+    for (emp_id, s_id, eff_date) in dept_fixed_rows {
         dept_fixed_shifts
-            .entry(r.employee_id)
+            .entry(emp_id)
             .or_default()
             .push(RosterDeptFixedShift {
-                shift_id: r.shift_id,
-                effective_date: r.effective_date,
+                shift_id: s_id,
+                effective_date: eff_date,
             });
     }
 
     let mut rule_patterns: HashMap<(Uuid, i32), Vec<Option<Uuid>>> = HashMap::new();
-    for r in rule_pattern_rows {
-        rule_patterns
-            .entry((r.pattern_id, r.day_of_week))
-            .or_default()
-            .push(r.shift_id);
+    for (pat_id, dow, s_id) in rule_pattern_rows {
+        rule_patterns.entry((pat_id, dow)).or_default().push(s_id);
     }
 
     let mut dept_history: HashMap<Uuid, Vec<RosterDeptHistory>> = HashMap::new();
@@ -351,7 +348,7 @@ pub async fn build_roster_data(
     }
 
     Ok(Arc::new(RosterData {
-        shifts,
+        shifts: shifts_map,
         fixed_assignments,
         pattern_assignments,
         dept_patterns,
@@ -443,7 +440,7 @@ impl RosterCache {
     pub async fn get_roster_data(
         &self,
         workspace_id: Uuid,
-        pool: &PgPool,
+        diesel_pools: &crate::diesel_pool::DieselPools,
     ) -> Result<Arc<RosterData>, String> {
         let remote_version = self.fetch_version(workspace_id).await;
 
@@ -455,7 +452,7 @@ impl RosterCache {
         }
 
         // Slow path: singleflight load
-        self.singleflight_load(workspace_id, pool, remote_version)
+        self.singleflight_load(workspace_id, diesel_pools, remote_version)
             .await
     }
 
@@ -470,7 +467,7 @@ impl RosterCache {
     async fn singleflight_load(
         &self,
         workspace_id: Uuid,
-        pool: &PgPool,
+        diesel_pools: &crate::diesel_pool::DieselPools,
         version: i64,
     ) -> Result<Arc<RosterData>, String> {
         // Determine leader vs follower while holding the mutex only briefly.
@@ -489,7 +486,7 @@ impl RosterCache {
 
         if is_leader {
             // --- leader path -----------------------------------------------
-            let result = build_roster_data(pool, workspace_id).await;
+            let result = build_roster_data(diesel_pools, workspace_id).await;
 
             // Remove ourselves from the inflight map and retrieve the sender.
             let sender = self.inflight.lock().await.remove(&workspace_id);
@@ -532,11 +529,7 @@ impl RosterCache {
                 }
             } else {
                 // Timeout or channel closed — fall back to direct load.
-                tracing::warn!(
-                    workspace_id = %workspace_id,
-                    "Singleflight follower timed out; falling back to direct DB load"
-                );
-                build_roster_data(pool, workspace_id).await
+                build_roster_data(diesel_pools, workspace_id).await
             }
         }
     }

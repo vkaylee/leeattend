@@ -37,9 +37,14 @@ async fn test_overnight_shift_pairing() {
     let shift_date = NaiveDate::from_ymd_opt(2026, 1, 15).unwrap();
 
     // Assign shift
-    sqlx::query("INSERT INTO employee_shifts (id, employee_id, shift_id, start_date) VALUES ($1, $2, $3, $4)")
-        .bind(Uuid::new_v4()).bind(employee_id).bind(shift_id).bind(shift_date)
-        .execute(&pool).await.unwrap();
+    let shift_repo = apiserver::repositories::DieselShiftRepository::new(diesel_pools.clone());
+    use apiserver::repositories::shift_repository::ShiftRepository;
+    shift_repo
+        .assign_employee_shift(employee_id, shift_id, shift_date, None)
+        .await
+        .unwrap();
+
+    let roster_repo = apiserver::repositories::DieselRosterRepository::new(diesel_pools.clone());
 
     // 2. Insert Logs
     let tz: Tz = "Asia/Ho_Chi_Minh".parse().unwrap();
@@ -58,30 +63,47 @@ async fn test_overnight_shift_pairing() {
         .unwrap()
         .with_timezone(&Utc);
 
-    sqlx::query("INSERT INTO raw_attendance_logs (id, workspace_id, employee_id, punch_time, source) VALUES ($1, $2, $3, $4, $5)")
-        .bind(Uuid::new_v4()).bind(ws_id).bind(employee_id).bind(punch_in_utc).bind(LogSource::Device as LogSource)
-        .execute(&pool).await.unwrap();
+    let raw_repo =
+        apiserver::repositories::DieselRawAttendanceLogRepository::new(diesel_pools.clone());
+    use apiserver::repositories::raw_attendance_log_repository::RawAttendanceLogRepository;
 
-    sqlx::query("INSERT INTO raw_attendance_logs (id, workspace_id, employee_id, punch_time, source) VALUES ($1, $2, $3, $4, $5)")
-        .bind(Uuid::new_v4()).bind(ws_id).bind(employee_id).bind(punch_out_utc).bind(LogSource::Device as LogSource)
-        .execute(&pool).await.unwrap();
+    let raw_log_in = apiserver::models::RawAttendanceLog {
+        id: Uuid::new_v4(),
+        workspace_id: ws_id,
+        employee_id,
+        punch_time: punch_in_utc,
+        source: LogSource::Device,
+        device_id: None,
+        raw_data: None,
+        punch: -1,
+        status: -1,
+        created_at: Utc::now(),
+    };
+    raw_repo.create_raw_log(&raw_log_in).await.unwrap();
+
+    let raw_log_out = apiserver::models::RawAttendanceLog {
+        id: Uuid::new_v4(),
+        workspace_id: ws_id,
+        employee_id,
+        punch_time: punch_out_utc,
+        source: LogSource::Device,
+        device_id: None,
+        raw_data: None,
+        punch: -1,
+        status: -1,
+        created_at: Utc::now(),
+    };
+    raw_repo.create_raw_log(&raw_log_out).await.unwrap();
 
     // 3. Process Pairing
     let repo = std::sync::Arc::new(apiserver::repositories::DieselTimeEntryRepository::new(
-        pool.clone(),
         diesel_pools.clone(),
     ));
     apiserver::services::pairing_service::PairingService::new(
-        repo,
-        std::sync::Arc::new(apiserver::repositories::DieselRosterRepository::new(
-            pool.clone(),
-            diesel_pools.clone(),
-        )),
+        repo.clone(),
+        std::sync::Arc::new(roster_repo),
         std::sync::Arc::new(
-            apiserver::repositories::DieselAttendancePolicyRepository::new(
-                pool.clone(),
-                diesel_pools.clone(),
-            ),
+            apiserver::repositories::DieselAttendancePolicyRepository::new(diesel_pools.clone()),
         ),
         pool.clone(),
         diesel_pools.clone(),
@@ -91,8 +113,22 @@ async fn test_overnight_shift_pairing() {
     .unwrap();
 
     // 4. Verify
-    let entry = sqlx::query!("SELECT punch_in_time, punch_out_time, duration_minutes FROM time_entries WHERE employee_id = $1", employee_id)
-        .fetch_one(&pool).await.unwrap();
+    use apiserver::repositories::time_entry_repository::TimeEntryRepository;
+    let entries = repo
+        .get_employee_time_entries(
+            ws_id,
+            employee_id,
+            shift_date.and_hms_opt(0, 0, 0).unwrap().and_utc(),
+            (shift_date + Duration::days(1))
+                .and_hms_opt(23, 59, 59)
+                .unwrap()
+                .and_utc(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(entries.len(), 1);
+    let entry = &entries[0];
 
     assert_eq!(entry.punch_in_time, punch_in_utc);
     assert_eq!(entry.punch_out_time, Some(punch_out_utc));

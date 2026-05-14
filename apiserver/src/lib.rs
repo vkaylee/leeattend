@@ -1,5 +1,6 @@
 // Allow .unwrap() and .expect() in test code — only production code is denied
 #![cfg_attr(test, allow(clippy::unwrap_used, clippy::expect_used, clippy::panic))]
+#![recursion_limit = "512"]
 #![allow(
     missing_docs,
     clippy::needless_raw_string_hashes,

@@ -11,16 +11,12 @@ use crate::repositories::raw_attendance_log_repository::RawAttendanceLogReposito
 use crate::schema::{devices, employees, raw_attendance_logs};
 
 pub struct DieselRawAttendanceLogRepository {
-    pub sqlx_pool: sqlx::PgPool,
     pub diesel_pools: crate::diesel_pool::DieselPools,
 }
 
 impl DieselRawAttendanceLogRepository {
-    pub fn new(sqlx_pool: sqlx::PgPool, diesel_pools: crate::diesel_pool::DieselPools) -> Self {
-        Self {
-            sqlx_pool,
-            diesel_pools,
-        }
+    pub fn new(diesel_pools: crate::diesel_pool::DieselPools) -> Self {
+        Self { diesel_pools }
     }
 }
 

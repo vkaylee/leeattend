@@ -134,14 +134,14 @@ async fn test_department_working_pattern_api() {
     let ws_id: Uuid = factory.workspace().create_with_owner(user_id).await;
 
     // Create a pattern first
-    let pattern = apiserver::repositories::working_pattern_repository::create_pattern(
-        &factory.pool,
-        ws_id,
-        "Dept Pattern",
-        None,
-    )
-    .await
-    .unwrap();
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&_test_db.url());
+    let repo = apiserver::repositories::DieselWorkingPatternRepository::new(diesel_pools);
+    use apiserver::repositories::working_pattern_repository::WorkingPatternRepositoryTrait;
+
+    let pattern = repo
+        .create_pattern_with_details(ws_id, "Dept Pattern", None, vec![])
+        .await
+        .unwrap();
 
     // 1. Create Department with Pattern
     let dept_req = serde_json::json!({

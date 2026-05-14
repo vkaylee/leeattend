@@ -13,10 +13,7 @@ async fn test_repository_pagination() {
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
 
     let user_id = factory.user().create().await;
-    let _repo = Arc::new(DieselWorkspaceRepository::new(
-        pool.clone(),
-        diesel_pools.clone(),
-    ));
+    let _repo = Arc::new(DieselWorkspaceRepository::new(diesel_pools.clone()));
 
     // Create 15 workspaces
     for _ in 0..15 {

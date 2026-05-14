@@ -2,7 +2,6 @@ use async_trait::async_trait;
 use chrono::Utc;
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
-use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::diesel_pool::DieselPools;
@@ -11,25 +10,21 @@ use crate::models::diesel::assignment_rule::AssignmentRuleEntity;
 use crate::models::employee::{
     AssignmentRule, CreateAssignmentRuleRequest, UpdateAssignmentRuleRequest,
 };
-use crate::repositories::assignment_rule_repository::AssignmentRuleRepositoryTrait;
+use crate::repositories::assignment_rule_repository::AssignmentRuleRepository;
 use crate::schema::assignment_rules;
 
 pub struct DieselAssignmentRuleRepository {
-    pub sqlx_pool: PgPool,
     pub diesel_pools: DieselPools,
 }
 
 impl DieselAssignmentRuleRepository {
-    pub fn new(sqlx_pool: PgPool, diesel_pools: DieselPools) -> Self {
-        Self {
-            sqlx_pool,
-            diesel_pools,
-        }
+    pub fn new(diesel_pools: DieselPools) -> Self {
+        Self { diesel_pools }
     }
 }
 
 #[async_trait]
-impl AssignmentRuleRepositoryTrait for DieselAssignmentRuleRepository {
+impl AssignmentRuleRepository for DieselAssignmentRuleRepository {
     async fn create_rule(
         &self,
         workspace_id: Uuid,

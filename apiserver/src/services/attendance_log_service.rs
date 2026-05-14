@@ -64,11 +64,13 @@ impl AttendanceLogService {
         let (log_buffer, log_receiver) = AgentLogBuffer::new(config.buffer_capacity);
         let log_buffer = Arc::new(log_buffer);
 
-        let pool_clone = pool.clone();
         let pairing_clone = Arc::clone(&pairing_service);
+        let employee_repo_clone = Arc::clone(&deps.employee_repo);
+        let raw_log_repo_clone = Arc::clone(&deps.raw_log_repo);
         let worker_handle = tokio::spawn(async move {
             agent_log_buffer::run_log_worker(
-                pool_clone,
+                employee_repo_clone,
+                raw_log_repo_clone,
                 pairing_clone,
                 log_receiver,
                 config.batch_size,

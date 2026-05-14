@@ -12,7 +12,7 @@ use crate::domain::permissions::Permission;
 use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
 use crate::models::{CreateHolidayRequest, Holiday, UpdateHolidayRequest};
-use crate::repositories::holiday_repository::{HolidayLeaveResult, HolidayRepository};
+use crate::repositories::holiday_repository::HolidayLeaveResult;
 
 use crate::AppState;
 
@@ -27,9 +27,11 @@ pub async fn list_holidays(
     ctx: MemberContext,
     Query(query): Query<ListHolidaysQuery>,
 ) -> AppResult<Json<Vec<Holiday>>> {
-    let holidays = HolidayRepository::list(state.infra.db.api(), ctx.workspace_id, query.year)
-        .await
-        .map_err(|e| AppError::Internal(e.to_string()))?;
+    let holidays = state
+        .leaves
+        .holiday_repo
+        .list(ctx.workspace_id, query.year)
+        .await?;
 
     Ok(Json(holidays))
 }
@@ -40,9 +42,11 @@ pub async fn get_holiday(
     Path((_, id)): Path<(Uuid, Uuid)>,
     ctx: MemberContext,
 ) -> AppResult<Json<Holiday>> {
-    let holiday = HolidayRepository::get_by_id(state.infra.db.api(), ctx.workspace_id, id)
-        .await
-        .map_err(|e| AppError::Internal(e.to_string()))?
+    let holiday = state
+        .leaves
+        .holiday_repo
+        .get_by_id(ctx.workspace_id, id)
+        .await?
         .ok_or_else(|| AppError::NotFound("Holiday not found".to_string()))?;
 
     Ok(Json(holiday))
@@ -56,7 +60,10 @@ pub async fn create_holiday(
 ) -> AppResult<(axum::http::StatusCode, Json<Holiday>)> {
     ctx.require_permission(Permission::HolidaysManage)?;
 
-    let holiday = HolidayRepository::create(state.infra.db.api(), ctx.workspace_id, &req)
+    let holiday = state
+        .leaves
+        .holiday_repo
+        .create_holiday(ctx.workspace_id, &req)
         .await
         .map_err(|e| {
             if e.to_string().contains("unique") || e.to_string().contains("duplicate") {
@@ -78,9 +85,11 @@ pub async fn update_holiday(
 ) -> AppResult<Json<Holiday>> {
     ctx.require_permission(Permission::HolidaysManage)?;
 
-    let holiday = HolidayRepository::update(state.infra.db.api(), ctx.workspace_id, id, &req)
-        .await
-        .map_err(|e| AppError::Internal(e.to_string()))?
+    let holiday = state
+        .leaves
+        .holiday_repo
+        .update_holiday(ctx.workspace_id, id, &req)
+        .await?
         .ok_or_else(|| AppError::NotFound("Holiday not found".to_string()))?;
 
     Ok(Json(holiday))
@@ -94,9 +103,11 @@ pub async fn delete_holiday(
 ) -> AppResult<axum::http::StatusCode> {
     ctx.require_permission(Permission::HolidaysManage)?;
 
-    let deleted = HolidayRepository::delete(state.infra.db.api(), ctx.workspace_id, id)
-        .await
-        .map_err(|e| AppError::Internal(e.to_string()))?;
+    let deleted = state
+        .leaves
+        .holiday_repo
+        .delete(ctx.workspace_id, id)
+        .await?;
 
     if deleted {
         Ok(axum::http::StatusCode::NO_CONTENT)
@@ -114,9 +125,11 @@ pub async fn process_holiday_leave(
 ) -> AppResult<Json<Vec<HolidayLeaveResult>>> {
     ctx.require_permission(Permission::HolidaysManage)?;
 
-    let holiday = HolidayRepository::get_by_id(state.infra.db.api(), ctx.workspace_id, id)
-        .await
-        .map_err(|e| AppError::Internal(e.to_string()))?
+    let holiday = state
+        .leaves
+        .holiday_repo
+        .get_by_id(ctx.workspace_id, id)
+        .await?
         .ok_or_else(|| AppError::NotFound("Holiday not found".to_string()))?;
 
     let results = state

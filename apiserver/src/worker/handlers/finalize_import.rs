@@ -13,7 +13,7 @@ pub struct FinalizeImportHandler;
 
 impl FinalizeImportHandler {
     pub async fn handle(
-        db: &PgPool,
+        _db: &PgPool,
         diesel: &crate::diesel_pool::DieselPools,
         job: &Job,
         redis: &RedisPool,
@@ -27,7 +27,7 @@ impl FinalizeImportHandler {
             "Finalizing import job"
         );
 
-        let import_repo = DieselImportJobRepository::new(db.clone(), diesel.clone());
+        let import_repo = DieselImportJobRepository::new(diesel.clone());
 
         let mut conn = redis.conn();
 

@@ -145,7 +145,7 @@ pub struct LeavePolicyConfig {
     pub min_work_days_threshold: Option<f64>,
 }
 
-#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct LeavePolicyDefinition {
     pub id: Uuid,
     pub workspace_id: Uuid,
@@ -169,7 +169,7 @@ pub struct LeavePolicyAssignment {
     pub created_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct LeaveAccrualLog {
     pub id: Uuid,
     pub workspace_id: Uuid,
@@ -209,7 +209,7 @@ pub struct AssignLeavePolicyRequest {
     pub effective_to: Option<NaiveDate>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, sqlx::FromRow)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct LeaveHistoryItem {
     pub id: Uuid,
     pub date: NaiveDate,

@@ -1,19 +1,8 @@
 //! Roster repository — split into domain sub-modules.
 //!
 //! - [`shift_resolution`]: Pure shift resolution logic (no DB)
-//! - [`schedule_queries`]: DB-backed schedule grid + effective shift queries
-//! - [`roster_crud`]: Roster CRUD operations + assignment history
 
-pub mod roster_crud;
-pub mod schedule_queries;
 pub mod shift_resolution;
-
-// Re-export free functions for backward compatibility
-pub use roster_crud::{
-    bulk_upsert_roster, delete_roster, get_assignment_history, get_employee_rosters, upsert_roster,
-};
-pub use schedule_queries::{get_effective_shift, get_workspace_schedules};
-pub use shift_resolution::resolve_effective_shift_from_data;
 
 use crate::errors::AppError;
 use crate::models::{EmployeeSchedule, ShiftRoster};

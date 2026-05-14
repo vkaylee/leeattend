@@ -2,9 +2,7 @@ use crate::models::{
     AssignPatternRequest, BulkAssignPatternRequest, BulkAssignResponse,
     CreateWorkingPatternRequest, EmployeeWorkingPattern, WorkingPattern, WorkingPatternDetail,
 };
-use crate::repositories::working_pattern_repository as repo;
 use chrono::{NaiveTime, Timelike};
-use sqlx::PgPool;
 use std::collections::HashMap;
 use uuid::Uuid;
 
@@ -40,7 +38,7 @@ use std::sync::Arc;
 
 #[tracing::instrument(skip_all, err)]
 pub async fn create_working_pattern(
-    pool: &PgPool,
+    repo: Arc<dyn crate::repositories::working_pattern_repository::WorkingPatternRepositoryTrait>,
     shift_repo: Arc<dyn crate::repositories::shift_repository::ShiftRepository>,
     workspace_id: Uuid,
     req: CreateWorkingPatternRequest,
@@ -48,7 +46,9 @@ pub async fn create_working_pattern(
     // --- Split-shift overlap validation ---
     // Group details by day_of_week to find days with multiple shifts
     let mut day_shifts: HashMap<i32, Vec<Uuid>> = HashMap::new();
+    let mut details_to_insert = Vec::new();
     for detail in &req.details {
+        details_to_insert.push((detail.day_of_week, detail.shift_id));
         if let Some(shift_id) = detail.shift_id {
             day_shifts
                 .entry(detail.day_of_week)
@@ -87,55 +87,42 @@ pub async fn create_working_pattern(
     }
 
     // --- Create pattern ---
-    let mut tx = pool.begin().await?;
+    let pattern = repo
+        .create_pattern_with_details(
+            workspace_id,
+            &req.name,
+            req.description.as_deref(),
+            details_to_insert,
+        )
+        .await?;
 
-    // 1. Create Pattern Header
-    let pattern = repo::create_pattern(
-        &mut *tx,
-        workspace_id,
-        &req.name,
-        req.description.as_deref(),
-    )
-    .await?;
-
-    // 2. Add Details
-    for detail in req.details {
-        repo::add_pattern_detail(&mut *tx, pattern.id, detail.day_of_week, detail.shift_id).await?;
-    }
-
-    tx.commit().await?;
     Ok(pattern)
 }
 
 #[tracing::instrument(skip_all, err)]
 pub async fn list_patterns(
-    pool: &PgPool,
+    repo: Arc<dyn crate::repositories::working_pattern_repository::WorkingPatternRepositoryTrait>,
     workspace_id: Uuid,
 ) -> Result<Vec<WorkingPattern>, crate::errors::AppError> {
-    repo::get_patterns(pool, workspace_id)
-        .await
-        .map_err(Into::into)
+    repo.get_patterns(workspace_id).await
 }
 
 #[tracing::instrument(skip_all, err)]
 pub async fn get_pattern_details(
-    pool: &PgPool,
+    repo: Arc<dyn crate::repositories::working_pattern_repository::WorkingPatternRepositoryTrait>,
     pattern_id: Uuid,
 ) -> Result<Vec<WorkingPatternDetail>, crate::errors::AppError> {
-    repo::get_pattern_details(pool, pattern_id)
-        .await
-        .map_err(Into::into)
+    repo.get_pattern_details(pattern_id).await
 }
 
 #[tracing::instrument(skip_all, err)]
 pub async fn assign_pattern(
-    pool: &PgPool,
+    repo: Arc<dyn crate::repositories::working_pattern_repository::WorkingPatternRepositoryTrait>,
     workspace_id: Uuid,
     employee_id: Uuid,
     req: AssignPatternRequest,
 ) -> Result<EmployeeWorkingPattern, crate::errors::AppError> {
-    repo::assign_pattern(
-        pool,
+    repo.assign_pattern(
         workspace_id,
         employee_id,
         req.pattern_id,
@@ -143,17 +130,15 @@ pub async fn assign_pattern(
         req.end_date,
     )
     .await
-    .map_err(Into::into)
 }
 
 #[tracing::instrument(skip_all, err)]
 pub async fn bulk_assign_pattern(
-    pool: &PgPool,
+    repo: Arc<dyn crate::repositories::working_pattern_repository::WorkingPatternRepositoryTrait>,
     workspace_id: Uuid,
     req: BulkAssignPatternRequest,
 ) -> Result<BulkAssignResponse, crate::errors::AppError> {
-    repo::bulk_assign_pattern(
-        pool,
+    repo.bulk_assign_pattern(
         workspace_id,
         &req.employee_ids,
         req.pattern_id,
@@ -161,29 +146,25 @@ pub async fn bulk_assign_pattern(
         req.end_date,
     )
     .await
-    .map_err(Into::into)
 }
 
 #[tracing::instrument(skip_all, err)]
 pub async fn get_employee_pattern_history(
-    pool: &PgPool,
+    repo: Arc<dyn crate::repositories::working_pattern_repository::WorkingPatternRepositoryTrait>,
     workspace_id: Uuid,
     employee_id: Uuid,
 ) -> Result<Vec<EmployeeWorkingPattern>, crate::errors::AppError> {
-    repo::get_employee_pattern_history(pool, workspace_id, employee_id)
+    repo.get_employee_pattern_history(workspace_id, employee_id)
         .await
-        .map_err(Into::into)
 }
 
 #[tracing::instrument(skip_all, err)]
 pub async fn delete_working_pattern(
-    pool: &PgPool,
+    repo: Arc<dyn crate::repositories::working_pattern_repository::WorkingPatternRepositoryTrait>,
     workspace_id: Uuid,
     pattern_id: Uuid,
 ) -> Result<(), crate::errors::AppError> {
-    repo::delete_pattern(pool, workspace_id, pattern_id)
-        .await
-        .map_err(Into::into)
+    repo.delete_pattern(workspace_id, pattern_id).await
 }
 
 #[cfg(test)]

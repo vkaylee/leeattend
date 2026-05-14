@@ -6,7 +6,6 @@ use crate::models::{AttendanceRules, EarlyArrivalStrategy, PolicyRules, WorkingC
 use crate::repositories::AttendancePolicyRepository;
 use chrono::NaiveDate;
 use rust_decimal::Decimal;
-use sqlx::PgPool;
 use std::collections::HashMap;
 use uuid::Uuid;
 
@@ -21,16 +20,17 @@ pub struct PolicyResolver;
 
 impl PolicyResolver {
     pub async fn resolve_standard_month(
-        pool: &PgPool,
+        employee_repo: &dyn crate::repositories::employee::EmployeeRepository,
+        payroll_repo: &dyn crate::repositories::payroll_repository::PayrollRepository,
         employee_id: Uuid,
         department_id: Option<Uuid>,
         workspace_id: Uuid,
         date: NaiveDate,
     ) -> Result<StandardMonthConfig, AppError> {
         // 1. Check Individual Override (Highest Priority)
-        let emp_config =
-            crate::repositories::employee::get_employee_payroll_config_at(pool, employee_id, date)
-                .await?;
+        let emp_config = employee_repo
+            .get_employee_payroll_config_at(employee_id, date)
+            .await?;
 
         if let Some(config) = emp_config {
             return Ok(StandardMonthConfig {
@@ -42,18 +42,9 @@ impl PolicyResolver {
 
         // 2. Check Department Override
         if let Some(dept_id) = department_id {
-            let dept_config: Option<crate::models::DepartmentPayrollConfig> =
-                sqlx::query_as::<_, crate::models::DepartmentPayrollConfig>(
-                    r#"SELECT id, department_id, std_working_days, hours_per_day, effective_date, created_at
-                       FROM department_payroll_configs
-                       WHERE department_id = $1 AND effective_date <= $2
-                       ORDER BY effective_date DESC LIMIT 1"#,
-                )
-                .bind(dept_id)
-                .bind(date)
-                .fetch_optional(pool)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            let dept_config = payroll_repo
+                .get_department_payroll_config_at(dept_id, date)
+                .await?;
 
             if let Some(config) = dept_config {
                 return Ok(StandardMonthConfig {
@@ -65,12 +56,9 @@ impl PolicyResolver {
         }
 
         // 3. Fallback to Workspace Settings (Temporal)
-        let ws_settings = crate::repositories::payroll_repository::get_payroll_settings_at(
-            pool,
-            workspace_id,
-            date,
-        )
-        .await?;
+        let ws_settings = payroll_repo
+            .get_payroll_settings_at(workspace_id, date)
+            .await?;
 
         if let Some(settings) = ws_settings {
             return Ok(StandardMonthConfig {
@@ -90,15 +78,22 @@ impl PolicyResolver {
 
     // Deprecated in favor of resolve_standard_month, keeping for small logic pieces if needed
     pub async fn resolve_standard_days(
-        pool: &PgPool,
+        employee_repo: &dyn crate::repositories::employee::EmployeeRepository,
+        payroll_repo: &dyn crate::repositories::payroll_repository::PayrollRepository,
         employee_id: Uuid,
         department_id: Option<Uuid>,
         workspace_id: Uuid,
         date: NaiveDate,
     ) -> Result<Decimal, AppError> {
-        let config =
-            Self::resolve_standard_month(pool, employee_id, department_id, workspace_id, date)
-                .await?;
+        let config = Self::resolve_standard_month(
+            employee_repo,
+            payroll_repo,
+            employee_id,
+            department_id,
+            workspace_id,
+            date,
+        )
+        .await?;
         Ok(config.std_working_days)
     }
 
@@ -164,7 +159,7 @@ impl PolicyResolver {
 
     pub async fn resolve_attendance_rules(
         policy_repo: &dyn AttendancePolicyRepository,
-        pool: &PgPool,
+        employee_repo: &dyn crate::repositories::employee::EmployeeRepository,
         employee_id: Uuid,
         workspace_id: Uuid,
         date: NaiveDate,
@@ -174,8 +169,9 @@ impl PolicyResolver {
             Self::resolve_attendance_policy(policy_repo, employee_id, workspace_id, date).await?;
 
         // 2. Get Employee Special Conditions
-        let conditions =
-            Self::resolve_working_conditions(pool, employee_id, workspace_id, date).await?;
+        let conditions = employee_repo
+            .get_working_conditions_at(workspace_id, employee_id, date)
+            .await?;
 
         // 3. Merge logic
         let mut rules = PolicyRules {
@@ -211,76 +207,19 @@ impl PolicyResolver {
         Ok(rules)
     }
 
-    pub async fn resolve_working_conditions(
-        pool: &PgPool,
-        employee_id: Uuid,
-        workspace_id: Uuid,
-        date: NaiveDate,
-    ) -> Result<Vec<WorkingCondition>, AppError> {
-        let conditions = sqlx::query_as!(
-            WorkingCondition,
-            r#"
-            SELECT wc.id, wc.employee_id, wc.type as "type_", wc.minute_allowance, wc.is_paid, wc.start_date, wc.end_date
-            FROM working_conditions wc
-            JOIN employees e ON wc.employee_id = e.id
-            WHERE wc.employee_id = $1 
-              AND e.workspace_id = $2
-              AND wc.start_date <= $3 
-              AND (wc.end_date IS NULL OR wc.end_date >= $3)
-            "#,
-            employee_id,
-            workspace_id,
-            date
-        )
-        .fetch_all(pool)
-        .await?;
-
-        Ok(conditions)
-    }
-
     /// Batch resolve attendance rules for multiple employees.
     /// Returns a HashMap keyed by employee_id.
     /// This eliminates N+1 queries when processing batches.
     pub async fn resolve_attendance_rules_batch(
-        pool: &PgPool,
+        employee_repo: &dyn crate::repositories::employee::EmployeeRepository,
         employee_ids: &[Uuid],
         workspace_id: Uuid,
         start_date: NaiveDate,
         end_date: NaiveDate,
     ) -> Result<HashMap<Uuid, Vec<WorkingCondition>>, AppError> {
-        if employee_ids.is_empty() {
-            return Ok(HashMap::new());
-        }
-
-        // Batch fetch all working conditions for all employees in date range
-        let conditions = sqlx::query_as!(
-            WorkingCondition,
-            r#"
-            SELECT wc.id, wc.employee_id, wc.type as "type_", wc.minute_allowance, wc.is_paid, wc.start_date, wc.end_date
-            FROM working_conditions wc
-            JOIN employees e ON wc.employee_id = e.id
-            WHERE wc.employee_id = ANY($1)
-              AND e.workspace_id = $2
-              AND wc.start_date <= $4
-              AND (wc.end_date IS NULL OR wc.end_date >= $3)
-            ORDER BY wc.employee_id, wc.start_date
-            "#,
-            employee_ids,
-            workspace_id,
-            start_date,
-            end_date
-        )
-        .fetch_all(pool)
-        .await?;
-
-        // Group by employee_id
-        let mut result: HashMap<Uuid, Vec<WorkingCondition>> =
-            HashMap::with_capacity(employee_ids.len());
-        for cond in conditions {
-            result.entry(cond.employee_id).or_default().push(cond);
-        }
-
-        Ok(result)
+        employee_repo
+            .get_working_conditions_batch(workspace_id, employee_ids, start_date, end_date)
+            .await
     }
 
     /// Build PolicyRules from workspace defaults and working conditions.
@@ -336,24 +275,29 @@ impl PolicyResolver {
     /// Used by: `report_service`, `payroll_service`, `attendance_summary_service`
     pub async fn resolve_with_shift_overrides(
         policy_repo: &dyn AttendancePolicyRepository,
-        pool: &PgPool,
+        employee_repo: &dyn crate::repositories::employee::EmployeeRepository,
         employee_id: Uuid,
         workspace_id: Uuid,
         date: NaiveDate,
         overrides: &ShiftPolicyOverrides,
     ) -> PolicyRules {
-        let mut rules =
-            Self::resolve_attendance_rules(policy_repo, pool, employee_id, workspace_id, date)
-                .await
-                .unwrap_or(PolicyRules {
-                    grace_period_minutes: overrides.grace_period_minutes.unwrap_or(0),
-                    authorized_early_leave_minutes: 0,
-                    is_early_leave_paid: false,
-                    early_arrival_strategy: overrides.early_arrival_strategy,
-                    is_break_auto_deduct: overrides.is_break_auto_deduct.unwrap_or(false),
-                    is_break_overtime: overrides.is_break_overtime,
-                    allow_early_ot: overrides.allow_early_ot.unwrap_or(false),
-                });
+        let mut rules = Self::resolve_attendance_rules(
+            policy_repo,
+            employee_repo,
+            employee_id,
+            workspace_id,
+            date,
+        )
+        .await
+        .unwrap_or(PolicyRules {
+            grace_period_minutes: overrides.grace_period_minutes.unwrap_or(0),
+            authorized_early_leave_minutes: 0,
+            is_early_leave_paid: false,
+            early_arrival_strategy: overrides.early_arrival_strategy,
+            is_break_auto_deduct: overrides.is_break_auto_deduct.unwrap_or(false),
+            is_break_overtime: overrides.is_break_overtime,
+            allow_early_ot: overrides.allow_early_ot.unwrap_or(false),
+        });
 
         // Apply shift-specific overrides (shift config takes precedence)
         if let Some(gp) = overrides.grace_period_minutes {
@@ -377,7 +321,7 @@ impl PolicyResolver {
 ///
 /// This struct encapsulates the fields that vary per-shift and override
 /// the workspace-level or working-condition-level PolicyRules.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct ShiftPolicyOverrides {
     pub grace_period_minutes: Option<i32>,
     pub is_break_auto_deduct: Option<bool>,

@@ -308,34 +308,28 @@ impl ImportStrategy for PunchImportStrategy {
             let ps = Arc::new(crate::services::pairing_service::PairingService::new(
                 te_repo,
                 Arc::new(crate::repositories::DieselRosterRepository::new(
-                    pool.clone(),
                     self.diesel_pools.clone(),
                 )),
                 Arc::new(crate::repositories::DieselAttendancePolicyRepository::new(
-                    pool.clone(),
                     self.diesel_pools.clone(),
                 )),
                 pool.clone(),
                 self.diesel_pools.clone(),
             ));
-            let emp_repo: Arc<dyn EmployeeRepository> =
-                Arc::new(crate::repositories::DieselEmployeeRepository::new(
-                    pool.clone(),
-                    self.diesel_pools.clone(),
-                ));
+            let emp_repo: Arc<dyn EmployeeRepository> = Arc::new(
+                crate::repositories::DieselEmployeeRepository::new(self.diesel_pools.clone()),
+            );
             let rl_repo: Arc<
                 dyn crate::repositories::raw_attendance_log_repository::RawAttendanceLogRepository,
             > = Arc::new(crate::repositories::DieselRawAttendanceLogRepository::new(
-                pool.clone(),
                 self.diesel_pools.clone(),
             ));
             let st_repo: Arc<
                 dyn crate::repositories::staging_log_repository::StagingLogRepository,
             > = Arc::new(crate::repositories::DieselStagingLogRepository::new(
-                pool.clone(),
                 self.diesel_pools.clone(),
             ));
-            let er_repo: Arc<dyn crate::repositories::attendance_log_error_repository::AttendanceLogErrorRepository> = Arc::new(crate::repositories::DieselAttendanceLogErrorRepository::new(pool.clone(), self.diesel_pools.clone()));
+            let er_repo: Arc<dyn crate::repositories::attendance_log_error_repository::AttendanceLogErrorRepository> = Arc::new(crate::repositories::DieselAttendanceLogErrorRepository::new(self.diesel_pools.clone()));
 
             let (log_svc, _) = crate::services::attendance_log_service::AttendanceLogService::new(
                 pool.clone(),
@@ -680,7 +674,6 @@ impl AttendanceImportService {
             employee_repo: std::sync::Arc::clone(&self.employee_repo),
             department_repo: Arc::new(
                 crate::repositories::diesel_department_repository::DieselDepartmentRepository::new(
-                    pool.clone(),
                     self.diesel_pools.clone(),
                 ),
             ),

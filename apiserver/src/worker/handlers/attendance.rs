@@ -72,8 +72,7 @@ impl AttendanceHandler {
                 .ok_or("Invalid or ambiguous date range")?;
 
         // 3. Fetch schedules AND time entries in parallel (biggest latency win)
-        let roster_repo =
-            crate::repositories::DieselRosterRepository::new(pool.clone(), diesel.clone());
+        let roster_repo = crate::repositories::DieselRosterRepository::new(diesel.clone());
         let (schedules_result, entries_result) = tokio::join!(
             roster_repo.get_workspace_schedules(
                 roster_cache,
@@ -99,15 +98,14 @@ impl AttendanceHandler {
             entries_result.map_err(|e| format!("Failed to fetch time entries: {e}"))?;
 
         // 5. Calculate based on report type
-        let policy_repo = crate::repositories::DieselAttendancePolicyRepository::new(
-            pool.clone(),
-            diesel.clone(),
-        );
+        let policy_repo =
+            crate::repositories::DieselAttendancePolicyRepository::new(diesel.clone());
 
         let result_json = match payload.config.report_type {
             ReportType::Summary => {
                 Self::calculate_summary(CalculateBatchArgs {
                     pool,
+                    diesel,
                     schedules: &schedules,
                     entries_map: &entries_map,
                     workspace_id,
@@ -122,6 +120,7 @@ impl AttendanceHandler {
             ReportType::Detail => {
                 Self::calculate_detail(CalculateBatchArgs {
                     pool,
+                    diesel,
                     schedules: &schedules,
                     entries_map: &entries_map,
                     workspace_id,
@@ -187,6 +186,7 @@ impl AttendanceHandler {
 
 struct CalculateBatchArgs<'a> {
     pool: &'a PgPool,
+    diesel: &'a crate::diesel_pool::DieselPools,
     schedules: &'a [crate::models::EmployeeSchedule],
     entries_map: &'a HashMap<Uuid, Vec<TimeEntry>>,
     workspace_id: Uuid,
@@ -237,7 +237,7 @@ impl AttendanceHandler {
 
         // Batch fetch working conditions for all employees (eliminates N+1)
         let conditions_map = PolicyResolver::resolve_attendance_rules_batch(
-            args.pool,
+            &crate::repositories::DieselEmployeeRepository::new(args.diesel.clone()),
             &emp_ids,
             args.workspace_id,
             args.start_date,
@@ -388,7 +388,7 @@ impl AttendanceHandler {
 
         // Batch fetch working conditions for all employees (eliminates N+1)
         let conditions_map = PolicyResolver::resolve_attendance_rules_batch(
-            args.pool,
+            &crate::repositories::DieselEmployeeRepository::new(args.diesel.clone()),
             &emp_ids,
             args.workspace_id,
             args.start_date,

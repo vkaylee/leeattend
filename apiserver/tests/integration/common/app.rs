@@ -174,7 +174,9 @@ pub async fn spawn_app() -> (String, TestDatabase) {
             leave_repo: leave_request_repo.clone(),
             employee_repo: employee_repo.clone(),
             policy_repo: policy_repo.clone(),
-            overtime_policy_repo: Arc::new(apiserver::repositories::DieselOvertimePolicyRepository::new(diesel_pools.clone())),
+            overtime_policy_repo: Arc::new(
+                apiserver::repositories::DieselOvertimePolicyRepository::new(diesel_pools.clone()),
+            ),
             diesel_pools: diesel_pools.clone(),
         },
     ));
@@ -227,6 +229,11 @@ pub async fn spawn_app() -> (String, TestDatabase) {
     > = Arc::new(apiserver::repositories::DieselLeavePolicyRepository::new(
         diesel_pools.clone(),
     ));
+    let working_pattern_repo: Arc<
+        dyn apiserver::repositories::working_pattern_repository::WorkingPatternRepositoryTrait,
+    > = Arc::new(
+        apiserver::repositories::DieselWorkingPatternRepository::new(diesel_pools.clone()),
+    );
     let holiday_leave_service = Arc::new(
         apiserver::services::holiday_leave_service::HolidayLeaveService::new(
             employee_repo.clone(),
@@ -324,6 +331,7 @@ pub async fn spawn_app() -> (String, TestDatabase) {
             shift_repo: shift_repo.clone(),
             swap_repo: shift_swap_repo.clone(),
             assignment_rule_repo: assignment_rule_repo.clone(),
+            working_pattern_repo: working_pattern_repo.clone(),
         },
         leaves: apiserver::LeaveState {
             service: leave_service,
@@ -340,7 +348,9 @@ pub async fn spawn_app() -> (String, TestDatabase) {
             rule_repo: payroll_rule_repo.clone(),
             department_repo: department_repo.clone(),
             feature_flag_repo: feature_flag_repo.clone(),
-            overtime_policy_repo: Arc::new(apiserver::repositories::DieselOvertimePolicyRepository::new(diesel_pools.clone())),
+            overtime_policy_repo: Arc::new(
+                apiserver::repositories::DieselOvertimePolicyRepository::new(diesel_pools.clone()),
+            ),
         },
         reports: apiserver::ReportState {
             service: report_service,
@@ -577,7 +587,9 @@ pub async fn spawn_app_with_factory() -> (String, Uuid, Uuid, TestFactory, TestD
             leave_repo: leave_request_repo.clone(),
             employee_repo: employee_repo.clone(),
             policy_repo: policy_repo.clone(),
-            overtime_policy_repo: Arc::new(apiserver::repositories::DieselOvertimePolicyRepository::new(diesel_pools.clone())),
+            overtime_policy_repo: Arc::new(
+                apiserver::repositories::DieselOvertimePolicyRepository::new(diesel_pools.clone()),
+            ),
             diesel_pools: diesel_pools.clone(),
         },
     ));
@@ -630,6 +642,11 @@ pub async fn spawn_app_with_factory() -> (String, Uuid, Uuid, TestFactory, TestD
     > = Arc::new(apiserver::repositories::DieselLeavePolicyRepository::new(
         diesel_pools.clone(),
     ));
+    let working_pattern_repo: Arc<
+        dyn apiserver::repositories::working_pattern_repository::WorkingPatternRepositoryTrait,
+    > = Arc::new(
+        apiserver::repositories::DieselWorkingPatternRepository::new(diesel_pools.clone()),
+    );
     let holiday_leave_service = Arc::new(
         apiserver::services::holiday_leave_service::HolidayLeaveService::new(
             employee_repo.clone(),
@@ -727,6 +744,7 @@ pub async fn spawn_app_with_factory() -> (String, Uuid, Uuid, TestFactory, TestD
             shift_repo: shift_repo.clone(),
             swap_repo: shift_swap_repo.clone(),
             assignment_rule_repo: assignment_rule_repo.clone(),
+            working_pattern_repo: working_pattern_repo.clone(),
         },
         leaves: apiserver::LeaveState {
             service: leave_service,
@@ -743,7 +761,9 @@ pub async fn spawn_app_with_factory() -> (String, Uuid, Uuid, TestFactory, TestD
             rule_repo: payroll_rule_repo.clone(),
             department_repo: department_repo.clone(),
             feature_flag_repo: feature_flag_repo.clone(),
-            overtime_policy_repo: Arc::new(apiserver::repositories::DieselOvertimePolicyRepository::new(diesel_pools.clone())),
+            overtime_policy_repo: Arc::new(
+                apiserver::repositories::DieselOvertimePolicyRepository::new(diesel_pools.clone()),
+            ),
         },
         reports: apiserver::ReportState {
             service: report_service,
@@ -1013,7 +1033,9 @@ pub async fn setup_app_tower() -> (TestDatabase, TestFactory, Arc<AppState>, axu
             leave_repo: leave_request_repo.clone(),
             employee_repo: employee_repo.clone(),
             policy_repo: policy_repo.clone(),
-            overtime_policy_repo: Arc::new(apiserver::repositories::DieselOvertimePolicyRepository::new(diesel_pools.clone())),
+            overtime_policy_repo: Arc::new(
+                apiserver::repositories::DieselOvertimePolicyRepository::new(diesel_pools.clone()),
+            ),
             diesel_pools: diesel_pools.clone(),
         },
     ));
@@ -1066,6 +1088,11 @@ pub async fn setup_app_tower() -> (TestDatabase, TestFactory, Arc<AppState>, axu
     > = Arc::new(apiserver::repositories::DieselLeavePolicyRepository::new(
         diesel_pools.clone(),
     ));
+    let working_pattern_repo: Arc<
+        dyn apiserver::repositories::working_pattern_repository::WorkingPatternRepositoryTrait,
+    > = Arc::new(
+        apiserver::repositories::DieselWorkingPatternRepository::new(diesel_pools.clone()),
+    );
     let holiday_leave_service = Arc::new(
         apiserver::services::holiday_leave_service::HolidayLeaveService::new(
             employee_repo.clone(),
@@ -1167,6 +1194,7 @@ pub async fn setup_app_tower() -> (TestDatabase, TestFactory, Arc<AppState>, axu
             shift_repo: shift_repo.clone(),
             swap_repo: shift_swap_repo.clone(),
             assignment_rule_repo: assignment_rule_repo.clone(),
+            working_pattern_repo: working_pattern_repo.clone(),
         },
         leaves: apiserver::LeaveState {
             service: leave_service,
@@ -1183,7 +1211,9 @@ pub async fn setup_app_tower() -> (TestDatabase, TestFactory, Arc<AppState>, axu
             rule_repo: payroll_rule_repo.clone(),
             department_repo: department_repo.clone(),
             feature_flag_repo: feature_flag_repo.clone(),
-            overtime_policy_repo: Arc::new(apiserver::repositories::DieselOvertimePolicyRepository::new(diesel_pools.clone())),
+            overtime_policy_repo: Arc::new(
+                apiserver::repositories::DieselOvertimePolicyRepository::new(diesel_pools.clone()),
+            ),
         },
         reports: apiserver::ReportState {
             service: report_service,

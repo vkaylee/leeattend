@@ -1,7 +1,6 @@
 use async_trait::async_trait;
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
-use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::{
@@ -12,16 +11,12 @@ use crate::{
 use super::AuditLogRepository;
 
 pub struct DieselAuditLogRepository {
-    pub sqlx_pool: PgPool,
     pub diesel_pools: DieselPools,
 }
 
 impl DieselAuditLogRepository {
-    pub fn new(sqlx_pool: PgPool, diesel_pools: DieselPools) -> Self {
-        Self {
-            sqlx_pool,
-            diesel_pools,
-        }
+    pub fn new(diesel_pools: DieselPools) -> Self {
+        Self { diesel_pools }
     }
 }
 

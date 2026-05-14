@@ -42,12 +42,12 @@ impl WorkspaceCache {
     /// 3. Store in cache for future requests
     pub async fn get(&self, workspace_id: Uuid) -> Result<CachedWorkspaceConfig, String> {
         let key = Self::key(workspace_id);
-        let db = self.db.clone();
+        let _db = self.db.clone();
         let diesel = self.diesel.clone();
 
         self.cache
             .get_or_fetch(&key, DEFAULT_CACHE_TTL, || async move {
-                let repo = crate::repositories::DieselWorkspaceRepository::new(db.clone(), diesel);
+                let repo = crate::repositories::DieselWorkspaceRepository::new(diesel);
                 let ws = repo
                     .get_workspace_by_id(workspace_id)
                     .await

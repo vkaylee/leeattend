@@ -21,7 +21,7 @@ async fn test_workspace_creation_no_default_leave_types() {
     .expect("Failed to seed platform_admin role");
 
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
-    let repo = DieselWorkspaceRepository::new(factory.pool.clone(), diesel_pools.clone());
+    let repo = DieselWorkspaceRepository::new(diesel_pools.clone());
 
     // 2. Create workspace using repository directly (which is used by Service)
     let workspace = repo

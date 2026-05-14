@@ -12,16 +12,12 @@ use crate::repositories::shift_repository::ShiftRepository;
 use crate::schema::{employee_shifts, shifts};
 
 pub struct DieselShiftRepository {
-    pub sqlx_pool: sqlx::PgPool,
     pub diesel_pools: DieselPools,
 }
 
 impl DieselShiftRepository {
-    pub fn new(sqlx_pool: sqlx::PgPool, diesel_pools: DieselPools) -> Self {
-        Self {
-            sqlx_pool,
-            diesel_pools,
-        }
+    pub fn new(diesel_pools: DieselPools) -> Self {
+        Self { diesel_pools }
     }
 }
 

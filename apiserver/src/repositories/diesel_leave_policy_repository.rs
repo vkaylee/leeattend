@@ -4,34 +4,26 @@ use crate::models::diesel::leave::*;
 use crate::models::{
     LeavePolicyAssignment, LeavePolicyAssignmentDetail, LeavePolicyConfig, LeavePolicyDefinition,
 };
-use crate::repositories::leave_policy_repository::{
-    create_policy_assignment, create_policy_definition, delete_policy_definition,
-    find_active_assignment_for_employee, get_policy_assignments, update_policy_definition,
-    LeavePolicyRepository,
-};
+use crate::repositories::leave_policy_repository::LeavePolicyRepository;
 
 use crate::schema::*;
 use async_trait::async_trait;
-use chrono::NaiveDate;
+use chrono::{NaiveDate, Utc};
 use diesel::prelude::*;
-use diesel_async::RunQueryDsl;
-use sqlx::PgPool;
+use diesel_async::{AsyncConnection, RunQueryDsl};
 use uuid::Uuid;
 
 pub struct DieselLeavePolicyRepository {
-    pub sqlx_pool: PgPool,
     pub diesel_pools: DieselPools,
 }
 
 impl DieselLeavePolicyRepository {
-    pub fn new(sqlx_pool: PgPool, diesel_pools: DieselPools) -> Self {
-        Self {
-            sqlx_pool,
-            diesel_pools,
-        }
+    pub fn new(diesel_pools: DieselPools) -> Self {
+        Self { diesel_pools }
     }
 }
 
+#[allow(clippy::too_many_lines)]
 #[async_trait]
 impl LeavePolicyRepository for DieselLeavePolicyRepository {
     async fn create_policy_definition(
@@ -42,16 +34,31 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
         leave_type_id: Uuid,
         rule_config: LeavePolicyConfig,
     ) -> Result<LeavePolicyDefinition, AppError> {
-        create_policy_definition(
-            &self.sqlx_pool,
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        let entity = LeavePolicyDefinitionEntity {
+            id: Uuid::new_v4(),
             workspace_id,
-            name,
-            description,
+            name: name.to_string(),
+            description: description.map(ToString::to_string),
             leave_type_id,
-            rule_config,
-        )
-        .await
-        .map_err(Into::into)
+            rule_config: serde_json::to_value(rule_config).unwrap_or_default(),
+            created_at: Some(Utc::now()),
+            updated_at: Some(Utc::now()),
+        };
+
+        let result = diesel::insert_into(leave_policy_definitions::table)
+            .values(&entity)
+            .get_result::<LeavePolicyDefinitionEntity>(&mut conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        Ok(result.into())
     }
 
     async fn get_policy_definitions(
@@ -84,17 +91,33 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
         leave_type_id: Option<Uuid>,
         rule_config: Option<LeavePolicyConfig>,
     ) -> Result<LeavePolicyDefinition, AppError> {
-        update_policy_definition(
-            &self.sqlx_pool,
-            id,
-            workspace_id,
-            name,
-            description,
-            leave_type_id,
-            rule_config,
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        let result = diesel::update(
+            leave_policy_definitions::table
+                .filter(leave_policy_definitions::id.eq(id))
+                .filter(leave_policy_definitions::workspace_id.eq(workspace_id)),
         )
+        .set((
+            name.map(|s| leave_policy_definitions::name.eq(s.to_string())),
+            description.map(|s| leave_policy_definitions::description.eq(s.to_string())),
+            leave_type_id.map(|v| leave_policy_definitions::leave_type_id.eq(v)),
+            rule_config.map(|v| {
+                leave_policy_definitions::rule_config
+                    .eq(serde_json::to_value(v).unwrap_or_default())
+            }),
+            leave_policy_definitions::updated_at.eq(Some(Utc::now())),
+        ))
+        .get_result::<LeavePolicyDefinitionEntity>(&mut conn)
         .await
-        .map_err(Into::into)
+        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        Ok(result.into())
     }
 
     async fn delete_policy_definition(
@@ -102,18 +125,160 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
         id: Uuid,
         workspace_id: Uuid,
     ) -> Result<u64, AppError> {
-        delete_policy_definition(&self.sqlx_pool, id, workspace_id)
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
             .await
-            .map_err(Into::into)
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        conn.transaction(|mut conn| {
+            Box::pin(async move {
+                // 1. Delete assignments
+                diesel::delete(
+                    leave_policy_assignments::table
+                        .filter(leave_policy_assignments::policy_id.eq(id))
+                        .filter(leave_policy_assignments::workspace_id.eq(workspace_id)),
+                )
+                .execute(&mut conn)
+                .await?;
+
+                // 2. Delete definition
+                let affected = diesel::delete(
+                    leave_policy_definitions::table
+                        .filter(leave_policy_definitions::id.eq(id))
+                        .filter(leave_policy_definitions::workspace_id.eq(workspace_id)),
+                )
+                .execute(&mut conn)
+                .await?;
+
+                Ok::<_, diesel::result::Error>(affected as u64)
+            })
+        })
+        .await
+        .map_err(|e| AppError::Internal(format!("db transaction: {e}")))
     }
 
     async fn create_policy_assignment(
         &self,
         assignment: &LeavePolicyAssignment,
     ) -> Result<LeavePolicyAssignment, AppError> {
-        create_policy_assignment(&self.sqlx_pool, assignment)
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
             .await
-            .map_err(Into::into)
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        let assignment_owned = assignment.clone();
+        let result = conn
+            .transaction(|mut conn| {
+                Box::pin(async move {
+                    // 1. Get leave_type_id
+                    let lt_id: Uuid = leave_policy_definitions::table
+                        .filter(leave_policy_definitions::id.eq(assignment_owned.policy_id))
+                        .filter(
+                            leave_policy_definitions::workspace_id
+                                .eq(assignment_owned.workspace_id),
+                        )
+                        .select(leave_policy_definitions::leave_type_id)
+                        .first(&mut conn)
+                        .await?;
+
+                    // 2a. Delete future assignments
+                    diesel::delete(
+                        leave_policy_assignments::table
+                            .filter(
+                                leave_policy_assignments::workspace_id
+                                    .eq(assignment_owned.workspace_id),
+                            )
+                            .filter(
+                                leave_policy_assignments::assignee_type
+                                    .eq(assignment_owned.assignee_type.clone()),
+                            )
+                            .filter(
+                                leave_policy_assignments::assignee_id
+                                    .is_not_distinct_from(assignment_owned.assignee_id),
+                            )
+                            .filter(
+                                leave_policy_assignments::policy_id.eq_any(
+                                    leave_policy_definitions::table
+                                        .filter(leave_policy_definitions::leave_type_id.eq(lt_id))
+                                        .select(leave_policy_definitions::id),
+                                ),
+                            )
+                            .filter(
+                                leave_policy_assignments::effective_from
+                                    .ge(assignment_owned.effective_from),
+                            ),
+                    )
+                    .execute(&mut conn)
+                    .await?;
+
+                    // 2. Auto-close existing
+                    diesel::update(
+                        leave_policy_assignments::table
+                            .filter(
+                                leave_policy_assignments::workspace_id
+                                    .eq(assignment_owned.workspace_id),
+                            )
+                            .filter(
+                                leave_policy_assignments::assignee_type
+                                    .eq(assignment_owned.assignee_type.clone()),
+                            )
+                            .filter(
+                                leave_policy_assignments::assignee_id
+                                    .is_not_distinct_from(assignment_owned.assignee_id),
+                            )
+                            .filter(
+                                leave_policy_assignments::policy_id.eq_any(
+                                    leave_policy_definitions::table
+                                        .filter(leave_policy_definitions::leave_type_id.eq(lt_id))
+                                        .select(leave_policy_definitions::id),
+                                ),
+                            )
+                            .filter(
+                                leave_policy_assignments::effective_from
+                                    .lt(assignment_owned.effective_from),
+                            )
+                            .filter(
+                                leave_policy_assignments::effective_to
+                                    .is_null()
+                                    .or(leave_policy_assignments::effective_to
+                                        .ge(assignment_owned.effective_from)),
+                            ),
+                    )
+                    .set(
+                        leave_policy_assignments::effective_to
+                            .eq(assignment_owned.effective_from.pred_opt()),
+                    )
+                    .execute(&mut conn)
+                    .await?;
+
+                    // 3. Insert new
+                    let entity = LeavePolicyAssignmentEntity {
+                        id: Uuid::new_v4(),
+                        workspace_id: assignment_owned.workspace_id,
+                        assignee_type: assignment_owned.assignee_type,
+                        assignee_id: assignment_owned.assignee_id,
+                        policy_id: assignment_owned.policy_id,
+                        effective_from: assignment_owned.effective_from,
+                        effective_to: assignment_owned.effective_to,
+                        created_at: Some(Utc::now()),
+                    };
+
+                    let saved = diesel::insert_into(leave_policy_assignments::table)
+                        .values(&entity)
+                        .get_result::<LeavePolicyAssignmentEntity>(&mut conn)
+                        .await?;
+
+                    Ok::<_, diesel::result::Error>(saved.into())
+                })
+            })
+            .await
+            .map_err(|e| AppError::Internal(format!("db transaction: {e}")))?;
+
+        Ok(result)
     }
 
     async fn find_active_assignment_for_employee(
@@ -123,23 +288,146 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
         department_id: Option<Uuid>,
         date: NaiveDate,
     ) -> Result<Option<(LeavePolicyDefinition, Uuid, String)>, AppError> {
-        find_active_assignment_for_employee(
-            &self.sqlx_pool,
-            workspace_id,
-            employee_id,
-            department_id,
-            date,
-        )
-        .await
-        .map_err(Into::into)
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        // Priority 1: Employee
+        let employee_result = leave_policy_assignments::table
+            .inner_join(leave_policy_definitions::table)
+            .inner_join(
+                leave_types::table.on(leave_policy_definitions::leave_type_id.eq(leave_types::id)),
+            )
+            .filter(leave_policy_assignments::workspace_id.eq(workspace_id))
+            .filter(leave_policy_assignments::assignee_type.eq("employee"))
+            .filter(leave_policy_assignments::assignee_id.eq(employee_id))
+            .filter(leave_policy_assignments::effective_from.le(date))
+            .filter(
+                leave_policy_assignments::effective_to
+                    .is_null()
+                    .or(leave_policy_assignments::effective_to.gt(date)),
+            )
+            .select((
+                leave_policy_definitions::all_columns,
+                leave_policy_assignments::id,
+                leave_types::code,
+            ))
+            .first::<(LeavePolicyDefinitionEntity, Uuid, String)>(&mut conn)
+            .await
+            .optional()
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        if let Some((def, assignment_id, code)) = employee_result {
+            return Ok(Some((def.into(), assignment_id, code)));
+        }
+
+        // Priority 2: Department
+        if let Some(dept_id) = department_id {
+            let dept_result = leave_policy_assignments::table
+                .inner_join(leave_policy_definitions::table)
+                .inner_join(
+                    leave_types::table
+                        .on(leave_policy_definitions::leave_type_id.eq(leave_types::id)),
+                )
+                .filter(leave_policy_assignments::workspace_id.eq(workspace_id))
+                .filter(leave_policy_assignments::assignee_type.eq("department"))
+                .filter(leave_policy_assignments::assignee_id.eq(dept_id))
+                .filter(leave_policy_assignments::effective_from.le(date))
+                .filter(
+                    leave_policy_assignments::effective_to
+                        .is_null()
+                        .or(leave_policy_assignments::effective_to.gt(date)),
+                )
+                .select((
+                    leave_policy_definitions::all_columns,
+                    leave_policy_assignments::id,
+                    leave_types::code,
+                ))
+                .first::<(LeavePolicyDefinitionEntity, Uuid, String)>(&mut conn)
+                .await
+                .optional()
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+            if let Some((def, assignment_id, code)) = dept_result {
+                return Ok(Some((def.into(), assignment_id, code)));
+            }
+        }
+
+        // Priority 3: Workspace
+        let workspace_result = leave_policy_assignments::table
+            .inner_join(leave_policy_definitions::table)
+            .inner_join(
+                leave_types::table.on(leave_policy_definitions::leave_type_id.eq(leave_types::id)),
+            )
+            .filter(leave_policy_assignments::workspace_id.eq(workspace_id))
+            .filter(leave_policy_assignments::assignee_type.eq("workspace"))
+            .filter(leave_policy_assignments::effective_from.le(date))
+            .filter(
+                leave_policy_assignments::effective_to
+                    .is_null()
+                    .or(leave_policy_assignments::effective_to.gt(date)),
+            )
+            .select((
+                leave_policy_definitions::all_columns,
+                leave_policy_assignments::id,
+                leave_types::code,
+            ))
+            .first::<(LeavePolicyDefinitionEntity, Uuid, String)>(&mut conn)
+            .await
+            .optional()
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        if let Some((def, assignment_id, code)) = workspace_result {
+            return Ok(Some((def.into(), assignment_id, code)));
+        }
+
+        Ok(None)
     }
 
     async fn get_policy_assignments(
         &self,
         workspace_id: Uuid,
     ) -> Result<Vec<LeavePolicyAssignmentDetail>, AppError> {
-        get_policy_assignments(&self.sqlx_pool, workspace_id)
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
             .await
-            .map_err(Into::into)
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        let results = leave_policy_assignments::table
+            .inner_join(leave_policy_definitions::table)
+            .inner_join(
+                leave_types::table.on(leave_policy_definitions::leave_type_id.eq(leave_types::id)),
+            )
+            .filter(leave_policy_assignments::workspace_id.eq(workspace_id))
+            .order(leave_policy_assignments::created_at.desc())
+            .select((
+                leave_policy_assignments::all_columns,
+                leave_policy_definitions::name,
+                leave_types::name,
+            ))
+            .load::<(LeavePolicyAssignmentEntity, String, String)>(&mut conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        Ok(results
+            .into_iter()
+            .map(|(a, p_name, lt_name)| LeavePolicyAssignmentDetail {
+                id: a.id,
+                workspace_id: a.workspace_id,
+                assignee_type: a.assignee_type,
+                assignee_id: a.assignee_id,
+                policy_id: a.policy_id,
+                effective_from: a.effective_from,
+                effective_to: a.effective_to,
+                created_at: a.created_at.unwrap_or_else(Utc::now),
+                policy_name: p_name,
+                leave_type_name: lt_name,
+            })
+            .collect())
     }
 }

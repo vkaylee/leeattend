@@ -724,6 +724,81 @@ mod tests {
         ) -> Result<Option<Uuid>, AppError> {
             Ok(None)
         }
+
+        async fn get_working_conditions_at(
+            &self,
+            _workspace_id: Uuid,
+            _employee_id: Uuid,
+            _date: NaiveDate,
+        ) -> Result<Vec<WorkingCondition>, AppError> {
+            Ok(vec![])
+        }
+
+        async fn get_working_conditions_batch(
+            &self,
+            _workspace_id: Uuid,
+            _employee_ids: &[Uuid],
+            _start_date: NaiveDate,
+            _end_date: NaiveDate,
+        ) -> Result<std::collections::HashMap<Uuid, Vec<WorkingCondition>>, AppError> {
+            Ok(std::collections::HashMap::new())
+        }
+
+        async fn get_employee_profile(
+            &self,
+            _workspace_id: Uuid,
+            _employee_id: Uuid,
+        ) -> Result<Option<crate::models::EmployeeProfile>, AppError> {
+            Ok(None)
+        }
+
+        async fn upsert_employee_profile(
+            &self,
+            _employee_id: Uuid,
+            _req: &crate::models::UpdateEmployeeProfileRequest,
+        ) -> Result<crate::models::EmployeeProfile, AppError> {
+            unimplemented!()
+        }
+
+        async fn get_emergency_contacts(
+            &self,
+            _workspace_id: Uuid,
+            _employee_id: Uuid,
+        ) -> Result<Vec<crate::models::EmployeeEmergencyContact>, AppError> {
+            Ok(vec![])
+        }
+
+        async fn upsert_emergency_contact(
+            &self,
+            _employee_id: Uuid,
+            _req: &crate::models::CreateEmergencyContactRequest,
+        ) -> Result<crate::models::EmployeeEmergencyContact, AppError> {
+            unimplemented!()
+        }
+
+        async fn delete_emergency_contact(
+            &self,
+            _workspace_id: Uuid,
+            _employee_id: Uuid,
+            _contact_id: Uuid,
+        ) -> Result<u64, AppError> {
+            Ok(0)
+        }
+
+        async fn get_employee_documents(
+            &self,
+            _workspace_id: Uuid,
+            _employee_id: Uuid,
+        ) -> Result<Vec<crate::models::EmployeeDocument>, AppError> {
+            Ok(vec![])
+        }
+
+        async fn create_employee_document(
+            &self,
+            _doc: &crate::models::EmployeeDocument,
+        ) -> Result<(), AppError> {
+            Ok(())
+        }
     }
 
     /// Minimal no-op DepartmentRepository for unit tests.

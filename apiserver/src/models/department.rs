@@ -2,7 +2,7 @@ use chrono::{DateTime, NaiveDate, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Department {
     pub id: Uuid,
     pub workspace_id: Uuid,
@@ -12,7 +12,6 @@ pub struct Department {
     pub default_working_pattern_id: Option<Uuid>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
-    #[sqlx(default)]
     pub active_employee_count: i64,
 }
 

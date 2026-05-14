@@ -225,7 +225,7 @@ impl LeaveImportService {
     ) -> Result<(), ()> {
         let file_bytes = tokio::fs::read(file_path).await.map_err(|_e| ())?;
 
-        let import_repo = DieselImportJobRepository::new(self.pool.clone(), self.diesel.clone());
+        let import_repo = DieselImportJobRepository::new(self.diesel.clone());
         let Ok(Some(job)) = import_repo.get_job_by_id(import_job_id).await else {
             return Err(());
         };
@@ -251,26 +251,14 @@ impl LeaveImportService {
 
         let msgs = LeaveImportMessages::for_lang(&lang);
 
-        let employee_repo: Arc<dyn EmployeeRepository> = Arc::new(DieselEmployeeRepository::new(
-            self.pool.clone(),
-            self.diesel.clone(),
-        ));
-        let leave_balance_repo = Arc::new(DieselLeaveBalanceRepository::new(
-            self.pool.clone(),
-            self.diesel.clone(),
-        ));
-        let leave_request_repo = Arc::new(DieselLeaveRequestRepository::new(
-            self.pool.clone(),
-            self.diesel.clone(),
-        ));
-        let roster_repo = Arc::new(DieselRosterRepository::new(
-            self.pool.clone(),
-            self.diesel.clone(),
-        ));
+        let employee_repo: Arc<dyn EmployeeRepository> =
+            Arc::new(DieselEmployeeRepository::new(self.diesel.clone()));
+        let leave_balance_repo = Arc::new(DieselLeaveBalanceRepository::new(self.diesel.clone()));
+        let leave_request_repo = Arc::new(DieselLeaveRequestRepository::new(self.diesel.clone()));
+        let roster_repo = Arc::new(DieselRosterRepository::new(self.diesel.clone()));
         let leave_accrual_log_repo: Arc<
             dyn crate::repositories::leave_accrual_log_repository::LeaveAccrualLogRepository,
         > = Arc::new(crate::repositories::DieselLeaveAccrualLogRepository::new(
-            self.pool.clone(),
             self.diesel.clone(),
         ));
         let leave_service = LeaveService::new(

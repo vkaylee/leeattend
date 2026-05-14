@@ -7,6 +7,11 @@ use crate::models::{
 };
 use crate::repositories::payroll_repository::*;
 
+use crate::models::diesel::payroll::{
+    EmployeeSalaryComponentEntity, SalaryComponentDefinitionEntity,
+};
+use crate::models::diesel::payroll_rule::PayrollRuleTierEntity;
+use crate::repositories::diesel_department_repository::DepartmentPayrollConfigEntity;
 use crate::schema::*;
 use async_trait::async_trait;
 use chrono::{NaiveDate, Utc};
@@ -14,21 +19,16 @@ use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
 use rust_decimal::prelude::*;
 use rust_decimal::Decimal;
-use sqlx::PgPool;
 use std::str::FromStr;
 use uuid::Uuid;
 
 pub struct DieselPayrollRepository {
-    pub sqlx_pool: PgPool,
     pub diesel_pools: DieselPools,
 }
 
 impl DieselPayrollRepository {
-    pub fn new(sqlx_pool: PgPool, diesel_pools: DieselPools) -> Self {
-        Self {
-            sqlx_pool,
-            diesel_pools,
-        }
+    pub fn new(diesel_pools: DieselPools) -> Self {
+        Self { diesel_pools }
     }
 }
 
@@ -383,9 +383,39 @@ impl PayrollRepository for DieselPayrollRepository {
         employee_id: Uuid,
         reference_date: NaiveDate,
     ) -> Result<Vec<(EmployeeSalaryComponent, SalaryComponentDefinition)>, AppError> {
-        get_employee_salary_components(&self.sqlx_pool, workspace_id, employee_id, reference_date)
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
             .await
-            .map_err(Into::into)
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        let rows = employee_salary_components::table
+            .inner_join(salary_component_definitions::table)
+            .filter(employee_salary_components::employee_id.eq(employee_id))
+            .filter(employee_salary_components::effective_date.le(reference_date))
+            .filter(salary_component_definitions::workspace_id.eq(workspace_id))
+            .distinct_on((
+                employee_salary_components::employee_id,
+                employee_salary_components::component_definition_id,
+            ))
+            .order((
+                employee_salary_components::employee_id,
+                employee_salary_components::component_definition_id,
+                employee_salary_components::effective_date.desc(),
+                employee_salary_components::created_at.desc(),
+            ))
+            .load::<(
+                EmployeeSalaryComponentEntity,
+                SalaryComponentDefinitionEntity,
+            )>(&mut conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        Ok(rows
+            .into_iter()
+            .map(|(esc, scd)| (esc.into(), scd.into()))
+            .collect())
     }
 
     async fn create_payslip(&self, payslip: &Payslip) -> Result<Payslip, AppError> {
@@ -490,15 +520,58 @@ impl PayrollRepository for DieselPayrollRepository {
         start_date: NaiveDate,
         end_date: NaiveDate,
     ) -> Result<Vec<(EmployeeSalaryComponent, SalaryComponentDefinition)>, AppError> {
-        get_salary_components_history(
-            &self.sqlx_pool,
-            workspace_id,
-            employee_id,
-            start_date,
-            end_date,
-        )
-        .await
-        .map_err(Into::into)
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        // Last component before start_date
+        let last_before = employee_salary_components::table
+            .inner_join(salary_component_definitions::table)
+            .filter(employee_salary_components::employee_id.eq(employee_id))
+            .filter(employee_salary_components::effective_date.lt(start_date))
+            .filter(salary_component_definitions::workspace_id.eq(workspace_id))
+            .distinct_on((
+                employee_salary_components::employee_id,
+                employee_salary_components::component_definition_id,
+            ))
+            .order((
+                employee_salary_components::employee_id,
+                employee_salary_components::component_definition_id,
+                employee_salary_components::effective_date.desc(),
+                employee_salary_components::created_at.desc(),
+            ))
+            .load::<(
+                EmployeeSalaryComponentEntity,
+                SalaryComponentDefinitionEntity,
+            )>(&mut conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        // Components within range
+        let within_range = employee_salary_components::table
+            .inner_join(salary_component_definitions::table)
+            .filter(employee_salary_components::employee_id.eq(employee_id))
+            .filter(employee_salary_components::effective_date.between(start_date, end_date))
+            .filter(salary_component_definitions::workspace_id.eq(workspace_id))
+            .order(employee_salary_components::effective_date.asc())
+            .load::<(
+                EmployeeSalaryComponentEntity,
+                SalaryComponentDefinitionEntity,
+            )>(&mut conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        let mut all = last_before;
+        all.extend(within_range);
+        all.sort_by_key(|(esc, _)| esc.effective_date);
+
+        Ok(all
+            .into_iter()
+            .map(|(esc, scd)| (esc.into(), scd.into()))
+            .collect())
     }
 
     async fn create_payslip_segment(
@@ -566,5 +639,138 @@ impl PayrollRepository for DieselPayrollRepository {
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(entities.into_iter().map(Into::into).collect())
+    }
+
+    async fn get_resolved_rule_assignments(
+        &self,
+        workspace_id: Uuid,
+        employee_id: Uuid,
+        department_id: Option<Uuid>,
+        start_date: NaiveDate,
+        end_date: NaiveDate,
+    ) -> Result<Vec<ResolvedRuleAssignment>, AppError> {
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        let sql = r#"
+            WITH resolved_assignments AS (
+                SELECT DISTINCT ON (rule_definition_id)
+                    rule_definition_id, override_config, assignee_type
+                FROM payroll_rule_assignments
+                WHERE workspace_id = $1
+                  AND effective_from <= $5
+                  AND (effective_to IS NULL OR effective_to >= $4)
+                  AND (
+                      (assignee_type = 'employee' AND assignee_id = $2)
+                      OR (assignee_type = 'department' AND assignee_id = $3)
+                      OR (assignee_type = 'workspace')
+                  )
+                ORDER BY rule_definition_id, 
+                         CASE assignee_type 
+                            WHEN 'employee' THEN 1 
+                            WHEN 'department' THEN 2 
+                            WHEN 'workspace' THEN 3 
+                         END
+            )
+            SELECT 
+                r.rule_definition_id,
+                r.override_config,
+                d.code,
+                d.calculation_method as "calculation_method",
+                d.rule_config as default_config,
+                d.category as "category"
+            FROM resolved_assignments r
+            JOIN payroll_rule_definitions d ON d.id = r.rule_definition_id
+            WHERE d.is_active = true
+            ORDER BY d.display_order
+        "#;
+
+        #[derive(QueryableByName)]
+        struct ResolvedRow {
+            #[diesel(sql_type = diesel::sql_types::Uuid)]
+            pub rule_definition_id: Uuid,
+            #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Jsonb>)]
+            pub override_config: Option<serde_json::Value>,
+            #[diesel(sql_type = diesel::sql_types::Text)]
+            pub code: String,
+            #[diesel(sql_type = diesel::sql_types::Text)]
+            pub calculation_method: String,
+            #[diesel(sql_type = diesel::sql_types::Jsonb)]
+            pub default_config: serde_json::Value,
+            #[diesel(sql_type = diesel::sql_types::Text)]
+            pub category: String,
+        }
+
+        let rows = diesel::sql_query(sql)
+            .bind::<diesel::sql_types::Uuid, _>(workspace_id)
+            .bind::<diesel::sql_types::Uuid, _>(employee_id)
+            .bind::<diesel::sql_types::Nullable<diesel::sql_types::Uuid>, _>(department_id)
+            .bind::<diesel::sql_types::Date, _>(start_date)
+            .bind::<diesel::sql_types::Date, _>(end_date)
+            .load::<ResolvedRow>(&mut conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        Ok(rows
+            .into_iter()
+            .map(|r| ResolvedRuleAssignment {
+                rule_definition_id: r.rule_definition_id,
+                override_config: r.override_config,
+                code: r.code,
+                calculation_method: r.calculation_method.parse().unwrap_or_default(),
+                default_config: r.default_config,
+                category: r.category.parse().unwrap_or_default(),
+            })
+            .collect())
+    }
+
+    async fn get_payroll_rule_tiers(
+        &self,
+        rule_definition_id: Uuid,
+    ) -> Result<Vec<crate::models::PayrollRuleTier>, AppError> {
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        let entities = payroll_rule_tiers::table
+            .filter(payroll_rule_tiers::rule_definition_id.eq(rule_definition_id))
+            .order(payroll_rule_tiers::tier_order.asc())
+            .load::<PayrollRuleTierEntity>(&mut conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        Ok(entities.into_iter().map(Into::into).collect())
+    }
+
+    async fn get_department_payroll_config_at(
+        &self,
+        department_id: Uuid,
+        date: NaiveDate,
+    ) -> Result<Option<crate::models::DepartmentPayrollConfig>, AppError> {
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        let result = crate::schema::department_payroll_configs::table
+            .filter(crate::schema::department_payroll_configs::department_id.eq(department_id))
+            .filter(crate::schema::department_payroll_configs::effective_date.le(date))
+            .order(crate::schema::department_payroll_configs::effective_date.desc())
+            .select(DepartmentPayrollConfigEntity::as_select())
+            .first::<DepartmentPayrollConfigEntity>(&mut conn)
+            .await
+            .optional()
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        Ok(result.map(Into::into))
     }
 }

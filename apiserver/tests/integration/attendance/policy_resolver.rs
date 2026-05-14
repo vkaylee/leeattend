@@ -11,10 +11,8 @@ async fn test_resolve_attendance_policy_hierarchy() {
     let pool = test_db.pool();
     let factory = TestFactory::new(pool.clone());
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
-    let policy_repo = apiserver::repositories::DieselAttendancePolicyRepository::new(
-        pool.clone(),
-        diesel_pools.clone(),
-    );
+    let policy_repo =
+        apiserver::repositories::DieselAttendancePolicyRepository::new(diesel_pools.clone());
 
     let admin_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(admin_id).await;
@@ -28,16 +26,15 @@ async fn test_resolve_attendance_policy_hierarchy() {
     .await
     .unwrap();
 
+    let dept_repo = apiserver::repositories::DieselDepartmentRepository::new(diesel_pools.clone());
+
+    use apiserver::repositories::department_repository::DepartmentRepository;
     // 1. Create a department
-    let dept_id = Uuid::new_v4();
-    sqlx::query!(
-        "INSERT INTO departments (id, workspace_id, name) VALUES ($1, $2, 'Engineering')",
-        dept_id,
-        ws_id
-    )
-    .execute(&pool)
-    .await
-    .unwrap();
+    let dept = dept_repo
+        .create_department(ws_id, "Engineering".to_string(), None, None, None)
+        .await
+        .unwrap();
+    let dept_id = dept.id;
 
     // 2. Create an employee
     let user_id = factory
@@ -61,14 +58,15 @@ async fn test_resolve_attendance_policy_hierarchy() {
         .await;
 
     // Assign employee to department
-    sqlx::query!(
-        "INSERT INTO employee_department_history (employee_id, department_id, effective_date) VALUES ($1, $2, '2026-01-01')",
-        employee_id,
-        dept_id
-    )
-    .execute(&pool)
-    .await
-    .unwrap();
+    dept_repo
+        .transfer_employee(
+            employee_id,
+            dept_id,
+            chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+            None,
+        )
+        .await
+        .unwrap();
 
     let test_date = NaiveDate::from_ymd_opt(2026, 6, 1).unwrap();
 

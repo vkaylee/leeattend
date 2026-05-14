@@ -167,14 +167,13 @@ async fn test_leave_type_delete_conflict_when_in_use() {
 
     // Create an employee and a leave balance referencing this type
     let emp_id = factory.employee().with_workspace(ws_id).create().await;
-    sqlx::query!(
-        "INSERT INTO leave_balances (employee_id, leave_type_id, year, entitlement) VALUES ($1, $2, 2026, 12)",
-        emp_id,
-        type_id,
-    )
-    .execute(&test_db.pool())
-    .await
-    .unwrap();
+    factory
+        .leave_balance()
+        .with_employee(emp_id)
+        .with_leave_type(type_id)
+        .with_entitlement(12)
+        .create()
+        .await;
 
     // Attempt to delete — should fail with 409 Conflict
     let resp = app

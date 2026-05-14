@@ -46,26 +46,19 @@ async fn test_upload_leave_csv_api() {
         .create()
         .await;
 
-    // Get the default vacation leave type
+    // Give employee some leave balance so submit won't fail
+    let leave_balance_id = factory
+        .leave_balance()
+        .with_employee(emp_id)
+        .with_entitlement(10)
+        .create()
+        .await;
+
     let leave_type_id: Uuid = sqlx::query_scalar!(
-        "SELECT id FROM leave_types WHERE workspace_id = $1 AND code = 'vacation'",
-        ws_id
+        "SELECT leave_type_id FROM leave_balances WHERE id = $1",
+        leave_balance_id
     )
     .fetch_one(&factory.pool)
-    .await
-    .unwrap();
-
-    // Give employee some leave balance so submit won't fail
-    let current_year = chrono::Utc::now().year();
-    sqlx::query!(
-        "INSERT INTO leave_balances (id, employee_id, leave_type_id, year, entitlement, carried_over, accrued_amount)
-         VALUES ($1, $2, $3, $4, 10.0, 0, 0)",
-        Uuid::new_v4(),
-        emp_id,
-        leave_type_id,
-        current_year
-    )
-    .execute(&factory.pool)
     .await
     .unwrap();
 
@@ -137,13 +130,11 @@ async fn test_upload_leave_csv_api() {
         job_opt.error_log
     );
 
-    let requests = apiserver::repositories::leave_request_repository::get_employee_leave_requests(
-        &factory.pool,
-        ws_id,
-        emp_id,
-    )
-    .await
-    .unwrap();
+    let lr_repo = apiserver::repositories::DieselLeaveRequestRepository::new(diesel_pools.clone());
+    let requests = lr_repo
+        .get_employee_leave_requests(ws_id, emp_id)
+        .await
+        .unwrap();
 
     assert_eq!(requests.len(), 1, "Leave request was not created");
     assert_eq!(requests[0].leave_type_id, leave_type_id);

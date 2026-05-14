@@ -38,27 +38,23 @@ impl AccrualHandler {
 
         let employee_repo: std::sync::Arc<dyn crate::repositories::EmployeeRepository> =
             std::sync::Arc::new(crate::repositories::DieselEmployeeRepository::new(
-                db.clone(),
                 diesel.clone(),
             ));
         let department_repo: std::sync::Arc<
             dyn crate::repositories::department_repository::DepartmentRepository,
         > = std::sync::Arc::new(
             crate::repositories::diesel_department_repository::DieselDepartmentRepository::new(
-                db.clone(),
                 diesel.clone(),
             ),
         );
         let leave_policy_repo: std::sync::Arc<
             dyn crate::repositories::leave_policy_repository::LeavePolicyRepository,
         > = std::sync::Arc::new(crate::repositories::DieselLeavePolicyRepository::new(
-            db.clone(),
             diesel.clone(),
         ));
         let accrual_log_repo: std::sync::Arc<
             dyn crate::repositories::leave_accrual_log_repository::LeaveAccrualLogRepository,
         > = std::sync::Arc::new(crate::repositories::DieselLeaveAccrualLogRepository::new(
-            db.clone(),
             diesel.clone(),
         ));
         let accrual_service = LeaveAccrualService::new(

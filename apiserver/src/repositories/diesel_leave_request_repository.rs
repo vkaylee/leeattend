@@ -193,7 +193,8 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
             .filter(leave_requests::employee_id.eq(employee_id))
             .filter(employees::workspace_id.eq(workspace_id))
             .filter(
-                leave_requests::status.eq(LeaveStatus::Approved)
+                leave_requests::status
+                    .eq(LeaveStatus::Approved)
                     .or(leave_requests::status.eq(LeaveStatus::PreApproved)),
             )
             .filter(leave_requests::start_date.le(end_date))
@@ -219,7 +220,8 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
                 leave_requests::table
                     .filter(leave_requests::employee_id.eq(employee_id))
                     .filter(
-                        leave_requests::status.eq(LeaveStatus::Approved)
+                        leave_requests::status
+                            .eq(LeaveStatus::Approved)
                             .or(leave_requests::status.eq(LeaveStatus::PreApproved)),
                     )
                     .filter(leave_requests::start_date.le(holidays::date))
@@ -322,7 +324,8 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
             .filter(leave_requests::employee_id.eq(employee_id))
             .filter(employees::workspace_id.eq(workspace_id))
             .filter(
-                leave_requests::status.eq(LeaveStatus::Approved)
+                leave_requests::status
+                    .eq(LeaveStatus::Approved)
                     .or(leave_requests::status.eq(LeaveStatus::PreApproved)),
             )
             .filter(leave_requests::start_date.le(date))
@@ -387,7 +390,8 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
             .filter(leave_requests::employee_id.eq(employee_id))
             .filter(employees::workspace_id.eq(workspace_id))
             .filter(
-                leave_requests::status.eq(LeaveStatus::Approved)
+                leave_requests::status
+                    .eq(LeaveStatus::Approved)
                     .or(leave_requests::status.eq(LeaveStatus::PreApproved)),
             )
             .filter(
@@ -506,7 +510,8 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
                 leave_requests::table
                     .filter(leave_requests::employee_id.eq(employee_id))
                     .filter(
-                        leave_requests::status.eq(LeaveStatus::Approved)
+                        leave_requests::status
+                            .eq(LeaveStatus::Approved)
                             .or(leave_requests::status.eq(LeaveStatus::PreApproved)),
                     )
                     .filter(leave_requests::start_date.le(holidays::date))
@@ -536,7 +541,8 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
         let rows = leave_requests::table
             .filter(leave_requests::employee_id.eq_any(employee_ids))
             .filter(
-                leave_requests::status.eq(LeaveStatus::Approved)
+                leave_requests::status
+                    .eq(LeaveStatus::Approved)
                     .or(leave_requests::status.eq(LeaveStatus::PreApproved)),
             )
             .filter(leave_requests::start_date.ge(start_date))

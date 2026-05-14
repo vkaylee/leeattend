@@ -261,3 +261,97 @@ impl From<LeaveAccrualLogEntity> for LeaveAccrualLog {
         }
     }
 }
+
+// ---------------------------------------------------------------------------
+// Raw Structs for sql_query
+// ---------------------------------------------------------------------------
+
+#[derive(Debug, diesel::QueryableByName)]
+pub struct EmployeeLeaveBalanceRaw {
+    #[diesel(sql_type = diesel::sql_types::Uuid)]
+    pub leave_type_id: Uuid,
+    #[diesel(sql_type = diesel::sql_types::Text)]
+    pub leave_type_code: String,
+    #[diesel(sql_type = diesel::sql_types::Text)]
+    pub leave_type_name: String,
+    #[diesel(sql_type = diesel::sql_types::Bool)]
+    pub is_paid: bool,
+    #[diesel(sql_type = diesel::sql_types::Int4)]
+    pub entitlement: i32,
+    #[diesel(sql_type = diesel::sql_types::Float8)]
+    pub accrued_amount: f64,
+    #[diesel(sql_type = diesel::sql_types::Int4)]
+    pub carried_over: i32,
+    #[diesel(sql_type = diesel::sql_types::Int4)]
+    pub used: i32,
+    #[diesel(sql_type = diesel::sql_types::Float8)]
+    pub remaining: f64,
+}
+
+#[derive(Debug, diesel::QueryableByName)]
+pub struct WorkspaceLeaveBalanceRaw {
+    #[diesel(sql_type = diesel::sql_types::Uuid)]
+    pub employee_id: Uuid,
+    #[diesel(sql_type = diesel::sql_types::Text)]
+    pub full_name: String,
+    #[diesel(sql_type = diesel::sql_types::Text)]
+    pub employee_id_number: String,
+    #[diesel(sql_type = diesel::sql_types::Uuid)]
+    pub leave_type_id: Uuid,
+    #[diesel(sql_type = diesel::sql_types::Text)]
+    pub leave_type_name: String,
+    #[diesel(sql_type = diesel::sql_types::Text)]
+    pub leave_type_code: String,
+    #[diesel(sql_type = diesel::sql_types::Bool)]
+    pub is_paid: bool,
+    #[diesel(sql_type = diesel::sql_types::Int4)]
+    pub entitlement: i32,
+    #[diesel(sql_type = diesel::sql_types::Float8)]
+    pub accrued_amount: f64,
+    #[diesel(sql_type = diesel::sql_types::Int4)]
+    pub carried_over: i32,
+    #[diesel(sql_type = diesel::sql_types::Int4)]
+    pub used: i32,
+    #[diesel(sql_type = diesel::sql_types::Float8)]
+    pub remaining: f64,
+    #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]
+    pub policy_name: Option<String>,
+    #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]
+    pub assignment_type: Option<String>,
+}
+
+impl From<EmployeeLeaveBalanceRaw> for EmployeeLeaveBalance {
+    fn from(raw: EmployeeLeaveBalanceRaw) -> Self {
+        Self {
+            leave_type_id: raw.leave_type_id,
+            leave_type_code: raw.leave_type_code,
+            leave_type_name: raw.leave_type_name,
+            is_paid: raw.is_paid,
+            entitlement: raw.entitlement,
+            accrued_amount: raw.accrued_amount,
+            carried_over: raw.carried_over,
+            used: raw.used,
+            remaining: raw.remaining,
+        }
+    }
+}
+
+impl From<WorkspaceLeaveBalanceRaw> for WorkspaceLeaveBalance {
+    fn from(raw: WorkspaceLeaveBalanceRaw) -> Self {
+        Self {
+            employee_id: raw.employee_id,
+            employee_name: raw.full_name,
+            leave_type_id: raw.leave_type_id,
+            leave_type_name: raw.leave_type_name,
+            leave_type_code: raw.leave_type_code,
+            is_paid: raw.is_paid,
+            entitlement: raw.entitlement,
+            accrued_amount: raw.accrued_amount,
+            carried_over: raw.carried_over,
+            used: raw.used,
+            remaining: raw.remaining,
+            policy_name: raw.policy_name,
+            assignment_type: raw.assignment_type,
+        }
+    }
+}

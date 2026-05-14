@@ -15,7 +15,8 @@ use crate::repositories::holiday_repository::HolidayRepository;
 use crate::repositories::roster::RosterRepository;
 use crate::repositories::workspace_repository::WorkspaceRepository;
 use crate::repositories::{
-    employee, AttendancePolicyRepository, DieselWorkspaceRepository, TimeEntryRepository,
+    employee::EmployeeRepository, AttendanceDailySummaryRepository, AttendancePolicyRepository,
+    DieselWorkspaceRepository, TimeEntryRepository,
 };
 use crate::services::AttendanceCalculator;
 
@@ -46,24 +47,35 @@ pub struct ReportService {
     time_entry_repo: Arc<dyn TimeEntryRepository>,
     roster_repo: Arc<dyn RosterRepository>,
     policy_repo: Arc<dyn AttendancePolicyRepository>,
+    employee_repo: Arc<dyn EmployeeRepository>,
+    attendance_daily_summary_repo: Arc<dyn AttendanceDailySummaryRepository>,
+    leave_repo: Arc<dyn crate::repositories::leave_request_repository::LeaveRequestRepository>,
     pool: PgPool,
     diesel: crate::diesel_pool::DieselPools,
 }
 
+pub struct ReportServiceArgs {
+    pub time_entry_repo: Arc<dyn TimeEntryRepository>,
+    pub roster_repo: Arc<dyn RosterRepository>,
+    pub policy_repo: Arc<dyn AttendancePolicyRepository>,
+    pub employee_repo: Arc<dyn EmployeeRepository>,
+    pub attendance_daily_summary_repo: Arc<dyn AttendanceDailySummaryRepository>,
+    pub leave_repo: Arc<dyn crate::repositories::leave_request_repository::LeaveRequestRepository>,
+    pub pool: PgPool,
+    pub diesel: crate::diesel_pool::DieselPools,
+}
+
 impl ReportService {
-    pub fn new(
-        time_entry_repo: Arc<dyn TimeEntryRepository>,
-        roster_repo: Arc<dyn RosterRepository>,
-        policy_repo: Arc<dyn AttendancePolicyRepository>,
-        pool: PgPool,
-        diesel: crate::diesel_pool::DieselPools,
-    ) -> Self {
+    pub fn new(args: ReportServiceArgs) -> Self {
         Self {
-            time_entry_repo,
-            roster_repo,
-            policy_repo,
-            pool,
-            diesel,
+            time_entry_repo: args.time_entry_repo,
+            roster_repo: args.roster_repo,
+            policy_repo: args.policy_repo,
+            employee_repo: args.employee_repo,
+            attendance_daily_summary_repo: args.attendance_daily_summary_repo,
+            leave_repo: args.leave_repo,
+            pool: args.pool,
+            diesel: args.diesel,
         }
     }
 
@@ -107,7 +119,7 @@ impl ReportService {
 
             let rules = PolicyResolver::resolve_with_shift_overrides(
                 &*self.policy_repo,
-                &self.pool,
+                &*self.employee_repo,
                 args.employee_id,
                 args.workspace_id,
                 args.date,
@@ -157,7 +169,7 @@ impl ReportService {
         args: AttendanceReportArgs,
     ) -> Result<PaginatedResponse<DailyAttendanceReport>, AppError> {
         // 0. Get Workspace Settings for Timezone & Rounding Logic
-        let workspace_repo = DieselWorkspaceRepository::new(self.pool.clone(), self.diesel.clone());
+        let workspace_repo = DieselWorkspaceRepository::new(self.diesel.clone());
         let workspace = workspace_repo
             .get_workspace_by_id(args.workspace_id)
             .await
@@ -174,22 +186,23 @@ impl ReportService {
         let limit = args.limit.unwrap_or(20);
 
         // Daily report always uses ASC sort (no sort parameter exposed)
-        let (paginated_employees, total_employees) = employee::get_paginated_employee_ids(
-            &self.pool,
-            args.workspace_id,
-            crate::models::EmployeePaginationArgs {
-                filter_ids: args.employee_ids.as_ref(),
-                department_id: args.department_id,
-                page,
-                limit,
-                sort_desc: false, // ORDER BY full_name ASC
-            },
-        )
-        .await
-        .map_err(|e| {
-            tracing::error!("Error fetching paginated employees: {}", e);
-            AppError::Internal("Internal error".into())
-        })?;
+        let (paginated_employees, total_employees) = self
+            .employee_repo
+            .get_paginated_employee_ids(
+                args.workspace_id,
+                crate::models::EmployeePaginationArgs {
+                    filter_ids: args.employee_ids.as_ref(),
+                    department_id: args.department_id,
+                    page,
+                    limit,
+                    sort_desc: false, // ORDER BY full_name ASC
+                },
+            )
+            .await
+            .map_err(|e| {
+                tracing::error!("Error fetching paginated employees: {}", e);
+                AppError::Internal("Internal error".into())
+            })?;
 
         // Early return if no employees
         if paginated_employees.is_empty() {
@@ -231,23 +244,15 @@ impl ReportService {
             .await?;
 
         // 5a. BATCH fetch holidays for the date range
-        let holidays_map = HolidayRepository::get_holidays_in_range(
-            &self.pool,
-            args.workspace_id,
-            args.start_date,
-            args.end_date,
-        )
-        .await?;
+        let holiday_repo = crate::repositories::DieselHolidayRepository::new(self.diesel.clone());
+        let holidays_map = holiday_repo
+            .get_holidays_in_range(args.workspace_id, args.start_date, args.end_date)
+            .await?;
 
         // 5b. BATCH fetch OT claim statuses from attendance_daily_summaries
-        let ot_status_map =
-            crate::repositories::attendance_daily_summary_repository::get_batch_ot_statuses(
-                &self.pool,
-                args.workspace_id,
-                &emp_ids,
-                args.start_date,
-                args.end_date,
-            )
+        let ot_status_map = self
+            .attendance_daily_summary_repo
+            .get_batch_ot_statuses(args.workspace_id, &emp_ids, args.start_date, args.end_date)
             .await?;
 
         // 5c. BATCH fetch approved leave requests for holiday-leave status detection
@@ -426,7 +431,7 @@ impl ReportService {
         use std::collections::HashMap;
 
         // 0. Get Workspace Settings
-        let workspace_repo = DieselWorkspaceRepository::new(self.pool.clone(), self.diesel.clone());
+        let workspace_repo = DieselWorkspaceRepository::new(self.diesel.clone());
         let workspace = workspace_repo
             .get_workspace_by_id(args.workspace_id)
             .await
@@ -446,22 +451,23 @@ impl ReportService {
         // NameDesc -> ORDER BY full_name DESC; all others -> ORDER BY full_name ASC
         let sort_desc = matches!(args.sort, Some(AttendanceReportSort::NameDesc));
 
-        let (paginated_employees, total_employees) = employee::get_paginated_employee_ids(
-            &self.pool,
-            args.workspace_id,
-            crate::models::EmployeePaginationArgs {
-                filter_ids: args.employee_ids.as_ref(),
-                department_id: args.department_id,
-                page,
-                limit,
-                sort_desc,
-            },
-        )
-        .await
-        .map_err(|e| {
-            tracing::error!("Error fetching paginated employees: {}", e);
-            AppError::Internal("Internal error".into())
-        })?;
+        let (paginated_employees, total_employees) = self
+            .employee_repo
+            .get_paginated_employee_ids(
+                args.workspace_id,
+                crate::models::EmployeePaginationArgs {
+                    filter_ids: args.employee_ids.as_ref(),
+                    department_id: args.department_id,
+                    page,
+                    limit,
+                    sort_desc,
+                },
+            )
+            .await
+            .map_err(|e| {
+                tracing::error!("Error fetching paginated employees: {}", e);
+                AppError::Internal("Internal error".into())
+            })?;
 
         // Early return if no employees
         if paginated_employees.is_empty() {
@@ -503,13 +509,10 @@ impl ReportService {
             .await?;
 
         // 6. Fetch leave days for paginated employees (batch query)
-        let leave_data = crate::repositories::leave_request_repository::get_batch_leave_days(
-            &self.pool,
-            &emp_ids,
-            args.start_date,
-            args.end_date,
-        )
-        .await?;
+        let leave_data = self
+            .leave_repo
+            .get_batch_leave_days(&emp_ids, args.start_date, args.end_date)
+            .await?;
 
         // 6b. BATCH fetch attendance rules (SCD Type 2)
         let attendance_rules_map = PolicyResolver::resolve_attendance_policy_batch(

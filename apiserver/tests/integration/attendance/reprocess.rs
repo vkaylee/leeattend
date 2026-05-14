@@ -58,9 +58,18 @@ async fn test_force_reprocess_attendance_api() {
         .unwrap();
     }
 
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
+    let time_entry_repo =
+        apiserver::repositories::DieselTimeEntryRepository::new(diesel_pools.clone());
+
+    let start_dt = base_date.and_hms_opt(0, 0, 0).unwrap().and_utc();
+    let end_dt = base_date.and_hms_opt(23, 59, 59).unwrap().and_utc();
+
+    use apiserver::repositories::time_entry_repository::TimeEntryRepository;
+
     // 2. Verify time_entries are initially empty
-    let entries = sqlx::query!("SELECT id FROM time_entries WHERE employee_id = $1", emp_id)
-        .fetch_all(&factory.pool)
+    let entries = time_entry_repo
+        .get_employee_time_entries(ws_id, emp_id, start_dt, end_dt)
         .await
         .unwrap();
     assert!(
@@ -87,13 +96,10 @@ async fn test_force_reprocess_attendance_api() {
     assert_eq!(res.status(), StatusCode::OK);
 
     // 4. Verify time_entries are now created correctly
-    let entries = sqlx::query!(
-        "SELECT punch_in_time, punch_out_time FROM time_entries WHERE employee_id = $1 ORDER BY punch_in_time",
-        emp_id
-    )
-    .fetch_all(&factory.pool)
-    .await
-    .unwrap();
+    let entries = time_entry_repo
+        .get_employee_time_entries(ws_id, emp_id, start_dt, end_dt)
+        .await
+        .unwrap();
 
     assert_eq!(entries.len(), 1, "One time entry should have been created");
     assert_eq!(entries[0].punch_in_time, start_time);
@@ -142,14 +148,21 @@ async fn test_force_reprocess_all_attendance_api() {
     }
 
     // 2. Verify time_entries are initially empty
-    let entries = sqlx::query!("SELECT id FROM time_entries WHERE workspace_id = $1", ws_id)
-        .fetch_all(&factory.pool)
-        .await
-        .unwrap();
-    assert!(
-        entries.is_empty(),
-        "Entries should be empty before bulk reprocessing"
-    );
+    let time_entry_repo =
+        apiserver::repositories::DieselTimeEntryRepository::new(diesel_pools.clone());
+    use apiserver::repositories::time_entry_repository::TimeEntryRepository;
+    let start_dt = base_date.and_hms_opt(0, 0, 0).unwrap().and_utc();
+    let end_dt = base_date.and_hms_opt(23, 59, 59).unwrap().and_utc();
+    for emp_id in [emp_id_1, emp_id_2] {
+        let entries = time_entry_repo
+            .get_employee_time_entries(ws_id, emp_id, start_dt, end_dt)
+            .await
+            .unwrap();
+        assert!(
+            entries.is_empty(),
+            "Entries should be empty before bulk reprocessing"
+        );
+    }
 
     // 3. Call the bulk reprocess endpoint
     let res = app
@@ -195,8 +208,11 @@ async fn test_force_reprocess_all_attendance_api() {
     //    The background Docker worker may consume the queued jobs but processes them
     //    against a different DB. We construct identical jobs and process them directly
     //    against the test's isolated DB to verify the handler logic.
-    let coordinator =
-        apiserver::services::ReportCoordinator::new(redis.clone(), _state.infra.db.api().clone());
+    let coordinator = apiserver::services::ReportCoordinator::new(
+        redis.clone(),
+        _state.employees.repo.clone(),
+        _state.core.workspace_repo.clone(),
+    );
     for (idx, emp_id) in [emp_id_1, emp_id_2].iter().enumerate() {
         let job = apiserver::queue::Job::with_priority(
             parent_job_id,
@@ -238,13 +254,10 @@ async fn test_force_reprocess_all_attendance_api() {
 
     // 7. Verify time_entries are now created correctly for both employees
     for emp_id in [emp_id_1, emp_id_2] {
-        let entries = sqlx::query!(
-            "SELECT punch_in_time, punch_out_time FROM time_entries WHERE employee_id = $1 ORDER BY punch_in_time",
-            emp_id
-        )
-        .fetch_all(&factory.pool)
-        .await
-        .unwrap();
+        let entries = time_entry_repo
+            .get_employee_time_entries(ws_id, emp_id, start_dt, end_dt)
+            .await
+            .unwrap();
 
         assert_eq!(
             entries.len(),

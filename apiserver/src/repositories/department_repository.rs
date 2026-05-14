@@ -67,9 +67,3 @@ pub trait DepartmentRepository: Send + Sync {
         date: NaiveDate,
     ) -> Result<Option<DepartmentPayrollConfig>, AppError>;
 }
-
-// Re-export compatibility helpers from diesel_department_repository for integration tests.
-pub use crate::repositories::diesel_department_repository::{
-    create_department, get_current_department, get_department_by_id, get_departments,
-    get_employee_department_history, transfer_employee, upsert_department_payroll_config,
-};

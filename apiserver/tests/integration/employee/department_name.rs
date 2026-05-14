@@ -40,7 +40,7 @@ async fn test_employee_without_department_has_null_department_name() {
     let ws_id = factory.workspace().create_with_owner(user_id).await;
     let emp_id = factory.employee().with_workspace(ws_id).create().await;
 
-    let repo = DieselEmployeeRepository::new(pool.clone(), test_db.diesel_pools.clone());
+    let repo = DieselEmployeeRepository::new(test_db.diesel_pools.clone());
     let emp = repo
         .get_employee_by_id(emp_id, ws_id)
         .await
@@ -70,7 +70,7 @@ async fn test_employee_with_department_returns_department_name() {
     let today = chrono::Utc::now().date_naive();
     transfer(&pool, emp_id, dept_id, today).await;
 
-    let repo = DieselEmployeeRepository::new(pool.clone(), test_db.diesel_pools.clone());
+    let repo = DieselEmployeeRepository::new(test_db.diesel_pools.clone());
     let emp = repo
         .get_employee_by_id(emp_id, ws_id)
         .await
@@ -117,7 +117,7 @@ async fn test_get_all_employees_includes_department_name() {
     transfer(&pool, emp1, dept_id, today).await;
     // emp2 has no department
 
-    let repo = DieselEmployeeRepository::new(pool.clone(), test_db.diesel_pools.clone());
+    let repo = DieselEmployeeRepository::new(test_db.diesel_pools.clone());
     let (employees, total) = repo
         .get_all_employees(
             ws_id,
@@ -187,7 +187,7 @@ async fn test_department_name_uses_latest_transfer() {
     )
     .await;
 
-    let repo = DieselEmployeeRepository::new(pool.clone(), test_db.diesel_pools.clone());
+    let repo = DieselEmployeeRepository::new(test_db.diesel_pools.clone());
     let emp = repo
         .get_employee_by_id(emp_id, ws_id)
         .await
@@ -226,7 +226,7 @@ async fn test_find_by_number_includes_department_name() {
     let today = chrono::Utc::now().date_naive();
     transfer(&pool, _emp_id, dept_id, today).await;
 
-    let repo = DieselEmployeeRepository::new(pool.clone(), test_db.diesel_pools.clone());
+    let repo = DieselEmployeeRepository::new(test_db.diesel_pools.clone());
     let emp = repo.find_by_number(ws_id, "DN001").await.unwrap().unwrap();
     assert_eq!(emp.department_name.as_deref(), Some("R&D"));
 }
@@ -257,7 +257,7 @@ async fn test_get_active_employees_includes_department_name() {
     let today = chrono::Utc::now().date_naive();
     transfer(&pool, emp_id, dept_id, today).await;
 
-    let repo = DieselEmployeeRepository::new(pool.clone(), test_db.diesel_pools.clone());
+    let repo = DieselEmployeeRepository::new(test_db.diesel_pools.clone());
     let actives = repo.get_active_employees(ws_id).await.unwrap();
     assert_eq!(actives.len(), 1);
     assert_eq!(actives[0].department_name.as_deref(), Some("Operations"));

@@ -50,13 +50,13 @@ impl ShiftCache {
     /// Returns cached data if available, otherwise fetches from DB.
     pub async fn get_map(&self, workspace_id: Uuid) -> Result<HashMap<Uuid, CachedShift>, String> {
         let key = Self::key(workspace_id);
-        let db = self.db.clone();
+        let _db = self.db.clone();
         let diesel = self.diesel.clone();
 
         let shifts: Vec<CachedShift> = self
             .cache
             .get_or_fetch(&key, DEFAULT_CACHE_TTL, || async move {
-                let repo = crate::repositories::DieselShiftRepository::new(db.clone(), diesel);
+                let repo = crate::repositories::DieselShiftRepository::new(diesel);
                 let rows = repo
                     .get_workspace_shifts(workspace_id)
                     .await

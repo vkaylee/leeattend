@@ -29,50 +29,37 @@ async fn test_process_log_success_with_timezone() {
     // 2. Process a naive timestamp (8 AM VN should be 1 AM UTC)
     let punch_time_raw = "2026-01-23 08:00:00";
     let repo = std::sync::Arc::new(apiserver::repositories::DieselTimeEntryRepository::new(
-        pool.clone(),
         diesel_pools.clone(),
     ));
     let pairing = std::sync::Arc::new(apiserver::services::pairing_service::PairingService::new(
         repo,
         std::sync::Arc::new(apiserver::repositories::DieselRosterRepository::new(
-            pool.clone(),
             diesel_pools.clone(),
         )),
         std::sync::Arc::new(
-            apiserver::repositories::DieselAttendancePolicyRepository::new(
-                pool.clone(),
-                diesel_pools.clone(),
-            ),
+            apiserver::repositories::DieselAttendancePolicyRepository::new(diesel_pools.clone()),
         ),
         pool.clone(),
         diesel_pools.clone(),
     ));
     let emp_repo: std::sync::Arc<dyn apiserver::repositories::EmployeeRepository> =
         std::sync::Arc::new(apiserver::repositories::DieselEmployeeRepository::new(
-            pool.clone(),
-            apiserver::diesel_pool::DieselPools::for_test(&test_db.url()),
+            diesel_pools.clone(),
         ));
     let rl_repo: std::sync::Arc<
         dyn apiserver::repositories::raw_attendance_log_repository::RawAttendanceLogRepository,
     > = std::sync::Arc::new(
-        apiserver::repositories::DieselRawAttendanceLogRepository::new(
-            pool.clone(),
-            diesel_pools.clone(),
-        ),
+        apiserver::repositories::DieselRawAttendanceLogRepository::new(diesel_pools.clone()),
     );
     let st_repo: std::sync::Arc<
         dyn apiserver::repositories::staging_log_repository::StagingLogRepository,
     > = std::sync::Arc::new(apiserver::repositories::DieselStagingLogRepository::new(
-        pool.clone(),
         diesel_pools.clone(),
     ));
     let er_repo: std::sync::Arc<
         dyn apiserver::repositories::attendance_log_error_repository::AttendanceLogErrorRepository,
     > = std::sync::Arc::new(
-        apiserver::repositories::DieselAttendanceLogErrorRepository::new(
-            pool.clone(),
-            diesel_pools.clone(),
-        ),
+        apiserver::repositories::DieselAttendanceLogErrorRepository::new(diesel_pools.clone()),
     );
     let (service, _) = AttendanceLogService::new(
         pool.clone(),
@@ -146,50 +133,37 @@ async fn test_same_second_punch_with_different_status_allowed() {
     let punch_time_raw = "2026-01-23 08:00:00";
 
     let repo = std::sync::Arc::new(apiserver::repositories::DieselTimeEntryRepository::new(
-        pool.clone(),
         diesel_pools.clone(),
     ));
     let pairing = std::sync::Arc::new(apiserver::services::pairing_service::PairingService::new(
         repo,
         std::sync::Arc::new(apiserver::repositories::DieselRosterRepository::new(
-            pool.clone(),
             diesel_pools.clone(),
         )),
         std::sync::Arc::new(
-            apiserver::repositories::DieselAttendancePolicyRepository::new(
-                pool.clone(),
-                diesel_pools.clone(),
-            ),
+            apiserver::repositories::DieselAttendancePolicyRepository::new(diesel_pools.clone()),
         ),
         pool.clone(),
         diesel_pools.clone(),
     ));
     let emp_repo: std::sync::Arc<dyn apiserver::repositories::EmployeeRepository> =
         std::sync::Arc::new(apiserver::repositories::DieselEmployeeRepository::new(
-            pool.clone(),
-            apiserver::diesel_pool::DieselPools::for_test(&test_db.url()),
+            diesel_pools.clone(),
         ));
     let rl_repo: std::sync::Arc<
         dyn apiserver::repositories::raw_attendance_log_repository::RawAttendanceLogRepository,
     > = std::sync::Arc::new(
-        apiserver::repositories::DieselRawAttendanceLogRepository::new(
-            pool.clone(),
-            diesel_pools.clone(),
-        ),
+        apiserver::repositories::DieselRawAttendanceLogRepository::new(diesel_pools.clone()),
     );
     let st_repo: std::sync::Arc<
         dyn apiserver::repositories::staging_log_repository::StagingLogRepository,
     > = std::sync::Arc::new(apiserver::repositories::DieselStagingLogRepository::new(
-        pool.clone(),
         diesel_pools.clone(),
     ));
     let er_repo: std::sync::Arc<
         dyn apiserver::repositories::attendance_log_error_repository::AttendanceLogErrorRepository,
     > = std::sync::Arc::new(
-        apiserver::repositories::DieselAttendanceLogErrorRepository::new(
-            pool.clone(),
-            diesel_pools.clone(),
-        ),
+        apiserver::repositories::DieselAttendanceLogErrorRepository::new(diesel_pools.clone()),
     );
     let (service, _) = AttendanceLogService::new(
         pool.clone(),

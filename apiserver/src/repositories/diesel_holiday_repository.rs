@@ -9,25 +9,21 @@ use crate::diesel_pool::DieselPools;
 use crate::errors::AppError;
 use crate::models::diesel::holiday::HolidayEntity;
 use crate::models::Holiday;
-use crate::repositories::holiday_repository::HolidayRepositoryTrait;
+use crate::repositories::holiday_repository::HolidayRepository;
 use crate::schema::holidays;
 
 pub struct DieselHolidayRepository {
-    pub sqlx_pool: sqlx::PgPool,
     pub diesel_pools: DieselPools,
 }
 
 impl DieselHolidayRepository {
-    pub fn new(sqlx_pool: sqlx::PgPool, diesel_pools: DieselPools) -> Self {
-        Self {
-            sqlx_pool,
-            diesel_pools,
-        }
+    pub fn new(diesel_pools: DieselPools) -> Self {
+        Self { diesel_pools }
     }
 }
 
 #[async_trait]
-impl HolidayRepositoryTrait for DieselHolidayRepository {
+impl HolidayRepository for DieselHolidayRepository {
     async fn list(&self, workspace_id: Uuid, year: Option<i32>) -> Result<Vec<Holiday>, AppError> {
         let mut conn = self
             .diesel_pools

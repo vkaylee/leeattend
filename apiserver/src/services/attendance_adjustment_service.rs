@@ -35,25 +35,18 @@ impl AttendanceAdjustmentService {
     #[tracing::instrument(skip_all)]
     pub async fn resume_all_pending_jobs(pool: PgPool, diesel: crate::diesel_pool::DieselPools) {
         let import_repo = Arc::new(crate::repositories::DieselImportJobRepository::new(
-            pool.clone(),
             diesel.clone(),
         ));
         let adj_repo = Arc::new(
-            crate::repositories::DieselAttendanceAdjustmentRepository::new(
-                pool.clone(),
-                diesel.clone(),
-            ),
+            crate::repositories::DieselAttendanceAdjustmentRepository::new(diesel.clone()),
         );
         let employee_repo = Arc::new(crate::repositories::DieselEmployeeRepository::new(
-            pool.clone(),
             diesel.clone(),
         ));
         let te_repo = Arc::new(crate::repositories::DieselTimeEntryRepository::new(
-            pool.clone(),
             diesel.clone(),
         ));
         let workspace_repo = Arc::new(crate::repositories::DieselWorkspaceRepository::new(
-            pool.clone(),
             diesel.clone(),
         ));
         let import_svc = AttendanceImportService::new(

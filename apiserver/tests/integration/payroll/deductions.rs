@@ -114,7 +114,9 @@ async fn test_net_pay_formula_with_zero_deductions() {
             leave_repo: lr,
             employee_repo: er,
             policy_repo: atr,
-            overtime_policy_repo: Arc::new(apiserver::repositories::DieselOvertimePolicyRepository::new(diesel_pools.clone())),
+            overtime_policy_repo: Arc::new(
+                apiserver::repositories::DieselOvertimePolicyRepository::new(diesel_pools.clone()),
+            ),
             diesel_pools: diesel_pools.clone(),
         })
     }

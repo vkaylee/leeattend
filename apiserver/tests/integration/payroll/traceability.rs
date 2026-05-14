@@ -101,7 +101,9 @@ async fn test_payroll_std_days_source_traceability() {
             leave_repo: lr,
             employee_repo: er,
             policy_repo: atr,
-            overtime_policy_repo: Arc::new(apiserver::repositories::DieselOvertimePolicyRepository::new(diesel_pools.clone())),
+            overtime_policy_repo: Arc::new(
+                apiserver::repositories::DieselOvertimePolicyRepository::new(diesel_pools.clone()),
+            ),
             diesel_pools: diesel_pools.clone(),
         })
     }
@@ -172,7 +174,9 @@ async fn test_payroll_std_days_source_traceability() {
             leave_repo: lr,
             employee_repo: er,
             policy_repo: atr,
-            overtime_policy_repo: Arc::new(apiserver::repositories::DieselOvertimePolicyRepository::new(diesel_pools.clone())),
+            overtime_policy_repo: Arc::new(
+                apiserver::repositories::DieselOvertimePolicyRepository::new(diesel_pools.clone()),
+            ),
             diesel_pools: diesel_pools.clone(),
         })
     }
@@ -237,7 +241,9 @@ async fn test_payroll_std_days_source_traceability() {
             leave_repo: lr,
             employee_repo: er,
             policy_repo: atr,
-            overtime_policy_repo: Arc::new(apiserver::repositories::DieselOvertimePolicyRepository::new(diesel_pools.clone())),
+            overtime_policy_repo: Arc::new(
+                apiserver::repositories::DieselOvertimePolicyRepository::new(diesel_pools.clone()),
+            ),
             diesel_pools: diesel_pools.clone(),
         })
     }
@@ -303,7 +309,9 @@ async fn test_payroll_std_days_source_traceability() {
             leave_repo: lr,
             employee_repo: er,
             policy_repo: atr,
-            overtime_policy_repo: Arc::new(apiserver::repositories::DieselOvertimePolicyRepository::new(diesel_pools.clone())),
+            overtime_policy_repo: Arc::new(
+                apiserver::repositories::DieselOvertimePolicyRepository::new(diesel_pools.clone()),
+            ),
             diesel_pools: diesel_pools.clone(),
         })
     }

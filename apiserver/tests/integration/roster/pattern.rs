@@ -34,27 +34,22 @@ async fn test_roster_pattern_resolution() {
         .await;
 
     // 2. Create Working Pattern
-    let pattern_id = working_pattern_repository::create_pattern(
-        &pool,
-        workspace_id,
-        "Test Pattern",
-        Some("Description"),
-    )
-    .await
-    .unwrap()
-    .id;
+    let repo = apiserver::repositories::DieselWorkingPatternRepository::new(diesel_pools.clone());
+    use apiserver::repositories::working_pattern_repository::WorkingPatternRepositoryTrait;
 
-    // 3. Add Pattern Shifts (Mon=1, Tue=2)
-    working_pattern_repository::add_pattern_detail(&pool, pattern_id, 1, Some(shift_mon_id))
+    let pattern_id = repo
+        .create_pattern_with_details(
+            workspace_id,
+            "Test Pattern",
+            Some("Description"),
+            vec![(1, Some(shift_mon_id)), (2, Some(shift_tuj_id))],
+        )
         .await
-        .unwrap();
-    working_pattern_repository::add_pattern_detail(&pool, pattern_id, 2, Some(shift_tuj_id))
-        .await
-        .unwrap();
+        .unwrap()
+        .id;
 
     // 4. Assign Pattern to Employee
-    working_pattern_repository::assign_pattern(
-        &pool,
+    repo.assign_pattern(
         workspace_id,
         employee_id,
         pattern_id,
@@ -65,14 +60,14 @@ async fn test_roster_pattern_resolution() {
     .unwrap();
 
     // 5. Build Roster Cache Data
-    let _rosters = apiserver::cache::build_roster_data(&pool, workspace_id)
+    let _rosters = apiserver::cache::build_roster_data(&diesel_pools, workspace_id)
         .await
         .unwrap();
 
     // Check assignment
-    let assignments =
-        working_pattern_repository::get_employee_pattern_history(&pool, workspace_id, employee_id)
-            .await
-            .unwrap();
+    let assignments = repo
+        .get_employee_pattern_history(workspace_id, employee_id)
+        .await
+        .unwrap();
     assert_eq!(assignments.len(), 1);
 }

@@ -654,60 +654,47 @@ impl LeaveAccrualService {
             if force && old_log.amount != decimal_amount {
                 let diff = decimal_amount - old_log.amount;
 
-                let mut tx = self.pool.begin().await?;
-
-                let updated_log =
-                    crate::repositories::leave_accrual_log_repository::update_accrual_amount(
-                        &mut *tx,
-                        old_log.id,
-                        ctx.workspace_id,
-                        decimal_amount,
-                    )
+                let updated_log = self
+                    .accrual_log_repo
+                    .update_accrual_amount(old_log.id, ctx.workspace_id, decimal_amount)
                     .await?;
 
-                crate::repositories::leave_accrual_log_repository::adjust_balance_accrual(
-                    &mut *tx,
-                    ctx.employee_id,
-                    accrual_date.year(),
-                    ctx.leave_type_id,
-                    diff,
-                )
-                .await?;
-
-                tx.commit().await?;
+                self.accrual_log_repo
+                    .adjust_balance_accrual(
+                        ctx.employee_id,
+                        accrual_date.year(),
+                        ctx.leave_type_id,
+                        diff,
+                    )
+                    .await?;
 
                 all_logs.push(updated_log);
             }
         } else {
             // No log exists, perform insertion
-            let mut tx = self.pool.begin().await?;
-
-            let log = crate::repositories::leave_accrual_log_repository::insert_accrual_log(
-                &mut *tx,
-                ctx.workspace_id,
-                ctx.employee_id,
-                Some(ctx.assignment_id),
-                accrual_date,
-                decimal_amount,
-                ctx.leave_type_id,
-            )
-            .await?;
-
-            if let Some(l) = log {
-                crate::repositories::leave_accrual_log_repository::upsert_balance_accrual(
-                    &mut *tx,
+            let log = self
+                .accrual_log_repo
+                .insert_accrual_log(
+                    ctx.workspace_id,
                     ctx.employee_id,
-                    accrual_date.year(),
-                    ctx.leave_type_id,
+                    Some(ctx.assignment_id),
+                    accrual_date,
                     decimal_amount,
+                    ctx.leave_type_id,
                 )
                 .await?;
 
-                tx.commit().await?;
+            if let Some(l) = log {
+                self.accrual_log_repo
+                    .upsert_balance_accrual(
+                        ctx.employee_id,
+                        accrual_date.year(),
+                        ctx.leave_type_id,
+                        decimal_amount,
+                    )
+                    .await?;
 
                 all_logs.push(l);
-            } else {
-                tx.commit().await?;
             }
         }
 

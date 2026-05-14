@@ -11,7 +11,7 @@ use uuid::Uuid;
 
 #[tokio::test]
 async fn test_rbac_teamlead_scope_and_admin_bypass() {
-    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+    let (test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
         setup_app_tower().await;
 
     // 1. Setup global workspace and owner
@@ -48,10 +48,11 @@ async fn test_rbac_teamlead_scope_and_admin_bypass() {
         .create()
         .await;
 
-    sqlx::query("INSERT INTO employee_department_history (employee_id, department_id, effective_date) VALUES ($1, $2, CURRENT_DATE)")
-        .bind(emp_tl)
-        .bind(dept_a)
-        .execute(&factory.pool)
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
+    let dept_repo = apiserver::repositories::DieselDepartmentRepository::new(diesel_pools.clone());
+    use apiserver::repositories::department_repository::DepartmentRepository;
+    dept_repo
+        .transfer_employee(emp_tl, dept_a, chrono::Utc::now().date_naive(), None)
         .await
         .unwrap();
 
@@ -62,10 +63,8 @@ async fn test_rbac_teamlead_scope_and_admin_bypass() {
         .with_full_name("Target Employee")
         .create()
         .await;
-    sqlx::query("INSERT INTO employee_department_history (employee_id, department_id, effective_date) VALUES ($1, $2, CURRENT_DATE)")
-        .bind(emp_target_b)
-        .bind(dept_b)
-        .execute(&factory.pool)
+    dept_repo
+        .transfer_employee(emp_target_b, dept_b, chrono::Utc::now().date_naive(), None)
         .await
         .unwrap();
 
@@ -185,13 +184,16 @@ async fn test_rbac_audit_log_on_permissions_grant_revoke() {
     let perm_id = perm_json["id"].as_str().unwrap();
 
     // 3. Verify audit log for grant
-    let audit_logs = sqlx::query!("SELECT action, details FROM audit_logs WHERE workspace_id = $1 ORDER BY created_at DESC LIMIT 1", ws_id)
-        .fetch_one(state.infra.db.api())
+    let (audit_logs, _) = state
+        .core
+        .audit_repo
+        .find_by_workspace(ws_id, 1, 0, None, None, None)
         .await
         .unwrap();
+    let audit_log = audit_logs.into_iter().next().unwrap();
 
-    assert_eq!(audit_logs.action, "assign_permission");
-    assert!(audit_logs.details.is_some());
+    assert_eq!(audit_log.action, "assign_permission");
+    assert!(audit_log.details.is_some());
 
     // 4. Revoke the permission
     let response_revoke = app
@@ -217,13 +219,13 @@ async fn test_rbac_audit_log_on_permissions_grant_revoke() {
     );
 
     // 5. Verify audit log for revoke
-    let audit_logs_after = sqlx::query!(
-        "SELECT action FROM audit_logs WHERE workspace_id = $1 ORDER BY created_at DESC LIMIT 1",
-        ws_id
-    )
-    .fetch_one(state.infra.db.api())
-    .await
-    .unwrap();
+    let (audit_logs_after, _) = state
+        .core
+        .audit_repo
+        .find_by_workspace(ws_id, 1, 0, None, None, None)
+        .await
+        .unwrap();
+    let audit_log_after = audit_logs_after.into_iter().next().unwrap();
 
-    assert_eq!(audit_logs_after.action, "revoke_permission");
+    assert_eq!(audit_log_after.action, "revoke_permission");
 }
