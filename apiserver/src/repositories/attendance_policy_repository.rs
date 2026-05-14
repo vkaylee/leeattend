@@ -4,6 +4,7 @@ use uuid::Uuid;
 
 use crate::models::AttendancePolicyVersion;
 
+#[cfg_attr(test, mockall::automock)]
 #[async_trait::async_trait]
 pub trait AttendancePolicyRepository: Send + Sync {
     async fn get_employee_effective_policy(

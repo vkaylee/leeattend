@@ -219,10 +219,28 @@ impl TimeTrackingService {
             let tz: Tz = crate::utils::tz::parse_workspace_tz(&ws.timezone);
             let local_date = entry.punch_in_time.with_timezone(&tz).date_naive();
             let summary_svc = crate::services::AttendanceSummaryService::new(
-                Arc::clone(&self.repo),
-                Arc::clone(&self.roster_repo),
-                Arc::clone(&self.policy_repo),
-                self.diesel.clone(),
+                crate::services::attendance_summary_service::AttendanceSummaryServiceArgs {
+                    time_entry_repo: Arc::clone(&self.repo),
+                    roster_repo: Arc::clone(&self.roster_repo),
+                    policy_repo: Arc::clone(&self.policy_repo),
+                    workspace_repo: Arc::new(crate::repositories::DieselWorkspaceRepository::new(
+                        self.diesel.clone(),
+                    )),
+                    employee_repo: Arc::new(crate::repositories::DieselEmployeeRepository::new(
+                        self.diesel.clone(),
+                    )),
+                    holiday_repo: Arc::new(crate::repositories::DieselHolidayRepository::new(
+                        self.diesel.clone(),
+                    )),
+                    leave_request_repo: Arc::new(
+                        crate::repositories::DieselLeaveRequestRepository::new(self.diesel.clone()),
+                    ),
+                    daily_summary_repo: Arc::new(
+                        crate::repositories::DieselAttendanceDailySummaryRepository::new(
+                            self.diesel.clone(),
+                        ),
+                    ),
+                },
             );
             let _ = summary_svc
                 .recalculate_daily_summary(workspace_id, entry.employee_id, local_date)

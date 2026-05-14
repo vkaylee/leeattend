@@ -416,7 +416,14 @@ impl JobWorker {
                 LogIngestionHandler::handle(&self.db, &self.diesel, &job, &self.deps).await
             }
             TaskType::ReprocessAttendance => {
-                ReprocessAttendanceHandler::handle(&self.db, &self.diesel, &job, &self.redis, &self.deps).await
+                ReprocessAttendanceHandler::handle(
+                    &self.db,
+                    &self.diesel,
+                    &job,
+                    &self.redis,
+                    &self.deps,
+                )
+                .await
             }
             TaskType::ClaimStagedLogs => {
                 ClaimStagedLogsHandler::handle(&self.db, &self.diesel, &job, &self.deps).await

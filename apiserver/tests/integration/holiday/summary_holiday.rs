@@ -77,16 +77,36 @@ async fn test_summary_records_holiday_flag_after_recalculate() {
 
     // Trigger recalculation directly via service
     apiserver::services::AttendanceSummaryService::new(
-        std::sync::Arc::new(apiserver::repositories::DieselTimeEntryRepository::new(
-            diesel_pools.clone(),
-        )),
-        std::sync::Arc::new(apiserver::repositories::DieselRosterRepository::new(
-            diesel_pools.clone(),
-        )),
-        std::sync::Arc::new(
-            apiserver::repositories::DieselAttendancePolicyRepository::new(diesel_pools.clone()),
-        ),
-        diesel_pools.clone(),
+        apiserver::services::attendance_summary_service::AttendanceSummaryServiceArgs {
+            time_entry_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselTimeEntryRepository::new(diesel_pools.clone()),
+            ),
+            roster_repo: std::sync::Arc::new(apiserver::repositories::DieselRosterRepository::new(
+                diesel_pools.clone(),
+            )),
+            policy_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselAttendancePolicyRepository::new(
+                    diesel_pools.clone(),
+                ),
+            ),
+            workspace_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselWorkspaceRepository::new(diesel_pools.clone()),
+            ),
+            employee_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselEmployeeRepository::new(diesel_pools.clone()),
+            ),
+            holiday_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselHolidayRepository::new(diesel_pools.clone()),
+            ),
+            leave_request_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselLeaveRequestRepository::new(diesel_pools.clone()),
+            ),
+            daily_summary_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselAttendanceDailySummaryRepository::new(
+                    diesel_pools.clone(),
+                ),
+            ),
+        },
     )
     .recalculate_daily_summary(workspace_id, emp, today)
     .await

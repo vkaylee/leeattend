@@ -572,4 +572,42 @@ mod tests {
 
         assert_eq!(rules.grace_period_minutes, 15); // zero not applied
     }
+
+    #[tokio::test]
+    async fn test_resolve_attendance_policy_with_mock() {
+        use crate::models::{AttendancePolicyVersion, AttendanceRules, EarlyArrivalStrategy};
+        use crate::repositories::attendance_policy_repository::MockAttendancePolicyRepository;
+
+        let mut mock_repo = MockAttendancePolicyRepository::new();
+        mock_repo
+            .expect_get_employee_effective_policy()
+            .returning(|_, _, _| {
+                Ok(Some(AttendancePolicyVersion {
+                    id: Uuid::new_v4(),
+                    policy_id: Uuid::new_v4(),
+                    rules: sqlx::types::Json(AttendanceRules {
+                        work_unit_minutes: 15,
+                        rounding_policy: "ceil".to_string(),
+                        early_arrival_strategy: EarlyArrivalStrategy::Block,
+                    }),
+                    valid_from: chrono::Utc::now(),
+                    valid_to: None,
+                    created_by: None,
+                    created_at: chrono::Utc::now(),
+                }))
+            });
+
+        let employee_id = Uuid::new_v4();
+        let workspace_id = Uuid::new_v4();
+        let date = NaiveDate::from_ymd_opt(2026, 3, 1).unwrap();
+
+        let rules =
+            PolicyResolver::resolve_attendance_policy(&mock_repo, employee_id, workspace_id, date)
+                .await
+                .unwrap();
+
+        assert_eq!(rules.work_unit_minutes, 15);
+        assert_eq!(rules.rounding_policy, "ceil");
+        assert_eq!(rules.early_arrival_strategy, EarlyArrivalStrategy::Block);
+    }
 }

@@ -25,7 +25,7 @@ pub struct AttendanceHandler;
 
 impl AttendanceHandler {
     /// Process an attendance job for a batch of employees.
-    #[allow(clippy::too_many_lines)]
+    #[allow(clippy::too_many_lines, clippy::too_many_arguments)]
     pub async fn handle(
         pool: &PgPool,
         diesel: &crate::diesel_pool::DieselPools,

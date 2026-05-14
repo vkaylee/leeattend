@@ -25,7 +25,6 @@ impl AppState {
         redis_pool: Option<RedisPool>,
     ) -> Result<(Arc<Self>, AppWorkers), Box<dyn std::error::Error>> {
         // Use API pool for application-level initialization (HTTP handlers, CRUD)
-        let pool = db_pools.api().clone();
         // Use Worker pool for background services (patient timeout, won't starve API)
         let worker_pool = db_pools.worker().clone();
 
@@ -114,12 +113,22 @@ impl AppState {
             Arc::new(crate::repositories::DieselPayrollRepository::new(
                 diesel_pools.clone(),
             ));
+        let holiday_repo: Arc<dyn crate::repositories::holiday_repository::HolidayRepository> =
+            Arc::new(crate::repositories::DieselHolidayRepository::new(
+                diesel_pools.clone(),
+            ));
 
         let attendance_summary_service = Arc::new(crate::services::AttendanceSummaryService::new(
-            Arc::clone(&time_entry_repo),
-            Arc::clone(&roster_repo),
-            Arc::clone(&policy_repo),
-            diesel_pools.clone(),
+            crate::services::attendance_summary_service::AttendanceSummaryServiceArgs {
+                time_entry_repo: Arc::clone(&time_entry_repo),
+                roster_repo: Arc::clone(&roster_repo),
+                policy_repo: Arc::clone(&policy_repo),
+                workspace_repo: Arc::clone(&workspace_repo),
+                employee_repo: Arc::clone(&employee_repo),
+                holiday_repo: Arc::clone(&holiday_repo),
+                leave_request_repo: Arc::clone(&leave_request_repo),
+                daily_summary_repo: Arc::clone(&attendance_daily_summary_repo),
+            },
         ));
         let report_service = Arc::new(crate::services::ReportService::new(
             crate::services::report_service::ReportServiceArgs {
@@ -129,6 +138,8 @@ impl AppState {
                 employee_repo: Arc::clone(&employee_repo),
                 attendance_daily_summary_repo: Arc::clone(&attendance_daily_summary_repo),
                 leave_repo: Arc::clone(&leave_request_repo),
+                holiday_repo: Arc::clone(&holiday_repo),
+                workspace_repo: Arc::clone(&workspace_repo),
 
                 diesel: diesel_pools.clone(),
             },
@@ -142,11 +153,22 @@ impl AppState {
             ),
         );
         let pairing_service = Arc::new(crate::services::pairing_service::PairingService::new(
-            Arc::clone(&time_entry_repo),
-            Arc::clone(&roster_repo),
-            Arc::clone(&policy_repo),
-            pool.clone(),
-            diesel_pools.clone(),
+            crate::services::pairing_service::PairingServiceArgs {
+                time_entry_repo: Arc::clone(&time_entry_repo),
+                roster_repo: Arc::clone(&roster_repo),
+                policy_repo: Arc::clone(&policy_repo),
+                workspace_repo: Arc::clone(&workspace_repo),
+                employee_repo: Arc::clone(&employee_repo),
+                holiday_repo: Arc::clone(&holiday_repo),
+                leave_request_repo: Arc::clone(&leave_request_repo),
+                daily_summary_repo: Arc::clone(&attendance_daily_summary_repo),
+                raw_log_repo: Arc::new(crate::repositories::DieselRawAttendanceLogRepository::new(
+                    diesel_pools.clone(),
+                )),
+                shift_repo: Arc::new(crate::repositories::DieselShiftRepository::new(
+                    diesel_pools.clone(),
+                )),
+            },
         ));
         let adj_repo: Arc<
             dyn crate::repositories::attendance_adjustment_repository::AttendanceAdjustmentRepository,

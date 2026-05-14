@@ -56,11 +56,34 @@ impl ReprocessAttendanceHandler {
 
         // Initialize pairing service from shared deps
         let pairing_service = crate::services::pairing_service::PairingService::new(
-            Arc::clone(&deps.time_entry_repo),
-            Arc::clone(&deps.roster_repo),
-            Arc::clone(&deps.policy_repo),
-            db.clone(),
-            diesel.clone(),
+            crate::services::pairing_service::PairingServiceArgs {
+                time_entry_repo: Arc::clone(&deps.time_entry_repo),
+                roster_repo: Arc::clone(&deps.roster_repo),
+                policy_repo: Arc::clone(&deps.policy_repo),
+                workspace_repo: Arc::new(crate::repositories::DieselWorkspaceRepository::new(
+                    diesel.clone(),
+                )),
+                employee_repo: Arc::new(crate::repositories::DieselEmployeeRepository::new(
+                    diesel.clone(),
+                )),
+                holiday_repo: Arc::new(crate::repositories::DieselHolidayRepository::new(
+                    diesel.clone(),
+                )),
+                leave_request_repo: Arc::new(
+                    crate::repositories::DieselLeaveRequestRepository::new(diesel.clone()),
+                ),
+                daily_summary_repo: Arc::new(
+                    crate::repositories::DieselAttendanceDailySummaryRepository::new(
+                        diesel.clone(),
+                    ),
+                ),
+                raw_log_repo: Arc::new(crate::repositories::DieselRawAttendanceLogRepository::new(
+                    diesel.clone(),
+                )),
+                shift_repo: Arc::new(crate::repositories::DieselShiftRepository::new(
+                    diesel.clone(),
+                )),
+            },
         );
 
         let mut current_date = payload.date_range.start;

@@ -15,7 +15,7 @@ use crate::repositories::roster::RosterRepository;
 use crate::repositories::workspace_repository::WorkspaceRepository;
 use crate::repositories::{
     employee::EmployeeRepository, AttendanceDailySummaryRepository, AttendancePolicyRepository,
-    DieselWorkspaceRepository, TimeEntryRepository,
+    TimeEntryRepository,
 };
 use crate::services::AttendanceCalculator;
 
@@ -49,6 +49,8 @@ pub struct ReportService {
     employee_repo: Arc<dyn EmployeeRepository>,
     attendance_daily_summary_repo: Arc<dyn AttendanceDailySummaryRepository>,
     leave_repo: Arc<dyn crate::repositories::leave_request_repository::LeaveRequestRepository>,
+    workspace_repo: Arc<dyn WorkspaceRepository>,
+    holiday_repo: Arc<dyn HolidayRepository>,
     diesel: crate::diesel_pool::DieselPools,
 }
 
@@ -59,6 +61,8 @@ pub struct ReportServiceArgs {
     pub employee_repo: Arc<dyn EmployeeRepository>,
     pub attendance_daily_summary_repo: Arc<dyn AttendanceDailySummaryRepository>,
     pub leave_repo: Arc<dyn crate::repositories::leave_request_repository::LeaveRequestRepository>,
+    pub workspace_repo: Arc<dyn WorkspaceRepository>,
+    pub holiday_repo: Arc<dyn HolidayRepository>,
     pub diesel: crate::diesel_pool::DieselPools,
 }
 
@@ -71,6 +75,8 @@ impl ReportService {
             employee_repo: args.employee_repo,
             attendance_daily_summary_repo: args.attendance_daily_summary_repo,
             leave_repo: args.leave_repo,
+            workspace_repo: args.workspace_repo,
+            holiday_repo: args.holiday_repo,
             diesel: args.diesel,
         }
     }
@@ -165,8 +171,8 @@ impl ReportService {
         args: AttendanceReportArgs,
     ) -> Result<PaginatedResponse<DailyAttendanceReport>, AppError> {
         // 0. Get Workspace Settings for Timezone & Rounding Logic
-        let workspace_repo = DieselWorkspaceRepository::new(self.diesel.clone());
-        let workspace = workspace_repo
+        let workspace = self
+            .workspace_repo
             .get_workspace_by_id(args.workspace_id)
             .await
             .map_err(|e| {
@@ -240,8 +246,8 @@ impl ReportService {
             .await?;
 
         // 5a. BATCH fetch holidays for the date range
-        let holiday_repo = crate::repositories::DieselHolidayRepository::new(self.diesel.clone());
-        let holidays_map = holiday_repo
+        let holidays_map = self
+            .holiday_repo
             .get_holidays_in_range(args.workspace_id, args.start_date, args.end_date)
             .await?;
 
@@ -433,8 +439,8 @@ impl ReportService {
         use std::collections::HashMap;
 
         // 0. Get Workspace Settings
-        let workspace_repo = DieselWorkspaceRepository::new(self.diesel.clone());
-        let workspace = workspace_repo
+        let workspace = self
+            .workspace_repo
             .get_workspace_by_id(args.workspace_id)
             .await
             .map_err(|e| {

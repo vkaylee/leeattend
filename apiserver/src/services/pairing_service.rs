@@ -3,7 +3,6 @@ use std::sync::Arc;
 
 use chrono::{DateTime, Duration, NaiveDate, Timelike, Utc};
 use chrono_tz::Tz;
-use sqlx::PgPool;
 use tracing::info;
 use uuid::Uuid;
 
@@ -21,35 +20,51 @@ pub struct PairingService {
     time_entry_repo: Arc<dyn TimeEntryRepository>,
     roster_repo: Arc<dyn RosterRepository>,
     policy_repo: Arc<dyn AttendancePolicyRepository>,
-    /// Kept for operations not yet abstracted
-    pool: PgPool,
-    diesel_pools: crate::diesel_pool::DieselPools,
+    workspace_repo: Arc<dyn WorkspaceRepository>,
+    employee_repo: Arc<dyn crate::repositories::employee::EmployeeRepository>,
+    holiday_repo: Arc<dyn crate::repositories::holiday_repository::HolidayRepository>,
+    leave_request_repo:
+        Arc<dyn crate::repositories::leave_request_repository::LeaveRequestRepository>,
+    daily_summary_repo: Arc<dyn crate::repositories::AttendanceDailySummaryRepository>,
+    raw_log_repo: Arc<dyn RawAttendanceLogRepository>,
+    shift_repo: Arc<dyn ShiftRepository>,
+}
+
+pub struct PairingServiceArgs {
+    pub time_entry_repo: Arc<dyn TimeEntryRepository>,
+    pub roster_repo: Arc<dyn RosterRepository>,
+    pub policy_repo: Arc<dyn AttendancePolicyRepository>,
+    pub workspace_repo: Arc<dyn WorkspaceRepository>,
+    pub employee_repo: Arc<dyn crate::repositories::employee::EmployeeRepository>,
+    pub holiday_repo: Arc<dyn crate::repositories::holiday_repository::HolidayRepository>,
+    pub leave_request_repo:
+        Arc<dyn crate::repositories::leave_request_repository::LeaveRequestRepository>,
+    pub daily_summary_repo: Arc<dyn crate::repositories::AttendanceDailySummaryRepository>,
+    pub raw_log_repo: Arc<dyn RawAttendanceLogRepository>,
+    pub shift_repo: Arc<dyn ShiftRepository>,
 }
 
 impl PairingService {
-    pub fn new(
-        time_entry_repo: Arc<dyn TimeEntryRepository>,
-        roster_repo: Arc<dyn RosterRepository>,
-        policy_repo: Arc<dyn AttendancePolicyRepository>,
-        pool: PgPool,
-        diesel_pools: crate::diesel_pool::DieselPools,
-    ) -> Self {
+    pub fn new(args: PairingServiceArgs) -> Self {
         Self {
-            time_entry_repo,
-            roster_repo,
-            policy_repo,
-            pool,
-            diesel_pools,
+            time_entry_repo: args.time_entry_repo,
+            roster_repo: args.roster_repo,
+            policy_repo: args.policy_repo,
+            workspace_repo: args.workspace_repo,
+            employee_repo: args.employee_repo,
+            holiday_repo: args.holiday_repo,
+            leave_request_repo: args.leave_request_repo,
+            daily_summary_repo: args.daily_summary_repo,
+            raw_log_repo: args.raw_log_repo,
+            shift_repo: args.shift_repo,
         }
     }
 
     #[tracing::instrument(skip_all, err)]
     pub async fn process_new_raw_log(&self, log: &RawAttendanceLog) -> Result<(), AppError> {
-        let raw_log_repo =
-            crate::repositories::DieselRawAttendanceLogRepository::new(self.diesel_pools.clone());
-
         // 1. Deduplication (exact match check)
-        let is_duplicate = raw_log_repo
+        let is_duplicate = self
+            .raw_log_repo
             .has_duplicate_raw_log(log.workspace_id, log.employee_id, log.id, log.punch_time)
             .await?;
 
@@ -62,9 +77,8 @@ impl PairingService {
         }
 
         // 2. Fetch Workspace Config
-        let workspace_repo =
-            crate::repositories::DieselWorkspaceRepository::new(self.diesel_pools.clone());
-        let workspace = workspace_repo
+        let workspace = self
+            .workspace_repo
             .get_workspace_by_id(log.workspace_id)
             .await?
             .ok_or_else(|| AppError::NotFound("Workspace not found".into()))?;
@@ -115,9 +129,10 @@ impl PairingService {
 
         let mut shift_config = None;
         if let Some(shift_id) = shift_id_opt {
-            let shift_repo =
-                crate::repositories::DieselShiftRepository::new(self.diesel_pools.clone());
-            let shift = shift_repo.get_shift_by_id(workspace_id, shift_id).await?;
+            let shift = self
+                .shift_repo
+                .get_shift_by_id(workspace_id, shift_id)
+                .await?;
 
             if let Some(s) = shift {
                 let start_m = s.start_time.hour() * 60 + s.start_time.minute();
@@ -177,9 +192,8 @@ impl PairingService {
 
         let next_day_utc = (start_of_day_local + Duration::days(1)).with_timezone(&Utc);
 
-        let raw_log_repo =
-            crate::repositories::DieselRawAttendanceLogRepository::new(self.diesel_pools.clone());
-        let logs = raw_log_repo
+        let logs = self
+            .raw_log_repo
             .get_employee_logs_in_time_range(
                 workspace_id,
                 employee_id,
@@ -213,21 +227,20 @@ impl PairingService {
         }
 
         if filtered_log_events.is_empty() {
-            Self::clear_auto_entries(
-                &self.pool,
-                &self.diesel_pools,
-                employee_id,
-                workspace_id,
-                start_of_day_utc,
-                next_day_utc,
-            )
-            .await?;
+            self.clear_auto_entries(employee_id, workspace_id, start_of_day_utc, next_day_utc)
+                .await?;
 
             let summary_svc = crate::services::AttendanceSummaryService::new(
-                Arc::clone(&self.time_entry_repo),
-                Arc::clone(&self.roster_repo),
-                Arc::clone(&self.policy_repo),
-                self.diesel_pools.clone(),
+                crate::services::attendance_summary_service::AttendanceSummaryServiceArgs {
+                    time_entry_repo: Arc::clone(&self.time_entry_repo),
+                    roster_repo: Arc::clone(&self.roster_repo),
+                    policy_repo: Arc::clone(&self.policy_repo),
+                    workspace_repo: Arc::clone(&self.workspace_repo),
+                    employee_repo: Arc::clone(&self.employee_repo),
+                    holiday_repo: Arc::clone(&self.holiday_repo),
+                    leave_request_repo: Arc::clone(&self.leave_request_repo),
+                    daily_summary_repo: Arc::clone(&self.daily_summary_repo),
+                },
             );
             let _ = summary_svc
                 .recalculate_daily_summary(workspace_id, employee_id, date)
@@ -295,10 +308,16 @@ impl PairingService {
 
         // Recalculate daily summary for OT workflow
         let summary_svc = crate::services::AttendanceSummaryService::new(
-            Arc::clone(&self.time_entry_repo),
-            Arc::clone(&self.roster_repo),
-            Arc::clone(&self.policy_repo),
-            self.diesel_pools.clone(),
+            crate::services::attendance_summary_service::AttendanceSummaryServiceArgs {
+                time_entry_repo: Arc::clone(&self.time_entry_repo),
+                roster_repo: Arc::clone(&self.roster_repo),
+                policy_repo: Arc::clone(&self.policy_repo),
+                workspace_repo: Arc::clone(&self.workspace_repo),
+                employee_repo: Arc::clone(&self.employee_repo),
+                holiday_repo: Arc::clone(&self.holiday_repo),
+                leave_request_repo: Arc::clone(&self.leave_request_repo),
+                daily_summary_repo: Arc::clone(&self.daily_summary_repo),
+            },
         );
         if let Err(e) = summary_svc
             .recalculate_daily_summary(workspace_id, employee_id, date)
@@ -315,15 +334,14 @@ impl PairingService {
     }
 
     async fn clear_auto_entries(
-        _pool: &PgPool,
-        diesel_pools: &crate::diesel_pool::DieselPools,
+        &self,
         employee_id: Uuid,
         workspace_id: Uuid,
         start: DateTime<Utc>,
         end: DateTime<Utc>,
     ) -> Result<(), AppError> {
-        let repo = crate::repositories::DieselTimeEntryRepository::new(diesel_pools.clone());
-        repo.replace_time_entries(workspace_id, employee_id, start, end, Vec::new())
+        self.time_entry_repo
+            .replace_time_entries(workspace_id, employee_id, start, end, Vec::new())
             .await
     }
 }

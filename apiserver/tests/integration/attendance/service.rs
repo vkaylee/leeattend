@@ -32,15 +32,42 @@ async fn test_process_log_success_with_timezone() {
         diesel_pools.clone(),
     ));
     let pairing = std::sync::Arc::new(apiserver::services::pairing_service::PairingService::new(
-        repo,
-        std::sync::Arc::new(apiserver::repositories::DieselRosterRepository::new(
-            diesel_pools.clone(),
-        )),
-        std::sync::Arc::new(
-            apiserver::repositories::DieselAttendancePolicyRepository::new(diesel_pools.clone()),
-        ),
-        pool.clone(),
-        diesel_pools.clone(),
+        apiserver::services::pairing_service::PairingServiceArgs {
+            time_entry_repo: repo.clone(),
+            roster_repo: std::sync::Arc::new(apiserver::repositories::DieselRosterRepository::new(
+                diesel_pools.clone(),
+            )),
+            policy_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselAttendancePolicyRepository::new(
+                    diesel_pools.clone(),
+                ),
+            ),
+            workspace_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselWorkspaceRepository::new(diesel_pools.clone()),
+            ),
+            employee_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselEmployeeRepository::new(diesel_pools.clone()),
+            ),
+            holiday_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselHolidayRepository::new(diesel_pools.clone()),
+            ),
+            leave_request_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselLeaveRequestRepository::new(diesel_pools.clone()),
+            ),
+            daily_summary_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselAttendanceDailySummaryRepository::new(
+                    diesel_pools.clone(),
+                ),
+            ),
+            raw_log_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselRawAttendanceLogRepository::new(
+                    diesel_pools.clone(),
+                ),
+            ),
+            shift_repo: std::sync::Arc::new(apiserver::repositories::DieselShiftRepository::new(
+                diesel_pools.clone(),
+            )),
+        },
     ));
     let emp_repo: std::sync::Arc<dyn apiserver::repositories::EmployeeRepository> =
         std::sync::Arc::new(apiserver::repositories::DieselEmployeeRepository::new(
@@ -136,15 +163,42 @@ async fn test_same_second_punch_with_different_status_allowed() {
         diesel_pools.clone(),
     ));
     let pairing = std::sync::Arc::new(apiserver::services::pairing_service::PairingService::new(
-        repo,
-        std::sync::Arc::new(apiserver::repositories::DieselRosterRepository::new(
-            diesel_pools.clone(),
-        )),
-        std::sync::Arc::new(
-            apiserver::repositories::DieselAttendancePolicyRepository::new(diesel_pools.clone()),
-        ),
-        pool.clone(),
-        diesel_pools.clone(),
+        apiserver::services::pairing_service::PairingServiceArgs {
+            time_entry_repo: repo.clone(),
+            roster_repo: std::sync::Arc::new(apiserver::repositories::DieselRosterRepository::new(
+                diesel_pools.clone(),
+            )),
+            policy_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselAttendancePolicyRepository::new(
+                    diesel_pools.clone(),
+                ),
+            ),
+            workspace_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselWorkspaceRepository::new(diesel_pools.clone()),
+            ),
+            employee_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselEmployeeRepository::new(diesel_pools.clone()),
+            ),
+            holiday_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselHolidayRepository::new(diesel_pools.clone()),
+            ),
+            leave_request_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselLeaveRequestRepository::new(diesel_pools.clone()),
+            ),
+            daily_summary_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselAttendanceDailySummaryRepository::new(
+                    diesel_pools.clone(),
+                ),
+            ),
+            raw_log_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselRawAttendanceLogRepository::new(
+                    diesel_pools.clone(),
+                ),
+            ),
+            shift_repo: std::sync::Arc::new(apiserver::repositories::DieselShiftRepository::new(
+                diesel_pools.clone(),
+            )),
+        },
     ));
     let emp_repo: std::sync::Arc<dyn apiserver::repositories::EmployeeRepository> =
         std::sync::Arc::new(apiserver::repositories::DieselEmployeeRepository::new(

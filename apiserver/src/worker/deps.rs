@@ -30,24 +30,24 @@ impl WorkerDeps {
     /// Build all worker-scoped repositories from Diesel connection pools.
     pub fn new(diesel: &crate::diesel_pool::DieselPools) -> Self {
         Self {
-            time_entry_repo: Arc::new(
-                crate::repositories::DieselTimeEntryRepository::new(diesel.clone()),
-            ),
+            time_entry_repo: Arc::new(crate::repositories::DieselTimeEntryRepository::new(
+                diesel.clone(),
+            )),
             roster_repo: Arc::new(crate::repositories::DieselRosterRepository::new(
                 diesel.clone(),
             )),
-            policy_repo: Arc::new(
-                crate::repositories::DieselAttendancePolicyRepository::new(diesel.clone()),
-            ),
-            employee_repo: Arc::new(
-                crate::repositories::DieselEmployeeRepository::new(diesel.clone()),
-            ),
-            raw_log_repo: Arc::new(
-                crate::repositories::DieselRawAttendanceLogRepository::new(diesel.clone()),
-            ),
-            staging_repo: Arc::new(
-                crate::repositories::DieselStagingLogRepository::new(diesel.clone()),
-            ),
+            policy_repo: Arc::new(crate::repositories::DieselAttendancePolicyRepository::new(
+                diesel.clone(),
+            )),
+            employee_repo: Arc::new(crate::repositories::DieselEmployeeRepository::new(
+                diesel.clone(),
+            )),
+            raw_log_repo: Arc::new(crate::repositories::DieselRawAttendanceLogRepository::new(
+                diesel.clone(),
+            )),
+            staging_repo: Arc::new(crate::repositories::DieselStagingLogRepository::new(
+                diesel.clone(),
+            )),
             error_repo: Arc::new(
                 crate::repositories::DieselAttendanceLogErrorRepository::new(diesel.clone()),
             ),
@@ -56,13 +56,39 @@ impl WorkerDeps {
 
     /// Build a [`PairingService`](crate::services::pairing_service::PairingService)
     /// using the shared repository instances.
-    pub fn pairing_service(&self, pool: &sqlx::PgPool, diesel: &crate::diesel_pool::DieselPools) -> Arc<crate::services::pairing_service::PairingService> {
+    pub fn pairing_service(
+        &self,
+        diesel: &crate::diesel_pool::DieselPools,
+    ) -> Arc<crate::services::pairing_service::PairingService> {
         Arc::new(crate::services::pairing_service::PairingService::new(
-            Arc::clone(&self.time_entry_repo),
-            Arc::clone(&self.roster_repo),
-            Arc::clone(&self.policy_repo),
-            pool.clone(),
-            diesel.clone(),
+            crate::services::pairing_service::PairingServiceArgs {
+                time_entry_repo: Arc::clone(&self.time_entry_repo),
+                roster_repo: Arc::clone(&self.roster_repo),
+                policy_repo: Arc::clone(&self.policy_repo),
+                workspace_repo: Arc::new(crate::repositories::DieselWorkspaceRepository::new(
+                    diesel.clone(),
+                )),
+                employee_repo: Arc::new(crate::repositories::DieselEmployeeRepository::new(
+                    diesel.clone(),
+                )),
+                holiday_repo: Arc::new(crate::repositories::DieselHolidayRepository::new(
+                    diesel.clone(),
+                )),
+                leave_request_repo: Arc::new(
+                    crate::repositories::DieselLeaveRequestRepository::new(diesel.clone()),
+                ),
+                daily_summary_repo: Arc::new(
+                    crate::repositories::DieselAttendanceDailySummaryRepository::new(
+                        diesel.clone(),
+                    ),
+                ),
+                raw_log_repo: Arc::new(crate::repositories::DieselRawAttendanceLogRepository::new(
+                    diesel.clone(),
+                )),
+                shift_repo: Arc::new(crate::repositories::DieselShiftRepository::new(
+                    diesel.clone(),
+                )),
+            },
         ))
     }
 
@@ -76,7 +102,7 @@ impl WorkerDeps {
         crate::services::AttendanceLogService,
         tokio::task::JoinHandle<()>,
     ) {
-        let pairing_svc = self.pairing_service(pool, diesel);
+        let pairing_svc = self.pairing_service(diesel);
         crate::services::AttendanceLogService::new(
             pool.clone(),
             pairing_svc,

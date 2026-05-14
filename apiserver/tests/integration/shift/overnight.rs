@@ -100,13 +100,40 @@ async fn test_overnight_shift_pairing() {
         diesel_pools.clone(),
     ));
     apiserver::services::pairing_service::PairingService::new(
-        repo.clone(),
-        std::sync::Arc::new(roster_repo),
-        std::sync::Arc::new(
-            apiserver::repositories::DieselAttendancePolicyRepository::new(diesel_pools.clone()),
-        ),
-        pool.clone(),
-        diesel_pools.clone(),
+        apiserver::services::pairing_service::PairingServiceArgs {
+            time_entry_repo: repo.clone(),
+            roster_repo: std::sync::Arc::new(roster_repo),
+            policy_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselAttendancePolicyRepository::new(
+                    diesel_pools.clone(),
+                ),
+            ),
+            workspace_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselWorkspaceRepository::new(diesel_pools.clone()),
+            ),
+            employee_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselEmployeeRepository::new(diesel_pools.clone()),
+            ),
+            holiday_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselHolidayRepository::new(diesel_pools.clone()),
+            ),
+            leave_request_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselLeaveRequestRepository::new(diesel_pools.clone()),
+            ),
+            daily_summary_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselAttendanceDailySummaryRepository::new(
+                    diesel_pools.clone(),
+                ),
+            ),
+            raw_log_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselRawAttendanceLogRepository::new(
+                    diesel_pools.clone(),
+                ),
+            ),
+            shift_repo: std::sync::Arc::new(apiserver::repositories::DieselShiftRepository::new(
+                diesel_pools.clone(),
+            )),
+        },
     )
     .reprocess_daily_attendance(ws_id, employee_id, shift_date, tz)
     .await

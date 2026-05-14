@@ -15,9 +15,8 @@ use crate::models::{AttendanceDailySummary, OtStatus};
 use crate::repositories::holiday_repository::HolidayRepository;
 use crate::repositories::roster::RosterRepository;
 use crate::repositories::AttendancePolicyRepository;
-use crate::repositories::{
-    workspace_repository::WorkspaceRepository, DieselWorkspaceRepository, TimeEntryRepository,
-};
+use crate::repositories::EmployeeRepository;
+use crate::repositories::{workspace_repository::WorkspaceRepository, TimeEntryRepository};
 use crate::services::AttendanceCalculator;
 
 pub struct EnterPaperOtArgs {
@@ -31,25 +30,39 @@ pub struct EnterPaperOtArgs {
     pub allow_exceed: bool,
 }
 
+pub struct AttendanceSummaryServiceArgs {
+    pub time_entry_repo: Arc<dyn TimeEntryRepository>,
+    pub roster_repo: Arc<dyn RosterRepository>,
+    pub policy_repo: Arc<dyn AttendancePolicyRepository>,
+    pub workspace_repo: Arc<dyn WorkspaceRepository>,
+    pub employee_repo: Arc<dyn EmployeeRepository>,
+    pub holiday_repo: Arc<dyn HolidayRepository>,
+    pub leave_request_repo: Arc<dyn LeaveRequestRepository>,
+    pub daily_summary_repo: Arc<dyn AttendanceDailySummaryRepository>,
+}
+
 pub struct AttendanceSummaryService {
     time_entry_repo: Arc<dyn TimeEntryRepository>,
     roster_repo: Arc<dyn RosterRepository>,
     policy_repo: Arc<dyn AttendancePolicyRepository>,
-    diesel: crate::diesel_pool::DieselPools,
+    workspace_repo: Arc<dyn WorkspaceRepository>,
+    employee_repo: Arc<dyn EmployeeRepository>,
+    holiday_repo: Arc<dyn HolidayRepository>,
+    leave_request_repo: Arc<dyn LeaveRequestRepository>,
+    daily_summary_repo: Arc<dyn AttendanceDailySummaryRepository>,
 }
 
 impl AttendanceSummaryService {
-    pub fn new(
-        time_entry_repo: Arc<dyn TimeEntryRepository>,
-        roster_repo: Arc<dyn RosterRepository>,
-        policy_repo: Arc<dyn AttendancePolicyRepository>,
-        diesel: crate::diesel_pool::DieselPools,
-    ) -> Self {
+    pub fn new(args: AttendanceSummaryServiceArgs) -> Self {
         Self {
-            time_entry_repo,
-            roster_repo,
-            policy_repo,
-            diesel,
+            time_entry_repo: args.time_entry_repo,
+            roster_repo: args.roster_repo,
+            policy_repo: args.policy_repo,
+            workspace_repo: args.workspace_repo,
+            employee_repo: args.employee_repo,
+            holiday_repo: args.holiday_repo,
+            leave_request_repo: args.leave_request_repo,
+            daily_summary_repo: args.daily_summary_repo,
         }
     }
 
@@ -64,8 +77,8 @@ impl AttendanceSummaryService {
         date: NaiveDate,
     ) -> Result<(), String> {
         // 1. Get Workspace Settings
-        let workspace_repo = DieselWorkspaceRepository::new(self.diesel.clone());
-        let workspace = workspace_repo
+        let workspace = self
+            .workspace_repo
             .get_workspace_by_id(workspace_id)
             .await
             .map_err(|e| e.to_string())?
@@ -144,9 +157,7 @@ impl AttendanceSummaryService {
                     let rules =
                         crate::domain::policy::resolver::PolicyResolver::resolve_attendance_rules(
                             &*self.policy_repo,
-                            &crate::repositories::DieselEmployeeRepository::new(
-                                self.diesel.clone(),
-                            ),
+                            &*self.employee_repo,
                             employee_id,
                             workspace_id,
                             date,
@@ -157,7 +168,7 @@ impl AttendanceSummaryService {
                     // Resolve Policy Rules
                     let policy_rules = PolicyResolver::resolve_with_shift_overrides(
                         &*self.policy_repo,
-                        &crate::repositories::DieselEmployeeRepository::new(self.diesel.clone()),
+                        &*self.employee_repo,
                         employee_id,
                         workspace_id,
                         date,
@@ -196,8 +207,8 @@ impl AttendanceSummaryService {
         }
 
         // 4b. Check if this date is a holiday
-        let holiday_repo = crate::repositories::DieselHolidayRepository::new(self.diesel.clone());
-        let holiday = holiday_repo
+        let holiday = self
+            .holiday_repo
             .is_holiday(workspace_id, date)
             .await
             .unwrap_or(None);
@@ -207,9 +218,8 @@ impl AttendanceSummaryService {
         // 4c. Holiday leave conflict detection
         if is_holiday && actual_work_minutes > 0 {
             if let Some(ref hol) = holiday {
-                let leave_repo =
-                    crate::repositories::DieselLeaveRequestRepository::new(self.diesel.clone());
-                let system_leave = leave_repo
+                let system_leave = self
+                    .leave_request_repo
                     .get_system_generated_holiday_leave(workspace_id, employee_id, date)
                     .await
                     .unwrap_or(None);
@@ -238,7 +248,8 @@ impl AttendanceSummaryService {
                     };
 
                     if work_percent >= threshold {
-                        let _ = leave_repo
+                        let _ = self
+                            .leave_request_repo
                             .cancel_leave_request(workspace_id, leave_request_id)
                             .await;
 
@@ -264,9 +275,7 @@ impl AttendanceSummaryService {
             }
         }
 
-        // 5. Upsert into DB
-        let summary_repo =
-            crate::repositories::DieselAttendanceDailySummaryRepository::new(self.diesel.clone());
+        let summary_repo = self.daily_summary_repo.as_ref();
 
         let existing = summary_repo
             .get_summary(workspace_id, employee_id, date)
@@ -316,10 +325,7 @@ impl AttendanceSummaryService {
         claimed_minutes: i32,
         reason: Option<String>,
     ) -> Result<(), String> {
-        let summary_repo =
-            crate::repositories::DieselAttendanceDailySummaryRepository::new(self.diesel.clone());
-
-        use crate::repositories::attendance_daily_summary_repository::AttendanceDailySummaryRepository;
+        let summary_repo = self.daily_summary_repo.as_ref();
 
         let rows_affected = summary_repo
             .claim_ot(workspace_id, employee_id, date, claimed_minutes, reason)
@@ -342,10 +348,7 @@ impl AttendanceSummaryService {
         manager_note: Option<String>,
         status: OtStatus, // Approved or Rejected
     ) -> Result<(), String> {
-        let summary_repo =
-            crate::repositories::DieselAttendanceDailySummaryRepository::new(self.diesel.clone());
-
-        use crate::repositories::attendance_daily_summary_repository::AttendanceDailySummaryRepository;
+        let summary_repo = self.daily_summary_repo.as_ref();
 
         let rows_affected = summary_repo
             .approve_ot(
@@ -370,10 +373,7 @@ impl AttendanceSummaryService {
         &self,
         args: EnterPaperOtArgs,
     ) -> Result<AttendanceDailySummary, String> {
-        let summary_repo =
-            crate::repositories::DieselAttendanceDailySummaryRepository::new(self.diesel.clone());
-
-        use crate::repositories::attendance_daily_summary_repository::AttendanceDailySummaryRepository;
+        let summary_repo = self.daily_summary_repo.as_ref();
 
         // 1. Check existing summary
         let existing = summary_repo
