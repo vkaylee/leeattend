@@ -57,8 +57,11 @@ async fn test_import_csv_with_line_errors() {
         std::sync::Arc::new(apiserver::repositories::DieselWorkspaceRepository::new(
             diesel_pools.clone(),
         )),
-        pool.clone(),
+        std::sync::Arc::new(apiserver::repositories::DieselDepartmentRepository::new(
+            diesel_pools.clone(),
+        )),
         diesel_pools.clone(),
+        None, // log_svc
     )
     .batch_import_from_file(ws_id, user_id, file_path, ImportTargetType::Log)
     .await

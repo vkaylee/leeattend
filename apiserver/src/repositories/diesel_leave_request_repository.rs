@@ -579,6 +579,7 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
             employee_ids,
             start_date,
             end_date,
-        ).await
+        )
+        .await
     }
 }

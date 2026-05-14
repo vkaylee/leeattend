@@ -140,8 +140,6 @@ impl AppState {
                 leave_repo: Arc::clone(&leave_request_repo),
                 holiday_repo: Arc::clone(&holiday_repo),
                 workspace_repo: Arc::clone(&workspace_repo),
-
-                diesel: diesel_pools.clone(),
             },
         ));
         let stats_repo: Arc<
@@ -187,18 +185,6 @@ impl AppState {
             Arc::new(crate::repositories::DieselImportJobRepository::new(
                 diesel_pools.clone(),
             ));
-        let import_service = Arc::new(
-            crate::services::attendance_import_service::AttendanceImportService::new(
-                Arc::clone(&import_repo),
-                Arc::clone(&adj_repo),
-                Arc::clone(&employee_repo),
-                Arc::clone(&time_entry_repo),
-                Arc::clone(&workspace_repo),
-                worker_pool.clone(),
-                diesel_pools.clone(),
-            ),
-        );
-        import_service.resume_all_pending_jobs().await;
 
         let session_repo: Arc<dyn crate::repositories::session_repository::SessionRepository> =
             Arc::new(crate::repositories::DieselSessionRepository::new(
@@ -315,6 +301,17 @@ impl AppState {
             diesel_pools.clone(),
         ));
 
+        let salary_base_repo: Arc<
+            dyn crate::repositories::salary_base_repository::SalaryBaseRepository,
+        > = Arc::new(crate::repositories::DieselSalaryBaseRepository::new(
+            diesel_pools.clone(),
+        ));
+
+        let roster_provider: Arc<dyn crate::services::payroll_service::RosterDataProvider> =
+            Arc::new(crate::services::payroll_service::DirectRosterDataProvider(
+                diesel_pools.clone(),
+            ));
+
         let payroll_service = Arc::new(crate::services::payroll_service::PayrollService::new(
             crate::services::payroll_service::PayrollServiceArgs {
                 payroll_repo: Arc::clone(&payroll_repo),
@@ -327,7 +324,8 @@ impl AppState {
                 policy_repo: attendance_policy_repo.clone(),
                 employee_repo: Arc::clone(&employee_repo),
                 overtime_policy_repo: Arc::clone(&overtime_policy_repo),
-                diesel_pools: diesel_pools.clone(),
+                salary_base_repo: Arc::clone(&salary_base_repo),
+                roster_provider,
             },
         ));
         let jwt_secret = if cfg!(debug_assertions) {
@@ -384,6 +382,20 @@ impl AppState {
             },
         );
         let attendance_service = Arc::new(attendance_service);
+
+        let import_service = Arc::new(
+            crate::services::attendance_import_service::AttendanceImportService::new(
+                Arc::clone(&import_repo),
+                Arc::clone(&adj_repo),
+                Arc::clone(&employee_repo),
+                Arc::clone(&time_entry_repo),
+                Arc::clone(&workspace_repo),
+                Arc::clone(&department_repo),
+                diesel_pools.clone(),
+                Some(Arc::clone(&attendance_service)),
+            ),
+        );
+        import_service.resume_all_pending_jobs().await;
 
         // Roster cache (requires Redis; shared between app state and worker)
         let roster_cache = redis_pool
@@ -477,6 +489,7 @@ impl AppState {
                 department_repo,
                 feature_flag_repo: feature_flag_repo.clone(),
                 overtime_policy_repo,
+                salary_base_repo,
             },
             reports: crate::ReportState {
                 service: report_service,

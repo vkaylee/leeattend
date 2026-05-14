@@ -2,7 +2,6 @@ use std::sync::Arc;
 
 use crate::errors::AppError;
 use chrono::Utc;
-use sqlx::PgPool;
 use tracing::error;
 use uuid::Uuid;
 
@@ -13,7 +12,6 @@ use crate::models::{
 };
 use crate::repositories::attendance_adjustment_repository::AttendanceAdjustmentRepository;
 use crate::repositories::TimeEntryRepository;
-use crate::services::attendance_import_service::AttendanceImportService;
 
 pub struct AttendanceAdjustmentService {
     adj_repo: Arc<dyn AttendanceAdjustmentRepository>,
@@ -29,36 +27,6 @@ impl AttendanceAdjustmentService {
             adj_repo,
             time_entry_repo,
         }
-    }
-
-    /// Resume all jobs that were interrupted by a server restart
-    #[tracing::instrument(skip_all)]
-    pub async fn resume_all_pending_jobs(pool: PgPool, diesel: crate::diesel_pool::DieselPools) {
-        let import_repo = Arc::new(crate::repositories::DieselImportJobRepository::new(
-            diesel.clone(),
-        ));
-        let adj_repo = Arc::new(
-            crate::repositories::DieselAttendanceAdjustmentRepository::new(diesel.clone()),
-        );
-        let employee_repo = Arc::new(crate::repositories::DieselEmployeeRepository::new(
-            diesel.clone(),
-        ));
-        let te_repo = Arc::new(crate::repositories::DieselTimeEntryRepository::new(
-            diesel.clone(),
-        ));
-        let workspace_repo = Arc::new(crate::repositories::DieselWorkspaceRepository::new(
-            diesel.clone(),
-        ));
-        let import_svc = AttendanceImportService::new(
-            import_repo,
-            adj_repo,
-            employee_repo,
-            te_repo,
-            workspace_repo,
-            pool,
-            diesel,
-        );
-        import_svc.resume_all_pending_jobs().await;
     }
 
     #[tracing::instrument(skip_all, err)]

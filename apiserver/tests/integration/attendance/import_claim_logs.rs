@@ -69,8 +69,11 @@ async fn test_import_employee_claims_staged_logs() -> Result<(), Box<dyn std::er
         std::sync::Arc::new(apiserver::repositories::DieselWorkspaceRepository::new(
             diesel_pools.clone(),
         )),
-        pool.clone(),
+        std::sync::Arc::new(apiserver::repositories::DieselDepartmentRepository::new(
+            diesel_pools.clone(),
+        )),
         diesel_pools.clone(),
+        None, // log_svc
     );
     let job_id = import_service
         .batch_import_from_file(ws_id, user_id, file_path, ImportTargetType::Employee)
@@ -195,8 +198,11 @@ async fn test_import_existing_employee_claims_staged_logs() -> Result<(), Box<dy
         std::sync::Arc::new(apiserver::repositories::DieselWorkspaceRepository::new(
             diesel_pools.clone(),
         )),
-        pool.clone(),
+        std::sync::Arc::new(apiserver::repositories::DieselDepartmentRepository::new(
+            diesel_pools.clone(),
+        )),
         diesel_pools.clone(),
+        None, // log_svc
     );
     let job_id = import_service
         .batch_import_from_file(ws_id, user_id, file_path, ImportTargetType::Employee)

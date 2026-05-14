@@ -256,12 +256,7 @@ impl ReportService {
 
         let leave_date_set = self
             .leave_repo
-            .get_approved_leave_dates(
-                args.workspace_id,
-                &emp_ids,
-                args.start_date,
-                args.end_date,
-            )
+            .get_approved_leave_dates(args.workspace_id, &emp_ids, args.start_date, args.end_date)
             .await?;
 
         // 5d. BATCH fetch attendance rules (SCD Type 2)

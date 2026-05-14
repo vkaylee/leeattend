@@ -1,5 +1,5 @@
 use crate::errors::AppError;
-use crate::repositories::employee::EmployeeRepository;
+
 use crate::repositories::overtime_policy_repository::OvertimePolicyRepositoryTrait;
 use chrono::NaiveDate;
 use chrono_tz::Tz;
@@ -20,20 +20,6 @@ use crate::repositories::{roster::RosterRepository, time_entry_repository};
 
 use super::attendance_matcher::AttendanceMatcher;
 use super::financial_calculator::FinancialCalculator;
-
-pub struct PayrollService {
-    payroll_repo: Arc<dyn PayrollRepository>,
-    department_repo: Arc<dyn DepartmentRepository>,
-    time_entry_repo: Arc<dyn time_entry_repository::TimeEntryRepository>,
-    workspace_repo: Arc<dyn WorkspaceRepository>,
-    pub holiday_repo: Arc<dyn HolidayRepository>,
-    pub roster_repo: Arc<dyn RosterRepository>,
-    pub leave_repo: Arc<dyn LeaveRequestRepository>,
-    pub policy_repo: Arc<dyn crate::repositories::AttendancePolicyRepository>,
-    pub employee_repo: Arc<dyn EmployeeRepository>,
-    pub overtime_policy_repo: Arc<dyn OvertimePolicyRepositoryTrait>,
-    pub diesel_pools: crate::diesel_pool::DieselPools,
-}
 
 // ---------------------------------------------------------------------------
 // Internal data structs for PayrollService decomposition
@@ -78,6 +64,28 @@ pub struct SegmentSnapshot {
     pub(crate) source: String,
 }
 
+#[async_trait::async_trait]
+pub trait RosterDataProvider: Send + Sync {
+    async fn get_roster_data(
+        &self,
+        workspace_id: Uuid,
+    ) -> Result<Arc<crate::cache::RosterData>, String>;
+}
+
+/// Concrete `RosterDataProvider` that calls `build_roster_data` directly.
+/// Used in production (`app_builder`) and in integration tests.
+pub struct DirectRosterDataProvider(pub crate::diesel_pool::DieselPools);
+
+#[async_trait::async_trait]
+impl RosterDataProvider for DirectRosterDataProvider {
+    async fn get_roster_data(
+        &self,
+        workspace_id: Uuid,
+    ) -> Result<Arc<crate::cache::RosterData>, String> {
+        crate::cache::build_roster_data(&self.0, workspace_id).await
+    }
+}
+
 pub struct PayrollServiceArgs {
     pub payroll_repo: Arc<dyn PayrollRepository>,
     pub department_repo: Arc<dyn DepartmentRepository>,
@@ -89,9 +97,26 @@ pub struct PayrollServiceArgs {
     pub policy_repo: Arc<dyn crate::repositories::AttendancePolicyRepository>,
     pub employee_repo: Arc<dyn crate::repositories::EmployeeRepository>,
     pub overtime_policy_repo: Arc<dyn OvertimePolicyRepositoryTrait>,
-    pub diesel_pools: crate::diesel_pool::DieselPools,
+    pub salary_base_repo:
+        Arc<dyn crate::repositories::salary_base_repository::SalaryBaseRepository>,
+    pub roster_provider: Arc<dyn RosterDataProvider>,
 }
 
+pub struct PayrollService {
+    pub payroll_repo: Arc<dyn PayrollRepository>,
+    pub department_repo: Arc<dyn DepartmentRepository>,
+    pub time_entry_repo: Arc<dyn time_entry_repository::TimeEntryRepository>,
+    pub workspace_repo: Arc<dyn WorkspaceRepository>,
+    pub holiday_repo: Arc<dyn HolidayRepository>,
+    pub roster_repo: Arc<dyn RosterRepository>,
+    pub leave_repo: Arc<dyn LeaveRequestRepository>,
+    pub policy_repo: Arc<dyn crate::repositories::AttendancePolicyRepository>,
+    pub employee_repo: Arc<dyn crate::repositories::EmployeeRepository>,
+    pub overtime_policy_repo: Arc<dyn OvertimePolicyRepositoryTrait>,
+    pub salary_base_repo:
+        Arc<dyn crate::repositories::salary_base_repository::SalaryBaseRepository>,
+    pub roster_provider: Arc<dyn RosterDataProvider>,
+}
 impl PayrollService {
     pub fn new(args: PayrollServiceArgs) -> Self {
         Self {
@@ -105,7 +130,8 @@ impl PayrollService {
             policy_repo: args.policy_repo,
             employee_repo: args.employee_repo,
             overtime_policy_repo: args.overtime_policy_repo,
-            diesel_pools: args.diesel_pools,
+            salary_base_repo: args.salary_base_repo,
+            roster_provider: args.roster_provider,
         }
     }
 
@@ -165,7 +191,9 @@ impl PayrollService {
             .get_holidays_in_range(workspace_id, start_date, end_date)
             .await?;
 
-        let roster_data = crate::cache::build_roster_data(&self.diesel_pools, workspace_id)
+        let roster_data = self
+            .roster_provider
+            .get_roster_data(workspace_id)
             .await
             .map_err(|e| {
                 tracing::error!("Failed to build roster data: {}", e);
@@ -433,13 +461,7 @@ impl PayrollService {
         base_values.insert("gross".to_string(), gross_salary);
         base_values.insert("base_pay".to_string(), total_base_pay);
 
-        if let Ok(groups) =
-            crate::repositories::diesel_salary_base_repository::DieselSalaryBaseRepository::new(
-                self.diesel_pools.clone(),
-            )
-            .get_groups(workspace_id)
-            .await
-        {
+        if let Ok(groups) = self.salary_base_repo.get_groups(workspace_id).await {
             for group in groups {
                 let amount = if group.slug == "bhxh_base" {
                     total_base_pay
@@ -562,7 +584,8 @@ impl PayrollService {
                     policy_repo: Arc::clone(&self.policy_repo),
                     employee_repo: Arc::clone(&self.employee_repo),
                     overtime_policy_repo: Arc::clone(&self.overtime_policy_repo),
-                    diesel_pools: self.diesel_pools.clone(),
+                    salary_base_repo: Arc::clone(&self.salary_base_repo),
+                    roster_provider: Arc::clone(&self.roster_provider),
                 };
                 async move {
                     match svc

@@ -104,6 +104,8 @@ pub struct PayrollState {
     pub department_repo: Arc<dyn DepartmentRepository>,
     pub feature_flag_repo: Arc<dyn FeatureFlagRepository>,
     pub overtime_policy_repo: Arc<dyn OvertimePolicyRepositoryTrait>,
+    pub salary_base_repo:
+        Arc<dyn crate::repositories::salary_base_repository::SalaryBaseRepository>,
 }
 
 /// Reports & async coordination

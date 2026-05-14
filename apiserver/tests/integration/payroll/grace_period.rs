@@ -149,7 +149,15 @@ async fn test_grace_period_zero_shift_uses_policy_default() {
             overtime_policy_repo: Arc::new(
                 apiserver::repositories::DieselOvertimePolicyRepository::new(diesel_pools.clone()),
             ),
-            diesel_pools: diesel_pools.clone(),
+            salary_base_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselSalaryBaseRepository::new(diesel_pools.clone()),
+            ),
+
+            roster_provider: std::sync::Arc::new(
+                apiserver::services::payroll_service::DirectRosterDataProvider(
+                    diesel_pools.clone(),
+                ),
+            ),
         })
     }
     .calculate_monthly_payslip(employee_id, workspace_id, 2026, 1)
@@ -298,7 +306,15 @@ async fn test_grace_period_nonzero_shift_overrides() {
             overtime_policy_repo: Arc::new(
                 apiserver::repositories::DieselOvertimePolicyRepository::new(diesel_pools.clone()),
             ),
-            diesel_pools: diesel_pools.clone(),
+            salary_base_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselSalaryBaseRepository::new(diesel_pools.clone()),
+            ),
+
+            roster_provider: std::sync::Arc::new(
+                apiserver::services::payroll_service::DirectRosterDataProvider(
+                    diesel_pools.clone(),
+                ),
+            ),
         })
     }
     .calculate_monthly_payslip(employee_id, workspace_id, 2026, 1)

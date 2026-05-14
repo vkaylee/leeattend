@@ -4,7 +4,7 @@ use crate::errors::AppError;
 
 use chrono::{DateTime, NaiveDate, Utc};
 use chrono_tz::Tz;
-use sqlx::PgPool;
+
 use tracing::{error, info};
 use uuid::Uuid;
 
@@ -248,10 +248,7 @@ struct PunchImportStrategy {
     adj_repo: Arc<dyn AttendanceAdjustmentRepository>,
     time_entry_repo: Arc<dyn TimeEntryRepository>,
     employee_repo: Arc<dyn EmployeeRepository>,
-    policy_repo: Arc<dyn crate::repositories::AttendancePolicyRepository>,
-    log_svc: Option<crate::services::attendance_log_service::AttendanceLogService>,
-    pool: PgPool,
-    diesel_pools: crate::diesel_pool::DieselPools,
+    log_svc: Option<Arc<crate::services::attendance_log_service::AttendanceLogService>>,
 }
 
 #[async_trait::async_trait]
@@ -311,78 +308,8 @@ impl ImportStrategy for PunchImportStrategy {
     async fn init(
         &mut self,
         _diesel: &crate::diesel_pool::DieselPools,
-        job: &AttendanceImportJob,
+        _job: &AttendanceImportJob,
     ) -> Result<(), String> {
-        if job.target_type == ImportTargetType::Log {
-            let te_repo = Arc::clone(&self.time_entry_repo);
-            let ps = Arc::new(crate::services::pairing_service::PairingService::new(
-                crate::services::pairing_service::PairingServiceArgs {
-                    time_entry_repo: te_repo,
-                    roster_repo: Arc::new(crate::repositories::DieselRosterRepository::new(
-                        self.diesel_pools.clone(),
-                    )),
-                    policy_repo: Arc::clone(&self.policy_repo),
-                    workspace_repo: Arc::new(crate::repositories::DieselWorkspaceRepository::new(
-                        self.diesel_pools.clone(),
-                    )),
-                    employee_repo: Arc::new(crate::repositories::DieselEmployeeRepository::new(
-                        self.diesel_pools.clone(),
-                    )),
-                    holiday_repo: Arc::new(crate::repositories::DieselHolidayRepository::new(
-                        self.diesel_pools.clone(),
-                    )),
-                    leave_request_repo: Arc::new(
-                        crate::repositories::DieselLeaveRequestRepository::new(
-                            self.diesel_pools.clone(),
-                        ),
-                    ),
-                    daily_summary_repo: Arc::new(
-                        crate::repositories::DieselAttendanceDailySummaryRepository::new(
-                            self.diesel_pools.clone(),
-                        ),
-                    ),
-                    raw_log_repo: Arc::new(
-                        crate::repositories::DieselRawAttendanceLogRepository::new(
-                            self.diesel_pools.clone(),
-                        ),
-                    ),
-                    shift_repo: Arc::new(crate::repositories::DieselShiftRepository::new(
-                        self.diesel_pools.clone(),
-                    )),
-                },
-            ));
-            let emp_repo: Arc<dyn EmployeeRepository> = Arc::new(
-                crate::repositories::DieselEmployeeRepository::new(self.diesel_pools.clone()),
-            );
-            let rl_repo: Arc<
-                dyn crate::repositories::raw_attendance_log_repository::RawAttendanceLogRepository,
-            > = Arc::new(crate::repositories::DieselRawAttendanceLogRepository::new(
-                self.diesel_pools.clone(),
-            ));
-            let st_repo: Arc<
-                dyn crate::repositories::staging_log_repository::StagingLogRepository,
-            > = Arc::new(crate::repositories::DieselStagingLogRepository::new(
-                self.diesel_pools.clone(),
-            ));
-            let er_repo: Arc<dyn crate::repositories::attendance_log_error_repository::AttendanceLogErrorRepository> = Arc::new(crate::repositories::DieselAttendanceLogErrorRepository::new(self.diesel_pools.clone()));
-
-            let (log_svc, _) = crate::services::attendance_log_service::AttendanceLogService::new(
-                self.pool.clone(),
-                ps,
-                crate::services::attendance_log_service::AttendanceLogServiceConfig {
-                    buffer_capacity: 1,
-                    batch_size: 1,
-                    flush_interval_ms: 1000,
-                },
-                crate::services::attendance_log_service::AttendanceLogServiceDeps {
-                    employee_repo: emp_repo,
-                    raw_log_repo: rl_repo,
-                    staging_repo: st_repo,
-                    error_repo: er_repo,
-                },
-            );
-            self.log_svc = Some(log_svc);
-        }
         Ok(())
     }
 
@@ -492,19 +419,22 @@ pub struct AttendanceImportService {
     employee_repo: Arc<dyn EmployeeRepository>,
     time_entry_repo: Arc<dyn TimeEntryRepository>,
     workspace_repo: Arc<dyn crate::repositories::workspace_repository::WorkspaceRepository>,
-    pool: PgPool,
+    dept_repo: Arc<dyn crate::repositories::department_repository::DepartmentRepository>,
     diesel_pools: crate::diesel_pool::DieselPools,
+    log_svc: Option<Arc<crate::services::attendance_log_service::AttendanceLogService>>,
 }
 
 impl AttendanceImportService {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         import_repo: Arc<dyn ImportJobRepository>,
         adj_repo: Arc<dyn AttendanceAdjustmentRepository>,
         employee_repo: Arc<dyn EmployeeRepository>,
         time_entry_repo: Arc<dyn TimeEntryRepository>,
         workspace_repo: Arc<dyn crate::repositories::workspace_repository::WorkspaceRepository>,
-        pool: PgPool,
+        dept_repo: Arc<dyn crate::repositories::department_repository::DepartmentRepository>,
         diesel_pools: crate::diesel_pool::DieselPools,
+        log_svc: Option<Arc<crate::services::attendance_log_service::AttendanceLogService>>,
     ) -> Self {
         Self {
             import_repo,
@@ -512,8 +442,9 @@ impl AttendanceImportService {
             employee_repo,
             time_entry_repo,
             workspace_repo,
-            pool,
+            dept_repo,
             diesel_pools,
+            log_svc,
         }
     }
     #[tracing::instrument(skip_all, err)]
@@ -647,12 +578,7 @@ impl AttendanceImportService {
             adj_repo: Arc::clone(&self.adj_repo),
             time_entry_repo: Arc::clone(&self.time_entry_repo),
             employee_repo: Arc::clone(&self.employee_repo),
-            policy_repo: Arc::new(crate::repositories::DieselAttendancePolicyRepository::new(
-                self.diesel_pools.clone(),
-            )),
-            log_svc: None,
-            pool: self.pool.clone(),
-            diesel_pools: self.diesel_pools.clone(),
+            log_svc: self.log_svc.clone(),
         };
 
         let pipeline = ImportPipeline {
@@ -710,11 +636,7 @@ impl AttendanceImportService {
         let strategy = EmployeeImportStrategy {
             msgs: msgs.clone(),
             employee_repo: std::sync::Arc::clone(&self.employee_repo),
-            department_repo: Arc::new(
-                crate::repositories::diesel_department_repository::DieselDepartmentRepository::new(
-                    self.diesel_pools.clone(),
-                ),
-            ),
+            department_repo: Arc::clone(&self.dept_repo),
             dept_cache: HashMap::new(),
         };
 

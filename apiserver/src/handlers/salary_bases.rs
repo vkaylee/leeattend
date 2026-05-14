@@ -8,10 +8,7 @@ use uuid::Uuid;
 
 use std::sync::Arc;
 
-use crate::{
-    errors::AppError, handlers::common::MemberContext,
-    repositories::salary_base_repository::SalaryBaseRepository, AppState,
-};
+use crate::{errors::AppError, handlers::common::MemberContext, AppState};
 
 #[derive(Serialize)]
 pub struct SalaryBasesResponse {
@@ -23,9 +20,16 @@ pub async fn get_salary_bases(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> Result<impl IntoResponse, AppError> {
-    let groups = SalaryBaseRepository::get_groups(state.infra.db.api(), ctx.workspace_id).await?;
-    let members =
-        SalaryBaseRepository::get_group_members(state.infra.db.api(), ctx.workspace_id).await?;
+    let groups = state
+        .payroll
+        .salary_base_repo
+        .get_groups(ctx.workspace_id)
+        .await?;
+    let members = state
+        .payroll
+        .salary_base_repo
+        .get_group_members(ctx.workspace_id)
+        .await?;
 
     Ok(Json(SalaryBasesResponse { groups, members }))
 }
@@ -42,14 +46,16 @@ pub async fn create_salary_base(
     ctx: MemberContext,
     Json(payload): Json<CreateBaseRequest>,
 ) -> Result<impl IntoResponse, AppError> {
-    let group = SalaryBaseRepository::create_group(
-        state.infra.db.api(),
-        ctx.workspace_id,
-        &payload.name,
-        &payload.slug,
-        payload.description.as_deref(),
-    )
-    .await?;
+    let group = state
+        .payroll
+        .salary_base_repo
+        .create_group(
+            ctx.workspace_id,
+            &payload.name,
+            &payload.slug,
+            payload.description,
+        )
+        .await?;
 
     Ok((axum::http::StatusCode::CREATED, Json(group)))
 }
@@ -65,12 +71,11 @@ pub async fn assign_component_to_base(
     Path((_workspace_id, base_id)): Path<(Uuid, Uuid)>,
     Json(payload): Json<AssignMemberRequest>,
 ) -> Result<impl IntoResponse, AppError> {
-    SalaryBaseRepository::assign_component_to_group(
-        state.infra.db.api(),
-        payload.component_definition_id,
-        base_id,
-    )
-    .await?;
+    state
+        .payroll
+        .salary_base_repo
+        .assign_component_to_group(payload.component_definition_id, base_id)
+        .await?;
     Ok(Json(serde_json::json!({ "success": true })))
 }
 
@@ -79,11 +84,10 @@ pub async fn unassign_component_from_base(
     _ctx: MemberContext,
     Path((_workspace_id, base_id, component_id)): Path<(Uuid, Uuid, Uuid)>,
 ) -> Result<impl IntoResponse, AppError> {
-    SalaryBaseRepository::unassign_component_from_group(
-        state.infra.db.api(),
-        component_id,
-        base_id,
-    )
-    .await?;
+    state
+        .payroll
+        .salary_base_repo
+        .unassign_component_from_group(component_id, base_id)
+        .await?;
     Ok(Json(serde_json::json!({ "success": true })))
 }

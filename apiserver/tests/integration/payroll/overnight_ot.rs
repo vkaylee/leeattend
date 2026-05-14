@@ -148,7 +148,15 @@ async fn test_overnight_ot_payroll_calculation() {
             overtime_policy_repo: Arc::new(
                 apiserver::repositories::DieselOvertimePolicyRepository::new(diesel_pools.clone()),
             ),
-            diesel_pools: diesel_pools.clone(),
+            salary_base_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselSalaryBaseRepository::new(diesel_pools.clone()),
+            ),
+
+            roster_provider: std::sync::Arc::new(
+                apiserver::services::payroll_service::DirectRosterDataProvider(
+                    diesel_pools.clone(),
+                ),
+            ),
         })
     }
     .calculate_monthly_payslip(employee_id, workspace_id, 2026, 1)

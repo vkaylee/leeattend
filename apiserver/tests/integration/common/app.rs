@@ -170,8 +170,11 @@ pub async fn spawn_app() -> (String, TestDatabase) {
             employee_repo.clone(),
             time_entry_repo.clone(),
             workspace_repo.clone(),
-            pool.clone(),
+            Arc::new(apiserver::repositories::DieselDepartmentRepository::new(
+                diesel_pools.clone(),
+            )),
             diesel_pools.clone(),
+            None, // log_svc
         ),
     );
     let payroll_repo: Arc<dyn apiserver::repositories::payroll_repository::PayrollRepository> =
@@ -207,7 +210,15 @@ pub async fn spawn_app() -> (String, TestDatabase) {
             overtime_policy_repo: Arc::new(
                 apiserver::repositories::DieselOvertimePolicyRepository::new(diesel_pools.clone()),
             ),
-            diesel_pools: diesel_pools.clone(),
+            salary_base_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselSalaryBaseRepository::new(diesel_pools.clone()),
+            ),
+
+            roster_provider: std::sync::Arc::new(
+                apiserver::services::payroll_service::DirectRosterDataProvider(
+                    diesel_pools.clone(),
+                ),
+            ),
         },
     ));
     let auth_service = Arc::new(apiserver::services::auth_service::AuthService::new(
@@ -398,6 +409,9 @@ pub async fn spawn_app() -> (String, TestDatabase) {
             feature_flag_repo: feature_flag_repo.clone(),
             overtime_policy_repo: Arc::new(
                 apiserver::repositories::DieselOvertimePolicyRepository::new(diesel_pools.clone()),
+            ),
+            salary_base_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselSalaryBaseRepository::new(diesel_pools.clone()),
             ),
         },
         reports: apiserver::ReportState {
@@ -649,8 +663,11 @@ pub async fn spawn_app_with_factory() -> (String, Uuid, Uuid, TestFactory, TestD
             employee_repo.clone(),
             time_entry_repo.clone(),
             workspace_repo.clone(),
-            pool.clone(),
+            Arc::new(apiserver::repositories::DieselDepartmentRepository::new(
+                diesel_pools.clone(),
+            )),
             diesel_pools.clone(),
+            None, // log_svc
         ),
     );
     let payroll_repo: Arc<dyn apiserver::repositories::payroll_repository::PayrollRepository> =
@@ -686,7 +703,15 @@ pub async fn spawn_app_with_factory() -> (String, Uuid, Uuid, TestFactory, TestD
             overtime_policy_repo: Arc::new(
                 apiserver::repositories::DieselOvertimePolicyRepository::new(diesel_pools.clone()),
             ),
-            diesel_pools: diesel_pools.clone(),
+            salary_base_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselSalaryBaseRepository::new(diesel_pools.clone()),
+            ),
+
+            roster_provider: std::sync::Arc::new(
+                apiserver::services::payroll_service::DirectRosterDataProvider(
+                    diesel_pools.clone(),
+                ),
+            ),
         },
     ));
     let auth_service = Arc::new(apiserver::services::auth_service::AuthService::new(
@@ -877,6 +902,9 @@ pub async fn spawn_app_with_factory() -> (String, Uuid, Uuid, TestFactory, TestD
             feature_flag_repo: feature_flag_repo.clone(),
             overtime_policy_repo: Arc::new(
                 apiserver::repositories::DieselOvertimePolicyRepository::new(diesel_pools.clone()),
+            ),
+            salary_base_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselSalaryBaseRepository::new(diesel_pools.clone()),
             ),
         },
         reports: apiserver::ReportState {
@@ -1161,8 +1189,11 @@ pub async fn setup_app_tower() -> (TestDatabase, TestFactory, Arc<AppState>, axu
             employee_repo.clone(),
             time_entry_repo.clone(),
             workspace_repo.clone(),
-            pool.clone(),
+            Arc::new(apiserver::repositories::DieselDepartmentRepository::new(
+                diesel_pools.clone(),
+            )),
             diesel_pools.clone(),
+            None, // log_svc
         ),
     );
     let payroll_repo: Arc<dyn apiserver::repositories::payroll_repository::PayrollRepository> =
@@ -1198,7 +1229,15 @@ pub async fn setup_app_tower() -> (TestDatabase, TestFactory, Arc<AppState>, axu
             overtime_policy_repo: Arc::new(
                 apiserver::repositories::DieselOvertimePolicyRepository::new(diesel_pools.clone()),
             ),
-            diesel_pools: diesel_pools.clone(),
+            salary_base_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselSalaryBaseRepository::new(diesel_pools.clone()),
+            ),
+
+            roster_provider: std::sync::Arc::new(
+                apiserver::services::payroll_service::DirectRosterDataProvider(
+                    diesel_pools.clone(),
+                ),
+            ),
         },
     ));
     let auth_service = Arc::new(apiserver::services::auth_service::AuthService::new(
@@ -1393,6 +1432,9 @@ pub async fn setup_app_tower() -> (TestDatabase, TestFactory, Arc<AppState>, axu
             feature_flag_repo: feature_flag_repo.clone(),
             overtime_policy_repo: Arc::new(
                 apiserver::repositories::DieselOvertimePolicyRepository::new(diesel_pools.clone()),
+            ),
+            salary_base_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselSalaryBaseRepository::new(diesel_pools.clone()),
             ),
         },
         reports: apiserver::ReportState {

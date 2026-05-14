@@ -169,7 +169,15 @@ async fn test_payroll_holiday_work_with_multiplier() {
                         diesel_pools.clone(),
                     ),
                 ),
-                diesel_pools: diesel_pools.clone(),
+                salary_base_repo: std::sync::Arc::new(
+                    apiserver::repositories::DieselSalaryBaseRepository::new(diesel_pools.clone()),
+                ),
+
+                roster_provider: std::sync::Arc::new(
+                    apiserver::services::payroll_service::DirectRosterDataProvider(
+                        diesel_pools.clone(),
+                    ),
+                ),
             },
         )
     }
@@ -344,7 +352,15 @@ async fn test_payroll_holiday_work_no_credit() {
                         diesel_pools.clone(),
                     ),
                 ),
-                diesel_pools: diesel_pools.clone(),
+                salary_base_repo: std::sync::Arc::new(
+                    apiserver::repositories::DieselSalaryBaseRepository::new(diesel_pools.clone()),
+                ),
+
+                roster_provider: std::sync::Arc::new(
+                    apiserver::services::payroll_service::DirectRosterDataProvider(
+                        diesel_pools.clone(),
+                    ),
+                ),
             },
         )
     }
@@ -506,7 +522,15 @@ async fn test_payroll_holiday_work_unpaid_no_premium() {
                         diesel_pools.clone(),
                     ),
                 ),
-                diesel_pools: diesel_pools.clone(),
+                salary_base_repo: std::sync::Arc::new(
+                    apiserver::repositories::DieselSalaryBaseRepository::new(diesel_pools.clone()),
+                ),
+
+                roster_provider: std::sync::Arc::new(
+                    apiserver::services::payroll_service::DirectRosterDataProvider(
+                        diesel_pools.clone(),
+                    ),
+                ),
             },
         )
     }

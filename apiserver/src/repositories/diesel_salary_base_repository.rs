@@ -87,8 +87,13 @@ impl DieselSalaryBaseRepository {
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))
     }
+}
 
-    pub async fn get_groups(&self, workspace_id: Uuid) -> Result<Vec<SalaryBaseGroup>, AppError> {
+#[async_trait::async_trait]
+impl crate::repositories::salary_base_repository::SalaryBaseRepository
+    for DieselSalaryBaseRepository
+{
+    async fn get_groups(&self, workspace_id: Uuid) -> Result<Vec<SalaryBaseGroup>, AppError> {
         let mut conn = self.conn().await?;
 
         salary_base_groups::table
@@ -108,12 +113,12 @@ impl DieselSalaryBaseRepository {
             .map(|rows| rows.into_iter().map(Into::into).collect())
     }
 
-    pub async fn create_group(
+    async fn create_group(
         &self,
         workspace_id: Uuid,
         name: &str,
         slug: &str,
-        description: Option<&str>,
+        description: Option<String>,
     ) -> Result<SalaryBaseGroup, AppError> {
         let mut conn = self.conn().await?;
 
@@ -122,7 +127,7 @@ impl DieselSalaryBaseRepository {
             workspace_id: Some(workspace_id),
             name: name.to_string(),
             slug: slug.to_string(),
-            description: description.map(String::from),
+            description,
             is_system: false,
             created_at: Utc::now(),
             updated_at: Utc::now(),
@@ -137,7 +142,7 @@ impl DieselSalaryBaseRepository {
             .map(Into::into)
     }
 
-    pub async fn get_group_members(
+    async fn get_group_members(
         &self,
         workspace_id: Uuid,
     ) -> Result<Vec<SalaryBaseGroupMember>, AppError> {
@@ -157,7 +162,7 @@ impl DieselSalaryBaseRepository {
             .map(|rows| rows.into_iter().map(Into::into).collect())
     }
 
-    pub async fn assign_component_to_group(
+    async fn assign_component_to_group(
         &self,
         component_id: Uuid,
         base_group_id: Uuid,
@@ -184,7 +189,7 @@ impl DieselSalaryBaseRepository {
         Ok(())
     }
 
-    pub async fn unassign_component_from_group(
+    async fn unassign_component_from_group(
         &self,
         component_id: Uuid,
         base_group_id: Uuid,

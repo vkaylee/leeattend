@@ -12,7 +12,6 @@ use crate::models::{
     AssignSalaryComponentRequest, CreateSalaryComponentRequest, EmployeeSalaryComponent,
     SalaryComponentDefinition,
 };
-use crate::repositories::salary_base_repository::SalaryBaseRepository;
 use crate::AppState;
 
 pub async fn get_salary_components(
@@ -41,12 +40,11 @@ pub async fn create_salary_component(
 
     if let Some(base_group_ids) = req.base_group_ids {
         for group_id in base_group_ids {
-            SalaryBaseRepository::assign_component_to_group(
-                state.infra.db.api(),
-                component.id,
-                group_id,
-            )
-            .await?;
+            state
+                .payroll
+                .salary_base_repo
+                .assign_component_to_group(component.id, group_id)
+                .await?;
         }
     }
 
