@@ -129,6 +129,8 @@ pub struct JobWorker {
     config: WorkerConfig,
     coordinator: Arc<ReportCoordinator>,
     cache: Arc<CacheManager>,
+    /// Pre-built repository instances shared across all handlers.
+    deps: Arc<super::WorkerDeps>,
     /// Optional roster cache shared with the main app state.
     roster_cache: Option<Arc<RosterCache>>,
     worker_id: Uuid,
@@ -148,6 +150,7 @@ impl JobWorker {
         roster_cache: Option<Arc<RosterCache>>,
     ) -> Self {
         let cache = Arc::new(CacheManager::new(redis.clone(), db.clone(), diesel.clone()));
+        let deps = Arc::new(super::WorkerDeps::new(&diesel));
         let hostname = std::env::var("HOSTNAME")
             .or_else(|_| std::env::var("COMPUTERNAME"))
             .unwrap_or_else(|_| "unknown".to_string());
@@ -160,6 +163,7 @@ impl JobWorker {
             config,
             coordinator,
             cache,
+            deps,
             roster_cache,
             worker_id: Uuid::new_v4(),
             hostname,
@@ -394,6 +398,7 @@ impl JobWorker {
                     &job,
                     &self.redis,
                     self.roster_cache.as_deref(),
+                    &self.deps,
                 )
                 .await
             }
@@ -408,13 +413,13 @@ impl JobWorker {
                 AccrualHandler::handle(&self.db, &self.diesel, &job, &self.redis).await
             }
             TaskType::LogIngestion => {
-                LogIngestionHandler::handle(&self.db, &self.diesel, &job).await
+                LogIngestionHandler::handle(&self.db, &self.diesel, &job, &self.deps).await
             }
             TaskType::ReprocessAttendance => {
-                ReprocessAttendanceHandler::handle(&self.db, &self.diesel, &job, &self.redis).await
+                ReprocessAttendanceHandler::handle(&self.db, &self.diesel, &job, &self.redis, &self.deps).await
             }
             TaskType::ClaimStagedLogs => {
-                ClaimStagedLogsHandler::handle(&self.db, &self.diesel, &job).await
+                ClaimStagedLogsHandler::handle(&self.db, &self.diesel, &job, &self.deps).await
             }
             TaskType::LeaveImport => {
                 LeaveImportHandler::handle(&self.db, &self.diesel, &job, &self.redis).await

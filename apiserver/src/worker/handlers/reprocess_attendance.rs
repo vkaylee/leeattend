@@ -9,8 +9,6 @@ use std::sync::Arc;
 use tracing::{info, warn};
 
 use crate::queue::{Job, JobQueue, JobStatus, RedisPool};
-use crate::repositories::{DieselRosterRepository, DieselTimeEntryRepository};
-use crate::services::pairing_service::PairingService;
 
 pub struct ReprocessAttendanceHandler;
 
@@ -20,6 +18,7 @@ impl ReprocessAttendanceHandler {
         diesel: &crate::diesel_pool::DieselPools,
         job: &Job,
         redis: &RedisPool,
+        deps: &crate::worker::WorkerDeps,
     ) -> Result<(), String> {
         let payload = job
             .reprocess_payload()
@@ -55,16 +54,11 @@ impl ReprocessAttendanceHandler {
 
         let tz: Tz = tz_str.parse().unwrap_or(chrono_tz::UTC);
 
-        // Initialize pairing service
-        let roster_repo = Arc::new(DieselRosterRepository::new(diesel.clone()));
-        let time_entry_repo = Arc::new(DieselTimeEntryRepository::new(diesel.clone()));
-        let policy_repo = Arc::new(crate::repositories::DieselAttendancePolicyRepository::new(
-            diesel.clone(),
-        ));
-        let pairing_service = PairingService::new(
-            time_entry_repo,
-            roster_repo,
-            policy_repo,
+        // Initialize pairing service from shared deps
+        let pairing_service = crate::services::pairing_service::PairingService::new(
+            Arc::clone(&deps.time_entry_repo),
+            Arc::clone(&deps.roster_repo),
+            Arc::clone(&deps.policy_repo),
             db.clone(),
             diesel.clone(),
         );

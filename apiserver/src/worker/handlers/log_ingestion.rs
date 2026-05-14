@@ -8,7 +8,6 @@ use sqlx::PgPool;
 
 use crate::models::LogSource;
 use crate::queue::Job;
-use crate::services::AttendanceLogService;
 
 pub struct LogIngestionHandler;
 
@@ -26,59 +25,14 @@ impl LogIngestionHandler {
         db: &PgPool,
         diesel: &crate::diesel_pool::DieselPools,
         job: &Job,
+        deps: &crate::worker::WorkerDeps,
     ) -> Result<(), String> {
         let payload = job
             .log_ingestion_payload()
             .ok_or("Invalid payload for LogIngestion job")?;
 
-        // Construct temp service with inline PairingService for worker context
-        let time_entry_repo = std::sync::Arc::new(
-            crate::repositories::DieselTimeEntryRepository::new(diesel.clone()),
-        );
-        let pairing_svc =
-            std::sync::Arc::new(crate::services::pairing_service::PairingService::new(
-                time_entry_repo,
-                std::sync::Arc::new(crate::repositories::DieselRosterRepository::new(
-                    diesel.clone(),
-                )),
-                std::sync::Arc::new(crate::repositories::DieselAttendancePolicyRepository::new(
-                    diesel.clone(),
-                )),
-                db.clone(),
-                diesel.clone(),
-            ));
-        let (log_svc, _handle) = {
-            let employee_repo: std::sync::Arc<dyn crate::repositories::EmployeeRepository> =
-                std::sync::Arc::new(crate::repositories::DieselEmployeeRepository::new(
-                    diesel.clone(),
-                ));
-            let raw_log_repo: std::sync::Arc<
-                dyn crate::repositories::raw_attendance_log_repository::RawAttendanceLogRepository,
-            > = std::sync::Arc::new(crate::repositories::DieselRawAttendanceLogRepository::new(
-                diesel.clone(),
-            ));
-            let staging_repo: std::sync::Arc<
-                dyn crate::repositories::staging_log_repository::StagingLogRepository,
-            > = std::sync::Arc::new(crate::repositories::DieselStagingLogRepository::new(
-                diesel.clone(),
-            ));
-            let error_repo: std::sync::Arc<dyn crate::repositories::attendance_log_error_repository::AttendanceLogErrorRepository> = std::sync::Arc::new(crate::repositories::DieselAttendanceLogErrorRepository::new(diesel.clone()));
-            AttendanceLogService::new(
-                db.clone(),
-                pairing_svc,
-                crate::services::attendance_log_service::AttendanceLogServiceConfig {
-                    buffer_capacity: 1,
-                    batch_size: 1,
-                    flush_interval_ms: 1000,
-                },
-                crate::services::attendance_log_service::AttendanceLogServiceDeps {
-                    employee_repo,
-                    raw_log_repo,
-                    staging_repo,
-                    error_repo,
-                },
-            )
-        };
+        let (log_svc, _handle) = deps.log_service(db, diesel);
+
         log_svc
             .process_log(crate::services::attendance_log_service::ProcessLogArgs {
                 workspace_id: payload.workspace_id,

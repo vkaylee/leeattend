@@ -15,7 +15,6 @@ use crate::cache::{CacheManager, CachedWorkspaceConfig, RosterCache};
 use crate::domain::policy::resolver::PolicyResolver;
 use crate::models::{AttendanceSummary, DailyAttendanceReport, TimeEntry};
 use crate::queue::{Job, JobPayload, JobQueue, RedisPool, ReportPublisher, ReportType};
-use crate::repositories::roster::RosterRepository;
 use crate::repositories::time_entry_repository;
 use crate::services::AttendanceCalculator;
 
@@ -35,6 +34,7 @@ impl AttendanceHandler {
         job: &Job,
         redis: &RedisPool,
         roster_cache: Option<&RosterCache>,
+        deps: &crate::worker::WorkerDeps,
     ) -> Result<(), String> {
         let JobPayload::AttendanceReport(payload) = &job.payload else {
             return Err(format!(
@@ -72,9 +72,8 @@ impl AttendanceHandler {
                 .ok_or("Invalid or ambiguous date range")?;
 
         // 3. Fetch schedules AND time entries in parallel (biggest latency win)
-        let roster_repo = crate::repositories::DieselRosterRepository::new(diesel.clone());
         let (schedules_result, entries_result) = tokio::join!(
-            roster_repo.get_workspace_schedules(
+            deps.roster_repo.get_workspace_schedules(
                 roster_cache,
                 workspace_id,
                 start_date,
@@ -98,8 +97,7 @@ impl AttendanceHandler {
             entries_result.map_err(|e| format!("Failed to fetch time entries: {e}"))?;
 
         // 5. Calculate based on report type
-        let policy_repo =
-            crate::repositories::DieselAttendancePolicyRepository::new(diesel.clone());
+        let policy_repo = deps.policy_repo.as_ref();
 
         let result_json = match payload.config.report_type {
             ReportType::Summary => {
@@ -113,7 +111,7 @@ impl AttendanceHandler {
                     end_date,
                     _workspace_config: &workspace_config,
                     tz,
-                    policy_repo: &policy_repo,
+                    policy_repo,
                 })
                 .await?
             }
@@ -128,7 +126,7 @@ impl AttendanceHandler {
                     end_date,
                     _workspace_config: &workspace_config,
                     tz,
-                    policy_repo: &policy_repo,
+                    policy_repo,
                 })
                 .await?
             }

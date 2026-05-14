@@ -3,9 +3,11 @@
 //! Provides background workers that poll Redis queues and process jobs
 //! with semaphore-controlled concurrency.
 
+pub mod deps;
 pub mod handlers;
 pub mod runner;
 pub mod scheduler;
 
+pub use deps::WorkerDeps;
 pub use runner::{JobWorker, WorkerConfig};
 pub use scheduler::HousekeepingScheduler;

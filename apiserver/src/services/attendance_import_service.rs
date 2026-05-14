@@ -248,6 +248,7 @@ struct PunchImportStrategy {
     adj_repo: Arc<dyn AttendanceAdjustmentRepository>,
     time_entry_repo: Arc<dyn TimeEntryRepository>,
     employee_repo: Arc<dyn EmployeeRepository>,
+    policy_repo: Arc<dyn crate::repositories::AttendancePolicyRepository>,
     log_svc: Option<crate::services::attendance_log_service::AttendanceLogService>,
     pool: PgPool,
     diesel_pools: crate::diesel_pool::DieselPools,
@@ -319,9 +320,7 @@ impl ImportStrategy for PunchImportStrategy {
                 Arc::new(crate::repositories::DieselRosterRepository::new(
                     self.diesel_pools.clone(),
                 )),
-                Arc::new(crate::repositories::DieselAttendancePolicyRepository::new(
-                    self.diesel_pools.clone(),
-                )),
+                Arc::clone(&self.policy_repo),
                 self.pool.clone(),
                 self.diesel_pools.clone(),
             ));
@@ -621,6 +620,11 @@ impl AttendanceImportService {
             adj_repo: Arc::clone(&self.adj_repo),
             time_entry_repo: Arc::clone(&self.time_entry_repo),
             employee_repo: Arc::clone(&self.employee_repo),
+            policy_repo: Arc::new(
+                crate::repositories::DieselAttendancePolicyRepository::new(
+                    self.diesel_pools.clone(),
+                ),
+            ),
             log_svc: None,
             pool: self.pool.clone(),
             diesel_pools: self.diesel_pools.clone(),
