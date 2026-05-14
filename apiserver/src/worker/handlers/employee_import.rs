@@ -223,6 +223,9 @@ impl EmployeeImportChunkHandler {
                     diesel.clone(),
                 ),
             ),
+            staging_repo: Arc::new(crate::repositories::DieselStagingLogRepository::new(
+                diesel.clone(),
+            )),
             dept_cache: HashMap::new(),
         };
 

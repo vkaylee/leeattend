@@ -65,11 +65,16 @@ impl AppState {
         let user_repo: Arc<dyn crate::repositories::user_repository::UserRepository> = Arc::new(
             crate::repositories::DieselUserRepository::new(diesel_pools.clone()),
         );
+        let staging_repo: Arc<
+            dyn crate::repositories::staging_log_repository::StagingLogRepository,
+        > = Arc::new(crate::repositories::DieselStagingLogRepository::new(
+            diesel_pools.clone(),
+        ));
         let employee_service = Arc::new(crate::services::EmployeeService::new(
             Arc::clone(&employee_repo),
             Arc::clone(&department_repo),
             Arc::clone(&user_repo),
-            diesel_pools.clone(),
+            Arc::clone(&staging_repo),
         ));
         let contract_repo = Arc::new(crate::repositories::DieselEmployeeContractRepository::new(
             diesel_pools.clone(),
@@ -95,13 +100,6 @@ impl AppState {
         let policy_repo: Arc<dyn crate::repositories::AttendancePolicyRepository> = Arc::new(
             crate::repositories::DieselAttendancePolicyRepository::new(diesel_pools.clone()),
         );
-        let time_tracking_service = Arc::new(crate::services::TimeTrackingService::new(
-            Arc::clone(&time_entry_repo),
-            Arc::clone(&roster_repo),
-            Arc::clone(&policy_repo),
-            Arc::clone(&employee_repo),
-            diesel_pools.clone(),
-        ));
         let leave_request_repo: Arc<
             dyn crate::repositories::leave_request_repository::LeaveRequestRepository,
         > = Arc::new(crate::repositories::DieselLeaveRequestRepository::new(
@@ -115,6 +113,21 @@ impl AppState {
             Arc::new(crate::repositories::DieselHolidayRepository::new(
                 diesel_pools.clone(),
             ));
+        let shift_repo: Arc<dyn crate::repositories::shift_repository::ShiftRepository> = Arc::new(
+            crate::repositories::DieselShiftRepository::new(diesel_pools.clone()),
+        );
+
+        let time_tracking_service = Arc::new(crate::services::TimeTrackingService::new(
+            Arc::clone(&time_entry_repo),
+            Arc::clone(&roster_repo),
+            Arc::clone(&policy_repo),
+            Arc::clone(&employee_repo),
+            Arc::clone(&workspace_repo),
+            Arc::clone(&shift_repo),
+            Arc::clone(&holiday_repo),
+            Arc::clone(&leave_request_repo),
+            Arc::clone(&attendance_daily_summary_repo),
+        ));
 
         let attendance_summary_service = Arc::new(crate::services::AttendanceSummaryService::new(
             crate::services::attendance_summary_service::AttendanceSummaryServiceArgs {
@@ -191,9 +204,6 @@ impl AppState {
             user_repo.clone(),
             session_repo.clone(),
         ));
-        let shift_repo: Arc<dyn crate::repositories::shift_repository::ShiftRepository> = Arc::new(
-            crate::repositories::DieselShiftRepository::new(diesel_pools.clone()),
-        );
         let shift_service = Arc::new(crate::services::shift_service::ShiftService::new(
             shift_repo.clone(),
         ));
@@ -265,10 +275,6 @@ impl AppState {
             ),
         );
 
-        let holiday_repo: Arc<dyn crate::repositories::holiday_repository::HolidayRepository> =
-            Arc::new(crate::repositories::DieselHolidayRepository::new(
-                diesel_pools.clone(),
-            ));
         let attendance_policy_repo: Arc<
             dyn crate::repositories::attendance_policy_repository::AttendancePolicyRepository,
         > = Arc::new(crate::repositories::DieselAttendancePolicyRepository::new(
@@ -350,11 +356,7 @@ impl AppState {
         > = Arc::new(crate::repositories::DieselRawAttendanceLogRepository::new(
             diesel_pools.clone(),
         ));
-        let staging_repo: Arc<
-            dyn crate::repositories::staging_log_repository::StagingLogRepository,
-        > = Arc::new(crate::repositories::DieselStagingLogRepository::new(
-            diesel_pools.clone(),
-        ));
+
         let error_repo: Arc<
             dyn crate::repositories::attendance_log_error_repository::AttendanceLogErrorRepository,
         > = Arc::new(
@@ -385,6 +387,7 @@ impl AppState {
                 Arc::clone(&time_entry_repo),
                 Arc::clone(&workspace_repo),
                 Arc::clone(&department_repo),
+                Arc::clone(&staging_repo),
                 diesel_pools.clone(),
                 Some(Arc::clone(&attendance_service)),
             ),

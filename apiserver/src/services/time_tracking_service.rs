@@ -11,7 +11,7 @@ use crate::models::{TimeEntry, UpdateTimeEntryRequest};
 use crate::repositories::roster::RosterRepository;
 use crate::repositories::workspace_repository::WorkspaceRepository;
 use crate::repositories::AttendancePolicyRepository;
-use crate::repositories::DieselWorkspaceRepository;
+
 use crate::repositories::TimeEntryRepository;
 
 pub struct TimeTrackingService {
@@ -19,23 +19,38 @@ pub struct TimeTrackingService {
     roster_repo: Arc<dyn RosterRepository>,
     policy_repo: Arc<dyn AttendancePolicyRepository>,
     employee_repo: Arc<dyn crate::repositories::employee::EmployeeRepository>,
-    diesel: crate::diesel_pool::DieselPools,
+    workspace_repo: Arc<dyn WorkspaceRepository>,
+    shift_repo: Arc<dyn crate::repositories::shift_repository::ShiftRepository>,
+    holiday_repo: Arc<dyn crate::repositories::holiday_repository::HolidayRepository>,
+    leave_request_repo: Arc<dyn crate::repositories::leave_request_repository::LeaveRequestRepository>,
+    daily_summary_repo: Arc<dyn crate::repositories::attendance_daily_summary_repository::AttendanceDailySummaryRepository>,
 }
 
 impl TimeTrackingService {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         repo: Arc<dyn TimeEntryRepository>,
         roster_repo: Arc<dyn RosterRepository>,
         policy_repo: Arc<dyn AttendancePolicyRepository>,
         employee_repo: Arc<dyn crate::repositories::employee::EmployeeRepository>,
-        diesel: crate::diesel_pool::DieselPools,
+        workspace_repo: Arc<dyn WorkspaceRepository>,
+        shift_repo: Arc<dyn crate::repositories::shift_repository::ShiftRepository>,
+        holiday_repo: Arc<dyn crate::repositories::holiday_repository::HolidayRepository>,
+        leave_request_repo: Arc<
+            dyn crate::repositories::leave_request_repository::LeaveRequestRepository,
+        >,
+        daily_summary_repo: Arc<dyn crate::repositories::attendance_daily_summary_repository::AttendanceDailySummaryRepository>,
     ) -> Self {
         Self {
             repo,
             roster_repo,
             policy_repo,
             employee_repo,
-            diesel,
+            workspace_repo,
+            shift_repo,
+            holiday_repo,
+            leave_request_repo,
+            daily_summary_repo,
         }
     }
 
@@ -71,9 +86,8 @@ impl TimeTrackingService {
 
         if is_in {
             // Get Workspace Timezone
-            let workspace_repo =
-                crate::repositories::DieselWorkspaceRepository::new(self.diesel.clone());
-            let workspace = workspace_repo
+            let workspace = self
+                .workspace_repo
                 .get_workspace_by_id(workspace_id)
                 .await?
                 .ok_or(AppError::Internal("Workspace not found".into()))?;
@@ -89,10 +103,8 @@ impl TimeTrackingService {
                 .await?;
 
             if let Some(sid) = shift_id {
-                let shift_repo =
-                    crate::repositories::DieselShiftRepository::new(self.diesel.clone());
-                use crate::repositories::shift_repository::ShiftRepository;
-                let shift = shift_repo
+                let shift = self
+                    .shift_repo
                     .get_shift_by_id(workspace_id, sid)
                     .await?
                     .ok_or(AppError::Internal("Shift not found".into()))?;
@@ -103,12 +115,10 @@ impl TimeTrackingService {
                 let shift_start = today.and_time(start_time);
                 let earliest_punch = shift_start - chrono::Duration::minutes(grace_minutes as i64);
 
-                let employee_repo =
-                    crate::repositories::DieselEmployeeRepository::new(self.diesel.clone());
                 let rules =
                     crate::domain::policy::resolver::PolicyResolver::resolve_attendance_rules(
                         &*self.policy_repo,
-                        &employee_repo,
+                        &*self.employee_repo,
                         employee_id,
                         workspace_id,
                         today,
@@ -214,8 +224,7 @@ impl TimeTrackingService {
         self.repo.update_time_entry(workspace_id, &entry).await?;
 
         // Recalculate summary
-        let workspace_repo = DieselWorkspaceRepository::new(self.diesel.clone());
-        if let Ok(Some(ws)) = workspace_repo.get_workspace_by_id(workspace_id).await {
+        if let Ok(Some(ws)) = self.workspace_repo.get_workspace_by_id(workspace_id).await {
             let tz: Tz = crate::utils::tz::parse_workspace_tz(&ws.timezone);
             let local_date = entry.punch_in_time.with_timezone(&tz).date_naive();
             let summary_svc = crate::services::AttendanceSummaryService::new(
@@ -223,23 +232,11 @@ impl TimeTrackingService {
                     time_entry_repo: Arc::clone(&self.repo),
                     roster_repo: Arc::clone(&self.roster_repo),
                     policy_repo: Arc::clone(&self.policy_repo),
-                    workspace_repo: Arc::new(crate::repositories::DieselWorkspaceRepository::new(
-                        self.diesel.clone(),
-                    )),
-                    employee_repo: Arc::new(crate::repositories::DieselEmployeeRepository::new(
-                        self.diesel.clone(),
-                    )),
-                    holiday_repo: Arc::new(crate::repositories::DieselHolidayRepository::new(
-                        self.diesel.clone(),
-                    )),
-                    leave_request_repo: Arc::new(
-                        crate::repositories::DieselLeaveRequestRepository::new(self.diesel.clone()),
-                    ),
-                    daily_summary_repo: Arc::new(
-                        crate::repositories::DieselAttendanceDailySummaryRepository::new(
-                            self.diesel.clone(),
-                        ),
-                    ),
+                    workspace_repo: Arc::clone(&self.workspace_repo),
+                    employee_repo: Arc::clone(&self.employee_repo),
+                    holiday_repo: Arc::clone(&self.holiday_repo),
+                    leave_request_repo: Arc::clone(&self.leave_request_repo),
+                    daily_summary_repo: Arc::clone(&self.daily_summary_repo),
                 },
             );
             let _ = summary_svc

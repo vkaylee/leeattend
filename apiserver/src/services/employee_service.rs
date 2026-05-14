@@ -16,7 +16,7 @@ pub struct EmployeeService {
     repo: Arc<dyn EmployeeRepository>,
     dept_repo: Arc<dyn DepartmentRepository>,
     user_repo: Arc<dyn crate::repositories::user_repository::UserRepository>,
-    diesel: crate::diesel_pool::DieselPools,
+    staging_repo: Arc<dyn crate::repositories::staging_log_repository::StagingLogRepository>,
 }
 
 impl EmployeeService {
@@ -24,13 +24,13 @@ impl EmployeeService {
         repo: Arc<dyn EmployeeRepository>,
         dept_repo: Arc<dyn DepartmentRepository>,
         user_repo: Arc<dyn crate::repositories::user_repository::UserRepository>,
-        diesel: crate::diesel_pool::DieselPools,
+        staging_repo: Arc<dyn crate::repositories::staging_log_repository::StagingLogRepository>,
     ) -> Self {
         Self {
             repo,
             dept_repo,
             user_repo,
-            diesel,
+            staging_repo,
         }
     }
 
@@ -142,12 +142,8 @@ impl EmployeeService {
         }
 
         // Claim staged logs directly for the new employee
-        use crate::repositories::staging_log_repository::StagingLogRepository;
-        let staging_repo =
-            crate::repositories::diesel_staging_log_repository::DieselStagingLogRepository::new(
-                self.diesel.clone(),
-            );
-        if let Err(e) = staging_repo
+        if let Err(e) = self
+            .staging_repo
             .claim_staged_logs(workspace_id, &employee.employee_id_number, employee.id)
             .await
         {
@@ -244,12 +240,8 @@ impl EmployeeService {
         // If employee_id_number was updated, claim staged logs directly
         if let Some(new_id_number) = req.employee_id_number {
             let normalized = new_id_number.into_inner();
-            use crate::repositories::staging_log_repository::StagingLogRepository;
-            let staging_repo =
-                crate::repositories::diesel_staging_log_repository::DieselStagingLogRepository::new(
-                    self.diesel.clone(),
-                );
-            if let Err(e) = staging_repo
+            if let Err(e) = self
+                .staging_repo
                 .claim_staged_logs(workspace_id, &normalized, id)
                 .await
             {
@@ -1017,12 +1009,71 @@ mod tests {
 
     /// Helper: create a service backed by the mock (pool is unused in mock-only paths).
     fn make_service(mock: MockEmployeeRepo) -> EmployeeService {
-        let pool = crate::diesel_pool::DieselPools::for_test("postgres://mock:mock@localhost/mock");
+        use crate::repositories::staging_log_repository::{StagingLog, StagingLogRepository};
+        struct NopStagingRepo;
+        #[async_trait::async_trait]
+        impl StagingLogRepository for NopStagingRepo {
+            async fn create_staging_log(
+                &self,
+                _workspace_id: uuid::Uuid,
+                _device_id: Option<String>,
+                _raw_user_id: &str,
+                _punch_time: chrono::DateTime<chrono::Utc>,
+                _raw_data: Option<serde_json::Value>,
+                _fingerprint: &str,
+            ) -> Result<bool, crate::errors::AppError> {
+                Ok(false)
+            }
+            async fn get_pending_staged_logs(
+                &self,
+                _workspace_id: uuid::Uuid,
+                _employee_id_number: &str,
+            ) -> Result<Vec<StagingLog>, crate::errors::AppError> {
+                Ok(vec![])
+            }
+            async fn update_staging_status(
+                &self,
+                _id: uuid::Uuid,
+                _workspace_id: uuid::Uuid,
+                _status: &str,
+            ) -> Result<bool, crate::errors::AppError> {
+                Ok(false)
+            }
+            async fn get_pending_staging_logs(
+                &self,
+                _workspace_id: uuid::Uuid,
+                _limit: i64,
+            ) -> Result<Vec<StagingLog>, crate::errors::AppError> {
+                Ok(vec![])
+            }
+            async fn count_pending_staging_logs(
+                &self,
+                _workspace_id: uuid::Uuid,
+            ) -> Result<i64, crate::errors::AppError> {
+                Ok(0)
+            }
+            async fn claim_staged_logs(
+                &self,
+                _workspace_id: uuid::Uuid,
+                _raw_user_id: &str,
+                _employee_id: uuid::Uuid,
+            ) -> Result<u64, crate::errors::AppError> {
+                Ok(0)
+            }
+            async fn resolve_staging_log(
+                &self,
+                _log_id: uuid::Uuid,
+                _workspace_id: uuid::Uuid,
+                _employee_id: uuid::Uuid,
+            ) -> Result<crate::models::RawAttendanceLog, crate::errors::AppError> {
+                Err(crate::errors::AppError::NotFound("nop".into()))
+            }
+        }
         EmployeeService::new(
             Arc::new(mock),
             Arc::new(NopDepartmentRepo),
             Arc::new(NopUserRepo),
-            pool,
+            Arc::new(NopStagingRepo),
         )
     }
 

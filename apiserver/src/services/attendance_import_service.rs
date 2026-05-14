@@ -40,6 +40,7 @@ pub struct EmployeeImportStrategy {
     pub msgs: AttendanceImportMessages,
     pub employee_repo: Arc<dyn EmployeeRepository>,
     pub department_repo: Arc<dyn crate::repositories::department_repository::DepartmentRepository>,
+    pub staging_repo: Arc<dyn crate::repositories::staging_log_repository::StagingLogRepository>,
     pub dept_cache: HashMap<String, Uuid>,
 }
 
@@ -122,7 +123,7 @@ impl ImportStrategy for EmployeeImportStrategy {
 
     async fn process_row(
         &mut self,
-        diesel: &crate::diesel_pool::DieselPools,
+        _diesel: &crate::diesel_pool::DieselPools,
         job: &AttendanceImportJob,
         emp: &Self::RowData,
     ) -> Result<Option<Uuid>, String> {
@@ -215,9 +216,8 @@ impl ImportStrategy for EmployeeImportStrategy {
                 }
 
                 // Claim staged logs directly
-                use crate::repositories::staging_log_repository::StagingLogRepository;
-                let staging_repo = crate::repositories::diesel_staging_log_repository::DieselStagingLogRepository::new(diesel.clone());
-                let _ = staging_repo
+                let _ = self
+                    .staging_repo
                     .claim_staged_logs(job.workspace_id, &emp.id_number, employee_id)
                     .await;
 
@@ -418,6 +418,7 @@ pub struct AttendanceImportService {
     time_entry_repo: Arc<dyn TimeEntryRepository>,
     workspace_repo: Arc<dyn crate::repositories::workspace_repository::WorkspaceRepository>,
     dept_repo: Arc<dyn crate::repositories::department_repository::DepartmentRepository>,
+    staging_repo: Arc<dyn crate::repositories::staging_log_repository::StagingLogRepository>,
     diesel_pools: crate::diesel_pool::DieselPools,
     log_svc: Option<Arc<crate::services::attendance_log_service::AttendanceLogService>>,
 }
@@ -431,6 +432,7 @@ impl AttendanceImportService {
         time_entry_repo: Arc<dyn TimeEntryRepository>,
         workspace_repo: Arc<dyn crate::repositories::workspace_repository::WorkspaceRepository>,
         dept_repo: Arc<dyn crate::repositories::department_repository::DepartmentRepository>,
+        staging_repo: Arc<dyn crate::repositories::staging_log_repository::StagingLogRepository>,
         diesel_pools: crate::diesel_pool::DieselPools,
         log_svc: Option<Arc<crate::services::attendance_log_service::AttendanceLogService>>,
     ) -> Self {
@@ -441,6 +443,7 @@ impl AttendanceImportService {
             time_entry_repo,
             workspace_repo,
             dept_repo,
+            staging_repo,
             diesel_pools,
             log_svc,
         }
@@ -635,6 +638,7 @@ impl AttendanceImportService {
             msgs: msgs.clone(),
             employee_repo: std::sync::Arc::clone(&self.employee_repo),
             department_repo: Arc::clone(&self.dept_repo),
+            staging_repo: Arc::clone(&self.staging_repo),
             dept_cache: HashMap::new(),
         };
 

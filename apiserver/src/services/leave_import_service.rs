@@ -11,16 +11,13 @@ use uuid::Uuid;
 
 use crate::errors::AppResult;
 use crate::models::{LeaveDurationType, SubmitLeaveRequest};
-use crate::repositories::DieselLeaveBalanceRepository;
-use crate::repositories::DieselLeaveRequestRepository;
-use crate::repositories::DieselRosterRepository;
-use crate::repositories::{DieselEmployeeRepository, EmployeeRepository};
+use crate::repositories::EmployeeRepository;
 use crate::services::import_messages::LeaveImportMessages;
 use crate::services::leave_service::LeaveService;
 
 use crate::models::AttendanceImportJob;
 use crate::repositories::import_job_repository::ImportJobRepository;
-use crate::repositories::DieselImportJobRepository;
+
 use crate::services::import_pipeline::{ImportPipeline, ImportStrategy};
 
 /// A parsed row from the Excel file, pending validation.
@@ -37,6 +34,15 @@ pub struct PendingLeaveRow {
 
 pub struct LeaveImportService {
     diesel: crate::diesel_pool::DieselPools,
+    import_repo: Arc<dyn ImportJobRepository>,
+    employee_repo: Arc<dyn EmployeeRepository>,
+    leave_balance_repo:
+        Arc<dyn crate::repositories::leave_balance_repository::LeaveBalanceRepository>,
+    leave_request_repo:
+        Arc<dyn crate::repositories::leave_request_repository::LeaveRequestRepository>,
+    roster_repo: Arc<dyn crate::repositories::roster::RosterRepository>,
+    leave_accrual_log_repo:
+        Arc<dyn crate::repositories::leave_accrual_log_repository::LeaveAccrualLogRepository>,
 }
 
 pub struct LeaveImportStrategy {
@@ -234,8 +240,30 @@ impl ImportStrategy for LeaveImportStrategy {
 }
 
 impl LeaveImportService {
-    pub fn new(diesel: crate::diesel_pool::DieselPools) -> Self {
-        Self { diesel }
+    pub fn new(
+        diesel: crate::diesel_pool::DieselPools,
+        import_repo: Arc<dyn ImportJobRepository>,
+        employee_repo: Arc<dyn EmployeeRepository>,
+        leave_balance_repo: Arc<
+            dyn crate::repositories::leave_balance_repository::LeaveBalanceRepository,
+        >,
+        leave_request_repo: Arc<
+            dyn crate::repositories::leave_request_repository::LeaveRequestRepository,
+        >,
+        roster_repo: Arc<dyn crate::repositories::roster::RosterRepository>,
+        leave_accrual_log_repo: Arc<
+            dyn crate::repositories::leave_accrual_log_repository::LeaveAccrualLogRepository,
+        >,
+    ) -> Self {
+        Self {
+            diesel,
+            import_repo,
+            employee_repo,
+            leave_balance_repo,
+            leave_request_repo,
+            roster_repo,
+            leave_accrual_log_repo,
+        }
     }
 
     /// Process an imported Excel file of leave requests.
@@ -250,8 +278,7 @@ impl LeaveImportService {
     ) -> Result<(), ()> {
         let file_bytes = tokio::fs::read(file_path).await.map_err(|_e| ())?;
 
-        let import_repo = DieselImportJobRepository::new(self.diesel.clone());
-        let Ok(Some(job)) = import_repo.get_job_by_id(import_job_id).await else {
+        let Ok(Some(job)) = self.import_repo.get_job_by_id(import_job_id).await else {
             return Err(());
         };
 
@@ -288,22 +315,12 @@ impl LeaveImportService {
 
         let msgs = LeaveImportMessages::for_lang(&lang);
 
-        let employee_repo: Arc<dyn EmployeeRepository> =
-            Arc::new(DieselEmployeeRepository::new(self.diesel.clone()));
-        let leave_balance_repo = Arc::new(DieselLeaveBalanceRepository::new(self.diesel.clone()));
-        let leave_request_repo = Arc::new(DieselLeaveRequestRepository::new(self.diesel.clone()));
-        let roster_repo = Arc::new(DieselRosterRepository::new(self.diesel.clone()));
-        let leave_accrual_log_repo: Arc<
-            dyn crate::repositories::leave_accrual_log_repository::LeaveAccrualLogRepository,
-        > = Arc::new(crate::repositories::DieselLeaveAccrualLogRepository::new(
-            self.diesel.clone(),
-        ));
         let leave_service = LeaveService::new(
-            leave_balance_repo,
-            leave_request_repo,
-            Arc::clone(&employee_repo),
-            roster_repo,
-            leave_accrual_log_repo,
+            Arc::clone(&self.leave_balance_repo),
+            Arc::clone(&self.leave_request_repo),
+            Arc::clone(&self.employee_repo),
+            Arc::clone(&self.roster_repo),
+            Arc::clone(&self.leave_accrual_log_repo),
         );
 
         let strategy = LeaveImportStrategy {
@@ -318,7 +335,7 @@ impl LeaveImportService {
         let pipeline = ImportPipeline {
             strategy,
             diesel: self.diesel.clone(),
-            import_repo: &import_repo,
+            import_repo: &*self.import_repo,
             job: &job,
             file_bytes,
             workspace_tz,

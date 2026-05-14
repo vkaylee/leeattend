@@ -60,6 +60,9 @@ async fn test_import_csv_with_line_errors() {
         std::sync::Arc::new(apiserver::repositories::DieselDepartmentRepository::new(
             diesel_pools.clone(),
         )),
+        std::sync::Arc::new(apiserver::repositories::DieselStagingLogRepository::new(
+            diesel_pools.clone(),
+        )),
         diesel_pools.clone(),
         None, // log_svc
     )
@@ -424,6 +427,9 @@ async fn test_employee_import_duplicate_department_prevention() {
         msgs: msgs.clone(),
         employee_repo: std::sync::Arc::clone(&employee_repo),
         department_repo: std::sync::Arc::clone(&department_repo),
+        staging_repo: std::sync::Arc::new(
+            apiserver::repositories::DieselStagingLogRepository::new(diesel_pools.clone()),
+        ),
         dept_cache: HashMap::new(), // Empty cache
     };
 
@@ -432,6 +438,9 @@ async fn test_employee_import_duplicate_department_prevention() {
         msgs,
         employee_repo: std::sync::Arc::clone(&employee_repo),
         department_repo: std::sync::Arc::clone(&department_repo),
+        staging_repo: std::sync::Arc::new(
+            apiserver::repositories::DieselStagingLogRepository::new(diesel_pools.clone()),
+        ),
         dept_cache: HashMap::new(), // Empty cache
     };
 

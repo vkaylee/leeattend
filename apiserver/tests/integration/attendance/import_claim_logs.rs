@@ -71,6 +71,9 @@ async fn test_import_employee_claims_staged_logs() -> Result<(), Box<dyn std::er
         std::sync::Arc::new(apiserver::repositories::DieselDepartmentRepository::new(
             diesel_pools.clone(),
         )),
+        std::sync::Arc::new(apiserver::repositories::DieselStagingLogRepository::new(
+            diesel_pools.clone(),
+        )),
         diesel_pools.clone(),
         None, // log_svc
     );
@@ -190,6 +193,9 @@ async fn test_import_existing_employee_claims_staged_logs() -> Result<(), Box<dy
             diesel_pools.clone(),
         )),
         std::sync::Arc::new(apiserver::repositories::DieselDepartmentRepository::new(
+            diesel_pools.clone(),
+        )),
+        std::sync::Arc::new(apiserver::repositories::DieselStagingLogRepository::new(
             diesel_pools.clone(),
         )),
         diesel_pools.clone(),

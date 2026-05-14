@@ -94,8 +94,17 @@ async fn test_upload_leave_csv_api() {
     let job_uuid = Uuid::parse_str(job_id).unwrap();
 
     // The background worker is not running in the setup_app_tower context, so we process it manually.
-    let import_service =
-        apiserver::services::leave_import_service::LeaveImportService::new(diesel_pools.clone());
+    let import_service = apiserver::services::leave_import_service::LeaveImportService::new(
+        diesel_pools.clone(),
+        _state.attendance.import_repo.clone(),
+        _state.employees.repo.clone(),
+        _state.leaves.balance_repo.clone(),
+        _state.leaves.request_repo.clone(),
+        _state.shifts.roster_repo.clone(),
+        std::sync::Arc::new(
+            apiserver::repositories::DieselLeaveAccrualLogRepository::new(diesel_pools.clone()),
+        ),
+    );
 
     let job_opt = _state
         .attendance
