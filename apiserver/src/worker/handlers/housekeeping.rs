@@ -1,5 +1,5 @@
 use chrono::{Datelike, NaiveDate};
-use sqlx::{Executor, PgPool};
+use diesel_async::RunQueryDsl;
 use tracing::{error, info};
 
 use crate::queue::Job;
@@ -7,11 +7,7 @@ use crate::queue::Job;
 pub struct NightlyHousekeepingHandler;
 
 impl NightlyHousekeepingHandler {
-    pub async fn handle(
-        db: &PgPool,
-        _diesel: &crate::diesel_pool::DieselPools,
-        job: &Job,
-    ) -> Result<(), String> {
+    pub async fn handle(diesel: &crate::diesel_pool::DieselPools, job: &Job) -> Result<(), String> {
         let payload = job
             .housekeeping_payload()
             .ok_or("Missing housekeeping payload")?;
@@ -40,15 +36,23 @@ impl NightlyHousekeepingHandler {
             let audit_table = format!("audit_logs_y{year:04}m{month:02}");
             let staging_table = format!("attendance_staging_logs_y{year:04}m{month:02}");
 
-            let query = format!(
-                r#"
-                CREATE TABLE IF NOT EXISTS {audit_table} PARTITION OF audit_logs FOR VALUES FROM ('{from_date_str}') TO ('{to_date_str}');
-                CREATE TABLE IF NOT EXISTS {staging_table} PARTITION OF attendance_staging_logs FOR VALUES FROM ('{from_date_str}') TO ('{to_date_str}');
-                "#
-            );
+            let query1 = format!("CREATE TABLE IF NOT EXISTS {audit_table} PARTITION OF audit_logs FOR VALUES FROM ('{from_date_str}') TO ('{to_date_str}')");
+            let query2 = format!("CREATE TABLE IF NOT EXISTS {staging_table} PARTITION OF attendance_staging_logs FOR VALUES FROM ('{from_date_str}') TO ('{to_date_str}')");
 
-            if let Err(e) = db.execute(query.as_str()).await {
-                error!(error = %e, year, month, "Failed to create partition");
+            let mut conn = diesel
+                .api
+                .get()
+                .await
+                .map_err(|e| format!("db conn: {e}"))?;
+
+            if let Err(e) = diesel::sql_query(query1.as_str()).execute(&mut conn).await {
+                error!(error = %e, year, month, "Failed to create audit_logs partition");
+                return Err(format!(
+                    "Failed to create partition for {year}-{month}: {e}"
+                ));
+            }
+            if let Err(e) = diesel::sql_query(query2.as_str()).execute(&mut conn).await {
+                error!(error = %e, year, month, "Failed to create staging_logs partition");
                 return Err(format!(
                     "Failed to create partition for {year}-{month}: {e}"
                 ));
@@ -70,16 +74,20 @@ impl NightlyHousekeepingHandler {
             let audit_table = format!("audit_logs_y{drop_year:04}m{drop_month:02}");
             let staging_table = format!("attendance_staging_logs_y{drop_year:04}m{drop_month:02}");
 
-            let query = format!(
-                r#"
-                DROP TABLE IF EXISTS {audit_table};
-                DROP TABLE IF EXISTS {staging_table};
-                "#
-            );
+            let query1 = format!("DROP TABLE IF EXISTS {audit_table}");
+            let query2 = format!("DROP TABLE IF EXISTS {staging_table}");
 
-            if let Err(e) = db.execute(query.as_str()).await {
-                error!(error = %e, drop_year, drop_month, "Failed to drop old partition");
-                // Don't fail the job, just log it so other maintenance can continue
+            let mut conn = diesel
+                .api
+                .get()
+                .await
+                .map_err(|e| format!("db conn: {e}"))?;
+
+            if let Err(e) = diesel::sql_query(query1.as_str()).execute(&mut conn).await {
+                error!(error = %e, drop_year, drop_month, "Failed to drop old audit_logs partition");
+            }
+            if let Err(e) = diesel::sql_query(query2.as_str()).execute(&mut conn).await {
+                error!(error = %e, drop_year, drop_month, "Failed to drop old staging_logs partition");
             } else {
                 info!(drop_year, drop_month, "Ensured old partitions are dropped");
             }

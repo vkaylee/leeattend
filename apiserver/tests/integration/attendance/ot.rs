@@ -3,7 +3,7 @@
 use crate::common::app::setup_app_tower;
 use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
-use apiserver::models::{AttendanceDailySummary, OtStatus};
+use apiserver::models::OtStatus;
 use apiserver::AppState;
 use axum::http::StatusCode;
 use chrono::NaiveDate;
@@ -24,14 +24,14 @@ async fn test_ot_claim_approval_workflow() {
         .create()
         .await; // Employee is also user for self-claim
 
-    // 1. Create a daily summary (simulated)
+    // 1. Create a daily summary (simulated) — use string for OtStatus since it's a Diesel-only enum
     let date = NaiveDate::from_ymd_opt(2026, 1, 20).unwrap();
-    sqlx::query("INSERT INTO attendance_daily_summaries (id, workspace_id, employee_id, date, actual_work_minutes, system_detected_ot_minutes, ot_status, created_at, updated_at) VALUES ($1, $2, $3, $4, 500, 60, $5, NOW(), NOW())")
+    sqlx::query("INSERT INTO attendance_daily_summaries (id, workspace_id, employee_id, date, actual_work_minutes, system_detected_ot_minutes, ot_status, created_at, updated_at) VALUES ($1, $2, $3, $4, 500, 60, $5::ot_status_type, NOW(), NOW())")
         .bind(uuid::Uuid::new_v4())
         .bind(ws_id)
         .bind(emp_id)
         .bind(date)
-        .bind(OtStatus::PendingEmployee)
+        .bind("pending_employee") // OtStatus::PendingEmployee as snake_case string
         .execute(&factory.pool).await.unwrap();
 
     // 2. Employee Claims OT
@@ -64,9 +64,9 @@ async fn test_ot_claim_approval_workflow() {
         panic!("Claim OT failed with status {}. Body: {}", status, body_str);
     }
 
-    // Verify status
-    let summary: AttendanceDailySummary = sqlx::query_as(
-        "SELECT * FROM attendance_daily_summaries WHERE employee_id = $1 AND date = $2",
+    // Verify status via raw query (returns JSON-like scalar)
+    let ot_status_str: String = sqlx::query_scalar(
+        "SELECT ot_status::text FROM attendance_daily_summaries WHERE employee_id = $1 AND date = $2",
     )
     .bind(emp_id)
     .bind(date)
@@ -74,6 +74,20 @@ async fn test_ot_claim_approval_workflow() {
     .await
     .unwrap();
 
-    assert_eq!(summary.ot_status, OtStatus::PendingManager);
-    assert_eq!(summary.claimed_ot_minutes, 60);
+    let claimed_minutes: i32 = sqlx::query_scalar(
+        "SELECT claimed_ot_minutes FROM attendance_daily_summaries WHERE employee_id = $1 AND date = $2",
+    )
+    .bind(emp_id)
+    .bind(date)
+    .fetch_one(&factory.pool)
+    .await
+    .unwrap();
+
+    let expected_status = serde_json::to_value(OtStatus::PendingManager)
+        .unwrap()
+        .as_str()
+        .unwrap()
+        .to_string();
+    assert_eq!(ot_status_str, expected_status);
+    assert_eq!(claimed_minutes, 60);
 }

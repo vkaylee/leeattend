@@ -801,23 +801,23 @@ impl LeaveRequestBuilder {
             let emp_id = self
                 .employee_id
                 .expect("Employee ID is required for LeaveRequest");
-            sqlx::query_scalar!(
+            sqlx::query_scalar(
                 "SELECT id FROM leave_types WHERE workspace_id = (SELECT workspace_id FROM employees WHERE id = $1) AND code = 'vacation'",
-                emp_id
             )
+            .bind(emp_id)
             .fetch_one(&self.pool)
             .await
             .expect("Default leave type 'vacation' not found")
         };
         sqlx::query(
-            "INSERT INTO leave_requests (id, employee_id, leave_type_id, start_date, end_date, status) VALUES ($1, $2, $3, $4, $5, $6)",
+            "INSERT INTO leave_requests (id, employee_id, leave_type_id, start_date, end_date, status) VALUES ($1, $2, $3, $4, $5, $6::leave_status_type)",
         )
         .bind(id)
         .bind(self.employee_id.expect("Employee ID is required for LeaveRequest"))
         .bind(leave_type_id)
         .bind(self.start_date)
         .bind(self.end_date)
-        .bind(self.status)
+        .bind(serde_json::to_value(&self.status).unwrap().as_str().unwrap().to_string())
         .execute(&self.pool)
         .await
         .unwrap();
@@ -876,10 +876,10 @@ impl LeaveBalanceBuilder {
             let emp_id = self
                 .employee_id
                 .expect("Employee ID is required for LeaveBalance");
-            sqlx::query_scalar!(
+            sqlx::query_scalar(
                 "SELECT id FROM leave_types WHERE workspace_id = (SELECT workspace_id FROM employees WHERE id = $1) AND code = 'vacation'",
-                emp_id
             )
+            .bind(emp_id)
             .fetch_one(&self.pool)
             .await
             .expect("Default leave type 'vacation' not found")
@@ -948,10 +948,10 @@ impl LeavePolicyBuilder {
         let pool = self.pool.clone();
 
         // Fetch vacation ID as default
-        let leave_type_id = sqlx::query_scalar!(
+        let leave_type_id: Uuid = sqlx::query_scalar(
             "SELECT id FROM leave_types WHERE workspace_id = $1 AND code = 'vacation'",
-            ws_id
         )
+        .bind(ws_id)
         .fetch_one(&pool)
         .await
         .expect("Default leave type 'vacation' not found - check WorkspaceBuilder seeding");
@@ -1107,14 +1107,14 @@ impl AssignmentRuleBuilder {
     }
 
     pub async fn create(self) -> Uuid {
-        sqlx::query_scalar!(
+        sqlx::query_scalar(
             "INSERT INTO assignment_rules (workspace_id, pattern_id, name, priority, conditions) VALUES ($1, $2, $3, $4, $5) RETURNING id",
-            self.workspace_id.expect("WS ID required"),
-            self.pattern_id.expect("Pattern ID required"),
-            self.name,
-            self.priority,
-            serde_json::to_value(&self.conditions).unwrap()
         )
+        .bind(self.workspace_id.expect("WS ID required"))
+        .bind(self.pattern_id.expect("Pattern ID required"))
+        .bind(self.name)
+        .bind(self.priority)
+        .bind(serde_json::to_value(&self.conditions).unwrap())
         .fetch_one(&self.pool)
         .await
         .unwrap()

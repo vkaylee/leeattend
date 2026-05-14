@@ -5,6 +5,7 @@ mod dashboard_preferences;
 mod db_trap;
 mod forbidden;
 mod health;
+pub mod housekeeping;
 mod jobs;
 mod repo_pagination;
 mod schema_isolation;

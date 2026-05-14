@@ -54,10 +54,25 @@ impl StagingLogRepository for DieselStagingLogRepository {
             created_at: Utc::now(),
         };
 
-        let rows_affected = diesel::insert_into(attendance_staging_logs::table)
+        use crate::schema::attendance_staging_logs::dsl as staging_dsl;
+        use diesel::ExpressionMethods;
+        use diesel::QueryDsl;
+
+        let exists: bool = diesel::select(diesel::dsl::exists(
+            staging_dsl::attendance_staging_logs
+                .filter(staging_dsl::workspace_id.eq(workspace_id))
+                .filter(staging_dsl::fingerprint.eq(fingerprint)),
+        ))
+        .get_result(&mut conn)
+        .await
+        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        if exists {
+            return Ok(false);
+        }
+
+        let rows_affected = diesel::insert_into(staging_dsl::attendance_staging_logs)
             .values(&entity)
-            .on_conflict(attendance_staging_logs::fingerprint)
-            .do_nothing()
             .execute(&mut conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -82,6 +97,43 @@ impl StagingLogRepository for DieselStagingLogRepository {
             .filter(attendance_staging_logs::status.eq("pending"))
             .order(attendance_staging_logs::created_at.asc())
             .limit(limit)
+            .load(&mut conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        Ok(results
+            .into_iter()
+            .map(|e| StagingLog {
+                id: e.id,
+                workspace_id: e.workspace_id,
+                device_id: e.device_id,
+                raw_user_id: e.raw_user_id,
+                punch_time: e.punch_time,
+                raw_data: e.raw_data,
+                fingerprint: e.fingerprint,
+                status: e.status,
+                created_at: e.created_at,
+            })
+            .collect())
+    }
+
+    async fn get_pending_staged_logs(
+        &self,
+        workspace_id: Uuid,
+        employee_id_number: &str,
+    ) -> Result<Vec<StagingLog>, AppError> {
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        let results: Vec<AttendanceStagingLogEntity> = attendance_staging_logs::table
+            .filter(attendance_staging_logs::workspace_id.eq(workspace_id))
+            .filter(attendance_staging_logs::raw_user_id.eq(employee_id_number))
+            .filter(attendance_staging_logs::status.eq("pending"))
+            .order(attendance_staging_logs::punch_time.asc())
             .load(&mut conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -143,6 +195,66 @@ impl StagingLogRepository for DieselStagingLogRepository {
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(count)
+    }
+
+    async fn claim_staged_logs(
+        &self,
+        workspace_id: Uuid,
+        raw_user_id: &str,
+        employee_id: Uuid,
+    ) -> Result<u64, AppError> {
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(format!("db error: {e}")))?;
+
+        let staged_logs = attendance_staging_logs::table
+            .filter(attendance_staging_logs::workspace_id.eq(workspace_id))
+            .filter(attendance_staging_logs::raw_user_id.eq(raw_user_id))
+            .filter(attendance_staging_logs::status.eq("pending"))
+            .order(attendance_staging_logs::punch_time.asc())
+            .load::<AttendanceStagingLogEntity>(&mut conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        let mut claimed = 0u64;
+        for staged in staged_logs {
+            let id = crate::utils::id::new_id();
+            let rows = diesel::sql_query(
+                r#"
+                INSERT INTO raw_attendance_logs
+                    (id, workspace_id, employee_id, punch_time, source, device_id, raw_data, punch, status, created_at)
+                VALUES ($1, $2, $3, $4, 'device', $5, $6, -1, -1, $7)
+                ON CONFLICT DO NOTHING
+                "#,
+            )
+            .bind::<diesel::sql_types::Uuid, _>(id)
+            .bind::<diesel::sql_types::Uuid, _>(workspace_id)
+            .bind::<diesel::sql_types::Uuid, _>(employee_id)
+            .bind::<diesel::sql_types::Timestamptz, _>(staged.punch_time)
+            .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(staged.device_id)
+            .bind::<diesel::sql_types::Nullable<diesel::sql_types::Jsonb>, _>(staged.raw_data)
+            .bind::<diesel::sql_types::Timestamptz, _>(chrono::Utc::now())
+            .execute(&mut conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+            if rows > 0 {
+                claimed += 1;
+            }
+
+            diesel::update(
+                attendance_staging_logs::table.filter(attendance_staging_logs::id.eq(staged.id)),
+            )
+            .set(attendance_staging_logs::status.eq("processed"))
+            .execute(&mut conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        }
+
+        Ok(claimed)
     }
 
     async fn resolve_staging_log(
