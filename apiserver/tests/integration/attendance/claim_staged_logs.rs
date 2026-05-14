@@ -17,7 +17,7 @@ async fn test_handler_claims_staged_logs_for_employee() {
     let test_db = TestDatabase::new().await;
     let pool = test_db.pool().clone();
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
-    let deps = apiserver::worker::deps::WorkerDeps::new(&diesel_pools.clone());
+    let deps = apiserver::worker::deps::WorkerDeps::new(&pool, &diesel_pools.clone());
     let factory = TestFactory::new(pool.clone());
 
     let user_id = factory.user().create().await;
@@ -96,7 +96,7 @@ async fn test_handler_no_staged_logs_is_ok() {
     let test_db = TestDatabase::new().await;
     let pool = test_db.pool().clone();
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
-    let deps = apiserver::worker::deps::WorkerDeps::new(&diesel_pools.clone());
+    let deps = apiserver::worker::deps::WorkerDeps::new(&pool, &diesel_pools.clone());
     let factory = TestFactory::new(pool.clone());
 
     let user_id = factory.user().create().await;
@@ -131,7 +131,7 @@ async fn test_handler_claims_multiple_staged_logs() {
     let test_db = TestDatabase::new().await;
     let pool = test_db.pool().clone();
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
-    let deps = apiserver::worker::deps::WorkerDeps::new(&diesel_pools.clone());
+    let deps = apiserver::worker::deps::WorkerDeps::new(&pool, &diesel_pools.clone());
     let factory = TestFactory::new(pool.clone());
 
     let user_id = factory.user().create().await;
@@ -209,7 +209,7 @@ async fn test_handler_only_claims_matching_employee() {
     let test_db = TestDatabase::new().await;
     let pool = test_db.pool().clone();
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
-    let deps = apiserver::worker::deps::WorkerDeps::new(&diesel_pools.clone());
+    let deps = apiserver::worker::deps::WorkerDeps::new(&pool, &diesel_pools.clone());
     let factory = TestFactory::new(pool.clone());
 
     let user_id = factory.user().create().await;

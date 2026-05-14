@@ -18,6 +18,7 @@ impl AccrualHandler {
         diesel: &crate::diesel_pool::DieselPools,
         job: &Job,
         redis: &RedisPool,
+        deps: &crate::worker::deps::WorkerDeps,
     ) -> Result<(), String> {
         let payload = job.accrual_payload().ok_or("Missing accrual payload")?;
 
@@ -36,32 +37,11 @@ impl AccrualHandler {
             "Starting leave accrual processing"
         );
 
-        let employee_repo: std::sync::Arc<dyn crate::repositories::EmployeeRepository> =
-            std::sync::Arc::new(crate::repositories::DieselEmployeeRepository::new(
-                diesel.clone(),
-            ));
-        let department_repo: std::sync::Arc<
-            dyn crate::repositories::department_repository::DepartmentRepository,
-        > = std::sync::Arc::new(
-            crate::repositories::diesel_department_repository::DieselDepartmentRepository::new(
-                diesel.clone(),
-            ),
-        );
-        let leave_policy_repo: std::sync::Arc<
-            dyn crate::repositories::leave_policy_repository::LeavePolicyRepository,
-        > = std::sync::Arc::new(crate::repositories::DieselLeavePolicyRepository::new(
-            diesel.clone(),
-        ));
-        let accrual_log_repo: std::sync::Arc<
-            dyn crate::repositories::leave_accrual_log_repository::LeaveAccrualLogRepository,
-        > = std::sync::Arc::new(crate::repositories::DieselLeaveAccrualLogRepository::new(
-            diesel.clone(),
-        ));
         let accrual_service = LeaveAccrualService::new(
-            employee_repo,
-            department_repo,
-            leave_policy_repo,
-            accrual_log_repo,
+            std::sync::Arc::clone(&deps.employee_repo),
+            std::sync::Arc::clone(&deps.department_repo),
+            std::sync::Arc::clone(&deps.leave_policy_repo),
+            std::sync::Arc::clone(&deps.leave_accrual_log_repo),
             diesel.clone(),
         );
         match accrual_service

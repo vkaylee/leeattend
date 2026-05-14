@@ -150,7 +150,7 @@ impl JobWorker {
         roster_cache: Option<Arc<RosterCache>>,
     ) -> Self {
         let cache = Arc::new(CacheManager::new(redis.clone(), db.clone(), diesel.clone()));
-        let deps = Arc::new(super::WorkerDeps::new(&diesel));
+        let deps = Arc::new(super::WorkerDeps::new(&db, &diesel));
         let hostname = std::env::var("HOSTNAME")
             .or_else(|_| std::env::var("COMPUTERNAME"))
             .unwrap_or_else(|_| "unknown".to_string());
@@ -410,7 +410,7 @@ impl JobWorker {
                 Err("PayrollReport not implemented".to_string())
             }
             TaskType::LeaveAccrual => {
-                AccrualHandler::handle(&self.db, &self.diesel, &job, &self.redis).await
+                AccrualHandler::handle(&self.db, &self.diesel, &job, &self.redis, &self.deps).await
             }
             TaskType::LogIngestion => {
                 LogIngestionHandler::handle(&self.db, &self.diesel, &job, &self.deps).await
@@ -429,7 +429,8 @@ impl JobWorker {
                 ClaimStagedLogsHandler::handle(&self.db, &self.diesel, &job, &self.deps).await
             }
             TaskType::LeaveImport => {
-                LeaveImportHandler::handle(&self.db, &self.diesel, &job, &self.redis).await
+                LeaveImportHandler::handle(&self.db, &self.diesel, &job, &self.redis, &self.deps)
+                    .await
             }
             TaskType::EmployeeImport => {
                 EmployeeImportHandler::handle(&self.db, &self.diesel, &job, &self.redis).await
@@ -454,6 +455,7 @@ impl JobWorker {
                     &self.diesel,
                     &job,
                     &self.redis,
+                    &self.deps,
                 )
                 .await
             }

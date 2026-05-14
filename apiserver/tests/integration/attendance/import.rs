@@ -340,7 +340,9 @@ async fn test_leave_import_chunking() {
         max_retries: 3,
     };
 
-    let result = LeaveImportHandler::handle(&pool, &diesel_pools, &worker_job, &redis_pool).await;
+    let deps = apiserver::worker::deps::WorkerDeps::new(&pool, &diesel_pools.clone());
+    let result =
+        LeaveImportHandler::handle(&pool, &diesel_pools, &worker_job, &redis_pool, &deps).await;
 
     if let Err(e) = &result {
         println!("Handler failed with error: {}", e);

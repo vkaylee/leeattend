@@ -119,7 +119,7 @@ async fn test_force_reprocess_all_attendance_api() {
     let base_date = NaiveDate::from_ymd_opt(2026, 1, 14).unwrap();
     // Use UTC times that result in the SAME DAY for Asia/Ho_Chi_Minh (UTC+7)
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
-    let deps = apiserver::worker::deps::WorkerDeps::new(&diesel_pools.clone());
+    let deps = apiserver::worker::deps::WorkerDeps::new(&factory.pool, &diesel_pools.clone());
     let start_time = Utc.with_ymd_and_hms(2026, 1, 14, 1, 0, 0).unwrap();
     let end_time = Utc.with_ymd_and_hms(2026, 1, 14, 10, 0, 0).unwrap();
 

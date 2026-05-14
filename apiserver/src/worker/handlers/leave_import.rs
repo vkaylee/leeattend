@@ -7,9 +7,6 @@ use crate::models::ImportJobStatus;
 use crate::queue::{
     Job, JobPayload, JobPriority, JobQueue, LeaveImportChunkPayload, RedisPool, TaskType,
 };
-use crate::repositories::import_job_repository::ImportJobRepository;
-use crate::repositories::workspace_repository::WorkspaceRepository;
-use crate::repositories::DieselImportJobRepository;
 use crate::services::import_messages::LeaveImportMessages;
 use crate::services::import_pipeline::ImportPipeline;
 use crate::services::leave_import_service::LeaveImportStrategy;
@@ -28,15 +25,16 @@ impl LeaveImportHandler {
     #[allow(clippy::too_many_lines)]
     pub async fn handle(
         _db: &PgPool,
-        diesel: &crate::diesel_pool::DieselPools,
+        _diesel: &crate::diesel_pool::DieselPools,
         job: &Job,
         redis: &RedisPool,
+        deps: &crate::worker::deps::WorkerDeps,
     ) -> Result<(), String> {
         let payload = job
             .leave_import_payload()
             .ok_or("Missing leave import payload")?;
 
-        let import_repo = DieselImportJobRepository::new(diesel.clone());
+        let import_repo = &*deps.import_job_repo;
 
         // Update import job → Processing
         let _ = import_repo
@@ -160,6 +158,7 @@ impl LeaveImportChunkHandler {
         diesel: &crate::diesel_pool::DieselPools,
         job: &Job,
         redis: &RedisPool,
+        deps: &crate::worker::deps::WorkerDeps,
     ) -> Result<(), String> {
         let payload = job
             .leave_import_chunk_payload()
@@ -180,7 +179,7 @@ impl LeaveImportChunkHandler {
             diesel.clone(),
         );
 
-        let import_repo = DieselImportJobRepository::new(diesel.clone());
+        let import_repo = &*deps.import_job_repo;
         let import_job = import_repo
             .get_job_by_id(payload.import_job_id)
             .await
@@ -191,9 +190,7 @@ impl LeaveImportChunkHandler {
             .await
             .map_err(|e| format!("Could not read file: {e}"))?;
 
-        let workspace_repo = Arc::new(crate::repositories::DieselWorkspaceRepository::new(
-            diesel.clone(),
-        ));
+        let workspace_repo = Arc::clone(&deps.workspace_repo);
         let workspace_tz = match workspace_repo
             .get_workspace_by_id(import_job.workspace_id)
             .await
@@ -212,27 +209,11 @@ impl LeaveImportChunkHandler {
 
         let msgs = LeaveImportMessages::for_lang(&lang);
 
-        let employee_repo: Arc<dyn crate::repositories::EmployeeRepository> = Arc::new(
-            crate::repositories::DieselEmployeeRepository::new(diesel.clone()),
-        );
-        let leave_balance_repo: Arc<
-            dyn crate::repositories::leave_balance_repository::LeaveBalanceRepository,
-        > = Arc::new(crate::repositories::DieselLeaveBalanceRepository::new(
-            diesel.clone(),
-        ));
-        let leave_request_repo: Arc<
-            dyn crate::repositories::leave_request_repository::LeaveRequestRepository,
-        > = Arc::new(crate::repositories::DieselLeaveRequestRepository::new(
-            diesel.clone(),
-        ));
-        let roster_repo: Arc<dyn crate::repositories::roster::RosterRepository> = Arc::new(
-            crate::repositories::DieselRosterRepository::new(diesel.clone()),
-        );
-        let leave_accrual_log_repo: Arc<
-            dyn crate::repositories::leave_accrual_log_repository::LeaveAccrualLogRepository,
-        > = Arc::new(crate::repositories::DieselLeaveAccrualLogRepository::new(
-            diesel.clone(),
-        ));
+        let employee_repo = Arc::clone(&deps.employee_repo);
+        let leave_balance_repo = Arc::clone(&deps.leave_balance_repo);
+        let leave_request_repo = Arc::clone(&deps.leave_request_repo);
+        let roster_repo = Arc::clone(&deps.roster_repo);
+        let leave_accrual_log_repo = Arc::clone(&deps.leave_accrual_log_repo);
         let leave_service = LeaveService::new(
             leave_balance_repo,
             leave_request_repo,
@@ -253,7 +234,7 @@ impl LeaveImportChunkHandler {
         let pipeline = ImportPipeline {
             strategy,
             diesel: diesel.clone(),
-            import_repo: &import_repo,
+            import_repo,
             job: &import_job,
             file_bytes,
             workspace_tz,

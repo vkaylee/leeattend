@@ -19,16 +19,29 @@ pub struct WorkerDeps {
     pub roster_repo: Arc<dyn RosterRepository>,
     pub policy_repo: Arc<dyn AttendancePolicyRepository>,
     pub employee_repo: Arc<dyn crate::repositories::EmployeeRepository>,
-    pub raw_log_repo:
-        Arc<dyn crate::repositories::raw_attendance_log_repository::RawAttendanceLogRepository>,
+    pub raw_log_repo: Arc<dyn crate::repositories::raw_attendance_log_repository::RawAttendanceLogRepository>,
     pub staging_repo: Arc<dyn crate::repositories::staging_log_repository::StagingLogRepository>,
-    pub error_repo:
-        Arc<dyn crate::repositories::attendance_log_error_repository::AttendanceLogErrorRepository>,
+    pub error_repo: Arc<dyn crate::repositories::attendance_log_error_repository::AttendanceLogErrorRepository>,
+
+    // Additional Repositories
+    pub workspace_repo: Arc<dyn crate::repositories::workspace_repository::WorkspaceRepository>,
+    pub holiday_repo: Arc<dyn crate::repositories::holiday_repository::HolidayRepository>,
+    pub leave_request_repo: Arc<dyn crate::repositories::leave_request_repository::LeaveRequestRepository>,
+    pub daily_summary_repo: Arc<dyn crate::repositories::attendance_daily_summary_repository::AttendanceDailySummaryRepository>,
+    pub shift_repo: Arc<dyn crate::repositories::shift_repository::ShiftRepository>,
+    pub adjustment_repo: Arc<dyn crate::repositories::attendance_adjustment_repository::AttendanceAdjustmentRepository>,
+    pub department_repo: Arc<dyn crate::repositories::department_repository::DepartmentRepository>,
+    pub import_job_repo: Arc<dyn crate::repositories::import_job_repository::ImportJobRepository>,
+    pub session_repo: Arc<dyn crate::repositories::SessionRepository>,
+    pub leave_balance_repo: Arc<dyn crate::repositories::leave_balance_repository::LeaveBalanceRepository>,
+    pub contract_repo: Arc<crate::repositories::DieselEmployeeContractRepository>,
+    pub leave_accrual_log_repo: Arc<dyn crate::repositories::leave_accrual_log_repository::LeaveAccrualLogRepository>,
+    pub leave_policy_repo: Arc<dyn crate::repositories::leave_policy_repository::LeavePolicyRepository>,
 }
 
 impl WorkerDeps {
     /// Build all worker-scoped repositories from Diesel connection pools.
-    pub fn new(diesel: &crate::diesel_pool::DieselPools) -> Self {
+    pub fn new(db: &sqlx::PgPool, diesel: &crate::diesel_pool::DieselPools) -> Self {
         Self {
             time_entry_repo: Arc::new(crate::repositories::DieselTimeEntryRepository::new(
                 diesel.clone(),
@@ -51,6 +64,48 @@ impl WorkerDeps {
             error_repo: Arc::new(
                 crate::repositories::DieselAttendanceLogErrorRepository::new(diesel.clone()),
             ),
+
+            workspace_repo: Arc::new(crate::repositories::DieselWorkspaceRepository::new(
+                diesel.clone(),
+            )),
+            holiday_repo: Arc::new(crate::repositories::DieselHolidayRepository::new(
+                diesel.clone(),
+            )),
+            leave_request_repo: Arc::new(crate::repositories::DieselLeaveRequestRepository::new(
+                diesel.clone(),
+            )),
+            daily_summary_repo: Arc::new(
+                crate::repositories::DieselAttendanceDailySummaryRepository::new(diesel.clone()),
+            ),
+            shift_repo: Arc::new(crate::repositories::DieselShiftRepository::new(
+                diesel.clone(),
+            )),
+            adjustment_repo: Arc::new(
+                crate::repositories::DieselAttendanceAdjustmentRepository::new(diesel.clone()),
+            ),
+            department_repo: Arc::new(crate::repositories::DieselDepartmentRepository::new(
+                diesel.clone(),
+            )),
+            import_job_repo: Arc::new(crate::repositories::DieselImportJobRepository::new(
+                diesel.clone(),
+            )),
+            session_repo: Arc::new(crate::repositories::DieselSessionRepository::new(
+                db.clone(),
+                diesel.clone(),
+            )),
+            leave_balance_repo: Arc::new(crate::repositories::DieselLeaveBalanceRepository::new(
+                diesel.clone(),
+            )),
+            contract_repo: Arc::new(crate::repositories::DieselEmployeeContractRepository::new(
+                db.clone(),
+                diesel.clone(),
+            )),
+            leave_accrual_log_repo: Arc::new(
+                crate::repositories::DieselLeaveAccrualLogRepository::new(diesel.clone()),
+            ),
+            leave_policy_repo: Arc::new(crate::repositories::DieselLeavePolicyRepository::new(
+                diesel.clone(),
+            )),
         }
     }
 
@@ -58,36 +113,20 @@ impl WorkerDeps {
     /// using the shared repository instances.
     pub fn pairing_service(
         &self,
-        diesel: &crate::diesel_pool::DieselPools,
+        _diesel: &crate::diesel_pool::DieselPools,
     ) -> Arc<crate::services::pairing_service::PairingService> {
         Arc::new(crate::services::pairing_service::PairingService::new(
             crate::services::pairing_service::PairingServiceArgs {
                 time_entry_repo: Arc::clone(&self.time_entry_repo),
                 roster_repo: Arc::clone(&self.roster_repo),
                 policy_repo: Arc::clone(&self.policy_repo),
-                workspace_repo: Arc::new(crate::repositories::DieselWorkspaceRepository::new(
-                    diesel.clone(),
-                )),
-                employee_repo: Arc::new(crate::repositories::DieselEmployeeRepository::new(
-                    diesel.clone(),
-                )),
-                holiday_repo: Arc::new(crate::repositories::DieselHolidayRepository::new(
-                    diesel.clone(),
-                )),
-                leave_request_repo: Arc::new(
-                    crate::repositories::DieselLeaveRequestRepository::new(diesel.clone()),
-                ),
-                daily_summary_repo: Arc::new(
-                    crate::repositories::DieselAttendanceDailySummaryRepository::new(
-                        diesel.clone(),
-                    ),
-                ),
-                raw_log_repo: Arc::new(crate::repositories::DieselRawAttendanceLogRepository::new(
-                    diesel.clone(),
-                )),
-                shift_repo: Arc::new(crate::repositories::DieselShiftRepository::new(
-                    diesel.clone(),
-                )),
+                workspace_repo: Arc::clone(&self.workspace_repo),
+                employee_repo: Arc::clone(&self.employee_repo),
+                holiday_repo: Arc::clone(&self.holiday_repo),
+                leave_request_repo: Arc::clone(&self.leave_request_repo),
+                daily_summary_repo: Arc::clone(&self.daily_summary_repo),
+                raw_log_repo: Arc::clone(&self.raw_log_repo),
+                shift_repo: Arc::clone(&self.shift_repo),
             },
         ))
     }

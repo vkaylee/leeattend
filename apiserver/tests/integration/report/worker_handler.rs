@@ -18,7 +18,7 @@ async fn test_attendance_and_merge_handlers() {
     let pool = test_db.pool();
     let factory = TestFactory::new(pool.clone());
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
-    let deps = apiserver::worker::deps::WorkerDeps::new(&diesel_pools.clone());
+    let deps = apiserver::worker::deps::WorkerDeps::new(&pool, &diesel_pools.clone());
     let redis_url =
         std::env::var("REDIS_URL").unwrap_or_else(|_| "redis://127.0.0.1:6379".to_string());
     let redis_pool = RedisPool::new(&redis_url).await.unwrap();

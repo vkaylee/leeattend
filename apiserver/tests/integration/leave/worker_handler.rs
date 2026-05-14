@@ -72,7 +72,9 @@ async fn test_leave_import_worker_handlers() {
         JobPriority::Normal,
     );
 
-    let res = LeaveImportHandler::handle(&pool, &diesel_pools, &master_job, &redis_pool).await;
+    let deps = apiserver::worker::deps::WorkerDeps::new(&pool, &diesel_pools.clone());
+    let res =
+        LeaveImportHandler::handle(&pool, &diesel_pools, &master_job, &redis_pool, &deps).await;
     res.expect("Master handler should succeed");
 
     let status: String =
@@ -100,7 +102,8 @@ async fn test_leave_import_worker_handlers() {
         JobPriority::High,
     );
 
-    let res = LeaveImportChunkHandler::handle(&pool, &diesel_pools, &chunk_job, &redis_pool).await;
+    let res =
+        LeaveImportChunkHandler::handle(&pool, &diesel_pools, &chunk_job, &redis_pool, &deps).await;
     res.expect("Chunk handler should succeed");
 
     // We can also verify that Finalize was enqueued, but for coverage, testing the handler code is enough
@@ -144,7 +147,9 @@ async fn test_leave_import_handler_empty_file() {
         }),
         JobPriority::Normal,
     );
-    let res = LeaveImportHandler::handle(&pool, &diesel_pools, &master_job, &redis_pool).await;
+    let deps = apiserver::worker::deps::WorkerDeps::new(&pool, &diesel_pools.clone());
+    let res =
+        LeaveImportHandler::handle(&pool, &diesel_pools, &master_job, &redis_pool, &deps).await;
     assert!(res.is_err());
     assert_eq!(
         res.unwrap_err(),
