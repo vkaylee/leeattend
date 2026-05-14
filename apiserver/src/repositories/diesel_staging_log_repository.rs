@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use diesel::prelude::*;
-use diesel_async::RunQueryDsl;
+use diesel_async::{AsyncConnection, RunQueryDsl};
 use uuid::Uuid;
 
 use crate::errors::AppError;
@@ -143,5 +143,114 @@ impl StagingLogRepository for DieselStagingLogRepository {
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(count)
+    }
+
+    async fn resolve_staging_log(
+        &self,
+        log_id: Uuid,
+        workspace_id: Uuid,
+        employee_id: Uuid,
+    ) -> Result<crate::models::RawAttendanceLog, AppError> {
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        use crate::models::{LogSource, RawAttendanceLog};
+        use crate::schema::raw_attendance_logs;
+        use diesel::result::DatabaseErrorKind;
+
+        conn.transaction(|mut conn| {
+            Box::pin(async move {
+                // Use for_update() to lock the row. We don't use nowait() here because it might
+                // not be available or might cause compatibility issues. Just use regular for_update().
+                let staged = attendance_staging_logs::table
+                    .filter(attendance_staging_logs::id.eq(log_id))
+                    .filter(attendance_staging_logs::workspace_id.eq(workspace_id))
+                    .for_update()
+                    .first::<AttendanceStagingLogEntity>(&mut conn)
+                    .await
+                    .map_err(|e| {
+                        if let diesel::result::Error::DatabaseError(
+                            DatabaseErrorKind::SerializationFailure,
+                            _,
+                        ) = e
+                        {
+                            AppError::Conflict(
+                                "Log is being processed by another request".to_string(),
+                            )
+                        } else if e == diesel::result::Error::NotFound {
+                            AppError::NotFound("Staging log not found".to_string())
+                        } else {
+                            AppError::Internal(format!("db: {e}"))
+                        }
+                    })?;
+
+                if staged.status != "pending" {
+                    return Err(AppError::Validation("Log already processed".to_string()));
+                }
+
+                let punch = staged
+                    .raw_data
+                    .as_ref()
+                    .and_then(|d| d["punch"].as_i64())
+                    .map(|v| v as i32)
+                    .unwrap_or(-1);
+                let status = staged
+                    .raw_data
+                    .as_ref()
+                    .and_then(|d| d["status"].as_i64())
+                    .map(|v| v as i32)
+                    .unwrap_or(-1);
+
+                let raw_log = RawAttendanceLog {
+                    id: crate::utils::id::new_id(),
+                    workspace_id,
+                    employee_id,
+                    punch_time: staged.punch_time,
+                    source: LogSource::Device,
+                    device_id: staged.device_id.clone(),
+                    raw_data: staged.raw_data.clone(),
+                    punch,
+                    status,
+                    created_at: Utc::now(),
+                };
+
+                let raw_log_entity =
+                    crate::models::diesel::attendance_log::RawAttendanceLogEntity {
+                        id: raw_log.id,
+                        workspace_id: raw_log.workspace_id,
+                        employee_id: raw_log.employee_id,
+                        punch_time: raw_log.punch_time,
+                        source: raw_log.source,
+                        device_id: raw_log.device_id.clone(),
+                        raw_data: raw_log.raw_data.clone(),
+                        punch: raw_log.punch,
+                        status: raw_log.status,
+                        created_at: Some(raw_log.created_at),
+                    };
+
+                diesel::insert_into(raw_attendance_logs::table)
+                    .values(&raw_log_entity)
+                    .execute(&mut conn)
+                    .await
+                    .map_err(|e| AppError::Internal(format!("db insert raw: {e}")))?;
+
+                diesel::update(
+                    attendance_staging_logs::table
+                        .filter(attendance_staging_logs::id.eq(log_id))
+                        .filter(attendance_staging_logs::workspace_id.eq(workspace_id)),
+                )
+                .set(attendance_staging_logs::status.eq("processed"))
+                .execute(&mut conn)
+                .await
+                .map_err(|e| AppError::Internal(format!("db update staging: {e}")))?;
+
+                Ok(raw_log)
+            })
+        })
+        .await
     }
 }

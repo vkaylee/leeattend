@@ -9,7 +9,7 @@ use crate::AppState;
 
 // ── Response / Request types ───────────────────────────────────────
 
-#[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct DashboardPreferences {
     pub id: Uuid,
     pub user_id: Uuid,
@@ -83,13 +83,11 @@ pub async fn get_dashboard_preferences(
         ..
     }: MemberContext,
 ) -> AppResult<Json<DashboardPreferences>> {
-    let prefs = sqlx::query_as::<_, DashboardPreferences>(
-        "SELECT * FROM dashboard_preferences WHERE user_id = $1 AND workspace_id = $2",
-    )
-    .bind(user_id)
-    .bind(workspace_id)
-    .fetch_optional(state.infra.db.api())
-    .await?;
+    let prefs = state
+        .core
+        .user_repo
+        .get_dashboard_preferences(user_id, workspace_id)
+        .await?;
 
     match prefs {
         Some(p) => Ok(Json(p)),
@@ -119,31 +117,10 @@ pub async fn update_dashboard_preferences(
     }: MemberContext,
     Json(body): Json<UpdateDashboardPreferences>,
 ) -> AppResult<Json<DashboardPreferences>> {
-    let result = sqlx::query_as::<_, DashboardPreferences>(
-        r#"
-        INSERT INTO dashboard_preferences (user_id, workspace_id, active_view, visible_widgets, widget_order, collapsed_sections)
-        VALUES ($1, $2, $3, $4, $5, $6)
-        ON CONFLICT (user_id, workspace_id)
-        DO UPDATE SET
-            active_view = COALESCE($3, dashboard_preferences.active_view),
-            visible_widgets = COALESCE($4, dashboard_preferences.visible_widgets),
-            widget_order = COALESCE($5, dashboard_preferences.widget_order),
-            collapsed_sections = COALESCE($6, dashboard_preferences.collapsed_sections),
-            updated_at = NOW()
-        RETURNING *
-        "#,
-    )
-    .bind(user_id)
-    .bind(workspace_id)
-    .bind(body.active_view.unwrap_or_else(|| "overview".to_string()))
-    .bind(body.visible_widgets.unwrap_or_else(default_visible_widgets))
-    .bind(body.widget_order.unwrap_or_else(default_widget_order))
-    .bind(
-        body.collapsed_sections
-            .unwrap_or_else(default_collapsed_sections),
-    )
-    .fetch_one(state.infra.db.api())
-    .await?;
-
+    let result = state
+        .core
+        .user_repo
+        .update_dashboard_preferences(user_id, workspace_id, body)
+        .await?;
     Ok(Json(result))
 }

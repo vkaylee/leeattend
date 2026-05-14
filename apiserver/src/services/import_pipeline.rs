@@ -1,6 +1,5 @@
 use async_trait::async_trait;
 use chrono_tz::Tz;
-use sqlx::PgPool;
 use std::collections::HashMap;
 use uuid::Uuid;
 
@@ -25,20 +24,24 @@ pub trait ImportStrategy: Send + Sync {
     /// Process a single valid row. Returns Ok(Some(id)) for success, Ok(None) for skipped, Err(reason) for failure.
     async fn process_row(
         &mut self,
-        pool: &PgPool,
+        diesel: &crate::diesel_pool::DieselPools,
         job: &AttendanceImportJob,
         row: &Self::RowData,
     ) -> Result<Option<Uuid>, String>;
 
     /// Optional hook to initialize caching or do pre-flight checks
-    async fn init(&mut self, _pool: &PgPool, _job: &AttendanceImportJob) -> Result<(), String> {
+    async fn init(
+        &mut self,
+        _diesel: &crate::diesel_pool::DieselPools,
+        _job: &AttendanceImportJob,
+    ) -> Result<(), String> {
         Ok(())
     }
 }
 
 pub struct ImportPipeline<'a, S: ImportStrategy> {
     pub strategy: S,
-    pub pool: PgPool,
+    pub diesel: crate::diesel_pool::DieselPools,
     pub import_repo: &'a dyn ImportJobRepository,
     pub job: &'a AttendanceImportJob,
     pub file_bytes: Vec<u8>,
@@ -52,7 +55,7 @@ pub struct ImportPipeline<'a, S: ImportStrategy> {
 impl<S: ImportStrategy> ImportPipeline<'_, S> {
     #[allow(clippy::too_many_lines)]
     pub async fn run(mut self) -> Result<(), ()> {
-        if let Err(e) = self.strategy.init(&self.pool, self.job).await {
+        if let Err(e) = self.strategy.init(&self.diesel, self.job).await {
             let _ = self
                 .import_repo
                 .update_job_progress(self.job.id, 0, ImportJobStatus::Failed, Some(e))
@@ -114,7 +117,7 @@ impl<S: ImportStrategy> ImportPipeline<'_, S> {
         for (row_data_parsed, raw_row_data) in pending_rows {
             match self
                 .strategy
-                .process_row(&self.pool, self.job, &row_data_parsed)
+                .process_row(&self.diesel, self.job, &row_data_parsed)
                 .await
             {
                 Ok(Some(_id)) => {

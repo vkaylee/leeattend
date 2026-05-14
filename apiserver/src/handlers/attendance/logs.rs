@@ -186,13 +186,11 @@ pub async fn force_reprocess_all_attendance(
     let queue = crate::queue::JobQueue::new(redis.clone());
 
     // Fetch all active employees
-    let employees = sqlx::query!(
-        "SELECT id FROM employees WHERE workspace_id = $1 AND is_active = true",
-        ctx.workspace_id
-    )
-    .fetch_all(state.infra.db.api())
-    .await
-    .map_err(AppError::from)?;
+    let employees = state
+        .employees
+        .repo
+        .get_active_employees(ctx.workspace_id)
+        .await?;
 
     tracing::info!(
         employee_count = employees.len(),

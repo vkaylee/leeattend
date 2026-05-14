@@ -14,7 +14,7 @@ impl AccrualHandler {
     /// Handle a leave accrual job.
     /// Updates JobMetadata status throughout the lifecycle.
     pub async fn handle(
-        db: &PgPool,
+        _db: &PgPool,
         diesel: &crate::diesel_pool::DieselPools,
         job: &Job,
         redis: &RedisPool,
@@ -62,7 +62,7 @@ impl AccrualHandler {
             department_repo,
             leave_policy_repo,
             accrual_log_repo,
-            db.clone(),
+            diesel.clone(),
         );
         match accrual_service
             .process_workspace_accruals(job.workspace_id, payload.date, payload.force)

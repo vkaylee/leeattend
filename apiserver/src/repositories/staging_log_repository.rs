@@ -1,7 +1,6 @@
 use crate::errors::AppError;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
-use sqlx::PgPool;
 use uuid::Uuid;
 
 // ---------------------------------------------------------------------------
@@ -31,6 +30,12 @@ pub trait StagingLogRepository: Send + Sync {
         status: &str,
     ) -> Result<bool, AppError>;
     async fn count_pending_staging_logs(&self, workspace_id: Uuid) -> Result<i64, AppError>;
+    async fn resolve_staging_log(
+        &self,
+        log_id: Uuid,
+        workspace_id: Uuid,
+        employee_id: Uuid,
+    ) -> Result<crate::models::RawAttendanceLog, AppError>;
 }
 
 /// Staging log for unknown users (not yet mapped to employees)
@@ -156,51 +161,79 @@ pub async fn count_pending_staging_logs<'c>(
 /// Lightweight direct claim of staged logs for an employee (no queue/Redis needed).
 /// Finds all pending staging logs matching `employee_id_number`, inserts them into
 /// `raw_attendance_logs`, and marks them as processed.
+#[derive(diesel::QueryableByName)]
+struct StagingLogRow {
+    #[diesel(sql_type = diesel::sql_types::Uuid)]
+    id: Uuid,
+    #[diesel(sql_type = diesel::sql_types::Timestamptz)]
+    punch_time: DateTime<Utc>,
+    #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]
+    device_id: Option<String>,
+    #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Jsonb>)]
+    raw_data: Option<serde_json::Value>,
+}
+
 pub async fn claim_staged_logs_direct(
-    pool: &PgPool,
+    diesel: &crate::diesel_pool::DieselPools,
     workspace_id: Uuid,
     employee_id: Uuid,
     employee_id_number: &str,
-) -> Result<u32, sqlx::Error> {
-    let staged_logs = sqlx::query_as::<_, StagingLog>(
+) -> Result<u32, AppError> {
+    let mut conn = diesel
+        .api
+        .get()
+        .await
+        .map_err(|e| AppError::Internal(e.to_string()))?;
+    use diesel_async::RunQueryDsl;
+
+    let staged_logs: Vec<StagingLogRow> = diesel::sql_query(
         r#"
-        SELECT id, workspace_id, device_id, raw_user_id, punch_time, raw_data, fingerprint, status, created_at
+        SELECT id, punch_time, device_id, raw_data
         FROM attendance_staging_logs
         WHERE workspace_id = $1 AND raw_user_id = $2 AND status = 'pending'
         ORDER BY punch_time ASC
         "#,
     )
-    .bind(workspace_id)
-    .bind(employee_id_number)
-    .fetch_all(pool)
-    .await?;
+    .bind::<diesel::sql_types::Uuid, _>(workspace_id)
+    .bind::<diesel::sql_types::Text, _>(employee_id_number)
+    .load(&mut conn)
+    .await
+    .map_err(|e| AppError::Internal(e.to_string()))?;
 
     let mut claimed = 0u32;
     for staged in &staged_logs {
         // Insert into raw_attendance_logs
-        let result = sqlx::query(
+        let result = diesel::sql_query(
             r#"
             INSERT INTO raw_attendance_logs (id, workspace_id, employee_id, punch_time, source, device_id, raw_data, punch, status, created_at)
             VALUES ($1, $2, $3, $4, 'device', $5, $6, -1, -1, $7)
             ON CONFLICT DO NOTHING
             "#,
         )
-        .bind(crate::utils::id::new_id())
-        .bind(workspace_id)
-        .bind(employee_id)
-        .bind(staged.punch_time)
-        .bind(&staged.device_id)
-        .bind(&staged.raw_data)
-        .bind(Utc::now())
-        .execute(pool)
-        .await?;
+        .bind::<diesel::sql_types::Uuid, _>(crate::utils::id::new_id())
+        .bind::<diesel::sql_types::Uuid, _>(workspace_id)
+        .bind::<diesel::sql_types::Uuid, _>(employee_id)
+        .bind::<diesel::sql_types::Timestamptz, _>(staged.punch_time)
+        .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(&staged.device_id)
+        .bind::<diesel::sql_types::Nullable<diesel::sql_types::Jsonb>, _>(&staged.raw_data)
+        .bind::<diesel::sql_types::Timestamptz, _>(Utc::now())
+        .execute(&mut conn)
+        .await
+        .map_err(|e| AppError::Internal(e.to_string()))?;
 
-        if result.rows_affected() > 0 {
+        if result > 0 {
             claimed += 1;
         }
 
         // Mark as processed
-        update_staging_status(pool, staged.id, workspace_id, "processed").await?;
+        diesel::sql_query(
+            "UPDATE attendance_staging_logs SET status = 'processed' WHERE id = $1 AND workspace_id = $2",
+        )
+        .bind::<diesel::sql_types::Uuid, _>(staged.id)
+        .bind::<diesel::sql_types::Uuid, _>(workspace_id)
+        .execute(&mut conn)
+        .await
+        .map_err(|e| AppError::Internal(e.to_string()))?;
     }
 
     Ok(claimed)

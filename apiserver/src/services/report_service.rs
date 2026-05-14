@@ -3,7 +3,6 @@ use std::sync::Arc;
 use crate::errors::AppError;
 use chrono::{NaiveDate, TimeZone, Utc};
 use chrono_tz::Tz;
-use sqlx::PgPool;
 
 use uuid::Uuid;
 
@@ -50,7 +49,6 @@ pub struct ReportService {
     employee_repo: Arc<dyn EmployeeRepository>,
     attendance_daily_summary_repo: Arc<dyn AttendanceDailySummaryRepository>,
     leave_repo: Arc<dyn crate::repositories::leave_request_repository::LeaveRequestRepository>,
-    pool: PgPool,
     diesel: crate::diesel_pool::DieselPools,
 }
 
@@ -61,7 +59,6 @@ pub struct ReportServiceArgs {
     pub employee_repo: Arc<dyn EmployeeRepository>,
     pub attendance_daily_summary_repo: Arc<dyn AttendanceDailySummaryRepository>,
     pub leave_repo: Arc<dyn crate::repositories::leave_request_repository::LeaveRequestRepository>,
-    pub pool: PgPool,
     pub diesel: crate::diesel_pool::DieselPools,
 }
 
@@ -74,7 +71,6 @@ impl ReportService {
             employee_repo: args.employee_repo,
             attendance_daily_summary_repo: args.attendance_daily_summary_repo,
             leave_repo: args.leave_repo,
-            pool: args.pool,
             diesel: args.diesel,
         }
     }
@@ -256,8 +252,14 @@ impl ReportService {
             .await?;
 
         // 5c. BATCH fetch approved leave requests for holiday-leave status detection
+        let mut conn = self
+            .diesel
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
         let leave_date_set = crate::services::attendance_utils::build_leave_date_set(
-            &self.pool,
+            &mut conn,
             args.workspace_id,
             &emp_ids,
             args.start_date,

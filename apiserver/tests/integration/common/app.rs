@@ -61,7 +61,8 @@ pub async fn spawn_app() -> (String, TestDatabase) {
         Arc::new(apiserver::repositories::DieselDepartmentRepository::new(
             diesel_pools.clone(),
         )),
-        pool.clone(),
+        user_repo.clone(),
+        diesel_pools.clone(),
     ));
     let time_entry_repo: Arc<
         dyn apiserver::repositories::time_entry_repository::TimeEntryRepository,
@@ -101,7 +102,6 @@ pub async fn spawn_app() -> (String, TestDatabase) {
             employee_repo: employee_repo.clone(),
             attendance_daily_summary_repo: attendance_summary_repo.clone(),
             leave_repo: leave_request_repo.clone(),
-            pool: pool.clone(),
             diesel: diesel_pools.clone(),
         },
     ));
@@ -240,7 +240,7 @@ pub async fn spawn_app() -> (String, TestDatabase) {
             leave_balance_repo.clone(),
             leave_request_repo.clone(),
             roster_repo.clone(),
-            pool.clone(),
+            diesel_pools.clone(),
         ),
     );
     let leave_accrual_service = Arc::new(
@@ -251,7 +251,7 @@ pub async fn spawn_app() -> (String, TestDatabase) {
             Arc::new(
                 apiserver::repositories::DieselLeaveAccrualLogRepository::new(diesel_pools.clone()),
             ),
-            pool.clone(),
+            diesel_pools.clone(),
         ),
     );
 
@@ -471,7 +471,8 @@ pub async fn spawn_app_with_factory() -> (String, Uuid, Uuid, TestFactory, TestD
         Arc::new(apiserver::repositories::DieselDepartmentRepository::new(
             diesel_pools.clone(),
         )),
-        pool.clone(),
+        user_repo.clone(),
+        diesel_pools.clone(),
     ));
     let time_entry_repo: Arc<
         dyn apiserver::repositories::time_entry_repository::TimeEntryRepository,
@@ -514,7 +515,6 @@ pub async fn spawn_app_with_factory() -> (String, Uuid, Uuid, TestFactory, TestD
             employee_repo: employee_repo.clone(),
             attendance_daily_summary_repo: attendance_summary_repo.clone(),
             leave_repo: leave_request_repo.clone(),
-            pool: pool.clone(),
             diesel: diesel_pools.clone(),
         },
     ));
@@ -653,7 +653,7 @@ pub async fn spawn_app_with_factory() -> (String, Uuid, Uuid, TestFactory, TestD
             leave_balance_repo.clone(),
             leave_request_repo.clone(),
             roster_repo.clone(),
-            pool.clone(),
+            diesel_pools.clone(),
         ),
     );
     let leave_accrual_service = Arc::new(
@@ -664,7 +664,7 @@ pub async fn spawn_app_with_factory() -> (String, Uuid, Uuid, TestFactory, TestD
             Arc::new(
                 apiserver::repositories::DieselLeaveAccrualLogRepository::new(diesel_pools.clone()),
             ),
-            pool.clone(),
+            diesel_pools.clone(),
         ),
     );
 
@@ -915,7 +915,8 @@ pub async fn setup_app_tower() -> (TestDatabase, TestFactory, Arc<AppState>, axu
         Arc::new(apiserver::repositories::DieselDepartmentRepository::new(
             diesel_pools.clone(),
         )),
-        pool.clone(),
+        user_repo.clone(),
+        diesel_pools.clone(),
     ));
     let time_entry_repo: Arc<
         dyn apiserver::repositories::time_entry_repository::TimeEntryRepository,
@@ -955,7 +956,6 @@ pub async fn setup_app_tower() -> (TestDatabase, TestFactory, Arc<AppState>, axu
             leave_repo: Arc::new(apiserver::repositories::DieselLeaveRequestRepository::new(
                 diesel_pools.clone(),
             )),
-            pool: pool.clone(),
             diesel: diesel_pools.clone(),
         },
     ));
@@ -1099,7 +1099,7 @@ pub async fn setup_app_tower() -> (TestDatabase, TestFactory, Arc<AppState>, axu
             leave_balance_repo.clone(),
             leave_request_repo.clone(),
             roster_repo.clone(),
-            pool.clone(),
+            diesel_pools.clone(),
         ),
     );
     let leave_accrual_service = Arc::new(
@@ -1110,7 +1110,7 @@ pub async fn setup_app_tower() -> (TestDatabase, TestFactory, Arc<AppState>, axu
             Arc::new(
                 apiserver::repositories::DieselLeaveAccrualLogRepository::new(diesel_pools.clone()),
             ),
-            pool.clone(),
+            diesel_pools.clone(),
         ),
     );
 

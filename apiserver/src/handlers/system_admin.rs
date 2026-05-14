@@ -55,44 +55,77 @@ pub async fn list_system_roles(
 ) -> AppResult<Json<Vec<SystemRoleInfo>>> {
     ctx.require_role(SystemRoleType::PlatformAdmin)?;
 
-    let rows: Vec<(Uuid, String, String)> = sqlx::query_as(
+    let mut conn = state
+        .infra
+        .diesel
+        .api
+        .get()
+        .await
+        .map_err(|e| AppError::Internal(e.to_string()))?;
+
+    #[derive(diesel::QueryableByName)]
+    struct RoleRow {
+        #[diesel(sql_type = diesel::sql_types::Uuid)]
+        id: Uuid,
+        #[diesel(sql_type = diesel::sql_types::Text)]
+        name: String,
+        #[diesel(sql_type = diesel::sql_types::Text)]
+        description: String,
+    }
+
+    use diesel_async::RunQueryDsl;
+
+    let rows: Vec<RoleRow> = diesel::sql_query(
         r#"
         SELECT id, name, description
           FROM system_roles
          ORDER BY name
         "#,
     )
-    .fetch_all(state.infra.db.api())
-    .await?;
+    .load(&mut conn)
+    .await
+    .map_err(|e| AppError::Internal(e.to_string()))?;
 
     let mut result = Vec::with_capacity(rows.len());
 
-    for (role_id, role_name, description) in rows {
-        let assignees: Vec<SystemRoleAssignment> =
-            sqlx::query_as::<_, (Uuid, Option<Uuid>, DateTime<Utc>)>(
-                r#"
+    #[derive(diesel::QueryableByName)]
+    struct AssigneeRow {
+        #[diesel(sql_type = diesel::sql_types::Uuid)]
+        user_id: Uuid,
+        #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Uuid>)]
+        assigned_by: Option<Uuid>,
+        #[diesel(sql_type = diesel::sql_types::Timestamptz)]
+        assigned_at: DateTime<Utc>,
+    }
+
+    for row in rows {
+        let assignees_rows: Vec<AssigneeRow> = diesel::sql_query(
+            r#"
             SELECT user_id, assigned_by, assigned_at
               FROM user_system_roles
              WHERE role_id = $1
              ORDER BY assigned_at
             "#,
-            )
-            .bind(role_id)
-            .fetch_all(state.infra.db.api())
-            .await?
+        )
+        .bind::<diesel::sql_types::Uuid, _>(row.id)
+        .load(&mut conn)
+        .await
+        .map_err(|e| AppError::Internal(e.to_string()))?;
+
+        let assignees = assignees_rows
             .into_iter()
-            .map(|(user_id, assigned_by, assigned_at)| SystemRoleAssignment {
-                user_id,
-                role_name: role_name.clone(),
-                assigned_by,
-                assigned_at,
+            .map(|a| SystemRoleAssignment {
+                user_id: a.user_id,
+                role_name: row.name.clone(),
+                assigned_by: a.assigned_by,
+                assigned_at: a.assigned_at,
             })
             .collect();
 
         result.push(SystemRoleInfo {
-            id: role_id,
-            name: role_name,
-            description,
+            id: row.id,
+            name: row.name,
+            description: row.description,
             assignees,
         });
     }
@@ -110,7 +143,23 @@ pub async fn get_user_system_roles(
 ) -> AppResult<Json<Vec<String>>> {
     ctx.require_role(SystemRoleType::PlatformAdmin)?;
 
-    let roles: Vec<(String,)> = sqlx::query_as(
+    let mut conn = state
+        .infra
+        .diesel
+        .api
+        .get()
+        .await
+        .map_err(|e| AppError::Internal(e.to_string()))?;
+
+    #[derive(diesel::QueryableByName)]
+    struct RoleNameRow {
+        #[diesel(sql_type = diesel::sql_types::Text)]
+        name: String,
+    }
+
+    use diesel_async::RunQueryDsl;
+
+    let roles: Vec<RoleNameRow> = diesel::sql_query(
         r#"
         SELECT sr.name
           FROM user_system_roles usr
@@ -119,11 +168,12 @@ pub async fn get_user_system_roles(
          ORDER BY sr.name
         "#,
     )
-    .bind(user_id)
-    .fetch_all(state.infra.db.api())
-    .await?;
+    .bind::<diesel::sql_types::Uuid, _>(user_id)
+    .load(&mut conn)
+    .await
+    .map_err(|e| AppError::Internal(e.to_string()))?;
 
-    Ok(Json(roles.into_iter().map(|(name,)| name).collect()))
+    Ok(Json(roles.into_iter().map(|r| r.name).collect()))
 }
 
 /// POST /system/users/:user_id/roles
@@ -137,28 +187,50 @@ pub async fn assign_system_role(
 ) -> AppResult<StatusCode> {
     ctx.require_role(SystemRoleType::PlatformAdmin)?;
 
-    // Resolve role_id from name
-    let role_id: Option<Uuid> = sqlx::query_scalar("SELECT id FROM system_roles WHERE name = $1")
-        .bind(req.role_name.to_string())
-        .fetch_optional(state.infra.db.api())
-        .await?;
+    let mut conn = state
+        .infra
+        .diesel
+        .api
+        .get()
+        .await
+        .map_err(|e| AppError::Internal(e.to_string()))?;
 
-    let role_id = role_id
+    #[derive(diesel::QueryableByName)]
+    struct RoleIdRow {
+        #[diesel(sql_type = diesel::sql_types::Uuid)]
+        id: Uuid,
+    }
+
+    use diesel::OptionalExtension;
+    use diesel_async::RunQueryDsl;
+
+    // Resolve role_id from name
+    let role_id_row: Option<RoleIdRow> =
+        diesel::sql_query("SELECT id FROM system_roles WHERE name = $1")
+            .bind::<diesel::sql_types::Text, _>(req.role_name.to_string())
+            .get_result(&mut conn)
+            .await
+            .optional()
+            .map_err(|e| AppError::Internal(e.to_string()))?;
+
+    let role_id = role_id_row
+        .map(|r| r.id)
         .ok_or_else(|| AppError::NotFound(format!("System role '{}' not found", req.role_name)))?;
 
     // Upsert — idempotent assign
-    sqlx::query(
+    diesel::sql_query(
         r#"
         INSERT INTO user_system_roles (user_id, role_id, assigned_by)
              VALUES ($1, $2, $3)
         ON CONFLICT (user_id, role_id) DO NOTHING
         "#,
     )
-    .bind(user_id)
-    .bind(role_id)
-    .bind(ctx.user_id)
-    .execute(state.infra.db.api())
-    .await?;
+    .bind::<diesel::sql_types::Uuid, _>(user_id)
+    .bind::<diesel::sql_types::Uuid, _>(role_id)
+    .bind::<diesel::sql_types::Uuid, _>(ctx.user_id)
+    .execute(&mut conn)
+    .await
+    .map_err(|e| AppError::Internal(e.to_string()))?;
 
     // Invalidate cache for the target user
     SystemContext::invalidate_cache(user_id, &state).await;
@@ -183,6 +255,16 @@ pub async fn revoke_system_role(
 ) -> AppResult<StatusCode> {
     ctx.require_role(SystemRoleType::PlatformAdmin)?;
 
+    let mut conn = state
+        .infra
+        .diesel
+        .api
+        .get()
+        .await
+        .map_err(|e| AppError::Internal(e.to_string()))?;
+
+    use diesel_async::RunQueryDsl;
+
     // Safety: verify the role_name is a known system role
     use std::str::FromStr;
     let role_type = SystemRoleType::from_str(&role_name)
@@ -192,37 +274,45 @@ pub async fn revoke_system_role(
     // Without this guard, admin A could revoke admin B (the sole remaining admin),
     // leaving the platform with zero administrators.
     if role_type == SystemRoleType::PlatformAdmin {
-        let admin_count: i64 = sqlx::query_scalar(
+        #[derive(diesel::QueryableByName)]
+        struct CountRow {
+            #[diesel(sql_type = diesel::sql_types::BigInt)]
+            count: i64,
+        }
+
+        let count_row: CountRow = diesel::sql_query(
             r#"
-            SELECT COUNT(*)
+            SELECT COUNT(*) as count
               FROM user_system_roles usr
               JOIN system_roles sr ON sr.id = usr.role_id
              WHERE sr.name = 'platform_admin'
             "#,
         )
-        .fetch_one(state.infra.db.api())
-        .await?;
+        .get_result(&mut conn)
+        .await
+        .map_err(|e| AppError::Internal(e.to_string()))?;
 
-        if admin_count <= 1 {
+        if count_row.count <= 1 {
             return Err(AppError::Validation(
                 "Cannot revoke the last platform_admin. Assign another admin first.".to_string(),
             ));
         }
     }
 
-    let res = sqlx::query(
+    let res = diesel::sql_query(
         r#"
         DELETE FROM user_system_roles
          WHERE user_id = $1
            AND role_id = (SELECT id FROM system_roles WHERE name = $2)
         "#,
     )
-    .bind(user_id)
-    .bind(role_name)
-    .execute(state.infra.db.api())
-    .await?;
+    .bind::<diesel::sql_types::Uuid, _>(user_id)
+    .bind::<diesel::sql_types::Text, _>(role_name)
+    .execute(&mut conn)
+    .await
+    .map_err(|e| AppError::Internal(e.to_string()))?;
 
-    if res.rows_affected() == 0 {
+    if res == 0 {
         return Err(AppError::NotFound(
             "System role assignment not found".to_string(),
         ));

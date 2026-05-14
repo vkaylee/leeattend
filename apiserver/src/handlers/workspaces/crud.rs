@@ -124,15 +124,22 @@ pub async fn get_unexcused_absences(
     // 4. Holiday info is already embedded in EffectiveSchedule.is_holiday from get_workspace_schedules.
 
     // 5. Batch-fetch approved leave requests (using shared build_leave_date_set)
+    let mut conn = state
+        .infra
+        .diesel
+        .api
+        .get()
+        .await
+        .map_err(|e| AppError::Internal(e.to_string()))?;
+
     let leave_date_set = attendance_utils::build_leave_date_set(
-        state.infra.db.reader(),
+        &mut conn,
         workspace_id,
         &emp_ids,
         start_date,
         end_date,
     )
-    .await
-    .map_err(|e| AppError::Internal(format!("Error fetching leave requests: {e}")))?;
+    .await?;
 
     // 6. Batch-fetch department info for each employee
     let dept_map = state

@@ -17,6 +17,8 @@ use crate::models::enums::SystemRoleType;
 use crate::supavisor::{build_tenant_payload, delete_tenant, register_tenant_dynamic};
 use crate::AppState;
 
+use diesel_async::RunQueryDsl;
+
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct CreateTenantRequest {
     pub db_name: String,
@@ -33,24 +35,36 @@ pub async fn list_tenants(
 ) -> AppResult<Json<serde_json::Value>> {
     ctx.require_role(SystemRoleType::PlatformAdmin)?;
 
+    let mut conn = _state
+        .infra
+        .diesel
+        .api
+        .get()
+        .await
+        .map_err(|e| AppError::Internal(e.to_string()))?;
+
     // Query Supavisor schema directly to list tenants
     // If the schema doesn't exist (e.g. pooler not enabled), return empty array
-    #[derive(Debug, sqlx::FromRow)]
+    #[derive(Debug, diesel::QueryableByName)]
     struct TenantRow {
+        #[diesel(sql_type = diesel::sql_types::Text)]
         external_id: String,
+        #[diesel(sql_type = diesel::sql_types::Integer)]
         default_pool_size: i32,
+        #[diesel(sql_type = diesel::sql_types::Timestamp)]
         inserted_at: chrono::NaiveDateTime,
+        #[diesel(sql_type = diesel::sql_types::Timestamp)]
         updated_at: chrono::NaiveDateTime,
     }
 
-    let tenants_result = sqlx::query_as::<_, TenantRow>(
+    let tenants_result = diesel::sql_query(
         r#"
         SELECT external_id, default_pool_size, inserted_at, updated_at 
         FROM _supavisor.tenants
         ORDER BY inserted_at DESC
         "#,
     )
-    .fetch_all(_state.infra.db.api())
+    .load::<TenantRow>(&mut conn)
     .await;
 
     let tenants = match tenants_result {
@@ -83,6 +97,14 @@ pub async fn create_tenant(
 ) -> AppResult<StatusCode> {
     ctx.require_role(SystemRoleType::PlatformAdmin)?;
 
+    let mut conn = state
+        .infra
+        .diesel
+        .api
+        .get()
+        .await
+        .map_err(|e| AppError::Internal(e.to_string()))?;
+
     // 1. Create physical DB if requested
     if req.create_db {
         // Prevent SQL injection: simple alphanumeric check
@@ -96,7 +118,7 @@ pub async fn create_tenant(
 
         let create_sql = format!("CREATE DATABASE {}", req.db_name);
 
-        match sqlx::query(&create_sql).execute(state.infra.db.api()).await {
+        match diesel::sql_query(&create_sql).execute(&mut conn).await {
             Ok(_) => tracing::info!("Successfully created physical database: {}", req.db_name),
             Err(e) => {
                 if e.to_string().contains("already exists") {
@@ -105,7 +127,7 @@ pub async fn create_tenant(
                         req.db_name
                     )));
                 }
-                return Err(AppError::Sqlx(e));
+                return Err(AppError::Internal(e.to_string()));
             }
         }
     }
@@ -147,16 +169,18 @@ pub async fn create_tenant(
         "pool_size": req.pool_size
     });
 
-    sqlx::query!(
+    diesel::sql_query(
         r#"
-        INSERT INTO system_audit_logs (actor_id, action, details)
-        VALUES ($1, 'tenant.create', $2)
+        INSERT INTO system_audit_logs (id, actor_id, action, details, created_at)
+        VALUES ($1, $2, 'tenant.create', $3, NOW())
         "#,
-        ctx.user_id,
-        details
     )
-    .execute(state.infra.db.api())
-    .await?;
+    .bind::<diesel::sql_types::Uuid, _>(crate::utils::id::new_id())
+    .bind::<diesel::sql_types::Uuid, _>(ctx.user_id)
+    .bind::<diesel::sql_types::Jsonb, _>(details)
+    .execute(&mut conn)
+    .await
+    .map_err(|e| AppError::Internal(e.to_string()))?;
 
     Ok(StatusCode::CREATED)
 }
@@ -170,6 +194,14 @@ pub async fn delete_tenant_handler(
 ) -> AppResult<StatusCode> {
     ctx.require_role(SystemRoleType::PlatformAdmin)?;
 
+    let mut conn = state
+        .infra
+        .diesel
+        .api
+        .get()
+        .await
+        .map_err(|e| AppError::Internal(e.to_string()))?;
+
     // 1. Delete from Supavisor
     delete_tenant(&tenant_id).await?;
 
@@ -178,16 +210,18 @@ pub async fn delete_tenant_handler(
         "tenant_id": tenant_id
     });
 
-    sqlx::query!(
+    diesel::sql_query(
         r#"
-        INSERT INTO system_audit_logs (actor_id, action, details)
-        VALUES ($1, 'tenant.delete', $2)
+        INSERT INTO system_audit_logs (id, actor_id, action, details, created_at)
+        VALUES ($1, $2, 'tenant.delete', $3, NOW())
         "#,
-        ctx.user_id,
-        details
     )
-    .execute(state.infra.db.api())
-    .await?;
+    .bind::<diesel::sql_types::Uuid, _>(crate::utils::id::new_id())
+    .bind::<diesel::sql_types::Uuid, _>(ctx.user_id)
+    .bind::<diesel::sql_types::Jsonb, _>(details)
+    .execute(&mut conn)
+    .await
+    .map_err(|e| AppError::Internal(e.to_string()))?;
 
     Ok(StatusCode::NO_CONTENT)
 }

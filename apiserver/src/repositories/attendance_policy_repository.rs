@@ -19,4 +19,42 @@ pub trait AttendancePolicyRepository: Send + Sync {
         employee_ids: &[Uuid],
         effective_time: DateTime<Utc>,
     ) -> Result<std::collections::HashMap<Uuid, AttendancePolicyVersion>, AppError>;
+
+    async fn get_default_policy_rules(
+        &self,
+        workspace_id: Uuid,
+    ) -> Result<Option<crate::models::AttendanceRules>, AppError>;
+
+    async fn get_default_policy_versions(
+        &self,
+        workspace_id: Uuid,
+    ) -> Result<Vec<AttendancePolicyVersion>, AppError>;
+
+    async fn update_default_policy_rules(
+        &self,
+        workspace_id: Uuid,
+        user_id: Uuid,
+        req: crate::handlers::attendance::policies::UpdateAttendanceRulesRequest,
+    ) -> Result<AttendancePolicyVersion, AppError>;
+
+    async fn list_policy_assignments(
+        &self,
+        workspace_id: Uuid,
+    ) -> Result<
+        Vec<crate::handlers::attendance::policy_assignments::PolicyAssignmentResponse>,
+        AppError,
+    >;
+
+    async fn upsert_policy_assignment(
+        &self,
+        workspace_id: Uuid,
+        user_id: Uuid,
+        req: crate::handlers::attendance::policy_assignments::UpsertPolicyAssignmentRequest,
+    ) -> Result<crate::handlers::attendance::policy_assignments::PolicyAssignmentResponse, AppError>;
+
+    async fn delete_policy_assignment(
+        &self,
+        workspace_id: Uuid,
+        assignment_id: Uuid,
+    ) -> Result<(), AppError>;
 }

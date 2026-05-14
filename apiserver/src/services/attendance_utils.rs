@@ -1,7 +1,7 @@
+use crate::errors::AppError;
 use chrono::{DateTime, NaiveDate, NaiveTime, Utc};
 use chrono_tz::Tz;
 use serde::{Deserialize, Serialize};
-use sqlx::PgPool;
 use std::collections::{HashMap, HashSet};
 use std::fmt;
 use uuid::Uuid;
@@ -228,13 +228,25 @@ pub fn date_range_to_utc_checked(
 /// Batch-fetch approved leave requests and build a `HashSet<(employee_id, date)>`.
 #[tracing::instrument(skip_all, err)]
 pub async fn build_leave_date_set(
-    pool: &PgPool,
+    conn: &mut diesel_async::AsyncPgConnection,
     workspace_id: Uuid,
     emp_ids: &[Uuid],
     start_date: NaiveDate,
     end_date: NaiveDate,
-) -> Result<HashSet<(Uuid, NaiveDate)>, sqlx::Error> {
-    let leave_rows = sqlx::query!(
+) -> Result<HashSet<(Uuid, NaiveDate)>, AppError> {
+    use diesel_async::RunQueryDsl;
+
+    #[derive(diesel::QueryableByName)]
+    struct LeaveRow {
+        #[diesel(sql_type = diesel::sql_types::Uuid)]
+        employee_id: Uuid,
+        #[diesel(sql_type = diesel::sql_types::Date)]
+        start_date: NaiveDate,
+        #[diesel(sql_type = diesel::sql_types::Date)]
+        end_date: NaiveDate,
+    }
+
+    let leave_rows: Vec<LeaveRow> = diesel::sql_query(
         r#"SELECT lr.employee_id, lr.start_date, lr.end_date
            FROM leave_requests lr
            JOIN employees e ON lr.employee_id = e.id
@@ -243,13 +255,14 @@ pub async fn build_leave_date_set(
              AND lr.status IN ('approved', 'pre_approved')
              AND lr.start_date <= $4
              AND lr.end_date >= $3"#,
-        workspace_id,
-        emp_ids,
-        start_date,
-        end_date
     )
-    .fetch_all(pool)
-    .await?;
+    .bind::<diesel::sql_types::Uuid, _>(workspace_id)
+    .bind::<diesel::sql_types::Array<diesel::sql_types::Uuid>, _>(emp_ids.to_vec())
+    .bind::<diesel::sql_types::Date, _>(start_date)
+    .bind::<diesel::sql_types::Date, _>(end_date)
+    .load(conn)
+    .await
+    .map_err(|e| crate::errors::AppError::Internal(e.to_string()))?;
 
     let mut set = HashSet::new();
     for lr in &leave_rows {

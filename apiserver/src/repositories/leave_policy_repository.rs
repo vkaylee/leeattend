@@ -9,6 +9,26 @@ use uuid::Uuid;
 // ---------------------------------------------------------------------------
 #[async_trait]
 pub trait LeavePolicyRepository: Send + Sync {
+    async fn get_leave_types(
+        &self,
+        workspace_id: Uuid,
+    ) -> Result<Vec<crate::models::LeaveType>, AppError>;
+    async fn create_leave_type(
+        &self,
+        workspace_id: Uuid,
+        code: String,
+        name: String,
+        is_paid: bool,
+        policy_config: crate::models::LeaveTypeConfig,
+    ) -> Result<crate::models::LeaveType, AppError>;
+    async fn update_leave_type_config(
+        &self,
+        id: Uuid,
+        workspace_id: Uuid,
+        policy_config: crate::models::LeaveTypeConfig,
+    ) -> Result<crate::models::LeaveType, AppError>;
+    async fn delete_leave_type(&self, id: Uuid, workspace_id: Uuid) -> Result<u64, AppError>;
+
     async fn create_policy_definition(
         &self,
         workspace_id: Uuid,

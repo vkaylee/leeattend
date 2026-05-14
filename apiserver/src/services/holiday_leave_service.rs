@@ -5,10 +5,9 @@
 //! - Creates an auto-approved leave request (if balance >= 1 day), or
 //! - Marks the employee as unpaid for that day (if balance < 1 day).
 
-use std::sync::Arc;
-
 use chrono::{Datelike, Utc};
-use sqlx::PgPool;
+use diesel::OptionalExtension;
+use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::models::{Holiday, LeaveDurationType, LeaveRequest, LeaveStatus, ShiftRoster};
@@ -24,7 +23,7 @@ pub struct HolidayLeaveService {
     leave_balance_repo: Arc<dyn LeaveBalanceRepository>,
     leave_request_repo: Arc<dyn LeaveRequestRepository>,
     roster_repo: Arc<dyn RosterRepository>,
-    pool: PgPool,
+    diesel: crate::diesel_pool::DieselPools,
 }
 
 impl HolidayLeaveService {
@@ -33,14 +32,14 @@ impl HolidayLeaveService {
         leave_balance_repo: Arc<dyn LeaveBalanceRepository>,
         leave_request_repo: Arc<dyn LeaveRequestRepository>,
         roster_repo: Arc<dyn RosterRepository>,
-        pool: PgPool,
+        diesel: crate::diesel_pool::DieselPools,
     ) -> Self {
         Self {
             employee_repo,
             leave_balance_repo,
             leave_request_repo,
             roster_repo,
-            pool,
+            diesel,
         }
     }
 
@@ -52,12 +51,12 @@ impl HolidayLeaveService {
     /// - If balance >= 1.0: creates auto-approved leave request + audit log
     /// - If balance < 1.0: marks as unpaid
     #[tracing::instrument(skip_all, err)]
+    #[allow(clippy::too_many_lines)]
     pub async fn process_holiday_leave(
         &self,
         workspace_id: Uuid,
         holiday: &Holiday,
     ) -> Result<Vec<HolidayLeaveResult>, String> {
-        let pool = &self.pool;
         // Paid holidays need no deduction
         if holiday.is_paid {
             return Ok(vec![HolidayLeaveResult::Paid]);
@@ -77,15 +76,27 @@ impl HolidayLeaveService {
         };
 
         // Get leave type name for audit trail
-        let leave_type_name = sqlx::query_scalar!(
-            "SELECT name FROM leave_types WHERE id = $1 AND workspace_id = $2",
-            leave_type_id,
-            workspace_id
-        )
-        .fetch_optional(pool)
-        .await
-        .map_err(|e| e.to_string())?
-        .unwrap_or_else(|| "Leave".to_string());
+        let mut conn = self.diesel.api.get().await.map_err(|e| e.to_string())?;
+        use diesel_async::RunQueryDsl;
+
+        #[derive(diesel::QueryableByName)]
+        struct NameRow {
+            #[diesel(sql_type = diesel::sql_types::Text)]
+            name: String,
+        }
+
+        let leave_type_name_row: Option<NameRow> =
+            diesel::sql_query("SELECT name FROM leave_types WHERE id = $1 AND workspace_id = $2")
+                .bind::<diesel::sql_types::Uuid, _>(leave_type_id)
+                .bind::<diesel::sql_types::Uuid, _>(workspace_id)
+                .get_result(&mut conn)
+                .await
+                .optional()
+                .map_err(|e| e.to_string())?;
+
+        let leave_type_name = leave_type_name_row
+            .map(|r| r.name)
+            .unwrap_or_else(|| "Leave".to_string());
 
         // Get all active employees in workspace
         let employees = self
@@ -186,16 +197,25 @@ impl HolidayLeaveService {
         &self,
         workspace_id: Uuid,
     ) -> Result<Option<Uuid>, String> {
-        let pool = &self.pool;
-        let result = sqlx::query_scalar!(
+        let mut conn = self.diesel.api.get().await.map_err(|e| e.to_string())?;
+        use diesel_async::RunQueryDsl;
+
+        #[derive(diesel::QueryableByName)]
+        struct IdRow {
+            #[diesel(sql_type = diesel::sql_types::Uuid)]
+            id: Uuid,
+        }
+
+        let result: Option<IdRow> = diesel::sql_query(
             "SELECT id FROM leave_types WHERE workspace_id = $1 AND is_paid = true ORDER BY name ASC LIMIT 1",
-            workspace_id
         )
-        .fetch_optional(pool)
+        .bind::<diesel::sql_types::Uuid, _>(workspace_id)
+        .get_result(&mut conn)
         .await
+        .optional()
         .map_err(|e| e.to_string())?;
 
-        Ok(result)
+        Ok(result.map(|r| r.id))
     }
 
     /// Check if employee already has an approved leave request covering this date.
@@ -204,20 +224,31 @@ impl HolidayLeaveService {
         employee_id: Uuid,
         date: chrono::NaiveDate,
     ) -> bool {
-        let pool = &self.pool;
-        sqlx::query_scalar!(
+        let Ok(mut conn) = self.diesel.api.get().await else {
+            return false;
+        };
+        use diesel_async::RunQueryDsl;
+
+        #[derive(diesel::QueryableByName)]
+        struct ExistsRow {
+            #[diesel(sql_type = diesel::sql_types::Bool)]
+            exists: bool,
+        }
+
+        diesel::sql_query(
             r#"SELECT EXISTS(
                 SELECT 1 FROM leave_requests
                 WHERE employee_id = $1
                   AND status IN ('approved', 'pre_approved')
                   AND start_date <= $2
                   AND end_date >= $2
-            ) as "exists!""#,
-            employee_id,
-            date
+            ) as exists"#,
         )
-        .fetch_one(pool)
+        .bind::<diesel::sql_types::Uuid, _>(employee_id)
+        .bind::<diesel::sql_types::Date, _>(date)
+        .get_result::<ExistsRow>(&mut conn)
         .await
+        .map(|r| r.exists)
         .unwrap_or(false)
     }
 }

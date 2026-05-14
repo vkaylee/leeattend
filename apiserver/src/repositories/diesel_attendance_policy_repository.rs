@@ -8,8 +8,8 @@ use crate::models::{AttendancePolicyVersion, AttendanceRules};
 use crate::repositories::attendance_policy_repository::AttendancePolicyRepository;
 
 use diesel::sql_types::{Array, Nullable, Timestamptz, Uuid as UuidType};
-use diesel::{OptionalExtension, QueryableByName};
-use diesel_async::RunQueryDsl;
+use diesel::{ExpressionMethods, OptionalExtension, QueryDsl, QueryableByName};
+use diesel_async::{AsyncConnection, RunQueryDsl};
 use serde_json::Value;
 
 #[derive(QueryableByName)]
@@ -301,5 +301,469 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
         }
 
         Ok(result)
+    }
+
+    async fn get_default_policy_rules(
+        &self,
+        workspace_id: Uuid,
+    ) -> Result<Option<crate::models::AttendanceRules>, AppError> {
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
+
+        use crate::schema::{attendance_policies, attendance_policy_versions};
+
+        // 1. Get default policy ID
+        let policy_id: Option<Uuid> = attendance_policies::table
+            .filter(attendance_policies::workspace_id.eq(workspace_id))
+            .filter(attendance_policies::is_default.eq(true))
+            .select(attendance_policies::id)
+            .first::<Uuid>(&mut conn)
+            .await
+            .optional()
+            .map_err(|e| AppError::Internal(e.to_string()))?;
+
+        let Some(p_id) = policy_id else {
+            return Ok(None);
+        };
+
+        // 2. Get latest rules
+        let rules: Option<serde_json::Value> = attendance_policy_versions::table
+            .filter(attendance_policy_versions::policy_id.eq(p_id))
+            .order(attendance_policy_versions::valid_from.desc())
+            .select(attendance_policy_versions::rules)
+            .first::<serde_json::Value>(&mut conn)
+            .await
+            .optional()
+            .map_err(|e| AppError::Internal(e.to_string()))?;
+
+        match rules {
+            Some(r) => Ok(Some(serde_json::from_value(r).unwrap_or_else(|_| {
+                AttendanceRules {
+                    work_unit_minutes: 15,
+                    rounding_policy: "none".to_string(),
+                    early_arrival_strategy: crate::models::enums::EarlyArrivalStrategy::Block,
+                }
+            }))),
+            None => Ok(None),
+        }
+    }
+
+    async fn get_default_policy_versions(
+        &self,
+        workspace_id: Uuid,
+    ) -> Result<Vec<AttendancePolicyVersion>, AppError> {
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
+
+        use crate::schema::{attendance_policies, attendance_policy_versions};
+
+        let policy_id: Option<Uuid> = attendance_policies::table
+            .filter(attendance_policies::workspace_id.eq(workspace_id))
+            .filter(attendance_policies::is_default.eq(true))
+            .select(attendance_policies::id)
+            .first::<Uuid>(&mut conn)
+            .await
+            .optional()
+            .map_err(|e| AppError::Internal(e.to_string()))?;
+
+        let Some(p_id) = policy_id else {
+            return Ok(vec![]);
+        };
+
+        let versions = attendance_policy_versions::table
+            .filter(attendance_policy_versions::policy_id.eq(p_id))
+            .order(attendance_policy_versions::valid_from.desc())
+            .load::<crate::models::diesel::attendance_policy::AttendancePolicyVersionEntity>(
+                &mut conn,
+            )
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
+
+        Ok(versions.into_iter().map(Into::into).collect())
+    }
+
+    async fn update_default_policy_rules(
+        &self,
+        workspace_id: Uuid,
+        user_id: Uuid,
+        req: crate::handlers::attendance::policies::UpdateAttendanceRulesRequest,
+    ) -> Result<AttendancePolicyVersion, AppError> {
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
+
+        use crate::schema::{attendance_policies, attendance_policy_versions};
+
+        conn.transaction(|mut conn| {
+            Box::pin(async move {
+                let policy_id_opt: Option<Uuid> = attendance_policies::table
+                    .filter(attendance_policies::workspace_id.eq(workspace_id))
+                    .filter(attendance_policies::is_default.eq(true))
+                    .select(attendance_policies::id)
+                    .first::<Uuid>(&mut conn)
+                    .await
+                    .optional()
+                    .map_err(|e| AppError::Internal(e.to_string()))?;
+
+                let policy_id = if let Some(id) = policy_id_opt {
+                    id
+                } else {
+                    let new_id = crate::utils::id::new_id();
+                    let entity = crate::models::diesel::attendance_policy::AttendancePolicyEntity {
+                        id: new_id,
+                        workspace_id,
+                        name: "Default Policy".to_string(),
+                        is_default: true,
+                        created_at: Utc::now(),
+                        updated_at: Utc::now(),
+                    };
+                    diesel::insert_into(attendance_policies::table)
+                        .values(&entity)
+                        .execute(&mut conn)
+                        .await
+                        .map_err(|e| AppError::Internal(e.to_string()))?;
+                    new_id
+                };
+
+                let current_rules_val: Option<serde_json::Value> =
+                    attendance_policy_versions::table
+                        .filter(attendance_policy_versions::policy_id.eq(policy_id))
+                        .order(attendance_policy_versions::valid_from.desc())
+                        .select(attendance_policy_versions::rules)
+                        .first::<serde_json::Value>(&mut conn)
+                        .await
+                        .optional()
+                        .map_err(|e| AppError::Internal(e.to_string()))?;
+
+                let mut new_rules = match current_rules_val {
+                    Some(v) => serde_json::from_value(v).unwrap_or_else(|_| AttendanceRules {
+                        work_unit_minutes: 15,
+                        rounding_policy: "none".to_string(),
+                        early_arrival_strategy: crate::models::enums::EarlyArrivalStrategy::Block,
+                    }),
+                    None => AttendanceRules {
+                        work_unit_minutes: 15,
+                        rounding_policy: "none".to_string(),
+                        early_arrival_strategy: crate::models::enums::EarlyArrivalStrategy::Block,
+                    },
+                };
+
+                if let Some(w) = req.work_unit_minutes {
+                    new_rules.work_unit_minutes = w;
+                }
+                if let Some(r) = req.rounding_policy {
+                    new_rules.rounding_policy = r;
+                }
+                if let Some(s) = req.early_arrival_strategy {
+                    new_rules.early_arrival_strategy = s;
+                }
+
+                let valid_from = match &req.valid_from {
+                    Some(s) => chrono::DateTime::parse_from_rfc3339(s)
+                        .map(|dt| dt.with_timezone(&Utc))
+                        .or_else(|_| {
+                            chrono::NaiveDate::parse_from_str(s, "%Y-%m-%d")
+                                .map_err(|e| e.to_string())
+                                .and_then(|d| {
+                                    d.and_hms_opt(0, 0, 0)
+                                        .map(|dt| dt.and_utc())
+                                        .ok_or_else(|| "Invalid time".to_string())
+                                })
+                        })
+                        .map_err(|_e| {
+                            AppError::Validation(
+                                "Invalid valid_from date format. Use ISO 8601 or YYYY-MM-DD."
+                                    .into(),
+                            )
+                        })?,
+                    None => Utc::now(),
+                };
+
+                diesel::update(
+                    attendance_policy_versions::table
+                        .filter(attendance_policy_versions::policy_id.eq(policy_id))
+                        .filter(attendance_policy_versions::valid_to.is_null()),
+                )
+                .set(attendance_policy_versions::valid_to.eq(Some(valid_from)))
+                .execute(&mut conn)
+                .await
+                .map_err(|e| AppError::Internal(e.to_string()))?;
+
+                let version_id = crate::utils::id::new_id();
+                let now = Utc::now();
+                let version_entity =
+                    crate::models::diesel::attendance_policy::AttendancePolicyVersionEntity {
+                        id: version_id,
+                        policy_id,
+                        rules: serde_json::to_value(&new_rules).unwrap_or_default(),
+                        valid_from,
+                        valid_to: None,
+                        created_by: Some(user_id),
+                        created_at: now,
+                    };
+
+                diesel::insert_into(attendance_policy_versions::table)
+                    .values(&version_entity)
+                    .execute(&mut conn)
+                    .await
+                    .map_err(|e| AppError::Internal(e.to_string()))?;
+
+                Ok(AttendancePolicyVersion {
+                    id: version_id,
+                    policy_id,
+                    rules: sqlx::types::Json(new_rules),
+                    valid_from,
+                    valid_to: None,
+                    created_by: Some(user_id),
+                    created_at: now,
+                })
+            })
+        })
+        .await
+    }
+
+    async fn list_policy_assignments(
+        &self,
+        workspace_id: Uuid,
+    ) -> Result<
+        Vec<crate::handlers::attendance::policy_assignments::PolicyAssignmentResponse>,
+        AppError,
+    > {
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
+
+        #[derive(QueryableByName)]
+        struct PolicyAssignmentRow {
+            #[diesel(sql_type = UuidType)]
+            id: Uuid,
+            #[diesel(sql_type = diesel::sql_types::Text)]
+            target_type: String,
+            #[diesel(sql_type = UuidType)]
+            target_id: Uuid,
+            #[diesel(sql_type = Timestamptz)]
+            valid_from: DateTime<Utc>,
+            #[diesel(sql_type = Nullable<Timestamptz>)]
+            valid_to: Option<DateTime<Utc>>,
+            #[diesel(sql_type = diesel::sql_types::Jsonb)]
+            rules: Value,
+        }
+
+        let rows: Vec<PolicyAssignmentRow> = diesel::sql_query(
+            r#"
+            SELECT 
+                apa.id,
+                apa.target_type,
+                apa.target_id,
+                apa.valid_from,
+                apa.valid_to,
+                apv.rules
+            FROM attendance_policy_assignments apa
+            JOIN attendance_policies ap ON ap.id = apa.policy_id
+            JOIN attendance_policy_versions apv ON apv.policy_id = ap.id
+            WHERE ap.workspace_id = $1
+              AND apv.valid_from <= NOW()
+              AND (apv.valid_to IS NULL OR apv.valid_to >= NOW())
+              AND apa.valid_from <= NOW()
+              AND (apa.valid_to IS NULL OR apa.valid_to >= NOW())
+            "#,
+        )
+        .bind::<UuidType, _>(workspace_id)
+        .load(&mut conn)
+        .await
+        .map_err(|e| AppError::Internal(e.to_string()))?;
+
+        let assignments = rows
+            .into_iter()
+            .map(
+                |row| crate::handlers::attendance::policy_assignments::PolicyAssignmentResponse {
+                    id: row.id.to_string(),
+                    target_type: row.target_type,
+                    target_id: row.target_id.to_string(),
+                    valid_from: row.valid_from.to_rfc3339(),
+                    valid_to: row.valid_to.map(|d| d.to_rfc3339()),
+                    rules: serde_json::from_value(row.rules).unwrap_or_else(|_| AttendanceRules {
+                        work_unit_minutes: 0,
+                        rounding_policy: "none".to_string(),
+                        early_arrival_strategy: crate::models::enums::EarlyArrivalStrategy::Block,
+                    }),
+                },
+            )
+            .collect();
+
+        Ok(assignments)
+    }
+
+    async fn upsert_policy_assignment(
+        &self,
+        workspace_id: Uuid,
+        user_id: Uuid,
+        req: crate::handlers::attendance::policy_assignments::UpsertPolicyAssignmentRequest,
+    ) -> Result<crate::handlers::attendance::policy_assignments::PolicyAssignmentResponse, AppError>
+    {
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
+
+        use crate::schema::{
+            attendance_policies, attendance_policy_assignments, attendance_policy_versions,
+        };
+
+        conn.transaction(|mut conn| {
+            Box::pin(async move {
+                let valid_from = match &req.valid_from {
+                    Some(s) => chrono::DateTime::parse_from_rfc3339(s)
+                        .map(|dt| dt.with_timezone(&Utc))
+                        .or_else(|_| {
+                            chrono::NaiveDate::parse_from_str(s, "%Y-%m-%d")
+                                .map_err(|e| e.to_string())
+                                .and_then(|d| {
+                                    d.and_hms_opt(0, 0, 0)
+                                        .map(|dt| dt.and_utc())
+                                        .ok_or_else(|| "Invalid time".to_string())
+                                })
+                        })
+                        .map_err(|_e| AppError::Validation("Invalid valid_from date format.".into()))?,
+                    None => Utc::now(),
+                };
+
+                let existing: Option<(Uuid, Uuid)> = attendance_policy_assignments::table
+                    .filter(attendance_policy_assignments::target_type.eq(&req.target_type))
+                    .filter(attendance_policy_assignments::target_id.eq(&req.target_id))
+                    .filter(attendance_policy_assignments::valid_to.is_null())
+                    .select((attendance_policy_assignments::id, attendance_policy_assignments::policy_id))
+                    .first::<(Uuid, Uuid)>(&mut conn)
+                    .await
+                    .optional()
+                    .map_err(|e| AppError::Internal(e.to_string()))?;
+
+                let policy_id;
+                let assignment_id;
+
+                if let Some((ext_assignment_id, ext_policy_id)) = existing {
+                    policy_id = ext_policy_id;
+                    assignment_id = ext_assignment_id;
+
+                    diesel::update(
+                        attendance_policy_versions::table
+                            .filter(attendance_policy_versions::policy_id.eq(policy_id))
+                            .filter(attendance_policy_versions::valid_to.is_null()),
+                    )
+                    .set(attendance_policy_versions::valid_to.eq(Some(valid_from)))
+                    .execute(&mut conn)
+                    .await
+                    .map_err(|e| AppError::Internal(e.to_string()))?;
+                } else {
+                    policy_id = crate::utils::id::new_id();
+                    let policy_entity = crate::models::diesel::attendance_policy::AttendancePolicyEntity {
+                        id: policy_id,
+                        workspace_id,
+                        name: format!("{} {} Override", req.target_type, req.target_id),
+                        is_default: false,
+                        created_at: Utc::now(),
+                        updated_at: Utc::now(),
+                    };
+                    diesel::insert_into(attendance_policies::table)
+                        .values(&policy_entity)
+                        .execute(&mut conn)
+                        .await
+                        .map_err(|e| AppError::Internal(e.to_string()))?;
+
+                    assignment_id = crate::utils::id::new_id();
+                    let assignment_entity = crate::models::diesel::attendance_policy::AttendancePolicyAssignmentEntity {
+                        id: assignment_id,
+                        policy_id,
+                        target_type: req.target_type.clone(),
+                        target_id: req.target_id,
+                        valid_from,
+                        valid_to: None,
+                        created_at: Utc::now(),
+                        updated_at: Utc::now(),
+                    };
+                    diesel::insert_into(attendance_policy_assignments::table)
+                        .values(&assignment_entity)
+                        .execute(&mut conn)
+                        .await
+                        .map_err(|e| AppError::Internal(e.to_string()))?;
+                }
+
+                let version_id = crate::utils::id::new_id();
+                let rules = AttendanceRules {
+                    work_unit_minutes: req.work_unit_minutes,
+                    rounding_policy: req.rounding_policy.clone(),
+                    early_arrival_strategy: req.early_arrival_strategy,
+                };
+
+                let version_entity = crate::models::diesel::attendance_policy::AttendancePolicyVersionEntity {
+                    id: version_id,
+                    policy_id,
+                    rules: serde_json::to_value(&rules).unwrap_or_default(),
+                    valid_from,
+                    valid_to: None,
+                    created_by: Some(user_id),
+                    created_at: Utc::now(),
+                };
+
+                diesel::insert_into(attendance_policy_versions::table)
+                    .values(&version_entity)
+                    .execute(&mut conn)
+                    .await
+                    .map_err(|e| AppError::Internal(e.to_string()))?;
+
+                Ok(crate::handlers::attendance::policy_assignments::PolicyAssignmentResponse {
+                    id: assignment_id.to_string(),
+                    target_type: req.target_type,
+                    target_id: req.target_id.to_string(),
+                    valid_from: valid_from.to_rfc3339(),
+                    valid_to: None,
+                    rules,
+                })
+            })
+        })
+        .await
+    }
+
+    async fn delete_policy_assignment(
+        &self,
+        workspace_id: Uuid,
+        assignment_id: Uuid,
+    ) -> Result<(), AppError> {
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
+
+        // UPDATE attendance_policy_assignments SET valid_to = NOW(), updated_at = NOW()
+        // WHERE id = $1 AND target_id IN (SELECT target_id FROM attendance_policy_assignments apa JOIN attendance_policies ap ON ap.id = apa.policy_id WHERE ap.workspace_id = $2)
+        // Using diesel_sql_query for the complex IN clause
+        diesel::sql_query(
+            "UPDATE attendance_policy_assignments SET valid_to = NOW(), updated_at = NOW() WHERE id = $1 AND target_id IN (SELECT target_id FROM attendance_policy_assignments apa JOIN attendance_policies ap ON ap.id = apa.policy_id WHERE ap.workspace_id = $2)"
+        )
+        .bind::<UuidType, _>(assignment_id)
+        .bind::<UuidType, _>(workspace_id)
+        .execute(&mut conn)
+        .await
+        .map_err(|e| AppError::Internal(e.to_string()))?;
+
+        Ok(())
     }
 }

@@ -107,7 +107,11 @@ impl ImportStrategy for EmployeeImportStrategy {
         })
     }
 
-    async fn init(&mut self, _pool: &PgPool, job: &AttendanceImportJob) -> Result<(), String> {
+    async fn init(
+        &mut self,
+        _diesel: &crate::diesel_pool::DieselPools,
+        job: &AttendanceImportJob,
+    ) -> Result<(), String> {
         if let Ok(existing_depts) = self.department_repo.get_departments(job.workspace_id).await {
             for dept in existing_depts {
                 self.dept_cache.insert(dept.name.to_lowercase(), dept.id);
@@ -118,7 +122,7 @@ impl ImportStrategy for EmployeeImportStrategy {
 
     async fn process_row(
         &mut self,
-        pool: &PgPool,
+        diesel: &crate::diesel_pool::DieselPools,
         job: &AttendanceImportJob,
         emp: &Self::RowData,
     ) -> Result<Option<Uuid>, String> {
@@ -212,7 +216,7 @@ impl ImportStrategy for EmployeeImportStrategy {
 
                 // Claim staged logs directly
                 let _ = crate::repositories::staging_log_repository::claim_staged_logs_direct(
-                    pool,
+                    diesel,
                     job.workspace_id,
                     employee_id,
                     &emp.id_number,
@@ -245,6 +249,7 @@ struct PunchImportStrategy {
     time_entry_repo: Arc<dyn TimeEntryRepository>,
     employee_repo: Arc<dyn EmployeeRepository>,
     log_svc: Option<crate::services::attendance_log_service::AttendanceLogService>,
+    pool: PgPool,
     diesel_pools: crate::diesel_pool::DieselPools,
 }
 
@@ -302,7 +307,11 @@ impl ImportStrategy for PunchImportStrategy {
         }
     }
 
-    async fn init(&mut self, pool: &PgPool, job: &AttendanceImportJob) -> Result<(), String> {
+    async fn init(
+        &mut self,
+        _diesel: &crate::diesel_pool::DieselPools,
+        job: &AttendanceImportJob,
+    ) -> Result<(), String> {
         if job.target_type == ImportTargetType::Log {
             let te_repo = Arc::clone(&self.time_entry_repo);
             let ps = Arc::new(crate::services::pairing_service::PairingService::new(
@@ -313,7 +322,7 @@ impl ImportStrategy for PunchImportStrategy {
                 Arc::new(crate::repositories::DieselAttendancePolicyRepository::new(
                     self.diesel_pools.clone(),
                 )),
-                pool.clone(),
+                self.pool.clone(),
                 self.diesel_pools.clone(),
             ));
             let emp_repo: Arc<dyn EmployeeRepository> = Arc::new(
@@ -332,7 +341,7 @@ impl ImportStrategy for PunchImportStrategy {
             let er_repo: Arc<dyn crate::repositories::attendance_log_error_repository::AttendanceLogErrorRepository> = Arc::new(crate::repositories::DieselAttendanceLogErrorRepository::new(self.diesel_pools.clone()));
 
             let (log_svc, _) = crate::services::attendance_log_service::AttendanceLogService::new(
-                pool.clone(),
+                self.pool.clone(),
                 ps,
                 crate::services::attendance_log_service::AttendanceLogServiceConfig {
                     buffer_capacity: 1,
@@ -353,7 +362,7 @@ impl ImportStrategy for PunchImportStrategy {
 
     async fn process_row(
         &mut self,
-        _pool: &PgPool,
+        _diesel: &crate::diesel_pool::DieselPools,
         job: &AttendanceImportJob,
         row: &Self::RowData,
     ) -> Result<Option<Uuid>, String> {
@@ -613,12 +622,13 @@ impl AttendanceImportService {
             time_entry_repo: Arc::clone(&self.time_entry_repo),
             employee_repo: Arc::clone(&self.employee_repo),
             log_svc: None,
+            pool: self.pool.clone(),
             diesel_pools: self.diesel_pools.clone(),
         };
 
         let pipeline = ImportPipeline {
             strategy,
-            pool: self.pool.clone(),
+            diesel: self.diesel_pools.clone(),
             import_repo: &*self.import_repo,
             job: &job,
             file_bytes,
@@ -638,7 +648,6 @@ impl AttendanceImportService {
         job: &AttendanceImportJob,
         msgs: &AttendanceImportMessages,
     ) -> Result<(), ()> {
-        let pool = self.pool.clone();
         let workspace_tz = match self
             .workspace_repo
             .get_workspace_by_id(job.workspace_id)
@@ -682,7 +691,7 @@ impl AttendanceImportService {
 
         let pipeline = ImportPipeline {
             strategy,
-            pool,
+            diesel: self.diesel_pools.clone(),
             import_repo: &*self.import_repo,
             job,
             file_bytes,

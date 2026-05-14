@@ -56,7 +56,6 @@ async fn test_daily_report_employee_filtering() {
             leave_repo: std::sync::Arc::new(
                 apiserver::repositories::DieselLeaveRequestRepository::new(diesel_pools.clone()),
             ),
-            pool: pool.clone(),
             diesel: diesel_pools.clone(),
         });
 

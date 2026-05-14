@@ -1,13 +1,73 @@
 use crate::models::{MemberExtraRole, User, Workspace, WorkspaceMember, WorkspaceRole};
 use crate::schema::{
-    member_extra_roles, system_roles, user_system_roles, users, workspace_members, workspace_roles,
-    workspaces,
+    dashboard_preferences, member_extra_roles, notifications, system_roles, user_system_roles,
+    users, workspace_members, workspace_roles, workspaces,
 };
 use bigdecimal::BigDecimal;
 use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+
+#[derive(Debug, Queryable, Selectable, Insertable, AsChangeset, Serialize, Deserialize)]
+#[diesel(table_name = notifications)]
+pub struct NotificationEntity {
+    pub id: Uuid,
+    pub user_id: Uuid,
+    #[diesel(column_name = type_)]
+    pub type_: String,
+    pub title: String,
+    pub content: String,
+    pub is_read: bool,
+    pub link: Option<String>,
+    pub created_at: DateTime<Utc>,
+}
+
+impl From<NotificationEntity> for crate::models::Notification {
+    fn from(entity: NotificationEntity) -> Self {
+        Self {
+            id: entity.id,
+            user_id: entity.user_id,
+            r#type: entity.type_,
+            title: entity.title,
+            content: entity.content,
+            is_read: entity.is_read,
+            link: entity.link,
+            created_at: entity.created_at,
+        }
+    }
+}
+
+#[derive(Debug, Queryable, Selectable, Insertable, AsChangeset, Serialize, Deserialize)]
+#[diesel(table_name = dashboard_preferences)]
+pub struct DashboardPreferenceEntity {
+    pub id: Uuid,
+    pub user_id: Uuid,
+    pub workspace_id: Uuid,
+    pub active_view: String,
+    pub visible_widgets: serde_json::Value,
+    pub widget_order: serde_json::Value,
+    pub collapsed_sections: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+impl From<DashboardPreferenceEntity>
+    for crate::handlers::dashboard_preferences::DashboardPreferences
+{
+    fn from(entity: DashboardPreferenceEntity) -> Self {
+        Self {
+            id: entity.id,
+            user_id: entity.user_id,
+            workspace_id: entity.workspace_id,
+            active_view: entity.active_view,
+            visible_widgets: serde_json::from_value(entity.visible_widgets).unwrap_or_default(),
+            widget_order: serde_json::from_value(entity.widget_order).unwrap_or_default(),
+            collapsed_sections: serde_json::from_value(entity.collapsed_sections)
+                .unwrap_or_default(),
+        }
+    }
+}
 
 #[derive(Debug, Queryable, Selectable, Insertable, AsChangeset, Serialize, Deserialize)]
 #[diesel(table_name = users)]

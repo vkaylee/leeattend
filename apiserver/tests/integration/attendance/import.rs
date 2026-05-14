@@ -451,12 +451,12 @@ async fn test_employee_import_duplicate_department_prevention() {
     };
 
     // Chunk 1 processes emp1. It should create the department.
-    let res1 = strategy1.process_row(&pool, &job, &emp1).await;
+    let res1 = strategy1.process_row(&diesel_pools, &job, &emp1).await;
     assert!(res1.is_ok(), "First process_row failed");
 
     // Chunk 2 processes emp2. Cache is empty, so it will miss cache.
     // Thanks to the DB double-check, it should NOT create a duplicate department.
-    let res2 = strategy2.process_row(&pool, &job, &emp2).await;
+    let res2 = strategy2.process_row(&diesel_pools, &job, &emp2).await;
     assert!(res2.is_ok(), "Second process_row failed");
 
     // Verify exactly one department exists in the database

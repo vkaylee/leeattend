@@ -1,7 +1,7 @@
 use axum::{
     extract::{Path, State},
     http::StatusCode,
-    response::{IntoResponse, Json},
+    response::Json,
     routing::{delete, get, put},
     Router,
 };
@@ -32,21 +32,11 @@ pub async fn list_leave_types(
     State(state): State<Arc<AppState>>,
     MemberContext { workspace_id, .. }: MemberContext,
 ) -> AppResult<Json<Vec<LeaveType>>> {
-    let types = sqlx::query_as!(
-        LeaveType,
-        r#"
-        SELECT id, workspace_id, code, name, is_paid, 
-               policy_config as "policy_config: sqlx::types::Json<LeaveTypeConfig>", 
-               created_at
-        FROM leave_types
-        WHERE workspace_id = $1
-        ORDER BY name ASC
-        "#,
-        workspace_id
-    )
-    .fetch_all(state.infra.db.api())
-    .await?;
-
+    let types = state
+        .leaves
+        .policy_repo
+        .get_leave_types(workspace_id)
+        .await?;
     Ok(Json(types))
 }
 
@@ -54,28 +44,15 @@ pub async fn create_leave_type(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
     Json(req): Json<CreateLeaveTypeRequest>,
-) -> AppResult<impl IntoResponse> {
+) -> AppResult<(StatusCode, Json<LeaveType>)> {
     ctx.require_permission(Permission::LeaveTypesManage)?;
 
     let config = req.policy_config.unwrap_or_default();
-
-    let lt: LeaveType = sqlx::query_as!(
-        LeaveType,
-        r#"
-        INSERT INTO leave_types (workspace_id, code, name, is_paid, policy_config)
-        VALUES ($1, $2, $3, $4, $5)
-        RETURNING id, workspace_id, code, name, is_paid, 
-                  policy_config as "policy_config: sqlx::types::Json<LeaveTypeConfig>", 
-                  created_at
-        "#,
-        ctx.workspace_id,
-        req.code,
-        req.name,
-        req.is_paid,
-        sqlx::types::Json(config) as _
-    )
-    .fetch_one(state.infra.db.api())
-    .await?;
+    let lt = state
+        .leaves
+        .policy_repo
+        .create_leave_type(ctx.workspace_id, req.code, req.name, req.is_paid, config)
+        .await?;
 
     Ok((StatusCode::CREATED, Json(lt)))
 }
@@ -88,23 +65,11 @@ pub async fn update_leave_type_config(
 ) -> AppResult<Json<LeaveType>> {
     ctx.require_permission(Permission::LeaveTypesManage)?;
 
-    let lt = sqlx::query_as!(
-        LeaveType,
-        r#"
-        UPDATE leave_types
-        SET policy_config = $1
-        WHERE id = $2 AND workspace_id = $3
-        RETURNING id, workspace_id, code, name, is_paid, 
-                  policy_config as "policy_config: sqlx::types::Json<LeaveTypeConfig>", 
-                  created_at
-        "#,
-        sqlx::types::Json(req.policy_config) as _,
-        id,
-        ctx.workspace_id
-    )
-    .fetch_optional(state.infra.db.api())
-    .await?
-    .ok_or_else(|| AppError::NotFound("Leave type not found".to_string()))?;
+    let lt = state
+        .leaves
+        .policy_repo
+        .update_leave_type_config(id, ctx.workspace_id, req.policy_config)
+        .await?;
 
     Ok(Json(lt))
 }
@@ -116,30 +81,13 @@ pub async fn delete_leave_type(
 ) -> AppResult<StatusCode> {
     ctx.require_permission(Permission::LeaveTypesManage)?;
 
-    let in_balances = sqlx::query!(
-        "SELECT 1 as has_data FROM leave_balances lb JOIN employees e ON e.id = lb.employee_id WHERE lb.leave_type_id = $1 AND e.workspace_id = $2 LIMIT 1",
-        id,
-        ctx.workspace_id
-    )
-    .fetch_optional(state.infra.db.api())
-    .await
-    .unwrap_or(None);
+    let affected = state
+        .leaves
+        .policy_repo
+        .delete_leave_type(id, ctx.workspace_id)
+        .await?;
 
-    if in_balances.is_some() {
-        return Err(AppError::Conflict(
-            "Cannot delete: Leave type is currently used in employee balances".to_string(),
-        ));
-    }
-
-    let res = sqlx::query!(
-        "DELETE FROM leave_types WHERE id = $1 AND workspace_id = $2",
-        id,
-        ctx.workspace_id
-    )
-    .execute(state.infra.db.api())
-    .await?;
-
-    if res.rows_affected() > 0 {
+    if affected > 0 {
         Ok(StatusCode::NO_CONTENT)
     } else {
         Err(AppError::NotFound("Leave type not found".to_string()))

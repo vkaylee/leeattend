@@ -156,7 +156,7 @@ pub struct LeaveImportChunkHandler;
 impl LeaveImportChunkHandler {
     #[allow(clippy::too_many_lines)]
     pub async fn handle(
-        db: &PgPool,
+        _db: &PgPool,
         diesel: &crate::diesel_pool::DieselPools,
         job: &Job,
         redis: &RedisPool,
@@ -252,7 +252,7 @@ impl LeaveImportChunkHandler {
 
         let pipeline = ImportPipeline {
             strategy,
-            pool: db.clone(),
+            diesel: diesel.clone(),
             import_repo: &import_repo,
             job: &import_job,
             file_bytes,

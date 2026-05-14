@@ -64,10 +64,14 @@ impl AppState {
                 diesel_pools.clone(),
             ),
         );
+        let user_repo: Arc<dyn crate::repositories::user_repository::UserRepository> = Arc::new(
+            crate::repositories::DieselUserRepository::new(diesel_pools.clone()),
+        );
         let employee_service = Arc::new(crate::services::EmployeeService::new(
             Arc::clone(&employee_repo),
             Arc::clone(&department_repo),
-            pool.clone(),
+            Arc::clone(&user_repo),
+            diesel_pools.clone(),
         ));
         let contract_repo = Arc::new(crate::repositories::DieselEmployeeContractRepository::new(
             db_pools.api().clone(),
@@ -125,7 +129,7 @@ impl AppState {
                 employee_repo: Arc::clone(&employee_repo),
                 attendance_daily_summary_repo: Arc::clone(&attendance_daily_summary_repo),
                 leave_repo: Arc::clone(&leave_request_repo),
-                pool: pool.clone(),
+
                 diesel: diesel_pools.clone(),
             },
         ));
@@ -174,9 +178,6 @@ impl AppState {
         );
         import_service.resume_all_pending_jobs().await;
 
-        let user_repo: Arc<dyn crate::repositories::user_repository::UserRepository> = Arc::new(
-            crate::repositories::DieselUserRepository::new(diesel_pools.clone()),
-        );
         let session_repo: Arc<dyn crate::repositories::session_repository::SessionRepository> =
             Arc::new(crate::repositories::DieselSessionRepository::new(
                 db_pools.api().clone(),
@@ -240,7 +241,7 @@ impl AppState {
                 Arc::clone(&leave_balance_repo),
                 Arc::clone(&leave_request_repo),
                 Arc::clone(&roster_repo),
-                pool.clone(),
+                diesel_pools.clone(),
             ),
         );
 
@@ -256,7 +257,7 @@ impl AppState {
                 Arc::clone(&department_repo),
                 Arc::clone(&leave_policy_repo),
                 Arc::clone(&leave_accrual_log_repo),
-                worker_pool.clone(),
+                diesel_pools.clone(),
             ),
         );
 

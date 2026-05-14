@@ -27,6 +27,30 @@ pub trait UserRepository: Send + Sync {
         bio: Option<String>,
     ) -> Result<User, AppError>;
     async fn get_workspace_users(&self, workspace_id: Uuid) -> Result<Vec<User>, AppError>;
+    async fn get_dashboard_preferences(
+        &self,
+        user_id: Uuid,
+        workspace_id: Uuid,
+    ) -> Result<Option<crate::handlers::dashboard_preferences::DashboardPreferences>, AppError>;
+    async fn update_dashboard_preferences(
+        &self,
+        user_id: Uuid,
+        workspace_id: Uuid,
+        req: crate::handlers::dashboard_preferences::UpdateDashboardPreferences,
+    ) -> Result<crate::handlers::dashboard_preferences::DashboardPreferences, AppError>;
+    async fn get_notifications(
+        &self,
+        user_id: Uuid,
+        limit: i64,
+        cursor: Option<chrono::DateTime<chrono::Utc>>,
+    ) -> Result<Vec<crate::models::Notification>, AppError>;
+    async fn get_unread_notification_count(&self, user_id: Uuid) -> Result<i64, AppError>;
+    async fn mark_notification_as_read(
+        &self,
+        user_id: Uuid,
+        notification_id: Uuid,
+    ) -> Result<(), AppError>;
+    async fn mark_all_notifications_as_read(&self, user_id: Uuid) -> Result<(), AppError>;
 }
 
 pub async fn create_user(pool: &PgPool, user: &User) -> Result<(), sqlx::Error> {

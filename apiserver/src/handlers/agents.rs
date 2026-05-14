@@ -573,88 +573,101 @@ pub async fn update_authorized_agent(
     MemberContext { workspace_id, .. }: MemberContext,
     Json(req): Json<UpdateAuthorizedAgentRequest>,
 ) -> AppResult<Json<AuthorizedAgent>> {
-    let mut query_builder: sqlx::query_builder::QueryBuilder<sqlx::Postgres> =
-        sqlx::query_builder::QueryBuilder::new("UPDATE authorized_agents SET ");
-    let mut has_fields_to_update = if let Some(name) = req.name {
-        query_builder.push("name = ");
-        query_builder.push_bind(name);
-        true
-    } else {
-        false
-    };
-    if let Some(token) = req.token {
-        if has_fields_to_update {
-            query_builder.push(", ");
-        }
-        query_builder.push("token = ");
-        query_builder.push_bind(token);
-        has_fields_to_update = true;
-    }
-    if let Some(is_trusted) = req.is_trusted {
-        if has_fields_to_update {
-            query_builder.push(", ");
-        }
-        query_builder.push("is_trusted = ");
-        query_builder.push_bind(is_trusted);
-        has_fields_to_update = true;
-    }
-    if let Some(is_active) = req.is_active {
-        if has_fields_to_update {
-            query_builder.push(", ");
-        }
-        query_builder.push("is_active = ");
-        query_builder.push_bind(is_active);
-        has_fields_to_update = true;
-    }
-    if let Some(max_concurrent_workers) = req.max_concurrent_workers {
-        if has_fields_to_update {
-            query_builder.push(", ");
-        }
-        query_builder.push("max_concurrent_workers = ");
-        query_builder.push_bind(max_concurrent_workers);
-        has_fields_to_update = true;
-    }
-    if let Some(success_cooldown_secs) = req.success_cooldown_secs {
-        if has_fields_to_update {
-            query_builder.push(", ");
-        }
-        query_builder.push("success_cooldown_secs = ");
-        query_builder.push_bind(success_cooldown_secs);
-        has_fields_to_update = true;
-    }
-    if let Some(retention_days) = req.retention_days {
-        if has_fields_to_update {
-            query_builder.push(", ");
-        }
-        query_builder.push("retention_days = ");
-        query_builder.push_bind(retention_days);
-        has_fields_to_update = true;
-    }
-
-    if !has_fields_to_update {
+    if req.name.is_none()
+        && req.token.is_none()
+        && req.is_trusted.is_none()
+        && req.is_active.is_none()
+        && req.max_concurrent_workers.is_none()
+        && req.success_cooldown_secs.is_none()
+        && req.retention_days.is_none()
+    {
         return Err(AppError::Validation("No fields to update".to_string()));
     }
 
-    query_builder.push(" WHERE id = ");
-    query_builder.push_bind(id.clone());
-    query_builder.push(" AND workspace_id = ");
-    query_builder.push_bind(workspace_id);
-    query_builder.push(" RETURNING *");
+    let mut conn = state
+        .infra
+        .diesel
+        .api
+        .get()
+        .await
+        .map_err(|e| AppError::Internal(e.to_string()))?;
 
-    let agent = query_builder
-        .build_query_as::<AuthorizedAgent>()
-        .fetch_optional(state.infra.db.api())
+    // We fetch current agent first to use as fallback for bounds since diesel raw queries
+    // do not have named parameter skipping if we bind them in order.
+    // Actually, `diesel::sql_query` requires binding in order of parameters. If we construct
+    // the query dynamically, it's easier to use a static query with COALESCE or fetch-update-save.
+
+    // Fetch existing
+    let mut current_agent = state
+        .agents
+        .repo
+        .get_agent_by_id_in_workspace(&id, workspace_id)
         .await?
         .ok_or_else(|| AppError::NotFound("Agent not found".to_string()))?;
 
-    if (req.is_trusted == Some(false) || req.is_active == Some(false))
-        && state.agents.manager.is_online(&agent.id).await
-    {
-        state.agents.manager.remove_agent(&agent.id).await;
-    } else {
-        let _ = state.agents.service.notify_config_update(&agent.id).await;
+    // Apply updates
+    if let Some(name) = req.name {
+        current_agent.name = name;
     }
-    Ok(Json(agent))
+    if let Some(token) = req.token {
+        current_agent.token = token;
+    }
+    if let Some(is_trusted) = req.is_trusted {
+        current_agent.is_trusted = is_trusted;
+    }
+    if let Some(is_active) = req.is_active {
+        current_agent.is_active = is_active;
+    }
+    if let Some(max_concurrent_workers) = req.max_concurrent_workers {
+        current_agent.max_concurrent_workers = max_concurrent_workers;
+    }
+    if let Some(success_cooldown_secs) = req.success_cooldown_secs {
+        current_agent.success_cooldown_secs = success_cooldown_secs;
+    }
+    if let Some(retention_days) = req.retention_days {
+        current_agent.retention_days = retention_days;
+    }
+
+    use diesel_async::RunQueryDsl;
+
+    diesel::sql_query(
+        r#"
+        UPDATE authorized_agents 
+        SET name = $1,
+            token = $2,
+            is_trusted = $3,
+            is_active = $4,
+            max_concurrent_workers = $5,
+            success_cooldown_secs = $6,
+            retention_days = $7
+        WHERE id = $8 AND workspace_id = $9
+        "#,
+    )
+    .bind::<diesel::sql_types::Text, _>(&current_agent.name)
+    .bind::<diesel::sql_types::Text, _>(&current_agent.token)
+    .bind::<diesel::sql_types::Bool, _>(current_agent.is_trusted)
+    .bind::<diesel::sql_types::Bool, _>(current_agent.is_active)
+    .bind::<diesel::sql_types::Integer, _>(current_agent.max_concurrent_workers)
+    .bind::<diesel::sql_types::Integer, _>(current_agent.success_cooldown_secs)
+    .bind::<diesel::sql_types::Integer, _>(current_agent.retention_days)
+    .bind::<diesel::sql_types::Text, _>(&current_agent.id)
+    .bind::<diesel::sql_types::Uuid, _>(current_agent.workspace_id)
+    .execute(&mut conn)
+    .await
+    .map_err(|e| AppError::Internal(e.to_string()))?;
+
+    if (!current_agent.is_trusted || !current_agent.is_active)
+        && state.agents.manager.is_online(&current_agent.id).await
+    {
+        state.agents.manager.remove_agent(&current_agent.id).await;
+    } else {
+        let _ = state
+            .agents
+            .service
+            .notify_config_update(&current_agent.id)
+            .await;
+    }
+    Ok(Json(current_agent))
 }
 
 pub async fn get_device_info_on_demand(

@@ -4,8 +4,8 @@
 //! and generates an error Excel file for failed rows.
 
 use chrono::NaiveDate;
+use diesel::OptionalExtension;
 use rust_xlsxwriter::Workbook;
-use sqlx::PgPool;
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -36,7 +36,6 @@ pub struct PendingLeaveRow {
 }
 
 pub struct LeaveImportService {
-    pool: PgPool,
     diesel: crate::diesel_pool::DieselPools,
 }
 
@@ -47,6 +46,22 @@ pub struct LeaveImportStrategy {
     pub employees_cache: std::collections::HashMap<String, Uuid>,
     pub leave_types_cache: std::collections::HashMap<String, Uuid>,
     pub leave_service: LeaveService,
+}
+
+#[derive(diesel::QueryableByName)]
+struct EmpRow {
+    #[diesel(sql_type = diesel::sql_types::Uuid)]
+    id: Uuid,
+    #[diesel(sql_type = diesel::sql_types::Text)]
+    employee_id_number: String,
+}
+
+#[derive(diesel::QueryableByName)]
+struct LeaveTypeRow {
+    #[diesel(sql_type = diesel::sql_types::Uuid)]
+    id: Uuid,
+    #[diesel(sql_type = diesel::sql_types::Text)]
+    code: String,
 }
 
 #[async_trait::async_trait]
@@ -133,12 +148,23 @@ impl ImportStrategy for LeaveImportStrategy {
         })
     }
 
-    async fn init(&mut self, pool: &PgPool, job: &AttendanceImportJob) -> Result<(), String> {
-        let emps = sqlx::query!(
+    async fn init(
+        &mut self,
+        diesel: &crate::diesel_pool::DieselPools,
+        job: &AttendanceImportJob,
+    ) -> Result<(), String> {
+        let mut conn = diesel
+            .api
+            .get()
+            .await
+            .map_err(|e| format!("Failed to get connection: {e}"))?;
+        use diesel_async::RunQueryDsl;
+
+        let emps: Vec<EmpRow> = diesel::sql_query(
             "SELECT id, employee_id_number FROM employees WHERE workspace_id = $1",
-            job.workspace_id
         )
-        .fetch_all(pool)
+        .bind::<diesel::sql_types::Uuid, _>(job.workspace_id)
+        .load(&mut conn)
         .await
         .map_err(|e| format!("Failed to load employees: {e}"))?;
 
@@ -147,13 +173,12 @@ impl ImportStrategy for LeaveImportStrategy {
                 .insert(emp.employee_id_number.to_uppercase(), emp.id);
         }
 
-        let leaves = sqlx::query!(
-            "SELECT id, code FROM leave_types WHERE workspace_id = $1",
-            job.workspace_id
-        )
-        .fetch_all(pool)
-        .await
-        .map_err(|e| format!("Failed to load leave types: {e}"))?;
+        let leaves: Vec<LeaveTypeRow> =
+            diesel::sql_query("SELECT id, code FROM leave_types WHERE workspace_id = $1")
+                .bind::<diesel::sql_types::Uuid, _>(job.workspace_id)
+                .load(&mut conn)
+                .await
+                .map_err(|e| format!("Failed to load leave types: {e}"))?;
 
         for lt in leaves {
             self.leave_types_cache.insert(lt.code.to_uppercase(), lt.id);
@@ -164,7 +189,7 @@ impl ImportStrategy for LeaveImportStrategy {
 
     async fn process_row(
         &mut self,
-        _pool: &PgPool,
+        _diesel: &crate::diesel_pool::DieselPools,
         job: &AttendanceImportJob,
         row: &Self::RowData,
     ) -> Result<Option<Uuid>, String> {
@@ -209,8 +234,8 @@ impl ImportStrategy for LeaveImportStrategy {
 }
 
 impl LeaveImportService {
-    pub fn new(pool: PgPool, diesel: crate::diesel_pool::DieselPools) -> Self {
-        Self { pool, diesel }
+    pub fn new(diesel: crate::diesel_pool::DieselPools) -> Self {
+        Self { diesel }
     }
 
     /// Process an imported Excel file of leave requests.
@@ -230,22 +255,34 @@ impl LeaveImportService {
             return Err(());
         };
 
-        let lang = sqlx::query_scalar::<_, String>(
-            "SELECT default_language FROM workspaces WHERE id = $1",
-        )
-        .bind(workspace_id)
-        .fetch_optional(&self.pool)
-        .await
-        .unwrap_or(Some("en".to_string()))
-        .unwrap_or_else(|| "en".to_string());
+        let mut conn = self.diesel.api.get().await.map_err(|_e| ())?;
+        use diesel_async::RunQueryDsl;
 
-        let tz_str =
-            sqlx::query_scalar::<_, String>("SELECT timezone FROM workspaces WHERE id = $1")
-                .bind(workspace_id)
-                .fetch_optional(&self.pool)
+        #[derive(diesel::QueryableByName)]
+        struct StringRow {
+            #[diesel(sql_type = diesel::sql_types::Text)]
+            val: String,
+        }
+
+        let lang: Option<StringRow> =
+            diesel::sql_query("SELECT default_language as val FROM workspaces WHERE id = $1")
+                .bind::<diesel::sql_types::Uuid, _>(workspace_id)
+                .get_result(&mut conn)
                 .await
-                .unwrap_or(Some("UTC".to_string()))
-                .unwrap_or_else(|| "UTC".to_string());
+                .optional()
+                .map_err(|_e| ())?;
+
+        let lang = lang.map(|r| r.val).unwrap_or_else(|| "en".to_string());
+
+        let tz_str: Option<StringRow> =
+            diesel::sql_query("SELECT timezone as val FROM workspaces WHERE id = $1")
+                .bind::<diesel::sql_types::Uuid, _>(workspace_id)
+                .get_result(&mut conn)
+                .await
+                .optional()
+                .map_err(|_e| ())?;
+
+        let tz_str = tz_str.map(|r| r.val).unwrap_or_else(|| "UTC".to_string());
 
         let workspace_tz: chrono_tz::Tz = tz_str.parse().unwrap_or(chrono_tz::UTC);
 
@@ -280,7 +317,7 @@ impl LeaveImportService {
 
         let pipeline = ImportPipeline {
             strategy,
-            pool: self.pool.clone(),
+            diesel: self.diesel.clone(),
             import_repo: &import_repo,
             job: &job,
             file_bytes,

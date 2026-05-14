@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 use chrono::Utc;
-use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::utils::id::new_id;
@@ -11,27 +10,27 @@ use crate::models::{
     CreateEmployeeRequest, CreateWorkingConditionRequest, Employee, RehireEmployeeRequest,
     UpdateEmployeeRequest, WorkingCondition,
 };
-use crate::repositories::{
-    department_repository::DepartmentRepository, user_repository, EmployeeRepository,
-};
+use crate::repositories::{department_repository::DepartmentRepository, EmployeeRepository};
 
 pub struct EmployeeService {
     repo: Arc<dyn EmployeeRepository>,
     dept_repo: Arc<dyn DepartmentRepository>,
-    /// Kept for operations not yet abstracted (transactions, user_repository, etc.)
-    pool: PgPool,
+    user_repo: Arc<dyn crate::repositories::user_repository::UserRepository>,
+    diesel: crate::diesel_pool::DieselPools,
 }
 
 impl EmployeeService {
     pub fn new(
         repo: Arc<dyn EmployeeRepository>,
         dept_repo: Arc<dyn DepartmentRepository>,
-        pool: PgPool,
+        user_repo: Arc<dyn crate::repositories::user_repository::UserRepository>,
+        diesel: crate::diesel_pool::DieselPools,
     ) -> Self {
         Self {
             repo,
             dept_repo,
-            pool,
+            user_repo,
+            diesel,
         }
     }
 
@@ -110,7 +109,8 @@ impl EmployeeService {
     ) -> Result<Employee, AppError> {
         // Optional: Check if user_id exists if provided
         if let Some(user_id) = req.user_id {
-            user_repository::get_user_by_id(&self.pool, user_id)
+            self.user_repo
+                .get_user_by_id(user_id)
                 .await?
                 .ok_or(AppError::Validation("User not found".into()))?;
         }
@@ -143,7 +143,7 @@ impl EmployeeService {
 
         // Claim staged logs directly for the new employee
         if let Err(e) = crate::repositories::staging_log_repository::claim_staged_logs_direct(
-            &self.pool,
+            &self.diesel,
             workspace_id,
             employee.id,
             &employee.employee_id_number,
@@ -221,7 +221,8 @@ impl EmployeeService {
     ) -> Result<Employee, AppError> {
         // Optional: Check if user_id exists if provided
         if let Some(user_id) = req.user_id {
-            user_repository::get_user_by_id(&self.pool, user_id)
+            self.user_repo
+                .get_user_by_id(user_id)
                 .await?
                 .ok_or(AppError::Validation("User not found".into()))?;
         }
@@ -243,7 +244,7 @@ impl EmployeeService {
         if let Some(new_id_number) = req.employee_id_number {
             let normalized = new_id_number.into_inner();
             if let Err(e) = crate::repositories::staging_log_repository::claim_staged_logs_direct(
-                &self.pool,
+                &self.diesel,
                 workspace_id,
                 id,
                 &normalized,
@@ -911,13 +912,95 @@ mod tests {
         }
     }
 
+    struct NopUserRepo;
+    #[async_trait::async_trait]
+    impl crate::repositories::user_repository::UserRepository for NopUserRepo {
+        async fn create_user(&self, _user: &crate::models::User) -> Result<(), AppError> {
+            unimplemented!()
+        }
+        async fn get_user_by_email(
+            &self,
+            _email: &str,
+        ) -> Result<Option<crate::models::User>, AppError> {
+            unimplemented!()
+        }
+        async fn get_user_by_id(&self, _id: Uuid) -> Result<Option<crate::models::User>, AppError> {
+            unimplemented!()
+        }
+        async fn update_password_hash(
+            &self,
+            _user_id: Uuid,
+            _password_hash: &str,
+        ) -> Result<(), AppError> {
+            unimplemented!()
+        }
+        async fn get_system_roles_for_user(&self, _user_id: Uuid) -> Result<Vec<String>, AppError> {
+            unimplemented!()
+        }
+        async fn update_user_profile(
+            &self,
+            _user_id: Uuid,
+            _full_name: Option<String>,
+            _avatar_url: Option<String>,
+            _bio: Option<String>,
+        ) -> Result<crate::models::User, AppError> {
+            unimplemented!()
+        }
+        async fn get_workspace_users(
+            &self,
+            _workspace_id: Uuid,
+        ) -> Result<Vec<crate::models::User>, AppError> {
+            unimplemented!()
+        }
+        async fn get_dashboard_preferences(
+            &self,
+            _user_id: Uuid,
+            _workspace_id: Uuid,
+        ) -> Result<Option<crate::handlers::dashboard_preferences::DashboardPreferences>, AppError>
+        {
+            unimplemented!()
+        }
+        async fn update_dashboard_preferences(
+            &self,
+            _user_id: Uuid,
+            _workspace_id: Uuid,
+            _req: crate::handlers::dashboard_preferences::UpdateDashboardPreferences,
+        ) -> Result<crate::handlers::dashboard_preferences::DashboardPreferences, AppError>
+        {
+            unimplemented!()
+        }
+        async fn get_notifications(
+            &self,
+            _user_id: Uuid,
+            _limit: i64,
+            _cursor: Option<chrono::DateTime<chrono::Utc>>,
+        ) -> Result<Vec<crate::models::Notification>, AppError> {
+            unimplemented!()
+        }
+        async fn get_unread_notification_count(&self, _user_id: Uuid) -> Result<i64, AppError> {
+            unimplemented!()
+        }
+        async fn mark_notification_as_read(
+            &self,
+            _user_id: Uuid,
+            _notification_id: Uuid,
+        ) -> Result<(), AppError> {
+            unimplemented!()
+        }
+        async fn mark_all_notifications_as_read(&self, _user_id: Uuid) -> Result<(), AppError> {
+            unimplemented!()
+        }
+    }
+
     /// Helper: create a service backed by the mock (pool is unused in mock-only paths).
     fn make_service(mock: MockEmployeeRepo) -> EmployeeService {
-        let pool = sqlx::postgres::PgPoolOptions::new()
-            .max_connections(1)
-            .connect_lazy("postgres://mock:mock@localhost/mock")
-            .expect("lazy pool creation");
-        EmployeeService::new(Arc::new(mock), Arc::new(NopDepartmentRepo), pool)
+        let pool = crate::diesel_pool::DieselPools::for_test("postgres://mock:mock@localhost/mock");
+        EmployeeService::new(
+            Arc::new(mock),
+            Arc::new(NopDepartmentRepo),
+            Arc::new(NopUserRepo),
+            pool,
+        )
     }
 
     // ── Tests: get_employee_by_id ────────────────────────────────────

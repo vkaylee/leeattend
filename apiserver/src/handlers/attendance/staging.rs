@@ -11,7 +11,7 @@ use uuid::Uuid;
 use crate::domain::permissions::Permission;
 use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
-use crate::repositories::staging_log_repository::{self, StagingLog};
+use crate::repositories::staging_log_repository::StagingLog;
 use crate::AppState;
 
 #[derive(Debug, Deserialize)]
@@ -105,79 +105,11 @@ pub async fn resolve_staging_log(
 ) -> AppResult<(StatusCode, &'static str)> {
     ctx.require_permission(Permission::AttendanceStagingManage)?;
 
-    use crate::models::{LogSource, RawAttendanceLog};
-
-    // Use transaction to ensure atomicity of read-check-insert-update
-    let mut tx = state.infra.db.api().begin().await?;
-
-    // 1. Lock and fetch staging log (FOR UPDATE NOWAIT prevents concurrent resolve)
-    let staged = sqlx::query_as::<_, StagingLog>(
-        "SELECT id, workspace_id, device_id, raw_user_id, punch_time, raw_data, fingerprint, status, created_at \
-         FROM attendance_staging_logs WHERE id = $1 AND workspace_id = $2 FOR UPDATE NOWAIT"
-    )
-    .bind(log_id)
-    .bind(ctx.workspace_id)
-    .fetch_optional(&mut *tx)
-    .await
-    .map_err(|e| {
-        // NOWAIT returns a specific error if row is already locked
-        if e.to_string().contains("could not obtain lock") {
-            AppError::Conflict("Log is being processed by another request".to_string())
-        } else {
-            AppError::from(e)
-        }
-    })?
-    .ok_or_else(|| AppError::NotFound("Staging log not found".to_string()))?;
-
-    if staged.status != "pending" {
-        return Err(AppError::Validation("Log already processed".to_string()));
-    }
-
-    // 2. Create RawAttendanceLog
-    let punch = staged
-        .raw_data
-        .as_ref()
-        .and_then(|d| d["punch"].as_i64())
-        .map(|v| v as i32)
-        .unwrap_or(-1);
-    let status = staged
-        .raw_data
-        .as_ref()
-        .and_then(|d| d["status"].as_i64())
-        .map(|v| v as i32)
-        .unwrap_or(-1);
-
-    let raw_log = RawAttendanceLog {
-        id: crate::utils::id::new_id(),
-        workspace_id: ctx.workspace_id,
-        employee_id: req.employee_id,
-        punch_time: staged.punch_time,
-        source: LogSource::Device,
-        device_id: staged.device_id,
-        raw_data: staged.raw_data,
-        punch,
-        status,
-        created_at: Utc::now(),
-    };
-
-    // 3. Insert raw log within transaction
-    state
+    let raw_log = state
         .attendance
-        .raw_log_repo
-        .create_raw_log(&raw_log)
+        .staging_repo
+        .resolve_staging_log(log_id, ctx.workspace_id, req.employee_id)
         .await?;
-
-    // 4. Mark staging log as processed within transaction
-    staging_log_repository::update_staging_status_tx(
-        &mut tx,
-        log_id,
-        ctx.workspace_id,
-        "processed",
-    )
-    .await?;
-
-    // 5. Commit transaction
-    tx.commit().await?;
 
     // 6. Trigger pairing (post-commit side effect, log errors but don't fail the response)
     if let Err(e) = state

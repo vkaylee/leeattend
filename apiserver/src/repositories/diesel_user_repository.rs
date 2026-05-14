@@ -173,4 +173,196 @@ impl UserRepository for DieselUserRepository {
 
         Ok(entities.into_iter().map(Into::into).collect())
     }
+
+    async fn get_dashboard_preferences(
+        &self,
+        user_id: Uuid,
+        workspace_id: Uuid,
+    ) -> Result<Option<crate::handlers::dashboard_preferences::DashboardPreferences>, AppError>
+    {
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        use crate::schema::dashboard_preferences;
+        let entity = dashboard_preferences::table
+            .filter(dashboard_preferences::user_id.eq(user_id))
+            .filter(dashboard_preferences::workspace_id.eq(workspace_id))
+            .first::<crate::models::diesel::core::DashboardPreferenceEntity>(&mut conn)
+            .await
+            .optional()
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        Ok(entity.map(Into::into))
+    }
+
+    async fn update_dashboard_preferences(
+        &self,
+        user_id: Uuid,
+        workspace_id: Uuid,
+        req: crate::handlers::dashboard_preferences::UpdateDashboardPreferences,
+    ) -> Result<crate::handlers::dashboard_preferences::DashboardPreferences, AppError> {
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        use crate::schema::dashboard_preferences;
+        let existing = self
+            .get_dashboard_preferences(user_id, workspace_id)
+            .await?;
+        if let Some(mut prefs) = existing {
+            // Update fields
+            if let Some(av) = req.active_view {
+                prefs.active_view = av;
+            }
+            if let Some(vw) = req.visible_widgets {
+                prefs.visible_widgets = vw;
+            }
+            if let Some(wo) = req.widget_order {
+                prefs.widget_order = wo;
+            }
+            if let Some(cs) = req.collapsed_sections {
+                prefs.collapsed_sections = cs;
+            }
+
+            let entity = diesel::update(
+                dashboard_preferences::table.filter(dashboard_preferences::id.eq(prefs.id)),
+            )
+            .set((
+                dashboard_preferences::active_view.eq(prefs.active_view),
+                dashboard_preferences::visible_widgets.eq(prefs.visible_widgets),
+                dashboard_preferences::widget_order.eq(prefs.widget_order),
+                dashboard_preferences::collapsed_sections.eq(prefs.collapsed_sections),
+                dashboard_preferences::updated_at.eq(chrono::Utc::now()),
+            ))
+            .get_result::<crate::models::diesel::core::DashboardPreferenceEntity>(&mut conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            return Ok(entity.into());
+        }
+        // Insert new
+        let entity = diesel::insert_into(dashboard_preferences::table)
+            .values((
+                dashboard_preferences::id.eq(Uuid::new_v4()),
+                dashboard_preferences::user_id.eq(user_id),
+                dashboard_preferences::workspace_id.eq(workspace_id),
+                dashboard_preferences::active_view
+                    .eq(req.active_view.unwrap_or_else(|| "overview".to_string())),
+                dashboard_preferences::visible_widgets
+                    .eq(req.visible_widgets.unwrap_or_else(|| serde_json::json!({}))),
+                dashboard_preferences::widget_order
+                    .eq(req.widget_order.unwrap_or_else(|| serde_json::json!([]))),
+                dashboard_preferences::collapsed_sections.eq(req
+                    .collapsed_sections
+                    .unwrap_or_else(|| serde_json::json!({}))),
+                dashboard_preferences::created_at.eq(chrono::Utc::now()),
+                dashboard_preferences::updated_at.eq(chrono::Utc::now()),
+            ))
+            .get_result::<crate::models::diesel::core::DashboardPreferenceEntity>(&mut conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        return Ok(entity.into());
+    }
+
+    async fn get_notifications(
+        &self,
+        user_id: Uuid,
+        limit: i64,
+        cursor: Option<chrono::DateTime<chrono::Utc>>,
+    ) -> Result<Vec<crate::models::Notification>, AppError> {
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        use crate::schema::notifications;
+        let mut query = notifications::table
+            .filter(notifications::user_id.eq(user_id))
+            .into_boxed();
+
+        if let Some(c) = cursor {
+            query = query.filter(notifications::created_at.lt(c));
+        }
+
+        let entities = query
+            .order(notifications::created_at.desc())
+            .limit(limit)
+            .load::<crate::models::diesel::core::NotificationEntity>(&mut conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        Ok(entities.into_iter().map(Into::into).collect())
+    }
+
+    async fn get_unread_notification_count(&self, user_id: Uuid) -> Result<i64, AppError> {
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        use crate::schema::notifications;
+        let count = notifications::table
+            .filter(notifications::user_id.eq(user_id))
+            .filter(notifications::is_read.eq(false))
+            .count()
+            .get_result::<i64>(&mut conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        Ok(count)
+    }
+
+    async fn mark_notification_as_read(
+        &self,
+        user_id: Uuid,
+        notification_id: Uuid,
+    ) -> Result<(), AppError> {
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        use crate::schema::notifications;
+        diesel::update(
+            notifications::table
+                .filter(notifications::id.eq(notification_id))
+                .filter(notifications::user_id.eq(user_id)),
+        )
+        .set(notifications::is_read.eq(true))
+        .execute(&mut conn)
+        .await
+        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        Ok(())
+    }
+
+    async fn mark_all_notifications_as_read(&self, user_id: Uuid) -> Result<(), AppError> {
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        use crate::schema::notifications;
+        diesel::update(notifications::table.filter(notifications::user_id.eq(user_id)))
+            .set(notifications::is_read.eq(true))
+            .execute(&mut conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        Ok(())
+    }
 }

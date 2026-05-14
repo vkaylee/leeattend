@@ -246,14 +246,11 @@ pub async fn bulk_upload_paper_ot(
         };
 
         // Validate against system_detected_ot_minutes
-        let existing_summary = sqlx::query!(
-            "SELECT system_detected_ot_minutes FROM attendance_daily_summaries WHERE employee_id = $1 AND date = $2 AND workspace_id = $3",
-            employee.id,
-            date,
-            ctx.workspace_id
-        )
-        .fetch_optional(state.infra.db.api())
-        .await;
+        let existing_summary = state
+            .attendance
+            .attendance_daily_summary_repo
+            .get_summary(ctx.workspace_id, employee.id, date)
+            .await;
 
         if let Ok(Some(summary)) = existing_summary {
             let system_detected = summary.system_detected_ot_minutes;

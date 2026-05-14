@@ -16,7 +16,7 @@ use crate::schema::*;
 use async_trait::async_trait;
 use chrono::{NaiveDate, Utc};
 use diesel::prelude::*;
-use diesel_async::RunQueryDsl;
+use diesel_async::{AsyncConnection, RunQueryDsl};
 use rust_decimal::prelude::*;
 use rust_decimal::Decimal;
 use std::str::FromStr;
@@ -100,6 +100,177 @@ impl PayrollRepository for DieselPayrollRepository {
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(entities.into_iter().map(Into::into).collect())
+    }
+
+    async fn create_incentive_policy(
+        &self,
+        workspace_id: Uuid,
+        req: &crate::models::CreatePayrollIncentivePolicyRequest,
+    ) -> Result<PayrollIncentivePolicy, AppError> {
+        use crate::schema::{payroll_incentive_policies, payroll_incentive_tiers};
+
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        let policy_id = crate::utils::id::new_id();
+        let entity = crate::models::diesel::payroll::PayrollIncentivePolicyEntity {
+            id: policy_id,
+            workspace_id,
+            name: req.name.clone(),
+            base_amount: req.base_amount.to_f64().unwrap_or_default(),
+            payout_type: req.payout_type.clone(),
+            is_active: true,
+            effective_from: req.effective_from,
+            effective_to: None,
+            created_at: Utc::now(),
+        };
+
+        let entity = conn
+            .transaction::<_, diesel::result::Error, _>(|mut conn| {
+                Box::pin(async move {
+                    diesel::insert_into(payroll_incentive_policies::table)
+                        .values(&entity)
+                        .execute(&mut conn)
+                        .await?;
+
+                    for tier in &req.tiers {
+                        let tier_id = crate::utils::id::new_id();
+                        let tier_entity = crate::models::diesel::payroll::IncentiveTierEntity {
+                            id: tier_id,
+                            policy_id,
+                            priority: tier.priority,
+                            rule_config: serde_json::to_value(&tier.rule_config)
+                                .unwrap_or_default(),
+                            payout_amount: tier.payout_amount.to_f64().unwrap_or_default(),
+                        };
+                        diesel::insert_into(payroll_incentive_tiers::table)
+                            .values(&tier_entity)
+                            .execute(&mut conn)
+                            .await?;
+                    }
+                    Ok(entity)
+                })
+            })
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        let mut policy: PayrollIncentivePolicy = entity.into();
+        policy.effective_from = req.effective_from;
+        Ok(policy)
+    }
+
+    async fn delete_incentive_policy(
+        &self,
+        workspace_id: Uuid,
+        policy_id: Uuid,
+    ) -> Result<(), AppError> {
+        use crate::schema::payroll_incentive_policies;
+
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        diesel::delete(
+            payroll_incentive_policies::table
+                .filter(payroll_incentive_policies::id.eq(policy_id))
+                .filter(payroll_incentive_policies::workspace_id.eq(workspace_id)),
+        )
+        .execute(&mut conn)
+        .await
+        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        Ok(())
+    }
+
+    async fn clone_incentive_policy(
+        &self,
+        workspace_id: Uuid,
+        policy_id: Uuid,
+    ) -> Result<PayrollIncentivePolicy, AppError> {
+        use crate::schema::{payroll_incentive_policies, payroll_incentive_tiers};
+
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        let (cloned_entity, _tiers) = conn
+            .transaction::<_, AppError, _>(|mut conn| {
+                Box::pin(async move {
+                    // 1. Fetch original
+                    let original_policy = payroll_incentive_policies::table
+                        .filter(payroll_incentive_policies::id.eq(policy_id))
+                        .filter(payroll_incentive_policies::workspace_id.eq(workspace_id))
+                        .first::<crate::models::diesel::payroll::PayrollIncentivePolicyEntity>(
+                            &mut conn,
+                        )
+                        .await
+                        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+                    let original_tiers = payroll_incentive_tiers::table
+                        .filter(payroll_incentive_tiers::policy_id.eq(policy_id))
+                        .load::<crate::models::diesel::payroll::IncentiveTierEntity>(&mut conn)
+                        .await
+                        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+                    // 2. Insert new policy
+                    let new_policy_id = crate::utils::id::new_id();
+                    let new_name = format!("{} (Copy)", original_policy.name);
+
+                    let new_policy_entity =
+                        crate::models::diesel::payroll::PayrollIncentivePolicyEntity {
+                            id: new_policy_id,
+                            workspace_id,
+                            name: new_name,
+                            base_amount: original_policy.base_amount,
+                            payout_type: original_policy.payout_type,
+                            is_active: false,
+                            effective_from: chrono::Utc::now().date_naive(),
+                            effective_to: None,
+                            created_at: Utc::now(),
+                        };
+
+                    diesel::insert_into(payroll_incentive_policies::table)
+                        .values(&new_policy_entity)
+                        .execute(&mut conn)
+                        .await
+                        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+                    // 3. Insert tiers
+                    let new_tiers: Vec<_> = original_tiers
+                        .into_iter()
+                        .map(|tier| crate::models::diesel::payroll::IncentiveTierEntity {
+                            id: crate::utils::id::new_id(),
+                            policy_id: new_policy_id,
+                            priority: tier.priority,
+                            rule_config: tier.rule_config,
+                            payout_amount: tier.payout_amount,
+                        })
+                        .collect();
+
+                    if !new_tiers.is_empty() {
+                        diesel::insert_into(payroll_incentive_tiers::table)
+                            .values(&new_tiers)
+                            .execute(&mut conn)
+                            .await
+                            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+                    }
+
+                    Ok((new_policy_entity, new_tiers))
+                })
+            })
+            .await?;
+
+        Ok(cloned_entity.into())
     }
 
     async fn create_payslip_incentive(

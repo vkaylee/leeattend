@@ -3,7 +3,7 @@ use axum::{
     http::StatusCode,
     response::Json,
 };
-use sqlx::Row;
+
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -37,50 +37,12 @@ pub async fn create_incentive_policy(
     ctx: MemberContext,
     Json(req): Json<CreatePayrollIncentivePolicyRequest>,
 ) -> AppResult<(StatusCode, Json<PayrollIncentivePolicy>)> {
-    let policy_id = crate::utils::id::new_id();
-    let row: sqlx::postgres::PgRow = sqlx::query(
-        r#"INSERT INTO payroll_incentive_policies (id, workspace_id, name, base_amount, payout_type, is_active, effective_from)
-           VALUES ($1, $2, $3, $4, $5, TRUE, $6)
-           RETURNING id, workspace_id, name, base_amount, payout_type, is_active, created_at, effective_from, effective_to"#,
-    )
-    .bind(policy_id)
-    .bind(ctx.workspace_id)
-    .bind(&req.name)
-    .bind(req.base_amount)
-    .bind(&req.payout_type)
-    .bind(req.effective_from)
-    .fetch_one(state.infra.db.api())
-    .await?;
-
-    for tier in &req.tiers {
-        let tier_id = crate::utils::id::new_id();
-        sqlx::query(
-            r#"INSERT INTO payroll_incentive_tiers (id, policy_id, priority, rule_config, payout_amount)
-               VALUES ($1, $2, $3, $4, $5)"#,
-        )
-        .bind(tier_id)
-        .bind(policy_id)
-        .bind(tier.priority)
-        .bind(sqlx::types::Json(&tier.rule_config))
-        .bind(tier.payout_amount)
-        .execute(state.infra.db.api())
+    let policy = state
+        .payroll
+        .repo
+        .create_incentive_policy(ctx.workspace_id, &req)
         .await?;
-    }
-
-    Ok((
-        StatusCode::CREATED,
-        Json(PayrollIncentivePolicy {
-            id: row.get("id"),
-            workspace_id: row.get("workspace_id"),
-            name: row.get("name"),
-            base_amount: row.get("base_amount"),
-            payout_type: row.get("payout_type"),
-            is_active: row.get("is_active"),
-            created_at: row.get("created_at"),
-            effective_from: row.get("effective_from"),
-            effective_to: row.get("effective_to"),
-        }),
-    ))
+    Ok((StatusCode::CREATED, Json(policy)))
 }
 
 pub async fn delete_incentive_policy(
@@ -88,10 +50,10 @@ pub async fn delete_incentive_policy(
     Path((_, policy_id)): Path<(Uuid, Uuid)>,
     ctx: MemberContext,
 ) -> AppResult<StatusCode> {
-    sqlx::query("DELETE FROM payroll_incentive_policies WHERE id = $1 AND workspace_id = $2")
-        .bind(policy_id)
-        .bind(ctx.workspace_id)
-        .execute(state.infra.db.api())
+    state
+        .payroll
+        .repo
+        .delete_incentive_policy(ctx.workspace_id, policy_id)
         .await?;
     Ok(StatusCode::NO_CONTENT)
 }
@@ -101,56 +63,10 @@ pub async fn clone_incentive_policy(
     Path((_, policy_id)): Path<(Uuid, Uuid)>,
     ctx: MemberContext,
 ) -> AppResult<(StatusCode, Json<PayrollIncentivePolicy>)> {
-    // 1. Fetch original policy
-    let original_policy: sqlx::postgres::PgRow = sqlx::query(
-        r#"SELECT name, base_amount, payout_type FROM payroll_incentive_policies WHERE id = $1 AND workspace_id = $2"#
-    )
-    .bind(policy_id)
-    .bind(ctx.workspace_id)
-    .fetch_one(state.infra.db.api())
-    .await?;
-
-    let new_policy_id = crate::utils::id::new_id();
-    let new_name = format!("{} (Copy)", original_policy.get::<String, _>("name"));
-
-    // 2. Insert new policy
-    let row: sqlx::postgres::PgRow = sqlx::query(
-        r#"INSERT INTO payroll_incentive_policies (id, workspace_id, name, base_amount, payout_type, is_active, effective_from)
-           VALUES ($1, $2, $3, $4, $5, FALSE, CURRENT_DATE)
-           RETURNING id, workspace_id, name, base_amount, payout_type, is_active, created_at, effective_from, effective_to"#
-    )
-    .bind(new_policy_id)
-    .bind(ctx.workspace_id)
-    .bind(new_name)
-    .bind(original_policy.get::<f64, _>("base_amount"))
-    .bind(original_policy.get::<String, _>("payout_type"))
-    .fetch_one(state.infra.db.api())
-    .await?;
-
-    // 3. Clone tiers
-    sqlx::query(
-        r#"INSERT INTO payroll_incentive_tiers (id, policy_id, priority, rule_config, payout_amount)
-           SELECT gen_random_uuid(), $1, priority, rule_config, payout_amount
-           FROM payroll_incentive_tiers
-           WHERE policy_id = $2"#,
-    )
-    .bind(new_policy_id)
-    .bind(policy_id)
-    .execute(state.infra.db.api())
-    .await?;
-
-    Ok((
-        StatusCode::CREATED,
-        Json(PayrollIncentivePolicy {
-            id: row.get("id"),
-            workspace_id: row.get("workspace_id"),
-            name: row.get("name"),
-            base_amount: row.get("base_amount"),
-            payout_type: row.get("payout_type"),
-            is_active: row.get("is_active"),
-            created_at: row.get("created_at"),
-            effective_from: row.get("effective_from"),
-            effective_to: row.get("effective_to"),
-        }),
-    ))
+    let policy = state
+        .payroll
+        .repo
+        .clone_incentive_policy(ctx.workspace_id, policy_id)
+        .await?;
+    Ok((StatusCode::CREATED, Json(policy)))
 }

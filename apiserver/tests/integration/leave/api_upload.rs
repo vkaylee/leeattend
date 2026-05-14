@@ -95,10 +95,8 @@ async fn test_upload_leave_csv_api() {
     let job_uuid = Uuid::parse_str(job_id).unwrap();
 
     // The background worker is not running in the setup_app_tower context, so we process it manually.
-    let import_service = apiserver::services::leave_import_service::LeaveImportService::new(
-        factory.pool.clone(),
-        diesel_pools.clone(),
-    );
+    let import_service =
+        apiserver::services::leave_import_service::LeaveImportService::new(diesel_pools.clone());
 
     let job_opt = _state
         .attendance

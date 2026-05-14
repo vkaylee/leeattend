@@ -26,6 +26,130 @@ impl DieselLeavePolicyRepository {
 #[allow(clippy::too_many_lines)]
 #[async_trait]
 impl LeavePolicyRepository for DieselLeavePolicyRepository {
+    async fn get_leave_types(
+        &self,
+        workspace_id: Uuid,
+    ) -> Result<Vec<crate::models::LeaveType>, AppError> {
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        let entities = leave_types::table
+            .filter(leave_types::workspace_id.eq(workspace_id))
+            .order(leave_types::name.asc())
+            .load::<LeaveTypeEntity>(&mut conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        Ok(entities.into_iter().map(Into::into).collect())
+    }
+
+    async fn create_leave_type(
+        &self,
+        workspace_id: Uuid,
+        code: String,
+        name: String,
+        is_paid: bool,
+        policy_config: crate::models::LeaveTypeConfig,
+    ) -> Result<crate::models::LeaveType, AppError> {
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        let entity = LeaveTypeEntity {
+            id: Uuid::new_v4(),
+            workspace_id,
+            code,
+            name,
+            is_paid,
+            policy_config: serde_json::to_value(policy_config).unwrap_or_default(),
+            created_at: Utc::now(),
+        };
+
+        let result = diesel::insert_into(leave_types::table)
+            .values(&entity)
+            .get_result::<LeaveTypeEntity>(&mut conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        Ok(result.into())
+    }
+
+    async fn update_leave_type_config(
+        &self,
+        id: Uuid,
+        workspace_id: Uuid,
+        policy_config: crate::models::LeaveTypeConfig,
+    ) -> Result<crate::models::LeaveType, AppError> {
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        let result = diesel::update(
+            leave_types::table
+                .filter(leave_types::id.eq(id))
+                .filter(leave_types::workspace_id.eq(workspace_id)),
+        )
+        .set(leave_types::policy_config.eq(serde_json::to_value(policy_config).unwrap_or_default()))
+        .get_result::<LeaveTypeEntity>(&mut conn)
+        .await
+        .map_err(|e| match e {
+            diesel::result::Error::NotFound => {
+                AppError::NotFound("Leave type not found".to_string())
+            }
+            _ => AppError::Internal(format!("db: {e}")),
+        })?;
+
+        Ok(result.into())
+    }
+
+    async fn delete_leave_type(&self, id: Uuid, workspace_id: Uuid) -> Result<u64, AppError> {
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        // First check if there are any balances using this leave type
+        use crate::schema::{employees, leave_balances};
+        let in_balances: Option<i32> = leave_balances::table
+            .inner_join(employees::table)
+            .filter(leave_balances::leave_type_id.eq(id))
+            .filter(employees::workspace_id.eq(workspace_id))
+            .select(diesel::dsl::sql::<diesel::sql_types::Integer>("1"))
+            .first(&mut conn)
+            .await
+            .optional()
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        if in_balances.is_some() {
+            return Err(AppError::Conflict(
+                "Cannot delete: Leave type is currently used in employee balances".to_string(),
+            ));
+        }
+
+        let affected = diesel::delete(
+            leave_types::table
+                .filter(leave_types::id.eq(id))
+                .filter(leave_types::workspace_id.eq(workspace_id)),
+        )
+        .execute(&mut conn)
+        .await
+        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        Ok(affected as u64)
+    }
+
     async fn create_policy_definition(
         &self,
         workspace_id: Uuid,

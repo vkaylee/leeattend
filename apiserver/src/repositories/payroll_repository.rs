@@ -29,6 +29,24 @@ pub trait PayrollRepository: Send + Sync {
 
     async fn get_policy_tiers(&self, policy_id: Uuid) -> Result<Vec<IncentiveTier>, AppError>;
 
+    async fn create_incentive_policy(
+        &self,
+        workspace_id: Uuid,
+        req: &crate::models::CreatePayrollIncentivePolicyRequest,
+    ) -> Result<PayrollIncentivePolicy, AppError>;
+
+    async fn delete_incentive_policy(
+        &self,
+        workspace_id: Uuid,
+        policy_id: Uuid,
+    ) -> Result<(), AppError>;
+
+    async fn clone_incentive_policy(
+        &self,
+        workspace_id: Uuid,
+        policy_id: Uuid,
+    ) -> Result<PayrollIncentivePolicy, AppError>;
+
     async fn create_payslip_incentive(
         &self,
         payslip_id: Uuid,
