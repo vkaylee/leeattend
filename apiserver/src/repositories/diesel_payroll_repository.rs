@@ -244,6 +244,27 @@ impl PayrollRepository for DieselPayrollRepository {
         Ok(entity.map(Into::into))
     }
 
+    async fn get_payroll_settings_history(
+        &self,
+        workspace_id: Uuid,
+    ) -> Result<Vec<PayrollSettings>, AppError> {
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        let entities = payroll_settings::table
+            .filter(payroll_settings::workspace_id.eq(workspace_id))
+            .order(payroll_settings::effective_date.desc())
+            .load::<PayrollSettingsEntity>(&mut conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        Ok(entities.into_iter().map(Into::into).collect())
+    }
+
     async fn update_payroll_settings(
         &self,
         workspace_id: Uuid,

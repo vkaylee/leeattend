@@ -62,6 +62,12 @@ pub trait EmployeeRepository: Send + Sync {
         args: crate::models::EmployeePaginationArgs<'_>,
     ) -> Result<(Vec<EmployeeBasicInfo>, i64), AppError>;
 
+    async fn get_employee_departments_at(
+        &self,
+        workspace_id: Uuid,
+        date: NaiveDate,
+    ) -> Result<std::collections::HashMap<Uuid, (Option<Uuid>, String)>, AppError>;
+
     async fn update_employee(
         &self,
         id: Uuid,
@@ -112,6 +118,12 @@ pub trait EmployeeRepository: Send + Sync {
         employee_id: Uuid,
         date: NaiveDate,
     ) -> Result<Option<EmployeePayrollConfig>, AppError>;
+
+    async fn get_employee_payroll_configs(
+        &self,
+        workspace_id: Uuid,
+        employee_id: Uuid,
+    ) -> Result<Vec<EmployeePayrollConfig>, AppError>;
 
     async fn set_employee_recruitment_source(
         &self,

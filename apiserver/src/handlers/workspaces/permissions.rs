@@ -22,13 +22,11 @@ pub async fn get_member_extra_permissions(
 ) -> AppResult<Json<Vec<MemberExtraPermission>>> {
     ctx.require_permission(Permission::MembersRead)?;
 
-    let perms = sqlx::query_as::<_, MemberExtraPermission>(
-        "SELECT * FROM workspace_member_extra_permissions WHERE workspace_id = $1 AND user_id = $2 AND expires_at > NOW() ORDER BY assigned_at DESC",
-    )
-    .bind(ctx.workspace_id)
-    .bind(user_id)
-    .fetch_all(state.infra.db.api())
-    .await?;
+    let perms = state
+        .core
+        .workspace_repo
+        .get_member_extra_permissions(ctx.workspace_id, user_id)
+        .await?;
 
     Ok(Json(perms))
 }
@@ -58,16 +56,17 @@ pub async fn assign_extra_permission(
         ));
     }
 
-    let perm = sqlx::query_as::<_, MemberExtraPermission>(
-        "INSERT INTO workspace_member_extra_permissions (workspace_id, user_id, permission, expires_at, assigned_by) VALUES ($1, $2, $3, $4, $5) RETURNING *",
-    )
-    .bind(ctx.workspace_id)
-    .bind(user_id)
-    .bind(&req.permission)
-    .bind(req.expires_at)
-    .bind(ctx.user_id)
-    .fetch_one(state.infra.db.api())
-    .await?;
+    let perm = state
+        .core
+        .workspace_repo
+        .assign_extra_permission(
+            ctx.workspace_id,
+            user_id,
+            req.permission.clone(),
+            req.expires_at,
+            ctx.user_id,
+        )
+        .await?;
 
     AuditHelper::log(crate::services::audit_service::AuditLogArgs {
         repo: &state.core.audit_repo,
@@ -106,15 +105,13 @@ pub async fn revoke_extra_permission(
 ) -> AppResult<StatusCode> {
     ctx.require_permission(Permission::MembersRolesManage)?;
 
-    let res = sqlx::query(
-        "DELETE FROM workspace_member_extra_permissions WHERE id = $1 AND workspace_id = $2",
-    )
-    .bind(perm_id)
-    .bind(ctx.workspace_id)
-    .execute(state.infra.db.api())
-    .await?;
+    let affected = state
+        .core
+        .workspace_repo
+        .revoke_extra_permission(ctx.workspace_id, user_id, perm_id)
+        .await?;
 
-    if res.rows_affected() > 0 {
+    if affected > 0 {
         AuditHelper::log(crate::services::audit_service::AuditLogArgs {
             repo: &state.core.audit_repo,
             workspace_id: ctx.workspace_id,

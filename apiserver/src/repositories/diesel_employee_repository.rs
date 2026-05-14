@@ -422,6 +422,59 @@ impl EmployeeRepository for DieselEmployeeRepository {
         Ok((result, total))
     }
 
+    async fn get_employee_departments_at(
+        &self,
+        workspace_id: Uuid,
+        date: NaiveDate,
+    ) -> Result<std::collections::HashMap<Uuid, (Option<Uuid>, String)>, AppError> {
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        #[derive(Debug, diesel::QueryableByName)]
+        struct DeptRow {
+            #[diesel(sql_type = diesel::sql_types::Uuid)]
+            employee_id: Uuid,
+            #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Uuid>)]
+            department_id: Option<Uuid>,
+            #[diesel(sql_type = diesel::sql_types::Text)]
+            department_name: String,
+        }
+
+        let query = r#"
+            SELECT e.id AS employee_id,
+                   edh.department_id AS department_id,
+                   COALESCE(d.name, 'Unassigned') AS department_name
+            FROM employees e
+            LEFT JOIN LATERAL (
+                SELECT edh2.department_id
+                FROM employee_department_history edh2
+                WHERE edh2.employee_id = e.id AND edh2.effective_date <= $2
+                ORDER BY edh2.effective_date DESC
+                LIMIT 1
+            ) edh ON TRUE
+            LEFT JOIN departments d ON d.id = edh.department_id
+            WHERE e.is_active = TRUE AND e.workspace_id = $1
+        "#;
+
+        let rows: Vec<DeptRow> = diesel::sql_query(query)
+            .bind::<diesel::sql_types::Uuid, _>(workspace_id)
+            .bind::<diesel::sql_types::Date, _>(date)
+            .load(&mut conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        let mut map = std::collections::HashMap::new();
+        for row in rows {
+            map.insert(row.employee_id, (row.department_id, row.department_name));
+        }
+
+        Ok(map)
+    }
+
     async fn create_employee(&self, employee: &Employee) -> Result<(), AppError> {
         let mut conn = self
             .diesel_pools
@@ -935,6 +988,63 @@ impl EmployeeRepository for DieselEmployeeRepository {
             effective_date: t.4,
             created_at: t.5.unwrap_or_else(chrono::Utc::now),
         }))
+    }
+
+    async fn get_employee_payroll_configs(
+        &self,
+        workspace_id: Uuid,
+        employee_id: Uuid,
+    ) -> Result<Vec<crate::models::EmployeePayrollConfig>, AppError> {
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        #[derive(Debug, diesel::QueryableByName)]
+        struct Entity {
+            #[diesel(sql_type = diesel::sql_types::Uuid)]
+            id: Uuid,
+            #[diesel(sql_type = diesel::sql_types::Uuid)]
+            employee_id: Uuid,
+            #[diesel(sql_type = diesel::sql_types::Numeric)]
+            std_working_days: bigdecimal::BigDecimal,
+            #[diesel(sql_type = diesel::sql_types::Numeric)]
+            hours_per_day: bigdecimal::BigDecimal,
+            #[diesel(sql_type = diesel::sql_types::Date)]
+            effective_date: chrono::NaiveDate,
+            #[diesel(sql_type = diesel::sql_types::Timestamptz)]
+            created_at: chrono::DateTime<chrono::Utc>,
+        }
+
+        let results: Vec<Entity> = diesel::sql_query(
+            r#"SELECT epc.id, epc.employee_id, epc.std_working_days, epc.hours_per_day, epc.effective_date, epc.created_at
+               FROM employee_payroll_configs epc
+               JOIN employees e ON e.id = epc.employee_id
+               WHERE epc.employee_id = $1 AND e.workspace_id = $2
+               ORDER BY epc.effective_date DESC"#,
+        )
+        .bind::<diesel::sql_types::Uuid, _>(employee_id)
+        .bind::<diesel::sql_types::Uuid, _>(workspace_id)
+        .load(&mut conn)
+        .await
+        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        use std::str::FromStr;
+        Ok(results
+            .into_iter()
+            .map(|t| crate::models::EmployeePayrollConfig {
+                id: t.id,
+                employee_id: t.employee_id,
+                std_working_days: rust_decimal::Decimal::from_str(&t.std_working_days.to_string())
+                    .unwrap_or_default(),
+                hours_per_day: rust_decimal::Decimal::from_str(&t.hours_per_day.to_string())
+                    .unwrap_or_default(),
+                effective_date: t.effective_date,
+                created_at: t.created_at,
+            })
+            .collect())
     }
 
     async fn set_employee_recruitment_source(

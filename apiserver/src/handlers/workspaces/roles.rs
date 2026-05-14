@@ -75,15 +75,11 @@ pub async fn assign_extra_role(
         ));
     }
 
-    let extra_role = sqlx::query_as::<_, MemberExtraRole>(
-        "INSERT INTO member_extra_roles (workspace_id, user_id, role_id, expires_at) VALUES ($1, $2, $3, $4) RETURNING *"
-    )
-    .bind(ctx.workspace_id)
-    .bind(user_id)
-    .bind(req.role_id)
-    .bind(req.expires_at)
-    .fetch_one(state.infra.db.api())
-    .await?;
+    let extra_role = state
+        .core
+        .workspace_repo
+        .assign_extra_role(ctx.workspace_id, user_id, req.role_id, req.expires_at)
+        .await?;
 
     AuditHelper::log(crate::services::audit_service::AuditLogArgs {
         repo: &state.core.audit_repo,
@@ -118,13 +114,13 @@ pub async fn revoke_extra_role(
 ) -> AppResult<StatusCode> {
     ctx.require_permission(Permission::MembersRolesManage)?;
 
-    let res = sqlx::query("DELETE FROM member_extra_roles WHERE id = $1 AND workspace_id = $2")
-        .bind(role_id)
-        .bind(ctx.workspace_id)
-        .execute(state.infra.db.api())
+    let affected = state
+        .core
+        .workspace_repo
+        .revoke_extra_role(ctx.workspace_id, role_id)
         .await?;
 
-    if res.rows_affected() > 0 {
+    if affected > 0 {
         AuditHelper::log(crate::services::audit_service::AuditLogArgs {
             repo: &state.core.audit_repo,
             workspace_id: ctx.workspace_id,
@@ -162,12 +158,11 @@ pub async fn get_workspace_roles(
     // No permission gate — role list is non-sensitive metadata that every
     // workspace member needs in order to resolve role names on the People page.
 
-    let roles = sqlx::query_as::<_, WorkspaceRole>(
-        "SELECT * FROM workspace_roles WHERE workspace_id = $1 OR is_system = true ORDER BY is_system DESC, created_at ASC"
-    )
-    .bind(ctx.workspace_id)
-    .fetch_all(state.infra.db.api())
-    .await?;
+    let roles = state
+        .core
+        .workspace_repo
+        .get_workspace_roles(ctx.workspace_id)
+        .await?;
 
     Ok(Json(roles))
 }
@@ -179,16 +174,17 @@ pub async fn create_workspace_role(
 ) -> AppResult<(StatusCode, Json<WorkspaceRole>)> {
     ctx.require_permission(Permission::MembersRolesManage)?;
 
-    let role = sqlx::query_as::<_, WorkspaceRole>(
-        "INSERT INTO workspace_roles (workspace_id, name, description, color, is_system, scope_type) VALUES ($1, $2, $3, $4, false, $5) RETURNING *"
-    )
-    .bind(ctx.workspace_id)
-    .bind(req.name)
-    .bind(req.description)
-    .bind(req.color)
-    .bind(req.scope_type.to_string())
-    .fetch_one(state.infra.db.api())
-    .await?;
+    let role = state
+        .core
+        .workspace_repo
+        .create_workspace_role(
+            ctx.workspace_id,
+            req.name,
+            req.description,
+            req.color,
+            req.scope_type.to_string(),
+        )
+        .await?;
 
     Ok((StatusCode::CREATED, Json(role)))
 }
@@ -201,17 +197,18 @@ pub async fn update_workspace_role(
 ) -> AppResult<Json<WorkspaceRole>> {
     ctx.require_permission(Permission::MembersRolesManage)?;
 
-    let role = sqlx::query_as::<_, WorkspaceRole>(
-        "UPDATE workspace_roles SET name = COALESCE($1, name), description = COALESCE($2, description), color = COALESCE($3, color), updated_at = NOW() WHERE id = $4 AND workspace_id = $5 AND is_system = false RETURNING *"
-    )
-    .bind(req.name)
-    .bind(req.description)
-    .bind(req.color)
-    .bind(role_id)
-    .bind(ctx.workspace_id)
-    .fetch_optional(state.infra.db.api())
-    .await?
-    .ok_or_else(|| AppError::NotFound("Role not found or is a system role".to_string()))?;
+    let role = state
+        .core
+        .workspace_repo
+        .update_workspace_role(
+            ctx.workspace_id,
+            role_id,
+            req.name,
+            req.description,
+            req.color,
+        )
+        .await?
+        .ok_or_else(|| AppError::NotFound("Role not found or is a system role".to_string()))?;
 
     Ok(Json(role))
 }
@@ -223,15 +220,13 @@ pub async fn delete_workspace_role(
 ) -> AppResult<StatusCode> {
     ctx.require_permission(Permission::MembersRolesManage)?;
 
-    let res = sqlx::query(
-        "DELETE FROM workspace_roles WHERE id = $1 AND workspace_id = $2 AND is_system = false",
-    )
-    .bind(role_id)
-    .bind(ctx.workspace_id)
-    .execute(state.infra.db.api())
-    .await?;
+    let affected = state
+        .core
+        .workspace_repo
+        .delete_workspace_role(ctx.workspace_id, role_id)
+        .await?;
 
-    if res.rows_affected() > 0 {
+    if affected > 0 {
         if let Some(redis_pool) = state.infra.redis.clone() {
             let cache = crate::cache::RedisCache::new(redis_pool);
             let _ = cache
@@ -253,15 +248,13 @@ pub async fn get_role_permissions(
 ) -> AppResult<Json<Vec<String>>> {
     ctx.require_permission(Permission::MembersRolesManage)?;
 
-    let permissions: Vec<(String,)> = sqlx::query_as(
-        "SELECT permission_name FROM workspace_role_permissions WHERE role_id = $1 AND role_id IN (SELECT id FROM workspace_roles WHERE workspace_id = $2 OR is_system = true)"
-    )
-    .bind(role_id)
-    .bind(ctx.workspace_id)
-    .fetch_all(state.infra.db.api())
-    .await?;
+    let permissions = state
+        .core
+        .workspace_repo
+        .get_role_permissions_by_role_id(ctx.workspace_id, role_id)
+        .await?;
 
-    Ok(Json(permissions.into_iter().map(|(p,)| p).collect()))
+    Ok(Json(permissions))
 }
 
 pub async fn update_role_permissions(
@@ -272,14 +265,11 @@ pub async fn update_role_permissions(
 ) -> AppResult<StatusCode> {
     ctx.require_permission(Permission::MembersRolesManage)?;
 
-    // Verify role belongs to workspace (can't update system roles)
-    let role_exists: bool = sqlx::query_scalar(
-        "SELECT EXISTS(SELECT 1 FROM workspace_roles WHERE id = $1 AND workspace_id = $2 AND is_system = false)"
-    )
-    .bind(role_id)
-    .bind(ctx.workspace_id)
-    .fetch_one(state.infra.db.api())
-    .await?;
+    let role_exists = state
+        .core
+        .workspace_repo
+        .role_exists_and_is_not_system(ctx.workspace_id, role_id)
+        .await?;
 
     if !role_exists {
         return Err(AppError::NotFound(
@@ -287,24 +277,11 @@ pub async fn update_role_permissions(
         ));
     }
 
-    let mut tx = state.infra.db.api().begin().await?;
-
-    sqlx::query("DELETE FROM workspace_role_permissions WHERE role_id = $1")
-        .bind(role_id)
-        .execute(&mut *tx)
+    state
+        .core
+        .workspace_repo
+        .set_role_permissions(role_id, req.permissions)
         .await?;
-
-    for perm in req.permissions {
-        sqlx::query(
-            "INSERT INTO workspace_role_permissions (role_id, permission_name) VALUES ($1, $2)",
-        )
-        .bind(role_id)
-        .bind(perm)
-        .execute(&mut *tx)
-        .await?;
-    }
-
-    tx.commit().await?;
 
     if let Some(redis_pool) = state.infra.redis.clone() {
         let cache = crate::cache::RedisCache::new(redis_pool);

@@ -63,6 +63,11 @@ pub trait PayrollRepository: Send + Sync {
         date: NaiveDate,
     ) -> Result<Option<PayrollSettings>, AppError>;
 
+    async fn get_payroll_settings_history(
+        &self,
+        workspace_id: Uuid,
+    ) -> Result<Vec<PayrollSettings>, AppError>;
+
     async fn update_payroll_settings(
         &self,
         workspace_id: Uuid,

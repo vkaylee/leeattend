@@ -66,4 +66,9 @@ pub trait DepartmentRepository: Send + Sync {
         department_id: Uuid,
         date: NaiveDate,
     ) -> Result<Option<DepartmentPayrollConfig>, AppError>;
+    async fn get_department_payroll_configs(
+        &self,
+        workspace_id: Uuid,
+        department_id: Uuid,
+    ) -> Result<Vec<DepartmentPayrollConfig>, AppError>;
 }

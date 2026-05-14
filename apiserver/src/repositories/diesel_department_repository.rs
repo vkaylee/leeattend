@@ -470,4 +470,32 @@ impl DepartmentRepository for DieselDepartmentRepository {
 
         Ok(result.map(Into::into))
     }
+
+    async fn get_department_payroll_configs(
+        &self,
+        workspace_id: Uuid,
+        department_id: Uuid,
+    ) -> Result<Vec<DepartmentPayrollConfig>, AppError> {
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        let results: Vec<DepartmentPayrollConfigEntity> = diesel::sql_query(
+            r#"SELECT dpc.id, dpc.department_id, dpc.std_working_days, dpc.hours_per_day, dpc.effective_date, dpc.created_at
+               FROM department_payroll_configs dpc
+               JOIN departments d ON d.id = dpc.department_id
+               WHERE dpc.department_id = $1 AND d.workspace_id = $2
+               ORDER BY dpc.effective_date DESC"#,
+        )
+        .bind::<diesel::sql_types::Uuid, _>(department_id)
+        .bind::<diesel::sql_types::Uuid, _>(workspace_id)
+        .load(&mut conn)
+        .await
+        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        Ok(results.into_iter().map(Into::into).collect())
+    }
 }

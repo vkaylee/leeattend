@@ -558,6 +558,14 @@ mod tests {
             Ok((vec![], 0))
         }
 
+        async fn get_employee_departments_at(
+            &self,
+            _ws: Uuid,
+            _date: NaiveDate,
+        ) -> Result<std::collections::HashMap<Uuid, (Option<Uuid>, String)>, AppError> {
+            Ok(std::collections::HashMap::new())
+        }
+
         async fn update_employee(
             &self,
             _id: Uuid,
@@ -627,6 +635,14 @@ mod tests {
             _date: NaiveDate,
         ) -> Result<Option<crate::models::EmployeePayrollConfig>, AppError> {
             Ok(None)
+        }
+
+        async fn get_employee_payroll_configs(
+            &self,
+            _ws: Uuid,
+            _emp: Uuid,
+        ) -> Result<Vec<crate::models::EmployeePayrollConfig>, AppError> {
+            Ok(vec![])
         }
 
         async fn set_employee_recruitment_source(
@@ -884,6 +900,13 @@ mod tests {
             _dept: Uuid,
             _date: chrono::NaiveDate,
         ) -> Result<Option<crate::models::DepartmentPayrollConfig>, AppError> {
+            unimplemented!()
+        }
+        async fn get_department_payroll_configs(
+            &self,
+            _ws: Uuid,
+            _dept: Uuid,
+        ) -> Result<Vec<crate::models::DepartmentPayrollConfig>, AppError> {
             unimplemented!()
         }
     }

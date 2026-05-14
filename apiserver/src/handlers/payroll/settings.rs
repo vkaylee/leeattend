@@ -25,16 +25,11 @@ pub async fn get_payroll_settings_history(
     State(state): State<Arc<AppState>>,
     MemberContext { workspace_id, .. }: MemberContext,
 ) -> AppResult<Json<Vec<PayrollSettings>>> {
-    let history = sqlx::query_as!(
-        crate::models::PayrollSettings,
-        r#"SELECT workspace_id, std_working_day_mode, fixed_std_days, working_days_per_week, hours_per_day, max_ot_hours_per_day, max_ot_hours_per_month, effective_date, created_at as "created_at!", updated_at as "updated_at!"
-           FROM payroll_settings
-           WHERE workspace_id = $1
-           ORDER BY effective_date DESC"#,
-        workspace_id
-    )
-    .fetch_all(state.infra.db.api())
-    .await?;
+    let history = state
+        .payroll
+        .repo
+        .get_payroll_settings_history(workspace_id)
+        .await?;
 
     Ok(Json(history))
 }

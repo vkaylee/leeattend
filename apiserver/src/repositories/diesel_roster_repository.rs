@@ -346,7 +346,12 @@ impl RosterRepository for DieselRosterRepository {
                 crate::schema::shift_rosters::date,
             ))
             .do_update()
-            .set(crate::schema::shift_rosters::shift_id.eq(entity.shift_id))
+            .set((
+                crate::schema::shift_rosters::shift_id.eq(entity.shift_id),
+                crate::schema::shift_rosters::status.eq(entity.status.clone()),
+                crate::schema::shift_rosters::notes.eq(entity.notes.clone()),
+                crate::schema::shift_rosters::updated_at.eq(Utc::now()),
+            ))
             .get_result::<crate::models::diesel::roster::ShiftRosterEntity>(&mut conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;

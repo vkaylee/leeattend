@@ -135,31 +135,11 @@ pub async fn get_unexcused_absences(
     .map_err(|e| AppError::Internal(format!("Error fetching leave requests: {e}")))?;
 
     // 6. Batch-fetch department info for each employee
-    let dept_rows = sqlx::query!(
-        r#"SELECT e.id AS employee_id,
-                  edh.department_id AS "department_id?",
-                  COALESCE(d.name, 'Unassigned') AS "department_name!"
-           FROM employees e
-           LEFT JOIN LATERAL (
-               SELECT edh2.department_id
-               FROM employee_department_history edh2
-               WHERE edh2.employee_id = e.id AND edh2.effective_date <= $2
-               ORDER BY edh2.effective_date DESC
-               LIMIT 1
-           ) edh ON TRUE
-           LEFT JOIN departments d ON d.id = edh.department_id
-           WHERE e.is_active = TRUE AND e.workspace_id = $1"#,
-        workspace_id,
-        end_date
-    )
-    .fetch_all(state.infra.db.reader())
-    .await
-    .map_err(|e| AppError::Internal(format!("Error fetching departments: {e}")))?;
-
-    let dept_map: HashMap<Uuid, (Option<Uuid>, String)> = dept_rows
-        .into_iter()
-        .map(|r| (r.employee_id, (r.department_id, r.department_name)))
-        .collect();
+    let dept_map = state
+        .employees
+        .repo
+        .get_employee_departments_at(workspace_id, end_date)
+        .await?;
 
     // 7. Determine status per day using attendance_utils::determine_daily_status
     struct EmployeeStats {
@@ -370,14 +350,11 @@ pub async fn get_workspaces(
     State(state): State<Arc<AppState>>,
     UserId(user_id): UserId,
 ) -> AppResult<Json<Vec<Workspace>>> {
-    let workspaces = sqlx::query_as::<_, Workspace>(
-        "SELECT w.* FROM workspaces w
-         JOIN workspace_members wm ON w.id = wm.workspace_id
-         WHERE wm.user_id = $1",
-    )
-    .bind(user_id)
-    .fetch_all(state.infra.db.api())
-    .await?;
+    let workspaces = state
+        .core
+        .workspace_repo
+        .get_user_workspaces(user_id)
+        .await?;
 
     Ok(Json(workspaces))
 }
