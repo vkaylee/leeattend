@@ -51,7 +51,6 @@ pub struct ReportService {
     leave_repo: Arc<dyn crate::repositories::leave_request_repository::LeaveRequestRepository>,
     workspace_repo: Arc<dyn WorkspaceRepository>,
     holiday_repo: Arc<dyn HolidayRepository>,
-    diesel: crate::diesel_pool::DieselPools,
 }
 
 pub struct ReportServiceArgs {
@@ -63,7 +62,6 @@ pub struct ReportServiceArgs {
     pub leave_repo: Arc<dyn crate::repositories::leave_request_repository::LeaveRequestRepository>,
     pub workspace_repo: Arc<dyn WorkspaceRepository>,
     pub holiday_repo: Arc<dyn HolidayRepository>,
-    pub diesel: crate::diesel_pool::DieselPools,
 }
 
 impl ReportService {
@@ -77,7 +75,6 @@ impl ReportService {
             leave_repo: args.leave_repo,
             workspace_repo: args.workspace_repo,
             holiday_repo: args.holiday_repo,
-            diesel: args.diesel,
         }
     }
 
@@ -257,21 +254,15 @@ impl ReportService {
             .get_batch_ot_statuses(args.workspace_id, &emp_ids, args.start_date, args.end_date)
             .await?;
 
-        // 5c. BATCH fetch approved leave requests for holiday-leave status detection
-        let mut conn = self
-            .diesel
-            .api
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(e.to_string()))?;
-        let leave_date_set = crate::services::attendance_utils::build_leave_date_set(
-            &mut conn,
-            args.workspace_id,
-            &emp_ids,
-            args.start_date,
-            args.end_date,
-        )
-        .await?;
+        let leave_date_set = self
+            .leave_repo
+            .get_approved_leave_dates(
+                args.workspace_id,
+                &emp_ids,
+                args.start_date,
+                args.end_date,
+            )
+            .await?;
 
         // 5d. BATCH fetch attendance rules (SCD Type 2)
         let attendance_rules_map = PolicyResolver::resolve_attendance_policy_batch(

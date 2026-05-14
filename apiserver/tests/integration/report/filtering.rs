@@ -62,7 +62,6 @@ async fn test_daily_report_employee_filtering() {
             workspace_repo: std::sync::Arc::new(
                 apiserver::repositories::DieselWorkspaceRepository::new(diesel_pools.clone()),
             ),
-            diesel: diesel_pools.clone(),
         });
 
     // Filter by emp1

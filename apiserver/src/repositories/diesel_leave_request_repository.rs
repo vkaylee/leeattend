@@ -558,4 +558,27 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
 
         Ok(rows.into_iter().collect())
     }
+
+    async fn get_approved_leave_dates(
+        &self,
+        workspace_id: Uuid,
+        employee_ids: &[Uuid],
+        start_date: NaiveDate,
+        end_date: NaiveDate,
+    ) -> Result<std::collections::HashSet<(Uuid, NaiveDate)>, AppError> {
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
+
+        crate::services::attendance_utils::build_leave_date_set(
+            &mut conn,
+            workspace_id,
+            employee_ids,
+            start_date,
+            end_date,
+        ).await
+    }
 }
