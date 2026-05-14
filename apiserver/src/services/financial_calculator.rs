@@ -4,16 +4,13 @@
 //! Extracted from `PayrollService` to satisfy SRP.
 
 use crate::errors::AppError;
+use crate::models::{IncentiveEvaluationResult, Payslip};
+use crate::services::payroll_evaluator::{IncentiveContext, PayrollEvaluator};
+use crate::services::payroll_rule_evaluator::PayrollRuleEvaluator;
 use chrono::{NaiveDate, Utc};
 use rust_decimal::prelude::{FromPrimitive, ToPrimitive};
 use rust_decimal::Decimal;
-use sqlx::PgPool;
 use uuid::Uuid;
-
-use crate::models::{IncentiveEvaluationResult, Payslip};
-use crate::repositories::{leave_request_repository, payroll_repository};
-use crate::services::payroll_evaluator::{IncentiveContext, PayrollEvaluator};
-use crate::services::payroll_rule_evaluator::PayrollRuleEvaluator;
 
 use super::payroll_service::SegmentSnapshot;
 
@@ -120,36 +117,36 @@ impl FinancialCalculator {
 
     #[tracing::instrument(skip_all, err)]
     pub async fn calculate_incentives(
-        pool: &PgPool,
+        payroll_repo: &dyn crate::repositories::payroll_repository::PayrollRepository,
+        leave_repo: &dyn crate::repositories::leave_request_repository::LeaveRequestRepository,
         args: CalculateIncentivesArgs,
     ) -> Result<IncentivesResult, AppError> {
-        let active_policies = payroll_repository::get_active_incentive_policies_for_period(
-            pool,
-            args.workspace_id,
-            args.start_date,
-            args.end_date,
-        )
-        .await
-        .map_err(AppError::Sqlx)?;
+        let active_policies = payroll_repo
+            .get_active_incentive_policies_for_period(
+                args.workspace_id,
+                args.start_date,
+                args.end_date,
+            )
+            .await?;
         let mut incentive_results = Vec::new();
         let mut total_incentive_amount = Decimal::ZERO;
 
-        let leave_breakdown = leave_request_repository::get_approved_leave_breakdown(
-            pool,
-            args.employee_id,
-            args.start_date,
-            args.end_date,
-            args.workspace_id,
-        )
-        .await
-        .map_err(|e| {
-            tracing::error!(
-                "Failed to fetch leave breakdown for employee {}: {}",
+        let leave_breakdown = leave_repo
+            .get_approved_leave_breakdown(
                 args.employee_id,
-                e
-            );
-            AppError::Internal("Internal error".into())
-        })?;
+                args.start_date,
+                args.end_date,
+                args.workspace_id,
+            )
+            .await
+            .map_err(|e| {
+                tracing::error!(
+                    "Failed to fetch leave breakdown for employee {}: {}",
+                    args.employee_id,
+                    e
+                );
+                AppError::Internal(format!("Leave breakdown error (incentives): {e}"))
+            })?;
 
         if !active_policies.is_empty() {
             let context = IncentiveContext {
@@ -162,9 +159,7 @@ impl FinancialCalculator {
             };
 
             for policy in active_policies {
-                let tiers = payroll_repository::get_policy_tiers(pool, policy.id)
-                    .await
-                    .map_err(AppError::Sqlx)?;
+                let tiers = payroll_repo.get_policy_tiers(policy.id).await?;
                 let res = PayrollEvaluator::evaluate_policy(&policy, &tiers, &context)?;
                 if !res.amount.is_zero() {
                     total_incentive_amount += res.amount;
@@ -185,21 +180,22 @@ impl FinancialCalculator {
 
     #[tracing::instrument(skip_all, err)]
     pub async fn calculate_deductions(
-        pool: &PgPool,
+        payroll_repo: &dyn crate::repositories::payroll_repository::PayrollRepository,
+        leave_repo: &dyn crate::repositories::leave_request_repository::LeaveRequestRepository,
         args: CalculateDeductionsArgs<'_>,
     ) -> Result<DeductionsResult, AppError> {
-        let leave_breakdown = leave_request_repository::get_approved_leave_breakdown(
-            pool,
-            args.employee_id,
-            args.start_date,
-            args.end_date,
-            args.workspace_id,
-        )
-        .await
-        .map_err(|e| {
-            tracing::error!("Failed to fetch leave breakdown: {}", e);
-            AppError::Internal("Internal error".into())
-        })?;
+        let leave_breakdown = leave_repo
+            .get_approved_leave_breakdown(
+                args.employee_id,
+                args.start_date,
+                args.end_date,
+                args.workspace_id,
+            )
+            .await
+            .map_err(|e| {
+                tracing::error!("Failed to fetch leave breakdown: {}", e);
+                AppError::Internal(format!("Leave breakdown error (deductions): {e}"))
+            })?;
 
         let mut deductions_amount = Decimal::ZERO;
         if leave_breakdown.unpaid_days > 0.0 {
@@ -212,9 +208,8 @@ impl FinancialCalculator {
         }
 
         // Deductions for unpaid holidays where employee has no leave request
-        let unpaid_holiday_days: i64 =
-            leave_request_repository::get_unpaid_holiday_days_without_leave(
-                pool,
+        let unpaid_holiday_days: i64 = leave_repo
+            .get_unpaid_holiday_days_without_leave(
                 args.workspace_id,
                 args.employee_id,
                 args.start_date,
@@ -233,7 +228,7 @@ impl FinancialCalculator {
 
         // Evaluate statutory deductions via new Rule Engine
         let rule_results = PayrollRuleEvaluator::evaluate_rules(
-            pool,
+            payroll_repo,
             args.workspace_id,
             args.employee_id,
             args.department_id,

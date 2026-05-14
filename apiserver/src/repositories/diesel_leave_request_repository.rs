@@ -3,38 +3,59 @@ use crate::errors::AppError;
 use crate::models::diesel::leave::*;
 use crate::models::{LeaveRequest, LeaveStatus};
 use crate::repositories::leave_request_repository::{
-    create_leave_request, get_approved_leave_breakdown, update_leave_request_status,
-    LeaveBreakdown, LeaveRequestRepository,
+    LeaveBreakdown, LeaveHistoryRequestItem, LeaveRequestRepository,
 };
 
 use crate::schema::*;
 use async_trait::async_trait;
-use chrono::NaiveDate;
+use chrono::{DateTime, NaiveDate, Utc};
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
-use sqlx::PgPool;
 use uuid::Uuid;
 
 pub struct DieselLeaveRequestRepository {
-    pub sqlx_pool: PgPool,
     pub diesel_pools: DieselPools,
 }
 
 impl DieselLeaveRequestRepository {
-    pub fn new(sqlx_pool: PgPool, diesel_pools: DieselPools) -> Self {
-        Self {
-            sqlx_pool,
-            diesel_pools,
-        }
+    pub fn new(diesel_pools: DieselPools) -> Self {
+        Self { diesel_pools }
     }
 }
 
+#[allow(clippy::too_many_lines)]
 #[async_trait]
 impl LeaveRequestRepository for DieselLeaveRequestRepository {
     async fn create_leave_request(&self, request: &LeaveRequest) -> Result<(), AppError> {
-        create_leave_request(&self.sqlx_pool, request)
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
             .await
-            .map_err(Into::into)
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        diesel::insert_into(leave_requests::table)
+            .values((
+                leave_requests::id.eq(request.id),
+                leave_requests::employee_id.eq(request.employee_id),
+                leave_requests::leave_type_id.eq(request.leave_type_id),
+                leave_requests::start_date.eq(request.start_date),
+                leave_requests::end_date.eq(request.end_date),
+                leave_requests::reason.eq(&request.reason),
+                leave_requests::status.eq(request.status),
+                leave_requests::duration_type.eq(request.duration_type.to_string()),
+                leave_requests::start_time.eq(request.start_time),
+                leave_requests::end_time.eq(request.end_time),
+                leave_requests::requested_by_user_id.eq(request.requested_by_user_id),
+                leave_requests::approved_by_user_id.eq(request.approved_by_user_id),
+                leave_requests::created_at.eq(request.created_at),
+                leave_requests::updated_at.eq(request.updated_at),
+            ))
+            .execute(&mut conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        Ok(())
     }
 
     async fn get_leave_request_by_id(
@@ -69,9 +90,30 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
         status: LeaveStatus,
         approved_by: Option<Uuid>,
     ) -> Result<(), AppError> {
-        update_leave_request_status(&self.sqlx_pool, workspace_id, id, status, approved_by)
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
             .await
-            .map_err(Into::into)
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        diesel::update(leave_requests::table)
+            .filter(leave_requests::id.eq(id))
+            .filter(diesel::dsl::exists(
+                employees::table
+                    .filter(employees::id.eq(leave_requests::employee_id))
+                    .filter(employees::workspace_id.eq(workspace_id)),
+            ))
+            .set((
+                leave_requests::status.eq(status),
+                leave_requests::approved_by_user_id.eq(approved_by),
+                leave_requests::updated_at.eq(Utc::now()),
+            ))
+            .execute(&mut conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        Ok(())
     }
 
     async fn get_employee_leave_requests(
@@ -137,15 +179,79 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
         end_date: NaiveDate,
         workspace_id: Uuid,
     ) -> Result<LeaveBreakdown, AppError> {
-        get_approved_leave_breakdown(
-            &self.sqlx_pool,
-            employee_id,
-            start_date,
-            end_date,
-            workspace_id,
-        )
-        .await
-        .map_err(Into::into)
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        // Step 1: Get raw leave days per type
+        let rows = leave_requests::table
+            .inner_join(leave_types::table)
+            .inner_join(employees::table)
+            .filter(leave_requests::employee_id.eq(employee_id))
+            .filter(employees::workspace_id.eq(workspace_id))
+            .filter(
+                leave_requests::status.eq(LeaveStatus::Approved)
+                    .or(leave_requests::status.eq(LeaveStatus::PreApproved)),
+            )
+            .filter(leave_requests::start_date.le(end_date))
+            .filter(leave_requests::end_date.ge(start_date))
+            .group_by(leave_types::code)
+            .select((
+                leave_types::code,
+                diesel::dsl::sql::<diesel::sql_types::BigInt>(&format!(
+                    "SUM(LEAST(end_date, '{end_date}') - GREATEST(start_date, '{start_date}') + 1)"
+                )),
+            ))
+            .load::<(String, i64)>(&mut conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        // Step 2: Count paid holidays in the period to subtract from total
+        let paid_holiday_count: i64 = holidays::table
+            .filter(holidays::workspace_id.eq(workspace_id))
+            .filter(holidays::is_paid.eq(true))
+            .filter(holidays::date.ge(start_date))
+            .filter(holidays::date.le(end_date))
+            .filter(diesel::dsl::exists(
+                leave_requests::table
+                    .filter(leave_requests::employee_id.eq(employee_id))
+                    .filter(
+                        leave_requests::status.eq(LeaveStatus::Approved)
+                            .or(leave_requests::status.eq(LeaveStatus::PreApproved)),
+                    )
+                    .filter(leave_requests::start_date.le(holidays::date))
+                    .filter(leave_requests::end_date.ge(holidays::date)),
+            ))
+            .count()
+            .get_result::<i64>(&mut conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        let mut breakdown = LeaveBreakdown {
+            total_days: 0.0,
+            unpaid_days: 0.0,
+            sick_days: 0.0,
+        };
+
+        for (code, days) in rows {
+            let days_f = days as f64;
+            breakdown.total_days += days_f;
+            if code == "unpaid" || code == "personal" {
+                breakdown.unpaid_days += days_f;
+            } else if code == "sick" {
+                breakdown.sick_days += days_f;
+            }
+        }
+
+        breakdown.total_days -= paid_holiday_count as f64;
+        if breakdown.total_days < 0.0 {
+            breakdown.total_days = 0.0;
+        }
+
+        Ok(breakdown)
     }
 
     async fn get_employee_department_for_request(
@@ -153,22 +259,29 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
         request_id: Uuid,
         workspace_id: Uuid,
     ) -> Result<Option<Uuid>, AppError> {
-        sqlx::query_scalar(
-            r#"
-            SELECT edh.department_id
-            FROM leave_requests lr
-            JOIN employee_department_history edh ON lr.employee_id = edh.employee_id
-            JOIN employees e ON lr.employee_id = e.id
-            WHERE lr.id = $1 AND e.workspace_id = $2
-            ORDER BY edh.effective_date DESC
-            LIMIT 1
-            "#,
-        )
-        .bind(request_id)
-        .bind(workspace_id)
-        .fetch_optional(&self.sqlx_pool)
-        .await
-        .map_err(Into::into)
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        let dept_id = leave_requests::table
+            .inner_join(
+                employee_department_history::table
+                    .on(leave_requests::employee_id.eq(employee_department_history::employee_id)),
+            )
+            .inner_join(employees::table.on(leave_requests::employee_id.eq(employees::id)))
+            .filter(leave_requests::id.eq(request_id))
+            .filter(employees::workspace_id.eq(workspace_id))
+            .order(employee_department_history::effective_date.desc())
+            .select(employee_department_history::department_id)
+            .first::<Uuid>(&mut conn)
+            .await
+            .optional()
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        Ok(dept_id)
     }
 
     async fn get_leave_types(&self, workspace_id: Uuid) -> Result<Vec<(String, String)>, AppError> {
@@ -196,32 +309,61 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
         employee_id: Uuid,
         date: NaiveDate,
     ) -> Result<Option<(Uuid, Uuid, String)>, AppError> {
-        sqlx::query_as(
-            r#"SELECT lr.id, lr.leave_type_id, lt.code
-               FROM leave_requests lr
-               JOIN leave_types lt ON lt.id = lr.leave_type_id
-               JOIN employees e ON e.id = lr.employee_id
-               WHERE lr.employee_id = $1
-                 AND e.workspace_id = $3
-                 AND lr.status IN ('approved'::leave_status_type, 'pre_approved'::leave_status_type)
-                 AND lr.start_date <= $2
-                 AND lr.end_date >= $2
-                 AND lr.requested_by_user_id IS NULL"#,
-        )
-        .bind(employee_id)
-        .bind(date)
-        .bind(workspace_id)
-        .fetch_optional(&self.sqlx_pool)
-        .await
-        .map_err(|e| AppError::Internal(format!("db: {e}")))
-    }
-
-    async fn cancel_leave_request(&self, _workspace_id: Uuid, id: Uuid) -> Result<(), AppError> {
-        sqlx::query("UPDATE leave_requests SET status = 'cancelled'::leave_status_type, updated_at = NOW() WHERE id = $1")
-            .bind(id)
-            .execute(&self.sqlx_pool)
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        let row = leave_requests::table
+            .inner_join(leave_types::table)
+            .inner_join(employees::table)
+            .filter(leave_requests::employee_id.eq(employee_id))
+            .filter(employees::workspace_id.eq(workspace_id))
+            .filter(
+                leave_requests::status.eq(LeaveStatus::Approved)
+                    .or(leave_requests::status.eq(LeaveStatus::PreApproved)),
+            )
+            .filter(leave_requests::start_date.le(date))
+            .filter(leave_requests::end_date.ge(date))
+            .filter(leave_requests::requested_by_user_id.is_null())
+            .select((
+                leave_requests::id,
+                leave_requests::leave_type_id,
+                leave_types::code,
+            ))
+            .first::<(Uuid, Uuid, String)>(&mut conn)
+            .await
+            .optional()
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        Ok(row)
+    }
+
+    async fn cancel_leave_request(&self, workspace_id: Uuid, id: Uuid) -> Result<(), AppError> {
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        diesel::update(leave_requests::table)
+            .filter(leave_requests::id.eq(id))
+            .filter(diesel::dsl::exists(
+                employees::table
+                    .filter(employees::id.eq(leave_requests::employee_id))
+                    .filter(employees::workspace_id.eq(workspace_id)),
+            ))
+            .set((
+                leave_requests::status.eq(LeaveStatus::Cancelled),
+                leave_requests::updated_at.eq(Utc::now()),
+            ))
+            .execute(&mut conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
         Ok(())
     }
 
@@ -231,42 +373,65 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
         employee_id: Uuid,
         year: i32,
         leave_type_id: Option<Uuid>,
-    ) -> Result<Vec<crate::repositories::leave_request_repository::LeaveHistoryRequestItem>, AppError>
-    {
-        let rows = sqlx::query!(
-            r#"
-            SELECT lr.id, lr.start_date, lr.end_date, lt.name as leave_type_name,
-                   lr.reason, lr.created_at
-            FROM leave_requests lr
-            JOIN leave_types lt ON lr.leave_type_id = lt.id
-            JOIN employees e ON lr.employee_id = e.id
-            WHERE lr.employee_id = $1
-              AND e.workspace_id = $4
-              AND lr.status IN ('approved', 'pre_approved')
-              AND EXTRACT(YEAR FROM lr.start_date) = $2
-              AND (lt.id = $3 OR $3 IS NULL)
-            "#,
-            employee_id,
-            year as f64,
-            leave_type_id,
-            workspace_id
-        )
-        .fetch_all(&self.sqlx_pool)
-        .await
-        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+    ) -> Result<Vec<LeaveHistoryRequestItem>, AppError> {
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
-        Ok(rows
-            .into_iter()
-            .map(
-                |row| crate::repositories::leave_request_repository::LeaveHistoryRequestItem {
-                    id: row.id,
-                    start_date: row.start_date,
-                    end_date: row.end_date,
-                    leave_type_name: row.leave_type_name,
-                    reason: row.reason,
-                    created_at: row.created_at,
-                },
+        let mut query = leave_requests::table
+            .inner_join(leave_types::table)
+            .inner_join(employees::table)
+            .filter(leave_requests::employee_id.eq(employee_id))
+            .filter(employees::workspace_id.eq(workspace_id))
+            .filter(
+                leave_requests::status.eq(LeaveStatus::Approved)
+                    .or(leave_requests::status.eq(LeaveStatus::PreApproved)),
             )
+            .filter(
+                diesel::dsl::sql::<diesel::sql_types::Bool>(
+                    "EXTRACT(YEAR FROM leave_requests.start_date) = ",
+                )
+                .bind::<diesel::sql_types::Double, _>(year as f64),
+            )
+            .into_boxed();
+
+        if let Some(lt_id) = leave_type_id {
+            query = query.filter(leave_requests::leave_type_id.eq(lt_id));
+        }
+
+        let entities = query
+            .select((
+                leave_requests::id,
+                leave_requests::start_date,
+                leave_requests::end_date,
+                leave_types::name,
+                leave_requests::reason,
+                leave_requests::created_at,
+            ))
+            .load::<(
+                Uuid,
+                NaiveDate,
+                NaiveDate,
+                String,
+                Option<String>,
+                Option<DateTime<Utc>>,
+            )>(&mut conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        Ok(entities
+            .into_iter()
+            .map(|row| LeaveHistoryRequestItem {
+                id: row.0,
+                start_date: row.1,
+                end_date: row.2,
+                leave_type_name: row.3,
+                reason: row.4,
+                created_at: row.5,
+            })
             .collect())
     }
 
@@ -275,14 +440,22 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
         workspace_id: Uuid,
         leave_type_id: Uuid,
     ) -> Result<bool, AppError> {
-        let exists: bool = sqlx::query_scalar(
-            "SELECT EXISTS(SELECT 1 FROM leave_types WHERE id = $1 AND workspace_id = $2)",
-        )
-        .bind(leave_type_id)
-        .bind(workspace_id)
-        .fetch_one(&self.sqlx_pool)
-        .await
-        .unwrap_or(false);
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        let exists = leave_types::table
+            .filter(leave_types::id.eq(leave_type_id))
+            .filter(leave_types::workspace_id.eq(workspace_id))
+            .count()
+            .get_result::<i64>(&mut conn)
+            .await
+            .map(|c| c > 0)
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
         Ok(exists)
     }
 
@@ -291,13 +464,92 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
         workspace_id: Uuid,
         leave_type_id: Uuid,
     ) -> Result<Option<String>, AppError> {
-        let name: Option<String> =
-            sqlx::query_scalar("SELECT name FROM leave_types WHERE id = $1 AND workspace_id = $2")
-                .bind(leave_type_id)
-                .bind(workspace_id)
-                .fetch_optional(&self.sqlx_pool)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        let name = leave_types::table
+            .filter(leave_types::id.eq(leave_type_id))
+            .filter(leave_types::workspace_id.eq(workspace_id))
+            .select(leave_types::name)
+            .first::<String>(&mut conn)
+            .await
+            .optional()
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
         Ok(name)
+    }
+
+    async fn get_unpaid_holiday_days_without_leave(
+        &self,
+        workspace_id: Uuid,
+        employee_id: Uuid,
+        start_date: NaiveDate,
+        end_date: NaiveDate,
+    ) -> Result<i64, AppError> {
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        let count = holidays::table
+            .filter(holidays::workspace_id.eq(workspace_id))
+            .filter(holidays::is_paid.eq(false))
+            .filter(holidays::date.ge(start_date))
+            .filter(holidays::date.le(end_date))
+            .filter(diesel::dsl::not(diesel::dsl::exists(
+                leave_requests::table
+                    .filter(leave_requests::employee_id.eq(employee_id))
+                    .filter(
+                        leave_requests::status.eq(LeaveStatus::Approved)
+                            .or(leave_requests::status.eq(LeaveStatus::PreApproved)),
+                    )
+                    .filter(leave_requests::start_date.le(holidays::date))
+                    .filter(leave_requests::end_date.ge(holidays::date)),
+            )))
+            .count()
+            .get_result::<i64>(&mut conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        Ok(count)
+    }
+
+    async fn get_batch_leave_days(
+        &self,
+        employee_ids: &[Uuid],
+        start_date: NaiveDate,
+        end_date: NaiveDate,
+    ) -> Result<std::collections::HashMap<Uuid, i64>, AppError> {
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        let rows = leave_requests::table
+            .filter(leave_requests::employee_id.eq_any(employee_ids))
+            .filter(
+                leave_requests::status.eq(LeaveStatus::Approved)
+                    .or(leave_requests::status.eq(LeaveStatus::PreApproved)),
+            )
+            .filter(leave_requests::start_date.ge(start_date))
+            .filter(leave_requests::end_date.le(end_date))
+            .group_by(leave_requests::employee_id)
+            .select((
+                leave_requests::employee_id,
+                diesel::dsl::sql::<diesel::sql_types::BigInt>("SUM(end_date - start_date + 1)"),
+            ))
+            .load::<(Uuid, i64)>(&mut conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        Ok(rows.into_iter().collect())
     }
 }

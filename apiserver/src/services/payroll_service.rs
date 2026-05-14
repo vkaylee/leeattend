@@ -124,7 +124,7 @@ impl PayrollService {
             .await
             .map_err(|e| {
                 tracing::error!("Error fetching workspace: {}", e);
-                AppError::Internal("Internal error".into())
+                AppError::Internal(format!("Workspace fetch error: {e}"))
             })?
             .ok_or(AppError::NotFound("Not found".into()))?;
 
@@ -140,7 +140,7 @@ impl PayrollService {
         .ok_or(AppError::Validation("Invalid request".into()))?;
         let end_date = next_month_date
             .pred_opt()
-            .ok_or(AppError::Internal("Internal error".into()))?;
+            .ok_or(AppError::Internal("Date calculation error".into()))?;
 
         let salary_history = self
             .payroll_repo
@@ -169,7 +169,7 @@ impl PayrollService {
             .await
             .map_err(|e| {
                 tracing::error!("Failed to build roster data: {}", e);
-                AppError::Internal("Internal error".into())
+                AppError::Internal(format!("Roster data error: {e}"))
             })?;
 
         let employee = self
