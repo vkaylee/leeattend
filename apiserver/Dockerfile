@@ -33,7 +33,6 @@ RUN apt-get update && apt-get install -y clang mold git redis-tools postgresql-c
     rm -rf /var/lib/apt/lists/* && \
     rustup component add clippy && \
     cargo install cargo-watch && \
-    cargo install sqlx-cli --locked --no-default-features --features postgres && \
     apt-get update && apt-get install -y libpq-dev && \
     cargo install diesel_cli --locked --no-default-features --features postgres
 WORKDIR /app
@@ -44,7 +43,6 @@ FROM chef AS test
 ENV SCCACHE_DIR=/sccache
 ENV RUSTC_WRAPPER=sccache
 RUN apt-get update && apt-get install -y libpq-dev && \
-    cargo install sqlx-cli --locked --no-default-features --features postgres && \
     cargo install diesel_cli --locked --no-default-features --features postgres
 RUN curl -LsSf https://get.nexte.st/0.9.133/linux | tar zxf - -C /usr/local/bin
 # Coverage tooling: llvm-cov requires llvm-tools-preview component + cargo-llvm-cov binary
@@ -62,7 +60,6 @@ FROM chef AS builder
 COPY --from=cacher /app/target target
 COPY --from=cacher $CARGO_HOME $CARGO_HOME
 COPY . .
-ENV SQLX_OFFLINE=true
 ENV SCCACHE_DIR=/sccache
 ENV RUSTC_WRAPPER=sccache
 RUN --mount=type=cache,target=/usr/local/cargo/registry \

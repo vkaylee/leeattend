@@ -77,7 +77,6 @@ class Orchestrator:
         self.tool_map = {
             "npm": "webdashboard",
             "cargo": "apiserver",
-            "sqlx": "apiserver",
             "diesel": "apiserver",
         }
         self.setup_parser()
@@ -385,13 +384,7 @@ class Orchestrator:
             run_unit = False
             run_e2e = False
 
-        if (run_lint or run_unit or run_e2e) and mode in ["api", "all"]:
-            log_info("🔹 Generating SQLx metadata cache before tests...")
-            fake_args = argparse.Namespace(
-                tool="sqlx",
-                args=["prepare", "--", "--tests"],
-            )
-            self.handle_run(fake_args)
+
 
         if run_lint:
             self.run_phase("Linting", mode, args)
@@ -472,9 +465,9 @@ class Orchestrator:
                 ["/bin/bash", "-c", f'source "{SCRIPTS_DIR}/_sync-api.sh"']
             ),
             "test:infra": self.handle_test_infra,
-            "migrate:run": lambda: self.handle_sqlx(["migrate", "run"]),
-            "migrate:revert": lambda: self.handle_sqlx(["migrate", "revert"]),
-            "migrate:status": lambda: self.handle_sqlx(["migrate", "status"]),
+            "migrate:run": lambda: self.handle_diesel(["migration", "run"]),
+            "migrate:revert": lambda: self.handle_diesel(["migration", "revert"]),
+            "migrate:status": lambda: self.handle_diesel(["migration", "list"]),
             "db:setup": lambda: self.run_phase("Database Setup", "all", args),
             "prebuild": lambda: self.run_phase("Prebuild", "all", args),
             "fmt:infra": self.handle_fmt_infra,
@@ -577,7 +570,7 @@ class Orchestrator:
             self.env_vars.get("COMPOSE_PROJECT_NAME", "leeattend-test"),
         ]
 
-        if tool in ["cargo", "sqlx", "diesel"]:
+        if tool in ["cargo", "diesel"]:
             log_info(f"🔹 Bringing up backend dependencies for {tool}...")
             _lifecycle_up("infra-db")
 
@@ -600,10 +593,9 @@ class Orchestrator:
                             "--workdir",
                             "/workspace/apiserver",
                             "--entrypoint",
-                            "cargo",
+                            "diesel",
                             "apiserver",
-                            "sqlx",
-                            "migrate",
+                            "migration",
                             "run",
                         ]
                     )
@@ -663,23 +655,7 @@ class Orchestrator:
         elif tool == "cargo":
             compose_cmd.extend(["run", "-T", "--rm"])
             self._handle_run_cargo(compose_cmd, tool_args, service)
-        elif tool_args and tool_args[0] == "prepare":
-            # sqlx prepare must run via cargo without SQLX_OFFLINE=true
-            compose_cmd.extend(
-                [
-                    "run",
-                    "-T",
-                    "--rm",
-                    "--workdir",
-                    "/workspace/apiserver",
-                    "--entrypoint",
-                    "cargo",
-                    service,
-                    "sqlx",
-                ]
-            )
-            compose_cmd.extend(tool_args)
-        else:  # sqlx, diesel
+        else:  # diesel
             compose_cmd.extend(["run", "-T", "--rm", "--entrypoint", tool, service])
             if tool_args:
                 compose_cmd.extend(tool_args)
@@ -737,8 +713,6 @@ class Orchestrator:
         workdir = f"/workspace/{rel_dir}" if rel_dir else "/workspace"
         compose_cmd.extend(
             [
-                "-e",
-                "SQLX_OFFLINE=true",
                 "--workdir",
                 workdir,
                 "--entrypoint",
@@ -830,8 +804,8 @@ class Orchestrator:
             cmd += ["-A", "-t", "--json"]
         self.execute_safe(cmd)
 
-    def handle_sqlx(self, args: list[str]) -> None:
-        """Wrapper for sqlx commands."""
+    def handle_diesel(self, args: list[str]) -> None:
+        """Wrapper for diesel commands."""
         caller_dir = Path.cwd()
         rel_dir = ""
         with contextlib.suppress(ValueError):
@@ -851,7 +825,7 @@ class Orchestrator:
                 "--workdir",
                 workdir,
                 "--entrypoint",
-                "sqlx",
+                "diesel",
                 "apiserver",
             ]
             + args

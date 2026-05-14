@@ -29,7 +29,7 @@ x-rust-test-base: &rust-test-base
     - ${HOME}/.cargo/registry:/usr/local/cargo/registry
     - sccache-cache:/workspace/.sccache
     - /dev/shm/leeattend-shared-data:/workspace/shared
-    - /dev/shm/leeattend-sqlx-cache:/workspace/apiserver/.sqlx
+
     - /workspace/apiserver/storage
 
 services:
