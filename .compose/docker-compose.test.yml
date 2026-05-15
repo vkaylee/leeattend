@@ -151,6 +151,7 @@ services:
       - SUPAVISOR_POOL_PASSWORD=${SUPAVISOR_POOL_PASSWORD:-}
       - SUPAVISOR_POOL_SIZE=${SUPAVISOR_POOL_SIZE:-20}
       - SUPAVISOR_MODE_TYPE=${SUPAVISOR_MODE_TYPE:-transaction}
+      - SUPAVISOR_IP_VERSION=v4
       - API_JWT_SECRET=${SUPAVISOR_API_JWT:-your-super-secret-jwt-token-with-at-least-32-bytes-long}
       - REDIS_URL=redis://redis:6379
       - STORAGE_DIR=/workspace/apiserver/storage

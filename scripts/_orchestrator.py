@@ -571,34 +571,41 @@ class Orchestrator:
         ]
 
         if tool in ["cargo", "diesel"]:
-            log_info(f"🔹 Bringing up backend dependencies for {tool}...")
-            _lifecycle_up("infra-db")
+            needs_db = tool == "diesel"
+            if tool == "cargo" and tool_args:
+                first_arg = tool_args[0]
+                if first_arg in ["run", "test", "nextest"]:
+                    needs_db = True
 
-            if os.environ.get("POOLER") == "true":
-                # Ensure migrations are run so the _supavisor schema exists before supavisor boots
-                if tool_args and tool_args[0] == "prepare":
-                    log_info("ℹ️ 🔹 Running migrations before starting pooler...")
-                    self.execute_safe(
-                        [
-                            *self.compose_engine,
-                            "-p",
-                            self.env_vars.get("COMPOSE_PROJECT_NAME", "leeattend-test"),
-                            "--profile",
-                            "int-api",
-                            "--profile",
-                            "infra-db",
-                            "run",
-                            "-T",
-                            "--rm",
-                            "--workdir",
-                            "/workspace/apiserver",
-                            "--entrypoint",
-                            "diesel",
-                            "apiserver",
-                            "migration",
-                            "run",
-                        ]
-                    )
+            if needs_db:
+                log_info(f"🔹 Bringing up backend dependencies for {tool}...")
+                _lifecycle_up("infra-db")
+
+                if os.environ.get("POOLER") == "true":
+                    # Ensure migrations are run so the _supavisor schema exists before supavisor boots
+                    if tool_args and tool_args[0] == "prepare":
+                        log_info("ℹ️ 🔹 Running migrations before starting pooler...")
+                        self.execute_safe(
+                            [
+                                *self.compose_engine,
+                                "-p",
+                                self.env_vars.get("COMPOSE_PROJECT_NAME", "leeattend-test"),
+                                "--profile",
+                                "int-api",
+                                "--profile",
+                                "infra-db",
+                                "run",
+                                "-T",
+                                "--rm",
+                                "--workdir",
+                                "/workspace/apiserver",
+                                "--entrypoint",
+                                "diesel",
+                                "apiserver",
+                                "migration",
+                                "run",
+                            ]
+                        )
 
                 log_info("ℹ️ 🔹 Bringing up backend dependencies for supavisor pooler...")
                 self.execute_safe(
@@ -612,19 +619,12 @@ class Orchestrator:
                     if "supavisor" in res.stdout and "healthy" in res.stdout:
                         break
                     time.sleep(1)
-            compose_cmd.extend(
-                [
-                    "--profile",
-                    "int-api",
-                    "--profile",
-                    "infra-db",
-                    "--profile",
-                    "infra-redis",
-                ]
-            )
-            if "DATABASE_POOLER_URL" in os.environ:
-                _lifecycle_up("infra-pooler")
-                compose_cmd.extend(["--profile", "infra-pooler"])
+            compose_cmd.extend(["--profile", "int-api"])
+            if needs_db:
+                compose_cmd.extend(["--profile", "infra-db", "--profile", "infra-redis"])
+                if "DATABASE_POOLER_URL" in os.environ:
+                    _lifecycle_up("infra-pooler")
+                    compose_cmd.extend(["--profile", "infra-pooler"])
         else:
             compose_cmd.extend(["--profile", "frontend"])
 

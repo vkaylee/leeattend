@@ -50,6 +50,7 @@ services:
       - SUPAVISOR_POOL_PASSWORD=${SUPAVISOR_POOL_PASSWORD:-}
       - SUPAVISOR_POOL_SIZE=${SUPAVISOR_POOL_SIZE:-20}
       - SUPAVISOR_MODE_TYPE=${SUPAVISOR_MODE_TYPE:-session}
+      - SUPAVISOR_IP_VERSION=${SUPAVISOR_IP_VERSION:-v4}
       - API_JWT_SECRET=${SUPAVISOR_API_JWT:-your-super-secret-jwt-token-with-at-least-32-bytes-long}
       - REDIS_URL=redis://:${REDIS_PASSWORD:-}@redis:6379
     volumes:

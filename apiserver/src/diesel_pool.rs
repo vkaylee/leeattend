@@ -88,6 +88,7 @@ impl DieselPools {
         let api_pool = Pool::builder(api_manager)
             .max_size(config.api_max_conn as usize)
             .wait_timeout(Some(Duration::from_secs(config.api_acquire_timeout_secs)))
+            .runtime(deadpool::Runtime::Tokio1)
             .build()
             .expect("Failed to create API Diesel pool");
 
@@ -98,6 +99,7 @@ impl DieselPools {
             .wait_timeout(Some(Duration::from_secs(
                 config.worker_acquire_timeout_secs,
             )))
+            .runtime(deadpool::Runtime::Tokio1)
             .build()
             .expect("Failed to create Worker Diesel pool");
 

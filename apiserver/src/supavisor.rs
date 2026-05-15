@@ -43,12 +43,15 @@ pub(crate) fn build_tenant_payload(db_url: &str) -> Option<(String, serde_json::
     let mode_type =
         std::env::var("SUPAVISOR_MODE_TYPE").unwrap_or_else(|_| "transaction".to_string());
 
+    let ip_version = std::env::var("SUPAVISOR_IP_VERSION")
+        .unwrap_or_else(|_| "auto".to_string());
+
     let payload = json!({
         "tenant": {
             "db_host": db_host,
             "db_port": db_port,
             "db_database": db_name,
-            "ip_version": "auto",
+            "ip_version": ip_version,
             "enforce_ssl": enforce_ssl,
             "require_user": false,
             "auth_query": "SELECT rolname, rolpassword FROM pg_authid WHERE rolname=$1;",
@@ -319,6 +322,19 @@ mod tests {
 
         std::env::remove_var("SUPAVISOR_POOL_SIZE");
         std::env::remove_var("SUPAVISOR_MODE_TYPE");
+    }
+
+    #[test]
+    fn test_build_tenant_payload_with_custom_ip_version() {
+        std::env::set_var("SUPAVISOR_IP_VERSION", "v4");
+
+        let url = "postgres://my_user:my_secret@my_db_host:5433/my_company_db";
+        let (_, payload) = build_tenant_payload(url).expect("Should build payload");
+
+        let tenant = payload.get("tenant").expect("missing tenant key");
+        assert_eq!(tenant["ip_version"], "v4");
+
+        std::env::remove_var("SUPAVISOR_IP_VERSION");
     }
 
     #[test]
