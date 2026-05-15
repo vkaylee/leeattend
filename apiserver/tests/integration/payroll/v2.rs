@@ -11,7 +11,7 @@ use std::sync::Arc;
 #[tokio::test]
 async fn test_calculate_payroll_multi_segment() {
     let test_db = TestDatabase::new().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
     let factory = TestFactory::new(pool.clone());
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
 
@@ -19,13 +19,10 @@ async fn test_calculate_payroll_multi_segment() {
     let workspace_id = factory.workspace().create_with_owner(user_id).await;
 
     // Set work_unit_minutes to 60 for consistent hourly-like testing
-    sqlx::query(
+    crate::test_execute!(&pool.api,
         "UPDATE attendance_policy_versions SET rules = '{\"work_unit_minutes\": 60, \"rounding_policy\": \"none\"}'::jsonb WHERE policy_id = (SELECT id FROM attendance_policies WHERE workspace_id = $1 AND is_default = true)",
-    )
-    .bind(workspace_id)
-    .execute(&pool)
-    .await
-    .unwrap();
+        diesel::sql_types::Uuid, workspace_id
+    );
 
     let employee_id = factory
         .employee()
@@ -35,39 +32,34 @@ async fn test_calculate_payroll_multi_segment() {
         .await;
 
     // 1. Create 'BASE' component
-    let component_id: uuid::Uuid = sqlx::query_scalar(
+    let component_id: uuid::Uuid = crate::test_query_scalar_uuid!(
+        &pool.api,
         "INSERT INTO salary_component_definitions (workspace_id, name, code) VALUES ($1, $2, $3) RETURNING id",
-    )
-    .bind(workspace_id)
-    .bind("Lương cơ bản")
-    .bind("BASE")
-    .fetch_one(&pool)
-    .await
-    .unwrap();
+        diesel::sql_types::Uuid,
+        workspace_id,
+        diesel::sql_types::Text,
+        "Lương cơ bản",
+        diesel::sql_types::Text,
+        "BASE"
+    );
 
     // 2. Assign Salary 1 (Effective from 1st) - $2600
-    sqlx::query(
+    crate::test_execute!(&pool.api,
         "INSERT INTO employee_salary_components (employee_id, component_definition_id, amount, effective_date) VALUES ($1, $2, $3, $4)",
-    )
-    .bind(employee_id)
-    .bind(component_id)
-    .bind(Decimal::from(2600))
-    .bind(NaiveDate::from_ymd_opt(2026, 1, 1).unwrap())
-    .execute(&pool)
-    .await
-    .unwrap();
+        diesel::sql_types::Uuid, employee_id,
+        diesel::sql_types::Uuid, component_id,
+        diesel::sql_types::Numeric, Decimal::from(2600),
+        diesel::sql_types::Date, NaiveDate::from_ymd_opt(2026, 1, 1).unwrap()
+    );
 
     // 3. Assign Salary 2 (Effective from 16th) - $5200 (Double)
-    sqlx::query(
+    crate::test_execute!(&pool.api,
         "INSERT INTO employee_salary_components (employee_id, component_definition_id, amount, effective_date) VALUES ($1, $2, $3, $4)",
-    )
-    .bind(employee_id)
-    .bind(component_id)
-    .bind(Decimal::from(5200))
-    .bind(NaiveDate::from_ymd_opt(2026, 1, 16).unwrap())
-    .execute(&pool)
-    .await
-    .unwrap();
+        diesel::sql_types::Uuid, employee_id,
+        diesel::sql_types::Uuid, component_id,
+        diesel::sql_types::Numeric, Decimal::from(5200),
+        diesel::sql_types::Date, NaiveDate::from_ymd_opt(2026, 1, 16).unwrap()
+    );
 
     // 4. Record Attendance
     // Work 1 day in Segment 1 (Jan 5)

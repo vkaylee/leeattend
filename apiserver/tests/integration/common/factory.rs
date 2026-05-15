@@ -1,83 +1,83 @@
+use apiserver::diesel_pool::DieselPools;
 use apiserver::models::LeaveStatus;
 use chrono::{DateTime, Datelike, Utc};
-use sqlx::PgPool;
 use uuid::Uuid;
 
 pub struct TestFactory {
-    pub pool: PgPool,
+    pub diesel_pools: apiserver::diesel_pool::DieselPools,
 }
 
 impl TestFactory {
     #[allow(dead_code)]
     #[must_use]
-    pub const fn new(pool: PgPool) -> Self {
-        Self { pool }
+    pub const fn new(diesel_pools: apiserver::diesel_pool::DieselPools) -> Self {
+        Self { diesel_pools }
     }
 
     #[allow(dead_code)]
     #[must_use]
     pub fn user(&self) -> UserBuilder {
-        UserBuilder::new(self.pool.clone())
+        UserBuilder::new(self.diesel_pools.clone())
     }
 
     #[allow(dead_code)]
     #[must_use]
     pub fn workspace(&self) -> WorkspaceBuilder {
-        WorkspaceBuilder::new(self.pool.clone())
+        WorkspaceBuilder::new(self.diesel_pools.clone())
     }
 
     #[allow(dead_code)]
     #[must_use]
     pub fn agent(&self) -> AgentBuilder {
-        AgentBuilder::new(self.pool.clone())
+        AgentBuilder::new(self.diesel_pools.clone())
     }
 
     #[allow(dead_code)]
     #[must_use]
     pub fn employee(&self) -> EmployeeBuilder {
-        EmployeeBuilder::new(self.pool.clone())
+        EmployeeBuilder::new(self.diesel_pools.clone())
     }
 
     #[allow(dead_code)]
     #[must_use]
     pub fn shift(&self) -> ShiftBuilder {
-        ShiftBuilder::new(self.pool.clone())
+        ShiftBuilder::new(self.diesel_pools.clone())
     }
 
     #[allow(dead_code)]
     #[must_use]
     pub fn time_entry(&self) -> TimeEntryBuilder {
-        TimeEntryBuilder::new(self.pool.clone())
+        TimeEntryBuilder::new(self.diesel_pools.clone())
     }
 
     #[allow(dead_code)]
     #[must_use]
     pub fn leave_request(&self) -> LeaveRequestBuilder {
-        LeaveRequestBuilder::new(self.pool.clone())
+        LeaveRequestBuilder::new(self.diesel_pools.clone())
     }
 
     #[allow(dead_code)]
     #[must_use]
     pub fn leave_balance(&self) -> LeaveBalanceBuilder {
-        LeaveBalanceBuilder::new(self.pool.clone())
+        LeaveBalanceBuilder::new(self.diesel_pools.clone())
     }
 
     #[allow(dead_code)]
     #[must_use]
     pub fn leave_policy(&self) -> LeavePolicyBuilder {
-        LeavePolicyBuilder::new(self.pool.clone())
+        LeavePolicyBuilder::new(self.diesel_pools.clone())
     }
 
     #[allow(dead_code)]
     #[must_use]
     pub fn department(&self) -> DepartmentBuilder {
-        DepartmentBuilder::new(self.pool.clone())
+        DepartmentBuilder::new(self.diesel_pools.clone())
     }
 
     #[allow(dead_code)]
     #[must_use]
     pub fn assignment_rule(&self) -> AssignmentRuleBuilder {
-        AssignmentRuleBuilder::new(self.pool.clone())
+        AssignmentRuleBuilder::new(self.diesel_pools.clone())
     }
 
     #[allow(dead_code)]
@@ -116,7 +116,7 @@ impl AuthHelper {
 
 #[allow(dead_code)]
 pub struct UserBuilder {
-    pool: PgPool,
+    diesel_pools: apiserver::diesel_pool::DieselPools,
     email: String,
     full_name: Option<String>,
     password_hash: String,
@@ -125,10 +125,10 @@ pub struct UserBuilder {
 impl UserBuilder {
     #[allow(dead_code)]
     #[must_use]
-    pub fn new(pool: PgPool) -> Self {
+    pub fn new(diesel_pools: apiserver::diesel_pool::DieselPools) -> Self {
         let id = Uuid::new_v4().to_string();
         Self {
-            pool,
+            diesel_pools,
             email: format!("user_{}@example.com", &id[..8]),
             full_name: None,
             password_hash: "test_hash".to_string(),
@@ -152,22 +152,22 @@ impl UserBuilder {
     #[allow(dead_code)]
     pub async fn create(self) -> Uuid {
         tokio::time::timeout(std::time::Duration::from_secs(5), async {
-            sqlx::query_scalar(
-                "INSERT INTO users (email, full_name, password_hash) VALUES ($1, $2, $3) RETURNING id",
-            )
-            .bind(self.email)
-            .bind(self.full_name)
-            .bind(self.password_hash)
-            .fetch_one(&self.pool)
-            .await
-            .unwrap()
-        }).await.expect("User creation timed out")
+            crate::test_query_scalar_uuid!(
+        &self.diesel_pools.api,
+        "INSERT INTO users (email, full_name, password_hash) VALUES ($1, $2, $3) RETURNING id",
+        diesel::sql_types::Text, self.email,
+        diesel::sql_types::Nullable<diesel::sql_types::Text>, self.full_name,
+        diesel::sql_types::Text, self.password_hash
+    )
+        })
+        .await
+        .expect("User creation timed out")
     }
 }
 
 #[allow(dead_code)]
 pub struct WorkspaceBuilder {
-    pool: PgPool,
+    diesel_pools: apiserver::diesel_pool::DieselPools,
     name: String,
     timezone: String,
 }
@@ -175,10 +175,10 @@ pub struct WorkspaceBuilder {
 impl WorkspaceBuilder {
     #[allow(dead_code)]
     #[must_use]
-    pub fn new(pool: PgPool) -> Self {
+    pub fn new(diesel_pools: apiserver::diesel_pool::DieselPools) -> Self {
         let id = Uuid::new_v4().to_string();
         Self {
-            pool,
+            diesel_pools,
             name: format!("Workspace {}", &id[..8]),
             timezone: "Asia/Ho_Chi_Minh".to_string(),
         }
@@ -201,49 +201,41 @@ impl WorkspaceBuilder {
     #[allow(dead_code)]
     pub async fn create(self) -> Uuid {
         tokio::time::timeout(std::time::Duration::from_secs(5), async {
-            let ws_id: Uuid = sqlx::query_scalar(
-                "INSERT INTO workspaces (name, timezone) VALUES ($1, $2) RETURNING id",
-            )
-            .bind(self.name)
-            .bind(self.timezone)
-            .fetch_one(&self.pool)
-            .await
-            .unwrap();
+            let ws_id: Uuid = crate::test_query_scalar_uuid!(
+        &self.diesel_pools.api,
+        "INSERT INTO workspaces (name, timezone) VALUES ($1, $2) RETURNING id",
+        diesel::sql_types::Text, self.name,
+        diesel::sql_types::Text, self.timezone
+    );
 
             // Seed default leave types for tests
-            sqlx::query(
-                "INSERT INTO leave_types (workspace_id, code, name, is_paid) VALUES 
+            crate::test_execute!(
+        &self.diesel_pools.api,
+        "INSERT INTO leave_types (workspace_id, code, name, is_paid) VALUES 
                 ($1, 'vacation', 'Vacation', true),
                 ($1, 'sick', 'Sick Leave', true),
                 ($1, 'personal', 'Personal Leave', true),
                 ($1, 'unpaid', 'Unpaid Leave', false)",
-            )
-            .bind(ws_id)
-            .execute(&self.pool)
-            .await
-            .unwrap();
+        diesel::sql_types::Uuid, ws_id
+    );
 
             // Seed default attendance policy for tests
-            let policy_id: Uuid = sqlx::query_scalar(
-                "INSERT INTO attendance_policies (workspace_id, name, is_default) VALUES ($1, 'Default Test Policy', true) RETURNING id"
-            )
-            .bind(ws_id)
-            .fetch_one(&self.pool)
-            .await
-            .unwrap();
+            let policy_id: Uuid = crate::test_query_scalar_uuid!(
+        &self.diesel_pools.api,
+        "INSERT INTO attendance_policies (workspace_id, name, is_default) VALUES ($1, 'Default Test Policy', true) RETURNING id",
+        diesel::sql_types::Uuid, ws_id
+    );
 
             let rules_json = serde_json::json!({
                 "work_unit_minutes": 30,
                 "rounding_policy": "floor"
             });
-            sqlx::query(
-                "INSERT INTO attendance_policy_versions (policy_id, rules, valid_from) VALUES ($1, $2, '2000-01-01 00:00:00Z')"
-            )
-            .bind(policy_id)
-            .bind(rules_json)
-            .execute(&self.pool)
-            .await
-            .unwrap();
+            crate::test_execute!(
+        &self.diesel_pools.api,
+        "INSERT INTO attendance_policy_versions (policy_id, rules, valid_from) VALUES ($1, $2, '2000-01-01 00:00:00Z')",
+        diesel::sql_types::Uuid, policy_id,
+        diesel::sql_types::Jsonb, rules_json
+    );
 
             ws_id
         })
@@ -253,17 +245,18 @@ impl WorkspaceBuilder {
 
     #[allow(dead_code)]
     pub async fn create_with_owner(self, user_id: Uuid) -> Uuid {
-        let pool = self.pool.clone();
+        let pool = self.diesel_pools.clone();
         let ws_id = self.create().await;
-        sqlx::query(
+        crate::test_execute!(
+            &pool.api,
             "INSERT INTO workspace_members (workspace_id, user_id, role_id) VALUES ($1, $2, $3)",
-        )
-        .bind(ws_id)
-        .bind(user_id)
-        .bind(Uuid::parse_str("a0000000-0000-0000-0000-000000000001").unwrap())
-        .execute(&pool)
-        .await
-        .unwrap();
+            diesel::sql_types::Uuid,
+            ws_id,
+            diesel::sql_types::Uuid,
+            user_id,
+            diesel::sql_types::Uuid,
+            Uuid::parse_str("a0000000-0000-0000-0000-000000000001").unwrap()
+        );
         ws_id
     }
 }
@@ -271,15 +264,16 @@ impl WorkspaceBuilder {
 impl TestFactory {
     #[allow(dead_code)]
     pub async fn add_member(&self, ws_id: Uuid, user_id: Uuid, role_id: Uuid) {
-        sqlx::query(
+        crate::test_execute!(
+            &self.diesel_pools.api,
             "INSERT INTO workspace_members (workspace_id, user_id, role_id) VALUES ($1, $2, $3)",
-        )
-        .bind(ws_id)
-        .bind(user_id)
-        .bind(role_id)
-        .execute(&self.pool)
-        .await
-        .unwrap();
+            diesel::sql_types::Uuid,
+            ws_id,
+            diesel::sql_types::Uuid,
+            user_id,
+            diesel::sql_types::Uuid,
+            role_id
+        );
     }
 
     #[allow(dead_code)]
@@ -290,21 +284,21 @@ impl TestFactory {
         role_id: Uuid,
         expires_at: DateTime<Utc>,
     ) {
-        sqlx::query("INSERT INTO member_extra_roles (workspace_id, user_id, role_id, expires_at) VALUES ($1, $2, $3, $4) RETURNING *")
-            .bind(ws_id)
-            .bind(user_id)
-            .bind(role_id)
-            .bind(expires_at)
-            .execute(&self.pool)
-            .await
-            .unwrap();
+        crate::test_execute!(
+        &self.diesel_pools.api,
+        "INSERT INTO member_extra_roles (workspace_id, user_id, role_id, expires_at) VALUES ($1, $2, $3, $4) RETURNING *",
+        diesel::sql_types::Uuid, ws_id,
+        diesel::sql_types::Uuid, user_id,
+        diesel::sql_types::Uuid, role_id,
+        diesel::sql_types::Timestamptz, expires_at
+    );
     }
 }
 
 // --- Employee Builder ---
 #[allow(dead_code)]
 pub struct EmployeeBuilder {
-    pool: PgPool,
+    diesel_pools: apiserver::diesel_pool::DieselPools,
     workspace_id: Option<Uuid>,
     user_id: Option<Uuid>,
     full_name: String,
@@ -315,10 +309,10 @@ pub struct EmployeeBuilder {
 #[allow(dead_code)]
 impl EmployeeBuilder {
     #[must_use]
-    pub fn new(pool: PgPool) -> Self {
+    pub fn new(diesel_pools: apiserver::diesel_pool::DieselPools) -> Self {
         let id = Uuid::new_v4().to_string();
         Self {
-            pool,
+            diesel_pools,
             workspace_id: None,
             user_id: None,
             full_name: "Test Employee".to_string(),
@@ -364,23 +358,17 @@ impl EmployeeBuilder {
 
     pub async fn create(self) -> Uuid {
         tokio::time::timeout(std::time::Duration::from_secs(5), async {
-            let mut tx = self.pool.begin().await.unwrap();
-
             let normalized_id = apiserver::utils::normalize_employee_id(&self.employee_id_number);
-            let id: Uuid = sqlx::query_scalar(
-                "INSERT INTO employees (workspace_id, user_id, full_name, employee_id_number, original_hire_date, hire_date) VALUES ($1, $2, $3, $4, $5, $5) RETURNING id",
+            crate::test_query_scalar_uuid!(
+                &self.diesel_pools.api,
+                "INSERT INTO employees (workspace_id, user_id, full_name, employee_id_number, hire_date, original_hire_date) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id",
+                diesel::sql_types::Uuid, self.workspace_id.expect("Workspace ID is required for Employee"),
+                diesel::sql_types::Nullable<diesel::sql_types::Uuid>, self.user_id,
+                diesel::sql_types::Text, self.full_name,
+                diesel::sql_types::Text, normalized_id,
+                diesel::sql_types::Date, self.hire_date,
+                diesel::sql_types::Date, self.hire_date
             )
-            .bind(self.workspace_id.expect("Workspace ID is required for Employee"))
-            .bind(self.user_id)
-            .bind(self.full_name)
-            .bind(normalized_id)
-            .bind(self.hire_date)
-            .fetch_one(&mut *tx)
-            .await
-            .unwrap();
-
-            tx.commit().await.unwrap();
-            id
         }).await.expect("Employee creation timed out")
     }
 }
@@ -388,7 +376,7 @@ impl EmployeeBuilder {
 // --- Shift Builder ---
 #[allow(dead_code)]
 pub struct ShiftBuilder {
-    pool: PgPool,
+    diesel_pools: apiserver::diesel_pool::DieselPools,
     workspace_id: Option<Uuid>,
     name: String,
     start_time: chrono::NaiveTime,
@@ -402,10 +390,10 @@ pub struct ShiftBuilder {
 #[allow(dead_code)]
 impl ShiftBuilder {
     #[must_use]
-    pub fn new(pool: PgPool) -> Self {
+    pub fn new(diesel_pools: apiserver::diesel_pool::DieselPools) -> Self {
         let id = Uuid::new_v4().to_string();
         Self {
-            pool,
+            diesel_pools,
             workspace_id: None,
             name: format!("Shift {}", &id[..8]),
             start_time: chrono::NaiveTime::from_hms_opt(9, 0, 0).unwrap(),
@@ -462,20 +450,18 @@ impl ShiftBuilder {
 
     pub async fn create(self) -> Uuid {
         tokio::time::timeout(std::time::Duration::from_secs(5), async {
-            sqlx::query_scalar(
+            crate::test_query_scalar_uuid!(
+                &self.diesel_pools.api,
                 "INSERT INTO shifts (workspace_id, name, start_time, end_time, break_duration_minutes, break_is_overtime, early_punch_in_grace_period_minutes, allow_early_ot) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id",
+                diesel::sql_types::Uuid, self.workspace_id.expect("Workspace ID is required for Shift"),
+                diesel::sql_types::Text, self.name,
+                diesel::sql_types::Time, self.start_time,
+                diesel::sql_types::Time, self.end_time,
+                diesel::sql_types::Integer, self.break_duration_minutes,
+                diesel::sql_types::Bool, self.break_is_overtime,
+                diesel::sql_types::Integer, self.early_punch_in_grace_period_minutes,
+                diesel::sql_types::Bool, self.allow_early_ot
             )
-            .bind(self.workspace_id.expect("Workspace ID is required for Shift"))
-            .bind(self.name)
-            .bind(self.start_time)
-            .bind(self.end_time)
-            .bind(self.break_duration_minutes)
-            .bind(self.break_is_overtime)
-            .bind(self.early_punch_in_grace_period_minutes)
-            .bind(self.allow_early_ot)
-            .fetch_one(&self.pool)
-            .await
-            .unwrap()
         }).await.expect("Shift creation timed out")
     }
 
@@ -484,17 +470,18 @@ impl ShiftBuilder {
         employee_id: Uuid,
         start_date: chrono::NaiveDate,
     ) -> Uuid {
-        let pool = self.pool.clone();
+        let pool = self.diesel_pools.clone();
         let shift_id = self.create().await;
-        sqlx::query(
+        crate::test_execute!(
+            &pool.api,
             "INSERT INTO employee_shifts (employee_id, shift_id, start_date) VALUES ($1, $2, $3)",
-        )
-        .bind(employee_id)
-        .bind(shift_id)
-        .bind(start_date)
-        .execute(&pool)
-        .await
-        .unwrap();
+            diesel::sql_types::Uuid,
+            employee_id,
+            diesel::sql_types::Uuid,
+            shift_id,
+            diesel::sql_types::Date,
+            start_date
+        );
         shift_id
     }
 }
@@ -502,7 +489,7 @@ impl ShiftBuilder {
 // --- TimeEntry Builder ---
 #[allow(dead_code)]
 pub struct TimeEntryBuilder {
-    pool: PgPool,
+    diesel_pools: apiserver::diesel_pool::DieselPools,
     employee_id: Option<Uuid>,
     punch_in_time: DateTime<Utc>,
     punch_out_time: Option<DateTime<Utc>>,
@@ -513,9 +500,9 @@ pub struct TimeEntryBuilder {
 #[allow(dead_code)]
 impl TimeEntryBuilder {
     #[must_use]
-    pub fn new(pool: PgPool) -> Self {
+    pub fn new(diesel_pools: apiserver::diesel_pool::DieselPools) -> Self {
         Self {
-            pool,
+            diesel_pools,
             employee_id: None,
             punch_in_time: Utc::now(),
             punch_out_time: None,
@@ -566,32 +553,29 @@ impl TimeEntryBuilder {
             });
 
             let employee_id = self.employee_id.expect("Employee ID is required for TimeEntry");
-            let workspace_id: Uuid = sqlx::query_scalar("SELECT workspace_id FROM employees WHERE id = $1")
-                .bind(employee_id)
-                .fetch_one(&self.pool)
-                .await
-                .unwrap();
+            let workspace_id: Uuid = crate::test_query_scalar_uuid!(
+        &self.diesel_pools.api,
+        "SELECT workspace_id AS id FROM employees WHERE id = $1",
+        diesel::sql_types::Uuid, employee_id
+    );
 
-            sqlx::query_scalar(
-                "INSERT INTO time_entries (employee_id, workspace_id, punch_in_time, punch_out_time, is_break_overtime, entry_type, duration_minutes) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id",
-            )
-            .bind(employee_id)
-            .bind(workspace_id)
-            .bind(self.punch_in_time)
-            .bind(self.punch_out_time)
-            .bind(self.is_break_overtime)
-            .bind(self.entry_type)
-            .bind(duration_minutes)
-            .fetch_one(&self.pool)
-            .await
-            .unwrap()
-        }).await.expect("TimeEntry creation timed out")
+            crate::test_query_scalar_uuid!(
+        &self.diesel_pools.api,
+        "INSERT INTO time_entries (employee_id, workspace_id, punch_in_time, punch_out_time, is_break_overtime, entry_type, duration_minutes) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id",
+        diesel::sql_types::Uuid, employee_id,
+        diesel::sql_types::Uuid, workspace_id,
+        diesel::sql_types::Timestamptz, self.punch_in_time,
+        diesel::sql_types::Nullable<diesel::sql_types::Timestamptz>, self.punch_out_time,
+        diesel::sql_types::Bool, self.is_break_overtime,
+        diesel::sql_types::Text, self.entry_type,
+        diesel::sql_types::Nullable<diesel::sql_types::Integer>, duration_minutes
+    )}).await.expect("TimeEntry creation timed out")
     }
 }
 
 #[allow(dead_code)]
 pub struct AgentBuilder {
-    pool: PgPool,
+    diesel_pools: apiserver::diesel_pool::DieselPools,
     id: String,
     name: String,
     token: String,
@@ -602,10 +586,10 @@ pub struct AgentBuilder {
 #[allow(dead_code)]
 impl AgentBuilder {
     #[must_use]
-    pub fn new(pool: PgPool) -> Self {
+    pub fn new(diesel_pools: apiserver::diesel_pool::DieselPools) -> Self {
         let id = Uuid::new_v4().to_string();
         Self {
-            pool,
+            diesel_pools,
             id: format!("AGENT_{}", &id[..8]),
             name: "Test Agent".to_string(),
             token: "test_token".to_string(),
@@ -645,17 +629,15 @@ impl AgentBuilder {
     pub async fn create(self) -> String {
         tokio::time::timeout(std::time::Duration::from_secs(5), async {
             let ws_id = self.workspace_id.expect("Workspace ID is required for Agent");
-            sqlx::query(
-                "INSERT INTO authorized_agents (id, name, token, workspace_id, is_trusted) VALUES ($1, $2, $3, $4, $5)",
-            )
-            .bind(&self.id)
-            .bind(&self.name)
-            .bind(&self.token)
-            .bind(ws_id)
-            .bind(self.is_trusted)
-            .execute(&self.pool)
-            .await
-            .unwrap();
+            crate::test_execute!(
+        &self.diesel_pools.api,
+        "INSERT INTO authorized_agents (id, name, token, workspace_id, is_trusted, is_active) VALUES ($1, $2, $3, $4, $5, true)",
+        diesel::sql_types::Text, &self.id,
+        diesel::sql_types::Text, &self.name,
+        diesel::sql_types::Text, &self.token,
+        diesel::sql_types::Uuid, ws_id,
+        diesel::sql_types::Bool, self.is_trusted
+    );
             self.id
         }).await.expect("Agent creation timed out")
     }
@@ -665,78 +647,54 @@ impl TestFactory {
     #[allow(dead_code)]
     pub async fn cleanup(&self) {
         tokio::time::timeout(std::time::Duration::from_secs(10), async {
-            sqlx::query("DELETE FROM time_entries CASCADE")
-                .execute(&self.pool)
-                .await
-                .unwrap();
-            sqlx::query("DELETE FROM employee_shifts CASCADE")
-                .execute(&self.pool)
-                .await
-                .unwrap();
-            sqlx::query("DELETE FROM shifts CASCADE")
-                .execute(&self.pool)
-                .await
-                .unwrap();
-            sqlx::query("DELETE FROM employees CASCADE")
-                .execute(&self.pool)
-                .await
-                .unwrap();
-            sqlx::query("DELETE FROM member_extra_roles CASCADE")
-                .execute(&self.pool)
-                .await
-                .unwrap();
-            sqlx::query("DELETE FROM workspace_members CASCADE")
-                .execute(&self.pool)
-                .await
-                .unwrap();
-            sqlx::query("DELETE FROM devices CASCADE")
-                .execute(&self.pool)
-                .await
-                .unwrap();
-            sqlx::query("DELETE FROM authorized_agents CASCADE")
-                .execute(&self.pool)
-                .await
-                .unwrap();
-            sqlx::query("DELETE FROM assignment_rules CASCADE")
-                .execute(&self.pool)
-                .await
-                .unwrap();
-            sqlx::query("DELETE FROM leave_accrual_logs CASCADE")
-                .execute(&self.pool)
-                .await
-                .unwrap();
-            sqlx::query("DELETE FROM leave_policy_assignments CASCADE")
-                .execute(&self.pool)
-                .await
-                .unwrap();
-            sqlx::query("DELETE FROM leave_policy_definitions CASCADE")
-                .execute(&self.pool)
-                .await
-                .unwrap();
-            sqlx::query("DELETE FROM leave_requests CASCADE")
-                .execute(&self.pool)
-                .await
-                .unwrap();
-            sqlx::query("DELETE FROM leave_balances CASCADE")
-                .execute(&self.pool)
-                .await
-                .unwrap();
-            sqlx::query("DELETE FROM users CASCADE")
-                .execute(&self.pool)
-                .await
-                .unwrap();
-            sqlx::query("DELETE FROM attendance_policy_versions CASCADE")
-                .execute(&self.pool)
-                .await
-                .unwrap();
-            sqlx::query("DELETE FROM attendance_policies CASCADE")
-                .execute(&self.pool)
-                .await
-                .unwrap();
-            sqlx::query("DELETE FROM workspaces CASCADE")
-                .execute(&self.pool)
-                .await
-                .unwrap();
+            crate::test_execute!(&self.diesel_pools.api, "DELETE FROM time_entries CASCADE");
+            crate::test_execute!(
+                &self.diesel_pools.api,
+                "DELETE FROM employee_shifts CASCADE"
+            );
+            crate::test_execute!(&self.diesel_pools.api, "DELETE FROM shifts CASCADE");
+            crate::test_execute!(&self.diesel_pools.api, "DELETE FROM employees CASCADE");
+            crate::test_execute!(
+                &self.diesel_pools.api,
+                "DELETE FROM member_extra_roles CASCADE"
+            );
+            crate::test_execute!(
+                &self.diesel_pools.api,
+                "DELETE FROM workspace_members CASCADE"
+            );
+            crate::test_execute!(&self.diesel_pools.api, "DELETE FROM devices CASCADE");
+            crate::test_execute!(
+                &self.diesel_pools.api,
+                "DELETE FROM authorized_agents CASCADE"
+            );
+            crate::test_execute!(
+                &self.diesel_pools.api,
+                "DELETE FROM assignment_rules CASCADE"
+            );
+            crate::test_execute!(
+                &self.diesel_pools.api,
+                "DELETE FROM leave_accrual_logs CASCADE"
+            );
+            crate::test_execute!(
+                &self.diesel_pools.api,
+                "DELETE FROM leave_policy_assignments CASCADE"
+            );
+            crate::test_execute!(
+                &self.diesel_pools.api,
+                "DELETE FROM leave_policy_definitions CASCADE"
+            );
+            crate::test_execute!(&self.diesel_pools.api, "DELETE FROM leave_requests CASCADE");
+            crate::test_execute!(&self.diesel_pools.api, "DELETE FROM leave_balances CASCADE");
+            crate::test_execute!(&self.diesel_pools.api, "DELETE FROM users CASCADE");
+            crate::test_execute!(
+                &self.diesel_pools.api,
+                "DELETE FROM attendance_policy_versions CASCADE"
+            );
+            crate::test_execute!(
+                &self.diesel_pools.api,
+                "DELETE FROM attendance_policies CASCADE"
+            );
+            crate::test_execute!(&self.diesel_pools.api, "DELETE FROM workspaces CASCADE");
         })
         .await
         .expect("Cleanup timed out");
@@ -746,7 +704,7 @@ impl TestFactory {
 // --- Leave Request Builder ---
 #[allow(dead_code)]
 pub struct LeaveRequestBuilder {
-    pool: PgPool,
+    diesel_pools: apiserver::diesel_pool::DieselPools,
     employee_id: Option<Uuid>,
     leave_type_id: Option<Uuid>,
     start_date: chrono::NaiveDate,
@@ -757,9 +715,9 @@ pub struct LeaveRequestBuilder {
 #[allow(dead_code)]
 impl LeaveRequestBuilder {
     #[must_use]
-    pub fn new(pool: PgPool) -> Self {
+    pub fn new(diesel_pools: apiserver::diesel_pool::DieselPools) -> Self {
         Self {
-            pool,
+            diesel_pools,
             employee_id: None,
             leave_type_id: None,
             start_date: chrono::Utc::now().date_naive(),
@@ -795,32 +753,44 @@ impl LeaveRequestBuilder {
 
     pub async fn create(self) -> Uuid {
         let id = Uuid::new_v4();
+        let emp_id = self
+            .employee_id
+            .expect("Employee ID is required for LeaveRequest");
         let leave_type_id = if let Some(id) = self.leave_type_id {
             id
         } else {
-            let emp_id = self
-                .employee_id
-                .expect("Employee ID is required for LeaveRequest");
-            sqlx::query_scalar(
-                "SELECT id FROM leave_types WHERE workspace_id = (SELECT workspace_id FROM employees WHERE id = $1) AND code = 'vacation'",
+            let ws_id: Uuid = crate::test_query_scalar_uuid!(
+                &self.diesel_pools.api,
+                "SELECT workspace_id AS id FROM employees WHERE id = $1",
+                diesel::sql_types::Uuid,
+                emp_id
+            );
+            crate::test_query_scalar_uuid!(
+                &self.diesel_pools.api,
+                "SELECT id FROM leave_types WHERE workspace_id = $1 AND code = 'vacation'",
+                diesel::sql_types::Uuid,
+                ws_id
             )
-            .bind(emp_id)
-            .fetch_one(&self.pool)
-            .await
-            .expect("Default leave type 'vacation' not found")
         };
-        sqlx::query(
+
+        let status_str = match self.status {
+            LeaveStatus::Pending => "pending",
+            LeaveStatus::Approved => "approved",
+            LeaveStatus::Rejected => "rejected",
+            LeaveStatus::Cancelled => "cancelled",
+            LeaveStatus::PreApproved => "pre_approved",
+        };
+
+        crate::test_execute!(
+            &self.diesel_pools.api,
             "INSERT INTO leave_requests (id, employee_id, leave_type_id, start_date, end_date, status) VALUES ($1, $2, $3, $4, $5, $6::leave_status_type)",
-        )
-        .bind(id)
-        .bind(self.employee_id.expect("Employee ID is required for LeaveRequest"))
-        .bind(leave_type_id)
-        .bind(self.start_date)
-        .bind(self.end_date)
-        .bind(serde_json::to_value(&self.status).unwrap().as_str().unwrap().to_string())
-        .execute(&self.pool)
-        .await
-        .unwrap();
+            diesel::sql_types::Uuid, id,
+            diesel::sql_types::Uuid, emp_id,
+            diesel::sql_types::Uuid, leave_type_id,
+            diesel::sql_types::Date, self.start_date,
+            diesel::sql_types::Date, self.end_date,
+            diesel::sql_types::Text, status_str
+        );
         id
     }
 }
@@ -828,7 +798,7 @@ impl LeaveRequestBuilder {
 // --- Leave Balance Builder ---
 #[allow(dead_code)]
 pub struct LeaveBalanceBuilder {
-    pool: PgPool,
+    diesel_pools: apiserver::diesel_pool::DieselPools,
     employee_id: Option<Uuid>,
     leave_type_id: Option<Uuid>,
     year: i32,
@@ -839,9 +809,9 @@ pub struct LeaveBalanceBuilder {
 #[allow(dead_code)]
 impl LeaveBalanceBuilder {
     #[must_use]
-    pub fn new(pool: PgPool) -> Self {
+    pub fn new(diesel_pools: apiserver::diesel_pool::DieselPools) -> Self {
         Self {
-            pool,
+            diesel_pools,
             employee_id: None,
             leave_type_id: None,
             year: chrono::Utc::now().date_naive().year(),
@@ -870,32 +840,36 @@ impl LeaveBalanceBuilder {
 
     pub async fn create(self) -> Uuid {
         let id = Uuid::new_v4();
+        let emp_id = self
+            .employee_id
+            .expect("Employee ID is required for LeaveBalance");
         let leave_type_id = if let Some(id) = self.leave_type_id {
             id
         } else {
-            let emp_id = self
-                .employee_id
-                .expect("Employee ID is required for LeaveBalance");
-            sqlx::query_scalar(
-                "SELECT id FROM leave_types WHERE workspace_id = (SELECT workspace_id FROM employees WHERE id = $1) AND code = 'vacation'",
+            let ws_id: Uuid = crate::test_query_scalar_uuid!(
+                &self.diesel_pools.api,
+                "SELECT workspace_id AS id FROM employees WHERE id = $1",
+                diesel::sql_types::Uuid,
+                emp_id
+            );
+            crate::test_query_scalar_uuid!(
+                &self.diesel_pools.api,
+                "SELECT id FROM leave_types WHERE workspace_id = $1 AND code = 'vacation'",
+                diesel::sql_types::Uuid,
+                ws_id
             )
-            .bind(emp_id)
-            .fetch_one(&self.pool)
-            .await
-            .expect("Default leave type 'vacation' not found")
         };
-        sqlx::query(
+
+        crate::test_execute!(
+            &self.diesel_pools.api,
             "INSERT INTO leave_balances (id, employee_id, leave_type_id, year, entitlement, carried_over) VALUES ($1, $2, $3, $4, $5, $6)",
-        )
-        .bind(id)
-        .bind(self.employee_id.expect("Employee ID is required for LeaveBalance"))
-        .bind(leave_type_id)
-        .bind(self.year)
-        .bind(self.entitlement)
-        .bind(self.carried_over)
-        .execute(&self.pool)
-        .await
-        .unwrap();
+            diesel::sql_types::Uuid, id,
+            diesel::sql_types::Uuid, emp_id,
+            diesel::sql_types::Uuid, leave_type_id,
+            diesel::sql_types::Integer, self.year,
+            diesel::sql_types::Numeric, rust_decimal::Decimal::from(self.entitlement),
+            diesel::sql_types::Numeric, rust_decimal::Decimal::from(self.carried_over)
+        );
         id
     }
 }
@@ -903,7 +877,7 @@ impl LeaveBalanceBuilder {
 // --- Leave Policy Builder ---
 #[allow(dead_code)]
 pub struct LeavePolicyBuilder {
-    pool: PgPool,
+    diesel_pools: apiserver::diesel_pool::DieselPools,
     workspace_id: Option<Uuid>,
     name: String,
     rule_config: serde_json::Value,
@@ -912,9 +886,9 @@ pub struct LeavePolicyBuilder {
 #[allow(dead_code)]
 impl LeavePolicyBuilder {
     #[must_use]
-    pub fn new(pool: PgPool) -> Self {
+    pub fn new(diesel_pools: apiserver::diesel_pool::DieselPools) -> Self {
         Self {
-            pool,
+            diesel_pools,
             workspace_id: None,
             name: "Test Policy".to_string(),
             rule_config: serde_json::json!({
@@ -945,29 +919,23 @@ impl LeavePolicyBuilder {
 
     pub async fn create(self) -> Uuid {
         let ws_id = self.workspace_id.expect("Workspace ID required");
-        let pool = self.pool.clone();
+        let pool = self.diesel_pools.clone();
 
         // Fetch vacation ID as default
-        let leave_type_id: Uuid = sqlx::query_scalar(
+        let leave_type_id: Uuid = crate::test_query_scalar_uuid!(
+            &pool.api,
             "SELECT id FROM leave_types WHERE workspace_id = $1 AND code = 'vacation'",
-        )
-        .bind(ws_id)
-        .fetch_one(&pool)
-        .await
-        .expect("Default leave type 'vacation' not found - check WorkspaceBuilder seeding");
+            diesel::sql_types::Uuid,
+            ws_id
+        );
 
-        tokio::time::timeout(std::time::Duration::from_secs(5), async {
-            sqlx::query_scalar(
-                "INSERT INTO leave_policy_definitions (workspace_id, name, rule_config, leave_type_id) VALUES ($1, $2, $3, $4) RETURNING id",
-            )
-            .bind(ws_id)
-            .bind(self.name)
-            .bind(self.rule_config)
-            .bind(leave_type_id)
-            .fetch_one(&self.pool)
-            .await
-            .unwrap()
-        }).await.expect("Policy creation timed out")
+        crate::test_query_scalar_uuid!(&pool.api,
+            "INSERT INTO leave_policy_definitions (workspace_id, name, rule_config, leave_type_id) VALUES ($1, $2, $3, $4) RETURNING id",
+            diesel::sql_types::Uuid, ws_id,
+            diesel::sql_types::Text, self.name,
+            diesel::sql_types::Jsonb, self.rule_config,
+            diesel::sql_types::Uuid, leave_type_id
+        )
     }
 
     pub async fn assign_to(
@@ -979,25 +947,23 @@ impl LeavePolicyBuilder {
         from: chrono::NaiveDate,
         to: Option<chrono::NaiveDate>,
     ) -> Uuid {
-        sqlx::query_scalar(
-            "INSERT INTO leave_policy_assignments (workspace_id, policy_id, assignee_type, assignee_id, effective_from, effective_to) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id",
-        )
-        .bind(workspace_id)
-        .bind(policy_id)
-        .bind(assignee_type)
-        .bind(assignee_id)
-        .bind(from)
-        .bind(to)
-        .fetch_one(&self.pool)
-        .await
-        .unwrap()
+        crate::test_query_scalar_uuid!(
+        &self.diesel_pools.api,
+        "INSERT INTO leave_policy_assignments (workspace_id, policy_id, assignee_type, assignee_id, effective_from, effective_to) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id",
+        diesel::sql_types::Uuid, workspace_id,
+        diesel::sql_types::Uuid, policy_id,
+        diesel::sql_types::Text, assignee_type,
+        diesel::sql_types::Nullable<diesel::sql_types::Uuid>, assignee_id,
+        diesel::sql_types::Date, from,
+        diesel::sql_types::Nullable<diesel::sql_types::Date>, to
+    )
     }
 }
 
 // --- Department Builder ---
 #[allow(dead_code)]
 pub struct DepartmentBuilder {
-    pool: PgPool,
+    diesel_pools: apiserver::diesel_pool::DieselPools,
     workspace_id: Option<Uuid>,
     name: String,
     description: Option<String>,
@@ -1007,10 +973,10 @@ pub struct DepartmentBuilder {
 #[allow(dead_code)]
 impl DepartmentBuilder {
     #[must_use]
-    pub fn new(pool: PgPool) -> Self {
+    pub fn new(diesel_pools: apiserver::diesel_pool::DieselPools) -> Self {
         let id = Uuid::new_v4().to_string();
         Self {
-            pool,
+            diesel_pools,
             workspace_id: None,
             name: format!("Dept {}", &id[..8]),
             description: None,
@@ -1031,23 +997,21 @@ impl DepartmentBuilder {
     }
 
     pub async fn create(self) -> Uuid {
-        sqlx::query_scalar(
+        crate::test_query_scalar_uuid!(
+            &self.diesel_pools.api,
             "INSERT INTO departments (workspace_id, name, description, manager_id) VALUES ($1, $2, $3, $4) RETURNING id",
+            diesel::sql_types::Uuid, self.workspace_id.expect("Workspace ID required"),
+            diesel::sql_types::Text, self.name,
+            diesel::sql_types::Nullable<diesel::sql_types::Text>, self.description,
+            diesel::sql_types::Nullable<diesel::sql_types::Uuid>, self.manager_id
         )
-        .bind(self.workspace_id.expect("Workspace ID required"))
-        .bind(self.name)
-        .bind(self.description)
-        .bind(self.manager_id)
-        .fetch_one(&self.pool)
-        .await
-        .unwrap()
     }
 }
 
 // --- Assignment Rule Builder ---
 #[allow(dead_code)]
 pub struct AssignmentRuleBuilder {
-    pool: PgPool,
+    diesel_pools: apiserver::diesel_pool::DieselPools,
     workspace_id: Option<Uuid>,
     pattern_id: Option<Uuid>,
     name: String,
@@ -1058,9 +1022,9 @@ pub struct AssignmentRuleBuilder {
 #[allow(dead_code)]
 impl AssignmentRuleBuilder {
     #[must_use]
-    pub fn new(pool: PgPool) -> Self {
+    pub fn new(diesel_pools: apiserver::diesel_pool::DieselPools) -> Self {
         Self {
-            pool,
+            diesel_pools,
             workspace_id: None,
             pattern_id: None,
             name: "Test Rule".to_string(),
@@ -1107,16 +1071,14 @@ impl AssignmentRuleBuilder {
     }
 
     pub async fn create(self) -> Uuid {
-        sqlx::query_scalar(
+        crate::test_query_scalar_uuid!(
+            &self.diesel_pools.api,
             "INSERT INTO assignment_rules (workspace_id, pattern_id, name, priority, conditions) VALUES ($1, $2, $3, $4, $5) RETURNING id",
+            diesel::sql_types::Uuid, self.workspace_id.expect("WS ID required"),
+            diesel::sql_types::Uuid, self.pattern_id.expect("Pattern ID required"),
+            diesel::sql_types::Text, self.name,
+            diesel::sql_types::Integer, self.priority,
+            diesel::sql_types::Jsonb, serde_json::to_value(&self.conditions).unwrap()
         )
-        .bind(self.workspace_id.expect("WS ID required"))
-        .bind(self.pattern_id.expect("Pattern ID required"))
-        .bind(self.name)
-        .bind(self.priority)
-        .bind(serde_json::to_value(&self.conditions).unwrap())
-        .fetch_one(&self.pool)
-        .await
-        .unwrap()
     }
 }

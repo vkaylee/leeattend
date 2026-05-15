@@ -13,7 +13,7 @@ use std::sync::Arc;
 #[tokio::test]
 async fn test_grace_period_zero_shift_uses_policy_default() {
     let test_db = TestDatabase::new().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
     let factory = TestFactory::new(pool.clone());
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
 
@@ -21,13 +21,10 @@ async fn test_grace_period_zero_shift_uses_policy_default() {
     let workspace_id = factory.workspace().create_with_owner(user_id).await;
 
     // Set work_unit to 60 min, no rounding
-    sqlx::query(
+    crate::test_execute!(&pool.api,
         "UPDATE attendance_policy_versions SET rules = '{\"work_unit_minutes\": 60, \"rounding_policy\": \"none\"}'::jsonb WHERE policy_id = (SELECT id FROM attendance_policies WHERE workspace_id = $1 AND is_default = true)",
-    )
-    .bind(workspace_id)
-    .execute(&pool)
-    .await
-    .unwrap();
+        diesel::sql_types::Uuid, workspace_id
+    );
 
     let employee_id = factory
         .employee()
@@ -37,27 +34,25 @@ async fn test_grace_period_zero_shift_uses_policy_default() {
         .await;
 
     // Create BASE component
-    let component_id: uuid::Uuid = sqlx::query_scalar(
+    let component_id: uuid::Uuid = crate::test_query_scalar_uuid!(
+        &pool.api,
         "INSERT INTO salary_component_definitions (workspace_id, name, code) VALUES ($1, $2, $3) RETURNING id",
-    )
-    .bind(workspace_id)
-    .bind("Base")
-    .bind("BASE")
-    .fetch_one(&pool)
-    .await
-    .unwrap();
+        diesel::sql_types::Uuid,
+        workspace_id,
+        diesel::sql_types::Text,
+        "Base",
+        diesel::sql_types::Text,
+        "BASE"
+    );
 
     // Assign salary
-    sqlx::query(
+    crate::test_execute!(&pool.api,
         "INSERT INTO employee_salary_components (employee_id, component_definition_id, amount, effective_date) VALUES ($1, $2, $3, $4)",
-    )
-    .bind(employee_id)
-    .bind(component_id)
-    .bind(Decimal::from(2600))
-    .bind(NaiveDate::from_ymd_opt(2026, 1, 1).unwrap())
-    .execute(&pool)
-    .await
-    .unwrap();
+        diesel::sql_types::Uuid, employee_id,
+        diesel::sql_types::Uuid, component_id,
+        diesel::sql_types::Numeric, Decimal::from(2600),
+        diesel::sql_types::Date, NaiveDate::from_ymd_opt(2026, 1, 1).unwrap()
+    );
 
     // Create shift with grace_period = 0 (should use policy default)
     let shift_id = factory
@@ -73,15 +68,16 @@ async fn test_grace_period_zero_shift_uses_policy_default() {
         .await;
 
     // Assign shift to employee for Jan 5
-    sqlx::query(
+    crate::test_execute!(
+        &pool.api,
         "INSERT INTO employee_shifts (employee_id, shift_id, start_date) VALUES ($1, $2, $3)",
-    )
-    .bind(employee_id)
-    .bind(shift_id)
-    .bind(NaiveDate::from_ymd_opt(2026, 1, 5).unwrap())
-    .execute(&pool)
-    .await
-    .unwrap();
+        diesel::sql_types::Uuid,
+        employee_id,
+        diesel::sql_types::Uuid,
+        shift_id,
+        diesel::sql_types::Date,
+        NaiveDate::from_ymd_opt(2026, 1, 5).unwrap()
+    );
 
     // Punch in 5 minutes early (8:55 AM)
     let tz: chrono_tz::Tz = "Asia/Ho_Chi_Minh".parse().unwrap();
@@ -175,20 +171,17 @@ async fn test_grace_period_zero_shift_uses_policy_default() {
 #[tokio::test]
 async fn test_grace_period_nonzero_shift_overrides() {
     let test_db = TestDatabase::new().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
     let factory = TestFactory::new(pool.clone());
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
 
     let user_id = factory.user().create().await;
     let workspace_id = factory.workspace().create_with_owner(user_id).await;
 
-    sqlx::query(
+    crate::test_execute!(&pool.api,
         "UPDATE attendance_policy_versions SET rules = '{\"work_unit_minutes\": 60, \"rounding_policy\": \"none\"}'::jsonb WHERE policy_id = (SELECT id FROM attendance_policies WHERE workspace_id = $1 AND is_default = true)",
-    )
-    .bind(workspace_id)
-    .execute(&pool)
-    .await
-    .unwrap();
+        diesel::sql_types::Uuid, workspace_id
+    );
 
     let employee_id = factory
         .employee()
@@ -197,26 +190,24 @@ async fn test_grace_period_nonzero_shift_overrides() {
         .create()
         .await;
 
-    let component_id: uuid::Uuid = sqlx::query_scalar(
+    let component_id: uuid::Uuid = crate::test_query_scalar_uuid!(
+        &pool.api,
         "INSERT INTO salary_component_definitions (workspace_id, name, code) VALUES ($1, $2, $3) RETURNING id",
-    )
-    .bind(workspace_id)
-    .bind("Base")
-    .bind("BASE")
-    .fetch_one(&pool)
-    .await
-    .unwrap();
+        diesel::sql_types::Uuid,
+        workspace_id,
+        diesel::sql_types::Text,
+        "Base",
+        diesel::sql_types::Text,
+        "BASE"
+    );
 
-    sqlx::query(
+    crate::test_execute!(&pool.api,
         "INSERT INTO employee_salary_components (employee_id, component_definition_id, amount, effective_date) VALUES ($1, $2, $3, $4)",
-    )
-    .bind(employee_id)
-    .bind(component_id)
-    .bind(Decimal::from(2600))
-    .bind(NaiveDate::from_ymd_opt(2026, 1, 1).unwrap())
-    .execute(&pool)
-    .await
-    .unwrap();
+        diesel::sql_types::Uuid, employee_id,
+        diesel::sql_types::Uuid, component_id,
+        diesel::sql_types::Numeric, Decimal::from(2600),
+        diesel::sql_types::Date, NaiveDate::from_ymd_opt(2026, 1, 1).unwrap()
+    );
 
     // Create shift with grace_period = 15 (overrides policy)
     let shift_id = factory
@@ -231,15 +222,16 @@ async fn test_grace_period_nonzero_shift_overrides() {
         .create()
         .await;
 
-    sqlx::query(
+    crate::test_execute!(
+        &pool.api,
         "INSERT INTO employee_shifts (employee_id, shift_id, start_date) VALUES ($1, $2, $3)",
-    )
-    .bind(employee_id)
-    .bind(shift_id)
-    .bind(NaiveDate::from_ymd_opt(2026, 1, 5).unwrap())
-    .execute(&pool)
-    .await
-    .unwrap();
+        diesel::sql_types::Uuid,
+        employee_id,
+        diesel::sql_types::Uuid,
+        shift_id,
+        diesel::sql_types::Date,
+        NaiveDate::from_ymd_opt(2026, 1, 5).unwrap()
+    );
 
     // Punch in 10 minutes early (8:50 AM) - within 15-min grace
     let tz: chrono_tz::Tz = "Asia/Ho_Chi_Minh".parse().unwrap();

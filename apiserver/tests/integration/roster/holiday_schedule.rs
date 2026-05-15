@@ -29,19 +29,16 @@ async fn test_schedule_shows_holiday_metadata() {
 
     // 1. Create a holiday on 2026-05-01
     let holiday_date = NaiveDate::from_ymd_opt(2026, 5, 1).unwrap();
-    let _holiday_id: Uuid = sqlx::query_scalar(
-        "INSERT INTO holidays (workspace_id, name, date, holiday_type, is_paid, ot_multiplier) 
-         VALUES ($1, $2, $3, $4, $5, $6) RETURNING id",
-    )
-    .bind(workspace_id)
-    .bind("Labor Day")
-    .bind(holiday_date)
-    .bind("national")
-    .bind(true)
-    .bind(Decimal::from(2)) // 200% logic
-    .fetch_one(&_db.pool())
-    .await
-    .unwrap();
+    let _holiday_id: Uuid = crate::test_query_scalar_uuid!(&_db.diesel_pools.api,
+        "INSERT INTO holidays (id, workspace_id, name, date, holiday_type, is_paid, ot_multiplier) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id",
+        diesel::sql_types::Uuid, uuid::Uuid::new_v4(),
+        diesel::sql_types::Uuid, workspace_id,
+        diesel::sql_types::Text, "Labor Day",
+        diesel::sql_types::Date, holiday_date,
+        diesel::sql_types::Text, "national",
+        diesel::sql_types::Bool, true,
+        diesel::sql_types::Numeric, Decimal::from(2)
+    );
 
     // 2. Fetch schedule via API for a week that includes the holiday
     let start_date = "2026-04-27"; // Monday

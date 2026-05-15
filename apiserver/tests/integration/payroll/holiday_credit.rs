@@ -10,21 +10,18 @@ use std::sync::Arc;
 #[tokio::test]
 async fn test_payroll_credits_paid_holiday() {
     let test_db = TestDatabase::new().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
     let factory = TestFactory::new(pool.clone());
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
 
     let user_id = factory.user().create().await;
     let workspace_id = factory.workspace().create_with_owner(user_id).await;
 
-    // Set work_unit_minutes to 60 for consistent hourly-like testing
-    sqlx::query(
+    crate::test_execute!(
+        &diesel_pools.api,
         "UPDATE attendance_policy_versions SET rules = '{\"work_unit_minutes\": 60, \"rounding_policy\": \"none\"}'::jsonb WHERE policy_id = (SELECT id FROM attendance_policies WHERE workspace_id = $1 AND is_default = true)",
-    )
-    .bind(workspace_id)
-    .execute(&pool)
-    .await
-    .unwrap();
+        diesel::sql_types::Uuid, workspace_id
+    );
 
     let employee_id = factory
         .employee()
@@ -34,44 +31,35 @@ async fn test_payroll_credits_paid_holiday() {
         .await;
 
     // 1. Create 'BASE' component
-    let component_id: uuid::Uuid = sqlx::query_scalar(
+    let component_id: uuid::Uuid = crate::test_query_scalar_uuid!(
+        &diesel_pools.api,
         "INSERT INTO salary_component_definitions (workspace_id, name, code) VALUES ($1, $2, $3) RETURNING id",
-    )
-    .bind(workspace_id)
-    .bind("Lương cơ bản")
-    .bind("BASE")
-    .fetch_one(&pool)
-    .await
-    .unwrap();
+        diesel::sql_types::Uuid, workspace_id,
+        diesel::sql_types::Text, "Lương cơ bản",
+        diesel::sql_types::Text, "BASE"
+    );
 
-    // 2. Assign Salary (Effective from 1st)
-    // 26 standard days assumed per month. So $2600 / 26 = $100 per day.
-    sqlx::query(
+    crate::test_execute!(
+        &diesel_pools.api,
         "INSERT INTO employee_salary_components (employee_id, component_definition_id, amount, effective_date) VALUES ($1, $2, $3, $4)",
-    )
-    .bind(employee_id)
-    .bind(component_id)
-    .bind(Decimal::from(2600))
-    .bind(NaiveDate::from_ymd_opt(2026, 5, 1).unwrap())
-    .execute(&pool)
-    .await
-    .unwrap();
+        diesel::sql_types::Uuid, employee_id,
+        diesel::sql_types::Uuid, component_id,
+        diesel::sql_types::Numeric, Decimal::from(2600),
+        diesel::sql_types::Date, NaiveDate::from_ymd_opt(2026, 5, 1).unwrap()
+    );
 
-    // 3. Create a paid holiday on 2026-05-01 (Labor Day)
     let holiday_date = NaiveDate::from_ymd_opt(2026, 5, 1).unwrap();
-    sqlx::query(
-        "INSERT INTO holidays (workspace_id, name, date, holiday_type, is_paid, ot_multiplier) 
-         VALUES ($1, $2, $3, $4, $5, $6)",
-    )
-    .bind(workspace_id)
-    .bind("Labor Day")
-    .bind(holiday_date)
-    .bind("national")
-    .bind(true)
-    .bind(Decimal::from(2)) // 200% logic
-    .execute(&pool)
-    .await
-    .unwrap();
+    crate::test_execute!(
+        &diesel_pools.api,
+        "INSERT INTO holidays (id, workspace_id, name, date, holiday_type, is_paid, ot_multiplier) VALUES ($1, $2, $3, $4, $5, $6, $7)",
+        diesel::sql_types::Uuid, uuid::Uuid::new_v4(),
+        diesel::sql_types::Uuid, workspace_id,
+        diesel::sql_types::Text, "Labor Day",
+        diesel::sql_types::Date, holiday_date,
+        diesel::sql_types::Text, "national",
+        diesel::sql_types::Bool, true,
+        diesel::sql_types::Numeric, Decimal::from(2)
+    );
 
     // 4. Record Attendance for ONE day only (2026-05-02)
     // The employee will NOT clock in on the holiday (2026-05-01).

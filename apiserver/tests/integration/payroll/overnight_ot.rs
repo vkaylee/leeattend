@@ -13,20 +13,17 @@ use std::sync::Arc;
 #[tokio::test]
 async fn test_overnight_ot_payroll_calculation() {
     let test_db = TestDatabase::new().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
     let factory = TestFactory::new(pool.clone());
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
 
     let user_id = factory.user().create().await;
     let workspace_id = factory.workspace().create_with_owner(user_id).await;
 
-    sqlx::query(
+    crate::test_execute!(&pool.api,
         "UPDATE attendance_policy_versions SET rules = '{\"work_unit_minutes\": 60, \"rounding_policy\": \"none\"}'::jsonb WHERE policy_id = (SELECT id FROM attendance_policies WHERE workspace_id = $1 AND is_default = true)",
-    )
-    .bind(workspace_id)
-    .execute(&pool)
-    .await
-    .unwrap();
+        diesel::sql_types::Uuid, workspace_id
+    );
 
     let employee_id = factory
         .employee()
@@ -36,26 +33,24 @@ async fn test_overnight_ot_payroll_calculation() {
         .await;
 
     // Create BASE component with is_base_for_ot = true
-    let component_id: uuid::Uuid = sqlx::query_scalar(
+    let component_id: uuid::Uuid = crate::test_query_scalar_uuid!(
+        &pool.api,
         "INSERT INTO salary_component_definitions (workspace_id, name, code) VALUES ($1, $2, $3) RETURNING id",
-    )
-    .bind(workspace_id)
-    .bind("Base")
-    .bind("BASE")
-    .fetch_one(&pool)
-    .await
-    .unwrap();
+        diesel::sql_types::Uuid,
+        workspace_id,
+        diesel::sql_types::Text,
+        "Base",
+        diesel::sql_types::Text,
+        "BASE"
+    );
 
-    sqlx::query(
+    crate::test_execute!(&pool.api,
         "INSERT INTO employee_salary_components (employee_id, component_definition_id, amount, effective_date) VALUES ($1, $2, $3, $4)",
-    )
-    .bind(employee_id)
-    .bind(component_id)
-    .bind(Decimal::from(5200))
-    .bind(NaiveDate::from_ymd_opt(2026, 1, 1).unwrap())
-    .execute(&pool)
-    .await
-    .unwrap();
+        diesel::sql_types::Uuid, employee_id,
+        diesel::sql_types::Uuid, component_id,
+        diesel::sql_types::Numeric, Decimal::from(5200),
+        diesel::sql_types::Date, NaiveDate::from_ymd_opt(2026, 1, 1).unwrap()
+    );
 
     // Create overnight shift: 22:00 - 06:00
     let shift_id = factory
@@ -72,15 +67,16 @@ async fn test_overnight_ot_payroll_calculation() {
         .await;
 
     // Assign shift for Jan 5 (night of Jan 5 -> morning Jan 6)
-    sqlx::query(
+    crate::test_execute!(
+        &pool.api,
         "INSERT INTO employee_shifts (employee_id, shift_id, start_date) VALUES ($1, $2, $3)",
-    )
-    .bind(employee_id)
-    .bind(shift_id)
-    .bind(NaiveDate::from_ymd_opt(2026, 1, 5).unwrap())
-    .execute(&pool)
-    .await
-    .unwrap();
+        diesel::sql_types::Uuid,
+        employee_id,
+        diesel::sql_types::Uuid,
+        shift_id,
+        diesel::sql_types::Date,
+        NaiveDate::from_ymd_opt(2026, 1, 5).unwrap()
+    );
 
     // Create time entry spanning midnight: Jan 5 22:00 -> Jan 6 06:00
     let tz: chrono_tz::Tz = "Asia/Ho_Chi_Minh".parse().unwrap();
