@@ -96,6 +96,9 @@ def lifecycle_up(mode: str = "all") -> bool:
     elif mode == "infra-db":  # pragma: no cover
         container = f"{project_name}_db_init_1"  # pragma: no cover
         timeout = 60  # pragma: no cover
+    elif mode == "infra-redis":
+        container = f"{project_name}_redis_1"
+        timeout = 30
     else:
         container = f"{project_name}_apiserver_1"
         timeout = 60
