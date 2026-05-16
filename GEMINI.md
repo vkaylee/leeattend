@@ -20,7 +20,9 @@ trigger: always_on
 2. **Security & Privacy:** NEVER log PII (emails, passwords, phones) in raw text. Mask them (e.g., `user_***@domain.com`).
 3. **Structured Errors:** Use domain-specific error types (`AppError`). NEVER throw generic `Error` or `unwrap()` blindly.
 4. **Boy Scout Rule:** If you see a typo, bad pattern, or visible bug nearby, FIX IT IMMEDIATELY. Never say "it's out of scope".
-5. **PTY Safety (CRITICAL):** LUÔN LUÔN sử dụng chuyển hướng đầu ra (ví dụ: `> run.log 2>&1 </dev/null`) khi thực thi lệnh bash/shell (đặc biệt là test, build, docker) để tuyệt đối tránh treo AI Terminal. TUYỆT ĐỐI KHÔNG DÙNG chuỗi nhiều dòng (multiline strings) trực tiếp trong các lệnh terminal (như `git commit -m "..."` hay `python -c`). Thay vì `git commit -m "dòng 1\ndòng 2"`, hãy tạo file `scratch/commit_msg.txt`, viết nội dung vào đó, rồi chạy `git commit -F scratch/commit_msg.txt`. Hoặc dùng nhiều tham số `-m`. Thay vì dùng python inline, hãy tạo file `.py` rồi mới chạy.
+5. **PTY Safety & File Creation (CRITICAL):** LUÔN LUÔN sử dụng chuyển hướng đầu ra (ví dụ: `> run.log 2>&1 </dev/null`) khi thực thi lệnh bash/shell (đặc biệt là test, build, docker) để tuyệt đối tránh treo AI Terminal. TUYỆT ĐỐI KHÔNG DÙNG chuỗi nhiều dòng (multiline strings) trực tiếp trong các lệnh terminal (như `echo "..." > file`, `git commit -m "..."` hay `python -c`).
+   - KHÔNG BAO GIỜ dùng lệnh `echo` hay `cat` trong shell/bash để tạo/sửa file có nội dung nhiều dòng.
+   - Bạn BẮT BUỘC phải dùng NATIVE TOOL của bạn (như `write_to_file`) để tạo file (ví dụ `scratch/commit_msg.txt` hoặc `script.py`), sau đó mới dùng lệnh shell để thực thi (ví dụ: `git commit -F scratch/commit_msg.txt`). Việc cố tình truyền chuỗi nhiều dòng qua bash/shell string sẽ phá vỡ PTY parser và gây hang hệ thống.
 6. **Hermetic Wrappers (CRITICAL):** TUYỆT ĐỐI KHÔNG gọi trực tiếp `cargo`, `npm`, `diesel`. Phải dùng wrapper scripts trong `scripts/` (ví dụ: `./scripts/_cargo.sh`). Chi tiết xem ở `execution-wrappers.md`.
 ## 🥇 Layer 1: CRITICAL PROTOCOL
 **Before writing ANY code or proposing solutions, you MUST:**

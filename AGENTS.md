@@ -8,9 +8,10 @@
 > [!CAUTION]
 > **Tránh PTY Hang.** AI LUÔN LUÔN phải tuân thủ các quy tắc sau khi thực thi lệnh:
 > 1. Thêm chuyển hướng (redirect) `> run.log 2>&1 </dev/null` khi chạy các lệnh shell/bash (đặc biệt là lệnh khởi chạy test, docker) để tránh làm treo terminal của chính bạn. KHÔNG ĐƯỢC QUÊN.
-> 2. **TUYỆT ĐỐI KHÔNG** sử dụng lệnh có chứa chuỗi nhiều dòng (multiline strings) trực tiếp trong terminal (như `git commit -m "dòng 1\ndòng 2"` hoặc `python -c "..."`). Lệnh này sẽ làm treo PTY ngay lập tức do lỗi parsing của shell. 
->    - Thay vào đó, để commit nhiều dòng, hãy tạo file `scratch/commit_msg.txt` rồi chạy `git commit -F scratch/commit_msg.txt`.
->    - Nếu cần chạy script python, hãy tạo một file `.py` riêng biệt (ví dụ trong thư mục `scratch/`) rồi mới chạy lệnh `python file.py`.
+> 2. **TUYỆT ĐỐI KHÔNG** sử dụng lệnh có chứa chuỗi nhiều dòng (multiline strings) trực tiếp trong terminal (như `echo "..." > file`, `git commit -m "dòng 1\ndòng 2"` hoặc `python -c "..."`). Lệnh này sẽ làm treo PTY ngay lập tức do lỗi parsing của shell. 
+>    - **Đặc biệt lưu ý:** KHÔNG dùng lệnh `echo` hay `cat` trong bash để tạo/sửa file đa dòng.
+>    - Bạn BẮT BUỘC phải dùng NATIVE TOOL (như `write_to_file`) của AI để tạo file (ví dụ `scratch/commit_msg.txt`), rồi mới chạy lệnh `git commit -F scratch/commit_msg.txt`.
+>    - Tương tự, nếu cần chạy script python, dùng tool tạo file `.py` riêng biệt rồi mới chạy lệnh `python file.py`.
 > 3. **HERMETIC WRAPPERS:** Tuyệt đối không gọi trực tiếp `cargo`, `npm`, `diesel`. Phải dùng wrapper scripts trong `scripts/` (ví dụ: `./scripts/_cargo.sh`). Chi tiết xem ở `execution-wrappers.md`.
 
 ## 📚 DOMAIN RULEBOOKS (Lazy Load Index)
