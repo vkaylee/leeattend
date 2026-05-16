@@ -31,12 +31,12 @@ pub struct CachedShift {
 /// Cache for shift data.
 pub struct ShiftCache {
     cache: Arc<dyn CacheRepository>,
-    diesel: crate::diesel_pool::DieselPools,
+    repo: Arc<dyn ShiftRepository>,
 }
 
 impl ShiftCache {
-    pub fn new(cache: Arc<dyn CacheRepository>, diesel: crate::diesel_pool::DieselPools) -> Self {
-        Self { cache, diesel }
+    pub fn new(cache: Arc<dyn CacheRepository>, repo: Arc<dyn ShiftRepository>) -> Self {
+        Self { cache, repo }
     }
 
     /// Generate cache key for shifts of a workspace.
@@ -49,12 +49,11 @@ impl ShiftCache {
     /// Returns cached data if available, otherwise fetches from DB.
     pub async fn get_map(&self, workspace_id: Uuid) -> Result<HashMap<Uuid, CachedShift>, String> {
         let key = Self::key(workspace_id);
-        let diesel = self.diesel.clone();
+        let repo = self.repo.clone();
 
         let shifts: Vec<CachedShift> = self
             .cache
             .get_or_fetch(&key, DEFAULT_CACHE_TTL, || async move {
-                let repo = crate::repositories::DieselShiftRepository::new(diesel);
                 let rows = repo
                     .get_workspace_shifts(workspace_id)
                     .await

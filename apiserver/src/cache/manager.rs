@@ -19,12 +19,15 @@ use crate::repositories::CacheRepository;
 use std::sync::Arc;
 
 impl CacheManager {
-    /// Create a new CacheManager.
-    pub fn new(cache: Arc<dyn CacheRepository>, diesel: crate::diesel_pool::DieselPools) -> Self {
 
+    pub fn new(
+        cache: Arc<dyn CacheRepository>,
+        workspace_repo: Arc<dyn crate::repositories::WorkspaceRepository>,
+        shift_repo: Arc<dyn crate::repositories::shift_repository::ShiftRepository>,
+    ) -> Self {
         Self {
-            workspace: WorkspaceCache::new(Arc::clone(&cache), diesel.clone()),
-            shifts: ShiftCache::new(Arc::clone(&cache), diesel),
+            workspace: WorkspaceCache::new(Arc::clone(&cache), workspace_repo),
+            shifts: ShiftCache::new(Arc::clone(&cache), shift_repo),
         }
     }
 

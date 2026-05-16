@@ -22,8 +22,10 @@ async fn test_attendance_and_merge_handlers() {
     let redis_pool = crate::common::app::create_test_redis_pool().await.unwrap();
 
     let redis_cache: Arc<dyn apiserver::repositories::CacheRepository> = Arc::new(apiserver::cache::RedisCache::new(redis_pool.clone()));
-    let cache = Arc::new(CacheManager::new(redis_cache, diesel_pools.clone()));
+    let cache = Arc::new(CacheManager::new(redis_cache, Arc::clone(&deps.workspace_repo), Arc::clone(&deps.shift_repo)));
     let queue = JobQueue::new(redis_pool.clone());
+    let queue_repo: Arc<dyn apiserver::repositories::QueueRepository> = Arc::new(apiserver::repositories::RedisQueueRepository::new(redis_pool.clone()));
+    let publisher_repo: Arc<dyn apiserver::repositories::PublisherRepository> = Arc::new(apiserver::repositories::RedisPublisherRepository::new(redis_pool.clone()));
 
     let user_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(user_id).await;
@@ -88,11 +90,10 @@ async fn test_attendance_and_merge_handlers() {
     );
 
     let res = AttendanceHandler::handle(
-        &diesel_pools,
-        &queue,
+        &queue_repo,
+        &publisher_repo,
         &cache,
         &summary_job,
-        &redis_pool,
         None,
         &deps,
     )
@@ -122,11 +123,10 @@ async fn test_attendance_and_merge_handlers() {
     );
 
     let res = AttendanceHandler::handle(
-        &diesel_pools,
-        &queue,
+        &queue_repo,
+        &publisher_repo,
         &cache,
         &detail_job,
-        &redis_pool,
         None,
         &deps,
     )
@@ -154,7 +154,7 @@ async fn test_attendance_and_merge_handlers() {
         JobPriority::High,
     );
 
-    let res = MergeHandler::handle(&queue, &merge_job, &redis_pool, &deps).await;
+    let res = MergeHandler::handle(&queue_repo, &publisher_repo, &merge_job, &deps).await;
     res.expect("MergeHandler should succeed");
 
     // Test MergeHandler for Detail
@@ -178,6 +178,6 @@ async fn test_attendance_and_merge_handlers() {
         JobPriority::High,
     );
 
-    let res = MergeHandler::handle(&queue, &merge_detail_job, &redis_pool, &deps).await;
+    let res = MergeHandler::handle(&queue_repo, &publisher_repo, &merge_detail_job, &deps).await;
     res.expect("MergeHandler Detail should succeed");
 }

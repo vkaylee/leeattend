@@ -123,6 +123,8 @@ impl WorkerConfig {
 pub struct JobWorker {
     queue: JobQueue,
     redis: RedisPool,
+    queue_repo: Arc<dyn crate::repositories::QueueRepository>,
+    publisher_repo: Arc<dyn crate::repositories::PublisherRepository>,
     diesel: crate::diesel_pool::DieselPools,
     config: WorkerConfig,
     coordinator: Arc<ReportCoordinator>,
@@ -146,16 +148,25 @@ impl JobWorker {
         coordinator: Arc<ReportCoordinator>,
         roster_cache: Option<Arc<RosterCache>>,
     ) -> Self {
-        let redis_cache: Arc<dyn crate::repositories::CacheRepository> = Arc::new(crate::cache::RedisCache::new(redis.clone()));
-        let cache = Arc::new(CacheManager::new(redis_cache, diesel.clone()));
         let deps = Arc::new(super::WorkerDeps::new(&diesel));
+        let redis_cache: Arc<dyn crate::repositories::CacheRepository> = Arc::new(crate::cache::RedisCache::new(redis.clone()));
+        let cache = Arc::new(CacheManager::new(
+            redis_cache,
+            Arc::clone(&deps.workspace_repo),
+            Arc::clone(&deps.shift_repo),
+        ));
         let hostname = std::env::var("HOSTNAME")
             .or_else(|_| std::env::var("COMPUTERNAME"))
             .unwrap_or_else(|_| "unknown".to_string());
 
+        let queue_repo: Arc<dyn crate::repositories::QueueRepository> = Arc::new(crate::repositories::RedisQueueRepository::new(redis.clone()));
+        let publisher_repo: Arc<dyn crate::repositories::PublisherRepository> = Arc::new(crate::repositories::RedisPublisherRepository::new(redis.clone()));
+
         Self {
             queue: JobQueue::new(redis.clone()),
             redis,
+            queue_repo,
+            publisher_repo,
             diesel,
             config,
             coordinator,
@@ -388,18 +399,17 @@ impl JobWorker {
         let result = match job.task_type {
             TaskType::AttendanceReport => {
                 AttendanceHandler::handle(
-                    &self.diesel,
-                    &self.queue,
+                    &self.queue_repo,
+                    &self.publisher_repo,
                     &self.cache,
                     &job,
-                    &self.redis,
                     self.roster_cache.as_deref(),
                     &self.deps,
                 )
                 .await
             }
             TaskType::MergeResults => {
-                MergeHandler::handle(&self.queue, &job, &self.redis, &self.deps).await
+                MergeHandler::handle(&self.queue_repo, &self.publisher_repo, &job, &self.deps).await
             }
             TaskType::PayrollReport => {
                 // Future implementation

@@ -38,6 +38,18 @@ pub trait QueueRepository: Send + Sync {
 
     /// Store an error string for a specific chunk/task (e.g. for import jobs)
     async fn store_import_error(&self, job_id: Uuid, chunk_id: &str, error: &str) -> Result<(), String>;
+
+    /// Store a batch result for a report job
+    async fn store_result(&self, parent_job_id: Uuid, batch_index: u32, result_json: &str) -> Result<(), String>;
+
+    /// Get all batch results for a parent job
+    async fn get_all_results(&self, parent_job_id: Uuid) -> Result<Vec<(String, String)>, String>;
+
+    /// Store the final merged report data (e.g. Excel bytes)
+    async fn set_result_data(&self, job_id: Uuid, data: &[u8], file_name: &str) -> Result<(), String>;
+
+    /// Delete all batch results and metadata for a parent job
+    async fn delete_results(&self, parent_job_id: Uuid) -> Result<(), String>;
 }
 
 use crate::queue::{JobQueue, RedisPool};
@@ -113,6 +125,22 @@ impl QueueRepository for RedisQueueRepository {
             .await
             .map_err(|e| e.to_string())?;
         Ok(())
+    }
+
+    async fn store_result(&self, parent_job_id: Uuid, batch_index: u32, result_json: &str) -> Result<(), String> {
+        self.queue.store_result(parent_job_id, batch_index, result_json).await.map_err(|e| e.to_string())
+    }
+
+    async fn get_all_results(&self, parent_job_id: Uuid) -> Result<Vec<(String, String)>, String> {
+        self.queue.get_all_results(parent_job_id).await.map_err(|e| e.to_string())
+    }
+
+    async fn set_result_data(&self, job_id: Uuid, data: &[u8], file_name: &str) -> Result<(), String> {
+        self.queue.set_result_data(job_id, data, file_name).await.map_err(|e| e.to_string())
+    }
+
+    async fn delete_results(&self, parent_job_id: Uuid) -> Result<(), String> {
+        self.queue.delete_results(parent_job_id).await.map_err(|e| e.to_string())
     }
 }
 

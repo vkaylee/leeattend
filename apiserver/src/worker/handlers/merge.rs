@@ -8,9 +8,11 @@ use tracing::{info, warn};
 
 use crate::errors::{AppError, AppResult};
 use crate::models::{AttendanceSummary, DailyAttendanceReport};
-use crate::queue::{Job, JobQueue, JobStatus, RedisPool, ReportPublisher, ReportType};
+use crate::queue::{Job, JobStatus, ReportType};
 use crate::services::import_messages::ExcelReportMessages;
 use crate::services::ExcelWriter;
+use crate::repositories::{QueueRepository, PublisherRepository};
+use std::sync::Arc;
 
 /// Presigned URL validity duration - no longer used, kept for backward compatibility.
 const _PRESIGNED_URL_EXPIRY: std::time::Duration = std::time::Duration::from_secs(86400);
@@ -31,12 +33,12 @@ impl MergeHandler {
     /// 6. Publish DONE signal to Pub/Sub
     /// 7. Cleanup batch results
     pub async fn handle(
-        queue: &JobQueue,
+        queue: &Arc<dyn QueueRepository>,
+        publisher: &Arc<dyn PublisherRepository>,
         job: &Job,
-        redis: &RedisPool,
         deps: &crate::worker::WorkerDeps,
     ) -> Result<(), String> {
-        match Self::handle_inner(queue, job, redis, deps).await {
+        match Self::handle_inner(queue, publisher, job, deps).await {
             Ok(_) => Ok(()),
             Err(e) => Err(e.to_string()),
         }
@@ -44,9 +46,9 @@ impl MergeHandler {
 
     #[allow(clippy::too_many_lines)]
     async fn handle_inner(
-        queue: &JobQueue,
+        queue: &Arc<dyn QueueRepository>,
+        publisher: &Arc<dyn PublisherRepository>,
         job: &Job,
-        redis: &RedisPool,
         deps: &crate::worker::WorkerDeps,
     ) -> AppResult<()> {
         let parent_job_id = job.parent_job_id;
@@ -180,7 +182,6 @@ impl MergeHandler {
 
         // 8. Publish DONE signal to Pub/Sub for streaming clients
         info!(parent_job_id = %parent_job_id, "Publishing DONE signal to clients");
-        let publisher = ReportPublisher::new(redis.clone());
 
         if let Err(e) = publisher
             .publish_done(parent_job_id, meta.total_batches, total_records)

@@ -20,13 +20,13 @@ pub struct CachedWorkspaceConfig {
 /// Cache for workspace configuration.
 pub struct WorkspaceCache {
     cache: Arc<dyn CacheRepository>,
-    diesel: crate::diesel_pool::DieselPools,
+    repo: Arc<dyn WorkspaceRepository>,
 }
 
 impl WorkspaceCache {
     /// Create a new WorkspaceCache.
-    pub fn new(cache: Arc<dyn CacheRepository>, diesel: crate::diesel_pool::DieselPools) -> Self {
-        Self { cache, diesel }
+    pub fn new(cache: Arc<dyn CacheRepository>, repo: Arc<dyn WorkspaceRepository>) -> Self {
+        Self { cache, repo }
     }
 
     /// Generate cache key for a workspace.
@@ -41,11 +41,10 @@ impl WorkspaceCache {
     /// 3. Store in cache for future requests
     pub async fn get(&self, workspace_id: Uuid) -> Result<CachedWorkspaceConfig, String> {
         let key = Self::key(workspace_id);
-        let diesel = self.diesel.clone();
+        let repo = self.repo.clone();
 
         self.cache
             .get_or_fetch(&key, DEFAULT_CACHE_TTL, || async move {
-                let repo = crate::repositories::DieselWorkspaceRepository::new(diesel);
                 let ws = repo
                     .get_workspace_by_id(workspace_id)
                     .await

@@ -1,9 +1,11 @@
 pub mod agent_repository;
 pub mod cache_repository;
 pub mod queue_repository;
+pub mod publisher_repository;
 
 pub use cache_repository::{CacheRepository, CacheRepositoryExt};
-pub use queue_repository::QueueRepository;
+pub use queue_repository::{QueueRepository, RedisQueueRepository};
+pub use publisher_repository::{PublisherRepository, RedisPublisherRepository};
 pub mod assignment_rule_repository;
 pub mod attendance_adjustment_repository;
 pub mod department_repository;
