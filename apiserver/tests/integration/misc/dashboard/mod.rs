@@ -120,26 +120,25 @@ async fn test_leave_types_returns_breakdown_with_data() {
     let (address, ws_id, user_id, factory, _db): (String, Uuid, Uuid, TestFactory, TestDatabase) =
         spawn_app_with_factory().await;
     let client = reqwest::Client::new();
-    let pool = _db.pool();
+    let pool = _db.diesel_pools.clone();
 
     let emp_id = factory.employee().with_workspace(ws_id).create().await;
 
     let today = Utc::now().date_naive();
 
-    let vacation_type_id: Uuid = sqlx::query_scalar(
+    let vacation_type_id: Uuid = crate::test_query_scalar_uuid!(
+        &_db.diesel_pools.api,
         "SELECT id FROM leave_types WHERE workspace_id = $1 AND code = 'vacation'",
-    )
-    .bind(ws_id)
-    .fetch_one(&pool)
-    .await
-    .unwrap();
+        diesel::sql_types::Uuid,
+        ws_id
+    );
 
-    let sick_type_id: Uuid =
-        sqlx::query_scalar("SELECT id FROM leave_types WHERE workspace_id = $1 AND code = 'sick'")
-            .bind(ws_id)
-            .fetch_one(&pool)
-            .await
-            .unwrap();
+    let sick_type_id: Uuid = crate::test_query_scalar_uuid!(
+        &_db.diesel_pools.api,
+        "SELECT id FROM leave_types WHERE workspace_id = $1 AND code = 'sick'",
+        diesel::sql_types::Uuid,
+        ws_id
+    );
 
     // Create approved leave requests this month (keep within current month)
     factory
@@ -331,7 +330,7 @@ async fn test_unexcused_absences_returns_data_with_absent_employees() {
     let (address, ws_id, user_id, factory, _db): (String, Uuid, Uuid, TestFactory, TestDatabase) =
         spawn_app_with_factory().await;
     let client = reqwest::Client::new();
-    let pool = _db.pool();
+    let pool = _db.diesel_pools.clone();
 
     let dept_id = factory.department().with_workspace(ws_id).create().await;
 
@@ -340,13 +339,12 @@ async fn test_unexcused_absences_returns_data_with_absent_employees() {
     let today = Utc::now().date_naive();
 
     // Assign employee to department
-    sqlx::query("INSERT INTO employee_department_history (employee_id, department_id, effective_date) VALUES ($1, $2, $3)")
-        .bind(emp_id)
-        .bind(dept_id)
-        .bind(today - Duration::days(30))
-        .execute(&pool)
-        .await
-        .unwrap();
+    crate::test_execute!(&_db.diesel_pools.api,
+        "INSERT INTO employee_department_history (employee_id, department_id, effective_date) VALUES ($1, $2, $3)",
+        diesel::sql_types::Uuid, emp_id,
+        diesel::sql_types::Uuid, dept_id,
+        diesel::sql_types::Date, today - Duration::days(30)
+    );
 
     // Assign a shift so they are expected to work today
     factory
@@ -428,7 +426,7 @@ async fn test_unexcused_absences_group_by_employee() {
     let (address, ws_id, user_id, factory, _db): (String, Uuid, Uuid, TestFactory, TestDatabase) =
         spawn_app_with_factory().await;
     let client = reqwest::Client::new();
-    let pool = _db.pool();
+    let pool = _db.diesel_pools.clone();
 
     let dept_id = factory.department().with_workspace(ws_id).create().await;
 
@@ -437,13 +435,12 @@ async fn test_unexcused_absences_group_by_employee() {
     let today = Utc::now().date_naive();
 
     // Assign employee to department
-    sqlx::query("INSERT INTO employee_department_history (employee_id, department_id, effective_date) VALUES ($1, $2, $3)")
-        .bind(emp_id)
-        .bind(dept_id)
-        .bind(today - Duration::days(30))
-        .execute(&pool)
-        .await
-        .unwrap();
+    crate::test_execute!(&_db.diesel_pools.api,
+        "INSERT INTO employee_department_history (employee_id, department_id, effective_date) VALUES ($1, $2, $3)",
+        diesel::sql_types::Uuid, emp_id,
+        diesel::sql_types::Uuid, dept_id,
+        diesel::sql_types::Date, today - Duration::days(30)
+    );
 
     // Assign a shift so they are expected to work today
     factory
@@ -604,7 +601,7 @@ async fn test_attendance_trend_includes_present_and_late() {
     let (address, ws_id, user_id, factory, _db): (String, Uuid, Uuid, TestFactory, TestDatabase) =
         spawn_app_with_factory().await;
     let client = reqwest::Client::new();
-    let pool = _db.pool();
+    let pool = _db.diesel_pools.clone();
 
     let emp_id = factory.employee().with_workspace(ws_id).create().await;
 
@@ -621,16 +618,13 @@ async fn test_attendance_trend_includes_present_and_late() {
         .create()
         .await;
 
-    // Insert into shift_rosters directly (the table that was fixed)
-    sqlx::query(
-        "INSERT INTO shift_rosters (employee_id, shift_id, date, status) VALUES ($1, $2, $3, 'confirmed')"
-    )
-    .bind(emp_id)
-    .bind(shift_id)
-    .bind(today)
-    .execute(&pool)
-    .await
-    .unwrap();
+    crate::test_execute!(&_db.diesel_pools.api,
+        "INSERT INTO shift_rosters (employee_id, shift_id, date, status, id) VALUES ($1, $2, $3, 'confirmed', $4)",
+        diesel::sql_types::Uuid, emp_id,
+        diesel::sql_types::Uuid, shift_id,
+        diesel::sql_types::Date, today,
+        diesel::sql_types::Uuid, Uuid::new_v4()
+    );
 
     // Create a LATE punch-in (08:30, after shift start 08:00)
     let punch_in = today.and_hms_opt(8, 30, 0).unwrap().and_utc();
@@ -768,20 +762,19 @@ async fn test_department_attendance_returns_data_with_present_employees() {
     let (address, ws_id, user_id, factory, _db): (String, Uuid, Uuid, TestFactory, TestDatabase) =
         spawn_app_with_factory().await;
     let client = reqwest::Client::new();
-    let pool = _db.pool();
+    let pool = _db.diesel_pools.clone();
 
     let dept_id = factory.department().with_workspace(ws_id).create().await;
     let emp_id = factory.employee().with_workspace(ws_id).create().await;
     let today = Utc::now().date_naive();
 
     // Assign employee to department
-    sqlx::query("INSERT INTO employee_department_history (employee_id, department_id, effective_date) VALUES ($1, $2, $3)")
-        .bind(emp_id)
-        .bind(dept_id)
-        .bind(today - Duration::days(30))
-        .execute(&pool)
-        .await
-        .unwrap();
+    crate::test_execute!(&_db.diesel_pools.api,
+        "INSERT INTO employee_department_history (employee_id, department_id, effective_date) VALUES ($1, $2, $3)",
+        diesel::sql_types::Uuid, emp_id,
+        diesel::sql_types::Uuid, dept_id,
+        diesel::sql_types::Date, today - Duration::days(30)
+    );
 
     // Create time entry for today
     let punch_in = today.and_hms_opt(8, 0, 0).unwrap().and_utc();
@@ -924,7 +917,7 @@ async fn test_workspace_stats_detects_late_today() {
     let (address, ws_id, user_id, factory, _db): (String, Uuid, Uuid, TestFactory, TestDatabase) =
         spawn_app_with_factory().await;
     let client = reqwest::Client::new();
-    let pool = _db.pool();
+    let pool = _db.diesel_pools.clone();
 
     let emp_id = factory.employee().with_workspace(ws_id).create().await;
     let today = Utc::now().date_naive();
@@ -940,15 +933,12 @@ async fn test_workspace_stats_detects_late_today() {
         .create()
         .await;
 
-    sqlx::query(
-        "INSERT INTO shift_rosters (employee_id, shift_id, date, status) VALUES ($1, $2, $3, 'confirmed')"
-    )
-    .bind(emp_id)
-    .bind(shift_id)
-    .bind(today)
-    .execute(&pool)
-    .await
-    .unwrap();
+    crate::test_execute!(&pool.api,
+        "INSERT INTO shift_rosters (employee_id, shift_id, date, status) VALUES ($1, $2, $3, 'confirmed')",
+        diesel::sql_types::Uuid, emp_id,
+        diesel::sql_types::Uuid, shift_id,
+        diesel::sql_types::Date, today
+    );
 
     // Late punch-in at 08:30 (after shift start 08:00)
     let punch_in = today.and_hms_opt(8, 30, 0).unwrap().and_utc();
@@ -1008,23 +998,24 @@ async fn test_overtime_trend_returns_correct_structure() {
     let (address, ws_id, user_id, factory, _db): (String, Uuid, Uuid, TestFactory, TestDatabase) =
         spawn_app_with_factory().await;
     let client = reqwest::Client::new();
-    let pool = _db.pool();
+    let pool = _db.diesel_pools.clone();
 
     let emp_id = factory.employee().with_workspace(ws_id).create().await;
     let today = Utc::now().date_naive();
 
     // Insert a summary row with overtime data
-    sqlx::query(
+    crate::test_execute!(
+        &pool.api,
         r"INSERT INTO attendance_daily_summaries
            (workspace_id, employee_id, date, system_detected_ot_minutes, approved_ot_minutes)
            VALUES ($1, $2, $3, 60, 30)",
-    )
-    .bind(ws_id)
-    .bind(emp_id)
-    .bind(today)
-    .execute(&pool)
-    .await
-    .unwrap();
+        diesel::sql_types::Uuid,
+        ws_id,
+        diesel::sql_types::Uuid,
+        emp_id,
+        diesel::sql_types::Date,
+        today
+    );
 
     let res = client
         .get(format!("{address}/api/dashboard/overtime-trend"))

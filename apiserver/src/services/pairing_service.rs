@@ -347,3 +347,140 @@ impl PairingService {
 }
 
 // local_to_tz is now provided by crate::utils::tz::local_to_tz
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::Arc;
+    use chrono::Utc;
+    use uuid::Uuid;
+
+    use crate::repositories::time_entry_repository::MockTimeEntryRepository;
+    use crate::repositories::roster::MockRosterRepository;
+    use crate::repositories::attendance_policy_repository::MockAttendancePolicyRepository;
+    use crate::repositories::workspace_repository::MockWorkspaceRepository;
+    use crate::repositories::employee::MockEmployeeRepository;
+    use crate::repositories::holiday_repository::MockHolidayRepository;
+    use crate::repositories::leave_request_repository::MockLeaveRequestRepository;
+    use crate::repositories::raw_attendance_log_repository::MockRawAttendanceLogRepository;
+    use crate::repositories::shift_repository::MockShiftRepository;
+    
+    // We didn't add automock to AttendanceDailySummaryRepository yet, let's use a dummy struct for it.
+    struct DummyDailySummaryRepo;
+    #[async_trait::async_trait]
+    impl crate::repositories::AttendanceDailySummaryRepository for DummyDailySummaryRepo {
+        async fn get_summary(&self, _w: Uuid, _e: Uuid, _d: NaiveDate) -> Result<Option<crate::models::AttendanceDailySummary>, AppError> { Ok(None) }
+        async fn upsert_calculated_summary(&self, _w: Uuid, _e: Uuid, _d: NaiveDate, _a: i32, _s: i32, _n: crate::models::OtStatus, _h: bool, _hn: Option<String>) -> Result<(), AppError> { Ok(()) }
+        async fn claim_ot(&self, _w: Uuid, _e: Uuid, _d: NaiveDate, _c: i32, _r: Option<String>) -> Result<usize, AppError> { Ok(0) }
+        async fn approve_ot(&self, _w: Uuid, _e: Uuid, _d: NaiveDate, _a: i32, _m: Option<String>, _s: crate::models::OtStatus) -> Result<usize, AppError> { Ok(0) }
+        async fn upsert_paper_ot(&self, _w: Uuid, _e: Uuid, _d: NaiveDate, _c: i32, _r: String, _u: Uuid, _p: Option<String>) -> Result<crate::models::AttendanceDailySummary, AppError> { Err(AppError::Internal("Not implemented".into())) }
+        async fn get_batch_ot_statuses(&self, _w: Uuid, _e: &[Uuid], _s: NaiveDate, _en: NaiveDate) -> Result<std::collections::HashMap<(Uuid, NaiveDate), String>, AppError> { Ok(std::collections::HashMap::new()) }
+        async fn get_summaries(&self, _w: Uuid, _e: Option<Uuid>, _s: NaiveDate, _en: NaiveDate) -> Result<Vec<crate::models::AttendanceDailySummary>, AppError> { Ok(vec![]) }
+    }
+
+    #[tokio::test]
+    async fn test_process_new_raw_log_duplicate() {
+        let mut mock_raw_repo = MockRawAttendanceLogRepository::new();
+        mock_raw_repo.expect_has_duplicate_raw_log()
+            .times(1)
+            .returning(|_, _, _, _| Box::pin(async { Ok(true) }));
+
+        let service = PairingService::new(PairingServiceArgs {
+            time_entry_repo: Arc::new(MockTimeEntryRepository::new()),
+            roster_repo: Arc::new(MockRosterRepository::new()),
+            policy_repo: Arc::new(MockAttendancePolicyRepository::new()),
+            workspace_repo: Arc::new(MockWorkspaceRepository::new()),
+            employee_repo: Arc::new(MockEmployeeRepository::new()),
+            holiday_repo: Arc::new(MockHolidayRepository::new()),
+            leave_request_repo: Arc::new(MockLeaveRequestRepository::new()),
+            daily_summary_repo: Arc::new(DummyDailySummaryRepo),
+            raw_log_repo: Arc::new(mock_raw_repo),
+            shift_repo: Arc::new(MockShiftRepository::new()),
+        });
+
+        let log = crate::models::RawAttendanceLog {
+            id: Uuid::new_v4(),
+            workspace_id: Uuid::new_v4(),
+            employee_id: Uuid::new_v4(),
+            punch_time: Utc::now(),
+            source: crate::models::enums::LogSource::Manual,
+            device_id: None,
+            raw_data: Some(serde_json::json!({})),
+            punch: 1,
+            status: 1,
+            created_at: Utc::now(),
+        };
+
+        let result = service.process_new_raw_log(&log).await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_clear_auto_entries() {
+        let mut mock_time_entry_repo = MockTimeEntryRepository::new();
+        mock_time_entry_repo.expect_replace_time_entries()
+            .times(1)
+            .returning(|_, _, _, _, _| Ok(()));
+
+        let service = PairingService::new(PairingServiceArgs {
+            time_entry_repo: Arc::new(mock_time_entry_repo),
+            roster_repo: Arc::new(MockRosterRepository::new()),
+            policy_repo: Arc::new(MockAttendancePolicyRepository::new()),
+            workspace_repo: Arc::new(MockWorkspaceRepository::new()),
+            employee_repo: Arc::new(MockEmployeeRepository::new()),
+            holiday_repo: Arc::new(MockHolidayRepository::new()),
+            leave_request_repo: Arc::new(MockLeaveRequestRepository::new()),
+            daily_summary_repo: Arc::new(DummyDailySummaryRepo),
+            raw_log_repo: Arc::new(MockRawAttendanceLogRepository::new()),
+            shift_repo: Arc::new(MockShiftRepository::new()),
+        });
+
+        let result = service.clear_auto_entries(Uuid::new_v4(), Uuid::new_v4(), Utc::now(), Utc::now()).await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_reprocess_daily_attendance_no_logs() {
+        let mut mock_roster_repo = MockRosterRepository::new();
+        mock_roster_repo.expect_get_effective_shift()
+            .times(1)
+            .returning(|_, _, _| Box::pin(async { Ok((None, vec![])) }));
+
+        let mut mock_raw_repo = MockRawAttendanceLogRepository::new();
+        mock_raw_repo.expect_get_employee_logs_in_time_range()
+            .times(1)
+            .returning(|_, _, _, _| Box::pin(async { Ok(vec![]) }));
+
+        let mut mock_time_entry_repo = MockTimeEntryRepository::new();
+        mock_time_entry_repo.expect_replace_time_entries()
+            .times(1) // Called by clear_auto_entries inside reprocess_daily_attendance
+            .returning(|_, _, _, _, _| Ok(()));
+
+        let mut mock_workspace_repo = MockWorkspaceRepository::new();
+        mock_workspace_repo.expect_get_workspace_by_id()
+            .times(1) // Called by AttendanceSummaryService::recalculate_daily_summary
+            .returning(|_| Box::pin(async { Ok(None) }));
+
+        let service = PairingService::new(PairingServiceArgs {
+            time_entry_repo: Arc::new(mock_time_entry_repo),
+            roster_repo: Arc::new(mock_roster_repo),
+            policy_repo: Arc::new(MockAttendancePolicyRepository::new()),
+            workspace_repo: Arc::new(mock_workspace_repo),
+            employee_repo: Arc::new(MockEmployeeRepository::new()),
+            holiday_repo: Arc::new(MockHolidayRepository::new()),
+            leave_request_repo: Arc::new(MockLeaveRequestRepository::new()),
+            daily_summary_repo: Arc::new(DummyDailySummaryRepo),
+            raw_log_repo: Arc::new(mock_raw_repo),
+            shift_repo: Arc::new(MockShiftRepository::new()),
+        });
+
+        let result = service.reprocess_daily_attendance(
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+            chrono_tz::UTC,
+        ).await;
+
+        assert!(result.is_ok());
+    }
+}

@@ -137,15 +137,15 @@ async fn test_incentive_policy_delete() {
 
     // Insert policy directly
     let policy_id = Uuid::new_v4();
-    sqlx::query(
+    crate::test_execute!(
+        &test_db.diesel_pools.api,
         r"INSERT INTO payroll_incentive_policies (id, workspace_id, name, base_amount, payout_type, is_active, created_at)
            VALUES ($1, $2, 'Test Policy', 100000, 'monthly', TRUE, NOW()::timestamp)",
-    )
-    .bind(policy_id)
-    .bind(ws_id)
-    .execute(&test_db.pool())
-    .await
-    .unwrap();
+        diesel::sql_types::Uuid,
+        policy_id,
+        diesel::sql_types::Uuid,
+        ws_id
+    );
 
     // Delete
     let resp = app

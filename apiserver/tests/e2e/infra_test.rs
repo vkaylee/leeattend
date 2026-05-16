@@ -1,4 +1,11 @@
 use crate::common::E2eTestDatabase;
+use diesel_async::RunQueryDsl;
+
+#[derive(diesel::QueryableByName)]
+struct DummyRow {
+    #[diesel(sql_type = diesel::sql_types::Integer)]
+    value: i32,
+}
 
 #[tokio::test]
 async fn test_supavisor_connection_and_prepared_statements() {
@@ -9,28 +16,30 @@ async fn test_supavisor_connection_and_prepared_statements() {
             return;
         }
     };
-    let pool = test_db.pool.clone();
+    let pool = test_db.diesel_pools.api.clone();
 
-    // Test simple query execution
-    let row: (i32,) = sqlx::query_as("SELECT 1")
-        .fetch_one(&pool)
+    let mut conn = pool.get().await.unwrap();
+    let row: i32 = diesel::sql_query("SELECT 1 as value")
+        .get_result::<DummyRow>(&mut conn)
         .await
-        .expect("Failed to execute simple query");
-    assert_eq!(row.0, 1);
+        .expect("Failed to execute simple query")
+        .value;
+    assert_eq!(row, 1);
 
-    // Test concurrent prepared statement execution (multiplexing via Supavisor)
-    // This specifically triggers the `sqlx_s_N already exists` error if Supavisor is misconfigured (e.g. Transaction mode on SQLx macros)
     let mut tasks = vec![];
     for i in 0..10 {
         let pool_clone = pool.clone();
         tasks.push(tokio::spawn(async move {
-            let row: (Option<i32>,) = sqlx::query_as("SELECT $1::INT as value")
-                .bind(i as i32)
-                .fetch_one(&pool_clone)
+            use diesel::sql_types::Integer;
+            let mut conn = pool_clone.get().await.unwrap();
+            let row: i32 = diesel::sql_query("SELECT $1::INT as value")
+                .bind::<Integer, _>(i as i32)
+                .get_result::<DummyRow>(&mut conn)
                 .await
-                .expect("Failed concurrent query execution");
+                .expect("Failed concurrent query execution")
+                .value;
 
-            assert_eq!(row.0, Some(i as i32));
+            assert_eq!(row, i as i32);
         }));
     }
 

@@ -37,16 +37,20 @@ fn req(
 }
 
 /// Helper: assign employee to a department
-async fn assign_to_department(pool: &sqlx::PgPool, employee_id: Uuid, department_id: Uuid) {
-    sqlx::query(
+async fn assign_to_department(
+    pool: &apiserver::diesel_pool::DieselPools,
+    employee_id: Uuid,
+    department_id: Uuid,
+) {
+    crate::test_execute!(
+        &pool.api,
         "INSERT INTO employee_department_history (employee_id, department_id, effective_date)
          VALUES ($1, $2, CURRENT_DATE)",
-    )
-    .bind(employee_id)
-    .bind(department_id)
-    .execute(pool)
-    .await
-    .unwrap();
+        diesel::sql_types::Uuid,
+        employee_id,
+        diesel::sql_types::Uuid,
+        department_id
+    );
 }
 
 /// `TeamLead` submits leave for employee in their department → auto-approved (`pre_approved`)
@@ -84,7 +88,7 @@ async fn test_teamlead_submit_own_dept_auto_approved() {
         .with_user(tl_user_id)
         .create()
         .await;
-    assign_to_department(&factory.pool, tl_emp_id, dept_id).await;
+    assign_to_department(&factory.diesel_pools, tl_emp_id, dept_id).await;
 
     // Target employee in same department
     let emp_id = factory
@@ -93,16 +97,15 @@ async fn test_teamlead_submit_own_dept_auto_approved() {
         .with_full_name("Nguyen Van A")
         .create()
         .await;
-    assign_to_department(&factory.pool, emp_id, dept_id).await;
+    assign_to_department(&factory.diesel_pools, emp_id, dept_id).await;
 
     // Get vacation leave type
-    let vacation_id: Uuid = sqlx::query_scalar(
+    let vacation_id: Uuid = crate::test_query_scalar_uuid!(
+        &factory.diesel_pools.api,
         "SELECT id FROM leave_types WHERE workspace_id = $1 AND code = 'vacation'",
-    )
-    .bind(ws_id)
-    .fetch_one(&factory.pool)
-    .await
-    .unwrap();
+        diesel::sql_types::Uuid,
+        ws_id
+    );
 
     // Submit leave request as TeamLead
     let submit_req = SubmitLeaveRequest {
@@ -176,7 +179,7 @@ async fn test_teamlead_submit_other_dept_forbidden() {
         .with_user(tl_user_id)
         .create()
         .await;
-    assign_to_department(&factory.pool, tl_emp_id, dept_eng).await;
+    assign_to_department(&factory.diesel_pools, tl_emp_id, dept_eng).await;
 
     // Employee in Sales (different department)
     let emp_id = factory
@@ -185,15 +188,14 @@ async fn test_teamlead_submit_other_dept_forbidden() {
         .with_full_name("Le Van B")
         .create()
         .await;
-    assign_to_department(&factory.pool, emp_id, dept_sales).await;
+    assign_to_department(&factory.diesel_pools, emp_id, dept_sales).await;
 
-    let vacation_id: Uuid = sqlx::query_scalar(
+    let vacation_id: Uuid = crate::test_query_scalar_uuid!(
+        &factory.diesel_pools.api,
         "SELECT id FROM leave_types WHERE workspace_id = $1 AND code = 'vacation'",
-    )
-    .bind(ws_id)
-    .fetch_one(&factory.pool)
-    .await
-    .unwrap();
+        diesel::sql_types::Uuid,
+        ws_id
+    );
 
     let submit_req = SubmitLeaveRequest {
         employee_id: emp_id,
@@ -248,13 +250,12 @@ async fn test_hr_submit_stays_pending() {
         .create()
         .await;
 
-    let vacation_id: Uuid = sqlx::query_scalar(
+    let vacation_id: Uuid = crate::test_query_scalar_uuid!(
+        &factory.diesel_pools.api,
         "SELECT id FROM leave_types WHERE workspace_id = $1 AND code = 'vacation'",
-    )
-    .bind(ws_id)
-    .fetch_one(&factory.pool)
-    .await
-    .unwrap();
+        diesel::sql_types::Uuid,
+        ws_id
+    );
 
     let submit_req = SubmitLeaveRequest {
         employee_id: emp_id,
@@ -312,13 +313,12 @@ async fn test_employee_submit_forbidden() {
 
     let emp_id = factory.employee().with_workspace(ws_id).create().await;
 
-    let vacation_id: Uuid = sqlx::query_scalar(
+    let vacation_id: Uuid = crate::test_query_scalar_uuid!(
+        &factory.diesel_pools.api,
         "SELECT id FROM leave_types WHERE workspace_id = $1 AND code = 'vacation'",
-    )
-    .bind(ws_id)
-    .fetch_one(&factory.pool)
-    .await
-    .unwrap();
+        diesel::sql_types::Uuid,
+        ws_id
+    );
 
     let submit_req = SubmitLeaveRequest {
         employee_id: emp_id,

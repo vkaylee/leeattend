@@ -7,6 +7,7 @@ use crate::errors::AppError;
 use crate::models::Shift;
 
 #[async_trait]
+#[cfg_attr(test, mockall::automock)]
 pub trait ShiftRepository: Send + Sync {
     async fn create_shift(
         &self,

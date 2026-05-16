@@ -8,7 +8,7 @@ use uuid::Uuid;
 #[tokio::test]
 async fn test_resolve_attendance_policy_hierarchy() {
     let test_db = TestDatabase::new().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
     let factory = TestFactory::new(pool.clone());
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
     let policy_repo =
@@ -18,11 +18,12 @@ async fn test_resolve_attendance_policy_hierarchy() {
     let ws_id = factory.workspace().create_with_owner(admin_id).await;
 
     // Clean up auto-generated policies
-    sqlx::query("DELETE FROM attendance_policies WHERE workspace_id = $1")
-        .bind(ws_id)
-        .execute(&pool)
-        .await
-        .unwrap();
+    crate::test_execute!(
+        &pool.api,
+        "DELETE FROM attendance_policies WHERE workspace_id = $1",
+        diesel::sql_types::Uuid,
+        ws_id
+    );
 
     let dept_repo = apiserver::repositories::DieselDepartmentRepository::new(diesel_pools.clone());
 
@@ -70,23 +71,17 @@ async fn test_resolve_attendance_policy_hierarchy() {
 
     // === CASE 1: Default Policy ===
     let default_policy_id = Uuid::new_v4();
-    sqlx::query(
+    crate::test_execute!(&pool.api,
         "INSERT INTO attendance_policies (id, workspace_id, name, is_default) VALUES ($1, $2, 'Default', true)",
-    )
-    .bind(default_policy_id)
-    .bind(ws_id)
-    .execute(&pool)
-    .await
-    .unwrap();
+        diesel::sql_types::Uuid, default_policy_id,
+        diesel::sql_types::Uuid, ws_id
+    );
 
-    sqlx::query(
+    crate::test_execute!(&pool.api,
         "INSERT INTO attendance_policy_versions (policy_id, rules, valid_from) VALUES ($1, $2, '2000-01-01 00:00:00+00')",
-    )
-    .bind(default_policy_id)
-    .bind(serde_json::json!({ "work_unit_minutes": 10, "rounding_policy": "floor", "early_arrival_strategy": "block" }))
-    .execute(&pool)
-    .await
-    .unwrap();
+        diesel::sql_types::Uuid, default_policy_id,
+        diesel::sql_types::Jsonb, serde_json::json!({ "work_unit_minutes": 10, "rounding_policy": "floor", "early_arrival_strategy": "block" })
+    );
 
     let rules =
         PolicyResolver::resolve_attendance_policy(&policy_repo, employee_id, ws_id, test_date)
@@ -97,32 +92,23 @@ async fn test_resolve_attendance_policy_hierarchy() {
 
     // === CASE 2: Group (Department) Policy ===
     let group_policy_id = Uuid::new_v4();
-    sqlx::query(
+    crate::test_execute!(&pool.api,
         "INSERT INTO attendance_policies (id, workspace_id, name, is_default) VALUES ($1, $2, 'Dept Policy', false)",
-    )
-    .bind(group_policy_id)
-    .bind(ws_id)
-    .execute(&pool)
-    .await
-    .unwrap();
+        diesel::sql_types::Uuid, group_policy_id,
+        diesel::sql_types::Uuid, ws_id
+    );
 
-    sqlx::query(
+    crate::test_execute!(&pool.api,
         "INSERT INTO attendance_policy_versions (policy_id, rules, valid_from) VALUES ($1, $2, '2000-01-01 00:00:00+00')",
-    )
-    .bind(group_policy_id)
-    .bind(serde_json::json!({ "work_unit_minutes": 20, "rounding_policy": "ceil", "early_arrival_strategy": "allow" }))
-    .execute(&pool)
-    .await
-    .unwrap();
+        diesel::sql_types::Uuid, group_policy_id,
+        diesel::sql_types::Jsonb, serde_json::json!({ "work_unit_minutes": 20, "rounding_policy": "ceil", "early_arrival_strategy": "allow" })
+    );
 
-    sqlx::query(
+    crate::test_execute!(&pool.api,
         "INSERT INTO attendance_policy_assignments (policy_id, target_type, target_id, valid_from) VALUES ($1, 'GROUP', $2, '2026-05-01 00:00:00+00')",
-    )
-    .bind(group_policy_id)
-    .bind(dept_id)
-    .execute(&pool)
-    .await
-    .unwrap();
+        diesel::sql_types::Uuid, group_policy_id,
+        diesel::sql_types::Uuid, dept_id
+    );
 
     let rules =
         PolicyResolver::resolve_attendance_policy(&policy_repo, employee_id, ws_id, test_date)
@@ -133,32 +119,23 @@ async fn test_resolve_attendance_policy_hierarchy() {
 
     // === CASE 3: User Override Policy ===
     let user_policy_id = Uuid::new_v4();
-    sqlx::query(
+    crate::test_execute!(&pool.api,
         "INSERT INTO attendance_policies (id, workspace_id, name, is_default) VALUES ($1, $2, 'User Policy', false)",
-    )
-    .bind(user_policy_id)
-    .bind(ws_id)
-    .execute(&pool)
-    .await
-    .unwrap();
+        diesel::sql_types::Uuid, user_policy_id,
+        diesel::sql_types::Uuid, ws_id
+    );
 
-    sqlx::query(
+    crate::test_execute!(&pool.api,
         "INSERT INTO attendance_policy_versions (policy_id, rules, valid_from) VALUES ($1, $2, '2000-01-01 00:00:00+00')",
-    )
-    .bind(user_policy_id)
-    .bind(serde_json::json!({ "work_unit_minutes": 30, "rounding_policy": "round", "early_arrival_strategy": "clamp" }))
-    .execute(&pool)
-    .await
-    .unwrap();
+        diesel::sql_types::Uuid, user_policy_id,
+        diesel::sql_types::Jsonb, serde_json::json!({ "work_unit_minutes": 30, "rounding_policy": "round", "early_arrival_strategy": "clamp" })
+    );
 
-    sqlx::query(
+    crate::test_execute!(&pool.api,
         "INSERT INTO attendance_policy_assignments (policy_id, target_type, target_id, valid_from) VALUES ($1, 'USER', $2, '2026-05-15 00:00:00+00')",
-    )
-    .bind(user_policy_id)
-    .bind(employee_id)
-    .execute(&pool)
-    .await
-    .unwrap();
+        diesel::sql_types::Uuid, user_policy_id,
+        diesel::sql_types::Uuid, employee_id
+    );
 
     let rules =
         PolicyResolver::resolve_attendance_policy(&policy_repo, employee_id, ws_id, test_date)

@@ -16,7 +16,7 @@ async fn test_employee_pagination_logic() {
         setup_app_tower().await;
     let user_id: Uuid = factory.user().create().await;
     let ws_id: Uuid = factory.workspace().create_with_owner(user_id).await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
 
     // Create 25 employees (sorted by name)
     for i in 0..25 {
@@ -24,17 +24,19 @@ async fn test_employee_pagination_logic() {
         let name = format!("User {i:02}");
         let id_num = format!("EMP{i:02}");
 
-        sqlx::query(
+        crate::test_execute!(
+            &pool.api,
             r"INSERT INTO employees (id, workspace_id, full_name, employee_id_number, is_active, original_hire_date, hire_date, created_at, updated_at) 
-             VALUES ($1, $2, $3, $4, true, CURRENT_DATE, CURRENT_DATE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
-        )
-        .bind(employee_id)
-        .bind(ws_id)
-        .bind(&name)
-        .bind(&id_num)
-        .execute(&pool)
-        .await
-        .unwrap();
+             VALUES ($1, $2, $3, $4, true, CURRENT_DATE, CURRENT_DATE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
+            diesel::sql_types::Uuid,
+            employee_id,
+            diesel::sql_types::Uuid,
+            ws_id,
+            diesel::sql_types::Text,
+            &name,
+            diesel::sql_types::Text,
+            &id_num
+        );
     }
 
     // Request Page 1, Limit 10
@@ -89,24 +91,26 @@ async fn test_employee_search_limit() {
         setup_app_tower().await;
     let user_id: Uuid = factory.user().create().await;
     let ws_id: Uuid = factory.workspace().create_with_owner(user_id).await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
 
     for i in 0..60 {
         let employee_id = Uuid::new_v4();
         let name = format!("SearchTest User {i:02}");
         let id_num = format!("ST{i:02}");
 
-        sqlx::query(
+        crate::test_execute!(
+            &pool.api,
             r"INSERT INTO employees (id, workspace_id, full_name, employee_id_number, is_active, original_hire_date, hire_date, created_at, updated_at) 
-             VALUES ($1, $2, $3, $4, true, CURRENT_DATE, CURRENT_DATE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
-        )
-        .bind(employee_id)
-        .bind(ws_id)
-        .bind(&name)
-        .bind(&id_num)
-        .execute(&pool)
-        .await
-        .unwrap();
+             VALUES ($1, $2, $3, $4, true, CURRENT_DATE, CURRENT_DATE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
+            diesel::sql_types::Uuid,
+            employee_id,
+            diesel::sql_types::Uuid,
+            ws_id,
+            diesel::sql_types::Text,
+            &name,
+            diesel::sql_types::Text,
+            &id_num
+        );
     }
 
     let response = app

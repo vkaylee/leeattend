@@ -7,7 +7,7 @@ use reqwest::StatusCode;
 #[tokio::test]
 async fn test_get_daily_attendance_report_with_break_times() {
     let (address, test_db) = spawn_app().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
     let factory = crate::common::factory::TestFactory::new(pool.clone());
     let client = reqwest::Client::new();
 
@@ -86,7 +86,7 @@ async fn test_get_daily_attendance_report_with_break_times() {
 #[tokio::test]
 async fn test_get_workspace_attendance_summary() {
     let (address, test_db) = spawn_app().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
     let factory = crate::common::factory::TestFactory::new(pool.clone());
     let client = reqwest::Client::new();
 

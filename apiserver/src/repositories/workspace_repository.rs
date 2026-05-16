@@ -5,6 +5,7 @@ use async_trait::async_trait;
 use uuid::Uuid;
 
 #[async_trait]
+#[cfg_attr(test, mockall::automock)]
 pub trait WorkspaceRepository: Send + Sync {
     async fn create_workspace_with_owner(
         &self,

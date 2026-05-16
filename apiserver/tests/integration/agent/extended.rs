@@ -97,11 +97,12 @@ async fn test_get_authorized_agents_list_filters() {
         .await;
 
     // Deactivate A2
-    sqlx::query("UPDATE authorized_agents SET is_active = FALSE WHERE id = $1")
-        .bind(a2_id)
-        .execute(&factory.pool)
-        .await
-        .unwrap();
+    crate::test_execute!(
+        &factory.diesel_pools.api,
+        "UPDATE authorized_agents SET is_active = FALSE WHERE id = $1",
+        diesel::sql_types::Text,
+        a2_id
+    );
 
     // 1. List active only (default)
     let response = app
@@ -176,12 +177,12 @@ async fn test_delete_authorized_agent() {
     assert_eq!(response.status(), StatusCode::NO_CONTENT);
 
     // Verify inactive in DB
-    let is_active: bool =
-        sqlx::query_scalar("SELECT is_active FROM authorized_agents WHERE id = $1")
-            .bind(agent_id)
-            .fetch_one(&factory.pool)
-            .await
-            .unwrap();
+    let is_active: bool = crate::test_query_scalar_bool!(
+        &factory.diesel_pools.api,
+        "SELECT is_active AS val FROM authorized_agents WHERE id = $1",
+        diesel::sql_types::Text,
+        agent_id
+    );
     assert!(!is_active);
 }
 

@@ -110,36 +110,32 @@ async fn test_get_agents_device_status() {
     let dev_disabled_id = Uuid::new_v4();
 
     // Insert enabled device
-    sqlx::query(
+    crate::test_execute!(
+        &factory.diesel_pools.api,
         "INSERT INTO devices (id, agent_id, name, ip, port, workspace_id, brand, is_enabled) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
-    )
-    .bind(dev_enabled_id)
-    .bind(&agent_id)
-    .bind("Enabled Device")
-    .bind("192.168.1.100")
-    .bind(4370)
-    .bind(ws_id)
-    .bind("zkteco")
-    .bind(true)
-    .execute(&factory.pool)
-    .await
-    .unwrap();
+        diesel::sql_types::Uuid, dev_enabled_id,
+        diesel::sql_types::Text, &agent_id,
+        diesel::sql_types::Text, "Enabled Device",
+        diesel::sql_types::Text, "192.168.1.100",
+        diesel::sql_types::Integer, 4370,
+        diesel::sql_types::Uuid, ws_id,
+        diesel::sql_types::Text, "zkteco",
+        diesel::sql_types::Bool, true
+    );
 
     // Insert disabled device
-    sqlx::query(
+    crate::test_execute!(
+        &factory.diesel_pools.api,
         "INSERT INTO devices (id, agent_id, name, ip, port, workspace_id, brand, is_enabled) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
-    )
-    .bind(dev_disabled_id)
-    .bind(&agent_id)
-    .bind("Disabled Device")
-    .bind("192.168.1.101")
-    .bind(4370)
-    .bind(ws_id)
-    .bind("zkteco")
-    .bind(false)
-    .execute(&factory.pool)
-    .await
-    .unwrap();
+        diesel::sql_types::Uuid, dev_disabled_id,
+        diesel::sql_types::Text, &agent_id,
+        diesel::sql_types::Text, "Disabled Device",
+        diesel::sql_types::Text, "192.168.1.101",
+        diesel::sql_types::Integer, 4370,
+        diesel::sql_types::Uuid, ws_id,
+        diesel::sql_types::Text, "zkteco",
+        diesel::sql_types::Bool, false
+    );
 
     // 1. Agent is offline. Result should be both devices show offline.
     let response = app

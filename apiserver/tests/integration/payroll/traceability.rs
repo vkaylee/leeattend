@@ -16,7 +16,7 @@ use std::sync::Arc;
 #[tokio::test]
 async fn test_payroll_std_days_source_traceability() {
     let db = TestDatabase::new().await;
-    let pool = db.pool();
+    let pool = db.diesel_pools.clone();
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&db.url());
     let factory = TestFactory::new(pool.clone());
 
@@ -36,13 +36,13 @@ async fn test_payroll_std_days_source_traceability() {
         .await;
 
     // Assign employee to department
-    sqlx::query("INSERT INTO employee_department_history (employee_id, department_id, effective_date) VALUES ($1, $2, $3)")
-        .bind(employee_id)
-        .bind(dept_id)
-        .bind(NaiveDate::from_ymd_opt(2023, 1, 1).unwrap())
-        .execute(&pool)
-        .await
-        .unwrap();
+    crate::test_execute!(
+        &diesel_pools.api,
+        "INSERT INTO employee_department_history (employee_id, department_id, effective_date) VALUES ($1, $2, $3)",
+        diesel::sql_types::Uuid, employee_id,
+        diesel::sql_types::Uuid, dept_id,
+        diesel::sql_types::Date, NaiveDate::from_ymd_opt(2023, 1, 1).unwrap()
+    );
 
     // 2. Setup Base Salary
     let pr = apiserver::repositories::DieselPayrollRepository::new(diesel_pools.clone());

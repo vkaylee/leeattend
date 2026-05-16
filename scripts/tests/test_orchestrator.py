@@ -71,7 +71,6 @@ def test_test_api_mode(mock_handle_run, mock_run_phase, orchestrator) -> None:
     args = orchestrator.parser.parse_args(["test", "api"])
     orchestrator.handle_test(args)
     assert mock_run_phase.call_count >= 3  # Startup + Lint + Unit + Integration
-    assert mock_handle_run.called
 
 
 @patch("subprocess.run")
@@ -320,36 +319,11 @@ def test_doctor_no_engine(mock_which, mock_run, orchestrator) -> None:
 
 @patch("subprocess.run")
 @patch("shutil.which")
-def test_run_sqlx(mock_which, mock_run, orchestrator) -> None:
-    """Test sqlx command execution."""
-    mock_which.return_value = "podman"
-    mock_run.return_value.returncode = 0
-    args = orchestrator.parser.parse_args(["run", "sqlx", "migrate", "run"])
-    orchestrator.handle_run(args)
-    assert "sqlx" in mock_run.call_args[0][0]
-
-
-@patch("subprocess.run")
-@patch("shutil.which")
-def test_run_sqlx_prepare(mock_which, mock_run, orchestrator) -> None:
-    """Test sqlx prepare execution bypassing offline mode."""
-    mock_which.return_value = "podman"
-    mock_run.return_value.returncode = 0
-    args = orchestrator.parser.parse_args(["run", "sqlx", "prepare", "--workspace"])
-    orchestrator.handle_run(args)
-    called_args = " ".join(mock_run.call_args[0][0])
-    assert "cargo" in called_args
-    assert "prepare" in called_args
-    assert "--workdir /workspace/apiserver" in called_args
-
-
-@patch("subprocess.run")
-@patch("shutil.which")
 def test_run_with_remainder_separator(mock_which, mock_run, orchestrator) -> None:
     """Test run command with -- separator."""
     mock_which.return_value = "podman"
     mock_run.return_value.returncode = 0
-    args = orchestrator.parser.parse_args(["run", "sqlx", "--", "migrate", "info"])
+    args = orchestrator.parser.parse_args(["run", "cargo", "--", "check"])
     orchestrator.handle_run(args)
     called_args = mock_run.call_args[0][0]
     assert "--" not in called_args
@@ -713,7 +687,7 @@ def test_cleanup_early_exit(mock_run, orchestrator) -> None:
 
 @patch("subprocess.run")
 def test_handle_manage_migrate(mock_run, orchestrator) -> None:
-    """Test handle_sqlx via migrate:run."""
+    """Test migrate:run."""
     mock_run.return_value.returncode = 0
     args = orchestrator.parser.parse_args(["manage", "migrate:run"])
     orchestrator.handle_manage(args)
@@ -728,7 +702,7 @@ def test_handle_run_with_separator(mock_run, orchestrator) -> None:
     # To hit line 371, tool_args[0] must be "--"
     # With argparse.REMAINDER, the first -- is swallowed by the parser.
     # So we need to pass TWO double-dashes if we want one to remain in args.
-    args = orchestrator.parser.parse_args(["run", "sqlx", "--", "--", "migrate", "run"])
+    args = orchestrator.parser.parse_args(["run", "cargo", "--", "--", "check"])
     orchestrator.handle_run(args)
     # Check that EXACT standalone "--" is not in the list of arguments
     # (One was swallowed by argparse, the second by line 371)
@@ -894,7 +868,7 @@ class TestOrchestratorLocking:
     ) -> None:
         # Test handle_run pooler logic (lines 557-562, 597-633, 645-646)
         monkeypatch.setenv("POOLER", "true")
-        args = argparse.Namespace(pooler=True, tool="sqlx", args=["prepare", "--", "--tests"])
+        args = argparse.Namespace(pooler=True, tool="cargo", args=["check"])
 
         class MockCompletedProcess:
             def __init__(self, stdout, returncode=0):

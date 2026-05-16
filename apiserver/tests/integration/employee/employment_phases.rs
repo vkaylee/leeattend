@@ -127,38 +127,55 @@ async fn test_employment_phases_crud_api() {
     assert_eq!(response.status(), StatusCode::OK);
 
     // 5. Verify Phase 1 is auto-closed
-    let pool = _test_db.pool();
-    let phases =
-        sqlx::query("SELECT id, status, end_date FROM employee_phases WHERE employee_id = $1 ORDER BY start_date ASC")
-            .bind(employee_id)
-            .fetch_all(&pool)
-            .await
-            .unwrap();
+    let pool = _test_db.diesel_pools.clone();
+    let phase_count: i64 = crate::test_query_scalar_i64!(
+        &pool.api,
+        "SELECT COUNT(*) AS count FROM employee_phases WHERE employee_id = $1",
+        diesel::sql_types::Uuid,
+        employee_id
+    );
 
-    assert_eq!(phases.len(), 2);
+    assert_eq!(phase_count, 2);
 
-    use sqlx::Row;
-    let phase_1 = &phases[0];
-    let p1_id: Uuid = phase_1.get("id");
-    let p1_status: String = phase_1.get("status");
-    let p1_end_date: Option<chrono::NaiveDate> = phase_1.get("end_date");
+    let p1_status: String = crate::test_query_scalar_string!(
+        &pool.api,
+        "SELECT status::text AS val FROM employee_phases WHERE id = $1",
+        diesel::sql_types::Uuid,
+        Uuid::parse_str(&assignment_id_1).unwrap()
+    );
+    let p1_end_date: String = crate::test_query_scalar_string!(
+        &pool.api,
+        "SELECT end_date::text AS val FROM employee_phases WHERE id = $1",
+        diesel::sql_types::Uuid,
+        Uuid::parse_str(&assignment_id_1).unwrap()
+    );
 
-    assert_eq!(p1_id.to_string(), assignment_id_1);
     assert_eq!(p1_status, "completed", "Phase 1 should be auto-closed");
     assert_eq!(
-        p1_end_date.unwrap().to_string(),
-        "2026-02-14",
+        p1_end_date, "2026-02-14",
         "Phase 1 end_date should be truncated to day before Phase 2"
     );
 
-    let phase_2 = &phases[1];
-    let p2_status: String = phase_2.get("status");
-    let p2_end_date: Option<chrono::NaiveDate> = phase_2.get("end_date");
+    let p2_status: String = crate::test_query_scalar_string!(
+        &pool.api,
+        "SELECT status::text AS val FROM employee_phases WHERE employee_id = $1 AND id != $2",
+        diesel::sql_types::Uuid,
+        employee_id,
+        diesel::sql_types::Uuid,
+        Uuid::parse_str(&assignment_id_1).unwrap()
+    );
+    let p2_end_date: String = crate::test_query_scalar_string!(
+        &pool.api,
+        "SELECT end_date::text AS val FROM employee_phases WHERE employee_id = $1 AND id != $2",
+        diesel::sql_types::Uuid,
+        employee_id,
+        diesel::sql_types::Uuid,
+        Uuid::parse_str(&assignment_id_1).unwrap()
+    );
 
     assert_eq!(p2_status, "active", "Phase 2 should be active");
     assert_eq!(
-        p2_end_date.unwrap().to_string(),
-        "2026-05-31",
+        p2_end_date, "2026-05-31",
         "Phase 2 end_date should be untouched"
     );
 }

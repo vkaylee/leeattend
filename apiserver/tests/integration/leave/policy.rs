@@ -18,13 +18,12 @@ async fn test_leave_policy_api_lifecycle() {
     let ws_id: Uuid = factory.workspace().create_with_owner(admin_id).await;
 
     // 1. Create Policy
-    let vacation_id: Uuid = sqlx::query_scalar(
+    let vacation_id: Uuid = crate::test_query_scalar_uuid!(
+        &test_db.diesel_pools.api,
         "SELECT id FROM leave_types WHERE workspace_id = $1 AND code = 'vacation'",
-    )
-    .bind(ws_id)
-    .fetch_one(&test_db.pool())
-    .await
-    .unwrap();
+        diesel::sql_types::Uuid,
+        ws_id
+    );
 
     let policy_req = serde_json::json!({
         "name": "Standard Annual Leave",

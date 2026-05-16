@@ -39,21 +39,19 @@ async fn test_workspace_creation_and_membership_smoke() {
     );
 
     // 1. Grant the owner platform_admin system role directly in the DB.
-    sqlx::query(
+    crate::test_execute!(
+        &factory.diesel_pools.api,
         "INSERT INTO user_system_roles (user_id, role_id, assigned_by)
          SELECT $1, id, $1 FROM system_roles WHERE name = 'platform_admin'
          ON CONFLICT DO NOTHING",
-    )
-    .bind(user_id)
-    .execute(&factory.pool)
-    .await
-    .expect("Failed to seed platform_admin role for test user");
+        diesel::sql_types::Uuid,
+        user_id
+    );
 
-    // 2. Now PlatformAdmin user can create a new workspace.
     let response = client
         .post(format!("{address}/api/workspaces"))
         .header("X-User-Id", user_id.to_string())
-        .json(&serde_json::json!({ "name": "New Ventures" }))
+        .json(&serde_json::json!({ "name": "Valid Workspace" }))
         .send()
         .await
         .unwrap();
@@ -193,7 +191,7 @@ async fn test_workspace_rbac_flow() {
 #[tokio::test]
 async fn test_workspace_repository_directly() {
     let test_db = TestDatabase::new().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
     let factory = TestFactory::new(pool.clone());
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());

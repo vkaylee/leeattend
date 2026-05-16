@@ -1,9 +1,9 @@
 use jsonwebtoken::{encode, Algorithm, EncodingKey, Header};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use sqlx::{Connection, Executor, PgConnection, PgPool};
 use std::collections::HashSet;
 use std::sync::{Arc, Mutex, OnceLock};
+use tokio_postgres::NoTls;
 use uuid::Uuid;
 
 type ActiveDbSet = Arc<Mutex<HashSet<(String, String)>>>;
@@ -16,7 +16,7 @@ fn get_active_dbs() -> &'static ActiveDbSet {
 
 #[allow(dead_code)]
 pub struct E2eTestDatabase {
-    pub pool: PgPool,
+    pub diesel_pools: apiserver::diesel_pool::DieselPools,
     db_name: String,
     base_url: String, // The direct postgres URL used to drop it
     tenant_id: String,
@@ -56,29 +56,37 @@ impl E2eTestDatabase {
         }
 
         // 1. Create Physical Database via Direct Connection
-        let mut connection = Self::connect_with_retries(&admin_url).await;
+        let connection = Self::connect_with_retries(&admin_url).await;
         let sql = format!("CREATE DATABASE \"{db_name}\" TEMPLATE leeattend_test_template");
 
-        let mut create_result = Err(sqlx::Error::PoolClosed);
+        let mut create_result: Option<Result<u64, tokio_postgres::Error>> = None;
         for attempt in 0..5 {
-            create_result = connection.execute(sql.as_str()).await;
-            if create_result.is_ok() {
+            create_result = Some(connection.execute(sql.as_str(), &[]).await);
+            if let Some(Ok(_)) = create_result {
                 break;
             }
             tokio::time::sleep(std::time::Duration::from_millis(200 * (1 << attempt))).await;
         }
 
-        if let Err(e) = create_result {
+        if let Some(Err(e)) = create_result {
             eprintln!("Warning: Failed to create database from template: {e}. Falling back to manual migration.");
             connection
-                .execute(format!("CREATE DATABASE \"{db_name}\"").as_str())
+                .execute(format!("CREATE DATABASE \"{db_name}\"").as_str(), &[])
                 .await
                 .expect("Fallback failed");
 
             let direct_db_url = format!("{base_connection_string}/{db_name}");
-            let pool = PgPool::connect(&direct_db_url).await.unwrap();
-            sqlx::migrate!("../migrations").run(&pool).await.unwrap();
-            pool.close().await;
+            apiserver::diesel_pool::DieselPools::run_migrations(
+                &apiserver::diesel_pool::DbPoolConfig {
+                    primary_url: direct_db_url.clone(),
+                    pooler_url: None,
+                    reader_url: None,
+                    api_max_conn: 1,
+                    api_acquire_timeout_secs: 5,
+                    worker_max_conn: 1,
+                    worker_acquire_timeout_secs: 5,
+                },
+            );
         }
 
         {
@@ -107,22 +115,24 @@ impl E2eTestDatabase {
             pooler_user, tenant_id, pooler_pass, supavisor_host, supavisor_port, db_name
         );
 
-        let pool = PgPool::connect(&pooler_url)
-            .await
-            .unwrap_or_else(|_| panic!("Failed to connect to Supavisor Pooler at {}", pooler_url));
-
+        let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&pooler_url);
         Some(Self {
-            pool,
+            diesel_pools,
             db_name,
             base_url: base_url.clone(),
             tenant_id,
         })
     }
 
-    async fn connect_with_retries(url: &str) -> PgConnection {
+    async fn connect_with_retries(url: &str) -> tokio_postgres::Client {
         for attempt in 0..5 {
-            if let Ok(conn) = PgConnection::connect(url).await {
-                return conn;
+            if let Ok((client, conn)) = tokio_postgres::connect(url, NoTls).await {
+                tokio::spawn(async move {
+                    if let Err(e) = conn.await {
+                        eprintln!("connection error: {}", e);
+                    }
+                });
+                return client;
             }
             tokio::time::sleep(std::time::Duration::from_millis(200 * (1 << attempt))).await;
         }
@@ -266,20 +276,26 @@ impl E2eTestDatabase {
         });
     }
 
-    async fn cleanup_database_async(tenant_id: &str, admin_url: &str) -> Result<(), sqlx::Error> {
+    async fn cleanup_database_async(
+        tenant_id: &str,
+        admin_url: &str,
+    ) -> Result<(), tokio_postgres::Error> {
         Self::delete_tenant(tenant_id).await;
 
         let mut url_parts: Vec<&str> = admin_url.split('/').collect();
         url_parts.pop();
         let base_admin_url = format!("{}/postgres", url_parts.join("/"));
 
-        let mut conn = PgConnection::connect(&base_admin_url).await?;
+        let (conn, connection) = tokio_postgres::connect(&base_admin_url, NoTls).await?;
+        tokio::spawn(async move {
+            let _ = connection.await;
+        });
         let kill_sql = format!(
             "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '{tenant_id}' AND pid <> pg_backend_pid()"
         );
-        let _ = conn.execute(kill_sql.as_str()).await;
+        let _ = conn.execute(kill_sql.as_str(), &[]).await;
         let drop_sql = format!("DROP DATABASE IF EXISTS \"{tenant_id}\"");
-        conn.execute(drop_sql.as_str()).await?;
+        conn.execute(drop_sql.as_str(), &[]).await?;
         Ok(())
     }
 

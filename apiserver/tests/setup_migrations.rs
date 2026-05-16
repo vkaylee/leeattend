@@ -8,7 +8,7 @@
 #![allow(clippy::all)]
 #![allow(clippy::pedantic)]
 #![allow(clippy::nursery)]
-use sqlx::postgres::PgPoolOptions;
+use apiserver::diesel_pool::{DbPoolConfig, DieselPools};
 
 #[tokio::test]
 #[ignore]
@@ -17,15 +17,15 @@ async fn run_migrations() {
 
     println!("Migrating database: {database_url}");
 
-    let pool = PgPoolOptions::new()
-        .connect(&database_url)
-        .await
-        .expect("Failed to connect to Postgres for migrations");
-
-    sqlx::migrate!("./migrations")
-        .run(&pool)
-        .await
-        .expect("Failed to run migrations");
+    DieselPools::run_migrations(&DbPoolConfig {
+        primary_url: database_url,
+        pooler_url: None,
+        reader_url: None,
+        api_max_conn: 1,
+        api_acquire_timeout_secs: 5,
+        worker_max_conn: 1,
+        worker_acquire_timeout_secs: 5,
+    });
 
     println!("Migrations complete!");
 }

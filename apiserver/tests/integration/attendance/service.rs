@@ -10,7 +10,7 @@ use chrono::{TimeZone, Utc};
 #[tokio::test]
 async fn test_process_log_success_with_timezone() {
     let test_db = TestDatabase::new().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
     let factory = TestFactory::new(pool.clone());
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
 
@@ -137,7 +137,7 @@ async fn test_process_log_success_with_timezone() {
 #[tokio::test]
 async fn test_same_second_punch_with_different_status_allowed() {
     let test_db = TestDatabase::new().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
     let factory = TestFactory::new(pool.clone());
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
 

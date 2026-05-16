@@ -89,28 +89,22 @@ async fn setup() -> SwapTestSetup {
     let swap_date = Utc::now().date_naive() + chrono::Duration::days(1);
 
     // Employee A → Morning shift
-    sqlx::query(
+    crate::test_execute!(&_db.diesel_pools.api,
         "INSERT INTO shift_rosters (id, employee_id, shift_id, date, status) VALUES ($1, $2, $3, $4, 'active')",
-    )
-    .bind(Uuid::new_v4())
-    .bind(emp_a)
-    .bind(shift_morning)
-    .bind(swap_date)
-    .execute(&_db.pool)
-    .await
-    .unwrap();
+        diesel::sql_types::Uuid, Uuid::new_v4(),
+        diesel::sql_types::Uuid, emp_a,
+        diesel::sql_types::Uuid, shift_morning,
+        diesel::sql_types::Date, swap_date
+    );
 
     // Employee B → Evening shift
-    sqlx::query(
+    crate::test_execute!(&_db.diesel_pools.api,
         "INSERT INTO shift_rosters (id, employee_id, shift_id, date, status) VALUES ($1, $2, $3, $4, 'active')",
-    )
-    .bind(Uuid::new_v4())
-    .bind(emp_b)
-    .bind(shift_evening)
-    .bind(swap_date)
-    .execute(&_db.pool)
-    .await
-    .unwrap();
+        diesel::sql_types::Uuid, Uuid::new_v4(),
+        diesel::sql_types::Uuid, emp_b,
+        diesel::sql_types::Uuid, shift_evening,
+        diesel::sql_types::Date, swap_date
+    );
 
     SwapTestSetup {
         address,
@@ -585,28 +579,24 @@ async fn test_same_shift_swap_rejected() {
 
     // Create employee C with the SAME shift as employee A (Morning) via direct SQL
     let emp_c = Uuid::new_v4();
-    sqlx::query(
-        "INSERT INTO employees (id, workspace_id, full_name, employee_id_number, original_hire_date, hire_date, is_active) VALUES ($1, $2, $3, $4, CURRENT_DATE, CURRENT_DATE, true)",
-    )
-    .bind(emp_c)
-    .bind(s.workspace_id)
-    .bind("Employee C")
-    .bind("EMP-C")
-    .execute(&s._db.pool)
-    .await
-    .unwrap();
+    crate::test_execute!(
+        &s._db.diesel_pools.api,
+        "INSERT INTO employees (id, workspace_id, full_name, employee_id_number, is_active, original_hire_date, hire_date, created_at, updated_at) VALUES ($1, $2, $3, $4, true, CURRENT_DATE, CURRENT_DATE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
+        diesel::sql_types::Uuid, emp_c,
+        diesel::sql_types::Uuid, s.workspace_id,
+        diesel::sql_types::Text, "Employee C",
+        diesel::sql_types::Text, "EMP-C"
+    );
 
     // Assign Employee C → Morning shift (same as A)
-    sqlx::query(
+    crate::test_execute!(
+        &s._db.diesel_pools.api,
         "INSERT INTO shift_rosters (id, employee_id, shift_id, date, status) VALUES ($1, $2, $3, $4, 'active')",
-    )
-    .bind(Uuid::new_v4())
-    .bind(emp_c)
-    .bind(s.shift_morning)
-    .bind(s.swap_date)
-    .execute(&s._db.pool)
-    .await
-    .unwrap();
+        diesel::sql_types::Uuid, Uuid::new_v4(),
+        diesel::sql_types::Uuid, emp_c,
+        diesel::sql_types::Uuid, s.shift_morning,
+        diesel::sql_types::Date, s.swap_date
+    );
 
     // Try to swap A ↔ C (both have Morning) — should fail
     let res = client

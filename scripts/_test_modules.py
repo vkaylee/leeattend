@@ -147,7 +147,7 @@ def leeattend_run_integration(
     return run_parallel_ordered("Integration & E2E", component_filter, tasks)
 
 
-def leeattend_run_coverage(component_filter: str = "", mode: str = "all") -> bool:
+def leeattend_run_coverage(component_filter: str = "", mode: str = "all", unit_only: bool = False) -> bool:
     """Run test coverage (cargo llvm-cov, vitest coverage)."""
     tasks: list[tuple[str, str, list[str]]] = []
 
@@ -159,9 +159,10 @@ def leeattend_run_coverage(component_filter: str = "", mode: str = "all") -> boo
             if component_filter in ["apiserver", "agent-main"]
             else "--workspace"
         )
+        test_flags = "--lib" if unit_only else "--lib --test integration"
         apiserver_cov = (
             f"mkdir -p /workspace/.test_logs && "
-            f"{coverage_env} cargo llvm-cov nextest --lib --test integration {pkg_flag} "
+            f"{coverage_env} cargo llvm-cov nextest {test_flags} {pkg_flag} "
             f"--lcov --output-path /workspace/.test_logs/coverage-apiserver.lcov "
             f"--no-tests=pass 2>&1 </dev/null && "
             f"{coverage_env} cargo llvm-cov report --html "

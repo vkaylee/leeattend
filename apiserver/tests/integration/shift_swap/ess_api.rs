@@ -47,12 +47,22 @@ async fn test_ess_shift_swap_flow() {
     let swap_date = Utc::now().date_naive() + chrono::Duration::days(1);
 
     // Employee A → Morning shift
-    sqlx::query("INSERT INTO shift_rosters (id, employee_id, shift_id, date, status) VALUES ($1, $2, $3, $4, 'active')")
-        .bind(Uuid::new_v4()).bind(emp_a).bind(shift_morning).bind(swap_date).execute(&_db.pool).await.unwrap();
+    crate::test_execute!(&_db.diesel_pools.api,
+        "INSERT INTO shift_rosters (id, employee_id, shift_id, date, status) VALUES ($1, $2, $3, $4, 'active')",
+        diesel::sql_types::Uuid, Uuid::new_v4(),
+        diesel::sql_types::Uuid, emp_a,
+        diesel::sql_types::Uuid, shift_morning,
+        diesel::sql_types::Date, swap_date
+    );
 
     // Employee B → Evening shift
-    sqlx::query("INSERT INTO shift_rosters (id, employee_id, shift_id, date, status) VALUES ($1, $2, $3, $4, 'active')")
-        .bind(Uuid::new_v4()).bind(emp_b).bind(shift_evening).bind(swap_date).execute(&_db.pool).await.unwrap();
+    crate::test_execute!(&_db.diesel_pools.api,
+        "INSERT INTO shift_rosters (id, employee_id, shift_id, date, status) VALUES ($1, $2, $3, $4, 'active')",
+        diesel::sql_types::Uuid, Uuid::new_v4(),
+        diesel::sql_types::Uuid, emp_b,
+        diesel::sql_types::Uuid, shift_evening,
+        diesel::sql_types::Date, swap_date
+    );
 
     let client = reqwest::Client::new();
 
@@ -124,8 +134,20 @@ async fn test_ess_shift_swap_cancel_and_accept() {
     let shift_evening = factory.shift().with_workspace(workspace_id).create().await;
     let swap_date = Utc::now().date_naive() + chrono::Duration::days(1);
 
-    sqlx::query("INSERT INTO shift_rosters (id, employee_id, shift_id, date, status) VALUES ($1, $2, $3, $4, 'active')").bind(Uuid::new_v4()).bind(emp_a).bind(shift_morning).bind(swap_date).execute(&_db.pool).await.unwrap();
-    sqlx::query("INSERT INTO shift_rosters (id, employee_id, shift_id, date, status) VALUES ($1, $2, $3, $4, 'active')").bind(Uuid::new_v4()).bind(emp_b).bind(shift_evening).bind(swap_date).execute(&_db.pool).await.unwrap();
+    crate::test_execute!(&_db.diesel_pools.api,
+        "INSERT INTO shift_rosters (id, employee_id, shift_id, date, status) VALUES ($1, $2, $3, $4, 'active')",
+        diesel::sql_types::Uuid, Uuid::new_v4(),
+        diesel::sql_types::Uuid, emp_a,
+        diesel::sql_types::Uuid, shift_morning,
+        diesel::sql_types::Date, swap_date
+    );
+    crate::test_execute!(&_db.diesel_pools.api,
+        "INSERT INTO shift_rosters (id, employee_id, shift_id, date, status) VALUES ($1, $2, $3, $4, 'active')",
+        diesel::sql_types::Uuid, Uuid::new_v4(),
+        diesel::sql_types::Uuid, emp_b,
+        diesel::sql_types::Uuid, shift_evening,
+        diesel::sql_types::Date, swap_date
+    );
 
     let client = reqwest::Client::new();
 

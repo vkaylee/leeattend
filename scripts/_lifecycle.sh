@@ -33,7 +33,7 @@ lifecycle_up() {
         api)
             # Logic Tasks
             profiles=("--profile" "lint-api" "--profile" "unit-api")
-            # Required Infrastructure for API Logic (DB is mandatory for sqlx/lint)
+            # Required Infrastructure for API Logic (DB is mandatory for diesel/lint)
             profiles+=("--profile" "infra-db" "--profile" "infra-db-init")
             ;;
         integration)

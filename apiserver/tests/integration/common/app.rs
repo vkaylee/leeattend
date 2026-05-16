@@ -20,7 +20,7 @@ use super::factory::TestFactory;
 #[allow(dead_code)]
 pub async fn spawn_app() -> (String, TestDatabase) {
     let test_db = TestDatabase::new().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
 
     let agent_manager = AgentManager::new(None);
@@ -482,7 +482,7 @@ pub async fn spawn_app() -> (String, TestDatabase) {
 #[allow(dead_code)]
 pub async fn spawn_app_with_factory() -> (String, Uuid, Uuid, TestFactory, TestDatabase) {
     let test_db = TestDatabase::new().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
 
     let factory = TestFactory::new(pool.clone());
@@ -1015,7 +1015,7 @@ pub async fn spawn_app_with_member() -> (String, Uuid, Uuid, Uuid, TestFactory, 
 #[allow(dead_code)]
 pub async fn setup_app_tower() -> (TestDatabase, TestFactory, Arc<AppState>, axum::Router) {
     let test_db = TestDatabase::new().await;
-    let pool = test_db.pool().clone();
+    let pool = test_db.diesel_pools.clone().clone();
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
     let factory = TestFactory::new(pool.clone());
 

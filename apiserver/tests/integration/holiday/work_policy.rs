@@ -30,7 +30,7 @@ struct HolidayResponse {
 #[tokio::test]
 async fn test_payroll_holiday_work_with_multiplier() {
     let (_address, test_db) = spawn_app().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
     let factory = crate::common::factory::TestFactory::new(pool.clone());
 
@@ -57,15 +57,12 @@ async fn test_payroll_holiday_work_with_multiplier() {
         .await;
 
     // Create paid holiday with ot_multiplier=3, is_credit_on_work=true
-    sqlx::query(
+    crate::test_execute!(&pool.api,
         "INSERT INTO holidays (workspace_id, name, date, holiday_type, is_paid, ot_multiplier, is_credit_on_work)
-         VALUES ($1, 'Test Holiday', $2, 'national', true, 3.0, true)"
-    )
-    .bind(workspace_id)
-    .bind(first_of_month)
-    .execute(&pool)
-    .await
-    .unwrap();
+         VALUES ($1, 'Test Holiday', $2, 'national', true, 3.0, true)",
+        diesel::sql_types::Uuid, workspace_id,
+        diesel::sql_types::Date, first_of_month
+    );
 
     // Employee works full shift on the holiday
     let punch_in = Utc
@@ -98,25 +95,21 @@ async fn test_payroll_holiday_work_with_multiplier() {
         .await;
 
     // Assign salary component for payroll calculation
-    let comp_id: Uuid = sqlx::query_scalar(
+    let comp_id: Uuid = crate::test_query_scalar_uuid!(
+        &pool.api,
         "INSERT INTO salary_component_definitions (workspace_id, name, code)
          VALUES ($1, 'Base', 'BASE') RETURNING id",
-    )
-    .bind(workspace_id)
-    .fetch_one(&pool)
-    .await
-    .unwrap();
+        diesel::sql_types::Uuid,
+        workspace_id
+    );
 
-    sqlx::query(
+    crate::test_execute!(&pool.api,
         "INSERT INTO employee_salary_components (employee_id, component_definition_id, amount, effective_date)
-         VALUES ($1, $2, 10000000, $3)"
-    )
-    .bind(emp)
-    .bind(comp_id)
-    .bind(first_of_month)
-    .execute(&pool)
-    .await
-    .unwrap();
+         VALUES ($1, $2, 10000000, $3)",
+        diesel::sql_types::Uuid, emp,
+        diesel::sql_types::Uuid, comp_id,
+        diesel::sql_types::Date, first_of_month
+    );
 
     // Calculate payroll
     let result = {
@@ -217,7 +210,7 @@ async fn test_payroll_holiday_work_with_multiplier() {
 #[tokio::test]
 async fn test_payroll_holiday_work_no_credit() {
     let (_address, test_db) = spawn_app().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
     let factory = crate::common::factory::TestFactory::new(pool.clone());
 
@@ -243,15 +236,12 @@ async fn test_payroll_holiday_work_no_credit() {
         .await;
 
     // is_credit_on_work=false → no holiday pay credit, only premium
-    sqlx::query(
+    crate::test_execute!(&pool.api,
         "INSERT INTO holidays (workspace_id, name, date, holiday_type, is_paid, ot_multiplier, is_credit_on_work)
-         VALUES ($1, 'No Credit Holiday', $2, 'company', true, 2.0, false)"
-    )
-    .bind(workspace_id)
-    .bind(first_of_month)
-    .execute(&pool)
-    .await
-    .unwrap();
+         VALUES ($1, 'No Credit Holiday', $2, 'company', true, 2.0, false)",
+        diesel::sql_types::Uuid, workspace_id,
+        diesel::sql_types::Date, first_of_month
+    );
 
     let punch_in = Utc
         .with_ymd_and_hms(
@@ -282,25 +272,21 @@ async fn test_payroll_holiday_work_no_credit() {
         .create()
         .await;
 
-    let comp_id: Uuid = sqlx::query_scalar(
+    let comp_id: Uuid = crate::test_query_scalar_uuid!(
+        &pool.api,
         "INSERT INTO salary_component_definitions (workspace_id, name, code)
          VALUES ($1, 'Base', 'BASE') RETURNING id",
-    )
-    .bind(workspace_id)
-    .fetch_one(&pool)
-    .await
-    .unwrap();
+        diesel::sql_types::Uuid,
+        workspace_id
+    );
 
-    sqlx::query(
+    crate::test_execute!(&pool.api,
         "INSERT INTO employee_salary_components (employee_id, component_definition_id, amount, effective_date)
-         VALUES ($1, $2, 10000000, $3)"
-    )
-    .bind(emp)
-    .bind(comp_id)
-    .bind(first_of_month)
-    .execute(&pool)
-    .await
-    .unwrap();
+         VALUES ($1, $2, 10000000, $3)",
+        diesel::sql_types::Uuid, emp,
+        diesel::sql_types::Uuid, comp_id,
+        diesel::sql_types::Date, first_of_month
+    );
 
     let payslip = {
         let pr: std::sync::Arc<dyn apiserver::repositories::payroll_repository::PayrollRepository> =
@@ -387,7 +373,7 @@ async fn test_payroll_holiday_work_no_credit() {
 #[tokio::test]
 async fn test_payroll_holiday_work_unpaid_no_premium() {
     let (_address, test_db) = spawn_app().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
     let factory = crate::common::factory::TestFactory::new(pool.clone());
 
@@ -413,15 +399,12 @@ async fn test_payroll_holiday_work_unpaid_no_premium() {
         .await;
 
     // Unpaid holiday with multiplier=1 → standard rate, no premium
-    sqlx::query(
+    crate::test_execute!(&pool.api,
         "INSERT INTO holidays (workspace_id, name, date, holiday_type, is_paid, ot_multiplier, is_credit_on_work)
-         VALUES ($1, 'Unpaid Day', $2, 'company', false, 1.0, false)"
-    )
-    .bind(workspace_id)
-    .bind(first_of_month)
-    .execute(&pool)
-    .await
-    .unwrap();
+         VALUES ($1, 'Unpaid Day', $2, 'company', false, 1.0, false)",
+        diesel::sql_types::Uuid, workspace_id,
+        diesel::sql_types::Date, first_of_month
+    );
 
     let punch_in = Utc
         .with_ymd_and_hms(
@@ -452,25 +435,21 @@ async fn test_payroll_holiday_work_unpaid_no_premium() {
         .create()
         .await;
 
-    let comp_id: Uuid = sqlx::query_scalar(
+    let comp_id: Uuid = crate::test_query_scalar_uuid!(
+        &pool.api,
         "INSERT INTO salary_component_definitions (workspace_id, name, code)
          VALUES ($1, 'Base', 'BASE') RETURNING id",
-    )
-    .bind(workspace_id)
-    .fetch_one(&pool)
-    .await
-    .unwrap();
+        diesel::sql_types::Uuid,
+        workspace_id
+    );
 
-    sqlx::query(
+    crate::test_execute!(&pool.api,
         "INSERT INTO employee_salary_components (employee_id, component_definition_id, amount, effective_date)
-         VALUES ($1, $2, 10000000, $3)"
-    )
-    .bind(emp)
-    .bind(comp_id)
-    .bind(first_of_month)
-    .execute(&pool)
-    .await
-    .unwrap();
+         VALUES ($1, $2, 10000000, $3)",
+        diesel::sql_types::Uuid, emp,
+        diesel::sql_types::Uuid, comp_id,
+        diesel::sql_types::Date, first_of_month
+    );
 
     let payslip = {
         let pr: std::sync::Arc<dyn apiserver::repositories::payroll_repository::PayrollRepository> =
@@ -558,7 +537,7 @@ async fn test_payroll_holiday_work_unpaid_no_premium() {
 #[tokio::test]
 async fn test_leave_reversal_full_shift() {
     let (_address, test_db) = spawn_app().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
     let factory = crate::common::factory::TestFactory::new(pool.clone());
 
@@ -572,15 +551,12 @@ async fn test_leave_reversal_full_shift() {
     let today = Utc::now().date_naive();
 
     // Create holiday with threshold=50%
-    sqlx::query(
+    crate::test_execute!(&pool.api,
         "INSERT INTO holidays (workspace_id, name, date, holiday_type, is_paid, work_threshold_percent, is_credit_on_work)
-         VALUES ($1, 'Threshold Holiday', $2, 'company', false, 50, false)"
-    )
-    .bind(workspace_id)
-    .bind(today)
-    .execute(&pool)
-    .await
-    .unwrap();
+         VALUES ($1, 'Threshold Holiday', $2, 'company', false, 50, false)",
+        diesel::sql_types::Uuid, workspace_id,
+        diesel::sql_types::Date, today
+    );
 
     factory
         .leave_balance()
@@ -589,58 +565,51 @@ async fn test_leave_reversal_full_shift() {
         .create()
         .await;
 
-    let vacation_id: Uuid = sqlx::query_scalar(
+    let vacation_id: Uuid = crate::test_query_scalar_uuid!(
+        &pool.api,
         "SELECT id FROM leave_types WHERE workspace_id = $1 AND code = 'vacation'",
-    )
-    .bind(workspace_id)
-    .fetch_one(&pool)
-    .await
-    .unwrap();
+        diesel::sql_types::Uuid,
+        workspace_id
+    );
 
     // System-generated leave (requested_by_user_id IS NULL)
     let leave_id = Uuid::new_v4();
-    sqlx::query(
+    crate::test_execute!(&pool.api,
         "INSERT INTO leave_requests (id, employee_id, leave_type_id, start_date, end_date, status, requested_by_user_id)
-         VALUES ($1, $2, $3, $4, $4, 'approved'::leave_status_type, NULL)"
-    )
-    .bind(leave_id)
-    .bind(emp)
-    .bind(vacation_id)
-    .bind(today)
-    .execute(&pool)
-    .await
-    .unwrap();
+         VALUES ($1, $2, $3, $4, $4, 'approved'::leave_status_type, NULL)",
+        diesel::sql_types::Uuid, leave_id,
+        diesel::sql_types::Uuid, emp,
+        diesel::sql_types::Uuid, vacation_id,
+        diesel::sql_types::Date, today
+    );
 
     // Verify system-generated leave can be found
-    let found: Option<(Uuid,)> = sqlx::query_as(
+    let found: Option<Uuid> = crate::test_query_scalar_uuid_optional!(
+        &pool.api,
         r"SELECT lr.id FROM leave_requests lr
            WHERE lr.employee_id = $1
              AND lr.status = 'approved'::leave_status_type
              AND lr.start_date <= $2 AND lr.end_date >= $2
              AND lr.requested_by_user_id IS NULL",
-    )
-    .bind(emp)
-    .bind(today)
-    .fetch_optional(&pool)
-    .await
-    .unwrap();
+        diesel::sql_types::Uuid,
+        emp,
+        diesel::sql_types::Date,
+        today
+    );
     assert!(found.is_some(), "System-generated leave should be findable");
 
     // Simulate leave reversal (what attendance_summary_service does)
-    sqlx::query(
-        "UPDATE leave_requests SET status = 'cancelled'::leave_status_type, updated_at = NOW() WHERE id = $1"
-    )
-    .bind(leave_id)
-    .execute(&pool)
-    .await
-    .unwrap();
+    crate::test_execute!(&pool.api,
+        "UPDATE leave_requests SET status = 'cancelled'::leave_status_type, updated_at = NOW() WHERE id = $1",
+        diesel::sql_types::Uuid, leave_id
+    );
 
-    let status: String =
-        sqlx::query_scalar("SELECT status::TEXT FROM leave_requests WHERE id = $1")
-            .bind(leave_id)
-            .fetch_one(&pool)
-            .await
-            .unwrap();
+    let status: String = crate::test_query_scalar_string!(
+        &pool.api,
+        "SELECT status::text AS val FROM leave_requests WHERE id = $1",
+        diesel::sql_types::Uuid,
+        leave_id
+    );
     assert_eq!(
         status, "cancelled",
         "Leave should be cancelled via SQL update"
@@ -654,7 +623,7 @@ async fn test_leave_reversal_full_shift() {
 #[tokio::test]
 async fn test_leave_kept_partial_work() {
     let (_address, test_db) = spawn_app().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
     let factory = crate::common::factory::TestFactory::new(pool.clone());
 
@@ -678,15 +647,12 @@ async fn test_leave_kept_partial_work() {
         .await;
 
     // Holiday with threshold=50%
-    sqlx::query(
+    crate::test_execute!(&pool.api,
         "INSERT INTO holidays (workspace_id, name, date, holiday_type, is_paid, work_threshold_percent, is_credit_on_work)
-         VALUES ($1, 'Threshold Holiday', $2, 'company', false, 50, false)"
-    )
-    .bind(workspace_id)
-    .bind(today)
-    .execute(&pool)
-    .await
-    .unwrap();
+         VALUES ($1, 'Threshold Holiday', $2, 'company', false, 50, false)",
+        diesel::sql_types::Uuid, workspace_id,
+        diesel::sql_types::Date, today
+    );
 
     factory
         .leave_balance()
@@ -695,26 +661,22 @@ async fn test_leave_kept_partial_work() {
         .create()
         .await;
 
-    let vacation_id: Uuid = sqlx::query_scalar(
+    let vacation_id: Uuid = crate::test_query_scalar_uuid!(
+        &pool.api,
         "SELECT id FROM leave_types WHERE workspace_id = $1 AND code = 'vacation'",
-    )
-    .bind(workspace_id)
-    .fetch_one(&pool)
-    .await
-    .unwrap();
+        diesel::sql_types::Uuid,
+        workspace_id
+    );
 
     let leave_id = Uuid::new_v4();
-    sqlx::query(
+    crate::test_execute!(&pool.api,
         "INSERT INTO leave_requests (id, employee_id, leave_type_id, start_date, end_date, status, requested_by_user_id)
-         VALUES ($1, $2, $3, $4, $4, 'approved', NULL)"
-    )
-    .bind(leave_id)
-    .bind(emp)
-    .bind(vacation_id)
-    .bind(today)
-    .execute(&pool)
-    .await
-    .unwrap();
+         VALUES ($1, $2, $3, $4, $4, 'approved', NULL)",
+        diesel::sql_types::Uuid, leave_id,
+        diesel::sql_types::Uuid, emp,
+        diesel::sql_types::Uuid, vacation_id,
+        diesel::sql_types::Date, today
+    );
 
     // Employee works only ~3 hours (37% of 8h shift, < 50% threshold)
     let punch_in = Utc
@@ -769,12 +731,12 @@ async fn test_leave_kept_partial_work() {
     .expect("Recalculate failed");
 
     // Leave should NOT be cancelled (work < threshold)
-    let status: String =
-        sqlx::query_scalar("SELECT status::TEXT FROM leave_requests WHERE id = $1")
-            .bind(leave_id)
-            .fetch_one(&pool)
-            .await
-            .unwrap();
+    let status: String = crate::test_query_scalar_string!(
+        &pool.api,
+        "SELECT status::text AS val FROM leave_requests WHERE id = $1",
+        diesel::sql_types::Uuid,
+        leave_id
+    );
     assert_eq!(
         status, "approved",
         "Leave should remain approved when work < threshold"
@@ -788,7 +750,7 @@ async fn test_leave_kept_partial_work() {
 #[tokio::test]
 async fn test_leave_reversal_custom_threshold() {
     let (_address, test_db) = spawn_app().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
     let factory = crate::common::factory::TestFactory::new(pool.clone());
 
@@ -808,56 +770,50 @@ async fn test_leave_reversal_custom_threshold() {
         .create()
         .await;
 
-    let vacation_id: Uuid = sqlx::query_scalar(
+    let vacation_id: Uuid = crate::test_query_scalar_uuid!(
+        &pool.api,
         "SELECT id FROM leave_types WHERE workspace_id = $1 AND code = 'vacation'",
-    )
-    .bind(workspace_id)
-    .fetch_one(&pool)
-    .await
-    .unwrap();
+        diesel::sql_types::Uuid,
+        workspace_id
+    );
 
     // Create system leave (NULL user) and user leave (non-NULL user)
     let sys_leave = Uuid::new_v4();
     let user_leave = Uuid::new_v4();
 
-    sqlx::query(
+    crate::test_execute!(&pool.api,
         "INSERT INTO leave_requests (id, employee_id, leave_type_id, start_date, end_date, status, requested_by_user_id)
-         VALUES ($1, $2, $3, $4, $4, 'approved'::leave_status_type, NULL)"
-    )
-    .bind(sys_leave)
-    .bind(emp)
-    .bind(vacation_id)
-    .bind(today)
-    .execute(&pool)
-    .await
-    .unwrap();
+         VALUES ($1, $2, $3, $4, $4, 'approved'::leave_status_type, NULL)",
+        diesel::sql_types::Uuid, sys_leave,
+        diesel::sql_types::Uuid, emp,
+        diesel::sql_types::Uuid, vacation_id,
+        diesel::sql_types::Date, today
+    );
 
-    sqlx::query(
+    crate::test_execute!(&pool.api,
         "INSERT INTO leave_requests (id, employee_id, leave_type_id, start_date, end_date, status, requested_by_user_id)
-         VALUES ($1, $2, $3, $4, $4, 'approved'::leave_status_type, $5)"
-    )
-    .bind(user_leave)
-    .bind(emp)
-    .bind(vacation_id)
-    .bind(today)
-    .bind(user_id)
-    .execute(&pool)
-    .await
-    .unwrap();
+         VALUES ($1, $2, $3, $4, $4, 'approved'::leave_status_type, $5)",
+        diesel::sql_types::Uuid, user_leave,
+        diesel::sql_types::Uuid, emp,
+        diesel::sql_types::Uuid, vacation_id,
+        diesel::sql_types::Date, today,
+        diesel::sql_types::Uuid, user_id
+    );
 
     // Query only system-generated leaves (matching service behavior)
-    let system_only: Vec<(Uuid,)> = sqlx::query_as(
+    let system_only_uuid: Uuid = crate::test_query_scalar_uuid!(
+        &pool.api,
         r"SELECT lr.id FROM leave_requests lr
            WHERE lr.employee_id = $1
              AND lr.status = 'approved'::leave_status_type
              AND lr.start_date <= $2 AND lr.end_date >= $2
              AND lr.requested_by_user_id IS NULL",
-    )
-    .bind(emp)
-    .bind(today)
-    .fetch_all(&pool)
-    .await
-    .unwrap();
+        diesel::sql_types::Uuid,
+        emp,
+        diesel::sql_types::Date,
+        today
+    );
+    let system_only = vec![(system_only_uuid,)];
 
     assert_eq!(
         system_only.len(),
@@ -870,25 +826,26 @@ async fn test_leave_reversal_custom_threshold() {
     );
 
     // Cancel only system leave
-    sqlx::query("UPDATE leave_requests SET status = 'cancelled'::leave_status_type WHERE id = $1")
-        .bind(sys_leave)
-        .execute(&pool)
-        .await
-        .unwrap();
+    crate::test_execute!(
+        &pool.api,
+        "UPDATE leave_requests SET status = 'cancelled'::leave_status_type WHERE id = $1",
+        diesel::sql_types::Uuid,
+        sys_leave
+    );
 
     // Verify: system leave cancelled, user leave still approved
-    let sys_status: String =
-        sqlx::query_scalar("SELECT status::TEXT FROM leave_requests WHERE id = $1")
-            .bind(sys_leave)
-            .fetch_one(&pool)
-            .await
-            .unwrap();
-    let user_status: String =
-        sqlx::query_scalar("SELECT status::TEXT FROM leave_requests WHERE id = $1")
-            .bind(user_leave)
-            .fetch_one(&pool)
-            .await
-            .unwrap();
+    let sys_status: String = crate::test_query_scalar_string!(
+        &pool.api,
+        "SELECT status::text AS val FROM leave_requests WHERE id = $1",
+        diesel::sql_types::Uuid,
+        sys_leave
+    );
+    let user_status: String = crate::test_query_scalar_string!(
+        &pool.api,
+        "SELECT status::text AS val FROM leave_requests WHERE id = $1",
+        diesel::sql_types::Uuid,
+        user_leave
+    );
     assert_eq!(sys_status, "cancelled", "System leave should be cancelled");
     assert_eq!(user_status, "approved", "User leave should remain approved");
 }
@@ -900,7 +857,7 @@ async fn test_leave_reversal_custom_threshold() {
 #[tokio::test]
 async fn test_leave_reversal_only_system() {
     let (_address, test_db) = spawn_app().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
     let factory = crate::common::factory::TestFactory::new(pool.clone());
 
@@ -923,15 +880,12 @@ async fn test_leave_reversal_only_system() {
         .assign_to_employee(emp, today)
         .await;
 
-    sqlx::query(
+    crate::test_execute!(&pool.api,
         "INSERT INTO holidays (workspace_id, name, date, holiday_type, is_paid, work_threshold_percent, is_credit_on_work)
-         VALUES ($1, 'User Leave Holiday', $2, 'company', false, 50, false)"
-    )
-    .bind(workspace_id)
-    .bind(today)
-    .execute(&pool)
-    .await
-    .unwrap();
+         VALUES ($1, 'User Leave Holiday', $2, 'company', false, 50, false)",
+        diesel::sql_types::Uuid, workspace_id,
+        diesel::sql_types::Date, today
+    );
 
     factory
         .leave_balance()
@@ -940,28 +894,24 @@ async fn test_leave_reversal_only_system() {
         .create()
         .await;
 
-    let vacation_id: Uuid = sqlx::query_scalar(
+    let vacation_id: Uuid = crate::test_query_scalar_uuid!(
+        &pool.api,
         "SELECT id FROM leave_types WHERE workspace_id = $1 AND code = 'vacation'",
-    )
-    .bind(workspace_id)
-    .fetch_one(&pool)
-    .await
-    .unwrap();
+        diesel::sql_types::Uuid,
+        workspace_id
+    );
 
     // User-submitted leave (requested_by_user_id is NOT NULL)
     let leave_id = Uuid::new_v4();
-    sqlx::query(
+    crate::test_execute!(&pool.api,
         "INSERT INTO leave_requests (id, employee_id, leave_type_id, start_date, end_date, status, requested_by_user_id)
-         VALUES ($1, $2, $3, $4, $4, 'approved', $5)"
-    )
-    .bind(leave_id)
-    .bind(emp)
-    .bind(vacation_id)
-    .bind(today)
-    .bind(user_id) // <-- user-submitted
-    .execute(&pool)
-    .await
-    .unwrap();
+         VALUES ($1, $2, $3, $4, $4, 'approved', $5)",
+        diesel::sql_types::Uuid, leave_id,
+        diesel::sql_types::Uuid, emp,
+        diesel::sql_types::Uuid, vacation_id,
+        diesel::sql_types::Date, today,
+        diesel::sql_types::Uuid, user_id
+    );
 
     // Full shift work
     let punch_in = Utc
@@ -1016,12 +966,12 @@ async fn test_leave_reversal_only_system() {
     .expect("Recalculate failed");
 
     // User-submitted leave should NOT be cancelled
-    let status: String =
-        sqlx::query_scalar("SELECT status::TEXT FROM leave_requests WHERE id = $1")
-            .bind(leave_id)
-            .fetch_one(&pool)
-            .await
-            .unwrap();
+    let status: String = crate::test_query_scalar_string!(
+        &pool.api,
+        "SELECT status::text AS val FROM leave_requests WHERE id = $1",
+        diesel::sql_types::Uuid,
+        leave_id
+    );
     assert_eq!(
         status, "approved",
         "User-submitted leave should NOT be auto-cancelled"
@@ -1035,7 +985,7 @@ async fn test_leave_reversal_only_system() {
 #[tokio::test]
 async fn test_leave_breakdown_excludes_holidays() {
     let (_address, test_db) = spawn_app().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
     let factory = crate::common::factory::TestFactory::new(pool.clone());
 
@@ -1068,14 +1018,13 @@ async fn test_leave_breakdown_excludes_holidays() {
         .await;
 
     // May 1 is a paid national holiday
-    sqlx::query(
+    crate::test_execute!(
+        &pool.api,
         "INSERT INTO holidays (workspace_id, name, date, holiday_type, is_paid, is_credit_on_work)
          VALUES ($1, 'Labour Day', '2026-05-01', 'national', true, true)",
-    )
-    .bind(workspace_id)
-    .execute(&pool)
-    .await
-    .unwrap();
+        diesel::sql_types::Uuid,
+        workspace_id
+    );
 
     // Get leave breakdown — should exclude May 1
     let breakdown = {
@@ -1103,7 +1052,7 @@ async fn test_leave_breakdown_excludes_holidays() {
 #[tokio::test]
 async fn test_holiday_crud_new_fields() {
     let (address, test_db) = spawn_app().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
     let factory = crate::common::factory::TestFactory::new(pool.clone());
     let client = reqwest::Client::new();

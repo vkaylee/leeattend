@@ -12,32 +12,39 @@ async fn setup_db() -> (
     apiserver::diesel_pool::DieselPools,
 ) {
     let test_db = TestDatabase::new().await;
-    let factory = TestFactory::new(test_db.pool());
+    let factory = TestFactory::new(test_db.diesel_pools.clone());
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
     (test_db, factory, diesel_pools)
 }
 
 /// Helper: assign an employee to a department via `employee_department_history`.
-async fn transfer(pool: &sqlx::PgPool, employee_id: Uuid, department_id: Uuid, date: NaiveDate) {
-    sqlx::query(
+async fn transfer(
+    pool: &apiserver::diesel_pool::DieselPools,
+    employee_id: Uuid,
+    department_id: Uuid,
+    date: NaiveDate,
+) {
+    crate::test_execute!(
+        &pool.api,
         "INSERT INTO employee_department_history (employee_id, department_id, effective_date) \
          VALUES ($1, $2, $3)",
-    )
-    .bind(employee_id)
-    .bind(department_id)
-    .bind(date)
-    .execute(pool)
-    .await
-    .unwrap();
+        diesel::sql_types::Uuid,
+        employee_id,
+        diesel::sql_types::Uuid,
+        department_id,
+        diesel::sql_types::Date,
+        date
+    );
 }
 
 /// Helper: deactivate an employee.
-async fn deactivate_employee(pool: &sqlx::PgPool, employee_id: Uuid) {
-    sqlx::query("UPDATE employees SET is_active = false WHERE id = $1")
-        .bind(employee_id)
-        .execute(pool)
-        .await
-        .unwrap();
+async fn deactivate_employee(pool: &apiserver::diesel_pool::DieselPools, employee_id: Uuid) {
+    crate::test_execute!(
+        &pool.api,
+        "UPDATE employees SET is_active = false WHERE id = $1",
+        diesel::sql_types::Uuid,
+        employee_id
+    );
 }
 
 // ── get_departments ─────────────────────────────────────────────────
@@ -45,7 +52,7 @@ async fn deactivate_employee(pool: &sqlx::PgPool, employee_id: Uuid) {
 #[tokio::test]
 async fn test_department_with_no_employees_has_zero_count() {
     let (test_db, factory, diesel_pools) = setup_db().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
     let repo = apiserver::repositories::DieselDepartmentRepository::new(diesel_pools);
 
     let user_id = factory.user().create().await;
@@ -68,7 +75,7 @@ async fn test_department_with_no_employees_has_zero_count() {
 #[tokio::test]
 async fn test_department_counts_active_employees() {
     let (test_db, factory, diesel_pools) = setup_db().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
     let repo = apiserver::repositories::DieselDepartmentRepository::new(diesel_pools);
 
     let user_id = factory.user().create().await;
@@ -98,7 +105,7 @@ async fn test_department_counts_active_employees() {
 #[tokio::test]
 async fn test_department_excludes_inactive_employees() {
     let (test_db, factory, diesel_pools) = setup_db().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
     let repo = apiserver::repositories::DieselDepartmentRepository::new(diesel_pools);
 
     let user_id = factory.user().create().await;
@@ -135,7 +142,7 @@ async fn test_department_excludes_inactive_employees() {
 #[tokio::test]
 async fn test_department_uses_latest_transfer_only() {
     let (test_db, factory, diesel_pools) = setup_db().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
     let repo = apiserver::repositories::DieselDepartmentRepository::new(diesel_pools);
 
     let user_id = factory.user().create().await;
@@ -191,7 +198,7 @@ async fn test_department_uses_latest_transfer_only() {
 #[tokio::test]
 async fn test_get_department_by_id_includes_employee_count() {
     let (test_db, factory, diesel_pools) = setup_db().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
     let repo = apiserver::repositories::DieselDepartmentRepository::new(diesel_pools);
 
     let user_id = factory.user().create().await;
@@ -225,7 +232,7 @@ async fn test_get_department_by_id_includes_employee_count() {
 #[tokio::test]
 async fn test_create_department_returns_zero_count() {
     let (test_db, factory, diesel_pools) = setup_db().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
     let repo = apiserver::repositories::DieselDepartmentRepository::new(diesel_pools);
 
     let user_id = factory.user().create().await;
@@ -245,7 +252,7 @@ async fn test_create_department_returns_zero_count() {
 #[tokio::test]
 async fn test_multiple_departments_independent_counts() {
     let (test_db, factory, diesel_pools) = setup_db().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
     let repo = apiserver::repositories::DieselDepartmentRepository::new(diesel_pools);
 
     let user_id = factory.user().create().await;

@@ -7,19 +7,12 @@ use chrono::{Datelike, NaiveTime, TimeZone, Utc};
 use reqwest::StatusCode;
 use serde::Deserialize;
 
-#[derive(Debug, Deserialize, sqlx::FromRow)]
-struct SummaryRow {
-    is_holiday: bool,
-    holiday_name: Option<String>,
-    actual_work_minutes: i32,
-}
-
 /// Create a holiday, trigger recalculation, verify the summary record has `is_holiday=true`
 #[tokio::test]
 async fn test_summary_records_holiday_flag_after_recalculate() {
     let (address, test_db) = spawn_app().await;
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
     let factory = crate::common::factory::TestFactory::new(pool.clone());
     let client = reqwest::Client::new();
 
@@ -112,18 +105,13 @@ async fn test_summary_records_holiday_flag_after_recalculate() {
     .await
     .expect("Recalculate failed");
 
-    // Verify the summary record in DB directly
-    let row = sqlx::query_as::<_, SummaryRow>(
-        "SELECT is_holiday, holiday_name, actual_work_minutes FROM attendance_daily_summaries WHERE employee_id = $1 AND date = $2"
-    )
-    .bind(emp)
-    .bind(today)
-    .fetch_optional(&pool)
-    .await
-    .unwrap();
+    let repo =
+        apiserver::repositories::DieselAttendanceDailySummaryRepository::new(diesel_pools.clone());
+    let summaries = apiserver::repositories::attendance_daily_summary_repository::AttendanceDailySummaryRepository::get_summaries(
+        &repo, workspace_id, Some(emp), today, today
+    ).await.unwrap();
 
-    assert!(row.is_some(), "Summary record should exist");
-    let summary = row.unwrap();
+    let summary = summaries.into_iter().next().unwrap();
     assert!(
         summary.is_holiday,
         "is_holiday should be true for a holiday"

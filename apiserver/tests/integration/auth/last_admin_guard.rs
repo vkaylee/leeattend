@@ -26,16 +26,20 @@ async fn body_json(response: axum::http::Response<axum::body::Body>) -> serde_js
 }
 
 /// Helper: assign a system role to a user directly in DB
-async fn assign_system_role(pool: &sqlx::PgPool, user_id: Uuid, role_name: &str) {
-    sqlx::query(
+async fn assign_system_role(
+    pool: &apiserver::diesel_pool::DieselPools,
+    user_id: Uuid,
+    role_name: &str,
+) {
+    crate::test_execute!(
+        &pool.api,
         "INSERT INTO user_system_roles (user_id, role_id) \
          SELECT $1, id FROM system_roles WHERE name = $2",
-    )
-    .bind(user_id)
-    .bind(role_name)
-    .execute(pool)
-    .await
-    .unwrap();
+        diesel::sql_types::Uuid,
+        user_id,
+        diesel::sql_types::Text,
+        role_name
+    );
 }
 
 /// Test: self-revoking the sole `platform_admin` must be rejected (422).
@@ -45,7 +49,7 @@ async fn test_cannot_revoke_sole_platform_admin_self() {
         setup_app_tower().await;
 
     let admin_id = factory.user().create().await;
-    assign_system_role(&factory.pool, admin_id, "platform_admin").await;
+    assign_system_role(&factory.diesel_pools, admin_id, "platform_admin").await;
 
     // Attempt: admin tries to revoke their own platform_admin role
     let response = app
@@ -88,8 +92,8 @@ async fn test_cannot_revoke_other_sole_platform_admin() {
     let user_b = factory.user().with_email("admin_b@test.com").create().await;
 
     // user_a has platform_admin (to authenticate), user_b also has platform_admin
-    assign_system_role(&factory.pool, user_a, "platform_admin").await;
-    assign_system_role(&factory.pool, user_b, "platform_admin").await;
+    assign_system_role(&factory.diesel_pools, user_a, "platform_admin").await;
+    assign_system_role(&factory.diesel_pools, user_b, "platform_admin").await;
 
     // First, revoke user_a's admin role (this should succeed — 2 admins → 1 left)
     let response = app
@@ -143,8 +147,8 @@ async fn test_revoke_platform_admin_succeeds_when_multiple_admins() {
     let admin_a = factory.user().with_email("admin1@test.com").create().await;
     let admin_b = factory.user().with_email("admin2@test.com").create().await;
 
-    assign_system_role(&factory.pool, admin_a, "platform_admin").await;
-    assign_system_role(&factory.pool, admin_b, "platform_admin").await;
+    assign_system_role(&factory.diesel_pools, admin_a, "platform_admin").await;
+    assign_system_role(&factory.diesel_pools, admin_b, "platform_admin").await;
 
     // admin_a revokes admin_b — should succeed (still 1 admin left)
     let response = app
@@ -175,8 +179,8 @@ async fn test_revoke_support_role_from_sole_admin_is_allowed() {
         setup_app_tower().await;
 
     let admin_id = factory.user().create().await;
-    assign_system_role(&factory.pool, admin_id, "platform_admin").await;
-    assign_system_role(&factory.pool, admin_id, "support").await;
+    assign_system_role(&factory.diesel_pools, admin_id, "platform_admin").await;
+    assign_system_role(&factory.diesel_pools, admin_id, "support").await;
 
     // Revoke the support role — should succeed (platform_admin is untouched)
     let response = app
@@ -206,7 +210,7 @@ async fn test_blocked_revoke_preserves_role_assignment() {
         setup_app_tower().await;
 
     let admin_id = factory.user().create().await;
-    assign_system_role(&factory.pool, admin_id, "platform_admin").await;
+    assign_system_role(&factory.diesel_pools, admin_id, "platform_admin").await;
 
     // Attempt revoke (should fail)
     let _response = app
@@ -223,15 +227,14 @@ async fn test_blocked_revoke_preserves_role_assignment() {
         .unwrap();
 
     // Verify the role is still assigned in DB
-    let count: i64 = sqlx::query_scalar(
-        "SELECT COUNT(*) FROM user_system_roles usr \
+    let count: i64 = crate::test_query_scalar_i64!(
+        &factory.diesel_pools.api,
+        "SELECT count(*) AS count FROM user_system_roles usr \
          JOIN system_roles sr ON sr.id = usr.role_id \
          WHERE usr.user_id = $1 AND sr.name = 'platform_admin'",
-    )
-    .bind(admin_id)
-    .fetch_one(&factory.pool)
-    .await
-    .unwrap();
+        diesel::sql_types::Uuid,
+        admin_id
+    );
 
     assert_eq!(
         count, 1,

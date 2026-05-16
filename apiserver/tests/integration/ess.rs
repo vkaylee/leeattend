@@ -50,12 +50,14 @@ async fn create_employee_user(
     let emp_id = factory.employee().with_workspace(ws_id).create().await;
 
     // Link employee to user by setting user_id on the employee record
-    sqlx::query("UPDATE employees SET user_id = $1 WHERE id = $2")
-        .bind(user_id)
-        .bind(emp_id)
-        .execute(&test_db.pool())
-        .await
-        .unwrap();
+    crate::test_execute!(
+        &test_db.diesel_pools.api,
+        "UPDATE employees SET user_id = $1 WHERE id = $2",
+        diesel::sql_types::Uuid,
+        user_id,
+        diesel::sql_types::Uuid,
+        emp_id
+    );
 
     (user_id, emp_id)
 }

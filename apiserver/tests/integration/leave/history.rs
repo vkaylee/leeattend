@@ -20,13 +20,12 @@ async fn test_leave_adjustment() {
     let ws_id: Uuid = factory.workspace().create_with_owner(user_id).await;
     let emp_id: Uuid = factory.employee().with_workspace(ws_id).create().await;
 
-    let vacation_id: Uuid = sqlx::query_scalar(
+    let vacation_id: Uuid = crate::test_query_scalar_uuid!(
+        &factory.diesel_pools.api,
         "SELECT id FROM leave_types WHERE workspace_id = $1 AND code = 'vacation'",
-    )
-    .bind(ws_id)
-    .fetch_one(&factory.pool)
-    .await
-    .unwrap();
+        diesel::sql_types::Uuid,
+        ws_id
+    );
 
     // Perform Adjustment (+5 days)
     let adjust_req = AdjustBalanceRequest {

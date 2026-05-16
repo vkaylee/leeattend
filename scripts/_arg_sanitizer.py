@@ -3,7 +3,7 @@
 Validates and sanitizes command-line arguments from AI agents
 to prevent PTY hangs, shell injection, and control character leaks.
 
-All Hermetic Toolbox scripts (_cargo, _npm, _sqlx, _git) should
+All Hermetic Toolbox scripts (_cargo, _npm, _diesel, _git) should
 sanitize args through this module before passing to subprocess.
 """
 

@@ -62,38 +62,47 @@ async fn test_punch_in_grace_period_enforcement_smoke() {
         (today, future_start)
     };
 
-    sqlx::query("UPDATE shifts SET start_time = $1, end_time = $2 WHERE id = $3")
-        .bind(test_start)
-        .bind(NaiveTime::from_hms_opt(23, 59, 59).unwrap())
-        .bind(shift_id)
-        .execute(&factory.pool)
-        .await
-        .unwrap();
+    crate::test_execute!(
+        &factory.diesel_pools.api,
+        "UPDATE shifts SET start_time = $1, end_time = $2 WHERE id = $3",
+        diesel::sql_types::Time,
+        test_start,
+        diesel::sql_types::Time,
+        NaiveTime::from_hms_opt(23, 59, 59).unwrap(),
+        diesel::sql_types::Uuid,
+        shift_id
+    );
 
-    sqlx::query("UPDATE employee_shifts SET start_date = $1 WHERE shift_id = $2")
-        .bind(test_date)
-        .bind(shift_id)
-        .execute(&factory.pool)
-        .await
-        .unwrap();
+    crate::test_execute!(
+        &factory.diesel_pools.api,
+        "UPDATE employee_shifts SET start_date = $1 WHERE shift_id = $2",
+        diesel::sql_types::Date,
+        test_date,
+        diesel::sql_types::Uuid,
+        shift_id
+    );
 
     // Now set up for the fail case
-    sqlx::query("UPDATE employee_shifts SET start_date = $1 WHERE shift_id = $2")
-        .bind(today)
-        .bind(shift_id)
-        .execute(&factory.pool)
-        .await
-        .unwrap();
+    crate::test_execute!(
+        &factory.diesel_pools.api,
+        "UPDATE employee_shifts SET start_date = $1 WHERE shift_id = $2",
+        diesel::sql_types::Date,
+        today,
+        diesel::sql_types::Uuid,
+        shift_id
+    );
 
     // Set start_time to now + 4 hours (definitely in future, so grace period prevents punch in)
     let test_start_time = (real_now + Duration::hours(4)).time();
 
-    sqlx::query("UPDATE shifts SET start_time = $1 WHERE id = $2")
-        .bind(test_start_time)
-        .bind(shift_id)
-        .execute(&factory.pool)
-        .await
-        .unwrap();
+    crate::test_execute!(
+        &factory.diesel_pools.api,
+        "UPDATE shifts SET start_time = $1 WHERE id = $2",
+        diesel::sql_types::Time,
+        test_start_time,
+        diesel::sql_types::Uuid,
+        shift_id
+    );
 
     let req = Request::builder()
         .method("POST")
@@ -112,18 +121,20 @@ async fn test_punch_in_grace_period_enforcement_smoke() {
     }
 
     // Clean up any accidental punch-in from the first attempt
-    sqlx::query("DELETE FROM time_entries WHERE employee_id = $1")
-        .bind(employee_id)
-        .execute(&factory.pool)
-        .await
-        .unwrap();
+    crate::test_execute!(
+        &factory.diesel_pools.api,
+        "DELETE FROM time_entries WHERE employee_id = $1",
+        diesel::sql_types::Uuid,
+        employee_id
+    );
 
     // Now update shift to have a large grace period (6 hours)
-    sqlx::query("UPDATE shifts SET early_punch_in_grace_period_minutes = 360 WHERE id = $1")
-        .bind(shift_id)
-        .execute(&factory.pool)
-        .await
-        .unwrap();
+    crate::test_execute!(
+        &factory.diesel_pools.api,
+        "UPDATE shifts SET early_punch_in_grace_period_minutes = 360 WHERE id = $1",
+        diesel::sql_types::Uuid,
+        shift_id
+    );
 
     let req2 = Request::builder()
         .method("POST")

@@ -57,14 +57,14 @@ async fn test_create_employee_id_normalization() {
     assert_eq!(created_emp.employee_id_number, "123");
 
     // Verify in DB
-    let db_emp: (String,) =
-        sqlx::query_as("SELECT employee_id_number FROM employees WHERE id = $1")
-            .bind(created_emp.id)
-            .fetch_one(&factory.pool)
-            .await
-            .unwrap();
+    let db_emp: String = crate::test_query_scalar_string!(
+        &factory.diesel_pools.api,
+        "SELECT employee_id_number AS val FROM employees WHERE id = $1",
+        diesel::sql_types::Uuid,
+        created_emp.id
+    );
 
-    assert_eq!(db_emp.0, "123");
+    assert_eq!(db_emp, "123");
 }
 
 #[tokio::test]
@@ -123,14 +123,14 @@ async fn test_update_employee_id_normalization() {
     assert_eq!(updated_emp.employee_id_number, "200");
 
     // Verify in DB
-    let db_emp: (String,) =
-        sqlx::query_as("SELECT employee_id_number FROM employees WHERE id = $1")
-            .bind(emp_id)
-            .fetch_one(&factory.pool)
-            .await
-            .unwrap();
+    let db_emp: String = crate::test_query_scalar_string!(
+        &factory.diesel_pools.api,
+        "SELECT employee_id_number AS val FROM employees WHERE id = $1",
+        diesel::sql_types::Uuid,
+        emp_id
+    );
 
-    assert_eq!(db_emp.0, "200");
+    assert_eq!(db_emp, "200");
 }
 
 #[tokio::test]

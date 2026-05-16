@@ -15,7 +15,7 @@ use chrono::NaiveDate;
 #[tokio::test]
 async fn test_empty_workspace_all_maps_empty() {
     let test_db = TestDatabase::new().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
     let factory = TestFactory::new(pool.clone());
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
 
@@ -42,7 +42,7 @@ async fn test_empty_workspace_all_maps_empty() {
 #[tokio::test]
 async fn test_shifts_populated() {
     let test_db = TestDatabase::new().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
     let factory = TestFactory::new(pool.clone());
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
 
@@ -62,7 +62,7 @@ async fn test_shifts_populated() {
 #[tokio::test]
 async fn test_shift_fields_mapped_correctly() {
     let test_db = TestDatabase::new().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
     let factory = TestFactory::new(pool.clone());
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
 
@@ -99,7 +99,7 @@ async fn test_shift_fields_mapped_correctly() {
 #[tokio::test]
 async fn test_fixed_assignments_grouped_by_employee() {
     let test_db = TestDatabase::new().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
     let factory = TestFactory::new(pool.clone());
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
 
@@ -146,7 +146,7 @@ async fn test_fixed_assignments_grouped_by_employee() {
 #[tokio::test]
 async fn test_dept_history_populated() {
     let test_db = TestDatabase::new().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
     let factory = TestFactory::new(pool.clone());
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
 
@@ -155,15 +155,12 @@ async fn test_dept_history_populated() {
     let emp = factory.employee().with_workspace(ws).create().await;
     let eff_date = NaiveDate::from_ymd_opt(2026, 1, 1).unwrap();
 
-    sqlx::query(
+    crate::test_execute!(&pool.api,
         "INSERT INTO employee_department_history (employee_id, department_id, effective_date) VALUES ($1, $2, $3)",
-    )
-    .bind(emp)
-    .bind(dept)
-    .bind(eff_date)
-    .execute(&pool)
-    .await
-    .unwrap();
+        diesel::sql_types::Uuid, emp,
+        diesel::sql_types::Uuid, dept,
+        diesel::sql_types::Date, eff_date
+    );
 
     let data = build_roster_data(&diesel_pools, ws).await.unwrap();
 
@@ -181,7 +178,7 @@ async fn test_dept_history_populated() {
 #[tokio::test]
 async fn test_cross_workspace_isolation() {
     let test_db = TestDatabase::new().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
     let factory = TestFactory::new(pool.clone());
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
 
@@ -215,7 +212,7 @@ async fn test_cross_workspace_isolation() {
 #[tokio::test]
 async fn test_assignment_rules_and_rule_patterns() {
     let test_db = TestDatabase::new().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
     let factory = TestFactory::new(pool.clone());
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
 
@@ -223,23 +220,17 @@ async fn test_assignment_rules_and_rule_patterns() {
     let shift_id = factory.shift().with_workspace(ws).create().await;
 
     // Create a working pattern
-    let pattern_id: uuid::Uuid = sqlx::query_scalar(
+    let pattern_id: uuid::Uuid = crate::test_query_scalar_uuid!(&pool.api,
         "INSERT INTO working_patterns (workspace_id, name) VALUES ($1, 'Test Pattern') RETURNING id",
-    )
-    .bind(ws)
-    .fetch_one(&pool)
-    .await
-    .unwrap();
+        diesel::sql_types::Uuid, ws
+    );
 
     // Add pattern details (Monday = shift, Tuesday = off)
-    sqlx::query(
+    crate::test_execute!(&pool.api,
         "INSERT INTO working_pattern_details (pattern_id, day_of_week, shift_id) VALUES ($1, 1, $2), ($1, 2, NULL)",
-    )
-    .bind(pattern_id)
-    .bind(shift_id)
-    .execute(&pool)
-    .await
-    .unwrap();
+        diesel::sql_types::Uuid, pattern_id,
+        diesel::sql_types::Uuid, shift_id
+    );
 
     // Create an assignment rule that references this pattern
     let _rule_id = factory
@@ -280,7 +271,7 @@ async fn test_assignment_rules_and_rule_patterns() {
 #[tokio::test]
 async fn test_build_returns_arc_with_consistent_data() {
     let test_db = TestDatabase::new().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
     let factory = TestFactory::new(pool.clone());
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
 

@@ -22,6 +22,7 @@ pub enum HolidayLeaveResult {
 }
 
 #[async_trait]
+#[cfg_attr(test, mockall::automock)]
 pub trait HolidayRepository: Send + Sync {
     async fn list(&self, workspace_id: Uuid, year: Option<i32>) -> Result<Vec<Holiday>, AppError>;
     async fn get_by_id(&self, workspace_id: Uuid, id: Uuid) -> Result<Option<Holiday>, AppError>;

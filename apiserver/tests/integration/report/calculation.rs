@@ -8,7 +8,7 @@ use reqwest::StatusCode;
 #[tokio::test]
 async fn test_report_calculation_grace_period_and_break() {
     let (address, test_db) = spawn_app().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
     let factory = crate::common::factory::TestFactory::new(pool.clone());
     let client = reqwest::Client::new();
 

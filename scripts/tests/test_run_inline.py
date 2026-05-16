@@ -8,8 +8,10 @@ import pytest
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 SCRIPTS_DIR = PROJECT_ROOT / "scripts"
-RUN_INLINE = SCRIPTS_DIR / "ai-tools" / "run-inline"
+if str(SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS_DIR))
 
+RUN_INLINE = SCRIPTS_DIR / "ai-tools" / "run-inline"
 
 class TestRunInline:
     """End-to-end tests for run-inline."""
@@ -29,7 +31,7 @@ class TestRunInline:
         """Multi-line code should work (temp file handles naturally)."""
         code = "x = 1\ny = 2\nprint(x + y)"
         result = subprocess.run(
-            [sys.executable, str(RUN_INLINE), "-l", "python", "-c", code],
+            [sys.executable, str(RUN_INLINE), "-l", "python", "--code", code],
             capture_output=True,
             text=True,
         )

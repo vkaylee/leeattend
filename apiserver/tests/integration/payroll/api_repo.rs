@@ -17,7 +17,7 @@ use uuid::Uuid;
 #[tokio::test]
 async fn test_payroll_payslips_smoke() {
     let test_db = TestDatabase::new().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
     let factory = TestFactory::new(pool.clone());
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
 

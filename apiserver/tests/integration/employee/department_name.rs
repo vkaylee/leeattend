@@ -10,23 +10,29 @@ use uuid::Uuid;
 
 async fn setup_db() -> (TestDatabase, TestFactory) {
     let test_db = TestDatabase::new().await;
-    let factory = TestFactory::new(test_db.pool());
+    let factory = TestFactory::new(test_db.diesel_pools.clone());
     (test_db, factory)
 }
 
 /// Helper: insert a row in `employee_department_history` to assign an employee
 /// to a department.
-async fn transfer(pool: &sqlx::PgPool, employee_id: Uuid, department_id: Uuid, date: NaiveDate) {
-    sqlx::query(
+async fn transfer(
+    pool: &apiserver::diesel_pool::DieselPools,
+    employee_id: Uuid,
+    department_id: Uuid,
+    date: NaiveDate,
+) {
+    crate::test_execute!(
+        &pool.api,
         "INSERT INTO employee_department_history (employee_id, department_id, effective_date) \
          VALUES ($1, $2, $3)",
-    )
-    .bind(employee_id)
-    .bind(department_id)
-    .bind(date)
-    .execute(pool)
-    .await
-    .unwrap();
+        diesel::sql_types::Uuid,
+        employee_id,
+        diesel::sql_types::Uuid,
+        department_id,
+        diesel::sql_types::Date,
+        date
+    );
 }
 
 // ── get_employee_by_id ──────────────────────────────────────────────
@@ -34,7 +40,7 @@ async fn transfer(pool: &sqlx::PgPool, employee_id: Uuid, department_id: Uuid, d
 #[tokio::test]
 async fn test_employee_without_department_has_null_department_name() {
     let (test_db, factory) = setup_db().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
 
     let user_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(user_id).await;
@@ -55,7 +61,7 @@ async fn test_employee_without_department_has_null_department_name() {
 #[tokio::test]
 async fn test_employee_with_department_returns_department_name() {
     let (test_db, factory) = setup_db().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
 
     let user_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(user_id).await;
@@ -88,7 +94,7 @@ async fn test_employee_with_department_returns_department_name() {
 #[tokio::test]
 async fn test_get_all_employees_includes_department_name() {
     let (test_db, factory) = setup_db().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
 
     let user_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(user_id).await;
@@ -153,7 +159,7 @@ async fn test_get_all_employees_includes_department_name() {
 #[tokio::test]
 async fn test_department_name_uses_latest_transfer() {
     let (test_db, factory) = setup_db().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
 
     let user_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(user_id).await;
@@ -205,7 +211,7 @@ async fn test_department_name_uses_latest_transfer() {
 #[tokio::test]
 async fn test_find_by_number_includes_department_name() {
     let (test_db, factory) = setup_db().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
 
     let user_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(user_id).await;
@@ -236,7 +242,7 @@ async fn test_find_by_number_includes_department_name() {
 #[tokio::test]
 async fn test_get_active_employees_includes_department_name() {
     let (test_db, factory) = setup_db().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
 
     let user_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(user_id).await;

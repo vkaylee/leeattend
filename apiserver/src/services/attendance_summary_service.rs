@@ -412,3 +412,169 @@ impl AttendanceSummaryService {
 }
 
 use crate::utils::chrono_helpers::local_to_utc as local_midnight_to_utc;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use async_trait::async_trait;
+    use std::sync::Mutex;
+    use crate::errors::AppError;
+
+    use crate::repositories::time_entry_repository::MockTimeEntryRepository;
+    use crate::repositories::roster::MockRosterRepository;
+    use crate::repositories::attendance_policy_repository::MockAttendancePolicyRepository;
+    use crate::repositories::workspace_repository::MockWorkspaceRepository;
+    use crate::repositories::employee::MockEmployeeRepository;
+    use crate::repositories::holiday_repository::MockHolidayRepository;
+    use crate::repositories::leave_request_repository::MockLeaveRequestRepository;
+
+    // --- Mock Daily Summary Repo (manual since it needs custom state for these tests) ---
+    struct MockDailySummaryRepo {
+        claim_called: Mutex<bool>,
+        approve_called: Mutex<bool>,
+        paper_called: Mutex<bool>,
+        should_fail_exceed: bool,
+    }
+
+    fn create_dummy_summary(sys_ot: i32) -> AttendanceDailySummary {
+        AttendanceDailySummary {
+            id: Uuid::new_v4(),
+            workspace_id: Uuid::new_v4(),
+            employee_id: Uuid::new_v4(),
+            date: NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+            actual_work_minutes: 0,
+            system_detected_ot_minutes: sys_ot,
+            claimed_ot_minutes: 0,
+            approved_ot_minutes: 0,
+            ot_status: OtStatus::None,
+            ot_reason: None,
+            manager_note: None,
+            claim_entered_by_user_id: None,
+            claim_entered_at: None,
+            paper_form_photo_url: None,
+            entered_via: None,
+            is_holiday: false,
+            holiday_name: None,
+            created_at: chrono::Utc::now(),
+            updated_at: chrono::Utc::now(),
+        }
+    }
+
+    #[async_trait]
+    impl AttendanceDailySummaryRepository for MockDailySummaryRepo {
+        async fn get_summary(&self, _w: Uuid, _e: Uuid, _d: NaiveDate) -> Result<Option<AttendanceDailySummary>, AppError> {
+            if self.should_fail_exceed {
+                Ok(Some(create_dummy_summary(60)))
+            } else {
+                Ok(None)
+            }
+        }
+        async fn upsert_calculated_summary(&self, _w: Uuid, _e: Uuid, _d: NaiveDate, _a: i32, _s: i32, _n: OtStatus, _h: bool, _hn: Option<String>) -> Result<(), AppError> { unimplemented!() }
+        async fn claim_ot(&self, _w: Uuid, _e: Uuid, _d: NaiveDate, _c: i32, _r: Option<String>) -> Result<usize, AppError> {
+            *self.claim_called.lock().unwrap() = true;
+            Ok(1)
+        }
+        async fn approve_ot(&self, _w: Uuid, _e: Uuid, _d: NaiveDate, _a: i32, _m: Option<String>, _s: OtStatus) -> Result<usize, AppError> {
+            *self.approve_called.lock().unwrap() = true;
+            Ok(1)
+        }
+        async fn upsert_paper_ot(&self, _w: Uuid, _e: Uuid, _d: NaiveDate, _c: i32, _r: String, _user: Uuid, _p: Option<String>) -> Result<AttendanceDailySummary, AppError> {
+            *self.paper_called.lock().unwrap() = true;
+            Ok(create_dummy_summary(0))
+        }
+        async fn get_batch_ot_statuses(&self, _w: Uuid, _e: &[Uuid], _s: NaiveDate, _en: NaiveDate) -> Result<std::collections::HashMap<(Uuid, NaiveDate), String>, AppError> { unimplemented!() }
+        async fn get_summaries(&self, _w: Uuid, _e: Option<Uuid>, _s: NaiveDate, _en: NaiveDate) -> Result<Vec<AttendanceDailySummary>, AppError> { unimplemented!() }
+    }
+
+    fn make_service(mock_repo: Arc<MockDailySummaryRepo>) -> AttendanceSummaryService {
+        AttendanceSummaryService::new(AttendanceSummaryServiceArgs {
+            time_entry_repo: Arc::new(MockTimeEntryRepository::new()),
+            roster_repo: Arc::new(MockRosterRepository::new()),
+            policy_repo: Arc::new(MockAttendancePolicyRepository::new()),
+            workspace_repo: Arc::new(MockWorkspaceRepository::new()),
+            employee_repo: Arc::new(MockEmployeeRepository::new()),
+            holiday_repo: Arc::new(MockHolidayRepository::new()),
+            leave_request_repo: Arc::new(MockLeaveRequestRepository::new()),
+            daily_summary_repo: mock_repo,
+        })
+    }
+
+    #[tokio::test]
+    async fn test_claim_ot() {
+        let repo = Arc::new(MockDailySummaryRepo {
+            claim_called: Mutex::new(false),
+            approve_called: Mutex::new(false),
+            paper_called: Mutex::new(false),
+            should_fail_exceed: false,
+        });
+        let svc = make_service(Arc::clone(&repo));
+
+        svc.claim_ot(Uuid::new_v4(), Uuid::new_v4(), NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(), 60, None).await.unwrap();
+        assert!(*repo.claim_called.lock().unwrap());
+    }
+
+    #[tokio::test]
+    async fn test_approve_ot() {
+        let repo = Arc::new(MockDailySummaryRepo {
+            claim_called: Mutex::new(false),
+            approve_called: Mutex::new(false),
+            paper_called: Mutex::new(false),
+            should_fail_exceed: false,
+        });
+        let svc = make_service(Arc::clone(&repo));
+
+        svc.approve_ot(Uuid::new_v4(), Uuid::new_v4(), NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(), 60, None, OtStatus::Approved).await.unwrap();
+        assert!(*repo.approve_called.lock().unwrap());
+    }
+
+    #[tokio::test]
+    async fn test_enter_paper_ot() {
+        let repo = Arc::new(MockDailySummaryRepo {
+            claim_called: Mutex::new(false),
+            approve_called: Mutex::new(false),
+            paper_called: Mutex::new(false),
+            should_fail_exceed: false,
+        });
+        let svc = make_service(Arc::clone(&repo));
+
+        let args = EnterPaperOtArgs {
+            workspace_id: Uuid::new_v4(),
+            employee_id: Uuid::new_v4(),
+            date: NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+            claimed_minutes: 60,
+            reason: "OT".to_string(),
+            entered_by_user_id: Uuid::new_v4(),
+            photo_url: None,
+            allow_exceed: true,
+        };
+
+        svc.enter_paper_ot(args).await.unwrap();
+        assert!(*repo.paper_called.lock().unwrap());
+    }
+
+    #[tokio::test]
+    async fn test_enter_paper_ot_exceed_fails() {
+        let repo = Arc::new(MockDailySummaryRepo {
+            claim_called: Mutex::new(false),
+            approve_called: Mutex::new(false),
+            paper_called: Mutex::new(false),
+            should_fail_exceed: true,
+        });
+        let svc = make_service(Arc::clone(&repo));
+
+        let args = EnterPaperOtArgs {
+            workspace_id: Uuid::new_v4(),
+            employee_id: Uuid::new_v4(),
+            date: NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+            claimed_minutes: 120, // greater than 60
+            reason: "OT".to_string(),
+            entered_by_user_id: Uuid::new_v4(),
+            photo_url: None,
+            allow_exceed: false,
+        };
+
+        let result = svc.enter_paper_ot(args).await;
+        assert!(result.is_err());
+        assert!(!*repo.paper_called.lock().unwrap());
+    }
+}

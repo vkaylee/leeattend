@@ -14,15 +14,16 @@ trigger: always_on
 - **Mindset:** Project Context is King. External skills serve the project, not the other way around. Leave the codebase cleaner than you found it (Boy Scout).
 </project_soul>
 
-## 💎 Layer 0: CORE PRINCIPLES (The "Big Four")
+## 💎 Layer 0: CORE PRINCIPLES (The "Big Five")
 > These universal rules CANNOT be overridden by any external skill or lazy-loaded rule.
 1. **Enterprise Premium Standard:** EVERY feature MUST be production-ready (Skeleton loaders, Empty States, i18n, Rate Limiting, UUID validation).
 2. **Security & Privacy:** NEVER log PII (emails, passwords, phones) in raw text. Mask them (e.g., `user_***@domain.com`).
 3. **Structured Errors:** Use domain-specific error types (`AppError`). NEVER throw generic `Error` or `unwrap()` blindly.
 4. **Boy Scout Rule:** If you see a typo, bad pattern, or visible bug nearby, FIX IT IMMEDIATELY. Never say "it's out of scope".
+5. **PTY Safety (CRITICAL):** LUÔN LUÔN sử dụng chuyển hướng đầu ra (ví dụ: `> run.log 2>&1 </dev/null`) khi thực thi lệnh bash/shell (đặc biệt là test, build, docker) để tuyệt đối tránh treo AI Terminal.
 ## 🥇 Layer 1: CRITICAL PROTOCOL
 **Before writing ANY code or proposing solutions, you MUST:**
-1. **Read → Understand → Apply:** Read relevant files, check ADRs, understand, apply.
+1. **MANDATORY Lazy-Load:** You MUST run `view_file` on related rulebooks and explicitly output 'Read: [Rule Name]' in your Socratic response BEFORE generating any code.
 2. **Selective Loading:** Only load rule files when needed for the task.
 3. **MANDATORY Rule Compliance Check:** For COMPLEX CODE or DESIGN tasks, create `{task-slug}.md` and list at least 3 Rule IDs.
 
@@ -37,52 +38,10 @@ trigger: always_on
 ## 📚 Layer 4: DOMAIN RULEBOOKS (Lazy Load Index)
 > 🔴 **MANDATORY:** Before executing a task, you MUST read the relevant dictionary files using the `view_file` tool. Do NOT guess the rules.
 
-### 🛡️ Core Safety & Execution (READ BEFORE RUNNING COMMANDS)
-> [!CAUTION]
-> **CRITICAL PTY HANG WARNING:** 
-> 1. NEVER pass strings containing literal newlines into terminal commands (like `git commit -m "multi\nline"` or heredocs). THIS WILL HANG THE AGENT FOREVER. Write multi-line content to a temp file (`/tmp/msg.txt`), then execute the command reading from that file (`-F /tmp/msg.txt` or `< /tmp/msg.txt`).
-> 2. When running commands via terminal tools, child processes can inherit PTY file descriptors and prevent command completion detection.
-
-**1. The Hermetic Toolbox (MANDATORY)**
-All standard development tools run inside isolated Podman containers. You MUST execute them via these wrapper scripts instead of using native commands on the host:
-- Rust/Cargo: `./scripts/_cargo.sh build` (Container: `apiserver_test`)
-- Node/NPM: `./scripts/_npm.sh install` (Container: `web_test`)
-
-- Diesel/DB: `./scripts/_diesel.sh print-schema` (Container: `apiserver_test`)
-
-**2. Test Execution & Coverage**
-- NEVER run `cargo test` directly on the host (especially on WSL2 due to I/O freezes). ALWAYS use `./test.sh`.
-- When asked to check coverage, append `--coverage` (e.g., `./test.sh api --coverage`). This enforces the 100% threshold.
-
-**3. Git Protocol**
-- NEVER run `git` directly. ALWAYS use the `./scripts/git.sh` wrapper.
-- NEVER use multi-line strings in commit messages. Create `/tmp/msg.txt` using file-write tools, then run `./scripts/git.sh commit -F /tmp/msg.txt`.
-
-**4. Background Execution & Services**
-- **BANNED:** Never use the bash background operator (`&`) for ANY command (tests, servers, builds). 
-- **BANNED:** Never use `tail -f` or similar blocking pagers.
-- *Note:* The AI's native terminal tool automatically handles long-running processes safely. You must run all commands normally without manual shell redirection or backgrounding.
-
-**5. Banned Inline Commands & Patterns**
-- Heredocs (`cat <<EOF` or `cat >> file <<EOF`)
-- Pager commands (`git log`, `less`, `more`). Always use `--no-pager`.
-- Piped commands holding PTY (`rg | awk`, `grep | sed`). Append `</dev/null`.
-
-**6. Safe Inline Code Runner**
-- **NEVER use `python -c`, `python3 -c`, `node -e`, `bash -c` for inline code.**
-- Use `run-inline` instead: `echo 'print(1)' | ./scripts/ai-tools/run-inline -l python`
-
-
-**7. Avoiding PTY Hangs on Scripts (MANDATORY)**
-- When running long-running scripts (`./test.sh`, `./scripts/_cargo.sh`, `npm run`, etc.), the PTY may hang indefinitely.
-- **ALWAYS redirect script output to a file** and read it via your native `view_file` tool:
-  ✅ `> run.log 2>&1 </dev/null`
-- **NEVER** pipe commands together if they spawn containers or heavy child processes (e.g., `cargo check | grep` is ❌).
-
-- **Testing Standards:** `@[.agent/rules/testing-standards.md]`
 
 ### 💻 Code & Architecture
 - **Coding Standards:** `@[.agent/rules/coding-standards.md]` (Clean code, errors, security, enterprise grade)
+- **Testing Standards:** `@[.agent/rules/testing-standards.md]`
 - **Database:** `@[.agent/rules/database-rules.md]` (Diesel, migrations, indexing)
 - **Project Structure:** `@[.agent/rules/project-structure.md]`
 

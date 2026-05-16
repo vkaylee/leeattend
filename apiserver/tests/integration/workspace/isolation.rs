@@ -27,7 +27,7 @@ async fn create_workspace_with_employee(factory: &TestFactory) -> (Uuid, Uuid) {
 #[tokio::test]
 async fn test_get_employee_time_entries_isolated_by_workspace() {
     let test_db = TestDatabase::new().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
     let factory = TestFactory::new(pool.clone());
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
 
@@ -75,7 +75,7 @@ async fn test_get_employee_time_entries_isolated_by_workspace() {
 #[tokio::test]
 async fn test_get_latest_active_entry_isolated_by_workspace() {
     let test_db = TestDatabase::new().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
     let factory = TestFactory::new(pool.clone());
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
 
@@ -111,7 +111,7 @@ async fn test_get_latest_active_entry_isolated_by_workspace() {
 #[tokio::test]
 async fn test_get_workspace_time_entries_batch_isolated() {
     let test_db = TestDatabase::new().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
     let factory = TestFactory::new(pool.clone());
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
 
@@ -155,7 +155,7 @@ async fn test_get_workspace_time_entries_batch_isolated() {
 #[tokio::test]
 async fn test_department_history_isolated_by_workspace() {
     let test_db = TestDatabase::new().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
     let factory = TestFactory::new(pool.clone());
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
 
@@ -201,7 +201,7 @@ async fn test_department_history_isolated_by_workspace() {
 #[tokio::test]
 async fn test_get_current_department_isolated_by_workspace() {
     let test_db = TestDatabase::new().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
     let factory = TestFactory::new(pool.clone());
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
 
@@ -240,7 +240,7 @@ async fn test_get_current_department_isolated_by_workspace() {
 #[tokio::test]
 async fn test_employee_pattern_history_isolated_by_workspace() {
     let test_db = TestDatabase::new().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
     let factory = TestFactory::new(pool.clone());
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
 
@@ -248,14 +248,14 @@ async fn test_employee_pattern_history_isolated_by_workspace() {
     let (ws_b, _emp_b) = create_workspace_with_employee(&factory).await;
 
     // Create a working pattern and assign to emp_a in ws_a
-    let pattern_id = sqlx::query_scalar(
+    let pattern_id: Uuid = crate::test_query_scalar_uuid!(
+        &pool.api,
         "INSERT INTO working_patterns (workspace_id, name) VALUES ($1, $2) RETURNING id",
-    )
-    .bind(ws_a)
-    .bind("Day Shift Pattern")
-    .fetch_one(&pool)
-    .await
-    .unwrap();
+        diesel::sql_types::Uuid,
+        ws_a,
+        diesel::sql_types::Text,
+        "Day Shift Pattern"
+    );
 
     let start_date = NaiveDate::from_ymd_opt(2025, 1, 1).unwrap();
     let repo = apiserver::repositories::DieselWorkingPatternRepository::new(diesel_pools.clone());

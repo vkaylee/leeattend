@@ -26,16 +26,20 @@ async fn body_json(response: axum::http::Response<axum::body::Body>) -> serde_js
     serde_json::from_slice(&bytes).unwrap()
 }
 
-async fn assign_system_role(pool: &sqlx::PgPool, user_id: Uuid, role_name: &str) {
-    sqlx::query(
+async fn assign_system_role(
+    pool: &apiserver::diesel_pool::DieselPools,
+    user_id: Uuid,
+    role_name: &str,
+) {
+    crate::test_execute!(
+        &pool.api,
         "INSERT INTO user_system_roles (user_id, role_id) \
          SELECT $1, id FROM system_roles WHERE name = $2",
-    )
-    .bind(user_id)
-    .bind(role_name)
-    .execute(pool)
-    .await
-    .unwrap();
+        diesel::sql_types::Uuid,
+        user_id,
+        diesel::sql_types::Text,
+        role_name
+    );
 }
 
 fn make_req(
@@ -67,8 +71,8 @@ async fn test_system_health_access() {
     let support_id = factory.user().create().await;
     let regular_id = factory.user().create().await;
 
-    assign_system_role(&factory.pool, admin_id, "platform_admin").await;
-    assign_system_role(&factory.pool, support_id, "support").await;
+    assign_system_role(&factory.diesel_pools, admin_id, "platform_admin").await;
+    assign_system_role(&factory.diesel_pools, support_id, "support").await;
 
     // PlatformAdmin can access
     let res = app
@@ -103,7 +107,7 @@ async fn test_system_roles_crud_lifecycle() {
     let admin_id = factory.user().create().await;
     let target_id = factory.user().create().await;
 
-    assign_system_role(&factory.pool, admin_id, "platform_admin").await;
+    assign_system_role(&factory.diesel_pools, admin_id, "platform_admin").await;
 
     // 1. List system roles
     let res = app
@@ -197,15 +201,13 @@ async fn test_cannot_revoke_last_platform_admin() {
         setup_app_tower().await;
 
     // Delete any existing platform_admins to ensure we have exactly one
-    sqlx::query(
+    crate::test_execute!(
+        &factory.diesel_pools.api,
         "DELETE FROM user_system_roles WHERE role_id = (SELECT id FROM system_roles WHERE name = 'platform_admin')"
-    )
-    .execute(&factory.pool)
-    .await
-    .unwrap();
+    );
 
     let admin_id = factory.user().create().await;
-    assign_system_role(&factory.pool, admin_id, "platform_admin").await;
+    assign_system_role(&factory.diesel_pools, admin_id, "platform_admin").await;
 
     // Admin tries to revoke their own role
     let res = app
@@ -224,7 +226,7 @@ async fn test_cannot_revoke_last_platform_admin() {
 
     // Now create a second admin
     let second_admin_id = factory.user().create().await;
-    assign_system_role(&factory.pool, second_admin_id, "platform_admin").await;
+    assign_system_role(&factory.diesel_pools, second_admin_id, "platform_admin").await;
 
     // First admin should now be able to revoke the second admin
     let res = app

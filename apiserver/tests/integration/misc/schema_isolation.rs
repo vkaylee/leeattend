@@ -8,14 +8,10 @@ async fn test_schema_isolation_between_tests() {
     let db1 = TestDatabase::new().await;
     let db2 = TestDatabase::new().await;
 
-    let name1: String = sqlx::query_scalar("SELECT current_database()")
-        .fetch_one(&db1.pool)
-        .await
-        .unwrap();
-    let name2: String = sqlx::query_scalar("SELECT current_database()")
-        .fetch_one(&db2.pool)
-        .await
-        .unwrap();
+    let name1: String =
+        crate::test_query_scalar_string!(&db1.diesel_pools.api, "SELECT current_database() as val");
+    let name2: String =
+        crate::test_query_scalar_string!(&db2.diesel_pools.api, "SELECT current_database() as val");
 
     assert_ne!(name1, name2);
 }

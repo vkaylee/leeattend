@@ -54,23 +54,19 @@ async fn test_notifications_crud() {
     let notif1_id = Uuid::new_v4();
     let notif2_id = Uuid::new_v4();
 
-    sqlx::query(
-        "INSERT INTO notifications (id, user_id, type, title, content, is_read) VALUES ($1, $2, 'info', 'Test 1', 'Content 1', false)"
-    )
-    .bind(notif1_id)
-    .bind(user_id)
-    .execute(&test_db.pool())
-    .await
-    .unwrap();
+    crate::test_execute!(
+        &test_db.diesel_pools.api,
+        "INSERT INTO notifications (id, user_id, type, title, content, is_read) VALUES ($1, $2, 'info', 'Test 1', 'Content 1', false)",
+        diesel::sql_types::Uuid, notif1_id,
+        diesel::sql_types::Uuid, user_id
+    );
 
-    sqlx::query(
-        "INSERT INTO notifications (id, user_id, type, title, content, is_read) VALUES ($1, $2, 'alert', 'Test 2', 'Content 2', false)"
-    )
-    .bind(notif2_id)
-    .bind(user_id)
-    .execute(&test_db.pool())
-    .await
-    .unwrap();
+    crate::test_execute!(
+        &test_db.diesel_pools.api,
+        "INSERT INTO notifications (id, user_id, type, title, content, is_read) VALUES ($1, $2, 'alert', 'Test 2', 'Content 2', false)",
+        diesel::sql_types::Uuid, notif2_id,
+        diesel::sql_types::Uuid, user_id
+    );
 
     // 1. Get Unread Count
     let resp = app

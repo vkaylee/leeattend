@@ -44,37 +44,49 @@ fn make_req(
     }
 }
 
-async fn create_salary_base_group(pool: &sqlx::PgPool, ws_id: Uuid, name: &str) -> Uuid {
+async fn create_salary_base_group(
+    pool: &apiserver::diesel_pool::DieselPools,
+    ws_id: Uuid,
+    name: &str,
+) -> Uuid {
     let id = Uuid::new_v4();
-    sqlx::query(
+    crate::test_execute!(
+        &pool.api,
         "INSERT INTO salary_base_groups (id, workspace_id, name, slug, is_system) \
          VALUES ($1, $2, $3, $4, false)",
-    )
-    .bind(id)
-    .bind(ws_id)
-    .bind(name)
-    .bind(name.to_lowercase().replace(' ', "_"))
-    .execute(pool)
-    .await
-    .unwrap();
+        diesel::sql_types::Uuid,
+        id,
+        diesel::sql_types::Uuid,
+        ws_id,
+        diesel::sql_types::Text,
+        name,
+        diesel::sql_types::Text,
+        name.to_lowercase().replace(' ', "_")
+    );
     id
 }
 
-async fn create_payroll_component(pool: &sqlx::PgPool, ws_id: Uuid, name: &str) -> Uuid {
+async fn create_payroll_component(
+    pool: &apiserver::diesel_pool::DieselPools,
+    ws_id: Uuid,
+    name: &str,
+) -> Uuid {
     let id = Uuid::new_v4();
     // Insert a dummy payroll component definition
-    sqlx::query(
+    crate::test_execute!(
+        &pool.api,
         "INSERT INTO salary_component_definitions \
          (id, workspace_id, name, code, component_type) \
          VALUES ($1, $2, $3, $4, 'basic_salary')",
-    )
-    .bind(id)
-    .bind(ws_id)
-    .bind(name)
-    .bind(name.to_lowercase().replace(' ', "_"))
-    .execute(pool)
-    .await
-    .unwrap();
+        diesel::sql_types::Uuid,
+        id,
+        diesel::sql_types::Uuid,
+        ws_id,
+        diesel::sql_types::Text,
+        name,
+        diesel::sql_types::Text,
+        name.to_lowercase().replace(' ', "_")
+    );
     id
 }
 
@@ -87,10 +99,10 @@ async fn test_salary_bases_crud() {
     let ws_id = factory.workspace().create_with_owner(user_id).await;
 
     // Create a base group
-    let base_id = create_salary_base_group(&factory.pool, ws_id, "Standard Base").await;
+    let base_id = create_salary_base_group(&factory.diesel_pools, ws_id, "Standard Base").await;
 
     // Create a component
-    let comp_id = create_payroll_component(&factory.pool, ws_id, "Basic Salary").await;
+    let comp_id = create_payroll_component(&factory.diesel_pools, ws_id, "Basic Salary").await;
 
     // 1. Get salary bases (empty members)
     let res = app

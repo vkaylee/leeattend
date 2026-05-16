@@ -1,6 +1,6 @@
-use sqlx::{Connection, Executor, PgConnection, PgPool};
 use std::collections::HashSet;
 use std::sync::{Arc, Mutex, OnceLock};
+use tokio_postgres::NoTls;
 use uuid::Uuid;
 
 type ActiveDbSet = Arc<Mutex<HashSet<(String, String)>>>;
@@ -14,7 +14,6 @@ fn get_active_dbs() -> &'static ActiveDbSet {
 
 #[allow(dead_code)]
 pub struct TestDatabase {
-    pub pool: PgPool,
     pub diesel_pools: apiserver::diesel_pool::DieselPools,
     db_name: String,
     base_url: String,
@@ -22,6 +21,21 @@ pub struct TestDatabase {
 
 #[allow(dead_code)]
 impl TestDatabase {
+    async fn connect_with_retries(url: &str) -> tokio_postgres::Client {
+        for attempt in 0..5 {
+            if let Ok((client, conn)) = tokio_postgres::connect(url, NoTls).await {
+                tokio::spawn(async move {
+                    if let Err(e) = conn.await {
+                        eprintln!("connection error: {}", e);
+                    }
+                });
+                return client;
+            }
+            tokio::time::sleep(std::time::Duration::from_millis(200 * (1 << attempt))).await;
+        }
+        panic!("Failed to connect to Postgres admin after 5 retries");
+    }
+
     pub async fn new() -> Self {
         let base_url = std::env::var("DATABASE_URL_FOR_TEST_GENERATION")
             .or_else(|_| std::env::var("DATABASE_URL"))
@@ -44,29 +58,16 @@ impl TestDatabase {
 
         // Retry with backoff — parallel test workers can cause transient DNS
         // resolution failures when many containers resolve the same hostname.
-        let mut connection = {
-            let mut result: Result<PgConnection, sqlx::Error> = Err(sqlx::Error::PoolClosed);
-            for attempt in 0..5 {
-                result = PgConnection::connect(&admin_url).await;
-                if result.is_ok() {
-                    break;
-                }
-                if attempt < 4 {
-                    let delay = std::time::Duration::from_millis(200 * (1 << attempt));
-                    tokio::time::sleep(delay).await;
-                }
-            }
-            result.expect("Failed to connect to Postgres admin after 5 retries")
-        };
+        let connection = Self::connect_with_retries(&admin_url).await;
 
         // Use template database to avoid running migrations.
         // Retry with backoff since parallel tests may briefly connect to the
         // template (e.g., during fallback migration), causing transient blocks.
         let sql = format!("CREATE DATABASE \"{db_name}\" TEMPLATE leeattend_test_template");
-        let mut create_result = Err(sqlx::Error::PoolClosed); // sentinel
+        let mut create_result: Option<Result<u64, tokio_postgres::Error>> = None;
         for attempt in 0..5 {
-            create_result = connection.execute(sql.as_str()).await;
-            if create_result.is_ok() {
+            create_result = Some(connection.execute(sql.as_str(), &[]).await);
+            if let Some(Ok(_)) = create_result {
                 break;
             }
             if attempt < 4 {
@@ -75,18 +76,15 @@ impl TestDatabase {
             }
         }
 
-        if let Err(e) = create_result {
+        if let Some(Err(e)) = create_result {
             eprintln!("Warning: Failed to create database from template after retries: {e}. Falling back to manual migration.");
             let sql_fallback = format!("CREATE DATABASE \"{db_name}\"");
             connection
-                .execute(sql_fallback.as_str())
+                .execute(sql_fallback.as_str(), &[])
                 .await
                 .expect("Failed to create test database even with fallback");
 
             let db_url = format!("{base_connection_string}/{db_name}");
-            let pool = PgPool::connect(&db_url)
-                .await
-                .expect("Failed to connect to the new test database");
             apiserver::diesel_pool::DieselPools::run_migrations(
                 &apiserver::diesel_pool::DbPoolConfig {
                     primary_url: db_url.clone(),
@@ -105,7 +103,6 @@ impl TestDatabase {
             }
 
             return Self {
-                pool,
                 diesel_pools: apiserver::diesel_pool::DieselPools::for_test(&db_url),
                 db_name,
                 base_url: base_url.clone(),
@@ -118,12 +115,8 @@ impl TestDatabase {
         }
 
         let db_url = format!("{base_connection_string}/{db_name}");
-        let pool = PgPool::connect(&db_url)
-            .await
-            .expect("Failed to connect to the new test database");
 
         Self {
-            pool,
             diesel_pools: apiserver::diesel_pool::DieselPools::for_test(&db_url),
             db_name,
             base_url: base_url.clone(),
@@ -164,23 +157,31 @@ impl TestDatabase {
         });
     }
 
-    /// Async database cleanup using sqlx directly (no shell commands)
-    async fn cleanup_database_async(db_name: &str, admin_url: &str) -> Result<(), sqlx::Error> {
+    /// Async database cleanup using tokio_postgres
+    async fn cleanup_database_async(
+        db_name: &str,
+        admin_url: &str,
+    ) -> Result<(), tokio_postgres::Error> {
         let mut url_parts: Vec<&str> = admin_url.split('/').collect();
         url_parts.pop();
         let base_admin_url = format!("{}/postgres", url_parts.join("/"));
 
-        let mut conn = PgConnection::connect(&base_admin_url).await?;
+        let (client, connection) = tokio_postgres::connect(&base_admin_url, NoTls).await?;
+        tokio::spawn(async move {
+            if let Err(e) = connection.await {
+                eprintln!("connection error: {}", e);
+            }
+        });
 
         // Terminate all connections to the target database
         let kill_sql = format!(
             "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '{db_name}' AND pid <> pg_backend_pid()"
         );
-        let _ = conn.execute(kill_sql.as_str()).await;
+        let _ = client.execute(kill_sql.as_str(), &[]).await;
 
         // Drop the database
         let drop_sql = format!("DROP DATABASE IF EXISTS \"{db_name}\"");
-        conn.execute(drop_sql.as_str()).await?;
+        client.execute(drop_sql.as_str(), &[]).await?;
 
         Ok(())
     }
@@ -207,10 +208,6 @@ impl TestDatabase {
         let _ = handle.join();
     }
 
-    #[must_use]
-    pub fn pool(&self) -> PgPool {
-        self.pool.clone()
-    }
     #[must_use]
     pub fn db_name(&self) -> &str {
         &self.db_name

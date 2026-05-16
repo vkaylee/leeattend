@@ -48,16 +48,15 @@ async fn test_payroll_settings_update_and_history() {
     let ws_id = factory.workspace().create_with_owner(admin_id).await;
 
     // Seed initial payroll settings
-    sqlx::query(
+    crate::test_execute!(
+        &test_db.diesel_pools.api,
         r"INSERT INTO payroll_settings 
            (workspace_id, std_working_day_mode, fixed_std_days, working_days_per_week, hours_per_day, effective_date)
            VALUES ($1, 'fixed', 26, 6, 8, '2026-01-01')
-           ON CONFLICT (workspace_id, effective_date) DO NOTHING"
-    )
-    .bind(ws_id)
-    .execute(&test_db.pool())
-    .await
-    .unwrap();
+           ON CONFLICT (workspace_id, effective_date) DO NOTHING",
+        diesel::sql_types::Uuid,
+        ws_id
+    );
 
     // 1. Get payroll settings
     let resp = app

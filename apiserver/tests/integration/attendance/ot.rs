@@ -26,13 +26,15 @@ async fn test_ot_claim_approval_workflow() {
 
     // 1. Create a daily summary (simulated) — use string for OtStatus since it's a Diesel-only enum
     let date = NaiveDate::from_ymd_opt(2026, 1, 20).unwrap();
-    sqlx::query("INSERT INTO attendance_daily_summaries (id, workspace_id, employee_id, date, actual_work_minutes, system_detected_ot_minutes, ot_status, created_at, updated_at) VALUES ($1, $2, $3, $4, 500, 60, $5::ot_status_type, NOW(), NOW())")
-        .bind(uuid::Uuid::new_v4())
-        .bind(ws_id)
-        .bind(emp_id)
-        .bind(date)
-        .bind("pending_employee") // OtStatus::PendingEmployee as snake_case string
-        .execute(&factory.pool).await.unwrap();
+    crate::test_execute!(
+        &factory.diesel_pools.api,
+        "INSERT INTO attendance_daily_summaries (id, workspace_id, employee_id, date, actual_work_minutes, system_detected_ot_minutes, ot_status, created_at, updated_at) VALUES ($1, $2, $3, $4, 500, 60, $5::ot_status_type, NOW(), NOW())",
+        diesel::sql_types::Uuid, uuid::Uuid::new_v4(),
+        diesel::sql_types::Uuid, ws_id,
+        diesel::sql_types::Uuid, emp_id,
+        diesel::sql_types::Date, date,
+        diesel::sql_types::Text, "pending_employee"
+    );
 
     // 2. Employee Claims OT
     let claim_req = serde_json::json!({
@@ -65,23 +67,19 @@ async fn test_ot_claim_approval_workflow() {
     }
 
     // Verify status via raw query (returns JSON-like scalar)
-    let ot_status_str: String = sqlx::query_scalar(
-        "SELECT ot_status::text FROM attendance_daily_summaries WHERE employee_id = $1 AND date = $2",
-    )
-    .bind(emp_id)
-    .bind(date)
-    .fetch_one(&factory.pool)
-    .await
-    .unwrap();
+    let ot_status_str: String = crate::test_query_scalar_string!(
+        &factory.diesel_pools.api,
+        "SELECT ot_status::text AS val FROM attendance_daily_summaries WHERE employee_id = $1 AND date = $2",
+        diesel::sql_types::Uuid, emp_id,
+        diesel::sql_types::Date, date
+    );
 
-    let claimed_minutes: i32 = sqlx::query_scalar(
-        "SELECT claimed_ot_minutes FROM attendance_daily_summaries WHERE employee_id = $1 AND date = $2",
-    )
-    .bind(emp_id)
-    .bind(date)
-    .fetch_one(&factory.pool)
-    .await
-    .unwrap();
+    let claimed_minutes: i32 = crate::test_query_scalar_i32!(
+        &factory.diesel_pools.api,
+        "SELECT COALESCE(claimed_ot_minutes, 0) AS count FROM attendance_daily_summaries WHERE employee_id = $1 AND date = $2",
+        diesel::sql_types::Uuid, emp_id,
+        diesel::sql_types::Date, date
+    );
 
     let expected_status = serde_json::to_value(OtStatus::PendingManager)
         .unwrap()

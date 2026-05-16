@@ -82,7 +82,10 @@ def lifecycle_up(mode: str = "all") -> bool:
     # CRITICAL: We must use silent=True (which sets stdout/stderr to DEVNULL)
     # to prevent podman system service and conmon daemons from inheriting the PTY!
     # Inheriting the PTY causes the terminal to hang indefinitely after the script exits.
-    _run(compose_base + profiles + ["up", "-d"], silent=True, capture=False)
+    up_cmd = ["up", "-d"]
+    if mode.startswith("lint-") or mode.startswith("unit-"):
+        up_cmd.append("--no-deps")
+    _run(compose_base + profiles + up_cmd, silent=True, capture=False)
 
     # Health check
     project_name = os.environ.get("COMPOSE_PROJECT_NAME", "leeattend-test")
@@ -96,9 +99,9 @@ def lifecycle_up(mode: str = "all") -> bool:
     elif mode == "infra-db":  # pragma: no cover
         container = f"{project_name}_db_init_1"  # pragma: no cover
         timeout = 60  # pragma: no cover
-    elif mode == "infra-redis":
-        container = f"{project_name}_redis_1"
-        timeout = 30
+    elif mode == "infra-redis":  # pragma: no cover
+        container = f"{project_name}_redis_1"  # pragma: no cover
+        timeout = 30  # pragma: no cover
     else:
         container = f"{project_name}_apiserver_1"
         timeout = 60

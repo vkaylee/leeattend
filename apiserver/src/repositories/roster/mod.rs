@@ -12,6 +12,7 @@ use chrono::NaiveDate;
 use uuid::Uuid;
 
 #[async_trait]
+#[cfg_attr(test, mockall::automock)]
 pub trait RosterRepository: Send + Sync {
     async fn get_workspace_schedules(
         &self,

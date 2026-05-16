@@ -17,7 +17,7 @@ use uuid::Uuid;
 // Helper: set up a clean DB + factory (no axum router needed)
 async fn setup_db() -> (TestDatabase, TestFactory) {
     let test_db = TestDatabase::new().await;
-    let factory = TestFactory::new(test_db.pool());
+    let factory = TestFactory::new(test_db.diesel_pools.clone());
     (test_db, factory)
 }
 
@@ -26,7 +26,7 @@ async fn setup_db() -> (TestDatabase, TestFactory) {
 #[tokio::test]
 async fn test_working_condition_crud() {
     let (test_db, factory) = setup_db().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
 
     let user_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(user_id).await;
@@ -69,7 +69,7 @@ async fn test_working_condition_crud() {
 #[tokio::test]
 async fn test_delete_nonexistent_working_condition_returns_false() {
     let (test_db, factory) = setup_db().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
 
     let user_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(user_id).await;
@@ -86,7 +86,7 @@ async fn test_delete_nonexistent_working_condition_returns_false() {
 #[tokio::test]
 async fn test_payroll_config_upsert_and_lookup() {
     let (test_db, factory) = setup_db().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
 
     let user_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(user_id).await;
@@ -133,7 +133,7 @@ async fn test_payroll_config_upsert_and_lookup() {
 #[tokio::test]
 async fn test_payroll_config_returns_closest_effective() {
     let (test_db, factory) = setup_db().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
 
     let user_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(user_id).await;
@@ -176,7 +176,7 @@ async fn test_payroll_config_returns_closest_effective() {
 #[tokio::test]
 async fn test_get_active_employees_excludes_inactive() {
     let (test_db, factory) = setup_db().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
 
     let user_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(user_id).await;
@@ -198,11 +198,12 @@ async fn test_get_active_employees_excludes_inactive() {
         .await;
 
     // Deactivate one
-    sqlx::query("UPDATE employees SET is_active = false WHERE id = $1")
-        .bind(e2)
-        .execute(&pool)
-        .await
-        .unwrap();
+    crate::test_execute!(
+        &pool.api,
+        "UPDATE employees SET is_active = false WHERE id = $1",
+        diesel::sql_types::Uuid,
+        e2
+    );
 
     let repo = DieselEmployeeRepository::new(test_db.diesel_pools.clone());
     let active = repo.get_active_employees(ws_id).await.unwrap();
@@ -213,7 +214,7 @@ async fn test_get_active_employees_excludes_inactive() {
 #[tokio::test]
 async fn test_get_active_employee_ids_with_filter() {
     let (test_db, factory) = setup_db().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
 
     let user_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(user_id).await;
@@ -258,7 +259,7 @@ async fn test_get_active_employee_ids_with_filter() {
 #[tokio::test]
 async fn test_find_by_number_normalizes_input() {
     let (test_db, factory) = setup_db().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
 
     let user_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(user_id).await;
@@ -287,7 +288,7 @@ async fn test_find_by_number_normalizes_input() {
 #[tokio::test]
 async fn test_get_existing_employee_ids_by_numbers() {
     let (test_db, factory) = setup_db().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
 
     let user_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(user_id).await;
@@ -328,7 +329,7 @@ async fn test_get_existing_employee_ids_by_numbers() {
 #[tokio::test]
 async fn test_get_turnover_analytics_direct() {
     let (test_db, factory) = setup_db().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
 
     let user_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(user_id).await;
@@ -342,15 +343,13 @@ async fn test_get_turnover_analytics_direct() {
         .await;
 
     // Manually set hire_date and termination_date
-    sqlx::query(
+    crate::test_execute!(
+        &test_db.diesel_pools.api,
         "UPDATE employees SET is_active = false, hire_date = $1, termination_date = $2 WHERE id = $3",
-    )
-    .bind(NaiveDate::from_ymd_opt(2025, 1, 1).unwrap())
-    .bind(NaiveDate::from_ymd_opt(2025, 6, 1).unwrap()) // 5 months tenure
-    .bind(emp_id)
-    .execute(&pool)
-    .await
-    .unwrap();
+        diesel::sql_types::Date, NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
+        diesel::sql_types::Date, NaiveDate::from_ymd_opt(2025, 6, 1).unwrap(),
+        diesel::sql_types::Uuid, emp_id
+    );
 
     let start_date = NaiveDate::from_ymd_opt(2025, 1, 1).unwrap();
     let end_date = NaiveDate::from_ymd_opt(2025, 12, 31).unwrap();
@@ -377,7 +376,7 @@ async fn test_get_turnover_analytics_direct() {
 #[tokio::test]
 async fn test_recruitment_source_breakdown_direct() {
     let (test_db, factory) = setup_db().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
 
     let user_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(user_id).await;

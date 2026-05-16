@@ -20,7 +20,7 @@ async fn setup_db() -> (
 ) {
     let test_db = TestDatabase::new().await;
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
-    let factory = TestFactory::new(test_db.pool());
+    let factory = TestFactory::new(test_db.diesel_pools.clone());
     (test_db, factory, diesel_pools)
 }
 
@@ -29,7 +29,7 @@ async fn setup_db() -> (
 #[tokio::test]
 async fn test_upsert_roster_insert_and_update() {
     let (test_db, factory, diesel_pools) = setup_db().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
     let repo = apiserver::repositories::DieselRosterRepository::new(diesel_pools.clone());
 
     let ws_id = factory.workspace().create().await;
@@ -86,7 +86,7 @@ async fn test_upsert_roster_insert_and_update() {
 #[tokio::test]
 async fn test_upsert_roster_day_off() {
     let (test_db, factory, diesel_pools) = setup_db().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
     let repo = apiserver::repositories::DieselRosterRepository::new(diesel_pools.clone());
 
     let ws_id = factory.workspace().create().await;
@@ -115,7 +115,7 @@ async fn test_upsert_roster_day_off() {
 #[tokio::test]
 async fn test_get_employee_rosters_date_range() {
     let (test_db, factory, diesel_pools) = setup_db().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
     let repo = apiserver::repositories::DieselRosterRepository::new(diesel_pools.clone());
 
     let ws_id = factory.workspace().create().await;
@@ -160,7 +160,7 @@ async fn test_get_employee_rosters_date_range() {
 #[tokio::test]
 async fn test_get_employee_rosters_empty() {
     let (test_db, factory, diesel_pools) = setup_db().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
     let repo = apiserver::repositories::DieselRosterRepository::new(diesel_pools.clone());
 
     let ws_id = factory.workspace().create().await;
@@ -177,7 +177,7 @@ async fn test_get_employee_rosters_empty() {
 #[tokio::test]
 async fn test_delete_roster() {
     let (test_db, factory, diesel_pools) = setup_db().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
     let repo = apiserver::repositories::DieselRosterRepository::new(diesel_pools.clone());
 
     let ws_id = factory.workspace().create().await;
@@ -212,7 +212,7 @@ async fn test_delete_roster() {
 #[tokio::test]
 async fn test_delete_nonexistent_roster_is_no_op() {
     let (test_db, factory, diesel_pools) = setup_db().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
     let repo = apiserver::repositories::DieselRosterRepository::new(diesel_pools.clone());
 
     let ws_id = factory.workspace().create().await;
@@ -228,7 +228,7 @@ async fn test_delete_nonexistent_roster_is_no_op() {
 #[tokio::test]
 async fn test_bulk_upsert_roster() {
     let (test_db, factory, diesel_pools) = setup_db().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
     let repo = apiserver::repositories::DieselRosterRepository::new(diesel_pools.clone());
 
     let ws_id = factory.workspace().create().await;
@@ -281,7 +281,7 @@ async fn test_bulk_upsert_roster() {
 #[tokio::test]
 async fn test_bulk_upsert_overwrites_existing() {
     let (test_db, factory, diesel_pools) = setup_db().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
     let repo = apiserver::repositories::DieselRosterRepository::new(diesel_pools.clone());
 
     let ws_id = factory.workspace().create().await;
@@ -337,7 +337,7 @@ async fn test_bulk_upsert_overwrites_existing() {
 #[tokio::test]
 async fn test_get_assignment_history_includes_roster_entries() {
     let (test_db, factory, diesel_pools) = setup_db().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
     let repo = apiserver::repositories::DieselRosterRepository::new(diesel_pools.clone());
 
     let ws_id = factory.workspace().create().await;
@@ -380,7 +380,7 @@ async fn test_get_assignment_history_includes_roster_entries() {
 #[tokio::test]
 async fn test_get_assignment_history_empty_workspace() {
     let (test_db, factory, diesel_pools) = setup_db().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
     let repo = apiserver::repositories::DieselRosterRepository::new(diesel_pools.clone());
 
     let ws_id = factory.workspace().create().await;
@@ -391,7 +391,7 @@ async fn test_get_assignment_history_empty_workspace() {
 #[tokio::test]
 async fn test_get_assignment_history_respects_limit() {
     let (test_db, factory, diesel_pools) = setup_db().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
     let repo = apiserver::repositories::DieselRosterRepository::new(diesel_pools.clone());
 
     let ws_id = factory.workspace().create().await;
@@ -422,7 +422,7 @@ async fn test_get_assignment_history_respects_limit() {
 #[tokio::test]
 async fn test_get_effective_shift_from_roster() {
     let (test_db, factory, diesel_pools) = setup_db().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
     let repo = apiserver::repositories::DieselRosterRepository::new(diesel_pools.clone());
 
     let ws_id = factory.workspace().create().await;
@@ -458,7 +458,7 @@ async fn test_get_effective_shift_from_roster() {
 #[tokio::test]
 async fn test_get_effective_shift_no_assignment_returns_none() {
     let (test_db, factory, diesel_pools) = setup_db().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
     let repo = apiserver::repositories::DieselRosterRepository::new(diesel_pools.clone());
 
     let ws_id = factory.workspace().create().await;
@@ -473,7 +473,7 @@ async fn test_get_effective_shift_no_assignment_returns_none() {
 #[tokio::test]
 async fn test_get_effective_shift_fixed_assignment() {
     let (test_db, factory, diesel_pools) = setup_db().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
     let repo = apiserver::repositories::DieselRosterRepository::new(diesel_pools.clone());
 
     let ws_id = factory.workspace().create().await;

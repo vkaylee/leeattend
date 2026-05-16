@@ -8,6 +8,7 @@ use uuid::Uuid;
 // Trait: LeaveRequestRepository — DIP abstraction
 // ---------------------------------------------------------------------------
 #[async_trait]
+#[cfg_attr(test, mockall::automock)]
 pub trait LeaveRequestRepository: Send + Sync {
     async fn create_leave_request(&self, request: &LeaveRequest) -> Result<(), AppError>;
     async fn get_leave_request_by_id(

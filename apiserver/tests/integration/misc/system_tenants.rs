@@ -10,16 +10,20 @@ use std::sync::Arc;
 use tower::ServiceExt;
 use uuid::Uuid;
 
-async fn assign_system_role(pool: &sqlx::PgPool, user_id: Uuid, role_name: &str) {
-    sqlx::query(
+async fn assign_system_role(
+    pool: &apiserver::diesel_pool::DieselPools,
+    user_id: Uuid,
+    role_name: &str,
+) {
+    crate::test_execute!(
+        &pool.api,
         "INSERT INTO user_system_roles (user_id, role_id) \
          SELECT $1, id FROM system_roles WHERE name = $2",
-    )
-    .bind(user_id)
-    .bind(role_name)
-    .execute(pool)
-    .await
-    .unwrap();
+        diesel::sql_types::Uuid,
+        user_id,
+        diesel::sql_types::Text,
+        role_name
+    );
 }
 
 fn make_req(
@@ -56,7 +60,7 @@ async fn test_system_tenants_lifecycle() {
     let admin_id = factory.user().create().await;
     let regular_id = factory.user().create().await;
 
-    assign_system_role(&factory.pool, admin_id, "platform_admin").await;
+    assign_system_role(&factory.diesel_pools, admin_id, "platform_admin").await;
 
     // 1. Regular user cannot access GET /api/v1/system/tenants
     let res = app
@@ -124,11 +128,10 @@ async fn test_system_tenants_lifecycle() {
     // (Optional: parse and assert body includes "test_database")
 
     // 5. Verify system_audit_logs recorded the creation
-    let count: i64 =
-        sqlx::query_scalar("SELECT COUNT(*) FROM system_audit_logs WHERE action = 'tenant.create'")
-            .fetch_one(&factory.pool)
-            .await
-            .unwrap();
+    let count: i64 = crate::test_query_scalar_i64!(
+        &factory.diesel_pools.api,
+        "SELECT count(*) AS count FROM system_audit_logs WHERE action = 'tenant.create'"
+    );
     assert_eq!(count, 1);
 
     // 6. Delete the tenant
@@ -145,10 +148,9 @@ async fn test_system_tenants_lifecycle() {
     assert_eq!(res.status(), StatusCode::NO_CONTENT);
 
     // 7. Verify system_audit_logs recorded the deletion
-    let count: i64 =
-        sqlx::query_scalar("SELECT COUNT(*) FROM system_audit_logs WHERE action = 'tenant.delete'")
-            .fetch_one(&factory.pool)
-            .await
-            .unwrap();
+    let count: i64 = crate::test_query_scalar_i64!(
+        &factory.diesel_pools.api,
+        "SELECT count(*) AS count FROM system_audit_logs WHERE action = 'tenant.delete'"
+    );
     assert_eq!(count, 1);
 }

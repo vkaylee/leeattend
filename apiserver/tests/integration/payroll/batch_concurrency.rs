@@ -20,13 +20,10 @@ async fn test_batch_payroll_handles_many_employees() {
     let auth_token = factory.auth().create_token(user_id);
 
     // Setup base salary component
-    let sc_def_id: Uuid = sqlx::query_scalar(
+    let sc_def_id: Uuid = crate::test_query_scalar_uuid!(&pool.diesel_pools.api,
         "INSERT INTO salary_component_definitions (workspace_id, name, code) VALUES ($1, 'Base', 'BASE') RETURNING id",
-    )
-    .bind(ws_id)
-    .fetch_one(&pool.pool)
-    .await
-    .unwrap();
+        diesel::sql_types::Uuid, ws_id
+    );
 
     // Create 15 employees to exercise concurrency limit (buffer_unordered(10))
     let mut employee_ids = Vec::new();
@@ -40,16 +37,13 @@ async fn test_batch_payroll_handles_many_employees() {
             .await;
 
         // Assign salary to each employee
-        sqlx::query(
-            "INSERT INTO employee_salary_components (employee_id, component_definition_id, amount, effective_date) VALUES ($1, $2, $3, $4)",
-        )
-        .bind(emp_id)
-        .bind(sc_def_id)
-        .bind(Decimal::from(5_000_000 + (i * 100_000)))
-        .bind(chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap())
-        .execute(&pool.pool)
-        .await
-        .unwrap();
+        crate::test_execute!(&pool.diesel_pools.api,
+        "INSERT INTO employee_salary_components (employee_id, component_definition_id, amount, effective_date) VALUES ($1, $2, $3, $4)",
+        diesel::sql_types::Uuid, emp_id,
+        diesel::sql_types::Uuid, sc_def_id,
+        diesel::sql_types::Numeric, Decimal::from(5_000_000 + (i * 100_000)),
+        diesel::sql_types::Date, chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap()
+    );
 
         employee_ids.push(emp_id);
     }

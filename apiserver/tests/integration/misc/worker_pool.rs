@@ -1,5 +1,5 @@
 use chrono::NaiveDate;
-use sqlx::postgres::PgPoolOptions;
+
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -24,11 +24,7 @@ async fn test_worker_uses_only_one_connection_per_job() {
 
     // 1. Create a DB pool with EXACTLY ONE connection.
     let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-    let pool = PgPoolOptions::new()
-        .max_connections(1) // STRICT 1 CONNECTION RULE
-        .connect(&database_url)
-        .await
-        .expect("Failed to connect to DB");
+
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&database_url);
 
     // 2. Setup mock dependencies

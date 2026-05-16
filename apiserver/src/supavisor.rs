@@ -43,8 +43,7 @@ pub(crate) fn build_tenant_payload(db_url: &str) -> Option<(String, serde_json::
     let mode_type =
         std::env::var("SUPAVISOR_MODE_TYPE").unwrap_or_else(|_| "transaction".to_string());
 
-    let ip_version = std::env::var("SUPAVISOR_IP_VERSION")
-        .unwrap_or_else(|_| "auto".to_string());
+    let ip_version = std::env::var("SUPAVISOR_IP_VERSION").unwrap_or_else(|_| "auto".to_string());
 
     let payload = json!({
         "tenant": {

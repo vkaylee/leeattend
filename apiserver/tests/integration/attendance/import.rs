@@ -11,7 +11,7 @@ use tokio::time::sleep;
 #[tokio::test]
 async fn test_import_csv_with_line_errors() {
     let test_db = TestDatabase::new().await;
-    let pool = test_db.pool().clone();
+    let pool = test_db.diesel_pools.clone().clone();
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
     let factory = TestFactory::new(pool.clone());
 
@@ -102,7 +102,7 @@ async fn test_import_timeout_guard_updates_db_on_drop() {
 
     let _ = tracing_subscriber::fmt::try_init();
     let test_db = TestDatabase::new().await;
-    let pool = test_db.pool().clone();
+    let pool = test_db.diesel_pools.clone().clone();
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
     let factory = TestFactory::new(pool.clone());
 
@@ -162,7 +162,7 @@ async fn test_employee_import_chunking() {
     use redis::AsyncCommands;
 
     let (test_db, factory, app_state, _router) = setup_app_tower().await;
-    let pool = test_db.pool().clone();
+    let pool = test_db.diesel_pools.clone().clone();
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
 
     // Check if Redis is enabled
@@ -278,7 +278,7 @@ async fn test_leave_import_chunking() {
     use redis::AsyncCommands;
 
     let (test_db, factory, app_state, _router) = setup_app_tower().await;
-    let pool = test_db.pool().clone();
+    let pool = test_db.diesel_pools.clone().clone();
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
 
     let redis_pool = match app_state.infra.redis.clone() {
@@ -387,7 +387,7 @@ async fn test_employee_import_duplicate_department_prevention() {
     use std::collections::HashMap;
 
     let test_db = TestDatabase::new().await;
-    let pool = test_db.pool().clone();
+    let pool = test_db.diesel_pools.clone().clone();
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
     let factory = TestFactory::new(pool.clone());
 

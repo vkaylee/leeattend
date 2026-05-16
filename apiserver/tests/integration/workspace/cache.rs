@@ -10,7 +10,7 @@ use uuid::Uuid;
 #[tokio::test]
 async fn test_workspace_cache_get_and_invalidate() {
     let test_db = TestDatabase::new().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
     let redis_url =
         std::env::var("REDIS_URL").unwrap_or_else(|_| "redis://localhost:6379".to_string());
     let redis_pool = apiserver::queue::RedisPool::new(&redis_url)
@@ -34,12 +34,14 @@ async fn test_workspace_cache_get_and_invalidate() {
     assert_eq!(config.timezone, "Asia/Ho_Chi_Minh");
 
     // 2. Modify DB directly (bypassing service/cache)
-    sqlx::query("UPDATE workspaces SET timezone = $1 WHERE id = $2")
-        .bind("UTC")
-        .bind(ws_id)
-        .execute(&pool)
-        .await
-        .expect("Failed to update workspace in DB");
+    crate::test_execute!(
+        &pool.api,
+        "UPDATE workspaces SET timezone = $1 WHERE id = $2",
+        diesel::sql_types::Text,
+        "UTC",
+        diesel::sql_types::Uuid,
+        ws_id
+    );
 
     // 3. Second `get` should fetch from Cache (returning stale data)
     let stale_config = workspace_cache

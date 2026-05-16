@@ -16,7 +16,7 @@ use uuid::Uuid;
 async fn test_attendance_logs_include_employee_details() -> Result<(), Box<dyn std::error::Error>> {
     let (test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
         setup_app_tower().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
 
     let user_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(user_id).await;
@@ -58,12 +58,12 @@ async fn test_attendance_logs_include_employee_details() -> Result<(), Box<dyn s
     // 2. Create a Device and a RawAttendanceLog
     let device_id = Uuid::new_v4();
     let device_name = "FRONT ENTRANCE DEVICE";
-    sqlx::query("INSERT INTO devices (id, name, agent_id, ip, workspace_id) VALUES ($1, $2, 'test-agent', '127.0.0.1', $3)")
-        .bind(device_id)
-        .bind(device_name)
-        .bind(ws_id)
-        .execute(&pool)
-        .await?;
+    crate::test_execute!(&pool.api,
+        "INSERT INTO devices (id, name, agent_id, ip, workspace_id) VALUES ($1, $2, 'test-agent', '127.0.0.1', $3)",
+        diesel::sql_types::Uuid, device_id,
+        diesel::sql_types::Text, device_name,
+        diesel::sql_types::Uuid, ws_id
+    );
 
     let raw_log = RawAttendanceLog {
         id: Uuid::new_v4(),

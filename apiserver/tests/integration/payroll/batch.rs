@@ -34,17 +34,29 @@ async fn test_batch_calculate_payroll() {
         .await;
 
     // 2. Setup base salary
-    let sc_def_id: Uuid = sqlx::query_scalar(
-        "INSERT INTO salary_component_definitions (workspace_id, name, code) VALUES ($1, 'Base', 'BASE') RETURNING id"
-    ).bind(ws_id).fetch_one(&pool.pool).await.unwrap();
+    let sc_def_id: Uuid = crate::test_query_scalar_uuid!(
+        &factory.diesel_pools.api,
+        "INSERT INTO salary_component_definitions (workspace_id, name, code) VALUES ($1, 'Base', 'BASE') RETURNING id",
+        diesel::sql_types::Uuid, ws_id
+    );
 
-    sqlx::query("INSERT INTO employee_salary_components (employee_id, component_definition_id, amount, effective_date) VALUES ($1, $2, $3, $4)")
-        .bind(emp1_id).bind(sc_def_id).bind(Decimal::from(10_000_000)).bind(chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap())
-        .execute(&pool.pool).await.unwrap();
+    crate::test_execute!(
+        &factory.diesel_pools.api,
+        "INSERT INTO employee_salary_components (employee_id, component_definition_id, amount, effective_date) VALUES ($1, $2, $3, $4)",
+        diesel::sql_types::Uuid, emp1_id,
+        diesel::sql_types::Uuid, sc_def_id,
+        diesel::sql_types::Numeric, Decimal::from(10_000_000),
+        diesel::sql_types::Date, chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap()
+    );
 
-    sqlx::query("INSERT INTO employee_salary_components (employee_id, component_definition_id, amount, effective_date) VALUES ($1, $2, $3, $4)")
-        .bind(emp2_id).bind(sc_def_id).bind(Decimal::from(12_000_000)).bind(chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap())
-        .execute(&pool.pool).await.unwrap();
+    crate::test_execute!(
+        &factory.diesel_pools.api,
+        "INSERT INTO employee_salary_components (employee_id, component_definition_id, amount, effective_date) VALUES ($1, $2, $3, $4)",
+        diesel::sql_types::Uuid, emp2_id,
+        diesel::sql_types::Uuid, sc_def_id,
+        diesel::sql_types::Numeric, Decimal::from(12_000_000),
+        diesel::sql_types::Date, chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap()
+    );
 
     // 3. Test Batch Calculation
     let req_body = BatchCalculatePayrollRequest {

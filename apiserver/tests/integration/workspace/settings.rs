@@ -57,7 +57,7 @@ async fn test_workspace_theme_color_update() {
 #[tokio::test]
 async fn test_update_workspace_time_format() {
     let test_db = TestDatabase::new().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
     let factory = TestFactory::new(pool.clone());
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
     let workspace_repo = std::sync::Arc::new(
@@ -113,7 +113,7 @@ async fn test_update_workspace_time_format() {
 #[tokio::test]
 async fn test_update_workspace_all_fields() {
     let test_db = TestDatabase::new().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
     let factory = TestFactory::new(pool.clone());
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
     let workspace_repo = std::sync::Arc::new(
@@ -154,7 +154,7 @@ async fn test_update_workspace_all_fields() {
 #[tokio::test]
 async fn test_update_workspace_no_fields() {
     let test_db = TestDatabase::new().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
     let factory = TestFactory::new(pool.clone());
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
     let workspace_repo = std::sync::Arc::new(

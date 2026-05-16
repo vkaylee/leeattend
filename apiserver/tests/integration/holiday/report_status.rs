@@ -26,7 +26,7 @@ struct ReportRow {
 #[tokio::test]
 async fn test_report_status_holiday_no_punch() {
     let (address, test_db) = spawn_app().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
     let factory = crate::common::factory::TestFactory::new(pool.clone());
     let client = reqwest::Client::new();
 
@@ -93,7 +93,7 @@ async fn test_report_status_holiday_no_punch() {
 #[tokio::test]
 async fn test_report_status_holiday_with_punch() {
     let (address, test_db) = spawn_app().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
     let factory = crate::common::factory::TestFactory::new(pool.clone());
     let client = reqwest::Client::new();
 

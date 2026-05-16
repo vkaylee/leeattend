@@ -54,12 +54,12 @@ async fn test_upload_leave_csv_api() {
         .create()
         .await;
 
-    let leave_type_id: Uuid =
-        sqlx::query_scalar("SELECT leave_type_id FROM leave_balances WHERE id = $1")
-            .bind(leave_balance_id)
-            .fetch_one(&factory.pool)
-            .await
-            .unwrap();
+    let leave_type_id: Uuid = crate::test_query_scalar_uuid!(
+        &factory.diesel_pools.api,
+        "SELECT leave_type_id AS id FROM leave_balances WHERE id = $1",
+        diesel::sql_types::Uuid,
+        leave_balance_id
+    );
 
     let start_date = chrono::Utc::now().format("%Y-%m-%d").to_string();
     let end_date = start_date.clone();

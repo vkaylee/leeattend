@@ -9,7 +9,7 @@ use std::sync::Arc;
 #[tokio::test]
 async fn test_accrual_scenarios() {
     let test_db = TestDatabase::new().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
     let factory = TestFactory::new(pool.clone());
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
 
@@ -93,7 +93,7 @@ async fn test_accrual_scenarios() {
 #[tokio::test]
 async fn test_performance_based_accrual() {
     let test_db = TestDatabase::new().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
     let factory = TestFactory::new(pool.clone());
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
 
@@ -193,7 +193,7 @@ async fn test_performance_based_accrual() {
 #[tokio::test]
 async fn test_accrual_recalculation() {
     let test_db = TestDatabase::new().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
     let factory = TestFactory::new(pool.clone());
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
 

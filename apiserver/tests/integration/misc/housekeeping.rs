@@ -3,13 +3,13 @@
 use apiserver::queue::{HousekeepingPayload, Job, JobPayload, JobPriority, TaskType};
 use apiserver::worker::handlers::housekeeping::NightlyHousekeepingHandler;
 use chrono::NaiveDate;
-use sqlx::PgPool;
+
 use uuid::Uuid;
 
 #[tokio::test]
 async fn test_housekeeping_execution() {
     let test_db = crate::common::db::TestDatabase::new().await;
-    let pool = test_db.pool.clone();
+    let pool = test_db.diesel_pools.clone();
 
     let job = Job::with_priority(
         Uuid::new_v4(),
@@ -31,13 +31,13 @@ async fn test_housekeeping_execution() {
     let expected_months = [5, 6, 7, 8];
     for month in expected_months {
         let audit_table = format!("audit_logs_y2026m{:02}", month);
-        let exists: (bool,) =
-            sqlx::query_as("SELECT EXISTS(SELECT 1 FROM pg_class WHERE relname = $1)")
-                .bind(&audit_table)
-                .fetch_one(&pool)
-                .await
-                .unwrap();
+        let exists: bool = crate::test_query_scalar_bool!(
+            &pool.api,
+            "SELECT EXISTS(SELECT 1 FROM pg_class WHERE relname = $1) as val",
+            diesel::sql_types::Text,
+            &audit_table
+        );
 
-        assert!(exists.0, "Partition {} should exist", audit_table);
+        assert!(exists, "Partition {} should exist", audit_table);
     }
 }

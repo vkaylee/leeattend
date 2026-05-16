@@ -18,15 +18,14 @@ async fn get_test_redis() -> RedisPool {
 
 /// Grant `platform_admin` system role to the given user so they can access monitor endpoints.
 async fn grant_platform_admin(factory: &TestFactory, user_id: Uuid) {
-    sqlx::query(
+    crate::test_execute!(
+        &factory.diesel_pools.api,
         "INSERT INTO user_system_roles (user_id, role_id, assigned_by)
          SELECT $1, id, $1 FROM system_roles WHERE name = 'platform_admin'
          ON CONFLICT DO NOTHING",
-    )
-    .bind(user_id)
-    .execute(&factory.pool)
-    .await
-    .expect("Failed to seed platform_admin role for test user");
+        diesel::sql_types::Uuid,
+        user_id
+    );
 }
 
 #[tokio::test]

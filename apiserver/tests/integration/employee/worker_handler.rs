@@ -16,7 +16,7 @@ use uuid::Uuid;
 #[tokio::test]
 async fn test_employee_import_worker_handlers() {
     let test_db = TestDatabase::new().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
     let factory = TestFactory::new(pool.clone());
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
     let redis_url =
@@ -34,17 +34,14 @@ async fn test_employee_import_worker_handlers() {
 
     // 2. Create Import Job in DB
     let import_job_id = Uuid::new_v4();
-    sqlx::query(
+    crate::test_execute!(&pool.api,
         "INSERT INTO attendance_import_jobs (id, workspace_id, user_id, target_type, status, file_path, total_rows, processed_rows)
-         VALUES ($1, $2, $3, 'employee', 'pending', $4, 0, 0)"
-    )
-    .bind(import_job_id)
-    .bind(ws_id)
-    .bind(user_id)
-    .bind(&file_path)
-    .execute(&pool)
-    .await
-    .unwrap();
+         VALUES ($1, $2, $3, 'employee', 'pending', $4, 0, 0)",
+        diesel::sql_types::Uuid, import_job_id,
+        diesel::sql_types::Uuid, ws_id,
+        diesel::sql_types::Uuid, user_id,
+        diesel::sql_types::Text, &file_path
+    );
 
     // 3. Test Master Handler
     let master_job = Job::with_priority(
@@ -63,12 +60,12 @@ async fn test_employee_import_worker_handlers() {
     res.expect("Master handler should succeed");
 
     // Check DB status is processing or completed
-    let status: String =
-        sqlx::query_scalar("SELECT status::text FROM attendance_import_jobs WHERE id = $1")
-            .bind(import_job_id)
-            .fetch_one(&pool)
-            .await
-            .unwrap();
+    let status: String = crate::test_query_scalar_string!(
+        &pool.api,
+        "SELECT status::text AS val FROM attendance_import_jobs WHERE id = $1",
+        diesel::sql_types::Uuid,
+        import_job_id
+    );
     // It actually sets status to Processing, then enqueues chunks.
     assert_eq!(status, "processing");
 
@@ -105,20 +102,19 @@ async fn test_employee_import_worker_handlers() {
     res.expect("Finalize handler should succeed");
 
     // Verify status is completed
-    let final_status: String =
-        sqlx::query_scalar("SELECT status::text FROM attendance_import_jobs WHERE id = $1")
-            .bind(import_job_id)
-            .fetch_one(&pool)
-            .await
-            .unwrap();
+    let final_status: String = crate::test_query_scalar_string!(
+        &pool.api,
+        "SELECT status::text AS val FROM attendance_import_jobs WHERE id = $1",
+        diesel::sql_types::Uuid,
+        import_job_id
+    );
     assert_eq!(final_status, "completed");
 
     // Verify employee was inserted
-    let count: i64 =
-        sqlx::query_scalar("SELECT count(*) FROM employees WHERE employee_id_number = '1'")
-            .fetch_one(&pool)
-            .await
-            .unwrap();
+    let count: i64 = crate::test_query_scalar_i64!(
+        &pool.api,
+        "SELECT count(*) AS count FROM employees WHERE employee_id_number = '1'"
+    );
     assert_eq!(count, 1);
 
     let _ = std::fs::remove_file(file_path);
@@ -127,7 +123,7 @@ async fn test_employee_import_worker_handlers() {
 #[tokio::test]
 async fn test_employee_import_handler_empty_file() {
     let test_db = TestDatabase::new().await;
-    let pool = test_db.pool();
+    let pool = test_db.diesel_pools.clone();
     let factory = TestFactory::new(pool.clone());
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
     let redis_url =
@@ -141,11 +137,14 @@ async fn test_employee_import_handler_empty_file() {
     file.write_all(b"employee_code,full_name\n").unwrap(); // Only header
 
     let import_job_id = Uuid::new_v4();
-    sqlx::query(
+    crate::test_execute!(&pool.api,
         "INSERT INTO attendance_import_jobs (id, workspace_id, user_id, target_type, status, file_path, total_rows, processed_rows)
-         VALUES ($1, $2, $3, 'employee', 'pending', $4, 0, 0)"
-    )
-    .bind(import_job_id).bind(ws_id).bind(user_id).bind(&file_path).execute(&pool).await.unwrap();
+         VALUES ($1, $2, $3, 'employee', 'pending', $4, 0, 0)",
+        diesel::sql_types::Uuid, import_job_id,
+        diesel::sql_types::Uuid, ws_id,
+        diesel::sql_types::Uuid, user_id,
+        diesel::sql_types::Text, &file_path
+    );
 
     let master_job = Job::with_priority(
         Uuid::new_v4(),

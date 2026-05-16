@@ -24,16 +24,20 @@ async fn body_json(response: axum::http::Response<axum::body::Body>) -> serde_js
 }
 
 /// Helper: assign a system role to a user directly in DB
-async fn assign_system_role(pool: &sqlx::PgPool, user_id: Uuid, role_name: &str) {
-    sqlx::query(
+async fn assign_system_role(
+    pool: &apiserver::diesel_pool::DieselPools,
+    user_id: Uuid,
+    role_name: &str,
+) {
+    crate::test_execute!(
+        &pool.api,
         "INSERT INTO user_system_roles (user_id, role_id) \
          SELECT $1, id FROM system_roles WHERE name = $2",
-    )
-    .bind(user_id)
-    .bind(role_name)
-    .execute(pool)
-    .await
-    .unwrap();
+        diesel::sql_types::Uuid,
+        user_id,
+        diesel::sql_types::Text,
+        role_name
+    );
 }
 
 #[tokio::test]
@@ -44,7 +48,7 @@ async fn test_get_me_returns_system_roles_for_platform_admin() {
     let user_id: Uuid = factory.user().create().await;
 
     // Assign platform_admin role
-    assign_system_role(&factory.pool, user_id, "platform_admin").await;
+    assign_system_role(&factory.diesel_pools, user_id, "platform_admin").await;
 
     // GET /me
     let response = app
@@ -111,8 +115,8 @@ async fn test_get_me_returns_multiple_system_roles() {
     let user_id: Uuid = factory.user().create().await;
 
     // Assign both platform_admin and support roles
-    assign_system_role(&factory.pool, user_id, "platform_admin").await;
-    assign_system_role(&factory.pool, user_id, "support").await;
+    assign_system_role(&factory.diesel_pools, user_id, "platform_admin").await;
+    assign_system_role(&factory.diesel_pools, user_id, "support").await;
 
     // GET /me
     let response = app
@@ -150,7 +154,7 @@ async fn test_refresh_session_includes_system_roles() {
     let user_id: Uuid = factory.user().create().await;
 
     // Assign platform_admin
-    assign_system_role(&factory.pool, user_id, "platform_admin").await;
+    assign_system_role(&factory.diesel_pools, user_id, "platform_admin").await;
 
     // Create session and refresh
     let refresh_token = state

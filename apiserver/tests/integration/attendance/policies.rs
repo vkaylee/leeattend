@@ -352,11 +352,12 @@ async fn test_get_versions_empty_workspace_returns_empty_list() {
     let ws_id = factory.workspace().create_with_owner(admin_id).await;
 
     // Delete migration-seeded policy to simulate truly empty state
-    sqlx::query("DELETE FROM attendance_policies WHERE workspace_id = $1")
-        .bind(ws_id)
-        .execute(&test_db.pool())
-        .await
-        .expect("clean up");
+    crate::test_execute!(
+        &test_db.diesel_pools.api,
+        "DELETE FROM attendance_policies WHERE workspace_id = $1",
+        diesel::sql_types::Uuid,
+        ws_id
+    );
 
     let resp = app
         .clone()

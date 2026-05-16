@@ -61,7 +61,7 @@ serial_test = "3.3.1"
 tempfile = "3.24.0"
 tokio-test = "0.4.5"
 tokio-tungstenite = { version = "0.26.2", features = ["rustls-tls-webpki-roots"] }
-sqlx = { version = "0.8.6", features = ["runtime-tokio-native-tls", "postgres", "chrono", "uuid", "macros", "json", "migrate", "rust_decimal"] }
+tokio-postgres = "0.7.17"
 
 [[test]]
 name = "integration"

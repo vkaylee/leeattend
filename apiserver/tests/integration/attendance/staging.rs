@@ -121,16 +121,16 @@ async fn test_staging_log_with_real_data() {
 
     // Insert a staging log directly
     let log_id = Uuid::new_v4();
-    sqlx::query(
+    crate::test_execute!(
+        &test_db.diesel_pools.api,
         r"INSERT INTO attendance_staging_logs 
            (id, workspace_id, raw_user_id, punch_time, fingerprint, status, created_at)
            VALUES ($1, $2, 'unknown_user_99', NOW(), 'test_fp_001', 'pending', NOW())",
-    )
-    .bind(log_id)
-    .bind(ws_id)
-    .execute(&test_db.pool())
-    .await
-    .unwrap();
+        diesel::sql_types::Uuid,
+        log_id,
+        diesel::sql_types::Uuid,
+        ws_id
+    );
 
     // Listing should show 1 pending log
     let resp = app

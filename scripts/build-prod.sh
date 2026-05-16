@@ -3,7 +3,6 @@
 # Production Image Builder — LeeAttend
 #
 # Builds optimized container images for apiserver and agent-main.
-# Handles apiserver's sqlx compile-time DB validation automatically.
 #
 # Usage:
 #   ./scripts/build-prod.sh                          # Build all, tag :latest
@@ -43,8 +42,6 @@ ENGINE=""
 # All buildable services
 ALL_SERVICES=("apiserver" "agent-main")
 
-# Services requiring sqlx offline cache
-SERVICES_NEED_DB=("apiserver")
 
 # ── Helpers ──────────────────────────────────────────────────────────
 log()   { echo -e "${BLUE}[build]${NC} $*"; }
@@ -160,28 +157,6 @@ find_free_port() {
         || shuf -i 10000-60000 -n 1
 }
 
-# ── Prepare SQLx Cache ───────────────────────────────────────────────
-needs_sqlx_cache() {
-    local svc="$1"
-    for db_svc in "${SERVICES_NEED_DB[@]}"; do
-        [[ "$svc" == "$db_svc" ]] && return 0
-    done
-    return 1
-}
-
-prepare_sqlx_cache() {
-    log "Preparing SQLx offline cache using existing orchestrator..."
-    if $DRY_RUN; then
-        ok "SQLx cache would be prepared (dry-run)"
-        return
-    fi
-
-    # Delegate to the Python orchestrator via _sqlx.sh
-    # It automatically handles the DB container lifecycle
-    "${PROJECT_ROOT}/scripts/_sqlx.sh" prepare --workspace
-    ok "SQLx cache prepared successfully"
-}
-
 # ── Image naming ─────────────────────────────────────────────────────
 image_name() {
     local svc="$1"
@@ -283,17 +258,6 @@ main() {
     echo -e "  ${CYAN}Dry Run  :${NC} $DRY_RUN"
     $ALSO_TAG_LATEST && echo -e "  ${CYAN}Also     :${NC} :latest"
     echo ""
-
-    # Determine if we need to prepare SQLx cache
-    local need_sqlx=false
-    for svc in "${SERVICES[@]}"; do
-        needs_sqlx_cache "$svc" && need_sqlx=true
-    done
-
-    # Prepare SQLx cache if needed
-    if $need_sqlx; then
-        prepare_sqlx_cache
-    fi
 
     # Build phase
     local start_time=$SECONDS
