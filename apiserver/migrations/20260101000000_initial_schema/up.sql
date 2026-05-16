@@ -357,7 +357,7 @@ CREATE TABLE public.employees (
     is_active boolean DEFAULT true NOT NULL,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
     updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
-    tags character varying(50)[] DEFAULT '{}'::character varying[],
+    tags TEXT[] DEFAULT '{}',
     full_name character varying(255) NOT NULL,
     recruitment_source_id uuid,
     CONSTRAINT chk_employee_full_name CHECK ((length((full_name)::text) > 0))
