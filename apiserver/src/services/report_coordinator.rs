@@ -10,11 +10,11 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::queue::{
-    DateRange, Job, JobMetadata, JobPayload, JobPriority, JobQueue, JobStatus, MergePayload,
-    RedisPool, ReportConfig, ReportPayload, ReportType, TaskType,
+    DateRange, Job, JobMetadata, JobPayload, JobPriority, JobStatus, MergePayload,
+    ReportConfig, ReportPayload, ReportType, TaskType,
 };
 use crate::repositories::{
-    employee::EmployeeRepository, workspace_repository::WorkspaceRepository,
+    employee::EmployeeRepository, queue_repository::QueueRepository, workspace_repository::WorkspaceRepository,
 };
 use std::sync::Arc;
 
@@ -97,7 +97,7 @@ struct WorkspaceConfig {
 /// Coordinates distributed report generation.
 /// Splits requests into micro-jobs and tracks completion.
 pub struct ReportCoordinator {
-    queue: JobQueue,
+    queue: Arc<dyn QueueRepository>,
     employee_repo: Arc<dyn EmployeeRepository>,
     workspace_repo: Arc<dyn WorkspaceRepository>,
 }
@@ -105,12 +105,12 @@ pub struct ReportCoordinator {
 impl ReportCoordinator {
     /// Create a new ReportCoordinator.
     pub fn new(
-        redis: RedisPool,
+        queue: Arc<dyn QueueRepository>,
         employee_repo: Arc<dyn EmployeeRepository>,
         workspace_repo: Arc<dyn WorkspaceRepository>,
     ) -> Self {
         Self {
-            queue: JobQueue::new(redis),
+            queue,
             employee_repo,
             workspace_repo,
         }

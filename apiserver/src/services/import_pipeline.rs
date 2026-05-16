@@ -49,7 +49,7 @@ pub struct ImportPipeline<'a, S: ImportStrategy> {
     pub start_index: Option<usize>,
     pub end_index: Option<usize>,
     pub is_chunk: bool,
-    pub redis: Option<crate::queue::RedisPool>,
+    pub queue_repo: Option<std::sync::Arc<dyn crate::repositories::queue_repository::QueueRepository>>,
 }
 
 impl<S: ImportStrategy> ImportPipeline<'_, S> {
@@ -138,15 +138,8 @@ impl<S: ImportStrategy> ImportPipeline<'_, S> {
 
             if (processed_rows + skipped_rows) % 10 == 0 {
                 if self.is_chunk {
-                    if let Some(ref redis) = self.redis {
-                        let mut conn = redis.conn();
-                        let key = format!("import_progress:{}", self.job.id);
-                        let _: () = redis::cmd("INCRBY")
-                            .arg(&key)
-                            .arg(10)
-                            .query_async(&mut conn)
-                            .await
-                            .unwrap_or(());
+                    if let Some(ref q) = self.queue_repo {
+                        let _ = q.increment_progress(self.job.id, 10).await;
                     }
                 } else {
                     let _ = self
@@ -231,36 +224,21 @@ impl<S: ImportStrategy> ImportPipeline<'_, S> {
         if self.is_chunk {
             // Push errors to Redis if any
             if let Some(final_msg) = final_log {
-                if let Some(ref redis) = self.redis {
-                    let mut conn = redis.conn();
-                    let key = format!("import_errors:{}", self.job.id);
+                if let Some(ref q) = self.queue_repo {
                     let field = format!(
                         "chunk_{}_{}",
                         self.start_index.unwrap_or(0),
                         self.end_index.unwrap_or(0)
                     );
-                    let _: () = redis::cmd("HSET")
-                        .arg(&key)
-                        .arg(&field)
-                        .arg(&final_msg)
-                        .query_async(&mut conn)
-                        .await
-                        .unwrap_or(());
+                    let _ = q.store_import_error(self.job.id, &field, &final_msg).await;
                 }
             }
 
             // Add any remainder to progress
             let remainder = (processed_rows + skipped_rows) % 10;
             if remainder > 0 {
-                if let Some(ref redis) = self.redis {
-                    let mut conn = redis.conn();
-                    let key = format!("import_progress:{}", self.job.id);
-                    let _: () = redis::cmd("INCRBY")
-                        .arg(&key)
-                        .arg(remainder)
-                        .query_async(&mut conn)
-                        .await
-                        .unwrap_or(());
+                if let Some(ref q) = self.queue_repo {
+                    let _ = q.increment_progress(self.job.id, remainder as u32).await;
                 }
             }
 

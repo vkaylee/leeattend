@@ -39,7 +39,9 @@ async fn test_worker_uses_only_one_connection_per_job() {
     let wr = Arc::new(apiserver::repositories::DieselWorkspaceRepository::new(
         diesel_pools.clone(),
     ));
-    let coordinator = Arc::new(ReportCoordinator::new(redis_pool.clone(), er, wr));
+    let queue_repo: Arc<dyn apiserver::repositories::queue_repository::QueueRepository> = 
+        Arc::new(apiserver::repositories::queue_repository::RedisQueueRepository::new(redis_pool.clone()));
+    let coordinator = Arc::new(ReportCoordinator::new(queue_repo, er, wr));
     let config = WorkerConfig {
         max_concurrent_jobs: 1,
         poll_timeout_secs: 1.0,

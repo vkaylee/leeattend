@@ -412,8 +412,11 @@ impl AppState {
                     "Initializing job worker"
                 );
 
+                let queue_repo: Arc<dyn crate::repositories::queue_repository::QueueRepository> = 
+                    Arc::new(crate::repositories::queue_repository::RedisQueueRepository::new(redis.clone()));
+
                 let coordinator = Arc::new(ReportCoordinator::new(
-                    redis.clone(),
+                    queue_repo.clone(),
                     Arc::clone(&employee_repo),
                     Arc::clone(&workspace_repo),
                 ));
@@ -509,8 +512,9 @@ impl AppState {
             },
             infra: crate::InfraState {
                 diesel: diesel_pools,
-                redis: redis_pool,
+                redis: redis_pool.clone(),
                 roster_cache,
+                queue: redis_pool.map(|r| Arc::new(crate::repositories::queue_repository::RedisQueueRepository::new(r)) as Arc<dyn crate::repositories::queue_repository::QueueRepository>),
                 tenant_manager,
             },
         });

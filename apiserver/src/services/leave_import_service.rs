@@ -342,7 +342,7 @@ impl LeaveImportService {
             start_index: None,
             end_index: None,
             is_chunk: false,
-            redis: None,
+            queue_repo: None,
         };
 
         pipeline.run().await

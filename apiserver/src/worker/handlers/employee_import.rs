@@ -236,7 +236,7 @@ impl EmployeeImportChunkHandler {
             start_index: Some(payload.start_index),
             end_index: Some(payload.end_index),
             is_chunk: true,
-            redis: Some(redis.clone()),
+            queue_repo: Some(std::sync::Arc::new(crate::repositories::queue_repository::RedisQueueRepository::new(redis.clone()))),
         };
 
         let _ = pipeline.run().await; // Returns Ok/Err but we don't fail the whole job here on validation errors
