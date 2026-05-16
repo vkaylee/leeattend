@@ -701,4 +701,118 @@ mod tests {
         let deserialized: DailyAttendanceReport = serde_json::from_str(&json).unwrap();
         assert_eq!(deserialized.employee_id_number, "EMP-002");
     }
+
+    #[tokio::test]
+    async fn test_merge_handler_handle_inner_with_mocks() {
+        use crate::worker::test_utils::MockWorkerDepsBuilder;
+        use crate::queue::{Job, JobMetadata, JobPriority, JobStatus, ReportType, ReportConfig, DateRange, TaskType, JobPayload, MergePayload};
+        use crate::repositories::queue_repository::MockQueueRepository;
+        use crate::repositories::publisher_repository::MockPublisherRepository;
+        use std::sync::Arc;
+        
+        let ws_id = Uuid::new_v4();
+        let parent_job_id = Uuid::new_v4();
+        
+        let mut queue = MockQueueRepository::new();
+        queue.expect_get_job_metadata().returning(move |_| {
+            Ok(Some(JobMetadata {
+                job_id: parent_job_id,
+                requester_id: Uuid::new_v4(),
+                total_batches: 2,
+                completed_batches: 2,
+                failed_batches: 0,
+                status: JobStatus::Completed,
+                workspace_id: ws_id,
+                report_type: Some(ReportType::Summary),
+                date_range: Some(DateRange {
+                    start: NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+                    end: NaiveDate::from_ymd_opt(2026, 1, 31).unwrap(),
+                }),
+                created_at: Utc::now(),
+                completed_at: Some(Utc::now()),
+                error_message: None,
+            }))
+        });
+        
+        queue.expect_get_all_results().returning(move |_| {
+            let summary = AttendanceSummary {
+                employee_id: Uuid::new_v4(),
+                employee_name: "Mocked Emp".to_string(),
+                employee_id_number: "MOCK-001".to_string(),
+                total_std_units: 8,
+                total_ot_units: 0,
+                total_leave_days: 0,
+                unit_type: crate::models::enums::TimekeepingUnit::DAY,
+                unit_coefficient_hours: 8.0,
+                computed_std_hours: 8.0,
+                computed_ot_hours: 0.0,
+            };
+            let json = serde_json::to_string(&vec![summary]).unwrap();
+            Ok(vec![
+                ("batch_0".to_string(), json.clone()),
+                ("batch_1".to_string(), json),
+            ])
+        });
+        
+        queue.expect_set_result_data().returning(|_, _, _| Ok(()));
+        queue.expect_update_job_status().returning(|_, _| Ok(()));
+        queue.expect_delete_results().returning(|_| Ok(()));
+        
+        let mut publisher = MockPublisherRepository::new();
+        publisher.expect_publish_done().returning(|_, _, _| Ok(()));
+        
+        let mut builder = MockWorkerDepsBuilder::new();
+        builder.workspace_repo.expect_get_workspace_by_id().returning(move |_| {
+            Box::pin(async move {
+                let ws = crate::models::Workspace {
+                    id: ws_id,
+                    name: "Test Workspace".to_string(),
+                    date_format: "YYYY-MM-DD".to_string(),
+                    time_format: "HH:mm".to_string(),
+                    timezone: "UTC".to_string(),
+                    theme_primary_color: "#000000".to_string(),
+                    default_language: "en".to_string(),
+                    logo_url: None,
+                    tagline: None,
+                    holiday_overnight_strategy: "split".to_string(),
+                    default_holiday_ot_multiplier: rust_decimal::Decimal::new(15, 1),
+                    created_at: Utc::now(),
+                };
+                Ok(Some(ws))
+            })
+        });
+        
+        let deps = builder.build();
+        
+        let job = Job {
+            job_id: Uuid::new_v4(),
+            parent_job_id,
+            batch_index: 0,
+            task_type: TaskType::MergeResults,
+            workspace_id: ws_id,
+            payload: JobPayload::MergeResults(MergePayload {
+                date_range: DateRange {
+                    start: NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+                    end: NaiveDate::from_ymd_opt(2026, 1, 31).unwrap(),
+                },
+                config: ReportConfig {
+                    report_type: ReportType::Summary,
+                    timezone: "UTC".to_string(),
+                    work_unit_minutes: 30,
+                    rounding_policy: "floor".to_string(),
+                },
+            }),
+            priority: JobPriority::Normal,
+            created_at: Utc::now(),
+            retry_count: 0,
+            max_retries: 3,
+        };
+        
+        let queue_arc: Arc<dyn crate::repositories::QueueRepository> = Arc::new(queue);
+        let pub_arc: Arc<dyn crate::repositories::PublisherRepository> = Arc::new(publisher);
+        
+        let result = MergeHandler::handle_inner(&queue_arc, &pub_arc, &job, &deps).await;
+        
+        assert!(result.is_ok(), "MergeHandler::handle_inner failed: {:?}", result.err());
+    }
 }
