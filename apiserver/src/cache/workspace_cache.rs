@@ -5,8 +5,9 @@
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::cache::{RedisCache, DEFAULT_CACHE_TTL};
-use crate::repositories::WorkspaceRepository;
+use crate::cache::DEFAULT_CACHE_TTL;
+use crate::repositories::{CacheRepository, CacheRepositoryExt, WorkspaceRepository};
+use std::sync::Arc;
 
 /// Cached workspace configuration.
 /// Contains fields needed for attendance calculations.
@@ -18,13 +19,13 @@ pub struct CachedWorkspaceConfig {
 
 /// Cache for workspace configuration.
 pub struct WorkspaceCache {
-    cache: RedisCache,
+    cache: Arc<dyn CacheRepository>,
     diesel: crate::diesel_pool::DieselPools,
 }
 
 impl WorkspaceCache {
     /// Create a new WorkspaceCache.
-    pub fn new(cache: RedisCache, diesel: crate::diesel_pool::DieselPools) -> Self {
+    pub fn new(cache: Arc<dyn CacheRepository>, diesel: crate::diesel_pool::DieselPools) -> Self {
         Self { cache, diesel }
     }
 

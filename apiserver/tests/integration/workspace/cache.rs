@@ -3,6 +3,7 @@
 use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
 use apiserver::cache::{RedisCache, WorkspaceCache};
+use std::sync::Arc;
 
 use tokio::time::{sleep, Duration};
 use uuid::Uuid;
@@ -11,19 +12,17 @@ use uuid::Uuid;
 async fn test_workspace_cache_get_and_invalidate() {
     let test_db = TestDatabase::new().await;
     let pool = test_db.diesel_pools.clone();
-    let redis_url =
-        std::env::var("REDIS_URL").unwrap_or_else(|_| "redis://localhost:6379".to_string());
-    let redis_pool = apiserver::queue::RedisPool::new(&redis_url)
+    let redis_pool = crate::common::app::create_test_redis_pool()
         .await
         .expect("Failed to create Redis pool");
-    let factory = TestFactory::new(pool.clone());
+    let factory = TestFactory::new(pool.clone()).with_redis(Some(redis_pool.clone()));
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
 
     let user_id: Uuid = factory.user().create().await;
     let ws_id: Uuid = factory.workspace().create_with_owner(user_id).await;
 
     let redis_cache = RedisCache::new(redis_pool.clone());
-    let workspace_cache = WorkspaceCache::new(redis_cache, diesel_pools.clone());
+    let workspace_cache = WorkspaceCache::new(Arc::new(redis_cache), diesel_pools.clone());
 
     // 1. First `get` should fetch from DB and populate cache
     let config = workspace_cache

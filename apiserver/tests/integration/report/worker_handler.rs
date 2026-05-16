@@ -19,9 +19,7 @@ async fn test_attendance_and_merge_handlers() {
     let factory = TestFactory::new(pool.clone());
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
     let deps = apiserver::worker::deps::WorkerDeps::new(&diesel_pools.clone());
-    let redis_url =
-        std::env::var("REDIS_URL").unwrap_or_else(|_| "redis://127.0.0.1:6379".to_string());
-    let redis_pool = RedisPool::new(&redis_url).await.unwrap();
+    let redis_pool = crate::common::app::create_test_redis_pool().await.unwrap();
 
     let cache = Arc::new(CacheManager::new(redis_pool.clone(), diesel_pools.clone()));
     let queue = JobQueue::new(redis_pool.clone());

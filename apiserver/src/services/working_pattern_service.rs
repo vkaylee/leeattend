@@ -245,41 +245,88 @@ mod tests {
     // ─── Async service tests with mock repositories ──────────────────────────
 
     use crate::errors::AppError;
+    use crate::models::Shift;
     use crate::models::{
-        BulkAssignPatternRequest, BulkAssignResponse, EmployeeWorkingPattern,
-        WorkingPattern, WorkingPatternDetail,
+        BulkAssignPatternRequest, BulkAssignResponse, EmployeeWorkingPattern, WorkingPattern,
+        WorkingPatternDetail,
     };
+    use crate::repositories::shift_repository::ShiftRepository;
+    use crate::repositories::working_pattern_repository::WorkingPatternRepositoryTrait;
     use async_trait::async_trait;
     use chrono::{NaiveDate, Utc};
-    use crate::repositories::working_pattern_repository::WorkingPatternRepositoryTrait;
-    use crate::repositories::shift_repository::ShiftRepository;
-    use crate::models::Shift;
     use uuid::Uuid;
 
     struct NopShiftRepo;
     #[async_trait]
     impl ShiftRepository for NopShiftRepo {
-        async fn create_shift(&self, ws: Uuid, req: &crate::models::CreateShiftRequest, _a: bool, _p: Option<Uuid>) -> Result<Shift, AppError> {
+        async fn create_shift(
+            &self,
+            ws: Uuid,
+            req: &crate::models::CreateShiftRequest,
+            _a: bool,
+            _p: Option<Uuid>,
+        ) -> Result<Shift, AppError> {
             Ok(Shift {
-                id: Uuid::new_v4(), workspace_id: ws,
-                name: req.name.clone(), report_symbol: None,
-                start_time: req.start_time, end_time: req.end_time,
+                id: Uuid::new_v4(),
+                workspace_id: ws,
+                name: req.name.clone(),
+                report_symbol: None,
+                start_time: req.start_time,
+                end_time: req.end_time,
                 break_duration_minutes: req.break_duration_minutes,
-                break_start: None, break_end: None,
-                is_break_auto_deduct: true, break_is_overtime: false,
+                break_start: None,
+                break_end: None,
+                is_break_auto_deduct: true,
+                break_is_overtime: false,
                 early_punch_in_grace_period_minutes: 0,
-                allow_early_ot: false, is_active: true,
+                allow_early_ot: false,
+                is_active: true,
                 parent_shift_id: _p,
-                created_at: Utc::now(), updated_at: Utc::now(),
+                created_at: Utc::now(),
+                updated_at: Utc::now(),
             })
         }
-        async fn get_shift_by_id(&self, _w: Uuid, _id: Uuid) -> Result<Option<Shift>, AppError> { Ok(None) }
-        async fn get_workspace_shifts(&self, _w: Uuid) -> Result<Vec<Shift>, AppError> { Ok(vec![]) }
-        async fn update_shift_direct(&self, _w: Uuid, _id: Uuid, _r: &crate::models::UpdateShiftRequest) -> Result<Shift, AppError> { unimplemented!() }
-        async fn archive_shift(&self, _w: Uuid, _id: Uuid) -> Result<(), AppError> { Ok(()) }
-        async fn assign_employee_shift(&self, _e: Uuid, _s: Uuid, _sd: NaiveDate, _ed: Option<NaiveDate>) -> Result<(), AppError> { Ok(()) }
-        async fn get_employee_active_shift(&self, _e: Uuid, _d: NaiveDate) -> Result<Option<Shift>, AppError> { Ok(None) }
-        async fn update_assignments_to_new_version(&self, _o: Uuid, _n: Uuid, _d: NaiveDate) -> Result<(), AppError> { Ok(()) }
+        async fn get_shift_by_id(&self, _w: Uuid, _id: Uuid) -> Result<Option<Shift>, AppError> {
+            Ok(None)
+        }
+        async fn get_workspace_shifts(&self, _w: Uuid) -> Result<Vec<Shift>, AppError> {
+            Ok(vec![])
+        }
+        async fn update_shift_direct(
+            &self,
+            _w: Uuid,
+            _id: Uuid,
+            _r: &crate::models::UpdateShiftRequest,
+        ) -> Result<Shift, AppError> {
+            unimplemented!()
+        }
+        async fn archive_shift(&self, _w: Uuid, _id: Uuid) -> Result<(), AppError> {
+            Ok(())
+        }
+        async fn assign_employee_shift(
+            &self,
+            _e: Uuid,
+            _s: Uuid,
+            _sd: NaiveDate,
+            _ed: Option<NaiveDate>,
+        ) -> Result<(), AppError> {
+            Ok(())
+        }
+        async fn get_employee_active_shift(
+            &self,
+            _e: Uuid,
+            _d: NaiveDate,
+        ) -> Result<Option<Shift>, AppError> {
+            Ok(None)
+        }
+        async fn update_assignments_to_new_version(
+            &self,
+            _o: Uuid,
+            _n: Uuid,
+            _d: NaiveDate,
+        ) -> Result<(), AppError> {
+            Ok(())
+        }
     }
 
     fn dummy_pattern() -> WorkingPattern {
@@ -299,7 +346,13 @@ mod tests {
     }
     #[async_trait]
     impl WorkingPatternRepositoryTrait for MockPatternRepo {
-        async fn create_pattern_with_details(&self, _w: Uuid, name: &str, _d: Option<&str>, _det: Vec<(i32, Option<Uuid>)>) -> Result<WorkingPattern, AppError> {
+        async fn create_pattern_with_details(
+            &self,
+            _w: Uuid,
+            name: &str,
+            _d: Option<&str>,
+            _det: Vec<(i32, Option<Uuid>)>,
+        ) -> Result<WorkingPattern, AppError> {
             let mut p = self.pattern.lock().unwrap().clone();
             p.name = name.to_string();
             Ok(p)
@@ -307,28 +360,77 @@ mod tests {
         async fn get_patterns(&self, _w: Uuid) -> Result<Vec<WorkingPattern>, AppError> {
             Ok(vec![self.pattern.lock().unwrap().clone()])
         }
-        async fn get_pattern_details(&self, _pid: Uuid) -> Result<Vec<WorkingPatternDetail>, AppError> {
-            Ok(vec![WorkingPatternDetail { id: Uuid::new_v4(), pattern_id: _pid, day_of_week: 1, shift_id: None }])
-        }
-        async fn assign_pattern(&self, ws: Uuid, emp: Uuid, pat: Uuid, sd: NaiveDate, ed: Option<NaiveDate>) -> Result<EmployeeWorkingPattern, AppError> {
-            Ok(EmployeeWorkingPattern { id: Uuid::new_v4(), workspace_id: ws, employee_id: emp, pattern_id: pat, start_date: sd, end_date: ed, created_at: Utc::now(), updated_at: Utc::now() })
-        }
-        async fn get_employee_pattern_history(&self, _w: Uuid, emp: Uuid) -> Result<Vec<EmployeeWorkingPattern>, AppError> {
-            Ok(vec![EmployeeWorkingPattern {
-                id: Uuid::new_v4(), workspace_id: _w, employee_id: emp,
-                pattern_id: Uuid::new_v4(),
-                start_date: NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
-                end_date: None, created_at: Utc::now(), updated_at: Utc::now(),
+        async fn get_pattern_details(
+            &self,
+            _pid: Uuid,
+        ) -> Result<Vec<WorkingPatternDetail>, AppError> {
+            Ok(vec![WorkingPatternDetail {
+                id: Uuid::new_v4(),
+                pattern_id: _pid,
+                day_of_week: 1,
+                shift_id: None,
             }])
         }
-        async fn bulk_assign_pattern(&self, _w: Uuid, emp: &[Uuid], _p: Uuid, _s: NaiveDate, _e: Option<NaiveDate>) -> Result<BulkAssignResponse, AppError> {
-            Ok(BulkAssignResponse { success_count: emp.len(), failed_employees: vec![] })
+        async fn assign_pattern(
+            &self,
+            ws: Uuid,
+            emp: Uuid,
+            pat: Uuid,
+            sd: NaiveDate,
+            ed: Option<NaiveDate>,
+        ) -> Result<EmployeeWorkingPattern, AppError> {
+            Ok(EmployeeWorkingPattern {
+                id: Uuid::new_v4(),
+                workspace_id: ws,
+                employee_id: emp,
+                pattern_id: pat,
+                start_date: sd,
+                end_date: ed,
+                created_at: Utc::now(),
+                updated_at: Utc::now(),
+            })
         }
-        async fn delete_pattern(&self, _w: Uuid, _p: Uuid) -> Result<(), AppError> { Ok(()) }
+        async fn get_employee_pattern_history(
+            &self,
+            _w: Uuid,
+            emp: Uuid,
+        ) -> Result<Vec<EmployeeWorkingPattern>, AppError> {
+            Ok(vec![EmployeeWorkingPattern {
+                id: Uuid::new_v4(),
+                workspace_id: _w,
+                employee_id: emp,
+                pattern_id: Uuid::new_v4(),
+                start_date: NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+                end_date: None,
+                created_at: Utc::now(),
+                updated_at: Utc::now(),
+            }])
+        }
+        async fn bulk_assign_pattern(
+            &self,
+            _w: Uuid,
+            emp: &[Uuid],
+            _p: Uuid,
+            _s: NaiveDate,
+            _e: Option<NaiveDate>,
+        ) -> Result<BulkAssignResponse, AppError> {
+            Ok(BulkAssignResponse {
+                success_count: emp.len(),
+                failed_employees: vec![],
+            })
+        }
+        async fn delete_pattern(&self, _w: Uuid, _p: Uuid) -> Result<(), AppError> {
+            Ok(())
+        }
     }
 
-    fn make_repos() -> (std::sync::Arc<MockPatternRepo>, std::sync::Arc<NopShiftRepo>) {
-        let pat = std::sync::Arc::new(MockPatternRepo { pattern: std::sync::Mutex::new(dummy_pattern()) });
+    fn make_repos() -> (
+        std::sync::Arc<MockPatternRepo>,
+        std::sync::Arc<NopShiftRepo>,
+    ) {
+        let pat = std::sync::Arc::new(MockPatternRepo {
+            pattern: std::sync::Mutex::new(dummy_pattern()),
+        });
         let shift = std::sync::Arc::new(NopShiftRepo);
         (pat, shift)
     }
@@ -355,7 +457,9 @@ mod tests {
             start_date: NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
             end_date: None,
         };
-        let result = assign_pattern(repo, Uuid::new_v4(), Uuid::new_v4(), req).await.unwrap();
+        let result = assign_pattern(repo, Uuid::new_v4(), Uuid::new_v4(), req)
+            .await
+            .unwrap();
         assert!(result.end_date.is_none());
     }
 
@@ -368,7 +472,9 @@ mod tests {
             start_date: NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
             end_date: None,
         };
-        let result = bulk_assign_pattern(repo, Uuid::new_v4(), req).await.unwrap();
+        let result = bulk_assign_pattern(repo, Uuid::new_v4(), req)
+            .await
+            .unwrap();
         assert_eq!(result.success_count, 2);
         assert!(result.failed_employees.is_empty());
     }
@@ -376,14 +482,18 @@ mod tests {
     #[tokio::test]
     async fn test_get_employee_pattern_history() {
         let (repo, _) = make_repos();
-        let result = get_employee_pattern_history(repo, Uuid::new_v4(), Uuid::new_v4()).await.unwrap();
+        let result = get_employee_pattern_history(repo, Uuid::new_v4(), Uuid::new_v4())
+            .await
+            .unwrap();
         assert_eq!(result.len(), 1);
     }
 
     #[tokio::test]
     async fn test_delete_working_pattern() {
         let (repo, _) = make_repos();
-        delete_working_pattern(repo, Uuid::new_v4(), Uuid::new_v4()).await.unwrap();
+        delete_working_pattern(repo, Uuid::new_v4(), Uuid::new_v4())
+            .await
+            .unwrap();
     }
 
     #[tokio::test]
@@ -393,11 +503,19 @@ mod tests {
             name: "Standard 5×8".into(),
             description: Some("Mon-Fri".into()),
             details: vec![
-                crate::models::WorkingPatternDetailRequest { day_of_week: 1, shift_id: None },
-                crate::models::WorkingPatternDetailRequest { day_of_week: 2, shift_id: None },
+                crate::models::WorkingPatternDetailRequest {
+                    day_of_week: 1,
+                    shift_id: None,
+                },
+                crate::models::WorkingPatternDetailRequest {
+                    day_of_week: 2,
+                    shift_id: None,
+                },
             ],
         };
-        let result = create_working_pattern(repo, shift_repo, Uuid::new_v4(), req).await.unwrap();
+        let result = create_working_pattern(repo, shift_repo, Uuid::new_v4(), req)
+            .await
+            .unwrap();
         assert_eq!(result.name, "Standard 5×8");
     }
 }

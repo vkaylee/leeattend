@@ -156,7 +156,11 @@ mod tests {
 
     #[async_trait]
     impl WorkspaceRepository for MockWorkspaceRepo {
-        async fn create_workspace_with_owner(&self, name: &str, _owner_id: Uuid) -> Result<Workspace, AppError> {
+        async fn create_workspace_with_owner(
+            &self,
+            name: &str,
+            _owner_id: Uuid,
+        ) -> Result<Workspace, AppError> {
             let mut ws = dummy_workspace();
             ws.name = name.to_string();
             Ok(ws)
@@ -167,39 +171,164 @@ mod tests {
         async fn get_all_workspaces(&self) -> Result<Vec<Workspace>, AppError> {
             Ok(self.workspace.clone().map(|w| vec![w]).unwrap_or_default())
         }
-        async fn get_user_workspaces(&self, _u: Uuid) -> Result<Vec<Workspace>, AppError> { Ok(vec![]) }
-        async fn clear_workspace_data(&self, _w: Uuid, _g: &str) -> Result<(), AppError> { Ok(()) }
-        async fn add_member(&self, _w: Uuid, _u: Uuid, _r: Uuid) -> Result<(), AppError> { Ok(()) }
-        async fn update_member_role(&self, _w: Uuid, _u: Uuid, _r: Uuid) -> Result<(), AppError> { Ok(()) }
-        async fn remove_member(&self, _w: Uuid, _u: Uuid) -> Result<(), AppError> { Ok(()) }
+        async fn get_user_workspaces(&self, _u: Uuid) -> Result<Vec<Workspace>, AppError> {
+            Ok(vec![])
+        }
+        async fn clear_workspace_data(&self, _w: Uuid, _g: &str) -> Result<(), AppError> {
+            Ok(())
+        }
+        async fn add_member(&self, _w: Uuid, _u: Uuid, _r: Uuid) -> Result<(), AppError> {
+            Ok(())
+        }
+        async fn update_member_role(&self, _w: Uuid, _u: Uuid, _r: Uuid) -> Result<(), AppError> {
+            Ok(())
+        }
+        async fn remove_member(&self, _w: Uuid, _u: Uuid) -> Result<(), AppError> {
+            Ok(())
+        }
         async fn find_primary_role(&self, _w: Uuid, _u: Uuid) -> Result<Option<Uuid>, AppError> {
             Ok(self.primary_role)
         }
-        async fn get_workspace_members(&self, _w: Uuid) -> Result<Vec<crate::models::WorkspaceMemberDetail>, AppError> { Ok(vec![]) }
-        async fn get_admins_with_permissions(&self, _w: Uuid, _p: &[&str]) -> Result<Vec<Uuid>, AppError> { Ok(vec![]) }
-        async fn get_all_extra_roles(&self, _w: Uuid) -> Result<Vec<MemberExtraRole>, AppError> { Ok(vec![]) }
-        async fn find_extra_roles(&self, _w: Uuid, _u: Uuid) -> Result<Vec<MemberExtraRole>, AppError> { Ok(vec![]) }
-        async fn find_extra_permissions(&self, _w: Uuid, _u: Uuid) -> Result<Vec<String>, AppError> { Ok(vec![]) }
-        async fn get_member_extra_permissions(&self, _w: Uuid, _u: Uuid) -> Result<Vec<crate::models::MemberExtraPermission>, AppError> { Ok(vec![]) }
-        async fn assign_extra_permission(&self, _w: Uuid, _u: Uuid, _p: String, _e: chrono::DateTime<chrono::Utc>, _a: Uuid) -> Result<crate::models::MemberExtraPermission, AppError> { unimplemented!() }
-        async fn revoke_extra_permission(&self, _w: Uuid, _u: Uuid, _p: Uuid) -> Result<u64, AppError> { Ok(1) }
-        async fn assign_extra_role(&self, _w: Uuid, _u: Uuid, _r: Uuid, _e: chrono::DateTime<chrono::Utc>) -> Result<MemberExtraRole, AppError> { unimplemented!() }
-        async fn revoke_extra_role(&self, _w: Uuid, _r: Uuid) -> Result<u64, AppError> { Ok(1) }
-        async fn get_workspace_roles(&self, _w: Uuid) -> Result<Vec<crate::models::WorkspaceRole>, AppError> { Ok(vec![]) }
-        async fn create_workspace_role(&self, _w: Uuid, _n: String, _d: Option<String>, _c: String, _s: String) -> Result<crate::models::WorkspaceRole, AppError> { unimplemented!() }
-        async fn update_workspace_role(&self, _w: Uuid, _r: Uuid, _n: Option<String>, _d: Option<String>, _c: Option<String>) -> Result<Option<crate::models::WorkspaceRole>, AppError> { unimplemented!() }
-        async fn delete_workspace_role(&self, _w: Uuid, _r: Uuid) -> Result<u64, AppError> { Ok(1) }
-        async fn get_role_permissions_by_role_id(&self, _w: Uuid, _r: Uuid) -> Result<Vec<String>, AppError> { Ok(vec![]) }
-        async fn role_exists_and_is_not_system(&self, _w: Uuid, _r: Uuid) -> Result<bool, AppError> { Ok(true) }
-        async fn set_role_permissions(&self, _r: Uuid, _p: Vec<String>) -> Result<(), AppError> { Ok(()) }
-        async fn get_permissions_for_roles(&self, _r: &[Uuid]) -> Result<Vec<String>, AppError> { Ok(vec![]) }
+        async fn get_workspace_members(
+            &self,
+            _w: Uuid,
+        ) -> Result<Vec<crate::models::WorkspaceMemberDetail>, AppError> {
+            Ok(vec![])
+        }
+        async fn get_admins_with_permissions(
+            &self,
+            _w: Uuid,
+            _p: &[&str],
+        ) -> Result<Vec<Uuid>, AppError> {
+            Ok(vec![])
+        }
+        async fn get_all_extra_roles(&self, _w: Uuid) -> Result<Vec<MemberExtraRole>, AppError> {
+            Ok(vec![])
+        }
+        async fn find_extra_roles(
+            &self,
+            _w: Uuid,
+            _u: Uuid,
+        ) -> Result<Vec<MemberExtraRole>, AppError> {
+            Ok(vec![])
+        }
+        async fn find_extra_permissions(
+            &self,
+            _w: Uuid,
+            _u: Uuid,
+        ) -> Result<Vec<String>, AppError> {
+            Ok(vec![])
+        }
+        async fn get_member_extra_permissions(
+            &self,
+            _w: Uuid,
+            _u: Uuid,
+        ) -> Result<Vec<crate::models::MemberExtraPermission>, AppError> {
+            Ok(vec![])
+        }
+        async fn assign_extra_permission(
+            &self,
+            _w: Uuid,
+            _u: Uuid,
+            _p: String,
+            _e: chrono::DateTime<chrono::Utc>,
+            _a: Uuid,
+        ) -> Result<crate::models::MemberExtraPermission, AppError> {
+            unimplemented!()
+        }
+        async fn revoke_extra_permission(
+            &self,
+            _w: Uuid,
+            _u: Uuid,
+            _p: Uuid,
+        ) -> Result<u64, AppError> {
+            Ok(1)
+        }
+        async fn assign_extra_role(
+            &self,
+            _w: Uuid,
+            _u: Uuid,
+            _r: Uuid,
+            _e: chrono::DateTime<chrono::Utc>,
+        ) -> Result<MemberExtraRole, AppError> {
+            unimplemented!()
+        }
+        async fn revoke_extra_role(&self, _w: Uuid, _r: Uuid) -> Result<u64, AppError> {
+            Ok(1)
+        }
+        async fn get_workspace_roles(
+            &self,
+            _w: Uuid,
+        ) -> Result<Vec<crate::models::WorkspaceRole>, AppError> {
+            Ok(vec![])
+        }
+        async fn create_workspace_role(
+            &self,
+            _w: Uuid,
+            _n: String,
+            _d: Option<String>,
+            _c: String,
+            _s: String,
+        ) -> Result<crate::models::WorkspaceRole, AppError> {
+            unimplemented!()
+        }
+        async fn update_workspace_role(
+            &self,
+            _w: Uuid,
+            _r: Uuid,
+            _n: Option<String>,
+            _d: Option<String>,
+            _c: Option<String>,
+        ) -> Result<Option<crate::models::WorkspaceRole>, AppError> {
+            unimplemented!()
+        }
+        async fn delete_workspace_role(&self, _w: Uuid, _r: Uuid) -> Result<u64, AppError> {
+            Ok(1)
+        }
+        async fn get_role_permissions_by_role_id(
+            &self,
+            _w: Uuid,
+            _r: Uuid,
+        ) -> Result<Vec<String>, AppError> {
+            Ok(vec![])
+        }
+        async fn role_exists_and_is_not_system(
+            &self,
+            _w: Uuid,
+            _r: Uuid,
+        ) -> Result<bool, AppError> {
+            Ok(true)
+        }
+        async fn set_role_permissions(&self, _r: Uuid, _p: Vec<String>) -> Result<(), AppError> {
+            Ok(())
+        }
+        async fn get_permissions_for_roles(&self, _r: &[Uuid]) -> Result<Vec<String>, AppError> {
+            Ok(vec![])
+        }
         #[allow(clippy::too_many_arguments)]
-        async fn update_workspace(&self, _id: Uuid, name: Option<String>, _df: Option<String>, _tf: Option<String>, _tz: Option<String>, _tc: Option<String>, _dl: Option<String>, _hs: Option<String>, _hm: Option<bigdecimal::BigDecimal>, _lu: Option<String>, _tl: Option<String>) -> Result<Workspace, AppError> {
+        async fn update_workspace(
+            &self,
+            _id: Uuid,
+            name: Option<String>,
+            _df: Option<String>,
+            _tf: Option<String>,
+            _tz: Option<String>,
+            _tc: Option<String>,
+            _dl: Option<String>,
+            _hs: Option<String>,
+            _hm: Option<bigdecimal::BigDecimal>,
+            _lu: Option<String>,
+            _tl: Option<String>,
+        ) -> Result<Workspace, AppError> {
             let mut ws = dummy_workspace();
-            if let Some(n) = name { ws.name = n; }
+            if let Some(n) = name {
+                ws.name = n;
+            }
             Ok(ws)
         }
-        async fn is_any_role_global(&self, _r: &[Uuid]) -> Result<bool, AppError> { Ok(false) }
+        async fn is_any_role_global(&self, _r: &[Uuid]) -> Result<bool, AppError> {
+            Ok(false)
+        }
     }
 
     struct MockUserRepo {
@@ -223,13 +352,34 @@ mod tests {
                 Ok(None)
             }
         }
-        async fn create_user(&self, _u: &crate::models::User) -> Result<(), AppError> { unimplemented!() }
-        async fn get_user_count(&self) -> Result<i64, AppError> { Ok(1) }
-        async fn assign_platform_admin(&self, _id: Uuid) -> Result<(), AppError> { Ok(()) }
-        async fn get_user_by_email(&self, _email: &str) -> Result<Option<crate::models::User>, AppError> { Ok(None) }
-        async fn update_password_hash(&self, _id: Uuid, _pw: &str) -> Result<(), AppError> { Ok(()) }
-        async fn get_system_roles_for_user(&self, _id: Uuid) -> Result<Vec<String>, AppError> { Ok(vec![]) }
-        async fn update_user_profile(&self, id: Uuid, full_name: Option<String>, _a: Option<String>, _b: Option<String>) -> Result<crate::models::User, AppError> {
+        async fn create_user(&self, _u: &crate::models::User) -> Result<(), AppError> {
+            unimplemented!()
+        }
+        async fn get_user_count(&self) -> Result<i64, AppError> {
+            Ok(1)
+        }
+        async fn assign_platform_admin(&self, _id: Uuid) -> Result<(), AppError> {
+            Ok(())
+        }
+        async fn get_user_by_email(
+            &self,
+            _email: &str,
+        ) -> Result<Option<crate::models::User>, AppError> {
+            Ok(None)
+        }
+        async fn update_password_hash(&self, _id: Uuid, _pw: &str) -> Result<(), AppError> {
+            Ok(())
+        }
+        async fn get_system_roles_for_user(&self, _id: Uuid) -> Result<Vec<String>, AppError> {
+            Ok(vec![])
+        }
+        async fn update_user_profile(
+            &self,
+            id: Uuid,
+            full_name: Option<String>,
+            _a: Option<String>,
+            _b: Option<String>,
+        ) -> Result<crate::models::User, AppError> {
             Ok(crate::models::User {
                 id,
                 email: "test@example.com".into(),
@@ -241,20 +391,69 @@ mod tests {
                 preferred_language: None,
             })
         }
-        async fn get_workspace_users(&self, _w: Uuid) -> Result<Vec<crate::models::User>, AppError> { Ok(vec![]) }
-        async fn get_dashboard_preferences(&self, _u: Uuid, _w: Uuid) -> Result<Option<crate::handlers::dashboard_preferences::DashboardPreferences>, AppError> { Ok(None) }
-        async fn update_dashboard_preferences(&self, _u: Uuid, _w: Uuid, _r: crate::handlers::dashboard_preferences::UpdateDashboardPreferences) -> Result<crate::handlers::dashboard_preferences::DashboardPreferences, AppError> { unimplemented!() }
-        async fn get_notifications(&self, _u: Uuid, _l: i64, _c: Option<chrono::DateTime<chrono::Utc>>) -> Result<Vec<crate::models::Notification>, AppError> { Ok(vec![]) }
-        async fn get_unread_notification_count(&self, _u: Uuid) -> Result<i64, AppError> { Ok(0) }
-        async fn mark_notification_as_read(&self, _u: Uuid, _n: Uuid) -> Result<(), AppError> { Ok(()) }
-        async fn mark_all_notifications_as_read(&self, _u: Uuid) -> Result<(), AppError> { Ok(()) }
-        async fn check_recent_notification_exists(&self, _u: Uuid, _t: &str, _l: &str, _d: i32) -> Result<bool, AppError> { Ok(false) }
-        async fn create_notification(&self, _n: &crate::models::Notification) -> Result<(), AppError> { Ok(()) }
+        async fn get_workspace_users(
+            &self,
+            _w: Uuid,
+        ) -> Result<Vec<crate::models::User>, AppError> {
+            Ok(vec![])
+        }
+        async fn get_dashboard_preferences(
+            &self,
+            _u: Uuid,
+            _w: Uuid,
+        ) -> Result<Option<crate::handlers::dashboard_preferences::DashboardPreferences>, AppError>
+        {
+            Ok(None)
+        }
+        async fn update_dashboard_preferences(
+            &self,
+            _u: Uuid,
+            _w: Uuid,
+            _r: crate::handlers::dashboard_preferences::UpdateDashboardPreferences,
+        ) -> Result<crate::handlers::dashboard_preferences::DashboardPreferences, AppError>
+        {
+            unimplemented!()
+        }
+        async fn get_notifications(
+            &self,
+            _u: Uuid,
+            _l: i64,
+            _c: Option<chrono::DateTime<chrono::Utc>>,
+        ) -> Result<Vec<crate::models::Notification>, AppError> {
+            Ok(vec![])
+        }
+        async fn get_unread_notification_count(&self, _u: Uuid) -> Result<i64, AppError> {
+            Ok(0)
+        }
+        async fn mark_notification_as_read(&self, _u: Uuid, _n: Uuid) -> Result<(), AppError> {
+            Ok(())
+        }
+        async fn mark_all_notifications_as_read(&self, _u: Uuid) -> Result<(), AppError> {
+            Ok(())
+        }
+        async fn check_recent_notification_exists(
+            &self,
+            _u: Uuid,
+            _t: &str,
+            _l: &str,
+            _d: i32,
+        ) -> Result<bool, AppError> {
+            Ok(false)
+        }
+        async fn create_notification(
+            &self,
+            _n: &crate::models::Notification,
+        ) -> Result<(), AppError> {
+            Ok(())
+        }
     }
 
     fn build_service(user_exists: bool) -> WorkspaceService {
         WorkspaceService::new(
-            std::sync::Arc::new(MockWorkspaceRepo { workspace: Some(dummy_workspace()), primary_role: Some(Uuid::new_v4()) }),
+            std::sync::Arc::new(MockWorkspaceRepo {
+                workspace: Some(dummy_workspace()),
+                primary_role: Some(Uuid::new_v4()),
+            }),
             std::sync::Arc::new(MockUserRepo { user_exists }),
         )
     }
@@ -264,29 +463,46 @@ mod tests {
     #[tokio::test]
     async fn test_create_workspace_user_not_found() {
         let svc = build_service(false);
-        let err = svc.create_workspace("Acme", Uuid::new_v4()).await.unwrap_err();
+        let err = svc
+            .create_workspace("Acme", Uuid::new_v4())
+            .await
+            .unwrap_err();
         assert!(err.contains("does not exist"));
     }
 
     #[tokio::test]
     async fn test_create_workspace_success() {
         let svc = build_service(true);
-        let ws = svc.create_workspace("Acme Corp", Uuid::new_v4()).await.unwrap();
+        let ws = svc
+            .create_workspace("Acme Corp", Uuid::new_v4())
+            .await
+            .unwrap();
         assert_eq!(ws.name, "Acme Corp");
     }
 
     #[tokio::test]
     async fn test_get_member_roles_found() {
-        let repo = MockWorkspaceRepo { workspace: Some(dummy_workspace()), primary_role: Some(Uuid::new_v4()) };
-        let (role_id, extras) = WorkspaceService::get_member_roles(&repo, Uuid::new_v4(), Uuid::new_v4()).await.unwrap();
+        let repo = MockWorkspaceRepo {
+            workspace: Some(dummy_workspace()),
+            primary_role: Some(Uuid::new_v4()),
+        };
+        let (role_id, extras) =
+            WorkspaceService::get_member_roles(&repo, Uuid::new_v4(), Uuid::new_v4())
+                .await
+                .unwrap();
         assert!(!role_id.is_nil());
         assert!(extras.is_empty());
     }
 
     #[tokio::test]
     async fn test_get_member_roles_not_found() {
-        let repo = MockWorkspaceRepo { workspace: None, primary_role: None };
-        let err = WorkspaceService::get_member_roles(&repo, Uuid::new_v4(), Uuid::new_v4()).await.unwrap_err();
+        let repo = MockWorkspaceRepo {
+            workspace: None,
+            primary_role: None,
+        };
+        let err = WorkspaceService::get_member_roles(&repo, Uuid::new_v4(), Uuid::new_v4())
+            .await
+            .unwrap_err();
         assert_eq!(err, "NOT_FOUND");
     }
 

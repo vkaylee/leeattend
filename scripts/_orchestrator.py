@@ -607,17 +607,7 @@ class Orchestrator:
                     )
 
                 log_info("ℹ️ 🔹 Bringing up backend dependencies for supavisor pooler...")
-                self.execute_safe(
-                    [*self.compose_engine, "--profile", "infra-pooler", "up", "-d", "supavisor"]
-                )
-                log_info("ℹ️ 🔹 Waiting for supavisor to be healthy...")
-                for _ in range(30):
-                    res = subprocess.run(
-                        [*self.compose_engine, "ps"], capture_output=True, text=True
-                    )
-                    if "supavisor" in res.stdout and "healthy" in res.stdout:
-                        break  # pragma: no cover
-                    time.sleep(1)
+                _lifecycle_up("infra-pooler")
             compose_cmd.extend(["--profile", "int-api"])
             if needs_db:
                 compose_cmd.extend(["--profile", "infra-db", "--profile", "infra-redis"])
@@ -724,7 +714,7 @@ class Orchestrator:
         if tool_args:
             # AI Agent behavior correction: silently convert "cargo test" to "cargo nextest run"
             if tool_args[0] == "test":
-                tool_args = ["nextest", "run"] + tool_args[1:]
+                tool_args = ["nextest", "run", "--test-threads", "4"] + tool_args[1:]
             compose_cmd.extend(tool_args)
 
     def handle_lint_infra(self) -> None:

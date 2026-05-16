@@ -74,7 +74,9 @@ mod tests {
 
     impl MockAuditRepo {
         fn new() -> Arc<Self> {
-            Arc::new(Self { logged: Mutex::new(false) })
+            Arc::new(Self {
+                logged: Mutex::new(false),
+            })
         }
     }
 
@@ -85,7 +87,15 @@ mod tests {
             Ok(log.clone())
         }
 
-        async fn find_by_workspace(&self, _w: Uuid, _l: i64, _o: i64, _a: Option<String>, _s: Option<chrono::DateTime<Utc>>, _e: Option<chrono::DateTime<Utc>>) -> Result<(Vec<AuditLog>, i64), AppError> {
+        async fn find_by_workspace(
+            &self,
+            _w: Uuid,
+            _l: i64,
+            _o: i64,
+            _a: Option<String>,
+            _s: Option<chrono::DateTime<Utc>>,
+            _e: Option<chrono::DateTime<Utc>>,
+        ) -> Result<(Vec<AuditLog>, i64), AppError> {
             Ok((vec![], 0))
         }
     }
@@ -105,7 +115,8 @@ mod tests {
             action: "employee.create",
             details: None,
             headers: &headers,
-        }).await;
+        })
+        .await;
         // No panic means success — logs errors internally
     }
 
@@ -114,7 +125,10 @@ mod tests {
         let repo: Arc<dyn AuditLogRepository> = MockAuditRepo::new();
         let arc_repo = Arc::new(repo);
         let mut headers = HeaderMap::new();
-        headers.insert(axum::http::header::USER_AGENT, "Mozilla/5.0".parse().unwrap());
+        headers.insert(
+            axum::http::header::USER_AGENT,
+            "Mozilla/5.0".parse().unwrap(),
+        );
         headers.insert("X-Forwarded-For", "192.168.1.1, 10.0.0.1".parse().unwrap());
 
         AuditHelper::log(AuditLogArgs {
@@ -126,7 +140,8 @@ mod tests {
             action: "leave.approve",
             details: Some(serde_json::json!({"status": "approved"})),
             headers: &headers,
-        }).await;
+        })
+        .await;
     }
 
     #[tokio::test]
@@ -145,6 +160,7 @@ mod tests {
             action: "workspace.update",
             details: None,
             headers: &headers,
-        }).await;
+        })
+        .await;
     }
 }

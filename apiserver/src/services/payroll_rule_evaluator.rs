@@ -142,49 +142,226 @@ mod tests {
 
     #[async_trait]
     impl PayrollRepository for MockPayrollRepo {
-        async fn get_resolved_rule_assignments(&self, _w: Uuid, _e: Uuid, _d: Option<Uuid>, _s: NaiveDate, _en: NaiveDate) -> Result<Vec<ResolvedRuleAssignment>, AppError> {
-            Ok(self.assignment_specs.iter().map(|(method, config, rule_id)| ResolvedRuleAssignment {
-                rule_definition_id: *rule_id,
-                override_config: None,
-                code: "TEST_RULE".into(),
-                calculation_method: method.clone(),
-                default_config: config.clone(),
-                category: PayrollRuleCategory::Allowance,
-            }).collect())
+        async fn get_resolved_rule_assignments(
+            &self,
+            _w: Uuid,
+            _e: Uuid,
+            _d: Option<Uuid>,
+            _s: NaiveDate,
+            _en: NaiveDate,
+        ) -> Result<Vec<ResolvedRuleAssignment>, AppError> {
+            Ok(self
+                .assignment_specs
+                .iter()
+                .map(|(method, config, rule_id)| ResolvedRuleAssignment {
+                    rule_definition_id: *rule_id,
+                    override_config: None,
+                    code: "TEST_RULE".into(),
+                    calculation_method: method.clone(),
+                    default_config: config.clone(),
+                    category: PayrollRuleCategory::Allowance,
+                })
+                .collect())
         }
-        async fn get_payroll_rule_tiers(&self, _r: Uuid) -> Result<Vec<crate::models::PayrollRuleTier>, AppError> {
+        async fn get_payroll_rule_tiers(
+            &self,
+            _r: Uuid,
+        ) -> Result<Vec<crate::models::PayrollRuleTier>, AppError> {
             Ok(self.tiers.clone())
         }
-        async fn get_active_incentive_policies(&self, _w: Uuid) -> Result<Vec<crate::models::PayrollIncentivePolicy>, AppError> { Ok(vec![]) }
-        async fn get_active_incentive_policies_for_period(&self, _w: Uuid, _s: NaiveDate, _e: NaiveDate) -> Result<Vec<crate::models::PayrollIncentivePolicy>, AppError> { Ok(vec![]) }
-        async fn get_policy_tiers(&self, _p: Uuid) -> Result<Vec<crate::models::IncentiveTier>, AppError> { Ok(vec![]) }
-        async fn create_incentive_policy(&self, _w: Uuid, _r: &crate::models::CreatePayrollIncentivePolicyRequest) -> Result<crate::models::PayrollIncentivePolicy, AppError> { unimplemented!() }
-        async fn delete_incentive_policy(&self, _w: Uuid, _p: Uuid) -> Result<(), AppError> { Ok(()) }
-        async fn clone_incentive_policy(&self, _w: Uuid, _p: Uuid) -> Result<crate::models::PayrollIncentivePolicy, AppError> { unimplemented!() }
-        async fn create_payslip_incentive(&self, _p: Uuid, _r: &crate::models::IncentiveEvaluationResult) -> Result<(), AppError> { Ok(()) }
-        async fn get_payslip_incentives(&self, _p: Uuid) -> Result<Vec<crate::models::IncentiveEvaluationResult>, AppError> { Ok(vec![]) }
-        async fn create_payslip_rule_evaluation(&self, _p: Uuid, _c: String, _a: Decimal) -> Result<(), AppError> { Ok(()) }
-        async fn get_payslip_rule_evaluations(&self, _p: Uuid) -> Result<Vec<crate::models::PayslipRuleEvaluation>, AppError> { Ok(vec![]) }
-        async fn get_payroll_settings(&self, _w: Uuid) -> Result<Option<crate::models::PayrollSettings>, AppError> { Ok(None) }
-        async fn get_payroll_settings_at(&self, _w: Uuid, _d: NaiveDate) -> Result<Option<crate::models::PayrollSettings>, AppError> { Ok(None) }
-        async fn get_payroll_settings_history(&self, _w: Uuid) -> Result<Vec<crate::models::PayrollSettings>, AppError> { Ok(vec![]) }
-        async fn update_payroll_settings(&self, _w: Uuid, _r: &crate::models::SavePayrollSettings) -> Result<crate::models::PayrollSettings, AppError> { unimplemented!() }
-        async fn get_salary_component_definitions(&self, _w: Uuid) -> Result<Vec<crate::models::SalaryComponentDefinition>, AppError> { Ok(vec![]) }
-        async fn create_salary_component_definition(&self, _w: Uuid, _n: String, _c: String) -> Result<crate::models::SalaryComponentDefinition, AppError> { unimplemented!() }
-        async fn assign_employee_salary_component(&self, _e: Uuid, _c: Uuid, _a: Decimal, _d: NaiveDate) -> Result<crate::models::EmployeeSalaryComponent, AppError> { unimplemented!() }
-        async fn get_employee_salary_components(&self, _w: Uuid, _e: Uuid, _d: NaiveDate) -> Result<Vec<(crate::models::EmployeeSalaryComponent, crate::models::SalaryComponentDefinition)>, AppError> { Ok(vec![]) }
-        async fn create_payslip(&self, _p: &crate::models::Payslip) -> Result<crate::models::Payslip, AppError> { unimplemented!() }
-        async fn get_payslips_by_employee(&self, _w: Uuid, _e: Uuid) -> Result<Vec<crate::models::Payslip>, AppError> { Ok(vec![]) }
-        async fn get_payslips_by_workspace_period(&self, _w: Uuid, _s: NaiveDate, _e: NaiveDate) -> Result<Vec<crate::models::Payslip>, AppError> { Ok(vec![]) }
-        async fn get_salary_components_history(&self, _w: Uuid, _e: Uuid, _s: NaiveDate, _en: NaiveDate) -> Result<Vec<(crate::models::EmployeeSalaryComponent, crate::models::SalaryComponentDefinition)>, AppError> { Ok(vec![]) }
-        async fn create_payslip_segment(&self, _p: Uuid, _a: &crate::models::CreatePayslipSegmentArgs) -> Result<(), AppError> { Ok(()) }
-        async fn get_payslip_segments(&self, _p: Uuid) -> Result<Vec<crate::models::PayslipSegment>, AppError> { Ok(vec![]) }
-        async fn get_department_payroll_config_at(&self, _d: Uuid, _dt: NaiveDate) -> Result<Option<crate::models::DepartmentPayrollConfig>, AppError> { Ok(None) }
+        async fn get_active_incentive_policies(
+            &self,
+            _w: Uuid,
+        ) -> Result<Vec<crate::models::PayrollIncentivePolicy>, AppError> {
+            Ok(vec![])
+        }
+        async fn get_active_incentive_policies_for_period(
+            &self,
+            _w: Uuid,
+            _s: NaiveDate,
+            _e: NaiveDate,
+        ) -> Result<Vec<crate::models::PayrollIncentivePolicy>, AppError> {
+            Ok(vec![])
+        }
+        async fn get_policy_tiers(
+            &self,
+            _p: Uuid,
+        ) -> Result<Vec<crate::models::IncentiveTier>, AppError> {
+            Ok(vec![])
+        }
+        async fn create_incentive_policy(
+            &self,
+            _w: Uuid,
+            _r: &crate::models::CreatePayrollIncentivePolicyRequest,
+        ) -> Result<crate::models::PayrollIncentivePolicy, AppError> {
+            unimplemented!()
+        }
+        async fn delete_incentive_policy(&self, _w: Uuid, _p: Uuid) -> Result<(), AppError> {
+            Ok(())
+        }
+        async fn clone_incentive_policy(
+            &self,
+            _w: Uuid,
+            _p: Uuid,
+        ) -> Result<crate::models::PayrollIncentivePolicy, AppError> {
+            unimplemented!()
+        }
+        async fn create_payslip_incentive(
+            &self,
+            _p: Uuid,
+            _r: &crate::models::IncentiveEvaluationResult,
+        ) -> Result<(), AppError> {
+            Ok(())
+        }
+        async fn get_payslip_incentives(
+            &self,
+            _p: Uuid,
+        ) -> Result<Vec<crate::models::IncentiveEvaluationResult>, AppError> {
+            Ok(vec![])
+        }
+        async fn create_payslip_rule_evaluation(
+            &self,
+            _p: Uuid,
+            _c: String,
+            _a: Decimal,
+        ) -> Result<(), AppError> {
+            Ok(())
+        }
+        async fn get_payslip_rule_evaluations(
+            &self,
+            _p: Uuid,
+        ) -> Result<Vec<crate::models::PayslipRuleEvaluation>, AppError> {
+            Ok(vec![])
+        }
+        async fn get_payroll_settings(
+            &self,
+            _w: Uuid,
+        ) -> Result<Option<crate::models::PayrollSettings>, AppError> {
+            Ok(None)
+        }
+        async fn get_payroll_settings_at(
+            &self,
+            _w: Uuid,
+            _d: NaiveDate,
+        ) -> Result<Option<crate::models::PayrollSettings>, AppError> {
+            Ok(None)
+        }
+        async fn get_payroll_settings_history(
+            &self,
+            _w: Uuid,
+        ) -> Result<Vec<crate::models::PayrollSettings>, AppError> {
+            Ok(vec![])
+        }
+        async fn update_payroll_settings(
+            &self,
+            _w: Uuid,
+            _r: &crate::models::SavePayrollSettings,
+        ) -> Result<crate::models::PayrollSettings, AppError> {
+            unimplemented!()
+        }
+        async fn get_salary_component_definitions(
+            &self,
+            _w: Uuid,
+        ) -> Result<Vec<crate::models::SalaryComponentDefinition>, AppError> {
+            Ok(vec![])
+        }
+        async fn create_salary_component_definition(
+            &self,
+            _w: Uuid,
+            _n: String,
+            _c: String,
+        ) -> Result<crate::models::SalaryComponentDefinition, AppError> {
+            unimplemented!()
+        }
+        async fn assign_employee_salary_component(
+            &self,
+            _e: Uuid,
+            _c: Uuid,
+            _a: Decimal,
+            _d: NaiveDate,
+        ) -> Result<crate::models::EmployeeSalaryComponent, AppError> {
+            unimplemented!()
+        }
+        async fn get_employee_salary_components(
+            &self,
+            _w: Uuid,
+            _e: Uuid,
+            _d: NaiveDate,
+        ) -> Result<
+            Vec<(
+                crate::models::EmployeeSalaryComponent,
+                crate::models::SalaryComponentDefinition,
+            )>,
+            AppError,
+        > {
+            Ok(vec![])
+        }
+        async fn create_payslip(
+            &self,
+            _p: &crate::models::Payslip,
+        ) -> Result<crate::models::Payslip, AppError> {
+            unimplemented!()
+        }
+        async fn get_payslips_by_employee(
+            &self,
+            _w: Uuid,
+            _e: Uuid,
+        ) -> Result<Vec<crate::models::Payslip>, AppError> {
+            Ok(vec![])
+        }
+        async fn get_payslips_by_workspace_period(
+            &self,
+            _w: Uuid,
+            _s: NaiveDate,
+            _e: NaiveDate,
+        ) -> Result<Vec<crate::models::Payslip>, AppError> {
+            Ok(vec![])
+        }
+        async fn get_salary_components_history(
+            &self,
+            _w: Uuid,
+            _e: Uuid,
+            _s: NaiveDate,
+            _en: NaiveDate,
+        ) -> Result<
+            Vec<(
+                crate::models::EmployeeSalaryComponent,
+                crate::models::SalaryComponentDefinition,
+            )>,
+            AppError,
+        > {
+            Ok(vec![])
+        }
+        async fn create_payslip_segment(
+            &self,
+            _p: Uuid,
+            _a: &crate::models::CreatePayslipSegmentArgs,
+        ) -> Result<(), AppError> {
+            Ok(())
+        }
+        async fn get_payslip_segments(
+            &self,
+            _p: Uuid,
+        ) -> Result<Vec<crate::models::PayslipSegment>, AppError> {
+            Ok(vec![])
+        }
+        async fn get_department_payroll_config_at(
+            &self,
+            _d: Uuid,
+            _dt: NaiveDate,
+        ) -> Result<Option<crate::models::DepartmentPayrollConfig>, AppError> {
+            Ok(None)
+        }
     }
 
-    fn make_date() -> NaiveDate { NaiveDate::from_ymd_opt(2024, 1, 1).unwrap() }
+    fn make_date() -> NaiveDate {
+        NaiveDate::from_ymd_opt(2024, 1, 1).unwrap()
+    }
 
-    fn spec(method: PayrollCalculationMethod, config: serde_json::Value) -> (PayrollCalculationMethod, serde_json::Value, Uuid) {
+    fn spec(
+        method: PayrollCalculationMethod,
+        config: serde_json::Value,
+    ) -> (PayrollCalculationMethod, serde_json::Value, Uuid) {
         (method, config, Uuid::new_v4())
     }
 
@@ -207,8 +384,16 @@ mod tests {
         };
         let base = base_map(10_000_000.0);
         let results = PayrollRuleEvaluator::evaluate_rules(
-            &repo, Uuid::new_v4(), Uuid::new_v4(), None, make_date(), make_date(), &base,
-        ).await.unwrap();
+            &repo,
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            None,
+            make_date(),
+            make_date(),
+            &base,
+        )
+        .await
+        .unwrap();
         assert_eq!(results.len(), 1);
         assert_eq!(results[0].rule_code, "TEST_RULE");
         // 10% of 10_000_000 = 1_000_000
@@ -226,8 +411,16 @@ mod tests {
         };
         let base = base_map(5_000_000.0);
         let results = PayrollRuleEvaluator::evaluate_rules(
-            &repo, Uuid::new_v4(), Uuid::new_v4(), None, make_date(), make_date(), &base,
-        ).await.unwrap();
+            &repo,
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            None,
+            make_date(),
+            make_date(),
+            &base,
+        )
+        .await
+        .unwrap();
         // 50% of 5M = 2.5M but capped at 500K
         assert_eq!(results[0].amount, Decimal::from(500_000));
     }
@@ -244,9 +437,20 @@ mod tests {
         };
         let base = base_map(10_000_000.0);
         let results = PayrollRuleEvaluator::evaluate_rules(
-            &repo, Uuid::new_v4(), Uuid::new_v4(), None, make_date(), make_date(), &base,
-        ).await.unwrap();
-        assert!(results.is_empty(), "Zero-amount results should be filtered out");
+            &repo,
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            None,
+            make_date(),
+            make_date(),
+            &base,
+        )
+        .await
+        .unwrap();
+        assert!(
+            results.is_empty(),
+            "Zero-amount results should be filtered out"
+        );
     }
 
     // ── Fixed ─────────────────────────────────────────────────────────────────
@@ -261,8 +465,16 @@ mod tests {
             tiers: vec![],
         };
         let results = PayrollRuleEvaluator::evaluate_rules(
-            &repo, Uuid::new_v4(), Uuid::new_v4(), None, make_date(), make_date(), &HashMap::new(),
-        ).await.unwrap();
+            &repo,
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            None,
+            make_date(),
+            make_date(),
+            &HashMap::new(),
+        )
+        .await
+        .unwrap();
         assert_eq!(results[0].amount, Decimal::from(2_000_000));
     }
 
@@ -274,17 +486,47 @@ mod tests {
         use chrono::Utc;
         let rule_id = Uuid::new_v4();
         let tiers = vec![
-            PayrollRuleTier { id: Uuid::new_v4(), rule_definition_id: rule_id, min_amount: Decimal::ZERO, max_amount: Some(Decimal::from(5_000_000)), rate: Decimal::from(5), fixed_amount: Decimal::ZERO, tier_order: 1, created_at: Utc::now() },
-            PayrollRuleTier { id: Uuid::new_v4(), rule_definition_id: rule_id, min_amount: Decimal::from(5_000_000), max_amount: None, rate: Decimal::from(10), fixed_amount: Decimal::ZERO, tier_order: 2, created_at: Utc::now() },
+            PayrollRuleTier {
+                id: Uuid::new_v4(),
+                rule_definition_id: rule_id,
+                min_amount: Decimal::ZERO,
+                max_amount: Some(Decimal::from(5_000_000)),
+                rate: Decimal::from(5),
+                fixed_amount: Decimal::ZERO,
+                tier_order: 1,
+                created_at: Utc::now(),
+            },
+            PayrollRuleTier {
+                id: Uuid::new_v4(),
+                rule_definition_id: rule_id,
+                min_amount: Decimal::from(5_000_000),
+                max_amount: None,
+                rate: Decimal::from(10),
+                fixed_amount: Decimal::ZERO,
+                tier_order: 2,
+                created_at: Utc::now(),
+            },
         ];
         let repo = MockPayrollRepo {
-            assignment_specs: vec![(PayrollCalculationMethod::Tiered, json!({"base": "gross"}), rule_id)],
+            assignment_specs: vec![(
+                PayrollCalculationMethod::Tiered,
+                json!({"base": "gross"}),
+                rule_id,
+            )],
             tiers,
         };
         let base = base_map(10_000_000.0);
         let results = PayrollRuleEvaluator::evaluate_rules(
-            &repo, Uuid::new_v4(), Uuid::new_v4(), None, make_date(), make_date(), &base,
-        ).await.unwrap();
+            &repo,
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            None,
+            make_date(),
+            make_date(),
+            &base,
+        )
+        .await
+        .unwrap();
         assert!(!results.is_empty());
     }
 
@@ -292,10 +534,21 @@ mod tests {
 
     #[tokio::test]
     async fn test_no_assignments_returns_empty() {
-        let repo = MockPayrollRepo { assignment_specs: vec![], tiers: vec![] };
+        let repo = MockPayrollRepo {
+            assignment_specs: vec![],
+            tiers: vec![],
+        };
         let results = PayrollRuleEvaluator::evaluate_rules(
-            &repo, Uuid::new_v4(), Uuid::new_v4(), None, make_date(), make_date(), &HashMap::new(),
-        ).await.unwrap();
+            &repo,
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            None,
+            make_date(),
+            make_date(),
+            &HashMap::new(),
+        )
+        .await
+        .unwrap();
         assert!(results.is_empty());
     }
 }

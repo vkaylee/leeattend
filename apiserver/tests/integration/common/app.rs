@@ -16,10 +16,44 @@ use uuid::Uuid;
 use super::db::TestDatabase;
 use super::factory::TestFactory;
 
+/// Helper to create an isolated Redis pool for tests
+pub async fn create_test_redis_pool() -> Option<apiserver::queue::RedisPool> {
+    if std::env::var("REDIS_URL").is_err() {
+        return None;
+    }
+
+    let mut base_redis_url = std::env::var("REDIS_URL_FOR_TEST_GENERATION")
+        .or_else(|_| std::env::var("REDIS_URL"))
+        .unwrap_or_else(|_| "redis://localhost:6379".to_string());
+    
+    if base_redis_url.ends_with('/') {
+        base_redis_url.pop();
+    }
+    if let Some(pos) = base_redis_url.rfind('/') {
+        if base_redis_url[pos + 1..].chars().all(|c| c.is_ascii_digit()) && pos > base_redis_url.find("://").unwrap() + 2 {
+            base_redis_url.truncate(pos);
+        }
+    }
+    let logical_db = uuid::Uuid::new_v4().as_u128() % 16;
+    let url = format!("{}/{}", base_redis_url, logical_db);
+    
+    for attempt in 0..10 {
+        match apiserver::queue::RedisPool::new(&url).await {
+            Ok(p) => return Some(p),
+            Err(_) if attempt < 9 => {
+                tokio::time::sleep(std::time::Duration::from_millis(500 * (attempt + 1))).await;
+            }
+            Err(e) => panic!("Failed to create Redis pool for test factory after 10 attempts: {}", e),
+        }
+    }
+    None
+}
+
 /// Basic app spawn - returns address (URL) and `TestDatabase`
 #[allow(dead_code)]
 pub async fn spawn_app() -> (String, TestDatabase) {
     let test_db = TestDatabase::new().await;
+    let shared_redis_pool = create_test_redis_pool().await;
     let pool = test_db.diesel_pools.clone();
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
 
@@ -419,19 +453,13 @@ pub async fn spawn_app() -> (String, TestDatabase) {
         },
         reports: apiserver::ReportState {
             service: report_service,
-            coordinator: if let Ok(url) = std::env::var("REDIS_URL") {
-                if let Ok(redis) = apiserver::queue::RedisPool::new(&url).await {
-                    Some(Arc::new(apiserver::services::ReportCoordinator::new(
-                        redis,
-                        employee_repo.clone(),
-                        workspace_repo.clone(),
-                    )))
-                } else {
-                    None
-                }
-            } else {
-                None
-            },
+            coordinator: shared_redis_pool.clone().map(|redis| {
+                Arc::new(apiserver::services::ReportCoordinator::new(
+                    redis,
+                    employee_repo.clone(),
+                    workspace_repo.clone(),
+                ))
+            }),
             stats_repo: Arc::new(
                 apiserver::repositories::DieselWorkspaceStatsRepository::new(diesel_pools.clone()),
             ),
@@ -452,15 +480,7 @@ pub async fn spawn_app() -> (String, TestDatabase) {
         },
         infra: apiserver::InfraState {
             diesel: diesel_pools.clone(),
-            redis: if let Ok(url) = std::env::var("REDIS_URL") {
-                Some(
-                    apiserver::queue::RedisPool::new(&url)
-                        .await
-                        .expect("Failed to create Redis pool for test"),
-                )
-            } else {
-                None
-            },
+            redis: shared_redis_pool.clone(),
             roster_cache: None,
         },
     });
@@ -485,7 +505,9 @@ pub async fn spawn_app_with_factory() -> (String, Uuid, Uuid, TestFactory, TestD
     let pool = test_db.diesel_pools.clone();
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
 
-    let factory = TestFactory::new(pool.clone());
+    let shared_redis_pool = create_test_redis_pool().await;
+
+    let factory = TestFactory::new(pool.clone()).with_redis(shared_redis_pool.clone());
 
     // Create a test user and workspace using factory
     let user_id = factory.user().with_email("test@example.com").create().await;
@@ -911,19 +933,13 @@ pub async fn spawn_app_with_factory() -> (String, Uuid, Uuid, TestFactory, TestD
         },
         reports: apiserver::ReportState {
             service: report_service,
-            coordinator: if let Ok(url) = std::env::var("REDIS_URL") {
-                if let Ok(redis) = apiserver::queue::RedisPool::new(&url).await {
-                    Some(Arc::new(apiserver::services::ReportCoordinator::new(
-                        redis,
-                        employee_repo.clone(),
-                        workspace_repo.clone(),
-                    )))
-                } else {
-                    None
-                }
-            } else {
-                None
-            },
+            coordinator: shared_redis_pool.clone().map(|redis| {
+                Arc::new(apiserver::services::ReportCoordinator::new(
+                    redis,
+                    employee_repo.clone(),
+                    workspace_repo.clone(),
+                ))
+            }),
             stats_repo: Arc::new(
                 apiserver::repositories::DieselWorkspaceStatsRepository::new(diesel_pools.clone()),
             ),
@@ -944,29 +960,7 @@ pub async fn spawn_app_with_factory() -> (String, Uuid, Uuid, TestFactory, TestD
         },
         infra: apiserver::InfraState {
             diesel: diesel_pools.clone(),
-            redis: if let Ok(url) = std::env::var("REDIS_URL") {
-                let mut redis_p = None;
-                for attempt in 0..10 {
-                    match apiserver::queue::RedisPool::new(&url).await {
-                        Ok(p) => {
-                            redis_p = Some(p);
-                            break;
-                        }
-                        Err(_) if attempt < 9 => {
-                            tokio::time::sleep(std::time::Duration::from_millis(
-                                500 * (attempt + 1),
-                            ))
-                            .await;
-                        }
-                        Err(e) => {
-                            panic!("Failed to create Redis pool for test factory after 10 attempts: {}", e);
-                        }
-                    }
-                }
-                redis_p
-            } else {
-                None
-            },
+            redis: shared_redis_pool.clone(),
             roster_cache: None,
         },
     });
@@ -1014,10 +1008,20 @@ pub async fn spawn_app_with_member() -> (String, Uuid, Uuid, Uuid, TestFactory, 
 /// Setup app for Tower-based testing (no HTTP server, direct router calls)
 #[allow(dead_code)]
 pub async fn setup_app_tower() -> (TestDatabase, TestFactory, Arc<AppState>, axum::Router) {
+    setup_app_tower_internal(true).await
+}
+
+#[allow(dead_code)]
+pub async fn setup_app_tower_without_redis() -> (TestDatabase, TestFactory, Arc<AppState>, axum::Router) {
+    setup_app_tower_internal(false).await
+}
+
+pub async fn setup_app_tower_internal(use_redis: bool) -> (TestDatabase, TestFactory, Arc<AppState>, axum::Router) {
     let test_db = TestDatabase::new().await;
+    let shared_redis_pool = if use_redis { create_test_redis_pool().await } else { None };
     let pool = test_db.diesel_pools.clone().clone();
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
-    let factory = TestFactory::new(pool.clone());
+    let factory = TestFactory::new(pool.clone()).with_redis(shared_redis_pool.clone());
 
     let agent_repo = Arc::new(apiserver::repositories::DieselAgentRepository::new(
         diesel_pools.clone(),
@@ -1451,7 +1455,13 @@ pub async fn setup_app_tower() -> (TestDatabase, TestFactory, Arc<AppState>, axu
         },
         reports: apiserver::ReportState {
             service: report_service,
-            coordinator: None,
+            coordinator: shared_redis_pool.clone().map(|redis| {
+                Arc::new(apiserver::services::ReportCoordinator::new(
+                    redis,
+                    employee_repo.clone(),
+                    workspace_repo.clone(),
+                ))
+            }),
             stats_repo: Arc::new(
                 apiserver::repositories::DieselWorkspaceStatsRepository::new(diesel_pools.clone()),
             ),
@@ -1472,32 +1482,7 @@ pub async fn setup_app_tower() -> (TestDatabase, TestFactory, Arc<AppState>, axu
         },
         infra: apiserver::InfraState {
             diesel: diesel_pools.clone(),
-            redis: if let Ok(url) = std::env::var("REDIS_URL") {
-                let mut redis_pool = None;
-                for attempt in 0..10 {
-                    match apiserver::queue::RedisPool::new(&url).await {
-                        Ok(p) => {
-                            redis_pool = Some(p);
-                            break;
-                        }
-                        Err(_) if attempt < 9 => {
-                            tokio::time::sleep(std::time::Duration::from_millis(
-                                500 * (attempt + 1),
-                            ))
-                            .await;
-                        }
-                        Err(e) => {
-                            panic!(
-                                "Failed to create Redis pool for tower test after 10 attempts: {}",
-                                e
-                            );
-                        }
-                    }
-                }
-                redis_pool
-            } else {
-                None
-            },
+            redis: shared_redis_pool.clone(),
             roster_cache: None,
         },
     });

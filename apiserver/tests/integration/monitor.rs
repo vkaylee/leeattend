@@ -9,12 +9,7 @@ use redis::AsyncCommands;
 use reqwest::StatusCode;
 use uuid::Uuid;
 
-async fn get_test_redis() -> RedisPool {
-    let redis_url = std::env::var("REDIS_URL").expect("REDIS_URL must be set for monitor tests");
-    RedisPool::new(&redis_url)
-        .await
-        .expect("Failed to create Redis pool")
-}
+
 
 /// Grant `platform_admin` system role to the given user so they can access monitor endpoints.
 async fn grant_platform_admin(factory: &TestFactory, user_id: Uuid) {
@@ -38,7 +33,7 @@ async fn test_monitor_overview_rest() {
     grant_platform_admin(&factory, user_id).await;
 
     // 1. Mock some data in Redis
-    let redis_pool = get_test_redis().await;
+    let redis_pool = factory.redis_pool.clone().expect("redis pool expected");
     let mut conn = redis_pool.conn();
 
     let worker_id = Uuid::new_v4();
@@ -82,7 +77,7 @@ async fn test_monitor_stream_sse() {
     grant_platform_admin(&factory, user_id).await;
 
     // 1. Mock some data in Redis
-    let redis_pool = get_test_redis().await;
+    let redis_pool = factory.redis_pool.clone().expect("redis pool expected");
     let mut conn = redis_pool.conn();
 
     let worker_id = Uuid::new_v4();

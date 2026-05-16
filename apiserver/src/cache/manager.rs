@@ -16,14 +16,17 @@ pub struct CacheManager {
     // Future extensions: patterns, policies, employees, etc.
 }
 
+use crate::repositories::CacheRepository;
+use std::sync::Arc;
+
 impl CacheManager {
     /// Create a new CacheManager.
     pub fn new(redis: RedisPool, diesel: crate::diesel_pool::DieselPools) -> Self {
-        let cache = RedisCache::new(redis);
+        let cache: Arc<dyn CacheRepository> = Arc::new(RedisCache::new(redis));
 
         Self {
-            workspace: WorkspaceCache::new(cache.clone(), diesel.clone()),
-            shifts: ShiftCache::new(cache, diesel),
+            workspace: WorkspaceCache::new(Arc::clone(&cache), diesel.clone()),
+            shifts: ShiftCache::new(Arc::clone(&cache), diesel),
         }
     }
 

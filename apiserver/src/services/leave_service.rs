@@ -414,8 +414,10 @@ impl LeaveService {
 mod tests {
     use super::*;
     use crate::models::{Employee, EmployeeLeaveBalance, LeaveRequest, WorkspaceLeaveBalance};
-    use crate::repositories::leave_request_repository::{LeaveHistoryRequestItem, LeaveBreakdown};
-    use crate::repositories::leave_accrual_log_repository::{ExistingAccrualLog, LeaveHistoryLogItem};
+    use crate::repositories::leave_accrual_log_repository::{
+        ExistingAccrualLog, LeaveHistoryLogItem,
+    };
+    use crate::repositories::leave_request_repository::{LeaveBreakdown, LeaveHistoryRequestItem};
     use async_trait::async_trait;
     use chrono::{NaiveDate, NaiveTime};
     use rust_decimal::Decimal;
@@ -428,19 +430,44 @@ mod tests {
     }
     #[async_trait]
     impl LeaveBalanceRepository for MockLeaveBalanceRepo {
-        async fn get_workspace_balances(&self, _w: Uuid, _y: i32, _l: i64, _o: i64, _s: Option<String>) -> Result<(Vec<WorkspaceLeaveBalance>, i64), AppError> {
+        async fn get_workspace_balances(
+            &self,
+            _w: Uuid,
+            _y: i32,
+            _l: i64,
+            _o: i64,
+            _s: Option<String>,
+        ) -> Result<(Vec<WorkspaceLeaveBalance>, i64), AppError> {
             let data = self.workspace_balances.lock().unwrap().clone();
             let total = data.len() as i64;
             Ok((data, total))
         }
-        async fn adjust_balance(&self, _w: Uuid, _e: Uuid, _t: Uuid, _a: Decimal, _d: NaiveDate, _r: &str) -> Result<(), AppError> {
+        async fn adjust_balance(
+            &self,
+            _w: Uuid,
+            _e: Uuid,
+            _t: Uuid,
+            _a: Decimal,
+            _d: NaiveDate,
+            _r: &str,
+        ) -> Result<(), AppError> {
             *self.adjust_called.lock().unwrap() = true;
             Ok(())
         }
-        async fn get_employee_balances(&self, _w: Uuid, _e: Uuid, _y: i32) -> Result<Vec<EmployeeLeaveBalance>, AppError> {
+        async fn get_employee_balances(
+            &self,
+            _w: Uuid,
+            _e: Uuid,
+            _y: i32,
+        ) -> Result<Vec<EmployeeLeaveBalance>, AppError> {
             Ok(self.employee_balances.lock().unwrap().clone())
         }
-        async fn upsert_leave_balance(&self, _b: &crate::models::LeaveBalance) -> Result<(), AppError> { unimplemented!() }
+        async fn upsert_leave_balance(
+            &self,
+            _b: &crate::models::LeaveBalance,
+        ) -> Result<(), AppError> {
+            unimplemented!()
+        }
     }
 
     struct MockLeaveRequestRepo {
@@ -450,27 +477,117 @@ mod tests {
     }
     #[async_trait]
     impl LeaveRequestRepository for MockLeaveRequestRepo {
-        async fn create_leave_request(&self, _r: &LeaveRequest) -> Result<(), AppError> { Ok(()) }
-        async fn check_leave_type_exists(&self, _w: Uuid, _t: Uuid) -> Result<bool, AppError> { Ok(*self.exists.lock().unwrap()) }
-        async fn get_leave_type_name(&self, _w: Uuid, _t: Uuid) -> Result<Option<String>, AppError> { Ok(Some("Annual Leave".into())) }
-        async fn get_leave_request_by_id(&self, _w: Uuid, _i: Uuid) -> Result<Option<LeaveRequest>, AppError> { Ok(self.leave_request.lock().unwrap().clone()) }
-        async fn update_leave_request_status(&self, _w: Uuid, _i: Uuid, _s: LeaveStatus, _a: Option<Uuid>) -> Result<(), AppError> {
+        async fn create_leave_request(&self, _r: &LeaveRequest) -> Result<(), AppError> {
+            Ok(())
+        }
+        async fn check_leave_type_exists(&self, _w: Uuid, _t: Uuid) -> Result<bool, AppError> {
+            Ok(*self.exists.lock().unwrap())
+        }
+        async fn get_leave_type_name(
+            &self,
+            _w: Uuid,
+            _t: Uuid,
+        ) -> Result<Option<String>, AppError> {
+            Ok(Some("Annual Leave".into()))
+        }
+        async fn get_leave_request_by_id(
+            &self,
+            _w: Uuid,
+            _i: Uuid,
+        ) -> Result<Option<LeaveRequest>, AppError> {
+            Ok(self.leave_request.lock().unwrap().clone())
+        }
+        async fn update_leave_request_status(
+            &self,
+            _w: Uuid,
+            _i: Uuid,
+            _s: LeaveStatus,
+            _a: Option<Uuid>,
+        ) -> Result<(), AppError> {
             *self.update_called.lock().unwrap() = true;
             Ok(())
         }
-        async fn get_employee_leave_requests(&self, _w: Uuid, _e: Uuid) -> Result<Vec<LeaveRequest>, AppError> { Ok(vec![]) }
-        async fn get_workspace_leave_requests(&self, _w: Uuid, _s: Option<LeaveStatus>) -> Result<Vec<LeaveRequest>, AppError> { Ok(vec![]) }
-        async fn get_employee_leave_history_requests(&self, _w: Uuid, _e: Uuid, _y: i32, _t: Option<Uuid>) -> Result<Vec<LeaveHistoryRequestItem>, AppError> { Ok(vec![]) }
-        
+        async fn get_employee_leave_requests(
+            &self,
+            _w: Uuid,
+            _e: Uuid,
+        ) -> Result<Vec<LeaveRequest>, AppError> {
+            Ok(vec![])
+        }
+        async fn get_workspace_leave_requests(
+            &self,
+            _w: Uuid,
+            _s: Option<LeaveStatus>,
+        ) -> Result<Vec<LeaveRequest>, AppError> {
+            Ok(vec![])
+        }
+        async fn get_employee_leave_history_requests(
+            &self,
+            _w: Uuid,
+            _e: Uuid,
+            _y: i32,
+            _t: Option<Uuid>,
+        ) -> Result<Vec<LeaveHistoryRequestItem>, AppError> {
+            Ok(vec![])
+        }
+
         // Unused in tests but required by trait
-        async fn get_approved_leave_breakdown(&self, _e: Uuid, _s: NaiveDate, _en: NaiveDate, _w: Uuid) -> Result<LeaveBreakdown, AppError> { unimplemented!() }
-        async fn get_employee_department_for_request(&self, _r: Uuid, _w: Uuid) -> Result<Option<Uuid>, AppError> { unimplemented!() }
-        async fn get_leave_types(&self, _w: Uuid) -> Result<Vec<(String, String)>, AppError> { unimplemented!() }
-        async fn get_system_generated_holiday_leave(&self, _w: Uuid, _e: Uuid, _d: NaiveDate) -> Result<Option<(Uuid, Uuid, String)>, AppError> { unimplemented!() }
-        async fn cancel_leave_request(&self, _w: Uuid, _i: Uuid) -> Result<(), AppError> { unimplemented!() }
-        async fn get_unpaid_holiday_days_without_leave(&self, _w: Uuid, _e: Uuid, _s: NaiveDate, _en: NaiveDate) -> Result<i64, AppError> { unimplemented!() }
-        async fn get_batch_leave_days(&self, _e: &[Uuid], _s: NaiveDate, _en: NaiveDate) -> Result<std::collections::HashMap<Uuid, i64>, AppError> { unimplemented!() }
-        async fn get_approved_leave_dates(&self, _w: Uuid, _e: &[Uuid], _s: NaiveDate, _en: NaiveDate) -> Result<std::collections::HashSet<(Uuid, NaiveDate)>, AppError> { unimplemented!() }
+        async fn get_approved_leave_breakdown(
+            &self,
+            _e: Uuid,
+            _s: NaiveDate,
+            _en: NaiveDate,
+            _w: Uuid,
+        ) -> Result<LeaveBreakdown, AppError> {
+            unimplemented!()
+        }
+        async fn get_employee_department_for_request(
+            &self,
+            _r: Uuid,
+            _w: Uuid,
+        ) -> Result<Option<Uuid>, AppError> {
+            unimplemented!()
+        }
+        async fn get_leave_types(&self, _w: Uuid) -> Result<Vec<(String, String)>, AppError> {
+            unimplemented!()
+        }
+        async fn get_system_generated_holiday_leave(
+            &self,
+            _w: Uuid,
+            _e: Uuid,
+            _d: NaiveDate,
+        ) -> Result<Option<(Uuid, Uuid, String)>, AppError> {
+            unimplemented!()
+        }
+        async fn cancel_leave_request(&self, _w: Uuid, _i: Uuid) -> Result<(), AppError> {
+            unimplemented!()
+        }
+        async fn get_unpaid_holiday_days_without_leave(
+            &self,
+            _w: Uuid,
+            _e: Uuid,
+            _s: NaiveDate,
+            _en: NaiveDate,
+        ) -> Result<i64, AppError> {
+            unimplemented!()
+        }
+        async fn get_batch_leave_days(
+            &self,
+            _e: &[Uuid],
+            _s: NaiveDate,
+            _en: NaiveDate,
+        ) -> Result<std::collections::HashMap<Uuid, i64>, AppError> {
+            unimplemented!()
+        }
+        async fn get_approved_leave_dates(
+            &self,
+            _w: Uuid,
+            _e: &[Uuid],
+            _s: NaiveDate,
+            _en: NaiveDate,
+        ) -> Result<std::collections::HashSet<(Uuid, NaiveDate)>, AppError> {
+            unimplemented!()
+        }
     }
 
     struct MockEmployeeRepo {
@@ -478,79 +595,391 @@ mod tests {
     }
     #[async_trait]
     impl crate::repositories::EmployeeRepository for MockEmployeeRepo {
-        async fn get_employee_by_id(&self, _i: Uuid, _w: Uuid) -> Result<Option<Employee>, AppError> { Ok(self.employee.lock().unwrap().clone()) }
+        async fn get_employee_by_id(
+            &self,
+            _i: Uuid,
+            _w: Uuid,
+        ) -> Result<Option<Employee>, AppError> {
+            Ok(self.employee.lock().unwrap().clone())
+        }
         // Unused
-        async fn create_employee(&self, _e: &Employee) -> Result<(), AppError> { unimplemented!() }
-        async fn get_all_employees(&self, _w: Uuid, _o: crate::models::EmployeeFilterOptions) -> Result<(Vec<Employee>, i64), AppError> { unimplemented!() }
-        async fn get_paginated_employee_ids(&self, _w: Uuid, _a: crate::models::EmployeePaginationArgs<'_>) -> Result<(Vec<crate::repositories::employee::EmployeeBasicInfo>, i64), AppError> { unimplemented!() }
-        async fn get_employee_departments_at(&self, _w: Uuid, _d: NaiveDate) -> Result<std::collections::HashMap<Uuid, (Option<Uuid>, String)>, AppError> { unimplemented!() }
-        async fn update_employee(&self, _i: Uuid, _w: Uuid, _r: &crate::models::UpdateEmployeeRequest) -> Result<Option<Employee>, AppError> { unimplemented!() }
-        async fn rehire_employee(&self, _w: Uuid, _e: Uuid, _d: NaiveDate) -> Result<Option<Employee>, AppError> { unimplemented!() }
-        async fn delete_employee(&self, _i: Uuid, _w: Uuid) -> Result<u64, AppError> { unimplemented!() }
-        async fn get_working_conditions(&self, _w: Uuid, _e: Uuid) -> Result<Vec<crate::models::WorkingCondition>, AppError> { unimplemented!() }
-        async fn create_working_condition(&self, _c: &crate::models::WorkingCondition) -> Result<(), AppError> { unimplemented!() }
-        async fn delete_working_condition(&self, _i: Uuid, _e: Uuid) -> Result<bool, AppError> { unimplemented!() }
-        async fn get_existing_employee_ids_by_numbers(&self, _w: Uuid, _n: &[String]) -> Result<Vec<String>, AppError> { unimplemented!() }
-        async fn upsert_employee_payroll_config(&self, _e: Uuid, _s: Decimal, _h: Decimal, _d: NaiveDate) -> Result<crate::models::EmployeePayrollConfig, AppError> { unimplemented!() }
-        async fn get_employee_payroll_config_at(&self, _e: Uuid, _d: NaiveDate) -> Result<Option<crate::models::EmployeePayrollConfig>, AppError> { unimplemented!() }
-        async fn get_employee_payroll_configs(&self, _w: Uuid, _e: Uuid) -> Result<Vec<crate::models::EmployeePayrollConfig>, AppError> { unimplemented!() }
-        async fn set_employee_recruitment_source(&self, _w: Uuid, _e: Uuid, _r: Option<Uuid>) -> Result<(), AppError> { unimplemented!() }
-        async fn create_recruitment_source(&self, _s: &crate::models::RecruitmentSource) -> Result<(), AppError> { unimplemented!() }
-        async fn get_recruitment_sources(&self, _w: Uuid) -> Result<Vec<crate::models::RecruitmentSource>, AppError> { unimplemented!() }
-        async fn get_recruitment_source_by_id(&self, _i: Uuid, _w: Uuid) -> Result<Option<crate::models::RecruitmentSource>, AppError> { unimplemented!() }
-        async fn update_recruitment_source(&self, _i: Uuid, _w: Uuid, _r: &crate::models::UpdateRecruitmentSourceRequest) -> Result<Option<crate::models::RecruitmentSource>, AppError> { unimplemented!() }
-        async fn delete_recruitment_source(&self, _i: Uuid, _w: Uuid) -> Result<u64, AppError> { unimplemented!() }
-        async fn get_recruitment_source_breakdown(&self, _w: Uuid) -> Result<Vec<crate::models::RecruitmentSourceBreakdown>, AppError> { unimplemented!() }
-        async fn get_turnover_analytics(&self, _w: Uuid, _s: NaiveDate, _e: NaiveDate) -> Result<crate::models::TurnoverAnalytics, AppError> { unimplemented!() }
-        async fn get_managed_departments(&self, _w: Uuid, _u: Uuid) -> Result<Vec<Uuid>, AppError> { unimplemented!() }
-        async fn get_employee_id_by_user_id(&self, _w: Uuid, _u: Uuid) -> Result<Option<Uuid>, AppError> { unimplemented!() }
-        async fn get_working_conditions_at(&self, _w: Uuid, _e: Uuid, _d: NaiveDate) -> Result<Vec<crate::models::WorkingCondition>, AppError> { unimplemented!() }
-        async fn get_working_conditions_batch(&self, _w: Uuid, _e: &[Uuid], _s: NaiveDate, _en: NaiveDate) -> Result<std::collections::HashMap<Uuid, Vec<crate::models::WorkingCondition>>, AppError> { unimplemented!() }
-        async fn get_employee_profile(&self, _w: Uuid, _e: Uuid) -> Result<Option<crate::models::EmployeeProfile>, AppError> { unimplemented!() }
-        async fn upsert_employee_profile(&self, _e: Uuid, _r: &crate::models::UpdateEmployeeProfileRequest) -> Result<crate::models::EmployeeProfile, AppError> { unimplemented!() }
-        async fn get_emergency_contacts(&self, _w: Uuid, _e: Uuid) -> Result<Vec<crate::models::EmployeeEmergencyContact>, AppError> { unimplemented!() }
-        async fn upsert_emergency_contact(&self, _e: Uuid, _r: &crate::models::CreateEmergencyContactRequest) -> Result<crate::models::EmployeeEmergencyContact, AppError> { unimplemented!() }
-        async fn delete_emergency_contact(&self, _w: Uuid, _e: Uuid, _c: Uuid) -> Result<u64, AppError> { unimplemented!() }
-        async fn get_employee_documents(&self, _w: Uuid, _e: Uuid) -> Result<Vec<crate::models::EmployeeDocument>, AppError> { unimplemented!() }
-        async fn create_employee_document(&self, _d: &crate::models::EmployeeDocument) -> Result<(), AppError> { unimplemented!() }
-        async fn get_employee_by_id_number(&self, _i: &str, _w: Uuid) -> Result<Option<Employee>, AppError> { unimplemented!() }
-        async fn find_by_number(&self, _w: Uuid, _i: &str) -> Result<Option<Employee>, AppError> { unimplemented!() }
-        async fn get_active_employees(&self, _w: Uuid) -> Result<Vec<Employee>, AppError> { unimplemented!() }
-        async fn get_active_employee_ids(&self, _w: Uuid, _f: Option<&Vec<Uuid>>) -> Result<Vec<Uuid>, AppError> { unimplemented!() }
-        async fn create_employee_skip_duplicates(&self, _e: &Employee) -> Result<bool, AppError> { unimplemented!() }
+        async fn create_employee(&self, _e: &Employee) -> Result<(), AppError> {
+            unimplemented!()
+        }
+        async fn get_all_employees(
+            &self,
+            _w: Uuid,
+            _o: crate::models::EmployeeFilterOptions,
+        ) -> Result<(Vec<Employee>, i64), AppError> {
+            unimplemented!()
+        }
+        async fn get_paginated_employee_ids(
+            &self,
+            _w: Uuid,
+            _a: crate::models::EmployeePaginationArgs<'_>,
+        ) -> Result<(Vec<crate::repositories::employee::EmployeeBasicInfo>, i64), AppError>
+        {
+            unimplemented!()
+        }
+        async fn get_employee_departments_at(
+            &self,
+            _w: Uuid,
+            _d: NaiveDate,
+        ) -> Result<std::collections::HashMap<Uuid, (Option<Uuid>, String)>, AppError> {
+            unimplemented!()
+        }
+        async fn update_employee(
+            &self,
+            _i: Uuid,
+            _w: Uuid,
+            _r: &crate::models::UpdateEmployeeRequest,
+        ) -> Result<Option<Employee>, AppError> {
+            unimplemented!()
+        }
+        async fn rehire_employee(
+            &self,
+            _w: Uuid,
+            _e: Uuid,
+            _d: NaiveDate,
+        ) -> Result<Option<Employee>, AppError> {
+            unimplemented!()
+        }
+        async fn delete_employee(&self, _i: Uuid, _w: Uuid) -> Result<u64, AppError> {
+            unimplemented!()
+        }
+        async fn get_working_conditions(
+            &self,
+            _w: Uuid,
+            _e: Uuid,
+        ) -> Result<Vec<crate::models::WorkingCondition>, AppError> {
+            unimplemented!()
+        }
+        async fn create_working_condition(
+            &self,
+            _c: &crate::models::WorkingCondition,
+        ) -> Result<(), AppError> {
+            unimplemented!()
+        }
+        async fn delete_working_condition(&self, _i: Uuid, _e: Uuid) -> Result<bool, AppError> {
+            unimplemented!()
+        }
+        async fn get_existing_employee_ids_by_numbers(
+            &self,
+            _w: Uuid,
+            _n: &[String],
+        ) -> Result<Vec<String>, AppError> {
+            unimplemented!()
+        }
+        async fn upsert_employee_payroll_config(
+            &self,
+            _e: Uuid,
+            _s: Decimal,
+            _h: Decimal,
+            _d: NaiveDate,
+        ) -> Result<crate::models::EmployeePayrollConfig, AppError> {
+            unimplemented!()
+        }
+        async fn get_employee_payroll_config_at(
+            &self,
+            _e: Uuid,
+            _d: NaiveDate,
+        ) -> Result<Option<crate::models::EmployeePayrollConfig>, AppError> {
+            unimplemented!()
+        }
+        async fn get_employee_payroll_configs(
+            &self,
+            _w: Uuid,
+            _e: Uuid,
+        ) -> Result<Vec<crate::models::EmployeePayrollConfig>, AppError> {
+            unimplemented!()
+        }
+        async fn set_employee_recruitment_source(
+            &self,
+            _w: Uuid,
+            _e: Uuid,
+            _r: Option<Uuid>,
+        ) -> Result<(), AppError> {
+            unimplemented!()
+        }
+        async fn create_recruitment_source(
+            &self,
+            _s: &crate::models::RecruitmentSource,
+        ) -> Result<(), AppError> {
+            unimplemented!()
+        }
+        async fn get_recruitment_sources(
+            &self,
+            _w: Uuid,
+        ) -> Result<Vec<crate::models::RecruitmentSource>, AppError> {
+            unimplemented!()
+        }
+        async fn get_recruitment_source_by_id(
+            &self,
+            _i: Uuid,
+            _w: Uuid,
+        ) -> Result<Option<crate::models::RecruitmentSource>, AppError> {
+            unimplemented!()
+        }
+        async fn update_recruitment_source(
+            &self,
+            _i: Uuid,
+            _w: Uuid,
+            _r: &crate::models::UpdateRecruitmentSourceRequest,
+        ) -> Result<Option<crate::models::RecruitmentSource>, AppError> {
+            unimplemented!()
+        }
+        async fn delete_recruitment_source(&self, _i: Uuid, _w: Uuid) -> Result<u64, AppError> {
+            unimplemented!()
+        }
+        async fn get_recruitment_source_breakdown(
+            &self,
+            _w: Uuid,
+        ) -> Result<Vec<crate::models::RecruitmentSourceBreakdown>, AppError> {
+            unimplemented!()
+        }
+        async fn get_turnover_analytics(
+            &self,
+            _w: Uuid,
+            _s: NaiveDate,
+            _e: NaiveDate,
+        ) -> Result<crate::models::TurnoverAnalytics, AppError> {
+            unimplemented!()
+        }
+        async fn get_managed_departments(&self, _w: Uuid, _u: Uuid) -> Result<Vec<Uuid>, AppError> {
+            unimplemented!()
+        }
+        async fn get_employee_id_by_user_id(
+            &self,
+            _w: Uuid,
+            _u: Uuid,
+        ) -> Result<Option<Uuid>, AppError> {
+            unimplemented!()
+        }
+        async fn get_working_conditions_at(
+            &self,
+            _w: Uuid,
+            _e: Uuid,
+            _d: NaiveDate,
+        ) -> Result<Vec<crate::models::WorkingCondition>, AppError> {
+            unimplemented!()
+        }
+        async fn get_working_conditions_batch(
+            &self,
+            _w: Uuid,
+            _e: &[Uuid],
+            _s: NaiveDate,
+            _en: NaiveDate,
+        ) -> Result<std::collections::HashMap<Uuid, Vec<crate::models::WorkingCondition>>, AppError>
+        {
+            unimplemented!()
+        }
+        async fn get_employee_profile(
+            &self,
+            _w: Uuid,
+            _e: Uuid,
+        ) -> Result<Option<crate::models::EmployeeProfile>, AppError> {
+            unimplemented!()
+        }
+        async fn upsert_employee_profile(
+            &self,
+            _e: Uuid,
+            _r: &crate::models::UpdateEmployeeProfileRequest,
+        ) -> Result<crate::models::EmployeeProfile, AppError> {
+            unimplemented!()
+        }
+        async fn get_emergency_contacts(
+            &self,
+            _w: Uuid,
+            _e: Uuid,
+        ) -> Result<Vec<crate::models::EmployeeEmergencyContact>, AppError> {
+            unimplemented!()
+        }
+        async fn upsert_emergency_contact(
+            &self,
+            _e: Uuid,
+            _r: &crate::models::CreateEmergencyContactRequest,
+        ) -> Result<crate::models::EmployeeEmergencyContact, AppError> {
+            unimplemented!()
+        }
+        async fn delete_emergency_contact(
+            &self,
+            _w: Uuid,
+            _e: Uuid,
+            _c: Uuid,
+        ) -> Result<u64, AppError> {
+            unimplemented!()
+        }
+        async fn get_employee_documents(
+            &self,
+            _w: Uuid,
+            _e: Uuid,
+        ) -> Result<Vec<crate::models::EmployeeDocument>, AppError> {
+            unimplemented!()
+        }
+        async fn create_employee_document(
+            &self,
+            _d: &crate::models::EmployeeDocument,
+        ) -> Result<(), AppError> {
+            unimplemented!()
+        }
+        async fn get_employee_by_id_number(
+            &self,
+            _i: &str,
+            _w: Uuid,
+        ) -> Result<Option<Employee>, AppError> {
+            unimplemented!()
+        }
+        async fn find_by_number(&self, _w: Uuid, _i: &str) -> Result<Option<Employee>, AppError> {
+            unimplemented!()
+        }
+        async fn get_active_employees(&self, _w: Uuid) -> Result<Vec<Employee>, AppError> {
+            unimplemented!()
+        }
+        async fn get_active_employee_ids(
+            &self,
+            _w: Uuid,
+            _f: Option<&Vec<Uuid>>,
+        ) -> Result<Vec<Uuid>, AppError> {
+            unimplemented!()
+        }
+        async fn create_employee_skip_duplicates(&self, _e: &Employee) -> Result<bool, AppError> {
+            unimplemented!()
+        }
     }
 
     struct MockRosterRepo;
     #[async_trait]
     impl RosterRepository for MockRosterRepo {
-        async fn upsert_roster(&self, _r: &ShiftRoster) -> Result<ShiftRoster, AppError> { Ok(_r.clone()) }
-        async fn bulk_upsert_roster(&self, _e: Uuid, _i: Vec<crate::models::RosterItem>) -> Result<(), AppError> { Ok(()) }
-        async fn get_effective_shift(&self, _w: Uuid, _e: Uuid, _d: NaiveDate) -> Result<(Option<Uuid>, Vec<crate::models::ScheduleTrace>), AppError> { Ok((None, vec![])) }
-        async fn delete_roster(&self, _e: Uuid, _d: NaiveDate) -> Result<(), AppError> { Ok(()) }
+        async fn upsert_roster(&self, _r: &ShiftRoster) -> Result<ShiftRoster, AppError> {
+            Ok(_r.clone())
+        }
+        async fn bulk_upsert_roster(
+            &self,
+            _e: Uuid,
+            _i: Vec<crate::models::RosterItem>,
+        ) -> Result<(), AppError> {
+            Ok(())
+        }
+        async fn get_effective_shift(
+            &self,
+            _w: Uuid,
+            _e: Uuid,
+            _d: NaiveDate,
+        ) -> Result<(Option<Uuid>, Vec<crate::models::ScheduleTrace>), AppError> {
+            Ok((None, vec![]))
+        }
+        async fn delete_roster(&self, _e: Uuid, _d: NaiveDate) -> Result<(), AppError> {
+            Ok(())
+        }
         // Unused
-        async fn get_workspace_schedules(&self, _c: Option<&crate::cache::RosterCache>, _w: Uuid, _s: NaiveDate, _en: NaiveDate, _e: Option<&Vec<Uuid>>) -> Result<Vec<crate::models::EmployeeSchedule>, AppError> { unimplemented!() }
-        async fn get_assignment_history(&self, _w: Uuid, _l: i64) -> Result<Vec<crate::models::AssignmentHistory>, AppError> { unimplemented!() }
-        async fn get_employee_rosters(&self, _e: Uuid, _s: NaiveDate, _en: NaiveDate) -> Result<Vec<ShiftRoster>, AppError> { unimplemented!() }
+        async fn get_workspace_schedules(
+            &self,
+            _c: Option<&crate::cache::RosterCache>,
+            _w: Uuid,
+            _s: NaiveDate,
+            _en: NaiveDate,
+            _e: Option<&Vec<Uuid>>,
+        ) -> Result<Vec<crate::models::EmployeeSchedule>, AppError> {
+            unimplemented!()
+        }
+        async fn get_assignment_history(
+            &self,
+            _w: Uuid,
+            _l: i64,
+        ) -> Result<Vec<crate::models::AssignmentHistory>, AppError> {
+            unimplemented!()
+        }
+        async fn get_employee_rosters(
+            &self,
+            _e: Uuid,
+            _s: NaiveDate,
+            _en: NaiveDate,
+        ) -> Result<Vec<ShiftRoster>, AppError> {
+            unimplemented!()
+        }
     }
 
     struct MockLeaveAccrualLogRepo;
     #[async_trait]
-    impl crate::repositories::leave_accrual_log_repository::LeaveAccrualLogRepository for MockLeaveAccrualLogRepo {
-        async fn get_employee_leave_history_logs(&self, _w: Uuid, _e: Uuid, _y: i32, _t: Option<Uuid>) -> Result<Vec<LeaveHistoryLogItem>, AppError> { Ok(vec![]) }
+    impl crate::repositories::leave_accrual_log_repository::LeaveAccrualLogRepository
+        for MockLeaveAccrualLogRepo
+    {
+        async fn get_employee_leave_history_logs(
+            &self,
+            _w: Uuid,
+            _e: Uuid,
+            _y: i32,
+            _t: Option<Uuid>,
+        ) -> Result<Vec<LeaveHistoryLogItem>, AppError> {
+            Ok(vec![])
+        }
         // Unused
-        async fn find_by_employee_date_type(&self, _e: Uuid, _l: Uuid, _a: NaiveDate, _w: Uuid) -> Result<Option<ExistingAccrualLog>, AppError> { unimplemented!() }
-        async fn get_assignment_effective_from(&self, _a: Uuid, _w: Uuid) -> Result<NaiveDate, AppError> { unimplemented!() }
-        async fn get_workspace_timezone(&self, _w: Uuid) -> Result<String, AppError> { unimplemented!() }
-        async fn update_accrual_amount(&self, _l: Uuid, _w: Uuid, _n: Decimal) -> Result<crate::models::LeaveAccrualLog, AppError> { unimplemented!() }
-        async fn insert_accrual_log(&self, _w: Uuid, _e: Uuid, _a: Option<Uuid>, _d: NaiveDate, _m: Decimal, _t: Uuid) -> Result<Option<crate::models::LeaveAccrualLog>, AppError> { unimplemented!() }
-        async fn upsert_balance_accrual(&self, _e: Uuid, _y: i32, _l: Uuid, _a: Decimal) -> Result<(), AppError> { unimplemented!() }
-        async fn adjust_balance_accrual(&self, _e: Uuid, _y: i32, _l: Uuid, _d: Decimal) -> Result<(), AppError> { unimplemented!() }
+        async fn find_by_employee_date_type(
+            &self,
+            _e: Uuid,
+            _l: Uuid,
+            _a: NaiveDate,
+            _w: Uuid,
+        ) -> Result<Option<ExistingAccrualLog>, AppError> {
+            unimplemented!()
+        }
+        async fn get_assignment_effective_from(
+            &self,
+            _a: Uuid,
+            _w: Uuid,
+        ) -> Result<NaiveDate, AppError> {
+            unimplemented!()
+        }
+        async fn get_workspace_timezone(&self, _w: Uuid) -> Result<String, AppError> {
+            unimplemented!()
+        }
+        async fn update_accrual_amount(
+            &self,
+            _l: Uuid,
+            _w: Uuid,
+            _n: Decimal,
+        ) -> Result<crate::models::LeaveAccrualLog, AppError> {
+            unimplemented!()
+        }
+        async fn insert_accrual_log(
+            &self,
+            _w: Uuid,
+            _e: Uuid,
+            _a: Option<Uuid>,
+            _d: NaiveDate,
+            _m: Decimal,
+            _t: Uuid,
+        ) -> Result<Option<crate::models::LeaveAccrualLog>, AppError> {
+            unimplemented!()
+        }
+        async fn upsert_balance_accrual(
+            &self,
+            _e: Uuid,
+            _y: i32,
+            _l: Uuid,
+            _a: Decimal,
+        ) -> Result<(), AppError> {
+            unimplemented!()
+        }
+        async fn adjust_balance_accrual(
+            &self,
+            _e: Uuid,
+            _y: i32,
+            _l: Uuid,
+            _d: Decimal,
+        ) -> Result<(), AppError> {
+            unimplemented!()
+        }
     }
 
     fn build_service(
         mock_emp: Option<Employee>,
         type_exists: bool,
-    ) -> (LeaveService, Arc<MockLeaveBalanceRepo>, Arc<MockLeaveRequestRepo>) {
+    ) -> (
+        LeaveService,
+        Arc<MockLeaveBalanceRepo>,
+        Arc<MockLeaveRequestRepo>,
+    ) {
         let bal_repo = Arc::new(MockLeaveBalanceRepo {
             workspace_balances: Mutex::new(vec![]),
             employee_balances: Mutex::new(vec![]),
@@ -568,7 +997,13 @@ mod tests {
         let log_repo = Arc::new(MockLeaveAccrualLogRepo);
 
         (
-            LeaveService::new(bal_repo.clone(), req_repo.clone(), emp_repo, ros_repo, log_repo),
+            LeaveService::new(
+                bal_repo.clone(),
+                req_repo.clone(),
+                emp_repo,
+                ros_repo,
+                log_repo,
+            ),
             bal_repo,
             req_repo,
         )
@@ -595,22 +1030,32 @@ mod tests {
     #[tokio::test]
     async fn test_get_workspace_balances() {
         let (svc, _, _) = build_service(None, true);
-        let res = svc.get_workspace_balances(Uuid::new_v4(), 2024, crate::models::PaginationParams { 
-            page: Some(1), 
-            limit: Some(10), 
-            q: None,
-            year: None,
-            sort_by: None,
-            sort_dir: None,
-            department_id: None
-        }).await.unwrap();
+        let res = svc
+            .get_workspace_balances(
+                Uuid::new_v4(),
+                2024,
+                crate::models::PaginationParams {
+                    page: Some(1),
+                    limit: Some(10),
+                    q: None,
+                    year: None,
+                    sort_by: None,
+                    sort_dir: None,
+                    department_id: None,
+                },
+            )
+            .await
+            .unwrap();
         assert_eq!(res.total, 0);
     }
 
     #[tokio::test]
     async fn test_get_employee_leave_history() {
         let (svc, _, _) = build_service(None, true);
-        let res = svc.get_employee_leave_history(Uuid::new_v4(), Uuid::new_v4(), 2024, None).await.unwrap();
+        let res = svc
+            .get_employee_leave_history(Uuid::new_v4(), Uuid::new_v4(), 2024, None)
+            .await
+            .unwrap();
         assert!(res.is_empty());
     }
 
@@ -623,21 +1068,29 @@ mod tests {
             transaction_date: NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
             reason: "Test".into(),
         };
-        svc.adjust_balance(Uuid::new_v4(), Uuid::new_v4(), req).await.unwrap();
+        svc.adjust_balance(Uuid::new_v4(), Uuid::new_v4(), req)
+            .await
+            .unwrap();
         assert!(*bal_repo.adjust_called.lock().unwrap());
     }
 
     #[tokio::test]
     async fn test_get_employee_balances_not_found() {
         let (svc, _, _) = build_service(None, true); // No employee mock
-        let err = svc.get_employee_balances(Uuid::new_v4(), Uuid::new_v4(), 2024).await.unwrap_err();
+        let err = svc
+            .get_employee_balances(Uuid::new_v4(), Uuid::new_v4(), 2024)
+            .await
+            .unwrap_err();
         assert!(matches!(err, AppError::NotFound(_)));
     }
 
     #[tokio::test]
     async fn test_get_employee_balances_success() {
         let (svc, _, _) = build_service(Some(dummy_employee()), true);
-        let res = svc.get_employee_balances(Uuid::new_v4(), Uuid::new_v4(), 2024).await.unwrap();
+        let res = svc
+            .get_employee_balances(Uuid::new_v4(), Uuid::new_v4(), 2024)
+            .await
+            .unwrap();
         assert!(res.is_empty());
     }
 
@@ -654,7 +1107,10 @@ mod tests {
             end_time: None,
             reason: None,
         };
-        let err = svc.submit_leave_request(Uuid::new_v4(), Uuid::new_v4(), req, false).await.unwrap_err();
+        let err = svc
+            .submit_leave_request(Uuid::new_v4(), Uuid::new_v4(), req, false)
+            .await
+            .unwrap_err();
         assert!(matches!(err, AppError::NotFound(_)));
     }
 
@@ -671,7 +1127,10 @@ mod tests {
             end_time: None,
             reason: None,
         };
-        let err = svc.submit_leave_request(Uuid::new_v4(), Uuid::new_v4(), req, false).await.unwrap_err();
+        let err = svc
+            .submit_leave_request(Uuid::new_v4(), Uuid::new_v4(), req, false)
+            .await
+            .unwrap_err();
         assert!(matches!(err, AppError::Validation(_)));
     }
 
@@ -688,10 +1147,12 @@ mod tests {
             end_time: None,
             reason: None,
         };
-        let res = svc.submit_leave_request(Uuid::new_v4(), Uuid::new_v4(), req, true).await.unwrap();
+        let res = svc
+            .submit_leave_request(Uuid::new_v4(), Uuid::new_v4(), req, true)
+            .await
+            .unwrap();
         assert_eq!(res.status, LeaveStatus::PreApproved);
     }
-    
     #[tokio::test]
     async fn test_submit_leave_request_half_day_validation() {
         let (svc, _, _) = build_service(Some(dummy_employee()), true);
@@ -705,7 +1166,10 @@ mod tests {
             end_time: None,
             reason: None,
         };
-        let err = svc.submit_leave_request(Uuid::new_v4(), Uuid::new_v4(), req, false).await.unwrap_err();
+        let err = svc
+            .submit_leave_request(Uuid::new_v4(), Uuid::new_v4(), req, false)
+            .await
+            .unwrap_err();
         assert!(matches!(err, AppError::Validation(_)));
     }
 
@@ -722,7 +1186,10 @@ mod tests {
             end_time: NaiveTime::from_hms_opt(9, 0, 0), // End before start
             reason: None,
         };
-        let err = svc.submit_leave_request(Uuid::new_v4(), Uuid::new_v4(), req, false).await.unwrap_err();
+        let err = svc
+            .submit_leave_request(Uuid::new_v4(), Uuid::new_v4(), req, false)
+            .await
+            .unwrap_err();
         assert!(matches!(err, AppError::Validation(_)));
     }
 
@@ -730,8 +1197,13 @@ mod tests {
     async fn test_approve_leave_request_not_found() {
         let (svc, _, req_repo) = build_service(Some(dummy_employee()), true);
         *req_repo.leave_request.lock().unwrap() = None;
-        let req = crate::models::ApproveLeaveRequest { status: LeaveStatus::Approved };
-        let err = svc.approve_leave_request(Uuid::new_v4(), Uuid::new_v4(), Uuid::new_v4(), req).await.unwrap_err();
+        let req = crate::models::ApproveLeaveRequest {
+            status: LeaveStatus::Approved,
+        };
+        let err = svc
+            .approve_leave_request(Uuid::new_v4(), Uuid::new_v4(), Uuid::new_v4(), req)
+            .await
+            .unwrap_err();
         assert!(matches!(err, AppError::NotFound(_)));
     }
 
@@ -755,19 +1227,22 @@ mod tests {
             updated_at: Utc::now(),
         };
         *req_repo.leave_request.lock().unwrap() = Some(mock_req);
-        
-        let req = crate::models::ApproveLeaveRequest { status: LeaveStatus::Approved };
-        svc.approve_leave_request(Uuid::new_v4(), Uuid::new_v4(), Uuid::new_v4(), req).await.unwrap();
+        let req = crate::models::ApproveLeaveRequest {
+            status: LeaveStatus::Approved,
+        };
+        svc.approve_leave_request(Uuid::new_v4(), Uuid::new_v4(), Uuid::new_v4(), req)
+            .await
+            .unwrap();
         assert!(*req_repo.update_called.lock().unwrap());
     }
-
-
 
     #[tokio::test]
     async fn test_get_leave_history() {
         let (svc, _, _) = build_service(None, true);
-        let res = svc.get_employee_leave_history(Uuid::new_v4(), Uuid::new_v4(), 2024, None).await.unwrap();
+        let res = svc
+            .get_employee_leave_history(Uuid::new_v4(), Uuid::new_v4(), 2024, None)
+            .await
+            .unwrap();
         assert_eq!(res.len(), 0);
     }
 }
-

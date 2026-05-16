@@ -15,9 +15,7 @@ async fn test_leave_import_worker_handlers() {
     let pool = test_db.diesel_pools.clone();
     let factory = TestFactory::new(pool.clone());
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
-    let redis_url =
-        std::env::var("REDIS_URL").unwrap_or_else(|_| "redis://127.0.0.1:6379".to_string());
-    let redis_pool = RedisPool::new(&redis_url).await.unwrap();
+    let redis_pool = crate::common::app::create_test_redis_pool().await.unwrap();
 
     let user_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(user_id).await;
@@ -112,9 +110,7 @@ async fn test_leave_import_handler_empty_file() {
     let pool = test_db.diesel_pools.clone();
     let factory = TestFactory::new(pool.clone());
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
-    let redis_url =
-        std::env::var("REDIS_URL").unwrap_or_else(|_| "redis://127.0.0.1:6379".to_string());
-    let redis_pool = RedisPool::new(&redis_url).await.unwrap();
+    let redis_pool = crate::common::app::create_test_redis_pool().await.unwrap();
     let user_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(user_id).await;
 

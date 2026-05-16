@@ -64,6 +64,7 @@ impl EmployeeImportHandler {
             .await
             .map_err(|e| format!("Could not read file: {e}"))?;
 
+        tracing::info!("Extracting mapped rows");
         let rows = crate::utils::file_parser::extract_mapped_rows(&file_bytes, &["employee_code"])
             .map_err(|e| format!("Failed to parse file: {e}"))?;
 
@@ -95,6 +96,7 @@ impl EmployeeImportHandler {
 
         let mut conn = redis.conn();
 
+        tracing::info!("Setting Redis keys");
         // Initialize Redis keys for progress tracking
         let _: () = redis::cmd("SET")
             .arg(format!("import_progress:{}", payload.import_job_id))
@@ -117,6 +119,7 @@ impl EmployeeImportHandler {
             .await
             .unwrap_or(());
 
+        tracing::info!("Enqueueing chunk jobs");
         // Enqueue chunk jobs
         let mut sub_jobs = Vec::new();
         for (idx, (start_line, end_line)) in chunks.into_iter().enumerate() {
@@ -141,12 +144,6 @@ impl EmployeeImportHandler {
             .enqueue_jobs(sub_jobs)
             .await
             .map_err(|e| format!("Failed to enqueue chunks: {e}"))?;
-
-        tracing::info!(
-            import_job_id = %payload.import_job_id,
-            total_chunks = total_chunks,
-            "Successfully split employee import job"
-        );
 
         Ok(())
     }

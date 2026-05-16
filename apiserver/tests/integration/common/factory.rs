@@ -5,13 +5,21 @@ use uuid::Uuid;
 
 pub struct TestFactory {
     pub diesel_pools: apiserver::diesel_pool::DieselPools,
+    pub redis_pool: Option<apiserver::queue::RedisPool>,
 }
 
 impl TestFactory {
     #[allow(dead_code)]
     #[must_use]
     pub const fn new(diesel_pools: apiserver::diesel_pool::DieselPools) -> Self {
-        Self { diesel_pools }
+        Self { diesel_pools, redis_pool: None }
+    }
+
+    #[allow(dead_code)]
+    #[must_use]
+    pub fn with_redis(mut self, redis_pool: Option<apiserver::queue::RedisPool>) -> Self {
+        self.redis_pool = redis_pool;
+        self
     }
 
     #[allow(dead_code)]

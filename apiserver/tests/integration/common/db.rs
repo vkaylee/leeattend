@@ -22,7 +22,7 @@ pub struct TestDatabase {
 #[allow(dead_code)]
 impl TestDatabase {
     async fn connect_with_retries(url: &str) -> tokio_postgres::Client {
-        for attempt in 0..5 {
+        for attempt in 0..15 {
             if let Ok((client, conn)) = tokio_postgres::connect(url, NoTls).await {
                 tokio::spawn(async move {
                     if let Err(e) = conn.await {
@@ -31,9 +31,9 @@ impl TestDatabase {
                 });
                 return client;
             }
-            tokio::time::sleep(std::time::Duration::from_millis(200 * (1 << attempt))).await;
+            tokio::time::sleep(std::time::Duration::from_millis(200 * ((attempt % 5) + 1))).await;
         }
-        panic!("Failed to connect to Postgres admin after 5 retries");
+        panic!("Failed to connect to Postgres admin after 15 retries");
     }
 
     pub async fn new() -> Self {

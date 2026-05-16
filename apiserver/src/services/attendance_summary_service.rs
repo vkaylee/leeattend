@@ -416,17 +416,17 @@ use crate::utils::chrono_helpers::local_to_utc as local_midnight_to_utc;
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::errors::AppError;
     use async_trait::async_trait;
     use std::sync::Mutex;
-    use crate::errors::AppError;
 
-    use crate::repositories::time_entry_repository::MockTimeEntryRepository;
-    use crate::repositories::roster::MockRosterRepository;
     use crate::repositories::attendance_policy_repository::MockAttendancePolicyRepository;
-    use crate::repositories::workspace_repository::MockWorkspaceRepository;
     use crate::repositories::employee::MockEmployeeRepository;
     use crate::repositories::holiday_repository::MockHolidayRepository;
     use crate::repositories::leave_request_repository::MockLeaveRequestRepository;
+    use crate::repositories::roster::MockRosterRepository;
+    use crate::repositories::time_entry_repository::MockTimeEntryRepository;
+    use crate::repositories::workspace_repository::MockWorkspaceRepository;
 
     // --- Mock Daily Summary Repo (manual since it needs custom state for these tests) ---
     struct MockDailySummaryRepo {
@@ -462,28 +462,85 @@ mod tests {
 
     #[async_trait]
     impl AttendanceDailySummaryRepository for MockDailySummaryRepo {
-        async fn get_summary(&self, _w: Uuid, _e: Uuid, _d: NaiveDate) -> Result<Option<AttendanceDailySummary>, AppError> {
+        async fn get_summary(
+            &self,
+            _w: Uuid,
+            _e: Uuid,
+            _d: NaiveDate,
+        ) -> Result<Option<AttendanceDailySummary>, AppError> {
             if self.should_fail_exceed {
                 Ok(Some(create_dummy_summary(60)))
             } else {
                 Ok(None)
             }
         }
-        async fn upsert_calculated_summary(&self, _w: Uuid, _e: Uuid, _d: NaiveDate, _a: i32, _s: i32, _n: OtStatus, _h: bool, _hn: Option<String>) -> Result<(), AppError> { unimplemented!() }
-        async fn claim_ot(&self, _w: Uuid, _e: Uuid, _d: NaiveDate, _c: i32, _r: Option<String>) -> Result<usize, AppError> {
+        async fn upsert_calculated_summary(
+            &self,
+            _w: Uuid,
+            _e: Uuid,
+            _d: NaiveDate,
+            _a: i32,
+            _s: i32,
+            _n: OtStatus,
+            _h: bool,
+            _hn: Option<String>,
+        ) -> Result<(), AppError> {
+            unimplemented!()
+        }
+        async fn claim_ot(
+            &self,
+            _w: Uuid,
+            _e: Uuid,
+            _d: NaiveDate,
+            _c: i32,
+            _r: Option<String>,
+        ) -> Result<usize, AppError> {
             *self.claim_called.lock().unwrap() = true;
             Ok(1)
         }
-        async fn approve_ot(&self, _w: Uuid, _e: Uuid, _d: NaiveDate, _a: i32, _m: Option<String>, _s: OtStatus) -> Result<usize, AppError> {
+        async fn approve_ot(
+            &self,
+            _w: Uuid,
+            _e: Uuid,
+            _d: NaiveDate,
+            _a: i32,
+            _m: Option<String>,
+            _s: OtStatus,
+        ) -> Result<usize, AppError> {
             *self.approve_called.lock().unwrap() = true;
             Ok(1)
         }
-        async fn upsert_paper_ot(&self, _w: Uuid, _e: Uuid, _d: NaiveDate, _c: i32, _r: String, _user: Uuid, _p: Option<String>) -> Result<AttendanceDailySummary, AppError> {
+        async fn upsert_paper_ot(
+            &self,
+            _w: Uuid,
+            _e: Uuid,
+            _d: NaiveDate,
+            _c: i32,
+            _r: String,
+            _user: Uuid,
+            _p: Option<String>,
+        ) -> Result<AttendanceDailySummary, AppError> {
             *self.paper_called.lock().unwrap() = true;
             Ok(create_dummy_summary(0))
         }
-        async fn get_batch_ot_statuses(&self, _w: Uuid, _e: &[Uuid], _s: NaiveDate, _en: NaiveDate) -> Result<std::collections::HashMap<(Uuid, NaiveDate), String>, AppError> { unimplemented!() }
-        async fn get_summaries(&self, _w: Uuid, _e: Option<Uuid>, _s: NaiveDate, _en: NaiveDate) -> Result<Vec<AttendanceDailySummary>, AppError> { unimplemented!() }
+        async fn get_batch_ot_statuses(
+            &self,
+            _w: Uuid,
+            _e: &[Uuid],
+            _s: NaiveDate,
+            _en: NaiveDate,
+        ) -> Result<std::collections::HashMap<(Uuid, NaiveDate), String>, AppError> {
+            unimplemented!()
+        }
+        async fn get_summaries(
+            &self,
+            _w: Uuid,
+            _e: Option<Uuid>,
+            _s: NaiveDate,
+            _en: NaiveDate,
+        ) -> Result<Vec<AttendanceDailySummary>, AppError> {
+            unimplemented!()
+        }
     }
 
     fn make_service(mock_repo: Arc<MockDailySummaryRepo>) -> AttendanceSummaryService {
@@ -509,7 +566,15 @@ mod tests {
         });
         let svc = make_service(Arc::clone(&repo));
 
-        svc.claim_ot(Uuid::new_v4(), Uuid::new_v4(), NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(), 60, None).await.unwrap();
+        svc.claim_ot(
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+            60,
+            None,
+        )
+        .await
+        .unwrap();
         assert!(*repo.claim_called.lock().unwrap());
     }
 
@@ -523,7 +588,16 @@ mod tests {
         });
         let svc = make_service(Arc::clone(&repo));
 
-        svc.approve_ot(Uuid::new_v4(), Uuid::new_v4(), NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(), 60, None, OtStatus::Approved).await.unwrap();
+        svc.approve_ot(
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+            60,
+            None,
+            OtStatus::Approved,
+        )
+        .await
+        .unwrap();
         assert!(*repo.approve_called.lock().unwrap());
     }
 

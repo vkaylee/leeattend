@@ -39,12 +39,13 @@ services:
       - infra-db
     networks:
       - test_net
-    command: postgres -c fsync=off -c synchronous_commit=off -c full_page_writes=off -c max_connections=200
+    command: postgres -c fsync=off -c synchronous_commit=off -c full_page_writes=off -c max_connections=1000
     environment:
       - POSTGRES_DB=test_database
       - POSTGRES_USER=test_user
       - POSTGRES_PASSWORD=test_password
       - POSTGRES_HOST_AUTH_METHOD=trust
+    shm_size: 512mb
     healthcheck:
       test: "pg_isready -U test_user -d test_database"
       interval: 5s
@@ -141,6 +142,11 @@ services:
       context: ..
       dockerfile: apiserver/Dockerfile
       target: test
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     working_dir: /workspace/apiserver
     environment:
       - DATABASE_URL=postgres://test_user:test_password@db:5432/test_database

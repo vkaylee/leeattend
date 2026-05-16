@@ -546,7 +546,9 @@ mod tests {
             reason: req.reason.clone(),
         };
 
-        let res = service.create_swap(Uuid::new_v4(), Uuid::new_v4(), req2).await;
+        let res = service
+            .create_swap(Uuid::new_v4(), Uuid::new_v4(), req2)
+            .await;
         assert!(matches!(res, Err(AppError::Validation(_))));
     }
 
@@ -595,24 +597,38 @@ mod tests {
         let s_date = NaiveDate::from_ymd_opt(2024, 1, 1).unwrap();
 
         let mut emp_repo = MockEmployeeRepository::new();
-        emp_repo.expect_get_employee_by_id()
+        emp_repo
+            .expect_get_employee_by_id()
             .times(2)
             .returning(|_, _| Box::pin(async { Ok(Some(dummy_employee())) }));
 
         let mut roster_repo = MockRosterRepository::new();
-        roster_repo.expect_get_effective_shift()
+        roster_repo
+            .expect_get_effective_shift()
             .times(2)
-            .returning(move |_, e, _| Box::pin(async move {
-                if e == req_id {
-                    Ok((Some(Uuid::new_v4()), Vec::<crate::models::attendance::ScheduleTrace>::new()))
-                } else {
-                    Ok((Some(Uuid::new_v4()), Vec::<crate::models::attendance::ScheduleTrace>::new()))
-                }
-            }));
+            .returning(move |_, e, _| {
+                Box::pin(async move {
+                    if e == req_id {
+                        Ok((
+                            Some(Uuid::new_v4()),
+                            Vec::<crate::models::attendance::ScheduleTrace>::new(),
+                        ))
+                    } else {
+                        Ok((
+                            Some(Uuid::new_v4()),
+                            Vec::<crate::models::attendance::ScheduleTrace>::new(),
+                        ))
+                    }
+                })
+            });
 
         let mut swap_repo = MockShiftSwapRepository::new();
-        swap_repo.expect_has_active_swap().returning(|_, _, _, _| Ok(false));
-        swap_repo.expect_has_approved_swap_on_date().returning(|_, _, _| Ok(false));
+        swap_repo
+            .expect_has_active_swap()
+            .returning(|_, _, _, _| Ok(false));
+        swap_repo
+            .expect_has_approved_swap_on_date()
+            .returning(|_, _, _| Ok(false));
         swap_repo.expect_create_swap_request().returning(|s| {
             let mut s2 = s.clone();
             s2.id = Uuid::new_v4();
@@ -620,9 +636,17 @@ mod tests {
         });
 
         let mut payroll_repo = MockPayrollRepository::new();
-        payroll_repo.expect_get_payroll_settings_at().returning(|_, _| Ok(None));
+        payroll_repo
+            .expect_get_payroll_settings_at()
+            .returning(|_, _| Ok(None));
 
-        let service = build_service(swap_repo, roster_repo, emp_repo, MockShiftRepository::new(), payroll_repo);
+        let service = build_service(
+            swap_repo,
+            roster_repo,
+            emp_repo,
+            MockShiftRepository::new(),
+            payroll_repo,
+        );
 
         let req = CreateShiftSwapRequest {
             requester_id: req_id,
@@ -641,16 +665,20 @@ mod tests {
     async fn test_approve_swap_success() {
         let ws_id = Uuid::new_v4();
         let req_id = Uuid::new_v4();
-        
+
         let mut swap_repo = MockShiftSwapRepository::new();
-        swap_repo.expect_get_swap_request_by_id().returning(move |_, _| {
-            let mut s = dummy_swap_request();
-            s.status = ShiftSwapStatus::PendingAdmin;
-            s.requester_shift_id = Some(Uuid::new_v4());
-            s.target_shift_id = Some(Uuid::new_v4());
-            Ok(Some(s))
-        });
-        swap_repo.expect_update_swap_status().returning(|_, _, _, _| Ok(()));
+        swap_repo
+            .expect_get_swap_request_by_id()
+            .returning(move |_, _| {
+                let mut s = dummy_swap_request();
+                s.status = ShiftSwapStatus::PendingAdmin;
+                s.requester_shift_id = Some(Uuid::new_v4());
+                s.target_shift_id = Some(Uuid::new_v4());
+                Ok(Some(s))
+            });
+        swap_repo
+            .expect_update_swap_status()
+            .returning(|_, _, _, _| Ok(()));
 
         let mut roster_repo = MockRosterRepository::new();
         roster_repo.expect_upsert_roster().times(2).returning(|r| {
@@ -659,9 +687,17 @@ mod tests {
             Box::pin(async move { Ok(roster) })
         });
 
-        let service = build_service(swap_repo, roster_repo, MockEmployeeRepository::new(), MockShiftRepository::new(), MockPayrollRepository::new());
+        let service = build_service(
+            swap_repo,
+            roster_repo,
+            MockEmployeeRepository::new(),
+            MockShiftRepository::new(),
+            MockPayrollRepository::new(),
+        );
 
-        let res = service.approve_swap(ws_id, Uuid::new_v4(), req_id, ShiftSwapStatus::Approved).await;
+        let res = service
+            .approve_swap(ws_id, Uuid::new_v4(), req_id, ShiftSwapStatus::Approved)
+            .await;
         assert!(res.is_ok());
     }
 
@@ -672,18 +708,29 @@ mod tests {
         let req_id = Uuid::new_v4();
 
         let mut swap_repo = MockShiftSwapRepository::new();
-        swap_repo.expect_get_swap_request_by_id().returning(move |_, _| {
-            let mut s = dummy_swap_request();
-            s.status = ShiftSwapStatus::PendingTarget;
-            s.target_id = target_emp_id;
-            Ok(Some(s))
-        });
-        swap_repo.expect_update_swap_status().returning(|_, _, _, _| Ok(()));
+        swap_repo
+            .expect_get_swap_request_by_id()
+            .returning(move |_, _| {
+                let mut s = dummy_swap_request();
+                s.status = ShiftSwapStatus::PendingTarget;
+                s.target_id = target_emp_id;
+                Ok(Some(s))
+            });
+        swap_repo
+            .expect_update_swap_status()
+            .returning(|_, _, _, _| Ok(()));
 
-        let service = build_service(swap_repo, MockRosterRepository::new(), MockEmployeeRepository::new(), MockShiftRepository::new(), MockPayrollRepository::new());
+        let service = build_service(
+            swap_repo,
+            MockRosterRepository::new(),
+            MockEmployeeRepository::new(),
+            MockShiftRepository::new(),
+            MockPayrollRepository::new(),
+        );
 
-        let res = service.respond_to_swap(ws_id, target_emp_id, req_id, true).await;
+        let res = service
+            .respond_to_swap(ws_id, target_emp_id, req_id, true)
+            .await;
         assert!(res.is_ok());
     }
 }
-

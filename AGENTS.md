@@ -6,7 +6,9 @@
 ## ⚠️ PTY Compatibility & Execution — CRITICAL
 
 > [!CAUTION]
-> **Tránh PTY Hang.** AI LUÔN LUÔN phải thêm chuyển hướng (redirect) `> run.log 2>&1 </dev/null` khi chạy các lệnh shell/bash (đặc biệt là lệnh khởi chạy test, docker) để tránh làm treo terminal của chính bạn. KHÔNG ĐƯỢC QUÊN.
+> **Tránh PTY Hang.** AI LUÔN LUÔN phải tuân thủ các quy tắc sau khi thực thi lệnh:
+> 1. Thêm chuyển hướng (redirect) `> run.log 2>&1 </dev/null` khi chạy các lệnh shell/bash (đặc biệt là lệnh khởi chạy test, docker) để tránh làm treo terminal của chính bạn. KHÔNG ĐƯỢC QUÊN.
+> 2. **TUYỆT ĐỐI KHÔNG** sử dụng lệnh `python -c` (hoặc `python3 -c`) kết hợp với code/chuỗi nhiều dòng (multiline strings). Lệnh này sẽ làm treo PTY ngay lập tức do lỗi parsing của shell. Nếu cần chạy script python, hãy tạo một file `.py` riêng biệt (ví dụ trong thư mục `scratch/`) rồi mới chạy lệnh `python file.py`.
 
 ## 📚 DOMAIN RULEBOOKS (Lazy Load Index)
 If your task touches any of these domains, use the `view_file` or `cat` tool to read the corresponding rulebook FIRST and output "Read: [Rulebook]".

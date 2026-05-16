@@ -97,6 +97,7 @@ async fn test_workspace_isolation() {
         TestFactory,
         TestDatabase,
     ) = spawn_app_with_factory().await;
+
     let client = reqwest::Client::new();
     let user_header = ("X-User-Id", user_id.to_string());
 

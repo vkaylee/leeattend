@@ -15,8 +15,8 @@ use tower::ServiceExt;
 
 #[tokio::test]
 async fn test_create_export_job_success() {
-    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
-        setup_app_tower().await;
+    let (_test_db, factory, _state, app) =
+        crate::common::app::setup_app_tower_without_redis().await;
 
     let admin_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(admin_id).await;

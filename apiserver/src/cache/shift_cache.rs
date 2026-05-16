@@ -7,8 +7,10 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use uuid::Uuid;
 
-use crate::cache::{RedisCache, DEFAULT_CACHE_TTL};
+use crate::cache::DEFAULT_CACHE_TTL;
 use crate::repositories::shift_repository::ShiftRepository;
+use crate::repositories::{CacheRepository, CacheRepositoryExt};
+use std::sync::Arc;
 
 /// Cached shift data.
 /// Contains all fields needed for attendance calculations.
@@ -28,12 +30,12 @@ pub struct CachedShift {
 
 /// Cache for shift data.
 pub struct ShiftCache {
-    cache: RedisCache,
+    cache: Arc<dyn CacheRepository>,
     diesel: crate::diesel_pool::DieselPools,
 }
 
 impl ShiftCache {
-    pub fn new(cache: RedisCache, diesel: crate::diesel_pool::DieselPools) -> Self {
+    pub fn new(cache: Arc<dyn CacheRepository>, diesel: crate::diesel_pool::DieselPools) -> Self {
         Self { cache, diesel }
     }
 

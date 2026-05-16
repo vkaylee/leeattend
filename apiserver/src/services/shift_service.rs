@@ -130,7 +130,7 @@ impl ShiftService {
             ))) if info.constraint_name() == Some("uq_employee_shift_start") => Err(
                 AppError::Conflict("Shift assignment already exists for this date".into()),
             ),
-        Err(e) => Err(e),
+            Err(e) => Err(e),
         }
     }
 }
@@ -221,11 +221,27 @@ mod tests {
         }
 
         async fn get_workspace_shifts(&self, _w: Uuid) -> Result<Vec<Shift>, AppError> {
-            Ok(self.shift.lock().unwrap().clone().map(|s| vec![s]).unwrap_or_default())
+            Ok(self
+                .shift
+                .lock()
+                .unwrap()
+                .clone()
+                .map(|s| vec![s])
+                .unwrap_or_default())
         }
 
-        async fn update_shift_direct(&self, _w: Uuid, _id: Uuid, req: &UpdateShiftRequest) -> Result<Shift, AppError> {
-            let mut s = self.shift.lock().unwrap().clone().unwrap_or_else(dummy_shift);
+        async fn update_shift_direct(
+            &self,
+            _w: Uuid,
+            _id: Uuid,
+            req: &UpdateShiftRequest,
+        ) -> Result<Shift, AppError> {
+            let mut s = self
+                .shift
+                .lock()
+                .unwrap()
+                .clone()
+                .unwrap_or_else(dummy_shift);
             s.name = req.name.clone();
             Ok(s)
         }
@@ -235,15 +251,30 @@ mod tests {
             Ok(())
         }
 
-        async fn assign_employee_shift(&self, _e: Uuid, _s: Uuid, _sd: NaiveDate, _ed: Option<NaiveDate>) -> Result<(), AppError> {
+        async fn assign_employee_shift(
+            &self,
+            _e: Uuid,
+            _s: Uuid,
+            _sd: NaiveDate,
+            _ed: Option<NaiveDate>,
+        ) -> Result<(), AppError> {
             Ok(())
         }
 
-        async fn get_employee_active_shift(&self, _e: Uuid, _d: NaiveDate) -> Result<Option<Shift>, AppError> {
+        async fn get_employee_active_shift(
+            &self,
+            _e: Uuid,
+            _d: NaiveDate,
+        ) -> Result<Option<Shift>, AppError> {
             Ok(self.shift.lock().unwrap().clone())
         }
 
-        async fn update_assignments_to_new_version(&self, _o: Uuid, _n: Uuid, _d: NaiveDate) -> Result<(), AppError> {
+        async fn update_assignments_to_new_version(
+            &self,
+            _o: Uuid,
+            _n: Uuid,
+            _d: NaiveDate,
+        ) -> Result<(), AppError> {
             *self.migrations_applied.lock().unwrap() = true;
             Ok(())
         }
@@ -317,7 +348,10 @@ mod tests {
             is_correction: true,
             effective_date: None,
         };
-        let result = svc.update_shift(Uuid::new_v4(), Uuid::new_v4(), req).await.unwrap();
+        let result = svc
+            .update_shift(Uuid::new_v4(), Uuid::new_v4(), req)
+            .await
+            .unwrap();
         assert_eq!(result.name, "Updated Morning");
     }
 
@@ -339,7 +373,10 @@ mod tests {
             is_correction: false,
             effective_date: None,
         };
-        let err = svc.update_shift(Uuid::new_v4(), Uuid::new_v4(), req).await.unwrap_err();
+        let err = svc
+            .update_shift(Uuid::new_v4(), Uuid::new_v4(), req)
+            .await
+            .unwrap_err();
         assert!(matches!(err, AppError::NotFound(_)));
     }
 
@@ -363,7 +400,10 @@ mod tests {
             is_correction: false,
             effective_date: Some(NaiveDate::from_ymd_opt(2026, 1, 1).unwrap()),
         };
-        let result = svc.update_shift(Uuid::new_v4(), Uuid::new_v4(), req).await.unwrap();
+        let result = svc
+            .update_shift(Uuid::new_v4(), Uuid::new_v4(), req)
+            .await
+            .unwrap();
         // New version created, name comes from req
         assert_eq!(result.name, "Morning V2");
         // archive and migrate called
@@ -376,12 +416,14 @@ mod tests {
     #[tokio::test]
     async fn test_assign_shift_success() {
         let (svc, _) = build_service(None);
-        let result = svc.assign_shift(
-            Uuid::new_v4(),
-            Uuid::new_v4(),
-            NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
-            None,
-        ).await;
+        let result = svc
+            .assign_shift(
+                Uuid::new_v4(),
+                Uuid::new_v4(),
+                NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+                None,
+            )
+            .await;
         assert!(result.is_ok());
     }
 }
