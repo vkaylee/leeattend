@@ -12,6 +12,7 @@ use crate::models::{
 // ---------------------------------------------------------------------------
 // Trait: PayrollRepository — DIP abstraction over payroll data access
 // ---------------------------------------------------------------------------
+#[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait PayrollRepository: Send + Sync {
     async fn get_active_incentive_policies(

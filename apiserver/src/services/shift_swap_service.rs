@@ -495,3 +495,195 @@ impl ShiftSwapService {
             })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::models::{Employee, ShiftSwapRequest};
+    use crate::repositories::employee::MockEmployeeRepository;
+    use crate::repositories::payroll_repository::MockPayrollRepository;
+    use crate::repositories::roster::MockRosterRepository;
+    use crate::repositories::shift_repository::MockShiftRepository;
+    use crate::repositories::shift_swap_repository::MockShiftSwapRepository;
+    use chrono::NaiveDate;
+
+    fn build_service(
+        swap_repo: MockShiftSwapRepository,
+        roster_repo: MockRosterRepository,
+        employee_repo: MockEmployeeRepository,
+        shift_repo: MockShiftRepository,
+        payroll_repo: MockPayrollRepository,
+    ) -> ShiftSwapService {
+        ShiftSwapService::new(
+            Arc::new(swap_repo),
+            Arc::new(roster_repo),
+            Arc::new(employee_repo),
+            Arc::new(shift_repo),
+            Arc::new(payroll_repo),
+        )
+    }
+
+    #[tokio::test]
+    async fn test_create_swap_same_user() {
+        let service = build_service(
+            MockShiftSwapRepository::new(),
+            MockRosterRepository::new(),
+            MockEmployeeRepository::new(),
+            MockShiftRepository::new(),
+            MockPayrollRepository::new(),
+        );
+
+        let req = CreateShiftSwapRequest {
+            requester_id: Uuid::new_v4(),
+            target_id: Uuid::default(),
+            swap_date: NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+            reason: None,
+        };
+        let req2 = CreateShiftSwapRequest {
+            requester_id: req.requester_id,
+            target_id: req.requester_id,
+            swap_date: req.swap_date,
+            reason: req.reason.clone(),
+        };
+
+        let res = service.create_swap(Uuid::new_v4(), Uuid::new_v4(), req2).await;
+        assert!(matches!(res, Err(AppError::Validation(_))));
+    }
+
+    fn dummy_employee() -> Employee {
+        Employee {
+            id: Uuid::new_v4(),
+            workspace_id: Uuid::new_v4(),
+            user_id: Some(Uuid::new_v4()),
+            full_name: "Test Emp".to_string(),
+            employee_id_number: "EMP".to_string(),
+            original_hire_date: NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+            hire_date: NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+            termination_date: None,
+            tags: vec![],
+            is_active: true,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+            department_name: None,
+        }
+    }
+
+    fn dummy_swap_request() -> ShiftSwapRequest {
+        ShiftSwapRequest {
+            id: Uuid::new_v4(),
+            workspace_id: Uuid::new_v4(),
+            requester_id: Uuid::new_v4(),
+            target_id: Uuid::new_v4(),
+            swap_date: NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+            requester_shift_id: None,
+            target_shift_id: None,
+            status: ShiftSwapStatus::PendingAdmin,
+            reason: None,
+            requested_by_user_id: None,
+            approved_by_user_id: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_create_swap_success() {
+        let ws_id = Uuid::new_v4();
+        let user_id = Uuid::new_v4();
+        let req_id = Uuid::new_v4();
+        let tgt_id = Uuid::new_v4();
+        let s_date = NaiveDate::from_ymd_opt(2024, 1, 1).unwrap();
+
+        let mut emp_repo = MockEmployeeRepository::new();
+        emp_repo.expect_get_employee_by_id()
+            .times(2)
+            .returning(|_, _| Box::pin(async { Ok(Some(dummy_employee())) }));
+
+        let mut roster_repo = MockRosterRepository::new();
+        roster_repo.expect_get_effective_shift()
+            .times(2)
+            .returning(move |_, e, _| Box::pin(async move {
+                if e == req_id {
+                    Ok((Some(Uuid::new_v4()), Vec::<crate::models::attendance::ScheduleTrace>::new()))
+                } else {
+                    Ok((Some(Uuid::new_v4()), Vec::<crate::models::attendance::ScheduleTrace>::new()))
+                }
+            }));
+
+        let mut swap_repo = MockShiftSwapRepository::new();
+        swap_repo.expect_has_active_swap().returning(|_, _, _, _| Ok(false));
+        swap_repo.expect_has_approved_swap_on_date().returning(|_, _, _| Ok(false));
+        swap_repo.expect_create_swap_request().returning(|s| {
+            let mut s2 = s.clone();
+            s2.id = Uuid::new_v4();
+            Ok(s2)
+        });
+
+        let mut payroll_repo = MockPayrollRepository::new();
+        payroll_repo.expect_get_payroll_settings_at().returning(|_, _| Ok(None));
+
+        let service = build_service(swap_repo, roster_repo, emp_repo, MockShiftRepository::new(), payroll_repo);
+
+        let req = CreateShiftSwapRequest {
+            requester_id: req_id,
+            target_id: tgt_id,
+            swap_date: s_date,
+            reason: Some("Test".into()),
+        };
+
+        let res = service.create_swap(ws_id, user_id, req).await;
+        assert!(res.is_ok());
+        let swap = res.unwrap();
+        assert_eq!(swap.requester_id, req_id);
+    }
+
+    #[tokio::test]
+    async fn test_approve_swap_success() {
+        let ws_id = Uuid::new_v4();
+        let req_id = Uuid::new_v4();
+        
+        let mut swap_repo = MockShiftSwapRepository::new();
+        swap_repo.expect_get_swap_request_by_id().returning(move |_, _| {
+            let mut s = dummy_swap_request();
+            s.status = ShiftSwapStatus::PendingAdmin;
+            s.requester_shift_id = Some(Uuid::new_v4());
+            s.target_shift_id = Some(Uuid::new_v4());
+            Ok(Some(s))
+        });
+        swap_repo.expect_update_swap_status().returning(|_, _, _, _| Ok(()));
+
+        let mut roster_repo = MockRosterRepository::new();
+        roster_repo.expect_upsert_roster().times(2).returning(|r| {
+            let mut roster = r.clone();
+            roster.id = Uuid::new_v4();
+            Box::pin(async move { Ok(roster) })
+        });
+
+        let service = build_service(swap_repo, roster_repo, MockEmployeeRepository::new(), MockShiftRepository::new(), MockPayrollRepository::new());
+
+        let res = service.approve_swap(ws_id, Uuid::new_v4(), req_id, ShiftSwapStatus::Approved).await;
+        assert!(res.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_respond_to_swap_success() {
+        let ws_id = Uuid::new_v4();
+        let target_emp_id = Uuid::new_v4();
+        let req_id = Uuid::new_v4();
+
+        let mut swap_repo = MockShiftSwapRepository::new();
+        swap_repo.expect_get_swap_request_by_id().returning(move |_, _| {
+            let mut s = dummy_swap_request();
+            s.status = ShiftSwapStatus::PendingTarget;
+            s.target_id = target_emp_id;
+            Ok(Some(s))
+        });
+        swap_repo.expect_update_swap_status().returning(|_, _, _, _| Ok(()));
+
+        let service = build_service(swap_repo, MockRosterRepository::new(), MockEmployeeRepository::new(), MockShiftRepository::new(), MockPayrollRepository::new());
+
+        let res = service.respond_to_swap(ws_id, target_emp_id, req_id, true).await;
+        assert!(res.is_ok());
+    }
+}
+

@@ -6,6 +6,7 @@ use uuid::Uuid;
 // ---------------------------------------------------------------------------
 // Trait: ShiftSwapRepository — DIP abstraction
 // ---------------------------------------------------------------------------
+#[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait ShiftSwapRepository: Send + Sync {
     async fn create_swap_request(
