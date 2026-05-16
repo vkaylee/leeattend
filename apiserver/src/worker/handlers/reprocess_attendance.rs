@@ -7,22 +7,19 @@ use chrono_tz::Tz;
 use std::sync::Arc;
 use tracing::{info, warn};
 
-use crate::queue::{Job, JobQueue, JobStatus, RedisPool};
+use crate::queue::{Job, JobStatus};
 
 pub struct ReprocessAttendanceHandler;
 
 impl ReprocessAttendanceHandler {
     pub async fn handle(
-        diesel: &crate::diesel_pool::DieselPools,
+        queue: &Arc<dyn crate::repositories::QueueRepository>,
         job: &Job,
-        redis: &RedisPool,
         deps: &crate::worker::WorkerDeps,
     ) -> Result<(), String> {
         let payload = job
             .reprocess_payload()
             .ok_or_else(|| "Missing reprocess payload".to_string())?;
-
-        let queue = JobQueue::new(redis.clone());
 
         // Update metadata -> Processing
         if let Ok(Some(mut meta)) = queue.get_job_metadata(job.parent_job_id).await {
@@ -56,29 +53,13 @@ impl ReprocessAttendanceHandler {
                 time_entry_repo: Arc::clone(&deps.time_entry_repo),
                 roster_repo: Arc::clone(&deps.roster_repo),
                 policy_repo: Arc::clone(&deps.policy_repo),
-                workspace_repo: Arc::new(crate::repositories::DieselWorkspaceRepository::new(
-                    diesel.clone(),
-                )),
-                employee_repo: Arc::new(crate::repositories::DieselEmployeeRepository::new(
-                    diesel.clone(),
-                )),
-                holiday_repo: Arc::new(crate::repositories::DieselHolidayRepository::new(
-                    diesel.clone(),
-                )),
-                leave_request_repo: Arc::new(
-                    crate::repositories::DieselLeaveRequestRepository::new(diesel.clone()),
-                ),
-                daily_summary_repo: Arc::new(
-                    crate::repositories::DieselAttendanceDailySummaryRepository::new(
-                        diesel.clone(),
-                    ),
-                ),
-                raw_log_repo: Arc::new(crate::repositories::DieselRawAttendanceLogRepository::new(
-                    diesel.clone(),
-                )),
-                shift_repo: Arc::new(crate::repositories::DieselShiftRepository::new(
-                    diesel.clone(),
-                )),
+                workspace_repo: Arc::clone(&deps.workspace_repo),
+                employee_repo: Arc::clone(&deps.employee_repo),
+                holiday_repo: Arc::clone(&deps.holiday_repo),
+                leave_request_repo: Arc::clone(&deps.leave_request_repo),
+                daily_summary_repo: Arc::clone(&deps.daily_summary_repo),
+                raw_log_repo: Arc::clone(&deps.raw_log_repo),
+                shift_repo: Arc::clone(&deps.shift_repo),
             },
         );
 

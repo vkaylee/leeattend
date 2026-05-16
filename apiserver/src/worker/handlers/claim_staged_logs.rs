@@ -12,7 +12,6 @@ pub struct ClaimStagedLogsHandler;
 
 impl ClaimStagedLogsHandler {
     pub async fn handle(
-        diesel: &crate::diesel_pool::DieselPools,
         job: &Job,
         deps: &crate::worker::WorkerDeps,
     ) -> Result<(), String> {
@@ -20,7 +19,7 @@ impl ClaimStagedLogsHandler {
             .claim_staged_logs_payload()
             .ok_or("Invalid payload for ClaimStagedLogs job")?;
 
-        let (log_svc, _handle) = deps.log_service(diesel);
+        let (log_svc, _handle) = deps.log_service();
 
         let claimed = log_svc
             .claim_staged_logs(

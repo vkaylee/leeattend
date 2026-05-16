@@ -3,7 +3,7 @@
 //! Processes leave accrual calculations as a background job.
 //! Manages JobMetadata lifecycle: Pending → Processing → Completed/Failed.
 
-use crate::queue::{Job, JobQueue, JobStatus, RedisPool};
+use crate::queue::{Job, JobStatus};
 use crate::services::leave_accrual_service::LeaveAccrualService;
 use chrono::Utc;
 
@@ -14,13 +14,11 @@ impl AccrualHandler {
     /// Updates JobMetadata status throughout the lifecycle.
     pub async fn handle(
         diesel: &crate::diesel_pool::DieselPools,
+        queue: &std::sync::Arc<dyn crate::repositories::QueueRepository>,
         job: &Job,
-        redis: &RedisPool,
         deps: &crate::worker::deps::WorkerDeps,
     ) -> Result<(), String> {
         let payload = job.accrual_payload().ok_or("Missing accrual payload")?;
-
-        let queue = JobQueue::new(redis.clone());
 
         // Update metadata → Processing
         if let Ok(Some(mut meta)) = queue.get_job_metadata(job.parent_job_id).await {

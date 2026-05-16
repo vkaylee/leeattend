@@ -34,7 +34,7 @@ pub struct WorkerDeps {
     pub import_job_repo: Arc<dyn crate::repositories::import_job_repository::ImportJobRepository>,
     pub session_repo: Arc<dyn crate::repositories::SessionRepository>,
     pub leave_balance_repo: Arc<dyn crate::repositories::leave_balance_repository::LeaveBalanceRepository>,
-    pub contract_repo: Arc<crate::repositories::DieselEmployeeContractRepository>,
+    pub contract_repo: Arc<dyn crate::repositories::EmployeeContractRepository>,
     pub leave_accrual_log_repo: Arc<dyn crate::repositories::leave_accrual_log_repository::LeaveAccrualLogRepository>,
     pub leave_policy_repo: Arc<dyn crate::repositories::leave_policy_repository::LeavePolicyRepository>,
     pub user_repo: Arc<dyn crate::repositories::UserRepository>,
@@ -115,7 +115,6 @@ impl WorkerDeps {
     /// using the shared repository instances.
     pub fn pairing_service(
         &self,
-        _diesel: &crate::diesel_pool::DieselPools,
     ) -> Arc<crate::services::pairing_service::PairingService> {
         Arc::new(crate::services::pairing_service::PairingService::new(
             crate::services::pairing_service::PairingServiceArgs {
@@ -137,12 +136,11 @@ impl WorkerDeps {
     /// using the shared repository instances.
     pub fn log_service(
         &self,
-        diesel: &crate::diesel_pool::DieselPools,
     ) -> (
         crate::services::AttendanceLogService,
         tokio::task::JoinHandle<()>,
     ) {
-        let pairing_svc = self.pairing_service(diesel);
+        let pairing_svc = self.pairing_service();
         crate::services::AttendanceLogService::new(
             pairing_svc,
             crate::services::attendance_log_service::AttendanceLogServiceConfig {

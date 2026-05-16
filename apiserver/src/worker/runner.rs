@@ -416,17 +416,17 @@ impl JobWorker {
                 Err("PayrollReport not implemented".to_string())
             }
             TaskType::LeaveAccrual => {
-                AccrualHandler::handle(&self.diesel, &job, &self.redis, &self.deps).await
+                AccrualHandler::handle(&self.diesel, &self.queue_repo, &job, &self.deps).await
             }
             TaskType::LogIngestion => {
-                LogIngestionHandler::handle(&self.diesel, &job, &self.deps).await
+                LogIngestionHandler::handle(&job, &self.deps).await
             }
             TaskType::ReprocessAttendance => {
-                ReprocessAttendanceHandler::handle(&self.diesel, &job, &self.redis, &self.deps)
+                ReprocessAttendanceHandler::handle(&self.queue_repo, &job, &self.deps)
                     .await
             }
             TaskType::ClaimStagedLogs => {
-                ClaimStagedLogsHandler::handle(&self.diesel, &job, &self.deps).await
+                ClaimStagedLogsHandler::handle(&job, &self.deps).await
             }
             TaskType::LeaveImport => {
                 LeaveImportHandler::handle(&self.diesel, &job, &self.redis, &self.deps).await
