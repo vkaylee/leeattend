@@ -22,6 +22,7 @@ impl AppState {
     pub async fn build(
         diesel_pools: crate::diesel_pool::DieselPools,
         redis_pool: Option<RedisPool>,
+        tenant_manager: Arc<dyn crate::supavisor::TenantManager>,
     ) -> Result<(Arc<Self>, AppWorkers), Box<dyn std::error::Error>> {
         // Use API pool for application-level initialization (HTTP handlers, CRUD)
         // Use Worker pool for background services (patient timeout, won't starve API)
@@ -510,6 +511,7 @@ impl AppState {
                 diesel: diesel_pools,
                 redis: redis_pool,
                 roster_cache,
+                tenant_manager,
             },
         });
 

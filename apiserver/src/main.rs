@@ -61,7 +61,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize Supavisor pooler tenant configuration if required
     // This MUST run before DbPools::connect because DbPools::connect attempts to connect
     // to the Supavisor pool, which requires the tenant to be registered first.
-    apiserver::supavisor::init_supavisor_tenant().await;
+    let tenant_manager: std::sync::Arc<dyn apiserver::supavisor::TenantManager> = if let Some(mgr) = apiserver::supavisor::SupavisorTenantManager::new() {
+        std::sync::Arc::new(mgr)
+    } else {
+        std::sync::Arc::new(apiserver::supavisor::NoopTenantManager)
+    };
+    tenant_manager.init_tenant().await;
 
     let diesel_pools = DieselPools::connect(&db_config).await;
 
@@ -81,7 +86,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let redis_pool = init_redis().await;
     tracing::info!("Redis initialization complete");
 
-    let (state, workers) = AppState::build(diesel_pools, redis_pool).await?;
+    let (state, workers) = AppState::build(diesel_pools, redis_pool, tenant_manager).await?;
 
     let app = create_app(state.clone());
 

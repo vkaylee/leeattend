@@ -14,7 +14,7 @@ use utoipa::ToSchema;
 use crate::errors::{AppError, AppResult};
 use crate::handlers::system_auth::SystemContext;
 use crate::models::enums::SystemRoleType;
-use crate::supavisor::{build_tenant_payload, delete_tenant, register_tenant_dynamic};
+use crate::supavisor::build_tenant_payload;
 use crate::AppState;
 
 use diesel_async::RunQueryDsl;
@@ -160,7 +160,7 @@ pub async fn create_tenant(
     };
 
     // 3. Register in Supavisor
-    register_tenant_dynamic(&tenant_id, &payload).await?;
+    state.infra.tenant_manager.register_tenant_dynamic(&tenant_id, &payload).await?;
 
     // 4. Audit Log
     let details = serde_json::json!({
@@ -203,7 +203,7 @@ pub async fn delete_tenant_handler(
         .map_err(|e| AppError::Internal(e.to_string()))?;
 
     // 1. Delete from Supavisor
-    delete_tenant(&tenant_id).await?;
+    state.infra.tenant_manager.delete_tenant(&tenant_id).await?;
 
     // 2. Audit Log
     let details = serde_json::json!({

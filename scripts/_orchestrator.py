@@ -642,7 +642,10 @@ class Orchestrator:
                     compose_cmd.extend(["run", "-T", "--rm"])
                 self._handle_run_npm(compose_cmd, tool_args, service, is_running)
         elif tool == "cargo":
-            compose_cmd.extend(["run", "-T", "--rm"])
+            if not needs_db:
+                compose_cmd.extend(["run", "-T", "--rm", "--no-deps"])
+            else:
+                compose_cmd.extend(["run", "-T", "--rm"])
             self._handle_run_cargo(compose_cmd, tool_args, service)
         else:  # diesel
             compose_cmd.extend(

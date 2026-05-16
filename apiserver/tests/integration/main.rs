@@ -34,3 +34,4 @@ pub mod misc;
 pub mod monitor;
 pub mod notifications;
 pub mod shift;
+pub mod system;

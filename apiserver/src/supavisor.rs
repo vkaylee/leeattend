@@ -1,4 +1,3 @@
-use reqwest::Client;
 use serde_json::json;
 
 pub(crate) fn build_tenant_payload(db_url: &str) -> Option<(String, serde_json::Value)> {
@@ -71,64 +70,164 @@ pub(crate) fn build_tenant_payload(db_url: &str) -> Option<(String, serde_json::
 
 /// Initializes the Supavisor connection pooler by registering the database tenant via its HTTP API.
 /// This runs on startup if the `SUPAVISOR_API_URL` environment variable is set.
-pub async fn init_supavisor_tenant() {
-    let Ok(api_url) = std::env::var("SUPAVISOR_API_URL") else {
-        tracing::debug!("SUPAVISOR_API_URL not set, skipping Supavisor initialization");
-        return;
-    };
 
-    let Ok(jwt_secret) = std::env::var("API_JWT_SECRET") else {
-        tracing::warn!(
-            "SUPAVISOR_API_URL is set but API_JWT_SECRET is missing. Cannot initialize Supavisor."
-        );
-        return;
-    };
+use async_trait::async_trait;
+use crate::errors::{AppError, AppResult};
 
-    let Ok(db_url) = std::env::var("DATABASE_URL") else {
-        tracing::warn!("DATABASE_URL is not set. Cannot initialize Supavisor.");
-        return;
-    };
+#[cfg(test)]
+use mockall::automock;
 
-    let Some((tenant_id, payload)) = build_tenant_payload(&db_url) else {
-        return;
-    };
+#[cfg_attr(test, automock)]
+#[async_trait]
+pub trait TenantManager: Send + Sync {
+    async fn init_tenant(&self);
+    async fn delete_tenant(&self, tenant_id: &str) -> AppResult<()>;
+    async fn register_tenant_dynamic(&self, tenant_id: &str, payload: &serde_json::Value) -> AppResult<()>;
+}
 
-    let Ok(token) = generate_supavisor_token(&jwt_secret) else {
-        tracing::error!("Failed to generate Supavisor JWT token");
-        return;
-    };
+pub struct SupavisorTenantManager {
+    client: reqwest::Client,
+    api_url: String,
+    jwt_secret: String,
+    master_db_url: String,
+}
 
-    tracing::info!("Initializing Supavisor tenant '{tenant_id}' at {api_url}");
+impl SupavisorTenantManager {
+    pub fn new() -> Option<Self> {
+        let api_url = std::env::var("SUPAVISOR_API_URL").ok()?;
+        let jwt_secret = std::env::var("API_JWT_SECRET").ok()?;
+        let master_db_url = std::env::var("DATABASE_URL").unwrap_or_default();
+        Some(Self {
+            client: reqwest::Client::new(),
+            api_url,
+            jwt_secret,
+            master_db_url,
+        })
+    }
 
-    let client = Client::new();
-    let url = format!("{}/api/tenants/{tenant_id}", api_url.trim_end_matches('/'));
+    fn generate_token(&self) -> Result<String, jsonwebtoken::errors::Error> {
+        generate_supavisor_token(&self.jwt_secret)
+    }
+}
 
-    match client
-        .put(&url)
-        .header("Authorization", format!("Bearer {token}"))
-        .json(&payload)
-        .send()
-        .await
-    {
-        Ok(response) => {
-            let status = response.status();
-            if status.is_success() {
-                tracing::info!("Supavisor tenant initialized successfully (Status: {status})");
-            } else if status == reqwest::StatusCode::BAD_REQUEST {
-                let text = response.text().await.unwrap_or_default();
-                // Sometimes it returns 400 if it already exists or if fields conflict.
-                // Log it but don't panic.
-                tracing::warn!("Supavisor initialization returned 400: {text}");
-            } else {
-                let text = response.text().await.unwrap_or_default();
-                tracing::warn!("Supavisor initialization returned status {status}: {text}");
+#[async_trait]
+impl TenantManager for SupavisorTenantManager {
+    async fn init_tenant(&self) {
+        if self.master_db_url.is_empty() {
+            tracing::warn!("DATABASE_URL is not set. Cannot initialize Supavisor.");
+            return;
+        }
+
+        let Some((tenant_id, payload)) = build_tenant_payload(&self.master_db_url) else {
+            return;
+        };
+
+        let Ok(token) = self.generate_token() else {
+            tracing::error!("Failed to generate Supavisor JWT token");
+            return;
+        };
+
+        tracing::info!("Initializing Supavisor tenant '{tenant_id}' at {}", self.api_url);
+
+        let url = format!("{}/api/tenants/{tenant_id}", self.api_url.trim_end_matches('/'));
+
+        match self
+            .client
+            .put(&url)
+            .header("Authorization", format!("Bearer {token}"))
+            .json(&payload)
+            .send()
+            .await
+        {
+            Ok(response) => {
+                let status = response.status();
+                if status.is_success() {
+                    tracing::info!("Supavisor tenant initialized successfully (Status: {status})");
+                } else if status == reqwest::StatusCode::BAD_REQUEST {
+                    let text = response.text().await.unwrap_or_default();
+                    tracing::warn!("Supavisor initialization returned 400: {text}");
+                } else {
+                    let text = response.text().await.unwrap_or_default();
+                    tracing::warn!("Supavisor initialization returned status {status}: {text}");
+                }
+            }
+            Err(e) => {
+                tracing::warn!("Failed to reach Supavisor API: {e:?}");
             }
         }
-        Err(e) => {
-            tracing::warn!("Failed to reach Supavisor API: {e:?}");
+    }
+
+    async fn delete_tenant(&self, tenant_id: &str) -> AppResult<()> {
+        let token = self.generate_token()
+            .map_err(|e| AppError::Internal(format!("Failed to generate token: {e}")))?;
+
+        let url = format!("{}/api/tenants/{}", self.api_url.trim_end_matches('/'), tenant_id);
+
+        let response = self
+            .client
+            .delete(&url)
+            .header("Authorization", format!("Bearer {token}"))
+            .send()
+            .await
+            .map_err(|e| AppError::Internal(format!("Failed to reach Supavisor API: {e}")))?;
+
+        let status = response.status();
+        if status.is_success() {
+            Ok(())
+        } else {
+            let text = response.text().await.unwrap_or_default();
+            Err(AppError::Internal(format!("Supavisor returned {status}: {text}")))
+        }
+    }
+
+    async fn register_tenant_dynamic(&self, tenant_id: &str, payload: &serde_json::Value) -> AppResult<()> {
+        let token = self.generate_token()
+            .map_err(|e| AppError::Internal(format!("Failed to generate token: {e}")))?;
+
+        let url = format!("{}/api/tenants/{}", self.api_url.trim_end_matches('/'), tenant_id);
+
+        let response = self
+            .client
+            .put(&url)
+            .header("Authorization", format!("Bearer {token}"))
+            .json(payload)
+            .send()
+            .await
+            .map_err(|e| {
+                println!("Failed to reach Supavisor API: {e:?}");
+                AppError::Internal(format!("Failed to reach Supavisor API: {e:?}"))
+            })?;
+
+        let status = response.status();
+        if status.is_success() {
+            Ok(())
+        } else {
+            let text = response.text().await.unwrap_or_default();
+            println!("Supavisor returned {status}: {text}");
+            Err(AppError::Internal(format!("Supavisor returned {status}: {text}")))
         }
     }
 }
+
+pub struct NoopTenantManager;
+
+#[async_trait]
+impl TenantManager for NoopTenantManager {
+    async fn init_tenant(&self) {
+        tracing::debug!("NoopTenantManager: skipping init");
+    }
+
+    async fn delete_tenant(&self, _tenant_id: &str) -> AppResult<()> {
+        tracing::debug!("NoopTenantManager: skipping delete_tenant");
+        Ok(())
+    }
+
+    async fn register_tenant_dynamic(&self, _tenant_id: &str, _payload: &serde_json::Value) -> AppResult<()> {
+        tracing::debug!("NoopTenantManager: skipping register_tenant");
+        Ok(())
+    }
+}
+
 
 fn generate_supavisor_token(secret: &str) -> Result<String, jsonwebtoken::errors::Error> {
     use jsonwebtoken::{encode, Algorithm, EncodingKey, Header};
@@ -154,84 +253,6 @@ fn generate_supavisor_token(secret: &str) -> Result<String, jsonwebtoken::errors
 }
 
 /// Deletes a tenant from Supavisor.
-pub async fn delete_tenant(tenant_id: &str) -> crate::errors::AppResult<()> {
-    let api_url = std::env::var("SUPAVISOR_API_URL").map_err(|_err| {
-        crate::errors::AppError::Internal("SUPAVISOR_API_URL not set".to_string())
-    })?;
-    let jwt_secret = std::env::var("API_JWT_SECRET")
-        .map_err(|_err| crate::errors::AppError::Internal("API_JWT_SECRET not set".to_string()))?;
-    let token = generate_supavisor_token(&jwt_secret)
-        .map_err(|e| crate::errors::AppError::Internal(format!("Failed to generate token: {e}")))?;
-
-    let client = Client::new();
-    let url = format!(
-        "{}/api/tenants/{}",
-        api_url.trim_end_matches('/'),
-        tenant_id
-    );
-
-    let response = client
-        .delete(&url)
-        .header("Authorization", format!("Bearer {token}"))
-        .send()
-        .await
-        .map_err(|e| {
-            crate::errors::AppError::Internal(format!("Failed to reach Supavisor API: {e}"))
-        })?;
-
-    let status = response.status();
-    if status.is_success() {
-        Ok(())
-    } else {
-        let text = response.text().await.unwrap_or_default();
-        Err(crate::errors::AppError::Internal(format!(
-            "Supavisor returned {status}: {text}"
-        )))
-    }
-}
-
-/// Dynamically registers a tenant in Supavisor using the provided payload.
-pub async fn register_tenant_dynamic(
-    tenant_id: &str,
-    payload: &serde_json::Value,
-) -> crate::errors::AppResult<()> {
-    let api_url = std::env::var("SUPAVISOR_API_URL").map_err(|_err| {
-        crate::errors::AppError::Internal("SUPAVISOR_API_URL not set".to_string())
-    })?;
-    let jwt_secret = std::env::var("API_JWT_SECRET")
-        .map_err(|_err| crate::errors::AppError::Internal("API_JWT_SECRET not set".to_string()))?;
-    let token = generate_supavisor_token(&jwt_secret)
-        .map_err(|e| crate::errors::AppError::Internal(format!("Failed to generate token: {e}")))?;
-
-    let client = Client::new();
-    let url = format!(
-        "{}/api/tenants/{}",
-        api_url.trim_end_matches('/'),
-        tenant_id
-    );
-
-    let response = client
-        .put(&url)
-        .header("Authorization", format!("Bearer {token}"))
-        .json(payload)
-        .send()
-        .await
-        .map_err(|e| {
-            println!("Failed to reach Supavisor API: {e:?}");
-            crate::errors::AppError::Internal(format!("Failed to reach Supavisor API: {e:?}"))
-        })?;
-
-    let status = response.status();
-    if status.is_success() {
-        Ok(())
-    } else {
-        let text = response.text().await.unwrap_or_default();
-        println!("Supavisor returned {status}: {text}");
-        Err(crate::errors::AppError::Internal(format!(
-            "Supavisor returned {status}: {text}"
-        )))
-    }
-}
 
 #[cfg(test)]
 mod tests {

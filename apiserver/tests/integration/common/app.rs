@@ -482,6 +482,7 @@ pub async fn spawn_app() -> (String, TestDatabase) {
             diesel: diesel_pools.clone(),
             redis: shared_redis_pool.clone(),
             roster_cache: None,
+            tenant_manager: Arc::new(apiserver::supavisor::NoopTenantManager),
         },
     });
 
@@ -501,6 +502,11 @@ pub async fn spawn_app() -> (String, TestDatabase) {
 /// App spawn with factory - returns address, `workspace_id`, `user_id`, factory, and `TestDatabase`
 #[allow(dead_code)]
 pub async fn spawn_app_with_factory() -> (String, Uuid, Uuid, TestFactory, TestDatabase) {
+    spawn_app_with_factory_extended(Arc::new(apiserver::supavisor::NoopTenantManager)).await
+}
+
+#[allow(dead_code)]
+pub async fn spawn_app_with_factory_extended(tenant_manager: Arc<dyn apiserver::supavisor::TenantManager>) -> (String, Uuid, Uuid, TestFactory, TestDatabase) {
     let test_db = TestDatabase::new().await;
     let pool = test_db.diesel_pools.clone();
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
@@ -962,6 +968,7 @@ pub async fn spawn_app_with_factory() -> (String, Uuid, Uuid, TestFactory, TestD
             diesel: diesel_pools.clone(),
             redis: shared_redis_pool.clone(),
             roster_cache: None,
+            tenant_manager,
         },
     });
 
@@ -1017,6 +1024,10 @@ pub async fn setup_app_tower_without_redis() -> (TestDatabase, TestFactory, Arc<
 }
 
 pub async fn setup_app_tower_internal(use_redis: bool) -> (TestDatabase, TestFactory, Arc<AppState>, axum::Router) {
+    setup_app_tower_internal_extended(use_redis, Arc::new(apiserver::supavisor::NoopTenantManager)).await
+}
+
+pub async fn setup_app_tower_internal_extended(use_redis: bool, tenant_manager: Arc<dyn apiserver::supavisor::TenantManager>) -> (TestDatabase, TestFactory, Arc<AppState>, axum::Router) {
     let test_db = TestDatabase::new().await;
     let shared_redis_pool = if use_redis { create_test_redis_pool().await } else { None };
     let pool = test_db.diesel_pools.clone().clone();
@@ -1484,6 +1495,7 @@ pub async fn setup_app_tower_internal(use_redis: bool) -> (TestDatabase, TestFac
             diesel: diesel_pools.clone(),
             redis: shared_redis_pool.clone(),
             roster_cache: None,
+            tenant_manager,
         },
     });
 

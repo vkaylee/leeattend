@@ -138,6 +138,7 @@ pub struct InfraState {
     pub diesel: crate::diesel_pool::DieselPools,
     pub redis: Option<RedisPool>,
     pub roster_cache: Option<Arc<crate::cache::RosterCache>>,
+    pub tenant_manager: Arc<dyn crate::supavisor::TenantManager>,
 }
 
 // ── Composed AppState ──────────────────────────────────────────────
