@@ -314,6 +314,51 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
         Ok(count)
     }
 
+    async fn get_distinct_work_days(
+        &self,
+        workspace_id: Uuid,
+        employee_id: Uuid,
+        start_time: DateTime<Utc>,
+        end_time: DateTime<Utc>,
+        tz: &str,
+    ) -> Result<Vec<chrono::NaiveDate>, AppError> {
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        #[derive(diesel::QueryableByName)]
+        struct DateRow {
+            #[diesel(sql_type = diesel::sql_types::Date)]
+            date: chrono::NaiveDate,
+        }
+
+        let work_days: Vec<DateRow> = diesel::sql_query(
+            r#"
+            SELECT DISTINCT(te.punch_in_time AT TIME ZONE $2)::date as date
+            FROM time_entries te
+            JOIN employees e ON te.employee_id = e.id
+            WHERE te.employee_id = $1
+              AND e.workspace_id = $5
+              AND te.punch_in_time >= $3
+              AND te.punch_in_time <= $4
+              AND te.entry_type = 'work'
+            "#,
+        )
+        .bind::<diesel::sql_types::Uuid, _>(employee_id)
+        .bind::<diesel::sql_types::Text, _>(tz.to_string())
+        .bind::<diesel::sql_types::Timestamptz, _>(start_time)
+        .bind::<diesel::sql_types::Timestamptz, _>(end_time)
+        .bind::<diesel::sql_types::Uuid, _>(workspace_id)
+        .load(&mut conn)
+        .await
+        .map_err(|e| AppError::Internal(e.to_string()))?;
+
+        Ok(work_days.into_iter().map(|row| row.date).collect())
+    }
+
     async fn get_workspace_time_entries_batch(
         &self,
         workspace_id: Uuid,

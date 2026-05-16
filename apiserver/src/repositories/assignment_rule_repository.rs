@@ -7,6 +7,7 @@ use crate::models::{
 use async_trait::async_trait;
 use uuid::Uuid;
 
+#[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait AssignmentRuleRepository: Send + Sync {
     async fn create_rule(

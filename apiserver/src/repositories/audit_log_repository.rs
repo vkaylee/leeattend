@@ -4,6 +4,7 @@ use async_trait::async_trait;
 
 use uuid::Uuid;
 
+#[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait AuditLogRepository: Send + Sync {
     async fn create_log(&self, config: &AuditLog) -> Result<AuditLog, AppError>;

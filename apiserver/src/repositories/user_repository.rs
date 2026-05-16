@@ -7,6 +7,7 @@ use uuid::Uuid;
 // Trait: UserRepository — DIP abstraction
 // (create_user_tx excluded — takes generic Executor)
 // ---------------------------------------------------------------------------
+#[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait UserRepository: Send + Sync {
     async fn create_user(&self, user: &User) -> Result<(), AppError>;

@@ -9,6 +9,7 @@ use crate::models::{Department, DepartmentPayrollConfig, EmployeeDepartmentHisto
 // ---------------------------------------------------------------------------
 // Trait: DepartmentRepository — DIP abstraction
 // ---------------------------------------------------------------------------
+#[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait DepartmentRepository: Send + Sync {
     async fn create_department(

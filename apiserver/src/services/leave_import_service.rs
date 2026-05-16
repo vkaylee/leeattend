@@ -4,19 +4,16 @@
 //! and generates an error Excel file for failed rows.
 
 use chrono::NaiveDate;
-use diesel::OptionalExtension;
 use rust_xlsxwriter::Workbook;
 use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::errors::AppResult;
 use crate::models::{LeaveDurationType, SubmitLeaveRequest};
-use crate::repositories::EmployeeRepository;
 use crate::services::import_messages::LeaveImportMessages;
 use crate::services::leave_service::LeaveService;
 
 use crate::models::AttendanceImportJob;
-use crate::repositories::import_job_repository::ImportJobRepository;
 
 use crate::services::import_pipeline::{ImportPipeline, ImportStrategy};
 
@@ -33,16 +30,7 @@ pub struct PendingLeaveRow {
 }
 
 pub struct LeaveImportService {
-    diesel: crate::diesel_pool::DieselPools,
-    import_repo: Arc<dyn ImportJobRepository>,
-    employee_repo: Arc<dyn EmployeeRepository>,
-    leave_balance_repo:
-        Arc<dyn crate::repositories::leave_balance_repository::LeaveBalanceRepository>,
-    leave_request_repo:
-        Arc<dyn crate::repositories::leave_request_repository::LeaveRequestRepository>,
-    roster_repo: Arc<dyn crate::repositories::roster::RosterRepository>,
-    leave_accrual_log_repo:
-        Arc<dyn crate::repositories::leave_accrual_log_repository::LeaveAccrualLogRepository>,
+    deps: crate::worker::deps::WorkerDeps,
 }
 
 pub struct LeaveImportStrategy {
@@ -54,21 +42,6 @@ pub struct LeaveImportStrategy {
     pub leave_service: LeaveService,
 }
 
-#[derive(diesel::QueryableByName)]
-struct EmpRow {
-    #[diesel(sql_type = diesel::sql_types::Uuid)]
-    id: Uuid,
-    #[diesel(sql_type = diesel::sql_types::Text)]
-    employee_id_number: String,
-}
-
-#[derive(diesel::QueryableByName)]
-struct LeaveTypeRow {
-    #[diesel(sql_type = diesel::sql_types::Uuid)]
-    id: Uuid,
-    #[diesel(sql_type = diesel::sql_types::Text)]
-    code: String,
-}
 
 #[async_trait::async_trait]
 impl ImportStrategy for LeaveImportStrategy {
@@ -156,35 +129,27 @@ impl ImportStrategy for LeaveImportStrategy {
 
     async fn init(
         &mut self,
-        diesel: &crate::diesel_pool::DieselPools,
+        deps: &crate::worker::deps::WorkerDeps,
         job: &AttendanceImportJob,
     ) -> Result<(), String> {
-        let mut conn = diesel
-            .api
-            .get()
+        let (emps, _) = deps
+            .employee_repo
+            .get_all_employees(job.workspace_id, crate::models::EmployeeFilterOptions::default())
             .await
-            .map_err(|e| format!("Failed to get connection: {e}"))?;
-        use diesel_async::RunQueryDsl;
-
-        let emps: Vec<EmpRow> = diesel::sql_query(
-            "SELECT id, employee_id_number FROM employees WHERE workspace_id = $1",
-        )
-        .bind::<diesel::sql_types::Uuid, _>(job.workspace_id)
-        .load(&mut conn)
-        .await
-        .map_err(|e| format!("Failed to load employees: {e}"))?;
+            .map_err(|e| format!("Failed to load employees: {e}"))?;
 
         for emp in emps {
-            self.employees_cache
-                .insert(emp.employee_id_number.to_uppercase(), emp.id);
+            if !emp.employee_id_number.is_empty() {
+                self.employees_cache
+                    .insert(emp.employee_id_number.to_uppercase(), emp.id);
+            }
         }
 
-        let leaves: Vec<LeaveTypeRow> =
-            diesel::sql_query("SELECT id, code FROM leave_types WHERE workspace_id = $1")
-                .bind::<diesel::sql_types::Uuid, _>(job.workspace_id)
-                .load(&mut conn)
-                .await
-                .map_err(|e| format!("Failed to load leave types: {e}"))?;
+        let leaves = deps
+            .leave_policy_repo
+            .get_leave_types(job.workspace_id)
+            .await
+            .map_err(|e| format!("Failed to load leave types: {e}"))?;
 
         for lt in leaves {
             self.leave_types_cache.insert(lt.code.to_uppercase(), lt.id);
@@ -195,7 +160,7 @@ impl ImportStrategy for LeaveImportStrategy {
 
     async fn process_row(
         &mut self,
-        _diesel: &crate::diesel_pool::DieselPools,
+        _deps: &crate::worker::deps::WorkerDeps,
         job: &AttendanceImportJob,
         row: &Self::RowData,
     ) -> Result<Option<Uuid>, String> {
@@ -241,28 +206,10 @@ impl ImportStrategy for LeaveImportStrategy {
 
 impl LeaveImportService {
     pub fn new(
-        diesel: crate::diesel_pool::DieselPools,
-        import_repo: Arc<dyn ImportJobRepository>,
-        employee_repo: Arc<dyn EmployeeRepository>,
-        leave_balance_repo: Arc<
-            dyn crate::repositories::leave_balance_repository::LeaveBalanceRepository,
-        >,
-        leave_request_repo: Arc<
-            dyn crate::repositories::leave_request_repository::LeaveRequestRepository,
-        >,
-        roster_repo: Arc<dyn crate::repositories::roster::RosterRepository>,
-        leave_accrual_log_repo: Arc<
-            dyn crate::repositories::leave_accrual_log_repository::LeaveAccrualLogRepository,
-        >,
+        deps: crate::worker::deps::WorkerDeps,
     ) -> Self {
         Self {
-            diesel,
-            import_repo,
-            employee_repo,
-            leave_balance_repo,
-            leave_request_repo,
-            roster_repo,
-            leave_accrual_log_repo,
+            deps,
         }
     }
 
@@ -278,49 +225,31 @@ impl LeaveImportService {
     ) -> Result<(), ()> {
         let file_bytes = tokio::fs::read(file_path).await.map_err(|_e| ())?;
 
-        let Ok(Some(job)) = self.import_repo.get_job_by_id(import_job_id).await else {
+        let Ok(Some(job)) = self.deps.import_job_repo.get_job_by_id(import_job_id).await else {
             return Err(());
         };
 
-        let mut conn = self.diesel.api.get().await.map_err(|_e| ())?;
-        use diesel_async::RunQueryDsl;
+        let workspace = self
+            .deps
+            .workspace_repo
+            .get_workspace_by_id(workspace_id)
+            .await
+            .map_err(|_| ())?
+            .ok_or(())?;
 
-        #[derive(diesel::QueryableByName)]
-        struct StringRow {
-            #[diesel(sql_type = diesel::sql_types::Text)]
-            val: String,
-        }
-
-        let lang: Option<StringRow> =
-            diesel::sql_query("SELECT default_language as val FROM workspaces WHERE id = $1")
-                .bind::<diesel::sql_types::Uuid, _>(workspace_id)
-                .get_result(&mut conn)
-                .await
-                .optional()
-                .map_err(|_e| ())?;
-
-        let lang = lang.map(|r| r.val).unwrap_or_else(|| "en".to_string());
-
-        let tz_str: Option<StringRow> =
-            diesel::sql_query("SELECT timezone as val FROM workspaces WHERE id = $1")
-                .bind::<diesel::sql_types::Uuid, _>(workspace_id)
-                .get_result(&mut conn)
-                .await
-                .optional()
-                .map_err(|_e| ())?;
-
-        let tz_str = tz_str.map(|r| r.val).unwrap_or_else(|| "UTC".to_string());
+        let lang = workspace.default_language;
+        let tz_str = workspace.timezone;
 
         let workspace_tz: chrono_tz::Tz = tz_str.parse().unwrap_or(chrono_tz::UTC);
 
         let msgs = LeaveImportMessages::for_lang(&lang);
 
         let leave_service = LeaveService::new(
-            Arc::clone(&self.leave_balance_repo),
-            Arc::clone(&self.leave_request_repo),
-            Arc::clone(&self.employee_repo),
-            Arc::clone(&self.roster_repo),
-            Arc::clone(&self.leave_accrual_log_repo),
+            Arc::clone(&self.deps.leave_balance_repo),
+            Arc::clone(&self.deps.leave_request_repo),
+            Arc::clone(&self.deps.employee_repo),
+            Arc::clone(&self.deps.roster_repo),
+            Arc::clone(&self.deps.leave_accrual_log_repo),
         );
 
         let strategy = LeaveImportStrategy {
@@ -334,8 +263,8 @@ impl LeaveImportService {
 
         let pipeline = ImportPipeline {
             strategy,
-            diesel: self.diesel.clone(),
-            import_repo: &*self.import_repo,
+            deps: self.deps.clone(),
+            import_repo: &*self.deps.import_job_repo,
             job: &job,
             file_bytes,
             workspace_tz,

@@ -12,7 +12,7 @@ use crate::cache::{ShiftCache, WorkspaceCache};
 pub struct CacheManager {
     pub workspace: WorkspaceCache,
     pub shifts: ShiftCache,
-    // Future extensions: patterns, policies, employees, etc.
+    pub repo: Arc<dyn crate::repositories::CacheRepository>,
 }
 
 use crate::repositories::CacheRepository;
@@ -28,6 +28,7 @@ impl CacheManager {
         Self {
             workspace: WorkspaceCache::new(Arc::clone(&cache), workspace_repo),
             shifts: ShiftCache::new(Arc::clone(&cache), shift_repo),
+            repo: cache,
         }
     }
 

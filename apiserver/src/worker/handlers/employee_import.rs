@@ -10,11 +10,8 @@ use std::sync::Arc;
 
 use crate::models::ImportJobStatus;
 use crate::queue::{
-    EmployeeImportChunkPayload, Job, JobPayload, JobPriority, JobQueue, RedisPool, TaskType,
+    EmployeeImportChunkPayload, Job, JobPayload, JobPriority, TaskType,
 };
-use crate::repositories::import_job_repository::ImportJobRepository;
-use crate::repositories::workspace_repository::WorkspaceRepository;
-use crate::repositories::DieselImportJobRepository;
 use crate::services::attendance_import_service::EmployeeImportStrategy;
 use crate::services::import_messages::AttendanceImportMessages;
 use crate::services::import_pipeline::ImportPipeline;
@@ -27,15 +24,16 @@ impl EmployeeImportHandler {
     /// Splits the file into chunks and enqueues them.
     #[allow(clippy::too_many_lines)]
     pub async fn handle(
-        diesel: &crate::diesel_pool::DieselPools,
         job: &Job,
-        redis: &RedisPool,
+        cache: &std::sync::Arc<dyn crate::repositories::CacheRepository>,
+        queue_repo: &std::sync::Arc<dyn crate::repositories::QueueRepository>,
+        deps: &crate::worker::deps::WorkerDeps,
     ) -> Result<(), String> {
         let payload = job
             .employee_import_payload()
             .ok_or("Missing employee import payload")?;
 
-        let import_repo = DieselImportJobRepository::new(diesel.clone());
+        let import_repo = &*deps.import_job_repo;
 
         // Update import job → Processing
         let _ = import_repo
@@ -94,30 +92,12 @@ impl EmployeeImportHandler {
 
         let total_chunks = chunks.len() as u32;
 
-        let mut conn = redis.conn();
-
         tracing::info!("Setting Redis keys");
         // Initialize Redis keys for progress tracking
-        let _: () = redis::cmd("SET")
-            .arg(format!("import_progress:{}", payload.import_job_id))
-            .arg(0)
-            .query_async(&mut conn)
-            .await
-            .unwrap_or(());
-
-        let _: () = redis::cmd("SET")
-            .arg(format!("import_chunks_done:{}", payload.import_job_id))
-            .arg(0)
-            .query_async(&mut conn)
-            .await
-            .unwrap_or(());
-
-        let _: () = redis::cmd("SET")
-            .arg(format!("import_total_chunks:{}", payload.import_job_id))
-            .arg(total_chunks)
-            .query_async(&mut conn)
-            .await
-            .unwrap_or(());
+        let ttl = std::time::Duration::from_secs(86400); // 24 hours
+        let _ = cache.set_json(&format!("import_progress:{}", payload.import_job_id), "0", ttl).await;
+        let _ = cache.set_json(&format!("import_chunks_done:{}", payload.import_job_id), "0", ttl).await;
+        let _ = cache.set_json(&format!("import_total_chunks:{}", payload.import_job_id), &total_chunks.to_string(), ttl).await;
 
         tracing::info!("Enqueueing chunk jobs");
         // Enqueue chunk jobs
@@ -139,8 +119,7 @@ impl EmployeeImportHandler {
             ));
         }
 
-        let queue = JobQueue::new(redis.clone());
-        queue
+        queue_repo
             .enqueue_jobs(sub_jobs)
             .await
             .map_err(|e| format!("Failed to enqueue chunks: {e}"))?;
@@ -154,9 +133,10 @@ pub struct EmployeeImportChunkHandler;
 impl EmployeeImportChunkHandler {
     #[allow(clippy::too_many_lines)]
     pub async fn handle(
-        diesel: &crate::diesel_pool::DieselPools,
         job: &Job,
-        redis: &RedisPool,
+        cache: &std::sync::Arc<dyn crate::repositories::CacheRepository>,
+        queue_repo: &std::sync::Arc<dyn crate::repositories::QueueRepository>,
+        deps: &crate::worker::deps::WorkerDeps,
     ) -> Result<(), String> {
         let payload = job
             .employee_import_chunk_payload()
@@ -177,10 +157,10 @@ impl EmployeeImportChunkHandler {
         let _guard = ImportTimeoutGuard::new(
             payload.import_job_id,
             Arc::clone(&completed),
-            diesel.clone(),
+            deps.import_job_repo.clone(),
         );
 
-        let import_repo = DieselImportJobRepository::new(diesel.clone());
+        let import_repo = deps.import_job_repo.clone();
         let import_job = import_repo
             .get_job_by_id(payload.import_job_id)
             .await
@@ -191,9 +171,7 @@ impl EmployeeImportChunkHandler {
             .await
             .map_err(|e| format!("Could not read file: {e}"))?;
 
-        let workspace_repo = Arc::new(crate::repositories::DieselWorkspaceRepository::new(
-            diesel.clone(),
-        ));
+        let workspace_repo = deps.workspace_repo.clone();
         let workspace_tz = match workspace_repo
             .get_workspace_by_id(import_job.workspace_id)
             .await
@@ -212,31 +190,23 @@ impl EmployeeImportChunkHandler {
 
         let strategy = EmployeeImportStrategy {
             msgs: msgs.clone(),
-            employee_repo: Arc::new(crate::repositories::DieselEmployeeRepository::new(
-                diesel.clone(),
-            )),
-            department_repo: Arc::new(
-                crate::repositories::diesel_department_repository::DieselDepartmentRepository::new(
-                    diesel.clone(),
-                ),
-            ),
-            staging_repo: Arc::new(crate::repositories::DieselStagingLogRepository::new(
-                diesel.clone(),
-            )),
+            employee_repo: deps.employee_repo.clone(),
+            department_repo: deps.department_repo.clone(),
+            staging_repo: deps.staging_repo.clone(),
             dept_cache: HashMap::new(),
         };
 
         let pipeline = ImportPipeline {
             strategy,
-            diesel: diesel.clone(),
-            import_repo: &import_repo,
+            deps: (*deps).clone(),
+            import_repo: &*import_repo,
             job: &import_job,
             file_bytes,
             workspace_tz,
             start_index: Some(payload.start_index),
             end_index: Some(payload.end_index),
             is_chunk: true,
-            queue_repo: Some(std::sync::Arc::new(crate::repositories::queue_repository::RedisQueueRepository::new(redis.clone()))),
+            queue_repo: Some(std::sync::Arc::clone(queue_repo)),
         };
 
         let _ = pipeline.run().await; // Returns Ok/Err but we don't fail the whole job here on validation errors
@@ -244,23 +214,21 @@ impl EmployeeImportChunkHandler {
         // Chunk finished
         completed.store(true, Ordering::SeqCst);
 
-        // Increment chunks done
-        let mut conn = redis.conn();
-        let chunks_done: u32 = redis::cmd("INCR")
-            .arg(format!("import_chunks_done:{}", payload.import_job_id))
-            .query_async(&mut conn)
+        let chunks_done = cache
+            .increment(&format!("import_chunks_done:{}", payload.import_job_id))
             .await
             .unwrap_or(0);
 
-        let total_chunks: u32 = redis::cmd("GET")
-            .arg(format!("import_total_chunks:{}", payload.import_job_id))
-            .query_async(&mut conn)
+        let total_chunks: i64 = cache
+            .get_json(&format!("import_total_chunks:{}", payload.import_job_id))
             .await
+            .unwrap_or(Some("0".to_string()))
+            .unwrap_or("0".to_string())
+            .parse()
             .unwrap_or(0);
 
-        if chunks_done == total_chunks {
+        if chunks_done >= total_chunks {
             tracing::info!(import_job_id = %payload.import_job_id, "All chunks completed. Triggering finalize.");
-            let queue = JobQueue::new(redis.clone());
             let finalize_job = Job::with_priority(
                 payload.import_job_id,
                 0,
@@ -271,7 +239,7 @@ impl EmployeeImportChunkHandler {
                 }),
                 JobPriority::High,
             );
-            let _ = queue.enqueue_jobs(vec![finalize_job]).await;
+            let _ = queue_repo.enqueue_jobs(vec![finalize_job]).await;
         }
 
         Ok(())

@@ -24,7 +24,7 @@ pub trait ImportStrategy: Send + Sync {
     /// Process a single valid row. Returns Ok(Some(id)) for success, Ok(None) for skipped, Err(reason) for failure.
     async fn process_row(
         &mut self,
-        diesel: &crate::diesel_pool::DieselPools,
+        deps: &crate::worker::deps::WorkerDeps,
         job: &AttendanceImportJob,
         row: &Self::RowData,
     ) -> Result<Option<Uuid>, String>;
@@ -32,7 +32,7 @@ pub trait ImportStrategy: Send + Sync {
     /// Optional hook to initialize caching or do pre-flight checks
     async fn init(
         &mut self,
-        _diesel: &crate::diesel_pool::DieselPools,
+        _deps: &crate::worker::deps::WorkerDeps,
         _job: &AttendanceImportJob,
     ) -> Result<(), String> {
         Ok(())
@@ -41,7 +41,7 @@ pub trait ImportStrategy: Send + Sync {
 
 pub struct ImportPipeline<'a, S: ImportStrategy> {
     pub strategy: S,
-    pub diesel: crate::diesel_pool::DieselPools,
+    pub deps: crate::worker::deps::WorkerDeps,
     pub import_repo: &'a dyn ImportJobRepository,
     pub job: &'a AttendanceImportJob,
     pub file_bytes: Vec<u8>,
@@ -55,7 +55,7 @@ pub struct ImportPipeline<'a, S: ImportStrategy> {
 impl<S: ImportStrategy> ImportPipeline<'_, S> {
     #[allow(clippy::too_many_lines)]
     pub async fn run(mut self) -> Result<(), ()> {
-        if let Err(e) = self.strategy.init(&self.diesel, self.job).await {
+        if let Err(e) = self.strategy.init(&self.deps, self.job).await {
             let _ = self
                 .import_repo
                 .update_job_progress(self.job.id, 0, ImportJobStatus::Failed, Some(e))
@@ -117,7 +117,7 @@ impl<S: ImportStrategy> ImportPipeline<'_, S> {
         for (row_data_parsed, raw_row_data) in pending_rows {
             match self
                 .strategy
-                .process_row(&self.diesel, self.job, &row_data_parsed)
+                .process_row(&self.deps, self.job, &row_data_parsed)
                 .await
             {
                 Ok(Some(_id)) => {
@@ -268,7 +268,8 @@ mod tests {
     use crate::repositories::import_job_repository::MockImportJobRepository;
     use crate::repositories::queue_repository::MockQueueRepository;
     use crate::models::{AttendanceImportJob, ImportJobStatus};
-    use crate::diesel_pool::DieselPools;
+    use crate::worker::deps::WorkerDeps;
+    use crate::worker::deps::MockWorkerDepsBuilder;
     use std::sync::Arc;
 
     struct DummyStrategy {
@@ -295,7 +296,7 @@ mod tests {
 
         async fn process_row(
             &mut self,
-            _diesel: &DieselPools,
+            _deps: &WorkerDeps,
             _job: &AttendanceImportJob,
             _row: &Self::RowData,
         ) -> Result<Option<Uuid>, String> {
@@ -358,12 +359,12 @@ mod tests {
             )
             .returning(|_, _, _, _| Ok(()));
 
-        // Create dummy diesel pools
-        let diesel = DieselPools::for_test("postgres://test");
+        // Create dummy deps
+        let deps = MockWorkerDepsBuilder::new().build();
 
         let pipeline = ImportPipeline {
             strategy,
-            diesel,
+            deps,
             import_repo: &mock_import_repo,
             job: &job,
             file_bytes,

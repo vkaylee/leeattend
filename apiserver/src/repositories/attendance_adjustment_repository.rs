@@ -6,6 +6,7 @@ use uuid::Uuid;
 // ---------------------------------------------------------------------------
 // Trait: AttendanceAdjustmentRepository — DIP abstraction
 // ---------------------------------------------------------------------------
+#[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait AttendanceAdjustmentRepository: Send + Sync {
     async fn create_request(&self, request: &AttendanceAdjustmentRequest) -> Result<(), AppError>;

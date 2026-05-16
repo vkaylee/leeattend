@@ -13,7 +13,6 @@ impl AccrualHandler {
     /// Handle a leave accrual job.
     /// Updates JobMetadata status throughout the lifecycle.
     pub async fn handle(
-        diesel: &crate::diesel_pool::DieselPools,
         queue: &std::sync::Arc<dyn crate::repositories::QueueRepository>,
         job: &Job,
         deps: &crate::worker::deps::WorkerDeps,
@@ -38,7 +37,10 @@ impl AccrualHandler {
             std::sync::Arc::clone(&deps.department_repo),
             std::sync::Arc::clone(&deps.leave_policy_repo),
             std::sync::Arc::clone(&deps.leave_accrual_log_repo),
-            diesel.clone(),
+            std::sync::Arc::clone(&deps.time_entry_repo),
+            std::sync::Arc::clone(&deps.leave_request_repo),
+            std::sync::Arc::clone(&deps.daily_summary_repo),
+            std::sync::Arc::clone(&deps.contract_repo),
         );
         match accrual_service
             .process_workspace_accruals(job.workspace_id, payload.date, payload.force)

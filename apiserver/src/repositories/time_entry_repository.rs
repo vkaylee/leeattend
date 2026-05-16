@@ -58,6 +58,14 @@ pub trait TimeEntryRepository: Send + Sync {
         p_from: Option<DateTime<Utc>>,
         p_to: Option<DateTime<Utc>>,
     ) -> Result<i64, AppError>;
+    async fn get_distinct_work_days(
+        &self,
+        workspace_id: Uuid,
+        employee_id: Uuid,
+        start_time: DateTime<Utc>,
+        end_time: DateTime<Utc>,
+        tz: &str,
+    ) -> Result<Vec<chrono::NaiveDate>, AppError>;
     async fn get_workspace_time_entries_batch(
         &self,
         workspace_id: Uuid,

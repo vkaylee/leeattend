@@ -45,3 +45,9 @@ format_push_string = "warn"
 
 # TECH_DEBT: allow until dependency versions are unified
 multiple_crate_versions = { level = "allow", priority = 1 }
+
+[profile.dev]
+debug = 1
+
+[profile.test]
+debug = 1

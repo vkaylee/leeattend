@@ -64,7 +64,7 @@ async fn test_handler_claims_staged_logs_for_employee() {
         }),
     );
 
-    ClaimStagedLogsHandler::handle(&diesel_pools, &job, &deps)
+    ClaimStagedLogsHandler::handle(&job, &deps)
         .await
         .unwrap();
 
@@ -114,7 +114,7 @@ async fn test_handler_no_staged_logs_is_ok() {
     );
 
     // Should succeed even with no staged logs
-    let result = ClaimStagedLogsHandler::handle(&diesel_pools, &job, &deps).await;
+    let result = ClaimStagedLogsHandler::handle(&job, &deps).await;
     assert!(result.is_ok(), "Handler should succeed with no staged logs");
 }
 
@@ -172,7 +172,7 @@ async fn test_handler_claims_multiple_staged_logs() {
         }),
     );
 
-    ClaimStagedLogsHandler::handle(&diesel_pools, &job, &deps)
+    ClaimStagedLogsHandler::handle(&job, &deps)
         .await
         .unwrap();
 
@@ -251,7 +251,7 @@ async fn test_handler_only_claims_matching_employee() {
         }),
     );
 
-    ClaimStagedLogsHandler::handle(&diesel_pools, &job, &deps)
+    ClaimStagedLogsHandler::handle(&job, &deps)
         .await
         .unwrap();
 

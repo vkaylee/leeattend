@@ -29,7 +29,11 @@ pub struct LeaveAccrualService {
     department_repo: Arc<dyn DepartmentRepository>,
     leave_policy_repo: Arc<dyn LeavePolicyRepository>,
     accrual_log_repo: Arc<dyn LeaveAccrualLogRepository>,
-    diesel: crate::diesel_pool::DieselPools,
+    time_entry_repo: Arc<dyn crate::repositories::TimeEntryRepository>,
+    leave_request_repo: Arc<dyn crate::repositories::leave_request_repository::LeaveRequestRepository>,
+    #[allow(dead_code)]
+    daily_summary_repo: Arc<dyn crate::repositories::AttendanceDailySummaryRepository>,
+    contract_repo: Arc<dyn crate::repositories::EmployeeContractRepository>,
 }
 
 impl LeaveAccrualService {
@@ -38,14 +42,20 @@ impl LeaveAccrualService {
         department_repo: Arc<dyn DepartmentRepository>,
         leave_policy_repo: Arc<dyn LeavePolicyRepository>,
         accrual_log_repo: Arc<dyn LeaveAccrualLogRepository>,
-        diesel: crate::diesel_pool::DieselPools,
+        time_entry_repo: Arc<dyn crate::repositories::TimeEntryRepository>,
+        leave_request_repo: Arc<dyn crate::repositories::leave_request_repository::LeaveRequestRepository>,
+        daily_summary_repo: Arc<dyn crate::repositories::AttendanceDailySummaryRepository>,
+        contract_repo: Arc<dyn crate::repositories::EmployeeContractRepository>,
     ) -> Self {
         Self {
             employee_repo,
             department_repo,
             leave_policy_repo,
             accrual_log_repo,
-            diesel,
+            time_entry_repo,
+            leave_request_repo,
+            daily_summary_repo,
+            contract_repo,
         }
     }
 
@@ -101,13 +111,6 @@ impl LeaveAccrualService {
         end_date: NaiveDate,
         tz: Tz,
     ) -> Result<i32, AppError> {
-        let mut conn = self
-            .diesel
-            .api
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(e.to_string()))?;
-        use diesel_async::RunQueryDsl;
         use std::collections::HashSet;
         let mut qualifying_days = HashSet::new();
 
@@ -115,69 +118,29 @@ impl LeaveAccrualService {
         let start_dt = local_to_utc(&tz, start_date, 0, 0, 0)?;
         let end_dt = local_to_utc(&tz, end_date, 23, 59, 59)?;
 
-        #[derive(diesel::QueryableByName)]
-        struct DateRow {
-            #[diesel(sql_type = diesel::sql_types::Date)]
-            date: NaiveDate,
-        }
+        let work_days = self.time_entry_repo.get_distinct_work_days(
+            workspace_id,
+            employee_id,
+            start_dt,
+            end_dt,
+            &tz.to_string(),
+        ).await?;
 
-        let work_days: Vec<DateRow> = diesel::sql_query(
-            r#"
-            SELECT DISTINCT(te.punch_in_time AT TIME ZONE $2)::date as date
-            FROM time_entries te
-            JOIN employees e ON te.employee_id = e.id
-            WHERE te.employee_id = $1
-              AND e.workspace_id = $5
-              AND te.punch_in_time >= $3
-              AND te.punch_in_time <= $4
-              AND te.entry_type = 'work'
-            "#,
-        )
-        .bind::<diesel::sql_types::Uuid, _>(employee_id)
-        .bind::<diesel::sql_types::Text, _>(tz.to_string())
-        .bind::<diesel::sql_types::Timestamptz, _>(start_dt)
-        .bind::<diesel::sql_types::Timestamptz, _>(end_dt)
-        .bind::<diesel::sql_types::Uuid, _>(workspace_id)
-        .load(&mut conn)
-        .await
-        .map_err(|e| AppError::Internal(e.to_string()))?;
-
-        for row in work_days {
-            qualifying_days.insert(row.date);
-        }
-
-        #[derive(diesel::QueryableByName)]
-        struct LeaveRow {
-            #[diesel(sql_type = diesel::sql_types::Date)]
-            start_date: NaiveDate,
-            #[diesel(sql_type = diesel::sql_types::Date)]
-            end_date: NaiveDate,
+        for date in work_days {
+            qualifying_days.insert(date);
         }
 
         // Approved Leave days
-        let leave_days: Vec<LeaveRow> = diesel::sql_query(
-            r#"
-            SELECT lr.start_date, lr.end_date
-            FROM leave_requests lr
-            JOIN employees e ON lr.employee_id = e.id
-            WHERE lr.employee_id = $1
-              AND e.workspace_id = $4
-              AND lr.status IN ('approved', 'pre_approved')
-              AND lr.start_date <= $3
-              AND lr.end_date >= $2
-            "#,
-        )
-        .bind::<diesel::sql_types::Uuid, _>(employee_id)
-        .bind::<diesel::sql_types::Date, _>(start_date)
-        .bind::<diesel::sql_types::Date, _>(end_date)
-        .bind::<diesel::sql_types::Uuid, _>(workspace_id)
-        .load(&mut conn)
-        .await
-        .map_err(|e| AppError::Internal(e.to_string()))?;
+        let leave_days = self.leave_request_repo.get_approved_leave_periods(
+            workspace_id,
+            employee_id,
+            start_date,
+            end_date,
+        ).await?;
 
-        for req in leave_days {
-            let overlap_start = std::cmp::max(req.start_date, start_date);
-            let overlap_end = std::cmp::min(req.end_date, end_date);
+        for (req_start, req_end) in leave_days {
+            let overlap_start = std::cmp::max(req_start, start_date);
+            let overlap_end = std::cmp::min(req_end, end_date);
             let mut curr = overlap_start;
             while curr <= overlap_end {
                 qualifying_days.insert(curr);
@@ -404,86 +367,35 @@ impl LeaveAccrualService {
         range_end: NaiveDate,
         tz: Tz,
     ) -> Result<HashMap<NaiveDate, i32>, AppError> {
-        let mut conn = self
-            .diesel
-            .api
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(e.to_string()))?;
-        use diesel_async::RunQueryDsl;
-
         let start_dt = local_to_utc(&tz, range_start, 0, 0, 0).map_err(AppError::Internal)?;
         let end_dt = local_to_utc(&tz, range_end, 23, 59, 59).map_err(AppError::Internal)?;
 
-        #[derive(diesel::QueryableByName)]
-        struct WorkRow {
-            #[diesel(sql_type = diesel::sql_types::Date)]
-            month: NaiveDate,
-            #[diesel(sql_type = diesel::sql_types::BigInt)]
-            count: i64,
-        }
-
-        // Count distinct work days per month from time_entries
-        let work_rows: Vec<WorkRow> = diesel::sql_query(
-            r#"
-            SELECT date_trunc('month', (te.punch_in_time AT TIME ZONE $2))::date as month,
-                   COUNT(DISTINCT (te.punch_in_time AT TIME ZONE $2)::date) as count
-            FROM time_entries te
-            JOIN employees e ON te.employee_id = e.id
-            WHERE te.employee_id = $1
-              AND e.workspace_id = $5
-              AND te.punch_in_time >= $3
-              AND te.punch_in_time <= $4
-              AND te.entry_type = 'work'
-            GROUP BY 1
-            "#,
-        )
-        .bind::<diesel::sql_types::Uuid, _>(employee_id)
-        .bind::<diesel::sql_types::Text, _>(tz.to_string())
-        .bind::<diesel::sql_types::Timestamptz, _>(start_dt)
-        .bind::<diesel::sql_types::Timestamptz, _>(end_dt)
-        .bind::<diesel::sql_types::Uuid, _>(workspace_id)
-        .load(&mut conn)
-        .await
-        .map_err(|e| AppError::Internal(e.to_string()))?;
+        let work_days = self.time_entry_repo.get_distinct_work_days(
+            workspace_id,
+            employee_id,
+            start_dt,
+            end_dt,
+            &tz.to_string(),
+        ).await?;
 
         let mut result: HashMap<NaiveDate, i32> = HashMap::new();
-        for row in work_rows {
-            *result.entry(row.month).or_insert(0) += row.count as i32;
+        use chrono::Datelike;
+        
+        for date in work_days {
+            let month_key = NaiveDate::from_ymd_opt(date.year(), date.month(), 1).unwrap_or(date);
+            *result.entry(month_key).or_insert(0) += 1;
         }
 
-        #[derive(diesel::QueryableByName)]
-        struct LeaveRow {
-            #[diesel(sql_type = diesel::sql_types::Date)]
-            start_date: NaiveDate,
-            #[diesel(sql_type = diesel::sql_types::Date)]
-            end_date: NaiveDate,
-        }
+        let leave_days = self.leave_request_repo.get_approved_leave_periods(
+            workspace_id,
+            employee_id,
+            range_start,
+            range_end,
+        ).await?;
 
-        // Also count approved leave days per month
-        let leave_rows: Vec<LeaveRow> = diesel::sql_query(
-            r#"
-            SELECT lr.start_date, lr.end_date
-            FROM leave_requests lr
-            JOIN employees e ON lr.employee_id = e.id
-            WHERE lr.employee_id = $1
-              AND e.workspace_id = $4
-              AND lr.status IN ('approved', 'pre_approved')
-              AND lr.start_date <= $3
-              AND lr.end_date >= $2
-            "#,
-        )
-        .bind::<diesel::sql_types::Uuid, _>(employee_id)
-        .bind::<diesel::sql_types::Date, _>(range_start)
-        .bind::<diesel::sql_types::Date, _>(range_end)
-        .bind::<diesel::sql_types::Uuid, _>(workspace_id)
-        .load(&mut conn)
-        .await
-        .map_err(|e| AppError::Internal(e.to_string()))?;
-
-        for req in leave_rows {
-            let overlap_start = std::cmp::max(req.start_date, range_start);
-            let overlap_end = std::cmp::min(req.end_date, range_end);
+        for (req_start, req_end) in leave_days {
+            let overlap_start = std::cmp::max(req_start, range_start);
+            let overlap_end = std::cmp::min(req_end, range_end);
             let mut curr = overlap_start;
             while curr <= overlap_end {
                 let month_key =
@@ -594,51 +506,7 @@ impl LeaveAccrualService {
         };
 
         // Pre-fetch employment history once per employee using contracts
-        let mut conn = self
-            .diesel
-            .api
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(e.to_string()))?;
-        use diesel_async::RunQueryDsl;
-
-        #[derive(diesel::QueryableByName)]
-        struct ContractRow {
-            #[diesel(sql_type = crate::schema::sql_types::ContractStatusEnum)]
-            status: crate::models::enums::ContractStatus,
-            #[diesel(sql_type = diesel::sql_types::Date)]
-            start_date: NaiveDate,
-            #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Date>)]
-            end_date: Option<NaiveDate>,
-        }
-
-        let contract_rows: Vec<ContractRow> = diesel::sql_query(
-            "SELECT status, start_date, end_date FROM employee_contracts WHERE employee_id = $1 AND workspace_id = $2"
-        )
-        .bind::<diesel::sql_types::Uuid, _>(emp.id)
-        .bind::<diesel::sql_types::Uuid, _>(workspace_id)
-        .load(&mut conn)
-        .await
-        .map_err(|e| AppError::Internal(e.to_string()))?;
-
-        // Map to EmployeeContract for existing function signature
-        let contracts: Vec<crate::models::contract::EmployeeContract> = contract_rows
-            .into_iter()
-            .map(|r| crate::models::contract::EmployeeContract {
-                id: Uuid::nil(),
-                workspace_id: Uuid::nil(),
-                employee_id: Uuid::nil(),
-                contract_number: None,
-                contract_type: crate::models::enums::ContractType::Indefinite,
-                status: r.status,
-                start_date: r.start_date,
-                end_date: r.end_date,
-                document_id: None,
-                notes: None,
-                created_at: chrono::Utc::now(),
-                updated_at: chrono::Utc::now(),
-            })
-            .collect();
+        let contracts = self.contract_repo.list_employee_contracts(workspace_id, emp.id).await?;
 
         let ctx = AccrualContext {
             workspace_id,

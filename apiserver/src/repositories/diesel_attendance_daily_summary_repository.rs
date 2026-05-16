@@ -302,4 +302,35 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
             .map(|list| list.into_iter().map(Into::into).collect())
             .map_err(|e| AppError::Internal(format!("db: {e}")))
     }
+
+    async fn get_distinct_work_days_from_summary(
+        &self,
+        workspace_id: Uuid,
+        employee_id: Uuid,
+        start_date: NaiveDate,
+        end_date: NaiveDate,
+    ) -> Result<Vec<NaiveDate>, AppError> {
+        use crate::schema::attendance_daily_summaries::dsl as ads;
+
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
+
+        let rows = ads::attendance_daily_summaries
+            .filter(ads::workspace_id.eq(workspace_id))
+            .filter(ads::employee_id.eq(employee_id))
+            .filter(ads::date.ge(start_date))
+            .filter(ads::date.le(end_date))
+            .filter(ads::actual_work_minutes.gt(0))
+            .select(ads::date)
+            .distinct()
+            .load::<NaiveDate>(&mut conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        Ok(rows)
+    }
 }

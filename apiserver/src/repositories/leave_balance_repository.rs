@@ -6,6 +6,7 @@ use uuid::Uuid;
 // ---------------------------------------------------------------------------
 // Trait: LeaveBalanceRepository — DIP abstraction
 // ---------------------------------------------------------------------------
+#[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait LeaveBalanceRepository: Send + Sync {
     async fn get_employee_balances(

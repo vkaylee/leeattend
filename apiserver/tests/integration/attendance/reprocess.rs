@@ -207,7 +207,7 @@ async fn test_force_reprocess_all_attendance_api() {
     let queue_repo: Arc<dyn apiserver::repositories::queue_repository::QueueRepository> = 
         Arc::new(apiserver::repositories::queue_repository::RedisQueueRepository::new(redis.clone()));
     let coordinator = apiserver::services::ReportCoordinator::new(
-        queue_repo,
+        queue_repo.clone(),
         _state.employees.repo.clone(),
         _state.core.workspace_repo.clone(),
     );
@@ -228,9 +228,8 @@ async fn test_force_reprocess_all_attendance_api() {
         );
 
         apiserver::worker::handlers::reprocess_attendance::ReprocessAttendanceHandler::handle(
-            &diesel_pools,
+            &queue_repo,
             &job,
-            redis,
             &deps,
         )
         .await

@@ -5,7 +5,7 @@
 
 use crate::models::ImportJobStatus;
 use crate::queue::{
-    Job, JobPayload, JobPriority, JobQueue, LeaveImportChunkPayload, RedisPool, TaskType,
+    Job, JobPayload, JobPriority, LeaveImportChunkPayload, TaskType,
 };
 use crate::services::import_messages::LeaveImportMessages;
 use crate::services::import_pipeline::ImportPipeline;
@@ -23,9 +23,9 @@ pub struct LeaveImportHandler;
 impl LeaveImportHandler {
     #[allow(clippy::too_many_lines)]
     pub async fn handle(
-        _diesel: &crate::diesel_pool::DieselPools,
         job: &Job,
-        redis: &RedisPool,
+        cache: &std::sync::Arc<dyn crate::repositories::CacheRepository>,
+        queue_repo: &std::sync::Arc<dyn crate::repositories::QueueRepository>,
         deps: &crate::worker::deps::WorkerDeps,
     ) -> Result<(), String> {
         let payload = job
@@ -80,36 +80,14 @@ impl LeaveImportHandler {
 
         let total_chunks = chunks.len() as u32;
 
-        let mut conn = redis.conn();
-
         // Initialize Redis keys for progress tracking
-        let _: () = redis::cmd("SET")
-            .arg(format!("import_progress:{}", payload.import_job_id))
-            .arg(0)
-            .query_async(&mut conn)
-            .await
-            .unwrap_or(());
-
-        let _: () = redis::cmd("SET")
-            .arg(format!("import_chunks_done:{}", payload.import_job_id))
-            .arg(0)
-            .query_async(&mut conn)
-            .await
-            .unwrap_or(());
-
-        let _: () = redis::cmd("SET")
-            .arg(format!("import_total_chunks:{}", payload.import_job_id))
-            .arg(total_chunks)
-            .query_async(&mut conn)
-            .await
-            .unwrap_or(());
+        let ttl = std::time::Duration::from_secs(86400); // 24 hours
+        let _ = cache.set_json(&format!("import_progress:{}", payload.import_job_id), "0", ttl).await;
+        let _ = cache.set_json(&format!("import_chunks_done:{}", payload.import_job_id), "0", ttl).await;
+        let _ = cache.set_json(&format!("import_total_chunks:{}", payload.import_job_id), &total_chunks.to_string(), ttl).await;
 
         // Clear previous error log if any
-        let _: () = redis::cmd("DEL")
-            .arg(format!("import_errors:{}", payload.import_job_id))
-            .query_async(&mut conn)
-            .await
-            .unwrap_or(());
+        let _ = cache.delete(&format!("import_errors:{}", payload.import_job_id)).await;
 
         // Enqueue chunk jobs
         let mut sub_jobs = Vec::new();
@@ -131,8 +109,7 @@ impl LeaveImportHandler {
             ));
         }
 
-        let queue = JobQueue::new(redis.clone());
-        queue
+        queue_repo
             .enqueue_jobs(sub_jobs)
             .await
             .map_err(|e| format!("Failed to enqueue chunks: {e}"))?;
@@ -152,9 +129,9 @@ pub struct LeaveImportChunkHandler;
 impl LeaveImportChunkHandler {
     #[allow(clippy::too_many_lines)]
     pub async fn handle(
-        diesel: &crate::diesel_pool::DieselPools,
         job: &Job,
-        redis: &RedisPool,
+        cache: &std::sync::Arc<dyn crate::repositories::CacheRepository>,
+        queue_repo: &std::sync::Arc<dyn crate::repositories::QueueRepository>,
         deps: &crate::worker::deps::WorkerDeps,
     ) -> Result<(), String> {
         let payload = job
@@ -173,7 +150,7 @@ impl LeaveImportChunkHandler {
         let _guard = ImportTimeoutGuard::new(
             payload.import_job_id,
             Arc::clone(&completed),
-            diesel.clone(),
+            deps.import_job_repo.clone(),
         );
 
         let import_repo = &*deps.import_job_repo;
@@ -230,7 +207,7 @@ impl LeaveImportChunkHandler {
 
         let pipeline = ImportPipeline {
             strategy,
-            diesel: diesel.clone(),
+            deps: (*deps).clone(),
             import_repo,
             job: &import_job,
             file_bytes,
@@ -238,7 +215,7 @@ impl LeaveImportChunkHandler {
             start_index: Some(payload.start_index),
             end_index: Some(payload.end_index),
             is_chunk: true,
-            queue_repo: Some(std::sync::Arc::new(crate::repositories::queue_repository::RedisQueueRepository::new(redis.clone()))),
+            queue_repo: Some(std::sync::Arc::clone(queue_repo)),
         };
 
         let _ = pipeline.run().await;
@@ -246,23 +223,21 @@ impl LeaveImportChunkHandler {
         // Chunk finished
         completed.store(true, Ordering::SeqCst);
 
-        // Increment chunks done
-        let mut conn = redis.conn();
-        let chunks_done: u32 = redis::cmd("INCR")
-            .arg(format!("import_chunks_done:{}", payload.import_job_id))
-            .query_async(&mut conn)
+        let chunks_done = cache
+            .increment(&format!("import_chunks_done:{}", payload.import_job_id))
             .await
             .unwrap_or(0);
 
-        let total_chunks: u32 = redis::cmd("GET")
-            .arg(format!("import_total_chunks:{}", payload.import_job_id))
-            .query_async(&mut conn)
+        let total_chunks: i64 = cache
+            .get_json(&format!("import_total_chunks:{}", payload.import_job_id))
             .await
+            .unwrap_or(Some("0".to_string()))
+            .unwrap_or("0".to_string())
+            .parse()
             .unwrap_or(0);
 
-        if chunks_done == total_chunks {
+        if chunks_done >= total_chunks {
             tracing::info!(import_job_id = %payload.import_job_id, "All chunks completed. Triggering finalize.");
-            let queue = JobQueue::new(redis.clone());
             let finalize_job = Job::with_priority(
                 payload.import_job_id,
                 0,
@@ -273,7 +248,7 @@ impl LeaveImportChunkHandler {
                 }),
                 JobPriority::High,
             );
-            let _ = queue.enqueue_jobs(vec![finalize_job]).await;
+            let _ = queue_repo.enqueue_jobs(vec![finalize_job]).await;
         }
 
         Ok(())

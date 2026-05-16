@@ -110,7 +110,7 @@ impl ImportStrategy for EmployeeImportStrategy {
 
     async fn init(
         &mut self,
-        _diesel: &crate::diesel_pool::DieselPools,
+        _deps: &crate::worker::deps::WorkerDeps,
         job: &AttendanceImportJob,
     ) -> Result<(), String> {
         if let Ok(existing_depts) = self.department_repo.get_departments(job.workspace_id).await {
@@ -123,7 +123,7 @@ impl ImportStrategy for EmployeeImportStrategy {
 
     async fn process_row(
         &mut self,
-        _diesel: &crate::diesel_pool::DieselPools,
+        _deps: &crate::worker::deps::WorkerDeps,
         job: &AttendanceImportJob,
         emp: &Self::RowData,
     ) -> Result<Option<Uuid>, String> {
@@ -305,7 +305,7 @@ impl ImportStrategy for PunchImportStrategy {
 
     async fn init(
         &mut self,
-        _diesel: &crate::diesel_pool::DieselPools,
+        _deps: &crate::worker::deps::WorkerDeps,
         _job: &AttendanceImportJob,
     ) -> Result<(), String> {
         Ok(())
@@ -313,7 +313,7 @@ impl ImportStrategy for PunchImportStrategy {
 
     async fn process_row(
         &mut self,
-        _diesel: &crate::diesel_pool::DieselPools,
+        _deps: &crate::worker::deps::WorkerDeps,
         job: &AttendanceImportJob,
         row: &Self::RowData,
     ) -> Result<Option<Uuid>, String> {
@@ -419,7 +419,7 @@ pub struct AttendanceImportService {
     workspace_repo: Arc<dyn crate::repositories::workspace_repository::WorkspaceRepository>,
     dept_repo: Arc<dyn crate::repositories::department_repository::DepartmentRepository>,
     staging_repo: Arc<dyn crate::repositories::staging_log_repository::StagingLogRepository>,
-    diesel_pools: crate::diesel_pool::DieselPools,
+    deps: crate::worker::deps::WorkerDeps,
     log_svc: Option<Arc<crate::services::attendance_log_service::AttendanceLogService>>,
 }
 
@@ -433,7 +433,7 @@ impl AttendanceImportService {
         workspace_repo: Arc<dyn crate::repositories::workspace_repository::WorkspaceRepository>,
         dept_repo: Arc<dyn crate::repositories::department_repository::DepartmentRepository>,
         staging_repo: Arc<dyn crate::repositories::staging_log_repository::StagingLogRepository>,
-        diesel_pools: crate::diesel_pool::DieselPools,
+        deps: crate::worker::deps::WorkerDeps,
         log_svc: Option<Arc<crate::services::attendance_log_service::AttendanceLogService>>,
     ) -> Self {
         Self {
@@ -444,7 +444,7 @@ impl AttendanceImportService {
             workspace_repo,
             dept_repo,
             staging_repo,
-            diesel_pools,
+            deps,
             log_svc,
         }
     }
@@ -584,7 +584,7 @@ impl AttendanceImportService {
 
         let pipeline = ImportPipeline {
             strategy,
-            diesel: self.diesel_pools.clone(),
+            deps: self.deps.clone(),
             import_repo: &*self.import_repo,
             job: &job,
             file_bytes,
@@ -644,7 +644,7 @@ impl AttendanceImportService {
 
         let pipeline = ImportPipeline {
             strategy,
-            diesel: self.diesel_pools.clone(),
+            deps: self.deps.clone(),
             import_repo: &*self.import_repo,
             job,
             file_bytes,

@@ -12,6 +12,7 @@ use crate::{
     handlers::common::MemberContext,
     models::contract::{CreateContractRequest, EmployeeContract, UpdateContractRequest},
     queue::{Job, JobPayload, JobQueue, SyncHireDatePayload, TaskType},
+    repositories::employee_contract_repository::EmployeeContractRepository,
     AppState,
 };
 

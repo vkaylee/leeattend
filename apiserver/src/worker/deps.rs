@@ -14,6 +14,7 @@ use crate::repositories::TimeEntryRepository;
 ///
 /// Constructed once in [`super::JobWorker::new`] and shared across
 /// all handler invocations via `Arc<WorkerDeps>`.
+#[derive(Clone)]
 pub struct WorkerDeps {
     pub time_entry_repo: Arc<dyn TimeEntryRepository>,
     pub roster_repo: Arc<dyn RosterRepository>,

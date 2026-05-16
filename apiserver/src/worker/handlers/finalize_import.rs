@@ -3,17 +3,15 @@
 //! Merges progress and errors from Redis when all chunks are completed.
 
 use crate::models::ImportJobStatus;
-use crate::queue::{Job, RedisPool};
-use crate::repositories::import_job_repository::ImportJobRepository;
-use crate::repositories::DieselImportJobRepository;
+use crate::queue::Job;
 
 pub struct FinalizeImportHandler;
 
 impl FinalizeImportHandler {
     pub async fn handle(
-        diesel: &crate::diesel_pool::DieselPools,
         job: &Job,
-        redis: &RedisPool,
+        cache: &std::sync::Arc<dyn crate::repositories::CacheRepository>,
+        deps: &crate::worker::deps::WorkerDeps,
     ) -> Result<(), String> {
         let payload = job
             .finalize_import_payload()
@@ -24,24 +22,20 @@ impl FinalizeImportHandler {
             "Finalizing import job"
         );
 
-        let import_repo = DieselImportJobRepository::new(diesel.clone());
-
-        let mut conn = redis.conn();
+        let import_repo = &*deps.import_job_repo;
 
         let progress_key = format!("import_progress:{}", payload.import_job_id);
         let errors_key = format!("import_errors:{}", payload.import_job_id);
 
-        let processed_rows: i32 = redis::cmd("GET")
-            .arg(&progress_key)
-            .query_async(&mut conn)
+        let processed_rows: i32 = cache
+            .get_json(&progress_key)
             .await
+            .unwrap_or_default()
+            .unwrap_or_else(|| "0".to_string())
+            .parse()
             .unwrap_or(0);
 
-        let errors_map: std::collections::HashMap<String, String> = redis::cmd("HGETALL")
-            .arg(&errors_key)
-            .query_async(&mut conn)
-            .await
-            .unwrap_or_default();
+        let errors_map = cache.hgetall(&errors_key).await.unwrap_or_default();
 
         let mut combined_errors = Vec::new();
         // Extract values from HashMap (ignoring the chunk field keys)
@@ -66,14 +60,10 @@ impl FinalizeImportHandler {
             .await;
 
         // Cleanup Redis keys
-        let _: () = redis::cmd("DEL")
-            .arg(&progress_key)
-            .arg(&errors_key)
-            .arg(format!("import_chunks_done:{}", payload.import_job_id))
-            .arg(format!("import_total_chunks:{}", payload.import_job_id))
-            .query_async(&mut conn)
-            .await
-            .unwrap_or(());
+        let _ = cache.delete(&progress_key).await;
+        let _ = cache.delete(&errors_key).await;
+        let _ = cache.delete(&format!("import_chunks_done:{}", payload.import_job_id)).await;
+        let _ = cache.delete(&format!("import_total_chunks:{}", payload.import_job_id)).await;
 
         // Cleanup file
         if let Ok(Some(import_job)) = import_repo.get_job_by_id(payload.import_job_id).await {

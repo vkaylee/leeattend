@@ -101,6 +101,14 @@ pub trait LeaveRequestRepository: Send + Sync {
         start_date: NaiveDate,
         end_date: NaiveDate,
     ) -> Result<std::collections::HashSet<(Uuid, NaiveDate)>, AppError>;
+
+    async fn get_approved_leave_periods(
+        &self,
+        workspace_id: Uuid,
+        employee_id: Uuid,
+        start_date: NaiveDate,
+        end_date: NaiveDate,
+    ) -> Result<Vec<(NaiveDate, NaiveDate)>, AppError>;
 }
 
 pub struct LeaveHistoryRequestItem {

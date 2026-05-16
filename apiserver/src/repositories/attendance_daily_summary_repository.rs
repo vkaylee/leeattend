@@ -4,6 +4,7 @@ use async_trait::async_trait;
 use chrono::NaiveDate;
 use uuid::Uuid;
 
+#[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait AttendanceDailySummaryRepository: Send + Sync {
     async fn get_summary(
@@ -72,4 +73,12 @@ pub trait AttendanceDailySummaryRepository: Send + Sync {
         start_date: NaiveDate,
         end_date: NaiveDate,
     ) -> Result<Vec<AttendanceDailySummary>, AppError>;
+
+    async fn get_distinct_work_days_from_summary(
+        &self,
+        workspace_id: Uuid,
+        employee_id: Uuid,
+        start_date: NaiveDate,
+        end_date: NaiveDate,
+    ) -> Result<Vec<NaiveDate>, AppError>;
 }

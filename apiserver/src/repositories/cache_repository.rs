@@ -20,6 +20,12 @@ pub trait CacheRepository: Send + Sync {
 
     /// Delete keys matching a pattern
     async fn delete_pattern(&self, pattern: &str) -> Result<(), String>;
+
+    /// Increment a numeric value in cache (returns the new value)
+    async fn increment(&self, key: &str) -> Result<i64, String>;
+
+    /// Get all fields and values of a hash stored at key
+    async fn hgetall(&self, key: &str) -> Result<std::collections::HashMap<String, String>, String>;
 }
 
 use serde::{de::DeserializeOwned, Serialize};

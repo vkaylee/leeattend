@@ -8,6 +8,7 @@ use crate::models::{
     PayrollRuleAssignment, PayrollRuleDefinition, PayrollRuleTier,
 };
 
+#[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait PayrollRuleRepository: Send + Sync {
     async fn create_definition(

@@ -5,6 +5,7 @@ use uuid::Uuid;
 // ---------------------------------------------------------------------------
 // Trait: AttendanceLogErrorRepository — DIP abstraction
 // ---------------------------------------------------------------------------
+#[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait AttendanceLogErrorRepository: Send + Sync {
     async fn create_error_log(

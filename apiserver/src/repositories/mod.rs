@@ -52,6 +52,8 @@ pub mod workspace_stats_repository;
 pub use workspace_stats_repository::{DieselWorkspaceStatsRepository, WorkspaceStatsRepository};
 pub mod diesel_employee_contract_repository;
 pub mod diesel_employee_repository;
+pub mod employee_contract_repository;
+pub use employee_contract_repository::EmployeeContractRepository;
 pub use diesel_employee_contract_repository::DieselEmployeeContractRepository;
 pub use diesel_employee_repository::DieselEmployeeRepository;
 pub mod diesel_agent_repository;

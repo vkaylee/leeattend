@@ -11,6 +11,7 @@ use diesel_async::RunQueryDsl;
 
 use uuid::Uuid;
 
+#[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait WorkspaceStatsRepository: Send + Sync {
     async fn fetch_attendance_trend(

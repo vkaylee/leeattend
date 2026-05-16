@@ -416,7 +416,7 @@ impl JobWorker {
                 Err("PayrollReport not implemented".to_string())
             }
             TaskType::LeaveAccrual => {
-                AccrualHandler::handle(&self.diesel, &self.queue_repo, &job, &self.deps).await
+                AccrualHandler::handle(&self.queue_repo, &job, &self.deps).await
             }
             TaskType::LogIngestion => {
                 LogIngestionHandler::handle(&job, &self.deps).await
@@ -429,25 +429,25 @@ impl JobWorker {
                 ClaimStagedLogsHandler::handle(&job, &self.deps).await
             }
             TaskType::LeaveImport => {
-                LeaveImportHandler::handle(&self.diesel, &job, &self.redis, &self.deps).await
+                LeaveImportHandler::handle(&job, &self.cache.repo, &self.queue_repo, &self.deps).await
             }
             TaskType::EmployeeImport => {
-                EmployeeImportHandler::handle(&self.diesel, &job, &self.redis).await
+                EmployeeImportHandler::handle(&job, &self.cache.repo, &self.queue_repo, &self.deps).await
             }
             TaskType::EmployeeImportChunk => {
-                EmployeeImportChunkHandler::handle(&self.diesel, &job, &self.redis).await
+                EmployeeImportChunkHandler::handle(&job, &self.cache.repo, &self.queue_repo, &self.deps).await
             }
             TaskType::FinalizeImport => {
-                FinalizeImportHandler::handle(&self.diesel, &job, &self.redis).await
+                FinalizeImportHandler::handle(&job, &self.cache.repo, &self.deps).await
             }
             TaskType::ExpiringContractsCheck => {
                 crate::worker::handlers::ExpiringContractsHandler::handle(&self.deps, &job).await
             }
             TaskType::LeaveImportChunk => {
                 crate::worker::handlers::LeaveImportChunkHandler::handle(
-                    &self.diesel,
                     &job,
-                    &self.redis,
+                    &self.cache.repo,
+                    &self.queue_repo,
                     &self.deps,
                 )
                 .await

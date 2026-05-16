@@ -11,3 +11,6 @@ pub mod scheduler;
 pub use deps::WorkerDeps;
 pub use runner::{JobWorker, WorkerConfig};
 pub use scheduler::HousekeepingScheduler;
+
+#[cfg(test)]
+pub mod test_utils;

@@ -272,7 +272,10 @@ impl AppState {
                 Arc::clone(&department_repo),
                 Arc::clone(&leave_policy_repo),
                 Arc::clone(&leave_accrual_log_repo),
-                diesel_pools.clone(),
+                Arc::clone(&time_entry_repo),
+                Arc::clone(&leave_request_repo),
+                Arc::clone(&attendance_daily_summary_repo),
+                contract_repo.clone() as Arc<dyn crate::repositories::EmployeeContractRepository>,
             ),
         );
 
@@ -389,7 +392,7 @@ impl AppState {
                 Arc::clone(&workspace_repo),
                 Arc::clone(&department_repo),
                 Arc::clone(&staging_repo),
-                diesel_pools.clone(),
+                crate::worker::deps::WorkerDeps::new(&diesel_pools),
                 Some(Arc::clone(&attendance_service)),
             ),
         );

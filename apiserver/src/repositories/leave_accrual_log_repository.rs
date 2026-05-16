@@ -10,6 +10,7 @@ use crate::models::LeaveAccrualLog;
 // ---------------------------------------------------------------------------
 // Trait: LeaveAccrualLogRepository — DIP abstraction for accrual log persistence
 // ---------------------------------------------------------------------------
+#[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait LeaveAccrualLogRepository: Send + Sync {
     /// Find an existing accrual log for a specific employee/leave-type/date.

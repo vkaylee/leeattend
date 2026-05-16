@@ -18,8 +18,11 @@ impl DieselEmployeeContractRepository {
     pub fn new(diesel_pools: DieselPools) -> Self {
         Self { diesel_pools }
     }
+}
 
-    pub async fn create_contract(
+#[async_trait::async_trait]
+impl super::EmployeeContractRepository for DieselEmployeeContractRepository {
+    async fn create_contract(
         &self,
         workspace_id_val: Uuid,
         req: &CreateContractRequest,
@@ -122,7 +125,7 @@ impl DieselEmployeeContractRepository {
         }
     }
 
-    pub async fn get_contract_by_id(
+    async fn get_contract_by_id(
         &self,
         workspace_id_val: Uuid,
         contract_id: Uuid,
@@ -145,7 +148,7 @@ impl DieselEmployeeContractRepository {
         Ok(contract.map(Into::into))
     }
 
-    pub async fn list_employee_contracts(
+    async fn list_employee_contracts(
         &self,
         workspace_id_val: Uuid,
         employee_id_val: Uuid,
@@ -168,7 +171,7 @@ impl DieselEmployeeContractRepository {
         Ok(contracts.into_iter().map(Into::into).collect())
     }
 
-    pub async fn update_contract(
+    async fn update_contract(
         &self,
         workspace_id_val: Uuid,
         contract_id: Uuid,
@@ -206,7 +209,7 @@ impl DieselEmployeeContractRepository {
         Ok(updated_contract.into())
     }
 
-    pub async fn delete_contract(
+    async fn delete_contract(
         &self,
         workspace_id_val: Uuid,
         contract_id: Uuid,
@@ -230,7 +233,7 @@ impl DieselEmployeeContractRepository {
         Ok(())
     }
 
-    pub async fn get_expiring_contracts(
+    async fn get_expiring_contracts(
         &self,
         workspace_id_val: Uuid,
         days_ahead: i32,
@@ -257,5 +260,36 @@ impl DieselEmployeeContractRepository {
             .await?;
 
         Ok(contracts.into_iter().map(Into::into).collect())
+    }
+
+    async fn get_active_contract_on_date(
+        &self,
+        workspace_id_val: Uuid,
+        employee_id_val: Uuid,
+        date_val: chrono::NaiveDate,
+    ) -> Result<Option<EmployeeContract>, AppError> {
+        use crate::models::enums::ContractStatus;
+        use crate::schema::employee_contracts::dsl::*;
+
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(format!("Failed to get connection: {e}")))?;
+
+        let entity = employee_contracts
+            .filter(workspace_id.eq(workspace_id_val))
+            .filter(employee_id.eq(employee_id_val))
+            .filter(status.eq(ContractStatus::Active))
+            .filter(start_date.le(date_val))
+            .filter(end_date.is_null().or(end_date.ge(date_val)))
+            .order(start_date.desc())
+            .first::<EmployeeContractEntity>(&mut conn)
+            .await
+            .optional()
+            .map_err(|e| AppError::Internal(format!("db error: {e}")))?;
+
+        Ok(entity.map(Into::into))
     }
 }

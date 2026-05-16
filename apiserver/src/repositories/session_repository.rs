@@ -3,6 +3,7 @@ use crate::models::diesel::core::SessionEntity;
 use async_trait::async_trait;
 use uuid::Uuid;
 
+#[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait SessionRepository: Send + Sync {
     async fn create_session(
