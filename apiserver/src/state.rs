@@ -137,6 +137,7 @@ pub struct AgentState {
 pub struct InfraState {
     pub diesel: crate::diesel_pool::DieselPools,
     pub redis: Option<RedisPool>,
+    pub cache: Option<Arc<dyn crate::repositories::CacheRepository>>,
     pub roster_cache: Option<Arc<crate::cache::RosterCache>>,
     pub queue: Option<Arc<dyn crate::repositories::queue_repository::QueueRepository>>,
     pub tenant_manager: Arc<dyn crate::supavisor::TenantManager>,

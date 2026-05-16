@@ -33,6 +33,7 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+use crate::repositories::CacheRepositoryExt;
 
 use crate::errors::{AppError, AppResult};
 use crate::models::enums::SystemRoleType;
@@ -136,8 +137,7 @@ impl SystemContext {
     /// Invalidate the system role cache for a specific user.
     /// Call after assigning or revoking a system role.
     pub async fn invalidate_cache(user_id: Uuid, state: &Arc<AppState>) {
-        if let Some(redis_pool) = state.infra.redis.clone() {
-            let cache = crate::cache::RedisCache::new(redis_pool);
+        if let Some(cache) = &state.infra.cache {
             let _ = cache.delete(&Self::cache_key(user_id)).await;
         }
     }
@@ -159,10 +159,7 @@ where
         let app_state = Arc::<AppState>::from_ref(state);
         let cache_key = Self::cache_key(user_id);
 
-        // --- Cache lookup ---
-        let roles: HashSet<SystemRoleType> = if let Some(redis_pool) = app_state.infra.redis.clone()
-        {
-            let cache = crate::cache::RedisCache::new(redis_pool);
+        let roles: HashSet<SystemRoleType> = if let Some(cache) = &app_state.infra.cache {
 
             if let Some(cached) = cache.get::<CachedSystemRoles>(&cache_key).await {
                 // Deserialize from cached string names

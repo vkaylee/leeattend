@@ -5,8 +5,7 @@
 use tracing::{debug, warn};
 use uuid::Uuid;
 
-use crate::cache::{RedisCache, ShiftCache, WorkspaceCache};
-use crate::queue::RedisPool;
+use crate::cache::{ShiftCache, WorkspaceCache};
 
 /// Manager for all cache instances.
 /// Provides unified access to workspace and shift caches.
@@ -21,8 +20,7 @@ use std::sync::Arc;
 
 impl CacheManager {
     /// Create a new CacheManager.
-    pub fn new(redis: RedisPool, diesel: crate::diesel_pool::DieselPools) -> Self {
-        let cache: Arc<dyn CacheRepository> = Arc::new(RedisCache::new(redis));
+    pub fn new(cache: Arc<dyn CacheRepository>, diesel: crate::diesel_pool::DieselPools) -> Self {
 
         Self {
             workspace: WorkspaceCache::new(Arc::clone(&cache), diesel.clone()),

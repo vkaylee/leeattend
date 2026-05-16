@@ -21,7 +21,8 @@ async fn test_attendance_and_merge_handlers() {
     let deps = apiserver::worker::deps::WorkerDeps::new(&diesel_pools.clone());
     let redis_pool = crate::common::app::create_test_redis_pool().await.unwrap();
 
-    let cache = Arc::new(CacheManager::new(redis_pool.clone(), diesel_pools.clone()));
+    let redis_cache: Arc<dyn apiserver::repositories::CacheRepository> = Arc::new(apiserver::cache::RedisCache::new(redis_pool.clone()));
+    let cache = Arc::new(CacheManager::new(redis_cache, diesel_pools.clone()));
     let queue = JobQueue::new(redis_pool.clone());
 
     let user_id = factory.user().create().await;

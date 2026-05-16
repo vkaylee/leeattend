@@ -513,6 +513,7 @@ impl AppState {
             infra: crate::InfraState {
                 diesel: diesel_pools,
                 redis: redis_pool.clone(),
+                cache: redis_pool.clone().map(|r| Arc::new(crate::cache::RedisCache::new(r)) as Arc<dyn crate::repositories::CacheRepository>),
                 roster_cache,
                 queue: redis_pool.map(|r| Arc::new(crate::repositories::queue_repository::RedisQueueRepository::new(r)) as Arc<dyn crate::repositories::queue_repository::QueueRepository>),
                 tenant_manager,

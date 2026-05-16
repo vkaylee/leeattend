@@ -14,6 +14,7 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use std::time::Duration;
 use uuid::Uuid;
+use crate::repositories::CacheRepositoryExt;
 
 // --- Extractors ---
 
@@ -160,9 +161,8 @@ where
         let cache_key = format!("cache:auth:permissions:{workspace_id}:{user_id}");
         let ttl = Duration::from_secs(3600); // 1 hour TTL
 
-        let cached_data = if let Some(redis_pool) = app_state.infra.redis.clone() {
-            let redis_cache = crate::cache::RedisCache::new(redis_pool);
-            if let Some(d) = redis_cache.get::<CachedMemberContext>(&cache_key).await {
+        let cached_data = if let Some(cache) = &app_state.infra.cache {
+            if let Some(d) = cache.get::<CachedMemberContext>(&cache_key).await {
                 d
             } else {
                 let fresh = Self::fetch_member_context_from_db(user_id, workspace_id, &app_state)
@@ -175,7 +175,7 @@ where
                             AppError::Internal("Database error".to_string())
                         }
                     })?;
-                let _ = redis_cache.set(&cache_key, &fresh, ttl).await;
+                let _ = cache.set(&cache_key, &fresh, ttl).await;
                 fresh
             }
         } else {

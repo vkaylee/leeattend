@@ -6,6 +6,7 @@ use uuid::Uuid;
 // ---------------------------------------------------------------------------
 // Trait: ImportJobRepository — DIP abstraction
 // ---------------------------------------------------------------------------
+#[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait ImportJobRepository: Send + Sync {
     async fn create_job(&self, job: &AttendanceImportJob) -> Result<(), AppError>;

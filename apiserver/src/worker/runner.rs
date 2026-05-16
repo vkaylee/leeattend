@@ -146,7 +146,8 @@ impl JobWorker {
         coordinator: Arc<ReportCoordinator>,
         roster_cache: Option<Arc<RosterCache>>,
     ) -> Self {
-        let cache = Arc::new(CacheManager::new(redis.clone(), diesel.clone()));
+        let redis_cache: Arc<dyn crate::repositories::CacheRepository> = Arc::new(crate::cache::RedisCache::new(redis.clone()));
+        let cache = Arc::new(CacheManager::new(redis_cache, diesel.clone()));
         let deps = Arc::new(super::WorkerDeps::new(&diesel));
         let hostname = std::env::var("HOSTNAME")
             .or_else(|_| std::env::var("COMPUTERNAME"))

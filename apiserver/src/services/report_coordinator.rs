@@ -579,4 +579,275 @@ mod tests {
         let _ = format!("{:?}", ReportError::QueueError("x".into()));
         let _ = format!("{:?}", ReportError::DatabaseError("y".into()));
     }
+
+    #[tokio::test]
+    async fn test_create_report_job_success() {
+        use crate::repositories::employee::MockEmployeeRepository;
+        use crate::repositories::queue_repository::MockQueueRepository;
+        use crate::repositories::workspace_repository::MockWorkspaceRepository;
+        use std::sync::Arc;
+
+        let mut mock_workspace_repo = MockWorkspaceRepository::new();
+        let mut mock_employee_repo = MockEmployeeRepository::new();
+        let mut mock_queue_repo = MockQueueRepository::new();
+
+        let ws_id = Uuid::new_v4();
+        
+        // Setup mocks
+        mock_workspace_repo
+            .expect_get_workspace_by_id()
+            .with(mockall::predicate::eq(ws_id))
+            .returning(move |id| {
+                Box::pin(async move {
+                    Ok(Some(crate::models::Workspace {
+                        id,
+                        name: "Test WS".into(),
+                        created_at: chrono::Utc::now(),
+                        date_format: "YYYY-MM-DD".into(),
+                        time_format: "HH:mm:ss".into(),
+                        timezone: "UTC".into(),
+                        theme_primary_color: "".into(),
+                        default_language: "en".into(),
+                        holiday_overnight_strategy: "split".into(),
+                        default_holiday_ot_multiplier: Default::default(),
+                        logo_url: None,
+                        tagline: None,
+                    }))
+                })
+            });
+
+        // 3 employees = 1 batch
+        let emp1 = Uuid::new_v4();
+        let emp2 = Uuid::new_v4();
+        let emp3 = Uuid::new_v4();
+        let emp_ids = vec![emp1, emp2, emp3];
+        mock_employee_repo
+            .expect_get_active_employee_ids()
+            .with(mockall::predicate::eq(ws_id), mockall::predicate::always())
+            .returning(move |_, _| {
+                let ids = emp_ids.clone();
+                Box::pin(async move { Ok(ids) })
+            });
+
+        mock_queue_repo
+            .expect_create_job_metadata()
+            .with(mockall::predicate::always())
+            .returning(|_| Ok(()));
+
+        mock_queue_repo
+            .expect_enqueue_jobs()
+            .with(mockall::predicate::always())
+            .returning(|jobs| {
+                assert_eq!(jobs.len(), 1);
+                Ok(())
+            });
+
+        let coordinator = ReportCoordinator::new(
+            Arc::new(mock_queue_repo),
+            Arc::new(mock_employee_repo),
+            Arc::new(mock_workspace_repo),
+        );
+
+        let result = coordinator.create_report_job(
+            ws_id,
+            Uuid::new_v4(), // requester_id
+            crate::services::report_coordinator::CreateJobRequest {
+                report_type: crate::queue::ReportType::Summary,
+                start_date: chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+                end_date: chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+                employee_ids: None,
+                sort: None,
+            },
+        ).await;
+
+        assert!(result.is_ok());
+        let response = result.unwrap();
+        assert_eq!(response.total_batches, 1);
+        assert_eq!(response.estimated_seconds, 1);
+        assert_eq!(response.status, "pending");
+    }
+
+    #[tokio::test]
+    async fn test_create_report_job_no_employees() {
+        use crate::repositories::employee::MockEmployeeRepository;
+        use crate::repositories::queue_repository::MockQueueRepository;
+        use crate::repositories::workspace_repository::MockWorkspaceRepository;
+        use std::sync::Arc;
+
+        let mut mock_workspace_repo = MockWorkspaceRepository::new();
+        let mut mock_employee_repo = MockEmployeeRepository::new();
+        let mock_queue_repo = MockQueueRepository::new();
+
+        let ws_id = Uuid::new_v4();
+        
+        mock_workspace_repo
+            .expect_get_workspace_by_id()
+            .returning(|_| Box::pin(async { Ok(Some(crate::models::Workspace {
+                id: Uuid::new_v4(),
+                name: "Test WS".into(),
+                created_at: chrono::Utc::now(),
+                date_format: "YYYY-MM-DD".into(),
+                time_format: "HH:mm:ss".into(),
+                timezone: "UTC".into(),
+                theme_primary_color: "".into(),
+                default_language: "en".into(),
+                holiday_overnight_strategy: "split".into(),
+                default_holiday_ot_multiplier: Default::default(),
+                logo_url: None,
+                tagline: None,
+            })) }));
+
+        // Return empty employee list
+        mock_employee_repo
+            .expect_get_active_employee_ids()
+            .returning(|_, _| Box::pin(async { Ok(vec![]) }));
+
+        let coordinator = ReportCoordinator::new(
+            Arc::new(mock_queue_repo),
+            Arc::new(mock_employee_repo),
+            Arc::new(mock_workspace_repo),
+        );
+
+        let result = coordinator.create_report_job(
+            ws_id,
+            Uuid::new_v4(), // requester_id
+            crate::services::report_coordinator::CreateJobRequest {
+                report_type: crate::queue::ReportType::Summary,
+                start_date: chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+                end_date: chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+                employee_ids: None,
+                sort: None,
+            },
+        ).await;
+
+        assert!(matches!(result, Err(ReportError::NoEmployees)));
+    }
+
+    #[tokio::test]
+    async fn test_get_job_status_success() {
+        use crate::repositories::employee::MockEmployeeRepository;
+        use crate::repositories::queue_repository::MockQueueRepository;
+        use crate::repositories::workspace_repository::MockWorkspaceRepository;
+        use crate::queue::{JobMetadata, JobStatus};
+        use std::sync::Arc;
+
+        let mock_workspace_repo = MockWorkspaceRepository::new();
+        let mock_employee_repo = MockEmployeeRepository::new();
+        let mut mock_queue_repo = MockQueueRepository::new();
+
+        let job_id = Uuid::new_v4();
+
+        mock_queue_repo
+            .expect_get_job_metadata()
+            .with(mockall::predicate::eq(job_id))
+            .returning(move |_| {
+                let mut meta = JobMetadata::new(
+                    job_id,
+                    10,
+                    Uuid::new_v4(),
+                    Uuid::new_v4(),
+                    None,
+                );
+                meta.completed_batches = 5;
+                meta.status = JobStatus::Processing;
+                Ok(Some(meta))
+            });
+
+        let coordinator = ReportCoordinator::new(
+            Arc::new(mock_queue_repo),
+            Arc::new(mock_employee_repo),
+            Arc::new(mock_workspace_repo),
+        );
+
+        let result = coordinator.get_job_status(job_id).await;
+        assert!(result.is_ok());
+        let status_resp = result.unwrap();
+        assert_eq!(status_resp.job_id, job_id);
+        assert_eq!(status_resp.status, "processing");
+        assert_eq!(status_resp.progress.total_batches, 10);
+        assert_eq!(status_resp.progress.completed_batches, 5);
+        assert_eq!(status_resp.progress.percentage, 50.0);
+    }
+
+    #[tokio::test]
+    async fn test_cancel_job_success() {
+        use crate::repositories::employee::MockEmployeeRepository;
+        use crate::repositories::queue_repository::MockQueueRepository;
+        use crate::repositories::workspace_repository::MockWorkspaceRepository;
+        use crate::queue::JobMetadata;
+        use std::sync::Arc;
+
+        let mock_workspace_repo = MockWorkspaceRepository::new();
+        let mock_employee_repo = MockEmployeeRepository::new();
+        let mut mock_queue_repo = MockQueueRepository::new();
+
+        let job_id = Uuid::new_v4();
+
+        mock_queue_repo
+            .expect_get_job_metadata()
+            .with(mockall::predicate::eq(job_id))
+            .returning(move |_| {
+                let meta = JobMetadata::new(
+                    job_id,
+                    10,
+                    Uuid::new_v4(),
+                    Uuid::new_v4(),
+                    None,
+                );
+                Ok(Some(meta))
+            });
+
+        mock_queue_repo
+            .expect_update_job_metadata()
+            .with(mockall::predicate::always())
+            .returning(|_| Ok(()));
+
+        let coordinator = ReportCoordinator::new(
+            Arc::new(mock_queue_repo),
+            Arc::new(mock_employee_repo),
+            Arc::new(mock_workspace_repo),
+        );
+
+        let result = coordinator.cancel_job(job_id).await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_cancel_job_cannot_cancel_completed() {
+        use crate::repositories::employee::MockEmployeeRepository;
+        use crate::repositories::queue_repository::MockQueueRepository;
+        use crate::repositories::workspace_repository::MockWorkspaceRepository;
+        use crate::queue::{JobMetadata, JobStatus};
+        use std::sync::Arc;
+
+        let mock_workspace_repo = MockWorkspaceRepository::new();
+        let mock_employee_repo = MockEmployeeRepository::new();
+        let mut mock_queue_repo = MockQueueRepository::new();
+
+        let job_id = Uuid::new_v4();
+
+        mock_queue_repo
+            .expect_get_job_metadata()
+            .with(mockall::predicate::eq(job_id))
+            .returning(move |_| {
+                let mut meta = JobMetadata::new(
+                    job_id,
+                    10,
+                    Uuid::new_v4(),
+                    Uuid::new_v4(),
+                    None,
+                );
+                meta.status = JobStatus::Completed;
+                Ok(Some(meta))
+            });
+
+        let coordinator = ReportCoordinator::new(
+            Arc::new(mock_queue_repo),
+            Arc::new(mock_employee_repo),
+            Arc::new(mock_workspace_repo),
+        );
+
+        let result = coordinator.cancel_job(job_id).await;
+        assert!(matches!(result, Err(ReportError::CannotCancel)));
+    }
 }

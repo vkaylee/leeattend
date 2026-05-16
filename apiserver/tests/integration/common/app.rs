@@ -483,6 +483,7 @@ pub async fn spawn_app() -> (String, TestDatabase) {
         infra: apiserver::InfraState {
             diesel: diesel_pools.clone(),
             redis: shared_redis_pool.clone(),
+            cache: shared_redis_pool.clone().map(|r| Arc::new(apiserver::cache::RedisCache::new(r)) as Arc<dyn apiserver::repositories::CacheRepository>),
             roster_cache: None,
             queue: shared_redis_pool.map(|r| Arc::new(apiserver::repositories::queue_repository::RedisQueueRepository::new(r)) as Arc<dyn apiserver::repositories::queue_repository::QueueRepository>),
             tenant_manager: Arc::new(apiserver::supavisor::NoopTenantManager),
@@ -972,6 +973,7 @@ pub async fn spawn_app_with_factory_extended(tenant_manager: Arc<dyn apiserver::
         infra: apiserver::InfraState {
             diesel: diesel_pools.clone(),
             redis: shared_redis_pool.clone(),
+            cache: shared_redis_pool.clone().map(|r| Arc::new(apiserver::cache::RedisCache::new(r)) as Arc<dyn apiserver::repositories::CacheRepository>),
             roster_cache: None,
             queue: shared_redis_pool.clone().map(|r| Arc::new(apiserver::repositories::queue_repository::RedisQueueRepository::new(r)) as Arc<dyn apiserver::repositories::queue_repository::QueueRepository>),
             tenant_manager,
@@ -1502,6 +1504,7 @@ pub async fn setup_app_tower_internal_extended(use_redis: bool, tenant_manager: 
         infra: apiserver::InfraState {
             diesel: diesel_pools.clone(),
             redis: shared_redis_pool.clone(),
+            cache: shared_redis_pool.clone().map(|r| Arc::new(apiserver::cache::RedisCache::new(r)) as Arc<dyn apiserver::repositories::CacheRepository>),
             roster_cache: None,
             queue: shared_redis_pool.clone().map(|r| Arc::new(apiserver::repositories::queue_repository::RedisQueueRepository::new(r)) as Arc<dyn apiserver::repositories::queue_repository::QueueRepository>),
             tenant_manager,

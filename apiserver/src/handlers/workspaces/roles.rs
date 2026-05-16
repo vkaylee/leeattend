@@ -93,8 +93,7 @@ pub async fn assign_extra_role(
     })
     .await;
 
-    if let Some(redis_pool) = state.infra.redis.clone() {
-        let cache = crate::cache::RedisCache::new(redis_pool);
+    if let Some(cache) = &state.infra.cache {
         let _ = cache
             .delete(&format!(
                 "cache:auth:permissions:{}:{}",
@@ -133,8 +132,7 @@ pub async fn revoke_extra_role(
         })
         .await;
 
-        if let Some(redis_pool) = state.infra.redis.clone() {
-            let cache = crate::cache::RedisCache::new(redis_pool);
+        if let Some(cache) = &state.infra.cache {
             let _ = cache
                 .delete(&format!(
                     "cache:auth:permissions:{}:{}",
@@ -227,8 +225,7 @@ pub async fn delete_workspace_role(
         .await?;
 
     if affected > 0 {
-        if let Some(redis_pool) = state.infra.redis.clone() {
-            let cache = crate::cache::RedisCache::new(redis_pool);
+        if let Some(cache) = &state.infra.cache {
             let _ = cache
                 .delete_pattern(&format!("cache:auth:permissions:{}:*", ctx.workspace_id))
                 .await;
@@ -283,8 +280,7 @@ pub async fn update_role_permissions(
         .set_role_permissions(role_id, req.permissions)
         .await?;
 
-    if let Some(redis_pool) = state.infra.redis.clone() {
-        let cache = crate::cache::RedisCache::new(redis_pool);
+    if let Some(cache) = &state.infra.cache {
         let _ = cache
             .delete_pattern(&format!("cache:auth:permissions:{}:*", ctx.workspace_id))
             .await;

@@ -82,8 +82,7 @@ pub async fn assign_extra_permission(
     })
     .await;
 
-    if let Some(redis_pool) = state.infra.redis.clone() {
-        let cache = crate::cache::RedisCache::new(redis_pool);
+    if let Some(cache) = &state.infra.cache {
         let _ = cache
             .delete(&format!(
                 "cache:auth:permissions:{}:{}",
@@ -124,8 +123,7 @@ pub async fn revoke_extra_permission(
         })
         .await;
 
-        if let Some(redis_pool) = state.infra.redis.clone() {
-            let cache = crate::cache::RedisCache::new(redis_pool);
+        if let Some(cache) = &state.infra.cache {
             let _ = cache
                 .delete(&format!(
                     "cache:auth:permissions:{}:{}",
