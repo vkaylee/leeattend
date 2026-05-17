@@ -216,7 +216,7 @@ impl AppState {
             Arc::new(crate::services::workspace_service::WorkspaceService::new(
                 workspace_repo.clone(),
                 user_repo.clone(),
-                tenant_provisioner,
+                tenant_provisioner.clone(),
                 tenant_manager.clone(),
             ));
         let leave_balance_repo: Arc<
@@ -526,6 +526,7 @@ impl AppState {
                 roster_cache,
                 queue: redis_pool.map(|r| Arc::new(crate::repositories::queue_repository::RedisQueueRepository::new(r)) as Arc<dyn crate::repositories::queue_repository::QueueRepository>),
                 tenant_manager,
+                tenant_provisioner: tenant_provisioner.clone(),
             },
         });
 

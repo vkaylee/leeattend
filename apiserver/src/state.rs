@@ -141,6 +141,7 @@ pub struct InfraState {
     pub roster_cache: Option<Arc<crate::cache::RosterCache>>,
     pub queue: Option<Arc<dyn crate::repositories::queue_repository::QueueRepository>>,
     pub tenant_manager: Arc<dyn crate::supavisor::TenantManager>,
+    pub tenant_provisioner: Arc<dyn crate::services::tenant_provisioner::TenantProvisionerTrait>,
 }
 
 // ── Composed AppState ──────────────────────────────────────────────

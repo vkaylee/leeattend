@@ -68,25 +68,19 @@ impl WorkspaceService {
             .await
             .map_err(|e| e.to_string())?;
 
-        // 3. Provision the physical Tenant Database
-        let db_name = self.tenant_provisioner
-            .provision_tenant_db(&ws.id)
+        // 3. Provision the physical Tenant Database (or use BYOD)
+        let new_db_url = self.tenant_provisioner
+            .provision_tenant_db(&ws.id, None)
             .await
             .map_err(|e| format!("Failed to provision DB: {}", e))?;
 
         // 4. Register Tenant with Supavisor connection pooler
-        let primary_url = std::env::var("DATABASE_URL").unwrap_or_default();
-        if let Ok(mut parsed_url) = reqwest::Url::parse(&primary_url) {
-            parsed_url.set_path(&db_name);
-            let new_db_url = parsed_url.to_string();
-            
-            if let Some((_, payload)) = crate::supavisor::build_tenant_payload(&new_db_url) {
-                // Use workspace_id as tenant alias in Supavisor
-                self.tenant_manager
-                    .register_tenant_dynamic(&ws.id.to_string(), &payload)
-                    .await
-                    .map_err(|e| format!("Failed to register with Supavisor: {}", e))?;
-            }
+        if let Some((_, payload)) = crate::supavisor::build_tenant_payload(&new_db_url) {
+            // Use workspace_id as tenant alias in Supavisor
+            self.tenant_manager
+                .register_tenant_dynamic(&ws.id.to_string(), &payload)
+                .await
+                .map_err(|e| format!("Failed to register with Supavisor: {}", e))?;
         }
 
         Ok(ws)
@@ -484,8 +478,12 @@ mod tests {
     struct MockTenantProvisioner;
     #[async_trait]
     impl crate::services::tenant_provisioner::TenantProvisionerTrait for MockTenantProvisioner {
-        async fn provision_tenant_db(&self, workspace_id: &Uuid) -> crate::errors::AppResult<String> {
-            Ok(format!("tenant_{}", workspace_id.to_string().replace("-", "")))
+        async fn provision_tenant_db(&self, workspace_id: &Uuid, custom_db_url: Option<String>) -> crate::errors::AppResult<String> {
+            if let Some(url) = custom_db_url {
+                Ok(url)
+            } else {
+                Ok(format!("tenant_{}", workspace_id.to_string().replace("-", "")))
+            }
         }
     }
 

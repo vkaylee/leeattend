@@ -14,7 +14,7 @@ use apiserver::supavisor::TenantManager;
 struct DummyTenantProvisioner;
 #[async_trait::async_trait]
 impl TenantProvisionerTrait for DummyTenantProvisioner {
-    async fn provision_tenant_db(&self, _workspace_id: &Uuid) -> Result<String, apiserver::errors::AppError> { Ok("".to_string()) }
+    async fn provision_tenant_db(&self, _workspace_id: &Uuid, _custom_db_url: Option<String>) -> Result<String, apiserver::errors::AppError> { Ok("postgres://test:test@localhost:5432/test".to_string()) }
 }
 
 struct DummyTenantManager;

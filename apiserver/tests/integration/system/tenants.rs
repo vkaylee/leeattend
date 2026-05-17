@@ -48,9 +48,10 @@ async fn test_create_and_delete_tenant_with_mock() {
     let client = reqwest::Client::new();
 
     // 1. Create Tenant
+    let new_ws_id = uuid::Uuid::new_v4();
     let req = serde_json::json!({
-        "db_name": "test_tenant_db",
-        "create_db": true,
+        "workspace_id": new_ws_id,
+        "custom_db_url": null,
         "pool_size": 15
     });
 
@@ -62,22 +63,24 @@ async fn test_create_and_delete_tenant_with_mock() {
         .await
         .expect("Failed to execute request");
 
+    let status = response.status();
+    let body = response.text().await.unwrap_or_default();
     assert_eq!(
-        response.status(),
+        status,
         reqwest::StatusCode::CREATED,
-        "Failed to create tenant"
+        "Failed to create tenant: {}", body
     );
 
     // Verify the mock recorded the registration
     {
         let registered = mock_manager.registered_tenants.lock().await;
         assert_eq!(registered.len(), 1, "Should have registered exactly 1 tenant");
-        assert_eq!(registered[0], "test_tenant_db", "Should register the correct tenant id");
+        assert_eq!(registered[0], new_ws_id.to_string(), "Should register the correct tenant id");
     }
 
     // 2. Delete Tenant
     let delete_res = client
-        .delete(&format!("{address}/api/system/tenants/test_tenant_db"))
+        .delete(&format!("{address}/api/system/tenants/{}", new_ws_id))
         .header("X-User-Id", user_id.to_string())
         .send()
         .await
@@ -93,7 +96,7 @@ async fn test_create_and_delete_tenant_with_mock() {
     {
         let deleted = mock_manager.deleted_tenants.lock().await;
         assert_eq!(deleted.len(), 1, "Should have deleted exactly 1 tenant");
-        assert_eq!(deleted[0], "test_tenant_db", "Should delete the correct tenant id");
+        assert_eq!(deleted[0], new_ws_id.to_string(), "Should delete the correct tenant id");
     }
 }
 
@@ -106,9 +109,10 @@ async fn test_create_tenant_requires_platform_admin() {
     // Login as a normal user (no platform admin role)
     let client = reqwest::Client::new();
 
+    let new_ws_id = uuid::Uuid::new_v4();
     let req = serde_json::json!({
-        "db_name": "hacked_db",
-        "create_db": true,
+        "workspace_id": new_ws_id,
+        "custom_db_url": "postgres://fake:fake@host/hacked_db",
         "pool_size": 15
     });
 

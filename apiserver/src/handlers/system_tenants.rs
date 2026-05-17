@@ -11,6 +11,7 @@ use serde::Deserialize;
 use std::sync::Arc;
 use utoipa::ToSchema;
 
+use uuid::Uuid;
 use crate::errors::{AppError, AppResult};
 use crate::handlers::system_auth::SystemContext;
 use crate::models::enums::SystemRoleType;
@@ -22,9 +23,10 @@ use diesel_async::RunQueryDsl;
 
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct CreateTenantRequest {
-    pub db_name: String,
-    /// If true, the system will attempt to execute CREATE DATABASE on the master node before registering.
-    pub create_db: bool,
+    pub workspace_id: Uuid,
+    /// If provided, this URL is used as the tenant database directly (BYOD).
+    /// If not provided, the system will provision a new database on the master cluster.
+    pub custom_db_url: Option<String>,
     pub pool_size: Option<u32>,
 }
 
@@ -100,56 +102,18 @@ pub async fn create_tenant(
 ) -> AppResult<StatusCode> {
     ctx.require_role(SystemRoleType::PlatformAdmin)?;
 
-    let mut conn = state
-        .infra
-        .diesel
-        .api
-        .get()
-        .await
-        .map_err(|e| AppError::Internal(e.to_string()))?;
-
-    // 1. Create physical DB if requested
-    if req.create_db {
-        // Prevent SQL injection: simple alphanumeric check
-        if !req
-            .db_name
-            .chars()
-            .all(|c| c.is_ascii_alphanumeric() || c == '_')
-        {
-            return Err(AppError::Validation("Invalid database name format".into()));
-        }
-
-        let create_sql = format!("CREATE DATABASE {}", req.db_name);
-
-        match diesel::sql_query(&create_sql).execute(&mut conn).await {
-            Ok(_) => tracing::info!("Successfully created physical database: {}", req.db_name),
-            Err(e) => {
-                if e.to_string().contains("already exists") {
-                    return Err(AppError::Conflict(format!(
-                        "Database {} already exists",
-                        req.db_name
-                    )));
-                }
-                return Err(AppError::Internal(e.to_string()));
-            }
-        }
-    }
+    // 1. Provision the database (or use BYOD) and run migrations
+    let provisioner = state.infra.tenant_provisioner.clone();
+    let workspace_id = req.workspace_id;
+    let new_db_url = provisioner.provision_tenant_db(&workspace_id, req.custom_db_url.clone()).await?;
 
     // 2. Build dynamic Supavisor payload
-    let master_url = std::env::var("DATABASE_URL").unwrap_or_default();
-    let Ok(mut parsed_url) = reqwest::Url::parse(&master_url) else {
-        return Err(AppError::Internal(
-            "Invalid DATABASE_URL in environment".into(),
-        ));
-    };
-    parsed_url.set_path(&req.db_name);
-
     if let Some(size) = req.pool_size {
         std::env::set_var("SUPAVISOR_POOL_SIZE", size.to_string());
     }
-    std::env::set_var("SUPAVISOR_TENANT_ID", &req.db_name);
+    std::env::set_var("SUPAVISOR_TENANT_ID", &req.workspace_id.to_string());
 
-    let payload_opt = build_tenant_payload(parsed_url.as_str());
+    let payload_opt = build_tenant_payload(&new_db_url);
 
     std::env::remove_var("SUPAVISOR_TENANT_ID");
     if req.pool_size.is_some() {
@@ -167,10 +131,18 @@ pub async fn create_tenant(
 
     // 4. Audit Log
     let details = serde_json::json!({
-        "db_name": req.db_name,
-        "create_db": req.create_db,
+        "workspace_id": req.workspace_id,
+        "is_byod": req.custom_db_url.is_some(),
         "pool_size": req.pool_size
     });
+
+    let mut conn = state
+        .infra
+        .diesel
+        .api
+        .get()
+        .await
+        .map_err(|e| AppError::Internal(e.to_string()))?;
 
     diesel::sql_query(
         r#"

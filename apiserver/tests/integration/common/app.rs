@@ -18,7 +18,7 @@ use apiserver::supavisor::TenantManager;
 pub struct DummyTenantProvisioner;
 #[async_trait::async_trait]
 impl TenantProvisionerTrait for DummyTenantProvisioner {
-    async fn provision_tenant_db(&self, _workspace_id: &uuid::Uuid) -> Result<String, apiserver::errors::AppError> { Ok("".to_string()) }
+    async fn provision_tenant_db(&self, _workspace_id: &uuid::Uuid, _custom_db_url: Option<String>) -> Result<String, apiserver::errors::AppError> { Ok("postgres://test:test@localhost:5432/test".to_string()) }
 }
 
 pub struct DummyTenantManager;
@@ -507,6 +507,7 @@ pub async fn spawn_app() -> (String, TestDatabase) {
             roster_cache: None,
             queue: shared_redis_pool.map(|r| Arc::new(apiserver::repositories::queue_repository::RedisQueueRepository::new(r)) as Arc<dyn apiserver::repositories::queue_repository::QueueRepository>),
             tenant_manager: Arc::new(apiserver::supavisor::NoopTenantManager),
+            tenant_provisioner: std::sync::Arc::new(DummyTenantProvisioner),
         },
     });
 
@@ -1001,6 +1002,7 @@ pub async fn spawn_app_with_factory_extended(tenant_manager: Arc<dyn apiserver::
             roster_cache: None,
             queue: shared_redis_pool.clone().map(|r| Arc::new(apiserver::repositories::queue_repository::RedisQueueRepository::new(r)) as Arc<dyn apiserver::repositories::queue_repository::QueueRepository>),
             tenant_manager,
+            tenant_provisioner: std::sync::Arc::new(DummyTenantProvisioner),
         },
     });
 
@@ -1536,6 +1538,7 @@ pub async fn setup_app_tower_internal_extended(use_redis: bool, tenant_manager: 
             roster_cache: None,
             queue: shared_redis_pool.clone().map(|r| Arc::new(apiserver::repositories::queue_repository::RedisQueueRepository::new(r)) as Arc<dyn apiserver::repositories::queue_repository::QueueRepository>),
             tenant_manager,
+            tenant_provisioner: std::sync::Arc::new(DummyTenantProvisioner),
         },
     });
 

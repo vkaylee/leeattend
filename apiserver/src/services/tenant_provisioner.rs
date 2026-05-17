@@ -8,7 +8,10 @@ use std::env;
 
 #[async_trait]
 pub trait TenantProvisionerTrait: Send + Sync {
-    async fn provision_tenant_db(&self, workspace_id: &Uuid) -> AppResult<String>;
+    /// Provisions a tenant database. If custom_db_url is provided, it uses that (BYOD),
+    /// otherwise it provisions a new logical database on the primary cluster.
+    /// Returns the full connection URL of the provisioned database.
+    async fn provision_tenant_db(&self, workspace_id: &Uuid, custom_db_url: Option<String>) -> AppResult<String>;
 }
 
 pub struct DefaultTenantProvisioner {
@@ -23,52 +26,58 @@ impl DefaultTenantProvisioner {
 
 #[async_trait]
 impl TenantProvisionerTrait for DefaultTenantProvisioner {
-    async fn provision_tenant_db(&self, workspace_id: &Uuid) -> AppResult<String> {
-        // Remove hyphens for safe Postgres DB name
-        let db_name = format!("tenant_{}", workspace_id.to_string().replace("-", ""));
-        
-        let query = format!("CREATE DATABASE {}", db_name);
-        
-        // 1. Get connection from system pool
-        let mut conn = self.system_pool.get().await.map_err(|e| {
-            AppError::Internal(format!("Failed to get connection from system pool: {}", e))
-        })?;
-        
-        // 2. Execute CREATE DATABASE
-        // Note: CREATE DATABASE cannot be executed inside a transaction block.
-        sql_query(query).execute(&mut conn).await.map_err(|e| {
-            AppError::Internal(format!("Failed to create physical database {}: {}", db_name, e))
-        })?;
-        
-        info!("Successfully created physical database: {}", db_name);
-        
-        // 3. Construct new database URL based on existing master DATABASE_URL
-        let primary_url = env::var("DATABASE_URL").unwrap_or_default();
-        if primary_url.is_empty() {
-            return Err(AppError::Internal("DATABASE_URL is not set".to_string()));
-        }
+    async fn provision_tenant_db(&self, workspace_id: &Uuid, custom_db_url: Option<String>) -> AppResult<String> {
+        let final_db_url = match custom_db_url {
+            Some(url) => {
+                info!("Using custom BYOD database URL for workspace {}", workspace_id);
+                url
+            }
+            None => {
+                // Remove hyphens for safe Postgres DB name
+                let db_name = format!("tenant_{}", workspace_id.to_string().replace("-", ""));
+                let query = format!("CREATE DATABASE {}", db_name);
+                
+                // 1. Get connection from system pool
+                let mut conn = self.system_pool.get().await.map_err(|e| {
+                    AppError::Internal(format!("Failed to get connection from system pool: {}", e))
+                })?;
+                
+                // 2. Execute CREATE DATABASE
+                sql_query(query).execute(&mut conn).await.map_err(|e| {
+                    AppError::Internal(format!("Failed to create physical database {}: {}", db_name, e))
+                })?;
+                
+                info!("Successfully created physical database: {}", db_name);
+                
+                // 3. Construct new database URL based on existing master DATABASE_URL
+                let primary_url = env::var("DATABASE_URL").unwrap_or_default();
+                if primary_url.is_empty() {
+                    return Err(AppError::Internal("DATABASE_URL is not set".to_string()));
+                }
 
-        let mut parsed_url = reqwest::Url::parse(&primary_url).map_err(|e| {
-            AppError::Internal(format!("Invalid DATABASE_URL format: {}", e))
-        })?;
-        
-        parsed_url.set_path(&db_name);
-        let new_db_url = parsed_url.to_string();
+                let mut parsed_url = reqwest::Url::parse(&primary_url).map_err(|e| {
+                    AppError::Internal(format!("Invalid DATABASE_URL format: {}", e))
+                })?;
+                
+                parsed_url.set_path(&db_name);
+                parsed_url.to_string()
+            }
+        };
 
-        // 4. Run tenant migrations on the new database
-        let db_name_clone = db_name.clone();
+        // 4. Run tenant migrations on the new database (either BYOD or newly created)
+        let final_db_url_clone = final_db_url.clone();
         tokio::task::spawn_blocking(move || {
             use diesel::Connection;
             use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 
             const TENANT_MIGRATIONS: EmbeddedMigrations = embed_migrations!("./migrations/tenant");
 
-            let mut sync_conn = diesel::PgConnection::establish(&new_db_url).map_err(|e| {
-                AppError::Internal(format!("Failed to connect to new DB {}: {}", db_name_clone, e))
+            let mut sync_conn = diesel::PgConnection::establish(&final_db_url_clone).map_err(|e| {
+                AppError::Internal(format!("Failed to connect to tenant DB: {}", e))
             })?;
             
             sync_conn.run_pending_migrations(TENANT_MIGRATIONS).map_err(|e| {
-                AppError::Internal(format!("Failed to run tenant migrations on {}: {}", db_name_clone, e))
+                AppError::Internal(format!("Failed to run tenant migrations: {}", e))
             })?;
                 
             Ok::<(), AppError>(())
@@ -76,8 +85,8 @@ impl TenantProvisionerTrait for DefaultTenantProvisioner {
         .await
         .map_err(|e| AppError::Internal(format!("Migration blocking task failed: {}", e)))??;
 
-        info!("Successfully migrated database: {}", db_name);
+        info!("Successfully migrated database at: {}", final_db_url);
         
-        Ok(db_name)
+        Ok(final_db_url)
     }
 }
