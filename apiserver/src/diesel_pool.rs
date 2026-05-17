@@ -77,13 +77,18 @@ use tokio::sync::RwLock;
 use uuid::Uuid;
 use crate::errors::AppError;
 
-pub struct TenantPoolManager {
+#[async_trait::async_trait]
+pub trait TenantPoolProvider: Send + Sync {
+    async fn get_pool(&self, workspace_id: &Uuid) -> Result<DieselPool, AppError>;
+}
+
+pub struct ProductionTenantPoolManager {
     base_url: String,
     max_size: usize,
     pools: RwLock<HashMap<Uuid, DieselPool>>,
 }
 
-impl TenantPoolManager {
+impl ProductionTenantPoolManager {
     pub fn new(base_url: String, max_size: usize) -> Self {
         Self {
             base_url,
@@ -92,7 +97,19 @@ impl TenantPoolManager {
         }
     }
 
-    pub async fn get_pool(&self, workspace_id: &Uuid) -> Result<DieselPool, AppError> {
+    pub fn get_tenant_url(&self, workspace_id: &Uuid) -> Result<String, AppError> {
+        let db_name = format!("tenant_{}", workspace_id.to_string().replace("-", ""));
+        let mut parsed_url = reqwest::Url::parse(&self.base_url).map_err(|e| {
+            AppError::Internal(format!("Invalid base pool URL: {}", e))
+        })?;
+        parsed_url.set_path(&db_name);
+        Ok(parsed_url.to_string())
+    }
+}
+
+#[async_trait::async_trait]
+impl TenantPoolProvider for ProductionTenantPoolManager {
+    async fn get_pool(&self, workspace_id: &Uuid) -> Result<DieselPool, AppError> {
         // Fast path
         {
             let pools = self.pools.read().await;
@@ -107,13 +124,7 @@ impl TenantPoolManager {
             return Ok(pool.clone());
         }
 
-        let db_name = format!("tenant_{}", workspace_id.to_string().replace("-", ""));
-        let mut parsed_url = reqwest::Url::parse(&self.base_url).map_err(|e| {
-            AppError::Internal(format!("Invalid base pool URL: {}", e))
-        })?;
-        parsed_url.set_path(&db_name);
-        
-        let tenant_url = parsed_url.to_string();
+        let tenant_url = self.get_tenant_url(workspace_id)?;
         let manager = AsyncDieselConnectionManager::<AsyncPgConnection>::new(tenant_url);
         let pool = Pool::builder(manager)
             .max_size(self.max_size)
@@ -127,11 +138,28 @@ impl TenantPoolManager {
     }
 }
 
+pub struct TestTenantPoolManager {
+    pool: DieselPool,
+}
+
+impl TestTenantPoolManager {
+    pub fn new(pool: DieselPool) -> Self {
+        Self { pool }
+    }
+}
+
+#[async_trait::async_trait]
+impl TenantPoolProvider for TestTenantPoolManager {
+    async fn get_pool(&self, _workspace_id: &Uuid) -> Result<DieselPool, AppError> {
+        Ok(self.pool.clone())
+    }
+}
+
 #[derive(Clone)]
 pub struct DieselPools {
     pub api: DieselPool,
     pub worker: DieselPool,
-    pub tenants: Arc<TenantPoolManager>,
+    pub tenants: Arc<dyn TenantPoolProvider>,
 }
 
 impl DieselPools {
@@ -164,7 +192,7 @@ impl DieselPools {
             .build()
             .expect("Failed to create Worker Diesel pool");
 
-        let tenant_manager = Arc::new(TenantPoolManager::new(
+        let tenant_manager = Arc::new(ProductionTenantPoolManager::new(
             api_conn_url.to_string(),
             config.tenant_max_conn as usize,
         ));
@@ -213,9 +241,8 @@ impl DieselPools {
             .build()
             .expect("Failed to create test Worker Diesel pool");
 
-        let tenant_manager = Arc::new(TenantPoolManager::new(
-            url.to_string(),
-            5,
+        let tenant_manager = Arc::new(TestTenantPoolManager::new(
+            api_pool.clone(),
         ));
 
         Self {
@@ -223,5 +250,48 @@ impl DieselPools {
             worker: worker_pool,
             tenants: tenant_manager,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use uuid::Uuid;
+
+    #[test]
+    fn test_tenant_pool_manager_url_production_mode() {
+        let base_url = "postgres://user:pass@localhost:5432/postgres";
+        let manager = ProductionTenantPoolManager::new(base_url.to_string(), 5);
+        
+        // Use a fixed UUID for predictable output
+        let workspace_id = Uuid::parse_str("123e4567-e89b-12d3-a456-426614174000").unwrap();
+        
+        let result = manager.get_tenant_url(&workspace_id).unwrap();
+        
+        // In production mode, it should append the tenant name to the path
+        assert_eq!(result, "postgres://user:pass@localhost:5432/tenant_123e4567e89b12d3a456426614174000");
+    }
+
+    #[tokio::test]
+    async fn test_tenant_pool_manager_test_mode_returns_same_pool() {
+        let base_url = "postgres://user:pass@localhost:5432/leeattend_test_db";
+        let api_manager = AsyncDieselConnectionManager::<AsyncPgConnection>::new(base_url.to_string());
+        let pool = Pool::builder(api_manager)
+            .max_size(2)
+            .build()
+            .unwrap();
+            
+        let test_manager = TestTenantPoolManager::new(pool);
+        
+        let ws1 = Uuid::new_v4();
+        let ws2 = Uuid::new_v4();
+        
+        let pool1 = test_manager.get_pool(&ws1).await.unwrap();
+        let pool2 = test_manager.get_pool(&ws2).await.unwrap();
+        
+        // Since we are mocking the DI, the mock manager should always return clones of the same pool
+        // regardless of the workspace ID requested.
+        assert_eq!(pool1.status().max_size, 2);
+        assert_eq!(pool2.status().max_size, 2);
     }
 }

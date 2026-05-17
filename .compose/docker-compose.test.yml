@@ -12,7 +12,6 @@ networks:
 
 x-rust-env-base: &rust-env-base
   CARGO_TARGET_DIR: /workspace/target
-  CARGO_BUILD_JOBS: 1
   SCCACHE_DIR: /workspace/.sccache
   RUSTC_WRAPPER: sccache
 
@@ -25,7 +24,6 @@ x-rust-test-base: &rust-test-base
     <<: *rust-env-base
   tmpfs:
     - /workspace/target/nextest
-    - /workspace/target/debug/incremental
   volumes:
     - ${PROJECT_ROOT}:/workspace
     - target-cache:/workspace/target
@@ -120,7 +118,8 @@ services:
       - bash
       - -c
       - |
-        cargo test --test setup_migrations -- run_migrations --ignored --exact
+        diesel migration run --migration-dir ./migrations/system
+        diesel migration run --migration-dir ./migrations/tenant
         for i in {1..5}; do
           psql postgres://test_user:test_password@db:5432/postgres?sslmode=disable -c "CREATE DATABASE leeattend_test_template TEMPLATE test_database" && break
           echo "Retrying psql..."
