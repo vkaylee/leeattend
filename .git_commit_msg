@@ -1,7 +1,9 @@
-docs(standards): add enterprise execution rules to coding standards
+docs(standards): upgrade database rules to Enterprise Pro Max
 
-- Added Section 9 "Code-Level Execution Rules (Enterprise Pro Max)" to `coding-standards.md`.
-- Formalized requirements for Dependency Injection (DI) to decouple Service and Infrastructure layers.
-- Established strict Concurrency Safety rules for Rust (no blocking I/O in async, no holding locks across await points).
-- Added API Contract Design mandates (Pagination requirement, strict schema versioning).
-- Defined Frontend Architecture rules (separation of Business Logic vs UI, prevention of waterfall fetching).
+- Completely rewrote `database-rules.md` to reflect the migration from SQLx to Diesel.
+- Enforced strict Multi-Tenancy Isolation rules (mandatory `workspace_id` filtering).
+- Added explicit Performance & Zero N+1 query constraints.
+- Added Connection Pool Management rules to prevent connection starvation during slow external I/O.
+- Enforced strict Database Transaction boundaries for multi-table mutations.
+- Standardized Soft Deletes for critical entities.
+- Updated execution guidelines to mandate hermetic wrapper scripts.
