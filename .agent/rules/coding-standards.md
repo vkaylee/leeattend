@@ -35,3 +35,9 @@ If you see a bug, typo, or poor pattern nearby while working on a file, FIX IT I
 
 ## 8. Escalation Protocol
 - **The Rule:** If an error (e.g., Infra, DevOps) persists after **2 failed self-correction attempts**, STOP IMMEDIATELY. Generate an Incident Report and ask for human intervention. Do not endlessly retry.
+
+## 9. Code-Level Execution Rules (Enterprise Pro Max)
+- **Dependency Injection & Decoupling:** NEVER tightly couple the Service layer to Infrastructure. Use Traits/Interfaces for external dependencies (DB, Redis, external APIs) to ensure 100% unit-testability without spinning up infrastructure.
+- **Concurrency Safety (Rust):** NEVER hold an OS-level lock (`MutexGuard`, `RwLockReadGuard`) across an `await` point to avoid deadlocks. NEVER use blocking I/O calls (e.g., `std::fs`, `std::thread::sleep`) inside an async runtime; use `tokio` equivalents.
+- **API Contract Design:** ALL APIs returning a collection/list MUST implement Pagination. Never assume small datasets. Do NOT introduce breaking schema changes without bumping the API version.
+- **Frontend Architecture:** Strictly separate Business Logic (Custom Hooks/Services) from UI Components. UI Components must remain "dumb" (Props in, JSX out). Prevent waterfall requests by using parallel fetching (`Promise.all` or Suspense data fetching).

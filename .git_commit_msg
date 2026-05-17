@@ -1,8 +1,7 @@
-refactor(auth): migrate WorkspaceId to ApiContext and enforce strict encapsulation
+docs(standards): add enterprise execution rules to coding standards
 
-- Refactored `WorkspaceId` validation by introducing `ApiContext` Enum (`System` vs `Tenant`) to securely distinguish route scopes at the Axum extraction layer.
-- Injected `ApiContext` into system handlers (`system_tenants.rs`, `system_admin.rs`) to automatically enforce that tenant-bound extractors cannot be used in system routes.
-- Enforced Strict Encapsulation for `WorkspaceId` by making the inner `Uuid` field private.
-- Introduced `WorkspaceId::into_inner()` and standard `From<Uuid>` traits for idiomatic newtype unwrapping.
-- Added new Strict Encapsulation (OOP Style) rule to the `coding-standards.md` to prevent future data leakage via public fields.
-- Achieved 100% compilation safety and added relevant unit tests for context extraction.
+- Added Section 9 "Code-Level Execution Rules (Enterprise Pro Max)" to `coding-standards.md`.
+- Formalized requirements for Dependency Injection (DI) to decouple Service and Infrastructure layers.
+- Established strict Concurrency Safety rules for Rust (no blocking I/O in async, no holding locks across await points).
+- Added API Contract Design mandates (Pagination requirement, strict schema versioning).
+- Defined Frontend Architecture rules (separation of Business Logic vs UI, prevention of waterfall fetching).
