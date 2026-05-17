@@ -76,7 +76,7 @@ impl E2eTestDatabase {
                 .expect("Fallback failed");
 
             let direct_db_url = format!("{base_connection_string}/{db_name}");
-            apiserver::diesel_pool::DieselPools::run_migrations(
+            apiserver::diesel_pool::DieselPools::run_all_migrations_for_test(
                 &apiserver::diesel_pool::DbPoolConfig {
                     primary_url: direct_db_url.clone(),
                     pooler_url: None,

@@ -85,7 +85,7 @@ impl TestDatabase {
                 .expect("Failed to create test database even with fallback");
 
             let db_url = format!("{base_connection_string}/{db_name}");
-            apiserver::diesel_pool::DieselPools::run_migrations(
+            apiserver::diesel_pool::DieselPools::run_all_migrations_for_test(
                 &apiserver::diesel_pool::DbPoolConfig {
                     primary_url: db_url.clone(),
                     pooler_url: None,

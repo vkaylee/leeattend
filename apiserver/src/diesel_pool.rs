@@ -207,7 +207,23 @@ impl DieselPools {
     }
 
     #[allow(clippy::expect_used)]
-    pub fn run_migrations(config: &DbPoolConfig) {
+    pub fn run_system_migrations(config: &DbPoolConfig) {
+        use diesel::Connection;
+        use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
+
+        pub const SYSTEM_MIGRATIONS: EmbeddedMigrations = embed_migrations!("./migrations/system");
+
+        let mut conn = diesel::PgConnection::establish(&config.primary_url)
+            .expect("Failed to connect to primary database for system migrations");
+
+        conn.run_pending_migrations(SYSTEM_MIGRATIONS)
+            .expect("Failed to run system migrations");
+
+        tracing::info!("Database system migrations completed successfully");
+    }
+
+    #[allow(clippy::expect_used)]
+    pub fn run_all_migrations_for_test(config: &DbPoolConfig) {
         use diesel::Connection;
         use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 
@@ -215,7 +231,7 @@ impl DieselPools {
         pub const TENANT_MIGRATIONS: EmbeddedMigrations = embed_migrations!("./migrations/tenant");
 
         let mut conn = diesel::PgConnection::establish(&config.primary_url)
-            .expect("Failed to connect to primary database for migrations");
+            .expect("Failed to connect to primary database for all migrations");
 
         conn.run_pending_migrations(SYSTEM_MIGRATIONS)
             .expect("Failed to run system migrations");
@@ -223,7 +239,7 @@ impl DieselPools {
         conn.run_pending_migrations(TENANT_MIGRATIONS)
             .expect("Failed to run tenant migrations");
 
-        tracing::info!("Database migrations (system + tenant) completed successfully");
+        tracing::info!("Database test migrations (system + tenant) completed successfully");
     }
 
     #[allow(clippy::expect_used)]

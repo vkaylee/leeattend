@@ -17,7 +17,7 @@ async fn run_migrations() {
 
     println!("Migrating database: {database_url}");
 
-    DieselPools::run_migrations(&DbPoolConfig {
+    DieselPools::run_all_migrations_for_test(&DbPoolConfig {
         primary_url: database_url,
         pooler_url: None,
         reader_url: None,
