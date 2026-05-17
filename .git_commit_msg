@@ -1,9 +1,4 @@
-docs(standards): upgrade database rules to Enterprise Pro Max
+fix(tests): resolve missing table errors by fixing migration execution
 
-- Completely rewrote `database-rules.md` to reflect the migration from SQLx to Diesel.
-- Enforced strict Multi-Tenancy Isolation rules (mandatory `workspace_id` filtering).
-- Added explicit Performance & Zero N+1 query constraints.
-- Added Connection Pool Management rules to prevent connection starvation during slow external I/O.
-- Enforced strict Database Transaction boundaries for multi-table mutations.
-- Standardized Soft Deletes for critical entities.
-- Updated execution guidelines to mandate hermetic wrapper scripts.
+- Renamed `tenant` migration folders to ensure their timestamps do not collide with `system` migrations. Previously, Diesel skipped `tenant` migrations entirely because they had the same timestamp as `system` migrations, leading to missing tables (e.g. `users`, `employees`) during test execution.
+- Updated `setup-test-env.sh` to replace `sqlx migrate run` (which failed silently without `apiserver/migrations/*.sql` files) with the dedicated `setup_migrations` test binary using Diesel. This correctly populates the `leeattend_test_template` database for fast, isolated parallel testing.
