@@ -254,3 +254,78 @@ impl LeaveImportChunkHandler {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::queue::{LeaveImportPayload, JobPriority, TaskType};
+    use crate::worker::test_utils::MockWorkerDepsBuilder;
+    use std::io::Write;
+    use std::sync::Arc;
+    use tempfile::NamedTempFile;
+    use uuid::Uuid;
+
+    #[tokio::test]
+    async fn test_leave_import_handler_master() {
+        let import_job_id = Uuid::new_v4();
+        let ws_id = Uuid::new_v4();
+        
+        let temp_file = NamedTempFile::new().unwrap();
+        let file_path = temp_file.path().to_str().unwrap().to_string() + ".csv";
+        let mut actual_file = std::fs::File::create(&file_path).unwrap();
+        writeln!(actual_file, "employee_code,leave_type").unwrap();
+        writeln!(actual_file, "EMP01,Annual").unwrap();
+        writeln!(actual_file, "EMP02,Sick").unwrap();
+        
+        let mut import_repo = crate::repositories::import_job_repository::MockImportJobRepository::new();
+        import_repo.expect_update_job_progress()
+            .with(mockall::predicate::eq(import_job_id), mockall::predicate::eq(0), mockall::predicate::eq(ImportJobStatus::Processing), mockall::predicate::eq(None))
+            .returning(|_, _, _, _| Ok(()));
+            
+        import_repo.expect_update_job_total_rows()
+            .with(mockall::predicate::eq(import_job_id), mockall::predicate::eq(2))
+            .returning(|_, _| Ok(()));
+
+        let mut queue = crate::repositories::queue_repository::MockQueueRepository::new();
+        queue.expect_enqueue_jobs()
+            .returning(|jobs| {
+                assert_eq!(jobs.len(), 1); // 2 rows < chunk_size (500)
+                assert_eq!(jobs[0].task_type, TaskType::LeaveImportChunk);
+                Ok(())
+            });
+
+        let mut cache = crate::repositories::cache_repository::MockCacheRepository::new();
+        cache.expect_set_json()
+            .returning(|_, _, _| Ok(()));
+        cache.expect_delete()
+            .returning(|_| Ok(()));
+
+        let cache_arc: Arc<dyn crate::repositories::CacheRepository> = Arc::new(cache);
+        let queue_arc: Arc<dyn crate::repositories::QueueRepository> = Arc::new(queue);
+
+        let mut builder = MockWorkerDepsBuilder::new();
+        builder.import_job_repo = import_repo;
+        let deps = builder.build();
+
+        let job = Job {
+            job_id: Uuid::new_v4(),
+            parent_job_id: import_job_id,
+            batch_index: 0,
+            task_type: TaskType::LeaveImport,
+            workspace_id: ws_id,
+            payload: JobPayload::LeaveImport(LeaveImportPayload {
+                import_job_id,
+                user_id: Uuid::new_v4(),
+                file_path,
+                auto_approve: true,
+            }),
+            priority: JobPriority::Normal,
+            created_at: chrono::Utc::now(),
+            retry_count: 0,
+            max_retries: 3,
+        };
+
+        let result = LeaveImportHandler::handle(&job, &cache_arc, &queue_arc, &deps).await;
+        assert!(result.is_ok(), "Handler failed: {:?}", result.err());
+    }
+}

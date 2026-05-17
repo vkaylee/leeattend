@@ -95,15 +95,7 @@ async fn test_upload_leave_csv_api() {
 
     // The background worker is not running in the setup_app_tower context, so we process it manually.
     let import_service = apiserver::services::leave_import_service::LeaveImportService::new(
-        diesel_pools.clone(),
-        _state.attendance.import_repo.clone(),
-        _state.employees.repo.clone(),
-        _state.leaves.balance_repo.clone(),
-        _state.leaves.request_repo.clone(),
-        _state.shifts.roster_repo.clone(),
-        std::sync::Arc::new(
-            apiserver::repositories::DieselLeaveAccrualLogRepository::new(diesel_pools.clone()),
-        ),
+        apiserver::worker::deps::WorkerDeps::new(&diesel_pools.clone())
     );
 
     let job_opt = _state
@@ -114,13 +106,17 @@ async fn test_upload_leave_csv_api() {
         .unwrap()
         .unwrap();
 
-    tokio::time::timeout(
+    let result = tokio::time::timeout(
         std::time::Duration::from_secs(10),
         import_service.process_job(job_uuid, ws_id, user_id, &job_opt.file_path.unwrap(), true),
     )
     .await
-    .expect("process_job timed out")
-    .unwrap();
+    .expect("process_job timed out");
+    
+    if result.is_err() {
+        let job_after = _state.attendance.import_repo.get_job_by_id(job_uuid).await.unwrap().unwrap();
+        panic!("process_job failed! error_log: {:?}", job_after.error_log);
+    }
 
     let job_opt = _state
         .attendance

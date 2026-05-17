@@ -588,6 +588,15 @@ mod tests {
         ) -> Result<std::collections::HashSet<(Uuid, NaiveDate)>, AppError> {
             unimplemented!()
         }
+        async fn get_approved_leave_periods(
+            &self,
+            _w: Uuid,
+            _e: Uuid,
+            _s: NaiveDate,
+            _en: NaiveDate,
+        ) -> Result<Vec<(NaiveDate, NaiveDate)>, AppError> {
+            Ok(vec![])
+        }
     }
 
     struct MockEmployeeRepo {

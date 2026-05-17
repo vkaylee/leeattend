@@ -159,4 +159,101 @@ mod tests {
 
         assert!(job.expiring_contracts_payload().is_none());
     }
+
+    #[tokio::test]
+    async fn test_expiring_contracts_handler_success() {
+        use crate::worker::test_utils::MockWorkerDepsBuilder;
+        use crate::repositories::employee_contract_repository::MockEmployeeContractRepository;
+        use crate::repositories::workspace_repository::MockWorkspaceRepository;
+        use crate::repositories::user_repository::MockUserRepository;
+        use crate::repositories::employee::MockEmployeeRepository;
+        use crate::models::{Workspace, contract::EmployeeContract, Employee};
+
+        let ws_id = Uuid::new_v4();
+        let emp_id = Uuid::new_v4();
+        let admin_id = Uuid::new_v4();
+
+        let mut workspace_repo = MockWorkspaceRepository::new();
+        workspace_repo.expect_get_all_workspaces()
+            .returning(move || Box::pin(async move { Ok(vec![Workspace {
+                id: ws_id,
+                name: "Test Workspace".to_string(),
+                date_format: "YYYY-MM-DD".to_string(),
+                time_format: "HH:mm".to_string(),
+                timezone: "UTC".to_string(),
+                theme_primary_color: "#000000".to_string(),
+                default_language: "en".to_string(),
+                logo_url: None,
+                tagline: None,
+                holiday_overnight_strategy: "split".to_string(),
+                default_holiday_ot_multiplier: rust_decimal::Decimal::new(15, 1),
+                created_at: chrono::Utc::now(),
+            }]) }));
+            
+        workspace_repo.expect_get_admins_with_permissions()
+            .returning(move |_, _| Box::pin(async move { Ok(vec![admin_id]) }));
+
+        let mut contract_repo = MockEmployeeContractRepository::new();
+        contract_repo.expect_get_expiring_contracts()
+            .returning(move |_, _| Ok(vec![EmployeeContract {
+                id: Uuid::new_v4(),
+                workspace_id: ws_id,
+                employee_id: emp_id,
+                contract_number: None,
+                contract_type: crate::models::enums::ContractType::FixedTerm,
+                status: crate::models::enums::ContractStatus::Active,
+                start_date: NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
+                end_date: Some(NaiveDate::from_ymd_opt(2026, 1, 15).unwrap()),
+                document_id: None,
+                notes: None,
+                created_at: chrono::Utc::now(),
+                updated_at: chrono::Utc::now(),
+            }]));
+
+        let mut emp_repo = MockEmployeeRepository::new();
+        emp_repo.expect_get_employee_by_id()
+            .returning(move |_, _| Box::pin(async move { Ok(Some(Employee {
+                id: emp_id,
+                workspace_id: ws_id,
+                user_id: None,
+                full_name: "Test Employee".to_string(),
+                employee_id_number: "EMP001".to_string(),
+                original_hire_date: NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
+                hire_date: NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
+                termination_date: None,
+                tags: vec![],
+                is_active: true,
+                created_at: chrono::Utc::now(),
+                updated_at: chrono::Utc::now(),
+                department_name: None,
+            })) }));
+
+        let mut user_repo = MockUserRepository::new();
+        user_repo.expect_check_recent_notification_exists()
+            .returning(|_, _, _, _| Ok(false));
+        user_repo.expect_create_notification()
+            .returning(|_| Ok(()));
+
+        let mut builder = MockWorkerDepsBuilder::new();
+        builder.workspace_repo = workspace_repo;
+        builder.contract_repo = contract_repo;
+        builder.employee_repo = emp_repo;
+        builder.user_repo = user_repo;
+        
+        let deps = builder.build();
+
+        let job = Job::new(
+            Uuid::new_v4(),
+            0,
+            TaskType::ExpiringContractsCheck,
+            Uuid::new_v4(),
+            JobPayload::ExpiringContractsCheck(ExpiringContractsPayload {
+                reference_date: NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+            }),
+        );
+
+        let result = ExpiringContractsHandler::handle(&deps, &job).await;
+        
+        assert!(result.is_ok(), "Handler failed: {:?}", result.err());
+    }
 }

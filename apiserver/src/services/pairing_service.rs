@@ -440,6 +440,15 @@ mod tests {
         ) -> Result<Vec<crate::models::AttendanceDailySummary>, AppError> {
             Ok(vec![])
         }
+        async fn get_distinct_work_days_from_summary(
+            &self,
+            _w: Uuid,
+            _e: Uuid,
+            _s: NaiveDate,
+            _en: NaiveDate,
+        ) -> Result<Vec<NaiveDate>, AppError> {
+            Ok(vec![])
+        }
     }
 
     #[tokio::test]

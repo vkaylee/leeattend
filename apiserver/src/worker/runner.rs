@@ -125,7 +125,6 @@ pub struct JobWorker {
     redis: RedisPool,
     queue_repo: Arc<dyn crate::repositories::QueueRepository>,
     publisher_repo: Arc<dyn crate::repositories::PublisherRepository>,
-    diesel: crate::diesel_pool::DieselPools,
     config: WorkerConfig,
     coordinator: Arc<ReportCoordinator>,
     cache: Arc<CacheManager>,
@@ -167,7 +166,6 @@ impl JobWorker {
             redis,
             queue_repo,
             publisher_repo,
-            diesel,
             config,
             coordinator,
             cache,
@@ -453,7 +451,7 @@ impl JobWorker {
                 .await
             }
             TaskType::NightlyHousekeeping => {
-                NightlyHousekeepingHandler::handle(&self.diesel, &job).await
+                NightlyHousekeepingHandler::handle(&self.deps, &job).await
             }
             TaskType::SyncEmployeeHireDate => SyncHireDateHandler::process(&job, &self.deps).await,
         };

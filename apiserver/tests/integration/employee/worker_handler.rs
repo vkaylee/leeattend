@@ -54,7 +54,10 @@ async fn test_employee_import_worker_handlers() {
         JobPriority::Normal,
     );
 
-    let res = EmployeeImportHandler::handle(&diesel_pools, &master_job, &redis_pool).await;
+    let cache: std::sync::Arc<dyn apiserver::repositories::CacheRepository> = std::sync::Arc::new(apiserver::cache::RedisCache::new(redis_pool.clone()));
+    let queue: std::sync::Arc<dyn apiserver::repositories::QueueRepository> = std::sync::Arc::new(apiserver::repositories::queue_repository::RedisQueueRepository::new(redis_pool.clone()));
+    let deps = apiserver::worker::deps::WorkerDeps::new(&diesel_pools.clone());
+    let res = EmployeeImportHandler::handle(&master_job, &cache, &queue, &deps).await;
     res.expect("Master handler should succeed");
 
     // Check DB status is processing or completed
@@ -83,7 +86,7 @@ async fn test_employee_import_worker_handlers() {
         JobPriority::High,
     );
 
-    let res = EmployeeImportChunkHandler::handle(&diesel_pools, &chunk_job, &redis_pool).await;
+    let res = EmployeeImportChunkHandler::handle(&chunk_job, &cache, &queue, &deps).await;
     res.expect("Chunk handler should succeed");
 
     // 5. Test Finalize Handler
@@ -96,7 +99,7 @@ async fn test_employee_import_worker_handlers() {
         JobPriority::High,
     );
 
-    let res = FinalizeImportHandler::handle(&diesel_pools, &finalize_job, &redis_pool).await;
+    let res = FinalizeImportHandler::handle(&finalize_job, &cache, &deps).await;
     res.expect("Finalize handler should succeed");
 
     // Verify status is completed
@@ -153,7 +156,10 @@ async fn test_employee_import_handler_empty_file() {
         }),
         JobPriority::Normal,
     );
-    let res = EmployeeImportHandler::handle(&diesel_pools, &master_job, &redis_pool).await;
+    let cache: std::sync::Arc<dyn apiserver::repositories::CacheRepository> = std::sync::Arc::new(apiserver::cache::RedisCache::new(redis_pool.clone()));
+    let queue: std::sync::Arc<dyn apiserver::repositories::QueueRepository> = std::sync::Arc::new(apiserver::repositories::queue_repository::RedisQueueRepository::new(redis_pool.clone()));
+    let deps = apiserver::worker::deps::WorkerDeps::new(&diesel_pools.clone());
+    let res = EmployeeImportHandler::handle(&master_job, &cache, &queue, &deps).await;
     assert!(res.is_err());
     assert_eq!(
         res.unwrap_err(),

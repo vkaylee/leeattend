@@ -132,13 +132,19 @@ impl ImportStrategy for LeaveImportStrategy {
         deps: &crate::worker::deps::WorkerDeps,
         job: &AttendanceImportJob,
     ) -> Result<(), String> {
+        let options = crate::models::EmployeeFilterOptions {
+            page: 1,
+            limit: 100000,
+            ..Default::default()
+        };
         let (emps, _) = deps
             .employee_repo
-            .get_all_employees(job.workspace_id, crate::models::EmployeeFilterOptions::default())
+            .get_all_employees(job.workspace_id, options)
             .await
             .map_err(|e| format!("Failed to load employees: {e}"))?;
 
         for emp in emps {
+            println!("Loaded employee into cache: id_number = '{}'", emp.employee_id_number);
             if !emp.employee_id_number.is_empty() {
                 self.employees_cache
                     .insert(emp.employee_id_number.to_uppercase(), emp.id);

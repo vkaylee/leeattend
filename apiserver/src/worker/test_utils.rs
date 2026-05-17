@@ -141,6 +141,7 @@ pub struct MockWorkerDepsBuilder {
     pub leave_accrual_log_repo: MockLeaveAccrualLogRepository,
     pub leave_policy_repo: DummyLeavePolicyRepository,
     pub user_repo: MockUserRepository,
+    pub system_repo: crate::repositories::system_repository::MockSystemRepository,
 }
 
 impl Default for MockWorkerDepsBuilder {
@@ -173,6 +174,7 @@ impl MockWorkerDepsBuilder {
             leave_accrual_log_repo: MockLeaveAccrualLogRepository::new(),
             leave_policy_repo: DummyLeavePolicyRepository,
             user_repo: MockUserRepository::new(),
+            system_repo: crate::repositories::system_repository::MockSystemRepository::new(),
         }
     }
 
@@ -199,6 +201,7 @@ impl MockWorkerDepsBuilder {
             leave_accrual_log_repo: Arc::new(self.leave_accrual_log_repo),
             leave_policy_repo: Arc::new(self.leave_policy_repo),
             user_repo: Arc::new(self.user_repo),
+            system_repo: Arc::new(self.system_repo),
         }
     }
 }

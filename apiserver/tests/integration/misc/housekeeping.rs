@@ -23,7 +23,8 @@ async fn test_housekeeping_execution() {
     );
 
     let diesel = test_db.diesel_pools.clone();
-    if let Err(e) = NightlyHousekeepingHandler::handle(&diesel, &job).await {
+    let deps = apiserver::worker::WorkerDeps::new(&diesel);
+    if let Err(e) = NightlyHousekeepingHandler::handle(&deps, &job).await {
         panic!("Handler failed: {}", e);
     }
 

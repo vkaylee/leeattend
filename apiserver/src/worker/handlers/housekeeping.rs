@@ -1,5 +1,4 @@
 use chrono::{Datelike, NaiveDate};
-use diesel_async::RunQueryDsl;
 use tracing::{error, info};
 
 use crate::queue::Job;
@@ -7,7 +6,7 @@ use crate::queue::Job;
 pub struct NightlyHousekeepingHandler;
 
 impl NightlyHousekeepingHandler {
-    pub async fn handle(diesel: &crate::diesel_pool::DieselPools, job: &Job) -> Result<(), String> {
+    pub async fn handle(deps: &crate::worker::WorkerDeps, job: &Job) -> Result<(), String> {
         let payload = job
             .housekeeping_payload()
             .ok_or("Missing housekeeping payload")?;
@@ -39,19 +38,13 @@ impl NightlyHousekeepingHandler {
             let query1 = format!("CREATE TABLE IF NOT EXISTS {audit_table} PARTITION OF audit_logs FOR VALUES FROM ('{from_date_str}') TO ('{to_date_str}')");
             let query2 = format!("CREATE TABLE IF NOT EXISTS {staging_table} PARTITION OF attendance_staging_logs FOR VALUES FROM ('{from_date_str}') TO ('{to_date_str}')");
 
-            let mut conn = diesel
-                .api
-                .get()
-                .await
-                .map_err(|e| format!("db conn: {e}"))?;
-
-            if let Err(e) = diesel::sql_query(query1.as_str()).execute(&mut conn).await {
+            if let Err(e) = deps.system_repo.execute_partition_query(&query1).await {
                 error!(error = %e, year, month, "Failed to create audit_logs partition");
                 return Err(format!(
                     "Failed to create partition for {year}-{month}: {e}"
                 ));
             }
-            if let Err(e) = diesel::sql_query(query2.as_str()).execute(&mut conn).await {
+            if let Err(e) = deps.system_repo.execute_partition_query(&query2).await {
                 error!(error = %e, year, month, "Failed to create staging_logs partition");
                 return Err(format!(
                     "Failed to create partition for {year}-{month}: {e}"
@@ -77,16 +70,10 @@ impl NightlyHousekeepingHandler {
             let query1 = format!("DROP TABLE IF EXISTS {audit_table}");
             let query2 = format!("DROP TABLE IF EXISTS {staging_table}");
 
-            let mut conn = diesel
-                .api
-                .get()
-                .await
-                .map_err(|e| format!("db conn: {e}"))?;
-
-            if let Err(e) = diesel::sql_query(query1.as_str()).execute(&mut conn).await {
+            if let Err(e) = deps.system_repo.execute_partition_query(&query1).await {
                 error!(error = %e, drop_year, drop_month, "Failed to drop old audit_logs partition");
             }
-            if let Err(e) = diesel::sql_query(query2.as_str()).execute(&mut conn).await {
+            if let Err(e) = deps.system_repo.execute_partition_query(&query2).await {
                 error!(error = %e, drop_year, drop_month, "Failed to drop old staging_logs partition");
             } else {
                 info!(drop_year, drop_month, "Ensured old partitions are dropped");
@@ -105,6 +92,7 @@ impl NightlyHousekeepingHandler {
 mod tests {
     use super::*;
     use crate::queue::{HousekeepingPayload, JobPayload, JobPriority, TaskType};
+    use crate::worker::test_utils::MockWorkerDepsBuilder;
     use uuid::Uuid;
 
     #[test]
@@ -126,5 +114,26 @@ mod tests {
             NaiveDate::from_ymd_opt(2026, 1, 1).unwrap()
         );
         assert_eq!(job.priority, JobPriority::Low);
+    }
+
+    #[tokio::test]
+    async fn test_housekeeping_handle_success() {
+        let mut builder = MockWorkerDepsBuilder::new();
+        builder.system_repo.expect_execute_partition_query().returning(|_| Box::pin(async { Ok(()) }));
+        let deps = builder.build();
+
+        let job = Job::with_priority(
+            Uuid::new_v4(),
+            0,
+            TaskType::NightlyHousekeeping,
+            Uuid::new_v4(),
+            JobPayload::NightlyHousekeeping(HousekeepingPayload {
+                reference_date: NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+            }),
+            JobPriority::Low,
+        );
+
+        let result = NightlyHousekeepingHandler::handle(&deps, &job).await;
+        assert!(result.is_ok());
     }
 }

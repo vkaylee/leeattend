@@ -542,6 +542,16 @@ mod tests {
         ) -> Result<(), AppError> {
             unimplemented!()
         }
+        async fn get_distinct_work_days(
+            &self,
+            _w: Uuid,
+            _e: Uuid,
+            _s: DateTime<Utc>,
+            _en: DateTime<Utc>,
+            _tz: &str,
+        ) -> Result<Vec<chrono::NaiveDate>, AppError> {
+            Ok(vec![])
+        }
     }
 
     struct DummyRosterRepo;
@@ -766,6 +776,15 @@ mod tests {
         ) -> Result<std::collections::HashSet<(Uuid, NaiveDate)>, AppError> {
             unimplemented!()
         }
+        async fn get_approved_leave_periods(
+            &self,
+            _w: Uuid,
+            _e: Uuid,
+            _s: NaiveDate,
+            _en: NaiveDate,
+        ) -> Result<Vec<(NaiveDate, NaiveDate)>, AppError> {
+            Ok(vec![])
+        }
     }
 
     struct DummyDailySummaryRepo;
@@ -842,6 +861,15 @@ mod tests {
             _en: NaiveDate,
         ) -> Result<Vec<AttendanceDailySummary>, AppError> {
             unimplemented!()
+        }
+        async fn get_distinct_work_days_from_summary(
+            &self,
+            _w: Uuid,
+            _e: Uuid,
+            _s: NaiveDate,
+            _en: NaiveDate,
+        ) -> Result<Vec<NaiveDate>, AppError> {
+            Ok(vec![])
         }
     }
 
@@ -1334,6 +1362,16 @@ mod tests {
         ) -> Result<(), AppError> {
             unimplemented!()
         }
+        async fn get_distinct_work_days(
+            &self,
+            _w: Uuid,
+            _e: Uuid,
+            _s: DateTime<Utc>,
+            _en: DateTime<Utc>,
+            _tz: &str,
+        ) -> Result<Vec<chrono::NaiveDate>, AppError> {
+            Ok(vec![])
+        }
     }
 
     struct EmptyPolicyRepo;
@@ -1475,6 +1513,15 @@ mod tests {
         ) -> Result<Vec<AttendanceDailySummary>, AppError> {
             unimplemented!()
         }
+        async fn get_distinct_work_days_from_summary(
+            &self,
+            _w: Uuid,
+            _e: Uuid,
+            _s: NaiveDate,
+            _en: NaiveDate,
+        ) -> Result<Vec<NaiveDate>, AppError> {
+            Ok(vec![])
+        }
     }
 
     struct EmptyLeaveRepo;
@@ -1587,6 +1634,15 @@ mod tests {
             _en: NaiveDate,
         ) -> Result<std::collections::HashSet<(Uuid, NaiveDate)>, AppError> {
             Ok(std::collections::HashSet::new())
+        }
+        async fn get_approved_leave_periods(
+            &self,
+            _w: Uuid,
+            _e: Uuid,
+            _s: NaiveDate,
+            _en: NaiveDate,
+        ) -> Result<Vec<(NaiveDate, NaiveDate)>, AppError> {
+            Ok(vec![])
         }
     }
 

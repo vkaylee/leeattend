@@ -222,7 +222,7 @@ pub async fn spawn_app() -> (String, TestDatabase) {
                 diesel_pools.clone(),
             )),
             staging_repo.clone(),
-            diesel_pools.clone(),
+            apiserver::worker::deps::WorkerDeps::new(&diesel_pools.clone()),
             None, // log_svc
         ),
     );
@@ -336,7 +336,14 @@ pub async fn spawn_app() -> (String, TestDatabase) {
             Arc::new(
                 apiserver::repositories::DieselLeaveAccrualLogRepository::new(diesel_pools.clone()),
             ),
-            diesel_pools.clone(),
+            time_entry_repo.clone(),
+            leave_request_repo.clone(),
+            Arc::new(
+                apiserver::repositories::DieselAttendanceDailySummaryRepository::new(diesel_pools.clone()),
+            ),
+            Arc::new(
+                apiserver::repositories::DieselEmployeeContractRepository::new(diesel_pools.clone()),
+            ),
         ),
     );
 
@@ -712,7 +719,7 @@ pub async fn spawn_app_with_factory_extended(tenant_manager: Arc<dyn apiserver::
                 diesel_pools.clone(),
             )),
             staging_repo.clone(),
-            diesel_pools.clone(),
+            apiserver::worker::deps::WorkerDeps::new(&diesel_pools.clone()),
             None, // log_svc
         ),
     );
@@ -826,7 +833,14 @@ pub async fn spawn_app_with_factory_extended(tenant_manager: Arc<dyn apiserver::
             Arc::new(
                 apiserver::repositories::DieselLeaveAccrualLogRepository::new(diesel_pools.clone()),
             ),
-            diesel_pools.clone(),
+            time_entry_repo.clone(),
+            leave_request_repo.clone(),
+            Arc::new(
+                apiserver::repositories::DieselAttendanceDailySummaryRepository::new(diesel_pools.clone()),
+            ),
+            Arc::new(
+                apiserver::repositories::DieselEmployeeContractRepository::new(diesel_pools.clone()),
+            ),
         ),
     );
 
@@ -1239,7 +1253,7 @@ pub async fn setup_app_tower_internal_extended(use_redis: bool, tenant_manager: 
                 diesel_pools.clone(),
             )),
             staging_repo.clone(),
-            diesel_pools.clone(),
+            apiserver::worker::deps::WorkerDeps::new(&diesel_pools.clone()),
             None, // log_svc
         ),
     );
@@ -1353,7 +1367,14 @@ pub async fn setup_app_tower_internal_extended(use_redis: bool, tenant_manager: 
             Arc::new(
                 apiserver::repositories::DieselLeaveAccrualLogRepository::new(diesel_pools.clone()),
             ),
-            diesel_pools.clone(),
+            time_entry_repo.clone(),
+            leave_request_repo.clone(),
+            Arc::new(
+                apiserver::repositories::DieselAttendanceDailySummaryRepository::new(diesel_pools.clone()),
+            ),
+            Arc::new(
+                apiserver::repositories::DieselEmployeeContractRepository::new(diesel_pools.clone()),
+            ),
         ),
     );
 

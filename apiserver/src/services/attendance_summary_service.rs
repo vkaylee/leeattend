@@ -541,6 +541,15 @@ mod tests {
         ) -> Result<Vec<AttendanceDailySummary>, AppError> {
             unimplemented!()
         }
+        async fn get_distinct_work_days_from_summary(
+            &self,
+            _w: Uuid,
+            _e: Uuid,
+            _s: NaiveDate,
+            _en: NaiveDate,
+        ) -> Result<Vec<NaiveDate>, AppError> {
+            unimplemented!()
+        }
     }
 
     fn make_service(mock_repo: Arc<MockDailySummaryRepo>) -> AttendanceSummaryService {

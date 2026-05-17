@@ -269,7 +269,7 @@ mod tests {
     use crate::repositories::queue_repository::MockQueueRepository;
     use crate::models::{AttendanceImportJob, ImportJobStatus};
     use crate::worker::deps::WorkerDeps;
-    use crate::worker::deps::MockWorkerDepsBuilder;
+    use crate::worker::test_utils::MockWorkerDepsBuilder;
     use std::sync::Arc;
 
     struct DummyStrategy {

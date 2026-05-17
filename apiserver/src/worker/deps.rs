@@ -39,6 +39,7 @@ pub struct WorkerDeps {
     pub leave_accrual_log_repo: Arc<dyn crate::repositories::leave_accrual_log_repository::LeaveAccrualLogRepository>,
     pub leave_policy_repo: Arc<dyn crate::repositories::leave_policy_repository::LeavePolicyRepository>,
     pub user_repo: Arc<dyn crate::repositories::UserRepository>,
+    pub system_repo: Arc<dyn crate::repositories::SystemRepository>,
 }
 
 impl WorkerDeps {
@@ -107,6 +108,9 @@ impl WorkerDeps {
                 diesel.clone(),
             )),
             user_repo: Arc::new(crate::repositories::DieselUserRepository::new(
+                diesel.clone(),
+            )),
+            system_repo: Arc::new(crate::repositories::DieselSystemRepository::new(
                 diesel.clone(),
             )),
         }

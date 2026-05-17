@@ -245,3 +245,93 @@ impl EmployeeImportChunkHandler {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::queue::{EmployeeImportPayload, JobPriority, TaskType};
+    use crate::worker::test_utils::MockWorkerDepsBuilder;
+    use std::io::Write;
+    use std::sync::Arc;
+    use tempfile::NamedTempFile;
+    use uuid::Uuid;
+
+    #[tokio::test]
+    async fn test_employee_import_handler_master() {
+        let import_job_id = Uuid::new_v4();
+        let ws_id = Uuid::new_v4();
+        
+        let temp_file = NamedTempFile::new().unwrap();
+        // Create a fake excel file or use CSV? The parser extract_mapped_rows uses csv/excel. Wait, file_parser checks extension. Let's make it a .csv
+        let file_path = temp_file.path().to_str().unwrap().to_string() + ".csv";
+        let mut actual_file = std::fs::File::create(&file_path).unwrap();
+        writeln!(actual_file, "employee_code,full_name").unwrap();
+        writeln!(actual_file, "EMP01,John Doe").unwrap();
+        writeln!(actual_file, "EMP02,Jane Doe").unwrap();
+        
+        let mut import_repo = crate::repositories::import_job_repository::MockImportJobRepository::new();
+        import_repo.expect_update_job_progress()
+            .with(mockall::predicate::eq(import_job_id), mockall::predicate::eq(0), mockall::predicate::eq(ImportJobStatus::Processing), mockall::predicate::eq(None))
+            .returning(|_, _, _, _| Ok(()));
+            
+        import_repo.expect_get_job_by_id()
+            .with(mockall::predicate::eq(import_job_id))
+            .returning(move |_| {
+                Ok(Some(crate::models::AttendanceImportJob {
+                    id: import_job_id,
+                    workspace_id: ws_id,
+                    user_id: Uuid::new_v4(),
+                    target_type: crate::models::enums::ImportTargetType::Employee,
+                    status: ImportJobStatus::Pending,
+                    file_path: Some(file_path.clone()),
+                    total_rows: 0,
+                    processed_rows: 0,
+                    error_log: None,
+                    created_at: chrono::Utc::now(),
+                    updated_at: chrono::Utc::now(),
+                }))
+            });
+
+        import_repo.expect_update_job_total_rows()
+            .with(mockall::predicate::eq(import_job_id), mockall::predicate::eq(2))
+            .returning(|_, _| Ok(()));
+
+        let mut queue = crate::repositories::queue_repository::MockQueueRepository::new();
+        queue.expect_enqueue_jobs()
+            .returning(|jobs| {
+                assert_eq!(jobs.len(), 1); // 2 rows < chunk_size (500)
+                assert_eq!(jobs[0].task_type, TaskType::EmployeeImportChunk);
+                Ok(())
+            });
+
+        let mut cache = crate::repositories::cache_repository::MockCacheRepository::new();
+        cache.expect_set_json()
+            .returning(|_, _, _| Ok(()));
+
+        let cache_arc: Arc<dyn crate::repositories::CacheRepository> = Arc::new(cache);
+        let queue_arc: Arc<dyn crate::repositories::QueueRepository> = Arc::new(queue);
+
+        let mut builder = MockWorkerDepsBuilder::new();
+        builder.import_job_repo = import_repo;
+        let deps = builder.build();
+
+        let job = Job {
+            job_id: Uuid::new_v4(),
+            parent_job_id: import_job_id,
+            batch_index: 0,
+            task_type: TaskType::EmployeeImport,
+            workspace_id: ws_id,
+            payload: JobPayload::EmployeeImport(EmployeeImportPayload {
+                import_job_id,
+                user_id: Uuid::new_v4(),
+            }),
+            priority: JobPriority::Normal,
+            created_at: chrono::Utc::now(),
+            retry_count: 0,
+            max_retries: 3,
+        };
+
+        let result = EmployeeImportHandler::handle(&job, &cache_arc, &queue_arc, &deps).await;
+        assert!(result.is_ok(), "Handler failed: {:?}", result.err());
+    }
+}

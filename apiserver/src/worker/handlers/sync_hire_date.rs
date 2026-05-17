@@ -100,3 +100,89 @@ impl SyncHireDateHandler {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::queue::{JobPayload, SyncHireDatePayload, TaskType};
+    use crate::worker::test_utils::MockWorkerDepsBuilder;
+    use crate::repositories::employee::MockEmployeeRepository;
+    use crate::repositories::employee_contract_repository::MockEmployeeContractRepository;
+    use crate::models::{Employee, contract::EmployeeContract};
+    use crate::models::enums::{ContractType, ContractStatus};
+    use chrono::{NaiveDate, Utc};
+    use uuid::Uuid;
+
+    #[tokio::test]
+    async fn test_sync_hire_date_handler_success() {
+        let ws_id = Uuid::new_v4();
+        let emp_id = Uuid::new_v4();
+
+        let mut emp_repo = MockEmployeeRepository::new();
+        emp_repo.expect_get_employee_by_id()
+            .returning(move |_, _| Box::pin(async move { Ok(Some(Employee {
+                id: emp_id,
+                workspace_id: ws_id,
+                user_id: None,
+                full_name: "Test Employee".to_string(),
+                employee_id_number: "EMP001".to_string(),
+                original_hire_date: NaiveDate::from_ymd_opt(2026, 2, 1).unwrap(),
+                hire_date: NaiveDate::from_ymd_opt(2026, 2, 1).unwrap(),
+                termination_date: None,
+                tags: vec![],
+                is_active: true,
+                created_at: Utc::now(),
+                updated_at: Utc::now(),
+                department_name: None,
+            })) }));
+            
+        emp_repo.expect_update_employee()
+            .returning(|_, _, _| Box::pin(async { Ok(None) }));
+
+        let mut contract_repo = MockEmployeeContractRepository::new();
+        contract_repo.expect_list_employee_contracts()
+            .returning(move |_, _| { Ok(vec![
+                    EmployeeContract {
+                        id: Uuid::new_v4(),
+                        workspace_id: ws_id,
+                        employee_id: emp_id,
+                        contract_number: None,
+                        contract_type: ContractType::Indefinite,
+                        status: ContractStatus::Active,
+                        start_date: NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+                        end_date: None,
+                        document_id: None,
+                        notes: None,
+                        created_at: Utc::now(),
+                        updated_at: Utc::now(),
+                    }
+                ])
+            });
+
+        let mut builder = MockWorkerDepsBuilder::new();
+        builder.employee_repo = emp_repo;
+        builder.contract_repo = contract_repo;
+        
+        let deps = builder.build();
+        
+        let job = Job {
+            job_id: Uuid::new_v4(),
+            parent_job_id: Uuid::new_v4(),
+            batch_index: 0,
+            task_type: TaskType::SyncEmployeeHireDate,
+            workspace_id: ws_id,
+            payload: JobPayload::SyncEmployeeHireDate(SyncHireDatePayload {
+                employee_id: emp_id,
+                triggered_by_contract_id: None,
+            }),
+            priority: crate::queue::JobPriority::Normal,
+            created_at: Utc::now(),
+            retry_count: 0,
+            max_retries: 3,
+        };
+
+        let result = SyncHireDateHandler::process(&job, &deps).await;
+        
+        assert!(result.is_ok(), "Handler failed: {:?}", result.err());
+    }
+}

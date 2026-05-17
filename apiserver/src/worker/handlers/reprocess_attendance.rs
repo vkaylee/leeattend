@@ -102,3 +102,99 @@ impl ReprocessAttendanceHandler {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::queue::{JobPayload, ReprocessPayload, TaskType};
+    use crate::worker::test_utils::MockWorkerDepsBuilder;
+    use crate::repositories::queue_repository::MockQueueRepository;
+    use crate::repositories::time_entry_repository::MockTimeEntryRepository;
+    use crate::repositories::attendance_daily_summary_repository::MockAttendanceDailySummaryRepository;
+    use crate::repositories::roster::MockRosterRepository;
+    use chrono::{NaiveDate, Utc};
+    use uuid::Uuid;
+
+    #[tokio::test]
+    async fn test_reprocess_attendance_handler_success() {
+        let ws_id = Uuid::new_v4();
+        let parent_job_id = Uuid::new_v4();
+        let emp_id = Uuid::new_v4();
+
+        let mut queue = MockQueueRepository::new();
+        queue.expect_get_job_metadata().returning(|_| Ok(None));
+
+        let mut time_entry_repo = MockTimeEntryRepository::new();
+        time_entry_repo.expect_replace_time_entries()
+            .returning(|_, _, _, _, _| Ok(()));
+            
+        let mut daily_summary_repo = MockAttendanceDailySummaryRepository::new();
+        daily_summary_repo.expect_upsert_calculated_summary()
+            .returning(|_, _, _, _, _, _, _, _| Ok(()));
+            
+        let mut roster_repo = MockRosterRepository::new();
+        roster_repo.expect_get_effective_shift()
+            .returning(|_, _, _| Box::pin(async { Ok((None, vec![])) }));
+        roster_repo.expect_get_workspace_schedules()
+            .returning(|_, _, _, _, _| Box::pin(async { Ok(vec![]) }));
+
+        let mut workspace_repo = crate::repositories::workspace_repository::MockWorkspaceRepository::new();
+        workspace_repo.expect_get_workspace_by_id()
+            .returning(|_| Box::pin(async { Ok(Some(crate::models::Workspace {
+                id: Uuid::new_v4(),
+                name: "test".to_string(),
+                date_format: "YYYY-MM-DD".to_string(),
+                time_format: "HH:mm".to_string(),
+                timezone: "UTC".to_string(),
+                theme_primary_color: "#ffffff".to_string(),
+                default_language: "en".to_string(),
+                logo_url: None,
+                tagline: None,
+                holiday_overnight_strategy: "split".to_string(),
+                default_holiday_ot_multiplier: rust_decimal::Decimal::new(100, 2),
+                created_at: Utc::now(),
+            })) }));
+
+        let mut builder = MockWorkerDepsBuilder::new();
+        builder.workspace_repo = workspace_repo;
+        builder.time_entry_repo = time_entry_repo;
+        builder.daily_summary_repo = daily_summary_repo;
+        builder.roster_repo = roster_repo;
+        
+        let mut raw_log_repo = crate::repositories::raw_attendance_log_repository::MockRawAttendanceLogRepository::new();
+        raw_log_repo.expect_get_employee_logs_in_time_range()
+            .returning(|_, _, _, _| Box::pin(async { Ok(vec![]) }));
+        builder.raw_log_repo = raw_log_repo;
+        
+        let mut leave_repo = crate::repositories::leave_request_repository::MockLeaveRequestRepository::new();
+        leave_repo.expect_get_approved_leave_dates()
+            .returning(|_, _, _, _| Box::pin(async { Ok(std::collections::HashSet::new()) }));
+        builder.leave_request_repo = leave_repo;
+        
+        let deps = builder.build();
+        
+        let job = Job {
+            job_id: Uuid::new_v4(),
+            parent_job_id,
+            batch_index: 0,
+            task_type: TaskType::ReprocessAttendance,
+            workspace_id: ws_id,
+            payload: JobPayload::ReprocessAttendance(ReprocessPayload {
+                employee_id: emp_id,
+                date_range: crate::queue::DateRange {
+                    start: NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+                    end: NaiveDate::from_ymd_opt(2026, 1, 2).unwrap(),
+                },
+            }),
+            priority: crate::queue::JobPriority::Normal,
+            created_at: Utc::now(),
+            retry_count: 0,
+            max_retries: 3,
+        };
+
+        let queue_arc: Arc<dyn crate::repositories::QueueRepository> = Arc::new(queue);
+        let result = ReprocessAttendanceHandler::handle(&queue_arc, &job, &deps).await;
+        
+        assert!(result.is_ok(), "Handler failed: {:?}", result.err());
+    }
+}

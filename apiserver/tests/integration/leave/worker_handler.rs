@@ -67,8 +67,10 @@ async fn test_leave_import_worker_handlers() {
         JobPriority::Normal,
     );
 
+    let cache: std::sync::Arc<dyn apiserver::repositories::CacheRepository> = std::sync::Arc::new(apiserver::cache::RedisCache::new(redis_pool.clone()));
+    let queue: std::sync::Arc<dyn apiserver::repositories::QueueRepository> = std::sync::Arc::new(apiserver::repositories::queue_repository::RedisQueueRepository::new(redis_pool.clone()));
     let deps = apiserver::worker::deps::WorkerDeps::new(&diesel_pools.clone());
-    let res = LeaveImportHandler::handle(&diesel_pools, &master_job, &redis_pool, &deps).await;
+    let res = LeaveImportHandler::handle(&master_job, &cache, &queue, &deps).await;
     res.expect("Master handler should succeed");
 
     let status: String = crate::test_query_scalar_string!(
@@ -96,7 +98,7 @@ async fn test_leave_import_worker_handlers() {
         JobPriority::High,
     );
 
-    let res = LeaveImportChunkHandler::handle(&diesel_pools, &chunk_job, &redis_pool, &deps).await;
+    let res = LeaveImportChunkHandler::handle(&chunk_job, &cache, &queue, &deps).await;
     res.expect("Chunk handler should succeed");
 
     // We can also verify that Finalize was enqueued, but for coverage, testing the handler code is enough
@@ -142,7 +144,9 @@ async fn test_leave_import_handler_empty_file() {
         JobPriority::Normal,
     );
     let deps = apiserver::worker::deps::WorkerDeps::new(&diesel_pools.clone());
-    let res = LeaveImportHandler::handle(&diesel_pools, &master_job, &redis_pool, &deps).await;
+    let cache: std::sync::Arc<dyn apiserver::repositories::CacheRepository> = std::sync::Arc::new(apiserver::cache::RedisCache::new(redis_pool.clone()));
+    let queue: std::sync::Arc<dyn apiserver::repositories::QueueRepository> = std::sync::Arc::new(apiserver::repositories::queue_repository::RedisQueueRepository::new(redis_pool.clone()));
+    let res = LeaveImportHandler::handle(&master_job, &cache, &queue, &deps).await;
     assert!(res.is_err());
     assert_eq!(
         res.unwrap_err(),

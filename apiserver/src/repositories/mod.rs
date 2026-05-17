@@ -118,3 +118,7 @@ pub mod diesel_working_pattern_repository;
 pub use diesel_working_pattern_repository::DieselWorkingPatternRepository;
 pub mod diesel_salary_base_repository;
 pub use diesel_salary_base_repository::DieselSalaryBaseRepository;
+pub mod system_repository;
+pub use system_repository::SystemRepository;
+pub mod diesel_system_repository;
+pub use diesel_system_repository::DieselSystemRepository;
