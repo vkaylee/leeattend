@@ -1,4 +1,4 @@
-fix(tests): resolve missing table errors by fixing migration execution
+fix(tests): replace diesel migration run in docker-compose
 
-- Renamed `tenant` migration folders to ensure their timestamps do not collide with `system` migrations. Previously, Diesel skipped `tenant` migrations entirely because they had the same timestamp as `system` migrations, leading to missing tables (e.g. `users`, `employees`) during test execution.
-- Updated `setup-test-env.sh` to replace `sqlx migrate run` (which failed silently without `apiserver/migrations/*.sql` files) with the dedicated `setup_migrations` test binary using Diesel. This correctly populates the `leeattend_test_template` database for fast, isolated parallel testing.
+- Replaced `diesel migration run` with `cargo test --test setup_migrations` in the `db_init` service of `.compose/docker-compose.test.yml`. 
+- The standard `diesel CLI` does not natively support recursively executing migrations from multiple split directories (`system/` and `tenant/`) without extra configuration, which resulted in empty test databases. Using the Rust test binary ensures `embed_migrations!` accurately populates the test database.
