@@ -51,6 +51,7 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
             default_holiday_ot_multiplier: bigdecimal::BigDecimal::from(2),
             logo_url: None,
             tagline: None,
+            custom_db_url_encrypted: None,
         };
 
         let owner_role_id = Uuid::parse_str("a0000000-0000-0000-0000-000000000001")
@@ -1098,5 +1099,26 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(is_global)
+    }
+
+    async fn update_workspace_byod_url(
+        &self,
+        workspace_id: Uuid,
+        encrypted_url: Option<String>,
+    ) -> Result<(), AppError> {
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        diesel::update(workspaces::table.find(workspace_id))
+            .set(workspaces::custom_db_url_encrypted.eq(encrypted_url))
+            .execute(&mut conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        Ok(())
     }
 }

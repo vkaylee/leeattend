@@ -1555,6 +1555,7 @@ diesel::table! {
         default_holiday_ot_multiplier -> Numeric,
         logo_url -> Nullable<Text>,
         tagline -> Nullable<Text>,
+        custom_db_url_encrypted -> Nullable<Text>,
     }
 }
 

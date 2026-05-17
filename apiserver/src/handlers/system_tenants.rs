@@ -21,13 +21,23 @@ use crate::handlers::common::ApiContext;
 
 use diesel_async::RunQueryDsl;
 
-#[derive(Debug, Deserialize, ToSchema)]
+#[derive(Deserialize, ToSchema)]
 pub struct CreateTenantRequest {
     pub workspace_id: Uuid,
     /// If provided, this URL is used as the tenant database directly (BYOD).
     /// If not provided, the system will provision a new database on the master cluster.
     pub custom_db_url: Option<String>,
     pub pool_size: Option<u32>,
+}
+
+impl std::fmt::Debug for CreateTenantRequest {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("CreateTenantRequest")
+            .field("workspace_id", &self.workspace_id)
+            .field("custom_db_url", &if self.custom_db_url.is_some() { "Some(***REDACTED***)" } else { "None" })
+            .field("pool_size", &self.pool_size)
+            .finish()
+    }
 }
 
 /// GET /system/tenants
@@ -128,6 +138,25 @@ pub async fn create_tenant(
 
     // 3. Register in Supavisor
     state.infra.tenant_manager.register_tenant_dynamic(&tenant_id, &payload).await?;
+
+    // 4. Encrypt and save custom_db_url if provided
+    if let Some(raw_url) = &req.custom_db_url {
+        let encrypted_url = if let Some(crypto) = &state.infra.crypto_service {
+            crypto.encrypt(raw_url).map_err(|e| {
+                tracing::error!("Failed to encrypt DB URL: {}", e);
+                AppError::Internal("Encryption failed".into())
+            })?
+        } else {
+            tracing::warn!("No crypto service available, storing URL in plaintext!");
+            raw_url.clone()
+        };
+
+        state
+            .core
+            .workspace_repo
+            .update_workspace_byod_url(workspace_id, Some(encrypted_url))
+            .await?;
+    }
 
     // 4. Audit Log
     let details = serde_json::json!({

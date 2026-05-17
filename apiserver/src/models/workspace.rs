@@ -50,6 +50,8 @@ pub struct Workspace {
     pub holiday_overnight_strategy: String,
     pub default_holiday_ot_multiplier: Decimal,
     pub created_at: DateTime<Utc>,
+    #[serde(skip_serializing)]
+    pub custom_db_url_encrypted: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

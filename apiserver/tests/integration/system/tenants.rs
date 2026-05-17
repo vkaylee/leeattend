@@ -102,9 +102,18 @@ async fn test_create_and_delete_tenant_with_mock() {
 
 #[tokio::test]
 async fn test_create_tenant_with_byod() {
-    let mock_manager = Arc::new(TestMockTenantManager::default());
-    let (address, _workspace_id, user_id, factory, _db) =
-        spawn_app_with_factory_extended(mock_manager.clone()).await;
+    let keys_json = serde_json::json!({
+        "keys": { "v1": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=" },
+        "active_key": "v1"
+    }).to_string();
+    std::env::set_var("ENCRYPTION_KEYS_JSON", keys_json.clone());
+
+    let mock_manager = std::sync::Arc::new(TestMockTenantManager::default());
+    let (address, workspace_id, user_id, factory, _db) =
+        crate::common::app::spawn_app_with_factory_extended(mock_manager.clone()).await;
+
+    // Use the workspace_id that was already created
+    let new_ws_id = workspace_id;
 
     // Make the user a PlatformAdmin
     crate::test_execute!(
@@ -115,7 +124,6 @@ async fn test_create_tenant_with_byod() {
 
     let client = reqwest::Client::new();
 
-    let new_ws_id = uuid::Uuid::new_v4();
     let custom_url = "postgres://custom_user:super_secret@custom_host:5432/custom_db";
     
     let req = serde_json::json!({
@@ -160,6 +168,18 @@ async fn test_create_tenant_with_byod() {
         assert_eq!(user_config.get("db_password").unwrap().as_str().unwrap(), "super_secret");
         assert_eq!(user_config.get("pool_size").unwrap().as_u64().unwrap(), 25);
     }
+
+    // Verify database encryption
+    let workspace_repo = apiserver::repositories::diesel_workspace_repository::DieselWorkspaceRepository::new(factory.diesel_pools.clone());
+    let ws = apiserver::repositories::workspace_repository::WorkspaceRepository::get_workspace_by_id(&workspace_repo, new_ws_id).await.unwrap().unwrap();
+    let encrypted_url = ws.custom_db_url_encrypted.expect("Encrypted URL should be saved");
+    
+    // Decrypt and verify
+    let crypto = apiserver::crypto::CryptoService::from_json(&keys_json).unwrap();
+    let decrypted = crypto.decrypt(&encrypted_url).unwrap();
+    
+    assert_eq!(decrypted, custom_url);
+    std::env::remove_var("ENCRYPTION_KEYS_JSON");
 }
 
 #[tokio::test]

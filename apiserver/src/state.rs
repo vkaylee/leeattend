@@ -142,6 +142,7 @@ pub struct InfraState {
     pub queue: Option<Arc<dyn crate::repositories::queue_repository::QueueRepository>>,
     pub tenant_manager: Arc<dyn crate::supavisor::TenantManager>,
     pub tenant_provisioner: Arc<dyn crate::services::tenant_provisioner::TenantProvisionerTrait>,
+    pub crypto_service: Option<Arc<crate::crypto::CryptoService>>,
 }
 
 // ── Composed AppState ──────────────────────────────────────────────

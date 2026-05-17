@@ -111,6 +111,7 @@ services:
       - COOKIE_DOMAIN=${COOKIE_DOMAIN:-}
       - RUST_LOG=${RUST_LOG:-info}
       - STORAGE_DIR=/app/storage
+      - ENCRYPTION_KEYS_JSON=${ENCRYPTION_KEYS_JSON}
 
   webdashboard:
     image: localhost/leeattend_webdashboard

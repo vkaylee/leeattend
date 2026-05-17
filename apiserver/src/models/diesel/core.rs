@@ -112,6 +112,7 @@ pub struct WorkspaceEntity {
     pub default_holiday_ot_multiplier: BigDecimal,
     pub logo_url: Option<String>,
     pub tagline: Option<String>,
+    pub custom_db_url_encrypted: Option<String>,
 }
 
 impl From<WorkspaceEntity> for Workspace {
@@ -135,6 +136,7 @@ impl From<WorkspaceEntity> for Workspace {
             )
             .unwrap_or_default(),
             created_at: entity.created_at.unwrap_or_else(Utc::now),
+            custom_db_url_encrypted: entity.custom_db_url_encrypted,
         }
     }
 }

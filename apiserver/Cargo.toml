@@ -42,6 +42,8 @@ tokio-stream = { version = "0.1", features = ["time"] }
 tokio-util = { version = "0.7", features = ["rt"] }
 rust_xlsxwriter = "0.79"
 base64 = "0.22.1"
+aes-gcm = "0.10.3"
+rand = "0.8.5"
 moka = { version = "0.12", features = ["future"] }
 utoipa = { version = "5.0", features = ["axum_extras", "chrono", "uuid", "decimal"] }
 utoipa-axum = "0.2"

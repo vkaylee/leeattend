@@ -527,6 +527,9 @@ impl AppState {
                 queue: redis_pool.map(|r| Arc::new(crate::repositories::queue_repository::RedisQueueRepository::new(r)) as Arc<dyn crate::repositories::queue_repository::QueueRepository>),
                 tenant_manager,
                 tenant_provisioner: tenant_provisioner.clone(),
+                crypto_service: std::env::var("ENCRYPTION_KEYS_JSON").ok().and_then(|keys_json| {
+                    crate::crypto::CryptoService::from_json(&keys_json).ok().map(Arc::new)
+                }),
             },
         });
 

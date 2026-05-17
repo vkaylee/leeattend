@@ -514,6 +514,9 @@ pub async fn spawn_app() -> (String, TestDatabase) {
             queue: shared_redis_pool.map(|r| Arc::new(apiserver::repositories::queue_repository::RedisQueueRepository::new(r)) as Arc<dyn apiserver::repositories::queue_repository::QueueRepository>),
             tenant_manager: Arc::new(apiserver::supavisor::NoopTenantManager),
             tenant_provisioner: std::sync::Arc::new(DummyTenantProvisioner),
+            crypto_service: std::env::var("ENCRYPTION_KEYS_JSON").ok().and_then(|keys_json| {
+                apiserver::crypto::CryptoService::from_json(&keys_json).ok().map(std::sync::Arc::new)
+            }),
         },
     });
 
@@ -1009,6 +1012,9 @@ pub async fn spawn_app_with_factory_extended(tenant_manager: Arc<dyn apiserver::
             queue: shared_redis_pool.clone().map(|r| Arc::new(apiserver::repositories::queue_repository::RedisQueueRepository::new(r)) as Arc<dyn apiserver::repositories::queue_repository::QueueRepository>),
             tenant_manager,
             tenant_provisioner: std::sync::Arc::new(DummyTenantProvisioner),
+            crypto_service: std::env::var("ENCRYPTION_KEYS_JSON").ok().and_then(|keys_json| {
+                apiserver::crypto::CryptoService::from_json(&keys_json).ok().map(std::sync::Arc::new)
+            }),
         },
     });
 
@@ -1545,6 +1551,9 @@ pub async fn setup_app_tower_internal_extended(use_redis: bool, tenant_manager: 
             queue: shared_redis_pool.clone().map(|r| Arc::new(apiserver::repositories::queue_repository::RedisQueueRepository::new(r)) as Arc<dyn apiserver::repositories::queue_repository::QueueRepository>),
             tenant_manager,
             tenant_provisioner: std::sync::Arc::new(DummyTenantProvisioner),
+            crypto_service: std::env::var("ENCRYPTION_KEYS_JSON").ok().and_then(|keys_json| {
+                apiserver::crypto::CryptoService::from_json(&keys_json).ok().map(std::sync::Arc::new)
+            }),
         },
     });
 

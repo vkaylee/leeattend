@@ -70,6 +70,7 @@
 
 pub mod agent_manager;
 pub mod app_builder;
+pub mod crypto;
 pub mod cache;
 
 pub mod dev_initialization;
