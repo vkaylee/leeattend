@@ -91,7 +91,7 @@ pub async fn add_rule(
         updated_at: None,
     };
 
-    let created = state.payroll.overtime_policy_repo.add_rule(&rule).await?;
+    let created = state.payroll.overtime_policy_repo.add_rule(ctx.workspace_id, &rule).await?;
     Ok(Json(created))
 }
 

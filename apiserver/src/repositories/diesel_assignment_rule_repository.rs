@@ -32,7 +32,10 @@ impl AssignmentRuleRepository for DieselAssignmentRuleRepository {
     ) -> Result<AssignmentRule, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -65,7 +68,10 @@ impl AssignmentRuleRepository for DieselAssignmentRuleRepository {
     async fn get_rules(&self, workspace_id: Uuid) -> Result<Vec<AssignmentRule>, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -86,7 +92,10 @@ impl AssignmentRuleRepository for DieselAssignmentRuleRepository {
     async fn get_active_rules(&self, workspace_id: Uuid) -> Result<Vec<AssignmentRule>, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -113,7 +122,10 @@ impl AssignmentRuleRepository for DieselAssignmentRuleRepository {
     ) -> Result<AssignmentRule, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -149,7 +161,10 @@ impl AssignmentRuleRepository for DieselAssignmentRuleRepository {
     async fn delete_rule(&self, workspace_id: Uuid, id: Uuid) -> Result<(), AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;

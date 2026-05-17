@@ -98,16 +98,16 @@ pub async fn calculate_payroll(
         .await?;
 
     // Fetch segments and incentives
-    let segments = state.payroll.repo.get_payslip_segments(payslip.id).await?;
+    let segments = state.payroll.repo.get_payslip_segments(ctx.workspace_id, payslip.id).await?;
     let incentives = state
         .payroll
         .repo
-        .get_payslip_incentives(payslip.id)
+        .get_payslip_incentives(ctx.workspace_id, payslip.id)
         .await?;
     let rule_evaluations = state
         .payroll
         .repo
-        .get_payslip_rule_evaluations(payslip.id)
+        .get_payslip_rule_evaluations(ctx.workspace_id, payslip.id)
         .await?;
 
     // Fetch salary components at the period start date
@@ -161,12 +161,12 @@ pub async fn get_employee_payslips(
 
     let mut responses = Vec::new();
     for p in payslips {
-        let segments = state.payroll.repo.get_payslip_segments(p.id).await?;
-        let incentives = state.payroll.repo.get_payslip_incentives(p.id).await?;
+        let segments = state.payroll.repo.get_payslip_segments(ctx.workspace_id, p.id).await?;
+        let incentives = state.payroll.repo.get_payslip_incentives(ctx.workspace_id, p.id).await?;
         let rule_evaluations = state
             .payroll
             .repo
-            .get_payslip_rule_evaluations(p.id)
+            .get_payslip_rule_evaluations(ctx.workspace_id, p.id)
             .await?;
 
         // Fetch salary components at the period start date

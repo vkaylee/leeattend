@@ -26,10 +26,13 @@ impl DieselLeaveRequestRepository {
 #[allow(clippy::too_many_lines)]
 #[async_trait]
 impl LeaveRequestRepository for DieselLeaveRequestRepository {
-    async fn create_leave_request(&self, request: &LeaveRequest) -> Result<(), AppError> {
+    async fn create_leave_request(&self, workspace_id: Uuid, request: &LeaveRequest) -> Result<(), AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -65,7 +68,10 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
     ) -> Result<Option<LeaveRequest>, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -92,7 +98,10 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
     ) -> Result<(), AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -123,7 +132,10 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
     ) -> Result<Vec<LeaveRequest>, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -148,7 +160,10 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
     ) -> Result<Vec<LeaveRequest>, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -181,7 +196,10 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
     ) -> Result<LeaveBreakdown, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -263,7 +281,10 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
     ) -> Result<Option<Uuid>, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -289,7 +310,10 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
     async fn get_leave_types(&self, workspace_id: Uuid) -> Result<Vec<(String, String)>, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -313,7 +337,10 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
     ) -> Result<Option<(Uuid, Uuid, String)>, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -347,7 +374,10 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
     async fn cancel_leave_request(&self, workspace_id: Uuid, id: Uuid) -> Result<(), AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -379,7 +409,10 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
     ) -> Result<Vec<LeaveHistoryRequestItem>, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -446,7 +479,10 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
     ) -> Result<bool, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -470,7 +506,10 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
     ) -> Result<Option<String>, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -496,7 +535,10 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
     ) -> Result<i64, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -527,13 +569,17 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
 
     async fn get_batch_leave_days(
         &self,
+        workspace_id: Uuid,
         employee_ids: &[Uuid],
         start_date: NaiveDate,
         end_date: NaiveDate,
     ) -> Result<std::collections::HashMap<Uuid, i64>, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -568,7 +614,10 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
     ) -> Result<std::collections::HashSet<(Uuid, NaiveDate)>, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(e.to_string()))?;
@@ -592,7 +641,10 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
     ) -> Result<Vec<(NaiveDate, NaiveDate)>, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;

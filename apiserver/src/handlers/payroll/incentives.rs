@@ -26,7 +26,7 @@ pub async fn get_incentive_policies(
 
     let mut response = Vec::new();
     for policy in policies {
-        let tiers = state.payroll.repo.get_policy_tiers(policy.id).await?;
+        let tiers = state.payroll.repo.get_policy_tiers(workspace_id, policy.id).await?;
         response.push(PayrollIncentivePolicyResponse { policy, tiers });
     }
     Ok(Json(response))

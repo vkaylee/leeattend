@@ -10,7 +10,7 @@ use uuid::Uuid;
 #[async_trait]
 #[cfg_attr(test, mockall::automock)]
 pub trait RawAttendanceLogRepository: Send + Sync {
-    async fn create_raw_log(&self, log: &RawAttendanceLog) -> Result<bool, AppError>;
+    async fn create_raw_log(&self, workspace_id: Uuid, log: &RawAttendanceLog) -> Result<bool, AppError>;
     async fn get_raw_log_by_id(
         &self,
         workspace_id: Uuid,
@@ -37,7 +37,7 @@ pub trait RawAttendanceLogRepository: Send + Sync {
         p_from: Option<DateTime<Utc>>,
         p_to: Option<DateTime<Utc>>,
     ) -> Result<i64, AppError>;
-    async fn create_raw_logs_batch(&self, logs: &[&RawAttendanceLog]) -> Result<usize, AppError>;
+    async fn create_raw_logs_batch(&self, workspace_id: Uuid, logs: &[&RawAttendanceLog]) -> Result<usize, AppError>;
     async fn has_duplicate_raw_log(
         &self,
         workspace_id: Uuid,

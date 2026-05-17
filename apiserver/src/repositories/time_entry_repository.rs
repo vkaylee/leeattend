@@ -11,7 +11,7 @@ use uuid::Uuid;
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait TimeEntryRepository: Send + Sync {
-    async fn create_time_entry(&self, entry: &TimeEntry) -> Result<(), AppError>;
+    async fn create_time_entry(&self, workspace_id: Uuid, entry: &TimeEntry) -> Result<(), AppError>;
     async fn get_time_entry_by_id(
         &self,
         workspace_id: Uuid,

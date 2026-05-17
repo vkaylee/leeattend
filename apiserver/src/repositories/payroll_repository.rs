@@ -27,7 +27,7 @@ pub trait PayrollRepository: Send + Sync {
         period_end: NaiveDate,
     ) -> Result<Vec<PayrollIncentivePolicy>, AppError>;
 
-    async fn get_policy_tiers(&self, policy_id: Uuid) -> Result<Vec<IncentiveTier>, AppError>;
+    async fn get_policy_tiers(&self, workspace_id: Uuid, policy_id: Uuid) -> Result<Vec<IncentiveTier>, AppError>;
 
     async fn create_incentive_policy(
         &self,
@@ -49,17 +49,20 @@ pub trait PayrollRepository: Send + Sync {
 
     async fn create_payslip_incentive(
         &self,
+        workspace_id: Uuid,
         payslip_id: Uuid,
         result: &IncentiveEvaluationResult,
     ) -> Result<(), AppError>;
 
     async fn get_payslip_incentives(
         &self,
+        workspace_id: Uuid,
         payslip_id: Uuid,
     ) -> Result<Vec<IncentiveEvaluationResult>, AppError>;
 
     async fn create_payslip_rule_evaluation(
         &self,
+        workspace_id: Uuid,
         payslip_id: Uuid,
         rule_code: String,
         amount: Decimal,
@@ -67,6 +70,7 @@ pub trait PayrollRepository: Send + Sync {
 
     async fn get_payslip_rule_evaluations(
         &self,
+        workspace_id: Uuid,
         payslip_id: Uuid,
     ) -> Result<Vec<crate::models::PayslipRuleEvaluation>, AppError>;
 
@@ -106,6 +110,7 @@ pub trait PayrollRepository: Send + Sync {
 
     async fn assign_employee_salary_component(
         &self,
+        workspace_id: Uuid,
         employee_id: Uuid,
         component_definition_id: Uuid,
         amount: Decimal,
@@ -144,11 +149,12 @@ pub trait PayrollRepository: Send + Sync {
 
     async fn create_payslip_segment(
         &self,
+        workspace_id: Uuid,
         payslip_id: Uuid,
         args: &crate::models::CreatePayslipSegmentArgs,
     ) -> Result<(), AppError>;
 
-    async fn get_payslip_segments(&self, payslip_id: Uuid)
+    async fn get_payslip_segments(&self, workspace_id: Uuid, payslip_id: Uuid)
         -> Result<Vec<PayslipSegment>, AppError>;
 
     async fn get_resolved_rule_assignments(
@@ -162,11 +168,13 @@ pub trait PayrollRepository: Send + Sync {
 
     async fn get_payroll_rule_tiers(
         &self,
+        workspace_id: Uuid,
         rule_definition_id: Uuid,
     ) -> Result<Vec<crate::models::PayrollRuleTier>, AppError>;
 
     async fn get_department_payroll_config_at(
         &self,
+        workspace_id: Uuid,
         department_id: Uuid,
         date: NaiveDate,
     ) -> Result<Option<crate::models::DepartmentPayrollConfig>, AppError>;

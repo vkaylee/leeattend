@@ -40,7 +40,7 @@ async fn test_overnight_shift_pairing() {
     let shift_repo = apiserver::repositories::DieselShiftRepository::new(diesel_pools.clone());
     use apiserver::repositories::shift_repository::ShiftRepository;
     shift_repo
-        .assign_employee_shift(employee_id, shift_id, shift_date, None)
+        .assign_employee_shift(ws_id, employee_id, shift_id, shift_date, None)
         .await
         .unwrap();
 
@@ -79,7 +79,7 @@ async fn test_overnight_shift_pairing() {
         status: -1,
         created_at: Utc::now(),
     };
-    raw_repo.create_raw_log(&raw_log_in).await.unwrap();
+    raw_repo.create_raw_log(ws_id, &raw_log_in).await.unwrap();
 
     let raw_log_out = apiserver::models::RawAttendanceLog {
         id: Uuid::new_v4(),
@@ -93,7 +93,7 @@ async fn test_overnight_shift_pairing() {
         status: -1,
         created_at: Utc::now(),
     };
-    raw_repo.create_raw_log(&raw_log_out).await.unwrap();
+    raw_repo.create_raw_log(ws_id, &raw_log_out).await.unwrap();
 
     // 3. Process Pairing
     let repo = std::sync::Arc::new(apiserver::repositories::DieselTimeEntryRepository::new(

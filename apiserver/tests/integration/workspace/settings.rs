@@ -8,6 +8,22 @@ use crate::common::factory::TestFactory;
 use apiserver::services::workspace_service::WorkspaceService;
 use reqwest::StatusCode;
 use uuid::Uuid;
+use apiserver::services::tenant_provisioner::TenantProvisionerTrait;
+use apiserver::supavisor::TenantManager;
+
+struct DummyTenantProvisioner;
+#[async_trait::async_trait]
+impl TenantProvisionerTrait for DummyTenantProvisioner {
+    async fn provision_tenant_db(&self, _workspace_id: &Uuid) -> Result<String, apiserver::errors::AppError> { Ok("".to_string()) }
+}
+
+struct DummyTenantManager;
+#[async_trait::async_trait]
+impl TenantManager for DummyTenantManager {
+    async fn init_tenant(&self) {}
+    async fn delete_tenant(&self, _workspace_id: &str) -> Result<(), apiserver::errors::AppError> { Ok(()) }
+    async fn register_tenant_dynamic(&self, _workspace_id: &str, _db_config: &serde_json::Value) -> Result<(), apiserver::errors::AppError> { Ok(()) }
+}
 
 #[tokio::test]
 async fn test_workspace_theme_color_update() {
@@ -80,7 +96,7 @@ async fn test_update_workspace_time_format() {
     assert_eq!(ws.time_format, "24h");
 
     // 2. Update to 12h
-    let updated_ws = WorkspaceService::new(workspace_repo.clone(), user_repo.clone())
+    let updated_ws = WorkspaceService::new(workspace_repo.clone(), user_repo.clone(), std::sync::Arc::new(DummyTenantProvisioner), std::sync::Arc::new(DummyTenantManager))
         .update_workspace(
             apiserver::services::workspace_service::UpdateWorkspaceArgs {
                 ws_id,
@@ -126,7 +142,7 @@ async fn test_update_workspace_all_fields() {
     let user_id: Uuid = factory.user().create().await;
     let ws_id: Uuid = factory.workspace().create_with_owner(user_id).await;
 
-    let updated_ws = WorkspaceService::new(workspace_repo.clone(), user_repo.clone())
+    let updated_ws = WorkspaceService::new(workspace_repo.clone(), user_repo.clone(), std::sync::Arc::new(DummyTenantProvisioner), std::sync::Arc::new(DummyTenantManager))
         .update_workspace(
             apiserver::services::workspace_service::UpdateWorkspaceArgs {
                 ws_id,
@@ -167,7 +183,7 @@ async fn test_update_workspace_no_fields() {
     let user_id: Uuid = factory.user().create().await;
     let ws_id: Uuid = factory.workspace().create_with_owner(user_id).await;
 
-    let result = WorkspaceService::new(workspace_repo.clone(), user_repo.clone())
+    let result = WorkspaceService::new(workspace_repo.clone(), user_repo.clone(), std::sync::Arc::new(DummyTenantProvisioner), std::sync::Arc::new(DummyTenantManager))
         .update_workspace(
             apiserver::services::workspace_service::UpdateWorkspaceArgs {
                 ws_id,

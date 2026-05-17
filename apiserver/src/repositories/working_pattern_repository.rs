@@ -21,6 +21,7 @@ pub trait WorkingPatternRepositoryTrait: Send + Sync {
 
     async fn get_pattern_details(
         &self,
+        workspace_id: Uuid,
         pattern_id: Uuid,
     ) -> Result<Vec<WorkingPatternDetail>, AppError>;
 

@@ -95,6 +95,7 @@ impl LeavePolicyRepository for DummyLeavePolicyRepository {
 
     async fn create_policy_assignment(
         &self,
+        _workspace_id: uuid::Uuid,
         _assignment: &crate::models::LeavePolicyAssignment,
     ) -> Result<crate::models::LeavePolicyAssignment, crate::errors::AppError> {
         unimplemented!()

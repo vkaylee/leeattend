@@ -18,6 +18,7 @@ use crate::errors::{AppError, AppResult};
 use crate::handlers::system_auth::SystemContext;
 use crate::models::enums::SystemRoleType;
 use crate::AppState;
+use crate::handlers::common::ApiContext;
 
 // ── Response DTOs ─────────────────────────────────────────────────────────────
 
@@ -52,6 +53,7 @@ pub struct AssignSystemRoleRequest {
 pub async fn list_system_roles(
     State(state): State<Arc<AppState>>,
     ctx: SystemContext,
+    _api_ctx: ApiContext,
 ) -> AppResult<Json<Vec<SystemRoleInfo>>> {
     ctx.require_role(SystemRoleType::PlatformAdmin)?;
 
@@ -140,6 +142,7 @@ pub async fn get_user_system_roles(
     Path(user_id): Path<Uuid>,
     State(state): State<Arc<AppState>>,
     ctx: SystemContext,
+    _api_ctx: ApiContext,
 ) -> AppResult<Json<Vec<String>>> {
     ctx.require_role(SystemRoleType::PlatformAdmin)?;
 
@@ -183,6 +186,7 @@ pub async fn assign_system_role(
     Path(user_id): Path<Uuid>,
     State(state): State<Arc<AppState>>,
     ctx: SystemContext,
+    _api_ctx: ApiContext,
     Json(req): Json<AssignSystemRoleRequest>,
 ) -> AppResult<StatusCode> {
     ctx.require_role(SystemRoleType::PlatformAdmin)?;
@@ -252,6 +256,7 @@ pub async fn revoke_system_role(
     Path((user_id, role_name)): Path<(Uuid, String)>,
     State(state): State<Arc<AppState>>,
     ctx: SystemContext,
+    _api_ctx: ApiContext,
 ) -> AppResult<StatusCode> {
     ctx.require_role(SystemRoleType::PlatformAdmin)?;
 
@@ -333,7 +338,7 @@ pub async fn revoke_system_role(
 /// GET /system/health
 /// Simple system health endpoint.
 /// Requires: Support or PlatformAdmin (monitoring access)
-pub async fn system_health(ctx: SystemContext) -> AppResult<Json<serde_json::Value>> {
+pub async fn system_health(ctx: SystemContext, _api_ctx: ApiContext) -> AppResult<Json<serde_json::Value>> {
     ctx.require_any_role(&[SystemRoleType::PlatformAdmin, SystemRoleType::Support])?;
     Ok(Json(serde_json::json!({
         "status": "ok",

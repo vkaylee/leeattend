@@ -90,6 +90,7 @@ pub async fn get_payroll_rule_definitions(
 
 pub async fn create_payroll_rule_tier(
     State(state): State<Arc<AppState>>,
+    ctx: MemberContext,
     Path((_ws_id, rule_id)): Path<(Uuid, Uuid)>,
     Json(payload): Json<CreatePayrollRuleTierRequest>,
 ) -> Result<Json<PayrollRuleTier>, AppError> {
@@ -97,6 +98,7 @@ pub async fn create_payroll_rule_tier(
         .payroll
         .rule_repo
         .create_tier(
+            ctx.workspace_id,
             rule_id,
             payload.tier_order,
             payload.min_amount,
@@ -111,9 +113,10 @@ pub async fn create_payroll_rule_tier(
 
 pub async fn get_payroll_rule_tiers(
     State(state): State<Arc<AppState>>,
+    ctx: MemberContext,
     Path((_ws_id, rule_id)): Path<(Uuid, Uuid)>,
 ) -> Result<Json<Vec<PayrollRuleTier>>, AppError> {
-    let tiers = state.payroll.rule_repo.get_tiers_for_rule(rule_id).await?;
+    let tiers = state.payroll.rule_repo.get_tiers_for_rule(ctx.workspace_id, rule_id).await?;
     Ok(Json(tiers))
 }
 
@@ -170,12 +173,13 @@ pub async fn delete_payroll_rule_assignment(
 
 pub async fn delete_payroll_rule_tier(
     State(state): State<Arc<AppState>>,
+    ctx: MemberContext,
     Path((_ws_id, rule_id, tier_id)): Path<(Uuid, Uuid, Uuid)>,
 ) -> Result<Json<()>, AppError> {
     state
         .payroll
         .rule_repo
-        .delete_tier(rule_id, tier_id)
+        .delete_tier(ctx.workspace_id, rule_id, tier_id)
         .await?;
     Ok(Json(()))
 }

@@ -33,7 +33,10 @@ impl super::EmployeeContractRepository for DieselEmployeeContractRepository {
 
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id_val)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("Failed to get connection: {e}")))?;
@@ -134,7 +137,10 @@ impl super::EmployeeContractRepository for DieselEmployeeContractRepository {
 
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id_val)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("Failed to get connection: {e}")))?;
@@ -157,7 +163,10 @@ impl super::EmployeeContractRepository for DieselEmployeeContractRepository {
 
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id_val)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("Failed to get connection: {e}")))?;
@@ -181,7 +190,10 @@ impl super::EmployeeContractRepository for DieselEmployeeContractRepository {
 
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id_val)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("Failed to get connection: {e}")))?;
@@ -218,7 +230,10 @@ impl super::EmployeeContractRepository for DieselEmployeeContractRepository {
 
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id_val)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("Failed to get connection: {e}")))?;
@@ -243,7 +258,10 @@ impl super::EmployeeContractRepository for DieselEmployeeContractRepository {
 
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id_val)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("Failed to get connection: {e}")))?;
@@ -273,7 +291,10 @@ impl super::EmployeeContractRepository for DieselEmployeeContractRepository {
 
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id_val)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("Failed to get connection: {e}")))?;

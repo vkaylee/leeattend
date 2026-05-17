@@ -301,7 +301,7 @@ pub async fn assign_leave_policy(
     let saved = state
         .leaves
         .policy_repo
-        .create_policy_assignment(&assignment)
+        .create_policy_assignment(ctx.workspace_id, &assignment)
         .await?;
     Ok((StatusCode::CREATED, Json(saved)))
 }

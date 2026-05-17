@@ -262,7 +262,7 @@ impl AttendanceLogService {
         };
 
         // 4. Save to DB (Handle duplicates with ON CONFLICT DO NOTHING)
-        match self.raw_log_repo.create_raw_log(&raw_log).await {
+        match self.raw_log_repo.create_raw_log(args.workspace_id, &raw_log).await {
             Ok(true) => {
                 info!(
                     "Successfully saved log for {} ({}) at {} (UTC) from {:?}",
@@ -319,7 +319,7 @@ impl AttendanceLogService {
             created_at: Utc::now(),
         };
 
-        match self.raw_log_repo.create_raw_log(&raw_log).await {
+        match self.raw_log_repo.create_raw_log(workspace_id, &raw_log).await {
             Ok(true) => {
                 let _ = self.pairing_service.process_new_raw_log(&raw_log).await;
                 Ok(true)
@@ -372,7 +372,7 @@ impl AttendanceLogService {
             };
 
             // 3. Insert to raw_attendance_logs using repo
-            match self.raw_log_repo.create_raw_log(&raw_log).await {
+            match self.raw_log_repo.create_raw_log(workspace_id, &raw_log).await {
                 Ok(true) => {
                     claimed_count += 1;
                     dates_to_reprocess.insert(staged.punch_time.date_naive());

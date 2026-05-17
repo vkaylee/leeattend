@@ -125,7 +125,10 @@ impl EmployeeRepository for DieselEmployeeRepository {
     ) -> Result<Option<Employee>, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -152,7 +155,10 @@ impl EmployeeRepository for DieselEmployeeRepository {
     ) -> Result<Option<Employee>, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -186,7 +192,10 @@ impl EmployeeRepository for DieselEmployeeRepository {
 
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -295,7 +304,10 @@ impl EmployeeRepository for DieselEmployeeRepository {
     async fn get_active_employees(&self, workspace_id: Uuid) -> Result<Vec<Employee>, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -319,7 +331,10 @@ impl EmployeeRepository for DieselEmployeeRepository {
     ) -> Result<Vec<Uuid>, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -352,7 +367,10 @@ impl EmployeeRepository for DieselEmployeeRepository {
 
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -429,7 +447,10 @@ impl EmployeeRepository for DieselEmployeeRepository {
     ) -> Result<std::collections::HashMap<Uuid, (Option<Uuid>, String)>, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -476,9 +497,13 @@ impl EmployeeRepository for DieselEmployeeRepository {
     }
 
     async fn create_employee(&self, employee: &Employee) -> Result<(), AppError> {
+        let workspace_id = employee.workspace_id;
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -495,11 +520,15 @@ impl EmployeeRepository for DieselEmployeeRepository {
     }
 
     async fn create_employee_skip_duplicates(&self, employee: &Employee) -> Result<bool, AppError> {
+        let workspace_id = employee.workspace_id;
         use crate::schema::employees;
 
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -525,7 +554,10 @@ impl EmployeeRepository for DieselEmployeeRepository {
     ) -> Result<Option<Employee>, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -572,7 +604,10 @@ impl EmployeeRepository for DieselEmployeeRepository {
     ) -> Result<Option<Employee>, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -597,7 +632,10 @@ impl EmployeeRepository for DieselEmployeeRepository {
     async fn delete_employee(&self, id: Uuid, workspace_id: Uuid) -> Result<u64, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -621,7 +659,10 @@ impl EmployeeRepository for DieselEmployeeRepository {
 
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -678,7 +719,10 @@ impl EmployeeRepository for DieselEmployeeRepository {
 
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -745,7 +789,10 @@ impl EmployeeRepository for DieselEmployeeRepository {
 
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -802,12 +849,15 @@ impl EmployeeRepository for DieselEmployeeRepository {
         Ok(map)
     }
 
-    async fn create_working_condition(&self, condition: &WorkingCondition) -> Result<(), AppError> {
+    async fn create_working_condition(&self, workspace_id: Uuid, condition: &WorkingCondition) -> Result<(), AppError> {
         use crate::schema::working_conditions;
 
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -831,6 +881,7 @@ impl EmployeeRepository for DieselEmployeeRepository {
 
     async fn delete_working_condition(
         &self,
+        workspace_id: Uuid,
         id: Uuid,
         employee_id: Uuid,
     ) -> Result<bool, AppError> {
@@ -838,7 +889,10 @@ impl EmployeeRepository for DieselEmployeeRepository {
 
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -864,7 +918,10 @@ impl EmployeeRepository for DieselEmployeeRepository {
 
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -882,6 +939,7 @@ impl EmployeeRepository for DieselEmployeeRepository {
 
     async fn upsert_employee_payroll_config(
         &self,
+        workspace_id: Uuid,
         employee_id: Uuid,
         std_working_days: rust_decimal::Decimal,
         hours_per_day: rust_decimal::Decimal,
@@ -891,7 +949,10 @@ impl EmployeeRepository for DieselEmployeeRepository {
 
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -944,6 +1005,7 @@ impl EmployeeRepository for DieselEmployeeRepository {
 
     async fn get_employee_payroll_config_at(
         &self,
+        workspace_id: Uuid,
         employee_id: Uuid,
         date: chrono::NaiveDate,
     ) -> Result<Option<crate::models::EmployeePayrollConfig>, AppError> {
@@ -951,7 +1013,10 @@ impl EmployeeRepository for DieselEmployeeRepository {
 
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -997,7 +1062,10 @@ impl EmployeeRepository for DieselEmployeeRepository {
     ) -> Result<Vec<crate::models::EmployeePayrollConfig>, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -1055,7 +1123,10 @@ impl EmployeeRepository for DieselEmployeeRepository {
     ) -> Result<(), AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -1075,9 +1146,13 @@ impl EmployeeRepository for DieselEmployeeRepository {
     }
 
     async fn create_recruitment_source(&self, source: &RecruitmentSource) -> Result<(), AppError> {
+        let workspace_id = source.workspace_id;
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -1099,7 +1174,10 @@ impl EmployeeRepository for DieselEmployeeRepository {
     ) -> Result<Vec<RecruitmentSource>, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -1121,7 +1199,10 @@ impl EmployeeRepository for DieselEmployeeRepository {
     ) -> Result<Option<RecruitmentSource>, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -1145,7 +1226,10 @@ impl EmployeeRepository for DieselEmployeeRepository {
     ) -> Result<Option<RecruitmentSource>, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -1189,7 +1273,10 @@ impl EmployeeRepository for DieselEmployeeRepository {
     ) -> Result<u64, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -1210,7 +1297,10 @@ impl EmployeeRepository for DieselEmployeeRepository {
     ) -> Result<Vec<RecruitmentSourceBreakdown>, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -1251,7 +1341,10 @@ impl EmployeeRepository for DieselEmployeeRepository {
     ) -> Result<TurnoverAnalytics, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -1397,7 +1490,10 @@ impl EmployeeRepository for DieselEmployeeRepository {
 
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -1422,7 +1518,10 @@ impl EmployeeRepository for DieselEmployeeRepository {
     ) -> Result<Option<Uuid>, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -1450,7 +1549,10 @@ impl EmployeeRepository for DieselEmployeeRepository {
     ) -> Result<Option<EmployeeProfile>, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -1470,12 +1572,16 @@ impl EmployeeRepository for DieselEmployeeRepository {
 
     async fn upsert_employee_profile(
         &self,
+        workspace_id: Uuid,
         employee_id: Uuid,
         req: &UpdateEmployeeProfileRequest,
     ) -> Result<EmployeeProfile, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -1551,7 +1657,10 @@ impl EmployeeRepository for DieselEmployeeRepository {
     ) -> Result<Vec<EmployeeEmergencyContact>, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -1574,12 +1683,16 @@ impl EmployeeRepository for DieselEmployeeRepository {
 
     async fn upsert_emergency_contact(
         &self,
+        workspace_id: Uuid,
         employee_id: Uuid,
         req: &CreateEmergencyContactRequest,
     ) -> Result<EmployeeEmergencyContact, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -1625,7 +1738,10 @@ impl EmployeeRepository for DieselEmployeeRepository {
     ) -> Result<u64, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -1652,7 +1768,10 @@ impl EmployeeRepository for DieselEmployeeRepository {
     ) -> Result<Vec<EmployeeDocument>, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -1670,9 +1789,13 @@ impl EmployeeRepository for DieselEmployeeRepository {
     }
 
     async fn create_employee_document(&self, doc: &EmployeeDocument) -> Result<(), AppError> {
+        let workspace_id = doc.workspace_id;
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;

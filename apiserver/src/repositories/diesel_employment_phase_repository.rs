@@ -30,7 +30,10 @@ impl DieselEmploymentPhaseRepository {
     ) -> Result<EmploymentPhaseDefinition, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -80,7 +83,10 @@ impl DieselEmploymentPhaseRepository {
     ) -> Result<Vec<EmploymentPhaseDefinition>, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -112,7 +118,10 @@ impl DieselEmploymentPhaseRepository {
     ) -> Result<EmployeePhase, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -189,7 +198,10 @@ impl DieselEmploymentPhaseRepository {
     ) -> Result<EmployeePhase, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -228,7 +240,10 @@ impl DieselEmploymentPhaseRepository {
     ) -> Result<Vec<EmployeePhase>, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;

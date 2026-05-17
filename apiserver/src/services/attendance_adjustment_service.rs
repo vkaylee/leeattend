@@ -32,7 +32,7 @@ impl AttendanceAdjustmentService {
     #[tracing::instrument(skip_all, err)]
     pub async fn submit_request(
         &self,
-        _workspace_id: Uuid,
+        workspace_id: Uuid,
         user_id: Uuid,
         req: CreateAttendanceAdjustmentRequest,
     ) -> Result<AttendanceAdjustmentRequest, AppError> {
@@ -52,7 +52,7 @@ impl AttendanceAdjustmentService {
         };
 
         self.adj_repo
-            .create_request(&adjustment)
+            .create_request(workspace_id, &adjustment)
             .await
             .map_err(|e| {
                 error!("SUBMIT_ADJUSTMENT_ERROR: {:?}", e);
@@ -122,7 +122,7 @@ impl AttendanceAdjustmentService {
                     updated_at: Utc::now(),
                 };
 
-                self.time_entry_repo.create_time_entry(&entry).await?;
+                self.time_entry_repo.create_time_entry(workspace_id, &entry).await?;
             }
         }
 

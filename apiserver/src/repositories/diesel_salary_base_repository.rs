@@ -77,12 +77,16 @@ impl DieselSalaryBaseRepository {
 
     async fn conn(
         &self,
+        workspace_id: Uuid,
     ) -> Result<
         diesel_async::pooled_connection::deadpool::Object<diesel_async::AsyncPgConnection>,
         AppError,
     > {
         self.diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))
@@ -94,7 +98,7 @@ impl crate::repositories::salary_base_repository::SalaryBaseRepository
     for DieselSalaryBaseRepository
 {
     async fn get_groups(&self, workspace_id: Uuid) -> Result<Vec<SalaryBaseGroup>, AppError> {
-        let mut conn = self.conn().await?;
+        let mut conn = self.conn(workspace_id).await?;
 
         salary_base_groups::table
             .filter(
@@ -120,7 +124,7 @@ impl crate::repositories::salary_base_repository::SalaryBaseRepository
         slug: &str,
         description: Option<String>,
     ) -> Result<SalaryBaseGroup, AppError> {
-        let mut conn = self.conn().await?;
+        let mut conn = self.conn(workspace_id).await?;
 
         let new_group = SalaryBaseGroupRow {
             id: Uuid::new_v4(),
@@ -146,7 +150,7 @@ impl crate::repositories::salary_base_repository::SalaryBaseRepository
         &self,
         workspace_id: Uuid,
     ) -> Result<Vec<SalaryBaseGroupMember>, AppError> {
-        let mut conn = self.conn().await?;
+        let mut conn = self.conn(workspace_id).await?;
 
         salary_component_base_members::table
             .inner_join(salary_base_groups::table)
@@ -164,10 +168,11 @@ impl crate::repositories::salary_base_repository::SalaryBaseRepository
 
     async fn assign_component_to_group(
         &self,
+        workspace_id: Uuid,
         component_id: Uuid,
         base_group_id: Uuid,
     ) -> Result<(), AppError> {
-        let mut conn = self.conn().await?;
+        let mut conn = self.conn(workspace_id).await?;
 
         let new_member = SalaryBaseGroupMemberRow {
             component_definition_id: component_id,
@@ -191,10 +196,11 @@ impl crate::repositories::salary_base_repository::SalaryBaseRepository
 
     async fn unassign_component_from_group(
         &self,
+        workspace_id: Uuid,
         component_id: Uuid,
         base_group_id: Uuid,
     ) -> Result<(), AppError> {
-        let mut conn = self.conn().await?;
+        let mut conn = self.conn(workspace_id).await?;
 
         diesel::delete(
             salary_component_base_members::table

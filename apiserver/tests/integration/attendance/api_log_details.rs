@@ -53,7 +53,7 @@ async fn test_attendance_logs_include_employee_details() -> Result<(), Box<dyn s
     let raw_log_repo =
         apiserver::repositories::DieselRawAttendanceLogRepository::new(diesel_pools.clone());
     use apiserver::repositories::time_entry_repository::TimeEntryRepository;
-    te_repo.create_time_entry(&entry).await?;
+    te_repo.create_time_entry(ws_id, &entry).await?;
 
     // 2. Create a Device and a RawAttendanceLog
     let device_id = Uuid::new_v4();
@@ -78,7 +78,7 @@ async fn test_attendance_logs_include_employee_details() -> Result<(), Box<dyn s
         created_at: Utc::now(),
     };
     use apiserver::repositories::raw_attendance_log_repository::RawAttendanceLogRepository;
-    raw_log_repo.create_raw_log(&raw_log).await?;
+    raw_log_repo.create_raw_log(ws_id, &raw_log).await?;
 
     // 3. Request /attendance/logs and verify fields
     let response = app

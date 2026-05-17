@@ -43,7 +43,7 @@ pub async fn create_salary_component(
             state
                 .payroll
                 .salary_base_repo
-                .assign_component_to_group(component.id, group_id)
+                .assign_component_to_group(workspace_id, component.id, group_id)
                 .await?;
         }
     }
@@ -86,13 +86,14 @@ pub async fn get_employee_salary_components(
 pub async fn assign_employee_salary_component(
     Path((_, employee_id)): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
-    MemberContext { .. }: MemberContext,
+    MemberContext { workspace_id, .. }: MemberContext,
     Json(req): Json<AssignSalaryComponentRequest>,
 ) -> AppResult<(StatusCode, Json<EmployeeSalaryComponent>)> {
     let component = state
         .payroll
         .repo
         .assign_employee_salary_component(
+            workspace_id,
             employee_id,
             req.component_definition_id,
             req.amount,

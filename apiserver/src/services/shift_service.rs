@@ -103,7 +103,7 @@ impl ShiftService {
 
             // 3. Migrate assignments
             self.repo
-                .update_assignments_to_new_version(shift_id, new_shift.id, effective_date)
+                .update_assignments_to_new_version(workspace_id, shift_id, new_shift.id, effective_date)
                 .await?;
 
             Ok(new_shift)
@@ -113,6 +113,7 @@ impl ShiftService {
     #[tracing::instrument(skip_all, err)]
     pub async fn assign_shift(
         &self,
+        workspace_id: Uuid,
         employee_id: Uuid,
         shift_id: Uuid,
         start_date: NaiveDate,
@@ -120,7 +121,7 @@ impl ShiftService {
     ) -> Result<(), AppError> {
         match self
             .repo
-            .assign_employee_shift(employee_id, shift_id, start_date, end_date)
+            .assign_employee_shift(workspace_id, employee_id, shift_id, start_date, end_date)
             .await
         {
             Ok(_) => Ok(()),
@@ -253,6 +254,7 @@ mod tests {
 
         async fn assign_employee_shift(
             &self,
+            _ws: Uuid,
             _e: Uuid,
             _s: Uuid,
             _sd: NaiveDate,
@@ -263,6 +265,7 @@ mod tests {
 
         async fn get_employee_active_shift(
             &self,
+            _ws: Uuid,
             _e: Uuid,
             _d: NaiveDate,
         ) -> Result<Option<Shift>, AppError> {
@@ -271,6 +274,7 @@ mod tests {
 
         async fn update_assignments_to_new_version(
             &self,
+            _ws: Uuid,
             _o: Uuid,
             _n: Uuid,
             _d: NaiveDate,
@@ -418,6 +422,7 @@ mod tests {
         let (svc, _) = build_service(None);
         let result = svc
             .assign_shift(
+                Uuid::new_v4(),
                 Uuid::new_v4(),
                 Uuid::new_v4(),
                 NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),

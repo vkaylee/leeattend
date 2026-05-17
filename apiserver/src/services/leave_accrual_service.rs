@@ -609,6 +609,7 @@ impl LeaveAccrualService {
 
                 self.accrual_log_repo
                     .adjust_balance_accrual(
+                        ctx.workspace_id,
                         ctx.employee_id,
                         accrual_date.year(),
                         ctx.leave_type_id,
@@ -635,6 +636,7 @@ impl LeaveAccrualService {
             if let Some(l) = log {
                 self.accrual_log_repo
                     .upsert_balance_accrual(
+                        ctx.workspace_id,
                         ctx.employee_id,
                         accrual_date.year(),
                         ctx.leave_type_id,

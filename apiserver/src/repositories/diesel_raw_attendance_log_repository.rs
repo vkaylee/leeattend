@@ -22,10 +22,13 @@ impl DieselRawAttendanceLogRepository {
 
 #[async_trait]
 impl RawAttendanceLogRepository for DieselRawAttendanceLogRepository {
-    async fn create_raw_log(&self, log: &RawAttendanceLog) -> Result<bool, AppError> {
+    async fn create_raw_log(&self, workspace_id: Uuid, log: &RawAttendanceLog) -> Result<bool, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -67,7 +70,10 @@ impl RawAttendanceLogRepository for DieselRawAttendanceLogRepository {
     ) -> Result<Option<RawAttendanceLog>, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -90,7 +96,10 @@ impl RawAttendanceLogRepository for DieselRawAttendanceLogRepository {
     ) -> Result<Option<RawAttendanceLog>, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -118,7 +127,10 @@ impl RawAttendanceLogRepository for DieselRawAttendanceLogRepository {
     ) -> Result<Vec<RawAttendanceLogWithEmployee>, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -192,7 +204,10 @@ impl RawAttendanceLogRepository for DieselRawAttendanceLogRepository {
     ) -> Result<i64, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -222,14 +237,17 @@ impl RawAttendanceLogRepository for DieselRawAttendanceLogRepository {
         Ok(count)
     }
 
-    async fn create_raw_logs_batch(&self, logs: &[&RawAttendanceLog]) -> Result<usize, AppError> {
+    async fn create_raw_logs_batch(&self, workspace_id: Uuid, logs: &[&RawAttendanceLog]) -> Result<usize, AppError> {
         if logs.is_empty() {
             return Ok(0);
         }
 
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -276,7 +294,10 @@ impl RawAttendanceLogRepository for DieselRawAttendanceLogRepository {
     ) -> Result<bool, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -304,7 +325,10 @@ impl RawAttendanceLogRepository for DieselRawAttendanceLogRepository {
     ) -> Result<Vec<RawAttendanceLog>, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;

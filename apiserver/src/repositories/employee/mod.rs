@@ -95,9 +95,9 @@ pub trait EmployeeRepository: Send + Sync {
         employee_id: Uuid,
     ) -> Result<Vec<WorkingCondition>, AppError>;
 
-    async fn create_working_condition(&self, condition: &WorkingCondition) -> Result<(), AppError>;
+    async fn create_working_condition(&self, workspace_id: Uuid, condition: &WorkingCondition) -> Result<(), AppError>;
 
-    async fn delete_working_condition(&self, id: Uuid, employee_id: Uuid)
+    async fn delete_working_condition(&self, workspace_id: Uuid, id: Uuid, employee_id: Uuid)
         -> Result<bool, AppError>;
 
     async fn get_existing_employee_ids_by_numbers(
@@ -108,6 +108,7 @@ pub trait EmployeeRepository: Send + Sync {
 
     async fn upsert_employee_payroll_config(
         &self,
+        workspace_id: Uuid,
         employee_id: Uuid,
         std_working_days: Decimal,
         hours_per_day: Decimal,
@@ -116,6 +117,7 @@ pub trait EmployeeRepository: Send + Sync {
 
     async fn get_employee_payroll_config_at(
         &self,
+        workspace_id: Uuid,
         employee_id: Uuid,
         date: NaiveDate,
     ) -> Result<Option<EmployeePayrollConfig>, AppError>;
@@ -206,6 +208,7 @@ pub trait EmployeeRepository: Send + Sync {
 
     async fn upsert_employee_profile(
         &self,
+        workspace_id: Uuid,
         employee_id: Uuid,
         req: &crate::models::UpdateEmployeeProfileRequest,
     ) -> Result<crate::models::EmployeeProfile, AppError>;
@@ -218,6 +221,7 @@ pub trait EmployeeRepository: Send + Sync {
 
     async fn upsert_emergency_contact(
         &self,
+        workspace_id: Uuid,
         employee_id: Uuid,
         req: &crate::models::CreateEmergencyContactRequest,
     ) -> Result<crate::models::EmployeeEmergencyContact, AppError>;

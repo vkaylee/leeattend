@@ -55,7 +55,7 @@ async fn test_payroll_std_days_source_traceability() {
         .await
         .unwrap();
 
-    pr.assign_employee_salary_component(
+    pr.assign_employee_salary_component(workspace_id, 
         employee_id,
         base_comp.id,
         Decimal::from(10_000_000),
@@ -120,7 +120,7 @@ async fn test_payroll_std_days_source_traceability() {
     .unwrap();
     let pr_instance = apiserver::repositories::DieselPayrollRepository::new(diesel_pools.clone());
     let segments_a = pr_instance
-        .get_payslip_segments(payslip_a.id)
+        .get_payslip_segments(workspace_id, payslip_a.id)
         .await
         .unwrap();
     assert_eq!(segments_a.len(), 1);
@@ -200,7 +200,7 @@ async fn test_payroll_std_days_source_traceability() {
     .await
     .unwrap();
     let segments_b = pr_instance
-        .get_payslip_segments(payslip_b.id)
+        .get_payslip_segments(workspace_id, payslip_b.id)
         .await
         .unwrap();
     assert_eq!(segments_b.len(), 1);
@@ -210,7 +210,7 @@ async fn test_payroll_std_days_source_traceability() {
     // 5. Scenario C: Department Override
     let dept_repo = apiserver::repositories::DieselDepartmentRepository::new(diesel_pools.clone());
     dept_repo
-        .upsert_department_payroll_config(
+        .upsert_department_payroll_config(workspace_id, 
             dept_id,
             Decimal::from(22),
             Decimal::from(8),
@@ -275,7 +275,7 @@ async fn test_payroll_std_days_source_traceability() {
     .await
     .unwrap();
     let segments_c = pr_instance
-        .get_payslip_segments(payslip_c.id)
+        .get_payslip_segments(workspace_id, payslip_c.id)
         .await
         .unwrap();
     assert_eq!(segments_c.len(), 1);
@@ -286,7 +286,7 @@ async fn test_payroll_std_days_source_traceability() {
     let employee_repo =
         apiserver::repositories::DieselEmployeeRepository::new(diesel_pools.clone());
     employee_repo
-        .upsert_employee_payroll_config(
+        .upsert_employee_payroll_config(workspace_id, 
             employee_id,
             Decimal::from(20),
             Decimal::from(8),
@@ -351,7 +351,7 @@ async fn test_payroll_std_days_source_traceability() {
     .await
     .unwrap();
     let segments_d = pr_instance
-        .get_payslip_segments(payslip_d.id)
+        .get_payslip_segments(workspace_id, payslip_d.id)
         .await
         .unwrap();
     assert_eq!(segments_d.len(), 1);

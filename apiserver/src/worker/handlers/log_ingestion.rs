@@ -138,8 +138,7 @@ mod tests {
         let mut raw_log_repo = crate::repositories::raw_attendance_log_repository::MockRawAttendanceLogRepository::new();
         raw_log_repo.expect_has_duplicate_raw_log()
             .returning(|_, _, _, _| Box::pin(async { Ok(false) }));
-        raw_log_repo.expect_create_raw_log()
-            .returning(|_| Box::pin(async { Ok(true) }));
+        raw_log_repo.expect_create_raw_log().returning(|_, _| Box::pin(async { Ok(true) }));
         raw_log_repo.expect_get_employee_logs_in_time_range()
             .returning(|_, _, _, _| Box::pin(async { Ok(vec![]) }));
 

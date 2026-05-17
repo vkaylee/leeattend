@@ -34,10 +34,13 @@ impl PayrollRuleRepository for DieselPayrollRuleRepository {
     ) -> Result<PayrollRuleDefinition, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&args.workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
-            .map_err(|e| AppError::Internal(format!("Failed to get diesel connection: {e}")))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let entity = PayrollRuleDefinitionEntity {
             id: Uuid::new_v4(),
@@ -71,10 +74,13 @@ impl PayrollRuleRepository for DieselPayrollRuleRepository {
     ) -> Result<Vec<PayrollRuleDefinition>, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
-            .map_err(|e| AppError::Internal(format!("Failed to get diesel connection: {e}")))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let entities = payroll_rule_definitions::table
             .filter(payroll_rule_definitions::workspace_id.eq(workspace_id))
@@ -91,6 +97,7 @@ impl PayrollRuleRepository for DieselPayrollRuleRepository {
 
     async fn create_tier(
         &self,
+        workspace_id: Uuid,
         rule_definition_id: Uuid,
         tier_order: i32,
         min_amount: Decimal,
@@ -100,10 +107,13 @@ impl PayrollRuleRepository for DieselPayrollRuleRepository {
     ) -> Result<PayrollRuleTier, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
-            .map_err(|e| AppError::Internal(format!("Failed to get diesel connection: {e}")))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let entity = PayrollRuleTierEntity {
             id: Uuid::new_v4(),
@@ -128,14 +138,18 @@ impl PayrollRuleRepository for DieselPayrollRuleRepository {
 
     async fn get_tiers_for_rule(
         &self,
+        workspace_id: Uuid,
         rule_definition_id: Uuid,
     ) -> Result<Vec<PayrollRuleTier>, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
-            .map_err(|e| AppError::Internal(format!("Failed to get diesel connection: {e}")))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let entities = payroll_rule_tiers::table
             .filter(payroll_rule_tiers::rule_definition_id.eq(rule_definition_id))
@@ -147,13 +161,16 @@ impl PayrollRuleRepository for DieselPayrollRuleRepository {
         Ok(entities.into_iter().map(Into::into).collect())
     }
 
-    async fn delete_tier(&self, rule_definition_id: Uuid, tier_id: Uuid) -> Result<(), AppError> {
+    async fn delete_tier(&self, workspace_id: Uuid, rule_definition_id: Uuid, tier_id: Uuid) -> Result<(), AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
-            .map_err(|e| AppError::Internal(format!("Failed to get diesel connection: {e}")))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         diesel::delete(payroll_rule_tiers::table)
             .filter(payroll_rule_tiers::id.eq(tier_id))
@@ -171,10 +188,13 @@ impl PayrollRuleRepository for DieselPayrollRuleRepository {
     ) -> Result<PayrollRuleAssignment, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&args.workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
-            .map_err(|e| AppError::Internal(format!("Failed to get diesel connection: {e}")))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let entity = PayrollRuleAssignmentEntity {
             id: Uuid::new_v4(),
@@ -217,10 +237,13 @@ impl PayrollRuleRepository for DieselPayrollRuleRepository {
     ) -> Result<Vec<PayrollRuleAssignment>, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
-            .map_err(|e| AppError::Internal(format!("Failed to get diesel connection: {e}")))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let entities = payroll_rule_assignments::table
             .filter(payroll_rule_assignments::workspace_id.eq(workspace_id))
@@ -241,10 +264,13 @@ impl PayrollRuleRepository for DieselPayrollRuleRepository {
     ) -> Result<(), AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
-            .map_err(|e| AppError::Internal(format!("Failed to get diesel connection: {e}")))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         diesel::delete(payroll_rule_assignments::table)
             .filter(payroll_rule_assignments::id.eq(assignment_id))

@@ -23,6 +23,7 @@ pub trait PayrollRuleRepository: Send + Sync {
 
     async fn create_tier(
         &self,
+        workspace_id: Uuid,
         rule_definition_id: Uuid,
         tier_order: i32,
         min_amount: rust_decimal::Decimal,
@@ -33,10 +34,11 @@ pub trait PayrollRuleRepository: Send + Sync {
 
     async fn get_tiers_for_rule(
         &self,
+        workspace_id: Uuid,
         rule_definition_id: Uuid,
     ) -> Result<Vec<PayrollRuleTier>, AppError>;
 
-    async fn delete_tier(&self, rule_definition_id: Uuid, tier_id: Uuid) -> Result<(), AppError>;
+    async fn delete_tier(&self, workspace_id: Uuid, rule_definition_id: Uuid, tier_id: Uuid) -> Result<(), AppError>;
 
     async fn assign_rule(
         &self,

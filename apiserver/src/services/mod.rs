@@ -28,6 +28,7 @@ pub mod shift_swap_service;
 pub mod time_tracking_service;
 pub mod working_pattern_service;
 pub mod workspace_service;
+pub mod tenant_provisioner;
 
 pub use agent_service::AgentService;
 pub use attendance_calculator::AttendanceCalculator;

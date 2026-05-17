@@ -209,31 +209,38 @@ async fn process_batch(
         return;
     }
 
-    // Extract raw logs for batch insert
-    let raw_logs: Vec<&RawAttendanceLog> = parsed_logs.iter().map(|p| &p.raw_log).collect();
+    // Group logs by workspace_id
+    use std::collections::HashMap;
+    let mut logs_by_workspace: HashMap<Uuid, Vec<&RawAttendanceLog>> = HashMap::new();
+    for parsed in &parsed_logs {
+        logs_by_workspace
+            .entry(parsed.raw_log.workspace_id)
+            .or_default()
+            .push(&parsed.raw_log);
+    }
 
-    // Batch insert to database
-    match raw_log_repo.create_raw_logs_batch(&raw_logs).await {
-        Ok(inserted_count) => {
-            info!(
-                "Batch insert complete: {}/{} logs inserted ({} duplicates skipped, {} parse errors)",
-                inserted_count,
-                batch_len,
-                raw_logs.len() - inserted_count,
-                parse_errors
-            );
-
-            // Trigger pairing for each successfully inserted log
-            for parsed in &parsed_logs {
-                if let Err(e) = pairing_service.process_new_raw_log(&parsed.raw_log).await {
-                    error!("Pairing error for log {}: {:?}", parsed.raw_log.id, e);
-                }
+    // Batch insert to database per workspace
+    for (workspace_id, raw_logs) in logs_by_workspace {
+        match raw_log_repo.create_raw_logs_batch(workspace_id, &raw_logs).await {
+            Ok(inserted_count) => {
+                info!(
+                    "Batch insert complete for workspace {}: {}/{} logs inserted",
+                    workspace_id,
+                    inserted_count,
+                    raw_logs.len(),
+                );
+            }
+            Err(e) => {
+                error!("Batch insert failed for workspace {}: {}", workspace_id, e);
+                // Logs are lost on batch failure - acceptable for real-time logs
             }
         }
-        Err(e) => {
-            error!("Batch insert failed: {}", e);
-            // Logs are lost on batch failure - acceptable for real-time logs
-            // Agent can retry if needed
+    }
+
+    // Trigger pairing for each successfully parsed log
+    for parsed in &parsed_logs {
+        if let Err(e) = pairing_service.process_new_raw_log(&parsed.raw_log).await {
+            error!("Pairing error for log {}: {:?}", parsed.raw_log.id, e);
         }
     }
 }

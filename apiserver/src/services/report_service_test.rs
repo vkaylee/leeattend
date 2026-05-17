@@ -298,10 +298,10 @@ mod tests {
         ) -> Result<Vec<WorkingCondition>, AppError> {
             unimplemented!()
         }
-        async fn create_working_condition(&self, _c: &WorkingCondition) -> Result<(), AppError> {
+        async fn create_working_condition(&self, _ws: Uuid, _c: &WorkingCondition) -> Result<(), AppError> {
             unimplemented!()
         }
-        async fn delete_working_condition(&self, _i: Uuid, _e: Uuid) -> Result<bool, AppError> {
+        async fn delete_working_condition(&self, _ws: Uuid, _i: Uuid, _e: Uuid) -> Result<bool, AppError> {
             unimplemented!()
         }
         async fn get_existing_employee_ids_by_numbers(
@@ -313,6 +313,7 @@ mod tests {
         }
         async fn upsert_employee_payroll_config(
             &self,
+            _ws: Uuid,
             _e: Uuid,
             _s: rust_decimal::Decimal,
             _h: rust_decimal::Decimal,
@@ -322,6 +323,7 @@ mod tests {
         }
         async fn get_employee_payroll_config_at(
             &self,
+            _ws: Uuid,
             _e: Uuid,
             _d: NaiveDate,
         ) -> Result<Option<EmployeePayrollConfig>, AppError> {
@@ -419,6 +421,7 @@ mod tests {
         }
         async fn upsert_employee_profile(
             &self,
+            _ws: Uuid,
             _e: Uuid,
             _r: &crate::models::UpdateEmployeeProfileRequest,
         ) -> Result<EmployeeProfile, AppError> {
@@ -433,6 +436,7 @@ mod tests {
         }
         async fn upsert_emergency_contact(
             &self,
+            _ws: Uuid,
             _e: Uuid,
             _r: &crate::models::CreateEmergencyContactRequest,
         ) -> Result<EmployeeEmergencyContact, AppError> {
@@ -461,7 +465,7 @@ mod tests {
     struct DummyTimeEntryRepo;
     #[async_trait]
     impl crate::repositories::TimeEntryRepository for DummyTimeEntryRepo {
-        async fn create_time_entry(&self, _e: &TimeEntry) -> Result<(), AppError> {
+        async fn create_time_entry(&self, _workspace_id: Uuid, _e: &TimeEntry) -> Result<(), AppError> {
             unimplemented!()
         }
         async fn get_time_entry_by_id(
@@ -576,16 +580,17 @@ mod tests {
         }
         async fn get_employee_rosters(
             &self,
+            _ws: Uuid,
             _e: Uuid,
             _s: NaiveDate,
             _en: NaiveDate,
         ) -> Result<Vec<ShiftRoster>, AppError> {
             unimplemented!()
         }
-        async fn upsert_roster(&self, _r: &ShiftRoster) -> Result<ShiftRoster, AppError> {
+        async fn upsert_roster(&self, _ws: Uuid, _r: &ShiftRoster) -> Result<ShiftRoster, AppError> {
             unimplemented!()
         }
-        async fn bulk_upsert_roster(&self, _e: Uuid, _i: Vec<RosterItem>) -> Result<(), AppError> {
+        async fn bulk_upsert_roster(&self, _ws: Uuid, _e: Uuid, _i: Vec<RosterItem>) -> Result<(), AppError> {
             unimplemented!()
         }
         async fn get_effective_shift(
@@ -596,7 +601,7 @@ mod tests {
         ) -> Result<(Option<Uuid>, Vec<ScheduleTrace>), AppError> {
             unimplemented!()
         }
-        async fn delete_roster(&self, _e: Uuid, _d: NaiveDate) -> Result<(), AppError> {
+        async fn delete_roster(&self, _w: Uuid, _e: Uuid, _d: NaiveDate) -> Result<(), AppError> {
             unimplemented!()
         }
     }
@@ -668,7 +673,7 @@ mod tests {
     struct DummyLeaveRepo;
     #[async_trait]
     impl crate::repositories::leave_request_repository::LeaveRequestRepository for DummyLeaveRepo {
-        async fn create_leave_request(&self, _r: &LeaveRequest) -> Result<(), AppError> {
+        async fn create_leave_request(&self, _w: Uuid, _r: &LeaveRequest) -> Result<(), AppError> {
             unimplemented!()
         }
         async fn get_leave_request_by_id(
@@ -761,6 +766,7 @@ mod tests {
         }
         async fn get_batch_leave_days(
             &self,
+            _ws: Uuid,
             _e: &[Uuid],
             _s: NaiveDate,
             _en: NaiveDate,
@@ -1049,10 +1055,10 @@ mod tests {
         ) -> Result<Vec<WorkingCondition>, AppError> {
             unimplemented!()
         }
-        async fn create_working_condition(&self, _c: &WorkingCondition) -> Result<(), AppError> {
+        async fn create_working_condition(&self, _ws: Uuid, _c: &WorkingCondition) -> Result<(), AppError> {
             unimplemented!()
         }
-        async fn delete_working_condition(&self, _i: Uuid, _e: Uuid) -> Result<bool, AppError> {
+        async fn delete_working_condition(&self, _ws: Uuid, _i: Uuid, _e: Uuid) -> Result<bool, AppError> {
             unimplemented!()
         }
         async fn get_existing_employee_ids_by_numbers(
@@ -1064,6 +1070,7 @@ mod tests {
         }
         async fn upsert_employee_payroll_config(
             &self,
+            _ws: Uuid,
             _e: Uuid,
             _s: rust_decimal::Decimal,
             _h: rust_decimal::Decimal,
@@ -1073,6 +1080,7 @@ mod tests {
         }
         async fn get_employee_payroll_config_at(
             &self,
+            _ws: Uuid,
             _e: Uuid,
             _d: NaiveDate,
         ) -> Result<Option<EmployeePayrollConfig>, AppError> {
@@ -1170,6 +1178,7 @@ mod tests {
         }
         async fn upsert_employee_profile(
             &self,
+            _ws: Uuid,
             _e: Uuid,
             _r: &crate::models::UpdateEmployeeProfileRequest,
         ) -> Result<EmployeeProfile, AppError> {
@@ -1184,6 +1193,7 @@ mod tests {
         }
         async fn upsert_emergency_contact(
             &self,
+            _ws: Uuid,
             _e: Uuid,
             _r: &crate::models::CreateEmergencyContactRequest,
         ) -> Result<EmployeeEmergencyContact, AppError> {
@@ -1253,16 +1263,17 @@ mod tests {
         }
         async fn get_employee_rosters(
             &self,
+            _ws: Uuid,
             _e: Uuid,
             _s: NaiveDate,
             _en: NaiveDate,
         ) -> Result<Vec<ShiftRoster>, AppError> {
             unimplemented!()
         }
-        async fn upsert_roster(&self, _r: &ShiftRoster) -> Result<ShiftRoster, AppError> {
+        async fn upsert_roster(&self, _ws: Uuid, _r: &ShiftRoster) -> Result<ShiftRoster, AppError> {
             unimplemented!()
         }
-        async fn bulk_upsert_roster(&self, _e: Uuid, _i: Vec<RosterItem>) -> Result<(), AppError> {
+        async fn bulk_upsert_roster(&self, _ws: Uuid, _e: Uuid, _i: Vec<RosterItem>) -> Result<(), AppError> {
             unimplemented!()
         }
         async fn get_effective_shift(
@@ -1273,7 +1284,7 @@ mod tests {
         ) -> Result<(Option<Uuid>, Vec<ScheduleTrace>), AppError> {
             unimplemented!()
         }
-        async fn delete_roster(&self, _e: Uuid, _d: NaiveDate) -> Result<(), AppError> {
+        async fn delete_roster(&self, _w: Uuid, _e: Uuid, _d: NaiveDate) -> Result<(), AppError> {
             unimplemented!()
         }
     }
@@ -1281,7 +1292,7 @@ mod tests {
     struct EmptyTimeEntryRepo;
     #[async_trait]
     impl crate::repositories::TimeEntryRepository for EmptyTimeEntryRepo {
-        async fn create_time_entry(&self, _e: &TimeEntry) -> Result<(), AppError> {
+        async fn create_time_entry(&self, _workspace_id: Uuid, _e: &TimeEntry) -> Result<(), AppError> {
             unimplemented!()
         }
         async fn get_time_entry_by_id(
@@ -1527,7 +1538,7 @@ mod tests {
     struct EmptyLeaveRepo;
     #[async_trait]
     impl crate::repositories::leave_request_repository::LeaveRequestRepository for EmptyLeaveRepo {
-        async fn create_leave_request(&self, _r: &LeaveRequest) -> Result<(), AppError> {
+        async fn create_leave_request(&self, _w: Uuid, _r: &LeaveRequest) -> Result<(), AppError> {
             unimplemented!()
         }
         async fn get_leave_request_by_id(
@@ -1620,6 +1631,7 @@ mod tests {
         }
         async fn get_batch_leave_days(
             &self,
+            _ws: Uuid,
             _e: &[Uuid],
             _s: NaiveDate,
             _en: NaiveDate,

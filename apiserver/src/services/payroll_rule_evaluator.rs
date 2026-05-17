@@ -75,7 +75,7 @@ impl PayrollRuleEvaluator {
                 }
                 PayrollCalculationMethod::Tiered => {
                     let tiers = payroll_repo
-                        .get_payroll_rule_tiers(assignment.rule_definition_id)
+                        .get_payroll_rule_tiers(workspace_id, assignment.rule_definition_id)
                         .await?;
 
                     let base_type = config
@@ -165,6 +165,7 @@ mod tests {
         }
         async fn get_payroll_rule_tiers(
             &self,
+            _w: Uuid,
             _r: Uuid,
         ) -> Result<Vec<crate::models::PayrollRuleTier>, AppError> {
             Ok(self.tiers.clone())
@@ -185,6 +186,7 @@ mod tests {
         }
         async fn get_policy_tiers(
             &self,
+            _w: Uuid,
             _p: Uuid,
         ) -> Result<Vec<crate::models::IncentiveTier>, AppError> {
             Ok(vec![])
@@ -208,6 +210,7 @@ mod tests {
         }
         async fn create_payslip_incentive(
             &self,
+            _w: Uuid,
             _p: Uuid,
             _r: &crate::models::IncentiveEvaluationResult,
         ) -> Result<(), AppError> {
@@ -215,12 +218,14 @@ mod tests {
         }
         async fn get_payslip_incentives(
             &self,
+            _w: Uuid,
             _p: Uuid,
         ) -> Result<Vec<crate::models::IncentiveEvaluationResult>, AppError> {
             Ok(vec![])
         }
         async fn create_payslip_rule_evaluation(
             &self,
+            _w: Uuid,
             _p: Uuid,
             _c: String,
             _a: Decimal,
@@ -229,6 +234,7 @@ mod tests {
         }
         async fn get_payslip_rule_evaluations(
             &self,
+            _w: Uuid,
             _p: Uuid,
         ) -> Result<Vec<crate::models::PayslipRuleEvaluation>, AppError> {
             Ok(vec![])
@@ -275,6 +281,7 @@ mod tests {
         }
         async fn assign_employee_salary_component(
             &self,
+            _w: Uuid,
             _e: Uuid,
             _c: Uuid,
             _a: Decimal,
@@ -334,6 +341,7 @@ mod tests {
         }
         async fn create_payslip_segment(
             &self,
+            _w: Uuid,
             _p: Uuid,
             _a: &crate::models::CreatePayslipSegmentArgs,
         ) -> Result<(), AppError> {
@@ -341,12 +349,14 @@ mod tests {
         }
         async fn get_payslip_segments(
             &self,
+            _w: Uuid,
             _p: Uuid,
         ) -> Result<Vec<crate::models::PayslipSegment>, AppError> {
             Ok(vec![])
         }
         async fn get_department_payroll_config_at(
             &self,
+            _ws: Uuid,
             _d: Uuid,
             _dt: NaiveDate,
         ) -> Result<Option<crate::models::DepartmentPayrollConfig>, AppError> {

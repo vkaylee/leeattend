@@ -32,7 +32,10 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
     ) -> Result<Vec<crate::models::LeaveType>, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -57,7 +60,10 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
     ) -> Result<crate::models::LeaveType, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -89,7 +95,10 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
     ) -> Result<crate::models::LeaveType, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -115,7 +124,10 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
     async fn delete_leave_type(&self, id: Uuid, workspace_id: Uuid) -> Result<u64, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -160,7 +172,10 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
     ) -> Result<LeavePolicyDefinition, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -191,7 +206,10 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
     ) -> Result<Vec<LeavePolicyDefinition>, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -217,7 +235,10 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
     ) -> Result<LeavePolicyDefinition, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -251,7 +272,10 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
     ) -> Result<u64, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -285,11 +309,15 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
 
     async fn create_policy_assignment(
         &self,
+        workspace_id: Uuid,
         assignment: &LeavePolicyAssignment,
     ) -> Result<LeavePolicyAssignment, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -414,7 +442,10 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
     ) -> Result<Option<(LeavePolicyDefinition, Uuid, String)>, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -517,7 +548,10 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
     ) -> Result<Vec<LeavePolicyAssignmentDetail>, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;

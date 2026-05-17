@@ -19,11 +19,13 @@ pub trait SalaryBaseRepository: Send + Sync {
     ) -> Result<Vec<SalaryBaseGroupMember>, AppError>;
     async fn assign_component_to_group(
         &self,
+        workspace_id: Uuid,
         component_id: Uuid,
         base_group_id: Uuid,
     ) -> Result<(), AppError>;
     async fn unassign_component_from_group(
         &self,
+        workspace_id: Uuid,
         component_id: Uuid,
         base_group_id: Uuid,
     ) -> Result<(), AppError>;

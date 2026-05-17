@@ -199,7 +199,7 @@ impl AttendanceHandler {
         // Batch fetch leave data
         let leave_data = args
             .leave_repo
-            .get_batch_leave_days(&emp_ids, args.start_date, args.end_date)
+            .get_batch_leave_days(args.workspace_id, &emp_ids, args.start_date, args.end_date)
             .await
             .map_err(|e| format!("Failed to fetch leave data: {e}"))?;
 
@@ -1018,7 +1018,7 @@ mod tests {
 
         builder.roster_repo.expect_get_workspace_schedules().returning(|_, _, _, _, _| Box::pin(async move { Ok(vec![]) }));
         builder.time_entry_repo.expect_get_workspace_time_entries_batch().returning(|_, _, _, _| Ok(HashMap::new()));
-        builder.leave_request_repo.expect_get_batch_leave_days().returning(|_, _, _| Box::pin(async move { Ok(HashMap::new()) }));
+        builder.leave_request_repo.expect_get_batch_leave_days().returning(|_, _, _, _| Box::pin(async move { Ok(HashMap::new()) }));
         builder.employee_repo.expect_get_working_conditions_batch().returning(|_, _, _, _| Box::pin(async move { Ok(Default::default()) }));
         builder.policy_repo.expect_get_employee_effective_policies_batch().returning(|_, _, _| Ok(HashMap::new()));
 
@@ -1167,7 +1167,7 @@ mod tests {
             Ok(map)
         });
 
-        builder.leave_request_repo.expect_get_batch_leave_days().returning(|_, _, _| Box::pin(async move { Ok(HashMap::new()) }));
+        builder.leave_request_repo.expect_get_batch_leave_days().returning(|_, _, _, _| Box::pin(async move { Ok(HashMap::new()) }));
         builder.employee_repo.expect_get_working_conditions_batch().returning(|_, _, _, _| Box::pin(async move { Ok(Default::default()) }));
         builder.policy_repo.expect_get_employee_effective_policies_batch().returning(|_, _, _| Ok(HashMap::new()));
 
@@ -1318,7 +1318,7 @@ mod tests {
             Ok(map)
         });
 
-        builder.leave_request_repo.expect_get_batch_leave_days().returning(move |_, _, _| {
+        builder.leave_request_repo.expect_get_batch_leave_days().returning(move |_, _, _, _| {
             let mut map = HashMap::new();
             map.insert(emp_id, 2);
             Box::pin(async move { Ok(map) })

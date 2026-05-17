@@ -117,7 +117,7 @@ pub async fn assign_shift(
     state
         .shifts
         .service
-        .assign_shift(req.employee_id, req.shift_id, req.start_date, req.end_date)
+        .assign_shift(ctx.workspace_id, req.employee_id, req.shift_id, req.start_date, req.end_date)
         .await?;
 
     if let Some(cache) = &state.infra.roster_cache {
@@ -178,6 +178,7 @@ pub async fn get_assignment_history(
 pub async fn get_employee_rosters(
     State(state): State<Arc<AppState>>,
     Path((_, employee_id)): Path<(Uuid, Uuid)>,
+    ctx: MemberContext,
     Query(params): Query<std::collections::HashMap<String, String>>,
 ) -> AppResult<Json<Vec<ShiftRoster>>> {
     let start_date = params
@@ -193,7 +194,7 @@ pub async fn get_employee_rosters(
     let rosters = state
         .shifts
         .roster_repo
-        .get_employee_rosters(employee_id, start_date, end_date)
+        .get_employee_rosters(ctx.workspace_id, employee_id, start_date, end_date)
         .await?;
 
     Ok(Json(rosters))
@@ -217,7 +218,7 @@ pub async fn upsert_roster(
         updated_at: chrono::Utc::now(),
     };
 
-    let saved = state.shifts.roster_repo.upsert_roster(&roster).await?;
+    let saved = state.shifts.roster_repo.upsert_roster(ctx.workspace_id, &roster).await?;
 
     if let Some(cache) = &state.infra.roster_cache {
         cache.invalidate(ctx.workspace_id).await;
@@ -239,7 +240,7 @@ pub async fn bulk_upsert_roster(
     state
         .shifts
         .roster_repo
-        .bulk_upsert_roster(employee_id, req.items)
+        .bulk_upsert_roster(ctx.workspace_id, employee_id, req.items)
         .await?;
 
     if let Some(cache) = &state.infra.roster_cache {
@@ -262,7 +263,7 @@ pub async fn delete_roster(
     state
         .shifts
         .roster_repo
-        .delete_roster(employee_id, date)
+        .delete_roster(ctx.workspace_id, employee_id, date)
         .await?;
 
     if let Some(cache) = &state.infra.roster_cache {

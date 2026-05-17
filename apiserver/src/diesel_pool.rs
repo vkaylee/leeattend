@@ -25,6 +25,9 @@ pub struct DbPoolConfig {
     pub worker_max_conn: u32,
     /// Worker pool: acquire timeout in seconds (default: 30)
     pub worker_acquire_timeout_secs: u64,
+
+    /// Tenant pool: max connections (default: 5)
+    pub tenant_max_conn: u32,
 }
 
 impl DbPoolConfig {
@@ -48,6 +51,7 @@ impl DbPoolConfig {
             api_acquire_timeout_secs: env_parse("DB_API_ACQUIRE_TIMEOUT_SECS", 5),
             worker_max_conn: env_parse("DB_WORKER_MAX_CONN", 5),
             worker_acquire_timeout_secs: env_parse("DB_WORKER_ACQUIRE_TIMEOUT_SECS", 30),
+            tenant_max_conn: env_parse("DB_TENANT_MAX_CONN", 5),
         }
     }
 
@@ -67,10 +71,67 @@ fn env_parse<T: std::str::FromStr>(key: &str, default: T) -> T {
         .unwrap_or(default)
 }
 
+use std::collections::HashMap;
+use std::sync::Arc;
+use tokio::sync::RwLock;
+use uuid::Uuid;
+use crate::errors::AppError;
+
+pub struct TenantPoolManager {
+    base_url: String,
+    max_size: usize,
+    pools: RwLock<HashMap<Uuid, DieselPool>>,
+}
+
+impl TenantPoolManager {
+    pub fn new(base_url: String, max_size: usize) -> Self {
+        Self {
+            base_url,
+            max_size,
+            pools: RwLock::new(HashMap::new()),
+        }
+    }
+
+    pub async fn get_pool(&self, workspace_id: &Uuid) -> Result<DieselPool, AppError> {
+        // Fast path
+        {
+            let pools = self.pools.read().await;
+            if let Some(pool) = pools.get(workspace_id) {
+                return Ok(pool.clone());
+            }
+        }
+
+        // Slow path
+        let mut pools = self.pools.write().await;
+        if let Some(pool) = pools.get(workspace_id) {
+            return Ok(pool.clone());
+        }
+
+        let db_name = format!("tenant_{}", workspace_id.to_string().replace("-", ""));
+        let mut parsed_url = reqwest::Url::parse(&self.base_url).map_err(|e| {
+            AppError::Internal(format!("Invalid base pool URL: {}", e))
+        })?;
+        parsed_url.set_path(&db_name);
+        
+        let tenant_url = parsed_url.to_string();
+        let manager = AsyncDieselConnectionManager::<AsyncPgConnection>::new(tenant_url);
+        let pool = Pool::builder(manager)
+            .max_size(self.max_size)
+            .wait_timeout(Some(Duration::from_secs(5)))
+            .runtime(deadpool::Runtime::Tokio1)
+            .build()
+            .map_err(|e| AppError::Internal(format!("Failed to create tenant pool: {}", e)))?;
+
+        pools.insert(*workspace_id, pool.clone());
+        Ok(pool)
+    }
+}
+
 #[derive(Clone)]
 pub struct DieselPools {
     pub api: DieselPool,
     pub worker: DieselPool,
+    pub tenants: Arc<TenantPoolManager>,
 }
 
 impl DieselPools {
@@ -103,11 +164,17 @@ impl DieselPools {
             .build()
             .expect("Failed to create Worker Diesel pool");
 
+        let tenant_manager = Arc::new(TenantPoolManager::new(
+            api_conn_url.to_string(),
+            config.tenant_max_conn as usize,
+        ));
+
         tracing::info!("Diesel pools connected successfully");
 
         Self {
             api: api_pool,
             worker: worker_pool,
+            tenants: tenant_manager,
         }
     }
 
@@ -116,15 +183,19 @@ impl DieselPools {
         use diesel::Connection;
         use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 
-        pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("./migrations");
+        pub const SYSTEM_MIGRATIONS: EmbeddedMigrations = embed_migrations!("./migrations/system");
+        pub const TENANT_MIGRATIONS: EmbeddedMigrations = embed_migrations!("./migrations/tenant");
 
         let mut conn = diesel::PgConnection::establish(&config.primary_url)
             .expect("Failed to connect to primary database for migrations");
 
-        conn.run_pending_migrations(MIGRATIONS)
-            .expect("Failed to run migrations");
+        conn.run_pending_migrations(SYSTEM_MIGRATIONS)
+            .expect("Failed to run system migrations");
+            
+        conn.run_pending_migrations(TENANT_MIGRATIONS)
+            .expect("Failed to run tenant migrations");
 
-        tracing::info!("Database migrations completed successfully");
+        tracing::info!("Database migrations (system + tenant) completed successfully");
     }
 
     #[allow(clippy::expect_used)]
@@ -142,9 +213,15 @@ impl DieselPools {
             .build()
             .expect("Failed to create test Worker Diesel pool");
 
+        let tenant_manager = Arc::new(TenantPoolManager::new(
+            url.to_string(),
+            5,
+        ));
+
         Self {
             api: api_pool,
             worker: worker_pool,
+            tenants: tenant_manager,
         }
     }
 }

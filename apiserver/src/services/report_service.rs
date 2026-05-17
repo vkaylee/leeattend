@@ -505,7 +505,7 @@ impl ReportService {
         // 6. Fetch leave days for paginated employees (batch query)
         let leave_data = self
             .leave_repo
-            .get_batch_leave_days(&emp_ids, args.start_date, args.end_date)
+            .get_batch_leave_days(args.workspace_id, &emp_ids, args.start_date, args.end_date)
             .await?;
 
         // 6b. BATCH fetch attendance rules (SCD Type 2)

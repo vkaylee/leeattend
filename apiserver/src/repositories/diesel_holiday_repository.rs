@@ -27,7 +27,10 @@ impl HolidayRepository for DieselHolidayRepository {
     async fn list(&self, workspace_id: Uuid, year: Option<i32>) -> Result<Vec<Holiday>, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -59,7 +62,10 @@ impl HolidayRepository for DieselHolidayRepository {
     async fn get_by_id(&self, workspace_id: Uuid, id: Uuid) -> Result<Option<Holiday>, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -82,7 +88,10 @@ impl HolidayRepository for DieselHolidayRepository {
     ) -> Result<Holiday, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -120,7 +129,10 @@ impl HolidayRepository for DieselHolidayRepository {
     ) -> Result<Option<Holiday>, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -157,7 +169,10 @@ impl HolidayRepository for DieselHolidayRepository {
     async fn delete(&self, workspace_id: Uuid, id: Uuid) -> Result<bool, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -180,7 +195,10 @@ impl HolidayRepository for DieselHolidayRepository {
     ) -> Result<HashMap<NaiveDate, Holiday>, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -204,7 +222,10 @@ impl HolidayRepository for DieselHolidayRepository {
     ) -> Result<Option<Holiday>, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;

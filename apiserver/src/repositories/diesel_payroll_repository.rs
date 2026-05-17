@@ -40,7 +40,10 @@ impl PayrollRepository for DieselPayrollRepository {
     ) -> Result<Vec<PayrollIncentivePolicy>, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -63,7 +66,10 @@ impl PayrollRepository for DieselPayrollRepository {
     ) -> Result<Vec<PayrollIncentivePolicy>, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -84,10 +90,13 @@ impl PayrollRepository for DieselPayrollRepository {
         Ok(entities.into_iter().map(Into::into).collect())
     }
 
-    async fn get_policy_tiers(&self, policy_id: Uuid) -> Result<Vec<IncentiveTier>, AppError> {
+    async fn get_policy_tiers(&self, workspace_id: Uuid, policy_id: Uuid) -> Result<Vec<IncentiveTier>, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -111,7 +120,10 @@ impl PayrollRepository for DieselPayrollRepository {
 
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -172,7 +184,10 @@ impl PayrollRepository for DieselPayrollRepository {
 
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -198,7 +213,10 @@ impl PayrollRepository for DieselPayrollRepository {
 
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -275,12 +293,16 @@ impl PayrollRepository for DieselPayrollRepository {
 
     async fn create_payslip_incentive(
         &self,
+        workspace_id: Uuid,
         payslip_id: Uuid,
         result: &IncentiveEvaluationResult,
     ) -> Result<(), AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -306,11 +328,15 @@ impl PayrollRepository for DieselPayrollRepository {
 
     async fn get_payslip_incentives(
         &self,
+        workspace_id: Uuid,
         payslip_id: Uuid,
     ) -> Result<Vec<IncentiveEvaluationResult>, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -334,13 +360,17 @@ impl PayrollRepository for DieselPayrollRepository {
 
     async fn create_payslip_rule_evaluation(
         &self,
+        workspace_id: Uuid,
         payslip_id: Uuid,
         rule_code: String,
         amount: Decimal,
     ) -> Result<(), AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -364,11 +394,15 @@ impl PayrollRepository for DieselPayrollRepository {
 
     async fn get_payslip_rule_evaluations(
         &self,
+        workspace_id: Uuid,
         payslip_id: Uuid,
     ) -> Result<Vec<PayslipRuleEvaluation>, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -398,7 +432,10 @@ impl PayrollRepository for DieselPayrollRepository {
     ) -> Result<Option<PayrollSettings>, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -421,7 +458,10 @@ impl PayrollRepository for DieselPayrollRepository {
     ) -> Result<Vec<PayrollSettings>, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -443,7 +483,10 @@ impl PayrollRepository for DieselPayrollRepository {
     ) -> Result<PayrollSettings, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -488,7 +531,10 @@ impl PayrollRepository for DieselPayrollRepository {
     ) -> Result<Vec<SalaryComponentDefinition>, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -511,7 +557,10 @@ impl PayrollRepository for DieselPayrollRepository {
     ) -> Result<SalaryComponentDefinition, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -538,6 +587,7 @@ impl PayrollRepository for DieselPayrollRepository {
 
     async fn assign_employee_salary_component(
         &self,
+        workspace_id: Uuid,
         employee_id: Uuid,
         component_definition_id: Uuid,
         amount: Decimal,
@@ -545,7 +595,10 @@ impl PayrollRepository for DieselPayrollRepository {
     ) -> Result<EmployeeSalaryComponent, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -577,7 +630,10 @@ impl PayrollRepository for DieselPayrollRepository {
     ) -> Result<Vec<(EmployeeSalaryComponent, SalaryComponentDefinition)>, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -614,7 +670,10 @@ impl PayrollRepository for DieselPayrollRepository {
         use std::str::FromStr;
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&payslip.workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -664,7 +723,10 @@ impl PayrollRepository for DieselPayrollRepository {
     ) -> Result<Vec<Payslip>, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -688,7 +750,10 @@ impl PayrollRepository for DieselPayrollRepository {
     ) -> Result<Vec<Payslip>, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -714,7 +779,10 @@ impl PayrollRepository for DieselPayrollRepository {
     ) -> Result<Vec<(EmployeeSalaryComponent, SalaryComponentDefinition)>, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -768,13 +836,17 @@ impl PayrollRepository for DieselPayrollRepository {
 
     async fn create_payslip_segment(
         &self,
+        workspace_id: Uuid,
         payslip_id: Uuid,
         args: &crate::models::CreatePayslipSegmentArgs,
     ) -> Result<(), AppError> {
         use std::str::FromStr;
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -815,11 +887,15 @@ impl PayrollRepository for DieselPayrollRepository {
 
     async fn get_payslip_segments(
         &self,
+        workspace_id: Uuid,
         payslip_id: Uuid,
     ) -> Result<Vec<PayslipSegment>, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -843,7 +919,10 @@ impl PayrollRepository for DieselPayrollRepository {
     ) -> Result<Vec<ResolvedRuleAssignment>, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -922,11 +1001,15 @@ impl PayrollRepository for DieselPayrollRepository {
 
     async fn get_payroll_rule_tiers(
         &self,
+        workspace_id: Uuid,
         rule_definition_id: Uuid,
     ) -> Result<Vec<crate::models::PayrollRuleTier>, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -943,12 +1026,16 @@ impl PayrollRepository for DieselPayrollRepository {
 
     async fn get_department_payroll_config_at(
         &self,
+        workspace_id: Uuid,
         department_id: Uuid,
         date: NaiveDate,
     ) -> Result<Option<crate::models::DepartmentPayrollConfig>, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;

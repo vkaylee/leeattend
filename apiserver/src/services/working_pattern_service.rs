@@ -110,9 +110,10 @@ pub async fn list_patterns(
 #[tracing::instrument(skip_all, err)]
 pub async fn get_pattern_details(
     repo: Arc<dyn crate::repositories::working_pattern_repository::WorkingPatternRepositoryTrait>,
+    workspace_id: Uuid,
     pattern_id: Uuid,
 ) -> Result<Vec<WorkingPatternDetail>, crate::errors::AppError> {
-    repo.get_pattern_details(pattern_id).await
+    repo.get_pattern_details(workspace_id, pattern_id).await
 }
 
 #[tracing::instrument(skip_all, err)]
@@ -305,6 +306,7 @@ mod tests {
         }
         async fn assign_employee_shift(
             &self,
+            _ws: Uuid,
             _e: Uuid,
             _s: Uuid,
             _sd: NaiveDate,
@@ -314,6 +316,7 @@ mod tests {
         }
         async fn get_employee_active_shift(
             &self,
+            _ws: Uuid,
             _e: Uuid,
             _d: NaiveDate,
         ) -> Result<Option<Shift>, AppError> {
@@ -321,6 +324,7 @@ mod tests {
         }
         async fn update_assignments_to_new_version(
             &self,
+            _ws: Uuid,
             _o: Uuid,
             _n: Uuid,
             _d: NaiveDate,
@@ -362,6 +366,7 @@ mod tests {
         }
         async fn get_pattern_details(
             &self,
+            _ws: Uuid,
             _pid: Uuid,
         ) -> Result<Vec<WorkingPatternDetail>, AppError> {
             Ok(vec![WorkingPatternDetail {
@@ -445,7 +450,7 @@ mod tests {
     #[tokio::test]
     async fn test_get_pattern_details() {
         let (repo, _) = make_repos();
-        let result = get_pattern_details(repo, Uuid::new_v4()).await.unwrap();
+        let result = get_pattern_details(repo, Uuid::new_v4(), Uuid::new_v4()).await.unwrap();
         assert_eq!(result.len(), 1);
     }
 

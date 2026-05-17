@@ -6,19 +6,28 @@ use crate::repositories::user_repository::UserRepository;
 use std::str::FromStr;
 use std::sync::Arc;
 
+use crate::services::tenant_provisioner::TenantProvisionerTrait;
+use crate::supavisor::TenantManager;
+
 pub struct WorkspaceService {
     workspace_repo: Arc<dyn WorkspaceRepository>,
     user_repo: Arc<dyn UserRepository>,
+    tenant_provisioner: Arc<dyn TenantProvisionerTrait>,
+    tenant_manager: Arc<dyn TenantManager>,
 }
 
 impl WorkspaceService {
     pub fn new(
         workspace_repo: Arc<dyn WorkspaceRepository>,
         user_repo: Arc<dyn UserRepository>,
+        tenant_provisioner: Arc<dyn TenantProvisionerTrait>,
+        tenant_manager: Arc<dyn TenantManager>,
     ) -> Self {
         Self {
             workspace_repo,
             user_repo,
+            tenant_provisioner,
+            tenant_manager,
         }
     }
 }
@@ -52,11 +61,35 @@ impl WorkspaceService {
             return Err(format!("User with ID {owner_id} does not exist"));
         }
 
-        // 2. Create workspace with owner using repository (which handles transaction)
-        self.workspace_repo
+        // 2. Create workspace with owner using repository
+        let ws = self
+            .workspace_repo
             .create_workspace_with_owner(name, owner_id)
             .await
-            .map_err(|e| e.to_string())
+            .map_err(|e| e.to_string())?;
+
+        // 3. Provision the physical Tenant Database
+        let db_name = self.tenant_provisioner
+            .provision_tenant_db(&ws.id)
+            .await
+            .map_err(|e| format!("Failed to provision DB: {}", e))?;
+
+        // 4. Register Tenant with Supavisor connection pooler
+        let primary_url = std::env::var("DATABASE_URL").unwrap_or_default();
+        if let Ok(mut parsed_url) = reqwest::Url::parse(&primary_url) {
+            parsed_url.set_path(&db_name);
+            let new_db_url = parsed_url.to_string();
+            
+            if let Some((_, payload)) = crate::supavisor::build_tenant_payload(&new_db_url) {
+                // Use workspace_id as tenant alias in Supavisor
+                self.tenant_manager
+                    .register_tenant_dynamic(&ws.id.to_string(), &payload)
+                    .await
+                    .map_err(|e| format!("Failed to register with Supavisor: {}", e))?;
+            }
+        }
+
+        Ok(ws)
     }
 
     #[tracing::instrument(skip_all, err)]
@@ -448,6 +481,22 @@ mod tests {
         }
     }
 
+    struct MockTenantProvisioner;
+    #[async_trait]
+    impl crate::services::tenant_provisioner::TenantProvisionerTrait for MockTenantProvisioner {
+        async fn provision_tenant_db(&self, workspace_id: &Uuid) -> crate::errors::AppResult<String> {
+            Ok(format!("tenant_{}", workspace_id.to_string().replace("-", "")))
+        }
+    }
+
+    struct MockTenantManager;
+    #[async_trait]
+    impl crate::supavisor::TenantManager for MockTenantManager {
+        async fn init_tenant(&self) {}
+        async fn delete_tenant(&self, _tenant_id: &str) -> crate::errors::AppResult<()> { Ok(()) }
+        async fn register_tenant_dynamic(&self, _tenant_id: &str, _payload: &serde_json::Value) -> crate::errors::AppResult<()> { Ok(()) }
+    }
+
     fn build_service(user_exists: bool) -> WorkspaceService {
         WorkspaceService::new(
             std::sync::Arc::new(MockWorkspaceRepo {
@@ -455,6 +504,8 @@ mod tests {
                 primary_role: Some(Uuid::new_v4()),
             }),
             std::sync::Arc::new(MockUserRepo { user_exists }),
+            std::sync::Arc::new(MockTenantProvisioner),
+            std::sync::Arc::new(MockTenantManager),
         )
     }
 

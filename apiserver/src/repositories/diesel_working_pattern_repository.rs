@@ -43,7 +43,10 @@ impl WorkingPatternRepositoryTrait for DieselWorkingPatternRepository {
     ) -> Result<WorkingPattern, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -89,7 +92,10 @@ impl WorkingPatternRepositoryTrait for DieselWorkingPatternRepository {
     async fn get_patterns(&self, workspace_id: Uuid) -> Result<Vec<WorkingPattern>, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -108,11 +114,15 @@ impl WorkingPatternRepositoryTrait for DieselWorkingPatternRepository {
 
     async fn get_pattern_details(
         &self,
+        workspace_id: Uuid,
         pattern_id: Uuid,
     ) -> Result<Vec<WorkingPatternDetail>, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -138,7 +148,10 @@ impl WorkingPatternRepositoryTrait for DieselWorkingPatternRepository {
     ) -> Result<EmployeeWorkingPattern, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -166,7 +179,10 @@ impl WorkingPatternRepositoryTrait for DieselWorkingPatternRepository {
     ) -> Result<Vec<EmployeeWorkingPattern>, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -193,7 +209,10 @@ impl WorkingPatternRepositoryTrait for DieselWorkingPatternRepository {
     ) -> Result<BulkAssignResponse, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -237,7 +256,10 @@ impl WorkingPatternRepositoryTrait for DieselWorkingPatternRepository {
     async fn delete_pattern(&self, workspace_id: Uuid, pattern_id: Uuid) -> Result<(), AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;

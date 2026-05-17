@@ -34,7 +34,10 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
     ) -> Result<Option<ExistingAccrualLog>, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -63,7 +66,10 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
     ) -> Result<NaiveDate, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -82,7 +88,10 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
     async fn get_workspace_timezone(&self, workspace_id: Uuid) -> Result<String, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -106,7 +115,10 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
     ) -> Result<Vec<LeaveHistoryLogItem>, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -171,7 +183,10 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
     ) -> Result<LeaveAccrualLog, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -208,7 +223,10 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
     ) -> Result<Option<LeaveAccrualLog>, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -242,6 +260,7 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
 
     async fn upsert_balance_accrual(
         &self,
+        workspace_id: Uuid,
         employee_id: Uuid,
         year: i32,
         leave_type_id: Uuid,
@@ -249,7 +268,10 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
     ) -> Result<(), AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -286,6 +308,7 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
 
     async fn adjust_balance_accrual(
         &self,
+        workspace_id: Uuid,
         employee_id: Uuid,
         year: i32,
         leave_type_id: Uuid,
@@ -293,7 +316,10 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
     ) -> Result<(), AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;

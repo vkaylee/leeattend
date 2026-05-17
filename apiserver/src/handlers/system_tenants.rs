@@ -16,6 +16,7 @@ use crate::handlers::system_auth::SystemContext;
 use crate::models::enums::SystemRoleType;
 use crate::supavisor::build_tenant_payload;
 use crate::AppState;
+use crate::handlers::common::ApiContext;
 
 use diesel_async::RunQueryDsl;
 
@@ -32,6 +33,7 @@ pub struct CreateTenantRequest {
 pub async fn list_tenants(
     State(_state): State<Arc<AppState>>,
     ctx: SystemContext,
+    _api_ctx: ApiContext,
 ) -> AppResult<Json<serde_json::Value>> {
     ctx.require_role(SystemRoleType::PlatformAdmin)?;
 
@@ -93,6 +95,7 @@ pub async fn list_tenants(
 pub async fn create_tenant(
     State(state): State<Arc<AppState>>,
     ctx: SystemContext,
+    _api_ctx: ApiContext,
     Json(req): Json<CreateTenantRequest>,
 ) -> AppResult<StatusCode> {
     ctx.require_role(SystemRoleType::PlatformAdmin)?;
@@ -191,6 +194,7 @@ pub async fn delete_tenant_handler(
     Path(tenant_id): Path<String>,
     State(state): State<Arc<AppState>>,
     ctx: SystemContext,
+    _api_ctx: ApiContext,
 ) -> AppResult<StatusCode> {
     ctx.require_role(SystemRoleType::PlatformAdmin)?;
 

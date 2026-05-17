@@ -211,7 +211,7 @@ impl PayrollService {
 
         let rosters = self
             .roster_repo
-            .get_employee_rosters(employee_id, start_date, end_date)
+            .get_employee_rosters(workspace_id, employee_id, start_date, end_date)
             .await?;
         let payroll_roster_map: HashMap<(Uuid, NaiveDate), Option<Uuid>> = rosters
             .into_iter()
@@ -522,11 +522,13 @@ impl PayrollService {
         incentive_results: Vec<crate::models::IncentiveEvaluationResult>,
         rule_results: Vec<crate::services::payroll_rule_evaluator::RuleEvaluationResult>,
     ) -> Result<Payslip, AppError> {
+        let workspace_id = payslip.workspace_id;
         let created_payslip = self.payroll_repo.create_payslip(&payslip).await?;
 
         for snap in segment_snapshots {
             self.payroll_repo
                 .create_payslip_segment(
+                    workspace_id,
                     created_payslip.id,
                     &crate::models::CreatePayslipSegmentArgs {
                         start_date: snap.seg_start,
@@ -547,14 +549,14 @@ impl PayrollService {
         for res in incentive_results {
             let _ = self
                 .payroll_repo
-                .create_payslip_incentive(created_payslip.id, &res)
+                .create_payslip_incentive(workspace_id, created_payslip.id, &res)
                 .await;
         }
 
         for rule in rule_results {
             let _ = self
                 .payroll_repo
-                .create_payslip_rule_evaluation(created_payslip.id, rule.rule_code, rule.amount)
+                .create_payslip_rule_evaluation(workspace_id, created_payslip.id, rule.rule_code, rule.amount)
                 .await;
         }
 

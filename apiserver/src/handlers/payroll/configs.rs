@@ -17,13 +17,14 @@ use crate::AppState;
 pub async fn set_department_payroll_config(
     Path((_, department_id)): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
-    MemberContext { .. }: MemberContext,
+    MemberContext { workspace_id, .. }: MemberContext,
     Json(req): Json<SetDepartmentPayrollConfigRequest>,
 ) -> AppResult<(StatusCode, Json<DepartmentPayrollConfig>)> {
     let config = state
         .payroll
         .department_repo
         .upsert_department_payroll_config(
+            workspace_id,
             department_id,
             req.std_working_days,
             req.hours_per_day,
@@ -37,13 +38,14 @@ pub async fn set_department_payroll_config(
 pub async fn set_employee_payroll_config(
     Path((_, employee_id)): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
-    MemberContext { .. }: MemberContext,
+    MemberContext { workspace_id, .. }: MemberContext,
     Json(req): Json<SetEmployeePayrollConfigRequest>,
 ) -> AppResult<(StatusCode, Json<EmployeePayrollConfig>)> {
     let config = state
         .employees
         .repo
         .upsert_employee_payroll_config(
+            workspace_id,
             employee_id,
             req.std_working_days,
             req.hours_per_day,

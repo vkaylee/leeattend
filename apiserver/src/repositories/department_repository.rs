@@ -40,6 +40,7 @@ pub trait DepartmentRepository: Send + Sync {
     async fn get_departments(&self, workspace_id: Uuid) -> Result<Vec<Department>, AppError>;
     async fn transfer_employee(
         &self,
+        workspace_id: Uuid,
         employee_id: Uuid,
         department_id: Uuid,
         effective_date: NaiveDate,
@@ -57,6 +58,7 @@ pub trait DepartmentRepository: Send + Sync {
     ) -> Result<Option<EmployeeDepartmentHistory>, AppError>;
     async fn upsert_department_payroll_config(
         &self,
+        workspace_id: Uuid,
         department_id: Uuid,
         std_working_days: Decimal,
         hours_per_day: Decimal,
@@ -64,6 +66,7 @@ pub trait DepartmentRepository: Send + Sync {
     ) -> Result<DepartmentPayrollConfig, AppError>;
     async fn get_department_payroll_config_at(
         &self,
+        workspace_id: Uuid,
         department_id: Uuid,
         date: NaiveDate,
     ) -> Result<Option<DepartmentPayrollConfig>, AppError>;

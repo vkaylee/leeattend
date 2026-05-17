@@ -67,27 +67,27 @@ pub struct AssignMemberRequest {
 
 pub async fn assign_component_to_base(
     State(state): State<Arc<AppState>>,
-    _ctx: MemberContext,
+    ctx: MemberContext,
     Path((_workspace_id, base_id)): Path<(Uuid, Uuid)>,
     Json(payload): Json<AssignMemberRequest>,
 ) -> Result<impl IntoResponse, AppError> {
     state
         .payroll
         .salary_base_repo
-        .assign_component_to_group(payload.component_definition_id, base_id)
+        .assign_component_to_group(ctx.workspace_id, payload.component_definition_id, base_id)
         .await?;
     Ok(Json(serde_json::json!({ "success": true })))
 }
 
 pub async fn unassign_component_from_base(
     State(state): State<Arc<AppState>>,
-    _ctx: MemberContext,
+    ctx: MemberContext,
     Path((_workspace_id, base_id, component_id)): Path<(Uuid, Uuid, Uuid)>,
 ) -> Result<impl IntoResponse, AppError> {
     state
         .payroll
         .salary_base_repo
-        .unassign_component_from_group(component_id, base_id)
+        .unassign_component_from_group(ctx.workspace_id, component_id, base_id)
         .await?;
     Ok(Json(serde_json::json!({ "success": true })))
 }

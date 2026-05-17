@@ -11,6 +11,7 @@ use uuid::Uuid;
 pub trait ShiftSwapRepository: Send + Sync {
     async fn create_swap_request(
         &self,
+        workspace_id: Uuid,
         request: &ShiftSwapRequest,
     ) -> Result<ShiftSwapRequest, AppError>;
     async fn get_swap_request_by_id(

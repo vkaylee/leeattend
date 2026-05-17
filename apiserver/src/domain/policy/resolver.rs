@@ -29,7 +29,7 @@ impl PolicyResolver {
     ) -> Result<StandardMonthConfig, AppError> {
         // 1. Check Individual Override (Highest Priority)
         let emp_config = employee_repo
-            .get_employee_payroll_config_at(employee_id, date)
+            .get_employee_payroll_config_at(workspace_id, employee_id, date)
             .await?;
 
         if let Some(config) = emp_config {
@@ -43,7 +43,7 @@ impl PolicyResolver {
         // 2. Check Department Override
         if let Some(dept_id) = department_id {
             let dept_config = payroll_repo
-                .get_department_payroll_config_at(dept_id, date)
+                .get_department_payroll_config_at(workspace_id, dept_id, date)
                 .await?;
 
             if let Some(config) = dept_config {

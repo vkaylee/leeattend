@@ -55,7 +55,7 @@ pub async fn create_raw_log(
     log: &RawAttendanceLog,
 ) -> Result<bool, AppError> {
     let repo = apiserver::repositories::DieselRawAttendanceLogRepository::new(diesel_pools.clone());
-    repo.create_raw_log(log).await
+    repo.create_raw_log(log.workspace_id, log).await
 }
 
 pub async fn get_paginated_raw_logs(
@@ -79,7 +79,7 @@ pub async fn create_time_entry(
     entry: &TimeEntry,
 ) -> Result<(), AppError> {
     let repo = apiserver::repositories::DieselTimeEntryRepository::new(diesel_pools.clone());
-    repo.create_time_entry(entry).await
+    repo.create_time_entry(entry.workspace_id, entry).await
 }
 
 pub async fn get_employee_time_entries(

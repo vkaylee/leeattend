@@ -7,6 +7,9 @@
 ## 2. Clean Code Standards
 - **SOLID & DRY:** Enforce Single Responsibility. Extract reusable logic.
 - **Self-Documenting:** Write clear names. Minimal comments. No over-engineering.
+- **Strict Encapsulation (OOP Style):** ALL struct fields MUST be `private` by default to ensure strict data protection and integrity.
+  - Do NOT use `pub` for struct fields.
+  - State mutation and data access MUST be controlled via explicitly defined `new()` constructors and getter methods (e.g., `inner()`, `into_inner()`, `name()`).
 
 ## 3. Error Handling & Observability
 - **Structured Errors:** Use domain-specific error types (e.g., `AppError`). Never throw generic `Error`.

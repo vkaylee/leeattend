@@ -217,7 +217,7 @@ impl ShiftSwapService {
         };
 
         self.swap_repo
-            .create_swap_request(&swap)
+            .create_swap_request(swap.workspace_id, &swap)
             .await
             .map_err(|e| {
                 error!("SHIFT_SWAP_CREATE_ERROR: {:?}", e);
@@ -230,14 +230,14 @@ impl ShiftSwapService {
     #[tracing::instrument(skip_all, err)]
     pub async fn approve_swap(
         &self,
-        _workspace_id: Uuid,
+        workspace_id: Uuid,
         approver_id: Uuid,
         request_id: Uuid,
         new_status: ShiftSwapStatus,
     ) -> Result<(), AppError> {
         let request = self
             .swap_repo
-            .get_swap_request_by_id(request_id, _workspace_id)
+            .get_swap_request_by_id(request_id, workspace_id)
             .await?
             .ok_or(AppError::NotFound("Not found".into()))?;
 
@@ -248,7 +248,7 @@ impl ShiftSwapService {
 
         // Update the status first
         self.swap_repo
-            .update_swap_status(request_id, _workspace_id, new_status, Some(approver_id))
+            .update_swap_status(request_id, workspace_id, new_status, Some(approver_id))
             .await
             .map_err(|e| {
                 error!("SHIFT_SWAP_STATUS_UPDATE_ERROR: {:?}", e);
@@ -284,7 +284,7 @@ impl ShiftSwapService {
             };
 
             self.roster_repo
-                .upsert_roster(&requester_roster)
+                .upsert_roster(workspace_id, &requester_roster)
                 .await
                 .map_err(|e| {
                     error!("SHIFT_SWAP_ROSTER_REQUESTER_ERROR: {:?}", e);
@@ -292,7 +292,7 @@ impl ShiftSwapService {
                 })?;
 
             self.roster_repo
-                .upsert_roster(&target_roster)
+                .upsert_roster(workspace_id, &target_roster)
                 .await
                 .map_err(|e| {
                     error!("SHIFT_SWAP_ROSTER_TARGET_ERROR: {:?}", e);
@@ -394,7 +394,7 @@ impl ShiftSwapService {
         };
 
         self.swap_repo
-            .create_swap_request(&swap)
+            .create_swap_request(swap.workspace_id, &swap)
             .await
             .map_err(|e| {
                 error!("ESS_SWAP_CREATE_ERROR: {:?}", e);
@@ -629,7 +629,7 @@ mod tests {
         swap_repo
             .expect_has_approved_swap_on_date()
             .returning(|_, _, _| Ok(false));
-        swap_repo.expect_create_swap_request().returning(|s| {
+        swap_repo.expect_create_swap_request().returning(|_ws, s| {
             let mut s2 = s.clone();
             s2.id = Uuid::new_v4();
             Ok(s2)
@@ -681,7 +681,7 @@ mod tests {
             .returning(|_, _, _, _| Ok(()));
 
         let mut roster_repo = MockRosterRepository::new();
-        roster_repo.expect_upsert_roster().times(2).returning(|r| {
+        roster_repo.expect_upsert_roster().times(2).returning(|_ws, r| {
             let mut roster = r.clone();
             roster.id = Uuid::new_v4();
             Box::pin(async move { Ok(roster) })

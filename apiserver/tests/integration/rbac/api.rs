@@ -52,7 +52,7 @@ async fn test_rbac_teamlead_scope_and_admin_bypass() {
     let dept_repo = apiserver::repositories::DieselDepartmentRepository::new(diesel_pools.clone());
     use apiserver::repositories::department_repository::DepartmentRepository;
     dept_repo
-        .transfer_employee(emp_tl, dept_a, chrono::Utc::now().date_naive(), None)
+        .transfer_employee(ws_id, emp_tl, dept_a, chrono::Utc::now().date_naive(), None)
         .await
         .unwrap();
 
@@ -64,7 +64,7 @@ async fn test_rbac_teamlead_scope_and_admin_bypass() {
         .create()
         .await;
     dept_repo
-        .transfer_employee(emp_target_b, dept_b, chrono::Utc::now().date_naive(), None)
+        .transfer_employee(ws_id, emp_target_b, dept_b, chrono::Utc::now().date_naive(), None)
         .await
         .unwrap();
 

@@ -31,15 +31,17 @@ pub trait RosterRepository: Send + Sync {
 
     async fn get_employee_rosters(
         &self,
+        workspace_id: Uuid,
         employee_id: Uuid,
         start_date: NaiveDate,
         end_date: NaiveDate,
     ) -> Result<Vec<ShiftRoster>, AppError>;
 
-    async fn upsert_roster(&self, roster: &ShiftRoster) -> Result<ShiftRoster, AppError>;
+    async fn upsert_roster(&self, workspace_id: Uuid, roster: &ShiftRoster) -> Result<ShiftRoster, AppError>;
 
     async fn bulk_upsert_roster(
         &self,
+        workspace_id: Uuid,
         employee_id: Uuid,
         items: Vec<crate::models::RosterItem>,
     ) -> Result<(), AppError>;
@@ -51,5 +53,5 @@ pub trait RosterRepository: Send + Sync {
         date: NaiveDate,
     ) -> Result<(Option<Uuid>, Vec<crate::models::ScheduleTrace>), AppError>;
 
-    async fn delete_roster(&self, employee_id: Uuid, date: NaiveDate) -> Result<(), AppError>;
+    async fn delete_roster(&self, workspace_id: Uuid, employee_id: Uuid, date: NaiveDate) -> Result<(), AppError>;
 }

@@ -12,6 +12,22 @@ use apiserver::services::AttendanceLogService;
 use apiserver::AppState;
 use std::sync::Arc;
 use uuid::Uuid;
+use apiserver::services::tenant_provisioner::TenantProvisionerTrait;
+use apiserver::supavisor::TenantManager;
+
+pub struct DummyTenantProvisioner;
+#[async_trait::async_trait]
+impl TenantProvisionerTrait for DummyTenantProvisioner {
+    async fn provision_tenant_db(&self, _workspace_id: &uuid::Uuid) -> Result<String, apiserver::errors::AppError> { Ok("".to_string()) }
+}
+
+pub struct DummyTenantManager;
+#[async_trait::async_trait]
+impl TenantManager for DummyTenantManager {
+    async fn init_tenant(&self) {}
+    async fn delete_tenant(&self, _workspace_id: &str) -> Result<(), apiserver::errors::AppError> { Ok(()) }
+    async fn register_tenant_dynamic(&self, _workspace_id: &str, _db_config: &serde_json::Value) -> Result<(), apiserver::errors::AppError> { Ok(()) }
+}
 
 use super::db::TestDatabase;
 use super::factory::TestFactory;
@@ -273,10 +289,7 @@ pub async fn spawn_app() -> (String, TestDatabase) {
         shift_repo.clone(),
     ));
     let workspace_service = Arc::new(
-        apiserver::services::workspace_service::WorkspaceService::new(
-            workspace_repo.clone(),
-            user_repo.clone(),
-        ),
+        apiserver::services::workspace_service::WorkspaceService::new(workspace_repo.clone(), user_repo.clone(), std::sync::Arc::new(DummyTenantProvisioner), std::sync::Arc::new(DummyTenantManager))
     );
     let leave_accrual_log_repo: Arc<
         dyn apiserver::repositories::leave_accrual_log_repository::LeaveAccrualLogRepository,
@@ -770,10 +783,7 @@ pub async fn spawn_app_with_factory_extended(tenant_manager: Arc<dyn apiserver::
         shift_repo.clone(),
     ));
     let workspace_service = Arc::new(
-        apiserver::services::workspace_service::WorkspaceService::new(
-            workspace_repo.clone(),
-            user_repo.clone(),
-        ),
+        apiserver::services::workspace_service::WorkspaceService::new(workspace_repo.clone(), user_repo.clone(), std::sync::Arc::new(DummyTenantProvisioner), std::sync::Arc::new(DummyTenantManager))
     );
     let leave_accrual_log_repo: Arc<
         dyn apiserver::repositories::leave_accrual_log_repository::LeaveAccrualLogRepository,
@@ -1304,10 +1314,7 @@ pub async fn setup_app_tower_internal_extended(use_redis: bool, tenant_manager: 
         shift_repo.clone(),
     ));
     let workspace_service = Arc::new(
-        apiserver::services::workspace_service::WorkspaceService::new(
-            workspace_repo.clone(),
-            user_repo.clone(),
-        ),
+        apiserver::services::workspace_service::WorkspaceService::new(workspace_repo.clone(), user_repo.clone(), std::sync::Arc::new(DummyTenantProvisioner), std::sync::Arc::new(DummyTenantManager))
     );
     let leave_accrual_log_repo: Arc<
         dyn apiserver::repositories::leave_accrual_log_repository::LeaveAccrualLogRepository,

@@ -32,7 +32,10 @@ impl ShiftRepository for DieselShiftRepository {
     ) -> Result<Shift, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -73,7 +76,10 @@ impl ShiftRepository for DieselShiftRepository {
     ) -> Result<Option<Shift>, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -92,7 +98,10 @@ impl ShiftRepository for DieselShiftRepository {
     async fn get_workspace_shifts(&self, workspace_id: Uuid) -> Result<Vec<Shift>, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -116,7 +125,10 @@ impl ShiftRepository for DieselShiftRepository {
     ) -> Result<Shift, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -149,7 +161,10 @@ impl ShiftRepository for DieselShiftRepository {
     async fn archive_shift(&self, workspace_id: Uuid, id: Uuid) -> Result<(), AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -170,6 +185,7 @@ impl ShiftRepository for DieselShiftRepository {
 
     async fn assign_employee_shift(
         &self,
+        workspace_id: Uuid,
         employee_id: Uuid,
         shift_id: Uuid,
         start_date: NaiveDate,
@@ -177,7 +193,10 @@ impl ShiftRepository for DieselShiftRepository {
     ) -> Result<(), AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -203,12 +222,16 @@ impl ShiftRepository for DieselShiftRepository {
 
     async fn get_employee_active_shift(
         &self,
+        workspace_id: Uuid,
         employee_id: Uuid,
         date: NaiveDate,
     ) -> Result<Option<Shift>, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -234,13 +257,17 @@ impl ShiftRepository for DieselShiftRepository {
 
     async fn update_assignments_to_new_version(
         &self,
+        workspace_id: Uuid,
         old_shift_id: Uuid,
         new_shift_id: Uuid,
         effective_date: NaiveDate,
     ) -> Result<(), AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;

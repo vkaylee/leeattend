@@ -18,7 +18,63 @@ use crate::repositories::CacheRepositoryExt;
 
 // --- Extractors ---
 
-pub struct WorkspaceId(pub Uuid);
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct WorkspaceId(Uuid);
+
+impl WorkspaceId {
+    pub fn new(uuid: Uuid) -> Self {
+        Self(uuid)
+    }
+
+    pub fn into_inner(self) -> Uuid {
+        self.0
+    }
+}
+
+impl From<Uuid> for WorkspaceId {
+    fn from(uuid: Uuid) -> Self {
+        Self(uuid)
+    }
+}
+
+impl From<WorkspaceId> for Uuid {
+    fn from(id: WorkspaceId) -> Self {
+        id.0
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum ApiContext {
+    System,
+    Tenant(WorkspaceId),
+}
+
+#[async_trait]
+impl<S> FromRequestParts<S> for ApiContext
+where
+    S: Send + Sync,
+{
+    type Rejection = AppError;
+
+    async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
+        // 1. Try to extract Tenant context (WorkspaceId)
+        if let Ok(ws_id) = WorkspaceId::from_request_parts(parts, state).await {
+            return Ok(ApiContext::Tenant(ws_id));
+        }
+
+        // 2. If no Tenant context, verify if it's a valid System route
+        let path = parts.uri.path();
+        if path.starts_with("/system") || path.starts_with("/api/system") {
+            Ok(ApiContext::System)
+        } else {
+            // If it's not a system route, it means it's a tenant route that failed to provide a Workspace ID.
+            Err(AppError::Validation(
+                "Missing Workspace Context. Provide 'ws_id' in path or 'X-Workspace-Id' header."
+                    .to_string(),
+            ))
+        }
+    }
+}
 
 #[async_trait]
 impl<S> FromRequestParts<S> for WorkspaceId
@@ -37,7 +93,7 @@ where
         {
             if let Some(ws_id_str) = params.get("ws_id") {
                 if let Ok(ws_id) = Uuid::parse_str(ws_id_str) {
-                    return Ok(WorkspaceId(ws_id));
+                    return Ok(WorkspaceId::from(ws_id));
                 }
             }
         }
@@ -56,7 +112,7 @@ where
         let workspace_id = Uuid::parse_str(workspace_id_str)
             .map_err(|_e| AppError::Validation("Invalid Workspace ID format".to_string()))?;
 
-        Ok(WorkspaceId(workspace_id))
+        Ok(WorkspaceId::from(workspace_id))
     }
 }
 
@@ -154,7 +210,16 @@ where
 
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
         let UserId(user_id) = UserId::from_request_parts(parts, state).await?;
-        let WorkspaceId(workspace_id) = WorkspaceId::from_request_parts(parts, state).await?;
+        let api_context = ApiContext::from_request_parts(parts, state).await?;
+        
+        let workspace_id = match api_context {
+            ApiContext::Tenant(ws_id) => ws_id.into_inner(),
+            ApiContext::System => {
+                return Err(AppError::Forbidden(
+                    "Cannot use Tenant context (MemberContext) in a System route".to_string(),
+                ))
+            }
+        };
 
         let app_state = Arc::<AppState>::from_ref(state);
 
@@ -333,7 +398,16 @@ where
 
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
         let UserId(user_id) = UserId::from_request_parts(parts, state).await?;
-        let WorkspaceId(workspace_id) = WorkspaceId::from_request_parts(parts, state).await?;
+        let api_context = ApiContext::from_request_parts(parts, state).await?;
+        
+        let workspace_id = match api_context {
+            ApiContext::Tenant(ws_id) => ws_id.into_inner(),
+            ApiContext::System => {
+                return Err(AppError::Forbidden(
+                    "Cannot use Tenant context (EmployeeContext) in a System route".to_string(),
+                ))
+            }
+        };
 
         let app_state = Arc::<AppState>::from_ref(state);
 
@@ -559,5 +633,56 @@ mod tests {
         let ctx = make_ctx(vec![], perms, Some(managed));
         let any_perms = [Permission::LeaveRequestsApprove, Permission::LeaveApproveL1];
         assert!(ctx.require_any_scoped_permission(&any_perms, None).is_err());
+    }
+
+    #[tokio::test]
+    async fn test_api_context_system_path() {
+        use axum::http::Request;
+        use axum::extract::FromRequestParts;
+        
+        let req = Request::builder()
+            .uri("/api/system/roles")
+            .body(())
+            .unwrap();
+        let (mut parts, _) = req.into_parts();
+        
+        let ctx = ApiContext::from_request_parts(&mut parts, &()).await.unwrap();
+        assert!(matches!(ctx, ApiContext::System));
+    }
+    
+    #[tokio::test]
+    async fn test_api_context_tenant_header() {
+        use axum::http::Request;
+        use axum::extract::FromRequestParts;
+        let ws_id = Uuid::new_v4();
+        
+        let req = Request::builder()
+            .uri("/api/workspaces")
+            .header("X-Workspace-Id", ws_id.to_string())
+            .body(())
+            .unwrap();
+        let (mut parts, _) = req.into_parts();
+        
+        let ctx = ApiContext::from_request_parts(&mut parts, &()).await.unwrap();
+        if let ApiContext::Tenant(ws) = ctx {
+            assert_eq!(ws.into_inner(), ws_id);
+        } else {
+            panic!("Expected Tenant context");
+        }
+    }
+    
+    #[tokio::test]
+    async fn test_api_context_missing_workspace() {
+        use axum::http::Request;
+        use axum::extract::FromRequestParts;
+        
+        let req = Request::builder()
+            .uri("/api/workspaces")
+            .body(())
+            .unwrap();
+        let (mut parts, _) = req.into_parts();
+        
+        let res = ApiContext::from_request_parts(&mut parts, &()).await;
+        assert!(res.is_err());
     }
 }

@@ -126,11 +126,15 @@ impl DieselShiftSwapRepository {
 impl ShiftSwapRepository for DieselShiftSwapRepository {
     async fn create_swap_request(
         &self,
+        workspace_id: Uuid,
         request: &ShiftSwapRequest,
     ) -> Result<ShiftSwapRequest, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -173,7 +177,10 @@ impl ShiftSwapRepository for DieselShiftSwapRepository {
     ) -> Result<Option<ShiftSwapRequest>, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -196,7 +203,10 @@ impl ShiftSwapRepository for DieselShiftSwapRepository {
     ) -> Result<Vec<ShiftSwapRequestWithNames>, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -248,7 +258,10 @@ impl ShiftSwapRepository for DieselShiftSwapRepository {
     ) -> Result<(), AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -283,7 +296,10 @@ impl ShiftSwapRepository for DieselShiftSwapRepository {
     ) -> Result<Vec<ShiftSwapRequestWithNames>, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -326,7 +342,10 @@ impl ShiftSwapRepository for DieselShiftSwapRepository {
     ) -> Result<bool, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -354,7 +373,10 @@ impl ShiftSwapRepository for DieselShiftSwapRepository {
     ) -> Result<bool, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -380,7 +402,10 @@ impl ShiftSwapRepository for DieselShiftSwapRepository {
     async fn get_workspace_swap_stats(&self, workspace_id: Uuid) -> Result<SwapStats, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;

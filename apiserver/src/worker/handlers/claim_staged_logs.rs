@@ -124,8 +124,7 @@ mod tests {
             .returning(|_, _, _| Ok(true));
 
         let mut raw_log_repo = MockRawAttendanceLogRepository::new();
-        raw_log_repo.expect_create_raw_log()
-            .returning(|_| Box::pin(async { Ok(true) }));
+        raw_log_repo.expect_create_raw_log().returning(|_, _| Box::pin(async { Ok(true) }));
         raw_log_repo.expect_get_employee_logs_in_time_range()
             .returning(|_, _, _, _| Box::pin(async { Ok(vec![]) }));
             

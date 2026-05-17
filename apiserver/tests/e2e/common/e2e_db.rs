@@ -85,6 +85,7 @@ impl E2eTestDatabase {
                     api_acquire_timeout_secs: 5,
                     worker_max_conn: 1,
                     worker_acquire_timeout_secs: 5,
+                    tenant_max_conn: 1,
                 },
             );
         }

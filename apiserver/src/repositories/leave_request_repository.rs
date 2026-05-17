@@ -10,7 +10,7 @@ use uuid::Uuid;
 #[async_trait]
 #[cfg_attr(test, mockall::automock)]
 pub trait LeaveRequestRepository: Send + Sync {
-    async fn create_leave_request(&self, request: &LeaveRequest) -> Result<(), AppError>;
+    async fn create_leave_request(&self, workspace_id: Uuid, request: &LeaveRequest) -> Result<(), AppError>;
     async fn get_leave_request_by_id(
         &self,
         workspace_id: Uuid,
@@ -89,6 +89,7 @@ pub trait LeaveRequestRepository: Send + Sync {
 
     async fn get_batch_leave_days(
         &self,
+        workspace_id: Uuid,
         employee_ids: &[Uuid],
         start_date: NaiveDate,
         end_date: NaiveDate,

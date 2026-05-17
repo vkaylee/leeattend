@@ -36,6 +36,7 @@ pub trait ShiftRepository: Send + Sync {
 
     async fn assign_employee_shift(
         &self,
+        workspace_id: Uuid,
         employee_id: Uuid,
         shift_id: Uuid,
         start_date: NaiveDate,
@@ -44,12 +45,14 @@ pub trait ShiftRepository: Send + Sync {
 
     async fn get_employee_active_shift(
         &self,
+        workspace_id: Uuid,
         employee_id: Uuid,
         date: NaiveDate,
     ) -> Result<Option<Shift>, AppError>;
 
     async fn update_assignments_to_new_version(
         &self,
+        workspace_id: Uuid,
         old_shift_id: Uuid,
         new_shift_id: Uuid,
         effective_date: NaiveDate,

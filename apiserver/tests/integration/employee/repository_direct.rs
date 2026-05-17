@@ -48,7 +48,7 @@ async fn test_working_condition_crud() {
         end_date: None,
     };
     let repo = DieselEmployeeRepository::new(test_db.diesel_pools.clone());
-    repo.create_working_condition(&wc).await.unwrap();
+    repo.create_working_condition(ws_id, &wc).await.unwrap();
 
     // Read back
     let conditions = repo.get_working_conditions(ws_id, emp_id).await.unwrap();
@@ -58,7 +58,7 @@ async fn test_working_condition_crud() {
     assert!(conditions[0].is_paid);
 
     // Delete
-    let deleted = repo.delete_working_condition(wc.id, emp_id).await.unwrap();
+    let deleted = repo.delete_working_condition(ws_id, wc.id, emp_id).await.unwrap();
     assert!(deleted);
 
     // Confirm empty
@@ -77,7 +77,7 @@ async fn test_delete_nonexistent_working_condition_returns_false() {
 
     let repo = DieselEmployeeRepository::new(test_db.diesel_pools.clone());
     let deleted = repo
-        .delete_working_condition(Uuid::new_v4(), emp_id)
+        .delete_working_condition(ws_id, Uuid::new_v4(), emp_id)
         .await
         .unwrap();
     assert!(!deleted, "Should return false for non-existent condition");
@@ -98,7 +98,7 @@ async fn test_payroll_config_upsert_and_lookup() {
 
     // Insert
     let config = repo
-        .upsert_employee_payroll_config(emp_id, Decimal::from(22), Decimal::from(8), effective)
+        .upsert_employee_payroll_config(ws_id, emp_id, Decimal::from(22), Decimal::from(8), effective)
         .await
         .unwrap();
     assert_eq!(config.std_working_days, Decimal::from(22));
@@ -107,7 +107,7 @@ async fn test_payroll_config_upsert_and_lookup() {
 
     // Upsert (same effective_date → update)
     let updated = repo
-        .upsert_employee_payroll_config(emp_id, Decimal::from(20), Decimal::from(7), effective)
+        .upsert_employee_payroll_config(ws_id, emp_id, Decimal::from(20), Decimal::from(7), effective)
         .await
         .unwrap();
     assert_eq!(updated.std_working_days, Decimal::from(20));
@@ -115,7 +115,7 @@ async fn test_payroll_config_upsert_and_lookup() {
 
     // Lookup at exactly the effective date
     let found = repo
-        .get_employee_payroll_config_at(emp_id, effective)
+        .get_employee_payroll_config_at(ws_id, emp_id, effective)
         .await
         .unwrap();
     assert!(found.is_some());
@@ -124,7 +124,7 @@ async fn test_payroll_config_upsert_and_lookup() {
     // Lookup before effective date → should return None
     let before = NaiveDate::from_ymd_opt(2025, 12, 31).unwrap();
     let not_found = repo
-        .get_employee_payroll_config_at(emp_id, before)
+        .get_employee_payroll_config_at(ws_id, emp_id, before)
         .await
         .unwrap();
     assert!(not_found.is_none());
@@ -145,17 +145,17 @@ async fn test_payroll_config_returns_closest_effective() {
 
     let repo = DieselEmployeeRepository::new(test_db.diesel_pools.clone());
 
-    repo.upsert_employee_payroll_config(emp_id, Decimal::from(22), Decimal::from(8), jan)
+    repo.upsert_employee_payroll_config(ws_id, emp_id, Decimal::from(22), Decimal::from(8), jan)
         .await
         .unwrap();
-    repo.upsert_employee_payroll_config(emp_id, Decimal::from(20), Decimal::from(7), jul)
+    repo.upsert_employee_payroll_config(ws_id, emp_id, Decimal::from(20), Decimal::from(7), jul)
         .await
         .unwrap();
 
     // Lookup in March → should get Jan config
     let march = NaiveDate::from_ymd_opt(2026, 3, 15).unwrap();
     let config = repo
-        .get_employee_payroll_config_at(emp_id, march)
+        .get_employee_payroll_config_at(ws_id, emp_id, march)
         .await
         .unwrap()
         .unwrap();
@@ -164,7 +164,7 @@ async fn test_payroll_config_returns_closest_effective() {
     // Lookup in August → should get Jul config
     let august = NaiveDate::from_ymd_opt(2026, 8, 15).unwrap();
     let config = repo
-        .get_employee_payroll_config_at(emp_id, august)
+        .get_employee_payroll_config_at(ws_id, emp_id, august)
         .await
         .unwrap()
         .unwrap();

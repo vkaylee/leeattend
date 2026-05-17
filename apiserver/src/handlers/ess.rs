@@ -61,7 +61,7 @@ pub async fn update_my_profile(
     let profile = state
         .employees
         .repo
-        .upsert_employee_profile(employee.employee_id, &req)
+        .upsert_employee_profile(employee.workspace_id, employee.employee_id, &req)
         .await?;
 
     Ok(Json(profile))
@@ -92,7 +92,7 @@ pub async fn add_emergency_contact(
     let contact = state
         .employees
         .repo
-        .upsert_emergency_contact(employee.employee_id, &req)
+        .upsert_emergency_contact(employee.workspace_id, employee.employee_id, &req)
         .await?;
 
     Ok((StatusCode::CREATED, Json(contact)))

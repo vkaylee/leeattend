@@ -208,10 +208,16 @@ impl AppState {
         let shift_service = Arc::new(crate::services::shift_service::ShiftService::new(
             shift_repo.clone(),
         ));
+        let tenant_provisioner = Arc::new(crate::services::tenant_provisioner::DefaultTenantProvisioner::new(
+            diesel_pools.api.clone(),
+        ));
+
         let workspace_service =
             Arc::new(crate::services::workspace_service::WorkspaceService::new(
                 workspace_repo.clone(),
                 user_repo.clone(),
+                tenant_provisioner,
+                tenant_manager.clone(),
             ));
         let leave_balance_repo: Arc<
             dyn crate::repositories::leave_balance_repository::LeaveBalanceRepository,

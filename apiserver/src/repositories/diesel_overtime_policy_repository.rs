@@ -34,7 +34,10 @@ impl OvertimePolicyRepositoryTrait for DieselOvertimePolicyRepository {
     ) -> Result<OvertimePolicy, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -58,7 +61,10 @@ impl OvertimePolicyRepositoryTrait for DieselOvertimePolicyRepository {
     ) -> Result<Vec<OvertimePolicy>, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -80,7 +86,10 @@ impl OvertimePolicyRepositoryTrait for DieselOvertimePolicyRepository {
     ) -> Result<Option<(OvertimePolicy, Vec<OvertimeRule>)>, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -112,10 +121,13 @@ impl OvertimePolicyRepositoryTrait for DieselOvertimePolicyRepository {
         }
     }
 
-    async fn add_rule(&self, rule: &OvertimeRule) -> Result<OvertimeRule, AppError> {
+    async fn add_rule(&self, workspace_id: Uuid, rule: &OvertimeRule) -> Result<OvertimeRule, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -145,7 +157,10 @@ impl OvertimePolicyRepositoryTrait for DieselOvertimePolicyRepository {
     ) -> Result<Option<Uuid>, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -235,7 +250,10 @@ impl OvertimePolicyRepositoryTrait for DieselOvertimePolicyRepository {
     ) -> Result<(), AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;

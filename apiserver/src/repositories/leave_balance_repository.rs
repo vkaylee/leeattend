@@ -23,7 +23,7 @@ pub trait LeaveBalanceRepository: Send + Sync {
         offset: i64,
         search: Option<String>,
     ) -> Result<(Vec<WorkspaceLeaveBalance>, i64), AppError>;
-    async fn upsert_leave_balance(&self, balance: &LeaveBalance) -> Result<(), AppError>;
+    async fn upsert_leave_balance(&self, workspace_id: Uuid, balance: &LeaveBalance) -> Result<(), AppError>;
     async fn adjust_balance(
         &self,
         workspace_id: Uuid,

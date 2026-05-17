@@ -54,6 +54,7 @@ pub trait LeavePolicyRepository: Send + Sync {
         -> Result<u64, AppError>;
     async fn create_policy_assignment(
         &self,
+        workspace_id: Uuid,
         assignment: &LeavePolicyAssignment,
     ) -> Result<LeavePolicyAssignment, AppError>;
     async fn find_active_assignment_for_employee(

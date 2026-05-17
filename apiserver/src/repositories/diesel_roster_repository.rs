@@ -35,7 +35,10 @@ impl RosterRepository for DieselRosterRepository {
     ) -> Result<Vec<EmployeeSchedule>, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -199,7 +202,10 @@ impl RosterRepository for DieselRosterRepository {
     ) -> Result<Vec<crate::models::AssignmentHistory>, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -307,13 +313,17 @@ impl RosterRepository for DieselRosterRepository {
 
     async fn get_employee_rosters(
         &self,
+        workspace_id: Uuid,
         employee_id: Uuid,
         start_date: NaiveDate,
         end_date: NaiveDate,
     ) -> Result<Vec<ShiftRoster>, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -329,10 +339,13 @@ impl RosterRepository for DieselRosterRepository {
         Ok(rosters.into_iter().map(Into::into).collect())
     }
 
-    async fn upsert_roster(&self, roster: &ShiftRoster) -> Result<ShiftRoster, AppError> {
+    async fn upsert_roster(&self, workspace_id: Uuid, roster: &ShiftRoster) -> Result<ShiftRoster, AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -361,12 +374,16 @@ impl RosterRepository for DieselRosterRepository {
 
     async fn bulk_upsert_roster(
         &self,
+        workspace_id: Uuid,
         employee_id: Uuid,
         items: Vec<RosterItem>,
     ) -> Result<(), AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -410,7 +427,10 @@ impl RosterRepository for DieselRosterRepository {
     ) -> Result<(Option<Uuid>, Vec<ScheduleTrace>), AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -669,10 +689,13 @@ impl RosterRepository for DieselRosterRepository {
         Ok((None, traces))
     }
 
-    async fn delete_roster(&self, employee_id: Uuid, date: NaiveDate) -> Result<(), AppError> {
+    async fn delete_roster(&self, workspace_id: Uuid, employee_id: Uuid, date: NaiveDate) -> Result<(), AppError> {
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;

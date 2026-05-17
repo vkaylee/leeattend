@@ -59,6 +59,7 @@ pub trait LeaveAccrualLogRepository: Send + Sync {
 
     async fn upsert_balance_accrual(
         &self,
+        workspace_id: Uuid,
         employee_id: Uuid,
         year: i32,
         leave_type_id: Uuid,
@@ -67,6 +68,7 @@ pub trait LeaveAccrualLogRepository: Send + Sync {
 
     async fn adjust_balance_accrual(
         &self,
+        workspace_id: Uuid,
         employee_id: Uuid,
         year: i32,
         leave_type_id: Uuid,

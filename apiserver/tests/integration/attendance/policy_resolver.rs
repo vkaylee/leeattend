@@ -58,7 +58,7 @@ async fn test_resolve_attendance_policy_hierarchy() {
 
     // Assign employee to department
     dept_repo
-        .transfer_employee(
+        .transfer_employee(ws_id, 
             employee_id,
             dept_id,
             chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),

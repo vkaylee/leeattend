@@ -146,7 +146,7 @@ impl HolidayLeaveService {
                 };
 
                 self.leave_request_repo
-                    .create_leave_request(&leave_request)
+                    .create_leave_request(workspace_id, &leave_request)
                     .await
                     .map_err(|e| e.to_string())?;
 
@@ -161,7 +161,7 @@ impl HolidayLeaveService {
                     created_at: Utc::now(),
                     updated_at: Utc::now(),
                 };
-                let _ = self.roster_repo.upsert_roster(&roster).await;
+                let _ = self.roster_repo.upsert_roster(workspace_id, &roster).await;
 
                 // Audit log via leave_accrual_logs
                 let _ = self

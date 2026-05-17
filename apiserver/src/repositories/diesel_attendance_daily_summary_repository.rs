@@ -30,7 +30,10 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
 
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(e.to_string()))?;
@@ -65,7 +68,10 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
 
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(e.to_string()))?;
@@ -115,7 +121,10 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
 
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(e.to_string()))?;
@@ -155,7 +164,10 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
 
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(e.to_string()))?;
@@ -194,7 +206,10 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
 
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(e.to_string()))?;
@@ -246,7 +261,10 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
 
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(e.to_string()))?;
@@ -278,7 +296,10 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
 
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(e.to_string()))?;
@@ -314,7 +335,10 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
 
         let mut conn = self
             .diesel_pools
-            .api
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
             .await
             .map_err(|e| AppError::Internal(e.to_string()))?;

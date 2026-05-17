@@ -203,6 +203,7 @@ impl ImportStrategy for EmployeeImportStrategy {
                         && self
                             .department_repo
                             .transfer_employee(
+                                job.workspace_id,
                                 employee_id,
                                 dept_id,
                                 emp.hire_date,

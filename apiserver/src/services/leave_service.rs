@@ -271,7 +271,7 @@ impl LeaveService {
         };
 
         self.leave_request_repo
-            .create_leave_request(&request)
+            .create_leave_request(workspace_id, &request)
             .await
             .map_err(|e| {
                 tracing::error!(error = %e, "SQLx Error in submit_leave_request");
@@ -328,7 +328,7 @@ impl LeaveService {
                 updated_at: Utc::now(),
             };
 
-            let _ = self.roster_repo.upsert_roster(&roster).await.map_err(|e| {
+            let _ = self.roster_repo.upsert_roster(workspace_id, &roster).await.map_err(|e| {
                 tracing::error!(error = %e, "SQLx Error in apply_leave_to_roster");
                 AppError::Internal("Internal error".into())
             })?;
@@ -464,6 +464,7 @@ mod tests {
         }
         async fn upsert_leave_balance(
             &self,
+            _ws: Uuid,
             _b: &crate::models::LeaveBalance,
         ) -> Result<(), AppError> {
             unimplemented!()
@@ -477,7 +478,7 @@ mod tests {
     }
     #[async_trait]
     impl LeaveRequestRepository for MockLeaveRequestRepo {
-        async fn create_leave_request(&self, _r: &LeaveRequest) -> Result<(), AppError> {
+        async fn create_leave_request(&self, _ws: Uuid, _r: &LeaveRequest) -> Result<(), AppError> {
             Ok(())
         }
         async fn check_leave_type_exists(&self, _w: Uuid, _t: Uuid) -> Result<bool, AppError> {
@@ -573,6 +574,7 @@ mod tests {
         }
         async fn get_batch_leave_days(
             &self,
+            _ws: Uuid,
             _e: &[Uuid],
             _s: NaiveDate,
             _en: NaiveDate,
@@ -665,11 +667,12 @@ mod tests {
         }
         async fn create_working_condition(
             &self,
+            _ws: Uuid,
             _c: &crate::models::WorkingCondition,
         ) -> Result<(), AppError> {
             unimplemented!()
         }
-        async fn delete_working_condition(&self, _i: Uuid, _e: Uuid) -> Result<bool, AppError> {
+        async fn delete_working_condition(&self, _ws: Uuid, _i: Uuid, _e: Uuid) -> Result<bool, AppError> {
             unimplemented!()
         }
         async fn get_existing_employee_ids_by_numbers(
@@ -681,6 +684,7 @@ mod tests {
         }
         async fn upsert_employee_payroll_config(
             &self,
+            _ws: Uuid,
             _e: Uuid,
             _s: Decimal,
             _h: Decimal,
@@ -690,6 +694,7 @@ mod tests {
         }
         async fn get_employee_payroll_config_at(
             &self,
+            _ws: Uuid,
             _e: Uuid,
             _d: NaiveDate,
         ) -> Result<Option<crate::models::EmployeePayrollConfig>, AppError> {
@@ -791,6 +796,7 @@ mod tests {
         }
         async fn upsert_employee_profile(
             &self,
+            _ws: Uuid,
             _e: Uuid,
             _r: &crate::models::UpdateEmployeeProfileRequest,
         ) -> Result<crate::models::EmployeeProfile, AppError> {
@@ -805,6 +811,7 @@ mod tests {
         }
         async fn upsert_emergency_contact(
             &self,
+            _ws: Uuid,
             _e: Uuid,
             _r: &crate::models::CreateEmergencyContactRequest,
         ) -> Result<crate::models::EmployeeEmergencyContact, AppError> {
@@ -859,11 +866,12 @@ mod tests {
     struct MockRosterRepo;
     #[async_trait]
     impl RosterRepository for MockRosterRepo {
-        async fn upsert_roster(&self, _r: &ShiftRoster) -> Result<ShiftRoster, AppError> {
+        async fn upsert_roster(&self, _ws: Uuid, _r: &ShiftRoster) -> Result<ShiftRoster, AppError> {
             Ok(_r.clone())
         }
         async fn bulk_upsert_roster(
             &self,
+            _ws: Uuid,
             _e: Uuid,
             _i: Vec<crate::models::RosterItem>,
         ) -> Result<(), AppError> {
@@ -877,7 +885,7 @@ mod tests {
         ) -> Result<(Option<Uuid>, Vec<crate::models::ScheduleTrace>), AppError> {
             Ok((None, vec![]))
         }
-        async fn delete_roster(&self, _e: Uuid, _d: NaiveDate) -> Result<(), AppError> {
+        async fn delete_roster(&self, _ws: Uuid, _e: Uuid, _d: NaiveDate) -> Result<(), AppError> {
             Ok(())
         }
         // Unused
@@ -900,6 +908,7 @@ mod tests {
         }
         async fn get_employee_rosters(
             &self,
+            _ws: Uuid,
             _e: Uuid,
             _s: NaiveDate,
             _en: NaiveDate,
@@ -963,6 +972,7 @@ mod tests {
         }
         async fn upsert_balance_accrual(
             &self,
+            _ws: Uuid,
             _e: Uuid,
             _y: i32,
             _l: Uuid,
@@ -972,6 +982,7 @@ mod tests {
         }
         async fn adjust_balance_accrual(
             &self,
+            _ws: Uuid,
             _e: Uuid,
             _y: i32,
             _l: Uuid,
