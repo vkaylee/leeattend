@@ -164,7 +164,7 @@ pub trait WorkspaceRepository: Send + Sync {
     ) -> Result<Workspace, AppError>;
     /// Check if any role in the set has global scope.
     async fn is_any_role_global(&self, role_ids: &[Uuid]) -> Result<bool, AppError>;
-    
+
     async fn update_workspace_byod_url(
         &self,
         workspace_id: Uuid,

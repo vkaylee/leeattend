@@ -9,8 +9,6 @@ use redis::AsyncCommands;
 use reqwest::StatusCode;
 use uuid::Uuid;
 
-
-
 /// Grant `platform_admin` system role to the given user so they can access monitor endpoints.
 async fn grant_platform_admin(factory: &TestFactory, user_id: Uuid) {
     crate::test_execute!(

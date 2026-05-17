@@ -15,10 +15,10 @@ use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::errors::{AppError, AppResult};
+use crate::handlers::common::ApiContext;
 use crate::handlers::system_auth::SystemContext;
 use crate::models::enums::SystemRoleType;
 use crate::AppState;
-use crate::handlers::common::ApiContext;
 
 // ── Response DTOs ─────────────────────────────────────────────────────────────
 
@@ -338,7 +338,10 @@ pub async fn revoke_system_role(
 /// GET /system/health
 /// Simple system health endpoint.
 /// Requires: Support or PlatformAdmin (monitoring access)
-pub async fn system_health(ctx: SystemContext, _api_ctx: ApiContext) -> AppResult<Json<serde_json::Value>> {
+pub async fn system_health(
+    ctx: SystemContext,
+    _api_ctx: ApiContext,
+) -> AppResult<Json<serde_json::Value>> {
     ctx.require_any_role(&[SystemRoleType::PlatformAdmin, SystemRoleType::Support])?;
     Ok(Json(serde_json::json!({
         "status": "ok",

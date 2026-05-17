@@ -24,7 +24,11 @@ impl DieselAttendanceAdjustmentRepository {
 
 #[async_trait]
 impl AttendanceAdjustmentRepository for DieselAttendanceAdjustmentRepository {
-    async fn create_request(&self, workspace_id: Uuid, request: &AttendanceAdjustmentRequest) -> Result<(), AppError> {
+    async fn create_request(
+        &self,
+        workspace_id: Uuid,
+        request: &AttendanceAdjustmentRequest,
+    ) -> Result<(), AppError> {
         let mut conn = self
             .diesel_pools
             .tenants

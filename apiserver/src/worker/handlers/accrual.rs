@@ -98,7 +98,8 @@ mod tests {
         let parent_job_id = Uuid::new_v4();
 
         // 1. Queue expects status to move to Processing
-        queue.expect_get_job_metadata()
+        queue
+            .expect_get_job_metadata()
             .with(mockall::predicate::eq(parent_job_id))
             .times(1)
             .returning(move |id| {
@@ -118,13 +119,15 @@ mod tests {
                 }))
             });
 
-        queue.expect_update_job_metadata()
+        queue
+            .expect_update_job_metadata()
             .withf(|meta| meta.status == JobStatus::Processing)
             .times(1)
             .returning(|_| Ok(()));
 
         // 2. Queue expects status to move to Completed
-        queue.expect_get_job_metadata()
+        queue
+            .expect_get_job_metadata()
             .with(mockall::predicate::eq(parent_job_id))
             .times(1)
             .returning(move |id| {
@@ -144,7 +147,8 @@ mod tests {
                 }))
             });
 
-        queue.expect_update_job_metadata()
+        queue
+            .expect_update_job_metadata()
             .withf(|meta| meta.status == JobStatus::Completed && meta.completed_batches == 1)
             .times(1)
             .returning(|_| Ok(()));
@@ -152,12 +156,15 @@ mod tests {
         let queue_arc: Arc<dyn crate::repositories::QueueRepository> = Arc::new(queue);
 
         // 3. Mock Repositories to return empty so accrual loop finishes immediately
-        let mut accrual_log_repo = crate::repositories::leave_accrual_log_repository::MockLeaveAccrualLogRepository::new();
-        accrual_log_repo.expect_get_workspace_timezone()
+        let mut accrual_log_repo =
+            crate::repositories::leave_accrual_log_repository::MockLeaveAccrualLogRepository::new();
+        accrual_log_repo
+            .expect_get_workspace_timezone()
             .returning(|_| Ok("UTC".to_string()));
 
         let mut employee_repo = crate::repositories::employee::MockEmployeeRepository::new();
-        employee_repo.expect_get_active_employees()
+        employee_repo
+            .expect_get_active_employees()
             .returning(|_| Box::pin(async { Ok(vec![]) }));
 
         let mut builder = MockWorkerDepsBuilder::new();
@@ -185,4 +192,3 @@ mod tests {
         assert!(result.is_ok(), "Handler failed: {:?}", result.err());
     }
 }
-

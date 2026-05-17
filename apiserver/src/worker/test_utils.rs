@@ -1,28 +1,28 @@
 #![cfg(test)]
 
-use std::sync::Arc;
 use crate::worker::WorkerDeps;
+use std::sync::Arc;
 
-use crate::repositories::time_entry_repository::MockTimeEntryRepository;
-use crate::repositories::roster::MockRosterRepository;
-use crate::repositories::attendance_policy_repository::MockAttendancePolicyRepository;
-use crate::repositories::employee::MockEmployeeRepository;
-use crate::repositories::raw_attendance_log_repository::MockRawAttendanceLogRepository;
-use crate::repositories::staging_log_repository::MockStagingLogRepository;
-use crate::repositories::attendance_log_error_repository::MockAttendanceLogErrorRepository;
-use crate::repositories::workspace_repository::MockWorkspaceRepository;
-use crate::repositories::holiday_repository::MockHolidayRepository;
-use crate::repositories::leave_request_repository::MockLeaveRequestRepository;
-use crate::repositories::attendance_daily_summary_repository::MockAttendanceDailySummaryRepository;
-use crate::repositories::shift_repository::MockShiftRepository;
 use crate::repositories::attendance_adjustment_repository::MockAttendanceAdjustmentRepository;
+use crate::repositories::attendance_daily_summary_repository::MockAttendanceDailySummaryRepository;
+use crate::repositories::attendance_log_error_repository::MockAttendanceLogErrorRepository;
+use crate::repositories::attendance_policy_repository::MockAttendancePolicyRepository;
 use crate::repositories::department_repository::MockDepartmentRepository;
-use crate::repositories::import_job_repository::MockImportJobRepository;
-use crate::repositories::session_repository::MockSessionRepository;
-use crate::repositories::leave_balance_repository::MockLeaveBalanceRepository;
+use crate::repositories::employee::MockEmployeeRepository;
 use crate::repositories::employee_contract_repository::MockEmployeeContractRepository;
+use crate::repositories::holiday_repository::MockHolidayRepository;
+use crate::repositories::import_job_repository::MockImportJobRepository;
 use crate::repositories::leave_accrual_log_repository::MockLeaveAccrualLogRepository;
+use crate::repositories::leave_balance_repository::MockLeaveBalanceRepository;
 use crate::repositories::leave_policy_repository::LeavePolicyRepository;
+use crate::repositories::leave_request_repository::MockLeaveRequestRepository;
+use crate::repositories::raw_attendance_log_repository::MockRawAttendanceLogRepository;
+use crate::repositories::roster::MockRosterRepository;
+use crate::repositories::session_repository::MockSessionRepository;
+use crate::repositories::shift_repository::MockShiftRepository;
+use crate::repositories::staging_log_repository::MockStagingLogRepository;
+use crate::repositories::time_entry_repository::MockTimeEntryRepository;
+use crate::repositories::workspace_repository::MockWorkspaceRepository;
 
 pub struct DummyLeavePolicyRepository;
 
@@ -55,7 +55,11 @@ impl LeavePolicyRepository for DummyLeavePolicyRepository {
         unimplemented!()
     }
 
-    async fn delete_leave_type(&self, _id: uuid::Uuid, _workspace_id: uuid::Uuid) -> Result<u64, crate::errors::AppError> {
+    async fn delete_leave_type(
+        &self,
+        _id: uuid::Uuid,
+        _workspace_id: uuid::Uuid,
+    ) -> Result<u64, crate::errors::AppError> {
         unimplemented!()
     }
 
@@ -89,7 +93,11 @@ impl LeavePolicyRepository for DummyLeavePolicyRepository {
         unimplemented!()
     }
 
-    async fn delete_policy_definition(&self, _id: uuid::Uuid, _workspace_id: uuid::Uuid) -> Result<u64, crate::errors::AppError> {
+    async fn delete_policy_definition(
+        &self,
+        _id: uuid::Uuid,
+        _workspace_id: uuid::Uuid,
+    ) -> Result<u64, crate::errors::AppError> {
         unimplemented!()
     }
 
@@ -107,7 +115,10 @@ impl LeavePolicyRepository for DummyLeavePolicyRepository {
         _employee_id: uuid::Uuid,
         _department_id: Option<uuid::Uuid>,
         _date: chrono::NaiveDate,
-    ) -> Result<Option<(crate::models::LeavePolicyDefinition, uuid::Uuid, String)>, crate::errors::AppError> {
+    ) -> Result<
+        Option<(crate::models::LeavePolicyDefinition, uuid::Uuid, String)>,
+        crate::errors::AppError,
+    > {
         unimplemented!()
     }
 

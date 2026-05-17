@@ -64,7 +64,13 @@ async fn test_rbac_teamlead_scope_and_admin_bypass() {
         .create()
         .await;
     dept_repo
-        .transfer_employee(ws_id, emp_target_b, dept_b, chrono::Utc::now().date_naive(), None)
+        .transfer_employee(
+            ws_id,
+            emp_target_b,
+            dept_b,
+            chrono::Utc::now().date_naive(),
+            None,
+        )
         .await
         .unwrap();
 

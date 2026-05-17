@@ -328,10 +328,14 @@ impl LeaveService {
                 updated_at: Utc::now(),
             };
 
-            let _ = self.roster_repo.upsert_roster(workspace_id, &roster).await.map_err(|e| {
-                tracing::error!(error = %e, "SQLx Error in apply_leave_to_roster");
-                AppError::Internal("Internal error".into())
-            })?;
+            let _ = self
+                .roster_repo
+                .upsert_roster(workspace_id, &roster)
+                .await
+                .map_err(|e| {
+                    tracing::error!(error = %e, "SQLx Error in apply_leave_to_roster");
+                    AppError::Internal("Internal error".into())
+                })?;
 
             if let Some(next_date) = current_date.succ_opt() {
                 current_date = next_date;
@@ -672,7 +676,12 @@ mod tests {
         ) -> Result<(), AppError> {
             unimplemented!()
         }
-        async fn delete_working_condition(&self, _ws: Uuid, _i: Uuid, _e: Uuid) -> Result<bool, AppError> {
+        async fn delete_working_condition(
+            &self,
+            _ws: Uuid,
+            _i: Uuid,
+            _e: Uuid,
+        ) -> Result<bool, AppError> {
             unimplemented!()
         }
         async fn get_existing_employee_ids_by_numbers(
@@ -866,7 +875,11 @@ mod tests {
     struct MockRosterRepo;
     #[async_trait]
     impl RosterRepository for MockRosterRepo {
-        async fn upsert_roster(&self, _ws: Uuid, _r: &ShiftRoster) -> Result<ShiftRoster, AppError> {
+        async fn upsert_roster(
+            &self,
+            _ws: Uuid,
+            _r: &ShiftRoster,
+        ) -> Result<ShiftRoster, AppError> {
             Ok(_r.clone())
         }
         async fn bulk_upsert_roster(

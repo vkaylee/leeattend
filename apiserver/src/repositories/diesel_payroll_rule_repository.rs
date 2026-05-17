@@ -161,7 +161,12 @@ impl PayrollRuleRepository for DieselPayrollRuleRepository {
         Ok(entities.into_iter().map(Into::into).collect())
     }
 
-    async fn delete_tier(&self, workspace_id: Uuid, rule_definition_id: Uuid, tier_id: Uuid) -> Result<(), AppError> {
+    async fn delete_tier(
+        &self,
+        workspace_id: Uuid,
+        rule_definition_id: Uuid,
+        tier_id: Uuid,
+    ) -> Result<(), AppError> {
         let mut conn = self
             .diesel_pools
             .tenants

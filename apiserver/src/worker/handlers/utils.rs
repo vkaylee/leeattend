@@ -30,7 +30,7 @@ impl Drop for ImportTimeoutGuard {
     fn drop(&mut self) {
         if !self.completed.load(Ordering::SeqCst) {
             let job_id = self.job_id;
-            let repo = self.import_repo.clone();
+            let repo = Arc::clone(&self.import_repo);
             tokio::spawn(async move {
                 let current_rows = if let Ok(Some(job)) = repo.get_job_by_id(job_id).await {
                     job.processed_rows

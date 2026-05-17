@@ -141,7 +141,10 @@ async fn test_get_employee_rosters_date_range() {
     // Query Mar 3–7 → should return only Mar 5
     let start = NaiveDate::from_ymd_opt(2026, 3, 3).unwrap();
     let end = NaiveDate::from_ymd_opt(2026, 3, 7).unwrap();
-    let result = repo.get_employee_rosters(ws_id, emp_id, start, end).await.unwrap();
+    let result = repo
+        .get_employee_rosters(ws_id, emp_id, start, end)
+        .await
+        .unwrap();
     assert_eq!(result.len(), 1);
     assert_eq!(result[0].date, NaiveDate::from_ymd_opt(2026, 3, 5).unwrap());
 
@@ -168,7 +171,10 @@ async fn test_get_employee_rosters_empty() {
 
     let start = NaiveDate::from_ymd_opt(2026, 1, 1).unwrap();
     let end = NaiveDate::from_ymd_opt(2026, 12, 31).unwrap();
-    let result = repo.get_employee_rosters(ws_id, emp_id, start, end).await.unwrap();
+    let result = repo
+        .get_employee_rosters(ws_id, emp_id, start, end)
+        .await
+        .unwrap();
     assert!(result.is_empty());
 }
 
@@ -202,7 +208,10 @@ async fn test_delete_roster() {
     // Verify gone
     let start = NaiveDate::from_ymd_opt(2026, 3, 1).unwrap();
     let end = NaiveDate::from_ymd_opt(2026, 3, 31).unwrap();
-    let remaining = repo.get_employee_rosters(ws_id, emp_id, start, end).await.unwrap();
+    let remaining = repo
+        .get_employee_rosters(ws_id, emp_id, start, end)
+        .await
+        .unwrap();
     assert!(
         remaining.is_empty(),
         "Deleted roster should not be returned"
@@ -268,7 +277,10 @@ async fn test_bulk_upsert_roster() {
 
     let start = NaiveDate::from_ymd_opt(2026, 4, 1).unwrap();
     let end = NaiveDate::from_ymd_opt(2026, 4, 30).unwrap();
-    let rosters = repo.get_employee_rosters(ws_id, emp_id, start, end).await.unwrap();
+    let rosters = repo
+        .get_employee_rosters(ws_id, emp_id, start, end)
+        .await
+        .unwrap();
     assert_eq!(rosters.len(), 3);
     assert_eq!(rosters[0].shift_id, Some(shift_a));
     assert_eq!(rosters[1].shift_id, Some(shift_b));
@@ -323,7 +335,10 @@ async fn test_bulk_upsert_overwrites_existing() {
 
     let start = NaiveDate::from_ymd_opt(2026, 4, 1).unwrap();
     let end = NaiveDate::from_ymd_opt(2026, 4, 1).unwrap();
-    let rosters = repo.get_employee_rosters(ws_id, emp_id, start, end).await.unwrap();
+    let rosters = repo
+        .get_employee_rosters(ws_id, emp_id, start, end)
+        .await
+        .unwrap();
     assert_eq!(rosters.len(), 1);
     assert_eq!(
         rosters[0].shift_id,

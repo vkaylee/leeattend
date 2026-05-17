@@ -69,10 +69,11 @@ impl WorkspaceService {
             .map_err(|e| e.to_string())?;
 
         // 3. Provision the physical Tenant Database (or use BYOD)
-        let new_db_url = self.tenant_provisioner
+        let new_db_url = self
+            .tenant_provisioner
             .provision_tenant_db(&ws.id, None)
             .await
-            .map_err(|e| format!("Failed to provision DB: {}", e))?;
+            .map_err(|e| format!("Failed to provision DB: {e}"))?;
 
         // 4. Register Tenant with Supavisor connection pooler
         if let Some((_, payload)) = crate::supavisor::build_tenant_payload(&new_db_url) {
@@ -80,7 +81,7 @@ impl WorkspaceService {
             self.tenant_manager
                 .register_tenant_dynamic(&ws.id.to_string(), &payload)
                 .await
-                .map_err(|e| format!("Failed to register with Supavisor: {}", e))?;
+                .map_err(|e| format!("Failed to register with Supavisor: {e}"))?;
         }
 
         Ok(ws)
@@ -169,6 +170,7 @@ mod tests {
             default_language: "vi".into(),
             logo_url: None,
             tagline: None,
+            custom_db_url_encrypted: None,
             holiday_overnight_strategy: "split".into(),
             default_holiday_ot_multiplier: Decimal::new(15, 1),
         }
@@ -353,6 +355,13 @@ mod tests {
             }
             Ok(ws)
         }
+        async fn update_workspace_byod_url(
+            &self,
+            _workspace_id: Uuid,
+            _encrypted_url: Option<String>,
+        ) -> Result<(), AppError> {
+            Ok(())
+        }
         async fn is_any_role_global(&self, _r: &[Uuid]) -> Result<bool, AppError> {
             Ok(false)
         }
@@ -478,11 +487,18 @@ mod tests {
     struct MockTenantProvisioner;
     #[async_trait]
     impl crate::services::tenant_provisioner::TenantProvisionerTrait for MockTenantProvisioner {
-        async fn provision_tenant_db(&self, workspace_id: &Uuid, custom_db_url: Option<String>) -> crate::errors::AppResult<String> {
+        async fn provision_tenant_db(
+            &self,
+            workspace_id: &Uuid,
+            custom_db_url: Option<String>,
+        ) -> crate::errors::AppResult<String> {
             if let Some(url) = custom_db_url {
                 Ok(url)
             } else {
-                Ok(format!("tenant_{}", workspace_id.to_string().replace("-", "")))
+                Ok(format!(
+                    "tenant_{}",
+                    workspace_id.to_string().replace("-", "")
+                ))
             }
         }
     }
@@ -491,8 +507,16 @@ mod tests {
     #[async_trait]
     impl crate::supavisor::TenantManager for MockTenantManager {
         async fn init_tenant(&self) {}
-        async fn delete_tenant(&self, _tenant_id: &str) -> crate::errors::AppResult<()> { Ok(()) }
-        async fn register_tenant_dynamic(&self, _tenant_id: &str, _payload: &serde_json::Value) -> crate::errors::AppResult<()> { Ok(()) }
+        async fn delete_tenant(&self, _tenant_id: &str) -> crate::errors::AppResult<()> {
+            Ok(())
+        }
+        async fn register_tenant_dynamic(
+            &self,
+            _tenant_id: &str,
+            _payload: &serde_json::Value,
+        ) -> crate::errors::AppResult<()> {
+            Ok(())
+        }
     }
 
     fn build_service(user_exists: bool) -> WorkspaceService {

@@ -55,7 +55,8 @@ async fn test_payroll_std_days_source_traceability() {
         .await
         .unwrap();
 
-    pr.assign_employee_salary_component(workspace_id, 
+    pr.assign_employee_salary_component(
+        workspace_id,
         employee_id,
         base_comp.id,
         Decimal::from(10_000_000),
@@ -210,7 +211,8 @@ async fn test_payroll_std_days_source_traceability() {
     // 5. Scenario C: Department Override
     let dept_repo = apiserver::repositories::DieselDepartmentRepository::new(diesel_pools.clone());
     dept_repo
-        .upsert_department_payroll_config(workspace_id, 
+        .upsert_department_payroll_config(
+            workspace_id,
             dept_id,
             Decimal::from(22),
             Decimal::from(8),
@@ -286,7 +288,8 @@ async fn test_payroll_std_days_source_traceability() {
     let employee_repo =
         apiserver::repositories::DieselEmployeeRepository::new(diesel_pools.clone());
     employee_repo
-        .upsert_employee_payroll_config(workspace_id, 
+        .upsert_employee_payroll_config(
+            workspace_id,
             employee_id,
             Decimal::from(20),
             Decimal::from(8),

@@ -90,7 +90,11 @@ impl PayrollRepository for DieselPayrollRepository {
         Ok(entities.into_iter().map(Into::into).collect())
     }
 
-    async fn get_policy_tiers(&self, workspace_id: Uuid, policy_id: Uuid) -> Result<Vec<IncentiveTier>, AppError> {
+    async fn get_policy_tiers(
+        &self,
+        workspace_id: Uuid,
+        policy_id: Uuid,
+    ) -> Result<Vec<IncentiveTier>, AppError> {
         let mut conn = self
             .diesel_pools
             .tenants

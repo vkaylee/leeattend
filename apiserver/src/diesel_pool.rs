@@ -71,11 +71,11 @@ fn env_parse<T: std::str::FromStr>(key: &str, default: T) -> T {
         .unwrap_or(default)
 }
 
+use crate::errors::AppError;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use uuid::Uuid;
-use crate::errors::AppError;
 
 #[async_trait::async_trait]
 pub trait TenantPoolProvider: Send + Sync {
@@ -98,10 +98,9 @@ impl ProductionTenantPoolManager {
     }
 
     pub fn get_tenant_url(&self, workspace_id: &Uuid) -> Result<String, AppError> {
-        let db_name = format!("tenant_{}", workspace_id.to_string().replace("-", ""));
-        let mut parsed_url = reqwest::Url::parse(&self.base_url).map_err(|e| {
-            AppError::Internal(format!("Invalid base pool URL: {}", e))
-        })?;
+        let db_name = format!("tenant_{}", workspace_id.to_string().replace('-', ""));
+        let mut parsed_url = reqwest::Url::parse(&self.base_url)
+            .map_err(|e| AppError::Internal(format!("Invalid base pool URL: {e}")))?;
         parsed_url.set_path(&db_name);
         Ok(parsed_url.to_string())
     }
@@ -131,7 +130,7 @@ impl TenantPoolProvider for ProductionTenantPoolManager {
             .wait_timeout(Some(Duration::from_secs(5)))
             .runtime(deadpool::Runtime::Tokio1)
             .build()
-            .map_err(|e| AppError::Internal(format!("Failed to create tenant pool: {}", e)))?;
+            .map_err(|e| AppError::Internal(format!("Failed to create tenant pool: {e}")))?;
 
         pools.insert(*workspace_id, pool.clone());
         Ok(pool)
@@ -235,7 +234,7 @@ impl DieselPools {
 
         conn.run_pending_migrations(SYSTEM_MIGRATIONS)
             .expect("Failed to run system migrations");
-            
+
         conn.run_pending_migrations(TENANT_MIGRATIONS)
             .expect("Failed to run tenant migrations");
 
@@ -257,9 +256,7 @@ impl DieselPools {
             .build()
             .expect("Failed to create test Worker Diesel pool");
 
-        let tenant_manager = Arc::new(TestTenantPoolManager::new(
-            api_pool.clone(),
-        ));
+        let tenant_manager = Arc::new(TestTenantPoolManager::new(api_pool.clone()));
 
         Self {
             api: api_pool,
@@ -278,33 +275,34 @@ mod tests {
     fn test_tenant_pool_manager_url_production_mode() {
         let base_url = "postgres://user:pass@localhost:5432/postgres";
         let manager = ProductionTenantPoolManager::new(base_url.to_string(), 5);
-        
+
         // Use a fixed UUID for predictable output
         let workspace_id = Uuid::parse_str("123e4567-e89b-12d3-a456-426614174000").unwrap();
-        
+
         let result = manager.get_tenant_url(&workspace_id).unwrap();
-        
+
         // In production mode, it should append the tenant name to the path
-        assert_eq!(result, "postgres://user:pass@localhost:5432/tenant_123e4567e89b12d3a456426614174000");
+        assert_eq!(
+            result,
+            "postgres://user:pass@localhost:5432/tenant_123e4567e89b12d3a456426614174000"
+        );
     }
 
     #[tokio::test]
     async fn test_tenant_pool_manager_test_mode_returns_same_pool() {
         let base_url = "postgres://user:pass@localhost:5432/leeattend_test_db";
-        let api_manager = AsyncDieselConnectionManager::<AsyncPgConnection>::new(base_url.to_string());
-        let pool = Pool::builder(api_manager)
-            .max_size(2)
-            .build()
-            .unwrap();
-            
+        let api_manager =
+            AsyncDieselConnectionManager::<AsyncPgConnection>::new(base_url.to_string());
+        let pool = Pool::builder(api_manager).max_size(2).build().unwrap();
+
         let test_manager = TestTenantPoolManager::new(pool);
-        
+
         let ws1 = Uuid::new_v4();
         let ws2 = Uuid::new_v4();
-        
+
         let pool1 = test_manager.get_pool(&ws1).await.unwrap();
         let pool2 = test_manager.get_pool(&ws2).await.unwrap();
-        
+
         // Since we are mocking the DI, the mock manager should always return clones of the same pool
         // regardless of the workspace ID requested.
         assert_eq!(pool1.status().max_size, 2);

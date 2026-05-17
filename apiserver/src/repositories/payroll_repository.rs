@@ -27,7 +27,11 @@ pub trait PayrollRepository: Send + Sync {
         period_end: NaiveDate,
     ) -> Result<Vec<PayrollIncentivePolicy>, AppError>;
 
-    async fn get_policy_tiers(&self, workspace_id: Uuid, policy_id: Uuid) -> Result<Vec<IncentiveTier>, AppError>;
+    async fn get_policy_tiers(
+        &self,
+        workspace_id: Uuid,
+        policy_id: Uuid,
+    ) -> Result<Vec<IncentiveTier>, AppError>;
 
     async fn create_incentive_policy(
         &self,
@@ -154,8 +158,11 @@ pub trait PayrollRepository: Send + Sync {
         args: &crate::models::CreatePayslipSegmentArgs,
     ) -> Result<(), AppError>;
 
-    async fn get_payslip_segments(&self, workspace_id: Uuid, payslip_id: Uuid)
-        -> Result<Vec<PayslipSegment>, AppError>;
+    async fn get_payslip_segments(
+        &self,
+        workspace_id: Uuid,
+        payslip_id: Uuid,
+    ) -> Result<Vec<PayslipSegment>, AppError>;
 
     async fn get_resolved_rule_assignments(
         &self,

@@ -68,11 +68,10 @@ pub(crate) fn build_tenant_payload(db_url: &str) -> Option<(String, serde_json::
     Some((tenant_id, payload))
 }
 
+use crate::errors::{AppError, AppResult};
 /// Initializes the Supavisor connection pooler by registering the database tenant via its HTTP API.
 /// This runs on startup if the `SUPAVISOR_API_URL` environment variable is set.
-
 use async_trait::async_trait;
-use crate::errors::{AppError, AppResult};
 
 #[cfg(test)]
 use mockall::automock;
@@ -82,7 +81,11 @@ use mockall::automock;
 pub trait TenantManager: Send + Sync {
     async fn init_tenant(&self);
     async fn delete_tenant(&self, tenant_id: &str) -> AppResult<()>;
-    async fn register_tenant_dynamic(&self, tenant_id: &str, payload: &serde_json::Value) -> AppResult<()>;
+    async fn register_tenant_dynamic(
+        &self,
+        tenant_id: &str,
+        payload: &serde_json::Value,
+    ) -> AppResult<()>;
 }
 
 pub struct SupavisorTenantManager {
@@ -98,7 +101,10 @@ impl SupavisorTenantManager {
         let jwt_secret = std::env::var("API_JWT_SECRET").ok()?;
         let master_db_url = std::env::var("DATABASE_URL").unwrap_or_default();
         Some(Self {
-            client: reqwest::Client::new(),
+            client: reqwest::Client::builder()
+                .timeout(std::time::Duration::from_secs(5))
+                .build()
+                .unwrap_or_else(|_| reqwest::Client::new()),
             api_url,
             jwt_secret,
             master_db_url,
@@ -127,9 +133,15 @@ impl TenantManager for SupavisorTenantManager {
             return;
         };
 
-        tracing::info!("Initializing Supavisor tenant '{tenant_id}' at {}", self.api_url);
+        tracing::info!(
+            "Initializing Supavisor tenant '{tenant_id}' at {}",
+            self.api_url
+        );
 
-        let url = format!("{}/api/tenants/{tenant_id}", self.api_url.trim_end_matches('/'));
+        let url = format!(
+            "{}/api/tenants/{tenant_id}",
+            self.api_url.trim_end_matches('/')
+        );
 
         match self
             .client
@@ -158,10 +170,15 @@ impl TenantManager for SupavisorTenantManager {
     }
 
     async fn delete_tenant(&self, tenant_id: &str) -> AppResult<()> {
-        let token = self.generate_token()
+        let token = self
+            .generate_token()
             .map_err(|e| AppError::Internal(format!("Failed to generate token: {e}")))?;
 
-        let url = format!("{}/api/tenants/{}", self.api_url.trim_end_matches('/'), tenant_id);
+        let url = format!(
+            "{}/api/tenants/{}",
+            self.api_url.trim_end_matches('/'),
+            tenant_id
+        );
 
         let response = self
             .client
@@ -176,15 +193,26 @@ impl TenantManager for SupavisorTenantManager {
             Ok(())
         } else {
             let text = response.text().await.unwrap_or_default();
-            Err(AppError::Internal(format!("Supavisor returned {status}: {text}")))
+            Err(AppError::Internal(format!(
+                "Supavisor returned {status}: {text}"
+            )))
         }
     }
 
-    async fn register_tenant_dynamic(&self, tenant_id: &str, payload: &serde_json::Value) -> AppResult<()> {
-        let token = self.generate_token()
+    async fn register_tenant_dynamic(
+        &self,
+        tenant_id: &str,
+        payload: &serde_json::Value,
+    ) -> AppResult<()> {
+        let token = self
+            .generate_token()
             .map_err(|e| AppError::Internal(format!("Failed to generate token: {e}")))?;
 
-        let url = format!("{}/api/tenants/{}", self.api_url.trim_end_matches('/'), tenant_id);
+        let url = format!(
+            "{}/api/tenants/{}",
+            self.api_url.trim_end_matches('/'),
+            tenant_id
+        );
 
         let response = self
             .client
@@ -204,7 +232,9 @@ impl TenantManager for SupavisorTenantManager {
         } else {
             let text = response.text().await.unwrap_or_default();
             println!("Supavisor returned {status}: {text}");
-            Err(AppError::Internal(format!("Supavisor returned {status}: {text}")))
+            Err(AppError::Internal(format!(
+                "Supavisor returned {status}: {text}"
+            )))
         }
     }
 }
@@ -222,12 +252,15 @@ impl TenantManager for NoopTenantManager {
         Ok(())
     }
 
-    async fn register_tenant_dynamic(&self, _tenant_id: &str, _payload: &serde_json::Value) -> AppResult<()> {
+    async fn register_tenant_dynamic(
+        &self,
+        _tenant_id: &str,
+        _payload: &serde_json::Value,
+    ) -> AppResult<()> {
         tracing::debug!("NoopTenantManager: skipping register_tenant");
         Ok(())
     }
 }
-
 
 fn generate_supavisor_token(secret: &str) -> Result<String, jsonwebtoken::errors::Error> {
     use jsonwebtoken::{encode, Algorithm, EncodingKey, Header};

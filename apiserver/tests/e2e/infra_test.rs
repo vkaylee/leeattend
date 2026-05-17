@@ -9,12 +9,13 @@ struct DummyRow {
 
 #[tokio::test]
 async fn test_supavisor_connection_and_prepared_statements() {
-    let test_db = match E2eTestDatabase::new().await {
-        Some(db) => db,
-        None => {
-            println!("Supavisor not available, skipping test_supavisor_connection_and_prepared_statements.");
-            return;
-        }
+    let test_db = if let Some(db) = E2eTestDatabase::new().await {
+        db
+    } else {
+        println!(
+            "Supavisor not available, skipping test_supavisor_connection_and_prepared_statements."
+        );
+        return;
     };
     let pool = test_db.diesel_pools.api.clone();
 
@@ -33,13 +34,13 @@ async fn test_supavisor_connection_and_prepared_statements() {
             use diesel::sql_types::Integer;
             let mut conn = pool_clone.get().await.unwrap();
             let row: i32 = diesel::sql_query("SELECT $1::INT as value")
-                .bind::<Integer, _>(i as i32)
+                .bind::<Integer, _>(i)
                 .get_result::<DummyRow>(&mut conn)
                 .await
                 .expect("Failed concurrent query execution")
                 .value;
 
-            assert_eq!(row, i as i32);
+            assert_eq!(row, i);
         }));
     }
 

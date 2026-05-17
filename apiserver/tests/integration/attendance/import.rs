@@ -109,7 +109,9 @@ async fn test_import_timeout_guard_updates_db_on_drop() {
     let user_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(user_id).await;
 
-    let import_repo = Arc::new(apiserver::repositories::DieselImportJobRepository::new(diesel_pools.clone()));
+    let import_repo = Arc::new(apiserver::repositories::DieselImportJobRepository::new(
+        diesel_pools.clone(),
+    ));
 
     let job_id = uuid::Uuid::new_v4();
     let job = AttendanceImportJob {
@@ -223,8 +225,11 @@ async fn test_employee_import_chunking() {
         max_retries: 3,
     };
 
-    let cache: std::sync::Arc<dyn apiserver::repositories::CacheRepository> = std::sync::Arc::new(apiserver::cache::RedisCache::new(redis_pool.clone()));
-    let queue: std::sync::Arc<dyn apiserver::repositories::QueueRepository> = std::sync::Arc::new(apiserver::repositories::queue_repository::RedisQueueRepository::new(redis_pool.clone()));
+    let cache: std::sync::Arc<dyn apiserver::repositories::CacheRepository> =
+        std::sync::Arc::new(apiserver::cache::RedisCache::new(redis_pool.clone()));
+    let queue: std::sync::Arc<dyn apiserver::repositories::QueueRepository> = std::sync::Arc::new(
+        apiserver::repositories::queue_repository::RedisQueueRepository::new(redis_pool.clone()),
+    );
     let deps = apiserver::worker::deps::WorkerDeps::new(&diesel_pools.clone());
     let result = EmployeeImportHandler::handle(&worker_job, &cache, &queue, &deps).await;
 
@@ -330,8 +335,11 @@ async fn test_leave_import_chunking() {
     };
 
     let deps = apiserver::worker::deps::WorkerDeps::new(&diesel_pools.clone());
-    let cache: std::sync::Arc<dyn apiserver::repositories::CacheRepository> = std::sync::Arc::new(apiserver::cache::RedisCache::new(redis_pool.clone()));
-    let queue: std::sync::Arc<dyn apiserver::repositories::QueueRepository> = std::sync::Arc::new(apiserver::repositories::queue_repository::RedisQueueRepository::new(redis_pool.clone()));
+    let cache: std::sync::Arc<dyn apiserver::repositories::CacheRepository> =
+        std::sync::Arc::new(apiserver::cache::RedisCache::new(redis_pool.clone()));
+    let queue: std::sync::Arc<dyn apiserver::repositories::QueueRepository> = std::sync::Arc::new(
+        apiserver::repositories::queue_repository::RedisQueueRepository::new(redis_pool.clone()),
+    );
     let result = LeaveImportHandler::handle(&worker_job, &cache, &queue, &deps).await;
 
     if let Err(e) = &result {

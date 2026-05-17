@@ -64,9 +64,7 @@ async fn test_handler_claims_staged_logs_for_employee() {
         }),
     );
 
-    ClaimStagedLogsHandler::handle(&job, &deps)
-        .await
-        .unwrap();
+    ClaimStagedLogsHandler::handle(&job, &deps).await.unwrap();
 
     // 3. Verify staged log is no longer pending
     let pending_after = helpers::count_pending_staging_logs(&diesel_pools, ws_id)
@@ -172,9 +170,7 @@ async fn test_handler_claims_multiple_staged_logs() {
         }),
     );
 
-    ClaimStagedLogsHandler::handle(&job, &deps)
-        .await
-        .unwrap();
+    ClaimStagedLogsHandler::handle(&job, &deps).await.unwrap();
 
     // Verify all claimed
     let pending_after = helpers::count_pending_staging_logs(&diesel_pools, ws_id)
@@ -251,9 +247,7 @@ async fn test_handler_only_claims_matching_employee() {
         }),
     );
 
-    ClaimStagedLogsHandler::handle(&job, &deps)
-        .await
-        .unwrap();
+    ClaimStagedLogsHandler::handle(&job, &deps).await.unwrap();
 
     // Employee B's staged log should still be pending
     let pending_after = helpers::count_pending_staging_logs(&diesel_pools, ws_id)

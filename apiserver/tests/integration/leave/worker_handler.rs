@@ -67,8 +67,11 @@ async fn test_leave_import_worker_handlers() {
         JobPriority::Normal,
     );
 
-    let cache: std::sync::Arc<dyn apiserver::repositories::CacheRepository> = std::sync::Arc::new(apiserver::cache::RedisCache::new(redis_pool.clone()));
-    let queue: std::sync::Arc<dyn apiserver::repositories::QueueRepository> = std::sync::Arc::new(apiserver::repositories::queue_repository::RedisQueueRepository::new(redis_pool.clone()));
+    let cache: std::sync::Arc<dyn apiserver::repositories::CacheRepository> =
+        std::sync::Arc::new(apiserver::cache::RedisCache::new(redis_pool.clone()));
+    let queue: std::sync::Arc<dyn apiserver::repositories::QueueRepository> = std::sync::Arc::new(
+        apiserver::repositories::queue_repository::RedisQueueRepository::new(redis_pool.clone()),
+    );
     let deps = apiserver::worker::deps::WorkerDeps::new(&diesel_pools.clone());
     let res = LeaveImportHandler::handle(&master_job, &cache, &queue, &deps).await;
     res.expect("Master handler should succeed");
@@ -144,8 +147,11 @@ async fn test_leave_import_handler_empty_file() {
         JobPriority::Normal,
     );
     let deps = apiserver::worker::deps::WorkerDeps::new(&diesel_pools.clone());
-    let cache: std::sync::Arc<dyn apiserver::repositories::CacheRepository> = std::sync::Arc::new(apiserver::cache::RedisCache::new(redis_pool.clone()));
-    let queue: std::sync::Arc<dyn apiserver::repositories::QueueRepository> = std::sync::Arc::new(apiserver::repositories::queue_repository::RedisQueueRepository::new(redis_pool.clone()));
+    let cache: std::sync::Arc<dyn apiserver::repositories::CacheRepository> =
+        std::sync::Arc::new(apiserver::cache::RedisCache::new(redis_pool.clone()));
+    let queue: std::sync::Arc<dyn apiserver::repositories::QueueRepository> = std::sync::Arc::new(
+        apiserver::repositories::queue_repository::RedisQueueRepository::new(redis_pool.clone()),
+    );
     let res = LeaveImportHandler::handle(&master_job, &cache, &queue, &deps).await;
     assert!(res.is_err());
     assert_eq!(

@@ -556,7 +556,12 @@ impl PayrollService {
         for rule in rule_results {
             let _ = self
                 .payroll_repo
-                .create_payslip_rule_evaluation(workspace_id, created_payslip.id, rule.rule_code, rule.amount)
+                .create_payslip_rule_evaluation(
+                    workspace_id,
+                    created_payslip.id,
+                    rule.rule_code,
+                    rule.amount,
+                )
                 .await;
         }
 
@@ -689,6 +694,7 @@ mod tests {
                 default_holiday_ot_multiplier: Decimal::from(2),
                 logo_url: None,
                 tagline: None,
+                custom_db_url_encrypted: None,
                 created_at: Utc::now(),
             },
             tz: chrono_tz::UTC,

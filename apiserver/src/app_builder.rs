@@ -208,9 +208,11 @@ impl AppState {
         let shift_service = Arc::new(crate::services::shift_service::ShiftService::new(
             shift_repo.clone(),
         ));
-        let tenant_provisioner = Arc::new(crate::services::tenant_provisioner::DefaultTenantProvisioner::new(
-            diesel_pools.api.clone(),
-        ));
+        let tenant_provisioner = Arc::new(
+            crate::services::tenant_provisioner::DefaultTenantProvisioner::new(
+                diesel_pools.api.clone(),
+            ),
+        );
 
         let workspace_service =
             Arc::new(crate::services::workspace_service::WorkspaceService::new(
@@ -421,8 +423,12 @@ impl AppState {
                     "Initializing job worker"
                 );
 
-                let queue_repo: Arc<dyn crate::repositories::queue_repository::QueueRepository> = 
-                    Arc::new(crate::repositories::queue_repository::RedisQueueRepository::new(redis.clone()));
+                let queue_repo: Arc<dyn crate::repositories::queue_repository::QueueRepository> =
+                    Arc::new(
+                        crate::repositories::queue_repository::RedisQueueRepository::new(
+                            redis.clone(),
+                        ),
+                    );
 
                 let coordinator = Arc::new(ReportCoordinator::new(
                     queue_repo.clone(),
@@ -522,14 +528,24 @@ impl AppState {
             infra: crate::InfraState {
                 diesel: diesel_pools,
                 redis: redis_pool.clone(),
-                cache: redis_pool.clone().map(|r| Arc::new(crate::cache::RedisCache::new(r)) as Arc<dyn crate::repositories::CacheRepository>),
+                cache: redis_pool.clone().map(|r| {
+                    Arc::new(crate::cache::RedisCache::new(r))
+                        as Arc<dyn crate::repositories::CacheRepository>
+                }),
                 roster_cache,
-                queue: redis_pool.map(|r| Arc::new(crate::repositories::queue_repository::RedisQueueRepository::new(r)) as Arc<dyn crate::repositories::queue_repository::QueueRepository>),
+                queue: redis_pool.map(|r| {
+                    Arc::new(crate::repositories::queue_repository::RedisQueueRepository::new(r))
+                        as Arc<dyn crate::repositories::queue_repository::QueueRepository>
+                }),
                 tenant_manager,
                 tenant_provisioner: tenant_provisioner.clone(),
-                crypto_service: std::env::var("ENCRYPTION_KEYS_JSON").ok().and_then(|keys_json| {
-                    crate::crypto::CryptoService::from_json(&keys_json).ok().map(Arc::new)
-                }),
+                crypto_service: std::env::var("ENCRYPTION_KEYS_JSON")
+                    .ok()
+                    .and_then(|keys_json| {
+                        crate::crypto::CryptoService::from_json(&keys_json)
+                            .ok()
+                            .map(Arc::new)
+                    }),
             },
         });
 

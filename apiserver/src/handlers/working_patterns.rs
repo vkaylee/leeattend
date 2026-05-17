@@ -57,9 +57,12 @@ pub async fn get_pattern_details(
     Path((_, pattern_id)): Path<(Uuid, Uuid)>,
     ctx: MemberContext,
 ) -> AppResult<Json<Vec<WorkingPatternDetail>>> {
-    let details =
-        service::get_pattern_details(Arc::clone(&state.shifts.working_pattern_repo), ctx.workspace_id, pattern_id)
-            .await?;
+    let details = service::get_pattern_details(
+        Arc::clone(&state.shifts.working_pattern_repo),
+        ctx.workspace_id,
+        pattern_id,
+    )
+    .await?;
     Ok(Json(details))
 }
 

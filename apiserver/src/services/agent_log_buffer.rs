@@ -221,7 +221,10 @@ async fn process_batch(
 
     // Batch insert to database per workspace
     for (workspace_id, raw_logs) in logs_by_workspace {
-        match raw_log_repo.create_raw_logs_batch(workspace_id, &raw_logs).await {
+        match raw_log_repo
+            .create_raw_logs_batch(workspace_id, &raw_logs)
+            .await
+        {
             Ok(inserted_count) => {
                 info!(
                     "Batch insert complete for workspace {}: {}/{} logs inserted",

@@ -58,7 +58,10 @@ async fn test_working_condition_crud() {
     assert!(conditions[0].is_paid);
 
     // Delete
-    let deleted = repo.delete_working_condition(ws_id, wc.id, emp_id).await.unwrap();
+    let deleted = repo
+        .delete_working_condition(ws_id, wc.id, emp_id)
+        .await
+        .unwrap();
     assert!(deleted);
 
     // Confirm empty
@@ -98,7 +101,13 @@ async fn test_payroll_config_upsert_and_lookup() {
 
     // Insert
     let config = repo
-        .upsert_employee_payroll_config(ws_id, emp_id, Decimal::from(22), Decimal::from(8), effective)
+        .upsert_employee_payroll_config(
+            ws_id,
+            emp_id,
+            Decimal::from(22),
+            Decimal::from(8),
+            effective,
+        )
         .await
         .unwrap();
     assert_eq!(config.std_working_days, Decimal::from(22));
@@ -107,7 +116,13 @@ async fn test_payroll_config_upsert_and_lookup() {
 
     // Upsert (same effective_date → update)
     let updated = repo
-        .upsert_employee_payroll_config(ws_id, emp_id, Decimal::from(20), Decimal::from(7), effective)
+        .upsert_employee_payroll_config(
+            ws_id,
+            emp_id,
+            Decimal::from(20),
+            Decimal::from(7),
+            effective,
+        )
         .await
         .unwrap();
     assert_eq!(updated.std_working_days, Decimal::from(20));

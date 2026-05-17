@@ -148,7 +148,8 @@ impl JobWorker {
         roster_cache: Option<Arc<RosterCache>>,
     ) -> Self {
         let deps = Arc::new(super::WorkerDeps::new(&diesel));
-        let redis_cache: Arc<dyn crate::repositories::CacheRepository> = Arc::new(crate::cache::RedisCache::new(redis.clone()));
+        let redis_cache: Arc<dyn crate::repositories::CacheRepository> =
+            Arc::new(crate::cache::RedisCache::new(redis.clone()));
         let cache = Arc::new(CacheManager::new(
             redis_cache,
             Arc::clone(&deps.workspace_repo),
@@ -158,8 +159,12 @@ impl JobWorker {
             .or_else(|_| std::env::var("COMPUTERNAME"))
             .unwrap_or_else(|_| "unknown".to_string());
 
-        let queue_repo: Arc<dyn crate::repositories::QueueRepository> = Arc::new(crate::repositories::RedisQueueRepository::new(redis.clone()));
-        let publisher_repo: Arc<dyn crate::repositories::PublisherRepository> = Arc::new(crate::repositories::RedisPublisherRepository::new(redis.clone()));
+        let queue_repo: Arc<dyn crate::repositories::QueueRepository> = Arc::new(
+            crate::repositories::RedisQueueRepository::new(redis.clone()),
+        );
+        let publisher_repo: Arc<dyn crate::repositories::PublisherRepository> = Arc::new(
+            crate::repositories::RedisPublisherRepository::new(redis.clone()),
+        );
 
         Self {
             queue: JobQueue::new(redis.clone()),
@@ -416,24 +421,27 @@ impl JobWorker {
             TaskType::LeaveAccrual => {
                 AccrualHandler::handle(&self.queue_repo, &job, &self.deps).await
             }
-            TaskType::LogIngestion => {
-                LogIngestionHandler::handle(&job, &self.deps).await
-            }
+            TaskType::LogIngestion => LogIngestionHandler::handle(&job, &self.deps).await,
             TaskType::ReprocessAttendance => {
-                ReprocessAttendanceHandler::handle(&self.queue_repo, &job, &self.deps)
+                ReprocessAttendanceHandler::handle(&self.queue_repo, &job, &self.deps).await
+            }
+            TaskType::ClaimStagedLogs => ClaimStagedLogsHandler::handle(&job, &self.deps).await,
+            TaskType::LeaveImport => {
+                LeaveImportHandler::handle(&job, &self.cache.repo, &self.queue_repo, &self.deps)
                     .await
             }
-            TaskType::ClaimStagedLogs => {
-                ClaimStagedLogsHandler::handle(&job, &self.deps).await
-            }
-            TaskType::LeaveImport => {
-                LeaveImportHandler::handle(&job, &self.cache.repo, &self.queue_repo, &self.deps).await
-            }
             TaskType::EmployeeImport => {
-                EmployeeImportHandler::handle(&job, &self.cache.repo, &self.queue_repo, &self.deps).await
+                EmployeeImportHandler::handle(&job, &self.cache.repo, &self.queue_repo, &self.deps)
+                    .await
             }
             TaskType::EmployeeImportChunk => {
-                EmployeeImportChunkHandler::handle(&job, &self.cache.repo, &self.queue_repo, &self.deps).await
+                EmployeeImportChunkHandler::handle(
+                    &job,
+                    &self.cache.repo,
+                    &self.queue_repo,
+                    &self.deps,
+                )
+                .await
             }
             TaskType::FinalizeImport => {
                 FinalizeImportHandler::handle(&job, &self.cache.repo, &self.deps).await

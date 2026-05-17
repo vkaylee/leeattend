@@ -1,11 +1,11 @@
 pub mod agent_repository;
 pub mod cache_repository;
-pub mod queue_repository;
 pub mod publisher_repository;
+pub mod queue_repository;
 
 pub use cache_repository::{CacheRepository, CacheRepositoryExt};
-pub use queue_repository::{QueueRepository, RedisQueueRepository};
 pub use publisher_repository::{PublisherRepository, RedisPublisherRepository};
+pub use queue_repository::{QueueRepository, RedisQueueRepository};
 pub mod assignment_rule_repository;
 pub mod attendance_adjustment_repository;
 pub mod department_repository;
@@ -53,9 +53,9 @@ pub use workspace_stats_repository::{DieselWorkspaceStatsRepository, WorkspaceSt
 pub mod diesel_employee_contract_repository;
 pub mod diesel_employee_repository;
 pub mod employee_contract_repository;
-pub use employee_contract_repository::EmployeeContractRepository;
 pub use diesel_employee_contract_repository::DieselEmployeeContractRepository;
 pub use diesel_employee_repository::DieselEmployeeRepository;
+pub use employee_contract_repository::EmployeeContractRepository;
 pub mod diesel_agent_repository;
 pub use diesel_agent_repository::DieselAgentRepository;
 pub mod diesel_audit_log_repository;

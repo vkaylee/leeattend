@@ -62,8 +62,12 @@ impl FinalizeImportHandler {
         // Cleanup Redis keys
         let _ = cache.delete(&progress_key).await;
         let _ = cache.delete(&errors_key).await;
-        let _ = cache.delete(&format!("import_chunks_done:{}", payload.import_job_id)).await;
-        let _ = cache.delete(&format!("import_total_chunks:{}", payload.import_job_id)).await;
+        let _ = cache
+            .delete(&format!("import_chunks_done:{}", payload.import_job_id))
+            .await;
+        let _ = cache
+            .delete(&format!("import_total_chunks:{}", payload.import_job_id))
+            .await;
 
         // Cleanup file
         if let Ok(Some(import_job)) = import_repo.get_job_by_id(payload.import_job_id).await {
@@ -95,31 +99,35 @@ mod tests {
     async fn test_finalize_import_handler_success() {
         let import_job_id = Uuid::new_v4();
         let ws_id = Uuid::new_v4();
-        
+
         let mut cache = crate::repositories::cache_repository::MockCacheRepository::new();
         let progress_key = format!("import_progress:{}", import_job_id);
         let errors_key = format!("import_errors:{}", import_job_id);
 
-        cache.expect_get_json()
+        cache
+            .expect_get_json()
             .with(mockall::predicate::eq(progress_key.clone()))
             .returning(|_| Ok(Some("5".to_string())));
 
-        cache.expect_hgetall()
+        cache
+            .expect_hgetall()
             .with(mockall::predicate::eq(errors_key.clone()))
             .returning(|_| Ok(HashMap::new()));
 
-        cache.expect_delete()
-            .returning(|_| Ok(()));
+        cache.expect_delete().returning(|_| Ok(()));
 
         let cache_arc: Arc<dyn crate::repositories::CacheRepository> = Arc::new(cache);
 
-        let mut import_repo = crate::repositories::import_job_repository::MockImportJobRepository::new();
-        import_repo.expect_update_job_progress()
-            .withf(|_, rows, status, err| *rows == 5 && *status == ImportJobStatus::Completed && err.is_none())
+        let mut import_repo =
+            crate::repositories::import_job_repository::MockImportJobRepository::new();
+        import_repo
+            .expect_update_job_progress()
+            .withf(|_, rows, status, err| {
+                *rows == 5 && *status == ImportJobStatus::Completed && err.is_none()
+            })
             .returning(|_, _, _, _| Ok(()));
-            
-        import_repo.expect_get_job_by_id()
-            .returning(|_| Ok(None)); // Skip file cleanup
+
+        import_repo.expect_get_job_by_id().returning(|_| Ok(None)); // Skip file cleanup
 
         let mut builder = MockWorkerDepsBuilder::new();
         builder.import_job_repo = import_repo;
@@ -131,9 +139,7 @@ mod tests {
             batch_index: 0,
             task_type: TaskType::FinalizeImport,
             workspace_id: ws_id,
-            payload: JobPayload::FinalizeImport(FinalizeImportPayload {
-                import_job_id,
-            }),
+            payload: JobPayload::FinalizeImport(FinalizeImportPayload { import_job_id }),
             priority: JobPriority::Normal,
             created_at: chrono::Utc::now(),
             retry_count: 0,

@@ -117,7 +117,13 @@ pub async fn assign_shift(
     state
         .shifts
         .service
-        .assign_shift(ctx.workspace_id, req.employee_id, req.shift_id, req.start_date, req.end_date)
+        .assign_shift(
+            ctx.workspace_id,
+            req.employee_id,
+            req.shift_id,
+            req.start_date,
+            req.end_date,
+        )
         .await?;
 
     if let Some(cache) = &state.infra.roster_cache {
@@ -218,7 +224,11 @@ pub async fn upsert_roster(
         updated_at: chrono::Utc::now(),
     };
 
-    let saved = state.shifts.roster_repo.upsert_roster(ctx.workspace_id, &roster).await?;
+    let saved = state
+        .shifts
+        .roster_repo
+        .upsert_roster(ctx.workspace_id, &roster)
+        .await?;
 
     if let Some(cache) = &state.infra.roster_cache {
         cache.invalidate(ctx.workspace_id).await;

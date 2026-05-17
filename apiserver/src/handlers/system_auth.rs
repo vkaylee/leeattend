@@ -26,6 +26,7 @@ use std::collections::HashSet;
 use std::sync::Arc;
 use std::time::Duration;
 
+use crate::repositories::CacheRepositoryExt;
 use axum::{
     async_trait,
     extract::{FromRef, FromRequestParts},
@@ -33,7 +34,6 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-use crate::repositories::CacheRepositoryExt;
 
 use crate::errors::{AppError, AppResult};
 use crate::models::enums::SystemRoleType;
@@ -160,7 +160,6 @@ where
         let cache_key = Self::cache_key(user_id);
 
         let roles: HashSet<SystemRoleType> = if let Some(cache) = &app_state.infra.cache {
-
             if let Some(cached) = cache.get::<CachedSystemRoles>(&cache_key).await {
                 // Deserialize from cached string names
                 cached

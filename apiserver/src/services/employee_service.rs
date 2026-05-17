@@ -72,7 +72,9 @@ impl EmployeeService {
             end_date: req.end_date,
         };
 
-        self.repo.create_working_condition(workspace_id, &condition).await?;
+        self.repo
+            .create_working_condition(workspace_id, &condition)
+            .await?;
 
         Ok(condition)
     }
@@ -592,11 +594,20 @@ mod tests {
             Ok(self.working_conditions.lock().expect("lock").clone())
         }
 
-        async fn create_working_condition(&self, _workspace_id: Uuid, _cond: &WorkingCondition) -> Result<(), AppError> {
+        async fn create_working_condition(
+            &self,
+            _workspace_id: Uuid,
+            _cond: &WorkingCondition,
+        ) -> Result<(), AppError> {
             Ok(())
         }
 
-        async fn delete_working_condition(&self, _workspace_id: Uuid, _id: Uuid, _emp: Uuid) -> Result<bool, AppError> {
+        async fn delete_working_condition(
+            &self,
+            _workspace_id: Uuid,
+            _id: Uuid,
+            _emp: Uuid,
+        ) -> Result<bool, AppError> {
             Ok(*self.delete_wc_result.lock().expect("lock"))
         }
 

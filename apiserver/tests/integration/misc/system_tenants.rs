@@ -48,9 +48,26 @@ fn make_req(
 
 #[tokio::test]
 async fn test_system_tenants_lifecycle() {
-    // Only run if pooler is enabled
-    if std::env::var("SUPAVISOR_API_URL").is_err() {
-        println!("Skipping system_tenants test because SUPAVISOR_API_URL is not set.");
+    let supavisor_url = match std::env::var("SUPAVISOR_API_URL") {
+        Ok(url) => url,
+        Err(_) => {
+            println!("Skipping system_tenants test because SUPAVISOR_API_URL is not set.");
+            return;
+        }
+    };
+
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(1))
+        .build()
+        .unwrap();
+
+    // Just try to hit the host to see if it's reachable.
+    // If it's not reachable, it'll timeout/fail fast and we skip.
+    if client.get(&supavisor_url).send().await.is_err() {
+        println!(
+            "Skipping system_tenants test because Supavisor is not reachable at {}.",
+            supavisor_url
+        );
         return;
     }
 
@@ -88,10 +105,10 @@ async fn test_system_tenants_lifecycle() {
     }
     assert_eq!(status, StatusCode::OK);
 
-    // 3. Admin creates a tenant without creating physical DB (using test_database)
+    let workspace_id = Uuid::new_v4();
     let payload = json!({
-        "db_name": "test_database",
-        "create_db": false,
+        "workspace_id": workspace_id,
+        "custom_db_url": "postgres://test_user:test_password@db/test_database",
         "pool_size": 15
     });
 
@@ -110,6 +127,11 @@ async fn test_system_tenants_lifecycle() {
         let bytes = axum::body::to_bytes(res.into_body(), usize::MAX)
             .await
             .unwrap();
+        std::fs::write(
+            "system_tenants_error.log",
+            String::from_utf8(bytes.to_vec()).unwrap_or_default(),
+        )
+        .ok();
         println!(
             "POST /api/system/tenants failed: {:?}",
             String::from_utf8(bytes.to_vec())
@@ -139,7 +161,7 @@ async fn test_system_tenants_lifecycle() {
         .clone()
         .oneshot(make_req(
             "DELETE",
-            "/api/system/tenants/test_database",
+            &format!("/api/system/tenants/{}", workspace_id),
             admin_id,
             None,
         ))

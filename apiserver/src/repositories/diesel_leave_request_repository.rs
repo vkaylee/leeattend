@@ -26,7 +26,11 @@ impl DieselLeaveRequestRepository {
 #[allow(clippy::too_many_lines)]
 #[async_trait]
 impl LeaveRequestRepository for DieselLeaveRequestRepository {
-    async fn create_leave_request(&self, workspace_id: Uuid, request: &LeaveRequest) -> Result<(), AppError> {
+    async fn create_leave_request(
+        &self,
+        workspace_id: Uuid,
+        request: &LeaveRequest,
+    ) -> Result<(), AppError> {
         let mut conn = self
             .diesel_pools
             .tenants
@@ -677,6 +681,9 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
         .await
         .map_err(|e| AppError::Internal(e.to_string()))?;
 
-        Ok(leave_days.into_iter().map(|row| (row.start_date, row.end_date)).collect())
+        Ok(leave_days
+            .into_iter()
+            .map(|row| (row.start_date, row.end_date))
+            .collect())
     }
 }

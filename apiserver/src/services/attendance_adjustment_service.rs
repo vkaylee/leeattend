@@ -122,7 +122,9 @@ impl AttendanceAdjustmentService {
                     updated_at: Utc::now(),
                 };
 
-                self.time_entry_repo.create_time_entry(workspace_id, &entry).await?;
+                self.time_entry_repo
+                    .create_time_entry(workspace_id, &entry)
+                    .await?;
             }
         }
 

@@ -11,13 +11,13 @@ use serde::Deserialize;
 use std::sync::Arc;
 use utoipa::ToSchema;
 
-use uuid::Uuid;
 use crate::errors::{AppError, AppResult};
+use crate::handlers::common::ApiContext;
 use crate::handlers::system_auth::SystemContext;
 use crate::models::enums::SystemRoleType;
 use crate::supavisor::build_tenant_payload;
 use crate::AppState;
-use crate::handlers::common::ApiContext;
+use uuid::Uuid;
 
 use diesel_async::RunQueryDsl;
 
@@ -34,7 +34,14 @@ impl std::fmt::Debug for CreateTenantRequest {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("CreateTenantRequest")
             .field("workspace_id", &self.workspace_id)
-            .field("custom_db_url", &if self.custom_db_url.is_some() { "Some(***REDACTED***)" } else { "None" })
+            .field(
+                "custom_db_url",
+                &if self.custom_db_url.is_some() {
+                    "Some(***REDACTED***)"
+                } else {
+                    "None"
+                },
+            )
             .field("pool_size", &self.pool_size)
             .finish()
     }
@@ -113,15 +120,17 @@ pub async fn create_tenant(
     ctx.require_role(SystemRoleType::PlatformAdmin)?;
 
     // 1. Provision the database (or use BYOD) and run migrations
-    let provisioner = state.infra.tenant_provisioner.clone();
+    let provisioner = std::sync::Arc::clone(&state.infra.tenant_provisioner);
     let workspace_id = req.workspace_id;
-    let new_db_url = provisioner.provision_tenant_db(&workspace_id, req.custom_db_url.clone()).await?;
+    let new_db_url = provisioner
+        .provision_tenant_db(&workspace_id, req.custom_db_url.clone())
+        .await?;
 
     // 2. Build dynamic Supavisor payload
     if let Some(size) = req.pool_size {
         std::env::set_var("SUPAVISOR_POOL_SIZE", size.to_string());
     }
-    std::env::set_var("SUPAVISOR_TENANT_ID", &req.workspace_id.to_string());
+    std::env::set_var("SUPAVISOR_TENANT_ID", req.workspace_id.to_string());
 
     let payload_opt = build_tenant_payload(&new_db_url);
 
@@ -137,7 +146,11 @@ pub async fn create_tenant(
     };
 
     // 3. Register in Supavisor
-    state.infra.tenant_manager.register_tenant_dynamic(&tenant_id, &payload).await?;
+    state
+        .infra
+        .tenant_manager
+        .register_tenant_dynamic(&tenant_id, &payload)
+        .await?;
 
     // 4. Encrypt and save custom_db_url if provided
     if let Some(raw_url) = &req.custom_db_url {

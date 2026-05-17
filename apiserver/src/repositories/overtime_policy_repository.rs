@@ -24,7 +24,11 @@ pub trait OvertimePolicyRepositoryTrait: Send + Sync {
         workspace_id: Uuid,
         id: Uuid,
     ) -> Result<Option<(OvertimePolicy, Vec<OvertimeRule>)>, AppError>;
-    async fn add_rule(&self, workspace_id: Uuid, rule: &OvertimeRule) -> Result<OvertimeRule, AppError>;
+    async fn add_rule(
+        &self,
+        workspace_id: Uuid,
+        rule: &OvertimeRule,
+    ) -> Result<OvertimeRule, AppError>;
     async fn resolve_policy_for_employee(
         &self,
         employee_id: Uuid,

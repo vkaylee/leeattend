@@ -35,6 +35,7 @@ mod tests {
                 default_holiday_ot_multiplier: rust_decimal::Decimal::new(15, 1),
                 logo_url: None,
                 tagline: None,
+                custom_db_url_encrypted: None,
             }))
         }
         async fn create_workspace_with_owner(
@@ -193,6 +194,13 @@ mod tests {
         async fn is_any_role_global(&self, _r: &[Uuid]) -> Result<bool, AppError> {
             unimplemented!()
         }
+        async fn update_workspace_byod_url(
+            &self,
+            _workspace_id: Uuid,
+            _encrypted_url: Option<String>,
+        ) -> Result<(), AppError> {
+            Ok(())
+        }
         async fn get_all_workspaces(&self) -> Result<Vec<Workspace>, AppError> {
             unimplemented!()
         }
@@ -298,10 +306,19 @@ mod tests {
         ) -> Result<Vec<WorkingCondition>, AppError> {
             unimplemented!()
         }
-        async fn create_working_condition(&self, _ws: Uuid, _c: &WorkingCondition) -> Result<(), AppError> {
+        async fn create_working_condition(
+            &self,
+            _ws: Uuid,
+            _c: &WorkingCondition,
+        ) -> Result<(), AppError> {
             unimplemented!()
         }
-        async fn delete_working_condition(&self, _ws: Uuid, _i: Uuid, _e: Uuid) -> Result<bool, AppError> {
+        async fn delete_working_condition(
+            &self,
+            _ws: Uuid,
+            _i: Uuid,
+            _e: Uuid,
+        ) -> Result<bool, AppError> {
             unimplemented!()
         }
         async fn get_existing_employee_ids_by_numbers(
@@ -465,7 +482,11 @@ mod tests {
     struct DummyTimeEntryRepo;
     #[async_trait]
     impl crate::repositories::TimeEntryRepository for DummyTimeEntryRepo {
-        async fn create_time_entry(&self, _workspace_id: Uuid, _e: &TimeEntry) -> Result<(), AppError> {
+        async fn create_time_entry(
+            &self,
+            _workspace_id: Uuid,
+            _e: &TimeEntry,
+        ) -> Result<(), AppError> {
             unimplemented!()
         }
         async fn get_time_entry_by_id(
@@ -587,10 +608,19 @@ mod tests {
         ) -> Result<Vec<ShiftRoster>, AppError> {
             unimplemented!()
         }
-        async fn upsert_roster(&self, _ws: Uuid, _r: &ShiftRoster) -> Result<ShiftRoster, AppError> {
+        async fn upsert_roster(
+            &self,
+            _ws: Uuid,
+            _r: &ShiftRoster,
+        ) -> Result<ShiftRoster, AppError> {
             unimplemented!()
         }
-        async fn bulk_upsert_roster(&self, _ws: Uuid, _e: Uuid, _i: Vec<RosterItem>) -> Result<(), AppError> {
+        async fn bulk_upsert_roster(
+            &self,
+            _ws: Uuid,
+            _e: Uuid,
+            _i: Vec<RosterItem>,
+        ) -> Result<(), AppError> {
             unimplemented!()
         }
         async fn get_effective_shift(
@@ -1055,10 +1085,19 @@ mod tests {
         ) -> Result<Vec<WorkingCondition>, AppError> {
             unimplemented!()
         }
-        async fn create_working_condition(&self, _ws: Uuid, _c: &WorkingCondition) -> Result<(), AppError> {
+        async fn create_working_condition(
+            &self,
+            _ws: Uuid,
+            _c: &WorkingCondition,
+        ) -> Result<(), AppError> {
             unimplemented!()
         }
-        async fn delete_working_condition(&self, _ws: Uuid, _i: Uuid, _e: Uuid) -> Result<bool, AppError> {
+        async fn delete_working_condition(
+            &self,
+            _ws: Uuid,
+            _i: Uuid,
+            _e: Uuid,
+        ) -> Result<bool, AppError> {
             unimplemented!()
         }
         async fn get_existing_employee_ids_by_numbers(
@@ -1270,10 +1309,19 @@ mod tests {
         ) -> Result<Vec<ShiftRoster>, AppError> {
             unimplemented!()
         }
-        async fn upsert_roster(&self, _ws: Uuid, _r: &ShiftRoster) -> Result<ShiftRoster, AppError> {
+        async fn upsert_roster(
+            &self,
+            _ws: Uuid,
+            _r: &ShiftRoster,
+        ) -> Result<ShiftRoster, AppError> {
             unimplemented!()
         }
-        async fn bulk_upsert_roster(&self, _ws: Uuid, _e: Uuid, _i: Vec<RosterItem>) -> Result<(), AppError> {
+        async fn bulk_upsert_roster(
+            &self,
+            _ws: Uuid,
+            _e: Uuid,
+            _i: Vec<RosterItem>,
+        ) -> Result<(), AppError> {
             unimplemented!()
         }
         async fn get_effective_shift(
@@ -1292,7 +1340,11 @@ mod tests {
     struct EmptyTimeEntryRepo;
     #[async_trait]
     impl crate::repositories::TimeEntryRepository for EmptyTimeEntryRepo {
-        async fn create_time_entry(&self, _workspace_id: Uuid, _e: &TimeEntry) -> Result<(), AppError> {
+        async fn create_time_entry(
+            &self,
+            _workspace_id: Uuid,
+            _e: &TimeEntry,
+        ) -> Result<(), AppError> {
             unimplemented!()
         }
         async fn get_time_entry_by_id(

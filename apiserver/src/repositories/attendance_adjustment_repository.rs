@@ -9,7 +9,11 @@ use uuid::Uuid;
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait AttendanceAdjustmentRepository: Send + Sync {
-    async fn create_request(&self, workspace_id: Uuid, request: &AttendanceAdjustmentRequest) -> Result<(), AppError>;
+    async fn create_request(
+        &self,
+        workspace_id: Uuid,
+        request: &AttendanceAdjustmentRequest,
+    ) -> Result<(), AppError>;
     async fn get_request_by_id(
         &self,
         workspace_id: Uuid,

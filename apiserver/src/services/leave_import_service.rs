@@ -42,7 +42,6 @@ pub struct LeaveImportStrategy {
     pub leave_service: LeaveService,
 }
 
-
 #[async_trait::async_trait]
 impl ImportStrategy for LeaveImportStrategy {
     type RowData = PendingLeaveRow;
@@ -144,7 +143,10 @@ impl ImportStrategy for LeaveImportStrategy {
             .map_err(|e| format!("Failed to load employees: {e}"))?;
 
         for emp in emps {
-            println!("Loaded employee into cache: id_number = '{}'", emp.employee_id_number);
+            println!(
+                "Loaded employee into cache: id_number = '{}'",
+                emp.employee_id_number
+            );
             if !emp.employee_id_number.is_empty() {
                 self.employees_cache
                     .insert(emp.employee_id_number.to_uppercase(), emp.id);
@@ -211,12 +213,8 @@ impl ImportStrategy for LeaveImportStrategy {
 }
 
 impl LeaveImportService {
-    pub fn new(
-        deps: crate::worker::deps::WorkerDeps,
-    ) -> Self {
-        Self {
-            deps,
-        }
+    pub fn new(deps: crate::worker::deps::WorkerDeps) -> Self {
+        Self { deps }
     }
 
     /// Process an imported Excel file of leave requests.
@@ -240,7 +238,7 @@ impl LeaveImportService {
             .workspace_repo
             .get_workspace_by_id(workspace_id)
             .await
-            .map_err(|_| ())?
+            .map_err(|_err| ())?
             .ok_or(())?;
 
         let lang = workspace.default_language;

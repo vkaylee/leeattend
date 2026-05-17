@@ -339,7 +339,11 @@ impl RosterRepository for DieselRosterRepository {
         Ok(rosters.into_iter().map(Into::into).collect())
     }
 
-    async fn upsert_roster(&self, workspace_id: Uuid, roster: &ShiftRoster) -> Result<ShiftRoster, AppError> {
+    async fn upsert_roster(
+        &self,
+        workspace_id: Uuid,
+        roster: &ShiftRoster,
+    ) -> Result<ShiftRoster, AppError> {
         let mut conn = self
             .diesel_pools
             .tenants
@@ -689,7 +693,12 @@ impl RosterRepository for DieselRosterRepository {
         Ok((None, traces))
     }
 
-    async fn delete_roster(&self, workspace_id: Uuid, employee_id: Uuid, date: NaiveDate) -> Result<(), AppError> {
+    async fn delete_roster(
+        &self,
+        workspace_id: Uuid,
+        employee_id: Uuid,
+        date: NaiveDate,
+    ) -> Result<(), AppError> {
         let mut conn = self
             .diesel_pools
             .tenants

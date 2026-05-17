@@ -5,16 +5,20 @@
 use crate::common::app::spawn_app_with_factory;
 use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
+use apiserver::services::tenant_provisioner::TenantProvisionerTrait;
 use apiserver::services::workspace_service::WorkspaceService;
+use apiserver::supavisor::TenantManager;
 use reqwest::StatusCode;
 use uuid::Uuid;
-use apiserver::services::tenant_provisioner::TenantProvisionerTrait;
-use apiserver::supavisor::TenantManager;
 
 struct DummyTenantProvisioner;
 #[async_trait::async_trait]
 impl TenantProvisionerTrait for DummyTenantProvisioner {
-    async fn provision_tenant_db(&self, _workspace_id: &Uuid, custom_db_url: Option<String>) -> Result<String, apiserver::errors::AppError> { 
+    async fn provision_tenant_db(
+        &self,
+        _workspace_id: &Uuid,
+        custom_db_url: Option<String>,
+    ) -> Result<String, apiserver::errors::AppError> {
         if let Some(url) = custom_db_url {
             Ok(url)
         } else {
@@ -27,8 +31,16 @@ struct DummyTenantManager;
 #[async_trait::async_trait]
 impl TenantManager for DummyTenantManager {
     async fn init_tenant(&self) {}
-    async fn delete_tenant(&self, _workspace_id: &str) -> Result<(), apiserver::errors::AppError> { Ok(()) }
-    async fn register_tenant_dynamic(&self, _workspace_id: &str, _db_config: &serde_json::Value) -> Result<(), apiserver::errors::AppError> { Ok(()) }
+    async fn delete_tenant(&self, _workspace_id: &str) -> Result<(), apiserver::errors::AppError> {
+        Ok(())
+    }
+    async fn register_tenant_dynamic(
+        &self,
+        _workspace_id: &str,
+        _db_config: &serde_json::Value,
+    ) -> Result<(), apiserver::errors::AppError> {
+        Ok(())
+    }
 }
 
 #[tokio::test]
@@ -102,24 +114,29 @@ async fn test_update_workspace_time_format() {
     assert_eq!(ws.time_format, "24h");
 
     // 2. Update to 12h
-    let updated_ws = WorkspaceService::new(workspace_repo.clone(), user_repo.clone(), std::sync::Arc::new(DummyTenantProvisioner), std::sync::Arc::new(DummyTenantManager))
-        .update_workspace(
-            apiserver::services::workspace_service::UpdateWorkspaceArgs {
-                ws_id,
-                name: None,
-                date_format: None,
-                time_format: Some("12h".to_string()),
-                timezone: None,
-                theme_primary_color: None,
-                default_language: None,
-                holiday_overnight_strategy: None,
-                default_holiday_ot_multiplier: None,
-                logo_url: None,
-                tagline: None,
-            },
-        )
-        .await
-        .expect("Failed to update workspace");
+    let updated_ws = WorkspaceService::new(
+        workspace_repo.clone(),
+        user_repo.clone(),
+        std::sync::Arc::new(DummyTenantProvisioner),
+        std::sync::Arc::new(DummyTenantManager),
+    )
+    .update_workspace(
+        apiserver::services::workspace_service::UpdateWorkspaceArgs {
+            ws_id,
+            name: None,
+            date_format: None,
+            time_format: Some("12h".to_string()),
+            timezone: None,
+            theme_primary_color: None,
+            default_language: None,
+            holiday_overnight_strategy: None,
+            default_holiday_ot_multiplier: None,
+            logo_url: None,
+            tagline: None,
+        },
+    )
+    .await
+    .expect("Failed to update workspace");
 
     assert_eq!(updated_ws.time_format, "12h");
 
@@ -148,24 +165,29 @@ async fn test_update_workspace_all_fields() {
     let user_id: Uuid = factory.user().create().await;
     let ws_id: Uuid = factory.workspace().create_with_owner(user_id).await;
 
-    let updated_ws = WorkspaceService::new(workspace_repo.clone(), user_repo.clone(), std::sync::Arc::new(DummyTenantProvisioner), std::sync::Arc::new(DummyTenantManager))
-        .update_workspace(
-            apiserver::services::workspace_service::UpdateWorkspaceArgs {
-                ws_id,
-                name: Some("New Name".to_string()),
-                date_format: Some("YYYY-MM-DD".to_string()),
-                time_format: Some("12h".to_string()),
-                timezone: Some("Asia/Ho_Chi_Minh".to_string()),
-                theme_primary_color: Some("#ffffff".to_string()),
-                default_language: Some("vi".to_string()),
-                holiday_overnight_strategy: Some("split".to_string()),
-                default_holiday_ot_multiplier: Some(rust_decimal::Decimal::new(20, 1)),
-                logo_url: Some("https://example.com/logo.png".to_string()),
-                tagline: Some("My Tagline".to_string()),
-            },
-        )
-        .await
-        .expect("Failed to update workspace");
+    let updated_ws = WorkspaceService::new(
+        workspace_repo.clone(),
+        user_repo.clone(),
+        std::sync::Arc::new(DummyTenantProvisioner),
+        std::sync::Arc::new(DummyTenantManager),
+    )
+    .update_workspace(
+        apiserver::services::workspace_service::UpdateWorkspaceArgs {
+            ws_id,
+            name: Some("New Name".to_string()),
+            date_format: Some("YYYY-MM-DD".to_string()),
+            time_format: Some("12h".to_string()),
+            timezone: Some("Asia/Ho_Chi_Minh".to_string()),
+            theme_primary_color: Some("#ffffff".to_string()),
+            default_language: Some("vi".to_string()),
+            holiday_overnight_strategy: Some("split".to_string()),
+            default_holiday_ot_multiplier: Some(rust_decimal::Decimal::new(20, 1)),
+            logo_url: Some("https://example.com/logo.png".to_string()),
+            tagline: Some("My Tagline".to_string()),
+        },
+    )
+    .await
+    .expect("Failed to update workspace");
 
     assert_eq!(updated_ws.name, "New Name");
     assert_eq!(updated_ws.date_format, "YYYY-MM-DD");
@@ -189,23 +211,28 @@ async fn test_update_workspace_no_fields() {
     let user_id: Uuid = factory.user().create().await;
     let ws_id: Uuid = factory.workspace().create_with_owner(user_id).await;
 
-    let result = WorkspaceService::new(workspace_repo.clone(), user_repo.clone(), std::sync::Arc::new(DummyTenantProvisioner), std::sync::Arc::new(DummyTenantManager))
-        .update_workspace(
-            apiserver::services::workspace_service::UpdateWorkspaceArgs {
-                ws_id,
-                name: None,
-                date_format: None,
-                time_format: None,
-                timezone: None,
-                theme_primary_color: None,
-                default_language: None,
-                holiday_overnight_strategy: None,
-                default_holiday_ot_multiplier: None,
-                logo_url: None,
-                tagline: None,
-            },
-        )
-        .await;
+    let result = WorkspaceService::new(
+        workspace_repo.clone(),
+        user_repo.clone(),
+        std::sync::Arc::new(DummyTenantProvisioner),
+        std::sync::Arc::new(DummyTenantManager),
+    )
+    .update_workspace(
+        apiserver::services::workspace_service::UpdateWorkspaceArgs {
+            ws_id,
+            name: None,
+            date_format: None,
+            time_format: None,
+            timezone: None,
+            theme_primary_color: None,
+            default_language: None,
+            holiday_overnight_strategy: None,
+            default_holiday_ot_multiplier: None,
+            logo_url: None,
+            tagline: None,
+        },
+    )
+    .await;
 
     assert!(result.is_err());
     assert_eq!(result.unwrap_err(), "No fields to update");

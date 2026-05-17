@@ -14,8 +14,8 @@ use crate::cache::{CacheManager, CachedWorkspaceConfig, RosterCache};
 use crate::domain::policy::resolver::PolicyResolver;
 use crate::models::{AttendanceSummary, DailyAttendanceReport, TimeEntry};
 use crate::queue::{Job, JobPayload, ReportType};
+use crate::repositories::{PublisherRepository, QueueRepository};
 use crate::services::AttendanceCalculator;
-use crate::repositories::{QueueRepository, PublisherRepository};
 
 /// Handler for attendance report jobs.
 /// Extracts `ReportPayload` from `Job.payload` and processes
@@ -973,14 +973,14 @@ mod tests {
 
     #[tokio::test]
     async fn test_attendance_handler_with_mocks() {
-        use crate::repositories::queue_repository::MockQueueRepository;
-        use crate::repositories::publisher_repository::MockPublisherRepository;
         use crate::repositories::cache_repository::MockCacheRepository;
-        use crate::repositories::workspace_repository::MockWorkspaceRepository;
+        use crate::repositories::publisher_repository::MockPublisherRepository;
+        use crate::repositories::queue_repository::MockQueueRepository;
         use crate::repositories::shift_repository::MockShiftRepository;
+        use crate::repositories::workspace_repository::MockWorkspaceRepository;
         use crate::worker::test_utils::MockWorkerDepsBuilder;
-        use std::sync::Arc;
         use std::collections::HashMap;
+        use std::sync::Arc;
 
         let mut queue = MockQueueRepository::new();
         let mut publisher = MockPublisherRepository::new();
@@ -1007,20 +1007,43 @@ mod tests {
 
         publisher.expect_publish_chunk().returning(|_, _, _| Ok(()));
 
-        cache_repo.expect_get_json().returning(|_| Ok(Some(r#"{"id":"00000000-0000-0000-0000-000000000000","timezone":"UTC"}"#.to_string())));
+        cache_repo.expect_get_json().returning(|_| {
+            Ok(Some(
+                r#"{"id":"00000000-0000-0000-0000-000000000000","timezone":"UTC"}"#.to_string(),
+            ))
+        });
 
         let workspace_repo = Arc::new(MockWorkspaceRepository::new());
         let shift_repo = Arc::new(MockShiftRepository::new());
-        let cache_manager = Arc::new(crate::cache::CacheManager::new(Arc::new(cache_repo), workspace_repo.clone(), shift_repo.clone()));
+        let cache_manager = Arc::new(crate::cache::CacheManager::new(
+            Arc::new(cache_repo),
+            workspace_repo.clone(),
+            shift_repo.clone(),
+        ));
 
         // Use Builder to auto-fill 20 mock repositories
         let mut builder = MockWorkerDepsBuilder::new();
 
-        builder.roster_repo.expect_get_workspace_schedules().returning(|_, _, _, _, _| Box::pin(async move { Ok(vec![]) }));
-        builder.time_entry_repo.expect_get_workspace_time_entries_batch().returning(|_, _, _, _| Ok(HashMap::new()));
-        builder.leave_request_repo.expect_get_batch_leave_days().returning(|_, _, _, _| Box::pin(async move { Ok(HashMap::new()) }));
-        builder.employee_repo.expect_get_working_conditions_batch().returning(|_, _, _, _| Box::pin(async move { Ok(Default::default()) }));
-        builder.policy_repo.expect_get_employee_effective_policies_batch().returning(|_, _, _| Ok(HashMap::new()));
+        builder
+            .roster_repo
+            .expect_get_workspace_schedules()
+            .returning(|_, _, _, _, _| Box::pin(async move { Ok(vec![]) }));
+        builder
+            .time_entry_repo
+            .expect_get_workspace_time_entries_batch()
+            .returning(|_, _, _, _| Ok(HashMap::new()));
+        builder
+            .leave_request_repo
+            .expect_get_batch_leave_days()
+            .returning(|_, _, _, _| Box::pin(async move { Ok(HashMap::new()) }));
+        builder
+            .employee_repo
+            .expect_get_working_conditions_batch()
+            .returning(|_, _, _, _| Box::pin(async move { Ok(Default::default()) }));
+        builder
+            .policy_repo
+            .expect_get_employee_effective_policies_batch()
+            .returning(|_, _, _| Ok(HashMap::new()));
 
         let deps = builder.build();
 
@@ -1052,22 +1075,24 @@ mod tests {
         let queue_arc: Arc<dyn crate::repositories::QueueRepository> = Arc::new(queue);
         let pub_arc: Arc<dyn crate::repositories::PublisherRepository> = Arc::new(publisher);
 
-        let result = AttendanceHandler::handle(&queue_arc, &pub_arc, &cache_manager, &job, None, &deps).await;
-        
+        let result =
+            AttendanceHandler::handle(&queue_arc, &pub_arc, &cache_manager, &job, None, &deps)
+                .await;
+
         assert!(result.is_ok(), "Handler should succeed with mocks");
     }
 
     #[tokio::test]
     async fn test_attendance_handler_calculate_detail_late_early() {
-        use crate::repositories::queue_repository::MockQueueRepository;
-        use crate::repositories::publisher_repository::MockPublisherRepository;
         use crate::repositories::cache_repository::MockCacheRepository;
-        use crate::repositories::workspace_repository::MockWorkspaceRepository;
+        use crate::repositories::publisher_repository::MockPublisherRepository;
+        use crate::repositories::queue_repository::MockQueueRepository;
         use crate::repositories::shift_repository::MockShiftRepository;
+        use crate::repositories::workspace_repository::MockWorkspaceRepository;
         use crate::worker::test_utils::MockWorkerDepsBuilder;
-        use std::sync::Arc;
         use chrono::{NaiveDate, NaiveTime, TimeZone};
         use std::collections::HashMap;
+        use std::sync::Arc;
 
         let mut queue = MockQueueRepository::new();
         let mut publisher = MockPublisherRepository::new();
@@ -1076,16 +1101,19 @@ mod tests {
         let emp_id = Uuid::new_v4();
         let ws_id = Uuid::new_v4();
 
-        queue.expect_store_result().returning(move |_, _, result_json| {
-            let reports: Vec<DailyAttendanceReport> = serde_json::from_str(result_json).unwrap();
-            assert_eq!(reports.len(), 1);
-            let report = &reports[0];
-            assert_eq!(report.status, AttendanceStatus::Late);
-            // 8h shift (480 mins) - 15m late - 15m early = 450 mins. 450 / 30 = 15 units.
-            assert_eq!(report.std_work_units, 15);
-            assert_eq!(report.ot_work_units, 0);
-            Ok(())
-        });
+        queue
+            .expect_store_result()
+            .returning(move |_, _, result_json| {
+                let reports: Vec<DailyAttendanceReport> =
+                    serde_json::from_str(result_json).unwrap();
+                assert_eq!(reports.len(), 1);
+                let report = &reports[0];
+                assert_eq!(report.status, AttendanceStatus::Late);
+                // 8h shift (480 mins) - 15m late - 15m early = 450 mins. 450 / 30 = 15 units.
+                assert_eq!(report.std_work_units, 15);
+                assert_eq!(report.ot_work_units, 0);
+                Ok(())
+            });
 
         queue.expect_get_job_metadata().returning(|_| {
             Ok(Some(crate::queue::JobMetadata {
@@ -1105,11 +1133,19 @@ mod tests {
         });
 
         publisher.expect_publish_chunk().returning(|_, _, _| Ok(()));
-        cache_repo.expect_get_json().returning(|_| Ok(Some(r#"{"id":"00000000-0000-0000-0000-000000000000","timezone":"UTC"}"#.to_string())));
+        cache_repo.expect_get_json().returning(|_| {
+            Ok(Some(
+                r#"{"id":"00000000-0000-0000-0000-000000000000","timezone":"UTC"}"#.to_string(),
+            ))
+        });
 
         let workspace_repo = Arc::new(MockWorkspaceRepository::new());
         let shift_repo = Arc::new(MockShiftRepository::new());
-        let cache_manager = Arc::new(crate::cache::CacheManager::new(Arc::new(cache_repo), workspace_repo.clone(), shift_repo.clone()));
+        let cache_manager = Arc::new(crate::cache::CacheManager::new(
+            Arc::new(cache_repo),
+            workspace_repo.clone(),
+            shift_repo.clone(),
+        ));
 
         let mut builder = MockWorkerDepsBuilder::new();
 
@@ -1138,13 +1174,18 @@ mod tests {
             }],
         };
 
-        builder.roster_repo.expect_get_workspace_schedules().returning(move |_, _, _, _, _| {
-            let sched = schedule.clone();
-            Box::pin(async move { Ok(vec![sched]) })
-        });
+        builder
+            .roster_repo
+            .expect_get_workspace_schedules()
+            .returning(move |_, _, _, _, _| {
+                let sched = schedule.clone();
+                Box::pin(async move { Ok(vec![sched]) })
+            });
 
         let punch_in = chrono::Utc.with_ymd_and_hms(2026, 1, 15, 8, 15, 0).unwrap();
-        let punch_out = chrono::Utc.with_ymd_and_hms(2026, 1, 15, 16, 45, 0).unwrap();
+        let punch_out = chrono::Utc
+            .with_ymd_and_hms(2026, 1, 15, 16, 45, 0)
+            .unwrap();
         let entry = TimeEntry {
             id: Uuid::new_v4(),
             employee_id: emp_id,
@@ -1161,15 +1202,27 @@ mod tests {
             updated_at: chrono::Utc::now(),
         };
 
-        builder.time_entry_repo.expect_get_workspace_time_entries_batch().returning(move |_, _, _, _| {
-            let mut map = HashMap::new();
-            map.insert(emp_id, vec![entry.clone()]);
-            Ok(map)
-        });
+        builder
+            .time_entry_repo
+            .expect_get_workspace_time_entries_batch()
+            .returning(move |_, _, _, _| {
+                let mut map = HashMap::new();
+                map.insert(emp_id, vec![entry.clone()]);
+                Ok(map)
+            });
 
-        builder.leave_request_repo.expect_get_batch_leave_days().returning(|_, _, _, _| Box::pin(async move { Ok(HashMap::new()) }));
-        builder.employee_repo.expect_get_working_conditions_batch().returning(|_, _, _, _| Box::pin(async move { Ok(Default::default()) }));
-        builder.policy_repo.expect_get_employee_effective_policies_batch().returning(|_, _, _| Ok(HashMap::new()));
+        builder
+            .leave_request_repo
+            .expect_get_batch_leave_days()
+            .returning(|_, _, _, _| Box::pin(async move { Ok(HashMap::new()) }));
+        builder
+            .employee_repo
+            .expect_get_working_conditions_batch()
+            .returning(|_, _, _, _| Box::pin(async move { Ok(Default::default()) }));
+        builder
+            .policy_repo
+            .expect_get_employee_effective_policies_batch()
+            .returning(|_, _, _| Ok(HashMap::new()));
 
         let deps = builder.build();
 
@@ -1201,22 +1254,24 @@ mod tests {
         let queue_arc: Arc<dyn crate::repositories::QueueRepository> = Arc::new(queue);
         let pub_arc: Arc<dyn crate::repositories::PublisherRepository> = Arc::new(publisher);
 
-        let result = AttendanceHandler::handle(&queue_arc, &pub_arc, &cache_manager, &job, None, &deps).await;
-        
+        let result =
+            AttendanceHandler::handle(&queue_arc, &pub_arc, &cache_manager, &job, None, &deps)
+                .await;
+
         assert!(result.is_ok());
     }
 
     #[tokio::test]
     async fn test_attendance_handler_calculate_summary_with_data() {
-        use crate::repositories::queue_repository::MockQueueRepository;
-        use crate::repositories::publisher_repository::MockPublisherRepository;
         use crate::repositories::cache_repository::MockCacheRepository;
-        use crate::repositories::workspace_repository::MockWorkspaceRepository;
+        use crate::repositories::publisher_repository::MockPublisherRepository;
+        use crate::repositories::queue_repository::MockQueueRepository;
         use crate::repositories::shift_repository::MockShiftRepository;
+        use crate::repositories::workspace_repository::MockWorkspaceRepository;
         use crate::worker::test_utils::MockWorkerDepsBuilder;
-        use std::sync::Arc;
         use chrono::{NaiveDate, NaiveTime, TimeZone};
         use std::collections::HashMap;
+        use std::sync::Arc;
 
         let mut queue = MockQueueRepository::new();
         let mut publisher = MockPublisherRepository::new();
@@ -1225,18 +1280,20 @@ mod tests {
         let emp_id = Uuid::new_v4();
         let ws_id = Uuid::new_v4();
 
-        queue.expect_store_result().returning(move |_, _, result_json| {
-            let summaries: Vec<AttendanceSummary> = serde_json::from_str(result_json).unwrap();
-            assert_eq!(summaries.len(), 1);
-            let summary = &summaries[0];
-            
-            // 8:00 - 17:00 shift. 60m break. 540m total -> std=540-60 = 480m => 16 units (30m each)
-            // Punch in 8:00, punch out 18:30 -> OT 90m => 3 units
-            assert_eq!(summary.total_std_units, 16);
-            assert_eq!(summary.total_ot_units, 3);
-            assert_eq!(summary.total_leave_days, 2);
-            Ok(())
-        });
+        queue
+            .expect_store_result()
+            .returning(move |_, _, result_json| {
+                let summaries: Vec<AttendanceSummary> = serde_json::from_str(result_json).unwrap();
+                assert_eq!(summaries.len(), 1);
+                let summary = &summaries[0];
+
+                // 8:00 - 17:00 shift. 60m break. 540m total -> std=540-60 = 480m => 16 units (30m each)
+                // Punch in 8:00, punch out 18:30 -> OT 90m => 3 units
+                assert_eq!(summary.total_std_units, 16);
+                assert_eq!(summary.total_ot_units, 3);
+                assert_eq!(summary.total_leave_days, 2);
+                Ok(())
+            });
 
         queue.expect_get_job_metadata().returning(|_| {
             Ok(Some(crate::queue::JobMetadata {
@@ -1256,11 +1313,19 @@ mod tests {
         });
 
         publisher.expect_publish_chunk().returning(|_, _, _| Ok(()));
-        cache_repo.expect_get_json().returning(|_| Ok(Some(r#"{"id":"00000000-0000-0000-0000-000000000000","timezone":"UTC"}"#.to_string())));
+        cache_repo.expect_get_json().returning(|_| {
+            Ok(Some(
+                r#"{"id":"00000000-0000-0000-0000-000000000000","timezone":"UTC"}"#.to_string(),
+            ))
+        });
 
         let workspace_repo = Arc::new(MockWorkspaceRepository::new());
         let shift_repo = Arc::new(MockShiftRepository::new());
-        let cache_manager = Arc::new(crate::cache::CacheManager::new(Arc::new(cache_repo), workspace_repo.clone(), shift_repo.clone()));
+        let cache_manager = Arc::new(crate::cache::CacheManager::new(
+            Arc::new(cache_repo),
+            workspace_repo.clone(),
+            shift_repo.clone(),
+        ));
 
         let mut builder = MockWorkerDepsBuilder::new();
 
@@ -1289,13 +1354,18 @@ mod tests {
             }],
         };
 
-        builder.roster_repo.expect_get_workspace_schedules().returning(move |_, _, _, _, _| {
-            let sched = schedule.clone();
-            Box::pin(async move { Ok(vec![sched]) })
-        });
+        builder
+            .roster_repo
+            .expect_get_workspace_schedules()
+            .returning(move |_, _, _, _, _| {
+                let sched = schedule.clone();
+                Box::pin(async move { Ok(vec![sched]) })
+            });
 
         let punch_in = chrono::Utc.with_ymd_and_hms(2026, 1, 15, 8, 0, 0).unwrap();
-        let punch_out = chrono::Utc.with_ymd_and_hms(2026, 1, 15, 18, 30, 0).unwrap();
+        let punch_out = chrono::Utc
+            .with_ymd_and_hms(2026, 1, 15, 18, 30, 0)
+            .unwrap();
         let entry = TimeEntry {
             id: Uuid::new_v4(),
             employee_id: emp_id,
@@ -1312,20 +1382,32 @@ mod tests {
             updated_at: chrono::Utc::now(),
         };
 
-        builder.time_entry_repo.expect_get_workspace_time_entries_batch().returning(move |_, _, _, _| {
-            let mut map = HashMap::new();
-            map.insert(emp_id, vec![entry.clone()]);
-            Ok(map)
-        });
+        builder
+            .time_entry_repo
+            .expect_get_workspace_time_entries_batch()
+            .returning(move |_, _, _, _| {
+                let mut map = HashMap::new();
+                map.insert(emp_id, vec![entry.clone()]);
+                Ok(map)
+            });
 
-        builder.leave_request_repo.expect_get_batch_leave_days().returning(move |_, _, _, _| {
-            let mut map = HashMap::new();
-            map.insert(emp_id, 2);
-            Box::pin(async move { Ok(map) })
-        });
+        builder
+            .leave_request_repo
+            .expect_get_batch_leave_days()
+            .returning(move |_, _, _, _| {
+                let mut map = HashMap::new();
+                map.insert(emp_id, 2);
+                Box::pin(async move { Ok(map) })
+            });
 
-        builder.employee_repo.expect_get_working_conditions_batch().returning(|_, _, _, _| Box::pin(async move { Ok(Default::default()) }));
-        builder.policy_repo.expect_get_employee_effective_policies_batch().returning(|_, _, _| Ok(HashMap::new()));
+        builder
+            .employee_repo
+            .expect_get_working_conditions_batch()
+            .returning(|_, _, _, _| Box::pin(async move { Ok(Default::default()) }));
+        builder
+            .policy_repo
+            .expect_get_employee_effective_policies_batch()
+            .returning(|_, _, _| Ok(HashMap::new()));
 
         let deps = builder.build();
 
@@ -1357,8 +1439,10 @@ mod tests {
         let queue_arc: Arc<dyn crate::repositories::QueueRepository> = Arc::new(queue);
         let pub_arc: Arc<dyn crate::repositories::PublisherRepository> = Arc::new(publisher);
 
-        let result = AttendanceHandler::handle(&queue_arc, &pub_arc, &cache_manager, &job, None, &deps).await;
-        
+        let result =
+            AttendanceHandler::handle(&queue_arc, &pub_arc, &cache_manager, &job, None, &deps)
+                .await;
+
         assert!(result.is_ok());
     }
 }

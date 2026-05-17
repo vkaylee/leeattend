@@ -119,7 +119,10 @@ mod tests {
     #[tokio::test]
     async fn test_housekeeping_handle_success() {
         let mut builder = MockWorkerDepsBuilder::new();
-        builder.system_repo.expect_execute_partition_query().returning(|_| Box::pin(async { Ok(()) }));
+        builder
+            .system_repo
+            .expect_execute_partition_query()
+            .returning(|_| Box::pin(async { Ok(()) }));
         let deps = builder.build();
 
         let job = Job::with_priority(

@@ -450,7 +450,9 @@ mod tests {
     #[tokio::test]
     async fn test_get_pattern_details() {
         let (repo, _) = make_repos();
-        let result = get_pattern_details(repo, Uuid::new_v4(), Uuid::new_v4()).await.unwrap();
+        let result = get_pattern_details(repo, Uuid::new_v4(), Uuid::new_v4())
+            .await
+            .unwrap();
         assert_eq!(result.len(), 1);
     }
 

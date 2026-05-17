@@ -9,9 +9,9 @@ use tracing::{info, warn};
 use crate::errors::{AppError, AppResult};
 use crate::models::{AttendanceSummary, DailyAttendanceReport};
 use crate::queue::{Job, JobStatus, ReportType};
+use crate::repositories::{PublisherRepository, QueueRepository};
 use crate::services::import_messages::ExcelReportMessages;
 use crate::services::ExcelWriter;
-use crate::repositories::{QueueRepository, PublisherRepository};
 use std::sync::Arc;
 
 /// Presigned URL validity duration - no longer used, kept for backward compatibility.
@@ -704,15 +704,18 @@ mod tests {
 
     #[tokio::test]
     async fn test_merge_handler_handle_inner_with_mocks() {
-        use crate::worker::test_utils::MockWorkerDepsBuilder;
-        use crate::queue::{Job, JobMetadata, JobPriority, JobStatus, ReportType, ReportConfig, DateRange, TaskType, JobPayload, MergePayload};
-        use crate::repositories::queue_repository::MockQueueRepository;
+        use crate::queue::{
+            DateRange, Job, JobMetadata, JobPayload, JobPriority, JobStatus, MergePayload,
+            ReportConfig, ReportType, TaskType,
+        };
         use crate::repositories::publisher_repository::MockPublisherRepository;
+        use crate::repositories::queue_repository::MockQueueRepository;
+        use crate::worker::test_utils::MockWorkerDepsBuilder;
         use std::sync::Arc;
-        
+
         let ws_id = Uuid::new_v4();
         let parent_job_id = Uuid::new_v4();
-        
+
         let mut queue = MockQueueRepository::new();
         queue.expect_get_job_metadata().returning(move |_| {
             Ok(Some(JobMetadata {
@@ -733,7 +736,7 @@ mod tests {
                 error_message: None,
             }))
         });
-        
+
         queue.expect_get_all_results().returning(move |_| {
             let summary = AttendanceSummary {
                 employee_id: Uuid::new_v4(),
@@ -753,37 +756,41 @@ mod tests {
                 ("batch_1".to_string(), json),
             ])
         });
-        
+
         queue.expect_set_result_data().returning(|_, _, _| Ok(()));
         queue.expect_update_job_status().returning(|_, _| Ok(()));
         queue.expect_delete_results().returning(|_| Ok(()));
-        
+
         let mut publisher = MockPublisherRepository::new();
         publisher.expect_publish_done().returning(|_, _, _| Ok(()));
-        
+
         let mut builder = MockWorkerDepsBuilder::new();
-        builder.workspace_repo.expect_get_workspace_by_id().returning(move |_| {
-            Box::pin(async move {
-                let ws = crate::models::Workspace {
-                    id: ws_id,
-                    name: "Test Workspace".to_string(),
-                    date_format: "YYYY-MM-DD".to_string(),
-                    time_format: "HH:mm".to_string(),
-                    timezone: "UTC".to_string(),
-                    theme_primary_color: "#000000".to_string(),
-                    default_language: "en".to_string(),
-                    logo_url: None,
-                    tagline: None,
-                    holiday_overnight_strategy: "split".to_string(),
-                    default_holiday_ot_multiplier: rust_decimal::Decimal::new(15, 1),
-                    created_at: Utc::now(),
-                };
-                Ok(Some(ws))
-            })
-        });
-        
+        builder
+            .workspace_repo
+            .expect_get_workspace_by_id()
+            .returning(move |_| {
+                Box::pin(async move {
+                    let ws = crate::models::Workspace {
+                        id: ws_id,
+                        name: "Test Workspace".to_string(),
+                        date_format: "YYYY-MM-DD".to_string(),
+                        time_format: "HH:mm".to_string(),
+                        timezone: "UTC".to_string(),
+                        theme_primary_color: "#000000".to_string(),
+                        default_language: "en".to_string(),
+                        logo_url: None,
+                        tagline: None,
+                        custom_db_url_encrypted: None,
+                        holiday_overnight_strategy: "split".to_string(),
+                        default_holiday_ot_multiplier: rust_decimal::Decimal::new(15, 1),
+                        created_at: Utc::now(),
+                    };
+                    Ok(Some(ws))
+                })
+            });
+
         let deps = builder.build();
-        
+
         let job = Job {
             job_id: Uuid::new_v4(),
             parent_job_id,
@@ -807,26 +814,33 @@ mod tests {
             retry_count: 0,
             max_retries: 3,
         };
-        
+
         let queue_arc: Arc<dyn crate::repositories::QueueRepository> = Arc::new(queue);
         let pub_arc: Arc<dyn crate::repositories::PublisherRepository> = Arc::new(publisher);
-        
+
         let result = MergeHandler::handle_inner(&queue_arc, &pub_arc, &job, &deps).await;
-        
-        assert!(result.is_ok(), "MergeHandler::handle_inner failed: {:?}", result.err());
+
+        assert!(
+            result.is_ok(),
+            "MergeHandler::handle_inner failed: {:?}",
+            result.err()
+        );
     }
 
     #[tokio::test]
     async fn test_merge_handler_handle_inner_detail_with_mocks() {
-        use crate::worker::test_utils::MockWorkerDepsBuilder;
-        use crate::queue::{Job, JobMetadata, JobPriority, JobStatus, ReportType, ReportConfig, DateRange, TaskType, JobPayload, MergePayload};
-        use crate::repositories::queue_repository::MockQueueRepository;
+        use crate::queue::{
+            DateRange, Job, JobMetadata, JobPayload, JobPriority, JobStatus, MergePayload,
+            ReportConfig, ReportType, TaskType,
+        };
         use crate::repositories::publisher_repository::MockPublisherRepository;
+        use crate::repositories::queue_repository::MockQueueRepository;
+        use crate::worker::test_utils::MockWorkerDepsBuilder;
         use std::sync::Arc;
-        
+
         let ws_id = Uuid::new_v4();
         let parent_job_id = Uuid::new_v4();
-        
+
         let mut queue = MockQueueRepository::new();
         queue.expect_get_job_metadata().returning(move |_| {
             Ok(Some(JobMetadata {
@@ -847,7 +861,7 @@ mod tests {
                 error_message: None,
             }))
         });
-        
+
         queue.expect_get_all_results().returning(move |_| {
             let report = DailyAttendanceReport {
                 date: NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
@@ -882,37 +896,41 @@ mod tests {
                 ("batch_1".to_string(), json),
             ])
         });
-        
+
         queue.expect_set_result_data().returning(|_, _, _| Ok(()));
         queue.expect_update_job_status().returning(|_, _| Ok(()));
         queue.expect_delete_results().returning(|_| Ok(()));
-        
+
         let mut publisher = MockPublisherRepository::new();
         publisher.expect_publish_done().returning(|_, _, _| Ok(()));
-        
+
         let mut builder = MockWorkerDepsBuilder::new();
-        builder.workspace_repo.expect_get_workspace_by_id().returning(move |_| {
-            Box::pin(async move {
-                let ws = crate::models::Workspace {
-                    id: ws_id,
-                    name: "Test Workspace".to_string(),
-                    date_format: "YYYY-MM-DD".to_string(),
-                    time_format: "HH:mm".to_string(),
-                    timezone: "UTC".to_string(),
-                    theme_primary_color: "#000000".to_string(),
-                    default_language: "en".to_string(),
-                    logo_url: None,
-                    tagline: None,
-                    holiday_overnight_strategy: "split".to_string(),
-                    default_holiday_ot_multiplier: rust_decimal::Decimal::new(15, 1),
-                    created_at: Utc::now(),
-                };
-                Ok(Some(ws))
-            })
-        });
-        
+        builder
+            .workspace_repo
+            .expect_get_workspace_by_id()
+            .returning(move |_| {
+                Box::pin(async move {
+                    let ws = crate::models::Workspace {
+                        id: ws_id,
+                        name: "Test Workspace".to_string(),
+                        date_format: "YYYY-MM-DD".to_string(),
+                        time_format: "HH:mm".to_string(),
+                        timezone: "UTC".to_string(),
+                        theme_primary_color: "#000000".to_string(),
+                        default_language: "en".to_string(),
+                        logo_url: None,
+                        tagline: None,
+                        custom_db_url_encrypted: None,
+                        holiday_overnight_strategy: "split".to_string(),
+                        default_holiday_ot_multiplier: rust_decimal::Decimal::new(15, 1),
+                        created_at: Utc::now(),
+                    };
+                    Ok(Some(ws))
+                })
+            });
+
         let deps = builder.build();
-        
+
         let job = Job {
             job_id: Uuid::new_v4(),
             parent_job_id,
@@ -936,12 +954,16 @@ mod tests {
             retry_count: 0,
             max_retries: 3,
         };
-        
+
         let queue_arc: Arc<dyn crate::repositories::QueueRepository> = Arc::new(queue);
         let pub_arc: Arc<dyn crate::repositories::PublisherRepository> = Arc::new(publisher);
-        
+
         let result = MergeHandler::handle_inner(&queue_arc, &pub_arc, &job, &deps).await;
-        
-        assert!(result.is_ok(), "MergeHandler::handle_inner detail failed: {:?}", result.err());
+
+        assert!(
+            result.is_ok(),
+            "MergeHandler::handle_inner detail failed: {:?}",
+            result.err()
+        );
     }
 }

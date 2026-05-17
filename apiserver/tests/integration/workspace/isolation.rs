@@ -166,7 +166,8 @@ async fn test_department_history_isolated_by_workspace() {
     let dept_id = factory.department().with_workspace(ws_a).create().await;
     let dept_repo = apiserver::repositories::DieselDepartmentRepository::new(diesel_pools.clone());
     dept_repo
-        .transfer_employee(ws_a, 
+        .transfer_employee(
+            ws_a,
             emp_a,
             dept_id,
             NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
@@ -211,7 +212,8 @@ async fn test_get_current_department_isolated_by_workspace() {
     let dept_id = factory.department().with_workspace(ws_a).create().await;
     let dept_repo = apiserver::repositories::DieselDepartmentRepository::new(diesel_pools.clone());
     dept_repo
-        .transfer_employee(ws_a, 
+        .transfer_employee(
+            ws_a,
             emp_a,
             dept_id,
             NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),

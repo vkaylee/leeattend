@@ -9,9 +9,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
 use crate::models::ImportJobStatus;
-use crate::queue::{
-    EmployeeImportChunkPayload, Job, JobPayload, JobPriority, TaskType,
-};
+use crate::queue::{EmployeeImportChunkPayload, Job, JobPayload, JobPriority, TaskType};
 use crate::services::attendance_import_service::EmployeeImportStrategy;
 use crate::services::import_messages::AttendanceImportMessages;
 use crate::services::import_pipeline::ImportPipeline;
@@ -95,9 +93,27 @@ impl EmployeeImportHandler {
         tracing::info!("Setting Redis keys");
         // Initialize Redis keys for progress tracking
         let ttl = std::time::Duration::from_secs(86400); // 24 hours
-        let _ = cache.set_json(&format!("import_progress:{}", payload.import_job_id), "0", ttl).await;
-        let _ = cache.set_json(&format!("import_chunks_done:{}", payload.import_job_id), "0", ttl).await;
-        let _ = cache.set_json(&format!("import_total_chunks:{}", payload.import_job_id), &total_chunks.to_string(), ttl).await;
+        let _ = cache
+            .set_json(
+                &format!("import_progress:{}", payload.import_job_id),
+                "0",
+                ttl,
+            )
+            .await;
+        let _ = cache
+            .set_json(
+                &format!("import_chunks_done:{}", payload.import_job_id),
+                "0",
+                ttl,
+            )
+            .await;
+        let _ = cache
+            .set_json(
+                &format!("import_total_chunks:{}", payload.import_job_id),
+                &total_chunks.to_string(),
+                ttl,
+            )
+            .await;
 
         tracing::info!("Enqueueing chunk jobs");
         // Enqueue chunk jobs
@@ -157,10 +173,10 @@ impl EmployeeImportChunkHandler {
         let _guard = ImportTimeoutGuard::new(
             payload.import_job_id,
             Arc::clone(&completed),
-            deps.import_job_repo.clone(),
+            Arc::clone(&deps.import_job_repo),
         );
 
-        let import_repo = deps.import_job_repo.clone();
+        let import_repo = Arc::clone(&deps.import_job_repo);
         let import_job = import_repo
             .get_job_by_id(payload.import_job_id)
             .await
@@ -171,7 +187,7 @@ impl EmployeeImportChunkHandler {
             .await
             .map_err(|e| format!("Could not read file: {e}"))?;
 
-        let workspace_repo = deps.workspace_repo.clone();
+        let workspace_repo = Arc::clone(&deps.workspace_repo);
         let workspace_tz = match workspace_repo
             .get_workspace_by_id(import_job.workspace_id)
             .await
@@ -190,9 +206,9 @@ impl EmployeeImportChunkHandler {
 
         let strategy = EmployeeImportStrategy {
             msgs: msgs.clone(),
-            employee_repo: deps.employee_repo.clone(),
-            department_repo: deps.department_repo.clone(),
-            staging_repo: deps.staging_repo.clone(),
+            employee_repo: Arc::clone(&deps.employee_repo),
+            department_repo: Arc::clone(&deps.department_repo),
+            staging_repo: Arc::clone(&deps.staging_repo),
             dept_cache: HashMap::new(),
         };
 
@@ -260,7 +276,7 @@ mod tests {
     async fn test_employee_import_handler_master() {
         let import_job_id = Uuid::new_v4();
         let ws_id = Uuid::new_v4();
-        
+
         let temp_file = NamedTempFile::new().unwrap();
         // Create a fake excel file or use CSV? The parser extract_mapped_rows uses csv/excel. Wait, file_parser checks extension. Let's make it a .csv
         let file_path = temp_file.path().to_str().unwrap().to_string() + ".csv";
@@ -268,13 +284,21 @@ mod tests {
         writeln!(actual_file, "employee_code,full_name").unwrap();
         writeln!(actual_file, "EMP01,John Doe").unwrap();
         writeln!(actual_file, "EMP02,Jane Doe").unwrap();
-        
-        let mut import_repo = crate::repositories::import_job_repository::MockImportJobRepository::new();
-        import_repo.expect_update_job_progress()
-            .with(mockall::predicate::eq(import_job_id), mockall::predicate::eq(0), mockall::predicate::eq(ImportJobStatus::Processing), mockall::predicate::eq(None))
+
+        let mut import_repo =
+            crate::repositories::import_job_repository::MockImportJobRepository::new();
+        import_repo
+            .expect_update_job_progress()
+            .with(
+                mockall::predicate::eq(import_job_id),
+                mockall::predicate::eq(0),
+                mockall::predicate::eq(ImportJobStatus::Processing),
+                mockall::predicate::eq(None),
+            )
             .returning(|_, _, _, _| Ok(()));
-            
-        import_repo.expect_get_job_by_id()
+
+        import_repo
+            .expect_get_job_by_id()
             .with(mockall::predicate::eq(import_job_id))
             .returning(move |_| {
                 Ok(Some(crate::models::AttendanceImportJob {
@@ -292,21 +316,23 @@ mod tests {
                 }))
             });
 
-        import_repo.expect_update_job_total_rows()
-            .with(mockall::predicate::eq(import_job_id), mockall::predicate::eq(2))
+        import_repo
+            .expect_update_job_total_rows()
+            .with(
+                mockall::predicate::eq(import_job_id),
+                mockall::predicate::eq(2),
+            )
             .returning(|_, _| Ok(()));
 
         let mut queue = crate::repositories::queue_repository::MockQueueRepository::new();
-        queue.expect_enqueue_jobs()
-            .returning(|jobs| {
-                assert_eq!(jobs.len(), 1); // 2 rows < chunk_size (500)
-                assert_eq!(jobs[0].task_type, TaskType::EmployeeImportChunk);
-                Ok(())
-            });
+        queue.expect_enqueue_jobs().returning(|jobs| {
+            assert_eq!(jobs.len(), 1); // 2 rows < chunk_size (500)
+            assert_eq!(jobs[0].task_type, TaskType::EmployeeImportChunk);
+            Ok(())
+        });
 
         let mut cache = crate::repositories::cache_repository::MockCacheRepository::new();
-        cache.expect_set_json()
-            .returning(|_, _, _| Ok(()));
+        cache.expect_set_json().returning(|_, _, _| Ok(()));
 
         let cache_arc: Arc<dyn crate::repositories::CacheRepository> = Arc::new(cache);
         let queue_arc: Arc<dyn crate::repositories::QueueRepository> = Arc::new(queue);

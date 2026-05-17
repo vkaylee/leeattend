@@ -30,20 +30,24 @@ pub struct LeaveAccrualService {
     leave_policy_repo: Arc<dyn LeavePolicyRepository>,
     accrual_log_repo: Arc<dyn LeaveAccrualLogRepository>,
     time_entry_repo: Arc<dyn crate::repositories::TimeEntryRepository>,
-    leave_request_repo: Arc<dyn crate::repositories::leave_request_repository::LeaveRequestRepository>,
+    leave_request_repo:
+        Arc<dyn crate::repositories::leave_request_repository::LeaveRequestRepository>,
     #[allow(dead_code)]
     daily_summary_repo: Arc<dyn crate::repositories::AttendanceDailySummaryRepository>,
     contract_repo: Arc<dyn crate::repositories::EmployeeContractRepository>,
 }
 
 impl LeaveAccrualService {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         employee_repo: Arc<dyn EmployeeRepository>,
         department_repo: Arc<dyn DepartmentRepository>,
         leave_policy_repo: Arc<dyn LeavePolicyRepository>,
         accrual_log_repo: Arc<dyn LeaveAccrualLogRepository>,
         time_entry_repo: Arc<dyn crate::repositories::TimeEntryRepository>,
-        leave_request_repo: Arc<dyn crate::repositories::leave_request_repository::LeaveRequestRepository>,
+        leave_request_repo: Arc<
+            dyn crate::repositories::leave_request_repository::LeaveRequestRepository,
+        >,
         daily_summary_repo: Arc<dyn crate::repositories::AttendanceDailySummaryRepository>,
         contract_repo: Arc<dyn crate::repositories::EmployeeContractRepository>,
     ) -> Self {
@@ -118,25 +122,20 @@ impl LeaveAccrualService {
         let start_dt = local_to_utc(&tz, start_date, 0, 0, 0)?;
         let end_dt = local_to_utc(&tz, end_date, 23, 59, 59)?;
 
-        let work_days = self.time_entry_repo.get_distinct_work_days(
-            workspace_id,
-            employee_id,
-            start_dt,
-            end_dt,
-            &tz.to_string(),
-        ).await?;
+        let work_days = self
+            .time_entry_repo
+            .get_distinct_work_days(workspace_id, employee_id, start_dt, end_dt, &tz.to_string())
+            .await?;
 
         for date in work_days {
             qualifying_days.insert(date);
         }
 
         // Approved Leave days
-        let leave_days = self.leave_request_repo.get_approved_leave_periods(
-            workspace_id,
-            employee_id,
-            start_date,
-            end_date,
-        ).await?;
+        let leave_days = self
+            .leave_request_repo
+            .get_approved_leave_periods(workspace_id, employee_id, start_date, end_date)
+            .await?;
 
         for (req_start, req_end) in leave_days {
             let overlap_start = std::cmp::max(req_start, start_date);
@@ -370,28 +369,23 @@ impl LeaveAccrualService {
         let start_dt = local_to_utc(&tz, range_start, 0, 0, 0).map_err(AppError::Internal)?;
         let end_dt = local_to_utc(&tz, range_end, 23, 59, 59).map_err(AppError::Internal)?;
 
-        let work_days = self.time_entry_repo.get_distinct_work_days(
-            workspace_id,
-            employee_id,
-            start_dt,
-            end_dt,
-            &tz.to_string(),
-        ).await?;
+        let work_days = self
+            .time_entry_repo
+            .get_distinct_work_days(workspace_id, employee_id, start_dt, end_dt, &tz.to_string())
+            .await?;
 
         let mut result: HashMap<NaiveDate, i32> = HashMap::new();
         use chrono::Datelike;
-        
+
         for date in work_days {
             let month_key = NaiveDate::from_ymd_opt(date.year(), date.month(), 1).unwrap_or(date);
             *result.entry(month_key).or_insert(0) += 1;
         }
 
-        let leave_days = self.leave_request_repo.get_approved_leave_periods(
-            workspace_id,
-            employee_id,
-            range_start,
-            range_end,
-        ).await?;
+        let leave_days = self
+            .leave_request_repo
+            .get_approved_leave_periods(workspace_id, employee_id, range_start, range_end)
+            .await?;
 
         for (req_start, req_end) in leave_days {
             let overlap_start = std::cmp::max(req_start, range_start);
@@ -506,7 +500,10 @@ impl LeaveAccrualService {
         };
 
         // Pre-fetch employment history once per employee using contracts
-        let contracts = self.contract_repo.list_employee_contracts(workspace_id, emp.id).await?;
+        let contracts = self
+            .contract_repo
+            .list_employee_contracts(workspace_id, emp.id)
+            .await?;
 
         let ctx = AccrualContext {
             workspace_id,

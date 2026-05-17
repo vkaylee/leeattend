@@ -145,11 +145,6 @@ services:
       context: ..
       dockerfile: apiserver/Dockerfile
       target: test
-    depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
     working_dir: /workspace/apiserver
     environment:
       <<: *rust-env-base

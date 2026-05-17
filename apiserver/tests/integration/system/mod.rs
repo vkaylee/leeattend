@@ -1,2 +1,2 @@
-pub mod tenants;
 pub mod migrations;
+pub mod tenants;

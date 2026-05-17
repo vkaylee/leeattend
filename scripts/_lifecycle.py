@@ -90,32 +90,42 @@ def lifecycle_up(mode: str = "all") -> bool:
     # Health check
     project_name = os.environ.get("COMPOSE_PROJECT_NAME", "leeattend-test")
 
+    containers_to_check = []
     if mode == "web":
-        container = f"{project_name}_bun_init_1"
+        containers_to_check.append(f"{project_name}_bun_init_1")
         timeout = 120
     elif mode == "infra-pooler":
-        container = f"{project_name}_supavisor_1"  # pragma: no cover
+        containers_to_check.append(f"{project_name}_supavisor_1")  # pragma: no cover
         timeout = 60  # pragma: no cover
     elif mode == "infra-db":  # pragma: no cover
-        container = f"{project_name}_db_init_1"  # pragma: no cover
+        containers_to_check.append(f"{project_name}_db_init_1")  # pragma: no cover
         timeout = 60  # pragma: no cover
     elif mode == "infra-redis":  # pragma: no cover
-        container = f"{project_name}_redis_1"  # pragma: no cover
+        containers_to_check.append(f"{project_name}_redis_1")  # pragma: no cover
         timeout = 30  # pragma: no cover
     else:
-        container = f"{project_name}_apiserver_1"
+        containers_to_check.append(f"{project_name}_apiserver_1")
+        if mode in ("api", "int-api", "integration", "all"):
+            containers_to_check.append(f"{project_name}_db_1")
+            containers_to_check.append(f"{project_name}_redis_1")
         timeout = 60
 
-    for _ in range(timeout):
-        if _container_healthy(container):
-            return True
-        time.sleep(1)  # pragma: no cover
+    for container in containers_to_check:
+        healthy = False
+        for _ in range(timeout):
+            if _container_healthy(container):
+                healthy = True
+                break
+            time.sleep(1)  # pragma: no cover
+        
+        if not healthy:
+            # Diagnostic
+            _run(
+                [_get_engine(), "ps", "-a", "--filter", f"name={project_name}"], capture=False
+            )  # pragma: no cover
+            return False  # pragma: no cover
 
-    # Diagnostic
-    _run(
-        [_get_engine(), "ps", "-a", "--filter", f"name={project_name}"], capture=False
-    )  # pragma: no cover
-    return False  # pragma: no cover
+    return True
 
 
 import fcntl

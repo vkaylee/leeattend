@@ -10,11 +10,12 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::queue::{
-    DateRange, Job, JobMetadata, JobPayload, JobPriority, JobStatus, MergePayload,
-    ReportConfig, ReportPayload, ReportType, TaskType,
+    DateRange, Job, JobMetadata, JobPayload, JobPriority, JobStatus, MergePayload, ReportConfig,
+    ReportPayload, ReportType, TaskType,
 };
 use crate::repositories::{
-    employee::EmployeeRepository, queue_repository::QueueRepository, workspace_repository::WorkspaceRepository,
+    employee::EmployeeRepository, queue_repository::QueueRepository,
+    workspace_repository::WorkspaceRepository,
 };
 use std::sync::Arc;
 
@@ -202,13 +203,13 @@ impl ReportCoordinator {
         self.queue
             .create_job_metadata(&meta)
             .await
-            .map_err(|e| ReportError::QueueError(e.to_string()))?;
+            .map_err(ReportError::QueueError)?;
 
         // 7. Enqueue all jobs atomically
         self.queue
             .enqueue_jobs(jobs)
             .await
-            .map_err(|e| ReportError::QueueError(e.to_string()))?;
+            .map_err(ReportError::QueueError)?;
 
         tracing::info!(
             job_id = %parent_job_id,
@@ -243,7 +244,7 @@ impl ReportCoordinator {
             .queue
             .get_job_metadata(job_id)
             .await
-            .map_err(|e| ReportError::QueueError(e.to_string()))?
+            .map_err(ReportError::QueueError)?
             .ok_or(ReportError::JobNotFound)?;
 
         let percentage = if meta.total_batches > 0 {
@@ -280,7 +281,7 @@ impl ReportCoordinator {
             .queue
             .get_job_metadata(job_id)
             .await
-            .map_err(|e| ReportError::QueueError(e.to_string()))?
+            .map_err(ReportError::QueueError)?
             .ok_or(ReportError::JobNotFound)?;
 
         if meta.status == JobStatus::Completed || meta.status == JobStatus::Failed {
@@ -294,7 +295,7 @@ impl ReportCoordinator {
         self.queue
             .update_job_metadata(&meta)
             .await
-            .map_err(|e| ReportError::QueueError(e.to_string()))?;
+            .map_err(ReportError::QueueError)?;
 
         tracing::info!(job_id = %job_id, "Report job cancelled");
         Ok(())
@@ -322,12 +323,12 @@ impl ReportCoordinator {
             self.queue
                 .increment_completed(parent_job_id)
                 .await
-                .map_err(|e| ReportError::QueueError(e.to_string()))?
+                .map_err(ReportError::QueueError)?
         } else {
             self.queue
                 .increment_failed(parent_job_id)
                 .await
-                .map_err(|e| ReportError::QueueError(e.to_string()))?;
+                .map_err(ReportError::QueueError)?;
             0 // Don't check for completion on failure
         };
 
@@ -336,7 +337,7 @@ impl ReportCoordinator {
             .queue
             .get_job_metadata(parent_job_id)
             .await
-            .map_err(|e| ReportError::QueueError(e.to_string()))?
+            .map_err(ReportError::QueueError)?
             .ok_or(ReportError::JobNotFound)?;
 
         let all_done = completed_count >= meta.total_batches;
@@ -348,7 +349,7 @@ impl ReportCoordinator {
                 .queue
                 .try_trigger_merge(parent_job_id)
                 .await
-                .map_err(|e| ReportError::QueueError(e.to_string()))?;
+                .map_err(ReportError::QueueError)?;
 
             if should_trigger {
                 tracing::info!(
@@ -388,14 +389,14 @@ impl ReportCoordinator {
                     self.queue
                         .enqueue_jobs(vec![merge_job])
                         .await
-                        .map_err(|e| ReportError::QueueError(e.to_string()))?;
+                        .map_err(ReportError::QueueError)?;
                 } else {
                     // Not a report job (e.g. ReprocessAttendance), update status directly
                     tracing::info!(parent_job_id = %parent_job_id, "Updating status to Completed (no merge needed)");
                     self.queue
                         .update_job_status(parent_job_id, JobStatus::Completed)
                         .await
-                        .map_err(|e| ReportError::QueueError(e.to_string()))?;
+                        .map_err(ReportError::QueueError)?;
                 }
             }
         }
@@ -592,7 +593,7 @@ mod tests {
         let mut mock_queue_repo = MockQueueRepository::new();
 
         let ws_id = Uuid::new_v4();
-        
+
         // Setup mocks
         mock_workspace_repo
             .expect_get_workspace_by_id()
@@ -612,6 +613,7 @@ mod tests {
                         default_holiday_ot_multiplier: Default::default(),
                         logo_url: None,
                         tagline: None,
+                        custom_db_url_encrypted: None,
                     }))
                 })
             });
@@ -648,17 +650,19 @@ mod tests {
             Arc::new(mock_workspace_repo),
         );
 
-        let result = coordinator.create_report_job(
-            ws_id,
-            Uuid::new_v4(), // requester_id
-            crate::services::report_coordinator::CreateJobRequest {
-                report_type: crate::queue::ReportType::Summary,
-                start_date: chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
-                end_date: chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
-                employee_ids: None,
-                sort: None,
-            },
-        ).await;
+        let result = coordinator
+            .create_report_job(
+                ws_id,
+                Uuid::new_v4(), // requester_id
+                crate::services::report_coordinator::CreateJobRequest {
+                    report_type: crate::queue::ReportType::Summary,
+                    start_date: chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+                    end_date: chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+                    employee_ids: None,
+                    sort: None,
+                },
+            )
+            .await;
 
         assert!(result.is_ok());
         let response = result.unwrap();
@@ -679,23 +683,28 @@ mod tests {
         let mock_queue_repo = MockQueueRepository::new();
 
         let ws_id = Uuid::new_v4();
-        
+
         mock_workspace_repo
             .expect_get_workspace_by_id()
-            .returning(|_| Box::pin(async { Ok(Some(crate::models::Workspace {
-                id: Uuid::new_v4(),
-                name: "Test WS".into(),
-                created_at: chrono::Utc::now(),
-                date_format: "YYYY-MM-DD".into(),
-                time_format: "HH:mm:ss".into(),
-                timezone: "UTC".into(),
-                theme_primary_color: "".into(),
-                default_language: "en".into(),
-                holiday_overnight_strategy: "split".into(),
-                default_holiday_ot_multiplier: Default::default(),
-                logo_url: None,
-                tagline: None,
-            })) }));
+            .returning(|_| {
+                Box::pin(async {
+                    Ok(Some(crate::models::Workspace {
+                        id: Uuid::new_v4(),
+                        name: "Test WS".into(),
+                        created_at: chrono::Utc::now(),
+                        date_format: "YYYY-MM-DD".into(),
+                        time_format: "HH:mm:ss".into(),
+                        timezone: "UTC".into(),
+                        theme_primary_color: "".into(),
+                        default_language: "en".into(),
+                        holiday_overnight_strategy: "split".into(),
+                        default_holiday_ot_multiplier: Default::default(),
+                        logo_url: None,
+                        tagline: None,
+                        custom_db_url_encrypted: None,
+                    }))
+                })
+            });
 
         // Return empty employee list
         mock_employee_repo
@@ -708,27 +717,29 @@ mod tests {
             Arc::new(mock_workspace_repo),
         );
 
-        let result = coordinator.create_report_job(
-            ws_id,
-            Uuid::new_v4(), // requester_id
-            crate::services::report_coordinator::CreateJobRequest {
-                report_type: crate::queue::ReportType::Summary,
-                start_date: chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
-                end_date: chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
-                employee_ids: None,
-                sort: None,
-            },
-        ).await;
+        let result = coordinator
+            .create_report_job(
+                ws_id,
+                Uuid::new_v4(), // requester_id
+                crate::services::report_coordinator::CreateJobRequest {
+                    report_type: crate::queue::ReportType::Summary,
+                    start_date: chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+                    end_date: chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+                    employee_ids: None,
+                    sort: None,
+                },
+            )
+            .await;
 
         assert!(matches!(result, Err(ReportError::NoEmployees)));
     }
 
     #[tokio::test]
     async fn test_get_job_status_success() {
+        use crate::queue::{JobMetadata, JobStatus};
         use crate::repositories::employee::MockEmployeeRepository;
         use crate::repositories::queue_repository::MockQueueRepository;
         use crate::repositories::workspace_repository::MockWorkspaceRepository;
-        use crate::queue::{JobMetadata, JobStatus};
         use std::sync::Arc;
 
         let mock_workspace_repo = MockWorkspaceRepository::new();
@@ -741,13 +752,7 @@ mod tests {
             .expect_get_job_metadata()
             .with(mockall::predicate::eq(job_id))
             .returning(move |_| {
-                let mut meta = JobMetadata::new(
-                    job_id,
-                    10,
-                    Uuid::new_v4(),
-                    Uuid::new_v4(),
-                    None,
-                );
+                let mut meta = JobMetadata::new(job_id, 10, Uuid::new_v4(), Uuid::new_v4(), None);
                 meta.completed_batches = 5;
                 meta.status = JobStatus::Processing;
                 Ok(Some(meta))
@@ -771,10 +776,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_cancel_job_success() {
+        use crate::queue::JobMetadata;
         use crate::repositories::employee::MockEmployeeRepository;
         use crate::repositories::queue_repository::MockQueueRepository;
         use crate::repositories::workspace_repository::MockWorkspaceRepository;
-        use crate::queue::JobMetadata;
         use std::sync::Arc;
 
         let mock_workspace_repo = MockWorkspaceRepository::new();
@@ -787,13 +792,7 @@ mod tests {
             .expect_get_job_metadata()
             .with(mockall::predicate::eq(job_id))
             .returning(move |_| {
-                let meta = JobMetadata::new(
-                    job_id,
-                    10,
-                    Uuid::new_v4(),
-                    Uuid::new_v4(),
-                    None,
-                );
+                let meta = JobMetadata::new(job_id, 10, Uuid::new_v4(), Uuid::new_v4(), None);
                 Ok(Some(meta))
             });
 
@@ -814,10 +813,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_cancel_job_cannot_cancel_completed() {
+        use crate::queue::{JobMetadata, JobStatus};
         use crate::repositories::employee::MockEmployeeRepository;
         use crate::repositories::queue_repository::MockQueueRepository;
         use crate::repositories::workspace_repository::MockWorkspaceRepository;
-        use crate::queue::{JobMetadata, JobStatus};
         use std::sync::Arc;
 
         let mock_workspace_repo = MockWorkspaceRepository::new();
@@ -830,13 +829,7 @@ mod tests {
             .expect_get_job_metadata()
             .with(mockall::predicate::eq(job_id))
             .returning(move |_| {
-                let mut meta = JobMetadata::new(
-                    job_id,
-                    10,
-                    Uuid::new_v4(),
-                    Uuid::new_v4(),
-                    None,
-                );
+                let mut meta = JobMetadata::new(job_id, 10, Uuid::new_v4(), Uuid::new_v4(), None);
                 meta.status = JobStatus::Completed;
                 Ok(Some(meta))
             });

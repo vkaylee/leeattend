@@ -76,11 +76,23 @@ async fn test_accrual_scenarios() {
         employee_repo,
         department_repo,
         leave_policy_repo,
-        Arc::new(apiserver::repositories::DieselLeaveAccrualLogRepository::new(diesel_pools.clone())),
-        Arc::new(apiserver::repositories::DieselTimeEntryRepository::new(diesel_pools.clone())),
-        Arc::new(apiserver::repositories::DieselLeaveRequestRepository::new(diesel_pools.clone())),
-        Arc::new(apiserver::repositories::DieselAttendanceDailySummaryRepository::new(diesel_pools.clone())),
-        Arc::new(apiserver::repositories::DieselEmployeeContractRepository::new(diesel_pools.clone())),
+        Arc::new(
+            apiserver::repositories::DieselLeaveAccrualLogRepository::new(diesel_pools.clone()),
+        ),
+        Arc::new(apiserver::repositories::DieselTimeEntryRepository::new(
+            diesel_pools.clone(),
+        )),
+        Arc::new(apiserver::repositories::DieselLeaveRequestRepository::new(
+            diesel_pools.clone(),
+        )),
+        Arc::new(
+            apiserver::repositories::DieselAttendanceDailySummaryRepository::new(
+                diesel_pools.clone(),
+            ),
+        ),
+        Arc::new(
+            apiserver::repositories::DieselEmployeeContractRepository::new(diesel_pools.clone()),
+        ),
     );
     let logs = accrual_service
         .process_workspace_accruals(ws_id, NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(), false)
@@ -158,11 +170,23 @@ async fn test_performance_based_accrual() {
         employee_repo,
         department_repo,
         leave_policy_repo,
-        Arc::new(apiserver::repositories::DieselLeaveAccrualLogRepository::new(diesel_pools.clone())),
-        Arc::new(apiserver::repositories::DieselTimeEntryRepository::new(diesel_pools.clone())),
-        Arc::new(apiserver::repositories::DieselLeaveRequestRepository::new(diesel_pools.clone())),
-        Arc::new(apiserver::repositories::DieselAttendanceDailySummaryRepository::new(diesel_pools.clone())),
-        Arc::new(apiserver::repositories::DieselEmployeeContractRepository::new(diesel_pools.clone())),
+        Arc::new(
+            apiserver::repositories::DieselLeaveAccrualLogRepository::new(diesel_pools.clone()),
+        ),
+        Arc::new(apiserver::repositories::DieselTimeEntryRepository::new(
+            diesel_pools.clone(),
+        )),
+        Arc::new(apiserver::repositories::DieselLeaveRequestRepository::new(
+            diesel_pools.clone(),
+        )),
+        Arc::new(
+            apiserver::repositories::DieselAttendanceDailySummaryRepository::new(
+                diesel_pools.clone(),
+            ),
+        ),
+        Arc::new(
+            apiserver::repositories::DieselEmployeeContractRepository::new(diesel_pools.clone()),
+        ),
     );
     let logs = accrual_service
         .process_workspace_accruals(ws_id, NaiveDate::from_ymd_opt(2026, 2, 1).unwrap(), false)
@@ -245,11 +269,23 @@ async fn test_accrual_recalculation() {
         employee_repo,
         department_repo,
         leave_policy_repo.clone(),
-        Arc::new(apiserver::repositories::DieselLeaveAccrualLogRepository::new(diesel_pools.clone())),
-        Arc::new(apiserver::repositories::DieselTimeEntryRepository::new(diesel_pools.clone())),
-        Arc::new(apiserver::repositories::DieselLeaveRequestRepository::new(diesel_pools.clone())),
-        Arc::new(apiserver::repositories::DieselAttendanceDailySummaryRepository::new(diesel_pools.clone())),
-        Arc::new(apiserver::repositories::DieselEmployeeContractRepository::new(diesel_pools.clone())),
+        Arc::new(
+            apiserver::repositories::DieselLeaveAccrualLogRepository::new(diesel_pools.clone()),
+        ),
+        Arc::new(apiserver::repositories::DieselTimeEntryRepository::new(
+            diesel_pools.clone(),
+        )),
+        Arc::new(apiserver::repositories::DieselLeaveRequestRepository::new(
+            diesel_pools.clone(),
+        )),
+        Arc::new(
+            apiserver::repositories::DieselAttendanceDailySummaryRepository::new(
+                diesel_pools.clone(),
+            ),
+        ),
+        Arc::new(
+            apiserver::repositories::DieselEmployeeContractRepository::new(diesel_pools.clone()),
+        ),
     );
 
     // 1st run: Accrues 1.0

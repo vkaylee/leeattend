@@ -681,11 +681,14 @@ mod tests {
             .returning(|_, _, _, _| Ok(()));
 
         let mut roster_repo = MockRosterRepository::new();
-        roster_repo.expect_upsert_roster().times(2).returning(|_ws, r| {
-            let mut roster = r.clone();
-            roster.id = Uuid::new_v4();
-            Box::pin(async move { Ok(roster) })
-        });
+        roster_repo
+            .expect_upsert_roster()
+            .times(2)
+            .returning(|_ws, r| {
+                let mut roster = r.clone();
+                roster.id = Uuid::new_v4();
+                Box::pin(async move { Ok(roster) })
+            });
 
         let service = build_service(
             swap_repo,

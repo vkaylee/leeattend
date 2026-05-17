@@ -49,8 +49,7 @@ impl E2eTestDatabase {
         let client = reqwest::Client::new();
         if client.get(&api_url).send().await.is_err() {
             println!(
-                "Supavisor API is unreachable at {}. Skipping E2E test database creation.",
-                api_url
+                "Supavisor API is unreachable at {api_url}. Skipping E2E test database creation."
             );
             return None;
         }
@@ -78,7 +77,7 @@ impl E2eTestDatabase {
             let direct_db_url = format!("{base_connection_string}/{db_name}");
             apiserver::diesel_pool::DieselPools::run_all_migrations_for_test(
                 &apiserver::diesel_pool::DbPoolConfig {
-                    primary_url: direct_db_url.clone(),
+                    primary_url: direct_db_url,
                     pooler_url: None,
                     reader_url: None,
                     api_max_conn: 1,
@@ -112,8 +111,7 @@ impl E2eTestDatabase {
 
         // Supavisor connection string: postgres://{user}.{tenant}:{password}@{host}:{port}/{dbname}
         let pooler_url = format!(
-            "postgres://{}.{}:{}@{}:{}/{}",
-            pooler_user, tenant_id, pooler_pass, supavisor_host, supavisor_port, db_name
+            "postgres://{pooler_user}.{tenant_id}:{pooler_pass}@{supavisor_host}:{supavisor_port}/{db_name}"
         );
 
         let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&pooler_url);
@@ -130,7 +128,7 @@ impl E2eTestDatabase {
             if let Ok((client, conn)) = tokio_postgres::connect(url, NoTls).await {
                 tokio::spawn(async move {
                     if let Err(e) = conn.await {
-                        eprintln!("connection error: {}", e);
+                        eprintln!("connection error: {e}");
                     }
                 });
                 return client;

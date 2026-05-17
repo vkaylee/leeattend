@@ -25,7 +25,11 @@ impl DieselTimeEntryRepository {
 
 #[async_trait]
 impl TimeEntryRepository for DieselTimeEntryRepository {
-    async fn create_time_entry(&self, workspace_id: Uuid, entry: &TimeEntry) -> Result<(), AppError> {
+    async fn create_time_entry(
+        &self,
+        workspace_id: Uuid,
+        entry: &TimeEntry,
+    ) -> Result<(), AppError> {
         let mut conn = self
             .diesel_pools
             .tenants

@@ -8,17 +8,21 @@
 
 use apiserver::agent_manager::AgentManager;
 use apiserver::create_app;
+use apiserver::services::tenant_provisioner::TenantProvisionerTrait;
 use apiserver::services::AttendanceLogService;
+use apiserver::supavisor::TenantManager;
 use apiserver::AppState;
 use std::sync::Arc;
 use uuid::Uuid;
-use apiserver::services::tenant_provisioner::TenantProvisionerTrait;
-use apiserver::supavisor::TenantManager;
 
 pub struct DummyTenantProvisioner;
 #[async_trait::async_trait]
 impl TenantProvisionerTrait for DummyTenantProvisioner {
-    async fn provision_tenant_db(&self, _workspace_id: &uuid::Uuid, custom_db_url: Option<String>) -> Result<String, apiserver::errors::AppError> { 
+    async fn provision_tenant_db(
+        &self,
+        _workspace_id: &uuid::Uuid,
+        custom_db_url: Option<String>,
+    ) -> Result<String, apiserver::errors::AppError> {
         if let Some(url) = custom_db_url {
             Ok(url)
         } else {
@@ -31,8 +35,16 @@ pub struct DummyTenantManager;
 #[async_trait::async_trait]
 impl TenantManager for DummyTenantManager {
     async fn init_tenant(&self) {}
-    async fn delete_tenant(&self, _workspace_id: &str) -> Result<(), apiserver::errors::AppError> { Ok(()) }
-    async fn register_tenant_dynamic(&self, _workspace_id: &str, _db_config: &serde_json::Value) -> Result<(), apiserver::errors::AppError> { Ok(()) }
+    async fn delete_tenant(&self, _workspace_id: &str) -> Result<(), apiserver::errors::AppError> {
+        Ok(())
+    }
+    async fn register_tenant_dynamic(
+        &self,
+        _workspace_id: &str,
+        _db_config: &serde_json::Value,
+    ) -> Result<(), apiserver::errors::AppError> {
+        Ok(())
+    }
 }
 
 use super::db::TestDatabase;
@@ -47,25 +59,32 @@ pub async fn create_test_redis_pool() -> Option<apiserver::queue::RedisPool> {
     let mut base_redis_url = std::env::var("REDIS_URL_FOR_TEST_GENERATION")
         .or_else(|_| std::env::var("REDIS_URL"))
         .unwrap_or_else(|_| "redis://localhost:6379".to_string());
-    
+
     if base_redis_url.ends_with('/') {
         base_redis_url.pop();
     }
     if let Some(pos) = base_redis_url.rfind('/') {
-        if base_redis_url[pos + 1..].chars().all(|c| c.is_ascii_digit()) && pos > base_redis_url.find("://").unwrap() + 2 {
+        if base_redis_url[pos + 1..]
+            .chars()
+            .all(|c| c.is_ascii_digit())
+            && pos > base_redis_url.find("://").unwrap() + 2
+        {
             base_redis_url.truncate(pos);
         }
     }
     let logical_db = uuid::Uuid::new_v4().as_u128() % 16;
     let url = format!("{}/{}", base_redis_url, logical_db);
-    
+
     for attempt in 0..10 {
         match apiserver::queue::RedisPool::new(&url).await {
             Ok(p) => return Some(p),
             Err(_) if attempt < 9 => {
                 tokio::time::sleep(std::time::Duration::from_millis(500 * (attempt + 1))).await;
             }
-            Err(e) => panic!("Failed to create Redis pool for test factory after 10 attempts: {}", e),
+            Err(e) => panic!(
+                "Failed to create Redis pool for test factory after 10 attempts: {}",
+                e
+            ),
         }
     }
     None
@@ -295,7 +314,12 @@ pub async fn spawn_app() -> (String, TestDatabase) {
         shift_repo.clone(),
     ));
     let workspace_service = Arc::new(
-        apiserver::services::workspace_service::WorkspaceService::new(workspace_repo.clone(), user_repo.clone(), std::sync::Arc::new(DummyTenantProvisioner), std::sync::Arc::new(DummyTenantManager))
+        apiserver::services::workspace_service::WorkspaceService::new(
+            workspace_repo.clone(),
+            user_repo.clone(),
+            std::sync::Arc::new(DummyTenantProvisioner),
+            std::sync::Arc::new(DummyTenantManager),
+        ),
     );
     let leave_accrual_log_repo: Arc<
         dyn apiserver::repositories::leave_accrual_log_repository::LeaveAccrualLogRepository,
@@ -358,10 +382,14 @@ pub async fn spawn_app() -> (String, TestDatabase) {
             time_entry_repo.clone(),
             leave_request_repo.clone(),
             Arc::new(
-                apiserver::repositories::DieselAttendanceDailySummaryRepository::new(diesel_pools.clone()),
+                apiserver::repositories::DieselAttendanceDailySummaryRepository::new(
+                    diesel_pools.clone(),
+                ),
             ),
             Arc::new(
-                apiserver::repositories::DieselEmployeeContractRepository::new(diesel_pools.clone()),
+                apiserver::repositories::DieselEmployeeContractRepository::new(
+                    diesel_pools.clone(),
+                ),
             ),
         ),
     );
@@ -480,8 +508,11 @@ pub async fn spawn_app() -> (String, TestDatabase) {
         reports: apiserver::ReportState {
             service: report_service,
             coordinator: shared_redis_pool.clone().map(|redis| {
-                let queue_repo: Arc<dyn apiserver::repositories::queue_repository::QueueRepository> = 
-                    Arc::new(apiserver::repositories::queue_repository::RedisQueueRepository::new(redis));
+                let queue_repo: Arc<
+                    dyn apiserver::repositories::queue_repository::QueueRepository,
+                > = Arc::new(
+                    apiserver::repositories::queue_repository::RedisQueueRepository::new(redis),
+                );
                 Arc::new(apiserver::services::ReportCoordinator::new(
                     queue_repo,
                     employee_repo.clone(),
@@ -509,14 +540,24 @@ pub async fn spawn_app() -> (String, TestDatabase) {
         infra: apiserver::InfraState {
             diesel: diesel_pools.clone(),
             redis: shared_redis_pool.clone(),
-            cache: shared_redis_pool.clone().map(|r| Arc::new(apiserver::cache::RedisCache::new(r)) as Arc<dyn apiserver::repositories::CacheRepository>),
+            cache: shared_redis_pool.clone().map(|r| {
+                Arc::new(apiserver::cache::RedisCache::new(r))
+                    as Arc<dyn apiserver::repositories::CacheRepository>
+            }),
             roster_cache: None,
-            queue: shared_redis_pool.map(|r| Arc::new(apiserver::repositories::queue_repository::RedisQueueRepository::new(r)) as Arc<dyn apiserver::repositories::queue_repository::QueueRepository>),
+            queue: shared_redis_pool.map(|r| {
+                Arc::new(apiserver::repositories::queue_repository::RedisQueueRepository::new(r))
+                    as Arc<dyn apiserver::repositories::queue_repository::QueueRepository>
+            }),
             tenant_manager: Arc::new(apiserver::supavisor::NoopTenantManager),
             tenant_provisioner: std::sync::Arc::new(DummyTenantProvisioner),
-            crypto_service: std::env::var("ENCRYPTION_KEYS_JSON").ok().and_then(|keys_json| {
-                apiserver::crypto::CryptoService::from_json(&keys_json).ok().map(std::sync::Arc::new)
-            }),
+            crypto_service: std::env::var("ENCRYPTION_KEYS_JSON")
+                .ok()
+                .and_then(|keys_json| {
+                    apiserver::crypto::CryptoService::from_json(&keys_json)
+                        .ok()
+                        .map(std::sync::Arc::new)
+                }),
         },
     });
 
@@ -540,7 +581,9 @@ pub async fn spawn_app_with_factory() -> (String, Uuid, Uuid, TestFactory, TestD
 }
 
 #[allow(dead_code)]
-pub async fn spawn_app_with_factory_extended(tenant_manager: Arc<dyn apiserver::supavisor::TenantManager>) -> (String, Uuid, Uuid, TestFactory, TestDatabase) {
+pub async fn spawn_app_with_factory_extended(
+    tenant_manager: Arc<dyn apiserver::supavisor::TenantManager>,
+) -> (String, Uuid, Uuid, TestFactory, TestDatabase) {
     let test_db = TestDatabase::new().await;
     let pool = test_db.diesel_pools.clone();
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
@@ -793,7 +836,12 @@ pub async fn spawn_app_with_factory_extended(tenant_manager: Arc<dyn apiserver::
         shift_repo.clone(),
     ));
     let workspace_service = Arc::new(
-        apiserver::services::workspace_service::WorkspaceService::new(workspace_repo.clone(), user_repo.clone(), std::sync::Arc::new(DummyTenantProvisioner), std::sync::Arc::new(DummyTenantManager))
+        apiserver::services::workspace_service::WorkspaceService::new(
+            workspace_repo.clone(),
+            user_repo.clone(),
+            std::sync::Arc::new(DummyTenantProvisioner),
+            std::sync::Arc::new(DummyTenantManager),
+        ),
     );
     let leave_accrual_log_repo: Arc<
         dyn apiserver::repositories::leave_accrual_log_repository::LeaveAccrualLogRepository,
@@ -856,10 +904,14 @@ pub async fn spawn_app_with_factory_extended(tenant_manager: Arc<dyn apiserver::
             time_entry_repo.clone(),
             leave_request_repo.clone(),
             Arc::new(
-                apiserver::repositories::DieselAttendanceDailySummaryRepository::new(diesel_pools.clone()),
+                apiserver::repositories::DieselAttendanceDailySummaryRepository::new(
+                    diesel_pools.clone(),
+                ),
             ),
             Arc::new(
-                apiserver::repositories::DieselEmployeeContractRepository::new(diesel_pools.clone()),
+                apiserver::repositories::DieselEmployeeContractRepository::new(
+                    diesel_pools.clone(),
+                ),
             ),
         ),
     );
@@ -978,8 +1030,11 @@ pub async fn spawn_app_with_factory_extended(tenant_manager: Arc<dyn apiserver::
         reports: apiserver::ReportState {
             service: report_service,
             coordinator: shared_redis_pool.clone().map(|redis| {
-                let queue_repo: Arc<dyn apiserver::repositories::queue_repository::QueueRepository> = 
-                    Arc::new(apiserver::repositories::queue_repository::RedisQueueRepository::new(redis));
+                let queue_repo: Arc<
+                    dyn apiserver::repositories::queue_repository::QueueRepository,
+                > = Arc::new(
+                    apiserver::repositories::queue_repository::RedisQueueRepository::new(redis),
+                );
                 Arc::new(apiserver::services::ReportCoordinator::new(
                     queue_repo,
                     employee_repo.clone(),
@@ -1007,14 +1062,24 @@ pub async fn spawn_app_with_factory_extended(tenant_manager: Arc<dyn apiserver::
         infra: apiserver::InfraState {
             diesel: diesel_pools.clone(),
             redis: shared_redis_pool.clone(),
-            cache: shared_redis_pool.clone().map(|r| Arc::new(apiserver::cache::RedisCache::new(r)) as Arc<dyn apiserver::repositories::CacheRepository>),
+            cache: shared_redis_pool.clone().map(|r| {
+                Arc::new(apiserver::cache::RedisCache::new(r))
+                    as Arc<dyn apiserver::repositories::CacheRepository>
+            }),
             roster_cache: None,
-            queue: shared_redis_pool.clone().map(|r| Arc::new(apiserver::repositories::queue_repository::RedisQueueRepository::new(r)) as Arc<dyn apiserver::repositories::queue_repository::QueueRepository>),
+            queue: shared_redis_pool.clone().map(|r| {
+                Arc::new(apiserver::repositories::queue_repository::RedisQueueRepository::new(r))
+                    as Arc<dyn apiserver::repositories::queue_repository::QueueRepository>
+            }),
             tenant_manager,
             tenant_provisioner: std::sync::Arc::new(DummyTenantProvisioner),
-            crypto_service: std::env::var("ENCRYPTION_KEYS_JSON").ok().and_then(|keys_json| {
-                apiserver::crypto::CryptoService::from_json(&keys_json).ok().map(std::sync::Arc::new)
-            }),
+            crypto_service: std::env::var("ENCRYPTION_KEYS_JSON")
+                .ok()
+                .and_then(|keys_json| {
+                    apiserver::crypto::CryptoService::from_json(&keys_json)
+                        .ok()
+                        .map(std::sync::Arc::new)
+                }),
         },
     });
 
@@ -1065,17 +1130,28 @@ pub async fn setup_app_tower() -> (TestDatabase, TestFactory, Arc<AppState>, axu
 }
 
 #[allow(dead_code)]
-pub async fn setup_app_tower_without_redis() -> (TestDatabase, TestFactory, Arc<AppState>, axum::Router) {
+pub async fn setup_app_tower_without_redis(
+) -> (TestDatabase, TestFactory, Arc<AppState>, axum::Router) {
     setup_app_tower_internal(false).await
 }
 
-pub async fn setup_app_tower_internal(use_redis: bool) -> (TestDatabase, TestFactory, Arc<AppState>, axum::Router) {
-    setup_app_tower_internal_extended(use_redis, Arc::new(apiserver::supavisor::NoopTenantManager)).await
+pub async fn setup_app_tower_internal(
+    use_redis: bool,
+) -> (TestDatabase, TestFactory, Arc<AppState>, axum::Router) {
+    setup_app_tower_internal_extended(use_redis, Arc::new(apiserver::supavisor::NoopTenantManager))
+        .await
 }
 
-pub async fn setup_app_tower_internal_extended(use_redis: bool, tenant_manager: Arc<dyn apiserver::supavisor::TenantManager>) -> (TestDatabase, TestFactory, Arc<AppState>, axum::Router) {
+pub async fn setup_app_tower_internal_extended(
+    use_redis: bool,
+    tenant_manager: Arc<dyn apiserver::supavisor::TenantManager>,
+) -> (TestDatabase, TestFactory, Arc<AppState>, axum::Router) {
     let test_db = TestDatabase::new().await;
-    let shared_redis_pool = if use_redis { create_test_redis_pool().await } else { None };
+    let shared_redis_pool = if use_redis {
+        create_test_redis_pool().await
+    } else {
+        None
+    };
     let pool = test_db.diesel_pools.clone().clone();
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
     let factory = TestFactory::new(pool.clone()).with_redis(shared_redis_pool.clone());
@@ -1328,7 +1404,12 @@ pub async fn setup_app_tower_internal_extended(use_redis: bool, tenant_manager: 
         shift_repo.clone(),
     ));
     let workspace_service = Arc::new(
-        apiserver::services::workspace_service::WorkspaceService::new(workspace_repo.clone(), user_repo.clone(), std::sync::Arc::new(DummyTenantProvisioner), std::sync::Arc::new(DummyTenantManager))
+        apiserver::services::workspace_service::WorkspaceService::new(
+            workspace_repo.clone(),
+            user_repo.clone(),
+            std::sync::Arc::new(DummyTenantProvisioner),
+            std::sync::Arc::new(DummyTenantManager),
+        ),
     );
     let leave_accrual_log_repo: Arc<
         dyn apiserver::repositories::leave_accrual_log_repository::LeaveAccrualLogRepository,
@@ -1391,10 +1472,14 @@ pub async fn setup_app_tower_internal_extended(use_redis: bool, tenant_manager: 
             time_entry_repo.clone(),
             leave_request_repo.clone(),
             Arc::new(
-                apiserver::repositories::DieselAttendanceDailySummaryRepository::new(diesel_pools.clone()),
+                apiserver::repositories::DieselAttendanceDailySummaryRepository::new(
+                    diesel_pools.clone(),
+                ),
             ),
             Arc::new(
-                apiserver::repositories::DieselEmployeeContractRepository::new(diesel_pools.clone()),
+                apiserver::repositories::DieselEmployeeContractRepository::new(
+                    diesel_pools.clone(),
+                ),
             ),
         ),
     );
@@ -1517,8 +1602,11 @@ pub async fn setup_app_tower_internal_extended(use_redis: bool, tenant_manager: 
         reports: apiserver::ReportState {
             service: report_service,
             coordinator: shared_redis_pool.clone().map(|redis| {
-                let queue_repo: Arc<dyn apiserver::repositories::queue_repository::QueueRepository> = 
-                    Arc::new(apiserver::repositories::queue_repository::RedisQueueRepository::new(redis));
+                let queue_repo: Arc<
+                    dyn apiserver::repositories::queue_repository::QueueRepository,
+                > = Arc::new(
+                    apiserver::repositories::queue_repository::RedisQueueRepository::new(redis),
+                );
                 Arc::new(apiserver::services::ReportCoordinator::new(
                     queue_repo,
                     employee_repo.clone(),
@@ -1546,14 +1634,24 @@ pub async fn setup_app_tower_internal_extended(use_redis: bool, tenant_manager: 
         infra: apiserver::InfraState {
             diesel: diesel_pools.clone(),
             redis: shared_redis_pool.clone(),
-            cache: shared_redis_pool.clone().map(|r| Arc::new(apiserver::cache::RedisCache::new(r)) as Arc<dyn apiserver::repositories::CacheRepository>),
+            cache: shared_redis_pool.clone().map(|r| {
+                Arc::new(apiserver::cache::RedisCache::new(r))
+                    as Arc<dyn apiserver::repositories::CacheRepository>
+            }),
             roster_cache: None,
-            queue: shared_redis_pool.clone().map(|r| Arc::new(apiserver::repositories::queue_repository::RedisQueueRepository::new(r)) as Arc<dyn apiserver::repositories::queue_repository::QueueRepository>),
+            queue: shared_redis_pool.clone().map(|r| {
+                Arc::new(apiserver::repositories::queue_repository::RedisQueueRepository::new(r))
+                    as Arc<dyn apiserver::repositories::queue_repository::QueueRepository>
+            }),
             tenant_manager,
             tenant_provisioner: std::sync::Arc::new(DummyTenantProvisioner),
-            crypto_service: std::env::var("ENCRYPTION_KEYS_JSON").ok().and_then(|keys_json| {
-                apiserver::crypto::CryptoService::from_json(&keys_json).ok().map(std::sync::Arc::new)
-            }),
+            crypto_service: std::env::var("ENCRYPTION_KEYS_JSON")
+                .ok()
+                .and_then(|keys_json| {
+                    apiserver::crypto::CryptoService::from_json(&keys_json)
+                        .ok()
+                        .map(std::sync::Arc::new)
+                }),
         },
     });
 

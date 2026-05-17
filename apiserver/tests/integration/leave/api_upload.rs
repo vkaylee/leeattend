@@ -95,7 +95,7 @@ async fn test_upload_leave_csv_api() {
 
     // The background worker is not running in the setup_app_tower context, so we process it manually.
     let import_service = apiserver::services::leave_import_service::LeaveImportService::new(
-        apiserver::worker::deps::WorkerDeps::new(&diesel_pools.clone())
+        apiserver::worker::deps::WorkerDeps::new(&diesel_pools.clone()),
     );
 
     let job_opt = _state
@@ -112,9 +112,15 @@ async fn test_upload_leave_csv_api() {
     )
     .await
     .expect("process_job timed out");
-    
+
     if result.is_err() {
-        let job_after = _state.attendance.import_repo.get_job_by_id(job_uuid).await.unwrap().unwrap();
+        let job_after = _state
+            .attendance
+            .import_repo
+            .get_job_by_id(job_uuid)
+            .await
+            .unwrap()
+            .unwrap();
         panic!("process_job failed! error_log: {:?}", job_after.error_log);
     }
 

@@ -103,7 +103,12 @@ impl ShiftService {
 
             // 3. Migrate assignments
             self.repo
-                .update_assignments_to_new_version(workspace_id, shift_id, new_shift.id, effective_date)
+                .update_assignments_to_new_version(
+                    workspace_id,
+                    shift_id,
+                    new_shift.id,
+                    effective_date,
+                )
                 .await?;
 
             Ok(new_shift)

@@ -10,6 +10,7 @@ use crate::models::{
 
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
+#[allow(clippy::too_many_arguments)]
 pub trait PayrollRuleRepository: Send + Sync {
     async fn create_definition(
         &self,
@@ -38,7 +39,12 @@ pub trait PayrollRuleRepository: Send + Sync {
         rule_definition_id: Uuid,
     ) -> Result<Vec<PayrollRuleTier>, AppError>;
 
-    async fn delete_tier(&self, workspace_id: Uuid, rule_definition_id: Uuid, tier_id: Uuid) -> Result<(), AppError>;
+    async fn delete_tier(
+        &self,
+        workspace_id: Uuid,
+        rule_definition_id: Uuid,
+        tier_id: Uuid,
+    ) -> Result<(), AppError>;
 
     async fn assign_rule(
         &self,

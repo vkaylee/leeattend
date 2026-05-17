@@ -12,7 +12,10 @@ impl TestFactory {
     #[allow(dead_code)]
     #[must_use]
     pub const fn new(diesel_pools: apiserver::diesel_pool::DieselPools) -> Self {
-        Self { diesel_pools, redis_pool: None }
+        Self {
+            diesel_pools,
+            redis_pool: None,
+        }
     }
 
     #[allow(dead_code)]

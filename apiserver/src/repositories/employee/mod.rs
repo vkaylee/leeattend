@@ -95,10 +95,18 @@ pub trait EmployeeRepository: Send + Sync {
         employee_id: Uuid,
     ) -> Result<Vec<WorkingCondition>, AppError>;
 
-    async fn create_working_condition(&self, workspace_id: Uuid, condition: &WorkingCondition) -> Result<(), AppError>;
+    async fn create_working_condition(
+        &self,
+        workspace_id: Uuid,
+        condition: &WorkingCondition,
+    ) -> Result<(), AppError>;
 
-    async fn delete_working_condition(&self, workspace_id: Uuid, id: Uuid, employee_id: Uuid)
-        -> Result<bool, AppError>;
+    async fn delete_working_condition(
+        &self,
+        workspace_id: Uuid,
+        id: Uuid,
+        employee_id: Uuid,
+    ) -> Result<bool, AppError>;
 
     async fn get_existing_employee_ids_by_numbers(
         &self,

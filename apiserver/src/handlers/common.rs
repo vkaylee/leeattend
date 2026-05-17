@@ -3,6 +3,7 @@ use std::collections::HashSet;
 use crate::domain::permissions::{self, Permission};
 use crate::errors::{AppError, AppResult};
 use crate::models::GenericResponse;
+use crate::repositories::CacheRepositoryExt;
 use crate::{AppState, UserId};
 use axum::{
     async_trait,
@@ -14,7 +15,6 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use std::time::Duration;
 use uuid::Uuid;
-use crate::repositories::CacheRepositoryExt;
 
 // --- Extractors ---
 
@@ -211,7 +211,7 @@ where
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
         let UserId(user_id) = UserId::from_request_parts(parts, state).await?;
         let api_context = ApiContext::from_request_parts(parts, state).await?;
-        
+
         let workspace_id = match api_context {
             ApiContext::Tenant(ws_id) => ws_id.into_inner(),
             ApiContext::System => {
@@ -399,7 +399,7 @@ where
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
         let UserId(user_id) = UserId::from_request_parts(parts, state).await?;
         let api_context = ApiContext::from_request_parts(parts, state).await?;
-        
+
         let workspace_id = match api_context {
             ApiContext::Tenant(ws_id) => ws_id.into_inner(),
             ApiContext::System => {
@@ -637,51 +637,52 @@ mod tests {
 
     #[tokio::test]
     async fn test_api_context_system_path() {
-        use axum::http::Request;
         use axum::extract::FromRequestParts;
-        
+        use axum::http::Request;
+
         let req = Request::builder()
             .uri("/api/system/roles")
             .body(())
             .unwrap();
         let (mut parts, _) = req.into_parts();
-        
-        let ctx = ApiContext::from_request_parts(&mut parts, &()).await.unwrap();
+
+        let ctx = ApiContext::from_request_parts(&mut parts, &())
+            .await
+            .unwrap();
         assert!(matches!(ctx, ApiContext::System));
     }
-    
+
     #[tokio::test]
     async fn test_api_context_tenant_header() {
-        use axum::http::Request;
         use axum::extract::FromRequestParts;
+        use axum::http::Request;
         let ws_id = Uuid::new_v4();
-        
+
         let req = Request::builder()
             .uri("/api/workspaces")
             .header("X-Workspace-Id", ws_id.to_string())
             .body(())
             .unwrap();
         let (mut parts, _) = req.into_parts();
-        
-        let ctx = ApiContext::from_request_parts(&mut parts, &()).await.unwrap();
+
+        let ctx = ApiContext::from_request_parts(&mut parts, &())
+            .await
+            .unwrap();
         if let ApiContext::Tenant(ws) = ctx {
             assert_eq!(ws.into_inner(), ws_id);
         } else {
             panic!("Expected Tenant context");
         }
     }
-    
+
     #[tokio::test]
     async fn test_api_context_missing_workspace() {
-        use axum::http::Request;
         use axum::extract::FromRequestParts;
-        
-        let req = Request::builder()
-            .uri("/api/workspaces")
-            .body(())
-            .unwrap();
+        use axum::http::Request;
+
+        let req = Request::builder().uri("/api/workspaces").body(()).unwrap();
         let (mut parts, _) = req.into_parts();
-        
+
         let res = ApiContext::from_request_parts(&mut parts, &()).await;
         assert!(res.is_err());
     }

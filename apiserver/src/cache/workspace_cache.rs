@@ -41,7 +41,7 @@ impl WorkspaceCache {
     /// 3. Store in cache for future requests
     pub async fn get(&self, workspace_id: Uuid) -> Result<CachedWorkspaceConfig, String> {
         let key = Self::key(workspace_id);
-        let repo = self.repo.clone();
+        let repo = std::sync::Arc::clone(&self.repo);
 
         self.cache
             .get_or_fetch(&key, DEFAULT_CACHE_TTL, || async move {

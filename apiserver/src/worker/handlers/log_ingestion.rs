@@ -19,10 +19,7 @@ impl LogIngestionHandler {
     /// - Pairing logic
     /// - Unknown user staging
     /// - Error logging
-    pub async fn handle(
-        job: &Job,
-        deps: &crate::worker::WorkerDeps,
-    ) -> Result<(), String> {
+    pub async fn handle(job: &Job, deps: &crate::worker::WorkerDeps) -> Result<(), String> {
         let payload = job
             .log_ingestion_payload()
             .ok_or("Invalid payload for LogIngestion job")?;
@@ -105,15 +102,16 @@ mod tests {
 
     #[tokio::test]
     async fn test_log_ingestion_handler_with_mocks() {
-        use crate::worker::test_utils::MockWorkerDepsBuilder;
         use crate::models::Employee;
-        
+        use crate::worker::test_utils::MockWorkerDepsBuilder;
+
         let ws_id = Uuid::new_v4();
         let emp_id = Uuid::new_v4();
-        
+
         // Mock Employee repo to return an active employee
         let mut emp_repo = crate::repositories::employee::MockEmployeeRepository::new();
-        emp_repo.expect_find_by_number()
+        emp_repo
+            .expect_find_by_number()
             .withf(move |ws, id| *ws == ws_id && id == "1")
             .returning(move |_, _| {
                 let emp = Employee {
@@ -135,19 +133,28 @@ mod tests {
             });
 
         // Mock Raw log repo to succeed on insert
-        let mut raw_log_repo = crate::repositories::raw_attendance_log_repository::MockRawAttendanceLogRepository::new();
-        raw_log_repo.expect_has_duplicate_raw_log()
+        let mut raw_log_repo =
+            crate::repositories::raw_attendance_log_repository::MockRawAttendanceLogRepository::new(
+            );
+        raw_log_repo
+            .expect_has_duplicate_raw_log()
             .returning(|_, _, _, _| Box::pin(async { Ok(false) }));
-        raw_log_repo.expect_create_raw_log().returning(|_, _| Box::pin(async { Ok(true) }));
-        raw_log_repo.expect_get_employee_logs_in_time_range()
+        raw_log_repo
+            .expect_create_raw_log()
+            .returning(|_, _| Box::pin(async { Ok(true) }));
+        raw_log_repo
+            .expect_get_employee_logs_in_time_range()
             .returning(|_, _, _, _| Box::pin(async { Ok(vec![]) }));
 
         // Mock Staging repo just in case
-        let staging_repo = crate::repositories::staging_log_repository::MockStagingLogRepository::new();
+        let staging_repo =
+            crate::repositories::staging_log_repository::MockStagingLogRepository::new();
         let error_repo = crate::repositories::attendance_log_error_repository::MockAttendanceLogErrorRepository::new();
 
-        let mut workspace_repo = crate::repositories::workspace_repository::MockWorkspaceRepository::new();
-        workspace_repo.expect_get_workspace_by_id()
+        let mut workspace_repo =
+            crate::repositories::workspace_repository::MockWorkspaceRepository::new();
+        workspace_repo
+            .expect_get_workspace_by_id()
             .with(mockall::predicate::eq(ws_id))
             .returning(move |_| {
                 use rust_decimal::Decimal;
@@ -162,6 +169,7 @@ mod tests {
                         default_language: "en".to_string(),
                         logo_url: None,
                         tagline: None,
+                        custom_db_url_encrypted: None,
                         holiday_overnight_strategy: "NextDay".to_string(),
                         default_holiday_ot_multiplier: Decimal::new(100, 2),
                         created_at: chrono::Utc::now(),
@@ -170,17 +178,22 @@ mod tests {
             });
 
         let mut roster_repo = crate::repositories::roster::MockRosterRepository::new();
-        roster_repo.expect_get_effective_shift()
+        roster_repo
+            .expect_get_effective_shift()
             .returning(|_, _, _| Box::pin(async { Ok((None, vec![])) }));
-        roster_repo.expect_get_workspace_schedules()
+        roster_repo
+            .expect_get_workspace_schedules()
             .returning(|_, _, _, _, _| Box::pin(async { Ok(vec![]) }));
 
-        let mut time_entry_repo = crate::repositories::time_entry_repository::MockTimeEntryRepository::new();
-        time_entry_repo.expect_replace_time_entries()
+        let mut time_entry_repo =
+            crate::repositories::time_entry_repository::MockTimeEntryRepository::new();
+        time_entry_repo
+            .expect_replace_time_entries()
             .returning(|_, _, _, _, _| Ok(()));
 
         let mut daily_summary_repo = crate::repositories::attendance_daily_summary_repository::MockAttendanceDailySummaryRepository::new();
-        daily_summary_repo.expect_upsert_calculated_summary()
+        daily_summary_repo
+            .expect_upsert_calculated_summary()
             .returning(|_, _, _, _, _, _, _, _| Ok(()));
 
         let mut builder = MockWorkerDepsBuilder::new();
@@ -213,7 +226,7 @@ mod tests {
         );
 
         let result = LogIngestionHandler::handle(&job, &deps).await;
-        
+
         assert!(result.is_ok(), "Handler failed: {:?}", result.err());
     }
 }

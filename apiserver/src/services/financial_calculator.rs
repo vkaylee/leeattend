@@ -159,7 +159,9 @@ impl FinancialCalculator {
             };
 
             for policy in active_policies {
-                let tiers = payroll_repo.get_policy_tiers(args.workspace_id, policy.id).await?;
+                let tiers = payroll_repo
+                    .get_policy_tiers(args.workspace_id, policy.id)
+                    .await?;
                 let res = PayrollEvaluator::evaluate_policy(&policy, &tiers, &context)?;
                 if !res.amount.is_zero() {
                     total_incentive_amount += res.amount;

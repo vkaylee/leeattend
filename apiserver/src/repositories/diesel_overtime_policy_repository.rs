@@ -121,7 +121,11 @@ impl OvertimePolicyRepositoryTrait for DieselOvertimePolicyRepository {
         }
     }
 
-    async fn add_rule(&self, workspace_id: Uuid, rule: &OvertimeRule) -> Result<OvertimeRule, AppError> {
+    async fn add_rule(
+        &self,
+        workspace_id: Uuid,
+        rule: &OvertimeRule,
+    ) -> Result<OvertimeRule, AppError> {
         let mut conn = self
             .diesel_pools
             .tenants

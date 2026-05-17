@@ -849,7 +849,11 @@ impl EmployeeRepository for DieselEmployeeRepository {
         Ok(map)
     }
 
-    async fn create_working_condition(&self, workspace_id: Uuid, condition: &WorkingCondition) -> Result<(), AppError> {
+    async fn create_working_condition(
+        &self,
+        workspace_id: Uuid,
+        condition: &WorkingCondition,
+    ) -> Result<(), AppError> {
         use crate::schema::working_conditions;
 
         let mut conn = self

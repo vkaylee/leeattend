@@ -49,7 +49,8 @@ pub struct ImportPipeline<'a, S: ImportStrategy> {
     pub start_index: Option<usize>,
     pub end_index: Option<usize>,
     pub is_chunk: bool,
-    pub queue_repo: Option<std::sync::Arc<dyn crate::repositories::queue_repository::QueueRepository>>,
+    pub queue_repo:
+        Option<std::sync::Arc<dyn crate::repositories::queue_repository::QueueRepository>>,
 }
 
 impl<S: ImportStrategy> ImportPipeline<'_, S> {
@@ -265,9 +266,9 @@ impl<S: ImportStrategy> ImportPipeline<'_, S> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::models::{AttendanceImportJob, ImportJobStatus};
     use crate::repositories::import_job_repository::MockImportJobRepository;
     use crate::repositories::queue_repository::MockQueueRepository;
-    use crate::models::{AttendanceImportJob, ImportJobStatus};
     use crate::worker::deps::WorkerDeps;
     use crate::worker::test_utils::MockWorkerDepsBuilder;
     use std::sync::Arc;
@@ -341,7 +342,7 @@ mod tests {
         // It might be easier to test chunk processing behavior.
         // But extracting mapped rows will fail if bytes are invalid, pushing an error and finishing the pipeline!
         // Let's test the error path then.
-        
+
         let file_bytes = vec![0u8; 10]; // invalid excel file
         let strategy = DummyStrategy {
             headers: &["name", "email"],

@@ -21,11 +21,20 @@ async fn test_attendance_and_merge_handlers() {
     let deps = apiserver::worker::deps::WorkerDeps::new(&diesel_pools.clone());
     let redis_pool = crate::common::app::create_test_redis_pool().await.unwrap();
 
-    let redis_cache: Arc<dyn apiserver::repositories::CacheRepository> = Arc::new(apiserver::cache::RedisCache::new(redis_pool.clone()));
-    let cache = Arc::new(CacheManager::new(redis_cache, Arc::clone(&deps.workspace_repo), Arc::clone(&deps.shift_repo)));
+    let redis_cache: Arc<dyn apiserver::repositories::CacheRepository> =
+        Arc::new(apiserver::cache::RedisCache::new(redis_pool.clone()));
+    let cache = Arc::new(CacheManager::new(
+        redis_cache,
+        Arc::clone(&deps.workspace_repo),
+        Arc::clone(&deps.shift_repo),
+    ));
     let queue = JobQueue::new(redis_pool.clone());
-    let queue_repo: Arc<dyn apiserver::repositories::QueueRepository> = Arc::new(apiserver::repositories::RedisQueueRepository::new(redis_pool.clone()));
-    let publisher_repo: Arc<dyn apiserver::repositories::PublisherRepository> = Arc::new(apiserver::repositories::RedisPublisherRepository::new(redis_pool.clone()));
+    let queue_repo: Arc<dyn apiserver::repositories::QueueRepository> = Arc::new(
+        apiserver::repositories::RedisQueueRepository::new(redis_pool.clone()),
+    );
+    let publisher_repo: Arc<dyn apiserver::repositories::PublisherRepository> = Arc::new(
+        apiserver::repositories::RedisPublisherRepository::new(redis_pool.clone()),
+    );
 
     let user_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(user_id).await;

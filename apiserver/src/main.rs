@@ -61,11 +61,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize Supavisor pooler tenant configuration if required
     // This MUST run before DbPools::connect because DbPools::connect attempts to connect
     // to the Supavisor pool, which requires the tenant to be registered first.
-    let tenant_manager: std::sync::Arc<dyn apiserver::supavisor::TenantManager> = if let Some(mgr) = apiserver::supavisor::SupavisorTenantManager::new() {
-        std::sync::Arc::new(mgr)
-    } else {
-        std::sync::Arc::new(apiserver::supavisor::NoopTenantManager)
-    };
+    let tenant_manager: std::sync::Arc<dyn apiserver::supavisor::TenantManager> =
+        if let Some(mgr) = apiserver::supavisor::SupavisorTenantManager::new() {
+            std::sync::Arc::new(mgr)
+        } else {
+            std::sync::Arc::new(apiserver::supavisor::NoopTenantManager)
+        };
     tenant_manager.init_tenant().await;
 
     let diesel_pools = DieselPools::connect(&db_config).await;

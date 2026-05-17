@@ -19,7 +19,6 @@ use crate::repositories::CacheRepository;
 use std::sync::Arc;
 
 impl CacheManager {
-
     pub fn new(
         cache: Arc<dyn CacheRepository>,
         workspace_repo: Arc<dyn crate::repositories::WorkspaceRepository>,

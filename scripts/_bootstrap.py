@@ -50,10 +50,11 @@ PROFILES: dict[str, list[str]] = {
 
 
 LIFECYCLE_PROFILES: dict[str, list[str]] = {
-    "api": ["--profile", "api"],
-    "integration": ["--profile", "api"],
+    "api": ["--profile", "api", "--profile", "infra-db", "--profile", "infra-redis", "--profile", "infra-pooler"],
+    "int-api": ["--profile", "int-api", "--profile", "infra-db", "--profile", "infra-redis", "--profile", "infra-pooler"],
+    "integration": ["--profile", "api", "--profile", "infra-db", "--profile", "infra-redis", "--profile", "infra-pooler"],
     "web": ["--profile", "web"],
-    "all": ["--profile", "api", "--profile", "web"],
+    "all": ["--profile", "api", "--profile", "web", "--profile", "infra-db", "--profile", "infra-redis", "--profile", "infra-pooler"],
 }
 
 

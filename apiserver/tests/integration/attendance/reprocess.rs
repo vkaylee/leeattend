@@ -204,8 +204,9 @@ async fn test_force_reprocess_all_attendance_api() {
     //    The background Docker worker may consume the queued jobs but processes them
     //    against a different DB. We construct identical jobs and process them directly
     //    against the test's isolated DB to verify the handler logic.
-    let queue_repo: Arc<dyn apiserver::repositories::queue_repository::QueueRepository> = 
-        Arc::new(apiserver::repositories::queue_repository::RedisQueueRepository::new(redis.clone()));
+    let queue_repo: Arc<dyn apiserver::repositories::queue_repository::QueueRepository> = Arc::new(
+        apiserver::repositories::queue_repository::RedisQueueRepository::new(redis.clone()),
+    );
     let coordinator = apiserver::services::ReportCoordinator::new(
         queue_repo.clone(),
         _state.employees.repo.clone(),

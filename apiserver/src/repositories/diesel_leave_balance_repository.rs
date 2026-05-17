@@ -237,7 +237,11 @@ impl LeaveBalanceRepository for DieselLeaveBalanceRepository {
         Ok((data.into_iter().map(Into::into).collect(), total))
     }
 
-    async fn upsert_leave_balance(&self, workspace_id: Uuid, balance: &LeaveBalance) -> Result<(), AppError> {
+    async fn upsert_leave_balance(
+        &self,
+        workspace_id: Uuid,
+        balance: &LeaveBalance,
+    ) -> Result<(), AppError> {
         let mut conn = self
             .diesel_pools
             .tenants

@@ -121,7 +121,10 @@ impl CacheRepository for RedisCache {
             .map_err(|e| format!("Redis INCR error: {e}"))
     }
 
-    async fn hgetall(&self, key: &str) -> Result<std::collections::HashMap<String, String>, String> {
+    async fn hgetall(
+        &self,
+        key: &str,
+    ) -> Result<std::collections::HashMap<String, String>, String> {
         let mut conn = self.pool.conn();
         conn.hgetall(key)
             .await

@@ -116,7 +116,11 @@ pub async fn get_payroll_rule_tiers(
     ctx: MemberContext,
     Path((_ws_id, rule_id)): Path<(Uuid, Uuid)>,
 ) -> Result<Json<Vec<PayrollRuleTier>>, AppError> {
-    let tiers = state.payroll.rule_repo.get_tiers_for_rule(ctx.workspace_id, rule_id).await?;
+    let tiers = state
+        .payroll
+        .rule_repo
+        .get_tiers_for_rule(ctx.workspace_id, rule_id)
+        .await?;
     Ok(Json(tiers))
 }
 

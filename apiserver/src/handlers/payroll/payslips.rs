@@ -98,7 +98,11 @@ pub async fn calculate_payroll(
         .await?;
 
     // Fetch segments and incentives
-    let segments = state.payroll.repo.get_payslip_segments(ctx.workspace_id, payslip.id).await?;
+    let segments = state
+        .payroll
+        .repo
+        .get_payslip_segments(ctx.workspace_id, payslip.id)
+        .await?;
     let incentives = state
         .payroll
         .repo
@@ -161,8 +165,16 @@ pub async fn get_employee_payslips(
 
     let mut responses = Vec::new();
     for p in payslips {
-        let segments = state.payroll.repo.get_payslip_segments(ctx.workspace_id, p.id).await?;
-        let incentives = state.payroll.repo.get_payslip_incentives(ctx.workspace_id, p.id).await?;
+        let segments = state
+            .payroll
+            .repo
+            .get_payslip_segments(ctx.workspace_id, p.id)
+            .await?;
+        let incentives = state
+            .payroll
+            .repo
+            .get_payslip_incentives(ctx.workspace_id, p.id)
+            .await?;
         let rule_evaluations = state
             .payroll
             .repo

@@ -146,7 +146,10 @@ async fn test_calculate_payroll_multi_segment() {
 
     // 6. Verify Segments are stored
     let pr_instance = apiserver::repositories::DieselPayrollRepository::new(diesel_pools.clone());
-    let segments = pr_instance.get_payslip_segments(workspace_id, payslip.id).await.unwrap();
+    let segments = pr_instance
+        .get_payslip_segments(workspace_id, payslip.id)
+        .await
+        .unwrap();
     assert_eq!(segments.len(), 2);
 
     let seg1 = &segments[0];

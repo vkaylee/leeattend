@@ -49,7 +49,7 @@ impl ShiftCache {
     /// Returns cached data if available, otherwise fetches from DB.
     pub async fn get_map(&self, workspace_id: Uuid) -> Result<HashMap<Uuid, CachedShift>, String> {
         let key = Self::key(workspace_id);
-        let repo = self.repo.clone();
+        let repo = std::sync::Arc::clone(&self.repo);
 
         let shifts: Vec<CachedShift> = self
             .cache
