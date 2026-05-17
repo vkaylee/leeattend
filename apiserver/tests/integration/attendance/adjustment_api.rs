@@ -45,9 +45,7 @@ async fn test_attendance_adjustment_lifecycle_smoke() {
     assert_eq!(response.status(), StatusCode::CREATED);
 
     // Verify creation
-    let body = axum::body::to_bytes(response.into_body(), 10000)
-        .await
-        .unwrap();
-    let adjustment: AttendanceAdjustmentRequest = serde_json::from_slice(&body).unwrap();
+    let body_bytes = axum::body::to_bytes(response.into_body(), 10000).await.unwrap();
+    let adjustment: AttendanceAdjustmentRequest = serde_json::from_slice(&body_bytes).unwrap();
     assert_eq!(adjustment.status, AdjustmentStatus::Pending);
 }

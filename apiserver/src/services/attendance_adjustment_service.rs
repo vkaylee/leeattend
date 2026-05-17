@@ -56,7 +56,7 @@ impl AttendanceAdjustmentService {
             .await
             .map_err(|e| {
                 error!("SUBMIT_ADJUSTMENT_ERROR: {:?}", e);
-                AppError::Internal("Internal error".into())
+                AppError::Internal(e.to_string())
             })?;
 
         Ok(adjustment)

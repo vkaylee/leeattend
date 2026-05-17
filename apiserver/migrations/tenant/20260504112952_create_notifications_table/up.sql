@@ -6,9 +6,8 @@ CREATE TABLE notifications (
     content TEXT NOT NULL,
     is_read BOOLEAN NOT NULL DEFAULT FALSE,
     link VARCHAR(255),
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    
-    ;
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
 
 CREATE INDEX idx_notifications_user_id ON notifications(user_id);
 

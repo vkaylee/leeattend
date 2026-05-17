@@ -1569,6 +1569,20 @@ diesel::joinable!(attendance_policies -> workspaces (workspace_id));
 diesel::joinable!(attendance_policy_assignments -> attendance_policies (policy_id));
 diesel::joinable!(attendance_policy_versions -> attendance_policies (policy_id));
 diesel::joinable!(attendance_policy_versions -> users (created_by));
+diesel::joinable!(audit_logs -> workspaces (workspace_id));
+diesel::joinable!(audit_logs_default -> workspaces (workspace_id));
+diesel::joinable!(audit_logs_y2026m01 -> workspaces (workspace_id));
+diesel::joinable!(audit_logs_y2026m02 -> workspaces (workspace_id));
+diesel::joinable!(audit_logs_y2026m03 -> workspaces (workspace_id));
+diesel::joinable!(audit_logs_y2026m04 -> workspaces (workspace_id));
+diesel::joinable!(audit_logs_y2026m05 -> workspaces (workspace_id));
+diesel::joinable!(audit_logs_y2026m06 -> workspaces (workspace_id));
+diesel::joinable!(audit_logs_y2026m07 -> workspaces (workspace_id));
+diesel::joinable!(audit_logs_y2026m08 -> workspaces (workspace_id));
+diesel::joinable!(audit_logs_y2026m09 -> workspaces (workspace_id));
+diesel::joinable!(audit_logs_y2026m10 -> workspaces (workspace_id));
+diesel::joinable!(audit_logs_y2026m11 -> workspaces (workspace_id));
+diesel::joinable!(audit_logs_y2026m12 -> workspaces (workspace_id));
 diesel::joinable!(authorized_agents -> workspaces (workspace_id));
 diesel::joinable!(dashboard_preferences -> users (user_id));
 diesel::joinable!(dashboard_preferences -> workspaces (workspace_id));
@@ -1623,7 +1637,6 @@ diesel::joinable!(leave_types -> workspaces (workspace_id));
 diesel::joinable!(member_extra_roles -> users (user_id));
 diesel::joinable!(member_extra_roles -> workspace_roles (role_id));
 diesel::joinable!(member_extra_roles -> workspaces (workspace_id));
-diesel::joinable!(notifications -> users (user_id));
 diesel::joinable!(overtime_policy_assignments -> overtime_policy_definitions (policy_id));
 diesel::joinable!(overtime_policy_assignments -> workspaces (workspace_id));
 diesel::joinable!(overtime_policy_definitions -> workspaces (workspace_id));
@@ -1672,4 +1685,105 @@ diesel::joinable!(workspace_role_permissions -> workspace_roles (role_id));
 diesel::joinable!(workspace_roles -> workspaces (workspace_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
-    assignment_rules,attendance_adjustment_requests,attendance_daily_summaries,attendance_import_jobs,attendance_log_errors,attendance_policies,attendance_policy_assignments,attendance_policy_versions,attendance_staging_logs,attendance_staging_logs_default,attendance_staging_logs_y2026m01,attendance_staging_logs_y2026m02,attendance_staging_logs_y2026m03,attendance_staging_logs_y2026m04,attendance_staging_logs_y2026m05,attendance_staging_logs_y2026m06,attendance_staging_logs_y2026m07,attendance_staging_logs_y2026m08,attendance_staging_logs_y2026m09,attendance_staging_logs_y2026m10,attendance_staging_logs_y2026m11,attendance_staging_logs_y2026m12,audit_logs,audit_logs_default,audit_logs_y2026m01,audit_logs_y2026m02,audit_logs_y2026m03,audit_logs_y2026m04,audit_logs_y2026m05,audit_logs_y2026m06,audit_logs_y2026m07,audit_logs_y2026m08,audit_logs_y2026m09,audit_logs_y2026m10,audit_logs_y2026m11,audit_logs_y2026m12,authorized_agents,dashboard_preferences,department_default_shifts,department_payroll_configs,departments,devices,employee_contracts,employee_department_history,employee_documents,employee_emergency_contacts,employee_payroll_configs,employee_phases,employee_profiles,employee_salary_components,employee_shifts,employee_working_patterns,employees,employment_phase_definitions,feature_flags,holidays,leave_accrual_logs,leave_balances,leave_policy_assignments,leave_policy_definitions,leave_requests,leave_types,member_extra_roles,notifications,overtime_policy_assignments,overtime_policy_definitions,overtime_rules,payroll_incentive_assignments,payroll_incentive_policies,payroll_incentive_tiers,payroll_rule_assignments,payroll_rule_definitions,payroll_rule_tiers,payroll_settings,payslip_incentives,payslip_rule_evaluations,payslip_segments,payslips,policy_templates,raw_attendance_logs,recruitment_sources,salary_base_groups,salary_component_base_members,salary_component_definitions,sessions,shift_rosters,shift_swap_requests,shifts,system_audit_logs,system_roles,time_entries,user_system_roles,users,working_conditions,working_pattern_details,working_patterns,workspace_member_extra_permissions,workspace_members,workspace_role_permissions,workspace_roles,workspaces,);
+    assignment_rules,
+    attendance_adjustment_requests,
+    attendance_daily_summaries,
+    attendance_import_jobs,
+    attendance_log_errors,
+    attendance_policies,
+    attendance_policy_assignments,
+    attendance_policy_versions,
+    attendance_staging_logs,
+    attendance_staging_logs_default,
+    attendance_staging_logs_y2026m01,
+    attendance_staging_logs_y2026m02,
+    attendance_staging_logs_y2026m03,
+    attendance_staging_logs_y2026m04,
+    attendance_staging_logs_y2026m05,
+    attendance_staging_logs_y2026m06,
+    attendance_staging_logs_y2026m07,
+    attendance_staging_logs_y2026m08,
+    attendance_staging_logs_y2026m09,
+    attendance_staging_logs_y2026m10,
+    attendance_staging_logs_y2026m11,
+    attendance_staging_logs_y2026m12,
+    audit_logs,
+    audit_logs_default,
+    audit_logs_y2026m01,
+    audit_logs_y2026m02,
+    audit_logs_y2026m03,
+    audit_logs_y2026m04,
+    audit_logs_y2026m05,
+    audit_logs_y2026m06,
+    audit_logs_y2026m07,
+    audit_logs_y2026m08,
+    audit_logs_y2026m09,
+    audit_logs_y2026m10,
+    audit_logs_y2026m11,
+    audit_logs_y2026m12,
+    authorized_agents,
+    dashboard_preferences,
+    department_default_shifts,
+    department_payroll_configs,
+    departments,
+    devices,
+    employee_contracts,
+    employee_department_history,
+    employee_documents,
+    employee_emergency_contacts,
+    employee_payroll_configs,
+    employee_phases,
+    employee_profiles,
+    employee_salary_components,
+    employee_shifts,
+    employee_working_patterns,
+    employees,
+    employment_phase_definitions,
+    feature_flags,
+    holidays,
+    leave_accrual_logs,
+    leave_balances,
+    leave_policy_assignments,
+    leave_policy_definitions,
+    leave_requests,
+    leave_types,
+    member_extra_roles,
+    notifications,
+    overtime_policy_assignments,
+    overtime_policy_definitions,
+    overtime_rules,
+    payroll_incentive_assignments,
+    payroll_incentive_policies,
+    payroll_incentive_tiers,
+    payroll_rule_assignments,
+    payroll_rule_definitions,
+    payroll_rule_tiers,
+    payroll_settings,
+    payslip_incentives,
+    payslip_rule_evaluations,
+    payslip_segments,
+    payslips,
+    policy_templates,
+    raw_attendance_logs,
+    recruitment_sources,
+    salary_base_groups,
+    salary_component_base_members,
+    salary_component_definitions,
+    sessions,
+    shift_rosters,
+    shift_swap_requests,
+    shifts,
+    system_audit_logs,
+    system_roles,
+    time_entries,
+    user_system_roles,
+    users,
+    working_conditions,
+    working_pattern_details,
+    working_patterns,
+    workspace_member_extra_permissions,
+    workspace_members,
+    workspace_role_permissions,
+    workspace_roles,
+    workspaces,
+);

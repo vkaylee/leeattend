@@ -903,11 +903,9 @@ ALTER TABLE ONLY public.attendance_policy_versions
 ALTER TABLE ONLY public.attendance_staging_logs
     ADD CONSTRAINT attendance_staging_logs_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY public.audit_logs
-    ADD CONSTRAINT audit_logs_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY public.authorized_agents
-    ADD CONSTRAINT authorized_agents_pkey PRIMARY KEY (id);
+
+
 
 ALTER TABLE ONLY public.dashboard_preferences
     ADD CONSTRAINT dashboard_preferences_pkey PRIMARY KEY (id);
@@ -1098,8 +1096,7 @@ ALTER TABLE ONLY public.salary_component_definitions
 ALTER TABLE ONLY public.salary_component_definitions
     ADD CONSTRAINT salary_component_definitions_workspace_id_code_key UNIQUE (workspace_id, code);
 
-ALTER TABLE ONLY public.sessions
-    ADD CONSTRAINT sessions_pkey PRIMARY KEY (id);
+
 
 ALTER TABLE ONLY public.sessions
     ADD CONSTRAINT sessions_token_key UNIQUE (token);
@@ -1119,8 +1116,7 @@ ALTER TABLE ONLY public.shifts
 ALTER TABLE ONLY public.system_roles
     ADD CONSTRAINT system_roles_name_key UNIQUE (name);
 
-ALTER TABLE ONLY public.system_roles
-    ADD CONSTRAINT system_roles_pkey PRIMARY KEY (id);
+
 
 ALTER TABLE ONLY public.time_entries
     ADD CONSTRAINT time_entries_pkey PRIMARY KEY (id);
@@ -1134,14 +1130,11 @@ ALTER TABLE ONLY public.employee_shifts
 ALTER TABLE ONLY public.shift_swap_requests
     ADD CONSTRAINT uq_shift_swap_pair_date UNIQUE (workspace_id, requester_id, target_id, swap_date);
 
-ALTER TABLE ONLY public.user_system_roles
-    ADD CONSTRAINT user_system_roles_pkey PRIMARY KEY (user_id, role_id);
 
-ALTER TABLE ONLY public.users
-    ADD CONSTRAINT users_email_key UNIQUE (email);
 
-ALTER TABLE ONLY public.users
-    ADD CONSTRAINT users_pkey PRIMARY KEY (id);
+
+
+
 
 ALTER TABLE ONLY public.working_conditions
     ADD CONSTRAINT working_conditions_pkey PRIMARY KEY (id);
@@ -1164,8 +1157,7 @@ ALTER TABLE ONLY public.workspace_role_permissions
 ALTER TABLE ONLY public.workspace_roles
     ADD CONSTRAINT workspace_roles_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY public.workspaces
-    ADD CONSTRAINT workspaces_pkey PRIMARY KEY (id);
+
 
 CREATE UNIQUE INDEX attendance_policies_workspace_default_idx ON public.attendance_policies USING btree (workspace_id) WHERE (is_default = true);
 
@@ -1473,61 +1465,61 @@ ALTER TABLE ONLY public.assignment_rules
     ADD CONSTRAINT assignment_rules_pattern_id_fkey FOREIGN KEY (pattern_id) REFERENCES public.working_patterns(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.assignment_rules
-    ADD ;
+    ADD CONSTRAINT assignment_rules_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.attendance_adjustment_requests
-    ADD ;
+    ADD CONSTRAINT attendance_adjustment_requests_approved_by_user_id_fkey FOREIGN KEY (approved_by_user_id) REFERENCES public.users(id) ON DELETE SET NULL;
 
 ALTER TABLE ONLY public.attendance_adjustment_requests
     ADD CONSTRAINT attendance_adjustment_requests_employee_id_fkey FOREIGN KEY (employee_id) REFERENCES public.employees(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.attendance_adjustment_requests
-    ADD ;
+    ADD CONSTRAINT attendance_adjustment_requests_requested_by_user_id_fkey FOREIGN KEY (requested_by_user_id) REFERENCES public.users(id) ON DELETE SET NULL;
 
 ALTER TABLE ONLY public.attendance_adjustment_requests
     ADD CONSTRAINT attendance_adjustment_requests_time_entry_id_fkey FOREIGN KEY (time_entry_id) REFERENCES public.time_entries(id) ON DELETE SET NULL;
 
 ALTER TABLE ONLY public.attendance_daily_summaries
-    ADD ;
+    ADD CONSTRAINT attendance_daily_summaries_claim_entered_by_user_id_fkey FOREIGN KEY (claim_entered_by_user_id) REFERENCES public.users(id) ON DELETE SET NULL;
 
 ALTER TABLE ONLY public.attendance_daily_summaries
     ADD CONSTRAINT attendance_daily_summaries_employee_id_fkey FOREIGN KEY (employee_id) REFERENCES public.employees(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.attendance_daily_summaries
-    ADD ;
+    ADD CONSTRAINT attendance_daily_summaries_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.attendance_policies
-    ADD ;
+    ADD CONSTRAINT attendance_policies_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.attendance_policy_assignments
     ADD CONSTRAINT attendance_policy_assignments_policy_id_fkey FOREIGN KEY (policy_id) REFERENCES public.attendance_policies(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.attendance_policy_versions
-    ADD ;
+    ADD CONSTRAINT attendance_policy_versions_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id) ON DELETE SET NULL;
 
 ALTER TABLE ONLY public.attendance_policy_versions
     ADD CONSTRAINT attendance_policy_versions_policy_id_fkey FOREIGN KEY (policy_id) REFERENCES public.attendance_policies(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.attendance_staging_logs
-    ADD ;
+    ADD CONSTRAINT attendance_staging_logs_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
 
-ALTER TABLE ONLY public.audit_logs
-    ADD ;
+ALTER TABLE public.audit_logs
+    ADD CONSTRAINT audit_logs_actor_id_fkey FOREIGN KEY (actor_id) REFERENCES public.users(id) ON DELETE SET NULL;
 
-ALTER TABLE ONLY public.audit_logs
-    ADD ;
+ALTER TABLE public.audit_logs
+    ADD CONSTRAINT audit_logs_target_user_id_fkey FOREIGN KEY (target_user_id) REFERENCES public.users(id) ON DELETE SET NULL;
 
-ALTER TABLE ONLY public.audit_logs
-    ADD ;
+ALTER TABLE public.audit_logs
+    ADD CONSTRAINT audit_logs_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.authorized_agents
-    ADD ;
+    ADD CONSTRAINT authorized_agents_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.dashboard_preferences
-    ADD ;
+    ADD CONSTRAINT dashboard_preferences_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.dashboard_preferences
-    ADD ;
+    ADD CONSTRAINT dashboard_preferences_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.department_default_shifts
     ADD CONSTRAINT department_default_shifts_department_id_fkey FOREIGN KEY (department_id) REFERENCES public.departments(id) ON DELETE CASCADE;
@@ -1545,10 +1537,10 @@ ALTER TABLE ONLY public.departments
     ADD CONSTRAINT departments_manager_id_fkey FOREIGN KEY (manager_id) REFERENCES public.employees(id) ON DELETE SET NULL;
 
 ALTER TABLE ONLY public.departments
-    ADD ;
+    ADD CONSTRAINT departments_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.devices
-    ADD ;
+    ADD CONSTRAINT devices_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.employee_department_history
     ADD CONSTRAINT employee_department_history_department_id_fkey FOREIGN KEY (department_id) REFERENCES public.departments(id) ON DELETE CASCADE;
@@ -1560,10 +1552,10 @@ ALTER TABLE ONLY public.employee_documents
     ADD CONSTRAINT employee_documents_employee_id_fkey FOREIGN KEY (employee_id) REFERENCES public.employees(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.employee_documents
-    ADD ;
+    ADD CONSTRAINT employee_documents_uploaded_by_fkey FOREIGN KEY (uploaded_by) REFERENCES public.users(id);
 
 ALTER TABLE ONLY public.employee_documents
-    ADD ;
+    ADD CONSTRAINT employee_documents_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.employee_emergency_contacts
     ADD CONSTRAINT employee_emergency_contacts_employee_id_fkey FOREIGN KEY (employee_id) REFERENCES public.employees(id) ON DELETE CASCADE;
@@ -1575,13 +1567,13 @@ ALTER TABLE ONLY public.employee_phases
     ADD CONSTRAINT employee_phases_employee_id_fkey FOREIGN KEY (employee_id) REFERENCES public.employees(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.employee_phases
-    ADD ;
+    ADD CONSTRAINT employee_phases_evaluated_by_fkey FOREIGN KEY (evaluated_by) REFERENCES public.users(id) ON DELETE SET NULL;
 
 ALTER TABLE ONLY public.employee_phases
     ADD CONSTRAINT employee_phases_phase_definition_id_fkey FOREIGN KEY (phase_definition_id) REFERENCES public.employment_phase_definitions(id) ON DELETE RESTRICT;
 
 ALTER TABLE ONLY public.employee_phases
-    ADD ;
+    ADD CONSTRAINT employee_phases_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.employee_profiles
     ADD CONSTRAINT employee_profiles_employee_id_fkey FOREIGN KEY (employee_id) REFERENCES public.employees(id) ON DELETE CASCADE;
@@ -1605,34 +1597,34 @@ ALTER TABLE ONLY public.employee_working_patterns
     ADD CONSTRAINT employee_working_patterns_pattern_id_fkey FOREIGN KEY (pattern_id) REFERENCES public.working_patterns(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.employee_working_patterns
-    ADD ;
+    ADD CONSTRAINT employee_working_patterns_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.employees
     ADD CONSTRAINT employees_recruitment_source_id_fkey FOREIGN KEY (recruitment_source_id) REFERENCES public.recruitment_sources(id) ON DELETE SET NULL;
 
 ALTER TABLE ONLY public.employees
-    ADD ;
+    ADD CONSTRAINT employees_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE SET NULL;
 
 ALTER TABLE ONLY public.employees
-    ADD ;
+    ADD CONSTRAINT employees_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.employment_periods
     ADD CONSTRAINT employment_periods_employee_id_fkey FOREIGN KEY (employee_id) REFERENCES public.employees(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.employment_phase_definitions
-    ADD ;
+    ADD CONSTRAINT employment_phase_definitions_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.feature_flags
-    ADD ;
+    ADD CONSTRAINT feature_flags_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.payslips
-    ADD ;
+    ADD CONSTRAINT fk_payslips_workspace FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.holidays
     ADD CONSTRAINT holidays_leave_type_id_fkey FOREIGN KEY (leave_type_id) REFERENCES public.leave_types(id) ON DELETE SET NULL;
 
 ALTER TABLE ONLY public.holidays
-    ADD ;
+    ADD CONSTRAINT holidays_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.leave_accrual_logs
     ADD CONSTRAINT leave_accrual_logs_employee_id_fkey FOREIGN KEY (employee_id) REFERENCES public.employees(id) ON DELETE CASCADE;
@@ -1644,7 +1636,7 @@ ALTER TABLE ONLY public.leave_accrual_logs
     ADD CONSTRAINT leave_accrual_logs_policy_assignment_id_fkey FOREIGN KEY (policy_assignment_id) REFERENCES public.leave_policy_assignments(id) ON DELETE SET NULL;
 
 ALTER TABLE ONLY public.leave_accrual_logs
-    ADD ;
+    ADD CONSTRAINT leave_accrual_logs_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.leave_balances
     ADD CONSTRAINT leave_balances_employee_id_fkey FOREIGN KEY (employee_id) REFERENCES public.employees(id) ON DELETE CASCADE;
@@ -1656,16 +1648,16 @@ ALTER TABLE ONLY public.leave_policy_assignments
     ADD CONSTRAINT leave_policy_assignments_policy_id_fkey FOREIGN KEY (policy_id) REFERENCES public.leave_policy_definitions(id) ON DELETE RESTRICT;
 
 ALTER TABLE ONLY public.leave_policy_assignments
-    ADD ;
+    ADD CONSTRAINT leave_policy_assignments_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.leave_policy_definitions
     ADD CONSTRAINT leave_policy_definitions_leave_type_id_fkey FOREIGN KEY (leave_type_id) REFERENCES public.leave_types(id) ON DELETE RESTRICT;
 
 ALTER TABLE ONLY public.leave_policy_definitions
-    ADD ;
+    ADD CONSTRAINT leave_policy_definitions_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.leave_requests
-    ADD ;
+    ADD CONSTRAINT leave_requests_approved_by_user_id_fkey FOREIGN KEY (approved_by_user_id) REFERENCES public.users(id) ON DELETE SET NULL;
 
 ALTER TABLE ONLY public.leave_requests
     ADD CONSTRAINT leave_requests_employee_id_fkey FOREIGN KEY (employee_id) REFERENCES public.employees(id) ON DELETE CASCADE;
@@ -1674,28 +1666,28 @@ ALTER TABLE ONLY public.leave_requests
     ADD CONSTRAINT leave_requests_leave_type_id_fkey FOREIGN KEY (leave_type_id) REFERENCES public.leave_types(id) ON DELETE RESTRICT;
 
 ALTER TABLE ONLY public.leave_requests
-    ADD ;
+    ADD CONSTRAINT leave_requests_requested_by_user_id_fkey FOREIGN KEY (requested_by_user_id) REFERENCES public.users(id) ON DELETE SET NULL;
 
 ALTER TABLE ONLY public.leave_types
-    ADD ;
+    ADD CONSTRAINT leave_types_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.member_extra_roles
     ADD CONSTRAINT member_extra_roles_role_id_fkey FOREIGN KEY (role_id) REFERENCES public.workspace_roles(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.member_extra_roles
-    ADD ;
+    ADD CONSTRAINT member_extra_roles_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.member_extra_roles
-    ADD ;
+    ADD CONSTRAINT member_extra_roles_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.overtime_policy_assignments
     ADD CONSTRAINT overtime_policy_assignments_policy_id_fkey FOREIGN KEY (policy_id) REFERENCES public.overtime_policy_definitions(id) ON DELETE RESTRICT;
 
 ALTER TABLE ONLY public.overtime_policy_assignments
-    ADD ;
+    ADD CONSTRAINT overtime_policy_assignments_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.overtime_policy_definitions
-    ADD ;
+    ADD CONSTRAINT overtime_policy_definitions_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.overtime_rules
     ADD CONSTRAINT overtime_rules_policy_id_fkey FOREIGN KEY (policy_id) REFERENCES public.overtime_policy_definitions(id) ON DELETE CASCADE;
@@ -1707,16 +1699,16 @@ ALTER TABLE ONLY public.payroll_rule_assignments
     ADD CONSTRAINT payroll_rule_assignments_rule_definition_id_fkey FOREIGN KEY (rule_definition_id) REFERENCES public.payroll_rule_definitions(id) ON DELETE RESTRICT;
 
 ALTER TABLE ONLY public.payroll_rule_assignments
-    ADD ;
+    ADD CONSTRAINT payroll_rule_assignments_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.payroll_rule_definitions
-    ADD ;
+    ADD CONSTRAINT payroll_rule_definitions_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.payroll_rule_tiers
     ADD CONSTRAINT payroll_rule_tiers_rule_definition_id_fkey FOREIGN KEY (rule_definition_id) REFERENCES public.payroll_rule_definitions(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.payroll_settings
-    ADD ;
+    ADD CONSTRAINT payroll_settings_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.payslip_incentives
     ADD CONSTRAINT payslip_incentives_payslip_id_fkey FOREIGN KEY (payslip_id) REFERENCES public.payslips(id) ON DELETE CASCADE;
@@ -1734,22 +1726,22 @@ ALTER TABLE ONLY public.payslips
     ADD CONSTRAINT payslips_employee_id_fkey FOREIGN KEY (employee_id) REFERENCES public.employees(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.policy_templates
-    ADD ;
+    ADD CONSTRAINT policy_templates_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.raw_attendance_logs
     ADD CONSTRAINT raw_attendance_logs_employee_id_fkey FOREIGN KEY (employee_id) REFERENCES public.employees(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.raw_attendance_logs
-    ADD ;
+    ADD CONSTRAINT raw_attendance_logs_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.recruitment_sources
     ADD CONSTRAINT recruitment_sources_referrer_employee_id_fkey FOREIGN KEY (referrer_employee_id) REFERENCES public.employees(id) ON DELETE SET NULL;
 
 ALTER TABLE ONLY public.recruitment_sources
-    ADD ;
+    ADD CONSTRAINT recruitment_sources_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.salary_base_groups
-    ADD ;
+    ADD CONSTRAINT salary_base_groups_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.salary_component_base_members
     ADD CONSTRAINT salary_component_base_members_base_group_id_fkey FOREIGN KEY (base_group_id) REFERENCES public.salary_base_groups(id) ON DELETE CASCADE;
@@ -1761,10 +1753,10 @@ ALTER TABLE ONLY public.salary_component_definitions
     ADD CONSTRAINT salary_component_definitions_linked_rule_id_fkey FOREIGN KEY (linked_rule_id) REFERENCES public.payroll_rule_definitions(id) ON DELETE SET NULL;
 
 ALTER TABLE ONLY public.salary_component_definitions
-    ADD ;
+    ADD CONSTRAINT salary_component_definitions_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.sessions
-    ADD ;
+    ADD CONSTRAINT sessions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.shift_rosters
     ADD CONSTRAINT shift_rosters_employee_id_fkey FOREIGN KEY (employee_id) REFERENCES public.employees(id) ON DELETE CASCADE;
@@ -1773,10 +1765,10 @@ ALTER TABLE ONLY public.shift_rosters
     ADD CONSTRAINT shift_rosters_shift_id_fkey FOREIGN KEY (shift_id) REFERENCES public.shifts(id) ON DELETE SET NULL;
 
 ALTER TABLE ONLY public.shift_swap_requests
-    ADD ;
+    ADD CONSTRAINT shift_swap_requests_approved_by_user_id_fkey FOREIGN KEY (approved_by_user_id) REFERENCES public.users(id);
 
 ALTER TABLE ONLY public.shift_swap_requests
-    ADD ;
+    ADD CONSTRAINT shift_swap_requests_requested_by_user_id_fkey FOREIGN KEY (requested_by_user_id) REFERENCES public.users(id);
 
 ALTER TABLE ONLY public.shift_swap_requests
     ADD CONSTRAINT shift_swap_requests_requester_id_fkey FOREIGN KEY (requester_id) REFERENCES public.employees(id) ON DELETE CASCADE;
@@ -1791,13 +1783,13 @@ ALTER TABLE ONLY public.shift_swap_requests
     ADD CONSTRAINT shift_swap_requests_target_shift_id_fkey FOREIGN KEY (target_shift_id) REFERENCES public.shifts(id) ON DELETE SET NULL;
 
 ALTER TABLE ONLY public.shift_swap_requests
-    ADD ;
+    ADD CONSTRAINT shift_swap_requests_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.shifts
     ADD CONSTRAINT shifts_parent_shift_id_fkey FOREIGN KEY (parent_shift_id) REFERENCES public.shifts(id) ON DELETE SET NULL;
 
 ALTER TABLE ONLY public.shifts
-    ADD ;
+    ADD CONSTRAINT shifts_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.time_entries
     ADD CONSTRAINT time_entries_employee_id_fkey FOREIGN KEY (employee_id) REFERENCES public.employees(id) ON DELETE CASCADE;
@@ -1806,16 +1798,16 @@ ALTER TABLE ONLY public.time_entries
     ADD CONSTRAINT time_entries_shift_id_fkey FOREIGN KEY (shift_id) REFERENCES public.shifts(id);
 
 ALTER TABLE ONLY public.time_entries
-    ADD ;
+    ADD CONSTRAINT time_entries_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.user_system_roles
-    ADD ;
+    ADD CONSTRAINT user_system_roles_assigned_by_fkey FOREIGN KEY (assigned_by) REFERENCES public.users(id) ON DELETE SET NULL;
 
 ALTER TABLE ONLY public.user_system_roles
-    ADD ;
+    ADD CONSTRAINT user_system_roles_role_id_fkey FOREIGN KEY (role_id) REFERENCES public.system_roles(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.user_system_roles
-    ADD ;
+    ADD CONSTRAINT user_system_roles_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.working_conditions
     ADD CONSTRAINT working_conditions_employee_id_fkey FOREIGN KEY (employee_id) REFERENCES public.employees(id) ON DELETE CASCADE;
@@ -1827,31 +1819,31 @@ ALTER TABLE ONLY public.working_pattern_details
     ADD CONSTRAINT working_pattern_details_shift_id_fkey FOREIGN KEY (shift_id) REFERENCES public.shifts(id) ON DELETE SET NULL;
 
 ALTER TABLE ONLY public.working_patterns
-    ADD ;
+    ADD CONSTRAINT working_patterns_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.workspace_member_extra_permissions
-    ADD ;
+    ADD CONSTRAINT workspace_member_extra_permissions_assigned_by_fkey FOREIGN KEY (assigned_by) REFERENCES public.users(id);
 
 ALTER TABLE ONLY public.workspace_member_extra_permissions
-    ADD ;
+    ADD CONSTRAINT workspace_member_extra_permissions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.workspace_member_extra_permissions
-    ADD ;
+    ADD CONSTRAINT workspace_member_extra_permissions_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.workspace_members
     ADD CONSTRAINT workspace_members_role_id_fkey FOREIGN KEY (role_id) REFERENCES public.workspace_roles(id);
 
 ALTER TABLE ONLY public.workspace_members
-    ADD ;
+    ADD CONSTRAINT workspace_members_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.workspace_members
-    ADD ;
+    ADD CONSTRAINT workspace_members_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.workspace_role_permissions
     ADD CONSTRAINT workspace_role_permissions_role_id_fkey FOREIGN KEY (role_id) REFERENCES public.workspace_roles(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.workspace_roles
-    ADD ;
+    ADD CONSTRAINT workspace_roles_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
 
 -- ═══════════════════════════════════════════════════════════════════
 -- Seed Data: System Roles & Permissions

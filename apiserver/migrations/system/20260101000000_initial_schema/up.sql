@@ -1,5 +1,5 @@
 CREATE TABLE public.audit_logs (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    id uuid DEFAULT gen_random_uuid() NOT NULL PRIMARY KEY,
     workspace_id uuid NOT NULL,
     actor_id uuid,
     target_user_id uuid,
@@ -12,7 +12,7 @@ CREATE TABLE public.audit_logs (
 );
 
 CREATE TABLE public.authorized_agents (
-    id character varying(50) NOT NULL,
+    id character varying(50) NOT NULL PRIMARY KEY,
     name character varying(100) NOT NULL,
     token character varying(255) NOT NULL,
     is_trusted boolean DEFAULT false,
@@ -27,7 +27,7 @@ CREATE TABLE public.authorized_agents (
 );
 
 CREATE TABLE public.sessions (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    id uuid DEFAULT gen_random_uuid() NOT NULL PRIMARY KEY,
     user_id uuid NOT NULL,
     token text NOT NULL,
     expires_at timestamp with time zone NOT NULL,
@@ -36,7 +36,7 @@ CREATE TABLE public.sessions (
 );
 
 CREATE TABLE public.system_roles (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    id uuid DEFAULT gen_random_uuid() NOT NULL PRIMARY KEY,
     name text NOT NULL,
     description text DEFAULT ''::text NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL
@@ -46,12 +46,13 @@ CREATE TABLE public.user_system_roles (
     user_id uuid NOT NULL,
     role_id uuid NOT NULL,
     assigned_by uuid,
-    assigned_at timestamp with time zone DEFAULT now() NOT NULL
+    assigned_at timestamp with time zone DEFAULT now() NOT NULL,
+    PRIMARY KEY (user_id, role_id)
 );
 
 CREATE TABLE public.users (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    email character varying(255) NOT NULL,
+    id uuid DEFAULT gen_random_uuid() NOT NULL PRIMARY KEY,
+    email character varying(255) NOT NULL UNIQUE,
     password_hash character varying(255) NOT NULL,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
     full_name character varying(100),
@@ -61,7 +62,7 @@ CREATE TABLE public.users (
 );
 
 CREATE TABLE public.workspaces (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    id uuid DEFAULT gen_random_uuid() NOT NULL PRIMARY KEY,
     name character varying(100) NOT NULL,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
     date_format character varying(20) DEFAULT 'DD/MM/YYYY'::character varying NOT NULL,
