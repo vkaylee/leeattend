@@ -2,6 +2,7 @@ use crate::agent_manager::{AgentManager, CentralMessage, ConfigData, DeviceConfi
 use crate::models::AuthorizedAgent;
 use crate::repositories::AgentRepository;
 use std::sync::Arc;
+use uuid::Uuid;
 
 pub struct AgentService {
     repo: Arc<dyn AgentRepository>,
@@ -14,8 +15,8 @@ impl AgentService {
     }
 
     #[tracing::instrument(skip_all, err)]
-    pub async fn notify_config_update(&self, agent_id: &str) -> Result<(), String> {
-        let devices = self.repo.find_devices_by_agent_id(agent_id).await?;
+    pub async fn notify_config_update(&self, workspace_id: Uuid, agent_id: &str) -> Result<(), String> {
+        let devices = self.repo.find_devices_by_agent_id(workspace_id, agent_id).await?;
         let agent = self.repo.find_by_id(agent_id).await?;
         let max_workers = agent.as_ref().map(|a| a.max_concurrent_workers);
         let cooldown = agent.as_ref().map(|a| a.success_cooldown_secs);
@@ -133,7 +134,7 @@ mod tests {
             Ok(())
         }
 
-        async fn find_devices_by_agent_id(&self, _agent_id: &str) -> Result<Vec<Device>, String> {
+        async fn find_devices_by_agent_id(&self, _workspace_id: Uuid, _agent_id: &str) -> Result<Vec<Device>, String> {
             Ok(vec![])
         }
 
