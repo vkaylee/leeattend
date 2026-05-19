@@ -89,3 +89,10 @@ export async function deleteSystemTenant(tenantId: string): Promise<void> {
   });
   if (!response.ok) throw new Error("Failed to delete system tenant");
 }
+
+export async function fetchSystemTenantStats(tenantId: string): Promise<any> {
+  const response = await apiFetch(`${API_BASE_URL}/system/tenants/${tenantId}/stats`);
+  if (!response.ok) throw new Error("Failed to fetch tenant stats");
+  return response.json();
+}
+

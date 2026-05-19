@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Eye, Server, Activity, ShieldAlert, KeyRound } from "lucide-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -13,7 +13,9 @@ import {
   createSystemTenant,
   deleteSystemTenant,
   fetchSystemTenants,
+  fetchSystemTenantStats,
   type CreateTenantRequestPayload,
+  type SystemTenant,
 } from "@/lib/api/system";
 
 // eslint-disable-next-line max-lines-per-function -- Page component needs to encompass form and table state
@@ -28,9 +30,18 @@ export default function TenantsPage() {
   const [createDb, setCreateDb] = useState(true);
   const [poolSize, setPoolSize] = useState("15");
 
+  const [statsModalOpen, setStatsModalOpen] = useState(false);
+  const [selectedTenant, setSelectedTenant] = useState<SystemTenant | null>(null);
+
   const { data: tenants = [], isLoading } = useQuery({
     queryKey: ["system-tenants"],
     queryFn: fetchSystemTenants,
+  });
+
+  const { data: tenantStats, isLoading: isStatsLoading } = useQuery({
+    queryKey: ["system-tenant-stats", selectedTenant?.id],
+    queryFn: () => fetchSystemTenantStats(selectedTenant!.id),
+    enabled: !!selectedTenant && statsModalOpen,
   });
 
   const createMutation = useMutation({
@@ -78,6 +89,24 @@ export default function TenantsPage() {
     if (isConfirmed) {
       deleteMutation.mutate(id);
     }
+  };
+
+  const handleViewStats = (tenant: SystemTenant) => {
+    setSelectedTenant(tenant);
+    setStatsModalOpen(true);
+  };
+
+  const renderConnectionTemplate = (tenantStats: any) => {
+    if (!tenantStats || !tenantStats.config) return null;
+    const config = tenantStats.config.tenant || tenantStats.config;
+    const dbUser = config.users?.[0]?.db_user || "user";
+    const dbName = config.db_database || "db";
+    const host = tenantStats.connection?.host || "localhost";
+    const port = tenantStats.connection?.port || "6543";
+    const tenantId = selectedTenant?.id || "tenant_id";
+    
+    // Masked connection string (Rule 2: Never log PII/Passwords)
+    return `postgres://${dbUser}.${tenantId}:***@${host}:${port}/${dbName}`;
   };
 
   return (
@@ -136,13 +165,23 @@ export default function TenantsPage() {
                       {new Date(tenant.updated_at).toLocaleString()}
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <Button
-                        onClick={() => { handleDelete(tenant.id).catch(console.error); }}
-                        size="sm"
-                        variant="ghost"
-                      >
-                        <Trash2 className="w-4 h-4 text-red-500" />
-                      </Button>
+                      <div className="flex items-center justify-end gap-2">
+                        <Button
+                          onClick={() => { handleViewStats(tenant); }}
+                          size="sm"
+                          variant="ghost"
+                          title="View Connection & Stats"
+                        >
+                          <Eye className="w-4 h-4 text-slate-500" />
+                        </Button>
+                        <Button
+                          onClick={() => { handleDelete(tenant.id).catch(console.error); }}
+                          size="sm"
+                          variant="ghost"
+                        >
+                          <Trash2 className="w-4 h-4 text-red-500" />
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -220,6 +259,92 @@ export default function TenantsPage() {
           </div>
         </form>
       </Modal>
+
+      {/* Stats Modal */}
+      <Modal
+        isOpen={statsModalOpen}
+        onClose={() => { setStatsModalOpen(false); setSelectedTenant(null); }}
+        title={`Tenant Details: ${selectedTenant?.id || ""}`}
+        subtitle="Connection details and Supavisor configuration"
+      >
+        <div className="py-4 space-y-6">
+          {isStatsLoading ? (
+            <div className="space-y-4">
+              <div className="h-24 bg-slate-100 dark:bg-slate-800 animate-pulse rounded-xl"></div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="h-32 bg-slate-100 dark:bg-slate-800 animate-pulse rounded-xl"></div>
+                <div className="h-32 bg-slate-100 dark:bg-slate-800 animate-pulse rounded-xl"></div>
+              </div>
+            </div>
+          ) : tenantStats ? (
+            <>
+              {/* Connection String Card */}
+              <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
+                <div className="flex items-center gap-2 mb-3">
+                  <KeyRound className="w-4 h-4 text-primary-500" />
+                  <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-200">Connection String</h4>
+                </div>
+                <div className="bg-slate-900 rounded-lg p-3 overflow-x-auto">
+                  <code className="text-xs text-green-400 whitespace-nowrap">
+                    {renderConnectionTemplate(tenantStats)}
+                  </code>
+                </div>
+                <p className="text-xs text-slate-500 mt-2">
+                  * Password is masked for security reasons. Replace *** with the actual tenant database password.
+                </p>
+              </div>
+
+              {/* Stats Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-xl shadow-sm flex flex-col gap-1">
+                  <div className="flex items-center gap-2 text-slate-500 mb-2">
+                    <Server className="w-4 h-4" />
+                    <span className="text-xs font-medium uppercase tracking-wider">Pool Config</span>
+                  </div>
+                  <div className="text-2xl font-bold text-slate-800 dark:text-white">
+                    {tenantStats.config?.tenant?.users?.[0]?.pool_size || "N/A"}
+                  </div>
+                  <span className="text-xs text-slate-500">Max connections</span>
+                </div>
+                
+                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-xl shadow-sm flex flex-col gap-1">
+                  <div className="flex items-center gap-2 text-slate-500 mb-2">
+                    <Activity className="w-4 h-4" />
+                    <span className="text-xs font-medium uppercase tracking-wider">Mode</span>
+                  </div>
+                  <div className="text-xl font-bold text-slate-800 dark:text-white capitalize">
+                    {tenantStats.config?.tenant?.users?.[0]?.mode_type || "Transaction"}
+                  </div>
+                  <span className="text-xs text-slate-500">Pooling strategy</span>
+                </div>
+              </div>
+
+              {/* Raw Details */}
+              <div className="pt-4 border-t border-slate-200 dark:border-slate-800">
+                <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-200 mb-3 flex items-center gap-2">
+                  <ShieldAlert className="w-4 h-4 text-orange-500" />
+                  Raw Configuration
+                </h4>
+                <div className="bg-slate-50 dark:bg-slate-900 rounded-lg p-3 border border-slate-200 dark:border-slate-800 max-h-48 overflow-y-auto">
+                  <pre className="text-xs text-slate-600 dark:text-slate-400">
+                    {JSON.stringify(tenantStats.config?.tenant || tenantStats.config, null, 2)}
+                  </pre>
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="text-center py-8 text-slate-500">
+              Failed to load tenant details.
+            </div>
+          )}
+        </div>
+        <div className="flex justify-end pt-4 border-t border-slate-100 dark:border-slate-800">
+          <Button onClick={() => { setStatsModalOpen(false); setSelectedTenant(null); }} variant="outline">
+            Close
+          </Button>
+        </div>
+      </Modal>
+
       <ConfirmationDialog />
     </div>
   );

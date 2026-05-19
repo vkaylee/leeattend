@@ -30,4 +30,8 @@ pub fn router() -> Router<Arc<AppState>> {
             "/system/tenants/:tenant_id",
             delete(system_tenants::delete_tenant_handler),
         )
+        .route(
+            "/system/tenants/:tenant_id/stats",
+            get(system_tenants::get_tenant_stats),
+        )
 }

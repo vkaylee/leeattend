@@ -243,3 +243,29 @@ pub async fn delete_tenant_handler(
 
     Ok(StatusCode::NO_CONTENT)
 }
+
+/// GET /system/tenants/:tenant_id/stats
+/// Retrieves tenant configuration and stats from Supavisor API.
+pub async fn get_tenant_stats(
+    Path(tenant_id): Path<String>,
+    State(state): State<Arc<AppState>>,
+    ctx: SystemContext,
+    _api_ctx: ApiContext,
+) -> AppResult<Json<serde_json::Value>> {
+    ctx.require_role(SystemRoleType::PlatformAdmin)?;
+
+    let tenant_info = state.infra.tenant_manager.get_tenant(&tenant_id).await?;
+
+    let supavisor_host = std::env::var("SUPAVISOR_HOST").unwrap_or_else(|_| "localhost".to_string());
+    let supavisor_port = std::env::var("SUPAVISOR_PORT").unwrap_or_else(|_| "5452".to_string());
+
+    let response = serde_json::json!({
+        "config": tenant_info,
+        "connection": {
+            "host": supavisor_host,
+            "port": supavisor_port
+        }
+    });
+
+    Ok(Json(response))
+}

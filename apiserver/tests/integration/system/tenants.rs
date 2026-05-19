@@ -36,6 +36,16 @@ impl apiserver::supavisor::TenantManager for TestMockTenantManager {
             .push(tenant_id.to_string());
         Ok(())
     }
+
+    async fn get_tenant(&self, tenant_id: &str) -> apiserver::errors::AppResult<serde_json::Value> {
+        let registered = self.registered_tenants.lock().await;
+        for (id, payload) in registered.iter() {
+            if id == tenant_id {
+                return Ok(payload.clone());
+            }
+        }
+        Ok(serde_json::json!({ "error": "Not Found" }))
+    }
 }
 
 #[tokio::test]
@@ -271,4 +281,63 @@ async fn test_create_tenant_requires_platform_admin() {
         let registered = mock_manager.registered_tenants.lock().await;
         assert!(registered.is_empty(), "No tenant should be registered");
     }
+}
+
+#[tokio::test]
+async fn test_get_tenant_stats() {
+    let mock_manager = Arc::new(TestMockTenantManager::default());
+    let (address, workspace_id, user_id, factory, _db) =
+        spawn_app_with_factory_extended(mock_manager.clone()).await;
+
+    // Make the user a PlatformAdmin
+    crate::test_execute!(
+        &factory.diesel_pools.api,
+        "INSERT INTO user_system_roles (user_id, role_id) VALUES ($1, (SELECT id FROM system_roles WHERE name = 'platform_admin'))",
+        diesel::sql_types::Uuid, user_id
+    );
+
+    let client = reqwest::Client::new();
+
+    // Setup: mock manager has a tenant
+    let mock_tenant_config = serde_json::json!({
+        "tenant": {
+            "db_database": "test_db",
+            "db_host": "test_host",
+            "db_port": 5432,
+            "users": [
+                {
+                    "db_user": "test_user",
+                    "pool_size": 15,
+                    "mode_type": "transaction"
+                }
+            ]
+        }
+    });
+    mock_manager
+        .registered_tenants
+        .lock()
+        .await
+        .push((workspace_id.to_string(), mock_tenant_config.clone()));
+
+    // Execute GET
+    let response = client
+        .get(&format!("{address}/api/system/tenants/{workspace_id}/stats"))
+        .header("X-User-Id", user_id.to_string())
+        .send()
+        .await
+        .expect("Failed to execute request");
+
+    let status = response.status();
+    let body = response.text().await.unwrap_or_default();
+    assert_eq!(
+        status,
+        reqwest::StatusCode::OK,
+        "Failed to get stats: {}",
+        body
+    );
+
+    let parsed: serde_json::Value = serde_json::from_str(&body).unwrap();
+    assert_eq!(parsed["config"]["tenant"]["db_database"], "test_db");
+    assert!(parsed["connection"]["host"].is_string());
+    assert!(parsed["connection"]["port"].is_string());
 }

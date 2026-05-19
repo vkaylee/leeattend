@@ -86,6 +86,7 @@ pub trait TenantManager: Send + Sync {
         tenant_id: &str,
         payload: &serde_json::Value,
     ) -> AppResult<()>;
+    async fn get_tenant(&self, tenant_id: &str) -> AppResult<serde_json::Value>;
 }
 
 pub struct SupavisorTenantManager {
@@ -237,6 +238,40 @@ impl TenantManager for SupavisorTenantManager {
             )))
         }
     }
+
+    async fn get_tenant(&self, tenant_id: &str) -> AppResult<serde_json::Value> {
+        let token = self
+            .generate_token()
+            .map_err(|e| AppError::Internal(format!("Failed to generate token: {e}")))?;
+
+        let url = format!(
+            "{}/api/tenants/{}",
+            self.api_url.trim_end_matches('/'),
+            tenant_id
+        );
+
+        let response = self
+            .client
+            .get(&url)
+            .header("Authorization", format!("Bearer {token}"))
+            .send()
+            .await
+            .map_err(|e| AppError::Internal(format!("Failed to reach Supavisor API: {e}")))?;
+
+        let status = response.status();
+        if status.is_success() {
+            let body = response
+                .json::<serde_json::Value>()
+                .await
+                .map_err(|e| AppError::Internal(format!("Failed to parse Supavisor response: {e}")))?;
+            Ok(body)
+        } else {
+            let text = response.text().await.unwrap_or_default();
+            Err(AppError::Internal(format!(
+                "Supavisor returned {status}: {text}"
+            )))
+        }
+    }
 }
 
 pub struct NoopTenantManager;
@@ -259,6 +294,11 @@ impl TenantManager for NoopTenantManager {
     ) -> AppResult<()> {
         tracing::debug!("NoopTenantManager: skipping register_tenant");
         Ok(())
+    }
+
+    async fn get_tenant(&self, _tenant_id: &str) -> AppResult<serde_json::Value> {
+        tracing::debug!("NoopTenantManager: skipping get_tenant");
+        Ok(serde_json::json!({}))
     }
 }
 

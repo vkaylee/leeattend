@@ -45,6 +45,9 @@ impl TenantManager for DummyTenantManager {
     ) -> Result<(), apiserver::errors::AppError> {
         Ok(())
     }
+    async fn get_tenant(&self, _tenant_id: &str) -> Result<serde_json::Value, apiserver::errors::AppError> {
+        Ok(serde_json::json!({}))
+    }
 }
 
 use super::db::TestDatabase;
