@@ -88,8 +88,8 @@ services:
   webdashboard:
     image: localhost/leeattend_dev_webdashboard
     build:
-      context: .
-      dockerfile: webdashboard/Dockerfile
+      context: ../webdashboard
+      dockerfile: Dockerfile
       target: dev
     command: >-
       sh -c 'mkdir -p /var/log/app &&
