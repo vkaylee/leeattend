@@ -119,8 +119,7 @@ pub async fn build_roster_data(
     workspace_id: Uuid,
 ) -> Result<Arc<RosterData>, String> {
     let mut conn = diesel_pools
-        .api
-        .get()
+        .tenant_conn(workspace_id)
         .await
         .map_err(|e| format!("db connection: {e}"))?;
 

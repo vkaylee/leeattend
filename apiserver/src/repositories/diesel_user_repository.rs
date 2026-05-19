@@ -229,12 +229,7 @@ impl UserRepository for DieselUserRepository {
         workspace_id: Uuid,
     ) -> Result<Option<crate::handlers::dashboard_preferences::DashboardPreferences>, AppError>
     {
-        let mut conn = self
-            .diesel_pools
-            .api
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = self.diesel_pools.tenant_conn(workspace_id).await?;
 
         use crate::schema::dashboard_preferences;
         let entity = dashboard_preferences::table
@@ -254,12 +249,7 @@ impl UserRepository for DieselUserRepository {
         workspace_id: Uuid,
         req: crate::handlers::dashboard_preferences::UpdateDashboardPreferences,
     ) -> Result<crate::handlers::dashboard_preferences::DashboardPreferences, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .api
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = self.diesel_pools.tenant_conn(workspace_id).await?;
 
         use crate::schema::dashboard_preferences;
         let existing = self

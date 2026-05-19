@@ -89,10 +89,8 @@ pub async fn clear_debug_db(
         let mut conn = state
             .infra
             .diesel
-            .api
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(e.to_string()))?;
+            .tenant_conn(ws_id)
+            .await?;
 
         use diesel_async::AsyncConnection;
         use diesel_async::RunQueryDsl;
