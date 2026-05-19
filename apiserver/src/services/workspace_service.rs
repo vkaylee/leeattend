@@ -517,6 +517,12 @@ mod tests {
         ) -> crate::errors::AppResult<()> {
             Ok(())
         }
+        async fn get_tenant(
+            &self,
+            _tenant_id: &str,
+        ) -> crate::errors::AppResult<serde_json::Value> {
+            Ok(serde_json::json!({}))
+        }
     }
 
     fn build_service(user_exists: bool) -> WorkspaceService {
