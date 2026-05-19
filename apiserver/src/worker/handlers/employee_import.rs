@@ -35,7 +35,13 @@ impl EmployeeImportHandler {
 
         // Update import job → Processing
         let _ = import_repo
-            .update_job_progress(job.workspace_id, payload.import_job_id, 0, ImportJobStatus::Processing, None)
+            .update_job_progress(
+                job.workspace_id,
+                payload.import_job_id,
+                0,
+                ImportJobStatus::Processing,
+                None,
+            )
             .await;
 
         tracing::info!(
@@ -71,7 +77,13 @@ impl EmployeeImportHandler {
 
         if total_rows == 0 {
             let _ = import_repo
-                .update_job_progress(job.workspace_id, payload.import_job_id, 0, ImportJobStatus::Completed, None)
+                .update_job_progress(
+                    job.workspace_id,
+                    payload.import_job_id,
+                    0,
+                    ImportJobStatus::Completed,
+                    None,
+                )
                 .await;
             return Ok(());
         }
@@ -301,7 +313,10 @@ mod tests {
 
         import_repo
             .expect_get_job_by_id()
-            .with(mockall::predicate::eq(ws_id), mockall::predicate::eq(import_job_id))
+            .with(
+                mockall::predicate::eq(ws_id),
+                mockall::predicate::eq(import_job_id),
+            )
             .returning(move |_, _| {
                 Ok(Some(crate::models::AttendanceImportJob {
                     id: import_job_id,

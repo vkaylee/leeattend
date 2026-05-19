@@ -59,7 +59,13 @@ impl<S: ImportStrategy> ImportPipeline<'_, S> {
         if let Err(e) = self.strategy.init(&self.deps, self.job).await {
             let _ = self
                 .import_repo
-                .update_job_progress(self.job.workspace_id, self.job.id, 0, ImportJobStatus::Failed, Some(e))
+                .update_job_progress(
+                    self.job.workspace_id,
+                    self.job.id,
+                    0,
+                    ImportJobStatus::Failed,
+                    Some(e),
+                )
                 .await;
             return Err(());
         }
@@ -248,7 +254,13 @@ impl<S: ImportStrategy> ImportPipeline<'_, S> {
         } else {
             let _ = self
                 .import_repo
-                .update_job_progress(self.job.workspace_id, self.job.id, processed_rows, status, final_log)
+                .update_job_progress(
+                    self.job.workspace_id,
+                    self.job.id,
+                    processed_rows,
+                    status,
+                    final_log,
+                )
                 .await;
 
             if let Some(file_path) = &self.job.file_path {

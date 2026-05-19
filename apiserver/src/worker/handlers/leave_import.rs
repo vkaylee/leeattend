@@ -60,11 +60,7 @@ impl LeaveImportHandler {
 
         let total_rows = rows.len();
         let _ = import_repo
-            .update_job_total_rows(
-                job.workspace_id,
-                payload.import_job_id,
-                total_rows as i32,
-            )
+            .update_job_total_rows(job.workspace_id, payload.import_job_id, total_rows as i32)
             .await;
 
         if total_rows == 0 {

@@ -69,7 +69,10 @@ async fn test_upload_employee_csv_api() {
     let job_uuid = Uuid::parse_str(job_id).unwrap();
     tokio::time::timeout(
         std::time::Duration::from_secs(10),
-        _state.attendance.import_service.process_job(ws_id, job_uuid),
+        _state
+            .attendance
+            .import_service
+            .process_job(ws_id, job_uuid),
     )
     .await
     .expect("process_job timed out")
@@ -160,7 +163,10 @@ async fn test_upload_employee_duplicate_id_skips() {
     let job_uuid = Uuid::parse_str(json["job_id"].as_str().unwrap()).unwrap();
     tokio::time::timeout(
         std::time::Duration::from_secs(10),
-        _state.attendance.import_service.process_job(ws_id, job_uuid),
+        _state
+            .attendance
+            .import_service
+            .process_job(ws_id, job_uuid),
     )
     .await
     .expect("process_job timed out")
@@ -269,7 +275,10 @@ async fn test_upload_employee_csv_with_department() {
     let job_uuid = Uuid::parse_str(json["job_id"].as_str().unwrap()).unwrap();
     tokio::time::timeout(
         std::time::Duration::from_secs(10),
-        _state.attendance.import_service.process_job(ws_id, job_uuid),
+        _state
+            .attendance
+            .import_service
+            .process_job(ws_id, job_uuid),
     )
     .await
     .expect("process_job timed out")
@@ -412,7 +421,10 @@ async fn test_upload_employee_csv_reuses_existing_department() {
     let job_uuid = Uuid::parse_str(json["job_id"].as_str().unwrap()).unwrap();
     tokio::time::timeout(
         std::time::Duration::from_secs(10),
-        _state.attendance.import_service.process_job(ws_id, job_uuid),
+        _state
+            .attendance
+            .import_service
+            .process_job(ws_id, job_uuid),
     )
     .await
     .expect("process_job timed out")
@@ -561,7 +573,10 @@ async fn test_upload_employee_xlsx_with_department() {
     let job_uuid = Uuid::parse_str(json["job_id"].as_str().unwrap()).unwrap();
     tokio::time::timeout(
         std::time::Duration::from_secs(10),
-        _state.attendance.import_service.process_job(ws_id, job_uuid),
+        _state
+            .attendance
+            .import_service
+            .process_job(ws_id, job_uuid),
     )
     .await
     .expect("process_job timed out")
@@ -703,7 +718,10 @@ async fn test_upload_employee_xlsx_reuses_existing_department() {
     let job_uuid = Uuid::parse_str(json["job_id"].as_str().unwrap()).unwrap();
     tokio::time::timeout(
         std::time::Duration::from_secs(10),
-        _state.attendance.import_service.process_job(ws_id, job_uuid),
+        _state
+            .attendance
+            .import_service
+            .process_job(ws_id, job_uuid),
     )
     .await
     .expect("process_job timed out")
@@ -821,7 +839,10 @@ async fn test_upload_csv_existing_employee_new_department() {
     let job_uuid = Uuid::parse_str(json["job_id"].as_str().unwrap()).unwrap();
     tokio::time::timeout(
         std::time::Duration::from_secs(10),
-        _state.attendance.import_service.process_job(ws_id, job_uuid),
+        _state
+            .attendance
+            .import_service
+            .process_job(ws_id, job_uuid),
     )
     .await
     .expect("process_job timed out")
@@ -937,7 +958,10 @@ async fn test_upload_csv_existing_employee_existing_department() {
     let job_uuid = Uuid::parse_str(json["job_id"].as_str().unwrap()).unwrap();
     tokio::time::timeout(
         std::time::Duration::from_secs(10),
-        _state.attendance.import_service.process_job(ws_id, job_uuid),
+        _state
+            .attendance
+            .import_service
+            .process_job(ws_id, job_uuid),
     )
     .await
     .expect("process_job timed out")
@@ -1048,7 +1072,10 @@ async fn test_upload_xlsx_existing_employee_new_department() {
     let job_uuid = Uuid::parse_str(json["job_id"].as_str().unwrap()).unwrap();
     tokio::time::timeout(
         std::time::Duration::from_secs(10),
-        _state.attendance.import_service.process_job(ws_id, job_uuid),
+        _state
+            .attendance
+            .import_service
+            .process_job(ws_id, job_uuid),
     )
     .await
     .expect("process_job timed out")
@@ -1160,7 +1187,10 @@ async fn test_upload_xlsx_existing_employee_existing_department() {
     let job_uuid = Uuid::parse_str(json["job_id"].as_str().unwrap()).unwrap();
     tokio::time::timeout(
         std::time::Duration::from_secs(10),
-        _state.attendance.import_service.process_job(ws_id, job_uuid),
+        _state
+            .attendance
+            .import_service
+            .process_job(ws_id, job_uuid),
     )
     .await
     .expect("process_job timed out")
