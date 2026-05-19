@@ -28,6 +28,35 @@ services:
       redis:
         condition: service_healthy
 
+  cloudbeaver:
+    image: docker.io/dbeaver/cloudbeaver:latest
+    pull_policy: missing
+    ports:
+      - "8978:8978"
+    networks:
+      - backend_net
+    environment:
+      # --- Credentials for entrypoint to inject into data-sources ---
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      # --- CloudBeaver auto-config (skip setup wizard) ---
+      - CB_SERVER_NAME=LeeAttend Dev
+      - CB_SERVER_URL=http://localhost:8978
+      - CB_ADMIN_NAME=cbadmin
+      - CB_ADMIN_PASSWORD=admin
+      # --- Anonymous access for local dev ---
+      - CLOUDBEAVER_APP_ANONYMOUS_ACCESS_ENABLED=true
+      - CLOUDBEAVER_APP_GRANT_CONNECTIONS_ACCESS_TO_ANONYMOUS_TEAM=true
+    volumes:
+      - cloudbeaver_dev_data:/opt/cloudbeaver/workspace
+      - ./.compose/cloudbeaver-entrypoint.sh:/opt/cloudbeaver/cloudbeaver-entrypoint.sh:ro
+      - ./.compose/cloudbeaver-initial-data-sources.conf:/opt/cloudbeaver/conf/initial-data-sources.conf.tpl:ro
+    entrypoint: /opt/cloudbeaver/cloudbeaver-entrypoint.sh
+    depends_on:
+      db:
+        condition: service_healthy
+
   apiserver:
     image: localhost/leeattend_dev_apiserver
     build:
@@ -127,3 +156,4 @@ volumes:
   target-cache:
   cargo-registry:
   webdashboard-node-modules:
+  cloudbeaver_dev_data:
