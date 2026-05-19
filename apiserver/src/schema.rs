@@ -1597,7 +1597,10 @@ diesel::joinable!(leave_policy_assignments -> leave_policy_definitions (policy_i
 diesel::joinable!(leave_policy_definitions -> leave_types (leave_type_id));
 diesel::joinable!(leave_requests -> employees (employee_id));
 diesel::joinable!(leave_requests -> leave_types (leave_type_id));
+diesel::joinable!(member_extra_roles -> users (user_id));
 diesel::joinable!(member_extra_roles -> workspace_roles (role_id));
+diesel::joinable!(member_extra_roles -> workspaces (workspace_id));
+diesel::joinable!(notifications -> users (user_id));
 diesel::joinable!(overtime_policy_assignments -> overtime_policy_definitions (policy_id));
 diesel::joinable!(overtime_rules -> overtime_policy_definitions (policy_id));
 diesel::joinable!(payroll_incentive_assignments -> payroll_incentive_policies (policy_id));
@@ -1623,7 +1626,11 @@ diesel::joinable!(user_system_roles -> system_roles (role_id));
 diesel::joinable!(working_conditions -> employees (employee_id));
 diesel::joinable!(working_pattern_details -> shifts (shift_id));
 diesel::joinable!(working_pattern_details -> working_patterns (pattern_id));
+diesel::joinable!(workspace_member_extra_permissions -> users (user_id));
+diesel::joinable!(workspace_member_extra_permissions -> workspaces (workspace_id));
+diesel::joinable!(workspace_members -> users (user_id));
 diesel::joinable!(workspace_members -> workspace_roles (role_id));
+diesel::joinable!(workspace_members -> workspaces (workspace_id));
 diesel::joinable!(workspace_role_permissions -> workspace_roles (role_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
