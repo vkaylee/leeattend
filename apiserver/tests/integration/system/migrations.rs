@@ -369,3 +369,133 @@ async fn test_notifications_table_in_system_db() {
         .execute(&format!("DROP DATABASE IF EXISTS \"{db_name}\""), &[])
         .await;
 }
+
+#[tokio::test]
+async fn test_authorized_agents_only_in_system_db() {
+    let base_url = std::env::var("DATABASE_URL_FOR_TEST_GENERATION")
+        .or_else(|_| std::env::var("DATABASE_URL"))
+        .expect("DATABASE_URL_FOR_TEST_GENERATION or DATABASE_URL must be set");
+
+    let mut url_parts: Vec<&str> = base_url.split('/').collect();
+    let _ = url_parts.pop().unwrap_or("postgres");
+    let base_connection_string = url_parts.join("/");
+
+    let admin_url = format!("{base_connection_string}/test_database");
+    let sys_db_name = format!("test_agent_sys_{}", Uuid::new_v4().simple());
+    let tenant_db_name = format!("test_agent_ten_{}", Uuid::new_v4().simple());
+
+    let (admin_client, admin_conn) = tokio_postgres::connect(&admin_url, NoTls)
+        .await
+        .expect("Failed to connect to admin DB");
+    tokio::spawn(async move {
+        let _ = admin_conn.await;
+    });
+
+    admin_client
+        .execute(&format!("CREATE DATABASE \"{sys_db_name}\""), &[])
+        .await
+        .expect("Failed to create system DB");
+    admin_client
+        .execute(&format!("CREATE DATABASE \"{tenant_db_name}\""), &[])
+        .await
+        .expect("Failed to create tenant DB");
+
+    let sys_db_url = format!("{base_connection_string}/{sys_db_name}");
+
+    // 1. Run system migrations only
+    let url_clone = sys_db_url.clone();
+    tokio::task::spawn_blocking(move || {
+        DieselPools::run_system_migrations(&DbPoolConfig {
+            primary_url: url_clone,
+            pooler_url: None,
+            reader_url: None,
+            api_max_conn: 1,
+            api_acquire_timeout_secs: 5,
+            worker_max_conn: 1,
+            worker_acquire_timeout_secs: 5,
+            tenant_max_conn: 1,
+        });
+    })
+    .await
+    .unwrap();
+
+    let (sys_client, sys_conn) = tokio_postgres::connect(&sys_db_url, NoTls).await.unwrap();
+    tokio::spawn(async move { let _ = sys_conn.await; });
+
+    // 2. authorized_agents exists in system DB
+    let row = sys_client
+        .query_one(
+            "SELECT EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'authorized_agents');",
+            &[],
+        )
+        .await
+        .unwrap();
+    assert!(
+        row.get::<_, bool>(0),
+        "authorized_agents should exist in system DB after system migrations"
+    );
+
+    // 3. Insert a workspace and an agent, verify FK works
+    let ws_id = Uuid::new_v4();
+    sys_client
+        .execute(
+            &format!("INSERT INTO workspaces (id, name) VALUES ('{ws_id}', 'test-ws')"),
+            &[],
+        )
+        .await
+        .unwrap();
+
+    let agent_id = "test-agent-001";
+    let token = Uuid::new_v4().to_string();
+    sys_client
+        .execute(
+            &format!(
+                "INSERT INTO authorized_agents (id, name, token, workspace_id) VALUES ('{agent_id}', 'Test Agent', '{token}', '{ws_id}')"
+            ),
+            &[],
+        )
+        .await
+        .unwrap();
+
+    let row = sys_client
+        .query_one(
+            &format!("SELECT COUNT(*) FROM authorized_agents WHERE workspace_id = '{ws_id}'"),
+            &[],
+        )
+        .await
+        .unwrap();
+    let count: i64 = row.get(0);
+    assert_eq!(count, 1, "agent should be queryable in system DB");
+
+    drop(sys_client);
+
+    // 4. authorized_agents does NOT exist in tenant DB
+    let tenant_db_url = format!("{base_connection_string}/{tenant_db_name}");
+    let (ten_client, ten_conn) = tokio_postgres::connect(&tenant_db_url, NoTls).await.unwrap();
+    tokio::spawn(async move { let _ = ten_conn.await; });
+
+    let row = ten_client
+        .query_one(
+            "SELECT EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'authorized_agents');",
+            &[],
+        )
+        .await
+        .unwrap();
+    assert!(
+        !row.get::<_, bool>(0),
+        "authorized_agents should NOT exist in tenant DB"
+    );
+
+    drop(ten_client);
+
+    // Cleanup
+    for db in &[&sys_db_name, &tenant_db_name] {
+        let kill = format!(
+            "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '{db}' AND pid <> pg_backend_pid()"
+        );
+        let _ = admin_client.execute(&kill, &[]).await;
+        let _ = admin_client
+            .execute(&format!("DROP DATABASE IF EXISTS \"{db}\""), &[])
+            .await;
+    }
+}
