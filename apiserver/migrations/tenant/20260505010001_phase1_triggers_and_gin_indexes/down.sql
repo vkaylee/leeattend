@@ -20,8 +20,6 @@ DROP INDEX IF EXISTS public.idx_incentive_tiers_rule_config;
 -- ───────────────────────────────────────────────────────────────────
 -- Drop all trg_updated_at triggers
 -- ───────────────────────────────────────────────────────────────────
-DROP TRIGGER IF EXISTS trg_updated_at ON public.workspace_roles;
-
 DROP TRIGGER IF EXISTS trg_updated_at ON public.working_patterns;
 
 DROP TRIGGER IF EXISTS trg_updated_at ON public.shifts;

@@ -200,11 +200,6 @@ CREATE TRIGGER trg_updated_at
     BEFORE UPDATE ON public.working_patterns
     FOR EACH ROW EXECUTE FUNCTION public.fn_set_updated_at();
 
--- workspace_roles
-CREATE TRIGGER trg_updated_at
-    BEFORE UPDATE ON public.workspace_roles
-    FOR EACH ROW EXECUTE FUNCTION public.fn_set_updated_at();
-
 -- ───────────────────────────────────────────────────────────────────
 -- 1b. GIN indexes for JSONB columns used in filtering/reporting
 -- Using CONCURRENTLY is not possible inside a transaction block
