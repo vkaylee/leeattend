@@ -100,7 +100,12 @@ impl AgentRepository for DieselAgentRepository {
         workspace_id_val: Uuid,
         include_inactive: bool,
     ) -> Result<Vec<AuthorizedAgent>, AppError> {
-        let mut conn = self.diesel_pools.tenant_conn(workspace_id_val).await?;
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let mut query = authorized_agents::table
             .filter(authorized_agents::workspace_id.eq(workspace_id_val))
@@ -129,7 +134,12 @@ impl AgentRepository for DieselAgentRepository {
         success_cooldown_secs_val: i32,
         retention_days_val: i32,
     ) -> Result<(), AppError> {
-        let mut conn = self.diesel_pools.tenant_conn(workspace_id_val).await?;
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let agent = AuthorizedAgentEntity {
             id: id_val.to_string(),
@@ -160,7 +170,12 @@ impl AgentRepository for DieselAgentRepository {
         agent_id_val: &str,
         workspace_id_val: Uuid,
     ) -> Result<bool, AppError> {
-        let mut conn = self.diesel_pools.tenant_conn(workspace_id_val).await?;
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let count: i64 = authorized_agents::table
             .filter(authorized_agents::id.eq(agent_id_val))
@@ -356,7 +371,12 @@ impl AgentRepository for DieselAgentRepository {
         workspace_id_val: Uuid,
         is_trusted_val: bool,
     ) -> Result<u64, AppError> {
-        let mut conn = self.diesel_pools.tenant_conn(workspace_id_val).await?;
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let affected = diesel::update(
             authorized_agents::table
@@ -376,7 +396,12 @@ impl AgentRepository for DieselAgentRepository {
         agent_id_val: &str,
         workspace_id_val: Uuid,
     ) -> Result<Option<AuthorizedAgent>, AppError> {
-        let mut conn = self.diesel_pools.tenant_conn(workspace_id_val).await?;
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let agent = authorized_agents::table
             .filter(authorized_agents::id.eq(agent_id_val))
@@ -394,7 +419,12 @@ impl AgentRepository for DieselAgentRepository {
         agent_id_val: &str,
         workspace_id_val: Uuid,
     ) -> Result<u64, AppError> {
-        let mut conn = self.diesel_pools.tenant_conn(workspace_id_val).await?;
+        let mut conn = self
+            .diesel_pools
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let affected = diesel::update(
             authorized_agents::table
