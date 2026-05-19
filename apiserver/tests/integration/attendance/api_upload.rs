@@ -78,7 +78,7 @@ async fn test_upload_attendance_csv_api() {
         let job_opt = _state
             .attendance
             .import_repo
-            .get_job_by_id(job_uuid)
+            .get_job_by_id(ws_id, job_uuid)
             .await
             .unwrap();
         if let Some(job) = job_opt {

@@ -73,7 +73,7 @@ async fn test_import_csv_with_line_errors() {
     let mut job: Option<AttendanceImportJob> = None;
     for _ in 0..20 {
         sleep(Duration::from_millis(200)).await;
-        if let Ok(Some(j)) = import_repo.get_job_by_id(job_id).await {
+        if let Ok(Some(j)) = import_repo.get_job_by_id(ws_id, job_id).await {
             if j.status == ImportJobStatus::Completed || j.status == ImportJobStatus::Failed {
                 job = Some(j);
                 break;
@@ -132,14 +132,14 @@ async fn test_import_timeout_guard_updates_db_on_drop() {
 
     let completed = Arc::new(AtomicBool::new(false));
     {
-        let _guard = ImportTimeoutGuard::new(job_id, Arc::clone(&completed), import_repo.clone());
+        let _guard = ImportTimeoutGuard::new(ws_id, job_id, Arc::clone(&completed), import_repo.clone());
         // Guard drops here as it goes out of scope (simulating a tokio timeout cancellation)
     }
 
     // The drop implementation spawns a tokio task, so we must wait slightly for it to complete
     sleep(Duration::from_millis(2000)).await;
 
-    let updated_job = import_repo.get_job_by_id(job_id).await.unwrap().unwrap();
+    let updated_job = import_repo.get_job_by_id(ws_id, job_id).await.unwrap().unwrap();
 
     assert_eq!(updated_job.status, ImportJobStatus::Failed);
     assert_eq!(

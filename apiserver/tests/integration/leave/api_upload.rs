@@ -101,7 +101,7 @@ async fn test_upload_leave_csv_api() {
     let job_opt = _state
         .attendance
         .import_repo
-        .get_job_by_id(job_uuid)
+        .get_job_by_id(ws_id, job_uuid)
         .await
         .unwrap()
         .unwrap();
@@ -117,7 +117,7 @@ async fn test_upload_leave_csv_api() {
         let job_after = _state
             .attendance
             .import_repo
-            .get_job_by_id(job_uuid)
+            .get_job_by_id(ws_id, job_uuid)
             .await
             .unwrap()
             .unwrap();
@@ -127,7 +127,7 @@ async fn test_upload_leave_csv_api() {
     let job_opt = _state
         .attendance
         .import_repo
-        .get_job_by_id(job_uuid)
+        .get_job_by_id(ws_id, job_uuid)
         .await
         .unwrap()
         .unwrap();

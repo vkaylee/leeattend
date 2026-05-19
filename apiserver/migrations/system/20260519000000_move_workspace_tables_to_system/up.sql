@@ -47,13 +47,10 @@ CREATE TABLE public.workspace_member_extra_permissions (
     assigned_by uuid
 );
 
--- Constraints
+-- Primary Keys (must be created before FKs that reference them)
 
 ALTER TABLE ONLY public.workspace_members
     ADD CONSTRAINT workspace_members_pkey PRIMARY KEY (workspace_id, user_id);
-
-ALTER TABLE ONLY public.workspace_members
-    ADD CONSTRAINT workspace_members_role_id_fkey FOREIGN KEY (role_id) REFERENCES public.workspace_roles(id);
 
 ALTER TABLE ONLY public.workspace_roles
     ADD CONSTRAINT workspace_roles_pkey PRIMARY KEY (id);
@@ -61,17 +58,40 @@ ALTER TABLE ONLY public.workspace_roles
 ALTER TABLE ONLY public.workspace_role_permissions
     ADD CONSTRAINT workspace_role_permissions_pkey PRIMARY KEY (role_id, permission_name);
 
+ALTER TABLE ONLY public.member_extra_roles
+    ADD CONSTRAINT member_extra_roles_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.workspace_member_extra_permissions
+    ADD CONSTRAINT workspace_member_extra_permissions_pkey PRIMARY KEY (id);
+
+-- Foreign Keys (now valid since all tables are in system DB)
+
+ALTER TABLE ONLY public.workspace_members
+    ADD CONSTRAINT workspace_members_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.workspace_members
+    ADD CONSTRAINT workspace_members_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.workspace_members
+    ADD CONSTRAINT workspace_members_role_id_fkey FOREIGN KEY (role_id) REFERENCES public.workspace_roles(id);
+
 ALTER TABLE ONLY public.workspace_role_permissions
     ADD CONSTRAINT workspace_role_permissions_role_id_fkey FOREIGN KEY (role_id) REFERENCES public.workspace_roles(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.member_extra_roles
-    ADD CONSTRAINT member_extra_roles_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT member_extra_roles_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.member_extra_roles
+    ADD CONSTRAINT member_extra_roles_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.member_extra_roles
     ADD CONSTRAINT member_extra_roles_role_id_fkey FOREIGN KEY (role_id) REFERENCES public.workspace_roles(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.workspace_member_extra_permissions
-    ADD CONSTRAINT workspace_member_extra_permissions_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT workspace_member_extra_perms_ws_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.workspace_member_extra_permissions
+    ADD CONSTRAINT workspace_member_extra_perms_user_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
 -- Indexes
 
@@ -92,7 +112,7 @@ CREATE INDEX idx_extra_perms_lookup ON public.workspace_member_extra_permissions
 -- Seed data: default workspace roles and permissions
 
 INSERT INTO workspace_roles (id, workspace_id, name, description, color, is_system, scope_type)
-VALUES 
+VALUES
   ('a0000000-0000-0000-0000-000000000001', NULL, 'owner', 'Workspace owner with full access', 'rose', TRUE, 'global'),
   ('a0000000-0000-0000-0000-000000000002', NULL, 'admin', 'Administrator with full access', 'rose', TRUE, 'global'),
   ('a0000000-0000-0000-0000-000000000003', NULL, 'hr_manager', 'Manage people and time', 'indigo', TRUE, 'global'),

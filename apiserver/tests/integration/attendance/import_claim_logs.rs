@@ -86,7 +86,7 @@ async fn test_import_employee_claims_staged_logs() -> Result<(), Box<dyn std::er
     let mut job_finished = false;
     for _ in 0..20 {
         tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-        if let Ok(Some(j)) = import_repo.get_job_by_id(job_id).await {
+        if let Ok(Some(j)) = import_repo.get_job_by_id(ws_id, job_id).await {
             if j.status == ImportJobStatus::Completed {
                 job_finished = true;
                 break;
@@ -210,7 +210,7 @@ async fn test_import_existing_employee_claims_staged_logs() -> Result<(), Box<dy
     let mut job_finished = false;
     for _ in 0..20 {
         tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-        if let Ok(Some(j)) = import_repo.get_job_by_id(job_id).await {
+        if let Ok(Some(j)) = import_repo.get_job_by_id(ws_id, job_id).await {
             if j.status == ImportJobStatus::Completed {
                 job_finished = true;
                 break;
