@@ -93,6 +93,12 @@ ALTER TABLE ONLY public.workspace_member_extra_permissions
 ALTER TABLE ONLY public.workspace_member_extra_permissions
     ADD CONSTRAINT workspace_member_extra_perms_user_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
+-- Triggers
+
+CREATE TRIGGER trg_updated_at
+    BEFORE UPDATE ON public.workspace_roles
+    FOR EACH ROW EXECUTE FUNCTION public.fn_set_updated_at();
+
 -- Indexes
 
 CREATE INDEX idx_workspace_members_user_id ON public.workspace_members USING btree (user_id);
