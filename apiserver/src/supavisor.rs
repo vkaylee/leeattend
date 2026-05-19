@@ -478,6 +478,165 @@ mod tests {
     }
 
     #[test]
+    fn test_build_tenant_payload_tenant_id_matches_connection_url_format() {
+        // The tenant_id must match the format produced by diesel_pool::get_tenant_url():
+        // tenant_<uuid-without-hyphens>. This contract prevents "Tenant or user not found"
+        // errors when the API server connects through Supavisor.
+        let url = "postgres://admin:secret@db:5432/tenant_019e40ee11927492bc2985dad4675f34";
+        let (tenant_id, payload) = build_tenant_payload(url).expect("Should build payload");
+
+        assert_eq!(
+            tenant_id, "tenant_019e40ee11927492bc2985dad4675f34",
+            "tenant_id must be tenant_<uuid-no-hyphens> to match get_tenant_url() format"
+        );
+
+        let tenant = payload.get("tenant").expect("missing tenant key");
+        assert_eq!(
+            tenant["db_database"], "tenant_019e40ee11927492bc2985dad4675f34",
+            "db_database should match the database name from URL"
+        );
+
+        // Verify that the tenant_id is NOT a raw UUID with hyphens
+        assert!(
+            !tenant_id.contains('-'),
+            "tenant_id must NOT contain hyphens — raw UUID format is incompatible with get_tenant_url()"
+        );
+        assert!(
+            tenant_id.starts_with("tenant_"),
+            "tenant_id must start with 'tenant_' prefix"
+        );
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    // Contract: build_tenant_payload() MUST return a tenant_id that matches
+    // the tenant identifier embedded in the connection URL produced by
+    // diesel_pool::get_tenant_url(). The format is:
+    //
+    //   tenant_<uuid-without-hyphens>
+    //
+    // These tests lock down the registration side of the contract so it
+    // cannot drift from the connection side. See diesel_pool.rs for the
+    // connection-side contract tests.
+    // ─────────────────────────────────────────────────────────────────────
+
+    #[test]
+    fn test_build_tenant_payload_tenant_id_standard_db_name() {
+        // When the DB name follows tenant_<uuid-no-hyphens>, tenant_id
+        // defaults to the database name from the URL.
+        let url = "postgres://admin:secret@db:5432/tenant_a1b2c3d4e5f67890abcdef1234567890";
+        let (tenant_id, _) = build_tenant_payload(url).expect("Should build");
+        assert_eq!(tenant_id, "tenant_a1b2c3d4e5f67890abcdef1234567890");
+        assert_eq!(tenant_id.len(), 39); // "tenant_" + 32 hex
+        assert!(!tenant_id.contains('-'));
+    }
+
+    #[test]
+    fn test_build_tenant_payload_tenant_id_nil_uuid_db_name() {
+        let url = "postgres://admin:secret@db:5432/tenant_00000000000000000000000000000000";
+        let (tenant_id, _) = build_tenant_payload(url).expect("Should build");
+        assert_eq!(tenant_id, "tenant_00000000000000000000000000000000");
+    }
+
+    #[test]
+    fn test_build_tenant_payload_tenant_id_max_uuid_db_name() {
+        let url = "postgres://admin:secret@db:5432/tenant_ffffffffffffffffffffffffffffffff";
+        let (tenant_id, _) = build_tenant_payload(url).expect("Should build");
+        assert_eq!(tenant_id, "tenant_ffffffffffffffffffffffffffffffff");
+    }
+
+    #[test]
+    fn test_build_tenant_payload_supavisor_tenant_id_overrides_db_name() {
+        // When SUPAVISOR_TENANT_ID is set, tenant_id takes that value,
+        // but db_database in the payload stays as the actual PG database name.
+        // This is the BYOD scenario — custom DB, but Supavisor routing
+        // still uses tenant_<uuid-no-hyphens>.
+        std::env::set_var("SUPAVISOR_TENANT_ID", "tenant_019e40ee11927492bc2985dad4675f34");
+        let url = "postgres://admin:secret@db:5432/my_custom_db";
+        let (tenant_id, payload) = build_tenant_payload(url).expect("Should build");
+        std::env::remove_var("SUPAVISOR_TENANT_ID");
+
+        assert_eq!(
+            tenant_id, "tenant_019e40ee11927492bc2985dad4675f34",
+            "tenant_id must come from SUPAVISOR_TENANT_ID for BYOD"
+        );
+        // The payload must still point to the actual PG database
+        let tenant = payload.get("tenant").expect("missing tenant key");
+        assert_eq!(
+            tenant["db_database"], "my_custom_db",
+            "db_database must be the actual PG database, not the tenant_id"
+        );
+        assert!(!tenant_id.contains('-'),
+            "BYOD tenant_id must NOT contain hyphens"
+        );
+    }
+
+    #[test]
+    fn test_build_tenant_payload_tenant_id_never_contains_hyphens() {
+        // Regardless of URL format or env vars, the tenant_id must NEVER
+        // contain hyphens — the connection URL strips them and Supavisor
+        // would not find the tenant.
+
+        // Case 1: standard tenant_ DB name
+        let url1 = "postgres://u:p@h:5432/tenant_019e40ee11927492bc2985dad4675f34";
+        let (tid1, _) = build_tenant_payload(url1).unwrap();
+        assert!(!tid1.contains('-'), "standard DB: tenant_id must not have hyphens");
+
+        // Case 2: custom DB name with hyphenated override
+        std::env::set_var("SUPAVISOR_TENANT_ID", "tenant_a1b2c3d4e5f67890abcdef1234567890");
+        let url2 = "postgres://u:p@h:5432/some-custom-db-name";
+        let (tid2, _) = build_tenant_payload(url2).unwrap();
+        std::env::remove_var("SUPAVISOR_TENANT_ID");
+        assert!(!tid2.contains('-'), "BYOD: tenant_id must not have hyphens");
+
+        // Case 3: custom DB name without SUPAVISOR_TENANT_ID override
+        // (falls back to DB name from URL — caller is responsible for ensuring
+        // the correct format via SUPAVISOR_TENANT_ID for non-standard names)
+        let url3 = "postgres://u:p@h:5432/custom_db_name";
+        let (tid3, _) = build_tenant_payload(url3).unwrap();
+        assert!(!tid3.contains('-'), "fallback: tenant_id must not have hyphens");
+    }
+
+    #[test]
+    fn test_build_tenant_payload_tenant_id_matches_connection_format_exactly() {
+        // Roundtrip verification: given a standard DB URL, the tenant_id
+        // must match EXACTLY what diesel_pool::get_tenant_url() would embed
+        // in the Supavisor connection URL for the same workspace.
+        //
+        // This test duplicates the format from diesel_pool.rs to ensure
+        // both sides agree. If either test fails, the contract is broken.
+
+        // Simulate what provision_tenant_db + get_tenant_url would produce
+        let ws_id = uuid::Uuid::parse_str("a1b2c3d4-e5f6-7890-abcd-ef1234567890").unwrap();
+        let db_name = format!("tenant_{}", ws_id.to_string().replace('-', ""));
+        let provisioned_url = format!("postgres://admin:secret@db:5432/{db_name}");
+
+        let (tenant_id, _) = build_tenant_payload(&provisioned_url).unwrap();
+
+        // This is the SAME format as in get_tenant_url() — the contract
+        assert_eq!(tenant_id, db_name,
+            "tenant_id must equal the db_name from provision_tenant_db, \
+             which matches the tenant identifier in get_tenant_url()"
+        );
+        assert_eq!(tenant_id, "tenant_a1b2c3d4e5f67890abcdef1234567890");
+        assert_eq!(tenant_id.len(), 39);
+        assert!(!tenant_id.contains('-'));
+    }
+
+    #[test]
+    fn test_build_tenant_payload_tenant_id_format_length_invariant() {
+        // The tenant_id for standard workspace DBs is always exactly
+        // 39 characters: "tenant_" (7) + 32 hex digits.
+        let url = "postgres://u:p@h:5432/tenant_0123456789abcdef0123456789abcdef";
+        let (tenant_id, _) = build_tenant_payload(url).unwrap();
+        assert_eq!(
+            tenant_id.len(),
+            39,
+            "tenant_id must be 39 chars, got {}: '{tenant_id}'",
+            tenant_id.len()
+        );
+    }
+
+    #[test]
     fn test_generate_supavisor_token_valid() {
         let secret = "super_secret_test_key_with_at_least_32_bytes_length";
         let token = generate_supavisor_token(secret).expect("Should generate token");

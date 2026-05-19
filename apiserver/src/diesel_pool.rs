@@ -417,6 +417,200 @@ mod tests {
         );
     }
 
+    // ─────────────────────────────────────────────────────────────────────
+    // Contract: get_tenant_url() MUST produce URLs whose tenant identifier
+    // matches the tenant_id returned by build_tenant_payload().
+    //
+    // The format is: tenant_<uuid-without-hyphens>
+    //
+    // This invariant is load-bearing. If either side changes format
+    // without updating the other, the Supavisor pooler returns:
+    //   "Tenant or user not found"
+    //
+    // These tests lock down the format so it cannot drift.
+    // ─────────────────────────────────────────────────────────────────────
+
+    fn expected_tenant_name(ws_id: &Uuid) -> String {
+        format!("tenant_{}", ws_id.to_string().replace('-', ""))
+    }
+
+    // ── Supavisor mode: tenant name in user suffix AND path ──────────────
+
+    #[test]
+    fn test_get_tenant_url_supavisor_mode_standard_uuid() {
+        let base_url = "postgres://admin.leeattend:pass@supavisor:5452/leeattend";
+        let manager = ProductionTenantPoolManager::new(base_url.to_string(), 5);
+        let ws = Uuid::parse_str("019e40ee-1192-7492-bc29-85dad4675f34").unwrap();
+
+        let url = manager.get_tenant_url(&ws).unwrap();
+        let expected = expected_tenant_name(&ws);
+
+        let parsed = reqwest::Url::parse(&url).unwrap();
+        let username = parsed.username();
+        assert!(username.contains('.'), "Supavisor mode: username must contain dot");
+        let tenant_in_user = username.split('.').nth(1).unwrap();
+        assert_eq!(tenant_in_user, expected,
+            "supavisor user suffix must be tenant_<uuid-no-hyphens>"
+        );
+        assert_eq!(parsed.path(), format!("/{expected}"),
+            "supavisor db path must be /tenant_<uuid-no-hyphens>"
+        );
+    }
+
+    #[test]
+    fn test_get_tenant_url_supavisor_mode_nil_uuid() {
+        let base_url = "postgres://admin.leeattend:pass@supavisor:5452/leeattend";
+        let manager = ProductionTenantPoolManager::new(base_url.to_string(), 5);
+        let ws = Uuid::parse_str("00000000-0000-0000-0000-000000000000").unwrap();
+
+        let url = manager.get_tenant_url(&ws).unwrap();
+        let expected = "tenant_00000000000000000000000000000000";
+        let parsed = reqwest::Url::parse(&url).unwrap();
+        let tenant_in_user = parsed.username().split('.').nth(1).unwrap();
+        assert_eq!(tenant_in_user, expected, "nil UUID must become tenant_<32-zeros>");
+        assert!(!tenant_in_user.contains('-'), "tenant name must never contain hyphens");
+    }
+
+    #[test]
+    fn test_get_tenant_url_supavisor_mode_max_uuid() {
+        let base_url = "postgres://admin.leeattend:pass@supavisor:5452/leeattend";
+        let manager = ProductionTenantPoolManager::new(base_url.to_string(), 5);
+        let ws = Uuid::parse_str("ffffffff-ffff-ffff-ffff-ffffffffffff").unwrap();
+
+        let url = manager.get_tenant_url(&ws).unwrap();
+        // All 'f' chars, no hyphens
+        assert!(url.contains("tenant_ffffffffffffffffffffffffffffffff"),
+            "max UUID must strip all hyphens");
+    }
+
+    #[test]
+    fn test_get_tenant_url_never_contains_hyphens_in_tenant_name() {
+        // The tenant identifier embedded in the URL is used by Supavisor for
+        // routing. UUID hyphens are stripped because database names cannot
+        // contain them.
+
+        let base_url = "postgres://admin.leeattend:pass@supavisor:5452/leeattend";
+        let manager = ProductionTenantPoolManager::new(base_url.to_string(), 5);
+
+        // Test several random UUIDs — none should produce hyphens in the tenant part
+        for _ in 0..10 {
+            let ws = Uuid::new_v4();
+            let url = manager.get_tenant_url(&ws).unwrap();
+            let parsed = reqwest::Url::parse(&url).unwrap();
+            let username = parsed.username();
+            let tenant_name = username.split('.').nth(1).unwrap();
+            assert!(!tenant_name.contains('-'),
+                "tenant name '{tenant_name}' must never contain hyphens"
+            );
+            assert!(
+                tenant_name.starts_with("tenant_"),
+                "tenant name must start with 'tenant_': got '{tenant_name}'"
+            );
+            // UUID is 32 hex chars, plus "tenant_" = 39 chars
+            assert_eq!(
+                tenant_name.len(),
+                39,
+                "tenant name must be exactly 39 chars (tenant_ + 32 hex): got {}",
+                tenant_name.len()
+            );
+        }
+    }
+
+    #[test]
+    fn test_get_tenant_url_tenant_name_is_predictable_from_workspace_id() {
+        // The tenant name is deterministic: tenant_ + UUID with hyphens removed.
+        // This test ensures the algorithm is fixed and cannot be changed
+        // without breaking the Supavisor contract.
+        let base_url = "postgres://admin.leeattend:pass@supavisor:5452/leeattend";
+        let manager = ProductionTenantPoolManager::new(base_url.to_string(), 5);
+
+        let ws = Uuid::parse_str("a1b2c3d4-e5f6-7890-abcd-ef1234567890").unwrap();
+        let url = manager.get_tenant_url(&ws).unwrap();
+
+        // Expected: all hyphens removed from the UUID
+        let expected_name = "tenant_a1b2c3d4e5f67890abcdef1234567890";
+        let parsed = reqwest::Url::parse(&url).unwrap();
+        let tenant_in_user = parsed.username().split('.').nth(1).unwrap();
+        assert_eq!(tenant_in_user, expected_name);
+        assert_eq!(parsed.path(), format!("/{expected_name}"));
+    }
+
+    // ── Direct connection mode: no dot in user, tenant name in path only ─
+
+    #[test]
+    fn test_get_tenant_url_direct_connection_uses_tenant_prefix_in_path() {
+        let base_url = "postgres://user:pass@localhost:5432/postgres";
+        let manager = ProductionTenantPoolManager::new(base_url.to_string(), 5);
+        let ws = Uuid::parse_str("123e4567-e89b-12d3-a456-426614174000").unwrap();
+        let url = manager.get_tenant_url(&ws).unwrap();
+
+        let expected_path = "/tenant_123e4567e89b12d3a456426614174000";
+        let parsed = reqwest::Url::parse(&url).unwrap();
+        assert_eq!(parsed.path(), expected_path);
+        // Direct connection: user unchanged
+        assert_eq!(parsed.username(), "user");
+        assert!(!parsed.username().contains('.'));
+    }
+
+    #[test]
+    fn test_get_tenant_url_direct_connection_various_uuids() {
+        let base_url = "postgres://user:pass@localhost:5432/postgres";
+        let manager = ProductionTenantPoolManager::new(base_url.to_string(), 5);
+
+        let cases = [
+            ("00000000-0000-0000-0000-000000000000", "tenant_00000000000000000000000000000000"),
+            ("ffffffff-ffff-ffff-ffff-ffffffffffff", "tenant_ffffffffffffffffffffffffffffffff"),
+            ("a1b2c3d4-e5f6-7890-abcd-ef1234567890", "tenant_a1b2c3d4e5f67890abcdef1234567890"),
+        ];
+
+        for (uuid_str, expected_path) in &cases {
+            let ws = Uuid::parse_str(uuid_str).unwrap();
+            let url = manager.get_tenant_url(&ws).unwrap();
+            let parsed = reqwest::Url::parse(&url).unwrap();
+            assert_eq!(parsed.path(), format!("/{expected_path}"),
+                "direct connection: UUID {uuid_str} must produce path /{expected_path}"
+            );
+        }
+    }
+
+    // ── Cross-contract: URL tenant name must match registration tenant_id ─
+
+    #[test]
+    fn test_get_tenant_url_tenant_name_roundtrip_with_expected_registration_id() {
+        // This is the definitive cross-module contract:
+        //   get_tenant_url(ws_id) embeds a tenant name T in the connection URL.
+        //   build_tenant_payload(db_url_with_T) must produce tenant_id = T.
+        //
+        // We verify the tenant name extracted from the URL is exactly what
+        // the registration side expects.
+
+        let supavisor_base = "postgres://admin.leeattend:pass@supavisor:5452/leeattend";
+        let direct_base = "postgres://user:pass@localhost:5432/postgres";
+
+        let ws = Uuid::parse_str("019e40ee-1192-7492-bc29-85dad4675f34").unwrap();
+        let expected = "tenant_019e40ee11927492bc2985dad4675f34";
+
+        // Supavisor mode
+        let url = ProductionTenantPoolManager::new(supavisor_base.to_string(), 5)
+            .get_tenant_url(&ws).unwrap();
+        let parsed = reqwest::Url::parse(&url).unwrap();
+        let tenant_in_user = parsed.username().split('.').nth(1).unwrap();
+        assert_eq!(tenant_in_user, expected);
+        assert_eq!(parsed.path().trim_start_matches('/'), expected);
+
+        // Direct mode: path only
+        let url2 = ProductionTenantPoolManager::new(direct_base.to_string(), 5)
+            .get_tenant_url(&ws).unwrap();
+        let parsed2 = reqwest::Url::parse(&url2).unwrap();
+        assert_eq!(parsed2.path().trim_start_matches('/'), expected);
+
+        // Also verify format properties
+        assert_eq!(expected.len(), 39); // "tenant_" + 32 hex chars
+        assert!(expected.starts_with("tenant_"));
+        assert!(!expected.contains('-'));
+        assert!(expected.chars().skip(7).all(|c| c.is_ascii_hexdigit()));
+    }
+
     #[tokio::test]
     async fn test_tenant_pool_manager_test_mode_returns_same_pool() {
         let base_url = "postgres://user:pass@localhost:5432/leeattend_test_db";

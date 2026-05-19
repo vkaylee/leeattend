@@ -126,11 +126,16 @@ pub async fn create_tenant(
         .provision_tenant_db(&workspace_id, req.custom_db_url.clone())
         .await?;
 
-    // 2. Build dynamic Supavisor payload
+    // 2. Build dynamic Supavisor payload.
+    // Tenant ID must match the format produced by diesel_pool::get_tenant_url():
+    // tenant_<uuid-without-hyphens>. Using the raw UUID would cause a mismatch
+    // when the API server connects through Supavisor.
+    let tenant_id_alias =
+        format!("tenant_{}", req.workspace_id.to_string().replace('-', ""));
     if let Some(size) = req.pool_size {
         std::env::set_var("SUPAVISOR_POOL_SIZE", size.to_string());
     }
-    std::env::set_var("SUPAVISOR_TENANT_ID", req.workspace_id.to_string());
+    std::env::set_var("SUPAVISOR_TENANT_ID", &tenant_id_alias);
 
     let payload_opt = build_tenant_payload(&new_db_url);
 

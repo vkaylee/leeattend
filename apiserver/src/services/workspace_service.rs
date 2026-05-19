@@ -75,11 +75,13 @@ impl WorkspaceService {
             .await
             .map_err(|e| format!("Failed to provision DB: {e}"))?;
 
-        // 4. Register Tenant with Supavisor connection pooler
-        if let Some((_, payload)) = crate::supavisor::build_tenant_payload(&new_db_url) {
-            // Use workspace_id as tenant alias in Supavisor
+        // 4. Register Tenant with Supavisor connection pooler.
+        // The tenant_id must match the format produced by diesel_pool::get_tenant_url(),
+        // which constructs tenant_<uuid-without-hyphens>. Using the raw UUID with hyphens
+        // causes a mismatch when the API connects via Supavisor.
+        if let Some((tenant_id, payload)) = crate::supavisor::build_tenant_payload(&new_db_url) {
             self.tenant_manager
-                .register_tenant_dynamic(&ws.id.to_string(), &payload)
+                .register_tenant_dynamic(&tenant_id, &payload)
                 .await
                 .map_err(|e| format!("Failed to register with Supavisor: {e}"))?;
         }
@@ -601,9 +603,12 @@ mod tests {
             "should have registered exactly one tenant with Supavisor"
         );
         let (tenant_id, payload) = &registered[0];
+        // Tenant ID must match the format produced by diesel_pool::get_tenant_url() —
+        // tenant_<uuid-without-hyphens> — not the raw UUID.
+        let expected_tenant_id = format!("tenant_{}", ws.id.to_string().replace('-', ""));
         assert_eq!(
-            tenant_id, &ws.id.to_string(),
-            "tenant_id should match workspace id"
+            tenant_id, &expected_tenant_id,
+            "tenant_id must use the same format as diesel_pool::get_tenant_url()"
         );
         // Verify payload contains expected Supavisor tenant config
         let tenant = payload
