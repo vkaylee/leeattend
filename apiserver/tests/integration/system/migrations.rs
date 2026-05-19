@@ -256,3 +256,116 @@ async fn test_run_tenant_migrations_on_existing_workspace() {
             .await;
     }
 }
+
+#[tokio::test]
+async fn test_notifications_table_in_system_db() {
+    let base_url = std::env::var("DATABASE_URL_FOR_TEST_GENERATION")
+        .or_else(|_| std::env::var("DATABASE_URL"))
+        .expect("DATABASE_URL_FOR_TEST_GENERATION or DATABASE_URL must be set");
+
+    let mut url_parts: Vec<&str> = base_url.split('/').collect();
+    let _ = url_parts.pop().unwrap_or("postgres");
+    let base_connection_string = url_parts.join("/");
+
+    let admin_url = format!("{base_connection_string}/test_database");
+    let db_name = format!("test_notif_sys_{}", Uuid::new_v4().simple());
+
+    let (admin_client, admin_conn) = tokio_postgres::connect(&admin_url, NoTls)
+        .await
+        .expect("Failed to connect to admin DB");
+    tokio::spawn(async move {
+        let _ = admin_conn.await;
+    });
+
+    admin_client
+        .execute(&format!("CREATE DATABASE \"{db_name}\""), &[])
+        .await
+        .expect("Failed to create test DB");
+
+    let db_url = format!("{base_connection_string}/{db_name}");
+
+    // 1. Run system migrations (creates users + notifications tables)
+    let url_clone = db_url.clone();
+    tokio::task::spawn_blocking(move || {
+        DieselPools::run_system_migrations(&DbPoolConfig {
+            primary_url: url_clone,
+            pooler_url: None,
+            reader_url: None,
+            api_max_conn: 1,
+            api_acquire_timeout_secs: 5,
+            worker_max_conn: 1,
+            worker_acquire_timeout_secs: 5,
+            tenant_max_conn: 1,
+        });
+    })
+    .await
+    .unwrap();
+
+    let (client, conn) = tokio_postgres::connect(&db_url, NoTls).await.unwrap();
+    tokio::spawn(async move { let _ = conn.await; });
+
+    // 2. Verify notifications table exists in system DB
+    let row = client
+        .query_one(
+            "SELECT EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'notifications');",
+            &[],
+        )
+        .await
+        .unwrap();
+    assert!(
+        row.get::<_, bool>(0),
+        "notifications table should exist in system DB after system migrations"
+    );
+
+    // 3. Verify FK cascade: insert user + notification, delete user → notification cascade-deleted
+    let user_id = Uuid::new_v4();
+    let notif_id = Uuid::new_v4();
+
+    client
+        .execute(
+            &format!("INSERT INTO users (id, email, password_hash) VALUES ('{user_id}', 'test@test.com', 'hash')"),
+            &[],
+        )
+        .await
+        .unwrap();
+
+    client
+        .execute(
+            &format!("INSERT INTO notifications (id, user_id, type, title, content) VALUES ('{notif_id}', '{user_id}', 'test', 'Test', 'Body')"),
+            &[],
+        )
+        .await
+        .unwrap();
+
+    // Verify notification exists
+    let row = client
+        .query_one(&format!("SELECT COUNT(*) FROM notifications WHERE id = '{notif_id}'"), &[])
+        .await
+        .unwrap();
+    let count: i64 = row.get(0);
+    assert_eq!(count, 1, "notification should exist");
+
+    // Delete user → notification should be cascade-deleted
+    client
+        .execute(&format!("DELETE FROM users WHERE id = '{user_id}'"), &[])
+        .await
+        .unwrap();
+
+    let row = client
+        .query_one(&format!("SELECT COUNT(*) FROM notifications WHERE id = '{notif_id}'"), &[])
+        .await
+        .unwrap();
+    let count: i64 = row.get(0);
+    assert_eq!(count, 0, "notification should be cascade-deleted with user");
+
+    drop(client);
+
+    // Cleanup
+    let kill = format!(
+        "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '{db_name}' AND pid <> pg_backend_pid()"
+    );
+    let _ = admin_client.execute(&kill, &[]).await;
+    let _ = admin_client
+        .execute(&format!("DROP DATABASE IF EXISTS \"{db_name}\""), &[])
+        .await;
+}
