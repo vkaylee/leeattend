@@ -265,7 +265,7 @@ impl DieselPools {
             "Running tenant migrations on existing workspaces"
         );
 
-        let base_url = config.pooler_url.as_deref().unwrap_or(&config.primary_url);
+        let base_url = &config.primary_url;
 
         for row in &workspace_rows {
             let db_name = format!("tenant_{}", row.id.to_string().replace('-', ""));
