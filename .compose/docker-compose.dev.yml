@@ -88,7 +88,7 @@ services:
   webdashboard:
     image: localhost/leeattend_dev_webdashboard
     build:
-      context: ../webdashboard
+      context: ./webdashboard
       dockerfile: Dockerfile
       target: dev
     command: >-

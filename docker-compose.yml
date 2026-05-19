@@ -116,8 +116,8 @@ services:
   webdashboard:
     image: localhost/leeattend_webdashboard
     build:
-      context: .
-      dockerfile: webdashboard/Dockerfile
+      context: ./webdashboard
+      dockerfile: Dockerfile
       target: runtime
     restart: always
     networks:
