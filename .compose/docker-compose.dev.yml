@@ -37,8 +37,7 @@ services:
     working_dir: /app/apiserver
     command: >-
       sh -c 'mkdir -p /var/log/app &&
-      diesel migration run &&
-      cargo watch -w src -w migrations -x run 2>&1 | tee -a /var/log/app/apiserver.log'
+      cargo watch -w src -w migrations/system -w migrations/tenant -x run 2>&1 | tee -a /var/log/app/apiserver.log'
     environment:
       - RUST_BACKTRACE=1
       - RUST_LOG=apiserver=debug,tower_http=debug
