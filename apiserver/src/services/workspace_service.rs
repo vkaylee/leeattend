@@ -495,15 +495,26 @@ mod tests {
             if let Some(url) = custom_db_url {
                 Ok(url)
             } else {
+                let db_name = format!("tenant_{}", workspace_id.to_string().replace('-', ""));
                 Ok(format!(
-                    "tenant_{}",
-                    workspace_id.to_string().replace("-", "")
+                    "postgres://test_user:test_password@localhost:5432/{db_name}"
                 ))
             }
         }
     }
 
-    struct MockTenantManager;
+    struct MockTenantManager {
+        registered: std::sync::Mutex<Vec<(String, serde_json::Value)>>,
+    }
+
+    impl MockTenantManager {
+        fn new() -> Self {
+            Self {
+                registered: std::sync::Mutex::new(Vec::new()),
+            }
+        }
+    }
+
     #[async_trait]
     impl crate::supavisor::TenantManager for MockTenantManager {
         async fn init_tenant(&self) {}
@@ -512,9 +523,13 @@ mod tests {
         }
         async fn register_tenant_dynamic(
             &self,
-            _tenant_id: &str,
-            _payload: &serde_json::Value,
+            tenant_id: &str,
+            payload: &serde_json::Value,
         ) -> crate::errors::AppResult<()> {
+            self.registered
+                .lock()
+                .unwrap()
+                .push((tenant_id.to_string(), payload.clone()));
             Ok(())
         }
         async fn get_tenant(
@@ -526,6 +541,16 @@ mod tests {
     }
 
     fn build_service(user_exists: bool) -> WorkspaceService {
+        build_service_with_tenant_manager(
+            user_exists,
+            std::sync::Arc::new(MockTenantManager::new()),
+        )
+    }
+
+    fn build_service_with_tenant_manager(
+        user_exists: bool,
+        tenant_manager: std::sync::Arc<dyn crate::supavisor::TenantManager>,
+    ) -> WorkspaceService {
         WorkspaceService::new(
             std::sync::Arc::new(MockWorkspaceRepo {
                 workspace: Some(dummy_workspace()),
@@ -533,7 +558,7 @@ mod tests {
             }),
             std::sync::Arc::new(MockUserRepo { user_exists }),
             std::sync::Arc::new(MockTenantProvisioner),
-            std::sync::Arc::new(MockTenantManager),
+            tenant_manager,
         )
     }
 
@@ -557,6 +582,41 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(ws.name, "Acme Corp");
+    }
+
+    #[tokio::test]
+    async fn test_create_workspace_registers_tenant_with_supavisor() {
+        let tenant_manager = std::sync::Arc::new(MockTenantManager::new());
+        let svc = build_service_with_tenant_manager(true, tenant_manager.clone());
+
+        let ws = svc
+            .create_workspace("Acme Corp", Uuid::new_v4())
+            .await
+            .unwrap();
+
+        let registered = tenant_manager.registered.lock().unwrap();
+        assert_eq!(
+            registered.len(),
+            1,
+            "should have registered exactly one tenant with Supavisor"
+        );
+        let (tenant_id, payload) = &registered[0];
+        assert_eq!(
+            tenant_id, &ws.id.to_string(),
+            "tenant_id should match workspace id"
+        );
+        // Verify payload contains expected Supavisor tenant config
+        let tenant = payload
+            .get("tenant")
+            .expect("payload should have 'tenant' key");
+        assert!(tenant.get("db_host").is_some(), "should have db_host");
+        assert!(tenant.get("db_port").is_some(), "should have db_port");
+        assert!(tenant.get("db_database").is_some(), "should have db_database");
+        let db_name = tenant["db_database"].as_str().unwrap();
+        assert!(
+            db_name.starts_with("tenant_"),
+            "db_database should start with 'tenant_': got {db_name}"
+        );
     }
 
     #[tokio::test]
