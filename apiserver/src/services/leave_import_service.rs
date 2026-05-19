@@ -229,7 +229,7 @@ impl LeaveImportService {
     ) -> Result<(), ()> {
         let file_bytes = tokio::fs::read(file_path).await.map_err(|_e| ())?;
 
-        let Ok(Some(job)) = self.deps.import_job_repo.get_job_by_id(import_job_id).await else {
+        let Ok(Some(job)) = self.deps.import_job_repo.get_job_by_id(workspace_id, import_job_id).await else {
             return Err(());
         };
 

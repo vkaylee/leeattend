@@ -24,12 +24,7 @@ impl DieselImportJobRepository {
 #[async_trait]
 impl ImportJobRepository for DieselImportJobRepository {
     async fn create_job(&self, job: &AttendanceImportJob) -> Result<(), AppError> {
-        let mut conn = self
-            .diesel_pools
-            .api
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = self.diesel_pools.tenant_conn(job.workspace_id).await?;
 
         diesel::sql_query(
             "INSERT INTO attendance_import_jobs (id, workspace_id, user_id, status, total_rows, processed_rows, file_path, error_log, target_type, created_at, updated_at) VALUES ($1, $2, $3, $4::import_job_status_type, $5, $6, $7, $8, $9, $10, $11)"
@@ -54,17 +49,13 @@ impl ImportJobRepository for DieselImportJobRepository {
 
     async fn update_job_progress(
         &self,
+        workspace_id: Uuid,
         id: Uuid,
         processed_rows: i32,
         status: ImportJobStatus,
         error_log: Option<String>,
     ) -> Result<(), AppError> {
-        let mut conn = self
-            .diesel_pools
-            .api
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = self.diesel_pools.tenant_conn(workspace_id).await?;
 
         diesel::sql_query(
             "UPDATE attendance_import_jobs SET processed_rows = $1, status = $2::import_job_status_type, error_log = $3, updated_at = $4 WHERE id = $5"
@@ -81,13 +72,8 @@ impl ImportJobRepository for DieselImportJobRepository {
         Ok(())
     }
 
-    async fn get_job_by_id(&self, id: Uuid) -> Result<Option<AttendanceImportJob>, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .api
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+    async fn get_job_by_id(&self, workspace_id: Uuid, id: Uuid) -> Result<Option<AttendanceImportJob>, AppError> {
+        let mut conn = self.diesel_pools.tenant_conn(workspace_id).await?;
 
         let row: Option<ImportJobEntity> = diesel::sql_query(
             "SELECT id, workspace_id, user_id, status::text, total_rows, processed_rows, file_path, error_log, target_type::text, created_at, updated_at FROM attendance_import_jobs WHERE id = $1"
@@ -106,12 +92,7 @@ impl ImportJobRepository for DieselImportJobRepository {
         workspace_id: Uuid,
         target_type: Option<ImportTargetType>,
     ) -> Result<Option<AttendanceImportJob>, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .api
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = self.diesel_pools.tenant_conn(workspace_id).await?;
 
         let row: Option<ImportJobEntity> = if let Some(tt) = target_type {
             diesel::sql_query(
@@ -135,13 +116,8 @@ impl ImportJobRepository for DieselImportJobRepository {
         Ok(row.map(Into::into))
     }
 
-    async fn get_pending_jobs(&self) -> Result<Vec<AttendanceImportJob>, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .api
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+    async fn get_pending_jobs(&self, workspace_id: Uuid) -> Result<Vec<AttendanceImportJob>, AppError> {
+        let mut conn = self.diesel_pools.tenant_conn(workspace_id).await?;
 
         let rows: Vec<ImportJobEntity> = diesel::sql_query(
             "SELECT id, workspace_id, user_id, status::text, total_rows, processed_rows, file_path, error_log, target_type::text, created_at, updated_at FROM attendance_import_jobs WHERE status = 'processing'"
@@ -153,13 +129,8 @@ impl ImportJobRepository for DieselImportJobRepository {
         Ok(rows.into_iter().map(Into::into).collect())
     }
 
-    async fn update_job_total_rows(&self, id: Uuid, total_rows: i32) -> Result<(), AppError> {
-        let mut conn = self
-            .diesel_pools
-            .api
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+    async fn update_job_total_rows(&self, workspace_id: Uuid, id: Uuid, total_rows: i32) -> Result<(), AppError> {
+        let mut conn = self.diesel_pools.tenant_conn(workspace_id).await?;
 
         diesel::sql_query(
             "UPDATE attendance_import_jobs SET total_rows = $1, updated_at = $2 WHERE id = $3",

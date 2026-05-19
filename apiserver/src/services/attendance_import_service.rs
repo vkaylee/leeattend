@@ -480,7 +480,7 @@ impl AttendanceImportService {
 
         let svc = self.clone();
         tokio::spawn(async move {
-            let _ = svc.process_job(job_id).await;
+            let _ = svc.process_job(workspace_id, job_id).await;
         });
 
         Ok(job_id)
@@ -496,10 +496,22 @@ impl AttendanceImportService {
 
     #[tracing::instrument(skip_all)]
     pub async fn resume_all_pending_jobs(&self) {
-        if let Ok(jobs) = self.import_repo.get_pending_jobs().await {
+        // Get all workspaces from system DB, then query each tenant for pending jobs
+        let workspaces = match self.workspace_repo.get_all_workspaces().await {
+            Ok(ws) => ws,
+            Err(e) => {
+                error!("Failed to list workspaces for resume: {:?}", e);
+                return;
+            }
+        };
+
+        for workspace in workspaces {
+            let Ok(jobs) = self.import_repo.get_pending_jobs(workspace.id).await else {
+                continue;
+            };
+
             for job in jobs {
                 if !Self::should_resume_job(&job.target_type) {
-                    // Handled by JobQueue now.
                     continue;
                 }
 
@@ -509,16 +521,17 @@ impl AttendanceImportService {
                     job.target_type.to_string()
                 );
                 let svc = self.clone();
+                let ws_id = workspace.id;
                 tokio::spawn(async move {
-                    let _ = svc.process_job(job.id).await;
+                    let _ = svc.process_job(ws_id, job.id).await;
                 });
             }
         }
     }
 
-    #[tracing::instrument(skip_all)]
-    pub async fn process_job(&self, job_id: Uuid) -> Result<(), ()> {
-        let Ok(Some(job)) = self.import_repo.get_job_by_id(job_id).await else {
+    #[tracing::instrument(skip(self))]
+    pub async fn process_job(&self, workspace_id: Uuid, job_id: Uuid) -> Result<(), ()> {
+        let Ok(Some(job)) = self.import_repo.get_job_by_id(workspace_id, job_id).await else {
             return Err(());
         };
 
@@ -531,6 +544,7 @@ impl AttendanceImportService {
             let _ = self
                 .import_repo
                 .update_job_progress(
+                    workspace_id,
                     job_id,
                     job.processed_rows,
                     ImportJobStatus::Failed,
@@ -561,6 +575,7 @@ impl AttendanceImportService {
                 let _ = self
                     .import_repo
                     .update_job_progress(
+                        workspace_id,
                         job_id,
                         job.processed_rows,
                         ImportJobStatus::Failed,
@@ -625,6 +640,7 @@ impl AttendanceImportService {
                 let _ = self
                     .import_repo
                     .update_job_progress(
+                        job.workspace_id,
                         job_id,
                         0,
                         ImportJobStatus::Failed,

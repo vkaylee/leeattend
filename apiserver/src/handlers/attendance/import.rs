@@ -249,12 +249,12 @@ pub async fn get_latest_import_job(
 pub async fn get_import_job_status(
     State(state): State<Arc<AppState>>,
     MemberContext { .. }: MemberContext,
-    Path((_, job_id)): Path<(Uuid, Uuid)>,
+    Path((workspace_id, job_id)): Path<(Uuid, Uuid)>,
 ) -> AppResult<Json<AttendanceImportJob>> {
     let mut job = state
         .attendance
         .import_repo
-        .get_job_by_id(job_id)
+        .get_job_by_id(workspace_id, job_id)
         .await?
         .ok_or_else(|| AppError::NotFound("Job not found".to_string()))?;
 
@@ -283,7 +283,7 @@ pub async fn download_import_error_file(
     let job = state
         .attendance
         .import_repo
-        .get_job_by_id(job_id)
+        .get_job_by_id(workspace_id, job_id)
         .await?
         .ok_or_else(|| AppError::NotFound("Job not found".to_string()))?;
 

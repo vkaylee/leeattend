@@ -7,6 +7,7 @@ use crate::repositories::import_job_repository::ImportJobRepository;
 /// Guard to prevent import jobs from getting stuck in "Processing" state
 /// when the job runner terminates the task due to timeout.
 pub struct ImportTimeoutGuard {
+    workspace_id: uuid::Uuid,
     job_id: uuid::Uuid,
     completed: Arc<AtomicBool>,
     import_repo: Arc<dyn ImportJobRepository>,
@@ -14,11 +15,13 @@ pub struct ImportTimeoutGuard {
 
 impl ImportTimeoutGuard {
     pub fn new(
+        workspace_id: uuid::Uuid,
         job_id: uuid::Uuid,
         completed: Arc<AtomicBool>,
         import_repo: Arc<dyn ImportJobRepository>,
     ) -> Self {
         Self {
+            workspace_id,
             job_id,
             completed,
             import_repo,
@@ -29,16 +32,19 @@ impl ImportTimeoutGuard {
 impl Drop for ImportTimeoutGuard {
     fn drop(&mut self) {
         if !self.completed.load(Ordering::SeqCst) {
+            let workspace_id = self.workspace_id;
             let job_id = self.job_id;
             let repo = Arc::clone(&self.import_repo);
             tokio::spawn(async move {
-                let current_rows = if let Ok(Some(job)) = repo.get_job_by_id(job_id).await {
-                    job.processed_rows
-                } else {
-                    0
-                };
+                let current_rows =
+                    if let Ok(Some(job)) = repo.get_job_by_id(workspace_id, job_id).await {
+                        job.processed_rows
+                    } else {
+                        0
+                    };
                 if let Err(e) = repo
                     .update_job_progress(
+                        workspace_id,
                         job_id,
                         current_rows,
                         ImportJobStatus::Failed,

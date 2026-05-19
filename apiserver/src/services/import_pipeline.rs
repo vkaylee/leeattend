@@ -59,7 +59,7 @@ impl<S: ImportStrategy> ImportPipeline<'_, S> {
         if let Err(e) = self.strategy.init(&self.deps, self.job).await {
             let _ = self
                 .import_repo
-                .update_job_progress(self.job.id, 0, ImportJobStatus::Failed, Some(e))
+                .update_job_progress(self.job.workspace_id, self.job.id, 0, ImportJobStatus::Failed, Some(e))
                 .await;
             return Err(());
         }
@@ -108,7 +108,7 @@ impl<S: ImportStrategy> ImportPipeline<'_, S> {
             let total_rows = pending_rows.len() as i32 + failed_rows_data.len() as i32;
             let _ = self
                 .import_repo
-                .update_job_total_rows(self.job.id, total_rows)
+                .update_job_total_rows(self.job.workspace_id, self.job.id, total_rows)
                 .await;
         }
 
@@ -146,6 +146,7 @@ impl<S: ImportStrategy> ImportPipeline<'_, S> {
                     let _ = self
                         .import_repo
                         .update_job_progress(
+                            self.job.workspace_id,
                             self.job.id,
                             processed_rows,
                             ImportJobStatus::Processing,
@@ -247,7 +248,7 @@ impl<S: ImportStrategy> ImportPipeline<'_, S> {
         } else {
             let _ = self
                 .import_repo
-                .update_job_progress(self.job.id, processed_rows, status, final_log)
+                .update_job_progress(self.job.workspace_id, self.job.id, processed_rows, status, final_log)
                 .await;
 
             if let Some(file_path) = &self.job.file_path {
@@ -317,11 +318,11 @@ mod tests {
 
         mock_import_repo
             .expect_update_job_total_rows()
-            .returning(|_, _| Ok(()));
+            .returning(|_, _, _| Ok(()));
 
         mock_import_repo
             .expect_update_job_progress()
-            .returning(|_, _, _, _| Ok(()));
+            .returning(|_, _, _, _, _| Ok(()));
 
         let job = AttendanceImportJob {
             id: Uuid::new_v4(),
@@ -353,12 +354,13 @@ mod tests {
         mock_import_repo
             .expect_update_job_progress()
             .with(
+                mockall::predicate::eq(job.workspace_id),
                 mockall::predicate::eq(job.id),
                 mockall::predicate::eq(0),
                 mockall::predicate::eq(ImportJobStatus::Failed),
                 mockall::predicate::always(), // should contain error log
             )
-            .returning(|_, _, _, _| Ok(()));
+            .returning(|_, _, _, _, _| Ok(()));
 
         // Create dummy deps
         let deps = MockWorkerDepsBuilder::new().build();

@@ -15,7 +15,7 @@ CREATE TYPE public.contract_status_enum AS ENUM (
 
 CREATE TABLE public.employee_contracts (
     id uuid DEFAULT gen_random_uuid() NOT NULL PRIMARY KEY,
-    workspace_id uuid NOT NULL REFERENCES public.workspaces(id) ON DELETE CASCADE,
+    workspace_id uuid NOT NULL,
     employee_id uuid NOT NULL REFERENCES public.employees(id) ON DELETE CASCADE,
     contract_number character varying(100),
     contract_type public.contract_type_enum NOT NULL,

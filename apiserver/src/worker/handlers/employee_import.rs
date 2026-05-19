@@ -35,7 +35,7 @@ impl EmployeeImportHandler {
 
         // Update import job → Processing
         let _ = import_repo
-            .update_job_progress(payload.import_job_id, 0, ImportJobStatus::Processing, None)
+            .update_job_progress(job.workspace_id, payload.import_job_id, 0, ImportJobStatus::Processing, None)
             .await;
 
         tracing::info!(
@@ -46,7 +46,7 @@ impl EmployeeImportHandler {
         );
 
         let import_job = import_repo
-            .get_job_by_id(payload.import_job_id)
+            .get_job_by_id(job.workspace_id, payload.import_job_id)
             .await
             .map_err(|e| format!("DB error: {e}"))?
             .ok_or("Job not found".to_string())?;
@@ -66,12 +66,12 @@ impl EmployeeImportHandler {
 
         let total_rows = rows.len();
         let _ = import_repo
-            .update_job_total_rows(payload.import_job_id, total_rows as i32)
+            .update_job_total_rows(job.workspace_id, payload.import_job_id, total_rows as i32)
             .await;
 
         if total_rows == 0 {
             let _ = import_repo
-                .update_job_progress(payload.import_job_id, 0, ImportJobStatus::Completed, None)
+                .update_job_progress(job.workspace_id, payload.import_job_id, 0, ImportJobStatus::Completed, None)
                 .await;
             return Ok(());
         }
@@ -171,6 +171,7 @@ impl EmployeeImportChunkHandler {
         // Wait, if a chunk times out, the guard sets the whole job to Failed.
         // This might be correct to halt the process, but we rely on chunk completion tracking.
         let _guard = ImportTimeoutGuard::new(
+            job.workspace_id,
             payload.import_job_id,
             Arc::clone(&completed),
             Arc::clone(&deps.import_job_repo),
@@ -178,7 +179,7 @@ impl EmployeeImportChunkHandler {
 
         let import_repo = Arc::clone(&deps.import_job_repo);
         let import_job = import_repo
-            .get_job_by_id(payload.import_job_id)
+            .get_job_by_id(job.workspace_id, payload.import_job_id)
             .await
             .map_err(|e| format!("DB error: {e}"))?
             .ok_or("Job not found".to_string())?;
@@ -290,17 +291,18 @@ mod tests {
         import_repo
             .expect_update_job_progress()
             .with(
+                mockall::predicate::eq(ws_id),
                 mockall::predicate::eq(import_job_id),
                 mockall::predicate::eq(0),
                 mockall::predicate::eq(ImportJobStatus::Processing),
                 mockall::predicate::eq(None),
             )
-            .returning(|_, _, _, _| Ok(()));
+            .returning(|_, _, _, _, _| Ok(()));
 
         import_repo
             .expect_get_job_by_id()
-            .with(mockall::predicate::eq(import_job_id))
-            .returning(move |_| {
+            .with(mockall::predicate::eq(ws_id), mockall::predicate::eq(import_job_id))
+            .returning(move |_, _| {
                 Ok(Some(crate::models::AttendanceImportJob {
                     id: import_job_id,
                     workspace_id: ws_id,
@@ -319,10 +321,11 @@ mod tests {
         import_repo
             .expect_update_job_total_rows()
             .with(
+                mockall::predicate::eq(ws_id),
                 mockall::predicate::eq(import_job_id),
                 mockall::predicate::eq(2),
             )
-            .returning(|_, _| Ok(()));
+            .returning(|_, _, _| Ok(()));
 
         let mut queue = crate::repositories::queue_repository::MockQueueRepository::new();
         queue.expect_enqueue_jobs().returning(|jobs| {

@@ -74,3 +74,71 @@ CREATE TABLE public.workspaces (
     default_holiday_ot_multiplier numeric(3,1) DEFAULT 3.0 NOT NULL,
     CONSTRAINT chk_workspace_name CHECK ((length((name)::text) > 0))
 );
+
+-- ============================================================
+-- Foreign Keys (within system database)
+-- ============================================================
+
+ALTER TABLE ONLY public.audit_logs
+    ADD CONSTRAINT audit_logs_actor_id_fkey FOREIGN KEY (actor_id) REFERENCES public.users(id) ON DELETE SET NULL;
+
+ALTER TABLE ONLY public.audit_logs
+    ADD CONSTRAINT audit_logs_target_user_id_fkey FOREIGN KEY (target_user_id) REFERENCES public.users(id) ON DELETE SET NULL;
+
+ALTER TABLE ONLY public.audit_logs
+    ADD CONSTRAINT audit_logs_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.authorized_agents
+    ADD CONSTRAINT authorized_agents_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.sessions
+    ADD CONSTRAINT sessions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.sessions
+    ADD CONSTRAINT sessions_token_key UNIQUE (token);
+
+ALTER TABLE ONLY public.system_roles
+    ADD CONSTRAINT system_roles_name_key UNIQUE (name);
+
+ALTER TABLE ONLY public.user_system_roles
+    ADD CONSTRAINT user_system_roles_assigned_by_fkey FOREIGN KEY (assigned_by) REFERENCES public.users(id) ON DELETE SET NULL;
+
+ALTER TABLE ONLY public.user_system_roles
+    ADD CONSTRAINT user_system_roles_role_id_fkey FOREIGN KEY (role_id) REFERENCES public.system_roles(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.user_system_roles
+    ADD CONSTRAINT user_system_roles_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+-- ============================================================
+-- Indexes
+-- ============================================================
+
+CREATE INDEX idx_audit_logs_actor_id ON public.audit_logs USING btree (actor_id);
+
+CREATE INDEX idx_audit_logs_created_at ON public.audit_logs USING btree (created_at);
+
+CREATE INDEX idx_audit_logs_target_user_id ON public.audit_logs USING btree (target_user_id);
+
+CREATE INDEX idx_audit_logs_workspace_id ON public.audit_logs USING btree (workspace_id);
+
+CREATE INDEX idx_authorized_agents_trusted ON public.authorized_agents USING btree (is_trusted);
+
+CREATE INDEX idx_authorized_agents_workspace ON public.authorized_agents USING btree (workspace_id);
+
+CREATE INDEX idx_sessions_token ON public.sessions USING btree (token);
+
+CREATE INDEX idx_sessions_user_id ON public.sessions USING btree (user_id);
+
+CREATE INDEX idx_user_system_roles_role_id ON public.user_system_roles USING btree (role_id);
+
+CREATE INDEX idx_user_system_roles_user_id ON public.user_system_roles USING btree (user_id);
+
+-- ============================================================
+-- Seed Data: Platform-level system roles
+-- ============================================================
+
+INSERT INTO system_roles (id, name, description) VALUES
+    ('c0000000-0000-0000-0000-000000000001', 'platform_admin', 'Full platform control: create/suspend workspaces, assign system roles, manage infrastructure'),
+    ('c0000000-0000-0000-0000-000000000002', 'support',        'Read-only cross-workspace access for debugging customer issues'),
+    ('c0000000-0000-0000-0000-000000000003', 'billing_admin',  'Manage billing, subscription plans, and invoicing')
+ON CONFLICT DO NOTHING;

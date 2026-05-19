@@ -57,6 +57,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize configurable database pools (API + Worker + optional Reader)
     let db_config = DbPoolConfig::from_env();
     DieselPools::run_system_migrations(&db_config);
+    DieselPools::run_tenant_migrations(&db_config);
 
     // Initialize Supavisor pooler tenant configuration if required
     // This MUST run before DbPools::connect because DbPools::connect attempts to connect

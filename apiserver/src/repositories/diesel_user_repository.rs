@@ -212,7 +212,7 @@ impl UserRepository for DieselUserRepository {
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let entities = users::table
-            .inner_join(workspace_members::table)
+            .inner_join(workspace_members::table.on(workspace_members::user_id.eq(users::id)))
             .filter(workspace_members::workspace_id.eq(workspace_id))
             .select(users::all_columns)
             .order(users::created_at.desc())

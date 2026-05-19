@@ -56,7 +56,7 @@ impl FinalizeImportHandler {
         };
 
         let _ = import_repo
-            .update_job_progress(payload.import_job_id, processed_rows, status, final_log)
+            .update_job_progress(job.workspace_id, payload.import_job_id, processed_rows, status, final_log)
             .await;
 
         // Cleanup Redis keys
@@ -70,7 +70,7 @@ impl FinalizeImportHandler {
             .await;
 
         // Cleanup file
-        if let Ok(Some(import_job)) = import_repo.get_job_by_id(payload.import_job_id).await {
+        if let Ok(Some(import_job)) = import_repo.get_job_by_id(job.workspace_id, payload.import_job_id).await {
             if let Some(file_path) = &import_job.file_path {
                 let _ = tokio::fs::remove_file(file_path).await;
             }
@@ -122,12 +122,12 @@ mod tests {
             crate::repositories::import_job_repository::MockImportJobRepository::new();
         import_repo
             .expect_update_job_progress()
-            .withf(|_, rows, status, err| {
+            .withf(|_, _, rows, status, err| {
                 *rows == 5 && *status == ImportJobStatus::Completed && err.is_none()
             })
-            .returning(|_, _, _, _| Ok(()));
+            .returning(|_, _, _, _, _| Ok(()));
 
-        import_repo.expect_get_job_by_id().returning(|_| Ok(None)); // Skip file cleanup
+        import_repo.expect_get_job_by_id().returning(|_, _| Ok(None)); // Skip file cleanup
 
         let mut builder = MockWorkerDepsBuilder::new();
         builder.import_job_repo = import_repo;

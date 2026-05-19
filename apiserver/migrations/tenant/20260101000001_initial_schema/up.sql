@@ -501,15 +501,6 @@ CREATE TABLE public.leave_types (
     policy_config jsonb DEFAULT '{}'::jsonb NOT NULL
 );
 
-CREATE TABLE public.member_extra_roles (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    workspace_id uuid NOT NULL,
-    user_id uuid NOT NULL,
-    assigned_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
-    expires_at timestamp with time zone NOT NULL,
-    role_id uuid NOT NULL
-);
-
 CREATE TABLE public.overtime_policy_assignments (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     workspace_id uuid NOT NULL,
@@ -839,40 +830,6 @@ CREATE TABLE public.working_patterns (
     updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
-CREATE TABLE public.workspace_member_extra_permissions (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    workspace_id uuid NOT NULL,
-    user_id uuid NOT NULL,
-    permission text NOT NULL,
-    assigned_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
-    expires_at timestamp with time zone NOT NULL,
-    assigned_by uuid
-);
-
-CREATE TABLE public.workspace_members (
-    workspace_id uuid NOT NULL,
-    user_id uuid NOT NULL,
-    role_id uuid NOT NULL
-);
-
-CREATE TABLE public.workspace_role_permissions (
-    role_id uuid NOT NULL,
-    permission_name text NOT NULL
-);
-
-CREATE TABLE public.workspace_roles (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    workspace_id uuid,
-    name text NOT NULL,
-    description text,
-    color text DEFAULT 'slate'::text,
-    is_system boolean DEFAULT false,
-    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
-    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
-    scope_type character varying(16) DEFAULT 'scoped'::character varying NOT NULL,
-    CONSTRAINT workspace_roles_scope_type_check CHECK (((scope_type)::text = ANY ((ARRAY['global'::character varying, 'scoped'::character varying])::text[])))
-);
-
 ALTER TABLE ONLY public.assignment_rules
     ADD CONSTRAINT assignment_rules_pkey PRIMARY KEY (id);
 
@@ -902,10 +859,6 @@ ALTER TABLE ONLY public.attendance_policy_versions
 
 ALTER TABLE ONLY public.attendance_staging_logs
     ADD CONSTRAINT attendance_staging_logs_pkey PRIMARY KEY (id);
-
-
-
-
 
 ALTER TABLE ONLY public.dashboard_preferences
     ADD CONSTRAINT dashboard_preferences_pkey PRIMARY KEY (id);
@@ -1015,9 +968,6 @@ ALTER TABLE ONLY public.leave_types
 ALTER TABLE ONLY public.leave_types
     ADD CONSTRAINT leave_types_workspace_id_code_key UNIQUE (workspace_id, code);
 
-ALTER TABLE ONLY public.member_extra_roles
-    ADD CONSTRAINT member_extra_roles_pkey PRIMARY KEY (id);
-
 ALTER TABLE ONLY public.attendance_policy_assignments
     ADD CONSTRAINT no_overlapping_policy_assignments EXCLUDE USING gist (target_id WITH =, target_type WITH =, tstzrange(valid_from, COALESCE(valid_to, 'infinity'::timestamp with time zone)) WITH &&);
 
@@ -1096,11 +1046,6 @@ ALTER TABLE ONLY public.salary_component_definitions
 ALTER TABLE ONLY public.salary_component_definitions
     ADD CONSTRAINT salary_component_definitions_workspace_id_code_key UNIQUE (workspace_id, code);
 
-
-
-ALTER TABLE ONLY public.sessions
-    ADD CONSTRAINT sessions_token_key UNIQUE (token);
-
 ALTER TABLE ONLY public.shift_rosters
     ADD CONSTRAINT shift_rosters_employee_id_date_key UNIQUE (employee_id, date);
 
@@ -1112,11 +1057,6 @@ ALTER TABLE ONLY public.shift_swap_requests
 
 ALTER TABLE ONLY public.shifts
     ADD CONSTRAINT shifts_pkey PRIMARY KEY (id);
-
-ALTER TABLE ONLY public.system_roles
-    ADD CONSTRAINT system_roles_name_key UNIQUE (name);
-
-
 
 ALTER TABLE ONLY public.time_entries
     ADD CONSTRAINT time_entries_pkey PRIMARY KEY (id);
@@ -1130,12 +1070,6 @@ ALTER TABLE ONLY public.employee_shifts
 ALTER TABLE ONLY public.shift_swap_requests
     ADD CONSTRAINT uq_shift_swap_pair_date UNIQUE (workspace_id, requester_id, target_id, swap_date);
 
-
-
-
-
-
-
 ALTER TABLE ONLY public.working_conditions
     ADD CONSTRAINT working_conditions_pkey PRIMARY KEY (id);
 
@@ -1144,20 +1078,6 @@ ALTER TABLE ONLY public.working_pattern_details
 
 ALTER TABLE ONLY public.working_patterns
     ADD CONSTRAINT working_patterns_pkey PRIMARY KEY (id);
-
-ALTER TABLE ONLY public.workspace_member_extra_permissions
-    ADD CONSTRAINT workspace_member_extra_permissions_pkey PRIMARY KEY (id);
-
-ALTER TABLE ONLY public.workspace_members
-    ADD CONSTRAINT workspace_members_pkey PRIMARY KEY (workspace_id, user_id);
-
-ALTER TABLE ONLY public.workspace_role_permissions
-    ADD CONSTRAINT workspace_role_permissions_pkey PRIMARY KEY (role_id, permission_name);
-
-ALTER TABLE ONLY public.workspace_roles
-    ADD CONSTRAINT workspace_roles_pkey PRIMARY KEY (id);
-
-
 
 CREATE UNIQUE INDEX attendance_policies_workspace_default_idx ON public.attendance_policies USING btree (workspace_id) WHERE (is_default = true);
 
@@ -1176,18 +1096,6 @@ CREATE INDEX idx_attendance_adjustment_requests_status ON public.attendance_adju
 CREATE INDEX idx_attendance_import_jobs_status ON public.attendance_import_jobs USING btree (status);
 
 CREATE INDEX idx_attendance_import_jobs_workspace_id ON public.attendance_import_jobs USING btree (workspace_id);
-
-CREATE INDEX idx_audit_logs_actor_id ON public.audit_logs USING btree (actor_id);
-
-CREATE INDEX idx_audit_logs_created_at ON public.audit_logs USING btree (created_at);
-
-CREATE INDEX idx_audit_logs_target_user_id ON public.audit_logs USING btree (target_user_id);
-
-CREATE INDEX idx_audit_logs_workspace_id ON public.audit_logs USING btree (workspace_id);
-
-CREATE INDEX idx_authorized_agents_trusted ON public.authorized_agents USING btree (is_trusted);
-
-CREATE INDEX idx_authorized_agents_workspace ON public.authorized_agents USING btree (workspace_id);
 
 CREATE INDEX idx_daily_summaries_status ON public.attendance_daily_summaries USING btree (ot_status);
 
@@ -1281,8 +1189,6 @@ CREATE INDEX idx_employment_phase_defs_workspace ON public.employment_phase_defi
 
 CREATE UNIQUE INDEX idx_errors_fingerprint ON public.attendance_log_errors USING btree (workspace_id, fingerprint) WHERE (fingerprint IS NOT NULL);
 
-CREATE INDEX idx_extra_perms_lookup ON public.workspace_member_extra_permissions USING btree (workspace_id, user_id, expires_at);
-
 CREATE INDEX idx_feature_flags_lookup ON public.feature_flags USING btree (workspace_id, flag_key);
 
 CREATE INDEX idx_feature_flags_workspace ON public.feature_flags USING btree (workspace_id);
@@ -1328,8 +1234,6 @@ CREATE INDEX idx_leave_requests_requested_by ON public.leave_requests USING btre
 CREATE INDEX idx_leave_requests_status ON public.leave_requests USING btree (status);
 
 CREATE INDEX idx_leave_types_workspace_id ON public.leave_types USING btree (workspace_id);
-
-CREATE INDEX idx_member_extra_roles_lookup ON public.member_extra_roles USING btree (workspace_id, user_id, expires_at);
 
 CREATE INDEX idx_overtime_policy_assignments_policy_id ON public.overtime_policy_assignments USING btree (policy_id);
 
@@ -1397,10 +1301,6 @@ CREATE INDEX idx_salary_comp_defs_linked_rule ON public.salary_component_definit
 
 CREATE INDEX idx_salary_comp_defs_workspace ON public.salary_component_definitions USING btree (workspace_id);
 
-CREATE INDEX idx_sessions_token ON public.sessions USING btree (token);
-
-CREATE INDEX idx_sessions_user_id ON public.sessions USING btree (user_id);
-
 CREATE INDEX idx_shift_rosters_employee_date ON public.shift_rosters USING btree (employee_id, date);
 
 CREATE INDEX idx_shift_rosters_shift_id ON public.shift_rosters USING btree (shift_id);
@@ -1427,8 +1327,6 @@ CREATE INDEX idx_staging_pending ON public.attendance_staging_logs USING btree (
 
 CREATE INDEX idx_staging_workspace ON public.attendance_staging_logs USING btree (workspace_id);
 
-CREATE UNIQUE INDEX idx_system_roles_unique_name ON public.workspace_roles USING btree (name) WHERE (workspace_id IS NULL);
-
 CREATE INDEX idx_time_entries_emp_punch ON public.time_entries USING btree (employee_id, punch_in_time DESC);
 
 CREATE INDEX idx_time_entries_employee_id ON public.time_entries USING btree (employee_id);
@@ -1441,85 +1339,31 @@ CREATE INDEX idx_time_entries_ws_emp_punch_time ON public.time_entries USING btr
 
 CREATE INDEX idx_time_entries_ws_employee ON public.time_entries USING btree (workspace_id, employee_id);
 
-CREATE INDEX idx_user_system_roles_role_id ON public.user_system_roles USING btree (role_id);
-
-CREATE INDEX idx_user_system_roles_user_id ON public.user_system_roles USING btree (user_id);
-
 CREATE INDEX idx_working_conditions_employee_date ON public.working_conditions USING btree (employee_id, start_date);
 
 CREATE INDEX idx_working_pattern_details_shift ON public.working_pattern_details USING btree (shift_id);
 
 CREATE INDEX idx_working_patterns_workspace ON public.working_patterns USING btree (workspace_id);
 
-CREATE INDEX idx_workspace_members_user_id ON public.workspace_members USING btree (user_id);
-
-CREATE INDEX idx_workspace_members_workspace_id ON public.workspace_members USING btree (workspace_id);
-
-CREATE INDEX idx_workspace_roles_scope_type ON public.workspace_roles USING btree (scope_type);
-
-CREATE UNIQUE INDEX idx_workspace_roles_unique_name ON public.workspace_roles USING btree (workspace_id, name) WHERE (workspace_id IS NOT NULL);
-
 CREATE TRIGGER trigger_employee_profiles_updated_at BEFORE UPDATE ON public.employee_profiles FOR EACH ROW EXECUTE FUNCTION public.update_employee_profiles_updated_at();
 
 ALTER TABLE ONLY public.assignment_rules
     ADD CONSTRAINT assignment_rules_pattern_id_fkey FOREIGN KEY (pattern_id) REFERENCES public.working_patterns(id) ON DELETE CASCADE;
 
-ALTER TABLE ONLY public.assignment_rules
-    ADD CONSTRAINT assignment_rules_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
-
-ALTER TABLE ONLY public.attendance_adjustment_requests
-    ADD CONSTRAINT attendance_adjustment_requests_approved_by_user_id_fkey FOREIGN KEY (approved_by_user_id) REFERENCES public.users(id) ON DELETE SET NULL;
-
 ALTER TABLE ONLY public.attendance_adjustment_requests
     ADD CONSTRAINT attendance_adjustment_requests_employee_id_fkey FOREIGN KEY (employee_id) REFERENCES public.employees(id) ON DELETE CASCADE;
-
-ALTER TABLE ONLY public.attendance_adjustment_requests
-    ADD CONSTRAINT attendance_adjustment_requests_requested_by_user_id_fkey FOREIGN KEY (requested_by_user_id) REFERENCES public.users(id) ON DELETE SET NULL;
 
 ALTER TABLE ONLY public.attendance_adjustment_requests
     ADD CONSTRAINT attendance_adjustment_requests_time_entry_id_fkey FOREIGN KEY (time_entry_id) REFERENCES public.time_entries(id) ON DELETE SET NULL;
 
 ALTER TABLE ONLY public.attendance_daily_summaries
-    ADD CONSTRAINT attendance_daily_summaries_claim_entered_by_user_id_fkey FOREIGN KEY (claim_entered_by_user_id) REFERENCES public.users(id) ON DELETE SET NULL;
-
-ALTER TABLE ONLY public.attendance_daily_summaries
     ADD CONSTRAINT attendance_daily_summaries_employee_id_fkey FOREIGN KEY (employee_id) REFERENCES public.employees(id) ON DELETE CASCADE;
-
-ALTER TABLE ONLY public.attendance_daily_summaries
-    ADD CONSTRAINT attendance_daily_summaries_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
-
-ALTER TABLE ONLY public.attendance_policies
-    ADD CONSTRAINT attendance_policies_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.attendance_policy_assignments
     ADD CONSTRAINT attendance_policy_assignments_policy_id_fkey FOREIGN KEY (policy_id) REFERENCES public.attendance_policies(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.attendance_policy_versions
-    ADD CONSTRAINT attendance_policy_versions_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id) ON DELETE SET NULL;
-
-ALTER TABLE ONLY public.attendance_policy_versions
     ADD CONSTRAINT attendance_policy_versions_policy_id_fkey FOREIGN KEY (policy_id) REFERENCES public.attendance_policies(id) ON DELETE CASCADE;
-
-ALTER TABLE ONLY public.attendance_staging_logs
-    ADD CONSTRAINT attendance_staging_logs_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
-
-ALTER TABLE public.audit_logs
-    ADD CONSTRAINT audit_logs_actor_id_fkey FOREIGN KEY (actor_id) REFERENCES public.users(id) ON DELETE SET NULL;
-
-ALTER TABLE public.audit_logs
-    ADD CONSTRAINT audit_logs_target_user_id_fkey FOREIGN KEY (target_user_id) REFERENCES public.users(id) ON DELETE SET NULL;
-
-ALTER TABLE public.audit_logs
-    ADD CONSTRAINT audit_logs_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
-
-ALTER TABLE ONLY public.authorized_agents
-    ADD CONSTRAINT authorized_agents_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
-
-ALTER TABLE ONLY public.dashboard_preferences
-    ADD CONSTRAINT dashboard_preferences_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
-
-ALTER TABLE ONLY public.dashboard_preferences
-    ADD CONSTRAINT dashboard_preferences_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.department_default_shifts
     ADD CONSTRAINT department_default_shifts_department_id_fkey FOREIGN KEY (department_id) REFERENCES public.departments(id) ON DELETE CASCADE;
@@ -1536,12 +1380,6 @@ ALTER TABLE ONLY public.departments
 ALTER TABLE ONLY public.departments
     ADD CONSTRAINT departments_manager_id_fkey FOREIGN KEY (manager_id) REFERENCES public.employees(id) ON DELETE SET NULL;
 
-ALTER TABLE ONLY public.departments
-    ADD CONSTRAINT departments_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
-
-ALTER TABLE ONLY public.devices
-    ADD CONSTRAINT devices_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
-
 ALTER TABLE ONLY public.employee_department_history
     ADD CONSTRAINT employee_department_history_department_id_fkey FOREIGN KEY (department_id) REFERENCES public.departments(id) ON DELETE CASCADE;
 
@@ -1550,12 +1388,6 @@ ALTER TABLE ONLY public.employee_department_history
 
 ALTER TABLE ONLY public.employee_documents
     ADD CONSTRAINT employee_documents_employee_id_fkey FOREIGN KEY (employee_id) REFERENCES public.employees(id) ON DELETE CASCADE;
-
-ALTER TABLE ONLY public.employee_documents
-    ADD CONSTRAINT employee_documents_uploaded_by_fkey FOREIGN KEY (uploaded_by) REFERENCES public.users(id);
-
-ALTER TABLE ONLY public.employee_documents
-    ADD CONSTRAINT employee_documents_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.employee_emergency_contacts
     ADD CONSTRAINT employee_emergency_contacts_employee_id_fkey FOREIGN KEY (employee_id) REFERENCES public.employees(id) ON DELETE CASCADE;
@@ -1567,13 +1399,7 @@ ALTER TABLE ONLY public.employee_phases
     ADD CONSTRAINT employee_phases_employee_id_fkey FOREIGN KEY (employee_id) REFERENCES public.employees(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.employee_phases
-    ADD CONSTRAINT employee_phases_evaluated_by_fkey FOREIGN KEY (evaluated_by) REFERENCES public.users(id) ON DELETE SET NULL;
-
-ALTER TABLE ONLY public.employee_phases
     ADD CONSTRAINT employee_phases_phase_definition_id_fkey FOREIGN KEY (phase_definition_id) REFERENCES public.employment_phase_definitions(id) ON DELETE RESTRICT;
-
-ALTER TABLE ONLY public.employee_phases
-    ADD CONSTRAINT employee_phases_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.employee_profiles
     ADD CONSTRAINT employee_profiles_employee_id_fkey FOREIGN KEY (employee_id) REFERENCES public.employees(id) ON DELETE CASCADE;
@@ -1596,35 +1422,14 @@ ALTER TABLE ONLY public.employee_working_patterns
 ALTER TABLE ONLY public.employee_working_patterns
     ADD CONSTRAINT employee_working_patterns_pattern_id_fkey FOREIGN KEY (pattern_id) REFERENCES public.working_patterns(id) ON DELETE CASCADE;
 
-ALTER TABLE ONLY public.employee_working_patterns
-    ADD CONSTRAINT employee_working_patterns_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
-
 ALTER TABLE ONLY public.employees
     ADD CONSTRAINT employees_recruitment_source_id_fkey FOREIGN KEY (recruitment_source_id) REFERENCES public.recruitment_sources(id) ON DELETE SET NULL;
-
-ALTER TABLE ONLY public.employees
-    ADD CONSTRAINT employees_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE SET NULL;
-
-ALTER TABLE ONLY public.employees
-    ADD CONSTRAINT employees_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.employment_periods
     ADD CONSTRAINT employment_periods_employee_id_fkey FOREIGN KEY (employee_id) REFERENCES public.employees(id) ON DELETE CASCADE;
 
-ALTER TABLE ONLY public.employment_phase_definitions
-    ADD CONSTRAINT employment_phase_definitions_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
-
-ALTER TABLE ONLY public.feature_flags
-    ADD CONSTRAINT feature_flags_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
-
-ALTER TABLE ONLY public.payslips
-    ADD CONSTRAINT fk_payslips_workspace FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
-
 ALTER TABLE ONLY public.holidays
     ADD CONSTRAINT holidays_leave_type_id_fkey FOREIGN KEY (leave_type_id) REFERENCES public.leave_types(id) ON DELETE SET NULL;
-
-ALTER TABLE ONLY public.holidays
-    ADD CONSTRAINT holidays_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.leave_accrual_logs
     ADD CONSTRAINT leave_accrual_logs_employee_id_fkey FOREIGN KEY (employee_id) REFERENCES public.employees(id) ON DELETE CASCADE;
@@ -1635,9 +1440,6 @@ ALTER TABLE ONLY public.leave_accrual_logs
 ALTER TABLE ONLY public.leave_accrual_logs
     ADD CONSTRAINT leave_accrual_logs_policy_assignment_id_fkey FOREIGN KEY (policy_assignment_id) REFERENCES public.leave_policy_assignments(id) ON DELETE SET NULL;
 
-ALTER TABLE ONLY public.leave_accrual_logs
-    ADD CONSTRAINT leave_accrual_logs_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
-
 ALTER TABLE ONLY public.leave_balances
     ADD CONSTRAINT leave_balances_employee_id_fkey FOREIGN KEY (employee_id) REFERENCES public.employees(id) ON DELETE CASCADE;
 
@@ -1647,17 +1449,8 @@ ALTER TABLE ONLY public.leave_balances
 ALTER TABLE ONLY public.leave_policy_assignments
     ADD CONSTRAINT leave_policy_assignments_policy_id_fkey FOREIGN KEY (policy_id) REFERENCES public.leave_policy_definitions(id) ON DELETE RESTRICT;
 
-ALTER TABLE ONLY public.leave_policy_assignments
-    ADD CONSTRAINT leave_policy_assignments_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
-
 ALTER TABLE ONLY public.leave_policy_definitions
     ADD CONSTRAINT leave_policy_definitions_leave_type_id_fkey FOREIGN KEY (leave_type_id) REFERENCES public.leave_types(id) ON DELETE RESTRICT;
-
-ALTER TABLE ONLY public.leave_policy_definitions
-    ADD CONSTRAINT leave_policy_definitions_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
-
-ALTER TABLE ONLY public.leave_requests
-    ADD CONSTRAINT leave_requests_approved_by_user_id_fkey FOREIGN KEY (approved_by_user_id) REFERENCES public.users(id) ON DELETE SET NULL;
 
 ALTER TABLE ONLY public.leave_requests
     ADD CONSTRAINT leave_requests_employee_id_fkey FOREIGN KEY (employee_id) REFERENCES public.employees(id) ON DELETE CASCADE;
@@ -1665,29 +1458,8 @@ ALTER TABLE ONLY public.leave_requests
 ALTER TABLE ONLY public.leave_requests
     ADD CONSTRAINT leave_requests_leave_type_id_fkey FOREIGN KEY (leave_type_id) REFERENCES public.leave_types(id) ON DELETE RESTRICT;
 
-ALTER TABLE ONLY public.leave_requests
-    ADD CONSTRAINT leave_requests_requested_by_user_id_fkey FOREIGN KEY (requested_by_user_id) REFERENCES public.users(id) ON DELETE SET NULL;
-
-ALTER TABLE ONLY public.leave_types
-    ADD CONSTRAINT leave_types_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
-
-ALTER TABLE ONLY public.member_extra_roles
-    ADD CONSTRAINT member_extra_roles_role_id_fkey FOREIGN KEY (role_id) REFERENCES public.workspace_roles(id) ON DELETE CASCADE;
-
-ALTER TABLE ONLY public.member_extra_roles
-    ADD CONSTRAINT member_extra_roles_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
-
-ALTER TABLE ONLY public.member_extra_roles
-    ADD CONSTRAINT member_extra_roles_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
-
 ALTER TABLE ONLY public.overtime_policy_assignments
     ADD CONSTRAINT overtime_policy_assignments_policy_id_fkey FOREIGN KEY (policy_id) REFERENCES public.overtime_policy_definitions(id) ON DELETE RESTRICT;
-
-ALTER TABLE ONLY public.overtime_policy_assignments
-    ADD CONSTRAINT overtime_policy_assignments_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
-
-ALTER TABLE ONLY public.overtime_policy_definitions
-    ADD CONSTRAINT overtime_policy_definitions_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.overtime_rules
     ADD CONSTRAINT overtime_rules_policy_id_fkey FOREIGN KEY (policy_id) REFERENCES public.overtime_policy_definitions(id) ON DELETE CASCADE;
@@ -1698,17 +1470,8 @@ ALTER TABLE ONLY public.payroll_incentive_tiers
 ALTER TABLE ONLY public.payroll_rule_assignments
     ADD CONSTRAINT payroll_rule_assignments_rule_definition_id_fkey FOREIGN KEY (rule_definition_id) REFERENCES public.payroll_rule_definitions(id) ON DELETE RESTRICT;
 
-ALTER TABLE ONLY public.payroll_rule_assignments
-    ADD CONSTRAINT payroll_rule_assignments_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
-
-ALTER TABLE ONLY public.payroll_rule_definitions
-    ADD CONSTRAINT payroll_rule_definitions_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
-
 ALTER TABLE ONLY public.payroll_rule_tiers
     ADD CONSTRAINT payroll_rule_tiers_rule_definition_id_fkey FOREIGN KEY (rule_definition_id) REFERENCES public.payroll_rule_definitions(id) ON DELETE CASCADE;
-
-ALTER TABLE ONLY public.payroll_settings
-    ADD CONSTRAINT payroll_settings_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.payslip_incentives
     ADD CONSTRAINT payslip_incentives_payslip_id_fkey FOREIGN KEY (payslip_id) REFERENCES public.payslips(id) ON DELETE CASCADE;
@@ -1725,23 +1488,11 @@ ALTER TABLE ONLY public.payslip_segments
 ALTER TABLE ONLY public.payslips
     ADD CONSTRAINT payslips_employee_id_fkey FOREIGN KEY (employee_id) REFERENCES public.employees(id) ON DELETE CASCADE;
 
-ALTER TABLE ONLY public.policy_templates
-    ADD CONSTRAINT policy_templates_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
-
 ALTER TABLE ONLY public.raw_attendance_logs
     ADD CONSTRAINT raw_attendance_logs_employee_id_fkey FOREIGN KEY (employee_id) REFERENCES public.employees(id) ON DELETE CASCADE;
 
-ALTER TABLE ONLY public.raw_attendance_logs
-    ADD CONSTRAINT raw_attendance_logs_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
-
 ALTER TABLE ONLY public.recruitment_sources
     ADD CONSTRAINT recruitment_sources_referrer_employee_id_fkey FOREIGN KEY (referrer_employee_id) REFERENCES public.employees(id) ON DELETE SET NULL;
-
-ALTER TABLE ONLY public.recruitment_sources
-    ADD CONSTRAINT recruitment_sources_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
-
-ALTER TABLE ONLY public.salary_base_groups
-    ADD CONSTRAINT salary_base_groups_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.salary_component_base_members
     ADD CONSTRAINT salary_component_base_members_base_group_id_fkey FOREIGN KEY (base_group_id) REFERENCES public.salary_base_groups(id) ON DELETE CASCADE;
@@ -1752,23 +1503,11 @@ ALTER TABLE ONLY public.salary_component_base_members
 ALTER TABLE ONLY public.salary_component_definitions
     ADD CONSTRAINT salary_component_definitions_linked_rule_id_fkey FOREIGN KEY (linked_rule_id) REFERENCES public.payroll_rule_definitions(id) ON DELETE SET NULL;
 
-ALTER TABLE ONLY public.salary_component_definitions
-    ADD CONSTRAINT salary_component_definitions_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
-
-ALTER TABLE ONLY public.sessions
-    ADD CONSTRAINT sessions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
-
 ALTER TABLE ONLY public.shift_rosters
     ADD CONSTRAINT shift_rosters_employee_id_fkey FOREIGN KEY (employee_id) REFERENCES public.employees(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.shift_rosters
     ADD CONSTRAINT shift_rosters_shift_id_fkey FOREIGN KEY (shift_id) REFERENCES public.shifts(id) ON DELETE SET NULL;
-
-ALTER TABLE ONLY public.shift_swap_requests
-    ADD CONSTRAINT shift_swap_requests_approved_by_user_id_fkey FOREIGN KEY (approved_by_user_id) REFERENCES public.users(id);
-
-ALTER TABLE ONLY public.shift_swap_requests
-    ADD CONSTRAINT shift_swap_requests_requested_by_user_id_fkey FOREIGN KEY (requested_by_user_id) REFERENCES public.users(id);
 
 ALTER TABLE ONLY public.shift_swap_requests
     ADD CONSTRAINT shift_swap_requests_requester_id_fkey FOREIGN KEY (requester_id) REFERENCES public.employees(id) ON DELETE CASCADE;
@@ -1782,32 +1521,14 @@ ALTER TABLE ONLY public.shift_swap_requests
 ALTER TABLE ONLY public.shift_swap_requests
     ADD CONSTRAINT shift_swap_requests_target_shift_id_fkey FOREIGN KEY (target_shift_id) REFERENCES public.shifts(id) ON DELETE SET NULL;
 
-ALTER TABLE ONLY public.shift_swap_requests
-    ADD CONSTRAINT shift_swap_requests_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
-
 ALTER TABLE ONLY public.shifts
     ADD CONSTRAINT shifts_parent_shift_id_fkey FOREIGN KEY (parent_shift_id) REFERENCES public.shifts(id) ON DELETE SET NULL;
-
-ALTER TABLE ONLY public.shifts
-    ADD CONSTRAINT shifts_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.time_entries
     ADD CONSTRAINT time_entries_employee_id_fkey FOREIGN KEY (employee_id) REFERENCES public.employees(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.time_entries
     ADD CONSTRAINT time_entries_shift_id_fkey FOREIGN KEY (shift_id) REFERENCES public.shifts(id);
-
-ALTER TABLE ONLY public.time_entries
-    ADD CONSTRAINT time_entries_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
-
-ALTER TABLE ONLY public.user_system_roles
-    ADD CONSTRAINT user_system_roles_assigned_by_fkey FOREIGN KEY (assigned_by) REFERENCES public.users(id) ON DELETE SET NULL;
-
-ALTER TABLE ONLY public.user_system_roles
-    ADD CONSTRAINT user_system_roles_role_id_fkey FOREIGN KEY (role_id) REFERENCES public.system_roles(id) ON DELETE CASCADE;
-
-ALTER TABLE ONLY public.user_system_roles
-    ADD CONSTRAINT user_system_roles_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.working_conditions
     ADD CONSTRAINT working_conditions_employee_id_fkey FOREIGN KEY (employee_id) REFERENCES public.employees(id) ON DELETE CASCADE;
@@ -1818,317 +1539,15 @@ ALTER TABLE ONLY public.working_pattern_details
 ALTER TABLE ONLY public.working_pattern_details
     ADD CONSTRAINT working_pattern_details_shift_id_fkey FOREIGN KEY (shift_id) REFERENCES public.shifts(id) ON DELETE SET NULL;
 
-ALTER TABLE ONLY public.working_patterns
-    ADD CONSTRAINT working_patterns_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
-
-ALTER TABLE ONLY public.workspace_member_extra_permissions
-    ADD CONSTRAINT workspace_member_extra_permissions_assigned_by_fkey FOREIGN KEY (assigned_by) REFERENCES public.users(id);
-
-ALTER TABLE ONLY public.workspace_member_extra_permissions
-    ADD CONSTRAINT workspace_member_extra_permissions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
-
-ALTER TABLE ONLY public.workspace_member_extra_permissions
-    ADD CONSTRAINT workspace_member_extra_permissions_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
-
-ALTER TABLE ONLY public.workspace_members
-    ADD CONSTRAINT workspace_members_role_id_fkey FOREIGN KEY (role_id) REFERENCES public.workspace_roles(id);
-
-ALTER TABLE ONLY public.workspace_members
-    ADD CONSTRAINT workspace_members_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
-
-ALTER TABLE ONLY public.workspace_members
-    ADD CONSTRAINT workspace_members_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
-
-ALTER TABLE ONLY public.workspace_role_permissions
-    ADD CONSTRAINT workspace_role_permissions_role_id_fkey FOREIGN KEY (role_id) REFERENCES public.workspace_roles(id) ON DELETE CASCADE;
-
-ALTER TABLE ONLY public.workspace_roles
-    ADD CONSTRAINT workspace_roles_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
-
 -- ═══════════════════════════════════════════════════════════════════
 -- Seed Data: System Roles & Permissions
 -- ═══════════════════════════════════════════════════════════════════
 
 -- Seed System Roles with deterministic UUIDs
-INSERT INTO workspace_roles (id, workspace_id, name, description, color, is_system, scope_type)
-VALUES 
-  ('a0000000-0000-0000-0000-000000000001', NULL, 'owner', 'Workspace owner with full access', 'rose', TRUE, 'global'),
-  ('a0000000-0000-0000-0000-000000000002', NULL, 'admin', 'Administrator with full access', 'rose', TRUE, 'global'),
-  ('a0000000-0000-0000-0000-000000000003', NULL, 'hr_manager', 'Manage people and time', 'indigo', TRUE, 'global'),
-  ('a0000000-0000-0000-0000-000000000004', NULL, 'shift_manager', 'Manage shifts', 'amber', TRUE, 'global'),
-  ('a0000000-0000-0000-0000-000000000005', NULL, 'team_lead', 'Manage team members', 'blue', TRUE, 'scoped'),
-  ('a0000000-0000-0000-0000-000000000006', NULL, 'employee', 'Default employee access', 'slate', TRUE, 'scoped')
-ON CONFLICT DO NOTHING;
-
 -- Seed Permissions for System Roles
 -- Owner has all core permissions
-INSERT INTO workspace_role_permissions (role_id, permission_name)
-VALUES
-  ('a0000000-0000-0000-0000-000000000001', 'workspace:update'),
-  ('a0000000-0000-0000-0000-000000000001', 'workspace:delete'),
-  ('a0000000-0000-0000-0000-000000000001', 'workspace:settings:read'),
-  ('a0000000-0000-0000-0000-000000000001', 'workspace:settings:write'),
-  ('a0000000-0000-0000-0000-000000000001', 'members:read'),
-  ('a0000000-0000-0000-0000-000000000001', 'members:invite'),
-  ('a0000000-0000-0000-0000-000000000001', 'members:roles:manage'),
-  ('a0000000-0000-0000-0000-000000000001', 'members:remove'),
-  ('a0000000-0000-0000-0000-000000000001', 'employees:read'),
-  ('a0000000-0000-0000-0000-000000000001', 'employees:create'),
-  ('a0000000-0000-0000-0000-000000000001', 'employees:update'),
-  ('a0000000-0000-0000-0000-000000000001', 'employees:delete'),
-  ('a0000000-0000-0000-0000-000000000001', 'employees:rehire'),
-  ('a0000000-0000-0000-0000-000000000001', 'employees:upload'),
-  ('a0000000-0000-0000-0000-000000000001', 'departments:read'),
-  ('a0000000-0000-0000-0000-000000000001', 'departments:create'),
-  ('a0000000-0000-0000-0000-000000000001', 'departments:update'),
-  ('a0000000-0000-0000-0000-000000000001', 'departments:delete'),
-  ('a0000000-0000-0000-0000-000000000001', 'departments:transfer'),
-  ('a0000000-0000-0000-0000-000000000001', 'attendance:logs:read'),
-  ('a0000000-0000-0000-0000-000000000001', 'attendance:logs:import'),
-  ('a0000000-0000-0000-0000-000000000001', 'attendance:summaries:read'),
-  ('a0000000-0000-0000-0000-000000000001', 'attendance:adjustments:submit'),
-  ('a0000000-0000-0000-0000-000000000001', 'attendance:adjustments:approve'),
-  ('a0000000-0000-0000-0000-000000000001', 'attendance:reprocess'),
-  ('a0000000-0000-0000-0000-000000000001', 'attendance:staging:manage'),
-  ('a0000000-0000-0000-0000-000000000001', 'overtime:claim'),
-  ('a0000000-0000-0000-0000-000000000001', 'overtime:approve'),
-  ('a0000000-0000-0000-0000-000000000001', 'overtime:policies:manage'),
-  ('a0000000-0000-0000-0000-000000000001', 'overtime:paper:upload'),
-  ('a0000000-0000-0000-0000-000000000001', 'leave:requests:read'),
-  ('a0000000-0000-0000-0000-000000000001', 'leave:requests:submit'),
-  ('a0000000-0000-0000-0000-000000000001', 'leave:requests:approve'),
-  ('a0000000-0000-0000-0000-000000000001', 'leave:balances:read'),
-  ('a0000000-0000-0000-0000-000000000001', 'leave:balances:adjust'),
-  ('a0000000-0000-0000-0000-000000000001', 'leave:types:manage'),
-  ('a0000000-0000-0000-0000-000000000001', 'leave:policies:manage'),
-  ('a0000000-0000-0000-0000-000000000001', 'leave:accrual:run'),
-  ('a0000000-0000-0000-0000-000000000001', 'shifts:read'),
-  ('a0000000-0000-0000-0000-000000000001', 'shifts:create'),
-  ('a0000000-0000-0000-0000-000000000001', 'shifts:update'),
-  ('a0000000-0000-0000-0000-000000000001', 'shifts:assign'),
-  ('a0000000-0000-0000-0000-000000000001', 'shift_swaps:manage'),
-  ('a0000000-0000-0000-0000-000000000001', 'shift_swaps:approve'),
-  ('a0000000-0000-0000-0000-000000000001', 'patterns:read'),
-  ('a0000000-0000-0000-0000-000000000001', 'patterns:create'),
-  ('a0000000-0000-0000-0000-000000000001', 'patterns:assign'),
-  ('a0000000-0000-0000-0000-000000000001', 'patterns:delete'),
-  ('a0000000-0000-0000-0000-000000000001', 'rosters:read'),
-  ('a0000000-0000-0000-0000-000000000001', 'rosters:manage'),
-  ('a0000000-0000-0000-0000-000000000001', 'assignment_rules:manage'),
-  ('a0000000-0000-0000-0000-000000000001', 'payroll:read'),
-  ('a0000000-0000-0000-0000-000000000001', 'payroll:calculate'),
-  ('a0000000-0000-0000-0000-000000000001', 'payroll:settings:manage'),
-  ('a0000000-0000-0000-0000-000000000001', 'payroll:components:manage'),
-  ('a0000000-0000-0000-0000-000000000001', 'payroll:incentives:manage'),
-  ('a0000000-0000-0000-0000-000000000001', 'holidays:read'),
-  ('a0000000-0000-0000-0000-000000000001', 'holidays:manage'),
-  ('a0000000-0000-0000-0000-000000000001', 'reports:read'),
-  ('a0000000-0000-0000-0000-000000000001', 'reports:export'),
-  ('a0000000-0000-0000-0000-000000000001', 'dashboard:read'),
-  ('a0000000-0000-0000-0000-000000000001', 'dashboard:preferences'),
-  ('a0000000-0000-0000-0000-000000000001', 'agents:read'),
-  ('a0000000-0000-0000-0000-000000000001', 'agents:manage'),
-  ('a0000000-0000-0000-0000-000000000001', 'devices:read'),
-  ('a0000000-0000-0000-0000-000000000001', 'devices:manage'),
-  ('a0000000-0000-0000-0000-000000000001', 'employment_phases:read'),
-  ('a0000000-0000-0000-0000-000000000001', 'employment_phases:manage'),
-  ('a0000000-0000-0000-0000-000000000001', 'recruitment:read'),
-  ('a0000000-0000-0000-0000-000000000001', 'recruitment:manage'),
-  ('a0000000-0000-0000-0000-000000000001', 'feature_flags:read'),
-  ('a0000000-0000-0000-0000-000000000001', 'feature_flags:manage'),
-  ('a0000000-0000-0000-0000-000000000001', 'infra:monitor'),
-  ('a0000000-0000-0000-0000-000000000001', 'ess:profile'),
-  ('a0000000-0000-0000-0000-000000000001', 'ess:attendance'),
-  ('a0000000-0000-0000-0000-000000000001', 'ess:clock'),
-  ('a0000000-0000-0000-0000-000000000001', 'ess:leave'),
-  ('a0000000-0000-0000-0000-000000000001', 'ess:payslips'),
-  ('a0000000-0000-0000-0000-000000000001', 'ess:shift_swaps')
-ON CONFLICT DO NOTHING;
-
 -- Admin has similar permissions to Owner
-INSERT INTO workspace_role_permissions (role_id, permission_name)
-VALUES
-  ('a0000000-0000-0000-0000-000000000002', 'workspace:settings:write'),
-  ('a0000000-0000-0000-0000-000000000002', 'workspace:settings:read'),
-  ('a0000000-0000-0000-0000-000000000002', 'members:invite'),
-  ('a0000000-0000-0000-0000-000000000002', 'members:roles:manage'),
-  ('a0000000-0000-0000-0000-000000000002', 'members:remove'),
-  ('a0000000-0000-0000-0000-000000000002', 'members:read'),
-  ('a0000000-0000-0000-0000-000000000002', 'employees:read'),
-  ('a0000000-0000-0000-0000-000000000002', 'employees:create'),
-  ('a0000000-0000-0000-0000-000000000002', 'employees:update'),
-  ('a0000000-0000-0000-0000-000000000002', 'employees:delete'),
-  ('a0000000-0000-0000-0000-000000000002', 'employees:rehire'),
-  ('a0000000-0000-0000-0000-000000000002', 'employees:upload'),
-  ('a0000000-0000-0000-0000-000000000002', 'departments:read'),
-  ('a0000000-0000-0000-0000-000000000002', 'departments:create'),
-  ('a0000000-0000-0000-0000-000000000002', 'departments:update'),
-  ('a0000000-0000-0000-0000-000000000002', 'departments:delete'),
-  ('a0000000-0000-0000-0000-000000000002', 'departments:transfer'),
-  ('a0000000-0000-0000-0000-000000000002', 'attendance:logs:read'),
-  ('a0000000-0000-0000-0000-000000000002', 'attendance:logs:import'),
-  ('a0000000-0000-0000-0000-000000000002', 'attendance:summaries:read'),
-  ('a0000000-0000-0000-0000-000000000002', 'attendance:adjustments:submit'),
-  ('a0000000-0000-0000-0000-000000000002', 'attendance:adjustments:approve'),
-  ('a0000000-0000-0000-0000-000000000002', 'attendance:reprocess'),
-  ('a0000000-0000-0000-0000-000000000002', 'attendance:staging:manage'),
-  ('a0000000-0000-0000-0000-000000000002', 'overtime:claim'),
-  ('a0000000-0000-0000-0000-000000000002', 'overtime:approve'),
-  ('a0000000-0000-0000-0000-000000000002', 'overtime:policies:manage'),
-  ('a0000000-0000-0000-0000-000000000002', 'overtime:paper:upload'),
-  ('a0000000-0000-0000-0000-000000000002', 'leave:requests:read'),
-  ('a0000000-0000-0000-0000-000000000002', 'leave:requests:submit'),
-  ('a0000000-0000-0000-0000-000000000002', 'leave:requests:approve'),
-  ('a0000000-0000-0000-0000-000000000002', 'leave:balances:read'),
-  ('a0000000-0000-0000-0000-000000000002', 'leave:balances:adjust'),
-  ('a0000000-0000-0000-0000-000000000002', 'leave:types:manage'),
-  ('a0000000-0000-0000-0000-000000000002', 'leave:policies:manage'),
-  ('a0000000-0000-0000-0000-000000000002', 'leave:accrual:run'),
-  ('a0000000-0000-0000-0000-000000000002', 'shifts:read'),
-  ('a0000000-0000-0000-0000-000000000002', 'shifts:create'),
-  ('a0000000-0000-0000-0000-000000000002', 'shifts:update'),
-  ('a0000000-0000-0000-0000-000000000002', 'shifts:assign'),
-  ('a0000000-0000-0000-0000-000000000002', 'shift_swaps:manage'),
-  ('a0000000-0000-0000-0000-000000000002', 'shift_swaps:approve'),
-  ('a0000000-0000-0000-0000-000000000002', 'patterns:read'),
-  ('a0000000-0000-0000-0000-000000000002', 'patterns:create'),
-  ('a0000000-0000-0000-0000-000000000002', 'patterns:assign'),
-  ('a0000000-0000-0000-0000-000000000002', 'patterns:delete'),
-  ('a0000000-0000-0000-0000-000000000002', 'rosters:read'),
-  ('a0000000-0000-0000-0000-000000000002', 'rosters:manage'),
-  ('a0000000-0000-0000-0000-000000000002', 'assignment_rules:manage'),
-  ('a0000000-0000-0000-0000-000000000002', 'payroll:read'),
-  ('a0000000-0000-0000-0000-000000000002', 'payroll:calculate'),
-  ('a0000000-0000-0000-0000-000000000002', 'payroll:settings:manage'),
-  ('a0000000-0000-0000-0000-000000000002', 'payroll:components:manage'),
-  ('a0000000-0000-0000-0000-000000000002', 'payroll:incentives:manage'),
-  ('a0000000-0000-0000-0000-000000000002', 'holidays:read'),
-  ('a0000000-0000-0000-0000-000000000002', 'holidays:manage'),
-  ('a0000000-0000-0000-0000-000000000002', 'reports:read'),
-  ('a0000000-0000-0000-0000-000000000002', 'reports:export'),
-  ('a0000000-0000-0000-0000-000000000002', 'dashboard:read'),
-  ('a0000000-0000-0000-0000-000000000002', 'dashboard:preferences'),
-  ('a0000000-0000-0000-0000-000000000002', 'agents:read'),
-  ('a0000000-0000-0000-0000-000000000002', 'agents:manage'),
-  ('a0000000-0000-0000-0000-000000000002', 'devices:read'),
-  ('a0000000-0000-0000-0000-000000000002', 'devices:manage'),
-  ('a0000000-0000-0000-0000-000000000002', 'employment_phases:read'),
-  ('a0000000-0000-0000-0000-000000000002', 'employment_phases:manage'),
-  ('a0000000-0000-0000-0000-000000000002', 'recruitment:read'),
-  ('a0000000-0000-0000-0000-000000000002', 'recruitment:manage'),
-  ('a0000000-0000-0000-0000-000000000002', 'feature_flags:read'),
-  ('a0000000-0000-0000-0000-000000000002', 'feature_flags:manage'),
-  ('a0000000-0000-0000-0000-000000000002', 'infra:monitor'),
-  ('a0000000-0000-0000-0000-000000000002', 'ess:profile'),
-  ('a0000000-0000-0000-0000-000000000002', 'ess:attendance'),
-  ('a0000000-0000-0000-0000-000000000002', 'ess:clock'),
-  ('a0000000-0000-0000-0000-000000000002', 'ess:leave'),
-  ('a0000000-0000-0000-0000-000000000002', 'ess:payslips'),
-  ('a0000000-0000-0000-0000-000000000002', 'ess:shift_swaps')
-ON CONFLICT DO NOTHING;
-
 -- HrManager permissions
-INSERT INTO workspace_role_permissions (role_id, permission_name)
-VALUES
-  ('a0000000-0000-0000-0000-000000000003', 'employees:read'),
-  ('a0000000-0000-0000-0000-000000000003', 'employees:create'),
-  ('a0000000-0000-0000-0000-000000000003', 'employees:update'),
-  ('a0000000-0000-0000-0000-000000000003', 'attendance:logs:read'),
-  ('a0000000-0000-0000-0000-000000000003', 'attendance:summaries:read'),
-  ('a0000000-0000-0000-0000-000000000003', 'attendance:adjustments:approve'),
-  ('a0000000-0000-0000-0000-000000000003', 'leave:requests:read'),
-  ('a0000000-0000-0000-0000-000000000003', 'leave:requests:approve'),
-  ('a0000000-0000-0000-0000-000000000003', 'payroll:read'),
-  ('a0000000-0000-0000-0000-000000000003', 'departments:read'),
-  ('a0000000-0000-0000-0000-000000000003', 'holidays:read'),
-  ('a0000000-0000-0000-0000-000000000003', 'leave:requests:submit'),
-  ('a0000000-0000-0000-0000-000000000003', 'employment_phases:read'),
-  ('a0000000-0000-0000-0000-000000000003', 'employment_phases:manage')
-ON CONFLICT DO NOTHING;
-
 -- ShiftManager permissions
-INSERT INTO workspace_role_permissions (role_id, permission_name)
-VALUES
-  ('a0000000-0000-0000-0000-000000000004', 'employees:read'),
-  ('a0000000-0000-0000-0000-000000000004', 'shifts:read'),
-  ('a0000000-0000-0000-0000-000000000004', 'shifts:create'),
-  ('a0000000-0000-0000-0000-000000000004', 'shifts:update'),
-  ('a0000000-0000-0000-0000-000000000004', 'shifts:assign'),
-  ('a0000000-0000-0000-0000-000000000004', 'rosters:read'),
-  ('a0000000-0000-0000-0000-000000000004', 'rosters:manage'),
-  ('a0000000-0000-0000-0000-000000000004', 'attendance:logs:read'),
-  ('a0000000-0000-0000-0000-000000000004', 'employment_phases:read')
-ON CONFLICT DO NOTHING;
-
 -- TeamLead permissions
-INSERT INTO workspace_role_permissions (role_id, permission_name)
-VALUES
-  ('a0000000-0000-0000-0000-000000000005', 'employees:read'),
-  ('a0000000-0000-0000-0000-000000000005', 'attendance:summaries:read'),
-  ('a0000000-0000-0000-0000-000000000005', 'leave:requests:read'),
-  ('a0000000-0000-0000-0000-000000000005', 'leave:requests:submit'),
-  ('a0000000-0000-0000-0000-000000000005', 'leave:requests:approve')
-ON CONFLICT DO NOTHING;
-
 -- Employee default permissions
-INSERT INTO workspace_role_permissions (role_id, permission_name)
-VALUES
-  ('a0000000-0000-0000-0000-000000000006', 'ess:profile'),
-  ('a0000000-0000-0000-0000-000000000006', 'ess:attendance'),
-  ('a0000000-0000-0000-0000-000000000006', 'ess:clock'),
-  ('a0000000-0000-0000-0000-000000000006', 'ess:leave'),
-  ('a0000000-0000-0000-0000-000000000006', 'ess:payslips'),
-  ('a0000000-0000-0000-0000-000000000006', 'ess:shift_swaps')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO workspace_role_permissions (role_id, permission_name)
-VALUES
-  ('a0000000-0000-0000-0000-000000000001', 'audit_logs:read'),
-  ('a0000000-0000-0000-0000-000000000001', 'audit_logs:export'),
-  ('a0000000-0000-0000-0000-000000000001', 'security:settings:manage'),
-  ('a0000000-0000-0000-0000-000000000001', 'employees:bulk_edit'),
-  ('a0000000-0000-0000-0000-000000000001', 'attendance:force_clock_out'),
-  ('a0000000-0000-0000-0000-000000000001', 'documents:medical:read'),
-  ('a0000000-0000-0000-0000-000000000001', 'documents:contract:read'),
-  ('a0000000-0000-0000-0000-000000000001', 'payroll:approve'),
-  ('a0000000-0000-0000-0000-000000000001', 'payroll:disburse'),
-  ('a0000000-0000-0000-0000-000000000001', 'payroll:sensitive:read'),
-  ('a0000000-0000-0000-0000-000000000001', 'leave:approve:l1'),
-  ('a0000000-0000-0000-0000-000000000001', 'leave:approve:l2')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO workspace_role_permissions (role_id, permission_name)
-VALUES
-  ('a0000000-0000-0000-0000-000000000002', 'audit_logs:read'),
-  ('a0000000-0000-0000-0000-000000000002', 'audit_logs:export'),
-  ('a0000000-0000-0000-0000-000000000002', 'security:settings:manage'),
-  ('a0000000-0000-0000-0000-000000000002', 'employees:bulk_edit'),
-  ('a0000000-0000-0000-0000-000000000002', 'attendance:force_clock_out'),
-  ('a0000000-0000-0000-0000-000000000002', 'documents:medical:read'),
-  ('a0000000-0000-0000-0000-000000000002', 'documents:contract:read'),
-  ('a0000000-0000-0000-0000-000000000002', 'payroll:approve'),
-  ('a0000000-0000-0000-0000-000000000002', 'payroll:sensitive:read'),
-  ('a0000000-0000-0000-0000-000000000002', 'leave:approve:l1'),
-  ('a0000000-0000-0000-0000-000000000002', 'leave:approve:l2')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO workspace_role_permissions (role_id, permission_name)
-VALUES
-  ('a0000000-0000-0000-0000-000000000003', 'employees:bulk_edit'),
-  ('a0000000-0000-0000-0000-000000000003', 'documents:contract:read'),
-  ('a0000000-0000-0000-0000-000000000003', 'payroll:approve'),
-  ('a0000000-0000-0000-0000-000000000003', 'payroll:sensitive:read'),
-  ('a0000000-0000-0000-0000-000000000003', 'leave:approve:l2')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO workspace_role_permissions (role_id, permission_name)
-VALUES
-  ('a0000000-0000-0000-0000-000000000005', 'leave:approve:l1')
-ON CONFLICT DO NOTHING;
-
--- System-level platform roles
-INSERT INTO system_roles (id, name, description) VALUES
-    ('c0000000-0000-0000-0000-000000000001', 'platform_admin', 'Full platform control: create/suspend workspaces, assign system roles, manage infrastructure'),
-    ('c0000000-0000-0000-0000-000000000002', 'support',        'Read-only cross-workspace access for debugging customer issues'),
-    ('c0000000-0000-0000-0000-000000000003', 'billing_admin',  'Manage billing, subscription plans, and invoicing')
-ON CONFLICT DO NOTHING;

@@ -162,6 +162,14 @@ pub struct DieselPools {
 }
 
 impl DieselPools {
+    /// Convenience method: get a connection from the tenant pool for a given workspace.
+    pub async fn tenant_conn(&self, workspace_id: Uuid) -> Result<DieselConnection, AppError> {
+        let pool = self.tenants.get_pool(&workspace_id).await?;
+        pool.get()
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))
+    }
+
     #[allow(clippy::unused_async, clippy::expect_used)]
     pub async fn connect(config: &DbPoolConfig) -> Self {
         tracing::info!(
@@ -219,6 +227,92 @@ impl DieselPools {
             .expect("Failed to run system migrations");
 
         tracing::info!("Database system migrations completed successfully");
+    }
+
+    /// Run pending tenant migrations on ALL existing tenant databases.
+    ///
+    /// Iterates over every workspace in the system DB, connects to each tenant DB,
+    /// and runs any pending tenant-level migrations. Called once at startup.
+    #[allow(clippy::expect_used)]
+    pub fn run_tenant_migrations(config: &DbPoolConfig) {
+        use diesel::sql_types::Uuid as UuidSql;
+        use diesel::{Connection, QueryableByName, RunQueryDsl};
+        use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
+
+        pub const TENANT_MIGRATIONS: EmbeddedMigrations = embed_migrations!("./migrations/tenant");
+
+        #[derive(QueryableByName)]
+        struct WorkspaceRow {
+            #[diesel(sql_type = UuidSql)]
+            id: uuid::Uuid,
+        }
+
+        // Connect to system DB and list all workspaces
+        let mut sys_conn = diesel::PgConnection::establish(&config.primary_url)
+            .expect("Failed to connect to system DB for tenant migrations");
+
+        let workspace_rows: Vec<WorkspaceRow> = diesel::sql_query("SELECT id FROM workspaces")
+            .load(&mut sys_conn)
+            .expect("Failed to query workspaces for tenant migrations");
+
+        if workspace_rows.is_empty() {
+            tracing::info!("No workspaces found — skipping tenant migrations");
+            return;
+        }
+
+        tracing::info!(
+            workspace_count = workspace_rows.len(),
+            "Running tenant migrations on existing workspaces"
+        );
+
+        let base_url = config.pooler_url.as_deref().unwrap_or(&config.primary_url);
+
+        for row in &workspace_rows {
+            let db_name = format!("tenant_{}", row.id.to_string().replace('-', ""));
+            let tenant_url = match reqwest::Url::parse(base_url) {
+                Ok(mut url) => {
+                    url.set_path(&db_name);
+                    url.to_string()
+                }
+                Err(e) => {
+                    tracing::error!(
+                        workspace_id = %row.id,
+                        error = %e,
+                        "Failed to parse base URL for tenant migrations — skipping workspace"
+                    );
+                    continue;
+                }
+            };
+
+            match diesel::PgConnection::establish(&tenant_url) {
+                Ok(mut tenant_conn) => {
+                    match tenant_conn.run_pending_migrations(TENANT_MIGRATIONS) {
+                        Ok(_) => {
+                            tracing::info!(
+                                workspace_id = %row.id,
+                                "Tenant migrations completed successfully"
+                            );
+                        }
+                        Err(e) => {
+                            tracing::error!(
+                                workspace_id = %row.id,
+                                error = %e,
+                                "Failed to run tenant migrations — skipping workspace"
+                            );
+                        }
+                    }
+                }
+                Err(e) => {
+                    tracing::warn!(
+                        workspace_id = %row.id,
+                        error = %e,
+                        "Failed to connect to tenant DB — may not exist yet, skipping"
+                    );
+                }
+            }
+        }
+
+        tracing::info!("Tenant migrations on existing workspaces completed");
     }
 
     #[allow(clippy::expect_used)]

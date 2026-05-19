@@ -106,3 +106,153 @@ async fn test_system_migrations_only_create_system_tables() {
     let drop_sql = format!("DROP DATABASE IF EXISTS \"{db_name}\"");
     let _ = admin_client.execute(&drop_sql, &[]).await;
 }
+
+#[tokio::test]
+async fn test_run_tenant_migrations_on_existing_workspace() {
+    let base_url = std::env::var("DATABASE_URL_FOR_TEST_GENERATION")
+        .or_else(|_| std::env::var("DATABASE_URL"))
+        .expect("DATABASE_URL_FOR_TEST_GENERATION or DATABASE_URL must be set");
+
+    let mut url_parts: Vec<&str> = base_url.split('/').collect();
+    let _ = url_parts.pop().unwrap_or("postgres");
+    let base_connection_string = url_parts.join("/");
+
+    let admin_url = format!("{base_connection_string}/test_database");
+    let workspace_id = Uuid::new_v4();
+    let sys_db_name = format!("test_sys_ten_{}", Uuid::new_v4().simple());
+    let tenant_db_name = format!("tenant_{}", workspace_id.to_string().replace('-', ""));
+
+    // 1. Create system database and tenant database
+    let (admin_client, admin_conn) = tokio_postgres::connect(&admin_url, NoTls)
+        .await
+        .expect("Failed to connect to admin DB");
+    tokio::spawn(async move {
+        let _ = admin_conn.await;
+    });
+
+    admin_client
+        .execute(&format!("CREATE DATABASE \"{sys_db_name}\""), &[])
+        .await
+        .expect("Failed to create system DB");
+
+    admin_client
+        .execute(&format!("CREATE DATABASE \"{tenant_db_name}\""), &[])
+        .await
+        .expect("Failed to create tenant DB");
+
+    // 2. Run system migrations and insert a workspace
+    let sys_db_url = format!("{base_connection_string}/{sys_db_name}");
+    let tenant_db_url = format!("{base_connection_string}/{tenant_db_name}");
+
+    let config = DbPoolConfig {
+        primary_url: sys_db_url.clone(),
+        pooler_url: None,
+        reader_url: None,
+        api_max_conn: 1,
+        api_acquire_timeout_secs: 5,
+        worker_max_conn: 1,
+        worker_acquire_timeout_secs: 5,
+        tenant_max_conn: 1,
+    };
+
+    let sys_url_clone = sys_db_url.clone();
+    let ws_id = workspace_id;
+    tokio::task::spawn_blocking(move || {
+        DieselPools::run_system_migrations(&DbPoolConfig {
+            primary_url: sys_url_clone.clone(),
+            pooler_url: None,
+            reader_url: None,
+            api_max_conn: 1,
+            api_acquire_timeout_secs: 5,
+            worker_max_conn: 1,
+            worker_acquire_timeout_secs: 5,
+            tenant_max_conn: 1,
+        });
+
+        // Insert a workspace so run_tenant_migrations can find it
+        use diesel::{Connection, RunQueryDsl};
+        let mut conn = diesel::PgConnection::establish(&sys_url_clone).expect("connect");
+        diesel::sql_query(format!(
+            "INSERT INTO workspaces (id, name) VALUES ('{ws_id}', 'test-ws')"
+        ))
+        .execute(&mut conn)
+        .expect("insert workspace");
+    })
+    .await
+    .unwrap();
+
+    // 3. Verify tenant DB is empty (no tenant tables yet)
+    let (tenant_client, tenant_conn) = tokio_postgres::connect(&tenant_db_url, NoTls)
+        .await
+        .unwrap();
+    tokio::spawn(async move {
+        let _ = tenant_conn.await;
+    });
+
+    let row = tenant_client
+        .query_one(
+            "SELECT EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'raw_attendance_logs');",
+            &[],
+        )
+        .await
+        .unwrap();
+    assert!(
+        !row.get::<_, bool>(0),
+        "raw_attendance_logs should NOT exist before run_tenant_migrations"
+    );
+    drop(tenant_client);
+
+    // 4. Run tenant migrations
+    let config_clone = config.clone();
+    tokio::task::spawn_blocking(move || {
+        DieselPools::run_tenant_migrations(&config_clone);
+    })
+    .await
+    .unwrap();
+
+    // 5. Verify tenant tables now exist
+    let (tenant_client2, tenant_conn2) = tokio_postgres::connect(&tenant_db_url, NoTls)
+        .await
+        .unwrap();
+    tokio::spawn(async move {
+        let _ = tenant_conn2.await;
+    });
+
+    let row = tenant_client2
+        .query_one(
+            "SELECT EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'raw_attendance_logs');",
+            &[],
+        )
+        .await
+        .unwrap();
+    assert!(
+        row.get::<_, bool>(0),
+        "raw_attendance_logs should exist after run_tenant_migrations"
+    );
+
+    // Also verify a system table does NOT exist in tenant DB (cross-contamination check)
+    let row = tenant_client2
+        .query_one(
+            "SELECT EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'users');",
+            &[],
+        )
+        .await
+        .unwrap();
+    assert!(
+        !row.get::<_, bool>(0),
+        "users table should NOT exist in tenant DB — it belongs to system DB"
+    );
+
+    drop(tenant_client2);
+
+    // 6. Cleanup both databases
+    for db in &[&sys_db_name, &tenant_db_name] {
+        let kill = format!(
+            "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '{db}' AND pid <> pg_backend_pid()"
+        );
+        let _ = admin_client.execute(&kill, &[]).await;
+        let _ = admin_client
+            .execute(&format!("DROP DATABASE IF EXISTS \"{db}\""), &[])
+            .await;
+    }
+}

@@ -44,3 +44,18 @@ CREATE TABLE audit_logs_y2026m11 PARTITION OF audit_logs FOR VALUES FROM ('2026-
 CREATE TABLE audit_logs_y2026m12 PARTITION OF audit_logs FOR VALUES FROM ('2026-12-01') TO ('2027-01-01');
 
 CREATE TABLE audit_logs_default PARTITION OF audit_logs DEFAULT;
+
+-- 3. Copy data from old table to new partitioned table
+INSERT INTO audit_logs (id, workspace_id, actor_id, target_user_id, target_resource_id, action, details, ip_address, user_agent, created_at)
+SELECT id, workspace_id, actor_id, target_user_id, target_resource_id, action, details, ip_address, user_agent, COALESCE(created_at, now())
+FROM audit_logs_old;
+
+-- 4. Drop old table
+DROP TABLE audit_logs_old CASCADE;
+
+-- 5. Add indexes on partitioned table
+CREATE INDEX idx_audit_logs_workspace_created ON audit_logs(workspace_id, created_at DESC);
+
+CREATE INDEX idx_audit_logs_action ON audit_logs(action);
+
+CREATE INDEX idx_audit_logs_target_user ON audit_logs(target_user_id);

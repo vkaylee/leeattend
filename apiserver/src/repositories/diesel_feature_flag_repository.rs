@@ -24,12 +24,7 @@ impl DieselFeatureFlagRepository {
 #[async_trait]
 impl FeatureFlagRepository for DieselFeatureFlagRepository {
     async fn list_flags(&self, workspace_id: Uuid) -> Result<Vec<FeatureFlag>, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .api
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = self.diesel_pools.tenant_conn(workspace_id).await?;
 
         feature_flags::table
             .filter(feature_flags::workspace_id.eq(workspace_id))
@@ -46,12 +41,7 @@ impl FeatureFlagRepository for DieselFeatureFlagRepository {
         workspace_id: Uuid,
         flag_key: &str,
     ) -> Result<Option<FeatureFlag>, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .api
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = self.diesel_pools.tenant_conn(workspace_id).await?;
 
         feature_flags::table
             .filter(feature_flags::workspace_id.eq(workspace_id))
@@ -69,12 +59,7 @@ impl FeatureFlagRepository for DieselFeatureFlagRepository {
         workspace_id: Uuid,
         id: Uuid,
     ) -> Result<Option<FeatureFlag>, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .api
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = self.diesel_pools.tenant_conn(workspace_id).await?;
 
         feature_flags::table
             .filter(feature_flags::workspace_id.eq(workspace_id))
@@ -88,12 +73,7 @@ impl FeatureFlagRepository for DieselFeatureFlagRepository {
     }
 
     async fn is_enabled_flag(&self, workspace_id: Uuid, flag_key: &str) -> Result<bool, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .api
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = self.diesel_pools.tenant_conn(workspace_id).await?;
 
         let enabled = feature_flags::table
             .filter(feature_flags::workspace_id.eq(workspace_id))
@@ -115,12 +95,7 @@ impl FeatureFlagRepository for DieselFeatureFlagRepository {
         description: Option<&str>,
         metadata: &serde_json::Value,
     ) -> Result<FeatureFlag, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .api
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = self.diesel_pools.tenant_conn(workspace_id).await?;
         let now = Utc::now();
 
         let entity = FeatureFlagEntity {
@@ -151,12 +126,7 @@ impl FeatureFlagRepository for DieselFeatureFlagRepository {
         description: Option<&str>,
         metadata: Option<&serde_json::Value>,
     ) -> Result<Option<FeatureFlag>, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .api
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = self.diesel_pools.tenant_conn(workspace_id).await?;
 
         let target = feature_flags::table
             .filter(feature_flags::workspace_id.eq(workspace_id))
@@ -178,12 +148,7 @@ impl FeatureFlagRepository for DieselFeatureFlagRepository {
     }
 
     async fn delete_flag(&self, workspace_id: Uuid, id: Uuid) -> Result<bool, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .api
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = self.diesel_pools.tenant_conn(workspace_id).await?;
 
         diesel::delete(
             feature_flags::table
@@ -204,12 +169,7 @@ impl FeatureFlagRepository for DieselFeatureFlagRepository {
         description: Option<&str>,
         metadata: &serde_json::Value,
     ) -> Result<FeatureFlag, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .api
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = self.diesel_pools.tenant_conn(workspace_id).await?;
         let now = Utc::now();
 
         let entity = FeatureFlagEntity {
