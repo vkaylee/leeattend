@@ -499,3 +499,123 @@ async fn test_authorized_agents_only_in_system_db() {
             .await;
     }
 }
+
+#[tokio::test]
+async fn test_workspace_tables_fk_cascade_in_system_db() {
+    let base_url = std::env::var("DATABASE_URL_FOR_TEST_GENERATION")
+        .or_else(|_| std::env::var("DATABASE_URL"))
+        .expect("DATABASE_URL_FOR_TEST_GENERATION or DATABASE_URL must be set");
+
+    let mut url_parts: Vec<&str> = base_url.split('/').collect();
+    let _ = url_parts.pop().unwrap_or("postgres");
+    let base_connection_string = url_parts.join("/");
+
+    let admin_url = format!("{base_connection_string}/test_database");
+    let db_name = format!("test_ws_fk_{}", Uuid::new_v4().simple());
+
+    let (admin_client, admin_conn) = tokio_postgres::connect(&admin_url, NoTls)
+        .await
+        .expect("Failed to connect to admin DB");
+    tokio::spawn(async move {
+        let _ = admin_conn.await;
+    });
+
+    admin_client
+        .execute(&format!("CREATE DATABASE \"{db_name}\""), &[])
+        .await
+        .expect("Failed to create test DB");
+
+    let db_url = format!("{base_connection_string}/{db_name}");
+
+    // Run system migrations
+    let url_clone = db_url.clone();
+    tokio::task::spawn_blocking(move || {
+        DieselPools::run_system_migrations(&DbPoolConfig {
+            primary_url: url_clone,
+            pooler_url: None,
+            reader_url: None,
+            api_max_conn: 1,
+            api_acquire_timeout_secs: 5,
+            worker_max_conn: 1,
+            worker_acquire_timeout_secs: 5,
+            tenant_max_conn: 1,
+        });
+    })
+    .await
+    .unwrap();
+
+    let (client, conn) = tokio_postgres::connect(&db_url, NoTls).await.unwrap();
+    tokio::spawn(async move { let _ = conn.await; });
+
+    // Seed: user + workspace + role
+    let user_id = Uuid::new_v4();
+    let ws_id = Uuid::new_v4();
+    let role_id = Uuid::new_v4();
+
+    client
+        .execute(&format!("INSERT INTO users (id, email, password_hash) VALUES ('{user_id}', 'fk@test.com', 'hash')"), &[])
+        .await.unwrap();
+    client
+        .execute(&format!("INSERT INTO workspaces (id, name) VALUES ('{ws_id}', 'fk-ws')"), &[])
+        .await.unwrap();
+    client
+        .execute(&format!("INSERT INTO workspace_roles (id, workspace_id, name) VALUES ('{role_id}', NULL, 'fk-role')"), &[])
+        .await.unwrap();
+
+    // --- Test 1: workspace_members FK cascade ---
+    client
+        .execute(&format!("INSERT INTO workspace_members (workspace_id, user_id, role_id) VALUES ('{ws_id}', '{user_id}', '{role_id}')"), &[])
+        .await.unwrap();
+
+    // Delete user → workspace_members cascade
+    client.execute(&format!("DELETE FROM users WHERE id = '{user_id}'"), &[]).await.unwrap();
+    let row = client
+        .query_one(&format!("SELECT COUNT(*) FROM workspace_members WHERE workspace_id = '{ws_id}'"), &[])
+        .await.unwrap();
+    let count: i64 = row.get(0);
+    assert_eq!(count, 0, "workspace_members should be cascade-deleted with user");
+
+    // Re-seed user + member for next test
+    let user2 = Uuid::new_v4();
+    client.execute(&format!("INSERT INTO users (id, email, password_hash) VALUES ('{user2}', 'fk2@test.com', 'hash')"), &[]).await.unwrap();
+    client.execute(&format!("INSERT INTO workspace_members (workspace_id, user_id, role_id) VALUES ('{ws_id}', '{user2}', '{role_id}')"), &[]).await.unwrap();
+
+    // Delete workspace → workspace_members cascade
+    client.execute(&format!("DELETE FROM workspaces WHERE id = '{ws_id}'"), &[]).await.unwrap();
+    let count: i64 = client.query_one("SELECT COUNT(*) FROM workspace_members", &[]).await.unwrap().get(0);
+    assert_eq!(count, 0, "workspace_members should be cascade-deleted with workspace");
+
+    // --- Test 2: workspace_role_permissions FK cascade ---
+    let role2 = Uuid::new_v4();
+    client.execute(&format!("INSERT INTO workspace_roles (id, workspace_id, name) VALUES ('{role2}', NULL, 'fk-role2')"), &[]).await.unwrap();
+    client.execute(&format!("INSERT INTO workspace_role_permissions (role_id, permission_name) VALUES ('{role2}', 'test:perm')"), &[]).await.unwrap();
+
+    // Delete role → permissions cascade
+    client.execute(&format!("DELETE FROM workspace_roles WHERE id = '{role2}'"), &[]).await.unwrap();
+    let count: i64 = client.query_one(&format!("SELECT COUNT(*) FROM workspace_role_permissions WHERE role_id = '{role2}'"), &[]).await.unwrap().get(0);
+    assert_eq!(count, 0, "workspace_role_permissions should be cascade-deleted with role");
+
+    // --- Test 3: member_extra_roles FK cascades ---
+    let ws2 = Uuid::new_v4();
+    let role3 = Uuid::new_v4();
+    let extra_id = Uuid::new_v4();
+    client.execute(&format!("INSERT INTO workspaces (id, name) VALUES ('{ws2}', 'fk-ws2')"), &[]).await.unwrap();
+    client.execute(&format!("INSERT INTO workspace_roles (id, workspace_id, name) VALUES ('{role3}', NULL, 'fk-role3')"), &[]).await.unwrap();
+    client.execute(&format!("INSERT INTO member_extra_roles (id, workspace_id, user_id, role_id, expires_at) VALUES ('{extra_id}', '{ws2}', '{user2}', '{role3}', NOW() + INTERVAL '30 days')"), &[]).await.unwrap();
+
+    // Delete user → extra_roles cascade
+    client.execute(&format!("DELETE FROM users WHERE id = '{user2}'"), &[]).await.unwrap();
+    let count: i64 = client.query_one(&format!("SELECT COUNT(*) FROM member_extra_roles WHERE id = '{extra_id}'"), &[]).await.unwrap().get(0);
+    assert_eq!(count, 0, "member_extra_roles should be cascade-deleted with user");
+
+    drop(client);
+
+    // Cleanup
+    let kill = format!(
+        "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '{db_name}' AND pid <> pg_backend_pid()"
+    );
+    let _ = admin_client.execute(&kill, &[]).await;
+    let _ = admin_client
+        .execute(&format!("DROP DATABASE IF EXISTS \"{db_name}\""), &[])
+        .await;
+}
