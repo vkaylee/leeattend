@@ -248,8 +248,8 @@ pub async fn get_latest_import_job(
 
 pub async fn get_import_job_status(
     State(state): State<Arc<AppState>>,
-    MemberContext { .. }: MemberContext,
-    Path((workspace_id, job_id)): Path<(Uuid, Uuid)>,
+    MemberContext { workspace_id, .. }: MemberContext,
+    Path((_, job_id)): Path<(Uuid, Uuid)>,
 ) -> AppResult<Json<AttendanceImportJob>> {
     let mut job = state
         .attendance

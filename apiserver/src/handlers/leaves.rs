@@ -585,7 +585,7 @@ pub async fn get_latest_leave_import(
 /// GET /workspaces/:ws_id/leave/import/:job_id/errors
 /// Download the error Excel file for a completed import job.
 pub async fn download_leave_import_errors(
-    Path((workspace_id, job_id)): Path<(Uuid, Uuid)>,
+    Path((_, job_id)): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> AppResult<axum::response::Response> {
@@ -596,7 +596,7 @@ pub async fn download_leave_import_errors(
     let repo = DieselImportJobRepository::new(state.infra.diesel.clone());
 
     let job = repo
-        .get_job_by_id(workspace_id, job_id)
+        .get_job_by_id(ctx.workspace_id, job_id)
         .await
         .map_err(|e| AppError::Internal(format!("DB error: {e}")))?
         .ok_or_else(|| AppError::NotFound("Import job not found".to_string()))?;
