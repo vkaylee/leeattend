@@ -39,7 +39,7 @@ services:
       test: [ "CMD", "sh", "-c", "redis-cli -a ${REDIS_PASSWORD} ping" ]
 
   supavisor:
-    image: supabase/supavisor:2.7.4
+    image: docker.io/supabase/supavisor:2.7.4
     restart: always
     networks:
       - backend_net
