@@ -17,6 +17,7 @@ use mimalloc::MiMalloc;
 use tokio::time::timeout;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use utoipa::OpenApi;
+use uuid::Uuid;
 
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
@@ -56,12 +57,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Initialize configurable database pools (API + Worker + optional Reader)
     let db_config = DbPoolConfig::from_env();
-    DieselPools::run_system_migrations(&db_config);
-    DieselPools::run_tenant_migrations(&db_config);
 
-    // Initialize Supavisor pooler tenant configuration if required
-    // This MUST run before DbPools::connect because DbPools::connect attempts to connect
-    // to the Supavisor pool, which requires the tenant to be registered first.
+    // 1. System migrations must run via direct connection before Supavisor is available
+    DieselPools::run_system_migrations(&db_config);
+
+    // 2. Initialize Supavisor pooler — system tenant must be registered before pools connect
     let tenant_manager: std::sync::Arc<dyn apiserver::supavisor::TenantManager> =
         if let Some(mgr) = apiserver::supavisor::SupavisorTenantManager::new() {
             std::sync::Arc::new(mgr)
@@ -70,7 +70,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         };
     tenant_manager.init_tenant().await;
 
+    // 3. Connect pools (API/worker/tenant all go through Supavisor)
     let diesel_pools = DieselPools::connect(&db_config).await;
+
+    // 4. Register existing workspace tenants with Supavisor, then run pending migrations
+    register_workspace_tenants_and_migrate(&db_config, &diesel_pools, &*tenant_manager).await;
 
     // ╔═══════════════════════════════════════════════════════════════╗
     // ║  POOL ASSIGNMENT RULES                                       ║
@@ -202,6 +206,96 @@ async fn init_redis() -> Option<RedisPool> {
             None
         }
     }
+}
+
+/// Register all existing workspace tenants with Supavisor, then run pending
+/// tenant migrations through the pooler. Called once at startup after pools
+/// are connected.
+async fn register_workspace_tenants_and_migrate(
+    db_config: &DbPoolConfig,
+    _diesel_pools: &DieselPools,
+    tenant_manager: &dyn apiserver::supavisor::TenantManager,
+) {
+    // Query workspaces from system DB via direct connection
+    let primary_url = db_config.primary_url.clone();
+    let primary_url_for_parse = primary_url.clone();
+    let rows: Vec<Uuid> = match tokio::task::spawn_blocking(move || {
+        use diesel::{Connection, QueryableByName, RunQueryDsl};
+        use diesel::sql_types::Uuid as UuidSql;
+
+        #[derive(QueryableByName)]
+        struct WsRow {
+            #[diesel(sql_type = UuidSql)]
+            id: Uuid,
+        }
+
+        let mut conn = diesel::PgConnection::establish(&primary_url)
+            .map_err(|e| format!("Failed to connect: {e}"))?;
+        diesel::sql_query("SELECT id FROM workspaces")
+            .load::<WsRow>(&mut conn)
+            .map(|r| r.into_iter().map(|w| w.id).collect())
+            .map_err(|e| format!("Failed to query workspaces: {e}"))
+    })
+    .await
+    .expect("Failed to query workspaces for tenant registration")
+    {
+        Ok(r) => r,
+        Err(e) => {
+            tracing::warn!("{e} — skipping tenant registration");
+            return;
+        }
+    };
+
+    if rows.is_empty() {
+        tracing::info!("No workspaces — skipping tenant registration and migrations");
+        return;
+    }
+
+    // Build Supavisor payload for each workspace tenant and register (idempotent PUT)
+    let parsed_url = match reqwest::Url::parse(&primary_url_for_parse) {
+        Ok(u) => u,
+        Err(e) => {
+            tracing::error!("Invalid DATABASE_URL: {e} — skipping tenant registration");
+            return;
+        }
+    };
+    let host = parsed_url.host_str().unwrap_or("db");
+    let port = parsed_url.port().unwrap_or(5432);
+    let user = parsed_url.username();
+    let pass = parsed_url.password().unwrap_or("");
+
+    for ws_id in &rows {
+        let db_name = format!("tenant_{}", ws_id.to_string().replace('-', ""));
+        let payload = serde_json::json!({
+            "tenant": {
+                "db_host": host,
+                "db_port": port,
+                "db_database": db_name,
+                "enforce_ssl": false,
+                "users": [{
+                    "db_user": user,
+                    "db_password": pass,
+                    "pool_size": 5
+                }]
+            }
+        });
+
+        if let Err(e) = tenant_manager.register_tenant_dynamic(&db_name, &payload).await {
+            tracing::warn!(
+                workspace_id = %ws_id,
+                error = %e,
+                "Failed to register tenant with Supavisor — will retry on next startup"
+            );
+        }
+    }
+
+    // Run pending tenant migrations through the pooler (via Supavisor)
+    let config_clone = db_config.clone();
+    tokio::task::spawn_blocking(move || {
+        DieselPools::run_tenant_migrations(&config_clone);
+    })
+    .await
+    .expect("Tenant migration task panicked");
 }
 
 async fn shutdown_signal() {

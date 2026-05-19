@@ -101,7 +101,22 @@ impl ProductionTenantPoolManager {
         let db_name = format!("tenant_{}", workspace_id.to_string().replace('-', ""));
         let mut parsed_url = reqwest::Url::parse(&self.base_url)
             .map_err(|e| AppError::Internal(format!("Invalid base pool URL: {e}")))?;
+
+        // Set database name in path
         parsed_url.set_path(&db_name);
+
+        // If base URL uses Supavisor routing (user contains dot like admin.tenant),
+        // update the user part to include the workspace tenant name.
+        // For direct connections (no dot in user), leave user unchanged.
+        let current_user = parsed_url.username().to_string();
+        if current_user.contains('.') {
+            if let Some((prefix, _old_tenant)) = current_user.split_once('.') {
+                let new_user = format!("{}.{}", prefix, db_name);
+                parsed_url.set_username(&new_user)
+                    .map_err(|_| AppError::Internal("Failed to set tenant username".into()))?;
+            }
+        }
+
         Ok(parsed_url.to_string())
     }
 }
@@ -265,13 +280,20 @@ impl DieselPools {
             "Running tenant migrations on existing workspaces"
         );
 
-        let base_url = &config.primary_url;
+        let base_url = config.pooler_url.as_deref().unwrap_or(&config.primary_url);
 
         for row in &workspace_rows {
             let db_name = format!("tenant_{}", row.id.to_string().replace('-', ""));
             let tenant_url = match reqwest::Url::parse(base_url) {
                 Ok(mut url) => {
                     url.set_path(&db_name);
+                    // For Supavisor URLs (user contains dot), update tenant in user part
+                    let current_user = url.username().to_string();
+                    if current_user.contains('.') {
+                        if let Some((prefix, _)) = current_user.split_once('.') {
+                            let _ = url.set_username(&format!("{}.{}", prefix, db_name));
+                        }
+                    }
                     url.to_string()
                 }
                 Err(e) => {
@@ -366,19 +388,32 @@ mod tests {
     use uuid::Uuid;
 
     #[test]
-    fn test_tenant_pool_manager_url_production_mode() {
+    fn test_tenant_pool_manager_url_direct_connection() {
+        // Direct connection: user has no dot, leave unchanged
         let base_url = "postgres://user:pass@localhost:5432/postgres";
         let manager = ProductionTenantPoolManager::new(base_url.to_string(), 5);
 
-        // Use a fixed UUID for predictable output
         let workspace_id = Uuid::parse_str("123e4567-e89b-12d3-a456-426614174000").unwrap();
-
         let result = manager.get_tenant_url(&workspace_id).unwrap();
 
-        // In production mode, it should append the tenant name to the path
         assert_eq!(
             result,
             "postgres://user:pass@localhost:5432/tenant_123e4567e89b12d3a456426614174000"
+        );
+    }
+
+    #[test]
+    fn test_tenant_pool_manager_url_supavisor_mode() {
+        // Supavisor connection: user has dot (admin.leeattend), update tenant part
+        let base_url = "postgres://admin.leeattend:pass@supavisor:5452/leeattend";
+        let manager = ProductionTenantPoolManager::new(base_url.to_string(), 5);
+
+        let workspace_id = Uuid::parse_str("123e4567-e89b-12d3-a456-426614174000").unwrap();
+        let result = manager.get_tenant_url(&workspace_id).unwrap();
+
+        assert_eq!(
+            result,
+            "postgres://admin.tenant_123e4567e89b12d3a456426614174000:pass@supavisor:5452/tenant_123e4567e89b12d3a456426614174000"
         );
     }
 

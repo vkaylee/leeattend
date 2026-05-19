@@ -621,11 +621,9 @@ async fn test_workspace_tables_fk_cascade_in_system_db() {
 }
 
 #[tokio::test]
-async fn test_run_tenant_migrations_uses_direct_connection() {
-    // Verify run_tenant_migrations connects directly to Postgres,
-    // not through Supavisor. Even with an unreachable pooler URL, it
-    // should still succeed because it uses DATABASE_URL (primary_url).
-
+async fn test_run_tenant_migrations_falls_back_to_primary_url() {
+    // Verify run_tenant_migrations works when pooler_url is None
+    // (dev/test mode or no Supavisor). It falls back to primary_url.
     let base_url = std::env::var("DATABASE_URL_FOR_TEST_GENERATION")
         .or_else(|_| std::env::var("DATABASE_URL"))
         .expect("DATABASE_URL_FOR_TEST_GENERATION or DATABASE_URL must be set");
@@ -636,7 +634,7 @@ async fn test_run_tenant_migrations_uses_direct_connection() {
 
     let admin_url = format!("{base_connection_string}/test_database");
     let workspace_id = Uuid::new_v4();
-    let sys_db_name = format!("test_direct_ten_{}", Uuid::new_v4().simple());
+    let sys_db_name = format!("test_fallback_ten_{}", Uuid::new_v4().simple());
     let tenant_db_name = format!("tenant_{}", workspace_id.to_string().replace('-', ""));
 
     let (admin_client, admin_conn) = tokio_postgres::connect(&admin_url, NoTls)
@@ -685,11 +683,10 @@ async fn test_run_tenant_migrations_uses_direct_connection() {
     .await
     .unwrap();
 
-    // Run tenant migrations with a bogus pooler_url — should still work
-    // because run_tenant_migrations ignores pooler_url, uses primary_url
-    let config_with_bogus_pooler = DbPoolConfig {
+    // Run tenant migrations with pooler_url: None — should fall back to primary_url
+    let config_no_pooler = DbPoolConfig {
         primary_url: sys_db_url.clone(),
-        pooler_url: Some("postgres://no-such-host:9999/nonexistent".to_string()),
+        pooler_url: None,
         reader_url: None,
         api_max_conn: 1,
         api_acquire_timeout_secs: 5,
@@ -698,14 +695,14 @@ async fn test_run_tenant_migrations_uses_direct_connection() {
         tenant_max_conn: 1,
     };
 
-    let config_clone = config_with_bogus_pooler.clone();
+    let config_clone = config_no_pooler.clone();
     tokio::task::spawn_blocking(move || {
         DieselPools::run_tenant_migrations(&config_clone);
     })
     .await
     .unwrap();
 
-    // Verify tenant tables were created (proves direct connection was used)
+    // Verify tenant tables were created via direct connection fallback
     let tenant_db_url = format!("{base_connection_string}/{tenant_db_name}");
     let (client, conn) = tokio_postgres::connect(&tenant_db_url, NoTls).await.unwrap();
     tokio::spawn(async move { let _ = conn.await; });
@@ -719,7 +716,7 @@ async fn test_run_tenant_migrations_uses_direct_connection() {
         .unwrap();
     assert!(
         row.get::<_, bool>(0),
-        "tenant migrations should have run via direct connection despite bogus pooler URL"
+        "tenant migrations should have run via primary_url fallback when no pooler configured"
     );
 
     drop(client);
