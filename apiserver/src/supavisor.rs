@@ -52,6 +52,8 @@ pub(crate) fn build_tenant_payload(db_url: &str) -> Option<(String, serde_json::
             "ip_version": ip_version,
             "enforce_ssl": enforce_ssl,
             "require_user": false,
+            "default_pool_size": pool_size,
+            "default_mode": &mode_type,
             "auth_query": "SELECT rolname, rolpassword FROM pg_authid WHERE rolname=$1;",
             "users": [
                 {
