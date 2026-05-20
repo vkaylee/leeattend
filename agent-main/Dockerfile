@@ -10,7 +10,7 @@ RUN apt-get update && apt-get install -y wget && \
     mv sccache-v0.8.1-x86_64-unknown-linux-musl/sccache /usr/local/bin/sccache && \
     chmod +x /usr/local/bin/sccache && \
     rm -rf sccache* && \
-    apt-get install -y build-essential pkg-config libssl-dev clang mold curl tar && rm -rf /var/lib/apt/lists/*
+    apt-get install -y build-essential pkg-config libssl-dev clang mold curl tar rsync && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 
 # Stage 2: Planner (Prepare recipe)
