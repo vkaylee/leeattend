@@ -1,5 +1,5 @@
 use axum::{
-    routing::{delete, get},
+    routing::{delete, get, patch},
     Router,
 };
 use std::sync::Arc;
@@ -37,5 +37,9 @@ pub fn router() -> Router<Arc<AppState>> {
         .route(
             "/system/tenants/:tenant_id/database",
             axum::routing::put(system_tenants::update_tenant_database),
+        )
+        .route(
+            "/system/tenants/:tenant_id/mode",
+            patch(system_tenants::update_tenant_mode),
         )
 }

@@ -165,13 +165,13 @@ services:
     environment:
       <<: *rust-env-base
       DATABASE_URL: postgres://test_user:test_password@db:5432/test_database
-      DATABASE_POOLER_URL: postgres://${SUPAVISOR_POOL_USER:-test_user}.${SUPAVISOR_TENANT_ID:-test_database}:${SUPAVISOR_POOL_PASSWORD:-test_password}@${SUPAVISOR_HOST:-supavisor}:${SUPAVISOR_PORT:-6543}/test_database
+      DATABASE_POOLER_URL: postgres://${SUPAVISOR_POOL_USER:-test_user}.${SUPAVISOR_TENANT_ID:-test_database}:${SUPAVISOR_POOL_PASSWORD:-test_password}@${SUPAVISOR_HOST:-supavisor}:5452/test_database
       SUPAVISOR_API_URL: http://${SUPAVISOR_HOST:-supavisor}:${SUPAVISOR_API_PORT:-4000}
       SUPAVISOR_TENANT_ID: ${SUPAVISOR_TENANT_ID:-}
       SUPAVISOR_POOL_USER: ${SUPAVISOR_POOL_USER:-}
       SUPAVISOR_POOL_PASSWORD: ${SUPAVISOR_POOL_PASSWORD:-}
       SUPAVISOR_POOL_SIZE: ${SUPAVISOR_POOL_SIZE:-20}
-      SUPAVISOR_MODE_TYPE: ${SUPAVISOR_MODE_TYPE:-transaction}
+      SUPAVISOR_MODE_TYPE: ${SUPAVISOR_MODE_TYPE:-session}
       SUPAVISOR_IP_VERSION: v4
       API_JWT_SECRET: ${SUPAVISOR_API_JWT:-your-super-secret-jwt-token-with-at-least-32-bytes-long}
       REDIS_URL: redis://redis:6379

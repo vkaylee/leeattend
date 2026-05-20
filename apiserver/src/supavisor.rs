@@ -40,7 +40,7 @@ pub(crate) fn build_tenant_payload(db_url: &str) -> Option<(String, serde_json::
         .unwrap_or(20);
 
     let mode_type =
-        std::env::var("SUPAVISOR_MODE_TYPE").unwrap_or_else(|_| "transaction".to_string());
+        std::env::var("SUPAVISOR_MODE_TYPE").unwrap_or_else(|_| "session".to_string());
 
     let ip_version = std::env::var("SUPAVISOR_IP_VERSION").unwrap_or_else(|_| "auto".to_string());
 
@@ -89,6 +89,7 @@ pub trait TenantManager: Send + Sync {
         payload: &serde_json::Value,
     ) -> AppResult<()>;
     async fn get_tenant(&self, tenant_id: &str) -> AppResult<serde_json::Value>;
+    async fn update_tenant_mode(&self, tenant_id: &str, mode_type: &str) -> AppResult<()>;
 }
 
 pub struct SupavisorTenantManager {
@@ -274,6 +275,60 @@ impl TenantManager for SupavisorTenantManager {
             )))
         }
     }
+
+    async fn update_tenant_mode(&self, tenant_id: &str, mode_type: &str) -> AppResult<()> {
+        let token = self
+            .generate_token()
+            .map_err(|e| AppError::Internal(format!("Failed to generate token: {e}")))?;
+
+        let base_url = self.api_url.trim_end_matches('/');
+        let url = format!("{base_url}/api/tenants/{tenant_id}");
+
+        let mut current = self.get_tenant(tenant_id).await?;
+
+        let tenant_obj = current
+            .as_object_mut()
+            .and_then(|root| root.get_mut("tenant"))
+            .and_then(|t| t.as_object_mut())
+            .ok_or_else(|| AppError::Internal("Unexpected Supavisor response shape".into()))?;
+
+        tenant_obj.insert("default_mode".to_string(), serde_json::Value::String(mode_type.to_string()));
+
+        if let Some(users) = tenant_obj
+            .get_mut("users")
+            .and_then(|u| u.as_array_mut())
+        {
+            for user in users {
+                if let Some(obj) = user.as_object_mut() {
+                    obj.insert("mode_type".to_string(), serde_json::Value::String(mode_type.to_string()));
+                }
+            }
+        }
+
+        let response = self
+            .client
+            .put(&url)
+            .header("Authorization", format!("Bearer {token}"))
+            .json(&current)
+            .send()
+            .await
+            .map_err(|e| AppError::Internal(format!("Failed to reach Supavisor API: {e}")))?;
+
+        let status = response.status();
+        if status.is_success() {
+            tracing::info!(
+                tenant_id = %tenant_id,
+                mode_type = %mode_type,
+                "Updated Supavisor tenant pool mode"
+            );
+            Ok(())
+        } else {
+            let text = response.text().await.unwrap_or_default();
+            Err(AppError::Internal(format!(
+                "Supavisor returned {status}: {text}"
+            )))
+        }
+    }
 }
 
 pub struct NoopTenantManager;
@@ -301,6 +356,11 @@ impl TenantManager for NoopTenantManager {
     async fn get_tenant(&self, _tenant_id: &str) -> AppResult<serde_json::Value> {
         tracing::debug!("NoopTenantManager: skipping get_tenant");
         Ok(serde_json::json!({}))
+    }
+
+    async fn update_tenant_mode(&self, _tenant_id: &str, _mode_type: &str) -> AppResult<()> {
+        tracing::debug!("NoopTenantManager: skipping update_tenant_mode");
+        Ok(())
     }
 }
 
@@ -396,7 +456,7 @@ mod tests {
         assert_eq!(users[0]["db_user"], "custom_pool_user");
         assert_eq!(users[0]["db_password"], "custom_pool_secret");
         assert_eq!(users[0]["pool_size"], 20); // Default
-        assert_eq!(users[0]["mode_type"], "transaction"); // Default
+        assert_eq!(users[0]["mode_type"], "session"); // Default
 
         std::env::remove_var("SUPAVISOR_POOL_USER");
         std::env::remove_var("SUPAVISOR_POOL_PASSWORD");

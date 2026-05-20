@@ -44,6 +44,9 @@ impl TenantManager for DummyTenantManager {
     async fn get_tenant(&self, _tenant_id: &str) -> Result<serde_json::Value, apiserver::errors::AppError> {
         Ok(serde_json::json!({}))
     }
+    async fn update_tenant_mode(&self, _tenant_id: &str, _mode_type: &str) -> Result<(), apiserver::errors::AppError> {
+        Ok(())
+    }
 }
 
 #[tokio::test]

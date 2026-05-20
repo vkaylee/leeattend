@@ -143,6 +143,7 @@ impl TenantPoolProvider for ProductionTenantPoolManager {
         let pool = Pool::builder(manager)
             .max_size(self.max_size)
             .wait_timeout(Some(Duration::from_secs(5)))
+            .create_timeout(Some(Duration::from_secs(5)))
             .runtime(deadpool::Runtime::Tokio1)
             .build()
             .map_err(|e| AppError::Internal(format!("Failed to create tenant pool: {e}")))?;
@@ -199,6 +200,7 @@ impl DieselPools {
         let api_pool = Pool::builder(api_manager)
             .max_size(config.api_max_conn as usize)
             .wait_timeout(Some(Duration::from_secs(config.api_acquire_timeout_secs)))
+            .create_timeout(Some(Duration::from_secs(5)))
             .runtime(deadpool::Runtime::Tokio1)
             .build()
             .expect("Failed to create API Diesel pool");
@@ -210,6 +212,7 @@ impl DieselPools {
             .wait_timeout(Some(Duration::from_secs(
                 config.worker_acquire_timeout_secs,
             )))
+            .create_timeout(Some(Duration::from_secs(5)))
             .runtime(deadpool::Runtime::Tokio1)
             .build()
             .expect("Failed to create Worker Diesel pool");

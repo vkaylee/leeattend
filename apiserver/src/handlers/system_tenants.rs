@@ -396,3 +396,61 @@ pub async fn get_tenant_stats(
 
     Ok(Json(response))
 }
+
+/// PATCH /system/tenants/:tenant_id/mode
+/// Updates the pool mode type for a specific tenant at runtime.
+#[derive(Deserialize, ToSchema)]
+pub struct UpdateTenantModeRequest {
+    pub mode_type: String,
+}
+
+pub async fn update_tenant_mode(
+    Path(tenant_id): Path<String>,
+    State(state): State<Arc<AppState>>,
+    ctx: SystemContext,
+    _api_ctx: ApiContext,
+    Json(req): Json<UpdateTenantModeRequest>,
+) -> AppResult<StatusCode> {
+    ctx.require_role(SystemRoleType::PlatformAdmin)?;
+
+    let mode_type = req.mode_type.to_lowercase();
+    if mode_type != "session" && mode_type != "transaction" {
+        return Err(AppError::Validation(
+            "mode_type must be 'session' or 'transaction'".into(),
+        ));
+    }
+
+    state
+        .infra
+        .tenant_manager
+        .update_tenant_mode(&tenant_id, &mode_type)
+        .await?;
+
+    let mut conn = state
+        .infra
+        .diesel
+        .api
+        .get()
+        .await
+        .map_err(|e| AppError::Internal(e.to_string()))?;
+
+    let details = serde_json::json!({
+        "tenant_id": tenant_id,
+        "mode_type": mode_type
+    });
+
+    diesel::sql_query(
+        r#"
+        INSERT INTO system_audit_logs (id, actor_id, action, details, created_at)
+        VALUES ($1, $2, 'tenant.update_mode', $3, NOW())
+        "#,
+    )
+    .bind::<diesel::sql_types::Uuid, _>(crate::utils::id::new_id())
+    .bind::<diesel::sql_types::Uuid, _>(ctx.user_id)
+    .bind::<diesel::sql_types::Jsonb, _>(details)
+    .execute(&mut conn)
+    .await
+    .map_err(|e| AppError::Internal(e.to_string()))?;
+
+    Ok(StatusCode::OK)
+}
