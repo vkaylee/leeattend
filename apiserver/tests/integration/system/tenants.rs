@@ -205,6 +205,10 @@ async fn test_create_tenant_with_byod() {
             "custom_host"
         );
         assert_eq!(tenant.get("db_port").unwrap().as_u64().unwrap(), 5432);
+        
+        // Assert new Edge Case fields
+        assert_eq!(tenant.get("default_pool_size").unwrap().as_u64().unwrap(), 25);
+        assert_eq!(tenant.get("default_mode").unwrap().as_str().unwrap(), "transaction");
 
         let users = tenant.get("users").unwrap().as_array().unwrap();
         assert_eq!(users.len(), 1);

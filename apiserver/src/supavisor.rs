@@ -665,4 +665,31 @@ mod tests {
         // Check expiration is 1 hour ahead
         assert_eq!(token_data.claims.exp - token_data.claims.iat, 3600);
     }
+
+    #[test]
+    fn test_build_tenant_payload_includes_default_mode_and_pool_size() {
+        // Test that Supavisor payload correctly injects default_mode and default_pool_size
+        // which are required by Supavisor 2.7+ when require_user is false.
+        std::env::set_var("SUPAVISOR_MODE_TYPE", "session");
+        std::env::set_var("SUPAVISOR_POOL_SIZE", "42");
+        std::env::set_var("SUPAVISOR_TENANT_ID", "test_tenant");
+
+        let url = "postgres://user:pass@host:5432/dbname";
+        let (tenant_id, payload) = build_tenant_payload(url).expect("Should build payload");
+
+        assert_eq!(tenant_id, "test_tenant");
+
+        let tenant_obj = payload.get("tenant").expect("Missing tenant object");
+        
+        assert_eq!(tenant_obj.get("require_user").unwrap().as_bool(), Some(false));
+        
+        // Assert the new edge-case fields are present
+        assert_eq!(tenant_obj.get("default_mode").unwrap().as_str(), Some("session"));
+        assert_eq!(tenant_obj.get("default_pool_size").unwrap().as_u64(), Some(42));
+
+        // Cleanup
+        std::env::remove_var("SUPAVISOR_MODE_TYPE");
+        std::env::remove_var("SUPAVISOR_POOL_SIZE");
+        std::env::remove_var("SUPAVISOR_TENANT_ID");
+    }
 }
