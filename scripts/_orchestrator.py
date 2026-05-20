@@ -384,14 +384,14 @@ class Orchestrator:
             run_unit = False
             run_e2e = False
 
-        if run_lint:
-            self.run_phase("Linting", mode, args)
-
         if run_unit:
             self.run_phase("Unit Tests", mode, args)
 
         if run_e2e:
             self.run_phase("Integration Tests", mode, args)
+
+        if run_lint:
+            self.run_phase("Linting", mode, args)
 
         if args.coverage:
             self.run_phase("Coverage", mode, args)
