@@ -38,7 +38,7 @@ x-rust-test-base: &rust-test-base
     <<: *rust-env-base
   tmpfs:
     - /workspace/target/nextest
-    - /workspace/target/debug/incremental:size=2048M
+    - /workspace/target/debug/incremental:size=4096M
   volumes:
     - ${PROJECT_ROOT}:/workspace
     - target-cache:/workspace/target

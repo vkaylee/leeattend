@@ -90,9 +90,28 @@ export async function deleteSystemTenant(tenantId: string): Promise<void> {
   if (!response.ok) throw new Error("Failed to delete system tenant");
 }
 
-export async function fetchSystemTenantStats(tenantId: string): Promise<any> {
+export interface TenantConnectionStats {
+  config: any;
+  connection: {
+    host: string;
+    port: string;
+    masked_db_url?: string | null;
+  };
+}
+
+export async function fetchSystemTenantStats(tenantId: string): Promise<TenantConnectionStats> {
   const response = await apiFetch(`${API_BASE_URL}/system/tenants/${tenantId}/stats`);
   if (!response.ok) throw new Error("Failed to fetch tenant stats");
   return response.json();
 }
 
+export async function updateTenantDatabase(tenantId: string, customDbUrl: string): Promise<void> {
+  const response = await apiFetch(`${API_BASE_URL}/system/tenants/${tenantId}/database`, {
+    method: "PUT",
+    body: JSON.stringify({ custom_db_url: customDbUrl }),
+  });
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(errText || "Failed to update tenant database");
+  }
+}

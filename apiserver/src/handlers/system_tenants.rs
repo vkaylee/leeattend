@@ -30,6 +30,21 @@ pub struct CreateTenantRequest {
     pub pool_size: Option<u32>,
 }
 
+#[derive(Deserialize, ToSchema)]
+pub struct UpdateTenantDbRequest {
+    pub custom_db_url: String,
+}
+
+fn mask_db_url(url: &str) -> String {
+    if let Ok(mut parsed) = reqwest::Url::parse(url) {
+        let _ = parsed.set_password(Some("***"));
+        parsed.to_string()
+    } else {
+        "*** REDACTED ***".to_string()
+    }
+}
+
+
 impl std::fmt::Debug for CreateTenantRequest {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("CreateTenantRequest")
@@ -249,6 +264,92 @@ pub async fn delete_tenant_handler(
     Ok(StatusCode::NO_CONTENT)
 }
 
+/// PUT /system/tenants/:tenant_id/database
+/// Updates a tenant's database connection URL and registers it in Supavisor.
+pub async fn update_tenant_database(
+    Path(tenant_id): Path<String>,
+    State(state): State<Arc<AppState>>,
+    ctx: SystemContext,
+    _api_ctx: ApiContext,
+    Json(req): Json<UpdateTenantDbRequest>,
+) -> AppResult<StatusCode> {
+    ctx.require_role(SystemRoleType::PlatformAdmin)?;
+
+    let uuid_str = tenant_id.strip_prefix("tenant_").unwrap_or(&tenant_id);
+    let workspace_id = uuid::Uuid::parse_str(uuid_str)
+        .map_err(|_| AppError::Validation("Invalid tenant_id format".into()))?;
+
+    // Build dynamic Supavisor payload.
+    // Tenant ID must match the format produced by diesel_pool::get_tenant_url()
+    // By this time we already have the correct `tenant_id` from the path.
+    // We just need to build the payload with the new DB URL.
+    
+    // We temporarily set SUPAVISOR_TENANT_ID to trick build_tenant_payload to build correct payload, 
+    // although build_tenant_payload uses it if we wanted to register it, but it only sets DB connections inside.
+    let payload_opt = build_tenant_payload(&req.custom_db_url);
+
+    let Some((_, payload)) = payload_opt else {
+        return Err(AppError::Internal(
+            "Failed to build Supavisor payload".into(),
+        ));
+    };
+
+    // Update in Supavisor
+    state
+        .infra
+        .tenant_manager
+        .register_tenant_dynamic(&tenant_id, &payload)
+        .await?;
+
+    // Encrypt and save custom_db_url
+    let encrypted_url = if let Some(crypto) = &state.infra.crypto_service {
+        crypto.encrypt(&req.custom_db_url).map_err(|e| {
+            tracing::error!("Failed to encrypt DB URL: {}", e);
+            AppError::Internal("Encryption failed".into())
+        })?
+    } else {
+        tracing::warn!("No crypto service available, storing URL in plaintext!");
+        req.custom_db_url.clone()
+    };
+
+    state
+        .core
+        .workspace_repo
+        .update_workspace_byod_url(workspace_id, Some(encrypted_url))
+        .await?;
+
+    // Audit Log
+    let details = serde_json::json!({
+        "workspace_id": workspace_id,
+        "is_byod": true,
+        "action": "update_database_url"
+    });
+
+    let mut conn = state
+        .infra
+        .diesel
+        .api
+        .get()
+        .await
+        .map_err(|e| AppError::Internal(e.to_string()))?;
+
+    diesel::sql_query(
+        r#"
+        INSERT INTO system_audit_logs (id, actor_id, action, details, created_at)
+        VALUES ($1, $2, 'tenant.update_db', $3, NOW())
+        "#,
+    )
+    .bind::<diesel::sql_types::Uuid, _>(crate::utils::id::new_id())
+    .bind::<diesel::sql_types::Uuid, _>(ctx.user_id)
+    .bind::<diesel::sql_types::Jsonb, _>(details)
+    .execute(&mut conn)
+    .await
+    .map_err(|e| AppError::Internal(e.to_string()))?;
+
+    Ok(StatusCode::OK)
+}
+
+
 /// GET /system/tenants/:tenant_id/stats
 /// Retrieves tenant configuration and stats from Supavisor API.
 pub async fn get_tenant_stats(
@@ -261,6 +362,26 @@ pub async fn get_tenant_stats(
 
     let tenant_info = state.infra.tenant_manager.get_tenant(&tenant_id).await?;
 
+    let uuid_str = tenant_id.strip_prefix("tenant_").unwrap_or(&tenant_id);
+    let masked_url = if let Ok(workspace_id) = uuid::Uuid::parse_str(uuid_str) {
+        if let Ok(Some(ws)) = state.core.workspace_repo.get_workspace_by_id(workspace_id).await {
+            if let Some(encrypted) = ws.custom_db_url_encrypted {
+                let decrypted = if let Some(crypto) = &state.infra.crypto_service {
+                    crypto.decrypt(&encrypted).unwrap_or(encrypted)
+                } else {
+                    encrypted
+                };
+                Some(mask_db_url(&decrypted))
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    } else {
+        None
+    };
+
     let supavisor_host = std::env::var("SUPAVISOR_HOST").unwrap_or_else(|_| "localhost".to_string());
     let supavisor_port = std::env::var("SUPAVISOR_PORT").unwrap_or_else(|_| "5452".to_string());
 
@@ -268,7 +389,8 @@ pub async fn get_tenant_stats(
         "config": tenant_info,
         "connection": {
             "host": supavisor_host,
-            "port": supavisor_port
+            "port": supavisor_port,
+            "masked_db_url": masked_url,
         }
     });
 

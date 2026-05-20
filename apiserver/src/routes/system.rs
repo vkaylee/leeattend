@@ -34,4 +34,8 @@ pub fn router() -> Router<Arc<AppState>> {
             "/system/tenants/:tenant_id/stats",
             get(system_tenants::get_tenant_stats),
         )
+        .route(
+            "/system/tenants/:tenant_id/database",
+            axum::routing::put(system_tenants::update_tenant_database),
+        )
 }

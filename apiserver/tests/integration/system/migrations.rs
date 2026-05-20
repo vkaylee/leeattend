@@ -732,3 +732,250 @@ async fn test_run_tenant_migrations_falls_back_to_primary_url() {
             .await;
     }
 }
+
+#[tokio::test]
+async fn test_run_tenant_migrations_uses_session_port() {
+    // Verify run_tenant_migrations switches to SUPAVISOR_PORT_SESSION when pooler_url is provided
+    let base_url = std::env::var("DATABASE_URL_FOR_TEST_GENERATION")
+        .or_else(|_| std::env::var("DATABASE_URL"))
+        .expect("DATABASE_URL_FOR_TEST_GENERATION or DATABASE_URL must be set");
+
+    let mut parsed_base = reqwest::Url::parse(&base_url).unwrap();
+    let pg_port = parsed_base.port().unwrap_or(5432);
+
+    let mut url_parts: Vec<&str> = base_url.split('/').collect();
+    let _ = url_parts.pop().unwrap_or("postgres");
+    let base_connection_string = url_parts.join("/");
+
+    let admin_url = format!("{base_connection_string}/test_database");
+    let workspace_id = Uuid::new_v4();
+    let sys_db_name = format!("test_session_ten_{}", Uuid::new_v4().simple());
+    let tenant_db_name = format!("tenant_{}", workspace_id.to_string().replace('-', ""));
+
+    let (admin_client, admin_conn) = tokio_postgres::connect(&admin_url, NoTls)
+        .await
+        .expect("Failed to connect to admin DB");
+    tokio::spawn(async move {
+        let _ = admin_conn.await;
+    });
+
+    admin_client
+        .execute(&format!("CREATE DATABASE \"{sys_db_name}\""), &[])
+        .await
+        .expect("Failed to create system DB");
+    admin_client
+        .execute(&format!("CREATE DATABASE \"{tenant_db_name}\""), &[])
+        .await
+        .expect("Failed to create tenant DB");
+
+    let sys_db_url = format!("{base_connection_string}/{sys_db_name}");
+
+    // Run system migrations and insert a workspace
+    let url_clone = sys_db_url.clone();
+    let ws_id = workspace_id;
+    tokio::task::spawn_blocking(move || {
+        use diesel::{Connection, RunQueryDsl};
+
+        let config = DbPoolConfig {
+            primary_url: url_clone.clone(),
+            pooler_url: None,
+            reader_url: None,
+            api_max_conn: 1,
+            api_acquire_timeout_secs: 5,
+            worker_max_conn: 1,
+            worker_acquire_timeout_secs: 5,
+            tenant_max_conn: 1,
+        };
+        DieselPools::run_system_migrations(&config);
+
+        let mut conn = diesel::PgConnection::establish(&url_clone).expect("connect");
+        diesel::sql_query(format!(
+            "INSERT INTO workspaces (id, name) VALUES ('{ws_id}', 'test-ws-session')"
+        ))
+        .execute(&mut conn)
+        .expect("insert workspace");
+    })
+    .await
+    .unwrap();
+
+    // Create a fake pooler URL that points to an invalid port (9999) and has a dot in the username
+    let mut fake_pooler_url = reqwest::Url::parse(&sys_db_url).unwrap();
+    let _ = fake_pooler_url.set_username("test_user.test_database");
+    let _ = fake_pooler_url.set_port(Some(9999));
+
+    // Run tenant migrations with pooler_url
+    let config_with_pooler = DbPoolConfig {
+        primary_url: sys_db_url.clone(),
+        pooler_url: Some(fake_pooler_url.to_string()),
+        reader_url: None,
+        api_max_conn: 1,
+        api_acquire_timeout_secs: 5,
+        worker_max_conn: 1,
+        worker_acquire_timeout_secs: 5,
+        tenant_max_conn: 1,
+    };
+
+    let config_clone = config_with_pooler.clone();
+    
+    // Set SUPAVISOR_PORT_SESSION to the valid Postgres port so the URL overrides 9999 -> valid port
+    std::env::set_var("SUPAVISOR_PORT_SESSION", pg_port.to_string());
+    
+    tokio::task::spawn_blocking(move || {
+        DieselPools::run_tenant_migrations(&config_clone);
+    })
+    .await
+    .unwrap();
+
+    // Verify tenant tables were created (which proves it successfully connected using the session port override)
+    let tenant_db_url = format!("{base_connection_string}/{tenant_db_name}");
+    let (client, conn) = tokio_postgres::connect(&tenant_db_url, NoTls).await.unwrap();
+    tokio::spawn(async move { let _ = conn.await; });
+
+    let row = client
+        .query_one(
+            "SELECT EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'raw_attendance_logs');",
+            &[],
+        )
+        .await
+        .unwrap();
+    assert!(
+        row.get::<_, bool>(0),
+        "tenant migrations should have run successfully via the overridden session port"
+    );
+
+    drop(client);
+
+    // Cleanup
+    for db in &[&sys_db_name, &tenant_db_name] {
+        let kill = format!(
+            "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '{db}' AND pid <> pg_backend_pid()"
+        );
+        let _ = admin_client.execute(&kill, &[]).await;
+        let _ = admin_client
+            .execute(&format!("DROP DATABASE IF EXISTS \"{db}\""), &[])
+            .await;
+    }
+}
+
+#[tokio::test]
+async fn test_run_tenant_migrations_keeps_port_if_not_supavisor() {
+    // Verify run_tenant_migrations does NOT switch to session port if username lacks a dot (e.g. PgBouncer)
+    let base_url = std::env::var("DATABASE_URL_FOR_TEST_GENERATION")
+        .or_else(|_| std::env::var("DATABASE_URL"))
+        .expect("DATABASE_URL_FOR_TEST_GENERATION or DATABASE_URL must be set");
+
+    let mut parsed_base = reqwest::Url::parse(&base_url).unwrap();
+    let pg_port = parsed_base.port().unwrap_or(5432);
+
+    let mut url_parts: Vec<&str> = base_url.split('/').collect();
+    let _ = url_parts.pop().unwrap_or("postgres");
+    let base_connection_string = url_parts.join("/");
+
+    let admin_url = format!("{base_connection_string}/test_database");
+    let workspace_id = Uuid::new_v4();
+    let sys_db_name = format!("test_pgbouncer_ten_{}", Uuid::new_v4().simple());
+    let tenant_db_name = format!("tenant_{}", workspace_id.to_string().replace('-', ""));
+
+    let (admin_client, admin_conn) = tokio_postgres::connect(&admin_url, NoTls)
+        .await
+        .expect("Failed to connect to admin DB");
+    tokio::spawn(async move {
+        let _ = admin_conn.await;
+    });
+
+    admin_client
+        .execute(&format!("CREATE DATABASE \"{sys_db_name}\""), &[])
+        .await
+        .expect("Failed to create system DB");
+    admin_client
+        .execute(&format!("CREATE DATABASE \"{tenant_db_name}\""), &[])
+        .await
+        .expect("Failed to create tenant DB");
+
+    let sys_db_url = format!("{base_connection_string}/{sys_db_name}");
+
+    // Run system migrations and insert a workspace
+    let url_clone = sys_db_url.clone();
+    let ws_id = workspace_id;
+    tokio::task::spawn_blocking(move || {
+        use diesel::{Connection, RunQueryDsl};
+
+        let config = DbPoolConfig {
+            primary_url: url_clone.clone(),
+            pooler_url: None,
+            reader_url: None,
+            api_max_conn: 1,
+            api_acquire_timeout_secs: 5,
+            worker_max_conn: 1,
+            worker_acquire_timeout_secs: 5,
+            tenant_max_conn: 1,
+        };
+        DieselPools::run_system_migrations(&config);
+
+        let mut conn = diesel::PgConnection::establish(&url_clone).expect("connect");
+        diesel::sql_query(format!(
+            "INSERT INTO workspaces (id, name) VALUES ('{ws_id}', 'test-ws-pgbouncer')"
+        ))
+        .execute(&mut conn)
+        .expect("insert workspace");
+    })
+    .await
+    .unwrap();
+
+    // Create a fake pooler URL that points to the VALID port but without a dot in username
+    let mut fake_pooler_url = reqwest::Url::parse(&sys_db_url).unwrap();
+    let _ = fake_pooler_url.set_username("test_user_no_dot");
+    let _ = fake_pooler_url.set_port(Some(pg_port));
+
+    // Run tenant migrations with pooler_url
+    let config_with_pooler = DbPoolConfig {
+        primary_url: sys_db_url.clone(),
+        pooler_url: Some(fake_pooler_url.to_string()),
+        reader_url: None,
+        api_max_conn: 1,
+        api_acquire_timeout_secs: 5,
+        worker_max_conn: 1,
+        worker_acquire_timeout_secs: 5,
+        tenant_max_conn: 1,
+    };
+
+    let config_clone = config_with_pooler.clone();
+    
+    // Set SUPAVISOR_PORT_SESSION to an INVALID port. If it switches to it, it will fail.
+    std::env::set_var("SUPAVISOR_PORT_SESSION", "9999");
+    
+    tokio::task::spawn_blocking(move || {
+        DieselPools::run_tenant_migrations(&config_clone);
+    })
+    .await
+    .unwrap();
+
+    // Verify tenant tables were created (which proves it ignored the 9999 port and used pg_port)
+    let tenant_db_url = format!("{base_connection_string}/{tenant_db_name}");
+    let (client, conn) = tokio_postgres::connect(&tenant_db_url, NoTls).await.unwrap();
+    tokio::spawn(async move { let _ = conn.await; });
+
+    let row = client
+        .query_one(
+            "SELECT EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'raw_attendance_logs');",
+            &[],
+        )
+        .await
+        .unwrap();
+    assert!(
+        row.get::<_, bool>(0),
+        "tenant migrations should have run successfully via the original port"
+    );
+
+    drop(client);
+
+    for db in &[&sys_db_name, &tenant_db_name] {
+        let kill = format!(
+            "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '{db}' AND pid <> pg_backend_pid()"
+        );
+        let _ = admin_client.execute(&kill, &[]).await;
+        let _ = admin_client
+            .execute(&format!("DROP DATABASE IF EXISTS \"{db}\""), &[])
+            .await;
+    }
+}

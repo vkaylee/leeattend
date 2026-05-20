@@ -280,11 +280,23 @@ impl DieselPools {
             "Running tenant migrations on existing workspaces"
         );
 
-        let base_url = config.pooler_url.as_deref().unwrap_or(&config.primary_url);
+        let mut base_url_parsed = reqwest::Url::parse(
+            config.pooler_url.as_deref().unwrap_or(&config.primary_url)
+        ).expect("Failed to parse base URL for tenant migrations");
+
+        if config.pooler_url.is_some() && base_url_parsed.username().contains('.') {
+            let session_port: u16 = std::env::var("SUPAVISOR_PORT_SESSION")
+                .unwrap_or_else(|_| "5452".to_string())
+                .parse()
+                .unwrap_or(5452);
+            let _ = base_url_parsed.set_port(Some(session_port));
+        }
+
+        let base_url = base_url_parsed.to_string();
 
         for row in &workspace_rows {
             let db_name = format!("tenant_{}", row.id.to_string().replace('-', ""));
-            let tenant_url = match reqwest::Url::parse(base_url) {
+            let tenant_url = match reqwest::Url::parse(&base_url) {
                 Ok(mut url) => {
                     url.set_path(&db_name);
                     // For Supavisor URLs (user contains dot), update tenant in user part

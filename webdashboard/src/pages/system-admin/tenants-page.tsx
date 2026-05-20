@@ -14,9 +14,11 @@ import {
   deleteSystemTenant,
   fetchSystemTenants,
   fetchSystemTenantStats,
+  updateTenantDatabase,
   type CreateTenantRequestPayload,
   type SystemTenant,
 } from "@/lib/api/system";
+
 
 // eslint-disable-next-line max-lines-per-function -- Page component needs to encompass form and table state
 export default function TenantsPage() {
@@ -31,6 +33,8 @@ export default function TenantsPage() {
   const [poolSize, setPoolSize] = useState("15");
 
   const [statsModalOpen, setStatsModalOpen] = useState(false);
+  const [dbUpdateModalOpen, setDbUpdateModalOpen] = useState(false);
+  const [updateDbUrl, setUpdateDbUrl] = useState("");
   const [selectedTenant, setSelectedTenant] = useState<SystemTenant | null>(null);
 
   const { data: tenants = [], isLoading } = useQuery({
@@ -41,7 +45,7 @@ export default function TenantsPage() {
   const { data: tenantStats, isLoading: isStatsLoading } = useQuery({
     queryKey: ["system-tenant-stats", selectedTenant?.id],
     queryFn: () => fetchSystemTenantStats(selectedTenant!.id),
-    enabled: !!selectedTenant && statsModalOpen,
+    enabled: !!selectedTenant && (statsModalOpen || dbUpdateModalOpen),
   });
 
   const createMutation = useMutation({
@@ -64,6 +68,19 @@ export default function TenantsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["system-tenants"] }).catch(console.error);
       toast.success(t("system_admin.tenants.messages.delete_success"));
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const updateDbMutation = useMutation({
+    mutationFn: ({ id, url }: { id: string; url: string }) => updateTenantDatabase(id, url),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["system-tenants"] }).catch(console.error);
+      toast.success(t("system_admin.tenants.messages.update_db_success", { defaultValue: "Database URL updated successfully" }));
+      setDbUpdateModalOpen(false);
+      setUpdateDbUrl("");
     },
     onError: (error) => {
       toast.error(error.message);
@@ -96,8 +113,31 @@ export default function TenantsPage() {
     setStatsModalOpen(true);
   };
 
+  const handleManageDb = (tenant: SystemTenant) => {
+    setSelectedTenant(tenant);
+    setUpdateDbUrl("");
+    setDbUpdateModalOpen(true);
+  };
+
+  const handleUpdateDbSubmit = async (e: React.SyntheticEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!selectedTenant || !updateDbUrl) return;
+    const isConfirmed = await confirm({
+      title: t("common.warning", { defaultValue: "Warning: Critical Action" }),
+      message: "This will immediately update the connection pool for the tenant. The system DOES NOT copy data. Ensure the new database is fully migrated before proceeding. Continue?",
+      variant: "danger",
+    });
+    if (isConfirmed) {
+      updateDbMutation.mutate({ id: selectedTenant.id, url: updateDbUrl });
+    }
+  };
+
   const renderConnectionTemplate = (tenantStats: any) => {
-    if (!tenantStats || !tenantStats.config) return null;
+    if (!tenantStats) return null;
+    if (tenantStats.connection?.masked_db_url) {
+      return tenantStats.connection.masked_db_url;
+    }
+    if (!tenantStats.config) return null;
     const config = tenantStats.config.tenant || tenantStats.config;
     const dbUser = config.users?.[0]?.db_user || "user";
     const dbName = config.db_database || "db";
@@ -173,6 +213,14 @@ export default function TenantsPage() {
                           title="View Connection & Stats"
                         >
                           <Eye className="w-4 h-4 text-slate-500" />
+                        </Button>
+                        <Button
+                          onClick={() => { handleManageDb(tenant); }}
+                          size="sm"
+                          variant="ghost"
+                          title="Manage Database"
+                        >
+                          <Server className="w-4 h-4 text-orange-500" />
                         </Button>
                         <Button
                           onClick={() => { handleDelete(tenant.id).catch(console.error); }}
@@ -263,6 +311,7 @@ export default function TenantsPage() {
       {/* Stats Modal */}
       <Modal
         isOpen={statsModalOpen}
+        maxWidth="2xl"
         onClose={() => { setStatsModalOpen(false); setSelectedTenant(null); }}
         title={`Tenant Details: ${selectedTenant?.id || ""}`}
         subtitle="Connection details and Supavisor configuration"
@@ -343,6 +392,75 @@ export default function TenantsPage() {
             Close
           </Button>
         </div>
+      </Modal>
+
+      {/* Update Database Modal */}
+      <Modal
+        isOpen={dbUpdateModalOpen}
+        maxWidth="2xl"
+        onClose={() => { setDbUpdateModalOpen(false); setSelectedTenant(null); }}
+        title={`Update Database: ${selectedTenant?.id || ""}`}
+        subtitle="Update the custom BYOD database URL for this tenant."
+      >
+        <form onSubmit={(e) => { handleUpdateDbSubmit(e).catch(console.error); }}>
+          <div className="grid gap-6 py-4">
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 flex gap-3">
+              <ShieldAlert className="w-5 h-5 text-red-600 dark:text-red-400 shrink-0" />
+              <div className="text-sm text-red-800 dark:text-red-200">
+                <p className="font-semibold mb-1">Critical Warning</p>
+                <p>
+                  This operation only updates the connection string in Supavisor and the system database. 
+                  <strong> It DOES NOT copy or migrate data.</strong> You must ensure the target database 
+                  already contains the necessary schema and data for this tenant.
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
+              <div className="flex items-center gap-2 mb-3">
+                <KeyRound className="w-4 h-4 text-primary-500" />
+                <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-200">Current Connection URL</h4>
+              </div>
+              <div className="bg-slate-900 rounded-lg p-3 overflow-x-auto">
+                <code className="text-xs text-green-400 whitespace-nowrap">
+                  {isStatsLoading ? "Loading..." : (renderConnectionTemplate(tenantStats) || "Not configured")}
+                </code>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-300" htmlFor="updateDbUrl">
+                New Custom Database URL <span className="text-red-500">*</span>
+              </label>
+              <input
+                className="flex h-10 w-full rounded-md border border-slate-300 dark:border-slate-700 bg-transparent px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:text-white"
+                id="updateDbUrl"
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => { setUpdateDbUrl(e.target.value); }}
+                placeholder="postgres://user:password@host:5432/db"
+                required
+                type="text"
+                value={updateDbUrl}
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800 mt-2">
+            <Button
+              onClick={() => { setDbUpdateModalOpen(false); }}
+              type="button"
+              variant="outline"
+            >
+              Cancel
+            </Button>
+            <Button
+              disabled={updateDbMutation.isPending || !updateDbUrl}
+              loading={updateDbMutation.isPending}
+              type="submit"
+              variant="danger"
+            >
+              {updateDbMutation.isPending ? "Updating..." : "Update Database"}
+            </Button>
+          </div>
+        </form>
       </Modal>
 
       <ConfirmationDialog />

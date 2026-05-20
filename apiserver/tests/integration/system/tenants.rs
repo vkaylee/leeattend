@@ -98,7 +98,7 @@ async fn test_create_and_delete_tenant_with_mock() {
         );
         assert_eq!(
             registered[0].0,
-            new_ws_id.to_string(),
+            format!("tenant_{}", new_ws_id.to_string().replace('-', "")),
             "Should register the correct tenant id"
         );
     }
@@ -191,7 +191,7 @@ async fn test_create_tenant_with_byod() {
         let (tenant_id, payload) = &registered[0];
         assert_eq!(
             tenant_id,
-            &new_ws_id.to_string(),
+            &format!("tenant_{}", new_ws_id.to_string().replace('-', "")),
             "Should register the correct tenant id"
         );
 
@@ -340,4 +340,181 @@ async fn test_get_tenant_stats() {
     assert_eq!(parsed["config"]["tenant"]["db_database"], "test_db");
     assert!(parsed["connection"]["host"].is_string());
     assert!(parsed["connection"]["port"].is_string());
+}
+
+#[tokio::test]
+async fn test_update_tenant_database() {
+    let keys_json = serde_json::json!({
+        "keys": { "v1": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=" },
+        "active_key": "v1"
+    })
+    .to_string();
+    std::env::set_var("ENCRYPTION_KEYS_JSON", keys_json.clone());
+
+    let mock_manager = Arc::new(TestMockTenantManager::default());
+    let (address, workspace_id, user_id, factory, _db) =
+        spawn_app_with_factory_extended(mock_manager.clone()).await;
+
+    // Make user a PlatformAdmin
+    crate::test_execute!(
+        &factory.diesel_pools.api,
+        "INSERT INTO user_system_roles (user_id, role_id) VALUES ($1, (SELECT id FROM system_roles WHERE name = 'platform_admin'))",
+        diesel::sql_types::Uuid, user_id
+    );
+
+    let client = reqwest::Client::new();
+    let tenant_id = format!("tenant_{}", workspace_id.to_string().replace('-', ""));
+
+    let custom_url = "postgres://user:pass@new-host:5432/new_db";
+    let req = serde_json::json!({
+        "custom_db_url": custom_url
+    });
+
+    // 1. PUT update database
+    let response = client
+        .put(&format!("{address}/api/system/tenants/{tenant_id}/database"))
+        .header("X-User-Id", user_id.to_string())
+        .json(&req)
+        .send()
+        .await
+        .expect("Failed to execute request");
+
+    let status = response.status();
+    let body = response.text().await.unwrap_or_default();
+    assert_eq!(
+        status,
+        reqwest::StatusCode::OK,
+        "Failed to update tenant DB: {}",
+        body
+    );
+
+    // 2. Verify mock manager recorded the registration
+    {
+        let registered = mock_manager.registered_tenants.lock().await;
+        assert!(
+            registered.iter().any(|(id, _)| id == &tenant_id),
+            "Supavisor should have been called with tenant_id: {}",
+            tenant_id
+        );
+    }
+
+    // 3. Verify workspace DB URL was encrypted & saved using workspace repository
+    let workspace_repo =
+        apiserver::repositories::diesel_workspace_repository::DieselWorkspaceRepository::new(
+            factory.diesel_pools.clone(),
+        );
+    let ws =
+        apiserver::repositories::workspace_repository::WorkspaceRepository::get_workspace_by_id(
+            &workspace_repo,
+            workspace_id,
+        )
+        .await
+        .unwrap()
+        .unwrap();
+    let encrypted_url = ws
+        .custom_db_url_encrypted
+        .expect("Encrypted URL must be saved after update");
+
+    // Decrypt and verify
+    let crypto = apiserver::crypto::CryptoService::from_json(&keys_json).unwrap();
+    let decrypted = crypto.decrypt(&encrypted_url).unwrap();
+    assert_eq!(decrypted, custom_url);
+
+    // 4. Verify GET stats returns masked_db_url with password redacted
+    let response = client
+        .get(&format!("{address}/api/system/tenants/{tenant_id}/stats"))
+        .header("X-User-Id", user_id.to_string())
+        .send()
+        .await
+        .expect("Failed to execute request");
+
+    assert_eq!(response.status(), reqwest::StatusCode::OK);
+    let body: serde_json::Value = response.json().await.unwrap();
+    let masked_db_url = body["connection"]["masked_db_url"]
+        .as_str()
+        .expect("masked_db_url should be present");
+    // Password should be masked as ***
+    assert_eq!(masked_db_url, "postgres://user:***@new-host:5432/new_db");
+    // Verify password is NOT leaked
+    assert!(
+        !masked_db_url.contains("pass"),
+        "Password must NOT appear in masked URL"
+    );
+
+    std::env::remove_var("ENCRYPTION_KEYS_JSON");
+}
+
+#[tokio::test]
+async fn test_update_tenant_database_requires_admin() {
+    let mock_manager = Arc::new(TestMockTenantManager::default());
+    let (address, workspace_id, user_id, _factory, _db) =
+        spawn_app_with_factory_extended(mock_manager.clone()).await;
+
+    // NO PlatformAdmin role assigned
+
+    let client = reqwest::Client::new();
+    let tenant_id = format!("tenant_{}", workspace_id.to_string().replace('-', ""));
+
+    let req = serde_json::json!({
+        "custom_db_url": "postgres://hacker:evil@evil-host:5432/stolen_db"
+    });
+
+    let response = client
+        .put(&format!("{address}/api/system/tenants/{tenant_id}/database"))
+        .header("X-User-Id", user_id.to_string())
+        .json(&req)
+        .send()
+        .await
+        .expect("Failed to execute request");
+
+    assert_eq!(
+        response.status(),
+        reqwest::StatusCode::FORBIDDEN,
+        "Normal user should NOT be able to update tenant database"
+    );
+
+    // Verify mock recorded NO registration
+    {
+        let registered = mock_manager.registered_tenants.lock().await;
+        assert!(
+            registered.is_empty(),
+            "No tenant should be registered by unauthorized user"
+        );
+    }
+}
+
+#[tokio::test]
+async fn test_update_tenant_database_invalid_tenant_id() {
+    let mock_manager = Arc::new(TestMockTenantManager::default());
+    let (address, _workspace_id, user_id, factory, _db) =
+        spawn_app_with_factory_extended(mock_manager.clone()).await;
+
+    // Make user a PlatformAdmin
+    crate::test_execute!(
+        &factory.diesel_pools.api,
+        "INSERT INTO user_system_roles (user_id, role_id) VALUES ($1, (SELECT id FROM system_roles WHERE name = 'platform_admin'))",
+        diesel::sql_types::Uuid, user_id
+    );
+
+    let client = reqwest::Client::new();
+
+    let req = serde_json::json!({
+        "custom_db_url": "postgres://user:pass@host:5432/db"
+    });
+
+    // Use an invalid tenant_id (not a valid UUID)
+    let response = client
+        .put(&format!("{address}/api/system/tenants/tenant_not-a-uuid/database"))
+        .header("X-User-Id", user_id.to_string())
+        .json(&req)
+        .send()
+        .await
+        .expect("Failed to execute request");
+
+    // Should return a 4xx error (Validation)
+    assert!(
+        response.status().is_client_error(),
+        "Invalid tenant_id should return client error, got: {}",
+        response.status()
+    );
 }
