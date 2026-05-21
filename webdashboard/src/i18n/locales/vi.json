@@ -2626,6 +2626,7 @@
       "cycle_length": "Số ngày trong chu kỳ",
       "cycle_length_placeholder": "ví dụ: 6",
       "cycle_length_note": "Xác định tổng số ngày của chu kỳ xoay lịch.",
+      "cycle_config_title": "Cấu hình chu kỳ xoay ca",
       "day_index": "Ngày {{index}}",
       "anchor_date_label": "Ngày mốc chu kỳ xoay",
       "anchor_date_note": "Ngày bắt đầu thực tế cho Ngày 1 của chu kỳ xoay.",
@@ -2633,7 +2634,13 @@
       "editor_title_edit": "Chỉnh sửa mẫu lịch làm việc",
       "clear_all": "Xóa tất cả ca",
       "clear_all_confirm": "Bạn có chắc muốn xóa tất cả ca đã gán không?",
-      "unsaved_changes": "Bạn có thay đổi chưa lưu. Bạn có chắc chắn muốn rời đi?"
+      "unsaved_changes": "Bạn có thay đổi chưa lưu. Bạn có chắc chắn muốn rời đi?",
+      "unsaved_changes_cancel": "Ở lại",
+      "unsaved_changes_confirm": "Rời khỏi",
+      "view_mode_design": "Thiết lập chu kỳ",
+      "view_mode_preview": "Xem trước lịch",
+      "anchor_date_preview": "Ngày mốc xem trước",
+      "preview_month": "Tháng xem trước"
     },
     "weekly_config": "Cấu hình tuần",
     "actions": {

@@ -2630,6 +2630,7 @@
       "cycle_length": "Cycle Length (Days)",
       "cycle_length_placeholder": "e.g. 6",
       "cycle_length_note": "Determines the length of the schedule cycle in days.",
+      "cycle_config_title": "Rotation Cycle Configuration",
       "day_index": "Day {{index}}",
       "anchor_date_label": "Rotation Anchor Date",
       "anchor_date_note": "Reference date when Day 1 of the cycle starts.",
@@ -2637,7 +2638,13 @@
       "editor_title_edit": "Edit Working Pattern",
       "clear_all": "Clear All Days",
       "clear_all_confirm": "Are you sure you want to clear all shifts?",
-      "unsaved_changes": "You have unsaved changes. Are you sure you want to leave?"
+      "unsaved_changes": "You have unsaved changes. Are you sure you want to leave?",
+      "unsaved_changes_cancel": "Stay",
+      "unsaved_changes_confirm": "Leave",
+      "view_mode_design": "Cycle Setup",
+      "view_mode_preview": "Calendar Preview",
+      "anchor_date_preview": "Preview Anchor Date",
+      "preview_month": "Preview Month"
     },
     "weekly_config": "Weekly Config",
     "actions": {

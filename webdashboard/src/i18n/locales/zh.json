@@ -2626,6 +2626,7 @@
       "cycle_length": "循环周期 (天)",
       "cycle_length_placeholder": "例如 6",
       "cycle_length_note": "确定轮班周期的总天数。",
+      "cycle_config_title": "循环排班配置",
       "day_index": "第 {{index}} 天",
       "anchor_date_label": "循环锚定日期",
       "anchor_date_note": "循环中第 1 天开始的参考日期。",
@@ -2633,7 +2634,13 @@
       "editor_title_edit": "编辑工作模式",
       "clear_all": "清除所有班次",
       "clear_all_confirm": "您确定要清除所有已分配的班次吗？",
-      "unsaved_changes": "您有未保存的更改。确定要离开吗？"
+      "unsaved_changes": "您有未保存的更改。确定要离开吗？",
+      "unsaved_changes_cancel": "留在页面",
+      "unsaved_changes_confirm": "离开页面",
+      "view_mode_design": "周期设置",
+      "view_mode_preview": "日历预览",
+      "anchor_date_preview": "预览基准日期",
+      "preview_month": "预览月份"
     },
     "weekly_config": "每周配置",
     "actions": {
