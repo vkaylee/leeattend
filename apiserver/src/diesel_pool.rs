@@ -111,9 +111,10 @@ impl ProductionTenantPoolManager {
         let current_user = parsed_url.username().to_string();
         if current_user.contains('.') {
             if let Some((prefix, _old_tenant)) = current_user.split_once('.') {
-                let new_user = format!("{}.{}", prefix, db_name);
-                parsed_url.set_username(&new_user)
-                    .map_err(|_| AppError::Internal("Failed to set tenant username".into()))?;
+                let new_user = format!("{prefix}.{db_name}");
+                parsed_url
+                    .set_username(&new_user)
+                    .map_err(|_e| AppError::Internal("Failed to set tenant username".into()))?;
             }
         }
 
@@ -247,6 +248,37 @@ impl DieselPools {
         tracing::info!("Database system migrations completed successfully");
     }
 
+    /// Resolve the tenant database connection URL for running migrations.
+    pub fn resolve_tenant_migration_url(
+        primary_url: &str,
+        pooler_url: Option<&str>,
+        workspace_id: &uuid::Uuid,
+        session_port_override: Option<u16>,
+    ) -> Result<String, String> {
+        let mut base_url_parsed = reqwest::Url::parse(pooler_url.unwrap_or(primary_url))
+            .map_err(|e| format!("Failed to parse URL: {e}"))?;
+
+        if pooler_url.is_some() && base_url_parsed.username().contains('.') {
+            if let Some(port) = session_port_override {
+                let _ = base_url_parsed.set_port(Some(port));
+            }
+        }
+
+        let db_name = format!("tenant_{}", workspace_id.to_string().replace('-', ""));
+        base_url_parsed.set_path(&db_name);
+
+        let current_user = base_url_parsed.username().to_string();
+        if current_user.contains('.') {
+            if let Some((prefix, _)) = current_user.split_once('.') {
+                base_url_parsed
+                    .set_username(&format!("{prefix}.{db_name}"))
+                    .map_err(|_e| "Failed to set username".to_string())?;
+            }
+        }
+
+        Ok(base_url_parsed.to_string())
+    }
+
     /// Run pending tenant migrations on ALL existing tenant databases.
     ///
     /// Iterates over every workspace in the system DB, connects to each tenant DB,
@@ -283,39 +315,29 @@ impl DieselPools {
             "Running tenant migrations on existing workspaces"
         );
 
-        let mut base_url_parsed = reqwest::Url::parse(
-            config.pooler_url.as_deref().unwrap_or(&config.primary_url)
-        ).expect("Failed to parse base URL for tenant migrations");
-
-        if config.pooler_url.is_some() && base_url_parsed.username().contains('.') {
-            let session_port: u16 = std::env::var("SUPAVISOR_PORT_SESSION")
+        let session_port: Option<u16> = if config.pooler_url.is_some() {
+            let port: u16 = std::env::var("SUPAVISOR_PORT_SESSION")
                 .unwrap_or_else(|_| "5452".to_string())
                 .parse()
                 .unwrap_or(5452);
-            let _ = base_url_parsed.set_port(Some(session_port));
-        }
-
-        let base_url = base_url_parsed.to_string();
+            Some(port)
+        } else {
+            None
+        };
 
         for row in &workspace_rows {
-            let db_name = format!("tenant_{}", row.id.to_string().replace('-', ""));
-            let tenant_url = match reqwest::Url::parse(&base_url) {
-                Ok(mut url) => {
-                    url.set_path(&db_name);
-                    // For Supavisor URLs (user contains dot), update tenant in user part
-                    let current_user = url.username().to_string();
-                    if current_user.contains('.') {
-                        if let Some((prefix, _)) = current_user.split_once('.') {
-                            let _ = url.set_username(&format!("{}.{}", prefix, db_name));
-                        }
-                    }
-                    url.to_string()
-                }
+            let tenant_url = match Self::resolve_tenant_migration_url(
+                &config.primary_url,
+                config.pooler_url.as_deref(),
+                &row.id,
+                session_port,
+            ) {
+                Ok(url) => url,
                 Err(e) => {
                     tracing::error!(
                         workspace_id = %row.id,
                         error = %e,
-                        "Failed to parse base URL for tenant migrations — skipping workspace"
+                        "Failed to resolve tenant migration URL — skipping workspace"
                     );
                     continue;
                 }
@@ -462,12 +484,18 @@ mod tests {
 
         let parsed = reqwest::Url::parse(&url).unwrap();
         let username = parsed.username();
-        assert!(username.contains('.'), "Supavisor mode: username must contain dot");
+        assert!(
+            username.contains('.'),
+            "Supavisor mode: username must contain dot"
+        );
         let tenant_in_user = username.split('.').nth(1).unwrap();
-        assert_eq!(tenant_in_user, expected,
+        assert_eq!(
+            tenant_in_user, expected,
             "supavisor user suffix must be tenant_<uuid-no-hyphens>"
         );
-        assert_eq!(parsed.path(), format!("/{expected}"),
+        assert_eq!(
+            parsed.path(),
+            format!("/{expected}"),
             "supavisor db path must be /tenant_<uuid-no-hyphens>"
         );
     }
@@ -482,8 +510,14 @@ mod tests {
         let expected = "tenant_00000000000000000000000000000000";
         let parsed = reqwest::Url::parse(&url).unwrap();
         let tenant_in_user = parsed.username().split('.').nth(1).unwrap();
-        assert_eq!(tenant_in_user, expected, "nil UUID must become tenant_<32-zeros>");
-        assert!(!tenant_in_user.contains('-'), "tenant name must never contain hyphens");
+        assert_eq!(
+            tenant_in_user, expected,
+            "nil UUID must become tenant_<32-zeros>"
+        );
+        assert!(
+            !tenant_in_user.contains('-'),
+            "tenant name must never contain hyphens"
+        );
     }
 
     #[test]
@@ -494,8 +528,10 @@ mod tests {
 
         let url = manager.get_tenant_url(&ws).unwrap();
         // All 'f' chars, no hyphens
-        assert!(url.contains("tenant_ffffffffffffffffffffffffffffffff"),
-            "max UUID must strip all hyphens");
+        assert!(
+            url.contains("tenant_ffffffffffffffffffffffffffffffff"),
+            "max UUID must strip all hyphens"
+        );
     }
 
     #[test]
@@ -514,7 +550,8 @@ mod tests {
             let parsed = reqwest::Url::parse(&url).unwrap();
             let username = parsed.username();
             let tenant_name = username.split('.').nth(1).unwrap();
-            assert!(!tenant_name.contains('-'),
+            assert!(
+                !tenant_name.contains('-'),
                 "tenant name '{tenant_name}' must never contain hyphens"
             );
             assert!(
@@ -573,16 +610,27 @@ mod tests {
         let manager = ProductionTenantPoolManager::new(base_url.to_string(), 5);
 
         let cases = [
-            ("00000000-0000-0000-0000-000000000000", "tenant_00000000000000000000000000000000"),
-            ("ffffffff-ffff-ffff-ffff-ffffffffffff", "tenant_ffffffffffffffffffffffffffffffff"),
-            ("a1b2c3d4-e5f6-7890-abcd-ef1234567890", "tenant_a1b2c3d4e5f67890abcdef1234567890"),
+            (
+                "00000000-0000-0000-0000-000000000000",
+                "tenant_00000000000000000000000000000000",
+            ),
+            (
+                "ffffffff-ffff-ffff-ffff-ffffffffffff",
+                "tenant_ffffffffffffffffffffffffffffffff",
+            ),
+            (
+                "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                "tenant_a1b2c3d4e5f67890abcdef1234567890",
+            ),
         ];
 
         for (uuid_str, expected_path) in &cases {
             let ws = Uuid::parse_str(uuid_str).unwrap();
             let url = manager.get_tenant_url(&ws).unwrap();
             let parsed = reqwest::Url::parse(&url).unwrap();
-            assert_eq!(parsed.path(), format!("/{expected_path}"),
+            assert_eq!(
+                parsed.path(),
+                format!("/{expected_path}"),
                 "direct connection: UUID {uuid_str} must produce path /{expected_path}"
             );
         }
@@ -607,7 +655,8 @@ mod tests {
 
         // Supavisor mode
         let url = ProductionTenantPoolManager::new(supavisor_base.to_string(), 5)
-            .get_tenant_url(&ws).unwrap();
+            .get_tenant_url(&ws)
+            .unwrap();
         let parsed = reqwest::Url::parse(&url).unwrap();
         let tenant_in_user = parsed.username().split('.').nth(1).unwrap();
         assert_eq!(tenant_in_user, expected);
@@ -615,7 +664,8 @@ mod tests {
 
         // Direct mode: path only
         let url2 = ProductionTenantPoolManager::new(direct_base.to_string(), 5)
-            .get_tenant_url(&ws).unwrap();
+            .get_tenant_url(&ws)
+            .unwrap();
         let parsed2 = reqwest::Url::parse(&url2).unwrap();
         assert_eq!(parsed2.path().trim_start_matches('/'), expected);
 
@@ -645,5 +695,56 @@ mod tests {
         // regardless of the workspace ID requested.
         assert_eq!(pool1.status().max_size, 2);
         assert_eq!(pool2.status().max_size, 2);
+    }
+
+    #[test]
+    fn test_resolve_tenant_migration_url_fallback() {
+        let primary_url = "postgres://test_user:pass@db:5432/test_database";
+        let workspace_id = Uuid::parse_str("a1b2c3d4-e5f6-7890-abcd-ef1234567890").unwrap();
+
+        let url = DieselPools::resolve_tenant_migration_url(primary_url, None, &workspace_id, None)
+            .unwrap();
+
+        assert_eq!(
+            url,
+            "postgres://test_user:pass@db:5432/tenant_a1b2c3d4e5f67890abcdef1234567890"
+        );
+    }
+
+    #[test]
+    fn test_resolve_tenant_migration_url_uses_session_port() {
+        let primary_url = "postgres://test_user:pass@db:5432/test_database";
+        let pooler_url = "postgres://test_user.test_database:pass@db:9999/test_database";
+        let workspace_id = Uuid::parse_str("a1b2c3d4-e5f6-7890-abcd-ef1234567890").unwrap();
+
+        let url = DieselPools::resolve_tenant_migration_url(
+            primary_url,
+            Some(pooler_url),
+            &workspace_id,
+            Some(5452),
+        )
+        .unwrap();
+
+        assert_eq!(url, "postgres://test_user.tenant_a1b2c3d4e5f67890abcdef1234567890:pass@db:5452/tenant_a1b2c3d4e5f67890abcdef1234567890");
+    }
+
+    #[test]
+    fn test_resolve_tenant_migration_url_keeps_port_if_not_supavisor() {
+        let primary_url = "postgres://test_user:pass@db:5432/test_database";
+        let pooler_url = "postgres://test_user_no_dot:pass@db:5432/test_database";
+        let workspace_id = Uuid::parse_str("a1b2c3d4-e5f6-7890-abcd-ef1234567890").unwrap();
+
+        let url = DieselPools::resolve_tenant_migration_url(
+            primary_url,
+            Some(pooler_url),
+            &workspace_id,
+            Some(9999),
+        )
+        .unwrap();
+
+        assert_eq!(
+            url,
+            "postgres://test_user_no_dot:pass@db:5432/tenant_a1b2c3d4e5f67890abcdef1234567890"
+        );
     }
 }

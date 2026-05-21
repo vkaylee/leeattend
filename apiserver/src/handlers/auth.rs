@@ -148,7 +148,11 @@ pub async fn register(
     }
 
     // 3. Hash password
-    let password_hash = AuthService::hash_password(&req.password).map_err(AppError::from)?;
+    let password = req.password.clone();
+    let password_hash = tokio::task::spawn_blocking(move || AuthService::hash_password(&password))
+        .await
+        .map_err(|e| AppError::Internal(format!("Failed to spawn blocking task: {e}")))?
+        .map_err(AppError::from)?;
 
     // 4. Create User
     let user_id = crate::utils::id::new_id();
@@ -225,7 +229,14 @@ pub async fn login(
         .await?
         .ok_or_else(|| AppError::Auth("Invalid email or password".to_string()))?;
 
-    if !AuthService::verify_password(&req.password, &user.password_hash) {
+    let password = req.password.clone();
+    let hash = user.password_hash.clone();
+    let is_valid =
+        tokio::task::spawn_blocking(move || AuthService::verify_password(&password, &hash))
+            .await
+            .map_err(|e| AppError::Internal(format!("Failed to spawn blocking task: {e}")))?;
+
+    if !is_valid {
         return Err(AppError::Auth("Invalid email or password".to_string()));
     }
 
@@ -314,7 +325,14 @@ pub async fn change_password(
         .ok_or_else(|| AppError::NotFound("User not found".to_string()))?;
 
     // 2. Verify old password
-    if !AuthService::verify_password(&req.old_password, &user.password_hash) {
+    let old_password = req.old_password.clone();
+    let old_hash = user.password_hash.clone();
+    let is_valid =
+        tokio::task::spawn_blocking(move || AuthService::verify_password(&old_password, &old_hash))
+            .await
+            .map_err(|e| AppError::Internal(format!("Failed to spawn blocking task: {e}")))?;
+
+    if !is_valid {
         return Err(AppError::Auth("Current password is incorrect".to_string()));
     }
 
@@ -322,7 +340,11 @@ pub async fn change_password(
     validate_password(&req.new_password)?;
 
     // 4. Hash new password
-    let new_hash = AuthService::hash_password(&req.new_password).map_err(AppError::from)?;
+    let new_password = req.new_password.clone();
+    let new_hash = tokio::task::spawn_blocking(move || AuthService::hash_password(&new_password))
+        .await
+        .map_err(|e| AppError::Internal(format!("Failed to spawn blocking task: {e}")))?
+        .map_err(AppError::from)?;
 
     // 5. Update DB via repository
     state

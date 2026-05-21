@@ -72,7 +72,11 @@ impl ImportJobRepository for DieselImportJobRepository {
         Ok(())
     }
 
-    async fn get_job_by_id(&self, workspace_id: Uuid, id: Uuid) -> Result<Option<AttendanceImportJob>, AppError> {
+    async fn get_job_by_id(
+        &self,
+        workspace_id: Uuid,
+        id: Uuid,
+    ) -> Result<Option<AttendanceImportJob>, AppError> {
         let mut conn = self.diesel_pools.tenant_conn(workspace_id).await?;
 
         let row: Option<ImportJobEntity> = diesel::sql_query(
@@ -116,7 +120,10 @@ impl ImportJobRepository for DieselImportJobRepository {
         Ok(row.map(Into::into))
     }
 
-    async fn get_pending_jobs(&self, workspace_id: Uuid) -> Result<Vec<AttendanceImportJob>, AppError> {
+    async fn get_pending_jobs(
+        &self,
+        workspace_id: Uuid,
+    ) -> Result<Vec<AttendanceImportJob>, AppError> {
         let mut conn = self.diesel_pools.tenant_conn(workspace_id).await?;
 
         let rows: Vec<ImportJobEntity> = diesel::sql_query(
@@ -129,7 +136,12 @@ impl ImportJobRepository for DieselImportJobRepository {
         Ok(rows.into_iter().map(Into::into).collect())
     }
 
-    async fn update_job_total_rows(&self, workspace_id: Uuid, id: Uuid, total_rows: i32) -> Result<(), AppError> {
+    async fn update_job_total_rows(
+        &self,
+        workspace_id: Uuid,
+        id: Uuid,
+        total_rows: i32,
+    ) -> Result<(), AppError> {
         let mut conn = self.diesel_pools.tenant_conn(workspace_id).await?;
 
         diesel::sql_query(

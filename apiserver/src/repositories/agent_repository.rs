@@ -9,7 +9,11 @@ pub trait AgentRepository: Send + Sync {
     async fn find_by_id(&self, id: &str) -> Result<Option<AuthorizedAgent>, String>;
     async fn update_last_ip(&self, id: &str, ip: &str) -> Result<(), String>;
     async fn update_last_seen(&self, id: &str) -> Result<(), String>;
-    async fn find_devices_by_agent_id(&self, workspace_id: Uuid, agent_id: &str) -> Result<Vec<Device>, String>;
+    async fn find_devices_by_agent_id(
+        &self,
+        workspace_id: Uuid,
+        agent_id: &str,
+    ) -> Result<Vec<Device>, String>;
     async fn get_workspace_agents(
         &self,
         workspace_id: Uuid,

@@ -81,8 +81,15 @@ impl AgentRepository for DieselAgentRepository {
         Ok(())
     }
 
-    async fn find_devices_by_agent_id(&self, workspace_id_val: Uuid, agent_id_val: &str) -> Result<Vec<Device>, String> {
-        let mut conn = self.diesel_pools.tenant_conn(workspace_id_val).await
+    async fn find_devices_by_agent_id(
+        &self,
+        workspace_id_val: Uuid,
+        agent_id_val: &str,
+    ) -> Result<Vec<Device>, String> {
+        let mut conn = self
+            .diesel_pools
+            .tenant_conn(workspace_id_val)
+            .await
             .map_err(|e| e.to_string())?;
 
         let devices_result = devices::table

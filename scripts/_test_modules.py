@@ -129,7 +129,7 @@ def leeattend_run_integration(
         )
         backend = (
             f"DATABASE_URL={db_url} "
-            f"cargo nextest run {pkg_flag} --test '*' {_safe_pattern(test_pattern)} "
+            f"CARGO_BUILD_JOBS=2 cargo nextest run {pkg_flag} --test '*' {_safe_pattern(test_pattern)} "
             f"--no-tests={no_tests_flag}"
         )
         backend_cmd = build_compose_exec("apiserver", backend, workdir=workdir, mode=mode)

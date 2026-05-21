@@ -44,7 +44,6 @@ fn mask_db_url(url: &str) -> String {
     }
 }
 
-
 impl std::fmt::Debug for CreateTenantRequest {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("CreateTenantRequest")
@@ -145,8 +144,7 @@ pub async fn create_tenant(
     // Tenant ID must match the format produced by diesel_pool::get_tenant_url():
     // tenant_<uuid-without-hyphens>. Using the raw UUID would cause a mismatch
     // when the API server connects through Supavisor.
-    let tenant_id_alias =
-        format!("tenant_{}", req.workspace_id.to_string().replace('-', ""));
+    let tenant_id_alias = format!("tenant_{}", req.workspace_id.to_string().replace('-', ""));
     if let Some(size) = req.pool_size {
         std::env::set_var("SUPAVISOR_POOL_SIZE", size.to_string());
     }
@@ -277,14 +275,14 @@ pub async fn update_tenant_database(
 
     let uuid_str = tenant_id.strip_prefix("tenant_").unwrap_or(&tenant_id);
     let workspace_id = uuid::Uuid::parse_str(uuid_str)
-        .map_err(|_| AppError::Validation("Invalid tenant_id format".into()))?;
+        .map_err(|e| AppError::Validation(format!("Invalid tenant_id format: {e}")))?;
 
     // Build dynamic Supavisor payload.
     // Tenant ID must match the format produced by diesel_pool::get_tenant_url()
     // By this time we already have the correct `tenant_id` from the path.
     // We just need to build the payload with the new DB URL.
-    
-    // We temporarily set SUPAVISOR_TENANT_ID to trick build_tenant_payload to build correct payload, 
+
+    // We temporarily set SUPAVISOR_TENANT_ID to trick build_tenant_payload to build correct payload,
     // although build_tenant_payload uses it if we wanted to register it, but it only sets DB connections inside.
     let payload_opt = build_tenant_payload(&req.custom_db_url);
 
@@ -349,7 +347,6 @@ pub async fn update_tenant_database(
     Ok(StatusCode::OK)
 }
 
-
 /// GET /system/tenants/:tenant_id/stats
 /// Retrieves tenant configuration and stats from Supavisor API.
 pub async fn get_tenant_stats(
@@ -364,7 +361,12 @@ pub async fn get_tenant_stats(
 
     let uuid_str = tenant_id.strip_prefix("tenant_").unwrap_or(&tenant_id);
     let masked_url = if let Ok(workspace_id) = uuid::Uuid::parse_str(uuid_str) {
-        if let Ok(Some(ws)) = state.core.workspace_repo.get_workspace_by_id(workspace_id).await {
+        if let Ok(Some(ws)) = state
+            .core
+            .workspace_repo
+            .get_workspace_by_id(workspace_id)
+            .await
+        {
             if let Some(encrypted) = ws.custom_db_url_encrypted {
                 let decrypted = if let Some(crypto) = &state.infra.crypto_service {
                     crypto.decrypt(&encrypted).unwrap_or(encrypted)
@@ -382,7 +384,8 @@ pub async fn get_tenant_stats(
         None
     };
 
-    let supavisor_host = std::env::var("SUPAVISOR_HOST").unwrap_or_else(|_| "localhost".to_string());
+    let supavisor_host =
+        std::env::var("SUPAVISOR_HOST").unwrap_or_else(|_| "localhost".to_string());
     let supavisor_port = std::env::var("SUPAVISOR_PORT").unwrap_or_else(|_| "5452".to_string());
 
     let response = serde_json::json!({
@@ -413,7 +416,7 @@ pub async fn update_tenant_mode(
 ) -> AppResult<StatusCode> {
     ctx.require_role(SystemRoleType::PlatformAdmin)?;
 
-    let mode_type = req.mode_type.to_lowercase();
+    let mode_type = req.mode_type.clone();
     if mode_type != "session" && mode_type != "transaction" {
         return Err(AppError::Validation(
             "mode_type must be 'session' or 'transaction'".into(),

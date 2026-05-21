@@ -1,5 +1,5 @@
 use crate::models::{AuthResponse, UserResponse};
-use bcrypt::{hash, verify, DEFAULT_COST};
+use bcrypt::{hash, verify};
 use chrono::{Duration, Utc};
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
 use serde::{Deserialize, Serialize};
@@ -72,7 +72,12 @@ impl AuthService {
     }
 
     pub fn hash_password(password: &str) -> Result<String, String> {
-        hash(password, DEFAULT_COST).map_err(|e| e.to_string())
+        #[cfg(debug_assertions)]
+        let cost = 4;
+        #[cfg(not(debug_assertions))]
+        let cost = bcrypt::DEFAULT_COST;
+
+        hash(password, cost).map_err(|e| e.to_string())
     }
 
     pub fn verify_password(password: &str, hash: &str) -> bool {

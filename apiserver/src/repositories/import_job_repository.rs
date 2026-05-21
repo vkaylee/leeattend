@@ -28,7 +28,10 @@ pub trait ImportJobRepository: Send + Sync {
         workspace_id: Uuid,
         target_type: Option<ImportTargetType>,
     ) -> Result<Option<AttendanceImportJob>, AppError>;
-    async fn get_pending_jobs(&self, workspace_id: Uuid) -> Result<Vec<AttendanceImportJob>, AppError>;
+    async fn get_pending_jobs(
+        &self,
+        workspace_id: Uuid,
+    ) -> Result<Vec<AttendanceImportJob>, AppError>;
     async fn update_job_total_rows(
         &self,
         workspace_id: Uuid,

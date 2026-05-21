@@ -39,8 +39,7 @@ pub(crate) fn build_tenant_payload(db_url: &str) -> Option<(String, serde_json::
         .and_then(|v| v.parse().ok())
         .unwrap_or(20);
 
-    let mode_type =
-        std::env::var("SUPAVISOR_MODE_TYPE").unwrap_or_else(|_| "session".to_string());
+    let mode_type = std::env::var("SUPAVISOR_MODE_TYPE").unwrap_or_else(|_| "session".to_string());
 
     let ip_version = std::env::var("SUPAVISOR_IP_VERSION").unwrap_or_else(|_| "auto".to_string());
 
@@ -263,10 +262,9 @@ impl TenantManager for SupavisorTenantManager {
 
         let status = response.status();
         if status.is_success() {
-            let body = response
-                .json::<serde_json::Value>()
-                .await
-                .map_err(|e| AppError::Internal(format!("Failed to parse Supavisor response: {e}")))?;
+            let body = response.json::<serde_json::Value>().await.map_err(|e| {
+                AppError::Internal(format!("Failed to parse Supavisor response: {e}"))
+            })?;
             Ok(body)
         } else {
             let text = response.text().await.unwrap_or_default();
@@ -292,15 +290,18 @@ impl TenantManager for SupavisorTenantManager {
             .and_then(|t| t.as_object_mut())
             .ok_or_else(|| AppError::Internal("Unexpected Supavisor response shape".into()))?;
 
-        tenant_obj.insert("default_mode".to_string(), serde_json::Value::String(mode_type.to_string()));
+        tenant_obj.insert(
+            "default_mode".to_string(),
+            serde_json::Value::String(mode_type.to_string()),
+        );
 
-        if let Some(users) = tenant_obj
-            .get_mut("users")
-            .and_then(|u| u.as_array_mut())
-        {
+        if let Some(users) = tenant_obj.get_mut("users").and_then(|u| u.as_array_mut()) {
             for user in users {
                 if let Some(obj) = user.as_object_mut() {
-                    obj.insert("mode_type".to_string(), serde_json::Value::String(mode_type.to_string()));
+                    obj.insert(
+                        "mode_type".to_string(),
+                        serde_json::Value::String(mode_type.to_string()),
+                    );
                 }
             }
         }
@@ -612,7 +613,10 @@ mod tests {
         // but db_database in the payload stays as the actual PG database name.
         // This is the BYOD scenario — custom DB, but Supavisor routing
         // still uses tenant_<uuid-no-hyphens>.
-        std::env::set_var("SUPAVISOR_TENANT_ID", "tenant_019e40ee11927492bc2985dad4675f34");
+        std::env::set_var(
+            "SUPAVISOR_TENANT_ID",
+            "tenant_019e40ee11927492bc2985dad4675f34",
+        );
         let url = "postgres://admin:secret@db:5432/my_custom_db";
         let (tenant_id, payload) = build_tenant_payload(url).expect("Should build");
         std::env::remove_var("SUPAVISOR_TENANT_ID");
@@ -627,7 +631,8 @@ mod tests {
             tenant["db_database"], "my_custom_db",
             "db_database must be the actual PG database, not the tenant_id"
         );
-        assert!(!tenant_id.contains('-'),
+        assert!(
+            !tenant_id.contains('-'),
             "BYOD tenant_id must NOT contain hyphens"
         );
     }
@@ -641,10 +646,16 @@ mod tests {
         // Case 1: standard tenant_ DB name
         let url1 = "postgres://u:p@h:5432/tenant_019e40ee11927492bc2985dad4675f34";
         let (tid1, _) = build_tenant_payload(url1).unwrap();
-        assert!(!tid1.contains('-'), "standard DB: tenant_id must not have hyphens");
+        assert!(
+            !tid1.contains('-'),
+            "standard DB: tenant_id must not have hyphens"
+        );
 
         // Case 2: custom DB name with hyphenated override
-        std::env::set_var("SUPAVISOR_TENANT_ID", "tenant_a1b2c3d4e5f67890abcdef1234567890");
+        std::env::set_var(
+            "SUPAVISOR_TENANT_ID",
+            "tenant_a1b2c3d4e5f67890abcdef1234567890",
+        );
         let url2 = "postgres://u:p@h:5432/some-custom-db-name";
         let (tid2, _) = build_tenant_payload(url2).unwrap();
         std::env::remove_var("SUPAVISOR_TENANT_ID");
@@ -655,7 +666,10 @@ mod tests {
         // the correct format via SUPAVISOR_TENANT_ID for non-standard names)
         let url3 = "postgres://u:p@h:5432/custom_db_name";
         let (tid3, _) = build_tenant_payload(url3).unwrap();
-        assert!(!tid3.contains('-'), "fallback: tenant_id must not have hyphens");
+        assert!(
+            !tid3.contains('-'),
+            "fallback: tenant_id must not have hyphens"
+        );
     }
 
     #[test]
@@ -675,7 +689,8 @@ mod tests {
         let (tenant_id, _) = build_tenant_payload(&provisioned_url).unwrap();
 
         // This is the SAME format as in get_tenant_url() — the contract
-        assert_eq!(tenant_id, db_name,
+        assert_eq!(
+            tenant_id, db_name,
             "tenant_id must equal the db_name from provision_tenant_db, \
              which matches the tenant identifier in get_tenant_url()"
         );
@@ -740,12 +755,21 @@ mod tests {
         assert_eq!(tenant_id, "test_tenant");
 
         let tenant_obj = payload.get("tenant").expect("Missing tenant object");
-        
-        assert_eq!(tenant_obj.get("require_user").unwrap().as_bool(), Some(false));
-        
+
+        assert_eq!(
+            tenant_obj.get("require_user").unwrap().as_bool(),
+            Some(false)
+        );
+
         // Assert the new edge-case fields are present
-        assert_eq!(tenant_obj.get("default_mode").unwrap().as_str(), Some("session"));
-        assert_eq!(tenant_obj.get("default_pool_size").unwrap().as_u64(), Some(42));
+        assert_eq!(
+            tenant_obj.get("default_mode").unwrap().as_str(),
+            Some("session")
+        );
+        assert_eq!(
+            tenant_obj.get("default_pool_size").unwrap().as_u64(),
+            Some(42)
+        );
 
         // Cleanup
         std::env::remove_var("SUPAVISOR_MODE_TYPE");

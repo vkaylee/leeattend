@@ -475,7 +475,11 @@ pub async fn delete_device(
 
     if rows_affected > 0 {
         if let Some(aid) = agent_id {
-            let _ = state.agents.service.notify_config_update(workspace_id, &aid).await;
+            let _ = state
+                .agents
+                .service
+                .notify_config_update(workspace_id, &aid)
+                .await;
         }
         Ok(StatusCode::NO_CONTENT)
     } else {

@@ -17,36 +17,19 @@ x-rust-env-base: &rust-env-base
 
 x-rust-test-base: &rust-test-base
   tty: true
-  entrypoint:
-    - bash
-    - -c
-    - |
-      # Sync incremental cache from disk to RAM on container start
-      if [ -d /workspace/target/debug/incremental-persist ] && [ -n "$$(ls -A /workspace/target/debug/incremental-persist/ 2>/dev/null)" ]; then
-        rsync -a /workspace/target/debug/incremental-persist/ /workspace/target/debug/incremental/
-      fi
-      # On SIGTERM/SIGINT, sync RAM back to disk (only changed files)
-      sync_back() {
-        rsync -a /workspace/target/debug/incremental/ /workspace/target/debug/incremental-persist/ 2>/dev/null || true
-      }
-      trap sync_back SIGTERM SIGINT
-      sleep infinity &
-      wait $$!
+  entrypoint: sleep infinity
   networks:
     - test_net
   environment:
     <<: *rust-env-base
   tmpfs:
     - /workspace/target/nextest
-    - /workspace/target/debug/incremental:size=4096M
   volumes:
     - ${PROJECT_ROOT}:/workspace
     - target-cache:/workspace/target
-    - target-incremental:/workspace/target/debug/incremental-persist
     - ${HOME}/.cargo/registry:/usr/local/cargo/registry
     - sccache-cache:/workspace/.sccache
     - /dev/shm/leeattend-shared-data:/workspace/shared
-
     - /workspace/apiserver/storage
 
 services:
@@ -272,9 +255,6 @@ services:
 volumes:
   target-cache:
     name: leeattend-test_target-cache
-    driver: local
-  target-incremental:
-    name: leeattend-test_target-incremental
     driver: local
   sccache-cache:
     name: leeattend-test_sccache-cache

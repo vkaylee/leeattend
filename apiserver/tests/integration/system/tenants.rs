@@ -48,7 +48,11 @@ impl apiserver::supavisor::TenantManager for TestMockTenantManager {
         Ok(serde_json::json!({ "error": "Not Found" }))
     }
 
-    async fn update_tenant_mode(&self, tenant_id: &str, mode_type: &str) -> apiserver::errors::AppResult<()> {
+    async fn update_tenant_mode(
+        &self,
+        tenant_id: &str,
+        mode_type: &str,
+    ) -> apiserver::errors::AppResult<()> {
         self.mode_updates
             .lock()
             .await
@@ -214,10 +218,16 @@ async fn test_create_tenant_with_byod() {
             "custom_host"
         );
         assert_eq!(tenant.get("db_port").unwrap().as_u64().unwrap(), 5432);
-        
+
         // Assert new Edge Case fields
-        assert_eq!(tenant.get("default_pool_size").unwrap().as_u64().unwrap(), 25);
-        assert_eq!(tenant.get("default_mode").unwrap().as_str().unwrap(), "session");
+        assert_eq!(
+            tenant.get("default_pool_size").unwrap().as_u64().unwrap(),
+            25
+        );
+        assert_eq!(
+            tenant.get("default_mode").unwrap().as_str().unwrap(),
+            "session"
+        );
 
         let users = tenant.get("users").unwrap().as_array().unwrap();
         assert_eq!(users.len(), 1);
@@ -334,7 +344,9 @@ async fn test_get_tenant_stats() {
 
     // Execute GET
     let response = client
-        .get(&format!("{address}/api/system/tenants/{workspace_id}/stats"))
+        .get(&format!(
+            "{address}/api/system/tenants/{workspace_id}/stats"
+        ))
         .header("X-User-Id", user_id.to_string())
         .send()
         .await
@@ -385,7 +397,9 @@ async fn test_update_tenant_database() {
 
     // 1. PUT update database
     let response = client
-        .put(&format!("{address}/api/system/tenants/{tenant_id}/database"))
+        .put(&format!(
+            "{address}/api/system/tenants/{tenant_id}/database"
+        ))
         .header("X-User-Id", user_id.to_string())
         .json(&req)
         .send()
@@ -489,12 +503,23 @@ async fn test_update_tenant_mode_to_session() {
 
     let status = response.status();
     let body = response.text().await.unwrap_or_default();
-    assert_eq!(status, reqwest::StatusCode::OK, "Expected 200 OK, got {status}: {body}");
+    assert_eq!(
+        status,
+        reqwest::StatusCode::OK,
+        "Expected 200 OK, got {status}: {body}"
+    );
 
     // Verify the mock recorded the mode update
     let mode_updates = mock_manager.mode_updates.lock().await;
-    assert_eq!(mode_updates.len(), 1, "Should have recorded exactly 1 mode update");
-    assert_eq!(mode_updates[0].0, tenant_id, "Should update the correct tenant");
+    assert_eq!(
+        mode_updates.len(),
+        1,
+        "Should have recorded exactly 1 mode update"
+    );
+    assert_eq!(
+        mode_updates[0].0, tenant_id,
+        "Should update the correct tenant"
+    );
     assert_eq!(mode_updates[0].1, "session", "Should set mode to session");
 }
 
@@ -527,7 +552,10 @@ async fn test_update_tenant_mode_to_transaction() {
     assert_eq!(response.status(), reqwest::StatusCode::OK);
 
     let mode_updates = mock_manager.mode_updates.lock().await;
-    assert_eq!(mode_updates[0].1, "transaction", "Should set mode to transaction");
+    assert_eq!(
+        mode_updates[0].1, "transaction",
+        "Should set mode to transaction"
+    );
 }
 
 #[tokio::test]
@@ -624,7 +652,9 @@ async fn test_update_tenant_database_requires_admin() {
     });
 
     let response = client
-        .put(&format!("{address}/api/system/tenants/{tenant_id}/database"))
+        .put(&format!(
+            "{address}/api/system/tenants/{tenant_id}/database"
+        ))
         .header("X-User-Id", user_id.to_string())
         .json(&req)
         .send()
@@ -668,7 +698,9 @@ async fn test_update_tenant_database_invalid_tenant_id() {
 
     // Use an invalid tenant_id (not a valid UUID)
     let response = client
-        .put(&format!("{address}/api/system/tenants/tenant_not-a-uuid/database"))
+        .put(&format!(
+            "{address}/api/system/tenants/tenant_not-a-uuid/database"
+        ))
         .header("X-User-Id", user_id.to_string())
         .json(&req)
         .send()

@@ -623,7 +623,10 @@ mod tests {
             .expect("payload should have 'tenant' key");
         assert!(tenant.get("db_host").is_some(), "should have db_host");
         assert!(tenant.get("db_port").is_some(), "should have db_port");
-        assert!(tenant.get("db_database").is_some(), "should have db_database");
+        assert!(
+            tenant.get("db_database").is_some(),
+            "should have db_database"
+        );
         let db_name = tenant["db_database"].as_str().unwrap();
         assert!(
             db_name.starts_with("tenant_"),

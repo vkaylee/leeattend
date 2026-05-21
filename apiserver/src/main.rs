@@ -220,8 +220,8 @@ async fn register_workspace_tenants_and_migrate(
     let primary_url = db_config.primary_url.clone();
     let primary_url_for_parse = primary_url.clone();
     let rows: Vec<Uuid> = match tokio::task::spawn_blocking(move || {
-        use diesel::{Connection, QueryableByName, RunQueryDsl};
         use diesel::sql_types::Uuid as UuidSql;
+        use diesel::{Connection, QueryableByName, RunQueryDsl};
 
         #[derive(QueryableByName)]
         struct WsRow {
@@ -237,11 +237,14 @@ async fn register_workspace_tenants_and_migrate(
             .map_err(|e| format!("Failed to query workspaces: {e}"))
     })
     .await
-    .expect("Failed to query workspaces for tenant registration")
     {
-        Ok(r) => r,
-        Err(e) => {
+        Ok(Ok(r)) => r,
+        Ok(Err(e)) => {
             tracing::warn!("{e} — skipping tenant registration");
+            return;
+        }
+        Err(e) => {
+            tracing::error!("Failed to spawn blocking task for workspace query: {e}");
             return;
         }
     };
@@ -280,7 +283,10 @@ async fn register_workspace_tenants_and_migrate(
             }
         });
 
-        if let Err(e) = tenant_manager.register_tenant_dynamic(&db_name, &payload).await {
+        if let Err(e) = tenant_manager
+            .register_tenant_dynamic(&db_name, &payload)
+            .await
+        {
             tracing::warn!(
                 workspace_id = %ws_id,
                 error = %e,
@@ -291,11 +297,13 @@ async fn register_workspace_tenants_and_migrate(
 
     // Run pending tenant migrations through the pooler (via Supavisor)
     let config_clone = db_config.clone();
-    tokio::task::spawn_blocking(move || {
+    if let Err(e) = tokio::task::spawn_blocking(move || {
         DieselPools::run_tenant_migrations(&config_clone);
     })
     .await
-    .expect("Tenant migration task panicked");
+    {
+        tracing::error!("Tenant migration task panicked: {e}");
+    }
 }
 
 async fn shutdown_signal() {

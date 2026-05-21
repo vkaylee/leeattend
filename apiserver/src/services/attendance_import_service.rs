@@ -496,6 +496,7 @@ impl AttendanceImportService {
 
     #[tracing::instrument(skip_all)]
     pub async fn resume_all_pending_jobs(&self) {
+        tracing::info!("resume_all_pending_jobs: starting...");
         // Get all workspaces from system DB, then query each tenant for pending jobs
         let workspaces = match self.workspace_repo.get_all_workspaces().await {
             Ok(ws) => ws,
