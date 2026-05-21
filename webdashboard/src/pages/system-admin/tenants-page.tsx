@@ -55,7 +55,7 @@ export default function TenantsPage() {
     enabled: !!selectedTenant && (statsModalOpen || dbUpdateModalOpen || dbModeUpdateModalOpen),
   });
 
-  const statsConfig = tenantStats ? (tenantStats.config.tenant ?? tenantStats.config) : undefined;
+  const statsConfig = tenantStats ? (tenantStats.config.data ?? tenantStats.config.tenant ?? tenantStats.config) : undefined;
   const poolSizeVal = statsConfig?.users?.[0]?.pool_size?.toString() ?? "N/A";
   const poolModeVal = statsConfig?.users?.[0]?.mode_type ?? statsConfig?.default_mode ?? "session";
   const rawConfigString = JSON.stringify(statsConfig, null, 2);

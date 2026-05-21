@@ -282,56 +282,8 @@ impl TenantManager for SupavisorTenantManager {
         let base_url = self.api_url.trim_end_matches('/');
         let url = format!("{base_url}/api/tenants/{tenant_id}");
 
-        let mut current = self.get_tenant(tenant_id).await?;
-
-        let has_tenant_wrapper = current.get("tenant").is_some();
-        let payload = if has_tenant_wrapper {
-            let tenant_obj = current
-                .as_object_mut()
-                .and_then(|root| root.get_mut("tenant"))
-                .and_then(|t| t.as_object_mut())
-                .ok_or_else(|| AppError::Internal("Unexpected Supavisor response shape".into()))?;
-
-            tenant_obj.insert(
-                "default_mode".to_string(),
-                serde_json::Value::String(mode_type.to_string()),
-            );
-
-            if let Some(users) = tenant_obj.get_mut("users").and_then(|u| u.as_array_mut()) {
-                for user in users {
-                    if let Some(obj) = user.as_object_mut() {
-                        obj.insert(
-                            "mode_type".to_string(),
-                            serde_json::Value::String(mode_type.to_string()),
-                        );
-                    }
-                }
-            }
-            current
-        } else {
-            let tenant_obj = current
-                .as_object_mut()
-                .ok_or_else(|| AppError::Internal("Unexpected Supavisor response shape".into()))?;
-
-            tenant_obj.insert(
-                "default_mode".to_string(),
-                serde_json::Value::String(mode_type.to_string()),
-            );
-
-            if let Some(users) = tenant_obj.get_mut("users").and_then(|u| u.as_array_mut()) {
-                for user in users {
-                    if let Some(obj) = user.as_object_mut() {
-                        obj.insert(
-                            "mode_type".to_string(),
-                            serde_json::Value::String(mode_type.to_string()),
-                        );
-                    }
-                }
-            }
-            json!({
-                "tenant": tenant_obj
-            })
-        };
+        let current = self.get_tenant(tenant_id).await?;
+        let payload = update_tenant_mode_json(current, mode_type)?;
 
         let response = self
             .client
@@ -357,6 +309,40 @@ impl TenantManager for SupavisorTenantManager {
             )))
         }
     }
+}
+
+pub(crate) fn update_tenant_mode_json(
+    mut current: serde_json::Value,
+    mode_type: &str,
+) -> AppResult<serde_json::Value> {
+    let tenant_map = if let Some(data_val) = current.get_mut("data") {
+        data_val.as_object_mut()
+    } else if let Some(tenant_val) = current.get_mut("tenant") {
+        tenant_val.as_object_mut()
+    } else {
+        current.as_object_mut()
+    }
+    .ok_or_else(|| AppError::Internal("Unexpected Supavisor response shape".into()))?;
+
+    tenant_map.insert(
+        "default_mode".to_string(),
+        serde_json::Value::String(mode_type.to_string()),
+    );
+
+    if let Some(users) = tenant_map.get_mut("users").and_then(|u| u.as_array_mut()) {
+        for user in users {
+            if let Some(obj) = user.as_object_mut() {
+                obj.insert(
+                    "mode_type".to_string(),
+                    serde_json::Value::String(mode_type.to_string()),
+                );
+            }
+        }
+    }
+
+    Ok(json!({
+        "tenant": tenant_map
+    }))
 }
 
 pub struct NoopTenantManager;
@@ -802,5 +788,60 @@ mod tests {
         std::env::remove_var("SUPAVISOR_MODE_TYPE");
         std::env::remove_var("SUPAVISOR_POOL_SIZE");
         std::env::remove_var("SUPAVISOR_TENANT_ID");
+    }
+
+    #[test]
+    fn test_update_tenant_mode_json_shapes() {
+        // Shape 1: Wrapped in "data" (returned by live Supavisor API)
+        let input_data = json!({
+            "data": {
+                "db_database": "company_db",
+                "default_mode": "session",
+                "users": [
+                    {
+                        "db_user": "admin",
+                        "mode_type": "session"
+                    }
+                ]
+            }
+        });
+        let result_data = update_tenant_mode_json(input_data, "transaction").expect("success");
+        let tenant = result_data.get("tenant").expect("should have tenant key");
+        assert_eq!(tenant["default_mode"], "transaction");
+        assert_eq!(tenant["users"][0]["mode_type"], "transaction");
+
+        // Shape 2: Wrapped in "tenant" (used by some mocks)
+        let input_tenant = json!({
+            "tenant": {
+                "db_database": "company_db",
+                "default_mode": "session",
+                "users": [
+                    {
+                        "db_user": "admin",
+                        "mode_type": "session"
+                    }
+                ]
+            }
+        });
+        let result_tenant = update_tenant_mode_json(input_tenant, "transaction").expect("success");
+        let tenant = result_tenant.get("tenant").expect("should have tenant key");
+        assert_eq!(tenant["default_mode"], "transaction");
+        assert_eq!(tenant["users"][0]["mode_type"], "transaction");
+
+        // Shape 3: Unwrapped (direct root object)
+        let input_direct = json!({
+            "db_database": "company_db",
+            "default_mode": "session",
+            "users": [
+                {
+                    "db_user": "admin",
+                    "mode_type": "session"
+                }
+            ]
+        });
+        let result_direct = update_tenant_mode_json(input_direct, "transaction").expect("success");
+        let tenant = result_direct.get("tenant").expect("should have tenant key");
+        assert_eq!(tenant["default_mode"], "transaction");
+        assert_eq!(tenant["users"][0]["mode_type"], "transaction");
     }
 }

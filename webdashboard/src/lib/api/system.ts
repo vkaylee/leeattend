@@ -102,6 +102,7 @@ export interface TenantConfig {
 
 export interface TenantConnectionStats {
   config: TenantConfig & {
+    data?: TenantConfig;
     tenant?: TenantConfig;
   };
   connection: {
