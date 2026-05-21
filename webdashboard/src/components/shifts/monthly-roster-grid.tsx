@@ -328,7 +328,7 @@ export function MonthlyRosterGrid({ hook }: MonthlyRosterGridProps) {
               {t("shifts.monthly.all_employees")}
             </div>
             <p className="text-xs text-slate-400 dark:text-slate-500 max-w-xs mx-auto">
-              Không tìm thấy nhân viên hoặc lịch trình làm việc. Vui lòng kiểm tra lại phòng ban hoặc cấu hình nhân sự.
+              {t("shifts.monthly.empty_state_desc")}
             </p>
           </div>
         ) : filteredSchedules.length === 0 ? (

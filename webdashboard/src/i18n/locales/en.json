@@ -2733,7 +2733,8 @@
       "filter_department": "Filter by department",
       "all_departments": "All Departments",
       "no_department": "No Department",
-      "no_results_desc": "No employees found matching your search or filter criteria."
+      "no_results_desc": "No employees found matching your search or filter criteria.",
+      "empty_state_desc": "No employees or work schedules found. Please check your departments or personnel settings."
     },
     "title": "Scheduling System",
     "subtitle": "Manage flexible and fixed work shifts",
