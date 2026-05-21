@@ -2621,14 +2621,27 @@
       "desc_placeholder": "Optional description",
       "desc_label": "Short description",
       "weekly_grid_title": "Weekly Schedule Grid",
+      "cycle_grid_title": "Cycle Schedule Grid",
       "prefill_standard": "Fill Standard Pattern",
-      "add_shift": "Add Shift"
+      "add_shift": "Add Shift",
+      "pattern_type": "Pattern Type",
+      "pattern_type_weekly": "Weekly Schedule",
+      "pattern_type_rotation": "Rotating Cycle",
+      "cycle_length": "Cycle Length (Days)",
+      "cycle_length_placeholder": "e.g. 6",
+      "cycle_length_note": "Determines the length of the schedule cycle in days.",
+      "day_index": "Day {{index}}",
+      "anchor_date_label": "Rotation Anchor Date",
+      "anchor_date_note": "Reference date when Day 1 of the cycle starts."
     },
     "weekly_config": "Weekly Config",
     "actions": {
       "prefill_standard": "Quick Fill: Office (Mon-Fri)"
     },
+    "badge_rotation": "Rotation ({{days}} days)",
+    "badge_weekly": "Weekly",
     "validation_name_required": "Please enter pattern name.",
+    "validation_cycle_length_invalid": "Please enter a valid cycle length between 1 and 366.",
     "messages": {
       "create_success": "Working pattern created successfully.",
       "create_error": "Error creating working pattern.",
