@@ -284,33 +284,60 @@ impl TenantManager for SupavisorTenantManager {
 
         let mut current = self.get_tenant(tenant_id).await?;
 
-        let tenant_obj = current
-            .as_object_mut()
-            .and_then(|root| root.get_mut("tenant"))
-            .and_then(|t| t.as_object_mut())
-            .ok_or_else(|| AppError::Internal("Unexpected Supavisor response shape".into()))?;
+        let has_tenant_wrapper = current.get("tenant").is_some();
+        let payload = if has_tenant_wrapper {
+            let tenant_obj = current
+                .as_object_mut()
+                .and_then(|root| root.get_mut("tenant"))
+                .and_then(|t| t.as_object_mut())
+                .ok_or_else(|| AppError::Internal("Unexpected Supavisor response shape".into()))?;
 
-        tenant_obj.insert(
-            "default_mode".to_string(),
-            serde_json::Value::String(mode_type.to_string()),
-        );
+            tenant_obj.insert(
+                "default_mode".to_string(),
+                serde_json::Value::String(mode_type.to_string()),
+            );
 
-        if let Some(users) = tenant_obj.get_mut("users").and_then(|u| u.as_array_mut()) {
-            for user in users {
-                if let Some(obj) = user.as_object_mut() {
-                    obj.insert(
-                        "mode_type".to_string(),
-                        serde_json::Value::String(mode_type.to_string()),
-                    );
+            if let Some(users) = tenant_obj.get_mut("users").and_then(|u| u.as_array_mut()) {
+                for user in users {
+                    if let Some(obj) = user.as_object_mut() {
+                        obj.insert(
+                            "mode_type".to_string(),
+                            serde_json::Value::String(mode_type.to_string()),
+                        );
+                    }
                 }
             }
-        }
+            current
+        } else {
+            let tenant_obj = current
+                .as_object_mut()
+                .ok_or_else(|| AppError::Internal("Unexpected Supavisor response shape".into()))?;
+
+            tenant_obj.insert(
+                "default_mode".to_string(),
+                serde_json::Value::String(mode_type.to_string()),
+            );
+
+            if let Some(users) = tenant_obj.get_mut("users").and_then(|u| u.as_array_mut()) {
+                for user in users {
+                    if let Some(obj) = user.as_object_mut() {
+                        obj.insert(
+                            "mode_type".to_string(),
+                            serde_json::Value::String(mode_type.to_string()),
+                        );
+                    }
+                }
+            }
+            json!({
+                "tenant": tenant_obj
+            })
+        };
 
         let response = self
             .client
             .put(&url)
             .header("Authorization", format!("Bearer {token}"))
-            .json(&current)
+            .json(&payload)
             .send()
             .await
             .map_err(|e| AppError::Internal(format!("Failed to reach Supavisor API: {e}")))?;
