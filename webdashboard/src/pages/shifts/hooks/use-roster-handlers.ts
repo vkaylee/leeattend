@@ -1,18 +1,21 @@
 import type { UseMutationResult } from "@tanstack/react-query";
 
+import { useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 
-import { format, addDays } from "date-fns";
+import { format, addDays, subMonths, startOfMonth, endOfMonth } from "date-fns";
 
 import type { AssignPatternRequest, Employee, EmployeeSchedule, EmployeeWorkingPattern } from "@/lib/api/types";
 
 import { useToast } from "@/components/ui/toast";
-import { fetchWorkspaceSchedules } from "@/lib/api";
+import { fetchWorkspaceSchedules, bulkUpsertRoster, deleteRoster } from "@/lib/api";
 
 interface UseRosterHandlersProps {
   allSchedules: EmployeeSchedule[] | undefined;
+  currentMonth: Date;
   endDate: string;
   isForever: boolean;
+  monthDays: Date[];
   mutations: {
     assignPatternMutation: UseMutationResult<EmployeeWorkingPattern, Error, AssignPatternRequest>;
     bulkRosterMutation: UseMutationResult<unknown, Error, { date: string; shift_id: string | null }[]>;
@@ -38,9 +41,12 @@ export function useRosterHandlers({
   startOfWeek,
   allSchedules,
   mutations,
+  currentMonth,
+  monthDays,
 }: UseRosterHandlersProps) {
   const { t } = useTranslation();
   const toast = useToast();
+  const queryClient = useQueryClient();
 
   const handleAssign = () => {
     if (!selectedEmployee || !selectedPatternId) {
@@ -79,10 +85,96 @@ export function useRosterHandlers({
     } catch (e: unknown) { toast.error(e instanceof Error ? e.message : String(e)); }
   };
 
+  // Monthly handlers
+  const handleMonthBulkAssign = async (
+    assignments: { employeeId: string; dates: string[] }[],
+    shiftId: string | null
+  ) => {
+    try {
+      await Promise.all(
+        assignments.map(async ({ employeeId, dates }) => {
+          const items = dates.map(date => ({ date, shift_id: shiftId }));
+          await bulkUpsertRoster(wsId, employeeId, items);
+        })
+      );
+      toast.success(t("shifts.messages.bulk_update_success"));
+      void queryClient.invalidateQueries({ queryKey: ["schedules"] });
+      void queryClient.invalidateQueries({ queryKey: ["assignment_history"] });
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : String(e));
+    }
+  };
+
+  const handleMonthDeleteRoster = async (
+    assignments: { employeeId: string; dates: string[] }[]
+  ) => {
+    try {
+      await Promise.all(
+        assignments.map(async ({ employeeId, dates }) => {
+          await Promise.all(
+            dates.map(date => deleteRoster(wsId, employeeId, date))
+          );
+        })
+      );
+      toast.success(t("shifts.messages.remove_override_success"));
+      void queryClient.invalidateQueries({ queryKey: ["schedules"] });
+      void queryClient.invalidateQueries({ queryKey: ["assignment_history"] });
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : String(e));
+    }
+  };
+
+  const handleCopyPreviousMonth = async () => {
+    const prevMonth = subMonths(currentMonth, 1);
+    const prevStartStr = format(startOfMonth(prevMonth), 'yyyy-MM-dd');
+    const prevEndStr = format(endOfMonth(prevMonth), 'yyyy-MM-dd');
+    
+    try {
+      const prevSchedules = await fetchWorkspaceSchedules(wsId, prevStartStr, prevEndStr);
+      const currentYearMonth = format(currentMonth, 'yyyy-MM');
+      const monthDayStrings = new Set(monthDays.map(d => format(d, 'yyyy-MM-dd')));
+      
+      let copyCount = 0;
+      
+      await Promise.all(
+        prevSchedules.map(async (empSchedule) => {
+          const rosterEntries = empSchedule.schedules
+            .filter(s => s.source === "roster" && s.shift_id)
+            .map(s => {
+              const targetDateStr = `${currentYearMonth}-${s.date.substring(8)}`;
+              if (monthDayStrings.has(targetDateStr)) {
+                return { date: targetDateStr, shift_id: s.shift_id };
+              }
+              return null;
+            })
+            .filter((item): item is { date: string; shift_id: string | null } => item !== null);
+            
+          if (rosterEntries.length > 0) {
+            copyCount += rosterEntries.length;
+            await bulkUpsertRoster(wsId, empSchedule.employee_id, rosterEntries);
+          }
+        })
+      );
+      
+      if (copyCount > 0) {
+        toast.success(t("shifts.messages.bulk_update_success"));
+        void queryClient.invalidateQueries({ queryKey: ["schedules"] });
+        void queryClient.invalidateQueries({ queryKey: ["assignment_history"] });
+      } else {
+        toast.warning(t("shifts.messages.no_previous_data"));
+      }
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : String(e));
+    }
+  };
+
   return {
     handleAssign,
     handleAssignAllWeek,
     handleAssignBulk: handleBulkAssign,
     handleCopyPreviousWeek,
+    handleMonthBulkAssign,
+    handleMonthDeleteRoster,
+    handleCopyPreviousMonth,
   };
 }

@@ -4,8 +4,12 @@ import { format } from "date-fns";
 
 import type { Shift, Employee } from "@/lib/api/types";
 
+import type { TabType, ViewMode } from "./use-shifts-types";
+
 export function useShiftFormState() {
-  const [activeTab, setActiveTab] = useState<"weekly-roster" | "assignments" | "directory">("weekly-roster");
+  const [activeTab, setActiveTab] = useState<TabType>("weekly-roster");
+  const [viewMode, setViewMode] = useState<ViewMode>("week");
+
   
   // Selection states
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
@@ -39,6 +43,7 @@ export function useShiftFormState() {
 
   return {
     activeTab, setActiveTab,
+    viewMode, setViewMode,
     selectedEmployee, setSelectedEmployee,
     selectedDays, setSelectedDays,
     targetDates, setTargetDates,

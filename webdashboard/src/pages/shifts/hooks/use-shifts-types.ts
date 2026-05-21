@@ -3,6 +3,7 @@ import { UseMutationResult } from "@tanstack/react-query";
 import {
   AssignPatternRequest,
   AssignmentHistory,
+  Department,
   Employee,
   EmployeeSchedule,
   EmployeeWorkingPattern,
@@ -11,6 +12,7 @@ import {
 } from "@/lib/api/types";
 
 export type TabType = "weekly-roster" | "assignments" | "directory";
+export type ViewMode = "week" | "month";
 
 export interface UseShiftsReturn {
   activeTab: TabType;
@@ -19,15 +21,24 @@ export interface UseShiftsReturn {
   correctionEffectiveDate: string;
   createShiftMutation: UseMutationResult<Shift, Error, Partial<Shift>>;
   currentDate: Date;
+  currentMonth: Date;
   deleteRosterMutation: UseMutationResult<unknown, Error, string>;
+  departments: Department[] | undefined;
   editingShift: Shift | null;
+  employees: Employee[] | undefined;
   employeeSchedule: EmployeeSchedule | undefined;
   endDate: string;
+
+
   handleAssign: () => void;
   handleAssignAllWeek: (shiftId: string | null) => void;
   handleAssignBulk: (shiftId: string | null) => void;
+  handleCopyPreviousMonth: () => Promise<void>;
   handleCopyPreviousWeek: () => Promise<unknown>;
   handleCreateShift: () => void;
+  handleMonthBulkAssign: (assignments: { employeeId: string; dates: string[] }[], shiftId: string | null) => Promise<void>;
+  handleMonthDeleteRoster: (assignments: { employeeId: string; dates: string[] }[]) => Promise<void>;
+  handleNavigateMonth: (direction: "prev" | "next") => void;
   handleNavigateWeek: (direction: "prev" | "next") => void;
   handleUpdateShift: () => void;
   history: AssignmentHistory[] | undefined;
@@ -36,7 +47,10 @@ export interface UseShiftsReturn {
   isCreateModalOpen: boolean;
   isFixedBreak: boolean;
   isForever: boolean;
+  isMonthLoading: boolean;
   isShiftPickerOpen: boolean;
+  monthDays: Date[];
+  monthSchedules: EmployeeSchedule[] | undefined;
   newBreakEnd: string;
   newBreakStart: string;
   newShiftBreak: number;
@@ -74,10 +88,12 @@ export interface UseShiftsReturn {
   setSelectedPatternId: (v: string) => void;
   setStartDate: (v: string) => void;
   setTargetDates: (v: string[]) => void;
+  setViewMode: (v: ViewMode) => void;
   shifts: Shift[] | undefined;
   startDate: string;
   targetDates: string[];
   updateShiftMutation: UseMutationResult<Shift, Error, { id: string; data: Partial<Shift> }>;
+  viewMode: ViewMode;
   weekDays: Date[];
   wsId: string;
 }

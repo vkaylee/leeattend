@@ -2713,6 +2713,24 @@
     "confirm_delete_msg": "rules.confirm_delete_msg"
   },
   "shifts": {
+    "monthly": {
+      "title": "Lịch ca tháng",
+      "copy_previous_month": "Copy tháng trước",
+      "clear_month": "Xóa ca đã gán",
+      "pattern_source": "Tự động từ mẫu",
+      "roster_source": "Gán thủ công",
+      "off_day": "Nghỉ",
+      "all_employees": "Tất cả nhân viên",
+      "cells_selected": "Đã chọn {{count}} ô",
+      "assign_selected": "Gán ca cho ô đã chọn",
+      "view_week": "Xem tuần",
+      "view_month": "Xem tháng",
+      "search_placeholder": "Tìm kiếm nhân viên...",
+      "filter_department": "Lọc theo phòng ban",
+      "all_departments": "Tất cả phòng ban",
+      "no_department": "Không thuộc phòng ban",
+      "no_results_desc": "Không tìm thấy nhân viên nào khớp với tiêu chí tìm kiếm hoặc lọc."
+    },
     "title": "Hệ thống Lịch trình",
     "subtitle": "Quản lý ca làm việc linh hoạt và cố định",
     "create_btn": "Tạo ca",
@@ -2735,7 +2753,7 @@
       "desc": "Vui lòng chọn một nhân viên từ danh sách bên trái để bắt đầu sắp xếp lịch làm việc."
     },
     "tabs": {
-      "weekly_roster": "LỊCH TUẦN",
+      "weekly_roster": "LỊCH PHÂN CA",
       "fixed_assignments": "GÁN MẪU LỊCH",
       "directory": "CÁC LOẠI CA"
     },

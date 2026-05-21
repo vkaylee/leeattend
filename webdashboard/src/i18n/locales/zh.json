@@ -2713,6 +2713,24 @@
     "confirm_delete_msg": "rules.confirm_delete_msg"
   },
   "shifts": {
+    "monthly": {
+      "title": "月度排班",
+      "copy_previous_month": "复制上月",
+      "clear_month": "清除覆盖",
+      "pattern_source": "自动排班",
+      "roster_source": "手动排班",
+      "off_day": "休息",
+      "all_employees": "所有员工",
+      "cells_selected": "已选择 {{count}} 格",
+      "assign_selected": "分配所选",
+      "view_week": "周",
+      "view_month": "月",
+      "search_placeholder": "搜索员工...",
+      "filter_department": "按部门过滤",
+      "all_departments": "所有部门",
+      "no_department": "无部门",
+      "no_results_desc": "未找到匹配搜索或过滤条件的员工。"
+    },
     "title": "排班系统",
     "subtitle": "管理灵活和固定的班次",
     "create_btn": "创建班次",
@@ -2735,7 +2753,7 @@
       "desc": "请从左侧列表选择一名员工以开始排班。"
     },
     "tabs": {
-      "weekly_roster": "每周排班",
+      "weekly_roster": "排班表",
       "fixed_assignments": "固定分配",
       "directory": "班次类型"
     },

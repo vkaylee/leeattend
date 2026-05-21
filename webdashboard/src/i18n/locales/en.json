@@ -2717,6 +2717,24 @@
     "confirm_delete_msg": "rules.confirm_delete_msg"
   },
   "shifts": {
+    "monthly": {
+      "title": "Monthly Roster",
+      "copy_previous_month": "Copy prev month",
+      "clear_month": "Clear overrides",
+      "pattern_source": "Auto from pattern",
+      "roster_source": "Manual roster",
+      "off_day": "OFF",
+      "all_employees": "All Employees",
+      "cells_selected": "{{count}} cells selected",
+      "assign_selected": "Assign selected",
+      "view_week": "Week",
+      "view_month": "Month",
+      "search_placeholder": "Search employee...",
+      "filter_department": "Filter by department",
+      "all_departments": "All Departments",
+      "no_department": "No Department",
+      "no_results_desc": "No employees found matching your search or filter criteria."
+    },
     "title": "Scheduling System",
     "subtitle": "Manage flexible and fixed work shifts",
     "create_btn": "Create Shift",
@@ -2739,7 +2757,7 @@
       "desc": "Please select an employee from the left list to start scheduling."
     },
     "tabs": {
-      "weekly_roster": "WEEKLY ROSTER",
+      "weekly_roster": "ROSTER",
       "fixed_assignments": "FIXED ASSIGNMENTS",
       "directory": "SHIFT TYPES"
     },

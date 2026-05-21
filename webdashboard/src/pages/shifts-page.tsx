@@ -18,6 +18,8 @@ export default function ShiftsPage() {
     setIsCreateModalOpen,
     setSelectedEmployee,
     wsId,
+    viewMode,
+    setViewMode,
   } = hook;
 
   if (!wsId) {
@@ -36,10 +38,15 @@ export default function ShiftsPage() {
         }}
       />
 
-      <ShiftsTabs activeTab={activeTab} setActiveTab={setActiveTab} />
+      <ShiftsTabs 
+        activeTab={activeTab} 
+        setActiveTab={setActiveTab} 
+        setViewMode={setViewMode}
+        viewMode={viewMode}
+      />
 
       <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-        {activeTab !== "directory" ? (
+        {activeTab !== "directory" && viewMode === "week" ? (
           <EmployeeSelector
             onSelect={setSelectedEmployee}
             selectedEmployeeId={selectedEmployee?.id}
@@ -47,7 +54,7 @@ export default function ShiftsPage() {
           />
         ) : null}
 
-        {!selectedEmployee && activeTab !== "directory" ? (
+        {!selectedEmployee && activeTab !== "directory" && viewMode === "week" ? (
           <EmptyEmployeeState />
         ) : (
           <ShiftsContent hook={hook} />

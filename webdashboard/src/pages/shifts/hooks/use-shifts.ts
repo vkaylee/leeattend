@@ -1,5 +1,6 @@
 import { getCurrentWorkspaceId } from "@/lib/api";
 
+import { useMonthNavigation } from "./use-month-navigation";
 import { useRosterHandlers } from "./use-roster-handlers";
 import { useShiftData } from "./use-shift-data";
 import { useShiftFormState } from "./use-shift-form-state";
@@ -11,8 +12,16 @@ import { UseShiftsReturn } from "./use-shifts-types";
 export function useShifts(): UseShiftsReturn {
   const wsId = getCurrentWorkspaceId() ?? "";
   const nav = useShiftNavigation();
+  const monthNav = useMonthNavigation();
   const form = useShiftFormState();
-  const data = useShiftData({ wsId, startOfWeek: nav.startOfWeek, weekDays: nav.weekDays });
+  const data = useShiftData({
+    wsId,
+    startOfWeek: nav.startOfWeek,
+    weekDays: nav.weekDays,
+    viewMode: form.viewMode,
+    monthStart: monthNav.monthStart,
+    monthEnd: monthNav.monthEnd,
+  });
 
   const mutations = useShiftMutations({
     wsId,
@@ -47,7 +56,9 @@ export function useShifts(): UseShiftsReturn {
     ...form,
     ...nav,
     allSchedules: data.allSchedules,
-    mutations
+    mutations,
+    currentMonth: monthNav.currentMonth,
+    monthDays: monthNav.monthDays,
   });
 
   const modalHandlers = useShiftModalHandlers({
@@ -61,6 +72,7 @@ export function useShifts(): UseShiftsReturn {
   return {
     ...form,
     ...nav,
+    ...monthNav,
     ...data,
     ...mutations,
     ...rosterHandlers,

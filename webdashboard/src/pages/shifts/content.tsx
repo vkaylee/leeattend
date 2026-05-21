@@ -3,6 +3,7 @@ import React from "react";
 import { format } from "date-fns";
 
 import { AssignmentHistory } from "@/components/shifts/assignment-history";
+import { MonthlyRosterGrid } from "@/components/shifts/monthly-roster-grid";
 import { PatternAssignmentForm } from "@/components/shifts/pattern-assignment-form";
 import { PriorityLegend } from "@/components/shifts/priority-legend";
 import { ShiftList } from "@/components/shifts/shift-list";
@@ -17,6 +18,7 @@ interface ShiftsContentProps {
 export function ShiftsContent({ hook }: ShiftsContentProps) {
   const {
     activeTab,
+    viewMode,
     assignPatternMutation,
     currentDate,
     deleteRosterMutation,
@@ -45,7 +47,11 @@ export function ShiftsContent({ hook }: ShiftsContentProps) {
     weekDays,
   } = hook;
 
-  if (!selectedEmployee && activeTab !== "directory") {
+  if (activeTab === "weekly-roster" && viewMode === "month") {
+    return <MonthlyRosterGrid hook={hook} />;
+  }
+
+  if (!selectedEmployee && activeTab !== "directory" && viewMode === "week") {
     return null;
   }
 
