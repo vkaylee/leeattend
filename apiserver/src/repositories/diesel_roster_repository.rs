@@ -33,6 +33,17 @@ impl RosterRepository for DieselRosterRepository {
         end_date: NaiveDate,
         employee_ids: Option<&Vec<Uuid>>,
     ) -> Result<Vec<EmployeeSchedule>, AppError> {
+        // 1. Fetch Roster Data (Cache or DB)
+        let roster_data = match roster_cache {
+            Some(cache) => cache
+                .get_roster_data(workspace_id, &self.diesel_pools)
+                .await
+                .map_err(|e| AppError::Internal(format!("cache: {e}")))?,
+            None => crate::cache::build_roster_data(&self.diesel_pools, workspace_id)
+                .await
+                .map_err(|e| AppError::Internal(format!("db build: {e}")))?,
+        };
+
         let mut conn = self
             .diesel_pools
             .tenants
@@ -43,7 +54,7 @@ impl RosterRepository for DieselRosterRepository {
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
-        // 1. Fetch Employees
+        // 2. Fetch Employees
         let mut query = crate::schema::employees::table
             .filter(crate::schema::employees::workspace_id.eq(workspace_id))
             .filter(crate::schema::employees::is_active.eq(true))
@@ -76,17 +87,6 @@ impl RosterRepository for DieselRosterRepository {
                     )
                 })
                 .collect();
-
-        // 2. Fetch Roster Data (Cache or DB)
-        let roster_data = match roster_cache {
-            Some(cache) => cache
-                .get_roster_data(workspace_id, &self.diesel_pools)
-                .await
-                .map_err(|e| AppError::Internal(format!("cache: {e}")))?,
-            None => crate::cache::build_roster_data(&self.diesel_pools, workspace_id)
-                .await
-                .map_err(|e| AppError::Internal(format!("db build: {e}")))?,
-        };
 
         // 3. Fetch Holidays
         let holiday_entities = crate::schema::holidays::table

@@ -483,6 +483,20 @@ mod tests {
             p.name = name.to_string();
             Ok(p)
         }
+        async fn update_pattern_with_details(
+            &self,
+            _w: Uuid,
+            _pid: Uuid,
+            name: &str,
+            _d: Option<&str>,
+            _pt: &str,
+            _cl: Option<i32>,
+            _det: Vec<(i32, Option<Uuid>)>,
+        ) -> Result<WorkingPattern, AppError> {
+            let mut p = self.pattern.lock().unwrap().clone();
+            p.name = name.to_string();
+            Ok(p)
+        }
         async fn get_patterns(&self, _w: Uuid) -> Result<Vec<WorkingPattern>, AppError> {
             Ok(vec![self.pattern.lock().unwrap().clone()])
         }

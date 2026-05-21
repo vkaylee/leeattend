@@ -212,14 +212,27 @@ export function MonthlyRosterGrid({ hook }: MonthlyRosterGridProps) {
 
   const monthHeaderLabel = format(currentMonth, "MMMM yyyy", { locale: currentLocale });
 
+  const combinedSchedules = useMemo(() => {
+    if (!employees) return [];
+    return employees.map(emp => {
+      const existing = monthSchedules?.find(s => s.employee_id === emp.id);
+      if (existing) {
+        return existing;
+      }
+      return {
+        employee_id: emp.id,
+        full_name: emp.full_name,
+        schedules: []
+      };
+    });
+  }, [employees, monthSchedules]);
+
   const filteredSchedules = useMemo(() => {
-    if (!monthSchedules) return [];
-    
-    return monthSchedules.filter(schedule => 
+    return combinedSchedules.filter(schedule => 
       matchesSearch(schedule.full_name, searchTerm) &&
       matchesDepartment(schedule.employee_id, selectedDepartmentId, employees, departments)
     );
-  }, [monthSchedules, searchTerm, selectedDepartmentId, employees, departments]);
+  }, [combinedSchedules, searchTerm, selectedDepartmentId, employees, departments]);
 
   const handleCellClick = (employeeId: string, dateStr: string) => {
     setSelectedCells(prev => {
@@ -312,14 +325,14 @@ export function MonthlyRosterGrid({ hook }: MonthlyRosterGridProps) {
       />
 
       <div className="bg-white dark:bg-slate-900 rounded-[28px] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
-        {isMonthLoading ? (
+        {isMonthLoading || !employees ? (
           <div className="p-12 flex flex-col items-center justify-center gap-3">
             <Loader2 className="animate-spin text-primary-600" size={32} />
             <span className="text-xs text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest animate-pulse">
               {t("common.loading")}...
             </span>
           </div>
-        ) : !monthSchedules || monthSchedules.length === 0 ? (
+        ) : employees.length === 0 ? (
           <div className="p-12 text-center flex flex-col items-center justify-center gap-4">
             <div className="w-12 h-12 rounded-full bg-slate-50 dark:bg-slate-850 flex items-center justify-center border border-dashed border-slate-200 dark:border-slate-800">
               <CalendarRange className="text-slate-400" size={20} />

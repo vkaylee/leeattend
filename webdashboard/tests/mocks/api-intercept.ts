@@ -95,7 +95,7 @@ export async function setupApiMocks(page: Page) {
     }
 
     // 4. Employees
-    if (/\/api\/employees/.exec(pathname)) {
+    if (/\/api\/(workspaces\/[^/]+\/)?employees\/?$/.exec(pathname) || /\/api\/employees\/?$/.exec(pathname)) {
       return fulfill({
         data: MOCK_EMPLOYEES,
         pagination: { total_count: MOCK_EMPLOYEES.length, page: 1, page_size: 50, totalpages: 1 }
@@ -103,7 +103,7 @@ export async function setupApiMocks(page: Page) {
     }
 
     // 5. Departments
-    if (/\/api\/departments/.exec(pathname)) {
+    if (/\/api\/(workspaces\/[^/]+\/)?departments\/?$/.exec(pathname) || /\/api\/departments\/?$/.exec(pathname)) {
       return fulfill(MOCK_DEPARTMENTS);
     }
 
