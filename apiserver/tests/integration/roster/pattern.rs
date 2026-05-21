@@ -42,6 +42,8 @@ async fn test_roster_pattern_resolution() {
             workspace_id,
             "Test Pattern",
             Some("Description"),
+            "weekly",
+            None,
             vec![(1, Some(shift_mon_id)), (2, Some(shift_tuj_id))],
         )
         .await
@@ -54,6 +56,7 @@ async fn test_roster_pattern_resolution() {
         employee_id,
         pattern_id,
         NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+        None,
         None,
     )
     .await

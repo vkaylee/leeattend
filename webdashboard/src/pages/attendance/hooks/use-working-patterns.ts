@@ -150,8 +150,8 @@ export function useWorkingPatterns(): UseWorkingPatternsReturn {
     if (!newPatternName) { toast.warning(t("patterns.validation_name_required")); return; }
     const details: WorkingPatternDetailRequest[] = weeklyGrid.flatMap<WorkingPatternDetailRequest>((shiftIds, index) => 
       shiftIds.length > 0 
-        ? shiftIds.map((sid) => ({ day_of_week: index, shift_id: sid })) 
-        : [{ day_of_week: index, shift_id: null }]
+        ? shiftIds.map((sid) => ({ schedule_day: index, shift_id: sid })) 
+        : [{ schedule_day: index, shift_id: null }]
     );
     createMutation.mutate({ description: newPatternDesc, details, name: newPatternName });
   };

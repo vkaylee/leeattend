@@ -484,7 +484,7 @@ impl RosterRepository for DieselRosterRepository {
                         .is_null()
                         .or(crate::schema::employee_working_patterns::end_date.ge(date)),
                 )
-                .filter(crate::schema::working_pattern_details::day_of_week.eq(dow))
+                .filter(crate::schema::working_pattern_details::schedule_day.eq(dow))
                 .filter(crate::schema::employees::workspace_id.eq(workspace_id))
                 .order(crate::schema::employee_working_patterns::created_at.desc())
                 .select((
@@ -570,7 +570,7 @@ impl RosterRepository for DieselRosterRepository {
                                 crate::schema::working_pattern_details::pattern_id
                                     .eq(rule.pattern_id),
                             )
-                            .filter(crate::schema::working_pattern_details::day_of_week.eq(dow))
+                            .filter(crate::schema::working_pattern_details::schedule_day.eq(dow))
                             .select(crate::schema::working_pattern_details::shift_id)
                             .first::<Option<Uuid>>(&mut conn)
                             .await
@@ -603,7 +603,7 @@ impl RosterRepository for DieselRosterRepository {
                 )
                 .filter(crate::schema::employee_department_history::employee_id.eq(employee_id))
                 .filter(crate::schema::employee_department_history::effective_date.le(date))
-                .filter(crate::schema::working_pattern_details::day_of_week.eq(dow))
+                .filter(crate::schema::working_pattern_details::schedule_day.eq(dow))
                 .filter(crate::schema::employees::workspace_id.eq(workspace_id))
                 .order(crate::schema::employee_department_history::effective_date.desc())
                 .select((

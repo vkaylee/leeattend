@@ -834,6 +834,7 @@ diesel::table! {
         end_date -> Nullable<Date>,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
+        anchor_date -> Nullable<Date>,
     }
 }
 
@@ -1476,7 +1477,7 @@ diesel::table! {
     working_pattern_details (id) {
         id -> Uuid,
         pattern_id -> Uuid,
-        day_of_week -> Int4,
+        schedule_day -> Int4,
         shift_id -> Nullable<Uuid>,
     }
 }
@@ -1490,6 +1491,9 @@ diesel::table! {
         is_active -> Bool,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
+        #[max_length = 10]
+        pattern_type -> Varchar,
+        cycle_length_days -> Nullable<Int4>,
     }
 }
 

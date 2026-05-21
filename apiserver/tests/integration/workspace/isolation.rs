@@ -262,7 +262,7 @@ async fn test_employee_pattern_history_isolated_by_workspace() {
     let start_date = NaiveDate::from_ymd_opt(2025, 1, 1).unwrap();
     let repo = apiserver::repositories::DieselWorkingPatternRepository::new(diesel_pools.clone());
     use apiserver::repositories::working_pattern_repository::WorkingPatternRepositoryTrait;
-    repo.assign_pattern(ws_a, emp_a, pattern_id, start_date, None)
+    repo.assign_pattern(ws_a, emp_a, pattern_id, start_date, None, None)
         .await
         .unwrap();
 

@@ -39,6 +39,8 @@ impl WorkingPatternRepositoryTrait for DieselWorkingPatternRepository {
         workspace_id: Uuid,
         name: &str,
         description: Option<&str>,
+        pattern_type: &str,
+        cycle_length_days: Option<i32>,
         details: Vec<(i32, Option<Uuid>)>,
     ) -> Result<WorkingPattern, AppError> {
         let mut conn = self
@@ -53,6 +55,7 @@ impl WorkingPatternRepositoryTrait for DieselWorkingPatternRepository {
 
         let name_owned = name.to_string();
         let description_owned = description.map(ToString::to_string);
+        let pattern_type_owned = pattern_type.to_string();
 
         let result = conn
             .transaction(|mut conn| {
@@ -62,16 +65,18 @@ impl WorkingPatternRepositoryTrait for DieselWorkingPatternRepository {
                             working_patterns::workspace_id.eq(workspace_id),
                             working_patterns::name.eq(&name_owned),
                             working_patterns::description.eq(&description_owned),
+                            working_patterns::pattern_type.eq(&pattern_type_owned),
+                            working_patterns::cycle_length_days.eq(cycle_length_days),
                         ))
                         .returning(WorkingPatternEntity::as_returning())
                         .get_result::<WorkingPatternEntity>(&mut conn)
                         .await?;
 
-                    for (day_of_week, shift_id) in details {
+                    for (schedule_day, shift_id) in details {
                         diesel::insert_into(working_pattern_details::table)
                             .values((
                                 working_pattern_details::pattern_id.eq(pattern_entity.id),
-                                working_pattern_details::day_of_week.eq(day_of_week),
+                                working_pattern_details::schedule_day.eq(schedule_day),
                                 working_pattern_details::shift_id.eq(shift_id),
                             ))
                             .execute(&mut conn)
@@ -130,7 +135,7 @@ impl WorkingPatternRepositoryTrait for DieselWorkingPatternRepository {
         map_db_err!(
             working_pattern_details::table
                 .filter(working_pattern_details::pattern_id.eq(pattern_id))
-                .order(working_pattern_details::day_of_week.asc())
+                .order(working_pattern_details::schedule_day.asc())
                 .select(WorkingPatternDetailEntity::as_select())
                 .load(&mut conn)
                 .await
@@ -145,6 +150,7 @@ impl WorkingPatternRepositoryTrait for DieselWorkingPatternRepository {
         pattern_id: Uuid,
         start_date: NaiveDate,
         end_date: Option<NaiveDate>,
+        anchor_date: Option<NaiveDate>,
     ) -> Result<EmployeeWorkingPattern, AppError> {
         let mut conn = self
             .diesel_pools
@@ -164,6 +170,7 @@ impl WorkingPatternRepositoryTrait for DieselWorkingPatternRepository {
                     employee_working_patterns::pattern_id.eq(pattern_id),
                     employee_working_patterns::start_date.eq(start_date),
                     employee_working_patterns::end_date.eq(end_date),
+                    employee_working_patterns::anchor_date.eq(anchor_date),
                 ))
                 .returning(EmployeeWorkingPatternEntity::as_returning())
                 .get_result(&mut conn)
@@ -206,6 +213,7 @@ impl WorkingPatternRepositoryTrait for DieselWorkingPatternRepository {
         pattern_id: Uuid,
         start_date: NaiveDate,
         end_date: Option<NaiveDate>,
+        anchor_date: Option<NaiveDate>,
     ) -> Result<BulkAssignResponse, AppError> {
         let mut conn = self
             .diesel_pools
@@ -241,6 +249,7 @@ impl WorkingPatternRepositoryTrait for DieselWorkingPatternRepository {
                     employee_working_patterns::pattern_id.eq(pattern_id),
                     employee_working_patterns::start_date.eq(start_date),
                     employee_working_patterns::end_date.eq(end_date),
+                    employee_working_patterns::anchor_date.eq(anchor_date),
                 ))
                 .execute(&mut conn)
                 .await

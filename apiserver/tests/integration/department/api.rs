@@ -139,7 +139,7 @@ async fn test_department_working_pattern_api() {
     use apiserver::repositories::working_pattern_repository::WorkingPatternRepositoryTrait;
 
     let pattern = repo
-        .create_pattern_with_details(ws_id, "Dept Pattern", None, vec![])
+        .create_pattern_with_details(ws_id, "Dept Pattern", None, "weekly", None, vec![])
         .await
         .unwrap();
 

@@ -14,7 +14,9 @@ pub trait WorkingPatternRepositoryTrait: Send + Sync {
         workspace_id: Uuid,
         name: &str,
         description: Option<&str>,
-        details: Vec<(i32, Option<Uuid>)>, // (day_of_week, shift_id)
+        pattern_type: &str,
+        cycle_length_days: Option<i32>,
+        details: Vec<(i32, Option<Uuid>)>, // (schedule_day, shift_id)
     ) -> Result<WorkingPattern, AppError>;
 
     async fn get_patterns(&self, workspace_id: Uuid) -> Result<Vec<WorkingPattern>, AppError>;
@@ -32,6 +34,7 @@ pub trait WorkingPatternRepositoryTrait: Send + Sync {
         pattern_id: Uuid,
         start_date: NaiveDate,
         end_date: Option<NaiveDate>,
+        anchor_date: Option<NaiveDate>,
     ) -> Result<EmployeeWorkingPattern, AppError>;
 
     async fn get_employee_pattern_history(
@@ -47,6 +50,7 @@ pub trait WorkingPatternRepositoryTrait: Send + Sync {
         pattern_id: Uuid,
         start_date: NaiveDate,
         end_date: Option<NaiveDate>,
+        anchor_date: Option<NaiveDate>,
     ) -> Result<BulkAssignResponse, AppError>;
 
     async fn delete_pattern(&self, workspace_id: Uuid, pattern_id: Uuid) -> Result<(), AppError>;

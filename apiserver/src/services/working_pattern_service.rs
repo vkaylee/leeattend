@@ -44,14 +44,14 @@ pub async fn create_working_pattern(
     req: CreateWorkingPatternRequest,
 ) -> Result<WorkingPattern, crate::errors::AppError> {
     // --- Split-shift overlap validation ---
-    // Group details by day_of_week to find days with multiple shifts
+    // Group details by schedule_day to find days with multiple shifts
     let mut day_shifts: HashMap<i32, Vec<Uuid>> = HashMap::new();
     let mut details_to_insert = Vec::new();
     for detail in &req.details {
-        details_to_insert.push((detail.day_of_week, detail.shift_id));
+        details_to_insert.push((detail.schedule_day, detail.shift_id));
         if let Some(shift_id) = detail.shift_id {
             day_shifts
-                .entry(detail.day_of_week)
+                .entry(detail.schedule_day)
                 .or_default()
                 .push(shift_id);
         }
@@ -86,12 +86,41 @@ pub async fn create_working_pattern(
         }
     }
 
+    // --- Determine pattern_type ---
+    let pattern_type = req.pattern_type.as_deref().unwrap_or("weekly");
+    if pattern_type != "weekly" && pattern_type != "rotation" {
+        return Err(crate::errors::AppError::Validation(
+            "pattern_type must be 'weekly' or 'rotation'".to_string(),
+        ));
+    }
+    if pattern_type == "rotation" {
+        let cycle_len = req.cycle_length_days.unwrap_or(0);
+        if !(1..=366).contains(&cycle_len) {
+            return Err(crate::errors::AppError::Validation(
+                "cycle_length_days must be between 1 and 366 for rotation patterns".to_string(),
+            ));
+        }
+        // Validate schedule_day range
+        for detail in &req.details {
+            if detail.schedule_day < 0 || detail.schedule_day >= cycle_len {
+                return Err(crate::errors::AppError::Validation(format!(
+                    "schedule_day {} is out of range [0, {}) for cycle_length_days {}",
+                    detail.schedule_day,
+                    cycle_len,
+                    cycle_len,
+                )));
+            }
+        }
+    }
+
     // --- Create pattern ---
     let pattern = repo
         .create_pattern_with_details(
             workspace_id,
             &req.name,
             req.description.as_deref(),
+            pattern_type,
+            req.cycle_length_days,
             details_to_insert,
         )
         .await?;
@@ -129,6 +158,7 @@ pub async fn assign_pattern(
         req.pattern_id,
         req.start_date,
         req.end_date,
+        req.anchor_date,
     )
     .await
 }
@@ -145,6 +175,7 @@ pub async fn bulk_assign_pattern(
         req.pattern_id,
         req.start_date,
         req.end_date,
+        req.anchor_date,
     )
     .await
 }
@@ -342,6 +373,8 @@ mod tests {
             is_active: true,
             created_at: Utc::now(),
             updated_at: Utc::now(),
+            pattern_type: "weekly".to_string(),
+            cycle_length_days: None,
         }
     }
 
@@ -355,6 +388,8 @@ mod tests {
             _w: Uuid,
             name: &str,
             _d: Option<&str>,
+            _pt: &str,
+            _cl: Option<i32>,
             _det: Vec<(i32, Option<Uuid>)>,
         ) -> Result<WorkingPattern, AppError> {
             let mut p = self.pattern.lock().unwrap().clone();
@@ -372,7 +407,7 @@ mod tests {
             Ok(vec![WorkingPatternDetail {
                 id: Uuid::new_v4(),
                 pattern_id: _pid,
-                day_of_week: 1,
+                schedule_day: 1,
                 shift_id: None,
             }])
         }
@@ -383,6 +418,7 @@ mod tests {
             pat: Uuid,
             sd: NaiveDate,
             ed: Option<NaiveDate>,
+            anchor: Option<NaiveDate>,
         ) -> Result<EmployeeWorkingPattern, AppError> {
             Ok(EmployeeWorkingPattern {
                 id: Uuid::new_v4(),
@@ -393,6 +429,7 @@ mod tests {
                 end_date: ed,
                 created_at: Utc::now(),
                 updated_at: Utc::now(),
+                anchor_date: anchor,
             })
         }
         async fn get_employee_pattern_history(
@@ -409,6 +446,7 @@ mod tests {
                 end_date: None,
                 created_at: Utc::now(),
                 updated_at: Utc::now(),
+                anchor_date: None,
             }])
         }
         async fn bulk_assign_pattern(
@@ -418,6 +456,7 @@ mod tests {
             _p: Uuid,
             _s: NaiveDate,
             _e: Option<NaiveDate>,
+            _a: Option<NaiveDate>,
         ) -> Result<BulkAssignResponse, AppError> {
             Ok(BulkAssignResponse {
                 success_count: emp.len(),
@@ -463,6 +502,7 @@ mod tests {
             pattern_id: Uuid::new_v4(),
             start_date: NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
             end_date: None,
+            anchor_date: None,
         };
         let result = assign_pattern(repo, Uuid::new_v4(), Uuid::new_v4(), req)
             .await
@@ -478,6 +518,7 @@ mod tests {
             pattern_id: Uuid::new_v4(),
             start_date: NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
             end_date: None,
+            anchor_date: None,
         };
         let result = bulk_assign_pattern(repo, Uuid::new_v4(), req)
             .await
@@ -509,13 +550,15 @@ mod tests {
         let req = crate::models::CreateWorkingPatternRequest {
             name: "Standard 5×8".into(),
             description: Some("Mon-Fri".into()),
+            pattern_type: None,
+            cycle_length_days: None,
             details: vec![
                 crate::models::WorkingPatternDetailRequest {
-                    day_of_week: 1,
+                    schedule_day: 1,
                     shift_id: None,
                 },
                 crate::models::WorkingPatternDetailRequest {
-                    day_of_week: 2,
+                    schedule_day: 2,
                     shift_id: None,
                 },
             ],

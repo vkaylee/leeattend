@@ -63,7 +63,7 @@ export function PatternCard({ expandedPatternId, onDelete, onToggleExpand, patte
         <div className="mt-6 pt-6 border-t border-slate-100 dark:border-slate-800 animate-in slide-in-from-top-4 duration-500">
           <div className="flex flex-col gap-2">
             {daysOfWeekShort.map((day, index) => (
-              <DayDetailRow day={day} dayDetails={patternDetails?.filter((d) => d.day_of_week === index) ?? []} key={index} shifts={shifts} />
+              <DayDetailRow day={day} dayDetails={patternDetails?.filter((d) => d.schedule_day === index) ?? []} key={index} shifts={shifts} />
             ))}
           </div>
         </div>

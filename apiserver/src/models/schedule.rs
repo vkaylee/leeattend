@@ -14,13 +14,15 @@ pub struct WorkingPattern {
     pub is_active: bool,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub pattern_type: String,
+    pub cycle_length_days: Option<i32>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct WorkingPatternDetail {
     pub id: Uuid,
     pub pattern_id: Uuid,
-    pub day_of_week: i32,
+    pub schedule_day: i32,
     pub shift_id: Option<Uuid>,
 }
 
@@ -34,11 +36,12 @@ pub struct EmployeeWorkingPattern {
     pub end_date: Option<NaiveDate>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub anchor_date: Option<NaiveDate>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct WorkingPatternDetailRequest {
-    pub day_of_week: i32,
+    pub schedule_day: i32,
     pub shift_id: Option<Uuid>,
 }
 
@@ -46,6 +49,8 @@ pub struct WorkingPatternDetailRequest {
 pub struct CreateWorkingPatternRequest {
     pub name: String,
     pub description: Option<String>,
+    pub pattern_type: Option<String>,
+    pub cycle_length_days: Option<i32>,
     pub details: Vec<WorkingPatternDetailRequest>,
 }
 
@@ -54,6 +59,7 @@ pub struct AssignPatternRequest {
     pub pattern_id: Uuid,
     pub start_date: NaiveDate,
     pub end_date: Option<NaiveDate>,
+    pub anchor_date: Option<NaiveDate>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -62,6 +68,7 @@ pub struct BulkAssignPatternRequest {
     pub pattern_id: Uuid,
     pub start_date: NaiveDate,
     pub end_date: Option<NaiveDate>,
+    pub anchor_date: Option<NaiveDate>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

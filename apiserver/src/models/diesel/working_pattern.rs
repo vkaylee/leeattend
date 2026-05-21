@@ -14,6 +14,8 @@ pub struct WorkingPatternEntity {
     pub is_active: bool,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub pattern_type: String,
+    pub cycle_length_days: Option<i32>,
 }
 
 impl From<WorkingPatternEntity> for WorkingPattern {
@@ -26,6 +28,8 @@ impl From<WorkingPatternEntity> for WorkingPattern {
             is_active: entity.is_active,
             created_at: entity.created_at,
             updated_at: entity.updated_at,
+            pattern_type: entity.pattern_type,
+            cycle_length_days: entity.cycle_length_days,
         }
     }
 }
@@ -35,7 +39,7 @@ impl From<WorkingPatternEntity> for WorkingPattern {
 pub struct WorkingPatternDetailEntity {
     pub id: Uuid,
     pub pattern_id: Uuid,
-    pub day_of_week: i32,
+    pub schedule_day: i32,
     pub shift_id: Option<Uuid>,
 }
 
@@ -44,7 +48,7 @@ impl From<WorkingPatternDetailEntity> for WorkingPatternDetail {
         Self {
             id: entity.id,
             pattern_id: entity.pattern_id,
-            day_of_week: entity.day_of_week,
+            schedule_day: entity.schedule_day,
             shift_id: entity.shift_id,
         }
     }
@@ -61,6 +65,7 @@ pub struct EmployeeWorkingPatternEntity {
     pub end_date: Option<NaiveDate>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub anchor_date: Option<NaiveDate>,
 }
 
 impl From<EmployeeWorkingPatternEntity> for EmployeeWorkingPattern {
@@ -74,6 +79,7 @@ impl From<EmployeeWorkingPatternEntity> for EmployeeWorkingPattern {
             end_date: entity.end_date,
             created_at: entity.created_at,
             updated_at: entity.updated_at,
+            anchor_date: entity.anchor_date,
         }
     }
 }

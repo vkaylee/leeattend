@@ -53,8 +53,14 @@ pub struct RosterPatternEntry {
     pub pattern_id: Uuid,
     pub start_date: NaiveDate,
     pub end_date: Option<NaiveDate>,
-    pub day_of_week: i32,
+    pub schedule_day: i32,
     pub shift_id: Option<Uuid>,
+    /// "weekly" or "rotation"
+    pub pattern_type: String,
+    /// Only set for rotation patterns
+    pub cycle_length_days: Option<i32>,
+    /// Per-assignment phase offset for rotation patterns
+    pub anchor_date: Option<NaiveDate>,
 }
 
 /// Department-level default pattern entry for one employee.
@@ -62,7 +68,7 @@ pub struct RosterPatternEntry {
 pub struct RosterDeptPattern {
     pub default_working_pattern_id: Option<Uuid>,
     pub effective_date: NaiveDate,
-    pub day_of_week: i32,
+    pub schedule_day: i32,
     pub shift_id: Option<Uuid>,
 }
 
@@ -98,7 +104,7 @@ pub struct RosterData {
     pub dept_fixed_shifts: HashMap<Uuid, Vec<RosterDeptFixedShift>>,
     /// Active assignment rules
     pub active_rules: Vec<crate::models::AssignmentRule>,
-    /// (pattern_id, day_of_week) -> list of shift_ids (supports split shifts)
+    /// (pattern_id, schedule_day) -> list of shift_ids (supports split shifts)
     pub rule_patterns: HashMap<(Uuid, i32), Vec<Option<Uuid>>>,
     /// employee_id -> dept history entries (ORDER BY effective_date DESC)
     pub dept_history: HashMap<Uuid, Vec<RosterDeptHistory>>,
@@ -126,6 +132,7 @@ pub async fn build_roster_data(
     use crate::schema::{
         assignment_rules, department_default_shifts, departments, employee_department_history,
         employee_shifts, employee_working_patterns, employees, shifts, working_pattern_details,
+        working_patterns,
     };
 
     // 1. Shifts
@@ -149,11 +156,15 @@ pub async fn build_roster_data(
         .await
         .map_err(|e| format!("fixed_assignments: {e}"))?;
 
-    // 3. Pattern Assignments
+    // 3. Pattern Assignments — JOIN working_patterns for rotation metadata
     let pattern_rows = employee_working_patterns::table
         .inner_join(
             working_pattern_details::table
                 .on(employee_working_patterns::pattern_id.eq(working_pattern_details::pattern_id)),
+        )
+        .inner_join(
+            working_patterns::table
+                .on(employee_working_patterns::pattern_id.eq(working_patterns::id)),
         )
         .filter(employee_working_patterns::workspace_id.eq(workspace_id))
         .order(employee_working_patterns::created_at.desc())
@@ -162,10 +173,13 @@ pub async fn build_roster_data(
             employee_working_patterns::pattern_id,
             employee_working_patterns::start_date,
             employee_working_patterns::end_date,
-            working_pattern_details::day_of_week,
+            working_pattern_details::schedule_day,
             working_pattern_details::shift_id,
+            working_patterns::pattern_type,
+            working_patterns::cycle_length_days,
+            employee_working_patterns::anchor_date,
         ))
-        .load::<(Uuid, Uuid, NaiveDate, Option<NaiveDate>, i32, Option<Uuid>)>(&mut conn)
+        .load::<(Uuid, Uuid, NaiveDate, Option<NaiveDate>, i32, Option<Uuid>, String, Option<i32>, Option<NaiveDate>)>(&mut conn)
         .await
         .map_err(|e| format!("pattern_assignments: {e}"))?;
 
@@ -184,7 +198,7 @@ pub async fn build_roster_data(
             employee_department_history::employee_id,
             departments::default_working_pattern_id,
             employee_department_history::effective_date,
-            working_pattern_details::day_of_week,
+            working_pattern_details::schedule_day,
             working_pattern_details::shift_id,
         ))
         .load::<(Uuid, Option<Uuid>, NaiveDate, i32, Option<Uuid>)>(&mut conn)
@@ -237,7 +251,7 @@ pub async fn build_roster_data(
         )
         .select((
             working_pattern_details::pattern_id,
-            working_pattern_details::day_of_week,
+            working_pattern_details::schedule_day,
             working_pattern_details::shift_id,
         ))
         .load::<(Uuid, i32, Option<Uuid>)>(&mut conn)
@@ -293,7 +307,7 @@ pub async fn build_roster_data(
     }
 
     let mut pattern_assignments: HashMap<Uuid, Vec<RosterPatternEntry>> = HashMap::new();
-    for (emp_id, pat_id, s_date, e_date, dow, s_id) in pattern_rows {
+    for (emp_id, pat_id, s_date, e_date, sday, s_id, p_type, cycle_len, anchor) in pattern_rows {
         pattern_assignments
             .entry(emp_id)
             .or_default()
@@ -301,8 +315,11 @@ pub async fn build_roster_data(
                 pattern_id: pat_id,
                 start_date: s_date,
                 end_date: e_date,
-                day_of_week: dow,
+                schedule_day: sday,
                 shift_id: s_id,
+                pattern_type: p_type,
+                cycle_length_days: cycle_len,
+                anchor_date: anchor,
             });
     }
 
@@ -314,7 +331,7 @@ pub async fn build_roster_data(
             .push(RosterDeptPattern {
                 default_working_pattern_id: pat_id,
                 effective_date: eff_date,
-                day_of_week: dow,
+                schedule_day: dow,
                 shift_id: s_id,
             });
     }
@@ -598,10 +615,13 @@ mod tests {
             pattern_id: Uuid::new_v4(),
             start_date: chrono::NaiveDate::from_ymd_opt(2026, 2, 1).expect("valid date"),
             end_date: None,
-            day_of_week: 1, // Monday
+            schedule_day: 1, // Monday
             shift_id: Some(Uuid::new_v4()),
+            pattern_type: "weekly".to_string(),
+            cycle_length_days: None,
+            anchor_date: None,
         };
-        assert_eq!(entry.day_of_week, 1);
+        assert_eq!(entry.schedule_day, 1);
         assert!(entry.shift_id.is_some());
     }
 
@@ -610,10 +630,10 @@ mod tests {
         let entry = RosterDeptPattern {
             default_working_pattern_id: Some(Uuid::new_v4()),
             effective_date: chrono::NaiveDate::from_ymd_opt(2026, 1, 15).expect("valid date"),
-            day_of_week: 3,
+            schedule_day: 3,
             shift_id: None,
         };
-        assert_eq!(entry.day_of_week, 3);
+        assert_eq!(entry.schedule_day, 3);
         assert!(entry.shift_id.is_none());
     }
 
