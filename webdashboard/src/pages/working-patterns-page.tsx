@@ -1,3 +1,4 @@
+import { useNavigate } from "@tanstack/react-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
@@ -8,6 +9,7 @@ import { useWorkingPatterns } from "./attendance/hooks/use-working-patterns";
 
 export default function WorkingPatternsPage() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const hook = useWorkingPatterns();
   const {
     ConfirmationDialog,
@@ -18,7 +20,6 @@ export default function WorkingPatternsPage() {
     patterns,
     setExpandedPatternId,
     setIsBulkModalOpen,
-    setIsCreateModalOpen,
     shifts,
     wsId,
   } = hook;
@@ -38,7 +39,7 @@ export default function WorkingPatternsPage() {
           setIsBulkModalOpen(true);
         }}
         onCreateClick={() => {
-          setIsCreateModalOpen(true);
+          void navigate({ to: "/working-patterns/new" });
         }}
       />
 
@@ -46,6 +47,12 @@ export default function WorkingPatternsPage() {
         expandedPatternId={expandedPatternId}
         isLoading={isLoading}
         onDelete={handleDelete}
+        onEdit={(pattern) => {
+          void navigate({
+            to: "/working-patterns/$patternId/edit",
+            params: { patternId: pattern.id },
+          });
+        }}
         onToggleExpand={(id) => {
           setExpandedPatternId(expandedPatternId === id ? null : id);
         }}

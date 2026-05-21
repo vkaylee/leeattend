@@ -34,6 +34,7 @@ pub fn router() -> Router<Arc<AppState>> {
         .route(
             "/workspaces/:ws_id/working-patterns/:pattern_id",
             get(handlers::working_patterns::get_pattern_details)
+                .put(handlers::working_patterns::update_pattern)
                 .delete(handlers::working_patterns::delete_pattern),
         )
         .route(

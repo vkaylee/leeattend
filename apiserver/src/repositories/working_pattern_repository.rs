@@ -19,6 +19,17 @@ pub trait WorkingPatternRepositoryTrait: Send + Sync {
         details: Vec<(i32, Option<Uuid>)>, // (schedule_day, shift_id)
     ) -> Result<WorkingPattern, AppError>;
 
+    async fn update_pattern_with_details(
+        &self,
+        workspace_id: Uuid,
+        pattern_id: Uuid,
+        name: &str,
+        description: Option<&str>,
+        pattern_type: &str,
+        cycle_length_days: Option<i32>,
+        details: Vec<(i32, Option<Uuid>)>, // (schedule_day, shift_id)
+    ) -> Result<WorkingPattern, AppError>;
+
     async fn get_patterns(&self, workspace_id: Uuid) -> Result<Vec<WorkingPattern>, AppError>;
 
     async fn get_pattern_details(

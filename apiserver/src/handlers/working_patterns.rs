@@ -141,3 +141,27 @@ pub async fn delete_pattern(
 
     Ok(StatusCode::NO_CONTENT)
 }
+
+pub async fn update_pattern(
+    State(state): State<Arc<AppState>>,
+    Path((_, pattern_id)): Path<(Uuid, Uuid)>,
+    ctx: MemberContext,
+    Json(req): Json<CreateWorkingPatternRequest>,
+) -> AppResult<Json<WorkingPattern>> {
+    ctx.require_permission(Permission::PatternsCreate)?;
+    let pattern = service::update_working_pattern(
+        Arc::clone(&state.shifts.working_pattern_repo),
+        Arc::clone(&state.shifts.shift_repo),
+        ctx.workspace_id,
+        pattern_id,
+        req,
+    )
+    .await?;
+
+    if let Some(cache) = &state.infra.roster_cache {
+        cache.invalidate(ctx.workspace_id).await;
+    }
+
+    Ok(Json(pattern))
+}
+

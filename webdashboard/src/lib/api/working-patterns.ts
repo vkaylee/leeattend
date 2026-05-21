@@ -1,13 +1,14 @@
 import { API_BASE_URL } from "./config";
 import { apiFetch } from "./helpers";
 import { 
-  WorkingPattern, 
-  WorkingPatternDetail, 
-  EmployeeWorkingPattern,
-  CreateWorkingPatternRequest,
   AssignPatternRequest,
   BulkAssignPatternRequest,
-  BulkAssignResponse
+  BulkAssignResponse,
+  CreateWorkingPatternRequest,
+  EmployeeWorkingPattern,
+  UpdateWorkingPatternRequest,
+  WorkingPattern, 
+  WorkingPatternDetail, 
 } from "./types";
 
 export async function fetchWorkingPatterns(wsId: string): Promise<WorkingPattern[]> {
@@ -22,6 +23,19 @@ export async function createWorkingPattern(wsId: string, data: CreateWorkingPatt
     body: JSON.stringify(data),
   });
   if (!response.ok) throw new Error("Failed to create working pattern");
+  return response.json() as Promise<WorkingPattern>;
+}
+
+export async function updateWorkingPattern(
+  wsId: string,
+  patternId: string,
+  data: UpdateWorkingPatternRequest
+): Promise<WorkingPattern> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/working-patterns/${patternId}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error("Failed to update working pattern");
   return response.json() as Promise<WorkingPattern>;
 }
 

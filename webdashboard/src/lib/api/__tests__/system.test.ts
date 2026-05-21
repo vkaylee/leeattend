@@ -5,9 +5,9 @@ vi.mock("../helpers", () => ({
   apiFetch: vi.fn(),
 }));
 
-import { fetchSystemTenantStats, updateTenantMode } from "../system";
 import { API_BASE_URL } from "../config";
 import { apiFetch } from "../helpers";
+import { fetchSystemTenantStats, updateTenantMode } from "../system";
 
 describe("System API methods", () => {
   beforeEach(() => {

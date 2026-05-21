@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Clock, Settings2, LayoutGrid, Zap, Plus } from "lucide-react";
+import { Clock, Plus } from "lucide-react";
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -21,8 +21,6 @@ import {
   UpdateAttendanceRulesRequest,
 } from "@/lib/api";
 import { cn } from "@/lib/utils";
-import AssignmentRulesPage from "@/pages/assignment-rules-page";
-import WorkingPatternsPage from "@/pages/working-patterns-page";
 
 import { BulkReprocessSection } from "./time-settings/bulk-reprocess";
 import { CreateVersionModal } from "./time-settings/create-version-modal";
@@ -72,8 +70,6 @@ export default function TimeSettings() {
   );
 }
 
-type TabType = "general" | "patterns" | "rules";
-
 interface TimeSettingsContentProps {
   rules: AttendanceRules;
   versions: AttendancePolicyVersion[];
@@ -87,7 +83,6 @@ function TimeSettingsContent({
 }: TimeSettingsContentProps) {
   const { t } = useTranslation();
   const wsId = workspace.id;
-  const [activeTab, setActiveTab] = useState<TabType>("general");
 
   const [workUnit, setWorkUnit] = useState(rules.work_unit_minutes);
   const [roundingPolicy, setRoundingPolicy] = useState(rules.rounding_policy);
@@ -122,17 +117,14 @@ function TimeSettingsContent({
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       <PageHeader
-        activeTab={activeTab}
         onNewVersion={() => {
           setShowCreateModal(true);
           setNewValidFrom(new Date().toISOString().split("T")[0]);
         }}
         t={t}
       />
-      <TabNavigation activeTab={activeTab} setActiveTab={setActiveTab} t={t} />
       <div className="animate-in slide-in-from-bottom-4 duration-500">
         <TabContent
-          activeTab={activeTab}
           earlyArrivalStrategy={earlyArrivalStrategy}
           handleSaveNewVersion={handleSaveNewVersion}
           isPending={isPending}
@@ -281,7 +273,7 @@ function useBulkReprocess(wsId: string, t: TFunction) {
   };
 }
 
-function PageHeader({ activeTab, onNewVersion, t }: { activeTab: TabType; onNewVersion: () => void; t: TFunction }) {
+function PageHeader({ onNewVersion, t }: { onNewVersion: () => void; t: TFunction }) {
   return (
     <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 px-2">
       <div className="flex items-center gap-4">
@@ -295,71 +287,19 @@ function PageHeader({ activeTab, onNewVersion, t }: { activeTab: TabType; onNewV
           <p className="text-slate-500 dark:text-slate-400 mt-1 font-medium">{t("common.settings.categories.time_desc")}</p>
         </div>
       </div>
-      {activeTab === "general" && (
-        <Button
-          icon={<Plus size={18} />}
-          onClick={() => {
-            onNewVersion();
-          }}
-        >
-          {t("common.workspace_settings.new_version") || "NEW VERSION"}
-        </Button>
-      )}
-    </div>
-  );
-}
-
-function TabNavigation({ activeTab, setActiveTab, t }: { activeTab: TabType; setActiveTab: (v: TabType) => void; t: TFunction }) {
-  return (
-    <div className="flex bg-slate-100 dark:bg-slate-700/50 p-1.5 rounded-[22px] w-fit border border-slate-200 dark:border-slate-700/50 shadow-inner">
-      <button
-        className={cn(
-          "flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all",
-          activeTab === "general"
-            ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800"
-            : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700"
-        )}
+      <Button
+        icon={<Plus size={18} />}
         onClick={() => {
-          setActiveTab("general");
+          onNewVersion();
         }}
-        type="button"
       >
-        <Settings2 size={14} /> {t("common.settings.tabs.general")}
-      </button>
-      <button
-        className={cn(
-          "flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all",
-          activeTab === "patterns"
-            ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800"
-            : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700"
-        )}
-        onClick={() => {
-          setActiveTab("patterns");
-        }}
-        type="button"
-      >
-        <LayoutGrid size={14} /> {t("common.settings.tabs.patterns")}
-      </button>
-      <button
-        className={cn(
-          "flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all",
-          activeTab === "rules"
-            ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800"
-            : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700"
-        )}
-        onClick={() => {
-          setActiveTab("rules");
-        }}
-        type="button"
-      >
-        <Zap size={14} /> {t("common.settings.tabs.rules")}
-      </button>
+        {t("common.workspace_settings.new_version") || "NEW VERSION"}
+      </Button>
     </div>
   );
 }
 
 interface TabContentProps {
-  activeTab: TabType;
   earlyArrivalStrategy: "allow" | "block" | "clamp";
   handleSaveNewVersion: () => void;
   isPending: boolean;
@@ -383,7 +323,6 @@ interface TabContentProps {
 }
 
 function TabContent({
-  activeTab,
   earlyArrivalStrategy,
   handleSaveNewVersion,
   isPending,
@@ -405,21 +344,6 @@ function TabContent({
   workUnit,
   wsId,
 }: TabContentProps) {
-  if (activeTab === "patterns") {
-    return (
-      <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 overflow-hidden shadow-sm p-4">
-        <WorkingPatternsPage />
-      </div>
-    );
-  }
-
-  if (activeTab === "rules") {
-    return (
-      <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 overflow-hidden shadow-sm p-4">
-        <AssignmentRulesPage />
-      </div>
-    );
-  }
 
   return (
     <>

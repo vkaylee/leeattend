@@ -34,6 +34,79 @@ export function PatternModals({ hook }: PatternModalsProps) {
   );
 }
 
+interface PatternTypeSelectorProps {
+  cycleLengthDays: number;
+  patternType: "weekly" | "rotation";
+  setCycleLengthDays: (days: number) => void;
+  setPatternType: (type: "weekly" | "rotation") => void;
+}
+
+function PatternTypeSelector({
+  cycleLengthDays,
+  patternType,
+  setCycleLengthDays,
+  setPatternType,
+}: PatternTypeSelectorProps) {
+  const { t } = useTranslation();
+
+  return (
+    <div className="flex gap-4 items-end">
+      <div className="flex-1 space-y-4">
+        <label className={LABEL_BASE}>{t("patterns.form.pattern_type").toUpperCase()}</label>
+        <div className="flex bg-slate-50 dark:bg-slate-800 p-1.5 rounded-2xl border border-slate-100 dark:border-slate-700/50">
+          <button
+            className={cn(
+              "flex-1 flex items-center justify-center gap-2.5 py-3 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all",
+              patternType === "weekly"
+                ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-md border border-slate-100 dark:border-slate-850"
+                : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-350"
+            )}
+            onClick={() => {
+              setPatternType("weekly");
+            }}
+            type="button"
+          >
+            <CalendarDays size={14} />
+            {t("patterns.form.pattern_type_weekly") || "Weekly"}
+          </button>
+          <button
+            className={cn(
+              "flex-1 flex items-center justify-center gap-2.5 py-3 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all",
+              patternType === "rotation"
+                ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-md border border-slate-100 dark:border-slate-850"
+                : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-350"
+            )}
+            onClick={() => {
+              setPatternType("rotation");
+            }}
+            type="button"
+          >
+            <RefreshCw size={14} />
+            {t("patterns.form.pattern_type_rotation") || "Rotation"}
+          </button>
+        </div>
+      </div>
+
+      {patternType === "rotation" && (
+        <div className="w-28 space-y-4 animate-in fade-in slide-in-from-left-2 duration-300">
+          <FormField
+            className="!px-0"
+            inputClassName="font-bold tracking-tight rounded-2xl text-center"
+            label={t("patterns.form.cycle_length") || "Days"}
+            onChange={(e) => {
+              setCycleLengthDays(Math.max(1, Math.min(366, parseInt(e.target.value) || 1)));
+            }}
+            placeholder="e.g. 6"
+            required
+            type="number"
+            value={String(cycleLengthDays)}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
 function CreatePatternModal({ hook }: PatternModalsProps) {
   const { t } = useTranslation();
   const {
@@ -77,53 +150,12 @@ function CreatePatternModal({ hook }: PatternModalsProps) {
           <FormField label={t("patterns.form.desc_label")} onChange={(e) => { setNewPatternDesc(e.target.value); }} placeholder={t("patterns.form.desc_placeholder")} value={newPatternDesc} />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
-          <div className="space-y-4">
-            <label className={LABEL_BASE}>{t("patterns.form.pattern_type")?.toUpperCase() || "PATTERN TYPE"}</label>
-            <div className="flex bg-slate-50 dark:bg-slate-800 p-1.5 rounded-2xl border border-slate-100 dark:border-slate-700/50">
-              <button
-                type="button"
-                onClick={() => setPatternType("weekly")}
-                className={cn(
-                  "flex-1 flex items-center justify-center gap-2.5 py-3 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all",
-                  patternType === "weekly"
-                    ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-md border border-slate-100 dark:border-slate-850"
-                    : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-350"
-                )}
-              >
-                <CalendarDays size={14} />
-                {t("patterns.form.pattern_type_weekly") || "Weekly"}
-              </button>
-              <button
-                type="button"
-                onClick={() => setPatternType("rotation")}
-                className={cn(
-                  "flex-1 flex items-center justify-center gap-2.5 py-3 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all",
-                  patternType === "rotation"
-                    ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-md border border-slate-100 dark:border-slate-850"
-                    : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-350"
-                )}
-              >
-                <RefreshCw size={14} />
-                {t("patterns.form.pattern_type_rotation") || "Rotation"}
-              </button>
-            </div>
-          </div>
-
-          {patternType === "rotation" && (
-            <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-305">
-              <FormField
-                label={t("patterns.form.cycle_length") || "Cycle Length (Days)"}
-                type="number"
-                required
-                value={String(cycleLengthDays)}
-                onChange={(e) => setCycleLengthDays(Math.max(1, Math.min(366, parseInt(e.target.value) || 1)))}
-                placeholder={t("patterns.form.cycle_length_placeholder") || "e.g. 6"}
-                inputClassName="font-bold tracking-tight"
-              />
-            </div>
-          )}
-        </div>
+        <PatternTypeSelector
+          cycleLengthDays={cycleLengthDays}
+          patternType={patternType}
+          setCycleLengthDays={setCycleLengthDays}
+          setPatternType={setPatternType}
+        />
 
         <div className="space-y-6">
           <div className="flex items-center justify-between px-1">
@@ -240,9 +272,9 @@ function BulkAssignModal({ hook }: PatternModalsProps) {
               <p className="text-[9px] text-slate-500 dark:text-slate-400 font-bold uppercase italic leading-relaxed px-1 opacity-60">{t("patterns.form.start_date_note")}</p>
             </div>
 
-            {isRotation && (
+            {isRotation ? (
               <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
-                <label className={LABEL_BASE}>{t("patterns.form.anchor_date_label")?.toUpperCase() || "ANCHOR DATE"}</label>
+                <label className={LABEL_BASE}>{t("patterns.form.anchor_date_label").toUpperCase()}</label>
                 <div className="relative group">
                   <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none text-slate-300 dark:text-slate-600 group-focus-within:text-primary-500 dark:group-focus-within:text-primary-400 transition-colors"><CalendarDays size={18} /></div>
                   <input className={cn(INPUT_BASE, "pl-14 font-bold tracking-tight shadow-inner")} onChange={(e) => { setAssignAnchorDate(e.target.value); }} type="date" value={assignAnchorDate} />
@@ -251,7 +283,7 @@ function BulkAssignModal({ hook }: PatternModalsProps) {
                   {t("patterns.form.anchor_date_note") || "Anchor Date determines Day 1 of the rotating cycle."}
                 </p>
               </div>
-            )}
+            ) : null}
           </div>
         </div>
         <div className="space-y-4 px-1">

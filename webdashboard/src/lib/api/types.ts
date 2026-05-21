@@ -858,6 +858,9 @@ export interface WorkingPattern {
 
   created_at: string;
 
+  /** Only set for rotation patterns. Number of days in the cycle. */
+  cycle_length_days?: number | null;
+
   description?: string;
 
   id: string;
@@ -867,15 +870,12 @@ export interface WorkingPattern {
   max_concurrent_workers: number;
   name: string;
 
-  updated_at: string;
-
-  workspace_id: string;
-
   /** 'weekly' (default) or 'rotation' for N-day cycles */
   pattern_type: string;
 
-  /** Only set for rotation patterns. Number of days in the cycle. */
-  cycle_length_days?: number | null;
+  updated_at: string;
+
+  workspace_id: string;
 
 }
 
@@ -883,12 +883,12 @@ export interface WorkingPattern {
 
 export interface WorkingPatternDetail {
 
-  /** For weekly: 0=Sunday..6=Saturday. For rotation: cycle day index 0..N-1 */
-  schedule_day: number;
-
   id: string;
 
   pattern_id: string;
+
+  /** For weekly: 0=Sunday..6=Saturday. For rotation: cycle day index 0..N-1 */
+  schedule_day: number;
 
   shift_id: string | null;
 
@@ -897,6 +897,9 @@ export interface WorkingPatternDetail {
 
 
 export interface EmployeeWorkingPattern {
+
+  /** Phase offset for rotation patterns. YYYY-MM-DD format. */
+  anchor_date?: string | null;
 
   created_at: string;
 
@@ -914,9 +917,6 @@ export interface EmployeeWorkingPattern {
 
   workspace_id: string;
 
-  /** Phase offset for rotation patterns. YYYY-MM-DD format. */
-  anchor_date?: string | null;
-
 }
 
 
@@ -933,6 +933,9 @@ export interface WorkingPatternDetailRequest {
 
 export interface CreateWorkingPatternRequest {
 
+  /** Required for rotation patterns. Number of days in cycle (1-366). */
+  cycle_length_days?: number;
+
   description?: string;
 
   details: WorkingPatternDetailRequest[];
@@ -942,19 +945,30 @@ export interface CreateWorkingPatternRequest {
   /** 'weekly' (default) or 'rotation' */
   pattern_type?: string;
 
-  /** Required for rotation patterns. Number of days in cycle (1-366). */
+}
+
+export interface UpdateWorkingPatternRequest {
+
   cycle_length_days?: number;
+
+  description?: string;
+
+  details: WorkingPatternDetailRequest[];
+
+  name: string;
+
+  pattern_type?: string;
 
 }
 
 
 
 export interface AssignPatternRequest {
+  /** Phase offset for rotation patterns. YYYY-MM-DD format. */
+  anchor_date?: string | null;
   end_date?: string | null;
   pattern_id: string;
   start_date: string;
-  /** Phase offset for rotation patterns. YYYY-MM-DD format. */
-  anchor_date?: string | null;
 }
 
 export interface BulkAssignResponse {
@@ -963,12 +977,12 @@ export interface BulkAssignResponse {
 }
 
 export interface BulkAssignPatternRequest {
+  /** Phase offset for rotation patterns. YYYY-MM-DD format. */
+  anchor_date?: string | null;
   employee_ids: string[];
   end_date?: string | null;
   pattern_id: string;
   start_date: string;
-  /** Phase offset for rotation patterns. YYYY-MM-DD format. */
-  anchor_date?: string | null;
 }
 
 export interface WorkingCondition {

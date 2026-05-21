@@ -11,6 +11,7 @@ interface PatternGridProps {
   expandedPatternId: string | null;
   isLoading: boolean;
   onDelete: (pattern: WorkingPattern) => void;
+  onEdit: (pattern: WorkingPattern) => void;
   onToggleExpand: (id: string) => void;
   patternDetails?: WorkingPatternDetail[];
   patterns?: WorkingPattern[];
@@ -21,6 +22,7 @@ export function PatternGrid({
   expandedPatternId,
   isLoading,
   onDelete,
+  onEdit,
   onToggleExpand,
   patternDetails,
   patterns,
@@ -58,6 +60,7 @@ export function PatternGrid({
           expandedPatternId={expandedPatternId}
           key={pattern.id}
           onDelete={onDelete}
+          onEdit={onEdit}
           onToggleExpand={onToggleExpand}
           pattern={pattern}
           patternDetails={

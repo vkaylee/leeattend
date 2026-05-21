@@ -22,8 +22,16 @@ ALTER TABLE employee_working_patterns
 ALTER TABLE working_pattern_details
   RENAME COLUMN day_of_week TO schedule_day;
 
+-- 4. Drop check constraint checking day_of_week <= 6 and add schedule_day >= 0 check constraint
+ALTER TABLE working_pattern_details
+  DROP CONSTRAINT IF EXISTS working_pattern_details_day_of_week_check;
+
+ALTER TABLE working_pattern_details
+  ADD CONSTRAINT working_pattern_details_schedule_day_check CHECK (schedule_day >= 0);
+
 COMMENT ON COLUMN working_pattern_details.schedule_day IS
   'For weekly patterns: day_of_week (0=Sun..6=Sat). For rotation patterns: cycle_day (0..N-1)';
 
 COMMENT ON COLUMN employee_working_patterns.anchor_date IS
   'Reference start date for rotation patterns. Determines phase offset per assignment.';
+

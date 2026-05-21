@@ -902,7 +902,7 @@
       }
     },
     "patterns": {
-      "title": "Mẫu ca làm việc",
+      "title": "Mẫu lịch làm việc",
       "subtitle": "Quản lý các lịch làm việc định kỳ cho nhân viên",
       "manage_btn": "Quản lý mẫu",
       "create_btn": "Tạo mẫu",
@@ -964,8 +964,8 @@
       "bulk_assign_submit": "Xác nhận gán"
     },
     "rules": {
-      "title": "Quy tắc tự động gán",
-      "subtitle": "Tự động gán mẫu ca làm việc cho nhân viên dựa trên điều kiện",
+      "title": "Quy tắc phân ca tự động",
+      "subtitle": "Tự động gán mẫu lịch làm việc cho nhân viên dựa trên các điều kiện",
       "create_btn": "Thêm quy tắc",
       "table": {
         "priority": "Ưu tiên",
@@ -2628,7 +2628,12 @@
       "cycle_length_note": "Xác định tổng số ngày của chu kỳ xoay lịch.",
       "day_index": "Ngày {{index}}",
       "anchor_date_label": "Ngày mốc chu kỳ xoay",
-      "anchor_date_note": "Ngày bắt đầu thực tế cho Ngày 1 của chu kỳ xoay."
+      "anchor_date_note": "Ngày bắt đầu thực tế cho Ngày 1 của chu kỳ xoay.",
+      "editor_title_new": "Tạo mẫu lịch làm việc mới",
+      "editor_title_edit": "Chỉnh sửa mẫu lịch làm việc",
+      "clear_all": "Xóa tất cả ca",
+      "clear_all_confirm": "Bạn có chắc muốn xóa tất cả ca đã gán không?",
+      "unsaved_changes": "Bạn có thay đổi chưa lưu. Bạn có chắc chắn muốn rời đi?"
     },
     "weekly_config": "Cấu hình tuần",
     "actions": {
@@ -2641,11 +2646,14 @@
     "messages": {
       "create_success": "Đã tạo mẫu lịch làm việc thành công.",
       "create_error": "Lỗi khi tạo mẫu lịch làm việc.",
+      "update_success": "Đã cập nhật mẫu lịch làm việc thành công.",
+      "update_error": "Lỗi khi cập nhật mẫu lịch làm việc.",
       "delete_success": "Xóa mẫu lịch làm việc thành công.",
       "delete_error": "Lỗi khi xóa mẫu lịch làm việc.",
       "bulk_assign_success_count": "Đã gán mẫu cho {{count}} nhân viên.",
       "bulk_assign_conflict": "Một số nhân viên đã có lịch làm việc, hệ thống sẽ ghi đè.",
-      "bulk_assign_error": "Lỗi khi gán lịch hàng loạt."
+      "bulk_assign_error": "Lỗi khi gán lịch hàng loạt.",
+      "no_shifts_available": "Không có ca làm việc nào để tự động điền."
     },
     "confirm_delete": "Bạn có chắc chắn muốn xóa mẫu \"{{name}}\" ?",
     "bulk_assign_btn": "Gán hàng loạt",
@@ -2709,7 +2717,7 @@
     "fixed_assignment_subtitle": "Gán lịch trình cố định hoặc dài hạn",
     "select_default_shift": "Chọn Ca Làm Việc Mặc Định",
     "assign_btn": "Gán ca làm việc",
-    "directory_title": "Danh mục các loại ca",
+    "directory_title": "Danh sách các loại ca",
     "auto_deduct": "Tự động trừ",
     "grace_period": "Grace Period (phút)",
     "grace_period_desc": "Nếu dùng chính sách 'Chặn', chấm công sớm hơn sẽ bị chặn. Nếu 'Clamp', OT bắt đầu tính từ đây.",
@@ -2721,8 +2729,8 @@
     },
     "tabs": {
       "weekly_roster": "LỊCH TUẦN",
-      "fixed_assignments": "GÁN CỐ ĐỊNH",
-      "directory": "DANH MỤC"
+      "fixed_assignments": "GÁN MẪU LỊCH",
+      "directory": "CÁC LOẠI CA"
     },
     "actions": {
       "copy_previous": "Sao chép tuần trước",

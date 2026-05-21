@@ -2628,7 +2628,12 @@
       "cycle_length_note": "确定轮班周期的总天数。",
       "day_index": "第 {{index}} 天",
       "anchor_date_label": "循环锚定日期",
-      "anchor_date_note": "循环中第 1 天开始的参考日期。"
+      "anchor_date_note": "循环中第 1 天开始的参考日期。",
+      "editor_title_new": "创建新工作模式",
+      "editor_title_edit": "编辑工作模式",
+      "clear_all": "清除所有班次",
+      "clear_all_confirm": "您确定要清除所有已分配的班次吗？",
+      "unsaved_changes": "您有未保存的更改。确定要离开吗？"
     },
     "weekly_config": "每周配置",
     "actions": {
@@ -2641,11 +2646,14 @@
     "messages": {
       "create_success": "工作模式创建成功。",
       "create_error": "创建工作模式时出错。",
+      "update_success": "工作模式更新成功。",
+      "update_error": "更新工作模式时出错。",
       "delete_success": "工作模式删除成功。",
       "delete_error": "工作模式删除时出错。",
       "bulk_assign_success_count": "已为 {{count}} 名员工分配模式。",
       "bulk_assign_conflict": "部分员工已有日程，系统将覆盖。",
-      "bulk_assign_error": "批量分配时出错。"
+      "bulk_assign_error": "批量分配时出错。",
+      "no_shifts_available": "没有可用的班次以自动填充。"
     },
     "confirm_delete": "您确定要删除模式 \"{{name}}\" 吗？",
     "bulk_assign_btn": "批量分配",
@@ -2709,7 +2717,7 @@
     "fixed_assignment_subtitle": "分配固定或长期日程",
     "select_default_shift": "选择默认班次",
     "assign_btn": "分配班次",
-    "directory_title": "班次类型目录",
+    "directory_title": "班次类型列表",
     "auto_deduct": "自动扣除",
     "grace_period": "宽限期 (分钟)",
     "grace_period_desc": "如果启用了“阻止”政策，则此时间之前的打卡将被阻止。如果启用了“钳位”，则加班从此处开始计算。",
@@ -2722,7 +2730,7 @@
     "tabs": {
       "weekly_roster": "每周排班",
       "fixed_assignments": "固定分配",
-      "directory": "目录"
+      "directory": "班次类型"
     },
     "actions": {
       "copy_previous": "复制上周",

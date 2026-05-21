@@ -11,12 +11,14 @@ import WorkingPatternsPage from "../working-patterns-page";
 
 
 // Mock TanStack Router
+const mockNavigate = vi.fn();
 vi.mock("@tanstack/react-router", () => ({
-  useNavigate: () => vi.fn(),
+  useNavigate: () => mockNavigate,
  
   useLocation: () => ({ pathname: "/", search: "", hash: "" }),
   Link: ({ to, children, ...props }: { to: string; children: React.ReactNode }) => <a href={to} {...props}>{children}</a>,
 }));
+
 
 // Mock API
 vi.mock("../../lib/api", () => ({
@@ -126,10 +128,8 @@ describe("WorkingPatternsPage", () => {
     expect(screen.getByText("Mon-Fri")).toBeDefined();
   });
 
-  it("opens create modal and submits new pattern", async () => {
- 
+  it("navigates to create pattern page when create button is clicked", async () => {
     const user = userEvent.setup();
-    vi.mocked(api.createWorkingPattern).mockResolvedValue({ id: "pat-new" } as unknown as WorkingPattern);
 
     render(
       <QueryClientProvider client={queryClient}>
@@ -139,15 +139,9 @@ describe("WorkingPatternsPage", () => {
 
     await user.click(screen.getByText(/patterns.create_btn/i));
 
-    const nameInput = await screen.findByPlaceholderText(/patterns.form.name_placeholder/i);
-    await user.type(nameInput, "New Rotation");
-    await user.click(screen.getByText(/patterns.form.prefill_standard/i));
-    await user.click(screen.getByText(/patterns.modal.submit_btn/i));
+    expect(mockNavigate).toHaveBeenCalledWith({ to: "/working-patterns/new" });
+  });
 
-    await waitFor(() => {
-      expect(api.createWorkingPattern).toHaveBeenCalled();
-    }, { timeout: 20000 });
-  }, 30000);
 
   it("opens bulk assign modal and handles success response", async () => {
     const user = userEvent.setup();

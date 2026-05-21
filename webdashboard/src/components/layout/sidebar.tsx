@@ -27,7 +27,9 @@ import {
   ClipboardCheck,
   ArrowLeftRight,
   DollarSign,
-  Activity
+  Activity,
+  LayoutGrid,
+  Zap
 } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
@@ -182,6 +184,8 @@ function useSidebarMenuItems(): MenuItem[] {
     {
       section: "payroll", sectionIcon: Wallet, label: t("common.sections.payroll_shifts"), testId: "sidebar-section-payroll", items: [
         { to: ROUTES.SHIFTS, icon: CalendarRange, label: t("common.shifts"), testId: "sidebar-link-shifts", permissions: ["shifts:read"] },
+        { to: ROUTES.WORKING_PATTERNS, icon: LayoutGrid, label: t("patterns.title", "Working Patterns"), testId: "sidebar-link-working-patterns", permissions: ["shifts:read"] },
+        { to: ROUTES.ASSIGNMENT_RULES, icon: Zap, label: t("rules.title", "Assignment Rules"), testId: "sidebar-link-assignment-rules", permissions: ["shifts:read"] },
         { to: ROUTES.PAYROLL, icon: DollarSign, label: t("payroll.title"), testId: "sidebar-link-payroll", permissions: ["payroll:read"] }
       ]
     },

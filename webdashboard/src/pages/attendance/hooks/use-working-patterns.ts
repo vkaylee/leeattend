@@ -26,10 +26,12 @@ type BulkAssignPatternRequestLocal = Parameters<typeof bulkAssignPattern>[1];
 
 export interface UseWorkingPatternsReturn {
   addShiftToDay: (dayIndex: number, shiftId: string) => void;
+  assignAnchorDate: string;
   assignStartDate: string;
   bulkAssignMutation: UseMutationResult<BulkAssignResponse, Error, BulkAssignPatternRequestLocal>;
   ConfirmationDialog: React.ComponentType<unknown>;
   createMutation: UseMutationResult<WorkingPattern, Error, CreateWorkingPatternRequest>;
+  cycleLengthDays: number;
   deleteMutation: UseMutationResult<unknown, Error, string>;
   expandedPatternId: string | null;
   handleBulkAssign: () => void;
@@ -42,28 +44,26 @@ export interface UseWorkingPatternsReturn {
   newPatternName: string;
   patternDetails: WorkingPatternDetail[];
   patterns: WorkingPattern[];
+  patternType: "weekly" | "rotation";
   prefillStandard: () => void;
   removeShiftFromDay: (dayIndex: number, shiftId: string) => void;
   selectedEmployeeIds: string[];
   selectedPatternId: string;
+  setAssignAnchorDate: (v: string) => void;
   setAssignStartDate: (v: string) => void;
+  setCycleLengthDays: (v: number) => void;
   setExpandedPatternId: (v: string | null) => void;
   setIsBulkModalOpen: (v: boolean) => void;
   setIsCreateModalOpen: (v: boolean) => void;
   setNewPatternDesc: (v: string) => void;
   setNewPatternName: (v: string) => void;
+  setPatternType: (v: "weekly" | "rotation") => void;
   setSelectedEmployeeIds: (v: string[]) => void;
   setSelectedPatternId: (v: string) => void;
   setWeeklyGrid: (v: string[][] | ((p: string[][]) => string[][])) => void;
   shifts: Shift[];
   weeklyGrid: string[][];
   wsId: string;
-  patternType: "weekly" | "rotation";
-  setPatternType: (v: "weekly" | "rotation") => void;
-  cycleLengthDays: number;
-  setCycleLengthDays: (v: number) => void;
-  assignAnchorDate: string;
-  setAssignAnchorDate: (v: string) => void;
 }
 
 function useWorkingPatternQueries(wsId: string, expandedPatternId: string | null) {
@@ -128,6 +128,7 @@ function useWorkingPatternMutations(
   return { createMutation, bulkAssignMutation, deleteMutation };
 }
 
+// eslint-disable-next-line max-lines-per-function
 export function useWorkingPatterns(): UseWorkingPatternsReturn {
   const { ConfirmationDialog, confirm } = useConfirm();
   const { t } = useTranslation();
@@ -148,20 +149,9 @@ export function useWorkingPatterns(): UseWorkingPatternsReturn {
   const [patternType, setPatternType] = useState<"weekly" | "rotation">("weekly");
   const [cycleLengthDays, setCycleLengthDays] = useState<number>(6);
 
-  const { patterns, shifts, patternDetails, isLoading } = useWorkingPatternQueries(wsId, expandedPatternId);
-  const { createMutation, bulkAssignMutation, deleteMutation } = useWorkingPatternMutations(wsId, {
-    setIsCreateModalOpen,
-    setNewPatternName,
-    setNewPatternDesc,
-    setWeeklyGrid,
-    setIsBulkModalOpen,
-    setSelectedEmployeeIds,
-    setPatternType,
-    setCycleLengthDays,
-  });
-
-  React.useEffect(() => {
-    const targetLength = patternType === "weekly" ? 7 : cycleLengthDays;
+  const handleSetPatternType = useCallback((type: "weekly" | "rotation") => {
+    setPatternType(type);
+    const targetLength = type === "weekly" ? 7 : cycleLengthDays;
     setWeeklyGrid((prev) => {
       if (prev.length === targetLength) return prev;
       if (prev.length < targetLength) {
@@ -171,7 +161,34 @@ export function useWorkingPatterns(): UseWorkingPatternsReturn {
         return prev.slice(0, targetLength);
       }
     });
-  }, [patternType, cycleLengthDays]);
+  }, [cycleLengthDays]);
+
+  const handleSetCycleLengthDays = useCallback((days: number) => {
+    setCycleLengthDays(days);
+    if (patternType === "rotation") {
+      setWeeklyGrid((prev) => {
+        if (prev.length === days) return prev;
+        if (prev.length < days) {
+          const diff = days - prev.length;
+          return [...prev, ...Array.from({ length: diff }, () => [])];
+        } else {
+          return prev.slice(0, days);
+        }
+      });
+    }
+  }, [patternType]);
+
+  const { patterns, shifts, patternDetails, isLoading } = useWorkingPatternQueries(wsId, expandedPatternId);
+  const { createMutation, bulkAssignMutation, deleteMutation } = useWorkingPatternMutations(wsId, {
+    setIsCreateModalOpen,
+    setNewPatternName,
+    setNewPatternDesc,
+    setWeeklyGrid,
+    setIsBulkModalOpen,
+    setSelectedEmployeeIds,
+    setPatternType: handleSetPatternType,
+    setCycleLengthDays: handleSetCycleLengthDays,
+  });
 
   const addShiftToDay = useCallback((dayIndex: number, shiftId: string) => {
     setWeeklyGrid((prev) => {
@@ -254,9 +271,11 @@ export function useWorkingPatterns(): UseWorkingPatternsReturn {
   return {
     ConfirmationDialog,
     addShiftToDay,
+    assignAnchorDate,
     assignStartDate,
     bulkAssignMutation,
     createMutation,
+    cycleLengthDays,
     deleteMutation,
     expandedPatternId,
     handleBulkAssign,
@@ -268,28 +287,26 @@ export function useWorkingPatterns(): UseWorkingPatternsReturn {
     newPatternDesc,
     newPatternName,
     patternDetails,
+    patternType,
     patterns,
     prefillStandard,
     removeShiftFromDay,
     selectedEmployeeIds,
     selectedPatternId,
+    setAssignAnchorDate,
     setAssignStartDate: handleStartDateChange,
+    setCycleLengthDays: handleSetCycleLengthDays,
     setExpandedPatternId,
     setIsBulkModalOpen,
     setIsCreateModalOpen,
     setNewPatternDesc,
     setNewPatternName,
+    setPatternType: handleSetPatternType,
     setSelectedEmployeeIds,
     setSelectedPatternId,
     setWeeklyGrid,
     shifts,
     weeklyGrid,
     wsId,
-    patternType,
-    setPatternType,
-    cycleLengthDays,
-    setCycleLengthDays,
-    assignAnchorDate,
-    setAssignAnchorDate,
   };
 }

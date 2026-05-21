@@ -31,8 +31,10 @@ import { Route as AuthenticatedWorkspaceDepartmentsRouteImport } from "./routes/
 import { Route as AuthenticatedWorkspaceAttendanceLogsRouteImport } from "./routes/_authenticated/_workspace/attendance-logs"
 import { Route as AuthenticatedWorkspaceAttendanceAdjustmentsRouteImport } from "./routes/_authenticated/_workspace/attendance-adjustments"
 import { Route as AuthenticatedWorkspaceAssignmentRulesRouteImport } from "./routes/_authenticated/_workspace/assignment-rules"
+import { Route as AuthenticatedWorkspaceWorkingPatternsIndexRouteImport } from "./routes/_authenticated/_workspace/working-patterns.index"
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsRouteImport } from "./routes/_authenticated/_workspace/workspace/settings"
 import { Route as AuthenticatedWorkspaceWorkspacePeopleRouteImport } from "./routes/_authenticated/_workspace/workspace/people"
+import { Route as AuthenticatedWorkspaceWorkingPatternsNewRouteImport } from "./routes/_authenticated/_workspace/working-patterns.new"
 import { Route as AuthenticatedWorkspaceEssProfileRouteImport } from "./routes/_authenticated/_workspace/ess/profile"
 import { Route as AuthenticatedWorkspaceEssClockRouteImport } from "./routes/_authenticated/_workspace/ess/clock"
 import { Route as AuthenticatedWorkspaceEssAttendanceRouteImport } from "./routes/_authenticated/_workspace/ess/attendance"
@@ -54,6 +56,7 @@ import { Route as AuthenticatedWorkspaceWorkspaceSettingsDangerRouteImport } fro
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsConnectivityRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/connectivity"
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsBillingRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/billing"
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsAuditLogsRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/audit-logs"
+import { Route as AuthenticatedWorkspaceWorkingPatternsPatternIdEditRouteImport } from "./routes/_authenticated/_workspace/working-patterns.$patternId.edit"
 
 const RegisterRoute = RegisterRouteImport.update({
   id: "/register",
@@ -99,11 +102,7 @@ const AuthenticatedWorkspaceWorkingPatternsRoute =
     id: "/working-patterns",
     path: "/working-patterns",
     getParentRoute: () => AuthenticatedWorkspaceRoute,
-  } as any).lazy(() =>
-    import("./routes/_authenticated/_workspace/working-patterns.lazy").then(
-      (d) => d.Route,
-    ),
-  )
+  } as any)
 const AuthenticatedWorkspaceShiftsRoute =
   AuthenticatedWorkspaceShiftsRouteImport.update({
     id: "/shifts",
@@ -240,6 +239,16 @@ const AuthenticatedWorkspaceAssignmentRulesRoute =
       (d) => d.Route,
     ),
   )
+const AuthenticatedWorkspaceWorkingPatternsIndexRoute =
+  AuthenticatedWorkspaceWorkingPatternsIndexRouteImport.update({
+    id: "/",
+    path: "/",
+    getParentRoute: () => AuthenticatedWorkspaceWorkingPatternsRoute,
+  } as any).lazy(() =>
+    import("./routes/_authenticated/_workspace/working-patterns.index.lazy").then(
+      (d) => d.Route,
+    ),
+  )
 const AuthenticatedWorkspaceWorkspaceSettingsRoute =
   AuthenticatedWorkspaceWorkspaceSettingsRouteImport.update({
     id: "/workspace/settings",
@@ -253,6 +262,16 @@ const AuthenticatedWorkspaceWorkspacePeopleRoute =
     getParentRoute: () => AuthenticatedWorkspaceRoute,
   } as any).lazy(() =>
     import("./routes/_authenticated/_workspace/workspace/people.lazy").then(
+      (d) => d.Route,
+    ),
+  )
+const AuthenticatedWorkspaceWorkingPatternsNewRoute =
+  AuthenticatedWorkspaceWorkingPatternsNewRouteImport.update({
+    id: "/new",
+    path: "/new",
+    getParentRoute: () => AuthenticatedWorkspaceWorkingPatternsRoute,
+  } as any).lazy(() =>
+    import("./routes/_authenticated/_workspace/working-patterns.new.lazy").then(
       (d) => d.Route,
     ),
   )
@@ -462,6 +481,16 @@ const AuthenticatedWorkspaceWorkspaceSettingsAuditLogsRoute =
       (d) => d.Route,
     ),
   )
+const AuthenticatedWorkspaceWorkingPatternsPatternIdEditRoute =
+  AuthenticatedWorkspaceWorkingPatternsPatternIdEditRouteImport.update({
+    id: "/$patternId/edit",
+    path: "/$patternId/edit",
+    getParentRoute: () => AuthenticatedWorkspaceWorkingPatternsRoute,
+  } as any).lazy(() =>
+    import("./routes/_authenticated/_workspace/working-patterns.$patternId.edit.lazy").then(
+      (d) => d.Route,
+    ),
+  )
 
 export interface FileRoutesByFullPath {
   "/": typeof AuthenticatedWorkspaceIndexRoute
@@ -482,7 +511,7 @@ export interface FileRoutesByFullPath {
   "/reports": typeof AuthenticatedWorkspaceReportsRoute
   "/shift-swaps": typeof AuthenticatedWorkspaceShiftSwapsRoute
   "/shifts": typeof AuthenticatedWorkspaceShiftsRoute
-  "/working-patterns": typeof AuthenticatedWorkspaceWorkingPatternsRoute
+  "/working-patterns": typeof AuthenticatedWorkspaceWorkingPatternsRouteWithChildren
   "/infra/monitor": typeof AuthenticatedInfraInfraMonitorRoute
   "/system/roles": typeof AuthenticatedInfraSystemRolesRoute
   "/system/tenants": typeof AuthenticatedInfraSystemTenantsRoute
@@ -490,8 +519,11 @@ export interface FileRoutesByFullPath {
   "/ess/attendance": typeof AuthenticatedWorkspaceEssAttendanceRoute
   "/ess/clock": typeof AuthenticatedWorkspaceEssClockRoute
   "/ess/profile": typeof AuthenticatedWorkspaceEssProfileRoute
+  "/working-patterns/new": typeof AuthenticatedWorkspaceWorkingPatternsNewRoute
   "/workspace/people": typeof AuthenticatedWorkspaceWorkspacePeopleRoute
   "/workspace/settings": typeof AuthenticatedWorkspaceWorkspaceSettingsRouteWithChildren
+  "/working-patterns/": typeof AuthenticatedWorkspaceWorkingPatternsIndexRoute
+  "/working-patterns/$patternId/edit": typeof AuthenticatedWorkspaceWorkingPatternsPatternIdEditRoute
   "/workspace/settings/audit-logs": typeof AuthenticatedWorkspaceWorkspaceSettingsAuditLogsRoute
   "/workspace/settings/billing": typeof AuthenticatedWorkspaceWorkspaceSettingsBillingRoute
   "/workspace/settings/connectivity": typeof AuthenticatedWorkspaceWorkspaceSettingsConnectivityRoute
@@ -526,7 +558,6 @@ export interface FileRoutesByTo {
   "/reports": typeof AuthenticatedWorkspaceReportsRoute
   "/shift-swaps": typeof AuthenticatedWorkspaceShiftSwapsRoute
   "/shifts": typeof AuthenticatedWorkspaceShiftsRoute
-  "/working-patterns": typeof AuthenticatedWorkspaceWorkingPatternsRoute
   "/infra/monitor": typeof AuthenticatedInfraInfraMonitorRoute
   "/system/roles": typeof AuthenticatedInfraSystemRolesRoute
   "/system/tenants": typeof AuthenticatedInfraSystemTenantsRoute
@@ -534,7 +565,10 @@ export interface FileRoutesByTo {
   "/ess/attendance": typeof AuthenticatedWorkspaceEssAttendanceRoute
   "/ess/clock": typeof AuthenticatedWorkspaceEssClockRoute
   "/ess/profile": typeof AuthenticatedWorkspaceEssProfileRoute
+  "/working-patterns/new": typeof AuthenticatedWorkspaceWorkingPatternsNewRoute
   "/workspace/people": typeof AuthenticatedWorkspaceWorkspacePeopleRoute
+  "/working-patterns": typeof AuthenticatedWorkspaceWorkingPatternsIndexRoute
+  "/working-patterns/$patternId/edit": typeof AuthenticatedWorkspaceWorkingPatternsPatternIdEditRoute
   "/workspace/settings/audit-logs": typeof AuthenticatedWorkspaceWorkspaceSettingsAuditLogsRoute
   "/workspace/settings/billing": typeof AuthenticatedWorkspaceWorkspaceSettingsBillingRoute
   "/workspace/settings/connectivity": typeof AuthenticatedWorkspaceWorkspaceSettingsConnectivityRoute
@@ -572,7 +606,7 @@ export interface FileRoutesById {
   "/_authenticated/_workspace/reports": typeof AuthenticatedWorkspaceReportsRoute
   "/_authenticated/_workspace/shift-swaps": typeof AuthenticatedWorkspaceShiftSwapsRoute
   "/_authenticated/_workspace/shifts": typeof AuthenticatedWorkspaceShiftsRoute
-  "/_authenticated/_workspace/working-patterns": typeof AuthenticatedWorkspaceWorkingPatternsRoute
+  "/_authenticated/_workspace/working-patterns": typeof AuthenticatedWorkspaceWorkingPatternsRouteWithChildren
   "/_authenticated/_workspace/": typeof AuthenticatedWorkspaceIndexRoute
   "/_authenticated/_infra/infra/monitor": typeof AuthenticatedInfraInfraMonitorRoute
   "/_authenticated/_infra/system/roles": typeof AuthenticatedInfraSystemRolesRoute
@@ -581,8 +615,11 @@ export interface FileRoutesById {
   "/_authenticated/_workspace/ess/attendance": typeof AuthenticatedWorkspaceEssAttendanceRoute
   "/_authenticated/_workspace/ess/clock": typeof AuthenticatedWorkspaceEssClockRoute
   "/_authenticated/_workspace/ess/profile": typeof AuthenticatedWorkspaceEssProfileRoute
+  "/_authenticated/_workspace/working-patterns/new": typeof AuthenticatedWorkspaceWorkingPatternsNewRoute
   "/_authenticated/_workspace/workspace/people": typeof AuthenticatedWorkspaceWorkspacePeopleRoute
   "/_authenticated/_workspace/workspace/settings": typeof AuthenticatedWorkspaceWorkspaceSettingsRouteWithChildren
+  "/_authenticated/_workspace/working-patterns/": typeof AuthenticatedWorkspaceWorkingPatternsIndexRoute
+  "/_authenticated/_workspace/working-patterns/$patternId/edit": typeof AuthenticatedWorkspaceWorkingPatternsPatternIdEditRoute
   "/_authenticated/_workspace/workspace/settings/audit-logs": typeof AuthenticatedWorkspaceWorkspaceSettingsAuditLogsRoute
   "/_authenticated/_workspace/workspace/settings/billing": typeof AuthenticatedWorkspaceWorkspaceSettingsBillingRoute
   "/_authenticated/_workspace/workspace/settings/connectivity": typeof AuthenticatedWorkspaceWorkspaceSettingsConnectivityRoute
@@ -627,8 +664,11 @@ export interface FileRouteTypes {
     | "/ess/attendance"
     | "/ess/clock"
     | "/ess/profile"
+    | "/working-patterns/new"
     | "/workspace/people"
     | "/workspace/settings"
+    | "/working-patterns/"
+    | "/working-patterns/$patternId/edit"
     | "/workspace/settings/audit-logs"
     | "/workspace/settings/billing"
     | "/workspace/settings/connectivity"
@@ -663,7 +703,6 @@ export interface FileRouteTypes {
     | "/reports"
     | "/shift-swaps"
     | "/shifts"
-    | "/working-patterns"
     | "/infra/monitor"
     | "/system/roles"
     | "/system/tenants"
@@ -671,7 +710,10 @@ export interface FileRouteTypes {
     | "/ess/attendance"
     | "/ess/clock"
     | "/ess/profile"
+    | "/working-patterns/new"
     | "/workspace/people"
+    | "/working-patterns"
+    | "/working-patterns/$patternId/edit"
     | "/workspace/settings/audit-logs"
     | "/workspace/settings/billing"
     | "/workspace/settings/connectivity"
@@ -717,8 +759,11 @@ export interface FileRouteTypes {
     | "/_authenticated/_workspace/ess/attendance"
     | "/_authenticated/_workspace/ess/clock"
     | "/_authenticated/_workspace/ess/profile"
+    | "/_authenticated/_workspace/working-patterns/new"
     | "/_authenticated/_workspace/workspace/people"
     | "/_authenticated/_workspace/workspace/settings"
+    | "/_authenticated/_workspace/working-patterns/"
+    | "/_authenticated/_workspace/working-patterns/$patternId/edit"
     | "/_authenticated/_workspace/workspace/settings/audit-logs"
     | "/_authenticated/_workspace/workspace/settings/billing"
     | "/_authenticated/_workspace/workspace/settings/connectivity"
@@ -897,6 +942,13 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof AuthenticatedWorkspaceAssignmentRulesRouteImport
       parentRoute: typeof AuthenticatedWorkspaceRoute
     }
+    "/_authenticated/_workspace/working-patterns/": {
+      id: "/_authenticated/_workspace/working-patterns/"
+      path: "/"
+      fullPath: "/working-patterns/"
+      preLoaderRoute: typeof AuthenticatedWorkspaceWorkingPatternsIndexRouteImport
+      parentRoute: typeof AuthenticatedWorkspaceWorkingPatternsRoute
+    }
     "/_authenticated/_workspace/workspace/settings": {
       id: "/_authenticated/_workspace/workspace/settings"
       path: "/workspace/settings"
@@ -910,6 +962,13 @@ declare module "@tanstack/react-router" {
       fullPath: "/workspace/people"
       preLoaderRoute: typeof AuthenticatedWorkspaceWorkspacePeopleRouteImport
       parentRoute: typeof AuthenticatedWorkspaceRoute
+    }
+    "/_authenticated/_workspace/working-patterns/new": {
+      id: "/_authenticated/_workspace/working-patterns/new"
+      path: "/new"
+      fullPath: "/working-patterns/new"
+      preLoaderRoute: typeof AuthenticatedWorkspaceWorkingPatternsNewRouteImport
+      parentRoute: typeof AuthenticatedWorkspaceWorkingPatternsRoute
     }
     "/_authenticated/_workspace/ess/profile": {
       id: "/_authenticated/_workspace/ess/profile"
@@ -1058,6 +1117,13 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsAuditLogsRouteImport
       parentRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsRoute
     }
+    "/_authenticated/_workspace/working-patterns/$patternId/edit": {
+      id: "/_authenticated/_workspace/working-patterns/$patternId/edit"
+      path: "/$patternId/edit"
+      fullPath: "/working-patterns/$patternId/edit"
+      preLoaderRoute: typeof AuthenticatedWorkspaceWorkingPatternsPatternIdEditRouteImport
+      parentRoute: typeof AuthenticatedWorkspaceWorkingPatternsRoute
+    }
   }
 }
 
@@ -1075,6 +1141,27 @@ const AuthenticatedInfraRouteChildren: AuthenticatedInfraRouteChildren = {
 
 const AuthenticatedInfraRouteWithChildren =
   AuthenticatedInfraRoute._addFileChildren(AuthenticatedInfraRouteChildren)
+
+interface AuthenticatedWorkspaceWorkingPatternsRouteChildren {
+  AuthenticatedWorkspaceWorkingPatternsNewRoute: typeof AuthenticatedWorkspaceWorkingPatternsNewRoute
+  AuthenticatedWorkspaceWorkingPatternsIndexRoute: typeof AuthenticatedWorkspaceWorkingPatternsIndexRoute
+  AuthenticatedWorkspaceWorkingPatternsPatternIdEditRoute: typeof AuthenticatedWorkspaceWorkingPatternsPatternIdEditRoute
+}
+
+const AuthenticatedWorkspaceWorkingPatternsRouteChildren: AuthenticatedWorkspaceWorkingPatternsRouteChildren =
+  {
+    AuthenticatedWorkspaceWorkingPatternsNewRoute:
+      AuthenticatedWorkspaceWorkingPatternsNewRoute,
+    AuthenticatedWorkspaceWorkingPatternsIndexRoute:
+      AuthenticatedWorkspaceWorkingPatternsIndexRoute,
+    AuthenticatedWorkspaceWorkingPatternsPatternIdEditRoute:
+      AuthenticatedWorkspaceWorkingPatternsPatternIdEditRoute,
+  }
+
+const AuthenticatedWorkspaceWorkingPatternsRouteWithChildren =
+  AuthenticatedWorkspaceWorkingPatternsRoute._addFileChildren(
+    AuthenticatedWorkspaceWorkingPatternsRouteChildren,
+  )
 
 interface AuthenticatedWorkspaceWorkspaceSettingsRouteChildren {
   AuthenticatedWorkspaceWorkspaceSettingsAuditLogsRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsAuditLogsRoute
@@ -1145,7 +1232,7 @@ interface AuthenticatedWorkspaceRouteChildren {
   AuthenticatedWorkspaceReportsRoute: typeof AuthenticatedWorkspaceReportsRoute
   AuthenticatedWorkspaceShiftSwapsRoute: typeof AuthenticatedWorkspaceShiftSwapsRoute
   AuthenticatedWorkspaceShiftsRoute: typeof AuthenticatedWorkspaceShiftsRoute
-  AuthenticatedWorkspaceWorkingPatternsRoute: typeof AuthenticatedWorkspaceWorkingPatternsRoute
+  AuthenticatedWorkspaceWorkingPatternsRoute: typeof AuthenticatedWorkspaceWorkingPatternsRouteWithChildren
   AuthenticatedWorkspaceIndexRoute: typeof AuthenticatedWorkspaceIndexRoute
   AuthenticatedWorkspaceApprovalsOtRoute: typeof AuthenticatedWorkspaceApprovalsOtRoute
   AuthenticatedWorkspaceEssAttendanceRoute: typeof AuthenticatedWorkspaceEssAttendanceRoute
@@ -1180,7 +1267,7 @@ const AuthenticatedWorkspaceRouteChildren: AuthenticatedWorkspaceRouteChildren =
       AuthenticatedWorkspaceShiftSwapsRoute,
     AuthenticatedWorkspaceShiftsRoute: AuthenticatedWorkspaceShiftsRoute,
     AuthenticatedWorkspaceWorkingPatternsRoute:
-      AuthenticatedWorkspaceWorkingPatternsRoute,
+      AuthenticatedWorkspaceWorkingPatternsRouteWithChildren,
     AuthenticatedWorkspaceIndexRoute: AuthenticatedWorkspaceIndexRoute,
     AuthenticatedWorkspaceApprovalsOtRoute:
       AuthenticatedWorkspaceApprovalsOtRoute,

@@ -129,6 +129,93 @@ pub async fn create_working_pattern(
 }
 
 #[tracing::instrument(skip_all, err)]
+pub async fn update_working_pattern(
+    repo: Arc<dyn crate::repositories::working_pattern_repository::WorkingPatternRepositoryTrait>,
+    shift_repo: Arc<dyn crate::repositories::shift_repository::ShiftRepository>,
+    workspace_id: Uuid,
+    pattern_id: Uuid,
+    req: CreateWorkingPatternRequest,
+) -> Result<WorkingPattern, crate::errors::AppError> {
+    let mut day_shifts: HashMap<i32, Vec<Uuid>> = HashMap::new();
+    let mut details_to_insert = Vec::new();
+    for detail in &req.details {
+        details_to_insert.push((detail.schedule_day, detail.shift_id));
+        if let Some(shift_id) = detail.shift_id {
+            day_shifts
+                .entry(detail.schedule_day)
+                .or_default()
+                .push(shift_id);
+        }
+    }
+
+    if !day_shifts.is_empty() {
+        let all_shifts = shift_repo.get_workspace_shifts(workspace_id).await?;
+        let shift_map: HashMap<Uuid, _> = all_shifts.into_iter().map(|s| (s.id, s)).collect();
+
+        for shift_ids in day_shifts.values() {
+            if shift_ids.len() < 2 {
+                continue;
+            }
+
+            let times: Vec<(Uuid, NaiveTime, NaiveTime)> = shift_ids
+                .iter()
+                .filter_map(|id| shift_map.get(id).map(|s| (*id, s.start_time, s.end_time)))
+                .collect();
+
+            for i in 0..times.len() {
+                for j in (i + 1)..times.len() {
+                    if times_overlap(times[i].1, times[i].2, times[j].1, times[j].2) {
+                        return Err(crate::errors::AppError::Validation(format!(
+                            "Shifts overlap on the same day: shifts {} and {} have conflicting time ranges",
+                            times[i].0, times[j].0
+                        )));
+                    }
+                }
+            }
+        }
+    }
+
+    let pattern_type = req.pattern_type.as_deref().unwrap_or("weekly");
+    if pattern_type != "weekly" && pattern_type != "rotation" {
+        return Err(crate::errors::AppError::Validation(
+            "pattern_type must be 'weekly' or 'rotation'".to_string(),
+        ));
+    }
+    if pattern_type == "rotation" {
+        let cycle_len = req.cycle_length_days.unwrap_or(0);
+        if !(1..=366).contains(&cycle_len) {
+            return Err(crate::errors::AppError::Validation(
+                "cycle_length_days must be between 1 and 366 for rotation patterns".to_string(),
+            ));
+        }
+        for detail in &req.details {
+            if detail.schedule_day < 0 || detail.schedule_day >= cycle_len {
+                return Err(crate::errors::AppError::Validation(format!(
+                    "schedule_day {} is out of range [0, {}) for cycle_length_days {}",
+                    detail.schedule_day,
+                    cycle_len,
+                    cycle_len,
+                )));
+            }
+        }
+    }
+
+    let pattern = repo
+        .update_pattern_with_details(
+            workspace_id,
+            pattern_id,
+            &req.name,
+            req.description.as_deref(),
+            pattern_type,
+            req.cycle_length_days,
+            details_to_insert,
+        )
+        .await?;
+
+    Ok(pattern)
+}
+
+#[tracing::instrument(skip_all, err)]
 pub async fn list_patterns(
     repo: Arc<dyn crate::repositories::working_pattern_repository::WorkingPatternRepositoryTrait>,
     workspace_id: Uuid,

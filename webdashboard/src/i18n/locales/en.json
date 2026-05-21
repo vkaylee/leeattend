@@ -2632,7 +2632,12 @@
       "cycle_length_note": "Determines the length of the schedule cycle in days.",
       "day_index": "Day {{index}}",
       "anchor_date_label": "Rotation Anchor Date",
-      "anchor_date_note": "Reference date when Day 1 of the cycle starts."
+      "anchor_date_note": "Reference date when Day 1 of the cycle starts.",
+      "editor_title_new": "Create Working Pattern",
+      "editor_title_edit": "Edit Working Pattern",
+      "clear_all": "Clear All Days",
+      "clear_all_confirm": "Are you sure you want to clear all shifts?",
+      "unsaved_changes": "You have unsaved changes. Are you sure you want to leave?"
     },
     "weekly_config": "Weekly Config",
     "actions": {
@@ -2645,11 +2650,14 @@
     "messages": {
       "create_success": "Working pattern created successfully.",
       "create_error": "Error creating working pattern.",
+      "update_success": "Working pattern updated successfully.",
+      "update_error": "Error updating working pattern.",
       "delete_success": "Working pattern deleted successfully.",
       "delete_error": "Error deleting working pattern.",
       "bulk_assign_success_count": "Assigned pattern to {{count}} employees.",
       "bulk_assign_conflict": "Some employees already have schedules, system will override.",
-      "bulk_assign_error": "Error in bulk assignment."
+      "bulk_assign_error": "Error in bulk assignment.",
+      "no_shifts_available": "No shifts available to prefill."
     },
     "confirm_delete": "Are you sure you want to delete pattern \"{{name}}\" ?",
     "bulk_assign_btn": "Bulk Assign",
@@ -2713,7 +2721,7 @@
     "fixed_assignment_subtitle": "Assign fixed or long-term schedules",
     "select_default_shift": "Select Default Shift",
     "assign_btn": "Assign Shift",
-    "directory_title": "Shift Types Catalog",
+    "directory_title": "Shift Types List",
     "auto_deduct": "Auto-deduct",
     "grace_period": "Grace Period",
     "grace_period_desc": "If 'Block' policy is active, punches before this are blocked. If 'Clamp', OT starts here.",
@@ -2726,7 +2734,7 @@
     "tabs": {
       "weekly_roster": "WEEKLY ROSTER",
       "fixed_assignments": "FIXED ASSIGNMENTS",
-      "directory": "DIRECTORY"
+      "directory": "SHIFT TYPES"
     },
     "actions": {
       "copy_previous": "Copy Previous Week",

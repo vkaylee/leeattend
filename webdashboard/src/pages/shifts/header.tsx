@@ -28,8 +28,7 @@ export function ShiftsHeader({ onCreateClick }: ShiftsHeaderProps) {
       <div className="flex items-center gap-3">
         <Link
           className="bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold px-4 py-2.5 rounded-2xl flex items-center gap-2 border border-slate-200 dark:border-slate-700 shadow-sm transition-all"
-          search={{ tab: "patterns" } as Record<string, string>}
-          to={ROUTES.SETTINGS.TIME}
+          to={ROUTES.WORKING_PATTERNS}
         >
           <CalendarRange className="w-4 h-4" />
           <span className="text-xs uppercase tracking-widest">

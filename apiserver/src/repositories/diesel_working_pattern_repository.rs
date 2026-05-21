@@ -94,6 +94,77 @@ impl WorkingPatternRepositoryTrait for DieselWorkingPatternRepository {
         Ok(result.into())
     }
 
+    async fn update_pattern_with_details(
+        &self,
+        workspace_id: Uuid,
+        pattern_id: Uuid,
+        name: &str,
+        description: Option<&str>,
+        pattern_type: &str,
+        cycle_length_days: Option<i32>,
+        details: Vec<(i32, Option<Uuid>)>,
+    ) -> Result<WorkingPattern, AppError> {
+        let mut conn = self
+            .diesel_pools
+            .tenants
+            .get_pool(&workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        let name_owned = name.to_string();
+        let description_owned = description.map(ToString::to_string);
+        let pattern_type_owned = pattern_type.to_string();
+
+        let result = conn
+            .transaction(|mut conn| {
+                Box::pin(async move {
+                    let pattern_entity = diesel::update(
+                        working_patterns::table
+                            .filter(working_patterns::id.eq(pattern_id))
+                            .filter(working_patterns::workspace_id.eq(workspace_id)),
+                    )
+                    .set((
+                        working_patterns::name.eq(&name_owned),
+                        working_patterns::description.eq(&description_owned),
+                        working_patterns::pattern_type.eq(&pattern_type_owned),
+                        working_patterns::cycle_length_days.eq(cycle_length_days),
+                    ))
+                    .returning(WorkingPatternEntity::as_returning())
+                    .get_result::<WorkingPatternEntity>(&mut conn)
+                    .await?;
+
+                    diesel::delete(
+                        working_pattern_details::table
+                            .filter(working_pattern_details::pattern_id.eq(pattern_id)),
+                    )
+                    .execute(&mut conn)
+                    .await?;
+
+                    for (schedule_day, shift_id) in details {
+                        diesel::insert_into(working_pattern_details::table)
+                            .values((
+                                working_pattern_details::pattern_id.eq(pattern_id),
+                                working_pattern_details::schedule_day.eq(schedule_day),
+                                working_pattern_details::shift_id.eq(shift_id),
+                            ))
+                            .execute(&mut conn)
+                            .await?;
+                    }
+
+                    Ok::<_, diesel::result::Error>(pattern_entity)
+                })
+            })
+            .await
+            .map_err(|e| {
+                AppError::Internal(format!("Failed to update pattern with details: {e}"))
+            })?;
+
+        Ok(result.into())
+    }
+
     async fn get_patterns(&self, workspace_id: Uuid) -> Result<Vec<WorkingPattern>, AppError> {
         let mut conn = self
             .diesel_pools

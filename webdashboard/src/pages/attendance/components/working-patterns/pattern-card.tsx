@@ -4,6 +4,7 @@ import {
   ChevronUp,
   Clock,
   Trash2,
+  Edit,
 } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
@@ -15,6 +16,7 @@ import { cn } from "@/lib/utils";
 interface PatternCardProps {
   expandedPatternId: string | null;
   onDelete: (pattern: WorkingPattern) => void;
+  onEdit: (pattern: WorkingPattern) => void;
   onToggleExpand: (id: string) => void;
   pattern: WorkingPattern;
   patternDetails?: WorkingPatternDetail[];
@@ -43,7 +45,8 @@ function DayDetailRow({ day, dayDetails, shifts }: { day: string, dayDetails: Wo
   );
 }
 
-export function PatternCard({ expandedPatternId, onDelete, onToggleExpand, pattern, patternDetails, shifts }: PatternCardProps) {
+// eslint-disable-next-line complexity
+export function PatternCard({ expandedPatternId, onDelete, onEdit, onToggleExpand, pattern, patternDetails, shifts }: PatternCardProps) {
   const { t } = useTranslation();
   const daysOfWeekShort = [t("days.sunday_short"), t("days.monday_short"), t("days.tuesday_short"), t("days.wednesday_short"), t("days.thursday_short"), t("days.friday_short"), t("days.saturday_short")];
   const isExpanded = expandedPatternId === pattern.id;
@@ -63,7 +66,8 @@ export function PatternCard({ expandedPatternId, onDelete, onToggleExpand, patte
   return (
     <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] p-10 shadow-sm hover:shadow-2xl hover:shadow-primary-100/10 hover:scale-[1.02] transition-all group relative overflow-hidden flex flex-col">
       <div className="absolute top-0 right-0 p-8 flex gap-3 translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500">
-        <button className="p-3 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:text-rose-300 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90" onClick={() => { onDelete(pattern); }} title={t("common.delete")} type="button"><Trash2 size={18} /></button>
+        <button className="p-3 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90" onClick={() => { onEdit(pattern); }} title={t("common.edit") || "Edit"} type="button"><Edit size={18} /></button>
+        <button className="p-3 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-rose-650 dark:hover:text-rose-400 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90" onClick={() => { onDelete(pattern); }} title={t("common.delete")} type="button"><Trash2 size={18} /></button>
       </div>
       <div className="flex items-center gap-5 mb-8">
         <div className="w-16 h-16 bg-primary-50 dark:bg-primary-950 text-primary-600 dark:text-primary-400 rounded-[1.5rem] flex items-center justify-center shadow-inner border border-primary-100 dark:border-primary-800/50 group-hover:scale-110 group-hover:rotate-3 transition-all duration-500"><CalendarDays size={32} /></div>
