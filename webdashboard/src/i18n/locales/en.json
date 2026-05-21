@@ -3305,7 +3305,9 @@
       },
       "messages": {
         "create_success": "Tenant created successfully",
-        "delete_success": "Tenant deleted successfully"
+        "delete_success": "Tenant deleted successfully",
+        "update_db_success": "Database URL updated successfully",
+        "update_mode_success": "Pool mode updated successfully"
       },
       "confirm_delete": "Are you sure you want to delete this tenant? This will remove its configuration from Supavisor.",
       "description": "Quản lý các kết nối cơ sở dữ liệu và pools của tenants"

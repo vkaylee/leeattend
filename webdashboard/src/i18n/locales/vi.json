@@ -3312,7 +3312,9 @@
       },
       "messages": {
         "create_success": "Tạo Tenant thành công",
-        "delete_success": "Xóa Tenant thành công"
+        "delete_success": "Xóa Tenant thành công",
+        "update_db_success": "Cập nhật URL cơ sở dữ liệu thành công",
+        "update_mode_success": "Cập nhật chế độ pool thành công"
       },
       "confirm_delete": "Bạn có chắc chắn muốn xóa tenant này không?",
       "subtitle": "Quản lý tenant"

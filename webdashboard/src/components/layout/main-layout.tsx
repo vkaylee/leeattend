@@ -69,7 +69,7 @@ function useSidebarState(locationPathname: string) {
       org: ORG_PATHS.includes(locationPathname),
       time: TIME_PATHS.includes(locationPathname) || locationPathname === ROUTES.HOME,
       payroll: PAYROLL_PATHS.includes(locationPathname),
-      system: locationPathname.startsWith(ROUTES.SETTINGS.ROOT),
+      system: locationPathname.startsWith(ROUTES.SETTINGS.ROOT) || locationPathname.startsWith("/system/") || locationPathname.startsWith("/infra/"),
       ess: locationPathname.startsWith("/ess/"),
     };
   };
@@ -104,7 +104,7 @@ function useSidebarState(locationPathname: string) {
     const isOrg = ORG_PATHS.includes(locationPathname);
     const isTime = TIME_PATHS.includes(locationPathname);
     const isPayroll = PAYROLL_PATHS.includes(locationPathname);
-    const isSystem = locationPathname.startsWith(ROUTES.SETTINGS.ROOT);
+    const isSystem = locationPathname.startsWith(ROUTES.SETTINGS.ROOT) || locationPathname.startsWith("/system/") || locationPathname.startsWith("/infra/");
     const isEss = locationPathname.startsWith("/ess/");
 
     const timer = setTimeout(() => {

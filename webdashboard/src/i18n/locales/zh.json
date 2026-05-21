@@ -3302,7 +3302,9 @@
       },
       "messages": {
         "create_success": "租户创建成功",
-        "delete_success": "租户删除成功"
+        "delete_success": "租户删除成功",
+        "update_db_success": "数据库 URL 更新成功",
+        "update_mode_success": "连接池模式更新成功"
       },
       "confirm_delete": "您确定要删除此租户吗？这将从 Supavisor 中删除其配置。",
       "description": "Quản lý các kết nối cơ sở dữ liệu và pools của tenants"
