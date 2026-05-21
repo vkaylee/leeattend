@@ -15,12 +15,14 @@ import {
   fetchSystemTenants,
   fetchSystemTenantStats,
   updateTenantDatabase,
+  updateTenantMode,
   type CreateTenantRequestPayload,
   type SystemTenant,
+  type TenantConnectionStats,
 } from "@/lib/api/system";
 
 
-// eslint-disable-next-line max-lines-per-function -- Page component needs to encompass form and table state
+// eslint-disable-next-line max-lines-per-function, complexity -- Page component needs to encompass form and table state
 export default function TenantsPage() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -34,7 +36,9 @@ export default function TenantsPage() {
 
   const [statsModalOpen, setStatsModalOpen] = useState(false);
   const [dbUpdateModalOpen, setDbUpdateModalOpen] = useState(false);
+  const [dbModeUpdateModalOpen, setDbModeUpdateModalOpen] = useState(false);
   const [updateDbUrl, setUpdateDbUrl] = useState("");
+  const [selectedMode, setSelectedMode] = useState<string | null>(null);
   const [selectedTenant, setSelectedTenant] = useState<SystemTenant | null>(null);
 
   const { data: tenants = [], isLoading } = useQuery({
@@ -42,11 +46,21 @@ export default function TenantsPage() {
     queryFn: fetchSystemTenants,
   });
 
-  const { data: tenantStats, isLoading: isStatsLoading } = useQuery({
+  const { data: tenantStats, isLoading: isStatsLoading } = useQuery<TenantConnectionStats>({
     queryKey: ["system-tenant-stats", selectedTenant?.id],
-    queryFn: () => fetchSystemTenantStats(selectedTenant!.id),
-    enabled: !!selectedTenant && (statsModalOpen || dbUpdateModalOpen),
+    queryFn: () => {
+      if (!selectedTenant) return Promise.reject(new Error("No selected tenant"));
+      return fetchSystemTenantStats(selectedTenant.id);
+    },
+    enabled: !!selectedTenant && (statsModalOpen || dbUpdateModalOpen || dbModeUpdateModalOpen),
   });
+
+  const statsConfig = tenantStats ? (tenantStats.config.tenant ?? tenantStats.config) : undefined;
+  const poolSizeVal = statsConfig?.users?.[0]?.pool_size?.toString() ?? "N/A";
+  const poolModeVal = statsConfig?.users?.[0]?.mode_type ?? statsConfig?.default_mode ?? "session";
+  const rawConfigString = JSON.stringify(statsConfig, null, 2);
+  const currentMode = statsConfig?.users?.[0]?.mode_type ?? statsConfig?.default_mode ?? "session";
+  const activeMode = selectedMode ?? currentMode;
 
   const createMutation = useMutation({
     mutationFn: (data: CreateTenantRequestPayload) => createSystemTenant(data),
@@ -87,6 +101,19 @@ export default function TenantsPage() {
     },
   });
 
+  const updateModeMutation = useMutation({
+    mutationFn: ({ id, mode }: { id: string; mode: string }) => updateTenantMode(id, mode),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["system-tenants"] }).catch(console.error);
+      queryClient.invalidateQueries({ queryKey: ["system-tenant-stats", selectedTenant?.id] }).catch(console.error);
+      toast.success(t("system_admin.tenants.messages.update_mode_success", { defaultValue: "Pool mode updated successfully" }));
+      setDbModeUpdateModalOpen(false);
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
   const handleCreate = (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!dbName) return;
@@ -119,6 +146,24 @@ export default function TenantsPage() {
     setDbUpdateModalOpen(true);
   };
 
+  const handleManageMode = (tenant: SystemTenant) => {
+    setSelectedTenant(tenant);
+    setDbModeUpdateModalOpen(true);
+  };
+
+  const handleUpdateModeSubmit = async (e: React.SyntheticEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!selectedTenant || !activeMode) return;
+    const isConfirmed = await confirm({
+      title: t("common.warning", { defaultValue: "Warning: Critical Action" }),
+      message: `Are you sure you want to switch the pool mode to "${activeMode}"? This will immediately update the connection pool in Supavisor for this tenant.`,
+      variant: "danger",
+    });
+    if (isConfirmed) {
+      updateModeMutation.mutate({ id: selectedTenant.id, mode: activeMode });
+    }
+  };
+
   const handleUpdateDbSubmit = async (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!selectedTenant || !updateDbUrl) return;
@@ -132,18 +177,17 @@ export default function TenantsPage() {
     }
   };
 
-  const renderConnectionTemplate = (tenantStats: any) => {
-    if (!tenantStats) return null;
-    if (tenantStats.connection?.masked_db_url) {
-      return tenantStats.connection.masked_db_url;
+  const renderConnectionTemplate = (stats: TenantConnectionStats | undefined) => {
+    if (!stats) return null;
+    if (stats.connection.masked_db_url) {
+      return stats.connection.masked_db_url;
     }
-    if (!tenantStats.config) return null;
-    const config = tenantStats.config.tenant || tenantStats.config;
-    const dbUser = config.users?.[0]?.db_user || "user";
-    const dbName = config.db_database || "db";
-    const host = tenantStats.connection?.host || "localhost";
-    const port = tenantStats.connection?.port || "6543";
-    const tenantId = selectedTenant?.id || "tenant_id";
+    const config = stats.config.tenant ?? stats.config;
+    const dbUser = config.users?.[0]?.db_user ?? "user";
+    const dbName = config.db_database ?? "db";
+    const host = stats.connection.host;
+    const port = stats.connection.port;
+    const tenantId = selectedTenant?.id ?? "tenant_id";
     
     // Masked connection string (Rule 2: Never log PII/Passwords)
     return `postgres://${dbUser}.${tenantId}:***@${host}:${port}/${dbName}`;
@@ -209,18 +253,26 @@ export default function TenantsPage() {
                         <Button
                           onClick={() => { handleViewStats(tenant); }}
                           size="sm"
-                          variant="ghost"
                           title="View Connection & Stats"
+                          variant="ghost"
                         >
                           <Eye className="w-4 h-4 text-slate-500" />
                         </Button>
                         <Button
                           onClick={() => { handleManageDb(tenant); }}
                           size="sm"
-                          variant="ghost"
                           title="Manage Database"
+                          variant="ghost"
                         >
                           <Server className="w-4 h-4 text-orange-500" />
+                        </Button>
+                        <Button
+                          onClick={() => { handleManageMode(tenant); }}
+                          size="sm"
+                          title="Update Pool Mode"
+                          variant="ghost"
+                        >
+                          <Activity className="w-4 h-4 text-blue-500" />
                         </Button>
                         <Button
                           onClick={() => { handleDelete(tenant.id).catch(console.error); }}
@@ -313,8 +365,8 @@ export default function TenantsPage() {
         isOpen={statsModalOpen}
         maxWidth="2xl"
         onClose={() => { setStatsModalOpen(false); setSelectedTenant(null); }}
-        title={`Tenant Details: ${selectedTenant?.id || ""}`}
         subtitle="Connection details and Supavisor configuration"
+        title={`Tenant Details: ${selectedTenant?.id ?? ""}`}
       >
         <div className="py-4 space-y-6">
           {isStatsLoading ? (
@@ -351,7 +403,7 @@ export default function TenantsPage() {
                     <span className="text-xs font-medium uppercase tracking-wider">Pool Config</span>
                   </div>
                   <div className="text-2xl font-bold text-slate-800 dark:text-white">
-                    {tenantStats.config?.tenant?.users?.[0]?.pool_size || "N/A"}
+                    {poolSizeVal}
                   </div>
                   <span className="text-xs text-slate-500">Max connections</span>
                 </div>
@@ -362,7 +414,7 @@ export default function TenantsPage() {
                     <span className="text-xs font-medium uppercase tracking-wider">Mode</span>
                   </div>
                   <div className="text-xl font-bold text-slate-800 dark:text-white capitalize">
-                    {tenantStats.config?.tenant?.users?.[0]?.mode_type || "Transaction"}
+                    {poolModeVal}
                   </div>
                   <span className="text-xs text-slate-500">Pooling strategy</span>
                 </div>
@@ -376,7 +428,7 @@ export default function TenantsPage() {
                 </h4>
                 <div className="bg-slate-50 dark:bg-slate-900 rounded-lg p-3 border border-slate-200 dark:border-slate-800 max-h-48 overflow-y-auto">
                   <pre className="text-xs text-slate-600 dark:text-slate-400">
-                    {JSON.stringify(tenantStats.config?.tenant || tenantStats.config, null, 2)}
+                    {rawConfigString}
                   </pre>
                 </div>
               </div>
@@ -399,8 +451,8 @@ export default function TenantsPage() {
         isOpen={dbUpdateModalOpen}
         maxWidth="2xl"
         onClose={() => { setDbUpdateModalOpen(false); setSelectedTenant(null); }}
-        title={`Update Database: ${selectedTenant?.id || ""}`}
         subtitle="Update the custom BYOD database URL for this tenant."
+        title={`Update Database: ${selectedTenant?.id ?? ""}`}
       >
         <form onSubmit={(e) => { handleUpdateDbSubmit(e).catch(console.error); }}>
           <div className="grid gap-6 py-4">
@@ -423,7 +475,7 @@ export default function TenantsPage() {
               </div>
               <div className="bg-slate-900 rounded-lg p-3 overflow-x-auto">
                 <code className="text-xs text-green-400 whitespace-nowrap">
-                  {isStatsLoading ? "Loading..." : (renderConnectionTemplate(tenantStats) || "Not configured")}
+                  {isStatsLoading ? "Loading..." : (renderConnectionTemplate(tenantStats) ?? "Not configured")}
                 </code>
               </div>
             </div>
@@ -455,9 +507,69 @@ export default function TenantsPage() {
               disabled={updateDbMutation.isPending || !updateDbUrl}
               loading={updateDbMutation.isPending}
               type="submit"
-              variant="danger"
+              variant="destructive"
             >
               {updateDbMutation.isPending ? "Updating..." : "Update Database"}
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Update Pool Mode Modal */}
+      <Modal
+        isOpen={dbModeUpdateModalOpen}
+        maxWidth="2xl"
+        onClose={() => { setDbModeUpdateModalOpen(false); setSelectedTenant(null); setSelectedMode(null); }}
+        subtitle="Switch between Session and Transaction pooling modes for this tenant's connection pool."
+        title={`Update Pool Mode: ${selectedTenant?.id ?? ""}`}
+      >
+        <form onSubmit={(e) => { handleUpdateModeSubmit(e).catch(console.error); }}>
+          <div className="grid gap-6 py-4">
+            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 flex gap-3">
+              <Activity className="w-5 h-5 text-blue-600 dark:text-blue-400 shrink-0" />
+              <div className="text-sm text-blue-800 dark:text-blue-200 space-y-1">
+                <p className="font-semibold">Pooling Modes Information</p>
+                <ul className="list-disc list-inside space-y-1">
+                  <li><strong>Session Mode:</strong> Retains a database connection for the lifetime of the client session. Supports all Postgres features (e.g. temporary tables, prepared statements).</li>
+                  <li><strong>Transaction Mode:</strong> Releases connection back to the pool after each transaction. Extremely scalable, but does not support session-level parameters.</li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-300" htmlFor="selectedMode">
+                Select Pooling Mode <span className="text-red-500">*</span>
+              </label>
+              {isStatsLoading ? (
+                <div className="h-10 bg-slate-100 dark:bg-slate-800 animate-pulse rounded-md"></div>
+              ) : (
+                <select
+                  className="flex h-10 w-full rounded-md border border-slate-300 dark:border-slate-700 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:text-white dark:bg-slate-900"
+                  id="selectedMode"
+                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => { setSelectedMode(e.target.value); }}
+                  value={activeMode}
+                >
+                  <option value="session">Session</option>
+                  <option value="transaction">Transaction</option>
+                </select>
+              )}
+            </div>
+          </div>
+          <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800 mt-2">
+            <Button
+              onClick={() => { setDbModeUpdateModalOpen(false); }}
+              type="button"
+              variant="outline"
+            >
+              Cancel
+            </Button>
+            <Button
+              disabled={updateModeMutation.isPending || isStatsLoading}
+              loading={updateModeMutation.isPending}
+              type="submit"
+              variant="primary"
+            >
+              {updateModeMutation.isPending ? "Updating..." : "Update Pool Mode"}
             </Button>
           </div>
         </form>

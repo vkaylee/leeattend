@@ -90,8 +90,20 @@ export async function deleteSystemTenant(tenantId: string): Promise<void> {
   if (!response.ok) throw new Error("Failed to delete system tenant");
 }
 
+export interface TenantConfig {
+  db_database?: string;
+  default_mode?: string;
+  users?: {
+    db_user?: string;
+    mode_type?: string;
+    pool_size?: number;
+  }[];
+}
+
 export interface TenantConnectionStats {
-  config: any;
+  config: TenantConfig & {
+    tenant?: TenantConfig;
+  };
   connection: {
     host: string;
     port: string;
@@ -102,7 +114,7 @@ export interface TenantConnectionStats {
 export async function fetchSystemTenantStats(tenantId: string): Promise<TenantConnectionStats> {
   const response = await apiFetch(`${API_BASE_URL}/system/tenants/${tenantId}/stats`);
   if (!response.ok) throw new Error("Failed to fetch tenant stats");
-  return response.json();
+  return response.json() as Promise<TenantConnectionStats>;
 }
 
 export async function updateTenantDatabase(tenantId: string, customDbUrl: string): Promise<void> {
@@ -113,5 +125,16 @@ export async function updateTenantDatabase(tenantId: string, customDbUrl: string
   if (!response.ok) {
     const errText = await response.text();
     throw new Error(errText || "Failed to update tenant database");
+  }
+}
+
+export async function updateTenantMode(tenantId: string, modeType: string): Promise<void> {
+  const response = await apiFetch(`${API_BASE_URL}/system/tenants/${tenantId}/mode`, {
+    method: "PATCH",
+    body: JSON.stringify({ mode_type: modeType }),
+  });
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(errText || "Failed to update tenant mode");
   }
 }
