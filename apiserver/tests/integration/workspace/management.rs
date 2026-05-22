@@ -28,7 +28,10 @@ async fn test_workspace_creation_and_membership_smoke() {
     let deny = client
         .post(format!("{address}/api/workspaces"))
         .header("X-User-Id", regular_user.to_string())
-        .json(&serde_json::json!({ "name": "Unauthorized Workspace" }))
+        .json(&serde_json::json!({
+            "name": "Unauthorized Workspace",
+            "database_url": "postgres://user:pass@host:5432/db"
+        }))
         .send()
         .await
         .unwrap();
@@ -51,7 +54,10 @@ async fn test_workspace_creation_and_membership_smoke() {
     let response = client
         .post(format!("{address}/api/workspaces"))
         .header("X-User-Id", user_id.to_string())
-        .json(&serde_json::json!({ "name": "Valid Workspace" }))
+        .json(&serde_json::json!({
+            "name": "Valid Workspace",
+            "database_url": "postgres://user:pass@host:5432/db"
+        }))
         .send()
         .await
         .unwrap();
@@ -124,7 +130,10 @@ async fn test_create_workspace_with_non_existent_user() {
     let response = client
         .post(format!("{address}/api/workspaces"))
         .header("X-User-Id", fake_user_id.to_string())
-        .json(&serde_json::json!({ "name": "Ghost Workspace" }))
+        .json(&serde_json::json!({
+            "name": "Ghost Workspace",
+            "database_url": "postgres://user:pass@host:5432/db"
+        }))
         .send()
         .await
         .unwrap();

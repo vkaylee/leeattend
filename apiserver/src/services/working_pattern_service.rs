@@ -105,9 +105,7 @@ pub async fn create_working_pattern(
             if detail.schedule_day < 0 || detail.schedule_day >= cycle_len {
                 return Err(crate::errors::AppError::Validation(format!(
                     "schedule_day {} is out of range [0, {}) for cycle_length_days {}",
-                    detail.schedule_day,
-                    cycle_len,
-                    cycle_len,
+                    detail.schedule_day, cycle_len, cycle_len,
                 )));
             }
         }
@@ -192,9 +190,7 @@ pub async fn update_working_pattern(
             if detail.schedule_day < 0 || detail.schedule_day >= cycle_len {
                 return Err(crate::errors::AppError::Validation(format!(
                     "schedule_day {} is out of range [0, {}) for cycle_length_days {}",
-                    detail.schedule_day,
-                    cycle_len,
-                    cycle_len,
+                    detail.schedule_day, cycle_len, cycle_len,
                 )));
             }
         }
@@ -483,6 +479,7 @@ mod tests {
             p.name = name.to_string();
             Ok(p)
         }
+        #[allow(clippy::too_many_arguments)]
         async fn update_pattern_with_details(
             &self,
             _w: Uuid,

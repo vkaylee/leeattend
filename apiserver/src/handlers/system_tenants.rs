@@ -70,11 +70,12 @@ fn map_tenants_to_workspaces(
     tenants
         .into_iter()
         .map(|(external_id, pool_size, inserted_at, updated_at)| {
-            let (workspace_id, workspace_name) = if let Some((ws_id, ws_name)) = ws_map.get(&external_id) {
-                (Some(ws_id.to_string()), Some(ws_name.clone()))
-            } else {
-                (None, None)
-            };
+            let (workspace_id, workspace_name) =
+                if let Some((ws_id, ws_name)) = ws_map.get(&external_id) {
+                    (Some(ws_id.to_string()), Some(ws_name.clone()))
+                } else {
+                    (None, None)
+                };
 
             serde_json::json!({
                 "id": external_id,
@@ -151,7 +152,14 @@ pub async fn list_tenants(
         Ok(records) => {
             let records_tuples = records
                 .into_iter()
-                .map(|r| (r.external_id, r.default_pool_size, r.inserted_at, r.updated_at))
+                .map(|r| {
+                    (
+                        r.external_id,
+                        r.default_pool_size,
+                        r.inserted_at,
+                        r.updated_at,
+                    )
+                })
                 .collect::<Vec<_>>();
             map_tenants_to_workspaces(records_tuples, workspaces)
         }
@@ -561,7 +569,9 @@ pub async fn list_stale_tenants(
     let stale_tenants: Vec<serde_json::Value> = match tenants_result {
         Ok(records) => records
             .into_iter()
-            .filter(|t| t.external_id.starts_with("tenant_") && !active_tenant_ids.contains(&t.external_id))
+            .filter(|t| {
+                t.external_id.starts_with("tenant_") && !active_tenant_ids.contains(&t.external_id)
+            })
             .map(|r| {
                 serde_json::json!({
                     "id": r.external_id,
@@ -590,15 +600,24 @@ mod tests {
     fn test_mask_db_url_masks_password_in_valid_url() {
         let masked = mask_db_url("postgres://admin:supersecret@db.example.com:5432/mydb");
         assert!(masked.contains("***"), "Password must be masked");
-        assert!(!masked.contains("supersecret"), "Raw password must not appear");
+        assert!(
+            !masked.contains("supersecret"),
+            "Raw password must not appear"
+        );
         assert!(masked.contains("admin"), "Username should remain visible");
-        assert!(masked.contains("db.example.com"), "Host should remain visible");
+        assert!(
+            masked.contains("db.example.com"),
+            "Host should remain visible"
+        );
     }
 
     #[test]
     fn test_mask_db_url_masks_password_with_special_chars() {
         let masked = mask_db_url("postgres://user:p%40ss%23word!@host:5432/db");
-        assert!(!masked.contains("p%40ss"), "Encoded password must not appear");
+        assert!(
+            !masked.contains("p%40ss"),
+            "Encoded password must not appear"
+        );
         assert!(masked.contains("***"));
     }
 
@@ -666,7 +685,10 @@ mod tests {
     fn test_create_tenant_request_deserializes_full_payload() {
         let json = r#"{"workspace_id": "00000000-0000-0000-0000-000000000001", "database_url": "postgres://u:p@h/d", "pool_size": 20}"#;
         let req: CreateTenantRequest = serde_json::from_str(json).unwrap();
-        assert_eq!(req.workspace_id, Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap());
+        assert_eq!(
+            req.workspace_id,
+            Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap()
+        );
         assert_eq!(req.database_url, "postgres://u:p@h/d");
         assert_eq!(req.pool_size, Some(20));
     }
@@ -759,10 +781,7 @@ mod tests {
 
     /// Helper: computes stale tenant IDs given workspace UUIDs and registered
     /// Supavisor tenant IDs — same algorithm as the handler.
-    fn compute_stale_tenants(
-        workspace_ids: &[Uuid],
-        registered_tenants: &[&str],
-    ) -> Vec<String> {
+    fn compute_stale_tenants(workspace_ids: &[Uuid], registered_tenants: &[&str]) -> Vec<String> {
         let active_tenant_ids: std::collections::HashSet<String> = workspace_ids
             .iter()
             .map(|ws_id| format!("tenant_{}", ws_id.to_string().replace('-', "")))
@@ -810,17 +829,17 @@ mod tests {
         // The system tenant "leeattend" does not start with "tenant_" prefix
         // so it must never appear in stale results.
         let stale = compute_stale_tenants(&[], &["leeattend"]);
-        assert!(stale.is_empty(), "System tenant 'leeattend' must never be flagged as stale");
+        assert!(
+            stale.is_empty(),
+            "System tenant 'leeattend' must never be flagged as stale"
+        );
     }
 
     #[test]
     fn test_stale_detection_non_tenant_prefix_ignored() {
         // Any ID that doesn't start with "tenant_" should be ignored,
         // even if it doesn't match any workspace.
-        let stale = compute_stale_tenants(
-            &[],
-            &["leeattend", "custom_pool_abc", "metrics_tenant"],
-        );
+        let stale = compute_stale_tenants(&[], &["leeattend", "custom_pool_abc", "metrics_tenant"]);
         assert!(stale.is_empty());
     }
 
@@ -853,7 +872,10 @@ mod tests {
         let ws = Uuid::parse_str("abcdef01-2345-6789-abcd-ef0123456789").unwrap();
         let expected_tenant_id = "tenant_abcdef0123456789abcdef0123456789";
         let stale = compute_stale_tenants(&[ws], &[expected_tenant_id]);
-        assert!(stale.is_empty(), "Properly formatted tenant ID should match");
+        assert!(
+            stale.is_empty(),
+            "Properly formatted tenant ID should match"
+        );
     }
 
     #[test]
@@ -863,7 +885,11 @@ mod tests {
         let ws = Uuid::parse_str("abcdef01-2345-6789-abcd-ef0123456789").unwrap();
         let wrong_format = "tenant_abcdef01-2345-6789-abcd-ef0123456789";
         let stale = compute_stale_tenants(&[ws], &[wrong_format]);
-        assert_eq!(stale.len(), 1, "Hyphenated tenant ID must be flagged as stale");
+        assert_eq!(
+            stale.len(),
+            1,
+            "Hyphenated tenant ID must be flagged as stale"
+        );
     }
 
     #[test]

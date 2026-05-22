@@ -179,7 +179,17 @@ pub async fn build_roster_data(
             working_patterns::cycle_length_days,
             employee_working_patterns::anchor_date,
         ))
-        .load::<(Uuid, Uuid, NaiveDate, Option<NaiveDate>, i32, Option<Uuid>, String, Option<i32>, Option<NaiveDate>)>(&mut conn)
+        .load::<(
+            Uuid,
+            Uuid,
+            NaiveDate,
+            Option<NaiveDate>,
+            i32,
+            Option<Uuid>,
+            String,
+            Option<i32>,
+            Option<NaiveDate>,
+        )>(&mut conn)
         .await
         .map_err(|e| format!("pattern_assignments: {e}"))?;
 

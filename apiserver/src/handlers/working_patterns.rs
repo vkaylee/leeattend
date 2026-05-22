@@ -164,4 +164,3 @@ pub async fn update_pattern(
 
     Ok(Json(pattern))
 }
-

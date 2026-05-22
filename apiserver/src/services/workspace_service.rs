@@ -84,7 +84,12 @@ impl WorkspaceService {
         // The tenant_id must match the format produced by diesel_pool::get_tenant_url(),
         // which constructs tenant_<uuid-without-hyphens>. Using the raw UUID with hyphens
         // causes a mismatch when the API connects via Supavisor.
-        if let Some((tenant_id, payload)) = crate::supavisor::build_tenant_payload(&new_db_url) {
+        let tenant_id_alias = format!("tenant_{}", ws.id.to_string().replace('-', ""));
+        std::env::set_var("SUPAVISOR_TENANT_ID", &tenant_id_alias);
+        let payload_opt = crate::supavisor::build_tenant_payload(&new_db_url);
+        std::env::remove_var("SUPAVISOR_TENANT_ID");
+
+        if let Some((tenant_id, payload)) = payload_opt {
             self.tenant_manager
                 .register_tenant_dynamic(&tenant_id, &payload)
                 .await
@@ -585,7 +590,11 @@ mod tests {
     async fn test_create_workspace_success() {
         let svc = build_service(true);
         let ws = svc
-            .create_workspace("Acme Corp", Uuid::new_v4(), "postgres://u:p@h:5432/tenant_db")
+            .create_workspace(
+                "Acme Corp",
+                Uuid::new_v4(),
+                "postgres://u:p@h:5432/tenant_db",
+            )
             .await
             .unwrap();
         assert_eq!(ws.name, "Acme Corp");
@@ -597,7 +606,11 @@ mod tests {
         let svc = build_service_with_tenant_manager(true, tenant_manager.clone());
 
         let ws = svc
-            .create_workspace("Acme Corp", Uuid::new_v4(), "postgres://test_user:test_password@localhost:5432/tenant_db")
+            .create_workspace(
+                "Acme Corp",
+                Uuid::new_v4(),
+                "postgres://test_user:test_password@localhost:5432/tenant_db",
+            )
             .await
             .unwrap();
 

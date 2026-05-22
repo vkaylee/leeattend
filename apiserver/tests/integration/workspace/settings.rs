@@ -17,13 +17,9 @@ impl TenantProvisionerTrait for DummyTenantProvisioner {
     async fn provision_tenant_db(
         &self,
         _workspace_id: &Uuid,
-        custom_db_url: Option<String>,
+        db_url: &str,
     ) -> Result<String, apiserver::errors::AppError> {
-        if let Some(url) = custom_db_url {
-            Ok(url)
-        } else {
-            Ok("postgres://test:test@localhost:5432/test".to_string())
-        }
+        Ok(db_url.to_string())
     }
 }
 

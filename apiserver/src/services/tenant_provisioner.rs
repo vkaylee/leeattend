@@ -12,11 +12,7 @@ pub trait TenantProvisionerTrait: Send + Sync {
     /// The database must already exist. This trait does NOT create databases.
     /// The caller (user or external provider) is responsible for provisioning
     /// the database and providing a valid connection string.
-    async fn provision_tenant_db(
-        &self,
-        workspace_id: &Uuid,
-        db_url: &str,
-    ) -> AppResult<String>;
+    async fn provision_tenant_db(&self, workspace_id: &Uuid, db_url: &str) -> AppResult<String>;
 }
 
 /// Runs tenant migrations on an already-existing database.
@@ -25,6 +21,7 @@ pub trait TenantProvisionerTrait: Send + Sync {
 /// `TenantProvisionerTrait`. It connects to the provided `db_url`,
 /// runs all pending tenant-level migrations, and returns the URL
 /// unchanged for downstream Supavisor registration.
+#[derive(Default)]
 pub struct TenantMigrator;
 
 impl TenantMigrator {
@@ -35,11 +32,7 @@ impl TenantMigrator {
 
 #[async_trait]
 impl TenantProvisionerTrait for TenantMigrator {
-    async fn provision_tenant_db(
-        &self,
-        workspace_id: &Uuid,
-        db_url: &str,
-    ) -> AppResult<String> {
+    async fn provision_tenant_db(&self, workspace_id: &Uuid, db_url: &str) -> AppResult<String> {
         let db_url_owned = db_url.to_string();
         let ws_id = *workspace_id;
 
@@ -65,8 +58,7 @@ impl TenantProvisionerTrait for TenantMigrator {
             Ok::<(), AppError>(())
         })
         .await
-        .map_err(|e| AppError::Internal(format!("Migration blocking task failed: {e}")))?
-        ?;
+        .map_err(|e| AppError::Internal(format!("Migration blocking task failed: {e}")))??;
 
         info!(
             workspace_id = %ws_id,

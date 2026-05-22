@@ -314,7 +314,13 @@ mod tests {
         let mut data = (*empty_roster_data()).clone();
         data.pattern_assignments.insert(
             emp,
-            vec![weekly_entry(pattern_id, date(2026, 1, 1), None, dow, Some(shift_id))],
+            vec![weekly_entry(
+                pattern_id,
+                date(2026, 1, 1),
+                None,
+                dow,
+                Some(shift_id),
+            )],
         );
 
         let roster_map = HashMap::new();
@@ -348,7 +354,13 @@ mod tests {
             emp,
             vec![
                 weekly_entry(pattern_id, date(2026, 1, 1), None, dow, Some(shift_morning)),
-                weekly_entry(pattern_id, date(2026, 1, 1), None, dow, Some(shift_afternoon)),
+                weekly_entry(
+                    pattern_id,
+                    date(2026, 1, 1),
+                    None,
+                    dow,
+                    Some(shift_afternoon),
+                ),
             ],
         );
 
@@ -731,10 +743,42 @@ mod tests {
         data.pattern_assignments.insert(
             emp,
             vec![
-                rotation_entry(pattern_id, date(2026, 1, 1), None, 6, anchor, 0, Some(morning)),
-                rotation_entry(pattern_id, date(2026, 1, 1), None, 6, anchor, 1, Some(morning)),
-                rotation_entry(pattern_id, date(2026, 1, 1), None, 6, anchor, 2, Some(night)),
-                rotation_entry(pattern_id, date(2026, 1, 1), None, 6, anchor, 3, Some(night)),
+                rotation_entry(
+                    pattern_id,
+                    date(2026, 1, 1),
+                    None,
+                    6,
+                    anchor,
+                    0,
+                    Some(morning),
+                ),
+                rotation_entry(
+                    pattern_id,
+                    date(2026, 1, 1),
+                    None,
+                    6,
+                    anchor,
+                    1,
+                    Some(morning),
+                ),
+                rotation_entry(
+                    pattern_id,
+                    date(2026, 1, 1),
+                    None,
+                    6,
+                    anchor,
+                    2,
+                    Some(night),
+                ),
+                rotation_entry(
+                    pattern_id,
+                    date(2026, 1, 1),
+                    None,
+                    6,
+                    anchor,
+                    3,
+                    Some(night),
+                ),
                 rotation_entry(pattern_id, date(2026, 1, 1), None, 6, anchor, 4, None), // OFF
                 rotation_entry(pattern_id, date(2026, 1, 1), None, 6, anchor, 5, None), // OFF
             ],
@@ -879,7 +923,13 @@ mod tests {
         let mut data = (*empty_roster_data()).clone();
         data.pattern_assignments.insert(
             emp,
-            vec![weekly_entry(pattern_id, date(2026, 1, 1), None, dow, Some(shift_id))],
+            vec![weekly_entry(
+                pattern_id,
+                date(2026, 1, 1),
+                None,
+                dow,
+                Some(shift_id),
+            )],
         );
 
         let roster_map = HashMap::new();
@@ -911,16 +961,48 @@ mod tests {
         data.pattern_assignments.insert(
             emp_a,
             vec![
-                rotation_entry(pattern_id, date(2026, 1, 1), None, 6, date(2026, 1, 5), 0, Some(morning)),
-                rotation_entry(pattern_id, date(2026, 1, 1), None, 6, date(2026, 1, 5), 2, Some(night)),
+                rotation_entry(
+                    pattern_id,
+                    date(2026, 1, 1),
+                    None,
+                    6,
+                    date(2026, 1, 5),
+                    0,
+                    Some(morning),
+                ),
+                rotation_entry(
+                    pattern_id,
+                    date(2026, 1, 1),
+                    None,
+                    6,
+                    date(2026, 1, 5),
+                    2,
+                    Some(night),
+                ),
             ],
         );
         // Employee B: anchor Jan 7 → cycle_day = (7-7) % 6 = 0 → Morning
         data.pattern_assignments.insert(
             emp_b,
             vec![
-                rotation_entry(pattern_id, date(2026, 1, 1), None, 6, date(2026, 1, 7), 0, Some(morning)),
-                rotation_entry(pattern_id, date(2026, 1, 1), None, 6, date(2026, 1, 7), 2, Some(night)),
+                rotation_entry(
+                    pattern_id,
+                    date(2026, 1, 1),
+                    None,
+                    6,
+                    date(2026, 1, 7),
+                    0,
+                    Some(morning),
+                ),
+                rotation_entry(
+                    pattern_id,
+                    date(2026, 1, 1),
+                    None,
+                    6,
+                    date(2026, 1, 7),
+                    2,
+                    Some(night),
+                ),
             ],
         );
 
@@ -943,8 +1025,16 @@ mod tests {
             target_date,
         );
 
-        assert_eq!(shift_a, vec![Some(night)], "Employee A on cycle_day 2 → Night");
-        assert_eq!(shift_b, vec![Some(morning)], "Employee B on cycle_day 0 → Morning");
+        assert_eq!(
+            shift_a,
+            vec![Some(night)],
+            "Employee A on cycle_day 2 → Night"
+        );
+        assert_eq!(
+            shift_b,
+            vec![Some(morning)],
+            "Employee B on cycle_day 0 → Morning"
+        );
     }
 
     #[test]
@@ -1047,8 +1137,24 @@ mod tests {
         data.pattern_assignments.insert(
             emp,
             vec![
-                rotation_entry(pattern_id, date(2026, 1, 1), None, 3, anchor, 0, Some(morning)),
-                rotation_entry(pattern_id, date(2026, 1, 1), None, 3, anchor, 0, Some(evening)),
+                rotation_entry(
+                    pattern_id,
+                    date(2026, 1, 1),
+                    None,
+                    3,
+                    anchor,
+                    0,
+                    Some(morning),
+                ),
+                rotation_entry(
+                    pattern_id,
+                    date(2026, 1, 1),
+                    None,
+                    3,
+                    anchor,
+                    0,
+                    Some(evening),
+                ),
                 rotation_entry(pattern_id, date(2026, 1, 1), None, 3, anchor, 1, None),
                 rotation_entry(pattern_id, date(2026, 1, 1), None, 3, anchor, 2, None),
             ],

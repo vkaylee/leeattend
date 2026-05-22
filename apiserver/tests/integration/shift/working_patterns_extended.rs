@@ -59,11 +59,11 @@ async fn test_working_pattern_crud_lifecycle() {
         "name": "Standard 5-Day",
         "description": "Monday to Friday standard schedule",
         "details": [
-            { "day_of_week": 1, "shift_id": shift_id },
-            { "day_of_week": 2, "shift_id": shift_id },
-            { "day_of_week": 3, "shift_id": shift_id },
-            { "day_of_week": 4, "shift_id": shift_id },
-            { "day_of_week": 5, "shift_id": shift_id }
+            { "schedule_day": 1, "shift_id": shift_id },
+            { "schedule_day": 2, "shift_id": shift_id },
+            { "schedule_day": 3, "shift_id": shift_id },
+            { "schedule_day": 4, "shift_id": shift_id },
+            { "schedule_day": 5, "shift_id": shift_id }
         ]
     });
 
@@ -284,8 +284,8 @@ async fn test_bulk_assign_pattern() {
         "name": "Full Week",
         "description": "7 days",
         "details": [
-            { "day_of_week": 0, "shift_id": shift_id },
-            { "day_of_week": 1, "shift_id": shift_id }
+            { "schedule_day": 0, "shift_id": shift_id },
+            { "schedule_day": 1, "shift_id": shift_id }
         ]
     });
 

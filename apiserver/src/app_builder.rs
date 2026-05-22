@@ -208,9 +208,8 @@ impl AppState {
         let shift_service = Arc::new(crate::services::shift_service::ShiftService::new(
             shift_repo.clone(),
         ));
-        let tenant_provisioner = Arc::new(
-            crate::services::tenant_provisioner::TenantMigrator::new(),
-        );
+        let tenant_provisioner =
+            Arc::new(crate::services::tenant_provisioner::TenantMigrator::new());
 
         let workspace_service =
             Arc::new(crate::services::workspace_service::WorkspaceService::new(

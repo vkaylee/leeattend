@@ -19,6 +19,7 @@ pub trait WorkingPatternRepositoryTrait: Send + Sync {
         details: Vec<(i32, Option<Uuid>)>, // (schedule_day, shift_id)
     ) -> Result<WorkingPattern, AppError>;
 
+    #[allow(clippy::too_many_arguments)]
     async fn update_pattern_with_details(
         &self,
         workspace_id: Uuid,

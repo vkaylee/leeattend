@@ -30,6 +30,22 @@ services:
       <<: *healthcheck-base
       test: "pg_isready -U ${DB_USER} -d ${DB_NAME}"
 
+  db_tenant:
+    image: public.ecr.aws/docker/library/postgres:18-alpine
+    restart: always
+    networks:
+      - backend_net
+    environment:
+      - TZ=Asia/Bangkok
+      - PGTZ=Asia/Bangkok
+      - POSTGRES_DB=tenant_db
+      - POSTGRES_USER=tenant_user
+      - POSTGRES_PASSWORD=tenant_password
+    healthcheck:
+      <<: *healthcheck-base
+      test: "pg_isready -U tenant_user -d tenant_db"
+
+
   db_legacy:
     image: public.ecr.aws/docker/library/postgres:18-alpine
     profiles: ["migration"]

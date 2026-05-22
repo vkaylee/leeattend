@@ -64,7 +64,7 @@ impl apiserver::supavisor::TenantManager for TestMockTenantManager {
 #[tokio::test]
 async fn test_create_and_delete_tenant_with_mock() {
     let mock_manager = Arc::new(TestMockTenantManager::default());
-    let (address, _workspace_id, user_id, factory, _db) =
+    let (address, workspace_id, user_id, factory, _db) =
         spawn_app_with_factory_extended(mock_manager.clone()).await;
 
     // Make the user a PlatformAdmin
@@ -77,10 +77,10 @@ async fn test_create_and_delete_tenant_with_mock() {
     let client = reqwest::Client::new();
 
     // 1. Create Tenant
-    let new_ws_id = uuid::Uuid::new_v4();
+    let new_ws_id = workspace_id;
     let req = serde_json::json!({
         "workspace_id": new_ws_id,
-        "custom_db_url": null,
+        "database_url": "postgres://user:pass@localhost:5432/test_db",
         "pool_size": 15
     });
 
@@ -171,7 +171,7 @@ async fn test_create_tenant_with_byod() {
 
     let req = serde_json::json!({
         "workspace_id": new_ws_id,
-        "custom_db_url": custom_url,
+        "database_url": custom_url,
         "pool_size": 25
     });
 
@@ -280,7 +280,7 @@ async fn test_create_tenant_requires_platform_admin() {
     let new_ws_id = uuid::Uuid::new_v4();
     let req = serde_json::json!({
         "workspace_id": new_ws_id,
-        "custom_db_url": "postgres://fake:fake@host/hacked_db",
+        "database_url": "postgres://fake:fake@host/hacked_db",
         "pool_size": 15
     });
 
@@ -392,7 +392,7 @@ async fn test_update_tenant_database() {
 
     let custom_url = "postgres://user:pass@new-host:5432/new_db";
     let req = serde_json::json!({
-        "custom_db_url": custom_url
+        "database_url": custom_url
     });
 
     // 1. PUT update database
@@ -648,7 +648,7 @@ async fn test_update_tenant_database_requires_admin() {
     let tenant_id = format!("tenant_{}", workspace_id.to_string().replace('-', ""));
 
     let req = serde_json::json!({
-        "custom_db_url": "postgres://hacker:evil@evil-host:5432/stolen_db"
+        "database_url": "postgres://hacker:evil@evil-host:5432/stolen_db"
     });
 
     let response = client
@@ -693,7 +693,7 @@ async fn test_update_tenant_database_invalid_tenant_id() {
     let client = reqwest::Client::new();
 
     let req = serde_json::json!({
-        "custom_db_url": "postgres://user:pass@host:5432/db"
+        "database_url": "postgres://user:pass@host:5432/db"
     });
 
     // Use an invalid tenant_id (not a valid UUID)

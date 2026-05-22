@@ -94,6 +94,7 @@ impl WorkingPatternRepositoryTrait for DieselWorkingPatternRepository {
         Ok(result.into())
     }
 
+    #[allow(clippy::too_many_arguments)]
     async fn update_pattern_with_details(
         &self,
         workspace_id: Uuid,

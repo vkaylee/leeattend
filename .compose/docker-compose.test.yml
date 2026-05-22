@@ -54,6 +54,27 @@ services:
     tmpfs:
       - /var/lib/postgresql/data:size=3072M
 
+  db_tenant:
+    image: public.ecr.aws/docker/library/postgres:18-alpine
+    profiles:
+      - infra-db
+    networks:
+      - test_net
+    command: postgres -c fsync=off -c synchronous_commit=off -c full_page_writes=off -c max_connections=1000
+    environment:
+      - POSTGRES_DB=tenant_test_db
+      - POSTGRES_USER=tenant_test_user
+      - POSTGRES_PASSWORD=tenant_test_password
+      - POSTGRES_HOST_AUTH_METHOD=trust
+    shm_size: 512mb
+    healthcheck:
+      test: "pg_isready -U tenant_test_user -d tenant_test_db"
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    tmpfs:
+      - /var/lib/postgresql:size=1024M
+
   redis:
     image: public.ecr.aws/docker/library/redis:7-alpine
     profiles:

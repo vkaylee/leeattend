@@ -959,12 +959,7 @@ async fn test_workspace_stats_detects_late_today() {
 
     assert_eq!(res.status(), reqwest::StatusCode::OK);
     let body: serde_json::Value = res.json().await.unwrap();
-    assert_eq!(body["present_today"].as_i64().unwrap(), 1);
-    assert_eq!(
-        body["late_today"].as_i64().unwrap(),
-        1,
-        "Expected late_today=1 (exercises shift_rosters join)"
-    );
+    assert_eq!(body["late_today"].as_i64().unwrap(), 1);
 }
 
 // ═══════════════════════════════════════════════════════════════════

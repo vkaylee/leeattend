@@ -59,11 +59,11 @@ async fn test_working_pattern_crud_lifecycle_smoke() {
     let create_body = serde_json::json!({
         "name": "Mon-Fri Standard",
         "details": [
-            { "day_of_week": 1, "shift_id": shift_id },
-            { "day_of_week": 2, "shift_id": shift_id },
-            { "day_of_week": 3, "shift_id": shift_id },
-            { "day_of_week": 4, "shift_id": shift_id },
-            { "day_of_week": 5, "shift_id": shift_id }
+            { "schedule_day": 1, "shift_id": shift_id },
+            { "schedule_day": 2, "shift_id": shift_id },
+            { "schedule_day": 3, "shift_id": shift_id },
+            { "schedule_day": 4, "shift_id": shift_id },
+            { "schedule_day": 5, "shift_id": shift_id }
         ]
     });
 
@@ -149,9 +149,9 @@ async fn test_working_pattern_assign_to_employee() {
     let create_body = serde_json::json!({
         "name": "Weekday Pattern",
         "details": [
-            { "day_of_week": 1, "shift_id": shift_id },
-            { "day_of_week": 2, "shift_id": shift_id },
-            { "day_of_week": 3, "shift_id": shift_id }
+            { "schedule_day": 1, "shift_id": shift_id },
+            { "schedule_day": 2, "shift_id": shift_id },
+            { "schedule_day": 3, "shift_id": shift_id }
         ]
     });
 
