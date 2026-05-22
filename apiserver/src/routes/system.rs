@@ -27,6 +27,10 @@ pub fn router() -> Router<Arc<AppState>> {
             get(system_tenants::list_tenants).post(system_tenants::create_tenant),
         )
         .route(
+            "/system/tenants/stale",
+            get(system_tenants::list_stale_tenants),
+        )
+        .route(
             "/system/tenants/:tenant_id",
             delete(system_tenants::delete_tenant_handler),
         )

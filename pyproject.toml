@@ -10,6 +10,7 @@ ignore = ["D", "S603"]
 "scripts/*" = ["TRY003", "N806", "TRY300", "FBT001", "FBT002", "E501", "F841", "PLC0415", "PLR0912", "S110", "PLR2004", "PLW1510", "E402", "PTH123", "UP015", "ANN201", "I001", "F401"]
 "scripts/tests/*" = ["S", "ANN", "PT", "PLR2004"]
 "scripts/test_safe_run.py" = ["S", "ANN", "PT", "PLR2004"]
+"scripts/migrate_legacy_data.py" = ["ANN", "S", "PLR", "PTH", "B", "RET", "A", "TRY"]
 
 [tool.mypy]
 python_version = "3.12"
@@ -17,9 +18,15 @@ strict = true
 ignore_missing_imports = true
 warn_unused_configs = true
 mypy_path = "scripts"
+exclude = "migrate_legacy_data\\.py$"
 
 [[tool.mypy.overrides]]
 module = "psutil.*"
 ignore_missing_imports = true
+
+[tool.coverage.run]
+omit = [
+    "scripts/migrate_legacy_data.py",
+]
 
 

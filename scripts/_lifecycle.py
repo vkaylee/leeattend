@@ -117,7 +117,7 @@ def lifecycle_up(mode: str = "all") -> bool:
                 healthy = True
                 break
             time.sleep(1)  # pragma: no cover
-        
+
         if not healthy:
             # Diagnostic
             _run(

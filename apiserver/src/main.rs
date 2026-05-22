@@ -219,7 +219,7 @@ async fn register_workspace_tenants_and_migrate(
     // Query workspaces from system DB via direct connection
     let primary_url = db_config.primary_url.clone();
     let primary_url_for_parse = primary_url.clone();
-    let rows: Vec<Uuid> = match tokio::task::spawn_blocking(move || {
+    let workspaces: Vec<Uuid> = match tokio::task::spawn_blocking(move || {
         use diesel::sql_types::Uuid as UuidSql;
         use diesel::{Connection, QueryableByName, RunQueryDsl};
 
@@ -231,10 +231,13 @@ async fn register_workspace_tenants_and_migrate(
 
         let mut conn = diesel::PgConnection::establish(&primary_url)
             .map_err(|e| format!("Failed to connect: {e}"))?;
-        diesel::sql_query("SELECT id FROM workspaces")
+
+        let workspaces = diesel::sql_query("SELECT id FROM workspaces")
             .load::<WsRow>(&mut conn)
             .map(|r| r.into_iter().map(|w| w.id).collect())
-            .map_err(|e| format!("Failed to query workspaces: {e}"))
+            .map_err(|e| format!("Failed to query workspaces: {e}"))?;
+
+        Ok::<_, String>(workspaces)
     })
     .await
     {
@@ -249,7 +252,7 @@ async fn register_workspace_tenants_and_migrate(
         }
     };
 
-    if rows.is_empty() {
+    if workspaces.is_empty() {
         tracing::info!("No workspaces — skipping tenant registration and migrations");
         return;
     }
@@ -262,26 +265,15 @@ async fn register_workspace_tenants_and_migrate(
             return;
         }
     };
-    let host = parsed_url.host_str().unwrap_or("db");
-    let port = parsed_url.port().unwrap_or(5432);
-    let user = parsed_url.username();
-    let pass = parsed_url.password().unwrap_or("");
-
-    for ws_id in &rows {
+    for ws_id in &workspaces {
         let db_name = format!("tenant_{}", ws_id.to_string().replace('-', ""));
-        let payload = serde_json::json!({
-            "tenant": {
-                "db_host": host,
-                "db_port": port,
-                "db_database": db_name,
-                "enforce_ssl": false,
-                "users": [{
-                    "db_user": user,
-                    "db_password": pass,
-                    "pool_size": 5
-                }]
-            }
-        });
+        let mut tenant_url = parsed_url.clone();
+        tenant_url.set_path(&db_name);
+
+        let Some((_, payload)) = apiserver::supavisor::build_tenant_payload(tenant_url.as_str()) else {
+            tracing::warn!("Failed to build tenant payload for {}", db_name);
+            continue;
+        };
 
         if let Err(e) = tenant_manager
             .register_tenant_dynamic(&db_name, &payload)

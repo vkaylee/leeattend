@@ -1184,9 +1184,20 @@
         },
         "messages": {
           "create_success": "Tạo tenant thành công",
-          "delete_success": "Xóa tenant thành công"
+          "delete_success": "Xóa tenant thành công",
+          "clean_success": "Đã dọn dẹp cấu hình tenant dư thừa thành công"
         },
-        "confirm_delete": "Bạn có chắc chắn muốn xóa tenant này không? Thao tác này sẽ xóa cấu hình khỏi Supavisor."
+        "confirm_delete": "Bạn có chắc chắn muốn xóa tenant này không? Thao tác này sẽ xóa cấu hình khỏi Supavisor.",
+        "check_stale_btn": "Kiểm tra Tenant Dư thừa",
+        "stale_modal": {
+          "title": "Cấu hình Tenant Dư thừa",
+          "subtitle": "Các tenant này đã đăng ký trong Supavisor nhưng không tương ứng với bất kỳ workspace nào đang hoạt động. Bạn có thể dọn dẹp chúng một cách an toàn.",
+          "no_stale": "Không tìm thấy cấu hình tenant dư thừa. Mọi thứ đều sạch sẽ!",
+          "clean_all": "Dọn dẹp tất cả",
+          "confirm_clean": "Bạn có chắc chắn muốn xóa cấu hình tenant dư thừa này khỏi Supavisor? Thao tác này chỉ xóa định tuyến và không ảnh hưởng đến cơ sở dữ liệu vật lý.",
+          "confirm_clean_all": "Bạn có chắc chắn muốn xóa tất cả cấu hình tenant dư thừa khỏi Supavisor? Thao tác này chỉ xóa các định tuyến và không ảnh hưởng đến cơ sở dữ liệu vật lý.",
+          "scanning": "Đang quét tìm cấu hình dư thừa..."
+        }
       }
     },
     "delete_confirm": "common.delete_confirm",

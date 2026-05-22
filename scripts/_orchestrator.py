@@ -242,7 +242,7 @@ class Orchestrator:
         )
         manage_cmd_sub = manage_parser.add_subparsers(dest="subcommand", required=True)
 
-        for cmd in ["up", "down", "ps"]:
+        for cmd in ["up", "down", "ps", "clean"]:
             p = manage_cmd_sub.add_parser(cmd, parents=[parent_parser])
             p.add_argument("env", choices=["dev", "test", "prod"], default="dev", nargs="?")
 
@@ -259,7 +259,6 @@ class Orchestrator:
             "db:setup",
             "prebuild",
             "fmt:infra",
-            "clean",
             "doctor",
             "verify:infra",
         ]
@@ -437,7 +436,9 @@ class Orchestrator:
                 mode,
                 test_pattern=getattr(args, "pattern", "") or "",
             ),
-            "Coverage": lambda: leeattend_run_coverage(getattr(args, "component", "") or "", mode, getattr(args, "unit_only", False)),
+            "Coverage": lambda: leeattend_run_coverage(
+                getattr(args, "component", "") or "", mode, getattr(args, "unit_only", False)
+            ),
         }
 
         func = func_map.get(phase_name)
@@ -471,7 +472,6 @@ class Orchestrator:
             "fmt:infra": self.handle_fmt_infra,
             "doctor": self.handle_doctor,
             "verify:infra": self.handle_verify_infra,
-            "clean": lambda: log_info("Clean not implemented yet"),
         }
 
         if sub in simple_dispatch:
@@ -480,16 +480,19 @@ class Orchestrator:
 
         if sub == "db:query":
             self.handle_db_query(args)
-        elif sub in ["up", "down", "ps", "logs"]:
+        elif sub in ["up", "down", "ps", "clean", "logs"]:
             target_env: str = getattr(args, "env", "dev")
             files = self.get_compose_files(target_env)
-            cmd = self.compose_engine + files + [sub]
-            if sub == "up":
-                cmd.append("-d")
-            if sub == "logs":
-                cmd.append("-f")
-                if args.service:
-                    cmd.append(args.service)
+            if sub == "clean":
+                cmd = self.compose_engine + files + ["down", "-v"]
+            else:
+                cmd = self.compose_engine + files + [sub]
+                if sub == "up":
+                    cmd.append("-d")
+                if sub == "logs":
+                    cmd.append("-f")
+                    if args.service:
+                        cmd.append(args.service)
             self.execute_safe(cmd)
         elif sub == "exec":
             files = self.get_compose_files("dev")

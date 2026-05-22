@@ -147,7 +147,9 @@ def leeattend_run_integration(
     return run_parallel_ordered("Integration & E2E", component_filter, tasks)
 
 
-def leeattend_run_coverage(component_filter: str = "", mode: str = "all", unit_only: bool = False) -> bool:
+def leeattend_run_coverage(
+    component_filter: str = "", mode: str = "all", unit_only: bool = False
+) -> bool:
     """Run test coverage (cargo llvm-cov, vitest coverage)."""
     tasks: list[tuple[str, str, list[str]]] = []
 

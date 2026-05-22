@@ -1,6 +1,6 @@
 use serde_json::json;
 
-pub(crate) fn build_tenant_payload(db_url: &str) -> Option<(String, serde_json::Value)> {
+pub fn build_tenant_payload(db_url: &str) -> Option<(String, serde_json::Value)> {
     let Ok(parsed_url) = reqwest::Url::parse(db_url) else {
         tracing::warn!("Failed to parse DATABASE_URL: {db_url}");
         return None;

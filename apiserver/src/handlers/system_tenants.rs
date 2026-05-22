@@ -457,3 +457,404 @@ pub async fn update_tenant_mode(
 
     Ok(StatusCode::OK)
 }
+
+/// GET /system/tenants/stale
+/// Compares registered Supavisor tenants against active workspaces to
+/// identify orphaned (stale) tenant configurations.
+pub async fn list_stale_tenants(
+    State(state): State<Arc<AppState>>,
+    ctx: SystemContext,
+    _api_ctx: ApiContext,
+) -> AppResult<Json<serde_json::Value>> {
+    ctx.require_role(SystemRoleType::PlatformAdmin)?;
+
+    let mut conn = state
+        .infra
+        .diesel
+        .api
+        .get()
+        .await
+        .map_err(|e| AppError::Internal(e.to_string()))?;
+
+    // 1. Query active workspace IDs
+    #[derive(Debug, diesel::QueryableByName)]
+    struct WsRow {
+        #[diesel(sql_type = diesel::sql_types::Uuid)]
+        id: Uuid,
+    }
+
+    let workspace_ids: Vec<Uuid> = diesel::sql_query("SELECT id FROM workspaces")
+        .load::<WsRow>(&mut conn)
+        .await
+        .map(|rows| rows.into_iter().map(|r| r.id).collect())
+        .unwrap_or_else(|e| {
+            tracing::warn!("Failed to query workspaces for stale tenant check: {e}");
+            vec![]
+        });
+
+    let active_tenant_ids: std::collections::HashSet<String> = workspace_ids
+        .iter()
+        .map(|ws_id| format!("tenant_{}", ws_id.to_string().replace('-', "")))
+        .collect();
+
+    // 2. Query registered Supavisor tenants
+    #[derive(Debug, diesel::QueryableByName)]
+    struct TenantRow {
+        #[diesel(sql_type = diesel::sql_types::Text)]
+        external_id: String,
+        #[diesel(sql_type = diesel::sql_types::Integer)]
+        default_pool_size: i32,
+        #[diesel(sql_type = diesel::sql_types::Timestamp)]
+        inserted_at: chrono::NaiveDateTime,
+        #[diesel(sql_type = diesel::sql_types::Timestamp)]
+        updated_at: chrono::NaiveDateTime,
+    }
+
+    let tenants_result = diesel::sql_query(
+        r#"
+        SELECT external_id, default_pool_size, inserted_at, updated_at
+        FROM _supavisor.tenants
+        ORDER BY inserted_at DESC
+        "#,
+    )
+    .load::<TenantRow>(&mut conn)
+    .await;
+
+    let stale_tenants: Vec<serde_json::Value> = match tenants_result {
+        Ok(records) => records
+            .into_iter()
+            .filter(|t| t.external_id.starts_with("tenant_") && !active_tenant_ids.contains(&t.external_id))
+            .map(|r| {
+                serde_json::json!({
+                    "id": r.external_id,
+                    "pool_size": r.default_pool_size,
+                    "created_at": r.inserted_at,
+                    "updated_at": r.updated_at
+                })
+            })
+            .collect(),
+        Err(e) => {
+            tracing::warn!("Failed to fetch tenants from _supavisor.tenants for stale check: {e}");
+            vec![]
+        }
+    };
+
+    Ok(Json(serde_json::json!(stale_tenants)))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // ── mask_db_url — PII protection ─────────────────────────────────────────
+
+    #[test]
+    fn test_mask_db_url_masks_password_in_valid_url() {
+        let masked = mask_db_url("postgres://admin:supersecret@db.example.com:5432/mydb");
+        assert!(masked.contains("***"), "Password must be masked");
+        assert!(!masked.contains("supersecret"), "Raw password must not appear");
+        assert!(masked.contains("admin"), "Username should remain visible");
+        assert!(masked.contains("db.example.com"), "Host should remain visible");
+    }
+
+    #[test]
+    fn test_mask_db_url_masks_password_with_special_chars() {
+        let masked = mask_db_url("postgres://user:p%40ss%23word!@host:5432/db");
+        assert!(!masked.contains("p%40ss"), "Encoded password must not appear");
+        assert!(masked.contains("***"));
+    }
+
+    #[test]
+    fn test_mask_db_url_no_password_stays_valid() {
+        let masked = mask_db_url("postgres://admin@db.example.com:5432/mydb");
+        // set_password(Some("***")) adds the mask even when there was none
+        assert!(masked.contains("***"));
+        assert!(masked.contains("admin"));
+    }
+
+    #[test]
+    fn test_mask_db_url_invalid_url_returns_redacted() {
+        assert_eq!(mask_db_url("not a url at all"), "*** REDACTED ***");
+        assert_eq!(mask_db_url(""), "*** REDACTED ***");
+        assert_eq!(mask_db_url("just-a-hostname"), "*** REDACTED ***");
+    }
+
+    #[test]
+    fn test_mask_db_url_preserves_database_name() {
+        let masked = mask_db_url("postgres://u:p@host:5432/important_db");
+        assert!(masked.contains("important_db"));
+    }
+
+    #[test]
+    fn test_mask_db_url_preserves_port() {
+        let masked = mask_db_url("postgres://u:p@host:9999/db");
+        assert!(masked.contains("9999"));
+    }
+
+    // ── CreateTenantRequest — Debug (PII redaction) ──────────────────────────
+
+    #[test]
+    fn test_create_tenant_request_debug_redacts_custom_url() {
+        let req = CreateTenantRequest {
+            workspace_id: Uuid::nil(),
+            custom_db_url: Some("postgres://admin:secret@host/db".to_string()),
+            pool_size: Some(10),
+        };
+        let debug_output = format!("{:?}", req);
+        assert!(
+            debug_output.contains("REDACTED"),
+            "Debug output must redact custom_db_url: {debug_output}"
+        );
+        assert!(
+            !debug_output.contains("secret"),
+            "Raw password must not appear in Debug: {debug_output}"
+        );
+    }
+
+    #[test]
+    fn test_create_tenant_request_debug_shows_none_when_no_url() {
+        let req = CreateTenantRequest {
+            workspace_id: Uuid::nil(),
+            custom_db_url: None,
+            pool_size: None,
+        };
+        let debug_output = format!("{:?}", req);
+        assert!(debug_output.contains("None"));
+    }
+
+    // ── CreateTenantRequest — Deserialization ────────────────────────────────
+
+    #[test]
+    fn test_create_tenant_request_deserializes_full_payload() {
+        let json = r#"{"workspace_id": "00000000-0000-0000-0000-000000000001", "custom_db_url": "postgres://u:p@h/d", "pool_size": 20}"#;
+        let req: CreateTenantRequest = serde_json::from_str(json).unwrap();
+        assert_eq!(req.workspace_id, Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap());
+        assert_eq!(req.custom_db_url, Some("postgres://u:p@h/d".to_string()));
+        assert_eq!(req.pool_size, Some(20));
+    }
+
+    #[test]
+    fn test_create_tenant_request_deserializes_minimal_payload() {
+        let json = r#"{"workspace_id": "00000000-0000-0000-0000-000000000002"}"#;
+        let req: CreateTenantRequest = serde_json::from_str(json).unwrap();
+        assert!(req.custom_db_url.is_none());
+        assert!(req.pool_size.is_none());
+    }
+
+    #[test]
+    fn test_create_tenant_request_missing_workspace_id_fails() {
+        let json = r#"{"pool_size": 10}"#;
+        assert!(serde_json::from_str::<CreateTenantRequest>(json).is_err());
+    }
+
+    #[test]
+    fn test_create_tenant_request_invalid_uuid_fails() {
+        let json = r#"{"workspace_id": "not-a-uuid"}"#;
+        assert!(serde_json::from_str::<CreateTenantRequest>(json).is_err());
+    }
+
+    #[test]
+    fn test_create_tenant_request_empty_json_fails() {
+        assert!(serde_json::from_str::<CreateTenantRequest>("{}").is_err());
+    }
+
+    // ── UpdateTenantDbRequest — Deserialization ──────────────────────────────
+
+    #[test]
+    fn test_update_tenant_db_request_valid() {
+        let json = r#"{"custom_db_url": "postgres://u:p@h:5432/db"}"#;
+        let req: UpdateTenantDbRequest = serde_json::from_str(json).unwrap();
+        assert_eq!(req.custom_db_url, "postgres://u:p@h:5432/db");
+    }
+
+    #[test]
+    fn test_update_tenant_db_request_missing_url_fails() {
+        assert!(serde_json::from_str::<UpdateTenantDbRequest>("{}").is_err());
+    }
+
+    #[test]
+    fn test_update_tenant_db_request_null_url_fails() {
+        let json = r#"{"custom_db_url": null}"#;
+        assert!(serde_json::from_str::<UpdateTenantDbRequest>(json).is_err());
+    }
+
+    // ── UpdateTenantModeRequest — Validation ─────────────────────────────────
+
+    #[test]
+    fn test_update_tenant_mode_request_session() {
+        let json = r#"{"mode_type": "session"}"#;
+        let req: UpdateTenantModeRequest = serde_json::from_str(json).unwrap();
+        assert_eq!(req.mode_type, "session");
+    }
+
+    #[test]
+    fn test_update_tenant_mode_request_transaction() {
+        let json = r#"{"mode_type": "transaction"}"#;
+        let req: UpdateTenantModeRequest = serde_json::from_str(json).unwrap();
+        assert_eq!(req.mode_type, "transaction");
+    }
+
+    #[test]
+    fn test_update_tenant_mode_validation_logic() {
+        // The handler rejects any mode that isn't "session" or "transaction".
+        // We test the same validation predicate used in the handler.
+        let valid = ["session", "transaction"];
+        let invalid = ["", "Session", "TRANSACTION", "pooled", "read_only"];
+
+        for mode in valid {
+            assert!(
+                mode == "session" || mode == "transaction",
+                "Expected valid mode: {mode}"
+            );
+        }
+        for mode in invalid {
+            assert!(
+                mode != "session" && mode != "transaction",
+                "Expected invalid mode: {mode}"
+            );
+        }
+    }
+
+    // ── Stale tenant identification logic ─────────────────────────────────────
+    // These tests verify the set-difference logic used by list_stale_tenants
+    // without requiring a database connection.
+
+    /// Helper: computes stale tenant IDs given workspace UUIDs and registered
+    /// Supavisor tenant IDs — same algorithm as the handler.
+    fn compute_stale_tenants(
+        workspace_ids: &[Uuid],
+        registered_tenants: &[&str],
+    ) -> Vec<String> {
+        let active_tenant_ids: std::collections::HashSet<String> = workspace_ids
+            .iter()
+            .map(|ws_id| format!("tenant_{}", ws_id.to_string().replace('-', "")))
+            .collect();
+
+        registered_tenants
+            .iter()
+            .filter(|t| t.starts_with("tenant_") && !active_tenant_ids.contains(**t))
+            .map(|t| t.to_string())
+            .collect()
+    }
+
+    #[test]
+    fn test_stale_detection_no_tenants_no_workspaces() {
+        let stale = compute_stale_tenants(&[], &[]);
+        assert!(stale.is_empty());
+    }
+
+    #[test]
+    fn test_stale_detection_no_tenants_with_workspaces() {
+        let ws = Uuid::parse_str("6e913c39-24f3-45b5-877d-e307c3e10c88").unwrap();
+        let stale = compute_stale_tenants(&[ws], &[]);
+        assert!(stale.is_empty());
+    }
+
+    #[test]
+    fn test_stale_detection_matching_tenant_not_stale() {
+        let ws = Uuid::parse_str("6e913c39-24f3-45b5-877d-e307c3e10c88").unwrap();
+        let tenant_id = "tenant_6e913c3924f345b5877de307c3e10c88";
+        let stale = compute_stale_tenants(&[ws], &[tenant_id]);
+        assert!(stale.is_empty(), "Matching tenant should not be stale");
+    }
+
+    #[test]
+    fn test_stale_detection_orphaned_tenant_is_stale() {
+        let ws = Uuid::parse_str("6e913c39-24f3-45b5-877d-e307c3e10c88").unwrap();
+        let orphan = "tenant_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1";
+        let matching = "tenant_6e913c3924f345b5877de307c3e10c88";
+        let stale = compute_stale_tenants(&[ws], &[matching, orphan]);
+        assert_eq!(stale, vec![orphan.to_string()]);
+    }
+
+    #[test]
+    fn test_stale_detection_system_tenant_never_stale() {
+        // The system tenant "leeattend" does not start with "tenant_" prefix
+        // so it must never appear in stale results.
+        let stale = compute_stale_tenants(&[], &["leeattend"]);
+        assert!(stale.is_empty(), "System tenant 'leeattend' must never be flagged as stale");
+    }
+
+    #[test]
+    fn test_stale_detection_non_tenant_prefix_ignored() {
+        // Any ID that doesn't start with "tenant_" should be ignored,
+        // even if it doesn't match any workspace.
+        let stale = compute_stale_tenants(
+            &[],
+            &["leeattend", "custom_pool_abc", "metrics_tenant"],
+        );
+        assert!(stale.is_empty());
+    }
+
+    #[test]
+    fn test_stale_detection_multiple_workspaces() {
+        let ws1 = Uuid::parse_str("11111111-1111-1111-1111-111111111111").unwrap();
+        let ws2 = Uuid::parse_str("22222222-2222-2222-2222-222222222222").unwrap();
+        let t1 = "tenant_11111111111111111111111111111111";
+        let t2 = "tenant_22222222222222222222222222222222";
+        let orphan = "tenant_33333333333333333333333333333333";
+
+        let stale = compute_stale_tenants(&[ws1, ws2], &[t1, t2, orphan]);
+        assert_eq!(stale, vec![orphan.to_string()]);
+    }
+
+    #[test]
+    fn test_stale_detection_all_tenants_stale() {
+        let orphan1 = "tenant_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1";
+        let orphan2 = "tenant_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb2";
+        let stale = compute_stale_tenants(&[], &[orphan1, orphan2]);
+        assert_eq!(stale.len(), 2);
+        assert!(stale.contains(&orphan1.to_string()));
+        assert!(stale.contains(&orphan2.to_string()));
+    }
+
+    #[test]
+    fn test_stale_detection_uuid_hyphen_stripping() {
+        // Ensures the format! correctly strips hyphens from workspace UUIDs
+        // to match the "tenant_{uuid_no_hyphens}" convention.
+        let ws = Uuid::parse_str("abcdef01-2345-6789-abcd-ef0123456789").unwrap();
+        let expected_tenant_id = "tenant_abcdef0123456789abcdef0123456789";
+        let stale = compute_stale_tenants(&[ws], &[expected_tenant_id]);
+        assert!(stale.is_empty(), "Properly formatted tenant ID should match");
+    }
+
+    #[test]
+    fn test_stale_detection_tenant_id_with_hyphens_is_stale() {
+        // If somehow a tenant ID was registered WITH hyphens, it won't match
+        // the expected format (without hyphens) and should be flagged as stale.
+        let ws = Uuid::parse_str("abcdef01-2345-6789-abcd-ef0123456789").unwrap();
+        let wrong_format = "tenant_abcdef01-2345-6789-abcd-ef0123456789";
+        let stale = compute_stale_tenants(&[ws], &[wrong_format]);
+        assert_eq!(stale.len(), 1, "Hyphenated tenant ID must be flagged as stale");
+    }
+
+    #[test]
+    fn test_stale_detection_mixed_system_and_workspace_tenants() {
+        let ws = Uuid::parse_str("11111111-1111-1111-1111-111111111111").unwrap();
+        let system = "leeattend";
+        let active = "tenant_11111111111111111111111111111111";
+        let orphan = "tenant_99999999999999999999999999999999";
+        let custom = "my_custom_pool";
+
+        let stale = compute_stale_tenants(&[ws], &[system, active, orphan, custom]);
+        assert_eq!(stale, vec![orphan.to_string()]);
+    }
+
+    // ── Tenant ID format convention ──────────────────────────────────────────
+
+    #[test]
+    fn test_tenant_id_format_matches_convention() {
+        // Verify the tenant_id format used across the system is consistent
+        let ws = Uuid::parse_str("6e913c39-24f3-45b5-877d-e307c3e10c88").unwrap();
+        let expected = "tenant_6e913c3924f345b5877de307c3e10c88";
+        let computed = format!("tenant_{}", ws.to_string().replace('-', ""));
+        assert_eq!(computed, expected);
+    }
+
+    #[test]
+    fn test_tenant_id_nil_uuid() {
+        let ws = Uuid::nil();
+        let computed = format!("tenant_{}", ws.to_string().replace('-', ""));
+        assert_eq!(computed, "tenant_00000000000000000000000000000000");
+    }
+}

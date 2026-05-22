@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Trash2, Eye, Server, Activity, ShieldAlert, KeyRound } from "lucide-react";
+import { Plus, Trash2, Eye, Server, Activity, ShieldAlert, KeyRound, SearchX } from "lucide-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -12,6 +12,7 @@ import { useConfirm } from "@/hooks/use-confirm";
 import {
   createSystemTenant,
   deleteSystemTenant,
+  fetchStaleTenants,
   fetchSystemTenants,
   fetchSystemTenantStats,
   updateTenantDatabase,
@@ -40,6 +41,7 @@ export default function TenantsPage() {
   const [updateDbUrl, setUpdateDbUrl] = useState("");
   const [selectedMode, setSelectedMode] = useState<string | null>(null);
   const [selectedTenant, setSelectedTenant] = useState<SystemTenant | null>(null);
+  const [staleModalOpen, setStaleModalOpen] = useState(false);
 
   const { data: tenants = [], isLoading } = useQuery({
     queryKey: ["system-tenants"],
@@ -53,6 +55,24 @@ export default function TenantsPage() {
       return fetchSystemTenantStats(selectedTenant.id);
     },
     enabled: !!selectedTenant && (statsModalOpen || dbUpdateModalOpen || dbModeUpdateModalOpen),
+  });
+
+  const { data: staleTenants = [], isLoading: isStaleLoading, refetch: refetchStale } = useQuery({
+    queryKey: ["system-tenants-stale"],
+    queryFn: fetchStaleTenants,
+    enabled: staleModalOpen,
+  });
+
+  const cleanStaleMutation = useMutation({
+    mutationFn: (id: string) => deleteSystemTenant(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["system-tenants-stale"] }).catch(console.error);
+      queryClient.invalidateQueries({ queryKey: ["system-tenants"] }).catch(console.error);
+      toast.success(t("system_admin.tenants.messages.clean_success"));
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
   });
 
   const statsConfig = tenantStats ? (tenantStats.config.data ?? tenantStats.config.tenant ?? tenantStats.config) : undefined;
@@ -151,6 +171,31 @@ export default function TenantsPage() {
     setDbModeUpdateModalOpen(true);
   };
 
+  const handleCleanStale = async (id: string) => {
+    const isConfirmed = await confirm({
+      title: t("common.warning", { defaultValue: "Warning: Critical Action" }),
+      message: t("system_admin.tenants.stale_modal.confirm_clean"),
+      variant: "danger",
+    });
+    if (isConfirmed) {
+      cleanStaleMutation.mutate(id);
+    }
+  };
+
+  const handleCleanAllStale = async () => {
+    if (staleTenants.length === 0) return;
+    const isConfirmed = await confirm({
+      title: t("common.warning", { defaultValue: "Warning: Critical Action" }),
+      message: t("system_admin.tenants.stale_modal.confirm_clean_all"),
+      variant: "danger",
+    });
+    if (isConfirmed) {
+      for (const tenant of staleTenants) {
+        cleanStaleMutation.mutate(tenant.id);
+      }
+    }
+  };
+
   const handleUpdateModeSubmit = async (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!selectedTenant || !activeMode) return;
@@ -200,10 +245,16 @@ export default function TenantsPage() {
           subtitle={t("system_admin.tenants.subtitle")}
           title={t("system_admin.tenants.title")}
         />
-        <Button onClick={() => { setIsModalOpen(true); }}>
-          <Plus className="w-4 h-4 mr-2" />
-          {t("system_admin.tenants.add_btn")}
-        </Button>
+        <div className="flex items-center gap-3">
+          <Button onClick={() => { setStaleModalOpen(true); refetchStale().catch(console.error); }} variant="outline">
+            <SearchX className="w-4 h-4 mr-2" />
+            {t("system_admin.tenants.check_stale_btn")}
+          </Button>
+          <Button onClick={() => { setIsModalOpen(true); }}>
+            <Plus className="w-4 h-4 mr-2" />
+            {t("system_admin.tenants.add_btn")}
+          </Button>
+        </div>
       </div>
 
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm">
@@ -573,6 +624,84 @@ export default function TenantsPage() {
             </Button>
           </div>
         </form>
+      </Modal>
+
+      {/* Stale Tenants Modal */}
+      <Modal
+        isOpen={staleModalOpen}
+        maxWidth="2xl"
+        onClose={() => { setStaleModalOpen(false); }}
+        subtitle={t("system_admin.tenants.stale_modal.subtitle")}
+        title={t("system_admin.tenants.stale_modal.title")}
+      >
+        <div className="py-4 space-y-4">
+          {isStaleLoading ? (
+            <div className="space-y-3">
+              <div className="h-12 bg-slate-100 dark:bg-slate-800 animate-pulse rounded-lg"></div>
+              <div className="h-12 bg-slate-100 dark:bg-slate-800 animate-pulse rounded-lg"></div>
+              <div className="h-12 bg-slate-100 dark:bg-slate-800 animate-pulse rounded-lg"></div>
+              <p className="text-xs text-center text-slate-400">{t("system_admin.tenants.stale_modal.scanning")}</p>
+            </div>
+          ) : staleTenants.length === 0 ? (
+            <div className="text-center py-10">
+              <div className="w-16 h-16 rounded-full bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center mx-auto mb-4">
+                <SearchX className="w-8 h-8 text-emerald-500" />
+              </div>
+              <p className="text-slate-600 dark:text-slate-300 font-medium">
+                {t("system_admin.tenants.stale_modal.no_stale")}
+              </p>
+            </div>
+          ) : (
+            <>
+              <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3 flex gap-3 items-center">
+                <ShieldAlert className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0" />
+                <p className="text-sm text-amber-800 dark:text-amber-200">
+                  {staleTenants.length} stale configuration{staleTenants.length > 1 ? "s" : ""} detected.
+                </p>
+              </div>
+              <div className="divide-y divide-slate-200 dark:divide-slate-800 border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden">
+                {staleTenants.map((tenant) => (
+                  <div
+                    className="flex items-center justify-between px-4 py-3 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                    key={tenant.id}
+                  >
+                    <div>
+                      <p className="font-mono text-xs text-slate-700 dark:text-slate-300">{tenant.id}</p>
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        Pool: {tenant.pool_size} &middot; Created: {new Date(tenant.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <Button
+                      disabled={cleanStaleMutation.isPending}
+                      onClick={() => { handleCleanStale(tenant.id).catch(console.error); }}
+                      size="sm"
+                      variant="destructive"
+                    >
+                      <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+                      Delete
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+        <div className="flex justify-between pt-4 border-t border-slate-100 dark:border-slate-800">
+          <div>
+            {staleTenants.length > 1 && (
+              <Button
+                disabled={cleanStaleMutation.isPending}
+                onClick={() => { handleCleanAllStale().catch(console.error); }}
+                variant="destructive"
+              >
+                {t("system_admin.tenants.stale_modal.clean_all")}
+              </Button>
+            )}
+          </div>
+          <Button onClick={() => { setStaleModalOpen(false); }} variant="outline">
+            Close
+          </Button>
+        </div>
       </Modal>
 
       <ConfirmationDialog />

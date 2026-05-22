@@ -117,11 +117,29 @@ class TestResolveProfiles:
 class TestResolveLifecycleProfiles:
     def test_api_mode_backend_only(self) -> None:
         profiles = resolve_lifecycle_profiles("api")
-        assert profiles == ["--profile", "api"]
+        assert profiles == [
+            "--profile",
+            "api",
+            "--profile",
+            "infra-db",
+            "--profile",
+            "infra-redis",
+            "--profile",
+            "infra-pooler",
+        ]
 
     def test_integration_mode_backend_only(self) -> None:
         profiles = resolve_lifecycle_profiles("integration")
-        assert profiles == ["--profile", "api"]
+        assert profiles == [
+            "--profile",
+            "api",
+            "--profile",
+            "infra-db",
+            "--profile",
+            "infra-redis",
+            "--profile",
+            "infra-pooler",
+        ]
 
     def test_web_mode_frontend_only(self) -> None:
         profiles = resolve_lifecycle_profiles("web")

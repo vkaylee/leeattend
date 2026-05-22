@@ -16,6 +16,8 @@ services:
   db:
     image: public.ecr.aws/docker/library/postgres:16-alpine
     restart: always
+    ports:
+      - "5432:5432"
     networks:
       - backend_net
     environment:
@@ -27,6 +29,26 @@ services:
     healthcheck:
       <<: *healthcheck-base
       test: "pg_isready -U ${DB_USER} -d ${DB_NAME}"
+
+  db_legacy:
+    image: public.ecr.aws/docker/library/postgres:18-alpine
+    profiles: ["migration"]
+    restart: "no"
+    ports:
+      - "5433:5432"
+    networks:
+      - backend_net
+    environment:
+      - POSTGRES_DB=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_HOST_AUTH_METHOD=trust
+    volumes:
+      - ./dbbackup:/dbbackup:ro
+    healthcheck:
+      <<: *healthcheck-base
+      test: "pg_isready -U postgres"
+
 
   redis:
     image: public.ecr.aws/docker/library/redis:7-alpine

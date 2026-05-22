@@ -293,10 +293,12 @@ def test_log_warn(orchestrator, capsys) -> None:
 def test_handle_manage_clean(mock_run, orchestrator) -> None:
     """Test manage clean command."""
     mock_run.return_value.returncode = 0
-    args = orchestrator.parser.parse_args(["manage", "clean"])
+    args = orchestrator.parser.parse_args(["manage", "clean", "dev"])
     orchestrator.handle_manage(args)
-    # Currently clean has no complex logic, just logs
-    assert True
+    called_args = mock_run.call_args[0][0]
+    assert "down" in called_args
+    assert "-v" in called_args
+    assert "leeattend-dev" in called_args
 
 
 @patch("subprocess.run")

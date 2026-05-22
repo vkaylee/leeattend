@@ -4,6 +4,7 @@ omit =
     scripts/_watchdog.py
     scripts/_test_utils.py
     scripts/tests/*
+    scripts/migrate_legacy_data.py
 
 [report]
 exclude_lines =

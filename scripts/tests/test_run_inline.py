@@ -13,6 +13,7 @@ if str(SCRIPTS_DIR) not in sys.path:
 
 RUN_INLINE = SCRIPTS_DIR / "ai-tools" / "run-inline"
 
+
 class TestRunInline:
     """End-to-end tests for run-inline."""
 

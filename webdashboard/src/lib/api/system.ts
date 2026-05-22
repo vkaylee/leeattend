@@ -72,6 +72,12 @@ export async function fetchSystemTenants(): Promise<SystemTenant[]> {
   return response.json() as Promise<SystemTenant[]>;
 }
 
+export async function fetchStaleTenants(): Promise<SystemTenant[]> {
+  const response = await apiFetch(`${API_BASE_URL}/system/tenants/stale`);
+  if (!response.ok) throw new Error("Failed to fetch stale tenants");
+  return response.json() as Promise<SystemTenant[]>;
+}
+
 export async function createSystemTenant(request: CreateTenantRequestPayload): Promise<void> {
   const response = await apiFetch(`${API_BASE_URL}/system/tenants`, {
     method: "POST",
