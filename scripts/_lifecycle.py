@@ -74,7 +74,7 @@ def lifecycle_up(mode: str = "all") -> bool:
     Returns True if all health checks pass, False otherwise.
     Idempotent — safe for concurrent agents sharing the same project.
     """
-    profiles = resolve_profiles(mode)
+    profiles = resolve_lifecycle_profiles(mode)
     env = bootstrap_env(mode)
     compose_base = env["DOCKER_COMPOSE_BASE"].split()
 

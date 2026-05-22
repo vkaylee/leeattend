@@ -37,6 +37,7 @@ services:
     image: public.ecr.aws/docker/library/postgres:16-alpine
     profiles:
       - infra-db
+      - infra-pooler
     networks:
       - test_net
     command: postgres -c fsync=off -c synchronous_commit=off -c full_page_writes=off -c max_connections=1000
@@ -58,6 +59,7 @@ services:
     image: public.ecr.aws/docker/library/postgres:18-alpine
     profiles:
       - infra-db
+      - infra-pooler
     networks:
       - test_net
     command: postgres -c fsync=off -c synchronous_commit=off -c full_page_writes=off -c max_connections=1000
