@@ -108,7 +108,7 @@ async fn test_system_tenants_lifecycle() {
     let workspace_id = Uuid::new_v4();
     let payload = json!({
         "workspace_id": workspace_id,
-        "database_url": "postgres://tenant_test_user:tenant_test_password@db_tenant:5432/tenant_test_db",
+        "database_url": "postgres://tenant_test_user:tenant_test_password@db_workspace:5432/tenant_test_db",
         "pool_size": 15
     });
 

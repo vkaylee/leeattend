@@ -55,7 +55,7 @@ services:
     tmpfs:
       - /var/lib/postgresql/data:size=3072M
 
-  db_tenant:
+  db_workspace:
     image: public.ecr.aws/docker/library/postgres:18-alpine
     profiles:
       - infra-db
