@@ -106,7 +106,7 @@ def lifecycle_up(mode: str = "all") -> bool:
     else:
         containers_to_check.append(f"{project_name}_apiserver_1")
         if mode in ("api", "int-api", "integration", "all"):
-            containers_to_check.append(f"{project_name}_db_1")
+            containers_to_check.append(f"{project_name}_db_system_1")
             containers_to_check.append(f"{project_name}_redis_1")
         timeout = 60
 
@@ -246,7 +246,7 @@ def sweep_stale_environments() -> None:
 # when compose down fails to stop PID 1 (e.g. tail -f /dev/null ignoring SIGTERM)
 _PROFILE_CONTAINERS: dict[str, list[str]] = {
     "frontend": ["bun_init", "webdashboard"],
-    "backend": ["apiserver", "agent-main", "db", "db_init", "redis", "supavisor"],
+    "backend": ["apiserver", "agent-main", "db_system", "db_init", "redis", "supavisor"],
 }
 
 

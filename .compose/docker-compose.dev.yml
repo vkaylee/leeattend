@@ -2,10 +2,10 @@
 # Podman Compose — Development Override
 # ==============================================================================
 services:
-  db:
+  db_system:
     command: postgres -c fsync=off -c synchronous_commit=off -c full_page_writes=off -c max_connections=200
     volumes:
-      - postgres_dev_data:/var/lib/postgresql/data
+      - postgres_system_dev_data:/var/lib/postgresql
 
   db_workspace:
     command: postgres -c fsync=off -c synchronous_commit=off -c full_page_writes=off -c max_connections=200
@@ -59,7 +59,7 @@ services:
       - ./.compose/cloudbeaver-initial-data-sources.conf:/opt/cloudbeaver/conf/initial-data-sources.conf.tpl:ro
     entrypoint: /opt/cloudbeaver/cloudbeaver-entrypoint.sh
     depends_on:
-      db:
+      db_system:
         condition: service_healthy
 
   apiserver:
@@ -76,7 +76,7 @@ services:
       - RUST_BACKTRACE=1
       - RUST_LOG=apiserver=debug,tower_http=debug
       - STORAGE_DIR=/app/apiserver/storage
-      - DATABASE_URL=postgres://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
+      - DATABASE_URL=postgres://${DB_USER}:${DB_PASSWORD}@db_system:5432/${DB_NAME}
       - DATABASE_POOLER_URL=postgres://${DB_USER}.${SUPAVISOR_TENANT_ID:-${DB_NAME}}:${DB_PASSWORD}@${SUPAVISOR_HOST:-supavisor}:5452/${DB_NAME}
       - SUPAVISOR_API_URL=http://${SUPAVISOR_HOST:-supavisor}:${SUPAVISOR_API_PORT:-4000}
       - SUPAVISOR_TENANT_ID=${SUPAVISOR_TENANT_ID:-}
@@ -155,7 +155,7 @@ services:
       - ./Caddyfile-dev:/etc/caddy/Caddyfile:ro
 
 volumes:
-  postgres_dev_data:
+  postgres_system_dev_data:
   postgres_workspace_dev_data:
   redis_dev_data:
   agent_dev_data:

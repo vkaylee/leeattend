@@ -699,7 +699,7 @@ mod tests {
 
     #[test]
     fn test_resolve_tenant_migration_url_fallback() {
-        let primary_url = "postgres://test_user:pass@db:5432/test_database";
+        let primary_url = "postgres://test_user:pass@db_system:5432/test_database";
         let workspace_id = Uuid::parse_str("a1b2c3d4-e5f6-7890-abcd-ef1234567890").unwrap();
 
         let url = DieselPools::resolve_tenant_migration_url(primary_url, None, &workspace_id, None)
@@ -707,14 +707,14 @@ mod tests {
 
         assert_eq!(
             url,
-            "postgres://test_user:pass@db:5432/tenant_a1b2c3d4e5f67890abcdef1234567890"
+            "postgres://test_user:pass@db_system:5432/tenant_a1b2c3d4e5f67890abcdef1234567890"
         );
     }
 
     #[test]
     fn test_resolve_tenant_migration_url_uses_session_port() {
-        let primary_url = "postgres://test_user:pass@db:5432/test_database";
-        let pooler_url = "postgres://test_user.test_database:pass@db:9999/test_database";
+        let primary_url = "postgres://test_user:pass@db_system:5432/test_database";
+        let pooler_url = "postgres://test_user.test_database:pass@db_system:9999/test_database";
         let workspace_id = Uuid::parse_str("a1b2c3d4-e5f6-7890-abcd-ef1234567890").unwrap();
 
         let url = DieselPools::resolve_tenant_migration_url(
@@ -725,13 +725,13 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(url, "postgres://test_user.tenant_a1b2c3d4e5f67890abcdef1234567890:pass@db:5452/tenant_a1b2c3d4e5f67890abcdef1234567890");
+        assert_eq!(url, "postgres://test_user.tenant_a1b2c3d4e5f67890abcdef1234567890:pass@db_system:5452/tenant_a1b2c3d4e5f67890abcdef1234567890");
     }
 
     #[test]
     fn test_resolve_tenant_migration_url_keeps_port_if_not_supavisor() {
-        let primary_url = "postgres://test_user:pass@db:5432/test_database";
-        let pooler_url = "postgres://test_user_no_dot:pass@db:5432/test_database";
+        let primary_url = "postgres://test_user:pass@db_system:5432/test_database";
+        let pooler_url = "postgres://test_user_no_dot:pass@db_system:5432/test_database";
         let workspace_id = Uuid::parse_str("a1b2c3d4-e5f6-7890-abcd-ef1234567890").unwrap();
 
         let url = DieselPools::resolve_tenant_migration_url(
@@ -744,7 +744,7 @@ mod tests {
 
         assert_eq!(
             url,
-            "postgres://test_user_no_dot:pass@db:5432/tenant_a1b2c3d4e5f67890abcdef1234567890"
+            "postgres://test_user_no_dot:pass@db_system:5432/tenant_a1b2c3d4e5f67890abcdef1234567890"
         );
     }
 }

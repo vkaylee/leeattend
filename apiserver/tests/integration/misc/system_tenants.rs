@@ -176,3 +176,88 @@ async fn test_system_tenants_lifecycle() {
     );
     assert_eq!(count, 1);
 }
+
+#[tokio::test]
+async fn test_system_tenant_startup_registration() {
+    use apiserver::supavisor::TenantManager;
+
+    let supavisor_url = match std::env::var("SUPAVISOR_API_URL") {
+        Ok(url) => url,
+        Err(_) => {
+            println!("Skipping system_tenant_startup_registration test because SUPAVISOR_API_URL is not set.");
+            return;
+        }
+    };
+
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(1))
+        .build()
+        .unwrap();
+
+    if client.get(&supavisor_url).send().await.is_err() {
+        println!(
+            "Skipping system_tenant_startup_registration test because Supavisor is not reachable at {}.",
+            supavisor_url
+        );
+        return;
+    }
+
+    // 1. Create a dynamic test database
+    let test_db = TestDatabase::new().await;
+    let db_name = test_db.db_name().to_string();
+    let test_db_url = test_db.url();
+
+    // 2. Temporarily back up and override environment variables
+    let orig_db_url = std::env::var("DATABASE_URL").ok();
+    let orig_tenant_id = std::env::var("SUPAVISOR_TENANT_ID").ok();
+
+    std::env::set_var("DATABASE_URL", &test_db_url);
+    std::env::remove_var("SUPAVISOR_TENANT_ID");
+
+    // 3. Construct a real SupavisorTenantManager
+    let tenant_manager = apiserver::supavisor::SupavisorTenantManager::new()
+        .expect("Failed to build SupavisorTenantManager");
+
+    // 4. Run the startup initialization flow
+    tenant_manager.init_tenant().await;
+
+    // 5. Verify the tenant was registered successfully in Supavisor
+    let get_res = tenant_manager.get_tenant(&db_name).await;
+    assert!(
+        get_res.is_ok(),
+        "Failed to retrieve registered tenant from Supavisor: {:?}",
+        get_res.err()
+    );
+    let payload = get_res.unwrap();
+    let tenant_obj = if let Some(data) = payload.get("data") {
+        data
+    } else if let Some(tenant) = payload.get("tenant") {
+        tenant
+    } else {
+        &payload
+    };
+    assert_eq!(
+        tenant_obj["db_database"].as_str().unwrap(),
+        db_name,
+        "Registered db_database name does not match expected database name"
+    );
+
+    // 6. Clean up: Delete the registered tenant from Supavisor
+    let del_res = tenant_manager.delete_tenant(&db_name).await;
+    assert!(
+        del_res.is_ok(),
+        "Failed to clean up registered tenant from Supavisor: {:?}",
+        del_res.err()
+    );
+
+    // 7. Restore original environment variables
+    if let Some(url) = orig_db_url {
+        std::env::set_var("DATABASE_URL", url);
+    } else {
+        std::env::remove_var("DATABASE_URL");
+    }
+
+    if let Some(tid) = orig_tenant_id {
+        std::env::set_var("SUPAVISOR_TENANT_ID", tid);
+    }
+}

@@ -121,7 +121,7 @@ def leeattend_run_integration(
     if mode in ("all", "api", "integration") and "web" not in component_filter:
         # API server startup is handled by the lifecycle/container health check
         # Integration tests use the already-running apiserver container
-        db_url = "postgres://test_user:test_password@db:5432/leeattend_test_template"
+        db_url = "postgres://test_user:test_password@db_system:5432/leeattend_test_template"
         pkg_flag = (
             f"--package {component_filter}"
             if component_filter in ["apiserver", "agent-main"]

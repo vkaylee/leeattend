@@ -284,7 +284,7 @@ class TestStaleSweep:
         mock_is_locked.return_value = False
 
         mock_run.return_value = MagicMock(
-            stdout="pod_leeattend-test-12345678\nleeattend-test-87654321_db_1"
+            stdout="pod_leeattend-test-12345678\nleeattend-test-87654321_db_system_1"
         )
         sweep_stale_environments()
         # Should call pod rm -f and rm -f
@@ -302,7 +302,7 @@ class TestStaleSweep:
         mock_engine.return_value = "docker"
         mock_is_locked.return_value = False
 
-        mock_run.return_value = MagicMock(stdout="leeattend-test-12345678_db_1")
+        mock_run.return_value = MagicMock(stdout="leeattend-test-12345678_db_system_1")
         sweep_stale_environments()
         assert mock_run.call_count == 2  # ps, rm containers
 

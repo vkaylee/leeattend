@@ -16,7 +16,7 @@ pub fn build_tenant_payload(db_url: &str) -> Option<(String, serde_json::Value)>
         .filter(|s| !s.is_empty())
         .unwrap_or_else(|| parsed_url.password().unwrap_or("").to_string());
 
-    let db_host = parsed_url.host_str().unwrap_or("db").to_string();
+    let db_host = parsed_url.host_str().unwrap_or("db_system").to_string();
     let db_port = parsed_url.port().unwrap_or(5432);
     let db_name = parsed_url.path().trim_start_matches('/').to_string();
 
@@ -558,7 +558,7 @@ mod tests {
         // The tenant_id must match the format produced by diesel_pool::get_tenant_url():
         // tenant_<uuid-without-hyphens>. This contract prevents "Tenant or user not found"
         // errors when the API server connects through Supavisor.
-        let url = "postgres://admin:secret@db:5432/tenant_019e40ee11927492bc2985dad4675f34";
+        let url = "postgres://admin:secret@db_system:5432/tenant_019e40ee11927492bc2985dad4675f34";
         let (tenant_id, payload) = build_tenant_payload(url).expect("Should build payload");
 
         assert_eq!(
@@ -599,7 +599,7 @@ mod tests {
     fn test_build_tenant_payload_tenant_id_standard_db_name() {
         // When the DB name follows tenant_<uuid-no-hyphens>, tenant_id
         // defaults to the database name from the URL.
-        let url = "postgres://admin:secret@db:5432/tenant_a1b2c3d4e5f67890abcdef1234567890";
+        let url = "postgres://admin:secret@db_system:5432/tenant_a1b2c3d4e5f67890abcdef1234567890";
         let (tenant_id, _) = build_tenant_payload(url).expect("Should build");
         assert_eq!(tenant_id, "tenant_a1b2c3d4e5f67890abcdef1234567890");
         assert_eq!(tenant_id.len(), 39); // "tenant_" + 32 hex
@@ -608,14 +608,14 @@ mod tests {
 
     #[test]
     fn test_build_tenant_payload_tenant_id_nil_uuid_db_name() {
-        let url = "postgres://admin:secret@db:5432/tenant_00000000000000000000000000000000";
+        let url = "postgres://admin:secret@db_system:5432/tenant_00000000000000000000000000000000";
         let (tenant_id, _) = build_tenant_payload(url).expect("Should build");
         assert_eq!(tenant_id, "tenant_00000000000000000000000000000000");
     }
 
     #[test]
     fn test_build_tenant_payload_tenant_id_max_uuid_db_name() {
-        let url = "postgres://admin:secret@db:5432/tenant_ffffffffffffffffffffffffffffffff";
+        let url = "postgres://admin:secret@db_system:5432/tenant_ffffffffffffffffffffffffffffffff";
         let (tenant_id, _) = build_tenant_payload(url).expect("Should build");
         assert_eq!(tenant_id, "tenant_ffffffffffffffffffffffffffffffff");
     }
@@ -630,7 +630,7 @@ mod tests {
             "SUPAVISOR_TENANT_ID",
             "tenant_019e40ee11927492bc2985dad4675f34",
         );
-        let url = "postgres://admin:secret@db:5432/my_custom_db";
+        let url = "postgres://admin:secret@db_system:5432/my_custom_db";
         let (tenant_id, payload) = build_tenant_payload(url).expect("Should build");
         std::env::remove_var("SUPAVISOR_TENANT_ID");
 
@@ -697,7 +697,7 @@ mod tests {
         // Simulate what provision_tenant_db + get_tenant_url would produce
         let ws_id = uuid::Uuid::parse_str("a1b2c3d4-e5f6-7890-abcd-ef1234567890").unwrap();
         let db_name = format!("tenant_{}", ws_id.to_string().replace('-', ""));
-        let provisioned_url = format!("postgres://admin:secret@db:5432/{db_name}");
+        let provisioned_url = format!("postgres://admin:secret@db_system:5432/{db_name}");
 
         let (tenant_id, _) = build_tenant_payload(&provisioned_url).unwrap();
 
