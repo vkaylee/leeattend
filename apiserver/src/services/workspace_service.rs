@@ -48,7 +48,12 @@ pub struct UpdateWorkspaceArgs {
 
 impl WorkspaceService {
     #[tracing::instrument(skip_all, err)]
-    pub async fn create_workspace(&self, name: &str, owner_id: Uuid) -> Result<Workspace, String> {
+    pub async fn create_workspace(
+        &self,
+        name: &str,
+        owner_id: Uuid,
+        database_url: &str,
+    ) -> Result<Workspace, String> {
         // 1. Check if user exists
         let user_exists = self
             .user_repo
@@ -68,10 +73,10 @@ impl WorkspaceService {
             .await
             .map_err(|e| e.to_string())?;
 
-        // 3. Provision the physical Tenant Database (or use BYOD)
+        // 3. Run migrations on the provided database (BYOD)
         let new_db_url = self
             .tenant_provisioner
-            .provision_tenant_db(&ws.id, None)
+            .provision_tenant_db(&ws.id, database_url)
             .await
             .map_err(|e| format!("Failed to provision DB: {e}"))?;
 
@@ -491,17 +496,10 @@ mod tests {
     impl crate::services::tenant_provisioner::TenantProvisionerTrait for MockTenantProvisioner {
         async fn provision_tenant_db(
             &self,
-            workspace_id: &Uuid,
-            custom_db_url: Option<String>,
+            _workspace_id: &Uuid,
+            db_url: &str,
         ) -> crate::errors::AppResult<String> {
-            if let Some(url) = custom_db_url {
-                Ok(url)
-            } else {
-                let db_name = format!("tenant_{}", workspace_id.to_string().replace('-', ""));
-                Ok(format!(
-                    "postgres://test_user:test_password@localhost:5432/{db_name}"
-                ))
-            }
+            Ok(db_url.to_string())
         }
     }
 
@@ -577,7 +575,7 @@ mod tests {
     async fn test_create_workspace_user_not_found() {
         let svc = build_service(false);
         let err = svc
-            .create_workspace("Acme", Uuid::new_v4())
+            .create_workspace("Acme", Uuid::new_v4(), "postgres://u:p@h:5432/tenant_db")
             .await
             .unwrap_err();
         assert!(err.contains("does not exist"));
@@ -587,7 +585,7 @@ mod tests {
     async fn test_create_workspace_success() {
         let svc = build_service(true);
         let ws = svc
-            .create_workspace("Acme Corp", Uuid::new_v4())
+            .create_workspace("Acme Corp", Uuid::new_v4(), "postgres://u:p@h:5432/tenant_db")
             .await
             .unwrap();
         assert_eq!(ws.name, "Acme Corp");
@@ -599,7 +597,7 @@ mod tests {
         let svc = build_service_with_tenant_manager(true, tenant_manager.clone());
 
         let ws = svc
-            .create_workspace("Acme Corp", Uuid::new_v4())
+            .create_workspace("Acme Corp", Uuid::new_v4(), "postgres://test_user:test_password@localhost:5432/tenant_db")
             .await
             .unwrap();
 

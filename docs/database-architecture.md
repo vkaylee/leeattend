@@ -152,15 +152,23 @@ apiserver/migrations/
    b. For each workspace, register an idempotent tenant config with Supavisor (HTTP PUT).
    c. `run_tenant_migrations()` — Through Supavisor (fallback to direct if no pooler configured).
 
-### Tenant Provision Flow
+### Tenant Provision Flow (BYOD)
+
+Tenant databases are **BYOD (Bring Your Own Database)**. The system does **not** create databases.
+The user (or an external provider like Railway/Neon) is responsible for creating the database
+and providing a valid connection string.
 
 When a new workspace is created:
 
-1. **CREATE DATABASE** — Direct connection (DDL cannot go through a pooler).
-2. **Run tenant migrations** — Direct connection (new DB is not yet registered with Supavisor).
-3. **Build Supavisor payload** — Extract host/port/database/user/password from the direct URL.
+1. **User provides `database_url`** — Connection string to an existing PostgreSQL database.
+2. **`TenantMigrator::provision_tenant_db()`** — Connects to the provided URL, runs all pending tenant migrations.
+3. **`build_tenant_payload()`** — Extracts host/port/database/user/password from the URL.
 4. **`register_tenant_dynamic()`** — HTTP PUT to Supavisor API to register the new tenant.
-5. After registration, all subsequent tenant queries go through Supavisor.
+5. **Encrypt & save** — The `database_url` is encrypted and stored in `workspaces.custom_db_url_encrypted`.
+6. After registration, all subsequent tenant queries go through Supavisor.
+
+> **Future:** External providers (Railway API, Neon API) will create databases
+> programmatically and return their connection strings to feed into step 1.
 
 ---
 

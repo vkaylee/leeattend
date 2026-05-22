@@ -57,6 +57,7 @@ pub struct Workspace {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct CreateWorkspaceRequest {
     pub name: String,
+    pub database_url: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

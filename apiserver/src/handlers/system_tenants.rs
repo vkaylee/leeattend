@@ -24,15 +24,15 @@ use diesel_async::RunQueryDsl;
 #[derive(Deserialize, ToSchema)]
 pub struct CreateTenantRequest {
     pub workspace_id: Uuid,
-    /// If provided, this URL is used as the tenant database directly (BYOD).
-    /// If not provided, the system will provision a new database on the master cluster.
-    pub custom_db_url: Option<String>,
+    /// The database connection URL for this tenant (BYOD).
+    /// The database must already exist. The system will run migrations on it.
+    pub database_url: String,
     pub pool_size: Option<u32>,
 }
 
 #[derive(Deserialize, ToSchema)]
 pub struct UpdateTenantDbRequest {
-    pub custom_db_url: String,
+    pub database_url: String,
 }
 
 fn mask_db_url(url: &str) -> String {
@@ -48,17 +48,44 @@ impl std::fmt::Debug for CreateTenantRequest {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("CreateTenantRequest")
             .field("workspace_id", &self.workspace_id)
-            .field(
-                "custom_db_url",
-                &if self.custom_db_url.is_some() {
-                    "Some(***REDACTED***)"
-                } else {
-                    "None"
-                },
-            )
+            .field("database_url", &"***REDACTED***")
             .field("pool_size", &self.pool_size)
             .finish()
     }
+}
+
+fn map_tenants_to_workspaces(
+    tenants: Vec<(String, i32, chrono::NaiveDateTime, chrono::NaiveDateTime)>,
+    workspaces: Vec<(Uuid, String)>,
+) -> Vec<serde_json::Value> {
+    use std::collections::HashMap;
+    let ws_map: HashMap<String, (Uuid, String)> = workspaces
+        .into_iter()
+        .map(|(id, name)| {
+            let key = format!("tenant_{}", id.to_string().replace('-', ""));
+            (key, (id, name))
+        })
+        .collect();
+
+    tenants
+        .into_iter()
+        .map(|(external_id, pool_size, inserted_at, updated_at)| {
+            let (workspace_id, workspace_name) = if let Some((ws_id, ws_name)) = ws_map.get(&external_id) {
+                (Some(ws_id.to_string()), Some(ws_name.clone()))
+            } else {
+                (None, None)
+            };
+
+            serde_json::json!({
+                "id": external_id,
+                "pool_size": pool_size,
+                "created_at": inserted_at,
+                "updated_at": updated_at,
+                "workspace_id": workspace_id,
+                "workspace_name": workspace_name
+            })
+        })
+        .collect()
 }
 
 /// GET /system/tenants
@@ -78,7 +105,25 @@ pub async fn list_tenants(
         .await
         .map_err(|e| AppError::Internal(e.to_string()))?;
 
-    // Query Supavisor schema directly to list tenants
+    // 1. Query active workspaces
+    #[derive(Debug, diesel::QueryableByName)]
+    struct WsRow {
+        #[diesel(sql_type = diesel::sql_types::Uuid)]
+        id: Uuid,
+        #[diesel(sql_type = diesel::sql_types::Text)]
+        name: String,
+    }
+
+    let workspaces: Vec<(Uuid, String)> = diesel::sql_query("SELECT id, name FROM workspaces")
+        .load::<WsRow>(&mut conn)
+        .await
+        .map(|rows| rows.into_iter().map(|r| (r.id, r.name)).collect())
+        .unwrap_or_else(|e| {
+            tracing::warn!("Failed to query workspaces for tenant mapping: {e}");
+            vec![]
+        });
+
+    // 2. Query Supavisor schema directly to list tenants
     // If the schema doesn't exist (e.g. pooler not enabled), return empty array
     #[derive(Debug, diesel::QueryableByName)]
     struct TenantRow {
@@ -103,17 +148,13 @@ pub async fn list_tenants(
     .await;
 
     let tenants = match tenants_result {
-        Ok(records) => records
-            .into_iter()
-            .map(|r| {
-                serde_json::json!({
-                    "id": r.external_id,
-                    "pool_size": r.default_pool_size,
-                    "created_at": r.inserted_at,
-                    "updated_at": r.updated_at
-                })
-            })
-            .collect::<Vec<_>>(),
+        Ok(records) => {
+            let records_tuples = records
+                .into_iter()
+                .map(|r| (r.external_id, r.default_pool_size, r.inserted_at, r.updated_at))
+                .collect::<Vec<_>>();
+            map_tenants_to_workspaces(records_tuples, workspaces)
+        }
         Err(e) => {
             tracing::warn!("Failed to fetch tenants from _supavisor.tenants: {}", e);
             vec![]
@@ -133,11 +174,11 @@ pub async fn create_tenant(
 ) -> AppResult<StatusCode> {
     ctx.require_role(SystemRoleType::PlatformAdmin)?;
 
-    // 1. Provision the database (or use BYOD) and run migrations
+    // 1. Provision the database (run migrations on BYOD URL)
     let provisioner = std::sync::Arc::clone(&state.infra.tenant_provisioner);
     let workspace_id = req.workspace_id;
     let new_db_url = provisioner
-        .provision_tenant_db(&workspace_id, req.custom_db_url.clone())
+        .provision_tenant_db(&workspace_id, &req.database_url)
         .await?;
 
     // 2. Build dynamic Supavisor payload.
@@ -170,29 +211,26 @@ pub async fn create_tenant(
         .register_tenant_dynamic(&tenant_id, &payload)
         .await?;
 
-    // 4. Encrypt and save custom_db_url if provided
-    if let Some(raw_url) = &req.custom_db_url {
-        let encrypted_url = if let Some(crypto) = &state.infra.crypto_service {
-            crypto.encrypt(raw_url).map_err(|e| {
-                tracing::error!("Failed to encrypt DB URL: {}", e);
-                AppError::Internal("Encryption failed".into())
-            })?
-        } else {
-            tracing::warn!("No crypto service available, storing URL in plaintext!");
-            raw_url.clone()
-        };
+    // 4. Encrypt and save database_url
+    let encrypted_url = if let Some(crypto) = &state.infra.crypto_service {
+        crypto.encrypt(&req.database_url).map_err(|e| {
+            tracing::error!("Failed to encrypt DB URL: {}", e);
+            AppError::Internal("Encryption failed".into())
+        })?
+    } else {
+        tracing::warn!("No crypto service available, storing URL in plaintext!");
+        req.database_url.clone()
+    };
 
-        state
-            .core
-            .workspace_repo
-            .update_workspace_byod_url(workspace_id, Some(encrypted_url))
-            .await?;
-    }
+    state
+        .core
+        .workspace_repo
+        .update_workspace_byod_url(workspace_id, Some(encrypted_url))
+        .await?;
 
     // 4. Audit Log
     let details = serde_json::json!({
         "workspace_id": req.workspace_id,
-        "is_byod": req.custom_db_url.is_some(),
         "pool_size": req.pool_size
     });
 
@@ -284,7 +322,7 @@ pub async fn update_tenant_database(
 
     // We temporarily set SUPAVISOR_TENANT_ID to trick build_tenant_payload to build correct payload,
     // although build_tenant_payload uses it if we wanted to register it, but it only sets DB connections inside.
-    let payload_opt = build_tenant_payload(&req.custom_db_url);
+    let payload_opt = build_tenant_payload(&req.database_url);
 
     let Some((_, payload)) = payload_opt else {
         return Err(AppError::Internal(
@@ -299,15 +337,15 @@ pub async fn update_tenant_database(
         .register_tenant_dynamic(&tenant_id, &payload)
         .await?;
 
-    // Encrypt and save custom_db_url
+    // Encrypt and save database_url
     let encrypted_url = if let Some(crypto) = &state.infra.crypto_service {
-        crypto.encrypt(&req.custom_db_url).map_err(|e| {
+        crypto.encrypt(&req.database_url).map_err(|e| {
             tracing::error!("Failed to encrypt DB URL: {}", e);
             AppError::Internal("Encryption failed".into())
         })?
     } else {
         tracing::warn!("No crypto service available, storing URL in plaintext!");
-        req.custom_db_url.clone()
+        req.database_url.clone()
     };
 
     state
@@ -594,16 +632,16 @@ mod tests {
     // ── CreateTenantRequest — Debug (PII redaction) ──────────────────────────
 
     #[test]
-    fn test_create_tenant_request_debug_redacts_custom_url() {
+    fn test_create_tenant_request_debug_redacts_database_url() {
         let req = CreateTenantRequest {
             workspace_id: Uuid::nil(),
-            custom_db_url: Some("postgres://admin:secret@host/db".to_string()),
+            database_url: "postgres://admin:secret@host/db".to_string(),
             pool_size: Some(10),
         };
         let debug_output = format!("{:?}", req);
         assert!(
             debug_output.contains("REDACTED"),
-            "Debug output must redact custom_db_url: {debug_output}"
+            "Debug output must redact database_url: {debug_output}"
         );
         assert!(
             !debug_output.contains("secret"),
@@ -612,38 +650,38 @@ mod tests {
     }
 
     #[test]
-    fn test_create_tenant_request_debug_shows_none_when_no_url() {
+    fn test_create_tenant_request_debug_always_redacts() {
         let req = CreateTenantRequest {
             workspace_id: Uuid::nil(),
-            custom_db_url: None,
+            database_url: "postgres://admin@host/db".to_string(),
             pool_size: None,
         };
         let debug_output = format!("{:?}", req);
-        assert!(debug_output.contains("None"));
+        assert!(debug_output.contains("REDACTED"));
     }
 
     // ── CreateTenantRequest — Deserialization ────────────────────────────────
 
     #[test]
     fn test_create_tenant_request_deserializes_full_payload() {
-        let json = r#"{"workspace_id": "00000000-0000-0000-0000-000000000001", "custom_db_url": "postgres://u:p@h/d", "pool_size": 20}"#;
+        let json = r#"{"workspace_id": "00000000-0000-0000-0000-000000000001", "database_url": "postgres://u:p@h/d", "pool_size": 20}"#;
         let req: CreateTenantRequest = serde_json::from_str(json).unwrap();
         assert_eq!(req.workspace_id, Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap());
-        assert_eq!(req.custom_db_url, Some("postgres://u:p@h/d".to_string()));
+        assert_eq!(req.database_url, "postgres://u:p@h/d");
         assert_eq!(req.pool_size, Some(20));
     }
 
     #[test]
     fn test_create_tenant_request_deserializes_minimal_payload() {
-        let json = r#"{"workspace_id": "00000000-0000-0000-0000-000000000002"}"#;
+        let json = r#"{"workspace_id": "00000000-0000-0000-0000-000000000002", "database_url": "postgres://u:p@h/db"}"#;
         let req: CreateTenantRequest = serde_json::from_str(json).unwrap();
-        assert!(req.custom_db_url.is_none());
+        assert_eq!(req.database_url, "postgres://u:p@h/db");
         assert!(req.pool_size.is_none());
     }
 
     #[test]
-    fn test_create_tenant_request_missing_workspace_id_fails() {
-        let json = r#"{"pool_size": 10}"#;
+    fn test_create_tenant_request_missing_database_url_fails() {
+        let json = r#"{"workspace_id": "00000000-0000-0000-0000-000000000001", "pool_size": 10}"#;
         assert!(serde_json::from_str::<CreateTenantRequest>(json).is_err());
     }
 
@@ -662,9 +700,9 @@ mod tests {
 
     #[test]
     fn test_update_tenant_db_request_valid() {
-        let json = r#"{"custom_db_url": "postgres://u:p@h:5432/db"}"#;
+        let json = r#"{"database_url": "postgres://u:p@h:5432/db"}"#;
         let req: UpdateTenantDbRequest = serde_json::from_str(json).unwrap();
-        assert_eq!(req.custom_db_url, "postgres://u:p@h:5432/db");
+        assert_eq!(req.database_url, "postgres://u:p@h:5432/db");
     }
 
     #[test]
@@ -674,7 +712,7 @@ mod tests {
 
     #[test]
     fn test_update_tenant_db_request_null_url_fails() {
-        let json = r#"{"custom_db_url": null}"#;
+        let json = r#"{"database_url": null}"#;
         assert!(serde_json::from_str::<UpdateTenantDbRequest>(json).is_err());
     }
 
@@ -856,5 +894,43 @@ mod tests {
         let ws = Uuid::nil();
         let computed = format!("tenant_{}", ws.to_string().replace('-', ""));
         assert_eq!(computed, "tenant_00000000000000000000000000000000");
+    }
+
+    #[test]
+    fn test_map_tenants_to_workspaces_mapped_and_unmapped() {
+        let ws_id = Uuid::parse_str("6e913c39-24f3-45b5-877d-e307c3e10c88").unwrap();
+        let ws_name = "ELITE HOUSEHOLD".to_string();
+        let workspaces = vec![(ws_id, ws_name.clone())];
+
+        let now = chrono::Utc::now().naive_utc();
+        let tenants = vec![
+            (
+                "tenant_6e913c3924f345b5877de307c3e10c88".to_string(),
+                10,
+                now,
+                now,
+            ),
+            (
+                "tenant_00000000000000000000000000000000".to_string(),
+                5,
+                now,
+                now,
+            ),
+        ];
+
+        let results = map_tenants_to_workspaces(tenants, workspaces);
+        assert_eq!(results.len(), 2);
+
+        // First one: mapped
+        let t1 = &results[0];
+        assert_eq!(t1["id"], "tenant_6e913c3924f345b5877de307c3e10c88");
+        assert_eq!(t1["workspace_id"], ws_id.to_string());
+        assert_eq!(t1["workspace_name"], "ELITE HOUSEHOLD");
+
+        // Second one: unmapped/stale
+        let t2 = &results[1];
+        assert_eq!(t2["id"], "tenant_00000000000000000000000000000000");
+        assert!(t2["workspace_id"].is_null());
+        assert!(t2["workspace_name"].is_null());
     }
 }

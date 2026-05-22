@@ -8,11 +8,10 @@ export async function fetchWorkspaces(): Promise<Workspace[]> {
   return response.json() as Promise<Workspace[]>;
 }
 
-export async function createWorkspace(data: { name: string } | string): Promise<Workspace> {
-  const payload = typeof data === "string" ? { name: data } : data;
+export async function createWorkspace(data: { name: string; database_url: string }): Promise<Workspace> {
   const response = await apiFetch(`${API_BASE_URL}/workspaces`, {
     method: "POST",
-    body: JSON.stringify(payload),
+    body: JSON.stringify(data),
   });
   if (!response.ok) throw new Error("Failed to create workspace");
   return response.json() as Promise<Workspace>;

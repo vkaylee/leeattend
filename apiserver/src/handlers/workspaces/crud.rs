@@ -394,7 +394,7 @@ pub async fn create_workspace(
     state
         .core
         .workspace_service
-        .create_workspace(&req.name, ctx.user_id)
+        .create_workspace(&req.name, ctx.user_id, &req.database_url)
         .await
         .map(Json)
         .map_err(AppError::from)

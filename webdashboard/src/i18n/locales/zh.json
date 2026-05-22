@@ -654,6 +654,9 @@
       }
     },
     "org_name_placeholder": "例：ABC 公司、自由职业团队...",
+    "database_url_label": "数据库连接 URL",
+    "database_url_placeholder": "postgres://user:password@host:5432/database",
+    "database_url_hint": "提供现有 PostgreSQL 数据库的连接字符串。系统将在该数据库上运行迁移。",
     "employee": "员工",
     "all_employees": "所有员工",
     "from_date": "开始日期",
@@ -1164,35 +1167,7 @@
     "delete_confirm": "common.delete_confirm",
     "present": "common.present",
     "notifications": "通知",
-    "load_more": "加载更多",
-    "system_admin": {
-      "tenants": {
-        "modal": {
-          "creating": "Đang tạo...",
-          "create_title": "Tạo Tenant Mới",
-          "submit_btn": "Tạo",
-          "pool_size_label": "Kích thước Pool (Tùy chọn)",
-          "db_name_label": "Tên Cơ Sở Dữ Liệu",
-          "create_db_label": "Tạo physical database mới",
-          "db_name_placeholder": "VD: tenant_abc_db"
-        },
-        "table": {
-          "created_at": "Ngày tạo",
-          "actions": "Thao tác",
-          "updated_at": "Cập nhật lần cuối",
-          "pool_size": "Kích thước Pool",
-          "id": "Tenant ID (UUID)"
-        },
-        "title": "Quản lý Tenants",
-        "messages": {
-          "delete_success": "Xóa tenant thành công",
-          "create_success": "Tạo tenant thành công"
-        },
-        "subtitle": "Quản lý cơ sở dữ liệu và kết nối Supavisor",
-        "confirm_delete": "Bạn có chắc chắn muốn xóa tenant này không? Thao tác này sẽ xóa cấu hình khỏi Supavisor.",
-        "add_btn": "Thêm Tenant"
-      }
-    }
+    "load_more": "加载更多"
   },
   "dashboard": {
     "title": "仪表板",
@@ -3331,6 +3306,7 @@
       "title": "租户管理",
       "subtitle": "管理数据库和 Supavisor 连接池",
       "add_btn": "添加租户",
+      "check_stale_btn": "检查过期租户",
       "table": {
         "id": "租户 ID (UUID)",
         "pool_size": "连接池大小",
@@ -3351,10 +3327,20 @@
         "create_success": "租户创建成功",
         "delete_success": "租户删除成功",
         "update_db_success": "数据库 URL 更新成功",
-        "update_mode_success": "连接池模式更新成功"
+        "update_mode_success": "连接池模式更新成功",
+        "clean_success": "成功清理过期租户"
+      },
+      "stale_modal": {
+        "title": "过期租户配置",
+        "subtitle": "这些租户在 Supavisor 中已注册，但与任何活动工作空间都不对应。它们可以安全地被清理。",
+        "no_stale": "未发现过期租户配置。一切正常！",
+        "clean_all": "全部清理",
+        "confirm_clean": "您确定要从 Supavisor 中删除此过期租户配置吗？这只会删除路由项，不会影响任何物理数据库。",
+        "confirm_clean_all": "您确定要从 Supavisor 中删除所有过期租户配置吗？这只会删除路由项，不会影响任何物理数据库。",
+        "scanning": "正在扫描过期配置..."
       },
       "confirm_delete": "您确定要删除此租户吗？这将从 Supavisor 中删除其配置。",
-      "description": "Quản lý các kết nối cơ sở dữ liệu và pools của tenants"
+      "description": "管理租户的数据库连接和连接池"
     }
   },
   "status_active_caps": "活动",

@@ -209,9 +209,7 @@ impl AppState {
             shift_repo.clone(),
         ));
         let tenant_provisioner = Arc::new(
-            crate::services::tenant_provisioner::DefaultTenantProvisioner::new(
-                diesel_pools.api.clone(),
-            ),
+            crate::services::tenant_provisioner::TenantMigrator::new(),
         );
 
         let workspace_service =

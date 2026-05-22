@@ -96,7 +96,7 @@ describe("useWorkspaces", () => {
       wrapper: createWrapper(),
     });
 
-    const created = await result.current.createWorkspace({ name: "New WS" });
+    const created = await result.current.createWorkspace({ name: "New WS", database_url: "postgres://u:p@h:5432/db" });
     expect(created).toEqual(newWs);
     expect(api.createWorkspace).toHaveBeenCalled();
   });

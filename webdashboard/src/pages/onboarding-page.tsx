@@ -1,6 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { LayoutDashboard, Plus, LogOut } from "lucide-react";
+import { LayoutDashboard, Plus, LogOut, Database } from "lucide-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -14,6 +14,7 @@ import { ROUTES } from "@/lib/routes";
 export default function OnboardingPage() {
   const { t } = useTranslation();
   const [name, setName] = useState("");
+  const [databaseUrl, setDatabaseUrl] = useState("");
   const { createWorkspace } = useWorkspaces();
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -24,7 +25,7 @@ export default function OnboardingPage() {
     if (!name.trim()) return;
     setIsSubmitting(true);
     try {
-      const ws = await createWorkspace({ name });
+      const ws = await createWorkspace({ name, database_url: databaseUrl });
       setCurrentWorkspaceId(ws.id);
       
       // Update cache immediately to prevent race condition redirect back to onboarding
@@ -73,7 +74,7 @@ export default function OnboardingPage() {
           </div>
         </div>
 
-        <form className="space-y-10" onSubmit={handleSubmit}>
+        <form className="space-y-8" onSubmit={handleSubmit}>
           <div className="space-y-3 px-1">
             <label className={LABEL_BASE}>
               {t("onboarding.org_name_label")}
@@ -89,9 +90,28 @@ export default function OnboardingPage() {
             />
           </div>
 
+          <div className="space-y-3 px-1">
+            <label className={LABEL_BASE + " flex items-center gap-2"}>
+              <Database className="text-slate-400" size={12} />
+              {t("common.database_url_label")}
+            </label>
+            <input
+              className="w-full px-6 py-4.5 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-[1.5rem] text-xs focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 focus:border-primary-200 dark:border-primary-800 transition-all font-mono tracking-tight shadow-inner"
+              disabled={isSubmitting}
+              id="onboarding-database-url"
+              onChange={(e) => { setDatabaseUrl(e.target.value); }}
+              placeholder={t("common.database_url_placeholder")}
+              type="url"
+              value={databaseUrl}
+            />
+            <p className="text-[9px] text-slate-400 dark:text-slate-500 ml-1 tracking-wide">
+              {t("common.database_url_hint")}
+            </p>
+          </div>
+
           <Button
             className="w-full"
-            disabled={isSubmitting || !name.trim()}
+            disabled={isSubmitting || !name.trim() || !databaseUrl.trim()}
             icon={isSubmitting ? undefined : <Plus size={18} />}
             loading={isSubmitting}
             size="lg"

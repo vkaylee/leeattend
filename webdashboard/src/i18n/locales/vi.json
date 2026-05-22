@@ -622,6 +622,9 @@
     "leeattend_system": "Hệ thống LeeAttend",
     "org_name_label": "Tên tổ chức / Dự án",
     "org_name_placeholder": "Ví dụ: Công ty ABC, Team Freelance...",
+    "database_url_label": "URL kết nối Database",
+    "database_url_placeholder": "postgres://user:password@host:5432/database",
+    "database_url_hint": "Cung cấp chuỗi kết nối của một database PostgreSQL đã tồn tại. Hệ thống sẽ chạy migration trên database này.",
     "employee": "Nhân viên",
     "all_employees": "Tất cả nhân viên",
     "from_date": "Từ ngày",
@@ -1159,45 +1162,6 @@
         "support": "Chỉ xem dữ liệu theo dõi cơ sở hạ tầng và hỗ trợ đa workspace.",
         "billing_admin": "Quản lý thanh toán nền tảng, đăng ký và hạn ngạch trên tất cả workspace.",
         "default": "System level role."
-      }
-    },
-    "system_admin": {
-      "tenants": {
-        "title": "Quản lý Tenants",
-        "subtitle": "Quản lý cơ sở dữ liệu và kết nối Supavisor",
-        "add_btn": "Thêm Tenant",
-        "table": {
-          "id": "Tenant ID (UUID)",
-          "pool_size": "Kích thước Pool",
-          "created_at": "Ngày tạo",
-          "updated_at": "Cập nhật lần cuối",
-          "actions": "Thao tác"
-        },
-        "modal": {
-          "create_title": "Tạo Tenant Mới",
-          "db_name_label": "Tên Cơ Sở Dữ Liệu",
-          "db_name_placeholder": "VD: tenant_abc_db",
-          "create_db_label": "Tạo physical database mới",
-          "pool_size_label": "Kích thước Pool (Tùy chọn)",
-          "submit_btn": "Tạo",
-          "creating": "Đang tạo..."
-        },
-        "messages": {
-          "create_success": "Tạo tenant thành công",
-          "delete_success": "Xóa tenant thành công",
-          "clean_success": "Đã dọn dẹp cấu hình tenant dư thừa thành công"
-        },
-        "confirm_delete": "Bạn có chắc chắn muốn xóa tenant này không? Thao tác này sẽ xóa cấu hình khỏi Supavisor.",
-        "check_stale_btn": "Kiểm tra Tenant Dư thừa",
-        "stale_modal": {
-          "title": "Cấu hình Tenant Dư thừa",
-          "subtitle": "Các tenant này đã đăng ký trong Supavisor nhưng không tương ứng với bất kỳ workspace nào đang hoạt động. Bạn có thể dọn dẹp chúng một cách an toàn.",
-          "no_stale": "Không tìm thấy cấu hình tenant dư thừa. Mọi thứ đều sạch sẽ!",
-          "clean_all": "Dọn dẹp tất cả",
-          "confirm_clean": "Bạn có chắc chắn muốn xóa cấu hình tenant dư thừa này khỏi Supavisor? Thao tác này chỉ xóa định tuyến và không ảnh hưởng đến cơ sở dữ liệu vật lý.",
-          "confirm_clean_all": "Bạn có chắc chắn muốn xóa tất cả cấu hình tenant dư thừa khỏi Supavisor? Thao tác này chỉ xóa các định tuyến và không ảnh hưởng đến cơ sở dữ liệu vật lý.",
-          "scanning": "Đang quét tìm cấu hình dư thừa..."
-        }
       }
     },
     "delete_confirm": "common.delete_confirm",
@@ -3350,8 +3314,9 @@
   "system_admin": {
     "tenants": {
       "title": "Quản lý Tenant",
-      "description": "Quản lý các kết nối cơ sở dữ liệu và pools của tenants",
+      "subtitle": "Quản lý các kết nối cơ sở dữ liệu và pools của tenants",
       "add_btn": "Thêm Tenant",
+      "check_stale_btn": "Kiểm tra Tenant Dư thừa",
       "table": {
         "id": "Mã Tenant",
         "pool_size": "Kích thước Pool",
@@ -3372,10 +3337,20 @@
         "create_success": "Tạo Tenant thành công",
         "delete_success": "Xóa Tenant thành công",
         "update_db_success": "Cập nhật URL cơ sở dữ liệu thành công",
-        "update_mode_success": "Cập nhật chế độ pool thành công"
+        "update_mode_success": "Cập nhật chế độ pool thành công",
+        "clean_success": "Đã dọn dẹp cấu hình tenant dư thừa thành công"
+      },
+      "stale_modal": {
+        "title": "Cấu hình Tenant Dư thừa",
+        "subtitle": "Các tenant này đã đăng ký trong Supavisor nhưng không tương ứng với bất kỳ workspace nào đang hoạt động. Bạn có thể dọn dẹp chúng một cách an toàn.",
+        "no_stale": "Không tìm thấy cấu hình tenant dư thừa. Mọi thứ đều sạch sẽ!",
+        "clean_all": "Dọn dẹp tất cả",
+        "confirm_clean": "Bạn có chắc chắn muốn xóa cấu hình tenant dư thừa này khỏi Supavisor? Thao tác này chỉ xóa định tuyến và không ảnh hưởng đến cơ sở dữ liệu vật lý.",
+        "confirm_clean_all": "Bạn có chắc chắn muốn xóa tất cả cấu hình tenant dư thừa khỏi Supavisor? Thao tác này chỉ xóa các định tuyến và không ảnh hưởng đến cơ sở dữ liệu vật lý.",
+        "scanning": "Đang quét tìm cấu hình dư thừa..."
       },
       "confirm_delete": "Bạn có chắc chắn muốn xóa tenant này không?",
-      "subtitle": "Quản lý tenant"
+      "description": "Quản lý các kết nối cơ sở dữ liệu và pools của tenants"
     }
   }
 }

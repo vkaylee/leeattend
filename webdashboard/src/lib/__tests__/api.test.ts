@@ -392,7 +392,7 @@ describe("api.ts comprehensive tests", () => {
 
     it("createWorkspace", async () => {
       mockSuccess({});
-      await api.createWorkspace({ name: "N" });
+      await api.createWorkspace({ name: "N", database_url: "postgres://u:p@h:5432/db" });
       expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces"), expect.objectContaining({ method: "POST" }));
     });
 

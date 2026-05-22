@@ -654,6 +654,9 @@
       }
     },
     "org_name_placeholder": "Ex: ABC Company, Freelance Team...",
+    "database_url_label": "Database Connection URL",
+    "database_url_placeholder": "postgres://user:password@host:5432/database",
+    "database_url_hint": "Provide the connection string of an existing PostgreSQL database. The system will run migrations on it.",
     "employee": "Employee",
     "all_employees": "All Employees",
     "from_date": "From Date",
@@ -1164,46 +1167,7 @@
     "delete_confirm": "common.delete_confirm",
     "present": "common.present",
     "notifications": "Notifications",
-    "load_more": "Load More",
-    "system_admin": {
-      "tenants": {
-        "modal": {
-          "creating": "Creating...",
-          "create_title": "Create New Tenant",
-          "submit_btn": "Create",
-          "pool_size_label": "Pool Size (Optional)",
-          "db_name_label": "Database Name",
-          "create_db_label": "Create new physical database",
-          "db_name_placeholder": "e.g. tenant_abc_db"
-        },
-        "table": {
-          "created_at": "Created At",
-          "actions": "Actions",
-          "updated_at": "Last Updated",
-          "pool_size": "Pool Size",
-          "id": "Tenant ID (UUID)"
-        },
-        "title": "Tenant Management",
-        "messages": {
-          "delete_success": "Tenant deleted successfully",
-          "create_success": "Tenant created successfully",
-          "clean_success": "Stale tenant cleaned up successfully"
-        },
-        "subtitle": "Manage databases and Supavisor connections",
-        "confirm_delete": "Are you sure you want to delete this tenant? This will remove the configuration from Supavisor.",
-        "add_btn": "Add Tenant",
-        "check_stale_btn": "Check Stale Tenants",
-        "stale_modal": {
-          "title": "Stale Tenant Configurations",
-          "subtitle": "These tenants are registered in Supavisor but do not correspond to any active workspace. They can be safely cleaned up.",
-          "no_stale": "No stale tenant configurations found. Everything is clean!",
-          "clean_all": "Clean Up All",
-          "confirm_clean": "Are you sure you want to remove this stale tenant configuration from Supavisor? This only removes the routing entry and does not affect any physical database.",
-          "confirm_clean_all": "Are you sure you want to remove all stale tenant configurations from Supavisor? This only removes routing entries and does not affect any physical databases.",
-          "scanning": "Scanning for stale configurations..."
-        }
-      }
-    }
+    "load_more": "Load More"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -3345,6 +3309,7 @@
       "title": "Tenants Management",
       "subtitle": "Manage databases and Supavisor connection pools",
       "add_btn": "Add Tenant",
+      "check_stale_btn": "Check Stale Tenants",
       "table": {
         "id": "Tenant ID (UUID)",
         "pool_size": "Pool Size",
@@ -3365,10 +3330,20 @@
         "create_success": "Tenant created successfully",
         "delete_success": "Tenant deleted successfully",
         "update_db_success": "Database URL updated successfully",
-        "update_mode_success": "Pool mode updated successfully"
+        "update_mode_success": "Pool mode updated successfully",
+        "clean_success": "Stale tenant cleaned up successfully"
+      },
+      "stale_modal": {
+        "title": "Stale Tenant Configurations",
+        "subtitle": "These tenants are registered in Supavisor but do not correspond to any active workspace. They can be safely cleaned up.",
+        "no_stale": "No stale tenant configurations found. Everything is clean!",
+        "clean_all": "Clean Up All",
+        "confirm_clean": "Are you sure you want to remove this stale tenant configuration from Supavisor? This only removes the routing entry and does not affect any physical database.",
+        "confirm_clean_all": "Are you sure you want to remove all stale tenant configurations from Supavisor? This only removes routing entries and does not affect any physical databases.",
+        "scanning": "Scanning for stale configurations..."
       },
       "confirm_delete": "Are you sure you want to delete this tenant? This will remove its configuration from Supavisor.",
-      "description": "Quản lý các kết nối cơ sở dữ liệu và pools của tenants"
+      "description": "Manage database connections and pools of tenants"
     }
   },
   "notifications": {
