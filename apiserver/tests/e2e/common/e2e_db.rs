@@ -232,25 +232,43 @@ impl E2eTestDatabase {
         let db_host = parsed_url.host_str().unwrap_or("db").to_string();
         let db_port = parsed_url.port().unwrap_or(5432);
 
-        json!({
-            "tenant": {
-                "db_host": db_host,
-                "db_port": db_port,
-                "db_database": db_name,
-                "ip_version": "auto",
-                "enforce_ssl": false,
-                "require_user": false,
-                "auth_query": "SELECT rolname, rolpassword FROM pg_authid WHERE rolname=$1;",
-                "users": [
-                    {
-                        "db_user": db_user,
-                        "db_password": db_password,
-                        "pool_size": 10,
-                        "mode_type": "session",
-                        "is_manager": true
-                    }
-                ]
+        let mut tenant_map = serde_json::Map::new();
+        tenant_map.insert("db_host".to_string(), json!(db_host));
+        tenant_map.insert("db_port".to_string(), json!(db_port));
+        tenant_map.insert("db_database".to_string(), json!(db_name));
+        tenant_map.insert("ip_version".to_string(), json!("auto"));
+        tenant_map.insert("enforce_ssl".to_string(), json!(false));
+
+        let auth_query = std::env::var("SUPAVISOR_AUTH_QUERY").ok();
+        let has_auth_query = auth_query
+            .as_ref()
+            .map(|v| !v.is_empty() && v != "none")
+            .unwrap_or(false);
+
+        if has_auth_query {
+            tenant_map.insert("require_user".to_string(), json!(false));
+            if let Some(query) = auth_query {
+                tenant_map.insert("auth_query".to_string(), json!(query));
             }
+        } else {
+            tenant_map.insert("require_user".to_string(), json!(true));
+        }
+
+        tenant_map.insert(
+            "users".to_string(),
+            json!([
+                {
+                    "db_user": &db_user,
+                    "db_password": &db_password,
+                    "pool_size": 10,
+                    "mode_type": "session",
+                    "is_manager": true
+                }
+            ]),
+        );
+
+        json!({
+            "tenant": tenant_map
         })
     }
 

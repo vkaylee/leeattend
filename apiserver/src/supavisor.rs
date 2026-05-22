@@ -43,27 +43,45 @@ pub fn build_tenant_payload(db_url: &str) -> Option<(String, serde_json::Value)>
 
     let ip_version = std::env::var("SUPAVISOR_IP_VERSION").unwrap_or_else(|_| "auto".to_string());
 
-    let payload = json!({
-        "tenant": {
-            "db_host": db_host,
-            "db_port": db_port,
-            "db_database": db_name,
-            "ip_version": ip_version,
-            "enforce_ssl": enforce_ssl,
-            "require_user": false,
-            "default_pool_size": pool_size,
-            "default_mode": &mode_type,
-            "auth_query": "SELECT rolname, rolpassword FROM pg_authid WHERE rolname=$1;",
-            "users": [
-                {
-                    "db_user": db_user,
-                    "db_password": db_password,
-                    "pool_size": pool_size,
-                    "mode_type": mode_type,
-                    "is_manager": true
-                }
-            ]
+    let mut tenant_map = serde_json::Map::new();
+    tenant_map.insert("db_host".to_string(), json!(db_host));
+    tenant_map.insert("db_port".to_string(), json!(db_port));
+    tenant_map.insert("db_database".to_string(), json!(db_name));
+    tenant_map.insert("ip_version".to_string(), json!(ip_version));
+    tenant_map.insert("enforce_ssl".to_string(), json!(enforce_ssl));
+    tenant_map.insert("default_pool_size".to_string(), json!(pool_size));
+    tenant_map.insert("default_mode".to_string(), json!(&mode_type));
+
+    let auth_query = std::env::var("SUPAVISOR_AUTH_QUERY").ok();
+    let has_auth_query = auth_query
+        .as_ref()
+        .map(|v| !v.is_empty() && v != "none")
+        .unwrap_or(false);
+
+    if has_auth_query {
+        tenant_map.insert("require_user".to_string(), json!(false));
+        if let Some(query) = auth_query {
+            tenant_map.insert("auth_query".to_string(), json!(query));
         }
+    } else {
+        tenant_map.insert("require_user".to_string(), json!(true));
+    }
+
+    tenant_map.insert(
+        "users".to_string(),
+        json!([
+            {
+                "db_user": &db_user,
+                "db_password": &db_password,
+                "pool_size": pool_size,
+                "mode_type": &mode_type,
+                "is_manager": true
+            }
+        ]),
+    );
+
+    let payload = json!({
+        "tenant": tenant_map
     });
 
     Some((tenant_id, payload))
@@ -423,6 +441,55 @@ mod tests {
         assert_eq!(users.len(), 1);
         assert_eq!(users[0]["db_user"], "my_user");
         assert_eq!(users[0]["db_password"], "my_secret");
+        assert_eq!(users[0]["is_manager"], true);
+    }
+
+    #[test]
+    fn test_build_tenant_payload_auth_query_config() {
+        let url = "postgres://my_user:my_secret@my_db_host:5433/my_company_db";
+
+        // 1. By default (env not set), auth_query should be absent, require_user = true, 1 user
+        std::env::remove_var("SUPAVISOR_AUTH_QUERY");
+        let (_, payload) = build_tenant_payload(url).unwrap();
+        let tenant = payload.get("tenant").unwrap();
+        assert!(
+            tenant.get("auth_query").is_none(),
+            "auth_query should be absent by default"
+        );
+        assert_eq!(tenant["require_user"], true);
+        assert_eq!(tenant["users"].as_array().unwrap().len(), 1);
+
+        // 2. When set to a custom query, require_user = false, 1 user
+        std::env::set_var("SUPAVISOR_AUTH_QUERY", "SELECT 1;");
+        let (_, payload) = build_tenant_payload(url).unwrap();
+        let tenant = payload.get("tenant").unwrap();
+        assert_eq!(tenant["auth_query"], "SELECT 1;");
+        assert_eq!(tenant["require_user"], false);
+        assert_eq!(tenant["users"].as_array().unwrap().len(), 1);
+
+        // 3. When set to "none"
+        std::env::set_var("SUPAVISOR_AUTH_QUERY", "none");
+        let (_, payload) = build_tenant_payload(url).unwrap();
+        let tenant = payload.get("tenant").unwrap();
+        assert!(
+            tenant.get("auth_query").is_none(),
+            "auth_query should be absent when set to 'none'"
+        );
+        assert_eq!(tenant["require_user"], true);
+        assert_eq!(tenant["users"].as_array().unwrap().len(), 1);
+
+        // 4. When set to empty string
+        std::env::set_var("SUPAVISOR_AUTH_QUERY", "");
+        let (_, payload) = build_tenant_payload(url).unwrap();
+        let tenant = payload.get("tenant").unwrap();
+        assert!(
+            tenant.get("auth_query").is_none(),
+            "auth_query should be absent when set to empty string"
+        );
+        assert_eq!(tenant["require_user"], true);
+        assert_eq!(tenant["users"].as_array().unwrap().len(), 1);
+
+        std::env::remove_var("SUPAVISOR_AUTH_QUERY");
     }
 
     #[test]
@@ -467,10 +534,12 @@ mod tests {
 
         let tenant = payload.get("tenant").expect("missing tenant key");
         let users = tenant["users"].as_array().expect("missing users array");
+        assert_eq!(users.len(), 1);
         assert_eq!(users[0]["db_user"], "custom_pool_user");
         assert_eq!(users[0]["db_password"], "custom_pool_secret");
         assert_eq!(users[0]["pool_size"], 20); // Default
         assert_eq!(users[0]["mode_type"], "session"); // Default
+        assert_eq!(users[0]["is_manager"], true);
 
         std::env::remove_var("SUPAVISOR_POOL_USER");
         std::env::remove_var("SUPAVISOR_POOL_PASSWORD");
@@ -486,8 +555,10 @@ mod tests {
 
         let tenant = payload.get("tenant").expect("missing tenant key");
         let users = tenant["users"].as_array().expect("missing users array");
+        assert_eq!(users.len(), 1);
         assert_eq!(users[0]["pool_size"], 50);
         assert_eq!(users[0]["mode_type"], "session");
+        assert_eq!(users[0]["is_manager"], true);
 
         std::env::remove_var("SUPAVISOR_POOL_SIZE");
         std::env::remove_var("SUPAVISOR_MODE_TYPE");
@@ -761,6 +832,7 @@ mod tests {
         std::env::set_var("SUPAVISOR_MODE_TYPE", "session");
         std::env::set_var("SUPAVISOR_POOL_SIZE", "42");
         std::env::set_var("SUPAVISOR_TENANT_ID", "test_tenant");
+        std::env::set_var("SUPAVISOR_AUTH_QUERY", "SELECT 1;");
 
         let url = "postgres://user:pass@host:5432/dbname";
         let (tenant_id, payload) = build_tenant_payload(url).expect("Should build payload");
@@ -788,6 +860,7 @@ mod tests {
         std::env::remove_var("SUPAVISOR_MODE_TYPE");
         std::env::remove_var("SUPAVISOR_POOL_SIZE");
         std::env::remove_var("SUPAVISOR_TENANT_ID");
+        std::env::remove_var("SUPAVISOR_AUTH_QUERY");
     }
 
     #[test]
