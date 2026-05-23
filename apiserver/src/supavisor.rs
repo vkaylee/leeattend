@@ -252,7 +252,9 @@ impl TenantManager for SupavisorTenantManager {
             self.api_url.trim_end_matches('/')
         );
 
-        // Check if tenant already exists to prevent overwriting and dropping connections
+        // Check if tenant already exists. We used to skip initialization to prevent dropping connections,
+        // but this causes the master tenant to be stuck with stale/buggy configurations.
+        // Now, we always PUT the tenant to ensure its configuration is up to date.
         match self
             .client
             .get(&url)
@@ -263,9 +265,8 @@ impl TenantManager for SupavisorTenantManager {
             Ok(response) => {
                 if response.status().is_success() {
                     tracing::info!(
-                        "Supavisor tenant '{tenant_id}' already exists, skipping initialization"
+                        "Supavisor tenant '{tenant_id}' already exists. Proceeding to update it to apply the latest config..."
                     );
-                    return;
                 }
             }
             Err(e) => {
