@@ -637,6 +637,27 @@ mod tests {
     }
 
     #[test]
+    fn test_build_tenant_payload_sets_pool_password_from_env() {
+        let physical_db_url = "postgres://tenant_user:physical_pass@my_db_host:5433/tenant_db";
+        
+        // 1. Without DATABASE_URL set, pool_password should default to db_password
+        std::env::remove_var("DATABASE_URL");
+        let (_, payload) = build_tenant_payload(physical_db_url, TenantPayloadOptions { is_master: false, ..Default::default() }).unwrap();
+        let users = payload.get("tenant").unwrap()["users"].as_array().unwrap();
+        assert_eq!(users[0]["db_password"], "physical_pass");
+        assert_eq!(users[0]["pool_password"], "physical_pass");
+
+        // 2. With DATABASE_URL set to Supavisor URL, pool_password should be the master password
+        std::env::set_var("DATABASE_URL", "postgres://postgres.leeattend:master_pass@supavisor:6543/leeattend");
+        let (_, payload2) = build_tenant_payload(physical_db_url, TenantPayloadOptions { is_master: false, ..Default::default() }).unwrap();
+        let users2 = payload2.get("tenant").unwrap()["users"].as_array().unwrap();
+        assert_eq!(users2[0]["db_password"], "physical_pass");
+        assert_eq!(users2[0]["pool_password"], "master_pass");
+        
+        std::env::remove_var("DATABASE_URL");
+    }
+
+    #[test]
     fn test_build_tenant_payload_with_custom_tenant_id() {
         std::env::set_var("SUPAVISOR_TENANT_ID", "custom_tenant_name");
         let url = "postgres://my_user:my_secret@my_db_host:5433/my_company_db";
