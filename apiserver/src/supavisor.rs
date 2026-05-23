@@ -151,12 +151,21 @@ pub fn build_tenant_payload(db_url: &str, opts: TenantPayloadOptions) -> Option<
         tenant_map.insert("require_user".to_string(), json!(true));
     }
 
+    // Determine pool_password from API Server's DATABASE_URL
+    let client_password = std::env::var("DATABASE_URL")
+        .ok()
+        .and_then(|url| parse_postgres_url(&url))
+        .map(|(_, pass, _, _, _)| pass)
+        .filter(|p| !p.is_empty())
+        .unwrap_or_else(|| db_password.clone());
+
     tenant_map.insert(
         "users".to_string(),
         json!([
             {
                 "db_user": &db_user,
                 "db_password": &db_password,
+                "pool_password": &client_password,
                 "pool_size": pool_size,
                 "mode_type": &mode_type,
                 "is_manager": true
@@ -560,6 +569,7 @@ mod tests {
         assert_eq!(users.len(), 1);
         assert_eq!(users[0]["db_user"], "my_user");
         assert_eq!(users[0]["db_password"], "my_secret");
+        assert!(users[0].get("pool_password").is_some());
         assert_eq!(users[0]["is_manager"], true);
     }
 
@@ -658,6 +668,7 @@ mod tests {
         assert_eq!(users[0]["db_password"], "custom_pool_secret");
         assert_eq!(users[0]["pool_size"], 20); // Default
         assert_eq!(users[0]["mode_type"], "session"); // Default
+        assert!(users[0].get("pool_password").is_some());
         assert_eq!(users[0]["is_manager"], true);
 
         std::env::remove_var("SUPAVISOR_POOL_USER");
@@ -756,6 +767,7 @@ mod tests {
         assert_eq!(users.len(), 1);
         assert_eq!(users[0]["pool_size"], 50);
         assert_eq!(users[0]["mode_type"], "session");
+        assert!(users[0].get("pool_password").is_some());
         assert_eq!(users[0]["is_manager"], true);
 
         std::env::remove_var("SUPAVISOR_POOL_SIZE");
