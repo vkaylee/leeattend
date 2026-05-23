@@ -100,6 +100,13 @@ const createMockHook = (overrides = {}) => {
     handleMonthDeleteRoster: vi.fn(),
     handleCopyPreviousMonth: vi.fn(),
     employees: mockEmployees,
+    isMonthError: false,
+    monthError: null,
+    refetchMonthSchedules: vi.fn().mockResolvedValue(undefined),
+    isEmployeesLoading: false,
+    isEmployeesError: false,
+    employeesError: null,
+    refetchEmployees: vi.fn().mockResolvedValue(undefined),
     departments: mockDepartments,
     activeTab: "weekly-roster",
     assignPatternMutation: {} as unknown as ReturnType<typeof useShifts>["assignPatternMutation"],
@@ -248,5 +255,30 @@ describe("MonthlyRosterGrid Filtering", () => {
 
     // Verify grid contents are not shown
     expect(screen.queryByText("Alice Security")).not.toBeInTheDocument();
+  });
+
+  it("displays loading state when isMonthLoading or isEmployeesLoading is true", () => {
+    const hook1 = createMockHook({ isMonthLoading: true });
+    const { rerender } = render(<MonthlyRosterGrid hook={hook1} />);
+    expect(screen.getByText("common.loading...")).toBeInTheDocument();
+
+    const hook2 = createMockHook({ isEmployeesLoading: true });
+    rerender(<MonthlyRosterGrid hook={hook2} />);
+    expect(screen.getByText("common.loading...")).toBeInTheDocument();
+  });
+
+  it("displays error state with retry button when queries fail", async () => {
+    const user = userEvent.setup();
+    const hook = createMockHook({ isMonthError: true });
+    render(<MonthlyRosterGrid hook={hook} />);
+
+    expect(screen.getByText("common.error")).toBeInTheDocument();
+    expect(screen.getByText("shifts.monthly.failed_to_load")).toBeInTheDocument();
+
+    const retryButton = screen.getByRole("button", { name: "common.retry" });
+    await user.click(retryButton);
+
+    expect(hook.refetchMonthSchedules).toHaveBeenCalled();
+    expect(hook.refetchEmployees).toHaveBeenCalled();
   });
 });

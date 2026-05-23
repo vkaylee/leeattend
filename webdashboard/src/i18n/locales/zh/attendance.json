@@ -247,7 +247,8 @@
       "all_departments": "所有部门",
       "no_department": "无部门",
       "no_results_desc": "未找到匹配搜索或过滤条件的员工。",
-      "empty_state_desc": "未找到员工或排班计划。请检查部门或人事配置。"
+      "empty_state_desc": "未找到员工或排班计划。请检查部门或人事配置。",
+      "failed_to_load": "加载月度排班数据失败。请重试。"
     },
     "title": "排班系统",
     "subtitle": "管理灵活和固定的班次",

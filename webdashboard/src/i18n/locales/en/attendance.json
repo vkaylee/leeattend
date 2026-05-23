@@ -247,7 +247,8 @@
       "all_departments": "All Departments",
       "no_department": "No Department",
       "no_results_desc": "No employees found matching your search or filter criteria.",
-      "empty_state_desc": "No employees or work schedules found. Please check your departments or personnel settings."
+      "empty_state_desc": "No employees or work schedules found. Please check your departments or personnel settings.",
+      "failed_to_load": "Failed to load monthly roster data. Please try again."
     },
     "title": "Scheduling System",
     "subtitle": "Manage flexible and fixed work shifts",

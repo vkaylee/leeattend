@@ -45,6 +45,7 @@ export function useAllEmployees(
     isLoading: query.isLoading,
     isError: query.isError,
     error: query.error,
+    refetch: query.refetch,
   };
 }
 

@@ -2,12 +2,12 @@ import { useQuery } from "@tanstack/react-query";
 
 import { format } from "date-fns";
 
+import { useAllEmployees } from "@/hooks/use-employees";
 import {
   fetchAssignmentHistory,
   fetchShifts,
   fetchWorkingPatterns,
   fetchWorkspaceSchedules,
-  searchEmployees,
   fetchDepartments,
 } from "@/lib/api";
 import {
@@ -15,7 +15,6 @@ import {
   EmployeeSchedule,
   Shift,
   WorkingPattern,
-  Employee,
   Department,
 } from "@/lib/api/types";
 
@@ -53,7 +52,13 @@ export function useShiftData({ wsId, startOfWeek, weekDays, viewMode, monthStart
     enabled: !!wsId,
   });
 
-  const { data: monthSchedules, isLoading: isMonthLoading } = useQuery<EmployeeSchedule[]>({
+  const {
+    data: monthSchedules,
+    isLoading: isMonthLoading,
+    isError: isMonthError,
+    error: monthError,
+    refetch: refetchMonthSchedules,
+  } = useQuery<EmployeeSchedule[]>({
     queryKey: ["schedules", wsId, monthStart ? format(monthStart, 'yyyy-MM-dd') : "", "monthly"],
     queryFn: () => {
       if (!monthStart || !monthEnd) {
@@ -74,11 +79,13 @@ export function useShiftData({ wsId, startOfWeek, weekDays, viewMode, monthStart
     enabled: !!wsId,
   });
 
-  const { data: employees } = useQuery<Employee[]>({
-    queryKey: ["employees", wsId, "list-all"],
-    queryFn: () => searchEmployees({ wsId, query: "", limit: 1000 }).then(res => res.data),
-    enabled: !!wsId && viewMode === "month",
-  });
+  const {
+    employees,
+    isLoading: isEmployeesLoading,
+    isError: isEmployeesError,
+    error: employeesError,
+    refetch: refetchEmployees,
+  } = useAllEmployees(wsId, { enabled: !!wsId && viewMode === "month" });
 
   const { data: departments } = useQuery<Department[]>({
     queryKey: ["departments", wsId],
@@ -86,6 +93,22 @@ export function useShiftData({ wsId, startOfWeek, weekDays, viewMode, monthStart
     enabled: !!wsId && viewMode === "month",
   });
 
-  return { shifts, patterns, allSchedules, history, monthSchedules, isMonthLoading, employees, departments };
+  return {
+    shifts,
+    patterns,
+    allSchedules,
+    history,
+    monthSchedules,
+    isMonthLoading,
+    isMonthError,
+    monthError,
+    refetchMonthSchedules,
+    employees,
+    isEmployeesLoading,
+    isEmployeesError,
+    employeesError,
+    refetchEmployees,
+    departments,
+  };
 }
 

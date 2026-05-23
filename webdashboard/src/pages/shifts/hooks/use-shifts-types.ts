@@ -27,6 +27,7 @@ export interface UseShiftsReturn {
   editingShift: Shift | null;
   employees: Employee[] | undefined;
   employeeSchedule: EmployeeSchedule | undefined;
+  employeesError: Error | null;
   endDate: string;
 
 
@@ -45,11 +46,15 @@ export interface UseShiftsReturn {
   isAutoDeduct: boolean;
   isCorrection: boolean;
   isCreateModalOpen: boolean;
+  isEmployeesError: boolean;
+  isEmployeesLoading: boolean;
   isFixedBreak: boolean;
   isForever: boolean;
+  isMonthError: boolean;
   isMonthLoading: boolean;
   isShiftPickerOpen: boolean;
   monthDays: Date[];
+  monthError: Error | null;
   monthSchedules: EmployeeSchedule[] | undefined;
   newBreakEnd: string;
   newBreakStart: string;
@@ -61,6 +66,8 @@ export interface UseShiftsReturn {
   newShiftSymbol: string;
   openEditModal: (shift: Shift) => void;
   patterns: WorkingPattern[] | undefined;
+  refetchEmployees: () => Promise<unknown>;
+  refetchMonthSchedules: () => Promise<unknown>;
   selectedDays: string[];
   selectedEmployee: Employee | null;
   selectedPatternId: string;
