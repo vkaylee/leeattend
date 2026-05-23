@@ -1115,4 +1115,46 @@ mod tests {
         assert_eq!(tenant["default_mode"], "transaction");
         assert_eq!(tenant["users"][0]["mode_type"], "transaction");
     }
+
+    #[test]
+    fn test_parse_postgres_url() {
+        // Basic case
+        let url = "postgres://user:password@localhost:5432/mydb";
+        let parsed = parse_postgres_url(url).unwrap();
+        assert_eq!(parsed.0, "user");
+        assert_eq!(parsed.1, "password");
+        assert_eq!(parsed.2, "localhost");
+        assert_eq!(parsed.3, 5432);
+        assert_eq!(parsed.4, "mydb");
+
+        // With query params
+        let url = "postgres://user:password@localhost:5432/mydb?sslmode=disable";
+        let parsed = parse_postgres_url(url).unwrap();
+        assert_eq!(parsed.4, "mydb");
+
+        // Unencoded special characters in password (libpq style)
+        let url = "postgres://user:k!@#XYZ@viaduct.proxy.net:6543/railway";
+        let parsed = parse_postgres_url(url).unwrap();
+        assert_eq!(parsed.0, "user");
+        assert_eq!(parsed.1, "k!@#XYZ");
+        assert_eq!(parsed.2, "viaduct.proxy.net");
+        assert_eq!(parsed.3, 6543);
+        assert_eq!(parsed.4, "railway");
+
+        // Multiple unencoded @ in password
+        let url = "postgres://user:k!@@#@XYZ@viaduct:5432/db";
+        let parsed = parse_postgres_url(url).unwrap();
+        assert_eq!(parsed.1, "k!@@#@XYZ");
+
+        // Username with dot
+        let url = "postgres://postgres.leeattend:master_pass@supavisor:6543/leeattend";
+        let parsed = parse_postgres_url(url).unwrap();
+        assert_eq!(parsed.0, "postgres.leeattend");
+        assert_eq!(parsed.1, "master_pass");
+        
+        // Percent-encoded password
+        let url = "postgres://user:pass%40word@host:5432/db";
+        let parsed = parse_postgres_url(url).unwrap();
+        assert_eq!(parsed.1, "pass@word");
+    }
 }

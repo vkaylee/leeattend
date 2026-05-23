@@ -930,4 +930,36 @@ mod tests {
         assert_eq!(*connect_count.lock().unwrap(), 3, "Should have retried exactly 2 times (3 total attempts)");
         assert!(start.elapsed().as_millis() >= 200, "Should have slept for at least 200ms total");
     }
+
+    #[test]
+    fn test_get_tenant_url_preserves_unencoded_chars() {
+        let manager = ProductionTenantPoolManager::new(
+            "postgres://postgres:k!@#XYZ@viaduct.proxy:5432/railway".to_string(),
+            10,
+        );
+        let id = Uuid::parse_str("019e5512-4556-7b33-9e9b-84fb5a82c6d4").unwrap();
+        let tenant_url = manager.get_tenant_url(&id).unwrap();
+        
+        // Expected: same password with unencoded #, but db_name changed
+        assert_eq!(
+            tenant_url,
+            "postgres://postgres:k!@#XYZ@viaduct.proxy:5432/tenant_019e551245567b339e9b84fb5a82c6d4"
+        );
+    }
+
+    #[test]
+    fn test_get_tenant_url_supavisor_mode_preserves_unencoded_chars() {
+        let manager = ProductionTenantPoolManager::new(
+            "postgres://postgres.leeattend:master_pass!@#@supavisor:6543/leeattend?sslmode=disable".to_string(),
+            10,
+        );
+        let id = Uuid::parse_str("019e5512-4556-7b33-9e9b-84fb5a82c6d4").unwrap();
+        let tenant_url = manager.get_tenant_url(&id).unwrap();
+        
+        // Expected: user updated, password intact, db_name updated, query intact
+        assert_eq!(
+            tenant_url,
+            "postgres://postgres.tenant_019e551245567b339e9b84fb5a82c6d4:master_pass!@#@supavisor:6543/tenant_019e551245567b339e9b84fb5a82c6d4?sslmode=disable"
+        );
+    }
 }
