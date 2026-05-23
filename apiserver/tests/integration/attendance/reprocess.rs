@@ -12,16 +12,8 @@ use std::sync::Arc;
 use tower::ServiceExt;
 use uuid::Uuid;
 
-fn init_tracing() {
-    let _ = tracing_subscriber::fmt()
-        .with_max_level(tracing::Level::DEBUG)
-        .with_test_writer()
-        .try_init();
-}
-
 #[tokio::test]
 async fn test_force_reprocess_attendance_api() {
-    init_tracing();
     let (test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
         setup_app_tower().await;
 

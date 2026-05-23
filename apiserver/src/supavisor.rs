@@ -123,7 +123,7 @@ impl SupavisorTenantManager {
         let master_db_url = std::env::var("DATABASE_URL").unwrap_or_default();
         Some(Self {
             client: reqwest::Client::builder()
-                .timeout(std::time::Duration::from_secs(5))
+                .timeout(std::time::Duration::from_secs(30))
                 .build()
                 .unwrap_or_else(|_| reqwest::Client::new()),
             api_url,
@@ -154,14 +154,35 @@ impl TenantManager for SupavisorTenantManager {
             return;
         };
 
-        tracing::info!(
-            "Initializing Supavisor tenant '{tenant_id}' at {}",
-            self.api_url
-        );
-
         let url = format!(
             "{}/api/tenants/{tenant_id}",
             self.api_url.trim_end_matches('/')
+        );
+
+        // Check if tenant already exists to prevent overwriting and dropping connections
+        match self
+            .client
+            .get(&url)
+            .header("Authorization", format!("Bearer {token}"))
+            .send()
+            .await
+        {
+            Ok(response) => {
+                if response.status().is_success() {
+                    tracing::info!(
+                        "Supavisor tenant '{tenant_id}' already exists, skipping initialization"
+                    );
+                    return;
+                }
+            }
+            Err(e) => {
+                tracing::warn!("Failed to check if Supavisor tenant exists: {e:?}");
+            }
+        }
+
+        tracing::info!(
+            "Initializing Supavisor tenant '{tenant_id}' at {}",
+            self.api_url
         );
 
         match self
@@ -234,6 +255,20 @@ impl TenantManager for SupavisorTenantManager {
             self.api_url.trim_end_matches('/'),
             tenant_id
         );
+
+        let response_get = self
+            .client
+            .get(&url)
+            .header("Authorization", format!("Bearer {token}"))
+            .send()
+            .await;
+
+        if let Ok(res) = response_get {
+            if res.status().is_success() {
+                tracing::debug!("Supavisor tenant '{}' already exists, skipping dynamic registration", tenant_id);
+                return Ok(());
+            }
+        }
 
         let response = self
             .client

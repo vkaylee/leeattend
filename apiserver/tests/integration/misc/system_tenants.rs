@@ -218,7 +218,7 @@ async fn test_system_tenant_startup_registration() {
     let tenant_manager = apiserver::supavisor::SupavisorTenantManager::new()
         .expect("Failed to build SupavisorTenantManager");
 
-    // 4. Run the startup initialization flow
+    // 4. Run the startup initialization flow (First time)
     tenant_manager.init_tenant().await;
 
     // 5. Verify the tenant was registered successfully in Supavisor
@@ -242,7 +242,18 @@ async fn test_system_tenant_startup_registration() {
         "Registered db_database name does not match expected database name"
     );
 
-    // 6. Clean up: Delete the registered tenant from Supavisor
+    // 6. Run the startup initialization flow AGAIN (Second time)
+    // This should hit the GET check and gracefully skip the PUT without error.
+    tenant_manager.init_tenant().await;
+
+    // Verify it still exists and is accessible
+    let get_res_second = tenant_manager.get_tenant(&db_name).await;
+    assert!(
+        get_res_second.is_ok(),
+        "Tenant should still be accessible after second init_tenant call"
+    );
+
+    // 7. Clean up: Delete the registered tenant from Supavisor
     let del_res = tenant_manager.delete_tenant(&db_name).await;
     assert!(
         del_res.is_ok(),
@@ -250,7 +261,7 @@ async fn test_system_tenant_startup_registration() {
         del_res.err()
     );
 
-    // 7. Restore original environment variables
+    // 8. Restore original environment variables
     if let Some(url) = orig_db_url {
         std::env::set_var("DATABASE_URL", url);
     } else {
@@ -261,3 +272,115 @@ async fn test_system_tenant_startup_registration() {
         std::env::set_var("SUPAVISOR_TENANT_ID", tid);
     }
 }
+
+#[tokio::test]
+async fn test_dynamic_tenant_registration_idempotency() {
+    use apiserver::supavisor::TenantManager;
+
+    let supavisor_url = match std::env::var("SUPAVISOR_API_URL") {
+        Ok(url) => url,
+        Err(_) => {
+            println!("Skipping test_dynamic_tenant_registration_idempotency test because SUPAVISOR_API_URL is not set.");
+            return;
+        }
+    };
+
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(1))
+        .build()
+        .unwrap();
+
+    if client.get(&supavisor_url).send().await.is_err() {
+        println!(
+            "Skipping test_dynamic_tenant_registration_idempotency test because Supavisor is not reachable at {}.",
+            supavisor_url
+        );
+        return;
+    }
+
+    // 1. Create a dynamic test database so Supavisor's connection test passes
+    let test_db = crate::common::db::TestDatabase::new().await;
+    let tenant_id = format!("tenant_{}", Uuid::new_v4().simple());
+    let db_name = test_db.db_name().to_string();
+
+    // 2. Construct a real SupavisorTenantManager
+    let tenant_manager = apiserver::supavisor::SupavisorTenantManager::new()
+        .expect("Failed to build SupavisorTenantManager");
+
+    let db_url = test_db.url();
+    let without_scheme = db_url.strip_prefix("postgres://").unwrap_or(&db_url);
+    let credentials = without_scheme.split('@').next().unwrap_or("");
+    let mut creds_parts = credentials.split(':');
+    let db_user = creds_parts.next().unwrap_or("test_user").to_string();
+    let db_password = creds_parts.next().unwrap_or("test_password").to_string();
+
+    // 3. Build a dummy payload using the real database name and real user credentials
+    let payload = json!({
+        "tenant": {
+            "db_host": "db_system",
+            "db_port": 5432,
+            "db_database": db_name,
+            "ip_version": "auto",
+            "enforce_ssl": false,
+            "default_pool_size": 20,
+            "default_mode": "session",
+            "require_user": true,
+            "users": [
+                {
+                    "db_user": db_user,
+                    "db_password": db_password,
+                    "pool_size": 20,
+                    "mode_type": "session",
+                    "is_manager": true
+                }
+            ]
+        }
+    });
+
+    // 4. Run the dynamic registration (First time)
+    let res1 = tenant_manager.register_tenant_dynamic(&tenant_id, &payload).await;
+    assert!(
+        res1.is_ok(),
+        "First dynamic registration failed: {:?}",
+        res1.err()
+    );
+
+    // 5. Run the dynamic registration AGAIN (Second time)
+    // This should hit the GET check and gracefully skip the PUT without error.
+    let res2 = tenant_manager.register_tenant_dynamic(&tenant_id, &payload).await;
+    assert!(
+        res2.is_ok(),
+        "Second dynamic registration failed: {:?}",
+        res2.err()
+    );
+
+    // 6. Verify it still exists and is accessible
+    let get_res = tenant_manager.get_tenant(&tenant_id).await;
+    assert!(
+        get_res.is_ok(),
+        "Tenant should be accessible after dynamic registration"
+    );
+
+    let fetched_payload = get_res.unwrap();
+    let tenant_obj = if let Some(data) = fetched_payload.get("data") {
+        data
+    } else if let Some(tenant) = fetched_payload.get("tenant") {
+        tenant
+    } else {
+        &fetched_payload
+    };
+    assert_eq!(
+        tenant_obj["db_database"].as_str().unwrap(),
+        db_name,
+        "Registered db_database name does not match expected database name"
+    );
+
+    // 7. Clean up: Delete the registered tenant from Supavisor
+    let del_res = tenant_manager.delete_tenant(&tenant_id).await;
+    assert!(
+        del_res.is_ok(),
+        "Failed to clean up registered dynamic tenant from Supavisor: {:?}",
+        del_res.err()
+    );
+}
+

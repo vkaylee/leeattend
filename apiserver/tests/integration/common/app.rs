@@ -87,7 +87,8 @@ pub async fn create_test_redis_pool() -> Option<apiserver::queue::RedisPool> {
     for attempt in 0..10 {
         match apiserver::queue::RedisPool::new(&url).await {
             Ok(p) => return Some(p),
-            Err(_) if attempt < 9 => {
+            Err(e) if attempt < 9 => {
+                tracing::warn!("Failed to connect to redis at {} (attempt {}): {}", url, attempt, e);
                 tokio::time::sleep(std::time::Duration::from_millis(500 * (attempt + 1))).await;
             }
             Err(e) => panic!(
@@ -593,21 +594,29 @@ pub async fn spawn_app_with_factory() -> (String, Uuid, Uuid, TestFactory, TestD
 pub async fn spawn_app_with_factory_extended(
     tenant_manager: Arc<dyn apiserver::supavisor::TenantManager>,
 ) -> (String, Uuid, Uuid, TestFactory, TestDatabase) {
+    init_tracing();
+    tracing::info!("spawn_app_with_factory_extended: creating TestDatabase");
     let test_db = TestDatabase::new().await;
+    tracing::info!("spawn_app_with_factory_extended: TestDatabase created");
+    
     let pool = test_db.diesel_pools.clone();
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
 
+    tracing::info!("spawn_app_with_factory_extended: creating Redis pool");
     let shared_redis_pool = create_test_redis_pool().await;
+    tracing::info!("spawn_app_with_factory_extended: Redis pool created");
 
     let factory = TestFactory::new(pool.clone()).with_redis(shared_redis_pool.clone());
 
-    // Create a test user and workspace using factory
+    tracing::info!("spawn_app_with_factory_extended: creating factory user");
     let user_id = factory.user().with_email("test@example.com").create().await;
+    tracing::info!("spawn_app_with_factory_extended: creating factory workspace");
     let workspace_id = factory
         .workspace()
         .with_name("Test Workspace")
         .create_with_owner(user_id)
         .await;
+    tracing::info!("spawn_app_with_factory_extended: workspace created");
 
     let agent_manager = AgentManager::new(None);
     let staging_repo: Arc<
@@ -1111,6 +1120,16 @@ pub async fn spawn_app_with_factory_extended(
     )
 }
 
+static TRACING_INITIALIZED: std::sync::OnceLock<()> = std::sync::OnceLock::new();
+fn init_tracing() {
+    TRACING_INITIALIZED.get_or_init(|| {
+        tracing_subscriber::fmt()
+            .with_env_filter("trace")
+            .with_writer(std::io::stdout)
+            .init();
+    });
+}
+
 /// App spawn with member - creates workspace with owner and a member user
 #[allow(dead_code)]
 pub async fn spawn_app_with_member() -> (String, Uuid, Uuid, Uuid, TestFactory, TestDatabase) {
@@ -1155,6 +1174,7 @@ pub async fn setup_app_tower_internal_extended(
     use_redis: bool,
     tenant_manager: Arc<dyn apiserver::supavisor::TenantManager>,
 ) -> (TestDatabase, TestFactory, Arc<AppState>, axum::Router) {
+    init_tracing();
     let test_db = TestDatabase::new().await;
     let shared_redis_pool = if use_redis {
         create_test_redis_pool().await

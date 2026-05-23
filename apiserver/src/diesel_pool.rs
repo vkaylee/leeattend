@@ -178,13 +178,39 @@ pub struct DieselPools {
     pub tenants: Arc<dyn TenantPoolProvider>,
 }
 
+fn is_transient_supavisor_error(err_msg: &str) -> bool {
+    // These errors indicate Supavisor is momentarily restarting the tenant process (e.g., during PUT)
+    err_msg.contains("No auth_query specified")
+        || err_msg.contains("Tenant or user not found")
+        || err_msg.contains("terminating connection")
+        || err_msg.contains("closed")
+}
+
 impl DieselPools {
     /// Convenience method: get a connection from the tenant pool for a given workspace.
     pub async fn tenant_conn(&self, workspace_id: Uuid) -> Result<DieselConnection, AppError> {
         let pool = self.tenants.get_pool(&workspace_id).await?;
-        pool.get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))
+
+        let mut retries = 3;
+        loop {
+            match pool.get().await {
+                Ok(conn) => return Ok(conn),
+                Err(e) => {
+                    let err_msg = e.to_string();
+                    if retries > 0 && is_transient_supavisor_error(&err_msg) {
+                        tracing::warn!(
+                            workspace_id = %workspace_id,
+                            error = %err_msg,
+                            "Transient Supavisor connection error, retrying in 300ms..."
+                        );
+                        tokio::time::sleep(std::time::Duration::from_millis(300)).await;
+                        retries -= 1;
+                        continue;
+                    }
+                    return Err(AppError::Internal(format!("db: {e}")));
+                }
+            }
+        }
     }
 
     #[allow(clippy::unused_async, clippy::expect_used)]
@@ -343,30 +369,48 @@ impl DieselPools {
                 }
             };
 
-            match diesel::PgConnection::establish(&tenant_url) {
-                Ok(mut tenant_conn) => {
-                    match tenant_conn.run_pending_migrations(TENANT_MIGRATIONS) {
-                        Ok(_) => {
-                            tracing::info!(
-                                workspace_id = %row.id,
-                                "Tenant migrations completed successfully"
-                            );
+            let mut retries = 10;
+            
+            loop {
+                match diesel::PgConnection::establish(&tenant_url) {
+                    Ok(mut tenant_conn) => {
+                        match tenant_conn.run_pending_migrations(TENANT_MIGRATIONS) {
+                            Ok(_) => {
+                                tracing::info!(
+                                    workspace_id = %row.id,
+                                    "Tenant migrations completed successfully"
+                                );
+                            }
+                            Err(e) => {
+                                tracing::error!(
+                                    workspace_id = %row.id,
+                                    error = %e,
+                                    "Failed to run tenant migrations — skipping workspace"
+                                );
+                            }
                         }
-                        Err(e) => {
-                            tracing::error!(
-                                workspace_id = %row.id,
-                                error = %e,
-                                "Failed to run tenant migrations — skipping workspace"
-                            );
-                        }
+                        break;
                     }
-                }
-                Err(e) => {
-                    tracing::warn!(
-                        workspace_id = %row.id,
-                        error = %e,
-                        "Failed to connect to tenant DB — may not exist yet, skipping"
-                    );
+                    Err(e) => {
+                        let err_msg = e.to_string();
+                        if retries > 0 && crate::diesel_pool::is_transient_supavisor_error(&err_msg) {
+                            tracing::warn!(
+                                workspace_id = %row.id,
+                                error = %err_msg,
+                                "Transient connection error (Supavisor sync delay), retrying in 1s..."
+                            );
+                            std::thread::sleep(std::time::Duration::from_secs(1));
+                            retries -= 1;
+                            continue;
+                        }
+                        
+                        tracing::warn!(
+                            workspace_id = %row.id,
+                            error = %e,
+                            "Failed to connect to tenant DB after retries — may not exist yet, skipping"
+                        );
+                        break;
+                    }
                 }
             }
         }
@@ -746,5 +790,116 @@ mod tests {
             url,
             "postgres://test_user_no_dot:pass@db_system:5432/tenant_a1b2c3d4e5f67890abcdef1234567890"
         );
+    }
+
+    #[test]
+    fn test_is_transient_supavisor_error() {
+        assert!(super::is_transient_supavisor_error(
+            "Failed to get secret: {:error, \"No auth_query specified\"}"
+        ));
+        assert!(super::is_transient_supavisor_error(
+            "Tenant or user not found"
+        ));
+        assert!(super::is_transient_supavisor_error(
+            "terminating connection due to administrator command"
+        ));
+        assert!(super::is_transient_supavisor_error("connection closed"));
+    }
+
+    #[test]
+    fn test_is_transient_supavisor_error_other() {
+        assert!(!super::is_transient_supavisor_error(
+            "password authentication failed for user"
+        ));
+        assert!(!super::is_transient_supavisor_error("Connection refused"));
+        assert!(!super::is_transient_supavisor_error(
+            "database does not exist"
+        ));
+        assert!(!super::is_transient_supavisor_error("timeout expired"));
+    }
+
+    #[test]
+    fn test_supavisor_transient_retry_loop() {
+        use std::io::{Read, Write};
+        use std::net::TcpListener;
+        use std::sync::{Arc, Mutex};
+        use diesel::Connection;
+
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let port = listener.local_addr().unwrap().port();
+
+        let connect_count = Arc::new(Mutex::new(0));
+        let connect_count_clone = connect_count.clone();
+
+        std::thread::spawn(move || {
+            for stream in listener.incoming() {
+                let mut stream = stream.unwrap();
+                *connect_count_clone.lock().unwrap() += 1;
+
+                let mut buf = [0u8; 8];
+                if stream.read_exact(&mut buf).is_ok() {
+                    // Handle SSL Request
+                    if buf == [0, 0, 0, 8, 4, 210, 22, 47] {
+                        let _ = stream.write_all(b"N");
+                        let mut len_buf = [0u8; 4];
+                        if stream.read_exact(&mut len_buf).is_ok() {
+                            let len = u32::from_be_bytes(len_buf);
+                            let mut startup_buf = vec![0u8; len as usize - 4];
+                            let _ = stream.read_exact(&mut startup_buf);
+                        }
+                    }
+
+                    // Build mock Postgres ErrorResponse packet
+                    let mut error_payload = Vec::new();
+                    error_payload.extend_from_slice(b"SFATAL\0");
+                    error_payload.extend_from_slice(b"CXX000\0");
+                    error_payload.extend_from_slice(
+                        b"MFailed to get secret: {:error, \"No auth_query specified\"}\0",
+                    );
+                    error_payload.push(0);
+
+                    let len = error_payload.len() as u32 + 4;
+                    let mut packet = Vec::new();
+                    packet.push(b'E');
+                    packet.extend_from_slice(&len.to_be_bytes());
+                    packet.extend_from_slice(&error_payload);
+
+                    let _ = stream.write_all(&packet);
+                }
+
+                // Break after 3 connections to simulate a timeout/giving up
+                if *connect_count_clone.lock().unwrap() >= 3 {
+                    break;
+                }
+            }
+        });
+
+        let url = format!("postgres://test_user:pass@127.0.0.1:{}/db", port);
+        let start = std::time::Instant::now();
+
+        let mut retries = 2; // Retry 2 times (total 3 attempts)
+        let mut connected = false;
+
+        loop {
+            match diesel::PgConnection::establish(&url) {
+                Ok(_) => {
+                    connected = true;
+                    break;
+                }
+                Err(e) => {
+                    let err_msg = e.to_string();
+                    if retries > 0 && super::is_transient_supavisor_error(&err_msg) {
+                        std::thread::sleep(std::time::Duration::from_millis(100)); // fast retry for test
+                        retries -= 1;
+                        continue;
+                    }
+                    break;
+                }
+            }
+        }
+
+        assert!(!connected, "Should not successfully connect");
+        assert_eq!(*connect_count.lock().unwrap(), 3, "Should have retried exactly 2 times (3 total attempts)");
+        assert!(start.elapsed().as_millis() >= 200, "Should have slept for at least 200ms total");
     }
 }

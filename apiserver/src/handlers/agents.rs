@@ -588,19 +588,8 @@ pub async fn update_authorized_agent(
         return Err(AppError::Validation("No fields to update".to_string()));
     }
 
-    let mut conn = state
-        .infra
-        .diesel
-        .api
-        .get()
-        .await
-        .map_err(|e| AppError::Internal(e.to_string()))?;
-
     // We fetch current agent first to use as fallback for bounds since diesel raw queries
     // do not have named parameter skipping if we bind them in order.
-    // Actually, `diesel::sql_query` requires binding in order of parameters. If we construct
-    // the query dynamically, it's easier to use a static query with COALESCE or fetch-update-save.
-
     // Fetch existing
     let mut current_agent = state
         .agents
@@ -608,6 +597,14 @@ pub async fn update_authorized_agent(
         .get_agent_by_id_in_workspace(&id, workspace_id)
         .await?
         .ok_or_else(|| AppError::NotFound("Agent not found".to_string()))?;
+
+    let mut conn = state
+        .infra
+        .diesel
+        .api
+        .get()
+        .await
+        .map_err(|e| AppError::Internal(e.to_string()))?;
 
     // Apply updates
     if let Some(name) = req.name {

@@ -167,6 +167,11 @@ services:
       context: ..
       dockerfile: apiserver/Dockerfile
       target: test
+    depends_on:
+      db_system:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     working_dir: /workspace/apiserver
     environment:
       <<: *rust-env-base
@@ -198,6 +203,11 @@ services:
       context: ..
       dockerfile: agent-main/Dockerfile
       target: test
+    depends_on:
+      db_system:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     working_dir: /workspace/agent-main
     environment:
       <<: *rust-env-base
