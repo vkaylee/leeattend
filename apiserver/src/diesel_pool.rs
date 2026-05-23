@@ -99,26 +99,54 @@ impl ProductionTenantPoolManager {
 
     pub fn get_tenant_url(&self, workspace_id: &Uuid) -> Result<String, AppError> {
         let db_name = format!("tenant_{}", workspace_id.to_string().replace('-', ""));
-        let mut parsed_url = reqwest::Url::parse(&self.base_url)
-            .map_err(|e| AppError::Internal(format!("Invalid base pool URL: {e}")))?;
+        
+        let base_url = &self.base_url;
+        let (without_query, query) = match base_url.find('?') {
+            Some(idx) => (&base_url[..idx], &base_url[idx..]),
+            None => (base_url.as_str(), ""),
+        };
 
-        // Set database name in path
-        parsed_url.set_path(&db_name);
+        let (before_slash, _) = match without_query.rfind('/') {
+            Some(idx) => (&without_query[..idx], &without_query[idx+1..]),
+            None => return Err(AppError::Internal("Invalid base pool URL: missing path slash".into())),
+        };
 
-        // If base URL uses Supavisor routing (user contains dot like admin.tenant),
-        // update the user part to include the workspace tenant name.
-        // For direct connections (no dot in user), leave user unchanged.
-        let current_user = parsed_url.username().to_string();
-        if current_user.contains('.') {
-            if let Some((prefix, _old_tenant)) = current_user.split_once('.') {
-                let new_user = format!("{prefix}.{db_name}");
-                parsed_url
-                    .set_username(&new_user)
-                    .map_err(|_e| AppError::Internal("Failed to set tenant username".into()))?;
+        let mut result_url = format!("{before_slash}/{db_name}{query}");
+
+        // Now handle username if it contains a dot
+        let prefix_len = if result_url.starts_with("postgres://") {
+            Some(11)
+        } else if result_url.starts_with("postgresql://") {
+            Some(13)
+        } else {
+            None
+        };
+
+        if let Some(plen) = prefix_len {
+            let after_prefix = &result_url[plen..];
+            // find last @ before the path
+            let path_start = after_prefix.find('/').unwrap_or(after_prefix.len());
+            let auth_host = &after_prefix[..path_start];
+            
+            if let Some(at_idx) = auth_host.rfind('@') {
+                let auth = &auth_host[..at_idx];
+                let user = match auth.find(':') {
+                    Some(colon_idx) => &auth[..colon_idx],
+                    None => auth,
+                };
+
+                if user.contains('.') {
+                    if let Some((prefix, _old_tenant)) = user.split_once('.') {
+                        let new_user = format!("{prefix}.{db_name}");
+                        let replace_start = plen;
+                        let replace_end = plen + user.len();
+                        result_url.replace_range(replace_start..replace_end, &new_user);
+                    }
+                }
             }
         }
 
-        Ok(parsed_url.to_string())
+        Ok(result_url)
     }
 }
 

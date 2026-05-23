@@ -16,14 +16,67 @@ impl Default for TenantPayloadOptions {
     }
 }
 
+fn parse_postgres_url(db_url: &str) -> Option<(String, String, String, u16, String)> {
+    let prefix = if db_url.starts_with("postgres://") {
+        "postgres://"
+    } else if db_url.starts_with("postgresql://") {
+        "postgresql://"
+    } else {
+        return None;
+    };
+
+    let without_scheme = &db_url[prefix.len()..];
+    let (rest, _query) = match without_scheme.split_once('?') {
+        Some((r, q)) => (r, Some(q)),
+        None => (without_scheme, None),
+    };
+
+    let (auth_host_port, dbname) = match rest.rsplit_once('/') {
+        Some((ahp, db)) => (ahp, db.to_string()),
+        None => (rest, "".to_string()),
+    };
+
+    let (auth, host_port) = match auth_host_port.rsplit_once('@') {
+        Some((a, hp)) => (Some(a), hp),
+        None => (None, auth_host_port),
+    };
+
+    let (host, port) = match host_port.rsplit_once(':') {
+        Some((h, p)) => {
+            if let Ok(port_num) = p.parse::<u16>() {
+                (h.to_string(), port_num)
+            } else {
+                (host_port.to_string(), 5432)
+            }
+        }
+        None => (host_port.to_string(), 5432),
+    };
+
+    let (user, password) = match auth {
+        Some(a) => match a.split_once(':') {
+            Some((u, p)) => (u.to_string(), p.to_string()),
+            None => (a.to_string(), "".to_string()),
+        },
+        None => ("".to_string(), "".to_string()),
+    };
+    
+    let user = percent_encoding::percent_decode_str(&user).decode_utf8_lossy().to_string();
+    let password = percent_encoding::percent_decode_str(&password).decode_utf8_lossy().to_string();
+
+    Some((user, password, host, port, dbname))
+}
+
 pub fn build_tenant_payload(db_url: &str, opts: TenantPayloadOptions) -> Option<(String, serde_json::Value)> {
-    let Ok(parsed_url) = reqwest::Url::parse(db_url) else {
+    let Some((mut url_username, url_password, db_host, db_port, db_name)) = parse_postgres_url(db_url) else {
         tracing::warn!("Failed to parse DATABASE_URL: {db_url}");
         return None;
     };
 
-    let url_username = percent_encoding::percent_decode_str(parsed_url.username()).decode_utf8_lossy().to_string();
-    let url_password = percent_encoding::percent_decode_str(parsed_url.password().unwrap_or("")).decode_utf8_lossy().to_string();
+    // If it's the master connection and user has a dot (Supavisor connection string), 
+    // the actual upstream DB user is just the first part (e.g. postgres)
+    if opts.is_master && url_username.contains('.') {
+        url_username = url_username.split_once('.').unwrap().0.to_string();
+    }
 
     let db_user = if opts.is_master {
         std::env::var("SUPAVISOR_POOL_USER")
@@ -42,10 +95,6 @@ pub fn build_tenant_payload(db_url: &str, opts: TenantPayloadOptions) -> Option<
     } else {
         url_password
     };
-
-    let db_host = parsed_url.host_str().unwrap_or("db_system").to_string();
-    let db_port = parsed_url.port().unwrap_or(5432);
-    let db_name = parsed_url.path().trim_start_matches('/').to_string();
 
     if db_name.is_empty() || db_user.is_empty() || db_password.is_empty() {
         tracing::warn!("DATABASE_URL is missing required components (user/password/name). Cannot initialize Supavisor.");
