@@ -1191,4 +1191,73 @@ mod tests {
         let parsed = parse_postgres_url(url).unwrap();
         assert_eq!(parsed.1, "pass@word");
     }
+
+    #[tokio::test]
+    #[serial_test::serial]
+    async fn test_init_tenant_always_updates_even_if_exists() {
+        use axum::{
+            extract::Path as AxumPath,
+            routing::get,
+            Json, Router,
+        };
+        use axum::http::StatusCode;
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        use std::sync::Arc;
+
+        let get_calls = Arc::new(AtomicUsize::new(0));
+        let put_calls = Arc::new(AtomicUsize::new(0));
+
+        let get_calls_clone = get_calls.clone();
+        let put_calls_clone = put_calls.clone();
+
+        let app = Router::new()
+            .route(
+                "/api/tenants/:id",
+                get(move |AxumPath(id): AxumPath<String>| {
+                    get_calls_clone.fetch_add(1, Ordering::SeqCst);
+                    // Return a fake existing tenant to simulate already exists
+                    let response = json!({
+                        "data": {
+                            "db_database": id,
+                            "default_mode": "session",
+                            "users": []
+                        }
+                    });
+                    async move { Json(response) }
+                })
+                .put(move |AxumPath(_id): AxumPath<String>, Json(_payload): Json<serde_json::Value>| {
+                    put_calls_clone.fetch_add(1, Ordering::SeqCst);
+                    async move { StatusCode::OK }
+                }),
+            );
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+
+        tokio::spawn(async move {
+            axum::serve(listener, app).await.unwrap();
+        });
+
+        // Set environment variables
+        let api_url = format!("http://{}", addr);
+        std::env::set_var("SUPAVISOR_API_URL", &api_url);
+        std::env::set_var("API_JWT_SECRET", "super_secret_test_key_with_at_least_32_bytes_length");
+        std::env::set_var(
+            "DATABASE_URL",
+            "postgres://postgres.leeattend:master_pass@postgres-host:5432/leeattend",
+        );
+
+        let tenant_manager = SupavisorTenantManager::new().expect("Should build manager");
+        tenant_manager.init_tenant().await;
+
+        // Verify that BOTH GET and PUT requests were made!
+        assert_eq!(get_calls.load(Ordering::SeqCst), 1, "Should check if tenant exists");
+        assert_eq!(put_calls.load(Ordering::SeqCst), 1, "Should always update/PUT the tenant");
+
+        // Clean up env vars
+        std::env::remove_var("SUPAVISOR_API_URL");
+        std::env::remove_var("API_JWT_SECRET");
+        std::env::remove_var("DATABASE_URL");
+    }
 }
+
