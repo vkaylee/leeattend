@@ -22,22 +22,25 @@ pub fn build_tenant_payload(db_url: &str, opts: TenantPayloadOptions) -> Option<
         return None;
     };
 
+    let url_username = percent_encoding::percent_decode_str(parsed_url.username()).decode_utf8_lossy().to_string();
+    let url_password = percent_encoding::percent_decode_str(parsed_url.password().unwrap_or("")).decode_utf8_lossy().to_string();
+
     let db_user = if opts.is_master {
         std::env::var("SUPAVISOR_POOL_USER")
             .ok()
             .filter(|s| !s.is_empty())
-            .unwrap_or_else(|| parsed_url.username().to_string())
+            .unwrap_or_else(|| url_username.clone())
     } else {
-        parsed_url.username().to_string()
+        url_username
     };
 
     let db_password = if opts.is_master {
         std::env::var("SUPAVISOR_POOL_PASSWORD")
             .ok()
             .filter(|s| !s.is_empty())
-            .unwrap_or_else(|| parsed_url.password().unwrap_or("").to_string())
+            .unwrap_or_else(|| url_password.clone())
     } else {
-        parsed_url.password().unwrap_or("").to_string()
+        url_password
     };
 
     let db_host = parsed_url.host_str().unwrap_or("db_system").to_string();
@@ -611,6 +614,36 @@ mod tests {
         std::env::remove_var("SUPAVISOR_POOL_USER");
         std::env::remove_var("SUPAVISOR_POOL_PASSWORD");
     }
+
+    #[test]
+    fn test_build_tenant_payload_dynamic_ignores_global_env() {
+        std::env::set_var("SUPAVISOR_POOL_USER", "global_pool_user");
+        std::env::set_var("SUPAVISOR_POOL_PASSWORD", "global_pool_secret");
+        std::env::set_var("SUPAVISOR_TENANT_ID", "global_tenant_id");
+        
+        let url = "postgres://dynamic_user:dynamic_secret@dynamic_db_host:5433/dynamic_db";
+        let (tenant_id, payload) = build_tenant_payload(
+            url,
+            TenantPayloadOptions {
+                tenant_id: None,
+                pool_size: None,
+                is_master: false,
+            },
+        ).expect("Should build payload");
+
+        assert_eq!(tenant_id, "dynamic_db");
+
+        let tenant = payload.get("tenant").expect("missing tenant key");
+        let users = tenant["users"].as_array().expect("missing users array");
+        assert_eq!(users.len(), 1);
+        assert_eq!(users[0]["db_user"], "dynamic_user");
+        assert_eq!(users[0]["db_password"], "dynamic_secret");
+        
+        std::env::remove_var("SUPAVISOR_POOL_USER");
+        std::env::remove_var("SUPAVISOR_POOL_PASSWORD");
+        std::env::remove_var("SUPAVISOR_TENANT_ID");
+    }
+
 
     #[test]
     fn test_build_tenant_payload_with_custom_pool_settings() {
