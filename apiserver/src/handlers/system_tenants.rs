@@ -15,7 +15,7 @@ use crate::errors::{AppError, AppResult};
 use crate::handlers::common::ApiContext;
 use crate::handlers::system_auth::SystemContext;
 use crate::models::enums::SystemRoleType;
-use crate::supavisor::build_tenant_payload;
+use crate::supavisor::{build_tenant_payload, TenantPayloadOptions};
 use crate::AppState;
 use uuid::Uuid;
 
@@ -194,17 +194,14 @@ pub async fn create_tenant(
     // tenant_<uuid-without-hyphens>. Using the raw UUID would cause a mismatch
     // when the API server connects through Supavisor.
     let tenant_id_alias = format!("tenant_{}", req.workspace_id.to_string().replace('-', ""));
-    if let Some(size) = req.pool_size {
-        std::env::set_var("SUPAVISOR_POOL_SIZE", size.to_string());
-    }
-    std::env::set_var("SUPAVISOR_TENANT_ID", &tenant_id_alias);
-
-    let payload_opt = build_tenant_payload(&new_db_url);
-
-    std::env::remove_var("SUPAVISOR_TENANT_ID");
-    if req.pool_size.is_some() {
-        std::env::remove_var("SUPAVISOR_POOL_SIZE");
-    }
+    let payload_opt = build_tenant_payload(
+        &new_db_url,
+        TenantPayloadOptions {
+            tenant_id: Some(tenant_id_alias),
+            pool_size: req.pool_size,
+            is_master: false,
+        },
+    );
 
     let Some((tenant_id, payload)) = payload_opt else {
         return Err(AppError::Internal(
@@ -326,11 +323,14 @@ pub async fn update_tenant_database(
     // Build dynamic Supavisor payload.
     // Tenant ID must match the format produced by diesel_pool::get_tenant_url()
     // By this time we already have the correct `tenant_id` from the path.
-    // We just need to build the payload with the new DB URL.
-
-    // We temporarily set SUPAVISOR_TENANT_ID to trick build_tenant_payload to build correct payload,
-    // although build_tenant_payload uses it if we wanted to register it, but it only sets DB connections inside.
-    let payload_opt = build_tenant_payload(&req.database_url);
+    let payload_opt = build_tenant_payload(
+        &req.database_url,
+        TenantPayloadOptions {
+            tenant_id: Some(tenant_id.clone()),
+            pool_size: None,
+            is_master: false,
+        },
+    );
 
     let Some((_, payload)) = payload_opt else {
         return Err(AppError::Internal(

@@ -85,9 +85,14 @@ impl WorkspaceService {
         // which constructs tenant_<uuid-without-hyphens>. Using the raw UUID with hyphens
         // causes a mismatch when the API connects via Supavisor.
         let tenant_id_alias = format!("tenant_{}", ws.id.to_string().replace('-', ""));
-        std::env::set_var("SUPAVISOR_TENANT_ID", &tenant_id_alias);
-        let payload_opt = crate::supavisor::build_tenant_payload(&new_db_url);
-        std::env::remove_var("SUPAVISOR_TENANT_ID");
+        let payload_opt = crate::supavisor::build_tenant_payload(
+            &new_db_url,
+            crate::supavisor::TenantPayloadOptions {
+                tenant_id: Some(tenant_id_alias.clone()),
+                pool_size: None,
+                is_master: false,
+            },
+        );
 
         if let Some((tenant_id, payload)) = payload_opt {
             self.tenant_manager

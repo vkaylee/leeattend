@@ -270,8 +270,14 @@ async fn register_workspace_tenants_and_migrate(
         let mut tenant_url = parsed_url.clone();
         tenant_url.set_path(&db_name);
 
-        let Some((_, payload)) = apiserver::supavisor::build_tenant_payload(tenant_url.as_str())
-        else {
+        let Some((_, payload)) = apiserver::supavisor::build_tenant_payload(
+            tenant_url.as_str(),
+            apiserver::supavisor::TenantPayloadOptions {
+                tenant_id: Some(db_name.clone()),
+                pool_size: None,
+                is_master: false,
+            },
+        ) else {
             tracing::warn!("Failed to build tenant payload for {}", db_name);
             continue;
         };
