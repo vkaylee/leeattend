@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 
 import { apiFetch } from "@/lib/api";
 
@@ -135,6 +136,75 @@ export const ALL_WIDGETS: { id: WidgetId; labelKey: string }[] = [
     { id: "promo_cards", labelKey: "dashboard.widgets.promo_cards" },
 ];
 
+interface LocalOverrides {
+    activeView: DashboardView | null;
+    collapsedSections: Record<string, boolean> | null;
+    visibleWidgets: Record<WidgetId, boolean> | null;
+    widgetOrder: WidgetId[] | null;
+}
+
+function getNewVisibleForView(
+    view: DashboardView,
+    preferences: DashboardLayoutPreferences | undefined
+): Record<WidgetId, boolean> {
+    if (view === "custom") {
+        const prefsVisible = preferences?.visible_widgets;
+        if (prefsVisible && Object.keys(prefsVisible).length > 0) {
+            return prefsVisible;
+        }
+        const defaults = {} as Record<WidgetId, boolean>;
+        ALL_WIDGETS.forEach((w) => {
+            defaults[w.id] = true;
+        });
+        return defaults;
+    }
+    return PRESET_VIEWS[view].visible as Record<WidgetId, boolean>;
+}
+
+function getNewOrderForView(
+    view: DashboardView,
+    preferences: DashboardLayoutPreferences | undefined
+): WidgetId[] {
+    if (view === "custom") {
+        const prefsOrder = preferences?.widget_order;
+        if (prefsOrder && prefsOrder.length > 0) {
+            return prefsOrder;
+        }
+        return ALL_WIDGETS.map((w) => w.id);
+    }
+    return PRESET_VIEWS[view].order;
+}
+
+function getActiveView(
+    localActiveView: DashboardView | null,
+    preferences: DashboardLayoutPreferences | undefined
+): DashboardView {
+    return localActiveView ?? preferences?.active_view ?? "overview";
+}
+
+function getCollapsedSections(
+    localCollapsedSections: Record<string, boolean> | null,
+    preferences: DashboardLayoutPreferences | undefined
+): Record<string, boolean> {
+    return localCollapsedSections ?? preferences?.collapsed_sections ?? {};
+}
+
+function getCurrentVisibleWidgets(
+    localVisible: Record<WidgetId, boolean> | null,
+    activeView: DashboardView,
+    preferences: DashboardLayoutPreferences | undefined
+): Record<WidgetId, boolean> {
+    return localVisible ?? getNewVisibleForView(activeView, preferences);
+}
+
+function getCurrentWidgetOrder(
+    localOrder: WidgetId[] | null,
+    activeView: DashboardView,
+    preferences: DashboardLayoutPreferences | undefined
+): WidgetId[] {
+    return localOrder ?? getNewOrderForView(activeView, preferences);
+}
+
 // ── Hook: useDashboardLayout ───────────────────────────────────────
 
 function useDashboardPreferences(workspaceId: string | undefined) {
@@ -170,87 +240,97 @@ function useDashboardMutation(workspaceId: string | undefined) {
 
 export function useDashboardLayout() {
     const { workspace } = useWorkspace();
-    
-    const {
-        data: preferences,
-        isLoading,
-        error,
-    } = useDashboardPreferences(workspace?.id);
+    const wsId = workspace ? workspace.id : undefined;
+    const { data: preferences, isLoading, error } = useDashboardPreferences(wsId);
+    const mutation = useDashboardMutation(wsId);
 
-    const mutation = useDashboardMutation(workspace?.id);
+    const [local, setLocal] = useState<LocalOverrides>({
+        activeView: null,
+        collapsedSections: null,
+        visibleWidgets: null,
+        widgetOrder: null,
+    });
+    const [prevWorkspaceId, setPrevWorkspaceId] = useState<string | undefined>(wsId);
 
-    // ── Computed values ──────────────────────────────────────────────
+    if (wsId !== prevWorkspaceId) {
+        setPrevWorkspaceId(wsId);
+        setLocal({
+            activeView: null,
+            collapsedSections: null,
+            visibleWidgets: null,
+            widgetOrder: null,
+        });
+    }
 
-    const activeView: DashboardView = preferences?.active_view ?? "overview";
-
-    const visibleWidgets: Record<WidgetId, boolean> = (() => {
-        if (activeView === "custom") {
-            return (preferences?.visible_widgets ?? {}) as Record<WidgetId, boolean>;
-        }
-        return PRESET_VIEWS[activeView].visible as Record<WidgetId, boolean>;
-    })();
-
-    const widgetOrder: WidgetId[] = (() => {
-        if (activeView === "custom" && preferences?.widget_order.length) {
-            return preferences.widget_order;
-        }
-        return PRESET_VIEWS[activeView as Exclude<DashboardView, "custom">].order;
-    })();
-
-    const collapsedSections: Record<string, boolean> =
-        preferences?.collapsed_sections ?? {};
-
-    // ── Actions ──────────────────────────────────────────────────────
+    const activeView = getActiveView(local.activeView, preferences);
+    const visibleWidgets = getCurrentVisibleWidgets(local.visibleWidgets, activeView, preferences);
+    const widgetOrder = getCurrentWidgetOrder(local.widgetOrder, activeView, preferences);
+    const collapsedSections = getCollapsedSections(local.collapsedSections, preferences);
 
     const setActiveView = (view: DashboardView) => {
+        const newVisible = getNewVisibleForView(view, preferences);
+        const newOrder = getNewOrderForView(view, preferences);
+        setLocal((p) => ({ ...p, activeView: view, visibleWidgets: newVisible, widgetOrder: newOrder }));
         mutation.mutate({
             active_view: view,
-            visible_widgets: view === "custom" ? preferences?.visible_widgets : PRESET_VIEWS[view].visible as Record<string, boolean>,
-            widget_order: view === "custom" ? preferences?.widget_order : PRESET_VIEWS[view].order,
-            collapsed_sections: preferences?.collapsed_sections,
+            visible_widgets: newVisible,
+            widget_order: newOrder,
+            collapsed_sections: collapsedSections,
         });
     };
 
     const toggleWidget = (widgetId: WidgetId) => {
         const updated = { ...visibleWidgets, [widgetId]: !visibleWidgets[widgetId] };
+        const order = getNewOrderForView("custom", preferences);
+        setLocal((p) => ({ ...p, activeView: "custom", visibleWidgets: updated, widgetOrder: order }));
         mutation.mutate({
             active_view: "custom",
             visible_widgets: updated,
-            widget_order: preferences?.widget_order ?? ALL_WIDGETS.map((w) => w.id),
-            collapsed_sections: preferences?.collapsed_sections,
+            widget_order: order,
+            collapsed_sections: collapsedSections,
         });
     };
 
-    const setWidgetOrder = (order: WidgetId[]) => {
+    const setWidgetOrderAction = (order: WidgetId[]) => {
+        setLocal((p) => ({ ...p, activeView: "custom", widgetOrder: order }));
         mutation.mutate({
             active_view: "custom",
-            visible_widgets: preferences?.visible_widgets,
+            visible_widgets: visibleWidgets,
             widget_order: order,
-            collapsed_sections: preferences?.collapsed_sections,
+            collapsed_sections: collapsedSections,
         });
     };
 
     const toggleSection = (sectionId: string) => {
         const updated = { ...collapsedSections, [sectionId]: !collapsedSections[sectionId] };
+        setLocal((p) => ({ ...p, collapsedSections: updated }));
         mutation.mutate({
-            active_view: preferences?.active_view,
-            visible_widgets: preferences?.visible_widgets,
-            widget_order: preferences?.widget_order,
+            active_view: activeView,
+            visible_widgets: visibleWidgets,
+            widget_order: widgetOrder,
             collapsed_sections: updated,
         });
     };
 
     const resetToDefault = () => {
+        const defaultCollapsed = { summary: false, charts: false, actions: true };
+        const visible = getNewVisibleForView("overview", preferences);
+        const order = getNewOrderForView("overview", preferences);
+        setLocal({
+            activeView: "overview",
+            visibleWidgets: visible,
+            widgetOrder: order,
+            collapsedSections: defaultCollapsed,
+        });
         mutation.mutate({
             active_view: "overview",
-            visible_widgets: PRESET_VIEWS.overview.visible as Record<string, boolean>,
-            widget_order: PRESET_VIEWS.overview.order,
-            collapsed_sections: { summary: false, charts: false, actions: true },
+            visible_widgets: visible,
+            widget_order: order,
+            collapsed_sections: defaultCollapsed,
         });
     };
 
     return {
-        // State
         activeView,
         visibleWidgets,
         widgetOrder,
@@ -258,13 +338,12 @@ export function useDashboardLayout() {
         isLoading,
         error,
         isSaving: mutation.isPending,
-        // Actions
         setActiveView,
         toggleWidget,
-        setWidgetOrder,
+        setWidgetOrder: setWidgetOrderAction,
         toggleSection,
         resetToDefault,
-        // Raw data for CustomizePanel
         allWidgets: ALL_WIDGETS,
     };
 }
+

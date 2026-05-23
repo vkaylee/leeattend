@@ -36,6 +36,9 @@ export interface UpdateAssignmentRuleRequest {
 
 export async function fetchAssignmentRules(wsId: string): Promise<AssignmentRule[]> {
   const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/assignment-rules`);
+  if (!response.ok) {
+    throw new Error("Failed to fetch assignment rules");
+  }
   return response.json() as Promise<AssignmentRule[]>;
 }
 
@@ -44,6 +47,9 @@ export async function createAssignmentRule(wsId: string, data: CreateAssignmentR
     method: "POST",
     body: JSON.stringify(data),
   });
+  if (!response.ok) {
+    throw new Error("Failed to create assignment rule");
+  }
   return response.json() as Promise<AssignmentRule>;
 }
 
@@ -52,11 +58,17 @@ export async function updateAssignmentRule(wsId: string, ruleId: string, data: U
     method: "PATCH",
     body: JSON.stringify(data),
   });
+  if (!response.ok) {
+    throw new Error("Failed to update assignment rule");
+  }
   return response.json() as Promise<AssignmentRule>;
 }
 
 export async function deleteAssignmentRule(wsId: string, ruleId: string): Promise<void> {
-  await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/assignment-rules/${ruleId}`, {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/assignment-rules/${ruleId}`, {
     method: "DELETE",
   });
+  if (!response.ok) {
+    throw new Error("Failed to delete assignment rule");
+  }
 }

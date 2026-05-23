@@ -211,6 +211,12 @@ describe("AssignmentRulesPage", () => {
     expect(await screen.findByText("No rules yet")).toBeInTheDocument();
   });
 
+  it("does not crash and handles API fetch error gracefully", async () => {
+    vi.mocked(api.fetchAssignmentRules).mockRejectedValue(new Error("Network Error"));
+    renderPage();
+    expect(await screen.findByText("No rules yet")).toBeInTheDocument();
+  });
+
   // ── Modal Tests ───────────────────────────────────────────
 
   it("opens create modal when create button is clicked", async () => {

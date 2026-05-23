@@ -38,7 +38,7 @@ export const AssignmentRulesTable: React.FC<AssignmentRulesTableProps> = ({
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
-          {rules?.map((rule) => (
+          {Array.isArray(rules) && rules.map((rule) => (
             <AssignmentRuleRow
               departments={departments}
               key={rule.id}
@@ -48,7 +48,7 @@ export const AssignmentRulesTable: React.FC<AssignmentRulesTableProps> = ({
               rule={rule}
             />
           ))}
-          {(!rules || rules.length === 0) && !isLoading && (
+          {(!Array.isArray(rules) || rules.length === 0) && !isLoading && (
             <tr>
               <td className="px-10 py-32 text-center bg-slate-50 dark:bg-slate-800/30 flex flex-col items-center" colSpan={5}>
                 <Zap className="text-slate-200 dark:text-slate-700 mb-4" size={40} />

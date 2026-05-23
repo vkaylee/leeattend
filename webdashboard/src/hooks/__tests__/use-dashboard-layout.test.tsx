@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook, waitFor } from "@testing-library/react";
+import { renderHook, waitFor, act } from "@testing-library/react";
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
@@ -140,5 +140,79 @@ describe("useDashboardLayout hook", () => {
         const putCallArguments = vi.mocked(api.apiFetch).mock.calls[1];
         const body = JSON.parse(putCallArguments[1]!.body as string) as { collapsed_sections: { summary: boolean } };
         expect(body.collapsed_sections.summary).toBe(false);
+    });
+
+    it("updates layout state instantly before the API mutation resolves (non-blocking)", async () => {
+        let resolveMutationPromise: (value: Response) => void = (_value: Response) => { /* noop */ };
+        const slowMutationPromise = new Promise<Response>((resolve) => {
+            resolveMutationPromise = resolve;
+        });
+
+        vi.mocked(api.apiFetch).mockResolvedValueOnce({
+            ok: true,
+            json: () => Promise.resolve(mockPreferences),
+        } as Response);
+
+        vi.mocked(api.apiFetch).mockImplementation((url, init): Promise<Response> => {
+            if (url === "/dashboard/preferences" && init?.method === "PUT") {
+                return slowMutationPromise;
+            }
+            return Promise.resolve({
+                ok: true,
+                json: () => Promise.resolve({}),
+            } as Response);
+        });
+
+        const { result } = renderHook(() => useDashboardLayout(), {
+            wrapper: createWrapper(),
+        });
+
+        await waitFor(() => { expect(result.current.isLoading).toBe(false); });
+        expect(result.current.activeView).toBe("attendance");
+
+        act(() => {
+            result.current.setActiveView("trends");
+        });
+
+        expect(result.current.activeView).toBe("trends");
+        expect(result.current.isSaving).toBe(true);
+
+        resolveMutationPromise({
+            ok: true,
+            json: () => Promise.resolve({
+                ...mockPreferences,
+                active_view: "trends",
+            }),
+        } as Response);
+
+        await waitFor(() => { expect(result.current.isSaving).toBe(false); });
+        expect(result.current.activeView).toBe("trends");
+    });
+
+    it("handles empty custom preferences by returning default widgets and order", async () => {
+        vi.mocked(api.apiFetch).mockResolvedValueOnce({
+            ok: true,
+            json: () => Promise.resolve({
+                id: "pref-123",
+                user_id: "user-123",
+                workspace_id: "ws-test-123",
+                active_view: "custom",
+                visible_widgets: {},
+                widget_order: [],
+                collapsed_sections: {},
+            }),
+        } as Response);
+
+        const { result } = renderHook(() => useDashboardLayout(), {
+            wrapper: createWrapper(),
+        });
+
+        await waitFor(() => { expect(result.current.isLoading).toBe(false); });
+        
+        expect(result.current.activeView).toBe("custom");
+        expect(result.current.visibleWidgets.kpi_cards).toBe(true);
+        expect(result.current.visibleWidgets.donut_chart).toBe(true);
+        expect(result.current.widgetOrder).toContain("kpi_cards");
+        expect(result.current.widgetOrder.length).toBe(result.current.allWidgets.length);
     });
 });
