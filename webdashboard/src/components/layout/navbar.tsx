@@ -23,7 +23,7 @@ interface NavbarProps {
 }
 
 export default function Navbar({ currentWorkspaceName, onOpenSidebar, isCollapsed, onToggleCollapsed }: NavbarProps) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(['common', 'employees', 'leave', 'payroll', 'settings']);
   const location = useLocation();
 
   const getPageName = (path: string) => {
@@ -85,7 +85,7 @@ export default function Navbar({ currentWorkspaceName, onOpenSidebar, isCollapse
 /** Segmented theme toggle: Light / System / Dark */
 function ThemeToggle() {
   const { mode, setMode } = useDarkModeContext();
-  const { t } = useTranslation();
+  const { t } = useTranslation(['common', 'employees', 'leave', 'payroll', 'settings']);
 
   const options: { value: ThemeMode; icon: React.ReactNode; label: string }[] = [
     { value: 'light', icon: <Sun size={14} />, label: t('common.theme.light', 'Light') },
@@ -116,7 +116,7 @@ function ThemeToggle() {
 }
 
 function UserProfileMenu() {
-  const { t } = useTranslation();
+  const { t } = useTranslation(['common', 'employees', 'leave', 'payroll', 'settings']);
   const { roles, managedDepartmentIds } = useMyPermissions();
   const { user } = useProfile();
 

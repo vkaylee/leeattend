@@ -1,0 +1,332 @@
+{
+  "ess": {
+    "my_profile": "My Profile",
+    "no_employee_linked": "No employee linked",
+    "contact_hr": "Please contact HR to link your account with an employee profile.",
+    "personal_info": "Personal Information",
+    "phone": "Phone Number",
+    "date_of_birth": "Date of Birth",
+    "gender": "Gender",
+    "gender_male": "Male",
+    "gender_female": "Female",
+    "gender_other": "Other",
+    "national_id": "National ID",
+    "address": "Address",
+    "address_placeholder": "Enter your current residence address",
+    "bank_details": "Bank Account Information",
+    "bank_name": "Bank Name",
+    "account_number": "Account Number",
+    "bank_branch": "Branch Name",
+    "branch_placeholder": "Enter bank branch",
+    "emergency_contacts": "Emergency Contacts",
+    "add_contact": "Add Contact",
+    "no_emergency_contacts": "No emergency contacts found.",
+    "primary": "Primary",
+    "add_emergency_contact": "Add emergency contact",
+    "contact_name": "Contact Name",
+    "relationship": "Relationship",
+    "relationship_spouse": "Spouse",
+    "relationship_parent": "Parent",
+    "relationship_sibling": "Sibling",
+    "relationship_child": "Child",
+    "relationship_friend": "Friend",
+    "relationship_other": "Other",
+    "set_as_primary": "Set as primary",
+    "profile": {
+      "subtitle": "View and manage your personal information.",
+      "update_success": "Profile updated successfully",
+      "update_error": "Error updating profile",
+      "title": "My Profile"
+    },
+    "emergency_contact": {
+      "add_success": "Contact added successfully",
+      "add_error": "Error adding contact",
+      "confirm_delete": "Are you sure you want to delete this contact?",
+      "delete_success": "Contact deleted successfully",
+      "delete_error": "Error deleting contact",
+      "subtitle": "Relatives to notify in case of emergency."
+    },
+    "clock": {
+      "title": "Time Clock",
+      "subtitle": "Clock in and out for work and breaks",
+      "punch_in_success": "Clocked in successfully",
+      "punch_out_success": "Clocked out successfully",
+      "break_start_success": "Break started",
+      "adjustment_requested": "Adjustment request submitted",
+      "no_entries": "No recent time entries",
+      "recent_history": "Recent Activity (Last 7 Days)",
+      "punch_success": "Punched successfully"
+    },
+    "attendance": {
+      "title": "My Attendance",
+      "subtitle": "View your daily clock-in/out history.",
+      "date": "Date",
+      "check_in": "Punch In",
+      "check_out": "Punch Out",
+      "duration": "Duration",
+      "status": "Status",
+      "generation_info": "Processing Info (Traceability)",
+      "no_data": "No attendance data found for this month.",
+      "ot_status": "Overtime",
+      "active_status": "Active",
+      "system_ot_suffix": "(System OT)",
+      "claim_btn": "Claim OT"
+    },
+    "ot": {
+      "claim_title": "Claim Overtime",
+      "claim_desc": "Submit your overtime claim for approval",
+      "claimed_minutes": "Minutes to Claim",
+      "reason_placeholder": "Why did you work overtime?",
+      "error_zero_minutes": "Minutes must be greater than 0",
+      "error_exceeds_system": "Cannot claim more than system detected OT",
+      "system_detected": "System Detected",
+      "close": "Close"
+    }
+  },
+  "members": {
+    "title": "Members & Roles",
+    "subtitle": "Manage access and permissions within the system.",
+    "roles": {
+      "admin": "Administrator",
+      "member": "Member",
+      "owner": "Owner",
+      "owner_desc": "Founder, highest permissions",
+      "admin_desc": "System administrator",
+      "member_desc": "Regular member",
+      "modal_title": "Manage Roles",
+      "modal_subtitle": "Personnel permissions",
+      "primary_role_label": "Primary Role (Permanent)",
+      "extra_roles_label": "Extra Roles (Temporary)",
+      "expires_at": "Expires at",
+      "no_extra_roles": "No extra roles assigned.",
+      "assign_new_title": "Assign New Role",
+      "expiry_date_label": "Expiry Date",
+      "assign_btn": "Assign Role",
+      "confirm_change_primary": "Are you sure you want to change the primary role to {{role}}?",
+      "confirm_revoke": "Are you sure you want to revoke this role?",
+      "messages": {
+        "update_primary_error": "Error updating primary role.",
+        "assign_error": "Error assigning role.",
+        "revoke_error": "Error revoking role."
+      }
+    },
+    "permissions": {
+      "modal_title": "Manage Permissions",
+      "modal_subtitle": "Grant or revoke individual permissions",
+      "active_label": "Active Extra Permissions",
+      "no_extra_permissions": "No extra permissions",
+      "assign_new_title": "Grant Permission",
+      "permission_label": "Permission",
+      "search_placeholder": "Search permissions...",
+      "expiry_label": "Expiration",
+      "grant_btn": "Grant Permission",
+      "confirm_revoke": "Revoke this permission?"
+    },
+    "table": {
+      "confirm_remove": "Are you sure you want to remove this member?",
+      "manage_roles": "Manage Roles",
+      "manage_permissions": "Manage Permissions",
+      "remove_member": "Remove Member",
+      "messages": {
+        "remove_error": "Error removing member.",
+        "no_members": "No members found in this workspace."
+      }
+    },
+    "invite": {
+      "title": "Invite Member",
+      "subtitle": "Personnel Management",
+      "email_label": "Email Address",
+      "role_label": "Role to Assign",
+      "submit_btn": "Send Invitation",
+      "error_message": "Could not invite member. Please check the email."
+    }
+  },
+  "employees": {
+    "title": "Employees",
+    "subtitle": "Manage profiles and work history across the system",
+    "add_btn": "Add Employee",
+    "search_placeholder": "Search by name or ID...",
+    "filter_department": "Filter by department",
+    "clear_filter": "Clear filter",
+    "no_departments": "No departments yet",
+    "filtering_by": "Filtering by",
+    "clear_all": "Clear all",
+    "search": {
+      "placeholder": "Select employee...",
+      "input_placeholder": "Search by name or ID...",
+      "no_results": "No employees found."
+    },
+    "table": {
+      "name": "Full Name",
+      "id": "ID",
+      "hire_date": "Hire Date",
+      "status": "Status",
+      "actions": "Actions",
+      "loading": "Loading data...",
+      "no_data": "No data available.",
+      "active": "Active",
+      "terminated": "Terminated"
+    },
+    "details": {
+      "edit_profile": "Edit Profile",
+      "original_hire_date": "Original Hire Date",
+      "terminate": "Terminate",
+      "rehire": "Rehire",
+      "terminate_confirm": "Are you sure you want to terminate this employee?",
+      "current_dept": "Current Department",
+      "transfer": "Transfer",
+      "not_assigned_dept": "Not assigned to a department",
+      "salary_benefits": "Salary & Benefits",
+      "special_policies": "Special Policies",
+      "update": "Update",
+      "current": "Current",
+      "no_salary_history": "No salary history",
+      "work_history": "Work History",
+      "view_details": "View details →",
+      "joined": "Joined company",
+      "returned": "Returned to work",
+      "contracts": {
+        "title": "Contract History",
+        "sign_contract": "Sign Contract",
+        "no_contracts": "No contracts found",
+        "effective_date": "Effective Date",
+        "expiration_date": "Expiration Date",
+        "indefinite_duration": "Indefinite",
+        "contract_number": "Contract No: {{number}}",
+        "types": {
+          "probation": "Probation",
+          "training": "Training",
+          "fixed_term": "Fixed Term",
+          "indefinite": "Indefinite"
+        }
+      }
+    },
+    "form": {
+      "add_title": "Add Employee",
+      "edit_title": "Edit Profile",
+      "subtitle": "Personnel Profile",
+      "full_name": "Full Name",
+      "employee_id": "Employee ID",
+      "hire_date": "Hire Date",
+      "is_active": "Is Active",
+      "link_user": "Link User Account",
+      "select_user": "Select user...",
+      "cancel": "Cancel",
+      "save": "Save Profile",
+      "update": "Update"
+    },
+    "transfer": {
+      "title": "Department Transfer",
+      "subtitle": "Position Management",
+      "new_dept": "New Department",
+      "select_dept": "Select department...",
+      "effective_date": "Effective Date",
+      "notes": "Notes",
+      "cancel": "Cancel",
+      "submit": "Transfer",
+      "notes_placeholder": "Enter transfer notes (Ex: Position change from Dev to Lead)..."
+    },
+    "history": {
+      "title": "Work History",
+      "subtitle": "Personnel Data",
+      "rehire_period": "Rehire Period",
+      "first_period": "First Period",
+      "currently_working": "Currently working",
+      "period_range": "From {{start}} to {{end}}",
+      "present": "(Present)",
+      "close": "Close"
+    },
+    "rehire": {
+      "title": "Rehire Employee",
+      "subtitle": "Activate Profile",
+      "confirm_msg": "Confirm the date the employee starts their new work period",
+      "rehire_date": "Rehire Date",
+      "cancel": "Cancel",
+      "confirm": "Confirm",
+      "processing": "Processing..."
+    },
+    "policies": {
+      "subtitle": "Attendance Privilege Management",
+      "add_btn": "Add Policy",
+      "type": "Policy Type",
+      "allowance_mins": "Minute Allowance",
+      "is_paid": "Is Paid Allowance",
+      "start_date": "Start Date",
+      "end_date": "End Date",
+      "no_data": "No special policies assigned",
+      "paid_allowance": "Paid",
+      "unpaid_allowance": "Unpaid",
+      "types": {
+        "early_leave": "Early Leave",
+        "late_in": "Late In",
+        "breastfeeding": "Breastfeeding Break"
+      },
+      "add_condition": "Add Working Condition",
+      "type_label": "Condition Type",
+      "conditions_title": "Working Conditions",
+      "conditions_desc": "Configure special working conditions and policies for the employee.",
+      "delete_warning": "Are you sure you want to delete this working condition? This action cannot be undone.",
+      "no_conditions": "No working conditions configured"
+    },
+    "salary": {
+      "title": "Update Salary",
+      "subtitle": "Compensation Management",
+      "base_salary": "Base Salary",
+      "type": "Salary Type",
+      "monthly": "Monthly",
+      "hourly": "Hourly",
+      "effective_date": "Effective Date",
+      "cancel": "Cancel",
+      "submit": "Update Salary"
+    },
+    "select_workspace": "Please select a Workspace",
+    "hire_date": "Hire Date",
+    "bulk_import_title": "Bulk Employee Import",
+    "bulk_import_btn": "Import from File",
+    "import_req": {
+      "col_a": "Column A: Employee ID (Required)",
+      "col_b": "Column B: Full Name (Required)",
+      "col_c": "Column C: Hire Date (Optional, YYYY-MM-DD)",
+      "col_d": "Column D: Department Name (Optional)"
+    },
+    "label": "Employees"
+  },
+  "profile": {
+    "subtitle": "Manage personal information and account settings",
+    "join_date": "Join Date",
+    "preferred_language": "Preferred Language",
+    "follow_workspace": "Follow Workspace Settings",
+    "bio": "Bio",
+    "bio_placeholder": "A brief introduction about yourself...",
+    "personalization": {
+      "title": "Personalization",
+      "subtitle": "Customize your personal UI colors",
+      "use_workspace_default": "Use Workspace Default",
+      "note": "* This change only applies to you on this browser."
+    },
+    "security": {
+      "title": "Security",
+      "subtitle": "Change account password",
+      "current_password": "Current Password",
+      "new_password": "New Password",
+      "confirm_password": "Confirm New Password",
+      "submit_btn": "Update Password",
+      "messages": {
+        "confirm_mismatch": "Confirm password does not match.",
+        "password_changed": "Password has been changed. Please login again.",
+        "change_error": "Error changing password."
+      }
+    },
+    "label": "Profile"
+  },
+  "permissions": {
+    "modules": "Modules",
+    "permissionsLabel": "Permissions",
+    "saveMatrix": "Save Matrix",
+    "subtitle": "Permissions subtitle",
+    "systemRoleInfo": "System role info",
+    "title": "Permissions",
+    "unsavedChanges": "Unsaved changes",
+    "visibleRoles": "Visible roles"
+  }
+}

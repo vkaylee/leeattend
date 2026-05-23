@@ -1,0 +1,30 @@
+{
+  "departments": {
+    "title": "Phòng ban",
+    "subtitle": "Quản lý cơ cấu tổ chức và sơ đồ quản lý",
+    "add_btn": "Thêm phòng ban",
+    "manager_label": "Trưởng phòng",
+    "active_employees_label": "Nhân viên đang hoạt động",
+    "not_assigned": "Chưa gán",
+    "default_pattern_label": "Lịch làm việc mặc định",
+    "messages": {
+      "no_departments": "Chưa có phòng ban nào được tạo.",
+      "confirm_delete": "Xóa phòng ban này?",
+      "empty_desc": "Tổ chức chưa có phòng ban nào. Hãy bắt đầu bằng cách tạo cấu hình đầu tiên."
+    },
+    "form": {
+      "name_label": "Tên phòng ban",
+      "name_placeholder": "Ví dụ: Kỹ thuật, Nhân sự...",
+      "desc_placeholder": "Nhập mô tả ngắn về chức năng phòng ban...",
+      "manager_placeholder": "Chọn quản lý...",
+      "pattern_placeholder": "Chọn lịch làm việc mặc định..."
+    },
+    "modal": {
+      "add_title": "Thêm phòng ban",
+      "edit_title": "Sửa phòng ban",
+      "subtitle": "Cơ cấu tổ chức",
+      "submit_btn": "Tạo phòng ban"
+    },
+    "label": "Phòng ban"
+  }
+}

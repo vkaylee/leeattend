@@ -1,0 +1,129 @@
+{
+  "rolesPage": {
+    "confirmDelete": "Xác nhận xóa",
+    "createRole": "Tạo vai trò",
+    "deleteRole": "Xóa vai trò",
+    "deleteTitle": "Xóa tiêu đề",
+    "editRole": "Sửa vai trò",
+    "manageAccess": "Quản lý truy cập",
+    "matrix": "Ma trận",
+    "noDescription": "Không có mô tả",
+    "roleId": "Mã vai trò",
+    "subtitle": "Quản lý các vai trò tùy chỉnh trong workspace",
+    "title": "Vai trò"
+  },
+  "audit_logs": {
+    "title": "Nhật ký hệ thống",
+    "subtitle": "Theo dõi các sự kiện bảo mật và quản trị trong không gian làm việc.",
+    "section_title": "Sự kiện bảo mật",
+    "filters": {
+      "action": "Hành động",
+      "all_actions": "Tất cả hành động",
+      "start_date": "Ngày bắt đầu",
+      "end_date": "Ngày kết thúc",
+      "groups": {
+        "user_auth": "Người dùng & Xác thực",
+        "roles_perms": "Vai trò & Quyền hạn",
+        "domain": "Nghiệp vụ"
+      }
+    },
+    "table": {
+      "timestamp": "Thời gian",
+      "action": "Hành động",
+      "actor_target": "Người thực hiện / Đối tượng",
+      "details": "Chi tiết",
+      "context": "Bối cảnh"
+    },
+    "messages": {
+      "error_loading": "Lỗi khi tải nhật ký hệ thống.",
+      "no_logs": "Không tìm thấy nhật ký nào.",
+      "no_details": "Không có chi tiết",
+      "target": "Đối tượng:",
+      "system": "Hệ thống"
+    },
+    "pagination": {
+      "showing": "Hiển thị",
+      "to": "đến",
+      "of": "trong tổng số",
+      "entries": "mục",
+      "previous": "Trước",
+      "next": "Tiếp"
+    }
+  },
+  "system_roles": {
+    "title": "Quản trị viên Nền tảng",
+    "subtitle": "Quản lý các vai trò cấp hệ thống vượt qua ranh giới workspace",
+    "assign_to_user": "Gán cho người dùng",
+    "no_users": "Chưa có người dùng nào được gán vai trò này.",
+    "system_label": "Hệ thống",
+    "grant_privileges": "Cấp đặc quyền cấp hệ thống cho người dùng",
+    "user_id_label": "ID người dùng (UUID)",
+    "revoke_role": "Thu hồi vai trò",
+    "assigned_users": "Người dùng được gán",
+    "assignees_count": "{{count}} người được gán",
+    "assigned_date": "Đã gán: {{date}}",
+    "descriptions": {
+      "platform_admin": "Toàn quyền nền tảng. Có thể quản lý workspace, cài đặt toàn cục và các vai trò hệ thống khác.",
+      "support": "Chỉ xem dữ liệu theo dõi cơ sở hạ tầng và hỗ trợ đa workspace.",
+      "billing_admin": "Quản lý thanh toán nền tảng, đăng ký và hạn ngạch trên tất cả workspace.",
+      "default": "Vai trò cấp hệ thống."
+    },
+    "modal": {
+      "assign_title": "Gán Vai trò {{role}}",
+      "submit_btn": "Gán Vai trò",
+      "assigning": "Đang gán..."
+    },
+    "confirm": {
+      "revoke_title": "Thu hồi Vai trò Hệ thống",
+      "revoke_message": "Bạn có chắc chắn muốn thu hồi vai trò hệ thống này? Hành động này có thể khóa người dùng khỏi quyền truy cập cấp hệ thống."
+    },
+    "messages": {
+      "assign_error": "Không thể gán vai trò",
+      "revoke_error": "Không thể thu hồi vai trò",
+      "revoke_success": "Đã thu hồi vai trò {{role}} thành công",
+      "assign_success": "Đã gán vai trò {{role}} thành công"
+    }
+  },
+  "system_admin": {
+    "tenants": {
+      "title": "Quản lý Tenant",
+      "subtitle": "Quản lý các kết nối cơ sở dữ liệu và pools của tenants",
+      "add_btn": "Thêm Tenant",
+      "check_stale_btn": "Kiểm tra Tenant Dư thừa",
+      "table": {
+        "id": "Mã Tenant",
+        "pool_size": "Kích thước Pool",
+        "created_at": "Ngày tạo",
+        "updated_at": "Cập nhật lần cuối",
+        "actions": "Thao tác"
+      },
+      "modal": {
+        "create_title": "Tạo Tenant mới",
+        "db_name_label": "Tên Database",
+        "db_name_placeholder": "Nhập tên database",
+        "create_db_label": "Tạo Database mới?",
+        "pool_size_label": "Kích thước Pool",
+        "creating": "Đang tạo...",
+        "submit_btn": "Tạo"
+      },
+      "messages": {
+        "create_success": "Tạo Tenant thành công",
+        "delete_success": "Xóa Tenant thành công",
+        "update_db_success": "Cập nhật URL cơ sở dữ liệu thành công",
+        "update_mode_success": "Cập nhật chế độ pool thành công",
+        "clean_success": "Đã dọn dẹp cấu hình tenant dư thừa thành công"
+      },
+      "stale_modal": {
+        "title": "Cấu hình Tenant Dư thừa",
+        "subtitle": "Các tenant này đã đăng ký trong Supavisor nhưng không tương ứng với bất kỳ workspace nào đang hoạt động. Bạn có thể dọn dẹp chúng một cách an toàn.",
+        "no_stale": "Không tìm thấy cấu hình tenant dư thừa. Mọi thứ đều sạch sẽ!",
+        "clean_all": "Dọn dẹp tất cả",
+        "confirm_clean": "Bạn có chắc chắn muốn xóa cấu hình tenant dư thừa này khỏi Supavisor? Thao tác này chỉ xóa định tuyến và không ảnh hưởng đến cơ sở dữ liệu vật lý.",
+        "confirm_clean_all": "Bạn có chắc chắn muốn xóa tất cả cấu hình tenant dư thừa khỏi Supavisor? Thao tác này chỉ xóa các định tuyến và không ảnh hưởng đến cơ sở dữ liệu vật lý.",
+        "scanning": "Đang quét tìm cấu hình dư thừa..."
+      },
+      "confirm_delete": "Bạn có chắc chắn muốn xóa tenant này không?",
+      "description": "Quản lý các kết nối cơ sở dữ liệu và pools của tenants"
+    }
+  }
+}

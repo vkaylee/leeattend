@@ -347,7 +347,7 @@ describe("i18n lazy locale loading", () => {
         await i18n.changeLanguage("en");
 
         await waitFor(() => {
-            const resources = i18n.getResourceBundle("en", "translation") as Record<string, unknown> | undefined;
+            const resources = i18n.getResourceBundle("en", "common") as Record<string, unknown> | undefined;
             expect(resources).toBeDefined();
             expect(Object.keys(resources ?? {}).length).toBeGreaterThan(0);
         }, { timeout: 3000 });

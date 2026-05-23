@@ -1,0 +1,527 @@
+{
+  "time_tracking": {
+    "title": "时间跟踪",
+    "subtitle": "跟踪您的工作时间和休息时间。",
+    "modal": {
+      "edit_title": "编辑时间条目",
+      "new_title": "新调整请求",
+      "reason_label": "调整原因",
+      "reason_placeholder": "您为什么要请求此更改？",
+      "subtitle": "请求更改您的打卡时间。"
+    },
+    "actions": {
+      "punch_out": "签退",
+      "return_to_work": "结束休息",
+      "start_break": "开始休息",
+      "start_work": "签到",
+      "hold_to_punch": "按住打卡"
+    },
+    "forgot_punch": "忘记打卡？",
+    "status": {
+      "break_start_at": "休息开始于",
+      "off_duty": "下班",
+      "on_break": "休息中",
+      "shift_start_at": "班次开始于",
+      "working": "工作中"
+    }
+  },
+  "attendance_confirm": {
+    "title": "出勤确认",
+    "subtitle": "批准来自员工的调整/补充考勤请求。",
+    "excel_template": "Excel 模板",
+    "import_excel": "导入 Excel",
+    "ot_label": "午餐期间工作",
+    "status": {
+      "approved": "已批准",
+      "rejected": "已拒绝",
+      "pending": "待处理"
+    },
+    "table": {
+      "request_time": "请求 (进 - 出)"
+    },
+    "messages": {
+      "no_requests": "暂无请求。",
+      "no_data": "当前没有需要处理的考勤调整请求。"
+    },
+    "modal": {
+      "import_title": "从文件导入出勤数据"
+    },
+    "label": "考勤确认"
+  },
+  "attendance_logs": {
+    "title": "打卡日志",
+    "subtitle": "来自考勤机和打卡源的原始数据。",
+    "export_btn": "导出数据",
+    "import_btn": "导入数据",
+    "status": {
+      "recorded": "已记录"
+    },
+    "tabs": {
+      "recorded": "已记录",
+      "unknown": "未识别"
+    },
+    "unknown_id": "未知ID",
+    "not_in_system": "系统中不存在",
+    "select_employee": "选择员工...",
+    "assign": "分配",
+    "create_employee": "创建",
+    "messages": {
+      "loading": "正在加载日志...",
+      "no_data": "未找到打卡日志。",
+      "no_unknown_logs": "没有未识别的记录",
+      "no_data_hint": "尝试调整日期范围筛选器或选择其他员工来查找您要查找的内容。",
+      "all_matched": "所有打卡记录均已与员工匹配。"
+    },
+    "modal": {
+      "import_title": "从文件导入打卡记录"
+    },
+    "view_reports": "查看摘要报告"
+  },
+  "attendance_import": {
+    "subtitle": "批量数据导入",
+    "rows_processed": "行已处理",
+    "error_list_title": "详细错误列表：",
+    "select_another_file": "选择另一个文件",
+    "upload_prompt": "点击或将文件拖到此处",
+    "upload_limit": "Excel 或 CSV (最大 10MB)",
+    "start_import": "开始导入",
+    "status": {
+      "processing": "正在处理数据...",
+      "completed": "已完成！",
+      "failed": "发生错误",
+      "pending": "待处理...",
+      "uploading": "正在上传..."
+    },
+    "file_requirements": {
+      "title": "文件格式要求：",
+      "col_a": "A 列：员工 ID",
+      "col_b": "B 列：员工姓名 (可选)",
+      "col_c": "C 列：打卡时间 (DD/MM/YYYY HH:mm)",
+      "formats": "支持 .xlsx, .xls 和 .csv 文件"
+    },
+    "messages": {
+      "upload_error": "上传文件时出错"
+    }
+  },
+  "patterns": {
+    "title": "工作模式",
+    "subtitle": "管理员工的循环工作日程",
+    "manage_btn": "管理模式",
+    "create_btn": "创建模式",
+    "create_title": "创建工作模式",
+    "create_subtitle": "定义每周模式",
+    "create_submit": "创建模式",
+    "empty_title": "暂无模式",
+    "empty_desc": "创建一个模式，以便快速为员工分配循环班次。",
+    "create_first": "创建第一个模式",
+    "weekly_schedule": "每周日程",
+    "select_pattern": "选择模式",
+    "view_details": "模式详情",
+    "form": {
+      "name": "模式名称",
+      "description": "描述",
+      "select_pattern": "选择模式",
+      "select_pattern_label": "选择模式",
+      "select_pattern_placeholder": "选择一个模式...",
+      "start_date": "生效开始日期",
+      "start_date_label": "开始日期",
+      "start_date_note": "日程将从该日期起自动重复。",
+      "select_employees": "选择员工",
+      "select_employees_label": "应用的员工",
+      "select_employees_placeholder": "搜索并选择...",
+      "name_placeholder": "例：办公室工时、夜班轮换",
+      "name_label": "模式名称",
+      "desc_placeholder": "可选描述",
+      "desc_label": "简短描述",
+      "weekly_grid_title": "每周日程网格",
+      "cycle_grid_title": "循环日程网格",
+      "prefill_standard": "填充标准模式",
+      "add_shift": "添加班次",
+      "pattern_type": "排班类型",
+      "pattern_type_weekly": "每周排班",
+      "pattern_type_rotation": "循环轮班",
+      "cycle_length": "循环周期 (天)",
+      "cycle_length_placeholder": "例如 6",
+      "cycle_length_note": "确定轮班周期的总天数。",
+      "cycle_config_title": "循环排班配置",
+      "day_index": "第 {{index}} 天",
+      "anchor_date_label": "循环锚定日期",
+      "anchor_date_note": "循环中第 1 天开始的参考日期。",
+      "editor_title_new": "创建新工作模式",
+      "editor_title_edit": "编辑工作模式",
+      "clear_all": "清除所有班次",
+      "clear_all_confirm": "您确定要清除所有已分配的班次吗？",
+      "unsaved_changes": "您有未保存的更改。确定要离开吗？",
+      "unsaved_changes_cancel": "留在页面",
+      "unsaved_changes_confirm": "离开页面",
+      "view_mode_design": "周期设置",
+      "view_mode_preview": "日历预览",
+      "anchor_date_preview": "预览基准日期",
+      "preview_month": "预览月份"
+    },
+    "weekly_config": "每周配置",
+    "actions": {
+      "prefill_standard": "快速填充：办公室 (周一至周五)"
+    },
+    "badge_rotation": "循环轮班 ({{days}}天)",
+    "badge_weekly": "每周排班",
+    "validation_name_required": "请输入模式名称。",
+    "validation_cycle_length_invalid": "请输入有效的循环周期 (1-366天)。",
+    "messages": {
+      "create_success": "工作模式创建成功。",
+      "create_error": "创建工作模式时出错。",
+      "update_success": "工作模式更新成功。",
+      "update_error": "更新工作模式时出错。",
+      "delete_success": "工作模式删除成功。",
+      "delete_error": "工作模式删除时出错。",
+      "bulk_assign_success_count": "已为 {{count}} 名员工分配模式。",
+      "bulk_assign_conflict": "部分员工已有日程，系统将覆盖。",
+      "bulk_assign_error": "批量分配时出错。",
+      "no_shifts_available": "没有可用的班次以自动填充。"
+    },
+    "confirm_delete": "您确定要删除模式 \"{{name}}\" 吗？",
+    "bulk_assign_btn": "批量分配",
+    "bulk_assign_title": "批量分配模式",
+    "bulk_assign_subtitle": "同时为多名员工分配工作模式",
+    "modal": {
+      "create_title": "创建新轮换",
+      "subtitle": "设置循环日程",
+      "submit_btn": "保存模式",
+      "assign_btn": "确认分配",
+      "bulk_subtitle": "日程分配"
+    },
+    "validation_pattern_required": "请选择一个模式。",
+    "validation_employees_required": "请选择至少一名员工。",
+    "bulk_assign_submit": "确认分配"
+  },
+  "rules": {
+    "title": "自动分配规则",
+    "subtitle": "根据条件自动为员工分配模式",
+    "create_btn": "添加规则",
+    "table": {
+      "priority": "优先级",
+      "name": "规则名称",
+      "pattern": "分配的模式",
+      "conditions": "条件"
+    },
+    "match_all": "工作空间范围内 (匹配全部)",
+    "empty_list": "暂无分配规则",
+    "info_priority": "规则按从高到低的优先级进行评估。第一个匹配员工的规则将被应用。常规规则应具有最低优先级。",
+    "edit_title": "编辑规则",
+    "create_title": "创建新规则",
+    "form_subtitle": "定义何时应应用此模式",
+    "form": {
+      "name": "规则名称",
+      "priority": "优先级 (越高越强)",
+      "pattern": "选择模式",
+      "name_placeholder": "例：技术支持夜班",
+      "tags_placeholder": "夜班, 河内, VVIP"
+    },
+    "conditions_title": "匹配条件",
+    "condition_help": "留空以匹配所有员工 (在其他条件范围内)。",
+    "messages": {
+      "create_success": "规则创建成功",
+      "update_success": "规则更新成功",
+      "delete_success": "规则已删除"
+    },
+    "validation": {
+      "required_fields": "名称和模式是必填项"
+    },
+    "confirm_delete_msg": "您确定要删除此规则吗？"
+  },
+  "shifts": {
+    "monthly": {
+      "title": "月度排班",
+      "copy_previous_month": "复制上月",
+      "clear_month": "清除覆盖",
+      "pattern_source": "自动排班",
+      "roster_source": "手动排班",
+      "off_day": "休息",
+      "all_employees": "所有员工",
+      "cells_selected": "已选择 {{count}} 格",
+      "assign_selected": "分配所选",
+      "view_week": "周",
+      "view_month": "月",
+      "search_placeholder": "搜索员工...",
+      "filter_department": "按部门过滤",
+      "all_departments": "所有部门",
+      "no_department": "无部门",
+      "no_results_desc": "未找到匹配搜索或过滤条件的员工。",
+      "empty_state_desc": "未找到员工或排班计划。请检查部门或人事配置。"
+    },
+    "title": "排班系统",
+    "subtitle": "管理灵活和固定的班次",
+    "create_btn": "创建班次",
+    "current_week_roster": "当前周排班表",
+    "days_selected": "已选择 {{count}} 天",
+    "assign_selected_btn": "为选中项分配班次",
+    "off_day": "休息",
+    "history_title": "班次分配历史",
+    "fixed_assignment_subtitle": "分配固定或长期日程",
+    "select_default_shift": "选择默认班次",
+    "assign_btn": "分配班次",
+    "directory_title": "班次类型列表",
+    "auto_deduct": "自动扣除",
+    "grace_period": "宽限期 (分钟)",
+    "grace_period_desc": "如果启用了“阻止”政策，则此时间之前的打卡将被阻止。如果启用了“钳位”，则加班从此处开始计算。",
+    "set_off_day": "设为休息",
+    "days_count": "已选择 {{count}} 天",
+    "empty_state": {
+      "title": "选择人员以继续",
+      "desc": "请从左侧列表选择一名员工以开始排班。"
+    },
+    "tabs": {
+      "weekly_roster": "排班表",
+      "fixed_assignments": "固定分配",
+      "directory": "班次类型"
+    },
+    "actions": {
+      "copy_previous": "复制上周",
+      "assign_all_week": "全周分配",
+      "clear_week": "清除本周"
+    },
+    "types": {
+      "flexible": "灵活",
+      "fixed": "固定"
+    },
+    "table": {
+      "assignment_type": "分配类型",
+      "range": "范围",
+      "shift_name": "班次类型名称",
+      "time_range": "时间范围",
+      "break_time": "休息时间"
+    },
+    "modal": {
+      "setup_title": "班次设置",
+      "setup_subtitle": "声明班次参数",
+      "edit_subtitle": "更新配置或更改时间",
+      "name_placeholder": "办公室、早班、分时段班次...",
+      "start_time": "上班打卡",
+      "end_time": "下班打卡",
+      "break_config": "休息配置",
+      "break_start": "休息开始",
+      "break_end": "休息结束",
+      "auto_deduct_label": "自动扣除休息时间",
+      "break_duration": "休息时长",
+      "save_shift_btn": "保存班次类型",
+      "update_config_btn": "更新配置",
+      "correction_label": "数据修正",
+      "correction_desc": "修正将覆盖当前班次记录。仅用于修复输入错误。",
+      "correction_warning": "这是一个直接修正",
+      "effective_date_label": "生效日期",
+      "effective_date_desc": "新版本将从该日期起生效。",
+      "grace_period": "提前打卡宽限 (分钟)",
+      "grace_period_desc": "如果启用了“阻止”政策，则此时间之前的打卡将被阻止。如果启用了“钳位”，则加班从此处开始计算。",
+      "select_shift_title": "选择班次",
+      "select_shift_subtitle": "为选中的 {{count}} 天选择班次",
+      "mark_as_off": "将选中日期标记为休息",
+      "assign_to_days": "分配给 {{days}}",
+      "report_symbol": "报表符号",
+      "report_symbol_placeholder": "例: S8, T8, FX..."
+    },
+    "messages": {
+      "assign_success": "员工班次分配成功。",
+      "assign_error": "分配错误",
+      "update_roster_success": "排班表已更新。",
+      "update_roster_error": "更新排班表时出错",
+      "bulk_update_success": "批量排班表已更新。",
+      "bulk_update_error": "批量更新时出错",
+      "remove_override_success": "已移除覆盖，恢复默认设置。",
+      "remove_override_error": "移除排班表时出错",
+      "create_shift_success": "班次类型 \"{{name}}\" 已初始化。",
+      "create_shift_error": "创建班次错误",
+      "update_shift_success": "班次配置已更新。",
+      "update_shift_error": "更新班次错误",
+      "validation_missing_fields": "请选择员工、班次和开始日期。",
+      "no_previous_data": "未找到上周数据。",
+      "copy_error": "复制错误",
+      "validation_shift_name_time": "班次名称和工作时间不能为空。",
+      "validation_break_times": "请输入休息开始和结束时间。",
+      "no_shifts": "系统中无班次类型。"
+    },
+    "traceability": {
+      "title": "逻辑可追溯性",
+      "applied": "应用的逻辑",
+      "overridden": "覆盖的规则",
+      "show_overridden": "显示覆盖的规则",
+      "priority": "优先级",
+      "reason": "原因",
+      "source": "来源",
+      "winner": "胜出规则",
+      "priority_hierarchy": "优先级层级",
+      "p100_manual": "手动排班",
+      "p80_pattern": "个人模式",
+      "p60_rules": "自动规则",
+      "p40_dept_pattern": "部门模式",
+      "p20_fixed": "固定分配",
+      "p10_dept_fixed": "部门默认",
+      "override_hint": "想覆盖此逻辑？为此天分配手动排班 (优先级 100)。",
+      "highest_priority_hint": "这是手动排班，具有最高优先级。",
+      "highest_priority": "最高优先级",
+      "lowest_priority": "系统默认",
+      "hierarchy_explanation": "规则从上到下评估。上方节点覆盖下方节点。"
+    },
+    "label": "排班与日历"
+  },
+  "approvals": {
+    "paper_ot": {
+      "title": "输入纸质加班表单",
+      "description": "输入来自已签署纸质表单的加班申请",
+      "select_employee": "搜索员工...",
+      "minutes": "加班分钟数",
+      "reason_placeholder": "纸质表单 #1234 - 生产线",
+      "photo": "纸质表单照片（可选）",
+      "photo_coming_soon": "照片上传即将推出",
+      "error_no_employee": "请选择一名员工",
+      "error_minutes": "分钟数必须大于 0",
+      "error_reason": "需要提供原因",
+      "btn_enter": "输入纸质表单"
+    },
+    "bulk_upload": {
+      "title": "批量上传加班",
+      "description": "上传 CSV 文件以一次性输入多个加班申请",
+      "btn": "批量上传",
+      "download_template": "下载 CSV 模板",
+      "drag_drop": "将 CSV 文件拖放到此处",
+      "or_click": "或点击浏览",
+      "select_file": "选择文件",
+      "upload": "上传并处理",
+      "error_csv_only": "仅允许 CSV 文件",
+      "confirm_close_with_errors": "某些行失败。您确定要关闭吗？",
+      "result_summary": "上传摘要",
+      "total": "总计",
+      "success": "成功",
+      "failed": "失败",
+      "error_details": "错误详情",
+      "download_errors": "下载错误",
+      "line": "行",
+      "success_message": "{{count}} 个加班申请已成功输入"
+    },
+    "filter": {
+      "paper_forms": "纸质表单",
+      "self_service": "自助服务"
+    }
+  },
+  "holidays": {
+    "title": "节假日",
+    "subtitle": "管理您工作空间的公共假日和特殊日子",
+    "add_btn": "添加假假日",
+    "no_holidays": "没有为 {{year}} 配置节假日",
+    "modal_title_new": "新假期",
+    "modal_title_edit": "编辑假期",
+    "fields": {
+      "name": "名称",
+      "name_placeholder": "例如: 元旦",
+      "date": "日期",
+      "type": "类型",
+      "types": {
+        "national": "国家级",
+        "company": "公司级",
+        "regional": "地方级"
+      },
+      "ot_multiplier": "加班倍数",
+      "ot_multiplier_placeholder": "3.0",
+      "ot_multiplier_help": "例: 3× = 每小时工作300%工资",
+      "description": "描述",
+      "description_placeholder": "可选描述",
+      "paid_holiday": "带薪休假",
+      "deduct_leave_type": "扣除休假类型",
+      "auto_first_paid": "自动 (第一个带薪休假类型)",
+      "deduction_warning": "休假余额不足的员工，此日将被标记为无薪假。",
+      "work_policy_title": "员工节假日上班政策",
+      "credit_on_work": "节假日薪资补贴",
+      "credit_on_work_help": "员工仍获得节假日工资+工作工资",
+      "threshold_percent": "返还假期阈值",
+      "threshold_help": "员工工作 ≥ 阈值 → 返还假期。< 阈值 → 保持扣除"
+    },
+    "table": {
+      "date": "日期",
+      "name": "名称",
+      "type": "类型",
+      "paid": "带薪",
+      "ot": "加班倍数",
+      "description": "描述",
+      "paid_status": "带薪",
+      "deduct_leave": "扣除假期",
+      "credit": "补贴",
+      "threshold": "阈值"
+    },
+    "messages": {
+      "load_error": "加载假期失败",
+      "save_error": "保存假期失败",
+      "delete_error": "删除假期失败",
+      "confirm_delete": "您确定要删除此假期吗？"
+    },
+    "info": {
+      "title": "无薪假和休假扣除规则",
+      "body_1": "当假期被标记为无薪时，系统会根据员工的休假余额自动处理：",
+      "rule_1": "余额充足：扣除 1 天休假并支付工资。",
+      "rule_2": "余额不足：当天标记为无薪假。"
+    }
+  },
+  "attendance_policy_overrides": {
+    "title": "覆盖与异常",
+    "description": "为部门或个人配置特定规则。",
+    "filters": {
+      "all": "全部",
+      "depts": "部门",
+      "users": "员工"
+    },
+    "add_button": "添加覆盖",
+    "empty_state": {
+      "title": "无活动覆盖",
+      "description": "所有人都在遵循工作区的默认政策。"
+    },
+    "labels": {
+      "department": "部门",
+      "employee": "员工"
+    },
+    "drawer": {
+      "add_title": "添加政策覆盖",
+      "add_subtitle": "为目标配置特定规则",
+      "step_target": "1. 选择目标",
+      "step_rules": "2. 配置规则",
+      "select_target_type": "选择 {{type}}",
+      "search_placeholder": "搜索 {{type}}...",
+      "save_button": "保存覆盖"
+    },
+    "messages": {
+      "delete_success": "政策覆盖已移除",
+      "save_success": "政策覆盖已保存",
+      "validation_select_target": "请选择部门或员工"
+    }
+  },
+  "ot_approvals": {
+    "title": "加班审批",
+    "subtitle": "审查并批准加班申请",
+    "empty_state": {
+      "title": "全部处理完成！",
+      "description": "此期间没有待处理的加班请求。"
+    },
+    "table": {
+      "date": "日期",
+      "employee": "员工",
+      "source": "来源",
+      "system": "系统",
+      "claimed": "申请",
+      "reason": "原因",
+      "actions": "操作"
+    },
+    "actions": {
+      "approve": "通过",
+      "reject": "拒绝"
+    },
+    "badges": {
+      "paper": "纸质",
+      "self": "自助"
+    }
+  },
+  "attendance": {
+    "log": {
+      "create": "创建考勤记录"
+    },
+    "shift_swap": {
+      "request": "申请换班"
+    }
+  }
+}

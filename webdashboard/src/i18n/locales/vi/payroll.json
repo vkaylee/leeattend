@@ -1,0 +1,233 @@
+{
+  "payroll": {
+    "rule_tiers": {
+      "title": "Bậc thuế / Phân cấp",
+      "subtitle": "Cấu hình các bậc lũy tiến",
+      "loading": "Đang tải các bậc...",
+      "fields": {
+        "min_amount": "Mức tối thiểu (₫)",
+        "max_amount": "Mức tối đa (₫) - Để trống nếu không giới hạn (∞)",
+        "rate": "Tỷ lệ (%)",
+        "fixed_deduction": "Khấu trừ cố định (₫)"
+      }
+    },
+    "selection": {
+      "all_filtered_selected": "Đã chọn toàn bộ {{count}} nhân viên trong danh sách.",
+      "count_selected": "Đã chọn {{count}} nhân viên.",
+      "select_all_filtered": "Chọn toàn bộ {{count}} nhân viên"
+    },
+    "traceability": {
+      "hierarchy_title": "Thứ tự ưu tiên cấu hình",
+      "hierarchy_explanation": "Cấu hình lương được ưu tiên theo thứ tự: Cá nhân > Phòng ban > Workspace.",
+      "individual_policy": "Chính sách cá nhân",
+      "department_policy": "Chính sách phòng ban",
+      "workspace_default": "Mặc định Workspace",
+      "pending_adjustments": "Có yêu cầu hiệu chỉnh",
+      "recalc_needed": "Cần tính toán lại",
+      "view_adjustments": "Xem hiệu chỉnh"
+    },
+    "title": "Tính lương",
+    "subtitle": "Quản lý thu nhập và phiếu lương",
+    "search_placeholder": "Tìm nhân viên...",
+    "employee_profile": "Hồ sơ lương nhân sự",
+    "calculate_btn": "Tính lương mới",
+    "history_title": "Lịch sử phiếu lương (Payslips)",
+    "empty_state": {
+      "title": "Chọn nhân sự để tiếp tục",
+      "desc": "Xem lịch sử phiếu lương hoặc tính lương tháng mới cho nhân viên."
+    },
+    "table": {
+      "period": "Kỳ lương",
+      "base_pay": "Lương cơ bản",
+      "overtime": "Tăng ca",
+      "bonus": "Khen thưởng",
+      "deductions": "Khấu trừ",
+      "net_pay": "Thực nhận",
+      "status": "Trạng thái",
+      "loading_payslips": "Đang tải phiếu lương...",
+      "no_payslips": "Chưa có phiếu lương nào"
+    },
+    "status": {
+      "paid": "ĐÃ CHI TRẢ",
+      "finalized": "ĐÃ CHỐT"
+    },
+    "settings": {
+      "title": "Cấu hình ngày công chuẩn",
+      "working_day_mode": "Chế độ tính công chuẩn",
+      "mode_fixed": "Số ngày cố định",
+      "mode_fixed_desc": "Ví dụ: Luôn tính là 26 ngày/tháng",
+      "mode_actual": "Theo lịch thực tế",
+      "mode_actual_desc": "Tổng số ngày trừ đi ngày nghỉ (T7/CN)",
+      "fixed_days": "Số ngày công cố định",
+      "days_per_week": "Số ngày làm việc/tuần",
+      "5days": "5 ngày (Nghỉ T7, CN)",
+      "6days": "6 ngày (Nghỉ CN)",
+      "7days": "7 ngày (Không ngày nghỉ)",
+      "hours_per_day": "Số giờ làm việc chuẩn/ngày",
+      "note_title": "Lưu ý về cách tính lương giờ",
+      "note_desc": "Lương giờ dùng để tính OT = (Tổng các khoản Lương cơ bản) / (Số ngày công chuẩn × Số giờ làm chuẩn/ngày).",
+      "effective_date": "Ngày có hiệu lực",
+      "std_days": "Ngày công chuẩn",
+      "no_history": "Chưa có lịch sử cấu hình",
+      "dept_title": "Cấu hình lương phòng ban",
+      "global_history": "Lịch sử cấu hình toàn hệ thống",
+      "std_days_history": "Lịch sử công chuẩn",
+      "std_days_override": "Đặc cách ngày công chuẩn",
+      "policy_desc": "Quản lý đơn vị công chuẩn và sự thay đổi theo thời gian.",
+      "add_version": "Tạo phiên bản chính sách mới",
+      "date_warning": "Lưu ý: Ngày có hiệu lực quyết định các kỳ lương bị ảnh hưởng. Các thay đổi sẽ tự động áp dụng từ ngày này.",
+      "status": "Trạng thái",
+      "virtual": "Mặc định hệ thống",
+      "max_ot_hours_per_day": "OT tối đa / Ngày",
+      "max_ot_hours_per_month": "OT tối đa / Tháng",
+      "max_ot_day_short": "OT/Ngày",
+      "max_ot_month_short": "OT/Tháng",
+      "no_limit": "Không giới hạn",
+      "ot_empty_hint": "Bỏ trống = không giới hạn",
+      "max_ot_guide_title": "Hướng dẫn giới hạn OT",
+      "max_ot_guide_desc": "Khi luật lao động thay đổi, hãy thêm phiên bản cấu hình mới với ngày hiệu lực tương ứng. Hệ thống tự động áp dụng giới hạn OT phù hợp cho từng kỳ lương. Mặc định: 4h/ngày, 40h/tháng (BLLĐ 2019, Điều 107). ∞ = không giới hạn."
+    },
+    "components": {
+      "title": "Danh mục thành phần lương",
+      "subtitle": "Định nghĩa các khoản thu nhập và khấu trừ.",
+      "assign_to_bases": "Gán vào nhóm cơ sở",
+      "form_subtitle": "Thông số thành phần",
+      "add_new": "Thêm thành phần lương",
+      "no_components": "Chưa có thành phần lương nào",
+      "use_for_ot": "Tính OT",
+      "no_ot": "Không tính OT",
+      "taxable": "Có tính thuế",
+      "tax_exempt": "Miễn thuế",
+      "name_placeholder": "Ví dụ: Phụ cấp ăn trưa",
+      "code_label": "Mã (Code)",
+      "ot_base_label": "Dùng làm gốc tính lương OT",
+      "ot_base_desc": "Khi tính OT, hệ thống sẽ cộng dồn các khoản này để ra lương giờ.",
+      "taxable_label": "Khoản thu nhập tính thuế",
+      "taxable_desc": "Khoản này sẽ được tính vào tổng thu nhập chịu thuế TNCN."
+    },
+    "employee_config": {
+      "title": "Cấu hình lương nhân viên",
+      "tab_title": "Cấu hình lương",
+      "add_btn": "Thêm khoản lương",
+      "effective_note_title": "Lưu ý về hiệu lực",
+      "salary_items_subtitle": "Danh sách các khoản thu nhập của nhân viên.",
+      "effective_note": "Lưu ý: Nếu có nhiều bản ghi cho cùng một khoản lương, bản ghi có ngày hiệu lực mới nhất (và gần nhất với ngày tính lương) sẽ được sử dụng.",
+      "item_type": "Loại khoản lương",
+      "no_config": "Chưa có cấu hình lương",
+      "salary_item": "Khoản lương",
+      "add_new_title": "Thêm cấu hình mới"
+    },
+    "modal": {
+      "title": "Tính lương tháng",
+      "subtitle": "Xử lý dữ liệu",
+      "submit": "Bắt đầu tính lương"
+    },
+    "messages": {
+      "calculate_success": "Đã tính lương thành công.",
+      "calculate_error": "Lỗi tính lương"
+    },
+    "adjustments": {
+      "title": "Hiệu chỉnh chấm công",
+      "resolved_success": "Đã xử lý hiệu chỉnh thành công",
+      "resolved_error": "Lỗi khi xử lý hiệu chỉnh",
+      "all_clear": "Tất cả yêu cầu đã được xử lý!"
+    },
+    "segments": {
+      "title": "Chi tiết dòng lương (Segments)"
+    },
+    "document": {
+      "title": "Phiếu Lương",
+      "system_subtitle": "Hệ thống Chấm công & Tính lương",
+      "verified": "Tài liệu đã xác thực",
+      "period": "Kỳ lương",
+      "employee_details": "Thông tin nhân viên",
+      "name": "Họ tên",
+      "employee_id": "Mã nhân viên",
+      "department": "Phòng ban",
+      "net_payment": "Thực nhận",
+      "paid_via": "Chuyển khoản ngân hàng",
+      "earnings_breakdown": "Chi tiết thu nhập",
+      "description": "Mô tả",
+      "amount": "Số tiền",
+      "base_salary": "Lương cơ bản",
+      "segment": "Phân đoạn",
+      "code": "Mã",
+      "monthly": "Hàng tháng",
+      "days_at_rate": "{{days}} Ngày @ {{rate}}/ngày",
+      "overtime_compensation": "Lương tăng ca",
+      "units": "Đơn vị",
+      "gross_pay": "Tổng thu nhập",
+      "deductions": "Khấu trừ",
+      "net_pay": "Thực nhận",
+      "note": "Lưu ý: Đây là tài liệu được tạo tự động bởi hệ thống và không cần chữ ký vật lý. Mọi sai sót vui lòng phản hồi cho bộ phận Nhân sự trong vòng 3 ngày làm việc.",
+      "generated_by": "Tạo bởi LeeAttend",
+      "print_payslip": "In phiếu lương",
+      "print_hint": "Sử dụng nút In phía trên để lưu PDF hoặc in bản cứng.",
+      "preview_title": "Xem trước phiếu lương"
+    },
+    "incentives": {
+      "title": "Chính sách Thưởng & Ưu đãi",
+      "add_btn": "Thêm Chính sách",
+      "policy_name": "Tên Chính sách",
+      "base_amount": "Mức thưởng Gốc",
+      "tiers_config": "Cấu hình Bậc thưởng",
+      "name_required": "Vui lòng nhập tên chính sách",
+      "effective_from": "Ngày hiệu lực",
+      "no_policies": "Chưa có chính sách thưởng nào"
+    },
+    "overtime_policies": "Chính sách tăng ca",
+    "overtime_policies_desc": "Quản lý các quy tắc tính lương tăng ca theo thời gian và ngày.",
+    "no_overtime_policies": "Chưa có chính sách tăng ca nào.",
+    "create_first_policy": "Tạo chính sách đầu tiên ngay.",
+    "rules": "Quy tắc tính",
+    "add_rule": "Thêm quy tắc",
+    "assign_policy": "Gán chính sách",
+    "assign_overtime_policy": "Gán chính sách tăng ca",
+    "assignee_type": "Đối tượng áp dụng",
+    "select_policy": "Chọn chính sách",
+    "select_policy_placeholder": "-- Chọn một chính sách --",
+    "effective_from": "Ngày hiệu lực",
+    "no_assignments_yet": "Chưa có quy tắc nào được gán.",
+    "assign_rule": "Gán quy tắc",
+    "assign_rule_desc": "Gán quy tắc tính lương cho nhân viên hoặc phòng ban.",
+    "assignment_scope": "Phạm vi gán",
+    "select_employee": "Chọn nhân viên",
+    "search_employees": "Tìm kiếm nhân viên...",
+    "select_department": "Chọn phòng ban",
+    "select_department_placeholder": "Chọn một phòng ban...",
+    "workspace_scope_info": "Áp dụng trên toàn bộ không gian làm việc.",
+    "effective_to": "Hiệu lực đến",
+    "override_config": "Cấu hình ghi đè",
+    "override_config_desc": "Cấu hình các giá trị lương ghi đè tùy chỉnh cho các quy tắc cụ thể.",
+    "override_rate": "Tỷ lệ ghi đè",
+    "override_base": "Gốc ghi đè",
+    "base_gross": "Lương gộp cơ bản",
+    "base_gross_alt": "Lương gộp cơ bản (Dự phòng)",
+    "base_taxable": "Lương tính thuế cơ bản",
+    "override_amount": "Số tiền ghi đè",
+    "override": "Ghi đè",
+    "delete_assignment": "Xóa phân bổ",
+    "system_bases": {
+      "gross": {
+        "name": "Lương Cơ Bản (Gross)",
+        "description": "Lương gốc dùng để tính toán các khoản phụ cấp, bảo hiểm và thuế"
+      },
+      "net": {
+        "name": "Lương Thực Nhận (Net)",
+        "description": "Thu nhập thực tế nhân viên nhận được sau khi đã trừ các khoản khấu trừ"
+      },
+      "bhxh": {
+        "name": "Nền Đóng Bảo Hiểm",
+        "description": "Quỹ lương dùng để tính tỷ lệ đóng BHXH, BHYT, BHTN"
+      },
+      "taxable": {
+        "name": "Thu Nhập Chịu Thuế",
+        "description": "Quỹ thu nhập dùng làm căn cứ tính Thuế Thu Nhập Cá Nhân (TNCN)"
+      }
+    }
+  },
+  "payroll_rules": {
+    "scope_workspace": "Toàn Không gian làm việc",
+    "rule_assignments": "Gán quy tắc tính lương"
+  }
+}

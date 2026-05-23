@@ -1,0 +1,73 @@
+{
+  "shift_swaps": {
+    "title": "Shift Swaps",
+    "subtitle": "Manage shift swap requests between employees",
+    "create_btn": "Create Swap Request",
+    "requester": "Requester",
+    "target": "Target",
+    "swap_date": "Swap Date",
+    "reason": "Reason",
+    "reason_placeholder": "Enter reason for swap...",
+    "select_employee": "Select employee...",
+    "day_off": "Day Off",
+    "status": {
+      "pending_target": "Pending Target",
+      "pending_admin": "Pending Approval",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "cancelled": "Cancelled"
+    },
+    "stats": {
+      "pending": "Pending",
+      "approved_month": "Approved This Month",
+      "rejected_month": "Rejected This Month",
+      "total": "Total Processed"
+    },
+    "messages": {
+      "no_data": "No shift swap requests found.",
+      "create_success": "Shift swap request created!",
+      "create_error": "Failed to create shift swap request."
+    },
+    "guide": {
+      "title": "How to Use",
+      "intro": "Shift Swap allows admins to exchange work schedules between two employees on the same day. The system automatically detects current shifts and updates the roster upon approval.",
+      "step1_title": "Create a Swap Request",
+      "step1_desc": "Click \"Create Swap Request\", select the Requester and Target employee (must be different), choose the swap date, and optionally enter a reason.",
+      "step2_title": "Review Shift Information",
+      "step2_desc": "After creation, the system automatically looks up the current shifts for both employees on the swap date. Shift details are displayed in the request table.",
+      "step3_title": "Approve or Reject",
+      "step3_desc": "Hover over a request in the \"Pending Approval\" tab to reveal the Approve (✓) or Reject (✗) buttons. On approval, shifts are swapped automatically.",
+      "notes_title": "Important Notes",
+      "note1": "Shifts are auto-detected by priority: Manual Roster → Individual Pattern → Assignment Rules → Department Pattern.",
+      "note2": "On approval, the system swaps roster entries automatically. Employee A receives B's shift and vice versa.",
+      "note3": "On rejection, rosters remain unchanged. Already processed requests cannot be re-approved.",
+      "step1": {
+        "title": "Select Partner",
+        "desc": "Choose the employee you want to swap shifts with."
+      },
+      "step2": {
+        "title": "Select Your Shift",
+        "desc": "Select the shift from your schedule that you want to trade."
+      },
+      "step3": {
+        "title": "Select Target Shift",
+        "desc": "Choose the partner's shift you want to take over."
+      },
+      "note": "Note: Both employees must agree to the swap before approval."
+    },
+    "ess": {
+      "my_swaps": "My Shift Swap Requests",
+      "send_request": "Send Swap Request",
+      "accept": "Accept",
+      "decline": "Decline",
+      "cancel_request": "Cancel Request",
+      "waiting_colleague": "Waiting for colleague's confirmation",
+      "waiting_admin": "Waiting for admin approval",
+      "accepted": "Colleague accepted",
+      "create_success": "Swap request sent!",
+      "respond_success": "Responded to swap request!",
+      "cancel_success": "Swap request cancelled!"
+    },
+    "create_title": "Request Shift Swap"
+  }
+}

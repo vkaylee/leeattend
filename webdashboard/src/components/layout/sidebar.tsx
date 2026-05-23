@@ -160,7 +160,7 @@ function SidebarSection({
 }
 
 function useSidebarMenuItems(): MenuItem[] {
-  const { t } = useTranslation();
+  const { t } = useTranslation(['common', 'employees', 'attendance', 'leave', 'shift_swaps', 'payroll', 'settings', 'system_roles']);
   return [
     { to: ROUTES.HOME, icon: LayoutDashboard, label: t("common.dashboard"), exact: true, testId: "sidebar-link-dashboard" },
     {

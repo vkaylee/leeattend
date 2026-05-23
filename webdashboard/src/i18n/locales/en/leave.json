@@ -1,0 +1,204 @@
+{
+  "leave_balances": {
+    "title": "Leave Balances",
+    "subtitle": "Track employee leave entitlements and usage",
+    "summary_table": "Balance Summary",
+    "run_accrual": "Update Balances",
+    "select_year": "Select Year",
+    "confirm_accrual": "Are you sure you want to run accrual calculation for today? System will automatically add leave based on assigned policies.",
+    "accrual_current_year_only": "Accrual can only be run for the current year",
+    "accrual_queued": "Leave accrual is processing in the background...",
+    "accrual_completed": "Leave balances updated successfully!",
+    "accrual_timeout": "Timed out waiting for accrual. Please check back later.",
+    "view_details": "View Details",
+    "table": {
+      "base": "Base Entitlement",
+      "accrued": "Accrued",
+      "carried_over": "Carried Over",
+      "used": "Used",
+      "remaining": "Remaining",
+      "usage": "Usage",
+      "history_tooltip": "View balance history",
+      "accrued_info": "Days automatically added based on the company's accrual policy (monthly/quarterly/yearly).",
+      "policy": "Policy"
+    },
+    "detail": {
+      "breakdown": "Balance Breakdown",
+      "calculation": "Calculation",
+      "policy_info": "Policy Information",
+      "accrual_info_title": "Accrual Info",
+      "used": "used",
+      "history": "Transaction History",
+      "tabs": {
+        "all": "All",
+        "accruals": "Accruals",
+        "usage": "Usage"
+      }
+    },
+    "assignment_types": {
+      "employee": "Individual",
+      "department": "Department",
+      "workspace": "Workspace"
+    },
+    "history": {
+      "title": "Leave History",
+      "subtitle": "View detailed history and adjust leave balances.",
+      "tab_history": "History",
+      "tab_adjust": "Manual Adjust",
+      "no_history": "No history records found.",
+      "action_label": "Action",
+      "add": "Add",
+      "deduct": "Deduct",
+      "amount_placeholder": "Ex: 1.0",
+      "reason_label": "Reason (Required for audit)",
+      "reason_placeholder": "Explain the reason for this adjustment...",
+      "confirm_btn": "Confirm Adjustment",
+      "messages": {
+        "adjust_success": "Balance adjusted successfully",
+        "adjust_error": "Error adjusting balance"
+      },
+      "validation": {
+        "invalid_amount": "Invalid amount"
+      }
+    },
+    "transaction_type": {
+      "accrual": "Periodic Accrual",
+      "usage": "Leave Usage",
+      "adjustment": "Balance Adjustment",
+      "carry_over": "Carry Over"
+    },
+    "label": "Leave Balances"
+  },
+  "leave_requests": {
+    "title": "Leave Requests",
+    "subtitle": "Approve and manage personnel absence",
+    "invalid_leave_type": "Invalid leave type selected",
+    "create_btn": "Create Request",
+    "remaining": "Left",
+    "tabs": {
+      "policies": "Policies"
+    },
+    "types": {
+      "vacation": "Annual Leave",
+      "sick": "Sick Leave",
+      "vacation_full": "Annual Leave",
+      "sick_full": "Sick Leave",
+      "personal": "Personal Business"
+    },
+    "policy": {
+      "title": "Leave Policy",
+      "title_single": "Policy",
+      "subtitle": "Configure leave entitlements and accrual rules",
+      "policy_note": "Note: Policy changes are not retroactive. Past accruals remain unchanged; changes only apply to future balance updates.",
+      "assign_btn": "Assign Policy",
+      "add_btn": "Add Policy",
+      "assign_title": "Assign Policy",
+      "assign_subtitle": "Personnel Allocation",
+      "save_btn": "Save Policy",
+      "assign_now_btn": "Assign Now",
+      "name_placeholder": "Ex: Standard Annual Leave",
+      "select_placeholder": "Select a policy...",
+      "table": {
+        "name": "Policy Name",
+        "type": "Leave Type",
+        "entitlement": "Entitlement/year",
+        "strategy": "Strategy",
+        "carry_over": "Carry-over Days",
+        "min_work_days": "Min Work Days"
+      },
+      "min_work_days_desc": "Minimum working days in a month to earn leave",
+      "strategies": {
+        "monthly": "Monthly Accrual",
+        "monthly_desc": "Grants days at start of each month",
+        "quarterly": "Quarterly Accrual",
+        "quarterly_desc": "Grants days at start of each quarter",
+        "yearly": "Yearly Accrual",
+        "yearly_desc": "Grants full entitlement at start of year",
+        "lump_sum": "Lump Sum",
+        "lump_sum_desc": "Grants full entitlement at start of year"
+      },
+      "assignee_types": {
+        "workspace": "System-wide (All)",
+        "workspace_desc": "Applies to all employees in workspace",
+        "department": "By Department",
+        "department_desc": "Applies to a specific department",
+        "employee": "Individual Employee",
+        "employee_desc": "Applies to only one selected person"
+      },
+      "edit_title": "Edit Policy",
+      "carry_over_limit": "Carry-over Limit",
+      "messages": {
+        "no_policies": "No policies found.",
+        "create_success": "Policy created successfully!",
+        "update_success": "Policy updated successfully!",
+        "delete_success": "Policy deleted successfully!",
+        "assign_success": "Policy assigned successfully!",
+        "confirm_delete": "Are you sure you want to delete this policy?"
+      }
+    },
+    "modal": {
+      "submit_title": "Submit Leave Request",
+      "submit_subtitle": "Absence Management",
+      "reason_placeholder": "Enter leave reason...",
+      "submit_btn": "Submit Request"
+    },
+    "duration": {
+      "label": "Duration Type",
+      "full_day": "Full Day",
+      "first_half": "Morning",
+      "second_half": "Afternoon",
+      "custom_hours": "Custom",
+      "time_from": "From Time",
+      "time_to": "To Time",
+      "half_day_note": "End date will auto-match start date"
+    },
+    "messages": {
+      "accrual_success": "Leave accrual run successfully!",
+      "no_requests": "No requests found."
+    },
+    "upload_btn": "Upload Excel",
+    "upload_processing": "Processing {{processed}}/{{total}} rows...",
+    "upload_success": "Successfully imported {{success}} leave requests",
+    "upload_partial": "Success {{success}}/{{total}}. {{errors}} rows with errors.",
+    "upload_failed": "Import failed",
+    "download_errors": "Download error file"
+  },
+  "leave_import": {
+    "title": "Import Leave Requests",
+    "subtitle": "Upload Excel file to create leave requests in bulk",
+    "requirements_title": "File Requirements",
+    "req_col_a": "Column A: Employee ID",
+    "req_col_b": "Column B: Leave Type Code",
+    "req_col_c": "Column C-D: Start / End Date",
+    "req_col_e": "Column E: Reason (optional)",
+    "req_col_f": "Column F: Duration Type",
+    "req_format": "Format: .xlsx, .xls, .csv",
+    "download_template": "Download Excel Template",
+    "drop_prompt": "Click to select Excel file",
+    "drop_hint": "Supports .xlsx, .xls, .csv",
+    "ready": "READY TO UPLOAD",
+    "select_another": "Select another file",
+    "start_import": "Start Import",
+    "uploading": "UPLOADING...",
+    "upload_another": "Upload another file",
+    "rows_label": "rows processed",
+    "download_errors": "Download error file",
+    "error_detail": "Error details",
+    "partial_detail": "{{success}} rows succeeded, {{errors}} rows failed",
+    "status": {
+      "processing": "Processing...",
+      "completed": "Import completed",
+      "partial": "Import has errors",
+      "failed": "Import failed"
+    }
+  },
+  "leave": {
+    "policy": {
+      "confirm_delete": "Are you sure you want to delete this policy?"
+    },
+    "request": {
+      "create": "Leave Request Created",
+      "approve": "Leave Request Approved"
+    }
+  }
+}

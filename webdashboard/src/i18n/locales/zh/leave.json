@@ -1,0 +1,204 @@
+{
+  "leave_balances": {
+    "title": "休假余额",
+    "subtitle": "管理员工当年的休假权利。",
+    "summary_table": "余额摘要表",
+    "run_accrual": "更新余额",
+    "select_year": "选择年份",
+    "confirm_accrual": "您确定要运行今天的累计计算吗？系统将根据分配的政策自动添加假期。",
+    "accrual_current_year_only": "只能更新当前年度的余额",
+    "accrual_queued": "后台正在处理假期积累...",
+    "accrual_completed": "假期余额更新成功！",
+    "accrual_timeout": "等待超时。请稍后再查看。",
+    "view_details": "查看详情",
+    "table": {
+      "base": "基础额度",
+      "accrued": "累计",
+      "carried_over": "结转",
+      "used": "已用",
+      "remaining": "剩余",
+      "usage": "使用率",
+      "history_tooltip": "查看余额历史",
+      "accrued_info": "根据公司的累计政策（月/季/年）自动添加的天数。",
+      "policy": "政策"
+    },
+    "detail": {
+      "breakdown": "余额明细",
+      "calculation": "计算方式",
+      "policy_info": "政策信息",
+      "accrual_info_title": "累计信息",
+      "used": "已使用",
+      "history": "交易历史",
+      "tabs": {
+        "all": "全部",
+        "accruals": "累计",
+        "usage": "使用"
+      }
+    },
+    "assignment_types": {
+      "employee": "个人",
+      "department": "部门",
+      "workspace": "全局"
+    },
+    "history": {
+      "title": "休假历史",
+      "subtitle": "查看详细历史记录并调整休假余额。",
+      "tab_history": "历史",
+      "tab_adjust": "手动调整",
+      "no_history": "未找到历史记录。",
+      "action_label": "操作",
+      "add": "增加",
+      "deduct": "扣除",
+      "amount_placeholder": "例: 1.0",
+      "reason_label": "原因 (审计必需)",
+      "reason_placeholder": "解释此项调整的原因...",
+      "confirm_btn": "确认调整",
+      "messages": {
+        "adjust_success": "余额调整成功",
+        "adjust_error": "调整余额时出错"
+      },
+      "validation": {
+        "invalid_amount": "金额无效"
+      }
+    },
+    "transaction_type": {
+      "accrual": "定期累计",
+      "usage": "假期使用",
+      "adjustment": "余额调整",
+      "carry_over": "结转"
+    },
+    "label": "休假余额"
+  },
+  "leave_requests": {
+    "title": "请假申请",
+    "subtitle": "审批和管理人员缺勤",
+    "invalid_leave_type": "选择的假期类型无效",
+    "create_btn": "创建申请",
+    "remaining": "剩余",
+    "tabs": {
+      "policies": "政策"
+    },
+    "types": {
+      "vacation": "年假",
+      "sick": "病假",
+      "vacation_full": "年假",
+      "sick_full": "病假",
+      "personal": "事假"
+    },
+    "policy": {
+      "title": "休假政策",
+      "title_single": "政策",
+      "subtitle": "配置休假额度和累计规则",
+      "policy_note": "注意：政策更改不具有追溯力。过去的累计保持不变；更改仅适用于未来的余额更新。",
+      "assign_btn": "分配政策",
+      "add_btn": "添加政策",
+      "assign_title": "分配政策",
+      "assign_subtitle": "人员分配",
+      "save_btn": "保存政策",
+      "assign_now_btn": "立即分配",
+      "name_placeholder": "例：标准年假",
+      "select_placeholder": "选择政策...",
+      "table": {
+        "name": "政策名称",
+        "type": "请假类型",
+        "entitlement": "年度额度",
+        "strategy": "累算策略",
+        "carry_over": "结转天数",
+        "min_work_days": "最低出勤天数"
+      },
+      "min_work_days_desc": "获得当月带薪假所需的最低出勤天数",
+      "strategies": {
+        "monthly": "按月累计",
+        "monthly_desc": "每月初发放天数",
+        "quarterly": "按季度累计",
+        "quarterly_desc": "每季度初发放天数",
+        "yearly": "按年累计",
+        "yearly_desc": "年初发放全年权利",
+        "lump_sum": "一次性发放",
+        "lump_sum_desc": "年初发放全年权利"
+      },
+      "assignee_types": {
+        "workspace": "全系统 (全部)",
+        "workspace_desc": "适用于工作空间中的所有员工",
+        "department": "按部门",
+        "department_desc": "适用于特定部门",
+        "employee": "个人员工",
+        "employee_desc": "仅适用于所选的一名员工"
+      },
+      "edit_title": "编辑政策",
+      "carry_over_limit": "结转限制",
+      "messages": {
+        "no_policies": "未找到政策。",
+        "create_success": "政策创建成功！",
+        "update_success": "政策更新成功！",
+        "delete_success": "政策删除成功！",
+        "assign_success": "政策分配成功！",
+        "confirm_delete": "您确定要删除此政策吗？"
+      }
+    },
+    "modal": {
+      "submit_title": "提交请假申请",
+      "submit_subtitle": "缺勤管理",
+      "reason_placeholder": "输入请假原因...",
+      "submit_btn": "提交申请"
+    },
+    "duration": {
+      "label": "请假类型",
+      "full_day": "全天",
+      "first_half": "上午",
+      "second_half": "下午",
+      "custom_hours": "自定义",
+      "time_from": "开始时间",
+      "time_to": "结束时间",
+      "half_day_note": "结束日期将自动与开始日期一致"
+    },
+    "messages": {
+      "accrual_success": "休假累计运行成功！",
+      "no_requests": "未找到请求。"
+    },
+    "upload_btn": "上传Excel",
+    "upload_processing": "正在处理 {{processed}}/{{total}} 行...",
+    "upload_success": "成功导入 {{success}} 个请假单",
+    "upload_partial": "成功 {{success}}/{{total}}。{{errors}} 行有错误。",
+    "upload_failed": "导入失败",
+    "download_errors": "下载错误文件"
+  },
+  "leave_import": {
+    "title": "导入请假单",
+    "subtitle": "上传Excel文件批量创建请假单",
+    "requirements_title": "文件要求",
+    "req_col_a": "A列：员工编号",
+    "req_col_b": "B列：请假类型代码",
+    "req_col_c": "C-D列：开始/结束日期",
+    "req_col_e": "E列：原因（可选）",
+    "req_col_f": "F列：时长类型",
+    "req_format": "格式：.xlsx, .xls, .csv",
+    "download_template": "下载Excel模板",
+    "drop_prompt": "点击选择Excel文件",
+    "drop_hint": "支持 .xlsx, .xls, .csv",
+    "ready": "准备上传",
+    "select_another": "选择其他文件",
+    "start_import": "开始导入",
+    "uploading": "上传中...",
+    "upload_another": "上传其他文件",
+    "rows_label": "行已处理",
+    "download_errors": "下载错误文件",
+    "error_detail": "错误详情",
+    "partial_detail": "成功 {{success}} 行，失败 {{errors}} 行",
+    "status": {
+      "processing": "处理中...",
+      "completed": "导入成功",
+      "partial": "导入有错误",
+      "failed": "导入失败"
+    }
+  },
+  "leave": {
+    "policy": {
+      "confirm_delete": "您确定要删除此政策吗？"
+    },
+    "request": {
+      "create": "创建请假申请",
+      "approve": "批准请假申请"
+    }
+  }
+}

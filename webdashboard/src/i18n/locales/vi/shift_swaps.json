@@ -1,0 +1,73 @@
+{
+  "shift_swaps": {
+    "title": "Đổi ca",
+    "subtitle": "Quản lý yêu cầu đổi ca giữa các nhân viên",
+    "create_btn": "Tạo yêu cầu đổi ca",
+    "requester": "Người xin đổi",
+    "target": "Người nhận ca",
+    "swap_date": "Ngày đổi",
+    "reason": "Lý do",
+    "reason_placeholder": "Nhập lý do đổi ca...",
+    "select_employee": "Chọn nhân viên...",
+    "day_off": "Nghỉ",
+    "status": {
+      "pending_target": "Chờ xác nhận",
+      "pending_admin": "Chờ duyệt",
+      "approved": "Đã duyệt",
+      "rejected": "Từ chối",
+      "cancelled": "Đã hủy"
+    },
+    "stats": {
+      "pending": "Đang chờ xử lý",
+      "approved_month": "Duyệt tháng này",
+      "rejected_month": "Từ chối tháng này",
+      "total": "Tổng đã xử lý"
+    },
+    "messages": {
+      "no_data": "Hiện tại chưa có yêu cầu đổi ca nào.",
+      "create_success": "Đã tạo yêu cầu đổi ca thành công!",
+      "create_error": "Lỗi khi tạo yêu cầu đổi ca."
+    },
+    "guide": {
+      "title": "Hướng dẫn sử dụng",
+      "intro": "Tính năng Đổi ca cho phép admin hoán đổi lịch làm việc giữa hai nhân viên trong cùng một ngày. Hệ thống sẽ tự động phát hiện ca làm hiện tại và cập nhật lịch phân ca khi được duyệt.",
+      "step1_title": "Tạo yêu cầu đổi ca",
+      "step1_desc": "Nhấn nút \"Tạo yêu cầu đổi ca\", chọn Người xin đổi và Người nhận ca (không được trùng nhau), chọn ngày đổi và nhập lý do nếu cần.",
+      "step2_title": "Kiểm tra thông tin ca làm",
+      "step2_desc": "Sau khi tạo, hệ thống tự động tra cứu ca làm hiện tại của cả hai nhân viên vào ngày đổi. Thông tin ca sẽ hiển thị trong bảng danh sách.",
+      "step3_title": "Duyệt hoặc từ chối",
+      "step3_desc": "Di chuột qua dòng yêu cầu ở tab \"Chờ duyệt\" để hiện nút Duyệt (✓) hoặc Từ chối (✗). Khi duyệt, ca làm sẽ được hoán đổi tự động.",
+      "notes_title": "Lưu ý quan trọng",
+      "note1": "Ca làm được tự động phát hiện theo thứ tự ưu tiên: Phân ca thủ công → Lịch làm cá nhân → Quy tắc phân bổ → Lịch phòng ban.",
+      "note2": "Khi duyệt, hệ thống sẽ tự động đổi ca trong bảng phân ca (Roster). Nhân viên A nhận ca của B và ngược lại.",
+      "note3": "Khi từ chối, lịch phân ca giữ nguyên không thay đổi. Không thể duyệt lại yêu cầu đã được xử lý.",
+      "step1": {
+        "title": "Chọn người đổi cùng",
+        "desc": "Chọn nhân viên bạn muốn đổi ca cùng."
+      },
+      "step2": {
+        "title": "Chọn ca của bạn",
+        "desc": "Chọn ca làm việc trong lịch của bạn mà bạn muốn đổi."
+      },
+      "step3": {
+        "title": "Chọn ca muốn đổi",
+        "desc": "Chọn ca làm việc của người đó mà bạn muốn nhận."
+      },
+      "note": "Lưu ý: Cả hai nhân viên phải đồng ý đổi ca trước khi được phê duyệt."
+    },
+    "ess": {
+      "my_swaps": "Yêu cầu đổi ca của tôi",
+      "send_request": "Gửi yêu cầu đổi ca",
+      "accept": "Chấp nhận",
+      "decline": "Từ chối",
+      "cancel_request": "Hủy yêu cầu",
+      "waiting_colleague": "Đang chờ đồng nghiệp xác nhận",
+      "waiting_admin": "Đang chờ quản trị viên duyệt",
+      "accepted": "Đồng nghiệp đã chấp nhận",
+      "create_success": "Đã gửi yêu cầu đổi ca!",
+      "respond_success": "Đã phản hồi yêu cầu đổi ca!",
+      "cancel_success": "Đã hủy yêu cầu đổi ca!"
+    },
+    "create_title": "Yêu cầu đổi ca"
+  }
+}

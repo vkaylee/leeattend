@@ -1,0 +1,332 @@
+{
+  "ess": {
+    "my_profile": "我的个人资料",
+    "no_employee_linked": "未关联员工",
+    "contact_hr": "请联系人事部门将您的账号与员工档案关联。",
+    "personal_info": "个人信息",
+    "phone": "电话号码",
+    "date_of_birth": "出生日期",
+    "gender": "性别",
+    "gender_male": "男",
+    "gender_female": "女",
+    "gender_other": "其他",
+    "national_id": "身份证号",
+    "address": "地址",
+    "address_placeholder": "输入您的当前居住地址",
+    "bank_details": "银行账户信息",
+    "bank_name": "银行名称",
+    "account_number": "账号",
+    "bank_branch": "分行名称",
+    "branch_placeholder": "输入银行分行",
+    "emergency_contacts": "紧急联系人",
+    "add_contact": "添加联系人",
+    "no_emergency_contacts": "未找到紧急联系人。",
+    "primary": "首选",
+    "add_emergency_contact": "添加紧急联系人",
+    "contact_name": "联系人姓名",
+    "relationship": "关系",
+    "relationship_spouse": "配偶",
+    "relationship_parent": "父母",
+    "relationship_sibling": "兄弟姐妹",
+    "relationship_child": "子女",
+    "relationship_friend": "朋友",
+    "relationship_other": "其他",
+    "set_as_primary": "设为首选",
+    "profile": {
+      "subtitle": "查看和管理您的个人信息。",
+      "update_success": "个人资料更新成功",
+      "update_error": "更新个人资料时出错",
+      "title": "我的个人资料"
+    },
+    "emergency_contact": {
+      "add_success": "联系人添加成功",
+      "add_error": "添加联系人时出错",
+      "confirm_delete": "您确定要删除此联系人吗？",
+      "delete_success": "联系人已删除",
+      "delete_error": "删除联系人时出错",
+      "subtitle": "紧急情况下的联系人。"
+    },
+    "clock": {
+      "title": "打卡钟",
+      "subtitle": "上下班和休息打卡",
+      "punch_in_success": "打卡成功",
+      "punch_out_success": "下班打卡成功",
+      "break_start_success": "开始休息",
+      "adjustment_requested": "调整请求已提交",
+      "no_entries": "没有最近的打卡记录",
+      "recent_history": "最近活动（最近7天）",
+      "punch_success": "打卡成功"
+    },
+    "attendance": {
+      "title": "我的考勤",
+      "subtitle": "查看您的每日打卡历史记录。",
+      "date": "日期",
+      "check_in": "签到",
+      "check_out": "签退",
+      "duration": "时长",
+      "status": "状态",
+      "generation_info": "处理信息（溯源）",
+      "no_data": "本月未找到考勤数据。",
+      "ot_status": "加班",
+      "active_status": "活跃",
+      "system_ot_suffix": "（系统加班）",
+      "claim_btn": "申请加班"
+    },
+    "ot": {
+      "claim_title": "申请加班",
+      "claim_desc": "提交您的加班申请以供审批",
+      "claimed_minutes": "申请分钟数",
+      "reason_placeholder": "您为什么加班？",
+      "error_zero_minutes": "分钟数必须大于0",
+      "error_exceeds_system": "不能申请超过系统检测到的加班时间",
+      "system_detected": "系统检测",
+      "close": "关闭"
+    }
+  },
+  "members": {
+    "title": "成员与角色",
+    "subtitle": "管理系统内的访问权限和角色。",
+    "roles": {
+      "admin": "管理员",
+      "member": "成员",
+      "owner": "所有者",
+      "owner_desc": "创始人，最高权限",
+      "admin_desc": "系统管理员",
+      "member_desc": "普通成员",
+      "modal_title": "管理角色",
+      "modal_subtitle": "人员权限",
+      "primary_role_label": "主角色 (永久)",
+      "extra_roles_label": "额外角色 (临时)",
+      "expires_at": "到期时间",
+      "no_extra_roles": "未分配额外角色。",
+      "assign_new_title": "分配新角色",
+      "expiry_date_label": "到期日期",
+      "assign_btn": "分配角色",
+      "confirm_change_primary": "您确定要将主角色更改为 {{role}} 吗？",
+      "confirm_revoke": "您确定要撤销此角色吗？",
+      "messages": {
+        "update_primary_error": "更新主角色时出错。",
+        "assign_error": "分配角色时出错。",
+        "revoke_error": "撤销角色时出错。"
+      }
+    },
+    "permissions": {
+      "modal_title": "管理权限",
+      "modal_subtitle": "授予或撤销个人权限",
+      "active_label": "分配的权限",
+      "no_extra_permissions": "没有额外权限",
+      "assign_new_title": "授予新权限",
+      "permission_label": "权限",
+      "search_placeholder": "搜索权限...",
+      "expiry_label": "过期日期",
+      "grant_btn": "授予权限",
+      "confirm_revoke": "您确定要撤销此权限吗？"
+    },
+    "table": {
+      "confirm_remove": "您确定要移除此成员吗？",
+      "manage_roles": "管理角色",
+      "manage_permissions": "管理权限 (详情)",
+      "remove_member": "移除成员",
+      "messages": {
+        "remove_error": "移除成员时出错。",
+        "no_members": "在此工作空间中未找到成员。"
+      }
+    },
+    "invite": {
+      "title": "邀请成员",
+      "subtitle": "人员管理",
+      "email_label": "电子邮件地址",
+      "role_label": "要分配的角色",
+      "submit_btn": "发送邀请",
+      "error_message": "无法邀请成员。请检查电子邮件。"
+    }
+  },
+  "employees": {
+    "title": "员工",
+    "subtitle": "跨系统管理个人档案和工作历史",
+    "add_btn": "添加员工",
+    "search_placeholder": "按名称或 ID 搜索...",
+    "filter_department": "按部门筛选",
+    "clear_filter": "清除筛选",
+    "no_departments": "暂无部门",
+    "filtering_by": "正在筛选",
+    "clear_all": "清除全部",
+    "search": {
+      "placeholder": "选择员工...",
+      "input_placeholder": "按名称或 ID 搜索...",
+      "no_results": "未找到员工。"
+    },
+    "table": {
+      "name": "全名",
+      "id": "ID",
+      "hire_date": "入职日期",
+      "status": "状态",
+      "actions": "操作",
+      "loading": "正在加载数据...",
+      "no_data": "无可用数据。",
+      "active": "活跃",
+      "terminated": "已离职"
+    },
+    "details": {
+      "edit_profile": "编辑档案",
+      "original_hire_date": "原始入职日期",
+      "terminate": "终止",
+      "rehire": "重新入职",
+      "terminate_confirm": "您确定要让该员工离职吗？",
+      "current_dept": "当前部门",
+      "transfer": "调动",
+      "not_assigned_dept": "未分配部门",
+      "salary_benefits": "薪资与福利",
+      "special_policies": "特殊政策",
+      "update": "更新",
+      "current": "当前",
+      "no_salary_history": "无薪资历史",
+      "work_history": "工作历史",
+      "view_details": "查看详情 →",
+      "joined": "入职公司",
+      "returned": "返回工作岗位",
+      "contracts": {
+        "title": "合同历史",
+        "sign_contract": "签订合同",
+        "no_contracts": "暂无合同",
+        "effective_date": "生效日期",
+        "expiration_date": "到期日期",
+        "indefinite_duration": "无固定期限",
+        "contract_number": "合同编号: {{number}}",
+        "types": {
+          "probation": "试用期",
+          "training": "培训",
+          "fixed_term": "固定期限",
+          "indefinite": "无固定期限"
+        }
+      }
+    },
+    "form": {
+      "add_title": "添加员工",
+      "edit_title": "编辑档案",
+      "subtitle": "人员档案",
+      "full_name": "全名",
+      "employee_id": "员工 ID",
+      "hire_date": "入职日期",
+      "is_active": "活跃",
+      "link_user": "关联用户账户",
+      "select_user": "选择用户...",
+      "cancel": "取消",
+      "save": "保存档案",
+      "update": "更新"
+    },
+    "transfer": {
+      "title": "部门调动",
+      "subtitle": "职位管理",
+      "new_dept": "新部门",
+      "select_dept": "选择部门...",
+      "effective_date": "生效日期",
+      "notes": "备注",
+      "cancel": "取消",
+      "submit": "调动",
+      "notes_placeholder": "输入调动备注 (例: 职位从开发更改为组长)..."
+    },
+    "history": {
+      "title": "工作历史",
+      "subtitle": "人员数据",
+      "rehire_period": "重新入职期间",
+      "first_period": "第一期间",
+      "currently_working": "目前正在工作",
+      "period_range": "从 {{start}} 到 {{end}}",
+      "present": "(至今)",
+      "close": "关闭"
+    },
+    "rehire": {
+      "title": "员工重新入职",
+      "subtitle": "激活档案",
+      "confirm_msg": "确认员工开始新工作期间的日期",
+      "rehire_date": "重新入职日期",
+      "cancel": "取消",
+      "confirm": "确认",
+      "processing": "正在处理..."
+    },
+    "policies": {
+      "subtitle": "出勤特权管理",
+      "add_btn": "添加政策",
+      "type": "政策类型",
+      "allowance_mins": "分钟津贴",
+      "is_paid": "有薪津贴",
+      "start_date": "开始日期",
+      "end_date": "结束日期",
+      "no_data": "未分配特殊政策",
+      "paid_allowance": "有薪",
+      "unpaid_allowance": "无薪",
+      "types": {
+        "early_leave": "早退",
+        "late_in": "迟到",
+        "breastfeeding": "哺乳假"
+      },
+      "add_condition": "添加工作条件",
+      "type_label": "条件类型",
+      "conditions_title": "工作条件",
+      "conditions_desc": "为员工配置特殊的工作条件和政策。",
+      "delete_warning": "您确定要删除此工作条件吗？此操作无法撤销。",
+      "no_conditions": "未配置任何工作条件"
+    },
+    "salary": {
+      "title": "更新薪资",
+      "subtitle": "薪酬管理",
+      "base_salary": "基本工资",
+      "type": "薪资类型",
+      "monthly": "月薪",
+      "hourly": "时薪",
+      "effective_date": "生效日期",
+      "cancel": "取消",
+      "submit": "更新薪资"
+    },
+    "select_workspace": "请选择工作区",
+    "hire_date": "入职日期",
+    "bulk_import_title": "批量导入员工",
+    "bulk_import_btn": "从文件导入",
+    "import_req": {
+      "col_a": "A列：员工ID（必填）",
+      "col_b": "B列：全名（必填）",
+      "col_c": "C列：入职日期（可选，YYYY-MM-DD）",
+      "col_d": "D列：部门名称（可选）"
+    },
+    "label": "员工"
+  },
+  "profile": {
+    "subtitle": "管理个人信息和账号设置",
+    "join_date": "加入日期",
+    "preferred_language": "首选语言",
+    "follow_workspace": "跟随工作空间设置",
+    "bio": "个人简介",
+    "bio_placeholder": "简短的自我介绍...",
+    "personalization": {
+      "title": "个性化",
+      "subtitle": "自定义您的个人 UI 颜色",
+      "use_workspace_default": "使用工作空间默认设置",
+      "note": "* 此更改仅适用于您当前使用的浏览器。"
+    },
+    "security": {
+      "title": "安全",
+      "subtitle": "修改账号密码",
+      "current_password": "当前密码",
+      "new_password": "新密码",
+      "confirm_password": "确认新密码",
+      "submit_btn": "更新密码",
+      "messages": {
+        "confirm_mismatch": "确认密码不匹配。",
+        "password_changed": "密码已修改。请重新登录。",
+        "change_error": "修改密码时出错。"
+      }
+    },
+    "label": "个人资料"
+  },
+  "permissions": {
+    "modules": "模块",
+    "permissionsLabel": "权限",
+    "saveMatrix": "保存权限矩阵",
+    "subtitle": "为每个功能配置详细权限",
+    "systemRoleInfo": "系统角色信息",
+    "title": "权限",
+    "unsavedChanges": "未保存的更改",
+    "visibleRoles": "可见角色"
+  }
+}

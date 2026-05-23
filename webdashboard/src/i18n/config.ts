@@ -4,24 +4,36 @@ import { initReactI18next } from 'react-i18next';
 import i18n, { BackendModule } from 'i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
 
-const localeLoaders: Partial<Record<string, () => Promise<{ default: Record<string, unknown> }>>> = {
-  en: () => import('./locales/en.json'),
-  vi: () => import('./locales/vi.json'),
-  zh: () => import('./locales/zh.json'),
-};
+export const namespaces = [
+  'common',
+  'payroll',
+  'shift_swaps',
+  'employees',
+  'departments',
+  'attendance',
+  'leave',
+  'settings',
+  'system_roles',
+];
 
 export const lazyLoadBackend: BackendModule = {
   type: 'backend',
   init: () => { /* empty */ },
-  read: (language, _namespace, callback) => {
+  read: (language, namespace, callback) => {
     const lng = language.split('-')[0];
-    if (localeLoaders[lng]) {
-      localeLoaders[lng]()
-        .then((module_: { default?: Record<string, unknown> } | Record<string, unknown>) => { callback(null, 'default' in module_ ? module_.default ?? module_ : module_); })
-        .catch((error: unknown) => { callback(error instanceof Error ? error : new Error(String(error)), null); });
-    } else {
+    const supportedLngs = ['en', 'vi', 'zh'];
+    if (!supportedLngs.includes(lng)) {
       callback(new Error(`Language ${lng} not found`), null);
+      return;
     }
+    import(`./locales/${lng}/${namespace}.json`)
+      .then((module_: { default?: Record<string, unknown> } | Record<string, unknown>) => {
+        const data = 'default' in module_ ? module_.default ?? module_ : module_;
+        callback(null, data);
+      })
+      .catch((error: unknown) => {
+        callback(error instanceof Error ? error : new Error(String(error)), null);
+      });
   },
 };
 
@@ -32,6 +44,9 @@ void i18n
   .use(initReactI18next)
   .init({
     fallbackLng: 'vi',
+    ns: namespaces,
+    defaultNS: 'common',
+    fallbackNS: namespaces,
     interpolation: {
       escapeValue: false,
     },
@@ -40,5 +55,58 @@ void i18n
       caches: ['localStorage'],
     },
   });
+
+type GenericTFunction = (
+  key: string | string[],
+  optionsOrFallbackValue?: unknown,
+  options?: Record<string, unknown>
+) => string;
+
+const originalT = i18n.t.bind(i18n) as unknown as GenericTFunction;
+
+const mergeNsOption = (opts: unknown, ns: string): Record<string, unknown> | undefined => {
+  if (opts && typeof opts === 'object') {
+    const record = opts as Record<string, unknown>;
+    return record.ns ? record : { ...record, ns };
+  }
+  return undefined;
+};
+
+const customT = (
+  key: string | string[],
+  optionsOrFallbackValue?: unknown,
+  options?: Record<string, unknown>
+): string => {
+  if (typeof key !== 'string' || !key.includes('.')) {
+    return originalT(key, optionsOrFallbackValue, options);
+  }
+
+  const ns = key.split('.')[0];
+  if (!namespaces.includes(ns)) {
+    return originalT(key, optionsOrFallbackValue, options);
+  }
+
+  const opt1 = mergeNsOption(optionsOrFallbackValue, ns);
+  if (opt1) {
+    return originalT(key, opt1, options);
+  }
+
+  const opt2 = mergeNsOption(options, ns);
+  if (opt2) {
+    return originalT(key, optionsOrFallbackValue, opt2);
+  }
+
+  if (optionsOrFallbackValue === undefined) {
+    return originalT(key, { ns });
+  }
+
+  return originalT(key, optionsOrFallbackValue, options);
+};
+
+interface CustomI18n {
+  t: GenericTFunction;
+}
+
+(i18n as unknown as CustomI18n).t = customT;
 
 export default i18n;

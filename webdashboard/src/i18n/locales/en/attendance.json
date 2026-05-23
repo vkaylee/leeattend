@@ -1,0 +1,527 @@
+{
+  "time_tracking": {
+    "title": "Time Tracking",
+    "subtitle": "Track your work hours and breaks.",
+    "modal": {
+      "edit_title": "Edit Time Entry",
+      "new_title": "New Adjustment Request",
+      "reason_label": "Reason for adjustment",
+      "reason_placeholder": "Why are you requesting this change?",
+      "subtitle": "Request changes to your clock-in/out times."
+    },
+    "actions": {
+      "punch_out": "Clock Out",
+      "return_to_work": "End Break",
+      "start_break": "Start Break",
+      "start_work": "Clock In",
+      "hold_to_punch": "Hold to Punch"
+    },
+    "forgot_punch": "Forgot to clock in/out?",
+    "status": {
+      "break_start_at": "Break started at",
+      "off_duty": "Off Duty",
+      "on_break": "On Break",
+      "shift_start_at": "Shift started at",
+      "working": "Working"
+    }
+  },
+  "attendance_confirm": {
+    "title": "Attendance Confirmation",
+    "subtitle": "Approve adjustment/supplemental attendance requests from employees.",
+    "excel_template": "Excel Template",
+    "import_excel": "Import Excel",
+    "ot_label": "Working through lunch",
+    "status": {
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "pending": "Pending"
+    },
+    "table": {
+      "request_time": "Request (In - Out)"
+    },
+    "messages": {
+      "no_requests": "No requests yet.",
+      "no_data": "Currently no attendance adjustment requests need processing."
+    },
+    "modal": {
+      "import_title": "Import attendance data from file"
+    },
+    "label": "Confirm Attendance"
+  },
+  "attendance_logs": {
+    "title": "Punch Logs",
+    "subtitle": "Raw data from timekeepers and punch sources.",
+    "export_btn": "Export Data",
+    "import_btn": "Import Data",
+    "status": {
+      "recorded": "Recorded"
+    },
+    "tabs": {
+      "recorded": "Recorded Logs",
+      "unknown": "Unidentified"
+    },
+    "unknown_id": "Unknown ID",
+    "not_in_system": "Not in system",
+    "select_employee": "Select employee...",
+    "assign": "Assign",
+    "create_employee": "Create",
+    "messages": {
+      "loading": "Loading logs...",
+      "no_data": "No punch logs found.",
+      "no_unknown_logs": "No unidentified logs",
+      "no_data_hint": "Try adjusting your date range filter or selecting a different employee to find what you're looking for.",
+      "all_matched": "All punch logs have been matched to employees."
+    },
+    "modal": {
+      "import_title": "Import punch logs from file"
+    },
+    "view_reports": "View Summary Report"
+  },
+  "attendance_import": {
+    "subtitle": "Bulk Data Import",
+    "rows_processed": "rows processed",
+    "error_list_title": "Detailed Error List:",
+    "select_another_file": "Select another file",
+    "upload_prompt": "Click or drag file here",
+    "upload_limit": "Excel or CSV (Max 10MB)",
+    "start_import": "Start Import",
+    "status": {
+      "processing": "Processing data...",
+      "completed": "Completed!",
+      "failed": "An error occurred",
+      "pending": "Pending...",
+      "uploading": "Uploading..."
+    },
+    "file_requirements": {
+      "title": "File Format Requirements:",
+      "col_a": "Column A: Employee ID",
+      "col_b": "Column B: Employee Name (Optional)",
+      "col_c": "Column C: Punch Time (DD/MM/YYYY HH:mm)",
+      "formats": "Supports .xlsx, .xls and .csv files"
+    },
+    "messages": {
+      "upload_error": "Error uploading file"
+    }
+  },
+  "patterns": {
+    "title": "Working Patterns",
+    "subtitle": "Manage recurring work schedules for employees",
+    "manage_btn": "Manage Patterns",
+    "create_btn": "Create Pattern",
+    "create_title": "Create Working Pattern",
+    "create_subtitle": "Define weekly pattern",
+    "create_submit": "Create Pattern",
+    "empty_title": "No patterns yet",
+    "empty_desc": "Create a pattern to quickly assign recurring shifts to employees.",
+    "create_first": "Create First Pattern",
+    "weekly_schedule": "Weekly Schedule",
+    "select_pattern": "Select Pattern",
+    "view_details": "Pattern Details",
+    "form": {
+      "name": "Pattern Name",
+      "description": "Description",
+      "select_pattern": "Select Pattern",
+      "select_pattern_label": "Select Pattern",
+      "select_pattern_placeholder": "Select a pattern...",
+      "start_date": "Effective Start Date",
+      "start_date_label": "Start Date",
+      "start_date_note": "Schedule will auto-repeat from this date.",
+      "select_employees": "Select Employees",
+      "select_employees_label": "Applied Employees",
+      "select_employees_placeholder": "Search and select...",
+      "name_placeholder": "Ex: Office Hours, Night Shift Rotation",
+      "name_label": "Pattern Name",
+      "desc_placeholder": "Optional description",
+      "desc_label": "Short description",
+      "weekly_grid_title": "Weekly Schedule Grid",
+      "cycle_grid_title": "Cycle Schedule Grid",
+      "prefill_standard": "Fill Standard Pattern",
+      "add_shift": "Add Shift",
+      "pattern_type": "Pattern Type",
+      "pattern_type_weekly": "Weekly Schedule",
+      "pattern_type_rotation": "Rotating Cycle",
+      "cycle_length": "Cycle Length (Days)",
+      "cycle_length_placeholder": "e.g. 6",
+      "cycle_length_note": "Determines the length of the schedule cycle in days.",
+      "cycle_config_title": "Rotation Cycle Configuration",
+      "day_index": "Day {{index}}",
+      "anchor_date_label": "Rotation Anchor Date",
+      "anchor_date_note": "Reference date when Day 1 of the cycle starts.",
+      "editor_title_new": "Create Working Pattern",
+      "editor_title_edit": "Edit Working Pattern",
+      "clear_all": "Clear All Days",
+      "clear_all_confirm": "Are you sure you want to clear all shifts?",
+      "unsaved_changes": "You have unsaved changes. Are you sure you want to leave?",
+      "unsaved_changes_cancel": "Stay",
+      "unsaved_changes_confirm": "Leave",
+      "view_mode_design": "Cycle Setup",
+      "view_mode_preview": "Calendar Preview",
+      "anchor_date_preview": "Preview Anchor Date",
+      "preview_month": "Preview Month"
+    },
+    "weekly_config": "Weekly Config",
+    "actions": {
+      "prefill_standard": "Quick Fill: Office (Mon-Fri)"
+    },
+    "badge_rotation": "Rotation ({{days}} days)",
+    "badge_weekly": "Weekly",
+    "validation_name_required": "Please enter pattern name.",
+    "validation_cycle_length_invalid": "Please enter a valid cycle length between 1 and 366.",
+    "messages": {
+      "create_success": "Working pattern created successfully.",
+      "create_error": "Error creating working pattern.",
+      "update_success": "Working pattern updated successfully.",
+      "update_error": "Error updating working pattern.",
+      "delete_success": "Working pattern deleted successfully.",
+      "delete_error": "Error deleting working pattern.",
+      "bulk_assign_success_count": "Assigned pattern to {{count}} employees.",
+      "bulk_assign_conflict": "Some employees already have schedules, system will override.",
+      "bulk_assign_error": "Error in bulk assignment.",
+      "no_shifts_available": "No shifts available to prefill."
+    },
+    "confirm_delete": "Are you sure you want to delete pattern \"{{name}}\" ?",
+    "bulk_assign_btn": "Bulk Assign",
+    "bulk_assign_title": "Bulk Assign Pattern",
+    "bulk_assign_subtitle": "Assign pattern to multiple employees at once",
+    "modal": {
+      "create_title": "Create New Rotation",
+      "subtitle": "Setup recurring schedule",
+      "submit_btn": "Save Pattern",
+      "assign_btn": "Confirm Assignment",
+      "bulk_subtitle": "Schedule Allocation"
+    },
+    "validation_pattern_required": "Please select a pattern.",
+    "validation_employees_required": "Please select at least one employee.",
+    "bulk_assign_submit": "Confirm Assign"
+  },
+  "rules": {
+    "title": "Auto-assign Rules",
+    "subtitle": "Automatically assign patterns to employees based on conditions",
+    "create_btn": "Add Rule",
+    "table": {
+      "priority": "Priority",
+      "name": "Rule Name",
+      "pattern": "Assigned Pattern",
+      "conditions": "Conditions"
+    },
+    "match_all": "Workspace-wide (Match All)",
+    "empty_list": "No assignment rules yet",
+    "info_priority": "Rules are evaluated from highest to lowest priority. The first matching rule will be applied. General rules should have lowest priority.",
+    "edit_title": "Edit Rule",
+    "create_title": "Create New Rule",
+    "form_subtitle": "Define when this pattern should be applied",
+    "form": {
+      "name": "Rule Name",
+      "priority": "Priority (Higher is stronger)",
+      "pattern": "Select Pattern",
+      "name_placeholder": "Ex: Tech Support Night Shift",
+      "tags_placeholder": "NightShift, Hanoi, VVIP"
+    },
+    "conditions_title": "Matching Conditions",
+    "condition_help": "Leave empty to match all employees (within scope of other conditions).",
+    "messages": {
+      "create_success": "Rule created successfully",
+      "update_success": "Rule updated successfully",
+      "delete_success": "Rule deleted"
+    },
+    "validation": {
+      "required_fields": "Name and Pattern are required"
+    },
+    "confirm_delete_msg": "Are you sure you want to delete this rule?"
+  },
+  "shifts": {
+    "monthly": {
+      "title": "Monthly Roster",
+      "copy_previous_month": "Copy prev month",
+      "clear_month": "Clear overrides",
+      "pattern_source": "Auto from pattern",
+      "roster_source": "Manual roster",
+      "off_day": "OFF",
+      "all_employees": "All Employees",
+      "cells_selected": "{{count}} cells selected",
+      "assign_selected": "Assign selected",
+      "view_week": "Week",
+      "view_month": "Month",
+      "search_placeholder": "Search employee...",
+      "filter_department": "Filter by department",
+      "all_departments": "All Departments",
+      "no_department": "No Department",
+      "no_results_desc": "No employees found matching your search or filter criteria.",
+      "empty_state_desc": "No employees or work schedules found. Please check your departments or personnel settings."
+    },
+    "title": "Scheduling System",
+    "subtitle": "Manage flexible and fixed work shifts",
+    "create_btn": "Create Shift",
+    "current_week_roster": "Current Week Roster",
+    "days_selected": "{{count}} days selected",
+    "assign_selected_btn": "Assign Shift to Selected",
+    "off_day": "OFF",
+    "history_title": "Shift Assignment History",
+    "fixed_assignment_subtitle": "Assign fixed or long-term schedules",
+    "select_default_shift": "Select Default Shift",
+    "assign_btn": "Assign Shift",
+    "directory_title": "Shift Types List",
+    "auto_deduct": "Auto-deduct",
+    "grace_period": "Grace Period",
+    "grace_period_desc": "If 'Block' policy is active, punches before this are blocked. If 'Clamp', OT starts here.",
+    "set_off_day": "Set OFF",
+    "days_count": "{{count}} days selected",
+    "empty_state": {
+      "title": "Select personnel to continue",
+      "desc": "Please select an employee from the left list to start scheduling."
+    },
+    "tabs": {
+      "weekly_roster": "ROSTER",
+      "fixed_assignments": "FIXED ASSIGNMENTS",
+      "directory": "SHIFT TYPES"
+    },
+    "actions": {
+      "copy_previous": "Copy Previous Week",
+      "assign_all_week": "Assign All Week",
+      "clear_week": "Clear This Week"
+    },
+    "types": {
+      "flexible": "Flexible",
+      "fixed": "Fixed"
+    },
+    "table": {
+      "assignment_type": "Assign Type",
+      "range": "Range",
+      "shift_name": "Shift Type Name",
+      "time_range": "Time Range",
+      "break_time": "Break Time"
+    },
+    "modal": {
+      "setup_title": "Shift Setup",
+      "setup_subtitle": "DECLARE SHIFT PARAMETERS",
+      "edit_subtitle": "UPDATE CONFIG OR CHANGE HOURS",
+      "name_placeholder": "Office, Morning, Split shift...",
+      "start_time": "Punch In",
+      "end_time": "Punch Out",
+      "break_config": "Break Configuration",
+      "break_start": "Break Start",
+      "break_end": "Break End",
+      "auto_deduct_label": "Auto-deduct break hours",
+      "break_duration": "Break Duration",
+      "save_shift_btn": "Save Shift Type",
+      "update_config_btn": "Update Configuration",
+      "correction_label": "Data Correction",
+      "correction_desc": "Correction will overwrite the current shift record. Use this only for fixing typos.",
+      "correction_warning": "This is a direct correction",
+      "effective_date_label": "Effective Date",
+      "effective_date_desc": "The new version will take effect from this date.",
+      "grace_period": "Early Arrival Grace (min)",
+      "grace_period_desc": "If 'Block' policy is active, punches before this are blocked. If 'Clamp', OT starts here.",
+      "select_shift_title": "Select Shift",
+      "select_shift_subtitle": "Select shift for {{count}} selected days",
+      "mark_as_off": "Mark selected days as OFF",
+      "assign_to_days": "Assign to {{days}}",
+      "report_symbol": "Report Symbol",
+      "report_symbol_placeholder": "E.g: S8, T8, FX..."
+    },
+    "messages": {
+      "assign_success": "Shift assigned to employee successfully.",
+      "assign_error": "Assignment error",
+      "update_roster_success": "Roster updated.",
+      "update_roster_error": "Update roster error",
+      "bulk_update_success": "Bulk roster updated.",
+      "bulk_update_error": "Bulk update error",
+      "remove_override_success": "Override removed, reverted to default.",
+      "remove_override_error": "Error removing roster",
+      "create_shift_success": "Shift type \"{{name}}\" initialized.",
+      "create_shift_error": "Create shift error",
+      "update_shift_success": "Shift configuration updated.",
+      "update_shift_error": "Update shift error",
+      "validation_missing_fields": "Please select employee, shift and start date.",
+      "no_previous_data": "No previous week data found.",
+      "copy_error": "Copy error",
+      "validation_shift_name_time": "Shift name and working hours cannot be empty.",
+      "validation_break_times": "Please enter break start and end times.",
+      "no_shifts": "No shift types in system."
+    },
+    "traceability": {
+      "title": "Logic Traceability",
+      "applied": "Applied Logic",
+      "overridden": "Overridden Rules",
+      "show_overridden": "Show overridden rules",
+      "priority": "Priority",
+      "reason": "Reason",
+      "source": "Source",
+      "winner": "Winning Rule",
+      "priority_hierarchy": "Priority Hierarchy",
+      "p100_manual": "Manual Roster",
+      "p80_pattern": "Individual Pattern",
+      "p60_rules": "Auto Rules",
+      "p40_dept_pattern": "Dept Pattern",
+      "p20_fixed": "Fixed Assignment",
+      "p10_dept_fixed": "Dept Default",
+      "override_hint": "Want to override this? Assign a Manual Roster for this day (Priority 100).",
+      "highest_priority_hint": "This is a manual roster and has highest priority.",
+      "highest_priority": "Highest Priority",
+      "lowest_priority": "System Default",
+      "hierarchy_explanation": "Rules are evaluated from top to bottom. Higher nodes override lower ones."
+    },
+    "label": "Shifts & Roster"
+  },
+  "approvals": {
+    "paper_ot": {
+      "title": "Enter Paper OT Form",
+      "description": "Enter overtime claim from signed paper form",
+      "select_employee": "Search employee...",
+      "minutes": "OT Minutes",
+      "reason_placeholder": "Paper form #1234 - Production line",
+      "photo": "Paper Form Photo (Optional)",
+      "photo_coming_soon": "Photo upload coming soon",
+      "error_no_employee": "Please select an employee",
+      "error_minutes": "Minutes must be greater than 0",
+      "error_reason": "Reason is required",
+      "btn_enter": "Enter Paper Form"
+    },
+    "bulk_upload": {
+      "title": "Bulk Upload OT",
+      "description": "Upload CSV file to enter multiple OT claims at once",
+      "btn": "Bulk Upload",
+      "download_template": "Download CSV Template",
+      "drag_drop": "Drag and drop CSV file here",
+      "or_click": "or click to browse",
+      "select_file": "Select File",
+      "upload": "Upload & Process",
+      "error_csv_only": "Only CSV files are allowed",
+      "confirm_close_with_errors": "Some rows failed. Are you sure you want to close?",
+      "result_summary": "Upload Summary",
+      "total": "Total",
+      "success": "Success",
+      "failed": "Failed",
+      "error_details": "Error Details",
+      "download_errors": "Download Errors",
+      "line": "Line",
+      "success_message": "{{count}} OT claims entered successfully"
+    },
+    "filter": {
+      "paper_forms": "Paper Forms",
+      "self_service": "Self-Service"
+    }
+  },
+  "holidays": {
+    "title": "Holidays",
+    "subtitle": "Manage public holidays and special days for your workspace",
+    "add_btn": "Add Holiday",
+    "no_holidays": "No holidays configured for {{year}}",
+    "modal_title_new": "New Holiday",
+    "modal_title_edit": "Edit Holiday",
+    "fields": {
+      "name": "Name",
+      "name_placeholder": "e.g. Tết Dương Lịch",
+      "date": "Date",
+      "type": "Type",
+      "types": {
+        "national": "National",
+        "company": "Company",
+        "regional": "Regional"
+      },
+      "ot_multiplier": "OT Multiplier",
+      "ot_multiplier_placeholder": "3.0",
+      "ot_multiplier_help": "E.g: 3× = 300% pay for each hour worked",
+      "description": "Description",
+      "description_placeholder": "Optional description",
+      "paid_holiday": "Paid holiday",
+      "deduct_leave_type": "Deduct from Leave Type",
+      "auto_first_paid": "Auto (first paid leave type)",
+      "deduction_warning": "Employees without enough leave balance will have this day marked as unpaid.",
+      "work_policy_title": "Policy when employee works on holiday",
+      "credit_on_work": "Credit holiday pay",
+      "credit_on_work_help": "Employee still receives holiday pay + work pay",
+      "threshold_percent": "Leave refund threshold",
+      "threshold_help": "Employee works ≥ threshold → refund leave. < threshold → keep leave deducted"
+    },
+    "table": {
+      "date": "Date",
+      "name": "Name",
+      "type": "Type",
+      "paid": "Paid",
+      "ot": "OT ×",
+      "description": "Description",
+      "paid_status": "Paid",
+      "deduct_leave": "Deduct leave",
+      "credit": "Credit",
+      "threshold": "Threshold"
+    },
+    "messages": {
+      "load_error": "Failed to load holidays",
+      "save_error": "Failed to save holiday",
+      "delete_error": "Failed to delete holiday",
+      "confirm_delete": "Are you sure you want to delete this holiday?"
+    },
+    "info": {
+      "title": "Unpaid Holiday & Leave Deduction Rules",
+      "body_1": "When a holiday is marked as Unpaid, the system handles it automatically based on the employee's leave balance:",
+      "rule_1": "Sufficient Balance: Deducts 1 day of leave and pays the salary.",
+      "rule_2": "Insufficient Balance: Marked as Unpaid leave for the day."
+    }
+  },
+  "attendance_policy_overrides": {
+    "title": "Overrides & Exceptions",
+    "description": "Configure specific rules for departments or individuals.",
+    "filters": {
+      "all": "ALL",
+      "depts": "DEPTS",
+      "users": "USERS"
+    },
+    "add_button": "ADD OVERRIDE",
+    "empty_state": {
+      "title": "No active overrides",
+      "description": "Everyone is following the workspace default policy."
+    },
+    "labels": {
+      "department": "DEPARTMENT",
+      "employee": "EMPLOYEE"
+    },
+    "drawer": {
+      "add_title": "Add Policy Override",
+      "add_subtitle": "Configure specific rules for a target",
+      "step_target": "1. Select Target",
+      "step_rules": "2. Configure Rules",
+      "select_target_type": "Select {{type}}",
+      "search_placeholder": "Search {{type}}...",
+      "save_button": "SAVE OVERRIDE"
+    },
+    "messages": {
+      "delete_success": "Policy override removed",
+      "save_success": "Policy override saved",
+      "validation_select_target": "Please select a department or employee"
+    }
+  },
+  "ot_approvals": {
+    "title": "OT Approvals",
+    "subtitle": "Review and approve overtime claims",
+    "empty_state": {
+      "title": "All Caught Up!",
+      "description": "No pending overtime requests for this period."
+    },
+    "table": {
+      "date": "Date",
+      "employee": "Employee",
+      "source": "Source",
+      "system": "System",
+      "claimed": "Claimed",
+      "reason": "Reason",
+      "actions": "Actions"
+    },
+    "actions": {
+      "approve": "Approve",
+      "reject": "Reject"
+    },
+    "badges": {
+      "paper": "Paper",
+      "self": "Self"
+    }
+  },
+  "attendance": {
+    "log": {
+      "create": "Attendance Log Created"
+    },
+    "shift_swap": {
+      "request": "Shift Swap Requested"
+    }
+  }
+}

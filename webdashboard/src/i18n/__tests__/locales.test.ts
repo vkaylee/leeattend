@@ -1,8 +1,28 @@
+import fs from 'fs';
+import path from 'path';
 import { describe, it, expect } from 'vitest';
 
-import en from '../locales/en.json';
-import vi from '../locales/vi.json';
-import zh from '../locales/zh.json';
+const localesDir = path.resolve(__dirname, '../locales');
+
+function loadMergedLocales(lng: string): Record<string, unknown> {
+  const lngDir = path.join(localesDir, lng);
+  const files = fs.readdirSync(lngDir);
+  const merged: Record<string, unknown> = {};
+  
+  files.forEach(file => {
+    if (file.endsWith('.json')) {
+      const content = fs.readFileSync(path.join(lngDir, file), 'utf-8');
+      const data = JSON.parse(content) as Record<string, unknown>;
+      Object.assign(merged, data);
+    }
+  });
+  
+  return merged;
+}
+
+const en = loadMergedLocales('en');
+const vi = loadMergedLocales('vi');
+const zh = loadMergedLocales('zh');
 
  
 type JsonObject = Record<string, unknown>;

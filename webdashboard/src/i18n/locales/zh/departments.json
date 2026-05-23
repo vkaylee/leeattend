@@ -1,0 +1,30 @@
+{
+  "departments": {
+    "title": "部门",
+    "subtitle": "管理组织结构和管理层级",
+    "add_btn": "添加部门",
+    "manager_label": "经理",
+    "active_employees_label": "在职员工",
+    "not_assigned": "未分配",
+    "default_pattern_label": "默认工作模式",
+    "messages": {
+      "no_departments": "尚未创建部门。",
+      "confirm_delete": "删除此部门？",
+      "empty_desc": "组织中没有部门。从创建第一个部门开始。"
+    },
+    "form": {
+      "name_label": "部门名称",
+      "name_placeholder": "例：技术部、人事部...",
+      "desc_placeholder": "输入部门职能的简短描述...",
+      "manager_placeholder": "选择经理...",
+      "pattern_placeholder": "选择默认工作模式..."
+    },
+    "modal": {
+      "add_title": "添加部门",
+      "edit_title": "编辑部门",
+      "subtitle": "组织结构",
+      "submit_btn": "创建部门"
+    },
+    "label": "部门"
+  }
+}

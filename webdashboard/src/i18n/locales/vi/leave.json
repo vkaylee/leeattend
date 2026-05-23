@@ -1,0 +1,204 @@
+{
+  "leave_balances": {
+    "title": "Số dư nghỉ phép",
+    "subtitle": "Theo dõi định mức và sử dụng phép của nhân sự",
+    "summary_table": "Bảng tổng hợp số dư",
+    "run_accrual": "Cập nhật số dư",
+    "select_year": "Chọn năm",
+    "confirm_accrual": "Bạn có chắc chắn muốn chạy tính toán tích lũy cho hôm nay? Hệ thống sẽ tự động cộng thêm phép dựa trên chính sách đã gán.",
+    "accrual_current_year_only": "Chỉ có thể cập nhật số dư cho năm hiện tại",
+    "accrual_queued": "Đang xử lý tích lũy phép trong nền...",
+    "accrual_completed": "Cập nhật số dư phép thành công!",
+    "accrual_timeout": "Quá thời gian chờ. Vui lòng kiểm tra lại sau.",
+    "view_details": "Xem Chi tiết",
+    "table": {
+      "base": "Định mức",
+      "accrued": "Tích lũy",
+      "carried_over": "Chuyển từ năm trước",
+      "used": "Đã dùng",
+      "remaining": "Còn lại",
+      "usage": "Tỷ lệ sử dụng",
+      "history_tooltip": "Xem lịch sử biến động",
+      "accrued_info": "Số ngày phép được cộng thêm tự động dựa trên chính sách tích lũy của công ty (theo tháng/quý/năm).",
+      "policy": "Chính sách"
+    },
+    "detail": {
+      "breakdown": "Chi tiết số dư",
+      "calculation": "Cách tính",
+      "policy_info": "Thông tin chính sách",
+      "accrual_info_title": "Thông tin tích lũy",
+      "used": "đã sử dụng",
+      "history": "Lịch sử giao dịch",
+      "tabs": {
+        "all": "Tất cả",
+        "accruals": "Tích lũy",
+        "usage": "Sử dụng"
+      }
+    },
+    "assignment_types": {
+      "employee": "Cá nhân",
+      "department": "Phòng ban",
+      "workspace": "Toàn cục"
+    },
+    "history": {
+      "title": "Lịch sử nghỉ phép",
+      "subtitle": "Xem lịch sử chi tiết và điều chỉnh số dư nghỉ phép.",
+      "tab_history": "Lịch sử",
+      "tab_adjust": "Điều chỉnh thủ công",
+      "no_history": "Không tìm thấy hồ sơ lịch sử.",
+      "action_label": "Thao tác",
+      "add": "Cộng thêm",
+      "deduct": "Trừ bớt",
+      "amount_placeholder": "Ví dụ: 1.0",
+      "reason_label": "Lý do (Bắt buộc để kiểm toán)",
+      "reason_placeholder": "Giải thích lý do thực hiện điều chỉnh này...",
+      "confirm_btn": "Xác nhận điều chỉnh",
+      "messages": {
+        "adjust_success": "Đã điều chỉnh số dư thành công",
+        "adjust_error": "Lỗi khi điều chỉnh số dư"
+      },
+      "validation": {
+        "invalid_amount": "Số lượng không hợp lệ"
+      }
+    },
+    "transaction_type": {
+      "accrual": "Tích lũy định kỳ",
+      "usage": "Sử dụng nghỉ phép",
+      "adjustment": "Điều chỉnh số dư",
+      "carry_over": "Chuyển từ năm trước"
+    },
+    "label": "Số dư nghỉ phép"
+  },
+  "leave_requests": {
+    "title": "Yêu cầu nghỉ phép",
+    "subtitle": "Duyệt và quản lý thời gian nghỉ của nhân sự",
+    "invalid_leave_type": "Loại phép không hợp lệ",
+    "create_btn": "Tạo yêu cầu",
+    "remaining": "Còn",
+    "tabs": {
+      "policies": "Chính sách"
+    },
+    "types": {
+      "vacation": "Phép năm",
+      "sick": "Nghỉ ốm",
+      "vacation_full": "Nghỉ phép năm",
+      "sick_full": "Nghỉ ốm",
+      "personal": "Việc riêng"
+    },
+    "policy": {
+      "title": "Chính sách nghỉ phép",
+      "title_single": "Chính sách",
+      "subtitle": "Cấu hình định mức nghỉ phép và quy tắc tích lũy",
+      "policy_note": "Lưu ý: Các thay đổi về chính sách không có tính hồi tố. Kết quả tích lũy trong quá khứ sẽ được giữ nguyên, thay đổi chỉ áp dụng cho các lần cập nhật số dư trong tương lai.",
+      "assign_btn": "Gán chính sách",
+      "add_btn": "Thêm chính sách",
+      "assign_title": "Gán chính sách",
+      "assign_subtitle": "Phân bổ nhân sự",
+      "save_btn": "Lưu chính sách",
+      "assign_now_btn": "Gán ngay",
+      "name_placeholder": "VD: Phép năm tiêu chuẩn",
+      "select_placeholder": "Chọn chính sách...",
+      "table": {
+        "name": "Tên chính sách",
+        "type": "Loại phép",
+        "entitlement": "Hạn mức/năm",
+        "strategy": "Cơ chế cộng",
+        "carry_over": "Ngày chuyển tiếp",
+        "min_work_days": "Ngày công tối thiểu"
+      },
+      "min_work_days_desc": "Số ngày công cần thiết trong tháng để được cộng phép",
+      "strategies": {
+        "monthly": "Tích lũy hàng tháng",
+        "monthly_desc": "Cấp ngày vào đầu mỗi tháng",
+        "quarterly": "Tích lũy hàng quý",
+        "quarterly_desc": "Cấp ngày vào đầu mỗi quý",
+        "yearly": "Tích lũy hàng năm",
+        "yearly_desc": "Cấp toàn bộ định mức vào đầu năm",
+        "lump_sum": "Cấp một lần đầu năm",
+        "lump_sum_desc": "Cấp toàn bộ định mức vào đầu năm"
+      },
+      "assignee_types": {
+        "workspace": "Toàn hệ thống (All)",
+        "workspace_desc": "Áp dụng cho mọi nhân viên trong workspace",
+        "department": "Theo phòng ban",
+        "department_desc": "Áp dụng cho một phòng ban cụ thể",
+        "employee": "Cá nhân nhân viên",
+        "employee_desc": "Áp dụng cho duy nhất một người được chọn"
+      },
+      "edit_title": "Sửa chính sách",
+      "carry_over_limit": "Giới hạn chuyển tiếp",
+      "messages": {
+        "no_policies": "Chưa có chính sách nào.",
+        "create_success": "Đã tạo chính sách thành công!",
+        "update_success": "Đã cập nhật chính sách thành công!",
+        "delete_success": "Đã xóa chính sách thành công!",
+        "assign_success": "Đã gán chính sách thành công!",
+        "confirm_delete": "Bạn có chắc chắn muốn xóa chính sách này không?"
+      }
+    },
+    "modal": {
+      "submit_title": "Gửi yêu cầu nghỉ phép",
+      "submit_subtitle": "Quản lý vắng mặt",
+      "reason_placeholder": "Nhập lý do nghỉ...",
+      "submit_btn": "Gửi yêu cầu"
+    },
+    "duration": {
+      "label": "Loại nghỉ",
+      "full_day": "Cả ngày",
+      "first_half": "Sáng",
+      "second_half": "Chiều",
+      "custom_hours": "Tùy chỉnh",
+      "time_from": "Từ giờ",
+      "time_to": "Đến giờ",
+      "half_day_note": "Ngày kết thúc sẽ tự động bằng ngày bắt đầu"
+    },
+    "messages": {
+      "accrual_success": "Đã chạy tích lũy phép thành công!",
+      "no_requests": "Không có yêu cầu nào."
+    },
+    "upload_btn": "Tải lên Excel",
+    "upload_processing": "Đang xử lý {{processed}}/{{total}} dòng...",
+    "upload_success": "Import thành công {{success}} đơn nghỉ",
+    "upload_partial": "Thành công {{success}}/{{total}}. {{errors}} dòng lỗi.",
+    "upload_failed": "Import thất bại",
+    "download_errors": "Tải file lỗi"
+  },
+  "leave_import": {
+    "title": "Import đơn nghỉ phép",
+    "subtitle": "Upload file Excel để tạo đơn nghỉ phép hàng loạt",
+    "requirements_title": "Yêu cầu file",
+    "req_col_a": "Cột A: Mã nhân viên",
+    "req_col_b": "Cột B: Mã loại nghỉ",
+    "req_col_c": "Cột C-D: Ngày bắt đầu / kết thúc",
+    "req_col_e": "Cột E: Lý do (tùy chọn)",
+    "req_col_f": "Cột F: Loại thời gian",
+    "req_format": "Định dạng: .xlsx, .xls, .csv",
+    "download_template": "Tải file mẫu Excel",
+    "drop_prompt": "Nhấn để chọn file Excel",
+    "drop_hint": "Hỗ trợ .xlsx, .xls, .csv",
+    "ready": "SẴN SÀNG UPLOAD",
+    "select_another": "Chọn file khác",
+    "start_import": "Bắt đầu import",
+    "uploading": "Đang upload...",
+    "upload_another": "Upload file khác",
+    "rows_label": "dòng đã xử lý",
+    "download_errors": "Tải file lỗi",
+    "error_detail": "Chi tiết lỗi",
+    "partial_detail": "Thành công {{success}} dòng, {{errors}} dòng bị lỗi",
+    "status": {
+      "processing": "Đang xử lý...",
+      "completed": "Import thành công",
+      "partial": "Import có lỗi",
+      "failed": "Import thất bại"
+    }
+  },
+  "leave": {
+    "policy": {
+      "confirm_delete": "Bạn có chắc chắn muốn xóa chính sách này?"
+    },
+    "request": {
+      "create": "Tạo Yêu cầu Nghỉ phép",
+      "approve": "Duyệt Yêu cầu Nghỉ phép"
+    }
+  }
+}

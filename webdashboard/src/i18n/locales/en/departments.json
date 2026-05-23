@@ -1,0 +1,30 @@
+{
+  "departments": {
+    "title": "Departments",
+    "subtitle": "Manage organizational structure and management hierarchy",
+    "add_btn": "Add Department",
+    "manager_label": "Manager",
+    "active_employees_label": "Active Employees",
+    "not_assigned": "Not assigned",
+    "default_pattern_label": "Default Working Pattern",
+    "messages": {
+      "no_departments": "No departments created yet.",
+      "confirm_delete": "Delete this department?",
+      "empty_desc": "No departments in the organization. Start by creating the first one."
+    },
+    "form": {
+      "name_label": "Department Name",
+      "name_placeholder": "Ex: Technical, HR...",
+      "desc_placeholder": "Enter a short description of department functions...",
+      "manager_placeholder": "Select manager...",
+      "pattern_placeholder": "Select default working pattern..."
+    },
+    "modal": {
+      "add_title": "Add Department",
+      "edit_title": "Edit Department",
+      "subtitle": "Organizational Structure",
+      "submit_btn": "Create Department"
+    },
+    "label": "Departments"
+  }
+}

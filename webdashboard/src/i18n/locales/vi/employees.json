@@ -1,0 +1,332 @@
+{
+  "ess": {
+    "my_profile": "Hồ sơ của tôi",
+    "no_employee_linked": "Chưa liên kết nhân viên",
+    "contact_hr": "Vui lòng liên hệ bộ phận nhân sự để liên kết tài khoản của bạn với hồ sơ nhân viên.",
+    "personal_info": "Thông tin cá nhân",
+    "phone": "Số điện thoại",
+    "date_of_birth": "Ngày sinh",
+    "gender": "Giới tính",
+    "gender_male": "Nam",
+    "gender_female": "Nữ",
+    "gender_other": "Khác",
+    "national_id": "CCCD / CMND",
+    "address": "Địa chỉ",
+    "address_placeholder": "Nhập địa chỉ cư trú hiện tại của bạn",
+    "bank_details": "Thông tin tài khoản ngân hàng",
+    "bank_name": "Tên ngân hàng",
+    "account_number": "Số tài khoản",
+    "bank_branch": "Tên chi nhánh",
+    "branch_placeholder": "Nhập chi nhánh ngân hàng",
+    "emergency_contacts": "Liên hệ khẩn cấp",
+    "add_contact": "Thêm liên hệ",
+    "no_emergency_contacts": "Không tìm thấy liên hệ khẩn cấp nào.",
+    "primary": "Chính",
+    "add_emergency_contact": "Thêm liên hệ khẩn cấp",
+    "contact_name": "Tên liên hệ",
+    "relationship": "Mối quan hệ",
+    "relationship_spouse": "Vợ/Chồng",
+    "relationship_parent": "Bố/Mẹ",
+    "relationship_sibling": "Anh/Chị/Em",
+    "relationship_child": "Con cái",
+    "relationship_friend": "Bạn bè",
+    "relationship_other": "Khác",
+    "set_as_primary": "Đặt làm liên hệ chính",
+    "profile": {
+      "subtitle": "Xem và quản lý thông tin cá nhân của bạn.",
+      "update_success": "Cập nhật hồ sơ thành công",
+      "update_error": "Lỗi khi cập nhật hồ sơ",
+      "title": "Hồ sơ của tôi"
+    },
+    "emergency_contact": {
+      "add_success": "Thêm liên hệ thành công",
+      "add_error": "Lỗi khi thêm liên hệ",
+      "confirm_delete": "Bạn có chắc chắn muốn xóa liên hệ này?",
+      "delete_success": "Xóa liên hệ thành công",
+      "delete_error": "Lỗi khi xóa liên hệ",
+      "subtitle": "Người thân cần báo tin khi có sự cố."
+    },
+    "clock": {
+      "title": "Đồng Hồ Chấm Công",
+      "subtitle": "Chấm công vào ra và nghỉ giải lao",
+      "punch_in_success": "Chấm công thành công",
+      "punch_out_success": "Chấm công ra thành công",
+      "break_start_success": "Bắt đầu giải lao",
+      "adjustment_requested": "Yêu cầu điều chỉnh đã gửi",
+      "no_entries": "Không có bản ghi chấm công gần đây",
+      "recent_history": "Hoạt Động Gần Đây (7 Ngày)",
+      "punch_success": "Chấm công thành công"
+    },
+    "attendance": {
+      "title": "Chấm công của tôi",
+      "subtitle": "Xem lịch sử vào/ra hàng ngày của bạn.",
+      "date": "Ngày",
+      "check_in": "Giờ vào",
+      "check_out": "Giờ ra",
+      "duration": "Thời lượng",
+      "status": "Trạng thái",
+      "generation_info": "Thông tin xử lý (Truy xuất nguồn gốc)",
+      "no_data": "Không tìm thấy dữ liệu chấm công cho tháng này.",
+      "ot_status": "Làm thêm giờ",
+      "active_status": "Đang làm việc",
+      "system_ot_suffix": "(Làm thêm hệ thống)",
+      "claim_btn": "Yêu cầu tính OT"
+    },
+    "ot": {
+      "claim_title": "Xác nhận Tăng ca",
+      "claim_desc": "Gửi yêu cầu xác nhận giờ tăng ca",
+      "claimed_minutes": "Số phút xác nhận",
+      "reason_placeholder": "Lý do tăng ca?",
+      "error_zero_minutes": "Số phút phải lớn hơn 0",
+      "error_exceeds_system": "Không thể xác nhận nhiều hơn hệ thống ghi nhận",
+      "system_detected": "Hệ thống ghi nhận",
+      "close": "Đóng"
+    }
+  },
+  "members": {
+    "title": "Thành viên & Quyền hạn",
+    "subtitle": "Quản lý truy cập và phân quyền trong hệ thống.",
+    "roles": {
+      "admin": "Quản trị viên",
+      "member": "Thành viên",
+      "owner": "Chủ sở hữu",
+      "owner_desc": "Sáng lập, toàn quyền cao nhất",
+      "admin_desc": "Quản trị viên hệ thống",
+      "member_desc": "Thành viên thông thường",
+      "modal_title": "Quản lý quyền hạn",
+      "modal_subtitle": "Phân quyền nhân sự",
+      "primary_role_label": "Quyền chính (Vĩnh viễn)",
+      "extra_roles_label": "Quyền bổ sung (Tạm thời)",
+      "expires_at": "Hết hạn",
+      "no_extra_roles": "Chưa có quyền bổ sung nào.",
+      "assign_new_title": "Gán quyền mới",
+      "expiry_date_label": "Ngày hết hạn",
+      "assign_btn": "Gán quyền",
+      "confirm_change_primary": "Bạn có chắc muốn đổi quyền chính thành {{role}}?",
+      "confirm_revoke": "Bạn có chắc chắn muốn thu hồi quyền này?",
+      "messages": {
+        "update_primary_error": "Lỗi khi cập nhật quyền chính.",
+        "assign_error": "Lỗi khi gán quyền.",
+        "revoke_error": "Lỗi khi thu hồi quyền."
+      }
+    },
+    "permissions": {
+      "modal_title": "Quản lý Quyền hạn",
+      "modal_subtitle": "Cấp phát hoặc thu hồi quyền cá nhân",
+      "active_label": "Quyền cá nhân đang kích hoạt",
+      "no_extra_permissions": "Không có quyền cá nhân",
+      "assign_new_title": "Cấp Quyền mới",
+      "permission_label": "Quyền",
+      "search_placeholder": "Tìm kiếm quyền...",
+      "expiry_label": "Ngày hết hạn",
+      "grant_btn": "Cấp Quyền",
+      "confirm_revoke": "Bạn có chắc chắn muốn thu hồi quyền này?"
+    },
+    "table": {
+      "confirm_remove": "Bạn có chắc chắn muốn xóa thành viên này?",
+      "manage_roles": "Quản lý quyền",
+      "manage_permissions": "Quản lý quyền (chi tiết)",
+      "remove_member": "Xóa thành viên",
+      "messages": {
+        "remove_error": "Lỗi khi xóa thành viên.",
+        "no_members": "Không tìm thấy thành viên nào trong workspace này."
+      }
+    },
+    "invite": {
+      "title": "Mời thành viên",
+      "subtitle": "Quản lý nhân sự",
+      "email_label": "Địa chỉ Email",
+      "role_label": "Vai trò gán",
+      "submit_btn": "Gửi lời mời",
+      "error_message": "Không thể mời thành viên. Vui lòng kiểm tra email."
+    }
+  },
+  "employees": {
+    "title": "Nhân viên",
+    "subtitle": "Quản lý hồ sơ và lịch sử công tác toàn hệ thống",
+    "add_btn": "Thêm nhân viên",
+    "search_placeholder": "Tìm theo tên hoặc mã nhân viên...",
+    "filter_department": "Lọc theo phòng ban",
+    "clear_filter": "Xóa bộ lọc",
+    "no_departments": "Chưa có phòng ban",
+    "filtering_by": "Đang lọc",
+    "clear_all": "Xóa tất cả",
+    "search": {
+      "placeholder": "Chọn nhân viên...",
+      "input_placeholder": "Tìm theo tên hoặc mã...",
+      "no_results": "Không tìm thấy nhân viên."
+    },
+    "table": {
+      "name": "Họ và tên",
+      "id": "Mã NV",
+      "hire_date": "Ngày vào làm",
+      "status": "Trạng thái",
+      "actions": "Thao tác",
+      "loading": "Đang tải dữ liệu...",
+      "no_data": "Không có dữ liệu hiển thị.",
+      "active": "Hoạt động",
+      "terminated": "Đã nghỉ việc"
+    },
+    "details": {
+      "edit_profile": "Sửa hồ sơ",
+      "original_hire_date": "Ngày gia nhập gốc",
+      "terminate": "Nghỉ việc",
+      "rehire": "Vào làm lại",
+      "terminate_confirm": "Bạn có chắc muốn cho nhân viên này nghỉ việc?",
+      "current_dept": "Phòng ban hiện tại",
+      "transfer": "Điều chuyển",
+      "not_assigned_dept": "Chưa được gán phòng ban",
+      "salary_benefits": "Mức lương & Đãi ngộ",
+      "special_policies": "Chính sách đặc biệt",
+      "update": "Cập nhật",
+      "current": "Hiện tại",
+      "no_salary_history": "Chưa có lịch sử lương",
+      "work_history": "Lịch sử công tác",
+      "view_details": "Xem chi tiết →",
+      "joined": "Gia nhập công ty",
+      "returned": "Quay lại làm việc",
+      "contracts": {
+        "title": "Hợp đồng lao động",
+        "sign_contract": "Ký hợp đồng",
+        "no_contracts": "Chưa có hợp đồng nào",
+        "effective_date": "Ngày hiệu lực",
+        "expiration_date": "Ngày hết hạn",
+        "indefinite_duration": "Không thời hạn",
+        "contract_number": "Số HĐ: {{number}}",
+        "types": {
+          "probation": "Thử việc",
+          "training": "Đào tạo",
+          "fixed_term": "Xác định thời hạn",
+          "indefinite": "Không xác định thời hạn"
+        }
+      }
+    },
+    "form": {
+      "add_title": "Thêm nhân viên",
+      "edit_title": "Sửa hồ sơ",
+      "subtitle": "Hồ sơ nhân sự",
+      "full_name": "Họ và tên",
+      "employee_id": "Mã nhân viên",
+      "hire_date": "Ngày vào làm",
+      "is_active": "Đang hoạt động",
+      "link_user": "Liên kết tài khoản",
+      "select_user": "Chọn người dùng...",
+      "cancel": "Hủy bỏ",
+      "save": "Lưu hồ sơ",
+      "update": "Cập nhật"
+    },
+    "transfer": {
+      "title": "Điều chuyển phòng ban",
+      "subtitle": "Quản lý vị trí",
+      "new_dept": "Phòng ban mới",
+      "select_dept": "Chọn phòng ban...",
+      "effective_date": "Ngày hiệu lực",
+      "notes": "Ghi chú",
+      "cancel": "Hủy",
+      "submit": "Điều chuyển",
+      "notes_placeholder": "Nhập ghi chú điều chuyển (VD: Chuyển vị trí từ Dev sang Lead)..."
+    },
+    "history": {
+      "title": "Lịch sử công tác",
+      "subtitle": "Dữ liệu nhân sự",
+      "rehire_period": "Giai đoạn tái tuyển dụng",
+      "first_period": "Giai đoạn đầu tiên",
+      "currently_working": "Đang làm việc",
+      "period_range": "Từ {{start}} đến {{end}}",
+      "present": "(Hiện tại)",
+      "close": "Đóng"
+    },
+    "rehire": {
+      "title": "Tái tuyển dụng",
+      "subtitle": "Kích hoạt hồ sơ",
+      "confirm_msg": "Xác nhận ngày nhân viên bắt đầu giai đoạn làm việc mới",
+      "rehire_date": "Ngày vào làm lại",
+      "cancel": "Hủy",
+      "confirm": "Xác nhận",
+      "processing": "Đang xử lý..."
+    },
+    "policies": {
+      "subtitle": "Quản lý đặc quyền chuyên biệt",
+      "add_btn": "Thêm chính sách",
+      "type": "Loại chính sách",
+      "allowance_mins": "Số phút ưu tiên",
+      "is_paid": "Có tính lương",
+      "start_date": "Ngày bắt đầu",
+      "end_date": "Ngày kết thúc",
+      "no_data": "Không có chính sách đặc biệt nào",
+      "paid_allowance": "Có lương",
+      "unpaid_allowance": "Không lương",
+      "types": {
+        "early_leave": "Về sớm",
+        "late_in": "Đi muộn",
+        "breastfeeding": "Chế độ nuôi con nhỏ"
+      },
+      "add_condition": "Thêm điều kiện làm việc",
+      "type_label": "Loại điều kiện làm việc",
+      "conditions_title": "Điều kiện làm việc",
+      "conditions_desc": "Cấu hình các điều kiện và chính sách làm việc đặc biệt cho nhân viên.",
+      "delete_warning": "Bạn có chắc chắn muốn xóa điều kiện làm việc này không? Thao tác này không thể hoàn tác.",
+      "no_conditions": "Chưa có điều kiện làm việc nào được cấu hình"
+    },
+    "salary": {
+      "title": "Cập nhật lương",
+      "subtitle": "Quản lý đãi ngộ",
+      "base_salary": "Lương cơ bản",
+      "type": "Loại lương",
+      "monthly": "Lương tháng",
+      "hourly": "Lương giờ",
+      "effective_date": "Ngày hiệu lực",
+      "cancel": "Hủy",
+      "submit": "Cập nhật lương"
+    },
+    "select_workspace": "Vui lòng chọn Không gian làm việc",
+    "hire_date": "Ngày vào làm",
+    "bulk_import_title": "Nhập nhân viên hàng loạt",
+    "bulk_import_btn": "Nhập từ File",
+    "import_req": {
+      "col_a": "Cột A: Mã nhân viên (Bắt buộc)",
+      "col_b": "Cột B: Họ và tên (Bắt buộc)",
+      "col_c": "Cột C: Ngày vào làm (Tùy chọn, DD/MM/YYYY)",
+      "col_d": "Cột D: Tên bộ phận (Tùy chọn)"
+    },
+    "label": "Nhân viên"
+  },
+  "profile": {
+    "subtitle": "Quản lý thông tin cá nhân và cài đặt tài khoản",
+    "join_date": "Ngày tham gia",
+    "preferred_language": "Ngôn ngữ ưu tiên",
+    "follow_workspace": "Theo cài đặt Workspace",
+    "bio": "Tiểu sử",
+    "bio_placeholder": "Giới thiệu ngắn về bản thân bạn...",
+    "personalization": {
+      "title": "Cá nhân hóa",
+      "subtitle": "Tùy chỉnh màu sắc giao diện cá nhân",
+      "use_workspace_default": "Dùng mặc định của Workspace",
+      "note": "* Thay đổi này chỉ áp dụng cho bạn trên trình duyệt này."
+    },
+    "security": {
+      "title": "Bảo mật",
+      "subtitle": "Thay đổi mật khẩu tài khoản",
+      "current_password": "Mật khẩu hiện tại",
+      "new_password": "Mật khẩu mới",
+      "confirm_password": "Xác nhận mật khẩu mới",
+      "submit_btn": "Cập nhật mật khẩu",
+      "messages": {
+        "confirm_mismatch": "Mật khẩu xác nhận không khớp.",
+        "password_changed": "Mật khẩu đã được thay đổi. Vui lòng đăng nhập lại.",
+        "change_error": "Lỗi khi thay đổi mật khẩu."
+      }
+    },
+    "label": "Hồ sơ"
+  },
+  "permissions": {
+    "modules": "Phân hệ",
+    "permissionsLabel": "Quyền hạn",
+    "saveMatrix": "Lưu ma trận quyền",
+    "subtitle": "Cấu hình quyền chi tiết cho từng chức năng",
+    "systemRoleInfo": "Thông tin vai trò hệ thống",
+    "title": "Quyền hạn",
+    "unsavedChanges": "Có thay đổi chưa lưu",
+    "visibleRoles": "Vai trò hiển thị"
+  }
+}

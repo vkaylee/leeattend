@@ -6,7 +6,7 @@ describe('i18n config lazyLoadBackend', () => {
   it('should successfully read an existing language (vi)', async () => {
     // Wrap the callback to convert to promise
     const result = await new Promise((resolve, reject) => {
-      lazyLoadBackend.read('vi', 'translation', (error, data) => {
+      lazyLoadBackend.read('vi', 'common', (error, data) => {
         if (error) reject(error instanceof Error ? error : new Error(error));
         else resolve(data);
       });
@@ -20,7 +20,7 @@ describe('i18n config lazyLoadBackend', () => {
 
   it('should handle languages with regional subtags (en-US -> en)', async () => {
     const result = await new Promise((resolve, reject) => {
-      lazyLoadBackend.read('en-US', 'translation', (error, data) => {
+      lazyLoadBackend.read('en-US', 'common', (error, data) => {
         if (error) reject(error instanceof Error ? error : new Error(error));
         else resolve(data);
       });
@@ -33,7 +33,7 @@ describe('i18n config lazyLoadBackend', () => {
 
   it('should return an error for an unsupported language', async () => {
     const error = await new Promise((resolve) => {
-      lazyLoadBackend.read('fr', 'translation', (error_, _data) => {
+      lazyLoadBackend.read('fr', 'common', (error_, _data) => {
         resolve(error_);
       });
     });
@@ -42,7 +42,28 @@ describe('i18n config lazyLoadBackend', () => {
     expect((error as Error).message).toBe('Language fr not found');
   });
 
-  it('should initialize i18next instance successfully', () => {
-    expect(i18n.isInitialized).toBeDefined();
+  it('should initialize i18next instance successfully', async () => {
+    if (!i18n.isInitialized) {
+      await new Promise<void>((resolve) => {
+        i18n.on('initialized', () => {
+          resolve();
+        });
+      });
+    }
+    expect(i18n.isInitialized).toBe(true);
+  });
+
+  it('should resolve keys dynamically using custom t override', async () => {
+    await i18n.loadNamespaces(['common', 'payroll']);
+    
+    // Verify common namespace key resolves
+    const switchingWorkspace = i18n.t('common.switching_workspace');
+    expect(switchingWorkspace).not.toBe('common.switching_workspace');
+    expect(typeof switchingWorkspace).toBe('string');
+
+    // Verify payroll namespace key resolves through override
+    const calculateBtn = i18n.t('payroll.calculate_btn');
+    expect(calculateBtn).not.toBe('payroll.calculate_btn');
+    expect(typeof calculateBtn).toBe('string');
   });
 });

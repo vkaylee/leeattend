@@ -1,0 +1,129 @@
+{
+  "rolesPage": {
+    "confirmDelete": "Confirm Delete",
+    "createRole": "Create Role",
+    "deleteRole": "Delete Role",
+    "deleteTitle": "Delete Title",
+    "editRole": "Edit Role",
+    "manageAccess": "Manage Access",
+    "matrix": "Matrix",
+    "noDescription": "No description",
+    "roleId": "Role ID",
+    "subtitle": "Roles subtitle",
+    "title": "Roles"
+  },
+  "audit_logs": {
+    "title": "Audit Logs",
+    "subtitle": "Track security and administrative events across your workspace.",
+    "section_title": "Security Events",
+    "filters": {
+      "action": "Action",
+      "all_actions": "All Actions",
+      "start_date": "Start Date",
+      "end_date": "End Date",
+      "groups": {
+        "user_auth": "User & Auth",
+        "roles_perms": "Roles & Permissions",
+        "domain": "Domain"
+      }
+    },
+    "table": {
+      "timestamp": "Timestamp",
+      "action": "Action",
+      "actor_target": "Actor / Target",
+      "details": "Details",
+      "context": "Context"
+    },
+    "messages": {
+      "error_loading": "Error loading audit logs.",
+      "no_logs": "No audit logs found.",
+      "no_details": "No details",
+      "target": "Target:",
+      "system": "System"
+    },
+    "pagination": {
+      "showing": "Showing",
+      "to": "to",
+      "of": "of",
+      "entries": "entries",
+      "previous": "Previous",
+      "next": "Next"
+    }
+  },
+  "system_roles": {
+    "title": "Platform Administrators",
+    "subtitle": "Manage system-level roles that bypass workspace boundaries",
+    "assign_to_user": "Assign to user",
+    "no_users": "No users assigned to this role.",
+    "system_label": "System",
+    "grant_privileges": "Grant system-level privileges to a user",
+    "user_id_label": "User ID (UUID)",
+    "revoke_role": "Revoke role",
+    "assigned_users": "Assigned Users",
+    "assignees_count": "{{count}} Assignees",
+    "assigned_date": "Assigned: {{date}}",
+    "descriptions": {
+      "platform_admin": "Full platform access. Can manage workspaces, global settings, and other system roles.",
+      "support": "Read-only access to infrastructure monitoring and cross-workspace support data.",
+      "billing_admin": "Manage platform billing, subscriptions, and quotas across all workspaces.",
+      "default": "System level role."
+    },
+    "modal": {
+      "assign_title": "Assign {{role}} Role",
+      "submit_btn": "Assign Role",
+      "assigning": "Assigning..."
+    },
+    "confirm": {
+      "revoke_title": "Revoke System Role",
+      "revoke_message": "Are you sure you want to revoke this system role? This may lock the user out of system-level access."
+    },
+    "messages": {
+      "assign_error": "Failed to assign role",
+      "revoke_error": "Failed to revoke role",
+      "revoke_success": "Role {{role}} revoked successfully",
+      "assign_success": "Role {{role}} assigned successfully"
+    }
+  },
+  "system_admin": {
+    "tenants": {
+      "title": "Tenants Management",
+      "subtitle": "Manage databases and Supavisor connection pools",
+      "add_btn": "Add Tenant",
+      "check_stale_btn": "Check Stale Tenants",
+      "table": {
+        "id": "Tenant ID (UUID)",
+        "pool_size": "Pool Size",
+        "created_at": "Created At",
+        "updated_at": "Last Updated",
+        "actions": "Actions"
+      },
+      "modal": {
+        "create_title": "Create New Tenant",
+        "db_name_label": "Database Name",
+        "db_name_placeholder": "Ex: tenant_abc_db",
+        "create_db_label": "Create physical database",
+        "pool_size_label": "Pool Size (Optional)",
+        "submit_btn": "Create",
+        "creating": "Creating..."
+      },
+      "messages": {
+        "create_success": "Tenant created successfully",
+        "delete_success": "Tenant deleted successfully",
+        "update_db_success": "Database URL updated successfully",
+        "update_mode_success": "Pool mode updated successfully",
+        "clean_success": "Stale tenant cleaned up successfully"
+      },
+      "stale_modal": {
+        "title": "Stale Tenant Configurations",
+        "subtitle": "These tenants are registered in Supavisor but do not correspond to any active workspace. They can be safely cleaned up.",
+        "no_stale": "No stale tenant configurations found. Everything is clean!",
+        "clean_all": "Clean Up All",
+        "confirm_clean": "Are you sure you want to remove this stale tenant configuration from Supavisor? This only removes the routing entry and does not affect any physical database.",
+        "confirm_clean_all": "Are you sure you want to remove all stale tenant configurations from Supavisor? This only removes routing entries and does not affect any physical databases.",
+        "scanning": "Scanning for stale configurations..."
+      },
+      "confirm_delete": "Are you sure you want to delete this tenant? This will remove its configuration from Supavisor.",
+      "description": "Manage database connections and pools of tenants"
+    }
+  }
+}

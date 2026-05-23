@@ -1,0 +1,233 @@
+{
+  "payroll": {
+    "rule_tiers": {
+      "title": "Tax Brackets / Tiers",
+      "subtitle": "Configure progressive brackets",
+      "loading": "Loading tiers...",
+      "fields": {
+        "min_amount": "Min Amount (₫)",
+        "max_amount": "Max Amount (₫) - Leave empty for ∞",
+        "rate": "Rate (%)",
+        "fixed_deduction": "Fixed Deduction (₫)"
+      }
+    },
+    "selection": {
+      "all_filtered_selected": "All {{count}} employees in this list are selected.",
+      "count_selected": "{{count}} employees selected.",
+      "select_all_filtered": "Select all {{count}} employees"
+    },
+    "traceability": {
+      "hierarchy_title": "Config Priority Hierarchy",
+      "hierarchy_explanation": "Payroll config is prioritized: Individual > Department > Workspace.",
+      "individual_policy": "Individual Policy",
+      "department_policy": "Department Policy",
+      "workspace_default": "Workspace Default",
+      "pending_adjustments": "Has pending adjustments",
+      "recalc_needed": "Recalculation needed",
+      "view_adjustments": "View adjustments"
+    },
+    "title": "Payroll",
+    "subtitle": "Manage income and payslips",
+    "search_placeholder": "Search employees...",
+    "employee_profile": "Personnel Salary Profile",
+    "calculate_btn": "Calculate New",
+    "history_title": "Payslips History",
+    "empty_state": {
+      "title": "Select personnel to continue",
+      "desc": "View payslip history or calculate new monthly salary for employees."
+    },
+    "table": {
+      "period": "Period",
+      "base_pay": "Base Pay",
+      "overtime": "Overtime",
+      "bonus": "Bonus",
+      "deductions": "Deductions",
+      "net_pay": "Net Pay",
+      "status": "Status",
+      "loading_payslips": "Loading payslips...",
+      "no_payslips": "No payslips yet"
+    },
+    "status": {
+      "paid": "PAID",
+      "finalized": "FINALIZED"
+    },
+    "settings": {
+      "title": "Std. Work Days Configuration",
+      "working_day_mode": "Work Day Mode",
+      "mode_fixed": "Fixed Days",
+      "mode_fixed_desc": "Ex: Always 26 days/month",
+      "mode_actual": "Actual Calendar",
+      "mode_actual_desc": "Total days minus weekends",
+      "fixed_days": "Fixed Work Days",
+      "days_per_week": "Work Days per Week",
+      "5days": "5 days (Sat, Sun off)",
+      "6days": "6 days (Sun off)",
+      "7days": "7 days (No days off)",
+      "hours_per_day": "Std. Hours per Day",
+      "note_title": "Note on Hourly Rate",
+      "note_desc": "Hourly rate for OT = (Total Base Pay) / (Std. Work Days × Std. Hours/Day).",
+      "effective_date": "Effective Date",
+      "std_days": "Std. Work Days",
+      "no_history": "No config history",
+      "dept_title": "Department Payroll Config",
+      "global_history": "System-wide Config History",
+      "std_days_history": "Std. Days History",
+      "std_days_override": "Std. Days Override",
+      "policy_desc": "Manage standard work units and changes over time.",
+      "add_version": "Create new policy version",
+      "date_warning": "Note: Effective date determines the payroll periods affected. Changes apply automatically from this date.",
+      "status": "Status",
+      "virtual": "System Default",
+      "max_ot_hours_per_day": "Max OT Hours / Day",
+      "max_ot_hours_per_month": "Max OT Hours / Month",
+      "max_ot_day_short": "OT/Day",
+      "max_ot_month_short": "OT/Month",
+      "no_limit": "No limit",
+      "ot_empty_hint": "Leave blank = no limit",
+      "max_ot_guide_title": "OT Limit Guide",
+      "max_ot_guide_desc": "When labor law changes, add a new config version with the appropriate effective date. The system will automatically apply the correct OT limit for each payroll period. Default: 4h/day, 40h/month (Vietnam Labor Code 2019, Art. 107). ∞ = unlimited."
+    },
+    "components": {
+      "title": "Salary Components Catalog",
+      "subtitle": "Define income and deduction items.",
+      "assign_to_bases": "Assign to Bases",
+      "form_subtitle": "Component parameters",
+      "add_new": "Add Component",
+      "no_components": "No components yet",
+      "use_for_ot": "Use for OT",
+      "no_ot": "No OT",
+      "taxable": "Taxable",
+      "tax_exempt": "Exempt",
+      "name_placeholder": "Ex: Meal Allowance",
+      "code_label": "Code",
+      "ot_base_label": "Use as base for OT",
+      "ot_base_desc": "System aggregates these items to calculate hourly rate.",
+      "taxable_label": "Taxable income item",
+      "taxable_desc": "This item will be included in personal income tax calculation."
+    },
+    "employee_config": {
+      "title": "Employee Salary Config",
+      "tab_title": "Salary Config",
+      "add_btn": "Add Salary Item",
+      "effective_note_title": "Effectivity Note",
+      "salary_items_subtitle": "List of employee income items.",
+      "effective_note": "Note: If multiple records exist for the same item, the one with the latest effective date (closest to calculation date) will be used.",
+      "item_type": "Salary Item Type",
+      "no_config": "No salary config found",
+      "salary_item": "Salary Item",
+      "add_new_title": "Add New Config"
+    },
+    "modal": {
+      "title": "Calculate Monthly Salary",
+      "subtitle": "Processing Data",
+      "submit": "Start Calculation"
+    },
+    "messages": {
+      "calculate_success": "Payroll calculated successfully.",
+      "calculate_error": "Calculation error"
+    },
+    "adjustments": {
+      "title": "Attendance Adjustments",
+      "resolved_success": "Adjustment resolved successfully",
+      "resolved_error": "Error resolving adjustment",
+      "all_clear": "All requests resolved!"
+    },
+    "segments": {
+      "title": "Payroll Segments Detail"
+    },
+    "document": {
+      "title": "Pay Slip",
+      "system_subtitle": "Attendance & Payroll System",
+      "verified": "Verified Document",
+      "period": "Period",
+      "employee_details": "Employee Details",
+      "name": "Name",
+      "employee_id": "Employee ID",
+      "department": "Department",
+      "net_payment": "Net Payment",
+      "paid_via": "Paid via Bank Transfer",
+      "earnings_breakdown": "Earnings Breakdown",
+      "description": "Description",
+      "amount": "Amount",
+      "base_salary": "Base Salary",
+      "segment": "Segment",
+      "code": "Code",
+      "monthly": "Monthly",
+      "days_at_rate": "{{days}} Days @ {{rate}}/day",
+      "overtime_compensation": "Overtime Compensation",
+      "units": "Units",
+      "gross_pay": "Gross Pay",
+      "deductions": "Deductions",
+      "net_pay": "Net Pay",
+      "note": "Note: This is a computer-generated document and does not require a physical signature. Any discrepancies should be reported to the HR department within 3 working days.",
+      "generated_by": "Generated by LeeAttend System",
+      "print_payslip": "Print Payslip",
+      "print_hint": "Use the print button above to save as PDF or print a physical copy.",
+      "preview_title": "Official Payslip Preview"
+    },
+    "incentives": {
+      "title": "Incentive & Bonus Policies",
+      "add_btn": "New Policy",
+      "policy_name": "Policy Name",
+      "base_amount": "Base Amount",
+      "tiers_config": "Evaluation Tiers",
+      "name_required": "Policy name is required",
+      "effective_from": "Effective From",
+      "no_policies": "No incentive policies"
+    },
+    "overtime_policies": "Overtime Policies",
+    "overtime_policies_desc": "Manage overtime pay rules based on time and day.",
+    "no_overtime_policies": "No overtime policies found.",
+    "create_first_policy": "Create your first policy now.",
+    "rules": "Calculation Rules",
+    "add_rule": "Add Rule",
+    "assign_policy": "Assign Policy",
+    "assign_overtime_policy": "Assign Overtime Policy",
+    "assignee_type": "Assignee Type",
+    "select_policy": "Select Policy",
+    "select_policy_placeholder": "-- Choose Policy --",
+    "effective_from": "Effective From",
+    "no_assignments_yet": "No rule assignments found.",
+    "assign_rule": "Assign Rule",
+    "assign_rule_desc": "Assign a payroll calculation rule to employees or departments.",
+    "assignment_scope": "Assignment Scope",
+    "select_employee": "Select Employee",
+    "search_employees": "Search Employees...",
+    "select_department": "Select Department",
+    "select_department_placeholder": "Choose a department...",
+    "workspace_scope_info": "Applied workspace-wide.",
+    "effective_to": "Effective To",
+    "override_config": "Override Configuration",
+    "override_config_desc": "Configure custom salary override values for specific rules.",
+    "override_rate": "Override Rate",
+    "override_base": "Override Base",
+    "base_gross": "Base Gross Salary",
+    "base_gross_alt": "Base Gross (Alternative)",
+    "base_taxable": "Taxable Base Salary",
+    "override_amount": "Override Amount",
+    "override": "Override",
+    "delete_assignment": "Delete Assignment",
+    "system_bases": {
+      "gross": {
+        "name": "Gross Salary",
+        "description": "Base for all basic, taxable, and insurable income components"
+      },
+      "net": {
+        "name": "Net Salary",
+        "description": "Final take-home pay after all deductions"
+      },
+      "bhxh": {
+        "name": "Social Insurance Base",
+        "description": "Base for calculating social insurance, health insurance, and unemployment insurance contributions"
+      },
+      "taxable": {
+        "name": "Taxable Income",
+        "description": "Base for calculating personal income tax (PIT)"
+      }
+    }
+  },
+  "payroll_rules": {
+    "scope_workspace": "Workspace Wide",
+    "rule_assignments": "Rule Assignments"
+  }
+}

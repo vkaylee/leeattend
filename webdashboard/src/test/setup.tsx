@@ -1,7 +1,27 @@
 import "@testing-library/jest-dom";
 import { vi } from "vitest";
 
-import viLocale from "../i18n/locales/vi.json";
+import attendance from "../i18n/locales/vi/attendance.json";
+import common from "../i18n/locales/vi/common.json";
+import departments from "../i18n/locales/vi/departments.json";
+import employees from "../i18n/locales/vi/employees.json";
+import leave from "../i18n/locales/vi/leave.json";
+import payroll from "../i18n/locales/vi/payroll.json";
+import settings from "../i18n/locales/vi/settings.json";
+import shift_swaps from "../i18n/locales/vi/shift_swaps.json";
+import system_roles from "../i18n/locales/vi/system_roles.json";
+
+const viLocale = {
+  ...common,
+  ...payroll,
+  ...shift_swaps,
+  ...employees,
+  ...departments,
+  ...attendance,
+  ...leave,
+  ...settings,
+  ...system_roles,
+};
 
 // Ignore Happy DOM AbortError caused by pending async tasks during teardown
 process.on('unhandledRejection', (reason) => {

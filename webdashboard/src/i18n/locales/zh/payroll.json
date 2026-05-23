@@ -1,0 +1,233 @@
+{
+  "payroll": {
+    "rule_tiers": {
+      "title": "税级 / 阶梯",
+      "subtitle": "配置累进阶梯",
+      "loading": "正在加载阶梯...",
+      "fields": {
+        "min_amount": "最小金额 (₫)",
+        "max_amount": "最大金额 (₫) - 留空表示无限 (∞)",
+        "rate": "税率 (%)",
+        "fixed_deduction": "固定扣除 (₫)"
+      }
+    },
+    "selection": {
+      "all_filtered_selected": "已选择列表中全部 {{count}} 名员工。",
+      "count_selected": "已选择 {{count}} 名员工。",
+      "select_all_filtered": "选择全部 {{count}} 名员工"
+    },
+    "traceability": {
+      "hierarchy_title": "配置优先级层级",
+      "hierarchy_explanation": "薪资配置优先级：个人 > 部门 > 工作空间。",
+      "individual_policy": "个人政策",
+      "department_policy": "部门政策",
+      "workspace_default": "工作空间默认",
+      "pending_adjustments": "有待处理的调整",
+      "recalc_needed": "需要重新计算",
+      "view_adjustments": "查看调整"
+    },
+    "title": "薪资",
+    "subtitle": "管理收入和工资单",
+    "search_placeholder": "搜索员工...",
+    "employee_profile": "人员薪资档案",
+    "calculate_btn": "计算新薪资",
+    "history_title": "工资单历史",
+    "empty_state": {
+      "title": "选择人员以继续",
+      "desc": "查看工资单历史或为员工计算新的月度薪资。"
+    },
+    "table": {
+      "period": "期间",
+      "base_pay": "基本工资",
+      "overtime": "加班费",
+      "bonus": "奖金",
+      "deductions": "扣款",
+      "net_pay": "净工资",
+      "status": "状态",
+      "loading_payslips": "正在加载工资单...",
+      "no_payslips": "暂无工资单"
+    },
+    "status": {
+      "paid": "已支付",
+      "finalized": "已结算"
+    },
+    "settings": {
+      "title": "标准工作日配置",
+      "working_day_mode": "工作日模式",
+      "mode_fixed": "固定天数",
+      "mode_fixed_desc": "例: 始终按每月26天计算",
+      "mode_actual": "实际日历",
+      "mode_actual_desc": "总天数减去周末",
+      "fixed_days": "固定工作天数",
+      "days_per_week": "每周工作天数",
+      "5days": "5 天 (周六日休息)",
+      "6days": "6 天 (周日休息)",
+      "7days": "7 天 (不休息)",
+      "hours_per_day": "标准每天工时",
+      "note_title": "时薪说明",
+      "note_desc": "加班时薪 = (总基本工资) / (标准工作日 × 标准每天工时)。",
+      "effective_date": "生效日期",
+      "std_days": "标准工作日",
+      "no_history": "无配置历史",
+      "dept_title": "部门薪资配置",
+      "global_history": "系统范围内配置历史",
+      "std_days_history": "标准天数历史",
+      "std_days_override": "标准天数覆盖",
+      "policy_desc": "管理标准工作单位及其随时间的变化。",
+      "add_version": "创建新政策版本",
+      "date_warning": "注意：生效日期决定受影响的薪资周期。更改将从此日期起自动应用。",
+      "status": "状态",
+      "virtual": "系统默认",
+      "max_ot_hours_per_day": "每日加班上限",
+      "max_ot_hours_per_month": "每月加班上限",
+      "max_ot_day_short": "OT/日",
+      "max_ot_month_short": "OT/月",
+      "no_limit": "无限制",
+      "ot_empty_hint": "留空 = 无限制",
+      "max_ot_guide_title": "加班限制指南",
+      "max_ot_guide_desc": "当劳动法变更时，请添加新的配置版本并设置相应的生效日期。系统将自动为每个薪资周期应用正确的加班限制。默认: 4小时/天, 40小时/月。∞ = 无限制。"
+    },
+    "components": {
+      "title": "薪资组成部分目录",
+      "subtitle": "定义收入和扣款项目。",
+      "assign_to_bases": "分配到基数",
+      "form_subtitle": "组成部分参数",
+      "add_new": "添加组成部分",
+      "no_components": "暂无组成部分",
+      "use_for_ot": "用于加班",
+      "no_ot": "不用于加班",
+      "taxable": "应纳税",
+      "tax_exempt": "免税",
+      "name_placeholder": "例：餐费补贴",
+      "code_label": "代码",
+      "ot_base_label": "作为加班基数",
+      "ot_base_desc": "系统汇总这些项目以计算时薪。",
+      "taxable_label": "应纳税收入项目",
+      "taxable_desc": "该项目将计入个人所得税计算。"
+    },
+    "employee_config": {
+      "title": "员工薪资配置",
+      "tab_title": "薪资配置",
+      "add_btn": "添加薪资项目",
+      "effective_note_title": "生效说明",
+      "salary_items_subtitle": "员工收入项目列表。",
+      "effective_note": "注意：如果同一项目存在多个记录，将使用生效日期最新（且最接近计算日期）的一个。",
+      "item_type": "薪资项目类型",
+      "no_config": "未找到薪资配置",
+      "salary_item": "薪资项目",
+      "add_new_title": "添加新配置"
+    },
+    "modal": {
+      "title": "计算月度薪资",
+      "subtitle": "处理数据中",
+      "submit": "开始计算"
+    },
+    "messages": {
+      "calculate_success": "薪资计算成功。",
+      "calculate_error": "计算错误"
+    },
+    "adjustments": {
+      "title": "考勤调整",
+      "resolved_success": "调整处理成功",
+      "resolved_error": "处理调整时出错",
+      "all_clear": "所有请求已处理！"
+    },
+    "segments": {
+      "title": "薪资段详情"
+    },
+    "document": {
+      "title": "工资单",
+      "system_subtitle": "考勤与薪资系统",
+      "verified": "已验证文件",
+      "period": "期间",
+      "employee_details": "员工信息",
+      "name": "姓名",
+      "employee_id": "员工编号",
+      "department": "部门",
+      "net_payment": "净支付",
+      "paid_via": "银行转账支付",
+      "earnings_breakdown": "收入明细",
+      "description": "描述",
+      "amount": "金额",
+      "base_salary": "基本工资",
+      "segment": "分段",
+      "code": "代码",
+      "monthly": "月度",
+      "days_at_rate": "{{days}} 天 @ {{rate}}/天",
+      "overtime_compensation": "加班费",
+      "units": "单位",
+      "gross_pay": "总收入",
+      "deductions": "扣款",
+      "net_pay": "净收入",
+      "note": "注意：这是由系统自动生成的文件，无需实体签名。如有任何差异，请在3个工作日内向人力资源部门反馈。",
+      "generated_by": "由 LeeAttend 系统生成",
+      "print_payslip": "打印工资单",
+      "print_hint": "使用上方的打印按钮保存为PDF或打印纸质版。",
+      "preview_title": "工资单预览"
+    },
+    "incentives": {
+      "title": "激励与奖金政策",
+      "add_btn": "新政策",
+      "policy_name": "政策名称",
+      "base_amount": "基本金额",
+      "tiers_config": "评估层级",
+      "name_required": "政策名称是必填项",
+      "effective_from": "生效日期",
+      "no_policies": "没有奖金政策"
+    },
+    "overtime_policies_desc": "管理基于时间和日期的加班工资规则。",
+    "overtime_policies": "加班政策",
+    "no_overtime_policies": "未找到加班政策。",
+    "create_first_policy": "立即创建您的第一个政策。",
+    "rules": "计算规则",
+    "add_rule": "添加规则",
+    "assign_policy": "分配政策",
+    "assign_overtime_policy": "分配加班政策",
+    "assignee_type": "分配类型",
+    "select_policy": "选择政策",
+    "select_policy_placeholder": "-- 选择政策 --",
+    "effective_from": "生效日期",
+    "no_assignments_yet": "未找到规则分配。",
+    "assign_rule": "分配规则",
+    "assign_rule_desc": "为员工或部门分配薪资计算规则。",
+    "assignment_scope": "分配范围",
+    "select_employee": "选择员工",
+    "search_employees": "搜索员工...",
+    "select_department": "选择部门",
+    "select_department_placeholder": "选择一个部门...",
+    "workspace_scope_info": "应用至整个工作空间。",
+    "effective_to": "有效期至",
+    "override_config": "覆盖配置",
+    "override_config_desc": "为特定规则配置自定义薪资覆盖值。",
+    "override_rate": "覆盖比例",
+    "override_base": "覆盖基数",
+    "base_gross": "基本总薪资",
+    "base_gross_alt": "基本总薪资 (备用)",
+    "base_taxable": "基本应税薪资",
+    "override_amount": "覆盖金额",
+    "override": "覆盖",
+    "delete_assignment": "删除分配",
+    "system_bases": {
+      "gross": {
+        "name": "总薪资 (Gross)",
+        "description": "所有基本、应税和应保收入的基数"
+      },
+      "net": {
+        "name": "净薪资 (Net)",
+        "description": "扣除所有款项后的最终实发工资"
+      },
+      "bhxh": {
+        "name": "社保基数",
+        "description": "计算社会保险、医疗保险和失业保险的基数"
+      },
+      "taxable": {
+        "name": "应纳税所得额",
+        "description": "计算个人所得税 (PIT) 的基数"
+      }
+    }
+  },
+  "payroll_rules": {
+    "scope_workspace": "工作区范围",
+    "rule_assignments": "规则分配"
+  }
+}

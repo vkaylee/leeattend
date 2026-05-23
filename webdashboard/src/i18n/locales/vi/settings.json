@@ -1,0 +1,317 @@
+{
+  "workspace_settings": {
+    "title": "Cài đặt Workspace",
+    "description": "Quản lý cấu hình, nhân sự và giao diện không gian làm việc.",
+    "general_config": "Cấu hình chung",
+    "payroll_config": "Cấu hình công lương",
+    "attendance_config": "Cấu hình chấm công",
+    "save_config": "Lưu cấu hình",
+    "work_unit": "Đơn vị tính công (Work Unit)",
+    "rounding_policy": "Quy tắc làm tròn",
+    "date_format": "Định dạng ngày",
+    "time_format": "Định dạng giờ",
+    "timezone": "Múi giờ hệ thống",
+    "default_language": "Ngôn ngữ mặc định",
+    "theme_config": "Cấu hình giao diện",
+    "primary_color": "Màu chủ đạo",
+    "invite_member": "Mời thành viên",
+    "members_list": "Danh sách thành viên",
+    "founder": "Người sáng lập",
+    "work_unit_options": {
+      "1min": "1 phút",
+      "1min_desc": "Mặc định, độ chính xác cao nhất",
+      "15min": "15 phút",
+      "15min_desc": "Khối 0.25 giờ",
+      "30min": "30 phút",
+      "30min_desc": "Khối 0.5 giờ",
+      "60min": "60 phút",
+      "60min_desc": "Khối 1 giờ"
+    },
+    "rounding_options": {
+      "none": "Không làm tròn",
+      "floor": "Làm tròn xuống (Floor)",
+      "ceil": "Làm tròn lên (Ceil)",
+      "round": "Làm tròn gần nhất (Round)"
+    },
+    "date_format_options": {
+      "vn": "Kiểu Việt Nam (VD: 31/12/2025)",
+      "us": "Kiểu Mỹ (VD: 12/31/2025)",
+      "iso": "Kiểu ISO (VD: 2025-12-31)"
+    },
+    "time_format_options": {
+      "24h": "24 Giờ",
+      "12h": "12 Giờ",
+      "example_24h": "Ví dụ: 14:30",
+      "example_12h": "Ví dụ: 02:30 PM"
+    },
+    "timezone_options": {
+      "vn": "Việt Nam (UTC+7)",
+      "th": "Thái Lan (UTC+7)",
+      "utc": "Giờ quốc tế (UTC)"
+    }
+  },
+  "monitor": {
+    "title": "Giám Sát Worker",
+    "subtitle": "Trạng thái worker phân tán thời gian thực",
+    "error_loading": "Lỗi khi tải dữ liệu giám sát",
+    "pending_tasks": "Tác vụ chờ",
+    "pending_high": "Queue: Ưu tiên cao",
+    "pending_low": "Queue: Ưu tiên thấp",
+    "active_workers": "Worker đang chạy",
+    "idle_workers": "Worker rảnh",
+    "completed_today": "Hoàn thành hôm nay",
+    "failed_today": "Thất bại hôm nay",
+    "total_workers": "Tổng Worker",
+    "live_updates": "Cập nhật mỗi {{seconds}} giây",
+    "worker_list": "Danh sách Worker",
+    "worker_list_subtitle": "Các container worker đang hoạt động",
+    "no_workers": "Không có worker nào",
+    "worker_id": "Mã Worker",
+    "host": "Máy chủ",
+    "status": "Trạng thái",
+    "current_task": "Tác vụ hiện tại",
+    "last_seen": "Lần cuối thấy",
+    "recent_jobs": "Công việc gần đây",
+    "recent_jobs_subtitle": "Các tác vụ chạy nền vừa xử lý gần đây",
+    "job_id": "Mã Job",
+    "job_type": "Loại",
+    "error": "Lỗi",
+    "created_at": "Ngày tạo",
+    "batches": "Lô",
+    "no_jobs": "Không có tác vụ gần đây",
+    "job_distribution": "Phân bổ trạng thái công việc",
+    "no_data": "Không có dữ liệu",
+    "queue_empty": "Hàng đợi trống",
+    "queue_pressure": "Áp lực hàng đợi",
+    "total_pending": "Tổng số đang chờ",
+    "active_short": "Đang chạy",
+    "idle_short": "Rảnh",
+    "charts": {
+      "utilization": "Tỷ lệ sử dụng Worker",
+      "utilization_desc": "Worker hoạt động vs nhàn rỗi",
+      "queue_pressure": "Áp lực hàng đợi",
+      "queue_pressure_desc": "Công việc chờ theo mức ưu tiên",
+      "queue_empty": "Hàng đợi trống",
+      "job_distribution": "Phân bổ công việc",
+      "job_distribution_desc": "Trạng thái các job gần đây",
+      "total_jobs": "jobs",
+      "active_label": "hoạt động",
+      "scale_up_warning": "Tải cao — cân nhắc tăng worker",
+      "scale_down_hint": "Tải thấp — cân nhắc giảm worker"
+    }
+  },
+  "agents": {
+    "title": "Quản lý Agent",
+    "subtitle": "Phê duyệt và kiểm soát các điểm kết nối Edge Agent",
+    "add_btn": "Khai báo Agent",
+    "add_form_title": "Thiết lập Agent mới",
+    "save_btn": "Lưu Agent",
+    "id_label": "Mã Agent",
+    "name_label": "Tên Chi nhánh",
+    "token_label": "Token bảo mật",
+    "status": {
+      "trusted": "Đã duyệt",
+      "pending": "Chờ duyệt",
+      "closed": "Đã đóng"
+    },
+    "actions": {
+      "hide_inactive": "Ẩn Agent đã đóng",
+      "show_inactive": "Hiện Agent đã đóng",
+      "showing_archived": "Đang hiện lưu trữ",
+      "show_archived": "Hiện lưu trữ",
+      "declare_agent": "Khai báo Agent"
+    },
+    "table": {
+      "identifier": "Định danh",
+      "token": "Token",
+      "last_ip": "IP cuối",
+      "agent": "Tên Agent",
+      "status": "Trạng thái",
+      "last_seen": "Kết nối cuối",
+      "no_agents": "Chưa có Agent nào."
+    },
+    "edit_modal": {
+      "title": "Chỉnh sửa Agent",
+      "subtitle": "Quản lý kết nối",
+      "id_label": "Mã Agent (Chỉ đọc)",
+      "name_label": "Tên Chi nhánh / Vị trí",
+      "name_placeholder": "Ví dụ: Văn phòng Hà Nội",
+      "token_label": "Mã Token bảo mật",
+      "token_placeholder": "Mật mã kết nối",
+      "messages": {
+        "update_error": "Lỗi khi cập nhật Agent."
+      }
+    },
+    "messages": {
+      "restore_success": "Đã khôi phục Agent {{name}}",
+      "restore_error": "Lỗi khi khôi phục Agent.",
+      "add_success": "Đã khai báo Agent mới thành công.",
+      "add_error": "Lỗi khi thêm Agent. ID có thể đã tồn tại.",
+      "confirm_trust": "Bạn có chắc chắn muốn {{action}} cho Agent {{id}}?",
+      "trust_success": "Đã {{action}} thành công cho Agent.",
+      "update_status_error": "Lỗi khi cập nhật trạng thái.",
+      "confirm_delete": "Bạn có chắc chắn muốn xóa Agent {{name}} ({{id}})? \nThao tác này sẽ ngắt kết nối và ẩn Agent khỏi hệ thống.",
+      "delete_success": "Đã xóa Agent {{name}}.",
+      "delete_error": "Lỗi khi xóa Agent.",
+      "no_agents": "Chưa có Agent nào được khai báo.",
+      "update_success": "Cập nhật Agent {{name}} thành công."
+    }
+  },
+  "devices": {
+    "title": "Quản lý thiết bị",
+    "add_btn": "Thêm thiết bị",
+    "confirm_disable": "Xác nhận tắt {{name}}? Agent sẽ ngừng đồng bộ thiết bị này.",
+    "confirm_enable": "Xác nhận bật {{name}}? Agent sẽ bắt đầu đồng bộ thiết bị này.",
+    "modal": {
+      "disable_title": "Tắt thiết bị",
+      "enable_title": "Bật thiết bị",
+      "delete_title": "Xóa thiết bị"
+    },
+    "no_devices_for_agent": "Chưa có thiết bị nào được gán cho agent này.",
+    "unassigned_title": "Thiết bị chưa gán",
+    "messages": {
+      "empty_desc": "Hệ thống chưa ghi nhận thiết bị IoT nào. Hãy kết nối máy chấm công để bắt đầu."
+    },
+    "toast": {
+      "add_success": "Đã thêm thiết bị \"{{name}}\" thành công.",
+      "add_error": "Lỗi khi thêm thiết bị. Vui lòng kiểm tra lại địa chỉ IP.",
+      "update_success": "Đã cập nhật thiết bị \"{{name}}\" thành công.",
+      "update_error": "Lỗi khi cập nhật thiết bị.",
+      "delete_confirm": "Bạn có chắc chắn muốn xóa thiết bị này?",
+      "delete_success": "Đã xóa thiết bị khỏi hệ thống.",
+      "delete_error": "Lỗi khi xóa thiết bị.",
+      "disabled": "Đã tắt {{name}}",
+      "enabled": "Đã bật {{name}}",
+      "toggle_error": "Không thể cập nhật trạng thái thiết bị",
+      "refresh_sent": "Đã gửi lệnh làm mới dữ liệu.",
+      "refresh_error": "Lỗi khi gửi lệnh làm mới."
+    },
+    "form": {
+      "infrastructure": "Hạ tầng kết nối",
+      "new_device": "Thiết bị mới",
+      "edit_device": "Sửa thiết bị",
+      "name": "Tên thiết bị",
+      "name_placeholder": "Ví dụ: Máy cổng chính",
+      "agent": "Chọn Agent",
+      "select_agent": "Chọn một Agent...",
+      "ip": "Địa chỉ IP",
+      "port": "Cổng (Port)",
+      "brand": "Hãng sản xuất",
+      "brand_placeholder": "Chọn hãng (ZKTeco, Mock...)",
+      "save": "Lưu",
+      "clock_name": "Tên máy chấm công",
+      "clock_name_placeholder": "VD: Máy sảnh chính...",
+      "managed_by": "Quản lý bởi Agent",
+      "strategy": "Số luồng song song",
+      "ip_local": "Địa chỉ IP (Local)",
+      "cancel": "Hủy bỏ",
+      "save_device": "Lưu thiết bị",
+      "update_device": "Cập nhật",
+      "password": "Mật khẩu thiết bị",
+      "password_placeholder": "Để trống nếu không có",
+      "timezone": "Múi giờ",
+      "timezone_placeholder": "Chọn múi giờ..."
+    },
+    "table": {
+      "device": "Thiết bị",
+      "managed_by": "Phụ trách bởi",
+      "connection": "Kết nối",
+      "active": "Hoạt động",
+      "disabled": "Đang tắt",
+      "actions": "Thao tác",
+      "edit": "Chỉnh sửa",
+      "sync_time": "Đồng bộ thời gian",
+      "advanced": "Cấu hình nâng cao",
+      "delete": "Xóa thiết bị",
+      "no_data": "Chưa có thiết bị nào được thiết lập."
+    },
+    "info": {
+      "users_capacity": "Số người / Dung lượng",
+      "logs_capacity": "Bản ghi / Dung lượng",
+      "device_time": "Giờ thiết bị",
+      "serial": "Số Serial",
+      "mac": "Địa chỉ MAC",
+      "hw_fw": "Phần cứng / FW",
+      "last_synced": "Cập nhật info: {{time}}",
+      "loading": "Đang tải thông tin thiết bị...",
+      "enable_btn": "Bật thiết bị",
+      "disable_btn": "Tắt thiết bị"
+    },
+    "label": "Thiết bị"
+  },
+  "connectivity": {
+    "empty_guide": "Cài đặt Agent trên mạng nội bộ để kết nối thiết bị chấm công. Tải trình cài đặt từ tài liệu hướng dẫn."
+  },
+  "settings": {
+    "title": "Trung tâm cài đặt",
+    "categories": {
+      "general": "Chung",
+      "organization": "Tổ chức",
+      "people": "Nhân sự",
+      "time": "Thời gian & Chấm công",
+      "payroll": "Lương",
+      "connectivity": "Kết nối",
+      "general_desc": "Cấu hình nhận diện thương hiệu và tùy chọn cơ bản.",
+      "organization_desc": "Quản lý thông tin tổ chức và thương hiệu.",
+      "people_desc": "Quản lý nhân viên, phòng ban và vai trò.",
+      "time_desc": "Cấu hình ca làm việc, lịch trình và quy tắc chấm công.",
+      "payroll_desc": "Quản lý ngày công chuẩn và công thức tính lương.",
+      "connectivity_desc": "Quản lý kết nối thiết bị và cài đặt mạng.",
+      "leave": "Quản lý nghỉ phép",
+      "billing_desc": "Quản lý thanh toán và gói đăng ký.",
+      "leave_desc": "Cấu hình loại nghỉ phép, chính sách tích lũy và gán chính sách."
+    },
+    "navigation": "Điều hướng",
+    "admin_only": "Chỉ dành cho quản trị viên",
+    "leave": {
+      "title": "Cài đặt Nghỉ phép",
+      "desc": "Cấu hình các loại nghỉ và chính sách tích lũy cho không gian làm việc.",
+      "tabs": {
+        "types": "Loại nghỉ",
+        "policies": "Chính sách tích lũy",
+        "types_desc": "Định nghĩa các loại nghỉ và quy tắc",
+        "policies_desc": "Thiết lập cách tích lũy ngày nghỉ theo thời gian",
+        "assignments": "Gán chính sách",
+        "assignments_desc": "Gán chính sách nghỉ phép cho nhân viên hoặc phòng ban"
+      },
+      "messages": {
+        "update_success": "Cập nhật loại nghỉ thành công",
+        "update_error": "Cập nhật loại nghỉ thất bại",
+        "create_success": "Tạo chính sách thành công",
+        "delete_success": "Xóa chính sách thành công",
+        "assignment_note": "Việc gán chính sách xác định cách tính phép cho mỗi người. Các thay đổi sẽ được áp dụng trong đợt tích lũy định kỳ tiếp theo hoặc có thể thực hiện thủ công qua công cụ \"Cập nhật số dư\" trong Cài đặt chung.",
+        "loading": "Đang tải danh sách...",
+        "no_assignments": "Không tìm thấy dữ liệu gán chính sách"
+      },
+      "fields": {
+        "approval": "Phê duyệt",
+        "document": "Tài liệu",
+        "days_per_period": "ngày / chu kỳ"
+      },
+      "types": {
+        "paid": "Nghỉ có lương",
+        "unpaid": "Nghỉ không lương"
+      },
+      "actions": {
+        "assign": "Gán chính sách"
+      },
+      "table": {
+        "policy": "Chính sách",
+        "type": "Loại",
+        "assignee": "Đối tượng",
+        "effective_date": "Ngày hiệu lực",
+        "created_at": "Ngày tạo"
+      }
+    },
+    "layout": {
+      "access": "Truy cập",
+      "control_panel": "Bảng điều khiển",
+      "operations": "Vận hành",
+      "security_system": "Bảo mật & Hệ thống",
+      "workspace": "Không gian làm việc"
+    },
+    "tabs": {
+      "members": "Thành viên"
+    }
+  }
+}
