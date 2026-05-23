@@ -124,8 +124,7 @@ describe('Translation Usage', () => {
       });
     }
 
-    // We keep this as a warning for now
-    // expect(untranslated.length).toBe(0);
+    expect(untranslated.length, 'Should not have untranslated keys (value equals key path)').toBe(0);
   });
 
   it('should not have hardcoded strings in JSX', () => {

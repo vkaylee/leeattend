@@ -1164,8 +1164,8 @@
         "default": "System level role."
       }
     },
-    "delete_confirm": "common.delete_confirm",
-    "present": "common.present",
+    "delete_confirm": "Xác nhận xóa",
+    "present": "Hiện tại",
     "notifications": "Thông báo",
     "load_more": "Tải thêm"
   },
@@ -1732,12 +1732,12 @@
         "late_in": "Đi muộn",
         "breastfeeding": "Chế độ nuôi con nhỏ"
       },
-      "add_condition": "employees.policies.add_condition",
-      "type_label": "employees.policies.type_label",
-      "conditions_title": "employees.policies.conditions_title",
-      "conditions_desc": "employees.policies.conditions_desc",
-      "delete_warning": "employees.policies.delete_warning",
-      "no_conditions": "employees.policies.no_conditions"
+      "add_condition": "Thêm điều kiện làm việc",
+      "type_label": "Loại điều kiện làm việc",
+      "conditions_title": "Điều kiện làm việc",
+      "conditions_desc": "Cấu hình các điều kiện và chính sách làm việc đặc biệt cho nhân viên.",
+      "delete_warning": "Bạn có chắc chắn muốn xóa điều kiện làm việc này không? Thao tác này không thể hoàn tác.",
+      "no_conditions": "Chưa có điều kiện làm việc nào được cấu hình"
     },
     "salary": {
       "title": "Cập nhật lương",
@@ -2426,26 +2426,26 @@
     "select_policy": "Chọn chính sách",
     "select_policy_placeholder": "-- Chọn một chính sách --",
     "effective_from": "Ngày hiệu lực",
-    "no_assignments_yet": "payroll.no_assignments_yet",
-    "assign_rule": "payroll.assign_rule",
-    "assign_rule_desc": "payroll.assign_rule_desc",
-    "assignment_scope": "payroll.assignment_scope",
-    "select_employee": "payroll.select_employee",
-    "search_employees": "payroll.search_employees",
-    "select_department": "payroll.select_department",
-    "select_department_placeholder": "payroll.select_department_placeholder",
-    "workspace_scope_info": "payroll.workspace_scope_info",
-    "effective_to": "payroll.effective_to",
-    "override_config": "payroll.override_config",
-    "override_config_desc": "payroll.override_config_desc",
-    "override_rate": "payroll.override_rate",
-    "override_base": "payroll.override_base",
-    "base_gross": "payroll.base_gross",
-    "base_gross_alt": "payroll.base_gross_alt",
-    "base_taxable": "payroll.base_taxable",
-    "override_amount": "payroll.override_amount",
-    "override": "payroll.override",
-    "delete_assignment": "payroll.delete_assignment",
+    "no_assignments_yet": "Chưa có quy tắc nào được gán.",
+    "assign_rule": "Gán quy tắc",
+    "assign_rule_desc": "Gán quy tắc tính lương cho nhân viên hoặc phòng ban.",
+    "assignment_scope": "Phạm vi gán",
+    "select_employee": "Chọn nhân viên",
+    "search_employees": "Tìm kiếm nhân viên...",
+    "select_department": "Chọn phòng ban",
+    "select_department_placeholder": "Chọn một phòng ban...",
+    "workspace_scope_info": "Áp dụng trên toàn bộ không gian làm việc.",
+    "effective_to": "Hiệu lực đến",
+    "override_config": "Cấu hình ghi đè",
+    "override_config_desc": "Cấu hình các giá trị lương ghi đè tùy chỉnh cho các quy tắc cụ thể.",
+    "override_rate": "Tỷ lệ ghi đè",
+    "override_base": "Gốc ghi đè",
+    "base_gross": "Lương gộp cơ bản",
+    "base_gross_alt": "Lương gộp cơ bản (Dự phòng)",
+    "base_taxable": "Lương tính thuế cơ bản",
+    "override_amount": "Số tiền ghi đè",
+    "override": "Ghi đè",
+    "delete_assignment": "Xóa phân bổ",
     "system_bases": {
       "gross": {
         "name": "Lương Cơ Bản (Gross)",
@@ -2685,7 +2685,7 @@
     "validation": {
       "required_fields": "Tên và Mẫu lịch là bắt buộc"
     },
-    "confirm_delete_msg": "rules.confirm_delete_msg"
+    "confirm_delete_msg": "Bạn có chắc chắn muốn xóa quy tắc này không?"
   },
   "shifts": {
     "monthly": {
@@ -2906,7 +2906,7 @@
       "connectivity_desc": "Quản lý kết nối thiết bị và cài đặt mạng.",
       "leave": "Quản lý nghỉ phép",
       "billing_desc": "Quản lý thanh toán và gói đăng ký.",
-      "leave_desc": "settings.categories.leave_desc"
+      "leave_desc": "Cấu hình loại nghỉ phép, chính sách tích lũy và gán chính sách."
     },
     "navigation": "Điều hướng",
     "admin_only": "Chỉ dành cho quản trị viên",
@@ -3061,18 +3061,18 @@
       "note2": "Khi duyệt, hệ thống sẽ tự động đổi ca trong bảng phân ca (Roster). Nhân viên A nhận ca của B và ngược lại.",
       "note3": "Khi từ chối, lịch phân ca giữ nguyên không thay đổi. Không thể duyệt lại yêu cầu đã được xử lý.",
       "step1": {
-        "title": "shift_swaps.guide.step1.title",
-        "desc": "shift_swaps.guide.step1.desc"
+        "title": "Chọn người đổi cùng",
+        "desc": "Chọn nhân viên bạn muốn đổi ca cùng."
       },
       "step2": {
-        "title": "shift_swaps.guide.step2.title",
-        "desc": "shift_swaps.guide.step2.desc"
+        "title": "Chọn ca của bạn",
+        "desc": "Chọn ca làm việc trong lịch của bạn mà bạn muốn đổi."
       },
       "step3": {
-        "title": "shift_swaps.guide.step3.title",
-        "desc": "shift_swaps.guide.step3.desc"
+        "title": "Chọn ca muốn đổi",
+        "desc": "Chọn ca làm việc của người đó mà bạn muốn nhận."
       },
-      "note": "shift_swaps.guide.note"
+      "note": "Lưu ý: Cả hai nhân viên phải đồng ý đổi ca trước khi được phê duyệt."
     },
     "ess": {
       "my_swaps": "Yêu cầu đổi ca của tôi",
@@ -3087,11 +3087,11 @@
       "respond_success": "Đã phản hồi yêu cầu đổi ca!",
       "cancel_success": "Đã hủy yêu cầu đổi ca!"
     },
-    "create_title": "shift_swaps.create_title"
+    "create_title": "Yêu cầu đổi ca"
   },
   "payroll_rules": {
     "scope_workspace": "Toàn Không gian làm việc",
-    "rule_assignments": "payroll_rules.rule_assignments"
+    "rule_assignments": "Gán quy tắc tính lương"
   },
   "danger": {
     "title": "Vùng nguy hiểm",
@@ -3297,8 +3297,8 @@
     "messages": {
       "assign_error": "Không thể gán vai trò",
       "revoke_error": "Không thể thu hồi vai trò",
-      "revoke_success": "system_roles.messages.revoke_success",
-      "assign_success": "system_roles.messages.assign_success"
+      "revoke_success": "Đã thu hồi vai trò {{role}} thành công",
+      "assign_success": "Đã gán vai trò {{role}} thành công"
     }
   },
   "status_active_caps": "ĐANG HOẠT ĐỘNG",

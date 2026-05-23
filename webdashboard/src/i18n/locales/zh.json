@@ -1164,8 +1164,8 @@
     "security_events": "安全事件",
     "set": "设置",
     "assign": "分配",
-    "delete_confirm": "common.delete_confirm",
-    "present": "common.present",
+    "delete_confirm": "确认删除",
+    "present": "至今",
     "notifications": "通知",
     "load_more": "加载更多"
   },
@@ -1732,12 +1732,12 @@
         "late_in": "迟到",
         "breastfeeding": "哺乳假"
       },
-      "add_condition": "employees.policies.add_condition",
-      "type_label": "employees.policies.type_label",
-      "conditions_title": "employees.policies.conditions_title",
-      "conditions_desc": "employees.policies.conditions_desc",
-      "delete_warning": "employees.policies.delete_warning",
-      "no_conditions": "employees.policies.no_conditions"
+      "add_condition": "添加工作条件",
+      "type_label": "条件类型",
+      "conditions_title": "工作条件",
+      "conditions_desc": "为员工配置特殊的工作条件和政策。",
+      "delete_warning": "您确定要删除此工作条件吗？此操作无法撤销。",
+      "no_conditions": "未配置任何工作条件"
     },
     "salary": {
       "title": "更新薪资",
@@ -2426,26 +2426,26 @@
     "select_policy": "选择政策",
     "select_policy_placeholder": "-- 选择政策 --",
     "effective_from": "生效日期",
-    "no_assignments_yet": "payroll.no_assignments_yet",
-    "assign_rule": "payroll.assign_rule",
-    "assign_rule_desc": "payroll.assign_rule_desc",
-    "assignment_scope": "payroll.assignment_scope",
-    "select_employee": "payroll.select_employee",
-    "search_employees": "payroll.search_employees",
-    "select_department": "payroll.select_department",
-    "select_department_placeholder": "payroll.select_department_placeholder",
-    "workspace_scope_info": "payroll.workspace_scope_info",
-    "effective_to": "payroll.effective_to",
-    "override_config": "payroll.override_config",
-    "override_config_desc": "payroll.override_config_desc",
-    "override_rate": "payroll.override_rate",
-    "override_base": "payroll.override_base",
-    "base_gross": "payroll.base_gross",
-    "base_gross_alt": "payroll.base_gross_alt",
-    "base_taxable": "payroll.base_taxable",
-    "override_amount": "payroll.override_amount",
-    "override": "payroll.override",
-    "delete_assignment": "payroll.delete_assignment",
+    "no_assignments_yet": "未找到规则分配。",
+    "assign_rule": "分配规则",
+    "assign_rule_desc": "为员工或部门分配薪资计算规则。",
+    "assignment_scope": "分配范围",
+    "select_employee": "选择员工",
+    "search_employees": "搜索员工...",
+    "select_department": "选择部门",
+    "select_department_placeholder": "选择一个部门...",
+    "workspace_scope_info": "应用至整个工作空间。",
+    "effective_to": "有效期至",
+    "override_config": "覆盖配置",
+    "override_config_desc": "为特定规则配置自定义薪资覆盖值。",
+    "override_rate": "覆盖比例",
+    "override_base": "覆盖基数",
+    "base_gross": "基本总薪资",
+    "base_gross_alt": "基本总薪资 (备用)",
+    "base_taxable": "基本应税薪资",
+    "override_amount": "覆盖金额",
+    "override": "覆盖",
+    "delete_assignment": "删除分配",
     "system_bases": {
       "gross": {
         "name": "总薪资 (Gross)",
@@ -2685,7 +2685,7 @@
     "validation": {
       "required_fields": "名称和模式是必填项"
     },
-    "confirm_delete_msg": "rules.confirm_delete_msg"
+    "confirm_delete_msg": "您确定要删除此规则吗？"
   },
   "shifts": {
     "monthly": {
@@ -2906,7 +2906,7 @@
       "connectivity_desc": "管理设备连接和网络。",
       "leave": "休假管理",
       "billing_desc": "管理账单和订阅。",
-      "leave_desc": "settings.categories.leave_desc"
+      "leave_desc": "配置休假类型、累积政策和分配。"
     },
     "navigation": "导航",
     "admin_only": "仅限管理员",
@@ -3061,18 +3061,18 @@
       "note2": "审批通过后，系统自动交换排班记录。员工A获得B的班次，反之亦然。",
       "note3": "拒绝后排班保持不变。已处理的请求不能重新审批。",
       "step1": {
-        "title": "shift_swaps.guide.step1.title",
-        "desc": "shift_swaps.guide.step1.desc"
+        "title": "选择对象",
+        "desc": "选择您想与其调班的员工。"
       },
       "step2": {
-        "title": "shift_swaps.guide.step2.title",
-        "desc": "shift_swaps.guide.step2.desc"
+        "title": "选择您的班次",
+        "desc": "从您的日程中选择您想要调换的班次。"
       },
       "step3": {
-        "title": "shift_swaps.guide.step3.title",
-        "desc": "shift_swaps.guide.step3.desc"
+        "title": "选择目标班次",
+        "desc": "选择您想要接替的对方班次。"
       },
-      "note": "shift_swaps.guide.note"
+      "note": "注意：在批准之前，两位员工都必须同意调班。"
     },
     "ess": {
       "my_swaps": "我的换班请求",
@@ -3087,11 +3087,11 @@
       "respond_success": "已回复换班请求！",
       "cancel_success": "换班请求已取消！"
     },
-    "create_title": "shift_swaps.create_title"
+    "create_title": "请求调班"
   },
   "payroll_rules": {
     "scope_workspace": "工作区范围",
-    "rule_assignments": "payroll_rules.rule_assignments"
+    "rule_assignments": "规则分配"
   },
   "danger": {
     "title": "危险区域",
@@ -3297,8 +3297,8 @@
     "messages": {
       "assign_error": "分配角色失败",
       "revoke_error": "撤销角色失败",
-      "revoke_success": "system_roles.messages.revoke_success",
-      "assign_success": "分配角色成功"
+      "revoke_success": "成功撤销角色 {{role}}",
+      "assign_success": "成功分配角色 {{role}}"
     }
   },
   "system_admin": {
