@@ -644,6 +644,55 @@ mod tests {
         std::env::remove_var("SUPAVISOR_TENANT_ID");
     }
 
+    #[test]
+    fn test_build_tenant_payload_with_explicit_options() {
+        std::env::set_var("SUPAVISOR_TENANT_ID", "global_tenant_id");
+        std::env::set_var("SUPAVISOR_POOL_SIZE", "50");
+
+        let url = "postgres://dynamic_user:dynamic_secret@dynamic_db_host:5433/dynamic_db";
+        
+        let (tenant_id, payload) = build_tenant_payload(
+            url,
+            TenantPayloadOptions {
+                tenant_id: Some("explicit_tenant_id".to_string()),
+                pool_size: Some(99),
+                is_master: false, // The options should override ENV regardless of is_master anyway
+            },
+        ).expect("Should build payload");
+
+        assert_eq!(tenant_id, "explicit_tenant_id", "Explicit tenant_id option should override env and db_name");
+
+        let tenant = payload.get("tenant").expect("missing tenant key");
+        let users = tenant["users"].as_array().expect("missing users array");
+        assert_eq!(users[0]["pool_size"], 99, "Explicit pool_size option should override env");
+
+        std::env::remove_var("SUPAVISOR_TENANT_ID");
+        std::env::remove_var("SUPAVISOR_POOL_SIZE");
+    }
+
+    #[test]
+    fn test_build_tenant_payload_decodes_percent_encoding() {
+        // "user@name":"pass#word" encoded in URL
+        let url = "postgres://user%40name:pass%23word@dynamic_db_host:5433/dynamic_db";
+        let (_, payload) = build_tenant_payload(
+            url,
+            TenantPayloadOptions {
+                tenant_id: None,
+                pool_size: None,
+                is_master: false,
+            },
+        ).expect("Should build payload");
+
+        let tenant = payload.get("tenant").expect("missing tenant key");
+        let users = tenant["users"].as_array().expect("missing users array");
+        assert_eq!(users.len(), 1);
+        
+        // Assert they are properly decoded!
+        assert_eq!(users[0]["db_user"], "user@name");
+        assert_eq!(users[0]["db_password"], "pass#word");
+    }
+
+
 
     #[test]
     fn test_build_tenant_payload_with_custom_pool_settings() {
