@@ -413,7 +413,8 @@ export default function TenantsPage() {
                     {poolUsers.map((u: any, idx: number) => (
                       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-xl shadow-sm flex items-center justify-between" key={idx}>
                         <div>
-                          <div className="font-mono text-sm text-slate-800 dark:text-slate-200 font-semibold">
+                          <div className="font-mono text-sm text-slate-800 dark:text-slate-200 font-semibold flex items-center gap-2">
+                            <KeyRound className="w-4 h-4 text-slate-400" />
                             {u.db_user}
                           </div>
                           <div className="text-xs text-slate-500 mt-1">
@@ -421,12 +422,8 @@ export default function TenantsPage() {
                           </div>
                         </div>
                         <div className="flex flex-col items-end">
-                          <span className={`px-2.5 py-1 rounded-full text-xs font-medium capitalize ${
-                            u.mode_type === 'transaction' 
-                              ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' 
-                              : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'
-                          }`}>
-                            {u.mode_type ?? "Unknown"} Mode
+                          <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
+                            Active
                           </span>
                         </div>
                       </div>
