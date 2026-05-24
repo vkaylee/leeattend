@@ -617,7 +617,7 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
         );
 
         crate::services::attendance_utils::build_leave_date_set(
-            &mut *conn,
+            &mut conn,
             workspace_id,
             employee_ids,
             start_date,

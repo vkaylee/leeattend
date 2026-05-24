@@ -152,6 +152,7 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
         Ok(results.into_iter().map(Into::into).collect())
     }
 
+    #[allow(clippy::mut_mut)]
     async fn clear_workspace_data(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
