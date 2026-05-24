@@ -452,64 +452,6 @@ pub async fn get_tenant_stats(
     Ok(Json(response))
 }
 
-/// PATCH /system/tenants/:tenant_id/mode
-/// Updates the pool mode type for a specific tenant at runtime.
-#[derive(Deserialize, ToSchema)]
-pub struct UpdateTenantModeRequest {
-    pub mode_type: String,
-}
-
-pub async fn update_tenant_mode(
-    Path(tenant_id): Path<String>,
-    State(state): State<Arc<AppState>>,
-    ctx: SystemContext,
-    _api_ctx: ApiContext,
-    Json(req): Json<UpdateTenantModeRequest>,
-) -> AppResult<StatusCode> {
-    ctx.require_role(SystemRoleType::PlatformAdmin)?;
-
-    let mode_type = req.mode_type.clone();
-    if mode_type != "session" && mode_type != "transaction" {
-        return Err(AppError::Validation(
-            "mode_type must be 'session' or 'transaction'".into(),
-        ));
-    }
-
-    state
-        .infra
-        .tenant_manager
-        .update_tenant_mode(&tenant_id, &mode_type)
-        .await?;
-
-    let mut conn = state
-        .infra
-        .diesel
-        .api
-        .get()
-        .await
-        .map_err(|e| AppError::Internal(e.to_string()))?;
-
-    let details = serde_json::json!({
-        "tenant_id": tenant_id,
-        "mode_type": mode_type
-    });
-
-    crate::system_crud_query!(
-        &mut conn,
-        r#"
-        INSERT INTO system_audit_logs (id, actor_id, action, details, created_at)
-        VALUES ($1, $2, 'tenant.update_mode', $3, NOW())
-        "#,
-    )
-    .bind::<diesel::sql_types::Uuid, _>(crate::utils::id::new_id())
-    .bind::<diesel::sql_types::Uuid, _>(ctx.user_id)
-    .bind::<diesel::sql_types::Jsonb, _>(details)
-    .execute(&mut *conn)
-    .await
-    .map_err(|e| AppError::Internal(e.to_string()))?;
-
-    Ok(StatusCode::OK)
-}
 
 /// GET /system/tenants/stale
 /// Compares registered Supavisor tenants against active workspaces to
@@ -747,42 +689,6 @@ mod tests {
         assert!(serde_json::from_str::<UpdateTenantDbRequest>(json).is_err());
     }
 
-    // ── UpdateTenantModeRequest — Validation ─────────────────────────────────
-
-    #[test]
-    fn test_update_tenant_mode_request_session() {
-        let json = r#"{"mode_type": "session"}"#;
-        let req: UpdateTenantModeRequest = serde_json::from_str(json).unwrap();
-        assert_eq!(req.mode_type, "session");
-    }
-
-    #[test]
-    fn test_update_tenant_mode_request_transaction() {
-        let json = r#"{"mode_type": "transaction"}"#;
-        let req: UpdateTenantModeRequest = serde_json::from_str(json).unwrap();
-        assert_eq!(req.mode_type, "transaction");
-    }
-
-    #[test]
-    fn test_update_tenant_mode_validation_logic() {
-        // The handler rejects any mode that isn't "session" or "transaction".
-        // We test the same validation predicate used in the handler.
-        let valid = ["session", "transaction"];
-        let invalid = ["", "Session", "TRANSACTION", "pooled", "read_only"];
-
-        for mode in valid {
-            assert!(
-                mode == "session" || mode == "transaction",
-                "Expected valid mode: {mode}"
-            );
-        }
-        for mode in invalid {
-            assert!(
-                mode != "session" && mode != "transaction",
-                "Expected invalid mode: {mode}"
-            );
-        }
-    }
 
     // ── Stale tenant identification logic ─────────────────────────────────────
     // These tests verify the set-difference logic used by list_stale_tenants

@@ -16,7 +16,6 @@ import {
   fetchSystemTenants,
   fetchSystemTenantStats,
   updateTenantDatabase,
-  updateTenantMode,
   type CreateTenantRequestPayload,
   type SystemTenant,
   type TenantConnectionStats,
@@ -37,9 +36,7 @@ export default function TenantsPage() {
 
   const [statsModalOpen, setStatsModalOpen] = useState(false);
   const [dbUpdateModalOpen, setDbUpdateModalOpen] = useState(false);
-  const [dbModeUpdateModalOpen, setDbModeUpdateModalOpen] = useState(false);
   const [updateDbUrl, setUpdateDbUrl] = useState("");
-  const [selectedMode, setSelectedMode] = useState<string | null>(null);
   const [selectedTenant, setSelectedTenant] = useState<SystemTenant | null>(null);
   const [staleModalOpen, setStaleModalOpen] = useState(false);
 
@@ -54,7 +51,7 @@ export default function TenantsPage() {
       if (!selectedTenant) return Promise.reject(new Error("No selected tenant"));
       return fetchSystemTenantStats(selectedTenant.id);
     },
-    enabled: !!selectedTenant && (statsModalOpen || dbUpdateModalOpen || dbModeUpdateModalOpen),
+    enabled: !!selectedTenant && (statsModalOpen || dbUpdateModalOpen),
   });
 
   const { data: staleTenants = [], isLoading: isStaleLoading, refetch: refetchStale } = useQuery({
@@ -77,10 +74,8 @@ export default function TenantsPage() {
 
   const statsConfig = tenantStats ? (tenantStats.config.data ?? tenantStats.config.tenant ?? tenantStats.config) : undefined;
   const poolSizeVal = statsConfig?.users?.[0]?.pool_size?.toString() ?? "N/A";
-  const poolModeVal = statsConfig?.users?.[0]?.mode_type ?? statsConfig?.default_mode ?? "session";
+  const poolModeVal = statsConfig?.users?.[0]?.mode_type ?? "N/A";
   const rawConfigString = JSON.stringify(statsConfig, null, 2);
-  const currentMode = statsConfig?.users?.[0]?.mode_type ?? statsConfig?.default_mode ?? "session";
-  const activeMode = selectedMode ?? currentMode;
 
   const createMutation = useMutation({
     mutationFn: (data: CreateTenantRequestPayload) => createSystemTenant(data),
@@ -121,19 +116,6 @@ export default function TenantsPage() {
     },
   });
 
-  const updateModeMutation = useMutation({
-    mutationFn: ({ id, mode }: { id: string; mode: string }) => updateTenantMode(id, mode),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["system-tenants"] }).catch(console.error);
-      queryClient.invalidateQueries({ queryKey: ["system-tenant-stats", selectedTenant?.id] }).catch(console.error);
-      toast.success(t("system_admin.tenants.messages.update_mode_success", { defaultValue: "Pool mode updated successfully" }));
-      setDbModeUpdateModalOpen(false);
-    },
-    onError: (error) => {
-      toast.error(error.message);
-    },
-  });
-
   const handleCreate = (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!dbName) return;
@@ -166,11 +148,6 @@ export default function TenantsPage() {
     setDbUpdateModalOpen(true);
   };
 
-  const handleManageMode = (tenant: SystemTenant) => {
-    setSelectedTenant(tenant);
-    setDbModeUpdateModalOpen(true);
-  };
-
   const handleCleanStale = async (id: string) => {
     const isConfirmed = await confirm({
       title: t("common.warning", { defaultValue: "Warning: Critical Action" }),
@@ -193,19 +170,6 @@ export default function TenantsPage() {
       for (const tenant of staleTenants) {
         cleanStaleMutation.mutate(tenant.id);
       }
-    }
-  };
-
-  const handleUpdateModeSubmit = async (e: React.SyntheticEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!selectedTenant || !activeMode) return;
-    const isConfirmed = await confirm({
-      title: t("common.warning", { defaultValue: "Warning: Critical Action" }),
-      message: `Are you sure you want to switch the pool mode to "${activeMode}"? This will immediately update the connection pool in Supavisor for this tenant.`,
-      variant: "danger",
-    });
-    if (isConfirmed) {
-      updateModeMutation.mutate({ id: selectedTenant.id, mode: activeMode });
     }
   };
 
@@ -317,14 +281,7 @@ export default function TenantsPage() {
                         >
                           <Server className="w-4 h-4 text-orange-500" />
                         </Button>
-                        <Button
-                          onClick={() => { handleManageMode(tenant); }}
-                          size="sm"
-                          title="Update Pool Mode"
-                          variant="ghost"
-                        >
-                          <Activity className="w-4 h-4 text-blue-500" />
-                        </Button>
+
                         <Button
                           onClick={() => { handleDelete(tenant.id).catch(console.error); }}
                           size="sm"
@@ -561,66 +518,6 @@ export default function TenantsPage() {
               variant="destructive"
             >
               {updateDbMutation.isPending ? "Updating..." : "Update Database"}
-            </Button>
-          </div>
-        </form>
-      </Modal>
-
-      {/* Update Pool Mode Modal */}
-      <Modal
-        isOpen={dbModeUpdateModalOpen}
-        maxWidth="2xl"
-        onClose={() => { setDbModeUpdateModalOpen(false); setSelectedTenant(null); setSelectedMode(null); }}
-        subtitle="Switch between Session and Transaction pooling modes for this tenant's connection pool."
-        title={`Update Pool Mode: ${selectedTenant?.id ?? ""}`}
-      >
-        <form onSubmit={(e) => { handleUpdateModeSubmit(e).catch(console.error); }}>
-          <div className="grid gap-6 py-4">
-            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 flex gap-3">
-              <Activity className="w-5 h-5 text-blue-600 dark:text-blue-400 shrink-0" />
-              <div className="text-sm text-blue-800 dark:text-blue-200 space-y-1">
-                <p className="font-semibold">Pooling Modes Information</p>
-                <ul className="list-disc list-inside space-y-1">
-                  <li><strong>Session Mode:</strong> Retains a database connection for the lifetime of the client session. Supports all Postgres features (e.g. temporary tables, prepared statements).</li>
-                  <li><strong>Transaction Mode:</strong> Releases connection back to the pool after each transaction. Extremely scalable, but does not support session-level parameters.</li>
-                </ul>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-700 dark:text-slate-300" htmlFor="selectedMode">
-                Select Pooling Mode <span className="text-red-500">*</span>
-              </label>
-              {isStatsLoading ? (
-                <div className="h-10 bg-slate-100 dark:bg-slate-800 animate-pulse rounded-md"></div>
-              ) : (
-                <select
-                  className="flex h-10 w-full rounded-md border border-slate-300 dark:border-slate-700 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:text-white dark:bg-slate-900"
-                  id="selectedMode"
-                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => { setSelectedMode(e.target.value); }}
-                  value={activeMode}
-                >
-                  <option value="session">Session</option>
-                  <option value="transaction">Transaction</option>
-                </select>
-              )}
-            </div>
-          </div>
-          <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800 mt-2">
-            <Button
-              onClick={() => { setDbModeUpdateModalOpen(false); }}
-              type="button"
-              variant="outline"
-            >
-              Cancel
-            </Button>
-            <Button
-              disabled={updateModeMutation.isPending || isStatsLoading}
-              loading={updateModeMutation.isPending}
-              type="submit"
-              variant="primary"
-            >
-              {updateModeMutation.isPending ? "Updating..." : "Update Pool Mode"}
             </Button>
           </div>
         </form>

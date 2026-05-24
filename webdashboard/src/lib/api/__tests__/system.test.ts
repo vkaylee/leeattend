@@ -7,7 +7,7 @@ vi.mock("../helpers", () => ({
 
 import { API_BASE_URL } from "../config";
 import { apiFetch } from "../helpers";
-import { fetchSystemTenantStats, updateTenantMode } from "../system";
+import { fetchSystemTenantStats } from "../system";
 
 describe("System API methods", () => {
   beforeEach(() => {
@@ -52,31 +52,5 @@ describe("System API methods", () => {
     });
   });
 
-  describe("updateTenantMode", () => {
-    it("should patch tenant mode correctly", async () => {
-      vi.mocked(apiFetch).mockResolvedValueOnce({
-        ok: true,
-      } as Response);
 
-      await updateTenantMode("tenant_123", "transaction");
-
-      expect(apiFetch).toHaveBeenCalledTimes(1);
-      expect(apiFetch).toHaveBeenCalledWith(
-        `${API_BASE_URL}/system/tenants/tenant_123/mode`,
-        {
-          method: "PATCH",
-          body: JSON.stringify({ mode_type: "transaction" }),
-        }
-      );
-    });
-
-    it("should throw error if update failed", async () => {
-      vi.mocked(apiFetch).mockResolvedValueOnce({
-        ok: false,
-        text: () => Promise.resolve("Supavisor error"),
-      } as Response);
-
-      await expect(updateTenantMode("tenant_123", "transaction")).rejects.toThrow("Supavisor error");
-    });
-  });
 });

@@ -135,17 +135,6 @@ export async function updateTenantDatabase(tenantId: string, customDbUrl: string
   }
 }
 
-export async function updateTenantMode(tenantId: string, modeType: string): Promise<void> {
-  const response = await apiFetch(`${API_BASE_URL}/system/tenants/${tenantId}/mode`, {
-    method: "PATCH",
-    body: JSON.stringify({ mode_type: modeType }),
-  });
-  if (!response.ok) {
-    const errText = await response.text();
-    throw new Error(errText || "Failed to update tenant mode");
-  }
-}
-
 export interface SystemDbCluster {
   active_tenants: number;
   admin_database_url: string;

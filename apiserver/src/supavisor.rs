@@ -120,7 +120,6 @@ pub fn build_tenant_payload(
     tenant_map.insert("ip_version".to_string(), json!(ip_version));
     tenant_map.insert("enforce_ssl".to_string(), json!(enforce_ssl));
     tenant_map.insert("default_pool_size".to_string(), json!(pool_size));
-    tenant_map.insert("default_mode".to_string(), json!(&mode_type));
 
     let auth_query = std::env::var("SUPAVISOR_AUTH_QUERY").ok();
     let has_auth_query = auth_query
@@ -188,7 +187,7 @@ pub trait TenantManager: Send + Sync {
         payload: &serde_json::Value,
     ) -> AppResult<()>;
     async fn get_tenant(&self, tenant_id: &str) -> AppResult<serde_json::Value>;
-    async fn update_tenant_mode(&self, tenant_id: &str, mode_type: &str) -> AppResult<()>;
+
 }
 
 pub struct SupavisorTenantManager {
@@ -418,76 +417,6 @@ impl TenantManager for SupavisorTenantManager {
             )))
         }
     }
-
-    async fn update_tenant_mode(&self, tenant_id: &str, mode_type: &str) -> AppResult<()> {
-        let token = self
-            .generate_token()
-            .map_err(|e| AppError::Internal(format!("Failed to generate token: {e}")))?;
-
-        let base_url = self.api_url.trim_end_matches('/');
-        let url = format!("{base_url}/api/tenants/{tenant_id}");
-
-        let current = self.get_tenant(tenant_id).await?;
-        let payload = update_tenant_mode_json(current, mode_type)?;
-
-        let response = self
-            .client
-            .put(&url)
-            .header("Authorization", format!("Bearer {token}"))
-            .json(&payload)
-            .send()
-            .await
-            .map_err(|e| AppError::Internal(format!("Failed to reach Supavisor API: {e}")))?;
-
-        let status = response.status();
-        if status.is_success() {
-            tracing::info!(
-                tenant_id = %tenant_id,
-                mode_type = %mode_type,
-                "Updated Supavisor tenant pool mode"
-            );
-            Ok(())
-        } else {
-            let text = response.text().await.unwrap_or_default();
-            Err(AppError::Internal(format!(
-                "Supavisor returned {status}: {text}"
-            )))
-        }
-    }
-}
-
-pub(crate) fn update_tenant_mode_json(
-    mut current: serde_json::Value,
-    mode_type: &str,
-) -> AppResult<serde_json::Value> {
-    let tenant_map = if let Some(data_val) = current.get_mut("data") {
-        data_val.as_object_mut()
-    } else if let Some(tenant_val) = current.get_mut("tenant") {
-        tenant_val.as_object_mut()
-    } else {
-        current.as_object_mut()
-    }
-    .ok_or_else(|| AppError::Internal("Unexpected Supavisor response shape".into()))?;
-
-    tenant_map.insert(
-        "default_mode".to_string(),
-        serde_json::Value::String(mode_type.to_string()),
-    );
-
-    if let Some(users) = tenant_map.get_mut("users").and_then(|u| u.as_array_mut()) {
-        for user in users {
-            if let Some(obj) = user.as_object_mut() {
-                obj.insert(
-                    "mode_type".to_string(),
-                    serde_json::Value::String(mode_type.to_string()),
-                );
-            }
-        }
-    }
-
-    Ok(json!({
-        "tenant": tenant_map
-    }))
 }
 
 pub struct NoopTenantManager;
@@ -517,10 +446,7 @@ impl TenantManager for NoopTenantManager {
         Ok(serde_json::json!({}))
     }
 
-    async fn update_tenant_mode(&self, _tenant_id: &str, _mode_type: &str) -> AppResult<()> {
-        tracing::debug!("NoopTenantManager: skipping update_tenant_mode");
-        Ok(())
-    }
+
 }
 
 fn generate_supavisor_token(secret: &str) -> Result<String, jsonwebtoken::errors::Error> {
@@ -1272,10 +1198,6 @@ mod tests {
 
         // Assert the new edge-case fields are present
         assert_eq!(
-            tenant_obj.get("default_mode").unwrap().as_str(),
-            Some("session")
-        );
-        assert_eq!(
             tenant_obj.get("default_pool_size").unwrap().as_u64(),
             Some(42)
         );
@@ -1285,61 +1207,6 @@ mod tests {
         std::env::remove_var("SUPAVISOR_POOL_SIZE");
         std::env::remove_var("SUPAVISOR_TENANT_ID");
         std::env::remove_var("SUPAVISOR_AUTH_QUERY");
-    }
-
-    #[test]
-    fn test_update_tenant_mode_json_shapes() {
-        // Shape 1: Wrapped in "data" (returned by live Supavisor API)
-        let input_data = json!({
-            "data": {
-                "db_database": "company_db",
-                "default_mode": "session",
-                "users": [
-                    {
-                        "db_user": "admin",
-                        "mode_type": "session"
-                    }
-                ]
-            }
-        });
-        let result_data = update_tenant_mode_json(input_data, "transaction").expect("success");
-        let tenant = result_data.get("tenant").expect("should have tenant key");
-        assert_eq!(tenant["default_mode"], "transaction");
-        assert_eq!(tenant["users"][0]["mode_type"], "transaction");
-
-        // Shape 2: Wrapped in "tenant" (used by some mocks)
-        let input_tenant = json!({
-            "tenant": {
-                "db_database": "company_db",
-                "default_mode": "session",
-                "users": [
-                    {
-                        "db_user": "admin",
-                        "mode_type": "session"
-                    }
-                ]
-            }
-        });
-        let result_tenant = update_tenant_mode_json(input_tenant, "transaction").expect("success");
-        let tenant = result_tenant.get("tenant").expect("should have tenant key");
-        assert_eq!(tenant["default_mode"], "transaction");
-        assert_eq!(tenant["users"][0]["mode_type"], "transaction");
-
-        // Shape 3: Unwrapped (direct root object)
-        let input_direct = json!({
-            "db_database": "company_db",
-            "default_mode": "session",
-            "users": [
-                {
-                    "db_user": "admin",
-                    "mode_type": "session"
-                }
-            ]
-        });
-        let result_direct = update_tenant_mode_json(input_direct, "transaction").expect("success");
-        let tenant = result_direct.get("tenant").expect("should have tenant key");
-        assert_eq!(tenant["default_mode"], "transaction");
-        assert_eq!(tenant["users"][0]["mode_type"], "transaction");
     }
 
     #[test]

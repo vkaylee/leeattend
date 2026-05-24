@@ -42,10 +42,7 @@ pub fn router() -> Router<Arc<AppState>> {
             "/system/tenants/:tenant_id/database",
             axum::routing::put(system_tenants::update_tenant_database),
         )
-        .route(
-            "/system/tenants/:tenant_id/mode",
-            patch(system_tenants::update_tenant_mode),
-        )
+
         // System DB Clusters
         .route(
             "/system/db-clusters",

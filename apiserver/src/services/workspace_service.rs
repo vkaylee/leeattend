@@ -602,13 +602,6 @@ mod tests {
         ) -> crate::errors::AppResult<serde_json::Value> {
             Ok(serde_json::json!({}))
         }
-        async fn update_tenant_mode(
-            &self,
-            _tenant_id: &str,
-            _mode_type: &str,
-        ) -> crate::errors::AppResult<()> {
-            Ok(())
-        }
     }
 
     fn build_service(user_exists: bool) -> WorkspaceService {
