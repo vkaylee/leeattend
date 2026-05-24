@@ -11,7 +11,6 @@ use crate::common::app::spawn_app_with_factory_extended;
 pub struct TestMockTenantManager {
     pub registered_tenants: Arc<Mutex<Vec<(String, serde_json::Value)>>>,
     pub deleted_tenants: Arc<Mutex<Vec<String>>>,
-    pub mode_updates: Arc<Mutex<Vec<(String, String)>>>,
 }
 
 #[async_trait::async_trait]
@@ -46,18 +45,6 @@ impl apiserver::supavisor::TenantManager for TestMockTenantManager {
             }
         }
         Ok(serde_json::json!({ "error": "Not Found" }))
-    }
-
-    async fn update_tenant_mode(
-        &self,
-        tenant_id: &str,
-        mode_type: &str,
-    ) -> apiserver::errors::AppResult<()> {
-        self.mode_updates
-            .lock()
-            .await
-            .push((tenant_id.to_string(), mode_type.to_string()));
-        Ok(())
     }
 }
 
@@ -223,10 +210,6 @@ async fn test_create_tenant_with_byod() {
         assert_eq!(
             tenant.get("default_pool_size").unwrap().as_u64().unwrap(),
             25
-        );
-        assert_eq!(
-            tenant.get("default_mode").unwrap().as_str().unwrap(),
-            "session"
         );
 
         let users = tenant.get("users").unwrap().as_array().unwrap();
@@ -471,170 +454,6 @@ async fn test_update_tenant_database() {
     std::env::remove_var("ENCRYPTION_KEYS_JSON");
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// PATCH /system/tenants/:tenant_id/mode  tests
-// ─────────────────────────────────────────────────────────────────────────────
-
-#[tokio::test]
-async fn test_update_tenant_mode_to_session() {
-    let mock_manager = Arc::new(TestMockTenantManager::default());
-    let (address, workspace_id, user_id, factory, _db) =
-        spawn_app_with_factory_extended(mock_manager.clone()).await;
-
-    // Make user a PlatformAdmin
-    crate::test_execute!(
-        &factory.diesel_pools.api,
-        "INSERT INTO user_system_roles (user_id, role_id) VALUES ($1, (SELECT id FROM system_roles WHERE name = 'platform_admin'))",
-        diesel::sql_types::Uuid, user_id
-    );
-
-    let client = reqwest::Client::new();
-    let tenant_id = format!("tenant_{}", workspace_id.to_string().replace('-', ""));
-
-    let req = serde_json::json!({ "mode_type": "session" });
-
-    let response = client
-        .patch(&format!("{address}/api/system/tenants/{tenant_id}/mode"))
-        .header("X-User-Id", user_id.to_string())
-        .json(&req)
-        .send()
-        .await
-        .expect("Failed to execute request");
-
-    let status = response.status();
-    let body = response.text().await.unwrap_or_default();
-    assert_eq!(
-        status,
-        reqwest::StatusCode::OK,
-        "Expected 200 OK, got {status}: {body}"
-    );
-
-    // Verify the mock recorded the mode update
-    let mode_updates = mock_manager.mode_updates.lock().await;
-    assert_eq!(
-        mode_updates.len(),
-        1,
-        "Should have recorded exactly 1 mode update"
-    );
-    assert_eq!(
-        mode_updates[0].0, tenant_id,
-        "Should update the correct tenant"
-    );
-    assert_eq!(mode_updates[0].1, "session", "Should set mode to session");
-}
-
-#[tokio::test]
-async fn test_update_tenant_mode_to_transaction() {
-    let mock_manager = Arc::new(TestMockTenantManager::default());
-    let (address, workspace_id, user_id, factory, _db) =
-        spawn_app_with_factory_extended(mock_manager.clone()).await;
-
-    // Make user a PlatformAdmin
-    crate::test_execute!(
-        &factory.diesel_pools.api,
-        "INSERT INTO user_system_roles (user_id, role_id) VALUES ($1, (SELECT id FROM system_roles WHERE name = 'platform_admin'))",
-        diesel::sql_types::Uuid, user_id
-    );
-
-    let client = reqwest::Client::new();
-    let tenant_id = format!("tenant_{}", workspace_id.to_string().replace('-', ""));
-
-    let req = serde_json::json!({ "mode_type": "transaction" });
-
-    let response = client
-        .patch(&format!("{address}/api/system/tenants/{tenant_id}/mode"))
-        .header("X-User-Id", user_id.to_string())
-        .json(&req)
-        .send()
-        .await
-        .expect("Failed to execute request");
-
-    assert_eq!(response.status(), reqwest::StatusCode::OK);
-
-    let mode_updates = mock_manager.mode_updates.lock().await;
-    assert_eq!(
-        mode_updates[0].1, "transaction",
-        "Should set mode to transaction"
-    );
-}
-
-#[tokio::test]
-async fn test_update_tenant_mode_invalid_value() {
-    let mock_manager = Arc::new(TestMockTenantManager::default());
-    let (address, workspace_id, user_id, factory, _db) =
-        spawn_app_with_factory_extended(mock_manager.clone()).await;
-
-    // Make user a PlatformAdmin
-    crate::test_execute!(
-        &factory.diesel_pools.api,
-        "INSERT INTO user_system_roles (user_id, role_id) VALUES ($1, (SELECT id FROM system_roles WHERE name = 'platform_admin'))",
-        diesel::sql_types::Uuid, user_id
-    );
-
-    let client = reqwest::Client::new();
-    let tenant_id = format!("tenant_{}", workspace_id.to_string().replace('-', ""));
-
-    // Try an invalid mode_type
-    for bad_mode in &["foobar", "Session", "TRANSACTION", "native", ""] {
-        let req = serde_json::json!({ "mode_type": bad_mode });
-
-        let response = client
-            .patch(&format!("{address}/api/system/tenants/{tenant_id}/mode"))
-            .header("X-User-Id", user_id.to_string())
-            .json(&req)
-            .send()
-            .await
-            .expect("Failed to execute request");
-
-        assert!(
-            response.status().is_client_error(),
-            "Invalid mode_type '{bad_mode}' should return 4xx, got: {}",
-            response.status()
-        );
-    }
-
-    // Verify NO mode updates were recorded
-    let mode_updates = mock_manager.mode_updates.lock().await;
-    assert!(
-        mode_updates.is_empty(),
-        "No mode update should be recorded for invalid mode_type values"
-    );
-}
-
-#[tokio::test]
-async fn test_update_tenant_mode_requires_admin() {
-    let mock_manager = Arc::new(TestMockTenantManager::default());
-    let (address, workspace_id, user_id, _factory, _db) =
-        spawn_app_with_factory_extended(mock_manager.clone()).await;
-
-    // NO PlatformAdmin role assigned — normal workspace user
-
-    let client = reqwest::Client::new();
-    let tenant_id = format!("tenant_{}", workspace_id.to_string().replace('-', ""));
-
-    let req = serde_json::json!({ "mode_type": "session" });
-
-    let response = client
-        .patch(&format!("{address}/api/system/tenants/{tenant_id}/mode"))
-        .header("X-User-Id", user_id.to_string())
-        .json(&req)
-        .send()
-        .await
-        .expect("Failed to execute request");
-
-    assert_eq!(
-        response.status(),
-        reqwest::StatusCode::FORBIDDEN,
-        "Normal user should NOT be able to update tenant mode"
-    );
-
-    // Verify NO mode updates were recorded
-    let mode_updates = mock_manager.mode_updates.lock().await;
-    assert!(
-        mode_updates.is_empty(),
-        "No mode update should be recorded by unauthorized user"
-    );
-}
 
 #[tokio::test]
 async fn test_update_tenant_database_requires_admin() {

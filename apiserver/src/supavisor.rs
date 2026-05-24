@@ -616,7 +616,8 @@ mod tests {
 
         // 1. Without DATABASE_URL or DATABASE_POOLER_URL set, pool_password should default to db_password
         std::env::remove_var("DATABASE_URL");
-        std::env::remove_var("DATABASE_POOLER_URL");
+        std::env::remove_var("DATABASE_POOLER_TX_URL");
+        std::env::remove_var("DATABASE_POOLER_SESS_URL");
         let (_, payload) = build_tenant_payload(
             physical_db_url,
             TenantPayloadOptions {
@@ -646,9 +647,9 @@ mod tests {
         assert_eq!(users2[0]["db_password"], "physical_pass");
         assert_eq!(users2[0]["pool_password"], "master_pass");
 
-        // 3. With DATABASE_POOLER_URL set, pool_password should be the pooler master password
+        // 3. With DATABASE_POOLER_TX_URL set, pool_password should be the pooler master password
         std::env::set_var(
-            "DATABASE_POOLER_URL",
+            "DATABASE_POOLER_TX_URL",
             "postgres://postgres.leeattend:pooler_pass@supavisor:6543/leeattend",
         );
         let (_, payload3) = build_tenant_payload(

@@ -78,7 +78,8 @@ impl E2eTestDatabase {
             apiserver::diesel_pool::DieselPools::run_all_migrations_for_test(
                 &apiserver::diesel_pool::DbPoolConfig {
                     primary_url: direct_db_url,
-                    pooler_url: None,
+                    pooler_tx_url: None,
+                    pooler_sess_url: None,
                     reader_url: None,
                     api_max_conn: 1,
                     api_acquire_timeout_secs: 5,
