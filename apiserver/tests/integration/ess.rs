@@ -453,6 +453,14 @@ async fn test_ess_punch_out_without_punch_in() {
     let email = "no_punch_in@leeattend.com";
     let (user_id, _) = create_employee_user(&factory, &test_db, ws_id, email).await;
 
+    factory
+        .add_member(
+            ws_id,
+            user_id,
+            uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap(),
+        )
+        .await;
+
     let punch_out_body = serde_json::json!({
         "note": "Ending shift"
     });
@@ -480,6 +488,14 @@ async fn test_ess_punch_in_already_active() {
     let ws_id = factory.workspace().create_with_owner(admin_id).await;
     let email = "double_punch@leeattend.com";
     let (user_id, _) = create_employee_user(&factory, &test_db, ws_id, email).await;
+
+    factory
+        .add_member(
+            ws_id,
+            user_id,
+            uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap(),
+        )
+        .await;
 
     let punch_in_body = serde_json::json!({
         "entry_type": "work",
@@ -515,4 +531,28 @@ async fn test_ess_punch_in_already_active() {
 
     // With the generic punch API, the second punch should also succeed (and log as punch OUT)
     assert_eq!(resp2.status(), StatusCode::CREATED);
+}
+
+#[tokio::test]
+async fn test_ess_invalid_workspace_id_returns_forbidden() {
+    let (_test_db, factory, _state, app) = setup_app_tower().await;
+    
+    // Create a valid user
+    let user_id = factory.user().create().await;
+    
+    // A fake workspace ID that does not exist in the system database
+    let fake_ws_id = Uuid::new_v4();
+
+    // User is NOT added to the workspace, because it doesn't exist.
+    // Try to access an ESS endpoint with this fake workspace ID in the X-Workspace-Id header.
+    let resp = app
+        .clone()
+        .oneshot(req("GET", "/api/ess/profile", fake_ws_id, user_id, None))
+        .await
+        .unwrap();
+
+    // Thanks to the IDOR/DoS fix, EmployeeContext extracts MemberContext first.
+    // MemberContext checks the System DB and realizes the user is not a member of this workspace.
+    // It immediately returns 403 Forbidden without attempting to query Supavisor.
+    assert_eq!(resp.status(), StatusCode::FORBIDDEN);
 }
