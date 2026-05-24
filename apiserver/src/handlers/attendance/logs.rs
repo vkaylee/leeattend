@@ -38,8 +38,7 @@ pub async fn get_attendance_logs(
     let logs = state
         .attendance
         .time_entry_repo
-        .get_paginated_logs(
-            workspace_id,
+        .get_paginated_logs(&ctx.auth_token,
             crate::models::TimeEntryLogFilter {
                 employee_id: query.employee_id,
                 from: query.from,
@@ -53,7 +52,7 @@ pub async fn get_attendance_logs(
     let total = state
         .attendance
         .time_entry_repo
-        .count_logs(workspace_id, query.employee_id, query.from, query.to)
+        .count_logs(&ctx.auth_token, query.employee_id, query.from, query.to)
         .await?;
 
     Ok(Json(serde_json::json!({
@@ -91,7 +90,7 @@ pub async fn get_raw_attendance_logs(
     let total = state
         .attendance
         .raw_log_repo
-        .count_raw_logs(workspace_id, query.employee_id, query.from, query.to)
+        .count_raw_logs(ctx.workspace_id, query.employee_id, query.from, query.to)
         .await?;
 
     Ok(Json(serde_json::json!({

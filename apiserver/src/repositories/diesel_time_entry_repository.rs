@@ -27,13 +27,14 @@ impl DieselTimeEntryRepository {
 impl TimeEntryRepository for DieselTimeEntryRepository {
     async fn create_time_entry(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         entry: &TimeEntry,
     ) -> Result<(), AppError> {
+        let _workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
+            .get_pool(&auth_token.workspace_id())
             .await
             .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
@@ -63,13 +64,14 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
 
     async fn get_time_entry_by_id(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         id: Uuid,
     ) -> Result<Option<TimeEntry>, AppError> {
+        let workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
+            .get_pool(&auth_token.workspace_id())
             .await
             .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
@@ -89,13 +91,14 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
 
     async fn get_active_time_entry(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id: Uuid,
     ) -> Result<Option<TimeEntry>, AppError> {
+        let workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
+            .get_pool(&auth_token.workspace_id())
             .await
             .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
@@ -117,21 +120,23 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
 
     async fn get_latest_active_entry(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id: Uuid,
     ) -> Result<Option<TimeEntry>, AppError> {
-        self.get_active_time_entry(workspace_id, employee_id).await
+        let _workspace_id = auth_token.workspace_id();
+        self.get_active_time_entry(auth_token, employee_id).await
     }
 
     async fn get_latest_entry_for_employee(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id: Uuid,
     ) -> Result<Option<TimeEntry>, AppError> {
+        let workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
+            .get_pool(&auth_token.workspace_id())
             .await
             .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
@@ -152,13 +157,14 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
 
     async fn update_time_entry(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         entry: &TimeEntry,
     ) -> Result<(), AppError> {
+        let workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
+            .get_pool(&auth_token.workspace_id())
             .await
             .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
@@ -184,11 +190,12 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
         Ok(())
     }
 
-    async fn delete_time_entry(&self, workspace_id: Uuid, id: Uuid) -> Result<(), AppError> {
+    async fn delete_time_entry(&self, auth_token: &crate::diesel_pool::TenantAuthToken, id: Uuid) -> Result<(), AppError> {
+        let workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
+            .get_pool(&auth_token.workspace_id())
             .await
             .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
@@ -207,15 +214,16 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
 
     async fn get_employee_time_entries(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id: Uuid,
         from: DateTime<Utc>,
         to: DateTime<Utc>,
     ) -> Result<Vec<TimeEntry>, AppError> {
+        let workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
+            .get_pool(&auth_token.workspace_id())
             .await
             .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
@@ -237,14 +245,15 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
 
     async fn get_paginated_logs(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         filter: TimeEntryLogFilter,
     ) -> Result<Vec<TimeEntryWithEmployee>, AppError> {
+        let workspace_id = auth_token.workspace_id();
         // Dynamic SQL with Diesel boxed query
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
+            .get_pool(&auth_token.workspace_id())
             .await
             .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
@@ -306,15 +315,16 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
 
     async fn count_logs(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         p_employee_id: Option<Uuid>,
         p_from: Option<DateTime<Utc>>,
         p_to: Option<DateTime<Utc>>,
     ) -> Result<i64, AppError> {
+        let workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
+            .get_pool(&auth_token.workspace_id())
             .await
             .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
@@ -347,16 +357,17 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
 
     async fn get_distinct_work_days(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id: Uuid,
         start_time: DateTime<Utc>,
         end_time: DateTime<Utc>,
         tz: &str,
     ) -> Result<Vec<chrono::NaiveDate>, AppError> {
+        let workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
+            .get_pool(&auth_token.workspace_id())
             .await
             .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
@@ -395,11 +406,12 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
 
     async fn get_workspace_time_entries_batch(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_ids: &[Uuid],
         from: DateTime<Utc>,
         to: DateTime<Utc>,
     ) -> Result<HashMap<Uuid, Vec<TimeEntry>>, AppError> {
+        let workspace_id = auth_token.workspace_id();
         if employee_ids.is_empty() {
             return Ok(HashMap::new());
         }
@@ -407,7 +419,7 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
+            .get_pool(&auth_token.workspace_id())
             .await
             .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
@@ -441,18 +453,19 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
 
     async fn replace_time_entries(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id: Uuid,
         start_time: DateTime<Utc>,
         end_time: DateTime<Utc>,
         entries: Vec<TimeEntry>,
     ) -> Result<(), AppError> {
+        let workspace_id = auth_token.workspace_id();
         use diesel_async::AsyncConnection;
 
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
+            .get_pool(&auth_token.workspace_id())
             .await
             .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()

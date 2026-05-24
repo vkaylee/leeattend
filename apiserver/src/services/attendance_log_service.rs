@@ -231,8 +231,7 @@ impl AttendanceLogService {
 
                 let _ = self
                     .error_repo
-                    .create_error_log_with_fingerprint(
-                        args.workspace_id,
+                    .create_error_log_with_fingerprint(&crate::diesel_pool::TenantAuthToken::system_override(args.workspace_id),
                         args.device_id.clone(),
                         raw_data,
                         &msg,

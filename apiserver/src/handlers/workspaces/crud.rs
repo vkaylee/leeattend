@@ -109,7 +109,7 @@ pub async fn get_unexcused_absences(
         .roster_repo
         .get_workspace_schedules(
             state.infra.roster_cache.as_deref(),
-            workspace_id,
+            &ctx.auth_token,
             start_date,
             end_date,
             None, // all employees
@@ -124,7 +124,7 @@ pub async fn get_unexcused_absences(
     let entries_map = state
         .attendance
         .time_entry_repo
-        .get_workspace_time_entries_batch(workspace_id, &emp_ids, start_dt, end_dt)
+        .get_workspace_time_entries_batch(&ctx.auth_token, &emp_ids, start_dt, end_dt)
         .await
         .map_err(|e| AppError::Internal(format!("Error fetching time entries: {e}")))?;
 
@@ -447,7 +447,7 @@ pub async fn update_workspace(
         .core
         .workspace_service
         .update_workspace(crate::services::workspace_service::UpdateWorkspaceArgs {
-            ws_id: ctx.workspace_id,
+            ws_id: ctx.auth_token.workspace_id(),
             name: req.name,
             date_format: req.date_format,
             time_format: req.time_format,

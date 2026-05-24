@@ -12,16 +12,16 @@ use uuid::Uuid;
 pub trait AssignmentRuleRepository: Send + Sync {
     async fn create_rule(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         req: &CreateAssignmentRuleRequest,
     ) -> Result<AssignmentRule, AppError>;
-    async fn get_rules(&self, workspace_id: Uuid) -> Result<Vec<AssignmentRule>, AppError>;
-    async fn get_active_rules(&self, workspace_id: Uuid) -> Result<Vec<AssignmentRule>, AppError>;
+    async fn get_rules(&self, auth_token: &crate::diesel_pool::TenantAuthToken) -> Result<Vec<AssignmentRule>, AppError>;
+    async fn get_active_rules(&self, auth_token: &crate::diesel_pool::TenantAuthToken) -> Result<Vec<AssignmentRule>, AppError>;
     async fn update_rule(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         id: Uuid,
         req: &UpdateAssignmentRuleRequest,
     ) -> Result<AssignmentRule, AppError>;
-    async fn delete_rule(&self, workspace_id: Uuid, id: Uuid) -> Result<(), AppError>;
+    async fn delete_rule(&self, auth_token: &crate::diesel_pool::TenantAuthToken, id: Uuid) -> Result<(), AppError>;
 }

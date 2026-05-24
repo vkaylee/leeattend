@@ -160,7 +160,7 @@ pub async fn get_workspace_schedules(
         .roster_repo
         .get_workspace_schedules(
             state.infra.roster_cache.as_deref(),
-            workspace_id,
+            &ctx.auth_token,
             start_date,
             end_date,
             None,
@@ -179,8 +179,7 @@ pub async fn get_assignment_history(
     let history = state
         .shifts
         .roster_repo
-        .get_assignment_history(
-            workspace_id,
+        .get_assignment_history(&ctx.auth_token,
             50, // Limit to last 50 entries
         )
         .await?;
@@ -207,7 +206,7 @@ pub async fn get_employee_rosters(
     let rosters = state
         .shifts
         .roster_repo
-        .get_employee_rosters(ctx.workspace_id, employee_id, start_date, end_date)
+        .get_employee_rosters(&ctx.auth_token, employee_id, start_date, end_date)
         .await?;
 
     Ok(Json(rosters))
@@ -234,7 +233,7 @@ pub async fn upsert_roster(
     let saved = state
         .shifts
         .roster_repo
-        .upsert_roster(ctx.workspace_id, &roster)
+        .upsert_roster(&ctx.auth_token, &roster)
         .await?;
 
     if let Some(cache) = &state.infra.roster_cache {
@@ -257,7 +256,7 @@ pub async fn bulk_upsert_roster(
     state
         .shifts
         .roster_repo
-        .bulk_upsert_roster(ctx.workspace_id, employee_id, req.items)
+        .bulk_upsert_roster(&ctx.auth_token, employee_id, req.items)
         .await?;
 
     if let Some(cache) = &state.infra.roster_cache {
@@ -280,7 +279,7 @@ pub async fn delete_roster(
     state
         .shifts
         .roster_repo
-        .delete_roster(ctx.workspace_id, employee_id, date)
+        .delete_roster(&ctx.auth_token, employee_id, date)
         .await?;
 
     if let Some(cache) = &state.infra.roster_cache {

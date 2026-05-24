@@ -23,7 +23,7 @@ pub async fn get_assignment_rules(
     let rules = state
         .shifts
         .assignment_rule_repo
-        .get_rules(ctx.workspace_id)
+        .get_rules(&ctx.auth_token)
         .await?;
     Ok(Json(rules))
 }
@@ -38,7 +38,7 @@ pub async fn create_assignment_rule(
     let rule = state
         .shifts
         .assignment_rule_repo
-        .create_rule(ctx.workspace_id, &req)
+        .create_rule(&ctx.auth_token, &req)
         .await?;
 
     if let Some(cache) = &state.infra.roster_cache {
@@ -59,7 +59,7 @@ pub async fn update_assignment_rule(
     let rule = state
         .shifts
         .assignment_rule_repo
-        .update_rule(ctx.workspace_id, rule_id, &req)
+        .update_rule(&ctx.auth_token, rule_id, &req)
         .await?;
 
     if let Some(cache) = &state.infra.roster_cache {
@@ -79,7 +79,7 @@ pub async fn delete_assignment_rule(
     state
         .shifts
         .assignment_rule_repo
-        .delete_rule(ctx.workspace_id, rule_id)
+        .delete_rule(&ctx.auth_token, rule_id)
         .await?;
 
     if let Some(cache) = &state.infra.roster_cache {

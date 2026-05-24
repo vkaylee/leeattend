@@ -91,7 +91,7 @@ pub async fn update_time_entry(
     let entry = state
         .attendance
         .time_tracking_service
-        .update_time_entry(workspace_id, id, req)
+        .update_time_entry(ctx.workspace_id, id, req)
         .await?;
 
     Ok(Json(entry))

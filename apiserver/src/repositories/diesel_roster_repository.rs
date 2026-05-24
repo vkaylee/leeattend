@@ -1,3 +1,4 @@
+#![allow(unused_imports)]
 use crate::errors::AppError;
 use async_trait::async_trait;
 use chrono::{NaiveDate, Utc};
@@ -28,11 +29,12 @@ impl RosterRepository for DieselRosterRepository {
     async fn get_workspace_schedules(
         &self,
         roster_cache: Option<&crate::cache::RosterCache>,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         start_date: NaiveDate,
         end_date: NaiveDate,
         employee_ids: Option<&Vec<Uuid>>,
     ) -> Result<Vec<EmployeeSchedule>, AppError> {
+        let workspace_id = auth_token.workspace_id();
         // 1. Fetch Roster Data (Cache or DB)
         let roster_data = match roster_cache {
             Some(cache) => cache
@@ -47,7 +49,7 @@ impl RosterRepository for DieselRosterRepository {
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
+            .get_pool(&auth_token.workspace_id())
             .await
             .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
@@ -186,8 +188,8 @@ impl RosterRepository for DieselRosterRepository {
 
             result.push(EmployeeSchedule {
                 employee_id: emp_id,
-                employee_id_number: emp_id_number,
-                full_name: emp_full_name,
+                employee_id_number: emp_id_number.to_string(),
+                full_name: emp_full_name.to_string(),
                 schedules: daily_schedules,
             });
         }
@@ -197,13 +199,14 @@ impl RosterRepository for DieselRosterRepository {
 
     async fn get_assignment_history(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         limit: i64,
     ) -> Result<Vec<crate::models::AssignmentHistory>, AppError> {
+        let workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
+            .get_pool(&auth_token.workspace_id())
             .await
             .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
@@ -313,15 +316,16 @@ impl RosterRepository for DieselRosterRepository {
 
     async fn get_employee_rosters(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id: Uuid,
         start_date: NaiveDate,
         end_date: NaiveDate,
     ) -> Result<Vec<ShiftRoster>, AppError> {
+        let _workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
+            .get_pool(&auth_token.workspace_id())
             .await
             .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
@@ -341,13 +345,14 @@ impl RosterRepository for DieselRosterRepository {
 
     async fn upsert_roster(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         roster: &ShiftRoster,
     ) -> Result<ShiftRoster, AppError> {
+        let _workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
+            .get_pool(&auth_token.workspace_id())
             .await
             .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
@@ -378,14 +383,15 @@ impl RosterRepository for DieselRosterRepository {
 
     async fn bulk_upsert_roster(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id: Uuid,
         items: Vec<RosterItem>,
     ) -> Result<(), AppError> {
+        let _workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
+            .get_pool(&auth_token.workspace_id())
             .await
             .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
@@ -425,14 +431,15 @@ impl RosterRepository for DieselRosterRepository {
 
     async fn get_effective_shift(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id: Uuid,
         date: NaiveDate,
     ) -> Result<(Option<Uuid>, Vec<ScheduleTrace>), AppError> {
+        let workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
+            .get_pool(&auth_token.workspace_id())
             .await
             .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
@@ -695,14 +702,15 @@ impl RosterRepository for DieselRosterRepository {
 
     async fn delete_roster(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id: Uuid,
         date: NaiveDate,
     ) -> Result<(), AppError> {
+        let _workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
+            .get_pool(&auth_token.workspace_id())
             .await
             .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()

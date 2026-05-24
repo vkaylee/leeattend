@@ -184,7 +184,7 @@ pub async fn get_my_attendance(
     let entries = state
         .attendance
         .time_entry_repo
-        .get_employee_time_entries(employee.workspace_id, employee.employee_id, from, to)
+        .get_employee_time_entries(&crate::diesel_pool::TenantAuthToken::system_override(employee.workspace_id), employee.employee_id, from, to)
         .await?;
 
     Ok(Json(entries))
@@ -264,7 +264,7 @@ pub async fn get_my_leave_balances(
     let balances = state
         .leaves
         .balance_repo
-        .get_employee_balances(employee.workspace_id, employee.employee_id, year)
+        .get_employee_balances(&crate::diesel_pool::TenantAuthToken::system_override(employee.workspace_id), employee.employee_id, year)
         .await?;
 
     let ess_balances = balances
@@ -290,7 +290,7 @@ pub async fn ess_get_my_leave_requests(
     let requests = state
         .leaves
         .request_repo
-        .get_employee_leave_requests(employee.workspace_id, employee.employee_id)
+        .get_employee_leave_requests(&crate::diesel_pool::TenantAuthToken::system_override(employee.workspace_id), employee.employee_id)
         .await?;
 
     Ok(Json(requests))

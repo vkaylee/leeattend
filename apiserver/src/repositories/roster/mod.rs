@@ -17,7 +17,7 @@ pub trait RosterRepository: Send + Sync {
     async fn get_workspace_schedules(
         &self,
         roster_cache: Option<&crate::cache::RosterCache>,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         start_date: NaiveDate,
         end_date: NaiveDate,
         employee_ids: Option<&Vec<Uuid>>,
@@ -25,13 +25,13 @@ pub trait RosterRepository: Send + Sync {
 
     async fn get_assignment_history(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         limit: i64,
     ) -> Result<Vec<crate::models::AssignmentHistory>, AppError>;
 
     async fn get_employee_rosters(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id: Uuid,
         start_date: NaiveDate,
         end_date: NaiveDate,
@@ -39,27 +39,27 @@ pub trait RosterRepository: Send + Sync {
 
     async fn upsert_roster(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         roster: &ShiftRoster,
     ) -> Result<ShiftRoster, AppError>;
 
     async fn bulk_upsert_roster(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id: Uuid,
         items: Vec<crate::models::RosterItem>,
     ) -> Result<(), AppError>;
 
     async fn get_effective_shift(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id: Uuid,
         date: NaiveDate,
     ) -> Result<(Option<Uuid>, Vec<crate::models::ScheduleTrace>), AppError>;
 
     async fn delete_roster(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id: Uuid,
         date: NaiveDate,
     ) -> Result<(), AppError>;

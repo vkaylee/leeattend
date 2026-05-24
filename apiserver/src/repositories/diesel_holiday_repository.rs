@@ -24,11 +24,12 @@ impl DieselHolidayRepository {
 
 #[async_trait]
 impl HolidayRepository for DieselHolidayRepository {
-    async fn list(&self, workspace_id: Uuid, year: Option<i32>) -> Result<Vec<Holiday>, AppError> {
+    async fn list(&self, auth_token: &crate::diesel_pool::TenantAuthToken, year: Option<i32>) -> Result<Vec<Holiday>, AppError> {
+        let workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
+            .get_pool(&auth_token.workspace_id())
             .await
             .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
@@ -59,11 +60,12 @@ impl HolidayRepository for DieselHolidayRepository {
         Ok(entities.into_iter().map(Into::into).collect())
     }
 
-    async fn get_by_id(&self, workspace_id: Uuid, id: Uuid) -> Result<Option<Holiday>, AppError> {
+    async fn get_by_id(&self, auth_token: &crate::diesel_pool::TenantAuthToken, id: Uuid) -> Result<Option<Holiday>, AppError> {
+        let workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
+            .get_pool(&auth_token.workspace_id())
             .await
             .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
@@ -83,13 +85,14 @@ impl HolidayRepository for DieselHolidayRepository {
 
     async fn create_holiday(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         req: &crate::models::CreateHolidayRequest,
     ) -> Result<Holiday, AppError> {
+        let workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
+            .get_pool(&auth_token.workspace_id())
             .await
             .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
@@ -123,14 +126,15 @@ impl HolidayRepository for DieselHolidayRepository {
 
     async fn update_holiday(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         id: Uuid,
         req: &crate::models::UpdateHolidayRequest,
     ) -> Result<Option<Holiday>, AppError> {
+        let workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
+            .get_pool(&auth_token.workspace_id())
             .await
             .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
@@ -166,11 +170,12 @@ impl HolidayRepository for DieselHolidayRepository {
         Ok(result.map(Into::into))
     }
 
-    async fn delete(&self, workspace_id: Uuid, id: Uuid) -> Result<bool, AppError> {
+    async fn delete(&self, auth_token: &crate::diesel_pool::TenantAuthToken, id: Uuid) -> Result<bool, AppError> {
+        let workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
+            .get_pool(&auth_token.workspace_id())
             .await
             .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
@@ -189,14 +194,15 @@ impl HolidayRepository for DieselHolidayRepository {
 
     async fn get_holidays_in_range(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         start_date: NaiveDate,
         end_date: NaiveDate,
     ) -> Result<HashMap<NaiveDate, Holiday>, AppError> {
+        let workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
+            .get_pool(&auth_token.workspace_id())
             .await
             .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
@@ -217,13 +223,14 @@ impl HolidayRepository for DieselHolidayRepository {
 
     async fn is_holiday(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         date: NaiveDate,
     ) -> Result<Option<Holiday>, AppError> {
+        let workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
+            .get_pool(&auth_token.workspace_id())
             .await
             .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()

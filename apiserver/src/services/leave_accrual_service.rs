@@ -124,7 +124,7 @@ impl LeaveAccrualService {
 
         let work_days = self
             .time_entry_repo
-            .get_distinct_work_days(workspace_id, employee_id, start_dt, end_dt, &tz.to_string())
+            .get_distinct_work_days(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id), employee_id, start_dt, end_dt, &tz.to_string())
             .await?;
 
         for date in work_days {
@@ -134,7 +134,7 @@ impl LeaveAccrualService {
         // Approved Leave days
         let leave_days = self
             .leave_request_repo
-            .get_approved_leave_periods(workspace_id, employee_id, start_date, end_date)
+            .get_approved_leave_periods(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id), employee_id, start_date, end_date)
             .await?;
 
         for (req_start, req_end) in leave_days {
@@ -371,7 +371,7 @@ impl LeaveAccrualService {
 
         let work_days = self
             .time_entry_repo
-            .get_distinct_work_days(workspace_id, employee_id, start_dt, end_dt, &tz.to_string())
+            .get_distinct_work_days(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id), employee_id, start_dt, end_dt, &tz.to_string())
             .await?;
 
         let mut result: HashMap<NaiveDate, i32> = HashMap::new();
@@ -384,7 +384,7 @@ impl LeaveAccrualService {
 
         let leave_days = self
             .leave_request_repo
-            .get_approved_leave_periods(workspace_id, employee_id, range_start, range_end)
+            .get_approved_leave_periods(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id), employee_id, range_start, range_end)
             .await?;
 
         for (req_start, req_end) in leave_days {

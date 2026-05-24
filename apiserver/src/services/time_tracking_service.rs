@@ -80,7 +80,7 @@ impl TimeTrackingService {
         // for backward compatibility with systems expecting 0=IN, 1=OUT
         let is_in = self
             .repo
-            .get_latest_active_entry(workspace_id, employee_id)
+            .get_latest_active_entry(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id), employee_id)
             .await?
             .is_none();
 
@@ -99,13 +99,13 @@ impl TimeTrackingService {
             // 1. Identify effective shift
             let (shift_id, _) = self
                 .roster_repo
-                .get_effective_shift(workspace_id, employee_id, today)
+                .get_effective_shift(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id), employee_id, today)
                 .await?;
 
             if let Some(sid) = shift_id {
                 let shift = self
                     .shift_repo
-                    .get_shift_by_id(workspace_id, sid)
+                    .get_shift_by_id(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id), sid)
                     .await?
                     .ok_or(AppError::Internal("Shift not found".into()))?;
 
@@ -154,7 +154,7 @@ impl TimeTrackingService {
 
         let entry = self
             .repo
-            .get_latest_entry_for_employee(workspace_id, employee_id)
+            .get_latest_entry_for_employee(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id), employee_id)
             .await?
             .ok_or(AppError::Internal("Failed to fetch punched entry".into()))?;
 
@@ -177,7 +177,7 @@ impl TimeTrackingService {
             .ok_or(AppError::NotFound("Employee not found".into()))?;
 
         self.repo
-            .get_employee_time_entries(workspace_id, employee_id, start_date, end_date)
+            .get_employee_time_entries(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id), employee_id, start_date, end_date)
             .await
     }
 
@@ -190,7 +190,7 @@ impl TimeTrackingService {
     ) -> Result<TimeEntry, AppError> {
         let mut entry = self
             .repo
-            .get_time_entry_by_id(workspace_id, id)
+            .get_time_entry_by_id(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id), id)
             .await?
             .ok_or(AppError::NotFound("Time entry not found".into()))?;
 
@@ -221,7 +221,7 @@ impl TimeTrackingService {
             entry.duration_minutes = Some(duration.num_minutes() as i32);
         }
 
-        self.repo.update_time_entry(workspace_id, &entry).await?;
+        self.repo.update_time_entry(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id), &entry).await?;
 
         // Recalculate summary
         if let Ok(Some(ws)) = self.workspace_repo.get_workspace_by_id(workspace_id).await {
@@ -251,7 +251,7 @@ impl TimeTrackingService {
     pub async fn delete_time_entry(&self, workspace_id: Uuid, id: Uuid) -> Result<(), AppError> {
         let entry = self
             .repo
-            .get_time_entry_by_id(workspace_id, id)
+            .get_time_entry_by_id(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id), id)
             .await?
             .ok_or(AppError::NotFound("Time entry not found".into()))?;
 
@@ -264,7 +264,7 @@ impl TimeTrackingService {
                 "Employee does not belong to workspace".into(),
             ))?;
 
-        self.repo.delete_time_entry(workspace_id, id).await?;
+        self.repo.delete_time_entry(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id), id).await?;
 
         Ok(())
     }

@@ -1,6 +1,5 @@
 use crate::errors::AppError;
 use async_trait::async_trait;
-use uuid::Uuid;
 
 // ---------------------------------------------------------------------------
 // Trait: AttendanceLogErrorRepository — DIP abstraction
@@ -10,7 +9,7 @@ use uuid::Uuid;
 pub trait AttendanceLogErrorRepository: Send + Sync {
     async fn create_error_log(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         agent_id: Option<String>,
         raw_content: Option<serde_json::Value>,
         error_message: &str,
@@ -18,7 +17,7 @@ pub trait AttendanceLogErrorRepository: Send + Sync {
     ) -> Result<(), AppError>;
     async fn create_error_log_with_fingerprint(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         agent_id: Option<String>,
         raw_content: Option<serde_json::Value>,
         error_message: &str,

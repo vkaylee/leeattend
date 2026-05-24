@@ -68,7 +68,7 @@ pub async fn approve_leave_request(
     let target_dept_id = state
         .leaves
         .request_repo
-        .get_employee_department_for_request(id, ctx.workspace_id)
+        .get_employee_department_for_request(id, &ctx.auth_token)
         .await?;
 
     ctx.require_any_scoped_permission(
@@ -97,7 +97,7 @@ pub async fn get_my_leave_requests(
     let requests = state
         .leaves
         .request_repo
-        .get_employee_leave_requests(ctx.workspace_id, id)
+        .get_employee_leave_requests(&ctx.auth_token, id)
         .await?;
     Ok(Json(requests))
 }
@@ -649,7 +649,7 @@ pub async fn download_leave_import_template(
     let leave_types = state
         .leaves
         .request_repo
-        .get_leave_types(ctx.workspace_id)
+        .get_leave_types(&ctx.auth_token)
         .await?;
 
     let lang = query.lang.as_deref().unwrap_or("en");

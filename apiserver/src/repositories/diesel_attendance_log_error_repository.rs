@@ -1,6 +1,5 @@
 use async_trait::async_trait;
 use diesel_async::RunQueryDsl;
-use uuid::Uuid;
 
 use crate::errors::AppError;
 use crate::models::diesel::attendance_log::AttendanceLogErrorEntity;
@@ -21,16 +20,17 @@ impl DieselAttendanceLogErrorRepository {
 impl AttendanceLogErrorRepository for DieselAttendanceLogErrorRepository {
     async fn create_error_log(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         agent_id: Option<String>,
         raw_content: Option<serde_json::Value>,
         error_message: &str,
         source: &str,
     ) -> Result<(), AppError> {
+        let workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
+            .get_pool(&auth_token.workspace_id())
             .await
             .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
@@ -59,17 +59,18 @@ impl AttendanceLogErrorRepository for DieselAttendanceLogErrorRepository {
 
     async fn create_error_log_with_fingerprint(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         agent_id: Option<String>,
         raw_content: Option<serde_json::Value>,
         error_message: &str,
         source: &str,
         fingerprint: &str,
     ) -> Result<bool, AppError> {
+        let workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
+            .get_pool(&auth_token.workspace_id())
             .await
             .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()

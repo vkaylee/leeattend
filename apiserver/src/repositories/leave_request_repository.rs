@@ -12,29 +12,29 @@ use uuid::Uuid;
 pub trait LeaveRequestRepository: Send + Sync {
     async fn create_leave_request(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         request: &LeaveRequest,
     ) -> Result<(), AppError>;
     async fn get_leave_request_by_id(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         id: Uuid,
     ) -> Result<Option<LeaveRequest>, AppError>;
     async fn update_leave_request_status(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         id: Uuid,
         status: LeaveStatus,
         approved_by: Option<Uuid>,
     ) -> Result<(), AppError>;
     async fn get_employee_leave_requests(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id: Uuid,
     ) -> Result<Vec<LeaveRequest>, AppError>;
     async fn get_workspace_leave_requests(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         status: Option<LeaveStatus>,
     ) -> Result<Vec<LeaveRequest>, AppError>;
     async fn get_approved_leave_breakdown(
@@ -42,30 +42,30 @@ pub trait LeaveRequestRepository: Send + Sync {
         employee_id: Uuid,
         start_date: NaiveDate,
         end_date: NaiveDate,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<LeaveBreakdown, AppError>;
     /// Get the employee's current department for a given leave request.
     /// Used for scoped permission checks in approval flows.
     async fn get_employee_department_for_request(
         &self,
         request_id: Uuid,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<Option<Uuid>, AppError>;
     /// List all leave types (code, name) for a workspace.
-    async fn get_leave_types(&self, workspace_id: Uuid) -> Result<Vec<(String, String)>, AppError>;
+    async fn get_leave_types(&self, auth_token: &crate::diesel_pool::TenantAuthToken) -> Result<Vec<(String, String)>, AppError>;
 
     async fn get_system_generated_holiday_leave(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id: Uuid,
         date: NaiveDate,
     ) -> Result<Option<(Uuid, Uuid, String)>, AppError>;
 
-    async fn cancel_leave_request(&self, workspace_id: Uuid, id: Uuid) -> Result<(), AppError>;
+    async fn cancel_leave_request(&self, auth_token: &crate::diesel_pool::TenantAuthToken, id: Uuid) -> Result<(), AppError>;
 
     async fn get_employee_leave_history_requests(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id: Uuid,
         year: i32,
         leave_type_id: Option<Uuid>,
@@ -73,19 +73,19 @@ pub trait LeaveRequestRepository: Send + Sync {
 
     async fn check_leave_type_exists(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         leave_type_id: Uuid,
     ) -> Result<bool, AppError>;
 
     async fn get_leave_type_name(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         leave_type_id: Uuid,
     ) -> Result<Option<String>, AppError>;
 
     async fn get_unpaid_holiday_days_without_leave(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id: Uuid,
         start_date: NaiveDate,
         end_date: NaiveDate,
@@ -93,7 +93,7 @@ pub trait LeaveRequestRepository: Send + Sync {
 
     async fn get_batch_leave_days(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_ids: &[Uuid],
         start_date: NaiveDate,
         end_date: NaiveDate,
@@ -101,7 +101,7 @@ pub trait LeaveRequestRepository: Send + Sync {
 
     async fn get_approved_leave_dates(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_ids: &[Uuid],
         start_date: NaiveDate,
         end_date: NaiveDate,
@@ -109,7 +109,7 @@ pub trait LeaveRequestRepository: Send + Sync {
 
     async fn get_approved_leave_periods(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id: Uuid,
         start_date: NaiveDate,
         end_date: NaiveDate,

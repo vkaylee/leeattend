@@ -22,16 +22,17 @@ impl DieselAttendanceDailySummaryRepository {
 impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository {
     async fn get_summary(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id: Uuid,
         date: NaiveDate,
     ) -> Result<Option<AttendanceDailySummary>, AppError> {
+        let workspace_id = auth_token.workspace_id();
         use crate::schema::attendance_daily_summaries::dsl as ads;
 
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
+            .get_pool(&auth_token.workspace_id())
             .await
             .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
@@ -54,7 +55,7 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
     #[allow(clippy::too_many_arguments)]
     async fn upsert_calculated_summary(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id: Uuid,
         date: NaiveDate,
         actual_work_minutes: i32,
@@ -63,13 +64,14 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
         is_holiday: bool,
         holiday_name: Option<String>,
     ) -> Result<(), AppError> {
+        let workspace_id = auth_token.workspace_id();
         use crate::schema::attendance_daily_summaries::dsl as ads;
         use diesel::upsert::excluded;
 
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
+            .get_pool(&auth_token.workspace_id())
             .await
             .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
@@ -111,18 +113,19 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
 
     async fn claim_ot(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id: Uuid,
         date: NaiveDate,
         claimed_minutes: i32,
         reason: Option<String>,
     ) -> Result<usize, AppError> {
+        let workspace_id = auth_token.workspace_id();
         use crate::schema::attendance_daily_summaries::dsl as ads;
 
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
+            .get_pool(&auth_token.workspace_id())
             .await
             .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
@@ -153,19 +156,20 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
 
     async fn approve_ot(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id: Uuid,
         date: NaiveDate,
         approved_minutes: i32,
         manager_note: Option<String>,
         status: OtStatus,
     ) -> Result<usize, AppError> {
+        let workspace_id = auth_token.workspace_id();
         use crate::schema::attendance_daily_summaries::dsl as ads;
 
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
+            .get_pool(&auth_token.workspace_id())
             .await
             .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
@@ -193,7 +197,7 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
     #[allow(clippy::too_many_arguments)]
     async fn upsert_paper_ot(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id: Uuid,
         date: NaiveDate,
         claimed_minutes: i32,
@@ -201,13 +205,14 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
         entered_by_user_id: Uuid,
         photo_url: Option<String>,
     ) -> Result<AttendanceDailySummary, AppError> {
+        let workspace_id = auth_token.workspace_id();
         use crate::schema::attendance_daily_summaries::dsl as ads;
         use diesel::upsert::excluded;
 
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
+            .get_pool(&auth_token.workspace_id())
             .await
             .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
@@ -252,17 +257,18 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
 
     async fn get_batch_ot_statuses(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_ids: &[Uuid],
         start_date: NaiveDate,
         end_date: NaiveDate,
     ) -> Result<std::collections::HashMap<(Uuid, NaiveDate), String>, AppError> {
+        let workspace_id = auth_token.workspace_id();
         use crate::schema::attendance_daily_summaries::dsl as ads;
 
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
+            .get_pool(&auth_token.workspace_id())
             .await
             .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
@@ -287,17 +293,18 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
 
     async fn get_summaries(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id: Option<Uuid>,
         start_date: NaiveDate,
         end_date: NaiveDate,
     ) -> Result<Vec<AttendanceDailySummary>, AppError> {
+        let workspace_id = auth_token.workspace_id();
         use crate::schema::attendance_daily_summaries::dsl as ads;
 
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
+            .get_pool(&auth_token.workspace_id())
             .await
             .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
@@ -326,17 +333,18 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
 
     async fn get_distinct_work_days_from_summary(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id: Uuid,
         start_date: NaiveDate,
         end_date: NaiveDate,
     ) -> Result<Vec<NaiveDate>, AppError> {
+        let workspace_id = auth_token.workspace_id();
         use crate::schema::attendance_daily_summaries::dsl as ads;
 
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
+            .get_pool(&auth_token.workspace_id())
             .await
             .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()

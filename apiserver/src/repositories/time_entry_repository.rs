@@ -13,58 +13,58 @@ use uuid::Uuid;
 pub trait TimeEntryRepository: Send + Sync {
     async fn create_time_entry(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         entry: &TimeEntry,
     ) -> Result<(), AppError>;
     async fn get_time_entry_by_id(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         id: Uuid,
     ) -> Result<Option<TimeEntry>, AppError>;
     async fn get_active_time_entry(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id: Uuid,
     ) -> Result<Option<TimeEntry>, AppError>;
     async fn get_latest_active_entry(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id: Uuid,
     ) -> Result<Option<TimeEntry>, AppError>;
 
     async fn get_latest_entry_for_employee(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id: Uuid,
     ) -> Result<Option<TimeEntry>, AppError>;
     async fn update_time_entry(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         entry: &TimeEntry,
     ) -> Result<(), AppError>;
-    async fn delete_time_entry(&self, workspace_id: Uuid, id: Uuid) -> Result<(), AppError>;
+    async fn delete_time_entry(&self, auth_token: &crate::diesel_pool::TenantAuthToken, id: Uuid) -> Result<(), AppError>;
     async fn get_employee_time_entries(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id: Uuid,
         from: DateTime<Utc>,
         to: DateTime<Utc>,
     ) -> Result<Vec<TimeEntry>, AppError>;
     async fn get_paginated_logs(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         filter: crate::models::TimeEntryLogFilter,
     ) -> Result<Vec<TimeEntryWithEmployee>, AppError>;
     async fn count_logs(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         p_employee_id: Option<Uuid>,
         p_from: Option<DateTime<Utc>>,
         p_to: Option<DateTime<Utc>>,
     ) -> Result<i64, AppError>;
     async fn get_distinct_work_days(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id: Uuid,
         start_time: DateTime<Utc>,
         end_time: DateTime<Utc>,
@@ -72,14 +72,14 @@ pub trait TimeEntryRepository: Send + Sync {
     ) -> Result<Vec<chrono::NaiveDate>, AppError>;
     async fn get_workspace_time_entries_batch(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_ids: &[Uuid],
         from: DateTime<Utc>,
         to: DateTime<Utc>,
     ) -> Result<HashMap<Uuid, Vec<TimeEntry>>, AppError>;
     async fn replace_time_entries(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id: Uuid,
         start_time: DateTime<Utc>,
         end_time: DateTime<Utc>,

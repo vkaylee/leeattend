@@ -59,7 +59,7 @@ pub async fn create_working_pattern(
 
     // For days with >1 shift, validate no time overlaps
     if !day_shifts.is_empty() {
-        let all_shifts = shift_repo.get_workspace_shifts(workspace_id).await?;
+        let all_shifts = shift_repo.get_workspace_shifts(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id)).await?;
         let shift_map: HashMap<Uuid, _> = all_shifts.into_iter().map(|s| (s.id, s)).collect();
 
         for shift_ids in day_shifts.values() {
@@ -147,7 +147,7 @@ pub async fn update_working_pattern(
     }
 
     if !day_shifts.is_empty() {
-        let all_shifts = shift_repo.get_workspace_shifts(workspace_id).await?;
+        let all_shifts = shift_repo.get_workspace_shifts(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id)).await?;
         let shift_map: HashMap<Uuid, _> = all_shifts.into_iter().map(|s| (s.id, s)).collect();
 
         for shift_ids in day_shifts.values() {

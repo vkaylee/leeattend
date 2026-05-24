@@ -31,7 +31,7 @@ pub async fn list_holidays(
     let holidays = state
         .leaves
         .holiday_repo
-        .list(ctx.workspace_id, query.year)
+        .list(&ctx.auth_token, query.year)
         .await?;
 
     Ok(Json(holidays))
@@ -46,7 +46,7 @@ pub async fn get_holiday(
     let holiday = state
         .leaves
         .holiday_repo
-        .get_by_id(ctx.workspace_id, id)
+        .get_by_id(&ctx.auth_token, id)
         .await?
         .ok_or_else(|| AppError::NotFound("Holiday not found".to_string()))?;
 
@@ -64,7 +64,7 @@ pub async fn create_holiday(
     let holiday = state
         .leaves
         .holiday_repo
-        .create_holiday(ctx.workspace_id, &req)
+        .create_holiday(&ctx.auth_token, &req)
         .await
         .map_err(|e| {
             if e.to_string().contains("unique") || e.to_string().contains("duplicate") {
@@ -89,7 +89,7 @@ pub async fn update_holiday(
     let holiday = state
         .leaves
         .holiday_repo
-        .update_holiday(ctx.workspace_id, id, &req)
+        .update_holiday(&ctx.auth_token, id, &req)
         .await?
         .ok_or_else(|| AppError::NotFound("Holiday not found".to_string()))?;
 
@@ -107,7 +107,7 @@ pub async fn delete_holiday(
     let deleted = state
         .leaves
         .holiday_repo
-        .delete(ctx.workspace_id, id)
+        .delete(&ctx.auth_token, id)
         .await?;
 
     if deleted {
@@ -129,7 +129,7 @@ pub async fn process_holiday_leave(
     let holiday = state
         .leaves
         .holiday_repo
-        .get_by_id(ctx.workspace_id, id)
+        .get_by_id(&ctx.auth_token, id)
         .await?
         .ok_or_else(|| AppError::NotFound("Holiday not found".to_string()))?;
 

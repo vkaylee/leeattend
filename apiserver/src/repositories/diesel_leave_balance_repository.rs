@@ -28,14 +28,15 @@ impl DieselLeaveBalanceRepository {
 impl LeaveBalanceRepository for DieselLeaveBalanceRepository {
     async fn get_employee_balances(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id: Uuid,
         year: i32,
     ) -> Result<Vec<EmployeeLeaveBalance>, AppError> {
+        let workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
+            .get_pool(&auth_token.workspace_id())
             .await
             .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
@@ -93,16 +94,17 @@ impl LeaveBalanceRepository for DieselLeaveBalanceRepository {
 
     async fn get_workspace_balances(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         year: i32,
         limit: i64,
         offset: i64,
         search: Option<String>,
     ) -> Result<(Vec<WorkspaceLeaveBalance>, i64), AppError> {
+        let workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
+            .get_pool(&auth_token.workspace_id())
             .await
             .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
@@ -239,13 +241,14 @@ impl LeaveBalanceRepository for DieselLeaveBalanceRepository {
 
     async fn upsert_leave_balance(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         balance: &LeaveBalance,
     ) -> Result<(), AppError> {
+        let _workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
+            .get_pool(&auth_token.workspace_id())
             .await
             .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
@@ -287,17 +290,18 @@ impl LeaveBalanceRepository for DieselLeaveBalanceRepository {
 
     async fn adjust_balance(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id: Uuid,
         leave_type_id: Uuid,
         amount: rust_decimal::Decimal,
         transaction_date: chrono::NaiveDate,
         reason: &str,
     ) -> Result<(), AppError> {
+        let workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
+            .get_pool(&auth_token.workspace_id())
             .await
             .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()

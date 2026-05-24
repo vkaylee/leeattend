@@ -9,7 +9,7 @@ use uuid::Uuid;
 pub trait AttendanceDailySummaryRepository: Send + Sync {
     async fn get_summary(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id: Uuid,
         date: NaiveDate,
     ) -> Result<Option<AttendanceDailySummary>, AppError>;
@@ -17,7 +17,7 @@ pub trait AttendanceDailySummaryRepository: Send + Sync {
     #[allow(clippy::too_many_arguments)]
     async fn upsert_calculated_summary(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id: Uuid,
         date: NaiveDate,
         actual_work_minutes: i32,
@@ -29,7 +29,7 @@ pub trait AttendanceDailySummaryRepository: Send + Sync {
 
     async fn claim_ot(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id: Uuid,
         date: NaiveDate,
         claimed_minutes: i32,
@@ -38,7 +38,7 @@ pub trait AttendanceDailySummaryRepository: Send + Sync {
 
     async fn approve_ot(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id: Uuid,
         date: NaiveDate,
         approved_minutes: i32,
@@ -49,7 +49,7 @@ pub trait AttendanceDailySummaryRepository: Send + Sync {
     #[allow(clippy::too_many_arguments)]
     async fn upsert_paper_ot(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id: Uuid,
         date: NaiveDate,
         claimed_minutes: i32,
@@ -60,7 +60,7 @@ pub trait AttendanceDailySummaryRepository: Send + Sync {
 
     async fn get_batch_ot_statuses(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_ids: &[Uuid],
         start_date: NaiveDate,
         end_date: NaiveDate,
@@ -68,7 +68,7 @@ pub trait AttendanceDailySummaryRepository: Send + Sync {
 
     async fn get_summaries(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id: Option<Uuid>,
         start_date: NaiveDate,
         end_date: NaiveDate,
@@ -76,7 +76,7 @@ pub trait AttendanceDailySummaryRepository: Send + Sync {
 
     async fn get_distinct_work_days_from_summary(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id: Uuid,
         start_date: NaiveDate,
         end_date: NaiveDate,

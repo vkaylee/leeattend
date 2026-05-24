@@ -136,7 +136,7 @@ impl FinancialCalculator {
                 args.employee_id,
                 args.start_date,
                 args.end_date,
-                args.workspace_id,
+                &crate::diesel_pool::TenantAuthToken::system_override(args.workspace_id),
             )
             .await
             .map_err(|e| {
@@ -191,7 +191,7 @@ impl FinancialCalculator {
                 args.employee_id,
                 args.start_date,
                 args.end_date,
-                args.workspace_id,
+                &crate::diesel_pool::TenantAuthToken::system_override(args.workspace_id),
             )
             .await
             .map_err(|e| {
@@ -211,8 +211,7 @@ impl FinancialCalculator {
 
         // Deductions for unpaid holidays where employee has no leave request
         let unpaid_holiday_days: i64 = leave_repo
-            .get_unpaid_holiday_days_without_leave(
-                args.workspace_id,
+            .get_unpaid_holiday_days_without_leave(&crate::diesel_pool::TenantAuthToken::system_override(args.workspace_id),
                 args.employee_id,
                 args.start_date,
                 args.end_date,

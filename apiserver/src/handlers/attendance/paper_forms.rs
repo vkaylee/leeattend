@@ -250,7 +250,7 @@ pub async fn bulk_upload_paper_ot(
         let existing_summary = state
             .attendance
             .attendance_daily_summary_repo
-            .get_summary(ctx.workspace_id, employee.id, date)
+            .get_summary(&ctx.auth_token, employee.id, date)
             .await;
 
         if let Ok(Some(summary)) = existing_summary {

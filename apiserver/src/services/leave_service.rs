@@ -57,7 +57,7 @@ impl LeaveService {
 
         let (data, total) = self
             .leave_balance_repo
-            .get_workspace_balances(workspace_id, year, limit, offset, params.q)
+            .get_workspace_balances(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id), year, limit, offset, params.q)
             .await
             .map_err(|e| {
                 tracing::error!(error = %e, "SQLx Error in get_workspace_balances");
@@ -87,7 +87,7 @@ impl LeaveService {
 
         let requests = self
             .leave_request_repo
-            .get_employee_leave_history_requests(workspace_id, employee_id, year, leave_type_id)
+            .get_employee_leave_history_requests(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id), employee_id, year, leave_type_id)
             .await?;
 
         let mut history: Vec<LeaveHistoryItem> = Vec::new();
@@ -162,8 +162,7 @@ impl LeaveService {
             .ok_or(AppError::Validation("Invalid request".into()))?;
 
         self.leave_balance_repo
-            .adjust_balance(
-                workspace_id,
+            .adjust_balance(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
                 employee_id,
                 req.leave_type_id,
                 amount_dec,
@@ -188,7 +187,7 @@ impl LeaveService {
             .ok_or(AppError::NotFound("Not found".into()))?;
 
         self.leave_balance_repo
-            .get_employee_balances(workspace_id, employee_id, year)
+            .get_employee_balances(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id), employee_id, year)
             .await
     }
 
@@ -210,7 +209,7 @@ impl LeaveService {
         // Validate leave_type_id exists for this workspace
         if !self
             .leave_request_repo
-            .check_leave_type_exists(workspace_id, req.leave_type_id)
+            .check_leave_type_exists(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id), req.leave_type_id)
             .await?
         {
             return Err(AppError::Validation("Invalid request".into()));
@@ -271,7 +270,7 @@ impl LeaveService {
         };
 
         self.leave_request_repo
-            .create_leave_request(workspace_id, &request)
+            .create_leave_request(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id), &request)
             .await
             .map_err(|e| {
                 tracing::error!(error = %e, "SQLx Error in submit_leave_request");
@@ -295,7 +294,7 @@ impl LeaveService {
     ) -> Result<(), AppError> {
         let leave_type_name = self
             .leave_request_repo
-            .get_leave_type_name(workspace_id, request.leave_type_id)
+            .get_leave_type_name(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id), request.leave_type_id)
             .await?
             .unwrap_or_else(|| "Leave".to_string());
 
@@ -330,7 +329,7 @@ impl LeaveService {
 
             let _ = self
                 .roster_repo
-                .upsert_roster(workspace_id, &roster)
+                .upsert_roster(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id), &roster)
                 .await
                 .map_err(|e| {
                     tracing::error!(error = %e, "SQLx Error in apply_leave_to_roster");
@@ -357,7 +356,7 @@ impl LeaveService {
     ) -> Result<(), AppError> {
         let request = self
             .leave_request_repo
-            .get_leave_request_by_id(workspace_id, request_id)
+            .get_leave_request_by_id(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id), request_id)
             .await?
             .ok_or(AppError::NotFound("Not found".into()))?;
 
@@ -369,7 +368,7 @@ impl LeaveService {
             .ok_or(AppError::Forbidden("Forbidden".into()))?;
 
         self.leave_request_repo
-            .update_leave_request_status(workspace_id, request_id, req.status, Some(user_id))
+            .update_leave_request_status(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id), request_id, req.status, Some(user_id))
             .await
             .map_err(|e| {
                 tracing::error!(error = %e, "SQLx Error in approve_leave_request");
@@ -398,7 +397,7 @@ impl LeaveService {
             .ok_or(AppError::NotFound("Not found".into()))?;
 
         self.leave_request_repo
-            .get_employee_leave_requests(workspace_id, employee_id)
+            .get_employee_leave_requests(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id), employee_id)
             .await
     }
 
@@ -409,7 +408,7 @@ impl LeaveService {
         status: Option<LeaveStatus>,
     ) -> Result<Vec<LeaveRequest>, AppError> {
         self.leave_request_repo
-            .get_workspace_leave_requests(workspace_id, status)
+            .get_workspace_leave_requests(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id), status)
             .await
     }
 }

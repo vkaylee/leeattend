@@ -24,7 +24,7 @@ pub async fn get_incentive_policies(
     let policies = state
         .payroll
         .repo
-        .get_active_incentive_policies(workspace_id)
+        .get_active_incentive_policies(ctx.workspace_id)
         .await?;
 
     let mut response = Vec::new();
@@ -32,7 +32,7 @@ pub async fn get_incentive_policies(
         let tiers = state
             .payroll
             .repo
-            .get_policy_tiers(workspace_id, policy.id)
+            .get_policy_tiers(ctx.workspace_id, policy.id)
             .await?;
         response.push(PayrollIncentivePolicyResponse { policy, tiers });
     }

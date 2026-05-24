@@ -183,12 +183,12 @@ impl PayrollService {
 
         let time_entries = self
             .time_entry_repo
-            .get_employee_time_entries(workspace_id, employee_id, start_dt, end_dt)
+            .get_employee_time_entries(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id), employee_id, start_dt, end_dt)
             .await?;
 
         let holidays_map = self
             .holiday_repo
-            .get_holidays_in_range(workspace_id, start_date, end_date)
+            .get_holidays_in_range(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id), start_date, end_date)
             .await?;
 
         let roster_data = self
@@ -211,7 +211,7 @@ impl PayrollService {
 
         let rosters = self
             .roster_repo
-            .get_employee_rosters(workspace_id, employee_id, start_date, end_date)
+            .get_employee_rosters(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id), employee_id, start_date, end_date)
             .await?;
         let payroll_roster_map: HashMap<(Uuid, NaiveDate), Option<Uuid>> = rosters
             .into_iter()

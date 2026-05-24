@@ -102,7 +102,7 @@ pub async fn get_shift_swap_stats(
     let stats = state
         .shifts
         .swap_repo
-        .get_workspace_swap_stats(ctx.workspace_id)
+        .get_workspace_swap_stats(&ctx.auth_token)
         .await
         .map_err(|e| {
             AppError::from((

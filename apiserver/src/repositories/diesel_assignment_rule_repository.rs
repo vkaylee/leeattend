@@ -27,13 +27,14 @@ impl DieselAssignmentRuleRepository {
 impl AssignmentRuleRepository for DieselAssignmentRuleRepository {
     async fn create_rule(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         req: &CreateAssignmentRuleRequest,
     ) -> Result<AssignmentRule, AppError> {
+        let workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
+            .get_pool(&auth_token.workspace_id())
             .await
             .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
@@ -65,11 +66,12 @@ impl AssignmentRuleRepository for DieselAssignmentRuleRepository {
             .map(Into::into)
     }
 
-    async fn get_rules(&self, workspace_id: Uuid) -> Result<Vec<AssignmentRule>, AppError> {
+    async fn get_rules(&self, auth_token: &crate::diesel_pool::TenantAuthToken) -> Result<Vec<AssignmentRule>, AppError> {
+        let workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
+            .get_pool(&auth_token.workspace_id())
             .await
             .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
@@ -89,11 +91,12 @@ impl AssignmentRuleRepository for DieselAssignmentRuleRepository {
             .map(|rows| rows.into_iter().map(Into::into).collect())
     }
 
-    async fn get_active_rules(&self, workspace_id: Uuid) -> Result<Vec<AssignmentRule>, AppError> {
+    async fn get_active_rules(&self, auth_token: &crate::diesel_pool::TenantAuthToken) -> Result<Vec<AssignmentRule>, AppError> {
+        let workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
+            .get_pool(&auth_token.workspace_id())
             .await
             .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
@@ -116,14 +119,15 @@ impl AssignmentRuleRepository for DieselAssignmentRuleRepository {
 
     async fn update_rule(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         id: Uuid,
         req: &UpdateAssignmentRuleRequest,
     ) -> Result<AssignmentRule, AppError> {
+        let workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
+            .get_pool(&auth_token.workspace_id())
             .await
             .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
@@ -158,11 +162,12 @@ impl AssignmentRuleRepository for DieselAssignmentRuleRepository {
             .map(Into::into)
     }
 
-    async fn delete_rule(&self, workspace_id: Uuid, id: Uuid) -> Result<(), AppError> {
+    async fn delete_rule(&self, auth_token: &crate::diesel_pool::TenantAuthToken, id: Uuid) -> Result<(), AppError> {
+        let workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
+            .get_pool(&auth_token.workspace_id())
             .await
             .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()

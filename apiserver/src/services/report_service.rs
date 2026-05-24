@@ -219,9 +219,7 @@ impl ReportService {
         // 3. Get schedules ONLY for paginated employees
         let schedules = self
             .roster_repo
-            .get_workspace_schedules(
-                None,
-                args.workspace_id,
+            .get_workspace_schedules(None, &crate::diesel_pool::TenantAuthToken::system_override(args.workspace_id),
                 args.start_date,
                 args.end_date,
                 Some(&emp_ids),
@@ -239,24 +237,24 @@ impl ReportService {
         // 5. BATCH fetch time entries (eliminates N+1)
         let entries_map = self
             .time_entry_repo
-            .get_workspace_time_entries_batch(args.workspace_id, &emp_ids, start_dt, end_dt)
+            .get_workspace_time_entries_batch(&crate::diesel_pool::TenantAuthToken::system_override(args.workspace_id), &emp_ids, start_dt, end_dt)
             .await?;
 
         // 5a. BATCH fetch holidays for the date range
         let holidays_map = self
             .holiday_repo
-            .get_holidays_in_range(args.workspace_id, args.start_date, args.end_date)
+            .get_holidays_in_range(&crate::diesel_pool::TenantAuthToken::system_override(args.workspace_id), args.start_date, args.end_date)
             .await?;
 
         // 5b. BATCH fetch OT claim statuses from attendance_daily_summaries
         let ot_status_map = self
             .attendance_daily_summary_repo
-            .get_batch_ot_statuses(args.workspace_id, &emp_ids, args.start_date, args.end_date)
+            .get_batch_ot_statuses(&crate::diesel_pool::TenantAuthToken::system_override(args.workspace_id), &emp_ids, args.start_date, args.end_date)
             .await?;
 
         let leave_date_set = self
             .leave_repo
-            .get_approved_leave_dates(args.workspace_id, &emp_ids, args.start_date, args.end_date)
+            .get_approved_leave_dates(&crate::diesel_pool::TenantAuthToken::system_override(args.workspace_id), &emp_ids, args.start_date, args.end_date)
             .await?;
 
         // 5d. BATCH fetch attendance rules (SCD Type 2)
@@ -479,9 +477,7 @@ impl ReportService {
         // 3. Get schedules ONLY for paginated employees
         let schedules = self
             .roster_repo
-            .get_workspace_schedules(
-                None,
-                args.workspace_id,
+            .get_workspace_schedules(None, &crate::diesel_pool::TenantAuthToken::system_override(args.workspace_id),
                 args.start_date,
                 args.end_date,
                 Some(&emp_ids),
@@ -499,13 +495,13 @@ impl ReportService {
         // 5. BATCH fetch time entries (eliminates N+1)
         let entries_map = self
             .time_entry_repo
-            .get_workspace_time_entries_batch(args.workspace_id, &emp_ids, start_dt, end_dt)
+            .get_workspace_time_entries_batch(&crate::diesel_pool::TenantAuthToken::system_override(args.workspace_id), &emp_ids, start_dt, end_dt)
             .await?;
 
         // 6. Fetch leave days for paginated employees (batch query)
         let leave_data = self
             .leave_repo
-            .get_batch_leave_days(args.workspace_id, &emp_ids, args.start_date, args.end_date)
+            .get_batch_leave_days(&crate::diesel_pool::TenantAuthToken::system_override(args.workspace_id), &emp_ids, args.start_date, args.end_date)
             .await?;
 
         // 6b. BATCH fetch attendance rules (SCD Type 2)

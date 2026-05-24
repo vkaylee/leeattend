@@ -11,7 +11,7 @@ use crate::models::Shift;
 pub trait ShiftRepository: Send + Sync {
     async fn create_shift(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         req: &crate::models::CreateShiftRequest,
         is_active: bool,
         parent_shift_id: Option<Uuid>,
@@ -19,24 +19,24 @@ pub trait ShiftRepository: Send + Sync {
 
     async fn get_shift_by_id(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         id: Uuid,
     ) -> Result<Option<Shift>, AppError>;
 
-    async fn get_workspace_shifts(&self, workspace_id: Uuid) -> Result<Vec<Shift>, AppError>;
+    async fn get_workspace_shifts(&self, auth_token: &crate::diesel_pool::TenantAuthToken) -> Result<Vec<Shift>, AppError>;
 
     async fn update_shift_direct(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         id: Uuid,
         req: &crate::models::UpdateShiftRequest,
     ) -> Result<Shift, AppError>;
 
-    async fn archive_shift(&self, workspace_id: Uuid, id: Uuid) -> Result<(), AppError>;
+    async fn archive_shift(&self, auth_token: &crate::diesel_pool::TenantAuthToken, id: Uuid) -> Result<(), AppError>;
 
     async fn assign_employee_shift(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id: Uuid,
         shift_id: Uuid,
         start_date: NaiveDate,
@@ -45,14 +45,14 @@ pub trait ShiftRepository: Send + Sync {
 
     async fn get_employee_active_shift(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id: Uuid,
         date: NaiveDate,
     ) -> Result<Option<Shift>, AppError>;
 
     async fn update_assignments_to_new_version(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         old_shift_id: Uuid,
         new_shift_id: Uuid,
         effective_date: NaiveDate,

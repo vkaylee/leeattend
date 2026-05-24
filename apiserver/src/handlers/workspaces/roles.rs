@@ -97,8 +97,7 @@ pub async fn assign_extra_role(
     if let Some(cache) = &state.infra.cache {
         let _ = cache
             .delete(&format!(
-                "cache:auth:permissions:{}:{}",
-                ctx.workspace_id, user_id
+                "cache:auth:permissions:{}:{}", ctx.auth_token.workspace_id(), user_id
             ))
             .await;
     }
@@ -136,8 +135,7 @@ pub async fn revoke_extra_role(
         if let Some(cache) = &state.infra.cache {
             let _ = cache
                 .delete(&format!(
-                    "cache:auth:permissions:{}:{}",
-                    ctx.workspace_id, user_id
+                    "cache:auth:permissions:{}:{}", ctx.auth_token.workspace_id(), user_id
                 ))
                 .await;
         }

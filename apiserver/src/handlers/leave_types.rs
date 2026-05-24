@@ -38,7 +38,7 @@ pub async fn list_leave_types(
     let types = state
         .leaves
         .policy_repo
-        .get_leave_types(workspace_id)
+        .get_leave_types(ctx.workspace_id)
         .await?;
     Ok(Json(types))
 }

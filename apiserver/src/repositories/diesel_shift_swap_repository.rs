@@ -126,13 +126,14 @@ impl DieselShiftSwapRepository {
 impl ShiftSwapRepository for DieselShiftSwapRepository {
     async fn create_swap_request(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         request: &ShiftSwapRequest,
     ) -> Result<ShiftSwapRequest, AppError> {
+        let _workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
+            .get_pool(&auth_token.workspace_id())
             .await
             .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
@@ -173,12 +174,13 @@ impl ShiftSwapRepository for DieselShiftSwapRepository {
     async fn get_swap_request_by_id(
         &self,
         id: Uuid,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<Option<ShiftSwapRequest>, AppError> {
+        let workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
+            .get_pool(&auth_token.workspace_id())
             .await
             .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
@@ -198,13 +200,14 @@ impl ShiftSwapRepository for DieselShiftSwapRepository {
 
     async fn get_workspace_swaps(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         status_filter: Option<ShiftSwapStatus>,
     ) -> Result<Vec<ShiftSwapRequestWithNames>, AppError> {
+        let workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
+            .get_pool(&auth_token.workspace_id())
             .await
             .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
@@ -252,14 +255,15 @@ impl ShiftSwapRepository for DieselShiftSwapRepository {
     async fn update_swap_status(
         &self,
         id: Uuid,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         status: ShiftSwapStatus,
         approver_id: Option<Uuid>,
     ) -> Result<(), AppError> {
+        let workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
+            .get_pool(&auth_token.workspace_id())
             .await
             .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
@@ -292,12 +296,13 @@ impl ShiftSwapRepository for DieselShiftSwapRepository {
     async fn get_employee_swaps(
         &self,
         employee_id: Uuid,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<Vec<ShiftSwapRequestWithNames>, AppError> {
+        let workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
+            .get_pool(&auth_token.workspace_id())
             .await
             .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
@@ -335,15 +340,16 @@ impl ShiftSwapRepository for DieselShiftSwapRepository {
 
     async fn has_active_swap(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         requester_id: Uuid,
         target_id: Uuid,
         swap_date: NaiveDate,
     ) -> Result<bool, AppError> {
+        let workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
+            .get_pool(&auth_token.workspace_id())
             .await
             .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
@@ -367,14 +373,15 @@ impl ShiftSwapRepository for DieselShiftSwapRepository {
 
     async fn has_approved_swap_on_date(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id: Uuid,
         swap_date: NaiveDate,
     ) -> Result<bool, AppError> {
+        let workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
+            .get_pool(&auth_token.workspace_id())
             .await
             .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
@@ -399,11 +406,12 @@ impl ShiftSwapRepository for DieselShiftSwapRepository {
         Ok(exists)
     }
 
-    async fn get_workspace_swap_stats(&self, workspace_id: Uuid) -> Result<SwapStats, AppError> {
+    async fn get_workspace_swap_stats(&self, auth_token: &crate::diesel_pool::TenantAuthToken) -> Result<SwapStats, AppError> {
+        let workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
+            .get_pool(&auth_token.workspace_id())
             .await
             .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()

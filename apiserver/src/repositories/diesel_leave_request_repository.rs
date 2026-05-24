@@ -28,13 +28,14 @@ impl DieselLeaveRequestRepository {
 impl LeaveRequestRepository for DieselLeaveRequestRepository {
     async fn create_leave_request(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         request: &LeaveRequest,
     ) -> Result<(), AppError> {
+        let _workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
+            .get_pool(&auth_token.workspace_id())
             .await
             .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
@@ -67,13 +68,14 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
 
     async fn get_leave_request_by_id(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         id: Uuid,
     ) -> Result<Option<LeaveRequest>, AppError> {
+        let workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
+            .get_pool(&auth_token.workspace_id())
             .await
             .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
@@ -95,15 +97,16 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
 
     async fn update_leave_request_status(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         id: Uuid,
         status: LeaveStatus,
         approved_by: Option<Uuid>,
     ) -> Result<(), AppError> {
+        let workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
+            .get_pool(&auth_token.workspace_id())
             .await
             .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
@@ -131,13 +134,14 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
 
     async fn get_employee_leave_requests(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id: Uuid,
     ) -> Result<Vec<LeaveRequest>, AppError> {
+        let workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
+            .get_pool(&auth_token.workspace_id())
             .await
             .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
@@ -159,13 +163,14 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
 
     async fn get_workspace_leave_requests(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         status: Option<LeaveStatus>,
     ) -> Result<Vec<LeaveRequest>, AppError> {
+        let workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
+            .get_pool(&auth_token.workspace_id())
             .await
             .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
@@ -196,12 +201,13 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
         employee_id: Uuid,
         start_date: NaiveDate,
         end_date: NaiveDate,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<LeaveBreakdown, AppError> {
+        let workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
+            .get_pool(&auth_token.workspace_id())
             .await
             .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
@@ -281,12 +287,13 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
     async fn get_employee_department_for_request(
         &self,
         request_id: Uuid,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<Option<Uuid>, AppError> {
+        let workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
+            .get_pool(&auth_token.workspace_id())
             .await
             .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
@@ -311,11 +318,12 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
         Ok(dept_id)
     }
 
-    async fn get_leave_types(&self, workspace_id: Uuid) -> Result<Vec<(String, String)>, AppError> {
+    async fn get_leave_types(&self, auth_token: &crate::diesel_pool::TenantAuthToken) -> Result<Vec<(String, String)>, AppError> {
+        let workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
+            .get_pool(&auth_token.workspace_id())
             .await
             .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
@@ -335,14 +343,15 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
 
     async fn get_system_generated_holiday_leave(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id: Uuid,
         date: NaiveDate,
     ) -> Result<Option<(Uuid, Uuid, String)>, AppError> {
+        let workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
+            .get_pool(&auth_token.workspace_id())
             .await
             .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
@@ -375,11 +384,12 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
         Ok(row)
     }
 
-    async fn cancel_leave_request(&self, workspace_id: Uuid, id: Uuid) -> Result<(), AppError> {
+    async fn cancel_leave_request(&self, auth_token: &crate::diesel_pool::TenantAuthToken, id: Uuid) -> Result<(), AppError> {
+        let workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
+            .get_pool(&auth_token.workspace_id())
             .await
             .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
@@ -406,15 +416,16 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
 
     async fn get_employee_leave_history_requests(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id: Uuid,
         year: i32,
         leave_type_id: Option<Uuid>,
     ) -> Result<Vec<LeaveHistoryRequestItem>, AppError> {
+        let workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
+            .get_pool(&auth_token.workspace_id())
             .await
             .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
@@ -478,13 +489,14 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
 
     async fn check_leave_type_exists(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         leave_type_id: Uuid,
     ) -> Result<bool, AppError> {
+        let workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
+            .get_pool(&auth_token.workspace_id())
             .await
             .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
@@ -505,13 +517,14 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
 
     async fn get_leave_type_name(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         leave_type_id: Uuid,
     ) -> Result<Option<String>, AppError> {
+        let workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
+            .get_pool(&auth_token.workspace_id())
             .await
             .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
@@ -532,15 +545,16 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
 
     async fn get_unpaid_holiday_days_without_leave(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id: Uuid,
         start_date: NaiveDate,
         end_date: NaiveDate,
     ) -> Result<i64, AppError> {
+        let workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
+            .get_pool(&auth_token.workspace_id())
             .await
             .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
@@ -573,15 +587,16 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
 
     async fn get_batch_leave_days(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_ids: &[Uuid],
         start_date: NaiveDate,
         end_date: NaiveDate,
     ) -> Result<std::collections::HashMap<Uuid, i64>, AppError> {
+        let _workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
+            .get_pool(&auth_token.workspace_id())
             .await
             .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
@@ -611,15 +626,16 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
 
     async fn get_approved_leave_dates(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_ids: &[Uuid],
         start_date: NaiveDate,
         end_date: NaiveDate,
     ) -> Result<std::collections::HashSet<(Uuid, NaiveDate)>, AppError> {
+        let workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
+            .get_pool(&auth_token.workspace_id())
             .await
             .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
@@ -638,15 +654,16 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
 
     async fn get_approved_leave_periods(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id: Uuid,
         start_date: NaiveDate,
         end_date: NaiveDate,
     ) -> Result<Vec<(NaiveDate, NaiveDate)>, AppError> {
+        let workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
+            .get_pool(&auth_token.workspace_id())
             .await
             .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()

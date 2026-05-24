@@ -24,7 +24,7 @@ pub async fn get_salary_components(
     let components = state
         .payroll
         .repo
-        .get_salary_component_definitions(workspace_id)
+        .get_salary_component_definitions(ctx.workspace_id)
         .await?;
 
     Ok(Json(components))
@@ -40,7 +40,7 @@ pub async fn create_salary_component(
     let component = state
         .payroll
         .repo
-        .create_salary_component_definition(workspace_id, req.name, req.code)
+        .create_salary_component_definition(ctx.workspace_id, req.name, req.code)
         .await?;
 
     if let Some(base_group_ids) = req.base_group_ids {
@@ -48,7 +48,7 @@ pub async fn create_salary_component(
             state
                 .payroll
                 .salary_base_repo
-                .assign_component_to_group(workspace_id, component.id, group_id)
+                .assign_component_to_group(ctx.workspace_id, component.id, group_id)
                 .await?;
         }
     }
@@ -68,7 +68,7 @@ pub async fn get_employee_salary_components(
     let components = state
         .payroll
         .repo
-        .get_employee_salary_components(workspace_id, employee_id, now)
+        .get_employee_salary_components(ctx.workspace_id, employee_id, now)
         .await?;
 
     // Flatten the tuple (Component, Definition) for response

@@ -11,13 +11,13 @@ use uuid::Uuid;
 pub trait LeaveBalanceRepository: Send + Sync {
     async fn get_employee_balances(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id: Uuid,
         year: i32,
     ) -> Result<Vec<EmployeeLeaveBalance>, AppError>;
     async fn get_workspace_balances(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         year: i32,
         limit: i64,
         offset: i64,
@@ -25,12 +25,12 @@ pub trait LeaveBalanceRepository: Send + Sync {
     ) -> Result<(Vec<WorkspaceLeaveBalance>, i64), AppError>;
     async fn upsert_leave_balance(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         balance: &LeaveBalance,
     ) -> Result<(), AppError>;
     async fn adjust_balance(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id: Uuid,
         leave_type_id: Uuid,
         amount: rust_decimal::Decimal,
