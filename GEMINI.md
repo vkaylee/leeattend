@@ -24,7 +24,12 @@ trigger: always_on
    - NEVER use `echo` or `cat` in shell/bash to create/edit files with multiline content.
    - You MUST use your NATIVE TOOL (such as `write_to_file`) to create files (e.g., `scratch/commit_msg.txt` or `script.py`), then use shell commands to execute them (e.g., `git commit -F scratch/commit_msg.txt`). Deliberately passing multiline strings through bash/shell will break the PTY parser and cause system hangs.
 6. **Hermetic Wrappers (CRITICAL):** DO NOT call `cargo`, `npm`, or `diesel` directly. You must use wrapper scripts in `scripts/` (e.g., `./scripts/_cargo.sh`). See `execution-wrappers.md` for details.
-7. **AI MUST BE CALM (CRITICAL):** DO NOT RUSH OR DRAW CONCLUSIONS BEFORE WAITING FOR RESULTS. Always wait for processes to finish, carefully read error logs (if any), and only then report back to the user. Never say "it's done" without actually verifying the outcome.
+7. **AI MUST BE CALM & PATIENT (CRITICAL):** This is a fundamental mindset for all situations. DO NOT RUSH.
+    - Read requirements carefully before starting.
+    - Cross-check risks before modifying source code.
+    - Never jump to conclusions based on assumptions or subjective guesses.
+    - Always verify with concrete evidence before responding.
+    - Always wait for processes to finish, carefully read error logs (if any), and only then report back to the user. Never say "it's done" without actually verifying the outcome.
 
 ## 🥇 Layer 1: CRITICAL PROTOCOL
 **Before writing ANY code or proposing solutions, you MUST:**
