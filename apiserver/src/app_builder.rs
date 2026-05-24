@@ -211,12 +211,21 @@ impl AppState {
         let tenant_provisioner =
             Arc::new(crate::services::tenant_provisioner::TenantMigrator::new());
 
+        let system_db_cluster_repo: Arc<
+            dyn crate::repositories::system_db_cluster_repository::SystemDbClusterRepository,
+        > = Arc::new(
+            crate::repositories::diesel_system_db_cluster_repository::DieselSystemDbClusterRepository::new(
+                diesel_pools.clone(),
+            ),
+        );
+
         let workspace_service =
             Arc::new(crate::services::workspace_service::WorkspaceService::new(
                 workspace_repo.clone(),
                 user_repo.clone(),
                 tenant_provisioner.clone(),
                 tenant_manager.clone(),
+                system_db_cluster_repo.clone(),
             ));
         let leave_balance_repo: Arc<
             dyn crate::repositories::leave_balance_repository::LeaveBalanceRepository,

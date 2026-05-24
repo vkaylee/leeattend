@@ -122,3 +122,8 @@ pub mod system_repository;
 pub use system_repository::SystemRepository;
 pub mod diesel_system_repository;
 pub use diesel_system_repository::DieselSystemRepository;
+
+pub mod system_db_cluster_repository;
+pub use system_db_cluster_repository::SystemDbClusterRepository;
+pub mod diesel_system_db_cluster_repository;
+pub use diesel_system_db_cluster_repository::DieselSystemDbClusterRepository;

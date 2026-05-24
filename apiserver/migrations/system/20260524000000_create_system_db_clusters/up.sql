@@ -1,0 +1,11 @@
+CREATE TABLE system_db_clusters (
+    id UUID PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    admin_database_url VARCHAR(255) NOT NULL,
+    region VARCHAR(50) NOT NULL DEFAULT 'ap-southeast-1',
+    max_tenants INT NOT NULL DEFAULT 1000,
+    active_tenants INT NOT NULL DEFAULT 0,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);

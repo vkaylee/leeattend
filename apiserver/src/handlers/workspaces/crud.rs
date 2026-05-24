@@ -411,14 +411,18 @@ pub async fn create_workspace(
     let ws_id = crate::utils::id::new_id();
 
     // Encrypt database_url as custom_db_url_encrypted for BYOD support across restarts
-    let encrypted_url = if let Some(crypto) = &state.infra.crypto_service {
-        crypto.encrypt(&req.database_url).map_err(|e| {
-            tracing::error!("Failed to encrypt DB URL: {}", e);
-            AppError::Internal("Encryption failed".into())
-        })?
+    let encrypted_url = if let Some(url) = &req.database_url {
+        if let Some(crypto) = &state.infra.crypto_service {
+            Some(crypto.encrypt(url).map_err(|e| {
+                tracing::error!("Failed to encrypt DB URL: {}", e);
+                AppError::Internal("Encryption failed".into())
+            })?)
+        } else {
+            tracing::warn!("No crypto service available, storing URL in plaintext!");
+            Some(url.clone())
+        }
     } else {
-        tracing::warn!("No crypto service available, storing URL in plaintext!");
-        req.database_url.clone()
+        None
     };
 
     let ws = state
@@ -428,8 +432,8 @@ pub async fn create_workspace(
             ws_id,
             &req.name,
             ctx.user_id,
-            &req.database_url,
-            Some(encrypted_url),
+            req.database_url.clone(),
+            encrypted_url,
         )
         .await
         .map_err(AppError::from)?;

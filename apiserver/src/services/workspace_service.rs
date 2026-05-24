@@ -6,6 +6,7 @@ use crate::repositories::user_repository::UserRepository;
 use std::str::FromStr;
 use std::sync::Arc;
 
+use crate::repositories::system_db_cluster_repository::SystemDbClusterRepository;
 use crate::services::tenant_provisioner::TenantProvisionerTrait;
 use crate::supavisor::TenantManager;
 
@@ -14,6 +15,7 @@ pub struct WorkspaceService {
     user_repo: Arc<dyn UserRepository>,
     tenant_provisioner: Arc<dyn TenantProvisionerTrait>,
     tenant_manager: Arc<dyn TenantManager>,
+    system_db_cluster_repo: Arc<dyn SystemDbClusterRepository>,
 }
 
 impl WorkspaceService {
@@ -22,12 +24,14 @@ impl WorkspaceService {
         user_repo: Arc<dyn UserRepository>,
         tenant_provisioner: Arc<dyn TenantProvisionerTrait>,
         tenant_manager: Arc<dyn TenantManager>,
+        system_db_cluster_repo: Arc<dyn SystemDbClusterRepository>,
     ) -> Self {
         Self {
             workspace_repo,
             user_repo,
             tenant_provisioner,
             tenant_manager,
+            system_db_cluster_repo,
         }
     }
 }
@@ -53,7 +57,7 @@ impl WorkspaceService {
         id: Uuid,
         name: &str,
         owner_id: Uuid,
-        database_url: &str,
+        database_url: Option<String>,
         custom_db_url_encrypted: Option<String>,
     ) -> Result<Workspace, String> {
         // 1. Check if user exists
@@ -68,14 +72,52 @@ impl WorkspaceService {
             return Err(format!("User with ID {owner_id} does not exist"));
         }
 
-        // 2. Run migrations on the provided database (BYOD)
+        // 2. Resolve database_url
+        let final_db_url = if let Some(url) = database_url {
+            url
+        } else {
+            // Auto provisioning logic
+            let cluster = self
+                .system_db_cluster_repo
+                .get_least_loaded_cluster()
+                .await
+                .map_err(|e| e.to_string())?
+                .ok_or_else(|| "No available database clusters for auto-provisioning".to_string())?;
+
+            let admin_url = cluster.admin_database_url;
+            let tenant_db_name = format!("tenant_{}", id.to_string().replace('-', ""));
+            let create_db_sql = format!("CREATE DATABASE {}", tenant_db_name);
+            
+            use diesel_async::{AsyncConnection, RunQueryDsl, AsyncPgConnection};
+            let mut conn = AsyncPgConnection::establish(&admin_url)
+                .await
+                .map_err(|e| format!("Failed to connect to admin DB: {}", e))?;
+                
+            diesel::sql_query(create_db_sql)
+                .execute(&mut conn)
+                .await
+                .map_err(|e| format!("Failed to create tenant database: {}", e))?;
+                
+            // Increment active tenants
+            self.system_db_cluster_repo
+                .increment_active_tenants(cluster.id)
+                .await
+                .map_err(|e| e.to_string())?;
+
+            // Replace the database name in the url
+            let mut parsed_url = reqwest::Url::parse(&admin_url).map_err(|e| e.to_string())?;
+            parsed_url.set_path(&format!("/{}", tenant_db_name));
+            parsed_url.to_string()
+        };
+
+        // 3. Run migrations on the provided or newly created database
         let new_db_url = self
             .tenant_provisioner
-            .provision_tenant_db(&id, database_url)
+            .provision_tenant_db(&id, &final_db_url)
             .await
             .map_err(|e| format!("Failed to provision DB: {e}"))?;
 
-        // 3. Register Tenant with Supavisor connection pooler.
+        // 4. Register Tenant with Supavisor connection pooler.
         // The tenant_id must match the format produced by diesel_pool::get_tenant_url(),
         // which constructs tenant_<uuid-without-hyphens>. Using the raw UUID with hyphens
         // causes a mismatch when the API connects via Supavisor.
@@ -96,7 +138,7 @@ impl WorkspaceService {
                 .map_err(|e| format!("Failed to register tenant with pooler: {e}"))?;
         }
 
-        // 4. Create workspace with owner using repository
+        // 5. Create workspace with owner using repository
         let ws = self
             .workspace_repo
             .create_workspace_with_owner(id, name, owner_id, custom_db_url_encrypted)
@@ -573,6 +615,30 @@ mod tests {
         )
     }
 
+    struct MockSystemDbClusterRepo;
+    #[async_trait]
+    impl crate::repositories::system_db_cluster_repository::SystemDbClusterRepository for MockSystemDbClusterRepo {
+        async fn get_least_loaded_cluster(&self) -> Result<Option<crate::models::system_db_cluster::SystemDbCluster>, AppError> {
+            Ok(Some(crate::models::system_db_cluster::SystemDbCluster {
+                id: Uuid::new_v4(),
+                name: "Test Cluster".to_string(),
+                admin_database_url: "postgres://admin:pass@localhost:5432/postgres".to_string(),
+                region: "ap-southeast-1".to_string(),
+                max_tenants: 100,
+                active_tenants: 0,
+                is_active: true,
+                created_at: chrono::Utc::now(),
+                updated_at: chrono::Utc::now(),
+            }))
+        }
+        async fn increment_active_tenants(&self, _cluster_id: Uuid) -> Result<(), AppError> {
+            Ok(())
+        }
+        async fn create_cluster(&self, _cluster: &crate::models::system_db_cluster::NewSystemDbCluster) -> Result<crate::models::system_db_cluster::SystemDbCluster, AppError> {
+            unimplemented!()
+        }
+    }
+
     fn build_service_with_tenant_manager(
         user_exists: bool,
         tenant_manager: std::sync::Arc<dyn crate::supavisor::TenantManager>,
@@ -585,6 +651,7 @@ mod tests {
             std::sync::Arc::new(MockUserRepo { user_exists }),
             std::sync::Arc::new(MockTenantProvisioner),
             tenant_manager,
+            std::sync::Arc::new(MockSystemDbClusterRepo),
         )
     }
 
@@ -611,6 +678,7 @@ mod tests {
             std::sync::Arc::new(MockUserRepo { user_exists: true }),
             std::sync::Arc::new(FailingMockTenantProvisioner),
             std::sync::Arc::new(MockTenantManager::new()),
+            std::sync::Arc::new(MockSystemDbClusterRepo),
         )
     }
 

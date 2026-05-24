@@ -1405,6 +1405,23 @@ diesel::table! {
 }
 
 diesel::table! {
+    system_db_clusters (id) {
+        id -> Uuid,
+        #[max_length = 255]
+        name -> Varchar,
+        #[max_length = 255]
+        admin_database_url -> Varchar,
+        #[max_length = 50]
+        region -> Varchar,
+        max_tenants -> Int4,
+        active_tenants -> Int4,
+        is_active -> Bool,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
     system_roles (id) {
         id -> Uuid,
         name -> Text,
@@ -1727,6 +1744,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     shift_swap_requests,
     shifts,
     system_audit_logs,
+    system_db_clusters,
     system_roles,
     time_entries,
     user_system_roles,

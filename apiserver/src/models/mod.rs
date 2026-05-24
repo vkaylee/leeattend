@@ -30,6 +30,7 @@ pub mod shift;
 pub mod shift_swap;
 pub mod time_tracking;
 pub mod workspace;
+pub mod system_db_cluster;
 
 // Re-export everything to maintain backward compatibility with all consumers
 pub use agent::*;
