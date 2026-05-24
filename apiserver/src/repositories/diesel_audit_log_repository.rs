@@ -25,8 +25,8 @@ impl AuditLogRepository for DieselAuditLogRepository {
     async fn create_log(&self, log: &AuditLog) -> Result<AuditLog, AppError> {
         let mut conn = crate::diesel_pool::TransactionConn(
             self.diesel_pools
-                .api
-                .get()
+                .tenants_tx
+                .get_connection(&log.workspace_id)
                 .await
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?,
         );
@@ -53,8 +53,8 @@ impl AuditLogRepository for DieselAuditLogRepository {
     ) -> Result<(Vec<AuditLog>, i64), AppError> {
         let mut conn = crate::diesel_pool::TransactionConn(
             self.diesel_pools
-                .api
-                .get()
+                .tenants_tx
+                .get_connection(&workspace_id_val)
                 .await
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?,
         );

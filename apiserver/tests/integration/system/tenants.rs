@@ -454,7 +454,6 @@ async fn test_update_tenant_database() {
     std::env::remove_var("ENCRYPTION_KEYS_JSON");
 }
 
-
 #[tokio::test]
 async fn test_update_tenant_database_requires_admin() {
     let mock_manager = Arc::new(TestMockTenantManager::default());

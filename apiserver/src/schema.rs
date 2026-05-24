@@ -35,6 +35,22 @@ pub mod sql_types {
 }
 
 diesel::table! {
+    audit_logs (id, created_at) {
+        id -> Uuid,
+        workspace_id -> Uuid,
+        actor_id -> Nullable<Uuid>,
+        target_user_id -> Nullable<Uuid>,
+        target_resource_id -> Nullable<Uuid>,
+        #[max_length = 255]
+        action -> Varchar,
+        details -> Nullable<Jsonb>,
+        ip_address -> Nullable<Text>,
+        user_agent -> Nullable<Text>,
+        created_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
     assignment_rules (id) {
         id -> Uuid,
         workspace_id -> Uuid,
@@ -178,412 +194,6 @@ diesel::table! {
         raw_data -> Nullable<Jsonb>,
         fingerprint -> Text,
         status -> Text,
-        created_at -> Timestamptz,
-    }
-}
-
-diesel::table! {
-    attendance_staging_logs_default (id, created_at) {
-        id -> Uuid,
-        workspace_id -> Uuid,
-        device_id -> Nullable<Text>,
-        raw_user_id -> Text,
-        punch_time -> Timestamptz,
-        raw_data -> Nullable<Jsonb>,
-        fingerprint -> Text,
-        status -> Text,
-        created_at -> Timestamptz,
-    }
-}
-
-diesel::table! {
-    attendance_staging_logs_y2026m01 (id, created_at) {
-        id -> Uuid,
-        workspace_id -> Uuid,
-        device_id -> Nullable<Text>,
-        raw_user_id -> Text,
-        punch_time -> Timestamptz,
-        raw_data -> Nullable<Jsonb>,
-        fingerprint -> Text,
-        status -> Text,
-        created_at -> Timestamptz,
-    }
-}
-
-diesel::table! {
-    attendance_staging_logs_y2026m02 (id, created_at) {
-        id -> Uuid,
-        workspace_id -> Uuid,
-        device_id -> Nullable<Text>,
-        raw_user_id -> Text,
-        punch_time -> Timestamptz,
-        raw_data -> Nullable<Jsonb>,
-        fingerprint -> Text,
-        status -> Text,
-        created_at -> Timestamptz,
-    }
-}
-
-diesel::table! {
-    attendance_staging_logs_y2026m03 (id, created_at) {
-        id -> Uuid,
-        workspace_id -> Uuid,
-        device_id -> Nullable<Text>,
-        raw_user_id -> Text,
-        punch_time -> Timestamptz,
-        raw_data -> Nullable<Jsonb>,
-        fingerprint -> Text,
-        status -> Text,
-        created_at -> Timestamptz,
-    }
-}
-
-diesel::table! {
-    attendance_staging_logs_y2026m04 (id, created_at) {
-        id -> Uuid,
-        workspace_id -> Uuid,
-        device_id -> Nullable<Text>,
-        raw_user_id -> Text,
-        punch_time -> Timestamptz,
-        raw_data -> Nullable<Jsonb>,
-        fingerprint -> Text,
-        status -> Text,
-        created_at -> Timestamptz,
-    }
-}
-
-diesel::table! {
-    attendance_staging_logs_y2026m05 (id, created_at) {
-        id -> Uuid,
-        workspace_id -> Uuid,
-        device_id -> Nullable<Text>,
-        raw_user_id -> Text,
-        punch_time -> Timestamptz,
-        raw_data -> Nullable<Jsonb>,
-        fingerprint -> Text,
-        status -> Text,
-        created_at -> Timestamptz,
-    }
-}
-
-diesel::table! {
-    attendance_staging_logs_y2026m06 (id, created_at) {
-        id -> Uuid,
-        workspace_id -> Uuid,
-        device_id -> Nullable<Text>,
-        raw_user_id -> Text,
-        punch_time -> Timestamptz,
-        raw_data -> Nullable<Jsonb>,
-        fingerprint -> Text,
-        status -> Text,
-        created_at -> Timestamptz,
-    }
-}
-
-diesel::table! {
-    attendance_staging_logs_y2026m07 (id, created_at) {
-        id -> Uuid,
-        workspace_id -> Uuid,
-        device_id -> Nullable<Text>,
-        raw_user_id -> Text,
-        punch_time -> Timestamptz,
-        raw_data -> Nullable<Jsonb>,
-        fingerprint -> Text,
-        status -> Text,
-        created_at -> Timestamptz,
-    }
-}
-
-diesel::table! {
-    attendance_staging_logs_y2026m08 (id, created_at) {
-        id -> Uuid,
-        workspace_id -> Uuid,
-        device_id -> Nullable<Text>,
-        raw_user_id -> Text,
-        punch_time -> Timestamptz,
-        raw_data -> Nullable<Jsonb>,
-        fingerprint -> Text,
-        status -> Text,
-        created_at -> Timestamptz,
-    }
-}
-
-diesel::table! {
-    attendance_staging_logs_y2026m09 (id, created_at) {
-        id -> Uuid,
-        workspace_id -> Uuid,
-        device_id -> Nullable<Text>,
-        raw_user_id -> Text,
-        punch_time -> Timestamptz,
-        raw_data -> Nullable<Jsonb>,
-        fingerprint -> Text,
-        status -> Text,
-        created_at -> Timestamptz,
-    }
-}
-
-diesel::table! {
-    attendance_staging_logs_y2026m10 (id, created_at) {
-        id -> Uuid,
-        workspace_id -> Uuid,
-        device_id -> Nullable<Text>,
-        raw_user_id -> Text,
-        punch_time -> Timestamptz,
-        raw_data -> Nullable<Jsonb>,
-        fingerprint -> Text,
-        status -> Text,
-        created_at -> Timestamptz,
-    }
-}
-
-diesel::table! {
-    attendance_staging_logs_y2026m11 (id, created_at) {
-        id -> Uuid,
-        workspace_id -> Uuid,
-        device_id -> Nullable<Text>,
-        raw_user_id -> Text,
-        punch_time -> Timestamptz,
-        raw_data -> Nullable<Jsonb>,
-        fingerprint -> Text,
-        status -> Text,
-        created_at -> Timestamptz,
-    }
-}
-
-diesel::table! {
-    attendance_staging_logs_y2026m12 (id, created_at) {
-        id -> Uuid,
-        workspace_id -> Uuid,
-        device_id -> Nullable<Text>,
-        raw_user_id -> Text,
-        punch_time -> Timestamptz,
-        raw_data -> Nullable<Jsonb>,
-        fingerprint -> Text,
-        status -> Text,
-        created_at -> Timestamptz,
-    }
-}
-
-diesel::table! {
-    audit_logs (id, created_at) {
-        id -> Uuid,
-        workspace_id -> Uuid,
-        actor_id -> Nullable<Uuid>,
-        target_user_id -> Nullable<Uuid>,
-        target_resource_id -> Nullable<Uuid>,
-        #[max_length = 255]
-        action -> Varchar,
-        details -> Nullable<Jsonb>,
-        ip_address -> Nullable<Text>,
-        user_agent -> Nullable<Text>,
-        created_at -> Timestamptz,
-    }
-}
-
-diesel::table! {
-    audit_logs_default (id, created_at) {
-        id -> Uuid,
-        workspace_id -> Uuid,
-        actor_id -> Nullable<Uuid>,
-        target_user_id -> Nullable<Uuid>,
-        target_resource_id -> Nullable<Uuid>,
-        #[max_length = 255]
-        action -> Varchar,
-        details -> Nullable<Jsonb>,
-        ip_address -> Nullable<Text>,
-        user_agent -> Nullable<Text>,
-        created_at -> Timestamptz,
-    }
-}
-
-diesel::table! {
-    audit_logs_y2026m01 (id, created_at) {
-        id -> Uuid,
-        workspace_id -> Uuid,
-        actor_id -> Nullable<Uuid>,
-        target_user_id -> Nullable<Uuid>,
-        target_resource_id -> Nullable<Uuid>,
-        #[max_length = 255]
-        action -> Varchar,
-        details -> Nullable<Jsonb>,
-        ip_address -> Nullable<Text>,
-        user_agent -> Nullable<Text>,
-        created_at -> Timestamptz,
-    }
-}
-
-diesel::table! {
-    audit_logs_y2026m02 (id, created_at) {
-        id -> Uuid,
-        workspace_id -> Uuid,
-        actor_id -> Nullable<Uuid>,
-        target_user_id -> Nullable<Uuid>,
-        target_resource_id -> Nullable<Uuid>,
-        #[max_length = 255]
-        action -> Varchar,
-        details -> Nullable<Jsonb>,
-        ip_address -> Nullable<Text>,
-        user_agent -> Nullable<Text>,
-        created_at -> Timestamptz,
-    }
-}
-
-diesel::table! {
-    audit_logs_y2026m03 (id, created_at) {
-        id -> Uuid,
-        workspace_id -> Uuid,
-        actor_id -> Nullable<Uuid>,
-        target_user_id -> Nullable<Uuid>,
-        target_resource_id -> Nullable<Uuid>,
-        #[max_length = 255]
-        action -> Varchar,
-        details -> Nullable<Jsonb>,
-        ip_address -> Nullable<Text>,
-        user_agent -> Nullable<Text>,
-        created_at -> Timestamptz,
-    }
-}
-
-diesel::table! {
-    audit_logs_y2026m04 (id, created_at) {
-        id -> Uuid,
-        workspace_id -> Uuid,
-        actor_id -> Nullable<Uuid>,
-        target_user_id -> Nullable<Uuid>,
-        target_resource_id -> Nullable<Uuid>,
-        #[max_length = 255]
-        action -> Varchar,
-        details -> Nullable<Jsonb>,
-        ip_address -> Nullable<Text>,
-        user_agent -> Nullable<Text>,
-        created_at -> Timestamptz,
-    }
-}
-
-diesel::table! {
-    audit_logs_y2026m05 (id, created_at) {
-        id -> Uuid,
-        workspace_id -> Uuid,
-        actor_id -> Nullable<Uuid>,
-        target_user_id -> Nullable<Uuid>,
-        target_resource_id -> Nullable<Uuid>,
-        #[max_length = 255]
-        action -> Varchar,
-        details -> Nullable<Jsonb>,
-        ip_address -> Nullable<Text>,
-        user_agent -> Nullable<Text>,
-        created_at -> Timestamptz,
-    }
-}
-
-diesel::table! {
-    audit_logs_y2026m06 (id, created_at) {
-        id -> Uuid,
-        workspace_id -> Uuid,
-        actor_id -> Nullable<Uuid>,
-        target_user_id -> Nullable<Uuid>,
-        target_resource_id -> Nullable<Uuid>,
-        #[max_length = 255]
-        action -> Varchar,
-        details -> Nullable<Jsonb>,
-        ip_address -> Nullable<Text>,
-        user_agent -> Nullable<Text>,
-        created_at -> Timestamptz,
-    }
-}
-
-diesel::table! {
-    audit_logs_y2026m07 (id, created_at) {
-        id -> Uuid,
-        workspace_id -> Uuid,
-        actor_id -> Nullable<Uuid>,
-        target_user_id -> Nullable<Uuid>,
-        target_resource_id -> Nullable<Uuid>,
-        #[max_length = 255]
-        action -> Varchar,
-        details -> Nullable<Jsonb>,
-        ip_address -> Nullable<Text>,
-        user_agent -> Nullable<Text>,
-        created_at -> Timestamptz,
-    }
-}
-
-diesel::table! {
-    audit_logs_y2026m08 (id, created_at) {
-        id -> Uuid,
-        workspace_id -> Uuid,
-        actor_id -> Nullable<Uuid>,
-        target_user_id -> Nullable<Uuid>,
-        target_resource_id -> Nullable<Uuid>,
-        #[max_length = 255]
-        action -> Varchar,
-        details -> Nullable<Jsonb>,
-        ip_address -> Nullable<Text>,
-        user_agent -> Nullable<Text>,
-        created_at -> Timestamptz,
-    }
-}
-
-diesel::table! {
-    audit_logs_y2026m09 (id, created_at) {
-        id -> Uuid,
-        workspace_id -> Uuid,
-        actor_id -> Nullable<Uuid>,
-        target_user_id -> Nullable<Uuid>,
-        target_resource_id -> Nullable<Uuid>,
-        #[max_length = 255]
-        action -> Varchar,
-        details -> Nullable<Jsonb>,
-        ip_address -> Nullable<Text>,
-        user_agent -> Nullable<Text>,
-        created_at -> Timestamptz,
-    }
-}
-
-diesel::table! {
-    audit_logs_y2026m10 (id, created_at) {
-        id -> Uuid,
-        workspace_id -> Uuid,
-        actor_id -> Nullable<Uuid>,
-        target_user_id -> Nullable<Uuid>,
-        target_resource_id -> Nullable<Uuid>,
-        #[max_length = 255]
-        action -> Varchar,
-        details -> Nullable<Jsonb>,
-        ip_address -> Nullable<Text>,
-        user_agent -> Nullable<Text>,
-        created_at -> Timestamptz,
-    }
-}
-
-diesel::table! {
-    audit_logs_y2026m11 (id, created_at) {
-        id -> Uuid,
-        workspace_id -> Uuid,
-        actor_id -> Nullable<Uuid>,
-        target_user_id -> Nullable<Uuid>,
-        target_resource_id -> Nullable<Uuid>,
-        #[max_length = 255]
-        action -> Varchar,
-        details -> Nullable<Jsonb>,
-        ip_address -> Nullable<Text>,
-        user_agent -> Nullable<Text>,
-        created_at -> Timestamptz,
-    }
-}
-
-diesel::table! {
-    audit_logs_y2026m12 (id, created_at) {
-        id -> Uuid,
-        workspace_id -> Uuid,
-        actor_id -> Nullable<Uuid>,
-        target_user_id -> Nullable<Uuid>,
-        target_resource_id -> Nullable<Uuid>,
-        #[max_length = 255]
-        action -> Varchar,
-        details -> Nullable<Jsonb>,
-        ip_address -> Nullable<Text>,
-        user_agent -> Nullable<Text>,
         created_at -> Timestamptz,
     }
 }
@@ -1586,6 +1196,8 @@ diesel::joinable!(attendance_adjustment_requests -> time_entries (time_entry_id)
 diesel::joinable!(attendance_daily_summaries -> employees (employee_id));
 diesel::joinable!(attendance_policy_assignments -> attendance_policies (policy_id));
 diesel::joinable!(attendance_policy_versions -> attendance_policies (policy_id));
+diesel::joinable!(audit_logs -> workspaces (workspace_id));
+
 diesel::joinable!(authorized_agents -> workspaces (workspace_id));
 diesel::joinable!(department_default_shifts -> departments (department_id));
 diesel::joinable!(department_default_shifts -> shifts (shift_id));
@@ -1655,6 +1267,7 @@ diesel::joinable!(workspace_members -> workspaces (workspace_id));
 diesel::joinable!(workspace_role_permissions -> workspace_roles (role_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
+    audit_logs,
     assignment_rules,
     attendance_adjustment_requests,
     attendance_daily_summaries,
@@ -1664,33 +1277,6 @@ diesel::allow_tables_to_appear_in_same_query!(
     attendance_policy_assignments,
     attendance_policy_versions,
     attendance_staging_logs,
-    attendance_staging_logs_default,
-    attendance_staging_logs_y2026m01,
-    attendance_staging_logs_y2026m02,
-    attendance_staging_logs_y2026m03,
-    attendance_staging_logs_y2026m04,
-    attendance_staging_logs_y2026m05,
-    attendance_staging_logs_y2026m06,
-    attendance_staging_logs_y2026m07,
-    attendance_staging_logs_y2026m08,
-    attendance_staging_logs_y2026m09,
-    attendance_staging_logs_y2026m10,
-    attendance_staging_logs_y2026m11,
-    attendance_staging_logs_y2026m12,
-    audit_logs,
-    audit_logs_default,
-    audit_logs_y2026m01,
-    audit_logs_y2026m02,
-    audit_logs_y2026m03,
-    audit_logs_y2026m04,
-    audit_logs_y2026m05,
-    audit_logs_y2026m06,
-    audit_logs_y2026m07,
-    audit_logs_y2026m08,
-    audit_logs_y2026m09,
-    audit_logs_y2026m10,
-    audit_logs_y2026m11,
-    audit_logs_y2026m12,
     authorized_agents,
     dashboard_preferences,
     department_default_shifts,

@@ -18,65 +18,83 @@ impl NightlyHousekeepingHandler {
             "Starting nightly housekeeping job"
         );
 
-        // Ensure partitions for current month + next 3 months
-        let mut target_date = NaiveDate::from_ymd_opt(ref_date.year(), ref_date.month(), 1)
-            .ok_or("Invalid reference date")?;
+        let workspaces = deps
+            .workspace_repo
+            .get_all_workspaces()
+            .await
+            .map_err(|e| e.to_string())?;
 
-        for _ in 0..4 {
-            let year = target_date.year();
-            let month = target_date.month();
+        for workspace in workspaces {
+            let tenant_id = workspace.id;
 
-            let next_month = if month == 12 { 1 } else { month + 1 };
-            let next_year = if month == 12 { year + 1 } else { year };
+            // Ensure partitions for current month + next 3 months
+            let mut target_date = NaiveDate::from_ymd_opt(ref_date.year(), ref_date.month(), 1)
+                .ok_or("Invalid reference date")?;
 
-            let from_date_str = format!("{year:04}-{month:02}-01");
-            let to_date_str = format!("{next_year:04}-{next_month:02}-01");
+            for _ in 0..4 {
+                let year = target_date.year();
+                let month = target_date.month();
 
-            let audit_table = format!("audit_logs_y{year:04}m{month:02}");
-            let staging_table = format!("attendance_staging_logs_y{year:04}m{month:02}");
+                let next_month = if month == 12 { 1 } else { month + 1 };
+                let next_year = if month == 12 { year + 1 } else { year };
 
-            let query1 = format!("CREATE TABLE IF NOT EXISTS {audit_table} PARTITION OF audit_logs FOR VALUES FROM ('{from_date_str}') TO ('{to_date_str}')");
-            let query2 = format!("CREATE TABLE IF NOT EXISTS {staging_table} PARTITION OF attendance_staging_logs FOR VALUES FROM ('{from_date_str}') TO ('{to_date_str}')");
+                let from_date_str = format!("{year:04}-{month:02}-01");
+                let to_date_str = format!("{next_year:04}-{next_month:02}-01");
 
-            if let Err(e) = deps.system_repo.execute_partition_query(&query1).await {
-                error!(error = %e, year, month, "Failed to create audit_logs partition");
-                return Err(format!(
-                    "Failed to create partition for {year}-{month}: {e}"
-                ));
+                let audit_table = format!("audit_logs_y{year:04}m{month:02}");
+                let staging_table = format!("attendance_staging_logs_y{year:04}m{month:02}");
+
+                let query1 = format!("CREATE TABLE IF NOT EXISTS {audit_table} PARTITION OF audit_logs FOR VALUES FROM ('{from_date_str}') TO ('{to_date_str}')");
+                let query2 = format!("CREATE TABLE IF NOT EXISTS {staging_table} PARTITION OF attendance_staging_logs FOR VALUES FROM ('{from_date_str}') TO ('{to_date_str}')");
+
+                if let Err(e) = deps
+                    .system_repo
+                    .execute_tenant_partition_query(tenant_id, &query1)
+                    .await
+                {
+                    error!(error = %e, tenant_id = %tenant_id, year, month, "Failed to create audit_logs partition");
+                }
+                if let Err(e) = deps
+                    .system_repo
+                    .execute_tenant_partition_query(tenant_id, &query2)
+                    .await
+                {
+                    error!(error = %e, tenant_id = %tenant_id, year, month, "Failed to create staging_logs partition");
+                }
+
+                target_date = NaiveDate::from_ymd_opt(next_year, next_month, 1)
+                    .ok_or("Invalid next target date")?;
             }
-            if let Err(e) = deps.system_repo.execute_partition_query(&query2).await {
-                error!(error = %e, year, month, "Failed to create staging_logs partition");
-                return Err(format!(
-                    "Failed to create partition for {year}-{month}: {e}"
-                ));
-            }
-            info!(year, month, "Ensured partitions exist");
 
-            target_date = NaiveDate::from_ymd_opt(next_year, next_month, 1)
-                .ok_or("Invalid next target date")?;
-        }
+            // Retention Policy: Drop partitions older than 2 years (24 months).
+            // We drop partitions for the 25th, 26th, and 27th months ago to provide a safety buffer.
+            for i in 25..=27 {
+                let mut total_months = ref_date.year() * 12 + (ref_date.month() as i32) - 1;
+                total_months -= i;
+                let drop_year = total_months / 12;
+                let drop_month = (total_months % 12) as u32 + 1;
 
-        // Retention Policy: Drop partitions older than 2 years (24 months).
-        // We drop partitions for the 25th, 26th, and 27th months ago to provide a safety buffer.
-        for i in 25..=27 {
-            let mut total_months = ref_date.year() * 12 + (ref_date.month() as i32) - 1;
-            total_months -= i;
-            let drop_year = total_months / 12;
-            let drop_month = (total_months % 12) as u32 + 1;
+                let audit_table = format!("audit_logs_y{drop_year:04}m{drop_month:02}");
+                let staging_table =
+                    format!("attendance_staging_logs_y{drop_year:04}m{drop_month:02}");
 
-            let audit_table = format!("audit_logs_y{drop_year:04}m{drop_month:02}");
-            let staging_table = format!("attendance_staging_logs_y{drop_year:04}m{drop_month:02}");
+                let query1 = format!("DROP TABLE IF EXISTS {audit_table}");
+                let query2 = format!("DROP TABLE IF EXISTS {staging_table}");
 
-            let query1 = format!("DROP TABLE IF EXISTS {audit_table}");
-            let query2 = format!("DROP TABLE IF EXISTS {staging_table}");
-
-            if let Err(e) = deps.system_repo.execute_partition_query(&query1).await {
-                error!(error = %e, drop_year, drop_month, "Failed to drop old audit_logs partition");
-            }
-            if let Err(e) = deps.system_repo.execute_partition_query(&query2).await {
-                error!(error = %e, drop_year, drop_month, "Failed to drop old staging_logs partition");
-            } else {
-                info!(drop_year, drop_month, "Ensured old partitions are dropped");
+                if let Err(e) = deps
+                    .system_repo
+                    .execute_tenant_partition_query(tenant_id, &query1)
+                    .await
+                {
+                    error!(error = %e, tenant_id = %tenant_id, drop_year, drop_month, "Failed to drop old audit_logs partition");
+                }
+                if let Err(e) = deps
+                    .system_repo
+                    .execute_tenant_partition_query(tenant_id, &query2)
+                    .await
+                {
+                    error!(error = %e, tenant_id = %tenant_id, drop_year, drop_month, "Failed to drop old staging_logs partition");
+                }
             }
         }
 
@@ -120,9 +138,32 @@ mod tests {
     async fn test_housekeeping_handle_success() {
         let mut builder = MockWorkerDepsBuilder::new();
         builder
+            .workspace_repo
+            .expect_get_all_workspaces()
+            .returning(|| {
+                Box::pin(async move {
+                    Ok(vec![crate::models::workspace::Workspace {
+                        id: Uuid::new_v4(),
+                        name: "Test Workspace".to_string(),
+                        date_format: "YYYY-MM-DD".to_string(),
+                        time_format: "24h".to_string(),
+                        timezone: "UTC".to_string(),
+                        theme_primary_color: "#000000".to_string(),
+                        default_language: "en".to_string(),
+                        logo_url: None,
+                        tagline: None,
+                        holiday_overnight_strategy: "split".to_string(),
+                        default_holiday_ot_multiplier: rust_decimal::Decimal::new(15, 1),
+                        created_at: chrono::Utc::now(),
+                        custom_db_url_encrypted: None,
+                    }])
+                })
+            });
+
+        builder
             .system_repo
-            .expect_execute_partition_query()
-            .returning(|_| Box::pin(async { Ok(()) }));
+            .expect_execute_tenant_partition_query()
+            .returning(|_, _| Box::pin(async { Ok(()) }));
         let deps = builder.build();
 
         let job = Job::with_priority(

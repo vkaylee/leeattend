@@ -187,7 +187,6 @@ pub trait TenantManager: Send + Sync {
         payload: &serde_json::Value,
     ) -> AppResult<()>;
     async fn get_tenant(&self, tenant_id: &str) -> AppResult<serde_json::Value>;
-
 }
 
 pub struct SupavisorTenantManager {
@@ -445,8 +444,6 @@ impl TenantManager for NoopTenantManager {
         tracing::debug!("NoopTenantManager: skipping get_tenant");
         Ok(serde_json::json!({}))
     }
-
-
 }
 
 fn generate_supavisor_token(secret: &str) -> Result<String, jsonwebtoken::errors::Error> {

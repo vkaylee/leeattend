@@ -452,7 +452,6 @@ pub async fn get_tenant_stats(
     Ok(Json(response))
 }
 
-
 /// GET /system/tenants/stale
 /// Compares registered Supavisor tenants against active workspaces to
 /// identify orphaned (stale) tenant configurations.
@@ -688,7 +687,6 @@ mod tests {
         let json = r#"{"database_url": null}"#;
         assert!(serde_json::from_str::<UpdateTenantDbRequest>(json).is_err());
     }
-
 
     // ── Stale tenant identification logic ─────────────────────────────────────
     // These tests verify the set-difference logic used by list_stale_tenants

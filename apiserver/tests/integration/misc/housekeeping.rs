@@ -11,6 +11,17 @@ async fn test_housekeeping_execution() {
     let test_db = crate::common::db::TestDatabase::new().await;
     let pool = test_db.diesel_pools.clone();
 
+    // Insert a dummy workspace so NightlyHousekeepingHandler will iterate over it
+    // and execute tenant partition queries on this test database (since tenants_tx points to the same DB in tests)
+    use diesel_async::RunQueryDsl;
+    let workspace_id = Uuid::new_v4();
+    {
+        let mut conn = pool.api.get().await.unwrap();
+        diesel::sql_query(
+            format!("INSERT INTO workspaces (id, name, date_format, time_format, timezone, theme_primary_color, default_language, holiday_overnight_strategy, default_holiday_ot_multiplier) VALUES ('{}', 'Test Workspace', 'YYYY-MM-DD', '24h', 'UTC', '#000000', 'en', 'split', 1.5)", workspace_id)
+        ).execute(&mut conn).await.unwrap();
+    }
+
     let job = Job::with_priority(
         Uuid::new_v4(),
         0,
@@ -24,6 +35,7 @@ async fn test_housekeeping_execution() {
 
     let diesel = test_db.diesel_pools.clone();
     let deps = apiserver::worker::WorkerDeps::new(&diesel);
+
     if let Err(e) = NightlyHousekeepingHandler::handle(&deps, &job).await {
         panic!("Handler failed: {}", e);
     }

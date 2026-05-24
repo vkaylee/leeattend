@@ -585,6 +585,7 @@ impl DieselPools {
         use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 
         pub const SYSTEM_MIGRATIONS: EmbeddedMigrations = embed_migrations!("./migrations/system");
+        // force recompile to pick up new tenant migrations
         pub const TENANT_MIGRATIONS: EmbeddedMigrations = embed_migrations!("./migrations/tenant");
 
         let mut conn = diesel::PgConnection::establish(&config.primary_url)
