@@ -75,7 +75,7 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
             .tenant_transaction_conn(auth_token)
             .await?;
 
-        let row: Option<SinglePolicyRow> = crate::crud_sql_query!(&mut conn, 
+        let row: Option<SinglePolicyRow> = crate::crud_sql_query!(&mut conn,
             r#"
             WITH dept_history AS (
                 SELECT department_id
@@ -123,7 +123,7 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
                 SELECT policy_id FROM default_policy WHERE NOT EXISTS (SELECT 1 FROM user_policy) AND NOT EXISTS (SELECT 1 FROM group_policy)
                 LIMIT 1
             )
-            SELECT 
+            SELECT
                 apv.id,
                 apv.policy_id,
                 apv.rules,
@@ -187,7 +187,7 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
                 SELECT unnest($2::uuid[]) AS employee_id
             ),
             dept_history AS (
-                SELECT i.employee_id, 
+                SELECT i.employee_id,
                     (
                         SELECT department_id
                         FROM employee_department_history
@@ -247,7 +247,7 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
                 LEFT JOIN user_policy up ON up.employee_id = i.employee_id
                 LEFT JOIN group_policy gp ON gp.employee_id = i.employee_id
             )
-            SELECT 
+            SELECT
                 sp.employee_id,
                 apv.id,
                 apv.policy_id,
@@ -556,7 +556,7 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
         let rows: Vec<PolicyAssignmentRow> = crate::crud_sql_query!(
             &mut conn,
             r#"
-            SELECT 
+            SELECT
                 apa.id,
                 apa.target_type,
                 apa.target_id,
@@ -744,7 +744,7 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
         // UPDATE attendance_policy_assignments SET valid_to = NOW(), updated_at = NOW()
         // WHERE id = $1 AND target_id IN (SELECT target_id FROM attendance_policy_assignments apa JOIN attendance_policies ap ON ap.id = apa.policy_id WHERE ap.workspace_id = $2)
         // Using diesel_sql_query for the complex IN clause
-        crate::crud_sql_query!(&mut conn, 
+        crate::crud_sql_query!(&mut conn,
             "UPDATE attendance_policy_assignments SET valid_to = NOW(), updated_at = NOW() WHERE id = $1 AND target_id IN (SELECT target_id FROM attendance_policy_assignments apa JOIN attendance_policies ap ON ap.id = apa.policy_id WHERE ap.workspace_id = $2)"
         )
         .bind::<UuidType, _>(assignment_id)

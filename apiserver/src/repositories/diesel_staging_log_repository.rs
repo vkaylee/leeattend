@@ -227,7 +227,7 @@ impl StagingLogRepository for DieselStagingLogRepository {
         let mut claimed = 0u64;
         for staged in staged_logs {
             let id = crate::utils::id::new_id();
-            let rows = crate::crud_sql_query!(&mut conn, 
+            let rows = crate::crud_sql_query!(&mut conn,
                 r#"
                 INSERT INTO raw_attendance_logs
                     (id, workspace_id, employee_id, punch_time, source, device_id, raw_data, punch, status, created_at)

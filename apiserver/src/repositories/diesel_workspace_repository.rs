@@ -410,11 +410,11 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
         let results: Vec<UserIdEntity> = crate::crud_sql_query!(
             &mut conn,
             r#"
-            SELECT DISTINCT wm.user_id 
+            SELECT DISTINCT wm.user_id
             FROM workspace_members wm
             JOIN workspace_roles wr ON wm.role_id = wr.id
             LEFT JOIN workspace_role_permissions wrp ON wr.id = wrp.role_id
-            WHERE wm.workspace_id = $1 
+            WHERE wm.workspace_id = $1
               AND (wr.scope_type = 'global' OR wrp.permission_name = ANY($2))
             "#,
         )
@@ -537,18 +537,18 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
             assigned_at: chrono::DateTime<chrono::Utc>,
         }
 
-        let results: Vec<Entity> =
-            crate::crud_sql_query!(&mut conn, 
-            "SELECT id, workspace_id, user_id, permission, expires_at, assigned_by, assigned_at 
-             FROM workspace_member_extra_permissions 
-             WHERE workspace_id = $1 AND user_id = $2 AND expires_at > NOW() 
+        let results: Vec<Entity> = crate::crud_sql_query!(
+            &mut conn,
+            "SELECT id, workspace_id, user_id, permission, expires_at, assigned_by, assigned_at
+             FROM workspace_member_extra_permissions
+             WHERE workspace_id = $1 AND user_id = $2 AND expires_at > NOW()
              ORDER BY assigned_at DESC",
         )
-            .bind::<diesel::sql_types::Uuid, _>(workspace_id)
-            .bind::<diesel::sql_types::Uuid, _>(user_id)
-            .load(&mut *conn)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        .bind::<diesel::sql_types::Uuid, _>(workspace_id)
+        .bind::<diesel::sql_types::Uuid, _>(user_id)
+        .load(&mut *conn)
+        .await
+        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(results
             .into_iter()
@@ -598,8 +598,8 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
             assigned_at: chrono::DateTime<chrono::Utc>,
         }
 
-        let entity: Entity = crate::crud_sql_query!(&mut conn, 
-            "INSERT INTO workspace_member_extra_permissions (workspace_id, user_id, permission, expires_at, assigned_by) 
+        let entity: Entity = crate::crud_sql_query!(&mut conn,
+            "INSERT INTO workspace_member_extra_permissions (workspace_id, user_id, permission, expires_at, assigned_by)
              VALUES ($1, $2, $3, $4, $5) RETURNING *"
         )
         .bind::<diesel::sql_types::Uuid, _>(workspace_id)
@@ -743,7 +743,7 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
             scope_type: String,
         }
 
-        let results: Vec<Entity> = crate::crud_sql_query!(&mut conn, 
+        let results: Vec<Entity> = crate::crud_sql_query!(&mut conn,
             "SELECT * FROM workspace_roles WHERE workspace_id = $1 OR is_system = true ORDER BY is_system DESC, created_at ASC"
         )
         .bind::<diesel::sql_types::Uuid, _>(workspace_id)
@@ -805,7 +805,7 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
             scope_type: String,
         }
 
-        let entity: Entity = crate::crud_sql_query!(&mut conn, 
+        let entity: Entity = crate::crud_sql_query!(&mut conn,
             "INSERT INTO workspace_roles (workspace_id, name, description, color, is_system, scope_type) VALUES ($1, $2, $3, $4, false, $5) RETURNING *"
         )
         .bind::<diesel::sql_types::Uuid, _>(workspace_id)
@@ -868,7 +868,7 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
             scope_type: String,
         }
 
-        let result: Option<Entity> = crate::crud_sql_query!(&mut conn, 
+        let result: Option<Entity> = crate::crud_sql_query!(&mut conn,
             "UPDATE workspace_roles SET name = COALESCE($1, name), description = COALESCE($2, description), color = COALESCE($3, color), updated_at = NOW() WHERE id = $4 AND workspace_id = $5 AND is_system = false RETURNING *"
         )
         .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(name)
@@ -908,7 +908,7 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
         );
 
         let affected =
-            crate::crud_sql_query!(&mut conn, 
+            crate::crud_sql_query!(&mut conn,
             "DELETE FROM workspace_roles WHERE id = $1 AND workspace_id = $2 AND is_system = false",
         )
             .bind::<diesel::sql_types::Uuid, _>(role_id)
@@ -939,7 +939,7 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
             permission_name: String,
         }
 
-        let results: Vec<StringEntity> = crate::crud_sql_query!(&mut conn, 
+        let results: Vec<StringEntity> = crate::crud_sql_query!(&mut conn,
             "SELECT permission_name FROM workspace_role_permissions WHERE role_id = $1 AND role_id IN (SELECT id FROM workspace_roles WHERE workspace_id = $2 OR is_system = true)"
         )
         .bind::<diesel::sql_types::Uuid, _>(role_id)
@@ -970,7 +970,7 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
             exists: bool,
         }
 
-        let result: Exists = crate::crud_sql_query!(&mut conn, 
+        let result: Exists = crate::crud_sql_query!(&mut conn,
             "SELECT EXISTS(SELECT 1 FROM workspace_roles WHERE id = $1 AND workspace_id = $2 AND is_system = false) as exists"
         )
         .bind::<diesel::sql_types::Uuid, _>(role_id)
@@ -1004,7 +1004,7 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
                     .await?;
 
                 for perm in permissions {
-                    crate::crud_sql_query!(&mut conn, 
+                    crate::crud_sql_query!(&mut conn,
                         "INSERT INTO workspace_role_permissions (role_id, permission_name) VALUES ($1, $2)",
                     )
                     .bind::<diesel::sql_types::Uuid, _>(role_id)

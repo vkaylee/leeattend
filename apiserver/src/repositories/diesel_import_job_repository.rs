@@ -33,7 +33,7 @@ impl ImportJobRepository for DieselImportJobRepository {
             .tenant_transaction_conn(auth_token)
             .await?;
 
-        crate::crud_sql_query!(&mut conn, 
+        crate::crud_sql_query!(&mut conn,
             "INSERT INTO attendance_import_jobs (id, workspace_id, user_id, status, total_rows, processed_rows, file_path, error_log, target_type, created_at, updated_at) VALUES ($1, $2, $3, $4::import_job_status_type, $5, $6, $7, $8, $9, $10, $11)"
         )
         .bind::<diesel::sql_types::Uuid, _>(job.id)
@@ -67,7 +67,7 @@ impl ImportJobRepository for DieselImportJobRepository {
             .tenant_transaction_conn(auth_token)
             .await?;
 
-        crate::crud_sql_query!(&mut conn, 
+        crate::crud_sql_query!(&mut conn,
             "UPDATE attendance_import_jobs SET processed_rows = $1, status = $2::import_job_status_type, error_log = $3, updated_at = $4 WHERE id = $5"
         )
         .bind::<diesel::sql_types::Int4, _>(processed_rows)
@@ -92,7 +92,7 @@ impl ImportJobRepository for DieselImportJobRepository {
             .tenant_transaction_conn(auth_token)
             .await?;
 
-        let row: Option<ImportJobEntity> = crate::crud_sql_query!(&mut conn, 
+        let row: Option<ImportJobEntity> = crate::crud_sql_query!(&mut conn,
             "SELECT id, workspace_id, user_id, status::text, total_rows, processed_rows, file_path, error_log, target_type::text, created_at, updated_at FROM attendance_import_jobs WHERE id = $1"
         )
         .bind::<diesel::sql_types::Uuid, _>(id)
@@ -116,7 +116,7 @@ impl ImportJobRepository for DieselImportJobRepository {
         let workspace_id = auth_token.workspace_id();
 
         let row: Option<ImportJobEntity> = if let Some(tt) = target_type {
-            crate::crud_sql_query!(&mut conn, 
+            crate::crud_sql_query!(&mut conn,
                 "SELECT id, workspace_id, user_id, status::text, total_rows, processed_rows, file_path, error_log, target_type::text, created_at, updated_at FROM attendance_import_jobs WHERE workspace_id = $1 AND target_type = $2 ORDER BY created_at DESC LIMIT 1"
             )
             .bind::<diesel::sql_types::Uuid, _>(workspace_id)
@@ -125,7 +125,7 @@ impl ImportJobRepository for DieselImportJobRepository {
             .await
             .optional()?
         } else {
-            crate::crud_sql_query!(&mut conn, 
+            crate::crud_sql_query!(&mut conn,
                 "SELECT id, workspace_id, user_id, status::text, total_rows, processed_rows, file_path, error_log, target_type::text, created_at, updated_at FROM attendance_import_jobs WHERE workspace_id = $1 ORDER BY created_at DESC LIMIT 1"
             )
             .bind::<diesel::sql_types::Uuid, _>(workspace_id)
@@ -146,7 +146,7 @@ impl ImportJobRepository for DieselImportJobRepository {
             .tenant_transaction_conn(auth_token)
             .await?;
 
-        let rows: Vec<ImportJobEntity> = crate::crud_sql_query!(&mut conn, 
+        let rows: Vec<ImportJobEntity> = crate::crud_sql_query!(&mut conn,
             "SELECT id, workspace_id, user_id, status::text, total_rows, processed_rows, file_path, error_log, target_type::text, created_at, updated_at FROM attendance_import_jobs WHERE status = 'processing'"
         )
         .load(&mut *conn)

@@ -215,7 +215,7 @@ pub async fn clear_debug_db(
                             id: Uuid,
                         }
 
-                        let dept_eng: IdRow = crate::system_crud_query!(conn, 
+                        let dept_eng: IdRow = crate::system_crud_query!(conn,
                             "INSERT INTO departments (workspace_id, name, description) VALUES ($1, 'Engineering', 'Software Development') RETURNING id"
                         )
                         .bind::<diesel::sql_types::Uuid, _>(ws_id)
@@ -223,7 +223,7 @@ pub async fn clear_debug_db(
                         .await
                         .map_err(|e| AppError::Internal(e.to_string()))?;
 
-                        let dept_hr: IdRow = crate::system_crud_query!(conn, 
+                        let dept_hr: IdRow = crate::system_crud_query!(conn,
                             "INSERT INTO departments (workspace_id, name, description) VALUES ($1, 'Human Resources', 'People Operations') RETURNING id"
                         )
                         .bind::<diesel::sql_types::Uuid, _>(ws_id)
@@ -231,7 +231,7 @@ pub async fn clear_debug_db(
                         .await
                         .map_err(|e| AppError::Internal(e.to_string()))?;
 
-                        let _shift_morning: IdRow = crate::system_crud_query!(conn, 
+                        let _shift_morning: IdRow = crate::system_crud_query!(conn,
                             "INSERT INTO shifts (workspace_id, name, start_time, end_time) VALUES ($1, 'Morning Shift', '08:00:00', '17:00:00') RETURNING id"
                         )
                         .bind::<diesel::sql_types::Uuid, _>(ws_id)
@@ -249,7 +249,7 @@ pub async fn clear_debug_db(
 
                         for (name, email, code, dept_id) in employees {
                             let emp_id = crate::utils::id::new_id();
-                            crate::system_crud_query!(conn, 
+                            crate::system_crud_query!(conn,
                                 "INSERT INTO employees (id, workspace_id, full_name, email, employee_id_number, original_hire_date, hire_date, is_active) VALUES ($1, $2, $3, $4, $5, CURRENT_DATE, CURRENT_DATE, true)"
                             )
                             .bind::<diesel::sql_types::Uuid, _>(emp_id)
@@ -261,7 +261,7 @@ pub async fn clear_debug_db(
                             .await
                             .map_err(|e| AppError::Internal(e.to_string()))?;
 
-                            crate::system_crud_query!(conn, 
+                            crate::system_crud_query!(conn,
                                 "INSERT INTO employee_department_history (employee_id, department_id, effective_date) VALUES ($1, $2, CURRENT_DATE)"
                             )
                             .bind::<diesel::sql_types::Uuid, _>(emp_id)

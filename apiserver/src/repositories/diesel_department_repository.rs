@@ -155,7 +155,7 @@ impl DepartmentRepository for DieselDepartmentRepository {
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         // Re-fetch using sql_query to include active_employee_count
-        let entity: DepartmentWithCountEntity = crate::crud_sql_query!(&mut conn, 
+        let entity: DepartmentWithCountEntity = crate::crud_sql_query!(&mut conn,
             r#"SELECT d.id, d.workspace_id, d.name, d.description, d.manager_id, d.default_working_pattern_id, d.created_at, d.updated_at,
                COALESCE((SELECT COUNT(DISTINCT e.id) FROM employees e
                  JOIN (SELECT DISTINCT ON (employee_id) employee_id, department_id FROM employee_department_history ORDER BY employee_id, effective_date DESC) edh ON e.id = edh.employee_id
@@ -182,7 +182,7 @@ impl DepartmentRepository for DieselDepartmentRepository {
             .await?;
         let workspace_id = auth_token.workspace_id();
 
-        let entity: Option<DepartmentWithCountEntity> = crate::crud_sql_query!(&mut conn, 
+        let entity: Option<DepartmentWithCountEntity> = crate::crud_sql_query!(&mut conn,
             r#"SELECT d.id, d.workspace_id, d.name, d.description, d.manager_id, d.default_working_pattern_id, d.created_at, d.updated_at,
                COALESCE((SELECT COUNT(DISTINCT e.id) FROM employees e
                  JOIN (SELECT DISTINCT ON (employee_id) employee_id, department_id FROM employee_department_history ORDER BY employee_id, effective_date DESC) edh ON e.id = edh.employee_id
@@ -257,7 +257,7 @@ impl DepartmentRepository for DieselDepartmentRepository {
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
-        let entity: DepartmentWithCountEntity = crate::crud_sql_query!(&mut conn, 
+        let entity: DepartmentWithCountEntity = crate::crud_sql_query!(&mut conn,
             r#"SELECT d.id, d.workspace_id, d.name, d.description, d.manager_id, d.default_working_pattern_id, d.created_at, d.updated_at,
                COALESCE((SELECT COUNT(DISTINCT e.id) FROM employees e
                  JOIN (SELECT DISTINCT ON (employee_id) employee_id, department_id FROM employee_department_history ORDER BY employee_id, effective_date DESC) edh ON e.id = edh.employee_id
@@ -304,7 +304,7 @@ impl DepartmentRepository for DieselDepartmentRepository {
             .await?;
         let workspace_id = auth_token.workspace_id();
 
-        let results: Vec<DepartmentWithCountEntity> = crate::crud_sql_query!(&mut conn, 
+        let results: Vec<DepartmentWithCountEntity> = crate::crud_sql_query!(&mut conn,
             r#"SELECT d.id, d.workspace_id, d.name, d.description, d.manager_id, d.default_working_pattern_id, d.created_at, d.updated_at,
                COALESCE((SELECT COUNT(DISTINCT e.id) FROM employees e
                  JOIN (SELECT DISTINCT ON (employee_id) employee_id, department_id FROM employee_department_history ORDER BY employee_id, effective_date DESC) edh ON e.id = edh.employee_id
@@ -333,7 +333,7 @@ impl DepartmentRepository for DieselDepartmentRepository {
             .await?;
         let _workspace_id = auth_token.workspace_id();
 
-        let entity: EmployeeDepartmentHistoryEntity = crate::crud_sql_query!(&mut conn, 
+        let entity: EmployeeDepartmentHistoryEntity = crate::crud_sql_query!(&mut conn,
             r#"INSERT INTO employee_department_history (employee_id, department_id, effective_date, notes)
                VALUES ($1, $2, $3, $4)
                RETURNING id, employee_id, department_id, effective_date, notes, created_at"#
@@ -360,8 +360,8 @@ impl DepartmentRepository for DieselDepartmentRepository {
             .await?;
         let workspace_id = auth_token.workspace_id();
 
-        let results: Vec<EmployeeDepartmentHistoryEntity> = crate::crud_sql_query!(&mut conn, 
-            r#"SELECT edh.id, edh.employee_id, edh.department_id, edh.effective_date, edh.notes, edh.created_at 
+        let results: Vec<EmployeeDepartmentHistoryEntity> = crate::crud_sql_query!(&mut conn,
+            r#"SELECT edh.id, edh.employee_id, edh.department_id, edh.effective_date, edh.notes, edh.created_at
                FROM employee_department_history edh
                JOIN employees e ON e.id = edh.employee_id
                WHERE edh.employee_id = $1 AND e.workspace_id = $2
@@ -387,11 +387,11 @@ impl DepartmentRepository for DieselDepartmentRepository {
             .await?;
         let workspace_id = auth_token.workspace_id();
 
-        let result: Option<EmployeeDepartmentHistoryEntity> = crate::crud_sql_query!(&mut conn, 
-            r#"SELECT edh.id, edh.employee_id, edh.department_id, edh.effective_date, edh.notes, edh.created_at 
+        let result: Option<EmployeeDepartmentHistoryEntity> = crate::crud_sql_query!(&mut conn,
+            r#"SELECT edh.id, edh.employee_id, edh.department_id, edh.effective_date, edh.notes, edh.created_at
                FROM employee_department_history edh
                JOIN employees e ON e.id = edh.employee_id
-               WHERE edh.employee_id = $1 AND e.workspace_id = $2 AND edh.effective_date <= CURRENT_DATE 
+               WHERE edh.employee_id = $1 AND e.workspace_id = $2 AND edh.effective_date <= CURRENT_DATE
                ORDER BY edh.effective_date DESC LIMIT 1"#
         )
         .bind::<diesel::sql_types::Uuid, _>(employee_id)
@@ -424,10 +424,10 @@ impl DepartmentRepository for DieselDepartmentRepository {
         let h_per_d =
             bigdecimal::BigDecimal::from_str(&hours_per_day.to_string()).unwrap_or_default();
 
-        let entity: DepartmentPayrollConfigEntity = crate::crud_sql_query!(&mut conn, 
+        let entity: DepartmentPayrollConfigEntity = crate::crud_sql_query!(&mut conn,
             r#"INSERT INTO department_payroll_configs (department_id, std_working_days, hours_per_day, effective_date)
                VALUES ($1, $2, $3, $4)
-               ON CONFLICT (department_id, effective_date) DO UPDATE 
+               ON CONFLICT (department_id, effective_date) DO UPDATE
                SET std_working_days = EXCLUDED.std_working_days,
                    hours_per_day = EXCLUDED.hours_per_day
                RETURNING id, department_id, std_working_days, hours_per_day, effective_date, created_at"#
@@ -483,7 +483,7 @@ impl DepartmentRepository for DieselDepartmentRepository {
             .await?;
         let workspace_id = auth_token.workspace_id();
 
-        let results: Vec<DepartmentPayrollConfigEntity> = crate::crud_sql_query!(&mut conn, 
+        let results: Vec<DepartmentPayrollConfigEntity> = crate::crud_sql_query!(&mut conn,
             r#"SELECT dpc.id, dpc.department_id, dpc.std_working_days, dpc.hours_per_day, dpc.effective_date, dpc.created_at
                FROM department_payroll_configs dpc
                JOIN departments d ON d.id = dpc.department_id

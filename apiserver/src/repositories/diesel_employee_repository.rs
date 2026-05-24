@@ -36,9 +36,9 @@ impl DieselEmployeeRepository {
 }
 
 pub const EMPLOYEE_SELECT_QUERY: &str = r#"
-    SELECT 
-        e.id, e.workspace_id, e.user_id, e.full_name, e.employee_id_number, 
-        e.original_hire_date, e.hire_date, e.termination_date, 
+    SELECT
+        e.id, e.workspace_id, e.user_id, e.full_name, e.employee_id_number,
+        e.original_hire_date, e.hire_date, e.termination_date,
         e.tags, e.is_active, e.created_at, e.updated_at,
         d_cur.name as department_name
     FROM employees e
@@ -1074,7 +1074,7 @@ impl EmployeeRepository for DieselEmployeeRepository {
             created_at: chrono::DateTime<chrono::Utc>,
         }
 
-        let results: Vec<Entity> = crate::crud_sql_query!(&mut conn, 
+        let results: Vec<Entity> = crate::crud_sql_query!(&mut conn,
             r#"SELECT epc.id, epc.employee_id, epc.std_working_days, epc.hours_per_day, epc.effective_date, epc.created_at
                FROM employee_payroll_configs epc
                JOIN employees e ON e.id = epc.employee_id

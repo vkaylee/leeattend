@@ -154,7 +154,7 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
             late_count: i64,
         }
 
-        let late_rows: Vec<LateRow> = crate::crud_sql_query!(&mut conn, 
+        let late_rows: Vec<LateRow> = crate::crud_sql_query!(&mut conn,
             r#"
         WITH first_punches AS (
             SELECT te.employee_id,
@@ -195,7 +195,7 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
             count: i64,
         }
 
-        let total_active: i64 = crate::crud_sql_query!(&mut conn, 
+        let total_active: i64 = crate::crud_sql_query!(&mut conn,
             "SELECT COUNT(*)::bigint as count FROM employees WHERE workspace_id = $1 AND is_active = TRUE",
         )
         .bind::<diesel::sql_types::Uuid, _>(workspace_id)
@@ -291,7 +291,7 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
             present_count: i64,
         }
 
-        let present_rows: Vec<PresentRow> = crate::crud_sql_query!(&mut conn, 
+        let present_rows: Vec<PresentRow> = crate::crud_sql_query!(&mut conn,
             r#"
         WITH latest_dept AS (
             SELECT DISTINCT ON (edh.employee_id) edh.employee_id, edh.department_id
@@ -333,7 +333,7 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
                 #[diesel(sql_type = diesel::sql_types::BigInt)]
                 late_count: i64,
             }
-            let late_rows: Vec<LateRow> = crate::crud_sql_query!(&mut conn, 
+            let late_rows: Vec<LateRow> = crate::crud_sql_query!(&mut conn,
                 r#"
             WITH latest_dept AS (
                 SELECT DISTINCT ON (edh.employee_id) edh.employee_id, edh.department_id
@@ -385,7 +385,7 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
             leave_count: i64,
         }
 
-        let leave_rows: Vec<LeaveRow> = crate::crud_sql_query!(&mut conn, 
+        let leave_rows: Vec<LeaveRow> = crate::crud_sql_query!(&mut conn,
             r#"
         WITH latest_dept AS (
             SELECT DISTINCT ON (edh.employee_id) edh.employee_id, edh.department_id
@@ -513,7 +513,7 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
             count: i64,
         }
 
-        let total_employees: i64 = crate::crud_sql_query!(&mut conn, 
+        let total_employees: i64 = crate::crud_sql_query!(&mut conn,
             "SELECT COUNT(*)::bigint as count FROM employees WHERE workspace_id = $1 AND is_active = TRUE",
         )
         .bind::<diesel::sql_types::Uuid, _>(workspace_id)
@@ -590,7 +590,7 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
         .map(|r| r.amount)
         .unwrap_or(rust_decimal::Decimal::ZERO);
 
-        let on_leave_today: i64 = crate::crud_sql_query!(&mut conn, 
+        let on_leave_today: i64 = crate::crud_sql_query!(&mut conn,
         "SELECT COUNT(DISTINCT lr.employee_id)::bigint as count FROM leave_requests lr
          WHERE lr.status IN ('approved', 'pre_approved')
          AND lr.start_date <= $1 AND lr.end_date >= $1
@@ -605,7 +605,7 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
 
         let absent_today = (total_employees - present_today - on_leave_today).max(0);
 
-        let late_today: i64 = crate::crud_sql_query!(&mut conn, 
+        let late_today: i64 = crate::crud_sql_query!(&mut conn,
         r#"
         WITH today_punches AS (
             SELECT te.employee_id,
@@ -630,7 +630,7 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
     .map(|r| r.count)
     .unwrap_or(0);
 
-        let early_departure_today: i64 = crate::crud_sql_query!(&mut conn, 
+        let early_departure_today: i64 = crate::crud_sql_query!(&mut conn,
         r#"
         WITH today_completed AS (
             SELECT te.employee_id,
@@ -662,7 +662,7 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
             amount: Option<f64>,
         }
 
-        let avg_work_minutes: Option<f64> = crate::crud_sql_query!(&mut conn, 
+        let avg_work_minutes: Option<f64> = crate::crud_sql_query!(&mut conn,
         "SELECT AVG(duration_minutes)::float8 as amount FROM time_entries
          WHERE punch_in_time >= $1
          AND punch_out_time IS NOT NULL
@@ -717,7 +717,7 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
             check_out: i64,
         }
 
-        let rows: Vec<SlotRow> = crate::crud_sql_query!(&mut conn, 
+        let rows: Vec<SlotRow> = crate::crud_sql_query!(&mut conn,
         r#"
         WITH slots AS (
             SELECT generate_series(0, 47) AS slot_index
@@ -862,7 +862,7 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
             avg_late_minutes: f64,
         }
 
-        let rows: Vec<DayRow> = crate::crud_sql_query!(&mut conn, 
+        let rows: Vec<DayRow> = crate::crud_sql_query!(&mut conn,
         r#"
         WITH first_punches AS (
             SELECT te.employee_id,

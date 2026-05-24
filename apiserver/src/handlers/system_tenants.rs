@@ -143,7 +143,7 @@ pub async fn list_tenants(
     let tenants_result = crate::system_crud_query!(
         &mut conn,
         r#"
-        SELECT external_id, default_pool_size, inserted_at, updated_at 
+        SELECT external_id, default_pool_size, inserted_at, updated_at
         FROM _supavisor.tenants
         ORDER BY inserted_at DESC
         "#,

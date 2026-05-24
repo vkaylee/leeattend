@@ -91,9 +91,9 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
                 ads::is_holiday.eq(excluded(ads::is_holiday)),
                 ads::holiday_name.eq(excluded(ads::holiday_name)),
                 ads::ot_status.eq(diesel::dsl::sql::<crate::schema::sql_types::OtStatusType>(
-                    "CASE 
+                    "CASE
                         WHEN attendance_daily_summaries.ot_status = 'none'::ot_status_type AND EXCLUDED.system_detected_ot_minutes > 0 THEN 'pending_employee'::ot_status_type
-                        ELSE attendance_daily_summaries.ot_status 
+                        ELSE attendance_daily_summaries.ot_status
                     END"
                 )),
                 ads::updated_at.eq(diesel::dsl::now),

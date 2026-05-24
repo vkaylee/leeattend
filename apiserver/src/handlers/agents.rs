@@ -655,7 +655,7 @@ pub async fn update_authorized_agent(
     crate::system_crud_query!(
         &mut conn,
         r#"
-        UPDATE authorized_agents 
+        UPDATE authorized_agents
         SET name = $1,
             token = $2,
             is_trusted = $3,

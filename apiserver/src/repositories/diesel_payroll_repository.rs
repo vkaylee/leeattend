@@ -872,14 +872,14 @@ impl PayrollRepository for DieselPayrollRepository {
                       OR (assignee_type = 'department' AND assignee_id = $3)
                       OR (assignee_type = 'workspace')
                   )
-                ORDER BY rule_definition_id, 
-                         CASE assignee_type 
-                            WHEN 'employee' THEN 1 
-                            WHEN 'department' THEN 2 
-                            WHEN 'workspace' THEN 3 
+                ORDER BY rule_definition_id,
+                         CASE assignee_type
+                            WHEN 'employee' THEN 1
+                            WHEN 'department' THEN 2
+                            WHEN 'workspace' THEN 3
                          END
             )
-            SELECT 
+            SELECT
                 r.rule_definition_id,
                 r.override_config,
                 d.code,

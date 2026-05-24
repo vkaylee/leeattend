@@ -209,9 +209,9 @@ impl RosterRepository for DieselRosterRepository {
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?,
         );
 
-        let history = crate::crud_sql_query!(&mut conn, 
+        let history = crate::crud_sql_query!(&mut conn,
             r#"
-            SELECT 
+            SELECT
                 id,
                 employee_id,
                 (SELECT full_name FROM employees WHERE id = history.employee_id) as employee_name,
@@ -221,12 +221,12 @@ impl RosterRepository for DieselRosterRepository {
                 created_at
             FROM (
                 -- Fixed Assignments
-                SELECT 
+                SELECT
                     es.id,
                     es.employee_id,
                     'fixed'::assignment_history_type as assignment_type,
                     s.name as shift_name,
-                    TO_CHAR(es.start_date, 'YYYY-MM-DD') || 
+                    TO_CHAR(es.start_date, 'YYYY-MM-DD') ||
                     CASE WHEN es.end_date IS NULL THEN ' -> ∞' ELSE ' -> ' || TO_CHAR(es.end_date, 'YYYY-MM-DD') END as date_range,
                     es.created_at
                 FROM employee_shifts es
@@ -237,12 +237,12 @@ impl RosterRepository for DieselRosterRepository {
                 UNION ALL
 
                 -- Pattern Assignments
-                SELECT 
+                SELECT
                     ewp.id,
                     ewp.employee_id,
                     'pattern'::assignment_history_type as assignment_type,
                     wp.name as shift_name,
-                    TO_CHAR(ewp.start_date, 'YYYY-MM-DD') || 
+                    TO_CHAR(ewp.start_date, 'YYYY-MM-DD') ||
                     CASE WHEN ewp.end_date IS NULL THEN ' -> ∞' ELSE ' -> ' || TO_CHAR(ewp.end_date, 'YYYY-MM-DD') END as date_range,
                     ewp.created_at
                 FROM employee_working_patterns ewp
@@ -253,7 +253,7 @@ impl RosterRepository for DieselRosterRepository {
                 UNION ALL
 
                 -- Roster Assignments
-                SELECT 
+                SELECT
                     sr.id,
                     sr.employee_id,
                     'roster'::assignment_history_type as assignment_type,
@@ -268,7 +268,7 @@ impl RosterRepository for DieselRosterRepository {
                 UNION ALL
 
                 -- Department Patterns
-                SELECT 
+                SELECT
                     edh.id,
                     edh.employee_id,
                     'department_pattern'::assignment_history_type as assignment_type,
@@ -284,7 +284,7 @@ impl RosterRepository for DieselRosterRepository {
                 UNION ALL
 
                 -- Department Fixed
-                SELECT 
+                SELECT
                     edh.id,
                     edh.employee_id,
                     'department_fixed'::assignment_history_type as assignment_type,
