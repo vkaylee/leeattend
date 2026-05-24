@@ -13,6 +13,7 @@
 >    - Bạn BẮT BUỘC phải dùng NATIVE TOOL (như `write_to_file`) của AI để tạo file (ví dụ `scratch/commit_msg.txt`), rồi mới chạy lệnh `git commit -F scratch/commit_msg.txt`.
 >    - Tương tự, nếu cần chạy script python, dùng tool tạo file `.py` riêng biệt rồi mới chạy lệnh `python file.py`.
 > 3. **HERMETIC WRAPPERS:** Tuyệt đối không gọi trực tiếp `cargo`, `npm`, `diesel`. Phải dùng wrapper scripts trong `scripts/` (ví dụ: `./scripts/_cargo.sh`). Chi tiết xem ở `execution-wrappers.md`.
+> 4. **AI MUST BE CALM (CRITICAL):** DO NOT RUSH OR DRAW CONCLUSIONS BEFORE WAITING FOR RESULTS. Always wait for processes to finish, carefully read error logs (if any), and only then report back to the user. Never say "it's done" without actually verifying the outcome.
 
 ## 📚 DOMAIN RULEBOOKS (Lazy Load Index)
 If your task touches any of these domains, use the `view_file` or `cat` tool to read the corresponding rulebook FIRST and output "Read: [Rulebook]".

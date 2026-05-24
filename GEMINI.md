@@ -20,10 +20,12 @@ trigger: always_on
 2. **Security & Privacy:** NEVER log PII (emails, passwords, phones) in raw text. Mask them (e.g., `user_***@domain.com`).
 3. **Structured Errors:** Use domain-specific error types (`AppError`). NEVER throw generic `Error` or `unwrap()` blindly.
 4. **Boy Scout Rule:** If you see a typo, bad pattern, or visible bug nearby, FIX IT IMMEDIATELY. Never say "it's out of scope".
-5. **PTY Safety & File Creation (CRITICAL):** LUÔN LUÔN sử dụng chuyển hướng đầu ra (ví dụ: `> run.log 2>&1 </dev/null`) khi thực thi lệnh bash/shell (đặc biệt là test, build, docker) để tuyệt đối tránh treo AI Terminal. TUYỆT ĐỐI KHÔNG DÙNG chuỗi nhiều dòng (multiline strings) trực tiếp trong các lệnh terminal (như `echo "..." > file`, `git commit -m "..."` hay `python -c`).
-   - KHÔNG BAO GIỜ dùng lệnh `echo` hay `cat` trong shell/bash để tạo/sửa file có nội dung nhiều dòng.
-   - Bạn BẮT BUỘC phải dùng NATIVE TOOL của bạn (như `write_to_file`) để tạo file (ví dụ `scratch/commit_msg.txt` hoặc `script.py`), sau đó mới dùng lệnh shell để thực thi (ví dụ: `git commit -F scratch/commit_msg.txt`). Việc cố tình truyền chuỗi nhiều dòng qua bash/shell string sẽ phá vỡ PTY parser và gây hang hệ thống.
-6. **Hermetic Wrappers (CRITICAL):** TUYỆT ĐỐI KHÔNG gọi trực tiếp `cargo`, `npm`, `diesel`. Phải dùng wrapper scripts trong `scripts/` (ví dụ: `./scripts/_cargo.sh`). Chi tiết xem ở `execution-wrappers.md`.
+5. **PTY Safety & File Creation (CRITICAL):** ALWAYS use output redirection (e.g., `> run.log 2>&1 </dev/null`) when executing bash/shell commands (especially for test, build, docker) to absolutely avoid hanging the AI Terminal. NEVER use multiline strings directly in terminal commands (such as `echo "..." > file`, `git commit -m "..."`, or `python -c`).
+   - NEVER use `echo` or `cat` in shell/bash to create/edit files with multiline content.
+   - You MUST use your NATIVE TOOL (such as `write_to_file`) to create files (e.g., `scratch/commit_msg.txt` or `script.py`), then use shell commands to execute them (e.g., `git commit -F scratch/commit_msg.txt`). Deliberately passing multiline strings through bash/shell will break the PTY parser and cause system hangs.
+6. **Hermetic Wrappers (CRITICAL):** DO NOT call `cargo`, `npm`, or `diesel` directly. You must use wrapper scripts in `scripts/` (e.g., `./scripts/_cargo.sh`). See `execution-wrappers.md` for details.
+7. **AI MUST BE CALM (CRITICAL):** DO NOT RUSH OR DRAW CONCLUSIONS BEFORE WAITING FOR RESULTS. Always wait for processes to finish, carefully read error logs (if any), and only then report back to the user. Never say "it's done" without actually verifying the outcome.
+
 ## 🥇 Layer 1: CRITICAL PROTOCOL
 **Before writing ANY code or proposing solutions, you MUST:**
 1. **MANDATORY Lazy-Load:** You MUST run `view_file` on related rulebooks and explicitly output 'Read: [Rule Name]' in your Socratic response BEFORE generating any code.
