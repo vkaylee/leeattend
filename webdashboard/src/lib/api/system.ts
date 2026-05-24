@@ -145,3 +145,60 @@ export async function updateTenantMode(tenantId: string, modeType: string): Prom
     throw new Error(errText || "Failed to update tenant mode");
   }
 }
+
+export interface SystemDbCluster {
+  active_tenants: number;
+  admin_database_url: string;
+  created_at: string;
+  id: string;
+  is_active: boolean;
+  max_tenants: number;
+  name: string;
+  region: string;
+  updated_at: string;
+}
+
+export interface CreateDbClusterRequestPayload {
+  admin_database_url: string;
+  is_active: boolean;
+  max_tenants: number;
+  name: string;
+  region: string;
+}
+
+export async function fetchSystemDbClusters(): Promise<SystemDbCluster[]> {
+  const response = await apiFetch(`${API_BASE_URL}/system/db-clusters`);
+  if (!response.ok) throw new Error("Failed to fetch system DB clusters");
+  return response.json() as Promise<SystemDbCluster[]>;
+}
+
+export async function createSystemDbCluster(request: CreateDbClusterRequestPayload): Promise<SystemDbCluster> {
+  const response = await apiFetch(`${API_BASE_URL}/system/db-clusters`, {
+    method: "POST",
+    body: JSON.stringify(request),
+  });
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(errText || "Failed to create DB cluster");
+  }
+  return response.json() as Promise<SystemDbCluster>;
+}
+
+export async function deleteSystemDbCluster(id: string): Promise<void> {
+  const response = await apiFetch(`${API_BASE_URL}/system/db-clusters/${id}`, {
+    method: "DELETE",
+  });
+  if (!response.ok) throw new Error("Failed to delete DB cluster");
+}
+
+export async function updateSystemDbClusterStatus(id: string, isActive: boolean): Promise<SystemDbCluster> {
+  const response = await apiFetch(`${API_BASE_URL}/system/db-clusters/${id}/status`, {
+    method: "PATCH",
+    body: JSON.stringify({ is_active: isActive }),
+  });
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(errText || "Failed to update DB cluster status");
+  }
+  return response.json() as Promise<SystemDbCluster>;
+}

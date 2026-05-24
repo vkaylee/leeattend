@@ -113,8 +113,8 @@ mod tests {
         let ws_id = Uuid::new_v4();
 
         let mut cache = crate::repositories::cache_repository::MockCacheRepository::new();
-        let progress_key = format!("import_progress:{}", import_job_id);
-        let errors_key = format!("import_errors:{}", import_job_id);
+        let progress_key = format!("import_progress:{import_job_id}");
+        let errors_key = format!("import_errors:{import_job_id}");
 
         cache
             .expect_get_json()

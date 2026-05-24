@@ -41,6 +41,7 @@ import { Route as AuthenticatedWorkspaceEssAttendanceRouteImport } from "./route
 import { Route as AuthenticatedWorkspaceApprovalsOtRouteImport } from "./routes/_authenticated/_workspace/approvals/ot"
 import { Route as AuthenticatedInfraSystemTenantsRouteImport } from "./routes/_authenticated/_infra/system/tenants"
 import { Route as AuthenticatedInfraSystemRolesRouteImport } from "./routes/_authenticated/_infra/system/roles"
+import { Route as AuthenticatedInfraSystemDbClustersRouteImport } from "./routes/_authenticated/_infra/system/db-clusters"
 import { Route as AuthenticatedInfraInfraMonitorRouteImport } from "./routes/_authenticated/_infra/infra/monitor"
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsIndexRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/index"
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsTimeRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/time"
@@ -335,6 +336,16 @@ const AuthenticatedInfraSystemRolesRoute =
       (d) => d.Route,
     ),
   )
+const AuthenticatedInfraSystemDbClustersRoute =
+  AuthenticatedInfraSystemDbClustersRouteImport.update({
+    id: "/system/db-clusters",
+    path: "/system/db-clusters",
+    getParentRoute: () => AuthenticatedInfraRoute,
+  } as any).lazy(() =>
+    import("./routes/_authenticated/_infra/system/db-clusters.lazy").then(
+      (d) => d.Route,
+    ),
+  )
 const AuthenticatedInfraInfraMonitorRoute =
   AuthenticatedInfraInfraMonitorRouteImport.update({
     id: "/infra/monitor",
@@ -513,6 +524,7 @@ export interface FileRoutesByFullPath {
   "/shifts": typeof AuthenticatedWorkspaceShiftsRoute
   "/working-patterns": typeof AuthenticatedWorkspaceWorkingPatternsRouteWithChildren
   "/infra/monitor": typeof AuthenticatedInfraInfraMonitorRoute
+  "/system/db-clusters": typeof AuthenticatedInfraSystemDbClustersRoute
   "/system/roles": typeof AuthenticatedInfraSystemRolesRoute
   "/system/tenants": typeof AuthenticatedInfraSystemTenantsRoute
   "/approvals/ot": typeof AuthenticatedWorkspaceApprovalsOtRoute
@@ -559,6 +571,7 @@ export interface FileRoutesByTo {
   "/shift-swaps": typeof AuthenticatedWorkspaceShiftSwapsRoute
   "/shifts": typeof AuthenticatedWorkspaceShiftsRoute
   "/infra/monitor": typeof AuthenticatedInfraInfraMonitorRoute
+  "/system/db-clusters": typeof AuthenticatedInfraSystemDbClustersRoute
   "/system/roles": typeof AuthenticatedInfraSystemRolesRoute
   "/system/tenants": typeof AuthenticatedInfraSystemTenantsRoute
   "/approvals/ot": typeof AuthenticatedWorkspaceApprovalsOtRoute
@@ -609,6 +622,7 @@ export interface FileRoutesById {
   "/_authenticated/_workspace/working-patterns": typeof AuthenticatedWorkspaceWorkingPatternsRouteWithChildren
   "/_authenticated/_workspace/": typeof AuthenticatedWorkspaceIndexRoute
   "/_authenticated/_infra/infra/monitor": typeof AuthenticatedInfraInfraMonitorRoute
+  "/_authenticated/_infra/system/db-clusters": typeof AuthenticatedInfraSystemDbClustersRoute
   "/_authenticated/_infra/system/roles": typeof AuthenticatedInfraSystemRolesRoute
   "/_authenticated/_infra/system/tenants": typeof AuthenticatedInfraSystemTenantsRoute
   "/_authenticated/_workspace/approvals/ot": typeof AuthenticatedWorkspaceApprovalsOtRoute
@@ -658,6 +672,7 @@ export interface FileRouteTypes {
     | "/shifts"
     | "/working-patterns"
     | "/infra/monitor"
+    | "/system/db-clusters"
     | "/system/roles"
     | "/system/tenants"
     | "/approvals/ot"
@@ -704,6 +719,7 @@ export interface FileRouteTypes {
     | "/shift-swaps"
     | "/shifts"
     | "/infra/monitor"
+    | "/system/db-clusters"
     | "/system/roles"
     | "/system/tenants"
     | "/approvals/ot"
@@ -753,6 +769,7 @@ export interface FileRouteTypes {
     | "/_authenticated/_workspace/working-patterns"
     | "/_authenticated/_workspace/"
     | "/_authenticated/_infra/infra/monitor"
+    | "/_authenticated/_infra/system/db-clusters"
     | "/_authenticated/_infra/system/roles"
     | "/_authenticated/_infra/system/tenants"
     | "/_authenticated/_workspace/approvals/ot"
@@ -1012,6 +1029,13 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof AuthenticatedInfraSystemRolesRouteImport
       parentRoute: typeof AuthenticatedInfraRoute
     }
+    "/_authenticated/_infra/system/db-clusters": {
+      id: "/_authenticated/_infra/system/db-clusters"
+      path: "/system/db-clusters"
+      fullPath: "/system/db-clusters"
+      preLoaderRoute: typeof AuthenticatedInfraSystemDbClustersRouteImport
+      parentRoute: typeof AuthenticatedInfraRoute
+    }
     "/_authenticated/_infra/infra/monitor": {
       id: "/_authenticated/_infra/infra/monitor"
       path: "/infra/monitor"
@@ -1129,12 +1153,15 @@ declare module "@tanstack/react-router" {
 
 interface AuthenticatedInfraRouteChildren {
   AuthenticatedInfraInfraMonitorRoute: typeof AuthenticatedInfraInfraMonitorRoute
+  AuthenticatedInfraSystemDbClustersRoute: typeof AuthenticatedInfraSystemDbClustersRoute
   AuthenticatedInfraSystemRolesRoute: typeof AuthenticatedInfraSystemRolesRoute
   AuthenticatedInfraSystemTenantsRoute: typeof AuthenticatedInfraSystemTenantsRoute
 }
 
 const AuthenticatedInfraRouteChildren: AuthenticatedInfraRouteChildren = {
   AuthenticatedInfraInfraMonitorRoute: AuthenticatedInfraInfraMonitorRoute,
+  AuthenticatedInfraSystemDbClustersRoute:
+    AuthenticatedInfraSystemDbClustersRoute,
   AuthenticatedInfraSystemRolesRoute: AuthenticatedInfraSystemRolesRoute,
   AuthenticatedInfraSystemTenantsRoute: AuthenticatedInfraSystemTenantsRoute,
 }

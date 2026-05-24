@@ -40,6 +40,15 @@ impl apiserver::repositories::system_db_cluster_repository::SystemDbClusterRepos
     async fn create_cluster(&self, _cluster: &apiserver::models::system_db_cluster::NewSystemDbCluster) -> Result<apiserver::models::system_db_cluster::SystemDbCluster, apiserver::errors::AppError> {
         unimplemented!()
     }
+    async fn list_clusters(&self) -> Result<Vec<apiserver::models::system_db_cluster::SystemDbCluster>, apiserver::errors::AppError> {
+        Ok(vec![])
+    }
+    async fn delete_cluster(&self, _cluster_id: uuid::Uuid) -> Result<(), apiserver::errors::AppError> {
+        Ok(())
+    }
+    async fn update_cluster_status(&self, _cluster_id: uuid::Uuid, _is_active: bool) -> Result<apiserver::models::system_db_cluster::SystemDbCluster, apiserver::errors::AppError> {
+        unimplemented!()
+    }
 }
 
 pub struct DummyTenantManager;
@@ -589,6 +598,7 @@ pub async fn spawn_app() -> (String, TestDatabase) {
                         .ok()
                         .map(std::sync::Arc::new)
                 }),
+            system_db_cluster_repo: Arc::new(apiserver::repositories::diesel_system_db_cluster_repository::DieselSystemDbClusterRepository::new(diesel_pools.clone())),
         },
     });
 
@@ -1120,6 +1130,7 @@ pub async fn spawn_app_with_factory_extended(
                         .ok()
                         .map(std::sync::Arc::new)
                 }),
+            system_db_cluster_repo: Arc::new(apiserver::repositories::diesel_system_db_cluster_repository::DieselSystemDbClusterRepository::new(diesel_pools.clone())),
         },
     });
 
@@ -1704,6 +1715,7 @@ pub async fn setup_app_tower_internal_extended(
                         .ok()
                         .map(std::sync::Arc::new)
                 }),
+            system_db_cluster_repo: Arc::new(apiserver::repositories::diesel_system_db_cluster_repository::DieselSystemDbClusterRepository::new(diesel_pools.clone())),
         },
     });
 

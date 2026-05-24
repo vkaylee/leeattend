@@ -1,4 +1,7 @@
-fix(tests): replace diesel migration run in docker-compose
+feat(core): implement automatic tenant database provisioning
 
-- Replaced `diesel migration run` with `cargo test --test setup_migrations` in the `db_init` service of `.compose/docker-compose.test.yml`. 
-- The standard `diesel CLI` does not natively support recursively executing migrations from multiple split directories (`system/` and `tenant/`) without extra configuration, which resulted in empty test databases. Using the Rust test binary ensures `embed_migrations!` accurately populates the test database.
+- Add `system_db_clusters` table and migration.
+- Add `SystemDbCluster` model and repository to select the least loaded cluster.
+- Update `CreateWorkspaceRequest` to make `database_url` optional.
+- Modify `WorkspaceService::create_workspace` to automatically provision a new PostgreSQL database on the least loaded cluster if no BYOD `database_url` is provided.
+- Ensure automated migrations run on newly provisioned databases.

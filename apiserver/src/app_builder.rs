@@ -552,6 +552,7 @@ impl AppState {
                             .ok()
                             .map(Arc::new)
                     }),
+                system_db_cluster_repo: system_db_cluster_repo.clone(),
             },
         });
 

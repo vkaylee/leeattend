@@ -1427,7 +1427,7 @@ mod tests {
         });
 
         // Set environment variables
-        let api_url = format!("http://{}", addr);
+        let api_url = format!("http://{addr}");
         std::env::set_var("SUPAVISOR_API_URL", &api_url);
         std::env::set_var(
             "API_JWT_SECRET",

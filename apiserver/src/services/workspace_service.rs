@@ -86,17 +86,17 @@ impl WorkspaceService {
 
             let admin_url = cluster.admin_database_url;
             let tenant_db_name = format!("tenant_{}", id.to_string().replace('-', ""));
-            let create_db_sql = format!("CREATE DATABASE {}", tenant_db_name);
+            let create_db_sql = format!("CREATE DATABASE {tenant_db_name}");
             
             use diesel_async::{AsyncConnection, RunQueryDsl, AsyncPgConnection};
             let mut conn = AsyncPgConnection::establish(&admin_url)
                 .await
-                .map_err(|e| format!("Failed to connect to admin DB: {}", e))?;
+                .map_err(|e| format!("Failed to connect to admin DB: {e}"))?;
                 
             diesel::sql_query(create_db_sql)
                 .execute(&mut conn)
                 .await
-                .map_err(|e| format!("Failed to create tenant database: {}", e))?;
+                .map_err(|e| format!("Failed to create tenant database: {e}"))?;
                 
             // Increment active tenants
             self.system_db_cluster_repo
@@ -106,7 +106,7 @@ impl WorkspaceService {
 
             // Replace the database name in the url
             let mut parsed_url = reqwest::Url::parse(&admin_url).map_err(|e| e.to_string())?;
-            parsed_url.set_path(&format!("/{}", tenant_db_name));
+            parsed_url.set_path(&format!("/{tenant_db_name}"));
             parsed_url.to_string()
         };
 
@@ -635,6 +635,15 @@ mod tests {
             Ok(())
         }
         async fn create_cluster(&self, _cluster: &crate::models::system_db_cluster::NewSystemDbCluster) -> Result<crate::models::system_db_cluster::SystemDbCluster, AppError> {
+            unimplemented!()
+        }
+        async fn list_clusters(&self) -> Result<Vec<crate::models::system_db_cluster::SystemDbCluster>, AppError> {
+            unimplemented!()
+        }
+        async fn delete_cluster(&self, _cluster_id: Uuid) -> Result<(), AppError> {
+            unimplemented!()
+        }
+        async fn update_cluster_status(&self, _cluster_id: Uuid, _is_active: bool) -> Result<crate::models::system_db_cluster::SystemDbCluster, AppError> {
             unimplemented!()
         }
     }

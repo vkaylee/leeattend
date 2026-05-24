@@ -27,7 +27,7 @@ impl SystemDbClusterRepository for DieselSystemDbClusterRepository {
             .api
             .get()
             .await
-            .map_err(|e| AppError::Internal(format!("Failed to get connection: {}", e)))?;
+            .map_err(|e| AppError::Internal(format!("Failed to get connection: {e}")))?;
 
         let cluster = system_db_clusters
             .filter(is_active.eq(true))
@@ -36,7 +36,7 @@ impl SystemDbClusterRepository for DieselSystemDbClusterRepository {
             .first::<SystemDbCluster>(&mut conn)
             .await
             .optional()
-            .map_err(|e| AppError::Internal(format!("Database error: {}", e)))?;
+            .map_err(|e| AppError::Internal(format!("Database error: {e}")))?;
 
         Ok(cluster)
     }
@@ -49,7 +49,7 @@ impl SystemDbClusterRepository for DieselSystemDbClusterRepository {
             .api
             .get()
             .await
-            .map_err(|e| AppError::Internal(format!("Failed to get connection: {}", e)))?;
+            .map_err(|e| AppError::Internal(format!("Failed to get connection: {e}")))?;
 
         diesel::update(system_db_clusters.filter(id.eq(cluster_id)))
             .set((
@@ -58,7 +58,7 @@ impl SystemDbClusterRepository for DieselSystemDbClusterRepository {
             ))
             .execute(&mut conn)
             .await
-            .map_err(|e| AppError::Internal(format!("Database error: {}", e)))?;
+            .map_err(|e| AppError::Internal(format!("Database error: {e}")))?;
 
         Ok(())
     }
@@ -74,14 +74,73 @@ impl SystemDbClusterRepository for DieselSystemDbClusterRepository {
             .api
             .get()
             .await
-            .map_err(|e| AppError::Internal(format!("Failed to get connection: {}", e)))?;
+            .map_err(|e| AppError::Internal(format!("Failed to get connection: {e}")))?;
 
         let new_cluster = diesel::insert_into(system_db_clusters)
             .values(cluster)
             .get_result::<SystemDbCluster>(&mut conn)
             .await
-            .map_err(|e| AppError::Internal(format!("Database error: {}", e)))?;
+            .map_err(|e| AppError::Internal(format!("Database error: {e}")))?;
 
         Ok(new_cluster)
+    }
+
+    async fn list_clusters(&self) -> Result<Vec<SystemDbCluster>, AppError> {
+        use crate::schema::system_db_clusters::dsl::*;
+
+        let mut conn = self
+            .pool
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(format!("Failed to get connection: {e}")))?;
+
+        let clusters = system_db_clusters
+            .order(created_at.desc())
+            .load::<SystemDbCluster>(&mut conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("Database error: {e}")))?;
+
+        Ok(clusters)
+    }
+
+    async fn delete_cluster(&self, cluster_id: Uuid) -> Result<(), AppError> {
+        use crate::schema::system_db_clusters::dsl::*;
+
+        let mut conn = self
+            .pool
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(format!("Failed to get connection: {e}")))?;
+
+        diesel::delete(system_db_clusters.filter(id.eq(cluster_id)))
+            .execute(&mut conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("Database error: {e}")))?;
+
+        Ok(())
+    }
+
+    async fn update_cluster_status(&self, cluster_id: Uuid, new_is_active: bool) -> Result<SystemDbCluster, AppError> {
+        use crate::schema::system_db_clusters::dsl::*;
+
+        let mut conn = self
+            .pool
+            .api
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(format!("Failed to get connection: {e}")))?;
+
+        let updated_cluster = diesel::update(system_db_clusters.filter(id.eq(cluster_id)))
+            .set((
+                is_active.eq(new_is_active),
+                updated_at.eq(chrono::Utc::now()),
+            ))
+            .get_result::<SystemDbCluster>(&mut conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("Database error: {e}")))?;
+
+        Ok(updated_cluster)
     }
 }

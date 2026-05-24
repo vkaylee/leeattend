@@ -47,6 +47,7 @@ export const ROUTES = {
   INFRA_MONITOR: "/infra/monitor",
   SYSTEM_ROLES: "/system/roles",
   SYSTEM_TENANTS: "/system/tenants",
+  SYSTEM_DB_CLUSTERS: "/system/db-clusters",
 
   // Employee Self-Service
   ESS_PROFILE: "/ess/profile",

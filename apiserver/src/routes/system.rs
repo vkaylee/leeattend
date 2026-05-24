@@ -46,4 +46,18 @@ pub fn router() -> Router<Arc<AppState>> {
             "/system/tenants/:tenant_id/mode",
             patch(system_tenants::update_tenant_mode),
         )
+        // System DB Clusters
+        .route(
+            "/system/db-clusters",
+            get(crate::handlers::system_db_clusters::list_db_clusters)
+                .post(crate::handlers::system_db_clusters::create_db_cluster),
+        )
+        .route(
+            "/system/db-clusters/:id",
+            delete(crate::handlers::system_db_clusters::delete_db_cluster),
+        )
+        .route(
+            "/system/db-clusters/:id/status",
+            patch(crate::handlers::system_db_clusters::update_db_cluster_status),
+        )
 }

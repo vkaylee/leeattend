@@ -143,6 +143,7 @@ pub struct InfraState {
     pub tenant_manager: Arc<dyn crate::supavisor::TenantManager>,
     pub tenant_provisioner: Arc<dyn crate::services::tenant_provisioner::TenantProvisionerTrait>,
     pub crypto_service: Option<Arc<crate::crypto::CryptoService>>,
+    pub system_db_cluster_repo: Arc<dyn crate::repositories::SystemDbClusterRepository>,
 }
 
 // ── Composed AppState ──────────────────────────────────────────────
