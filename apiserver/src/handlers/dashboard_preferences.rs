@@ -80,13 +80,14 @@ pub async fn get_dashboard_preferences(
     MemberContext {
         user_id,
         workspace_id,
+        auth_token,
         ..
     }: MemberContext,
 ) -> AppResult<Json<DashboardPreferences>> {
     let prefs = state
         .core
         .user_repo
-        .get_dashboard_preferences(user_id, workspace_id)
+        .get_dashboard_preferences(user_id, &auth_token)
         .await?;
 
     match prefs {
@@ -112,7 +113,8 @@ pub async fn update_dashboard_preferences(
     State(state): State<Arc<AppState>>,
     MemberContext {
         user_id,
-        workspace_id,
+        workspace_id: _,
+        auth_token,
         ..
     }: MemberContext,
     Json(body): Json<UpdateDashboardPreferences>,
@@ -120,7 +122,7 @@ pub async fn update_dashboard_preferences(
     let result = state
         .core
         .user_repo
-        .update_dashboard_preferences(user_id, workspace_id, body)
+        .update_dashboard_preferences(user_id, &auth_token, body)
         .await?;
     Ok(Json(result))
 }

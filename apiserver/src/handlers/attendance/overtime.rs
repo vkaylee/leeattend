@@ -76,7 +76,7 @@ pub async fn approve_ot(
 ) -> AppResult<StatusCode> {
     // RBAC: Only users with OvertimeApprove permission, scoped to department if TeamLead
     let target_dept_id =
-        crate::handlers::common::current_department_id(&state, ctx.workspace_id, employee_id).await;
+        crate::handlers::common::current_department_id(&state, &ctx.auth_token, employee_id).await;
 
     ctx.require_scoped_permission(Permission::OvertimeApprove, target_dept_id)?;
 

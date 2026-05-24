@@ -22,7 +22,7 @@ pub async fn clear_workspace_data(
     state
         .core
         .workspace_repo
-        .clear_workspace_data(ctx.workspace_id, &query.group)
+        .clear_workspace_data(&ctx.auth_token, &query.group)
         .await?;
     Ok(StatusCode::OK)
 }

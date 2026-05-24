@@ -223,6 +223,11 @@ impl TenantAuthToken {
         Self(workspace_id)
     }
 
+    /// Khởi tạo token cho các Background Job, Cron Job, Webhooks (không chạy trong ngữ cảnh HTTP Request)
+    pub fn system_override(workspace_id: Uuid) -> Self {
+        Self(workspace_id)
+    }
+
     pub fn workspace_id(&self) -> Uuid {
         self.0
     }

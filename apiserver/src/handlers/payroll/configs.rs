@@ -17,14 +17,14 @@ use crate::AppState;
 pub async fn set_department_payroll_config(
     Path((_, department_id)): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
-    MemberContext { workspace_id, .. }: MemberContext,
+    ctx: MemberContext,
     Json(req): Json<SetDepartmentPayrollConfigRequest>,
 ) -> AppResult<(StatusCode, Json<DepartmentPayrollConfig>)> {
     let config = state
         .payroll
         .department_repo
         .upsert_department_payroll_config(
-            workspace_id,
+            &ctx.auth_token,
             department_id,
             req.std_working_days,
             req.hours_per_day,
@@ -38,14 +38,14 @@ pub async fn set_department_payroll_config(
 pub async fn set_employee_payroll_config(
     Path((_, employee_id)): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
-    MemberContext { workspace_id, .. }: MemberContext,
+    ctx: MemberContext,
     Json(req): Json<SetEmployeePayrollConfigRequest>,
 ) -> AppResult<(StatusCode, Json<EmployeePayrollConfig>)> {
     let config = state
         .employees
         .repo
         .upsert_employee_payroll_config(
-            workspace_id,
+            ctx.workspace_id,
             employee_id,
             req.std_working_days,
             req.hours_per_day,
@@ -59,12 +59,12 @@ pub async fn set_employee_payroll_config(
 pub async fn get_department_payroll_configs(
     Path((_, department_id)): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
-    MemberContext { workspace_id, .. }: MemberContext,
+    ctx: MemberContext,
 ) -> AppResult<Json<Vec<DepartmentPayrollConfig>>> {
     let configs = state
         .payroll
         .department_repo
-        .get_department_payroll_configs(workspace_id, department_id)
+        .get_department_payroll_configs(&ctx.auth_token, department_id)
         .await?;
 
     Ok(Json(configs))
@@ -73,12 +73,12 @@ pub async fn get_department_payroll_configs(
 pub async fn get_employee_payroll_configs(
     Path((_, employee_id)): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
-    MemberContext { workspace_id, .. }: MemberContext,
+    ctx: MemberContext,
 ) -> AppResult<Json<Vec<EmployeePayrollConfig>>> {
     let configs = state
         .employees
         .repo
-        .get_employee_payroll_configs(workspace_id, employee_id)
+        .get_employee_payroll_configs(ctx.workspace_id, employee_id)
         .await?;
 
     Ok(Json(configs))

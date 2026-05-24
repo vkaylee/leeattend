@@ -148,8 +148,13 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
         Ok(results.into_iter().map(Into::into).collect())
     }
 
-    async fn clear_workspace_data(&self, workspace_id: Uuid, group: &str) -> Result<(), AppError> {
-        let mut conn = self.diesel_pools.tenant_conn_bypass_auth_DANGER(workspace_id).await?;
+    async fn clear_workspace_data(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        group: &str,
+    ) -> Result<(), AppError> {
+        let mut conn = self.diesel_pools.tenant_conn(auth_token).await?;
+        let workspace_id = auth_token.workspace_id();
 
         conn.transaction(|mut conn| {
             Box::pin(async move {

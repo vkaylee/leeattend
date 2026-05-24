@@ -1,6 +1,7 @@
 use async_trait::async_trait;
 use uuid::Uuid;
 
+use crate::diesel_pool::TenantAuthToken;
 use crate::errors::AppError;
 use crate::models::feature_flag::FeatureFlag;
 
@@ -9,21 +10,21 @@ use crate::models::feature_flag::FeatureFlag;
 // ---------------------------------------------------------------------------
 #[async_trait]
 pub trait FeatureFlagRepository: Send + Sync {
-    async fn list_flags(&self, workspace_id: Uuid) -> Result<Vec<FeatureFlag>, AppError>;
+    async fn list_flags(&self, auth_token: &TenantAuthToken) -> Result<Vec<FeatureFlag>, AppError>;
     async fn get_flag_by_key(
         &self,
-        workspace_id: Uuid,
+        auth_token: &TenantAuthToken,
         flag_key: &str,
     ) -> Result<Option<FeatureFlag>, AppError>;
     async fn get_flag_by_id(
         &self,
-        workspace_id: Uuid,
+        auth_token: &TenantAuthToken,
         id: Uuid,
     ) -> Result<Option<FeatureFlag>, AppError>;
-    async fn is_enabled_flag(&self, workspace_id: Uuid, flag_key: &str) -> Result<bool, AppError>;
+    async fn is_enabled_flag(&self, auth_token: &TenantAuthToken, flag_key: &str) -> Result<bool, AppError>;
     async fn create_flag(
         &self,
-        workspace_id: Uuid,
+        auth_token: &TenantAuthToken,
         flag_key: &str,
         enabled: bool,
         description: Option<&str>,
@@ -31,16 +32,16 @@ pub trait FeatureFlagRepository: Send + Sync {
     ) -> Result<FeatureFlag, AppError>;
     async fn update_flag(
         &self,
-        workspace_id: Uuid,
+        auth_token: &TenantAuthToken,
         id: Uuid,
         enabled: Option<bool>,
         description: Option<&str>,
         metadata: Option<&serde_json::Value>,
     ) -> Result<Option<FeatureFlag>, AppError>;
-    async fn delete_flag(&self, workspace_id: Uuid, id: Uuid) -> Result<bool, AppError>;
+    async fn delete_flag(&self, auth_token: &TenantAuthToken, id: Uuid) -> Result<bool, AppError>;
     async fn upsert_flag(
         &self,
-        workspace_id: Uuid,
+        auth_token: &TenantAuthToken,
         flag_key: &str,
         enabled: bool,
         description: Option<&str>,

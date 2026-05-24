@@ -17,7 +17,11 @@ pub trait WorkspaceRepository: Send + Sync {
     async fn get_workspace_by_id(&self, id: Uuid) -> Result<Option<Workspace>, AppError>;
     async fn get_all_workspaces(&self) -> Result<Vec<Workspace>, AppError>;
     async fn get_user_workspaces(&self, user_id: Uuid) -> Result<Vec<Workspace>, AppError>;
-    async fn clear_workspace_data(&self, workspace_id: Uuid, group: &str) -> Result<(), AppError>;
+    async fn clear_workspace_data(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        group: &str,
+    ) -> Result<(), AppError>;
     async fn add_member(
         &self,
         workspace_id: Uuid,

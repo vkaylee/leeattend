@@ -32,12 +32,12 @@ pub trait UserRepository: Send + Sync {
     async fn get_dashboard_preferences(
         &self,
         user_id: Uuid,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<Option<crate::handlers::dashboard_preferences::DashboardPreferences>, AppError>;
     async fn update_dashboard_preferences(
         &self,
         user_id: Uuid,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         req: crate::handlers::dashboard_preferences::UpdateDashboardPreferences,
     ) -> Result<crate::handlers::dashboard_preferences::DashboardPreferences, AppError>;
     async fn get_notifications(

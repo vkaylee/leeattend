@@ -175,7 +175,7 @@ impl PayrollService {
 
         let all_dept_history = self
             .department_repo
-            .get_employee_department_history(workspace_id, employee_id)
+            .get_employee_department_history(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id), employee_id)
             .await?;
 
         let start_dt = local_to_utc(&tz, start_date, 0, 0, 0).map_err(AppError::Internal)?;

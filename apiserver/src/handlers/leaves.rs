@@ -30,7 +30,7 @@ pub async fn submit_leave_request(
 ) -> AppResult<(StatusCode, Json<LeaveRequest>)> {
     // Look up employee's department for scoped permission check
     let target_dept_id =
-        crate::handlers::common::current_department_id(&state, ctx.workspace_id, req.employee_id)
+        crate::handlers::common::current_department_id(&state, &ctx.auth_token, req.employee_id)
             .await;
 
     // Require submit permission scoped to the employee's department

@@ -226,10 +226,11 @@ impl UserRepository for DieselUserRepository {
     async fn get_dashboard_preferences(
         &self,
         user_id: Uuid,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<Option<crate::handlers::dashboard_preferences::DashboardPreferences>, AppError>
     {
-        let mut conn = self.diesel_pools.tenant_conn_bypass_auth_DANGER(workspace_id).await?;
+        let mut conn = self.diesel_pools.tenant_conn(auth_token).await?;
+        let workspace_id = auth_token.workspace_id();
 
         use crate::schema::dashboard_preferences;
         let entity = dashboard_preferences::table
@@ -246,14 +247,15 @@ impl UserRepository for DieselUserRepository {
     async fn update_dashboard_preferences(
         &self,
         user_id: Uuid,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         req: crate::handlers::dashboard_preferences::UpdateDashboardPreferences,
     ) -> Result<crate::handlers::dashboard_preferences::DashboardPreferences, AppError> {
-        let mut conn = self.diesel_pools.tenant_conn_bypass_auth_DANGER(workspace_id).await?;
+        let mut conn = self.diesel_pools.tenant_conn(auth_token).await?;
+        let workspace_id = auth_token.workspace_id();
 
         use crate::schema::dashboard_preferences;
         let existing = self
-            .get_dashboard_preferences(user_id, workspace_id)
+            .get_dashboard_preferences(user_id, auth_token)
             .await?;
         if let Some(mut prefs) = existing {
             // Update fields

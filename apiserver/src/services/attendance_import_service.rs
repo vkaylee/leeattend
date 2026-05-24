@@ -113,7 +113,7 @@ impl ImportStrategy for EmployeeImportStrategy {
         _deps: &crate::worker::deps::WorkerDeps,
         job: &AttendanceImportJob,
     ) -> Result<(), String> {
-        if let Ok(existing_depts) = self.department_repo.get_departments(job.workspace_id).await {
+        if let Ok(existing_depts) = self.department_repo.get_departments(&crate::diesel_pool::TenantAuthToken::system_override(job.workspace_id)).await {
             for dept in existing_depts {
                 self.dept_cache.insert(dept.name.to_lowercase(), dept.id);
             }
@@ -156,7 +156,7 @@ impl ImportStrategy for EmployeeImportStrategy {
                     } else {
                         let existing = self
                             .department_repo
-                            .get_department_by_name(job.workspace_id, &dept_key)
+                            .get_department_by_name(&crate::diesel_pool::TenantAuthToken::system_override(job.workspace_id), &dept_key)
                             .await;
 
                         if let Ok(Some(id)) = existing {
@@ -165,8 +165,7 @@ impl ImportStrategy for EmployeeImportStrategy {
                         } else {
                             match self
                                 .department_repo
-                                .create_department(
-                                    job.workspace_id,
+                                .create_department(&crate::diesel_pool::TenantAuthToken::system_override(job.workspace_id),
                                     dept_name.clone(),
                                     None,
                                     None,
@@ -182,7 +181,7 @@ impl ImportStrategy for EmployeeImportStrategy {
                                     // Final check in case of a unique constraint race condition
                                     let retry = self
                                         .department_repo
-                                        .get_department_by_name(job.workspace_id, &dept_key)
+                                        .get_department_by_name(&crate::diesel_pool::TenantAuthToken::system_override(job.workspace_id), &dept_key)
                                         .await;
 
                                     if let Ok(Some(id)) = retry {
@@ -202,8 +201,7 @@ impl ImportStrategy for EmployeeImportStrategy {
                     if !dept_id.is_nil()
                         && self
                             .department_repo
-                            .transfer_employee(
-                                job.workspace_id,
+                            .transfer_employee(&crate::diesel_pool::TenantAuthToken::system_override(job.workspace_id),
                                 employee_id,
                                 dept_id,
                                 emp.hire_date,

@@ -345,11 +345,8 @@ impl EmployeeService {
     }
 
     #[tracing::instrument(skip_all, err)]
-    pub async fn get_department_history(
-        &self,
-        employee_id: Uuid,
-        workspace_id: Uuid,
-    ) -> Result<Vec<crate::models::EmployeeDepartmentHistory>, AppError> {
+    pub async fn get_department_history(&self, employee_id: Uuid, auth_token: &crate::diesel_pool::TenantAuthToken) -> Result<Vec<crate::models::EmployeeDepartmentHistory>, AppError> {
+        let workspace_id = auth_token.workspace_id();
         let _ = self
             .repo
             .get_employee_by_id(employee_id, workspace_id)
@@ -357,17 +354,13 @@ impl EmployeeService {
             .ok_or(AppError::NotFound("Employee not found".into()))?;
 
         self.dept_repo
-            .get_employee_department_history(workspace_id, employee_id)
+            .get_employee_department_history(auth_token, employee_id)
             .await
     }
 
     #[tracing::instrument(skip_all, err)]
-    pub async fn transfer_employee(
-        &self,
-        employee_id: Uuid,
-        workspace_id: Uuid,
-        req: crate::models::TransferEmployeeRequest,
-    ) -> Result<crate::models::EmployeeDepartmentHistory, AppError> {
+    pub async fn transfer_employee(&self, employee_id: Uuid, auth_token: &crate::diesel_pool::TenantAuthToken, req: crate::models::TransferEmployeeRequest) -> Result<crate::models::EmployeeDepartmentHistory, AppError> {
+        let workspace_id = auth_token.workspace_id();
         let _ = self
             .repo
             .get_employee_by_id(employee_id, workspace_id)
@@ -376,7 +369,7 @@ impl EmployeeService {
 
         self.dept_repo
             .transfer_employee(
-                workspace_id,
+                auth_token,
                 employee_id,
                 req.department_id,
                 req.effective_date,

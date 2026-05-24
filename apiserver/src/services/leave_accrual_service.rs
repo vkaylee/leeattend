@@ -450,7 +450,7 @@ impl LeaveAccrualService {
     ) -> Result<(), AppError> {
         let dept_hist = self
             .department_repo
-            .get_current_department(workspace_id, emp.id)
+            .get_current_department(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id), emp.id)
             .await
             .ok()
             .flatten();

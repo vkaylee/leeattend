@@ -34,7 +34,7 @@ pub async fn create_working_condition(
     ctx: MemberContext,
     Json(req): Json<CreateWorkingConditionRequest>,
 ) -> AppResult<impl IntoResponse> {
-    let target_dept_id = common::current_department_id(&state, ctx.workspace_id, id).await;
+    let target_dept_id = common::current_department_id(&state, &ctx.auth_token, id).await;
     ctx.require_scoped_permission(Permission::EmployeesUpdate, target_dept_id)?;
     let cond = state
         .employees
@@ -49,7 +49,7 @@ pub async fn delete_working_condition(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> AppResult<StatusCode> {
-    let target_dept_id = common::current_department_id(&state, ctx.workspace_id, id).await;
+    let target_dept_id = common::current_department_id(&state, &ctx.auth_token, id).await;
     ctx.require_scoped_permission(Permission::EmployeesUpdate, target_dept_id)?;
     state
         .employees
@@ -137,7 +137,7 @@ pub async fn update_employee(
     ctx: MemberContext,
     Json(req): Json<UpdateEmployeeRequest>,
 ) -> AppResult<Json<Employee>> {
-    let target_dept_id = common::current_department_id(&state, ctx.workspace_id, id).await;
+    let target_dept_id = common::current_department_id(&state, &ctx.auth_token, id).await;
     ctx.require_scoped_permission(Permission::EmployeesUpdate, target_dept_id)?;
     let employee = state
         .employees
@@ -152,7 +152,7 @@ pub async fn delete_employee(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> AppResult<StatusCode> {
-    let target_dept_id = common::current_department_id(&state, ctx.workspace_id, id).await;
+    let target_dept_id = common::current_department_id(&state, &ctx.auth_token, id).await;
     ctx.require_scoped_permission(Permission::EmployeesDelete, target_dept_id)?;
     let workspace_id = ctx.workspace_id;
     state
@@ -170,7 +170,7 @@ pub async fn rehire_employee(
     ctx: MemberContext,
     Json(req): Json<RehireEmployeeRequest>,
 ) -> AppResult<Json<Employee>> {
-    let target_dept_id = common::current_department_id(&state, ctx.workspace_id, id).await;
+    let target_dept_id = common::current_department_id(&state, &ctx.auth_token, id).await;
     ctx.require_scoped_permission(Permission::EmployeesRehire, target_dept_id)?;
     let employee = state
         .employees
@@ -183,12 +183,12 @@ pub async fn rehire_employee(
 pub async fn get_employee_department_history(
     Path((_, id)): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
-    MemberContext { workspace_id, .. }: MemberContext,
+    ctx: MemberContext,
 ) -> AppResult<Json<Vec<EmployeeDepartmentHistory>>> {
     let history = state
         .employees
         .service
-        .get_department_history(id, workspace_id)
+        .get_department_history(id, &ctx.auth_token)
         .await?;
     Ok(Json(history))
 }
@@ -199,12 +199,12 @@ pub async fn transfer_employee(
     ctx: MemberContext,
     Json(req): Json<TransferEmployeeRequest>,
 ) -> AppResult<Json<EmployeeDepartmentHistory>> {
-    let target_dept_id = common::current_department_id(&state, ctx.workspace_id, id).await;
+    let target_dept_id = common::current_department_id(&state, &ctx.auth_token, id).await;
     ctx.require_scoped_permission(Permission::DepartmentsTransfer, target_dept_id)?;
     let history = state
         .employees
         .service
-        .transfer_employee(id, ctx.workspace_id, req)
+        .transfer_employee(id, &ctx.auth_token, req)
         .await?;
     Ok(Json(history))
 }

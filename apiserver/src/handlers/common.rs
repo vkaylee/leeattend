@@ -447,13 +447,13 @@ pub async fn health_check() -> AppResult<Json<GenericResponse>> {
 /// Used by handlers that need `require_scoped_permission()`.
 pub async fn current_department_id(
     state: &AppState,
-    workspace_id: Uuid,
+    auth_token: &crate::diesel_pool::TenantAuthToken,
     employee_id: Uuid,
 ) -> Option<Uuid> {
     state
         .payroll
         .department_repo
-        .get_current_department(workspace_id, employee_id)
+        .get_current_department(auth_token, employee_id)
         .await
         .ok()
         .flatten()

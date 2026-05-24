@@ -14,12 +14,12 @@ use crate::AppState;
 
 pub async fn get_departments(
     State(state): State<Arc<AppState>>,
-    MemberContext { workspace_id, .. }: MemberContext,
+    ctx: MemberContext,
 ) -> AppResult<Json<Vec<Department>>> {
     let departments = state
         .payroll
         .department_repo
-        .get_departments(workspace_id)
+        .get_departments(&ctx.auth_token)
         .await?;
     Ok(Json(departments))
 }
@@ -34,7 +34,7 @@ pub async fn create_department(
         .payroll
         .department_repo
         .create_department(
-            ctx.workspace_id,
+            &ctx.auth_token,
             req.name,
             req.description,
             req.manager_id,
@@ -55,7 +55,7 @@ pub async fn update_department(
     let dept = state
         .payroll
         .department_repo
-        .update_department(ctx.workspace_id, id, req)
+        .update_department(&ctx.auth_token, id, req)
         .await?;
 
     Ok(Json(dept))
@@ -70,7 +70,7 @@ pub async fn delete_department(
     state
         .payroll
         .department_repo
-        .delete_department(ctx.workspace_id, id)
+        .delete_department(&ctx.auth_token, id)
         .await?;
 
     Ok(StatusCode::NO_CONTENT)
