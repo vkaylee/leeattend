@@ -692,7 +692,7 @@ mod tests {
                 Uuid::new_v4(),
                 "Acme",
                 Uuid::new_v4(),
-                "postgres://u:p@h:5432/tenant_db",
+                Some("postgres://u:p@h:5432/tenant_db".to_string()),
                 None,
             )
             .await
@@ -708,7 +708,7 @@ mod tests {
                 Uuid::new_v4(),
                 "Acme",
                 Uuid::new_v4(),
-                "postgres://u:p@h:5432/tenant_db",
+                Some("postgres://u:p@h:5432/tenant_db".to_string()),
                 None,
             )
             .await
@@ -724,7 +724,7 @@ mod tests {
                 Uuid::new_v4(),
                 "Acme Corp",
                 Uuid::new_v4(),
-                "postgres://u:p@h:5432/tenant_db",
+                Some("postgres://u:p@h:5432/tenant_db".to_string()),
                 None,
             )
             .await
@@ -742,7 +742,7 @@ mod tests {
                 Uuid::new_v4(),
                 "Acme Corp",
                 Uuid::new_v4(),
-                "postgres://test_user:test_password@localhost:5432/tenant_db",
+                Some("postgres://test_user:test_password@localhost:5432/tenant_db".to_string()),
                 None,
             )
             .await
