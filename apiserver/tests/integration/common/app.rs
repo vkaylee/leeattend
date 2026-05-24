@@ -27,6 +27,21 @@ impl TenantProvisionerTrait for DummyTenantProvisioner {
     }
 }
 
+
+pub struct DummySystemDbClusterRepository;
+#[async_trait::async_trait]
+impl apiserver::repositories::system_db_cluster_repository::SystemDbClusterRepository for DummySystemDbClusterRepository {
+    async fn get_least_loaded_cluster(&self) -> Result<Option<apiserver::models::system_db_cluster::SystemDbCluster>, apiserver::errors::AppError> {
+        Ok(None)
+    }
+    async fn increment_active_tenants(&self, _cluster_id: uuid::Uuid) -> Result<(), apiserver::errors::AppError> {
+        Ok(())
+    }
+    async fn create_cluster(&self, _cluster: &apiserver::models::system_db_cluster::NewSystemDbCluster) -> Result<apiserver::models::system_db_cluster::SystemDbCluster, apiserver::errors::AppError> {
+        unimplemented!()
+    }
+}
+
 pub struct DummyTenantManager;
 #[async_trait::async_trait]
 impl TenantManager for DummyTenantManager {
@@ -334,6 +349,7 @@ pub async fn spawn_app() -> (String, TestDatabase) {
             user_repo.clone(),
             std::sync::Arc::new(DummyTenantProvisioner),
             std::sync::Arc::new(DummyTenantManager),
+            std::sync::Arc::new(DummySystemDbClusterRepository),
         ),
     );
     let leave_accrual_log_repo: Arc<
@@ -864,6 +880,7 @@ pub async fn spawn_app_with_factory_extended(
             user_repo.clone(),
             std::sync::Arc::new(DummyTenantProvisioner),
             std::sync::Arc::new(DummyTenantManager),
+            std::sync::Arc::new(DummySystemDbClusterRepository),
         ),
     );
     let leave_accrual_log_repo: Arc<
@@ -1443,6 +1460,7 @@ pub async fn setup_app_tower_internal_extended(
             user_repo.clone(),
             std::sync::Arc::new(DummyTenantProvisioner),
             std::sync::Arc::new(DummyTenantManager),
+            std::sync::Arc::new(DummySystemDbClusterRepository),
         ),
     );
     let leave_accrual_log_repo: Arc<

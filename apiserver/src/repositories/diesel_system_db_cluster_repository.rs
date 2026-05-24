@@ -4,15 +4,15 @@ use crate::models::system_db_cluster::{NewSystemDbCluster, SystemDbCluster};
 use crate::repositories::system_db_cluster_repository::SystemDbClusterRepository;
 use async_trait::async_trait;
 use diesel::prelude::*;
-use std::sync::Arc;
+use diesel_async::RunQueryDsl;
 use uuid::Uuid;
 
 pub struct DieselSystemDbClusterRepository {
-    pool: Arc<DieselPools>,
+    pool: DieselPools,
 }
 
 impl DieselSystemDbClusterRepository {
-    pub fn new(pool: Arc<DieselPools>) -> Self {
+    pub fn new(pool: DieselPools) -> Self {
         Self { pool }
     }
 }
@@ -34,6 +34,7 @@ impl SystemDbClusterRepository for DieselSystemDbClusterRepository {
             .filter(active_tenants.lt(max_tenants))
             .order(active_tenants.asc())
             .first::<SystemDbCluster>(&mut conn)
+            .await
             .optional()
             .map_err(|e| AppError::Internal(format!("Database error: {}", e)))?;
 
@@ -56,6 +57,7 @@ impl SystemDbClusterRepository for DieselSystemDbClusterRepository {
                 updated_at.eq(chrono::Utc::now()),
             ))
             .execute(&mut conn)
+            .await
             .map_err(|e| AppError::Internal(format!("Database error: {}", e)))?;
 
         Ok(())
@@ -77,6 +79,7 @@ impl SystemDbClusterRepository for DieselSystemDbClusterRepository {
         let new_cluster = diesel::insert_into(system_db_clusters)
             .values(cluster)
             .get_result::<SystemDbCluster>(&mut conn)
+            .await
             .map_err(|e| AppError::Internal(format!("Database error: {}", e)))?;
 
         Ok(new_cluster)
