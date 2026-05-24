@@ -39,6 +39,12 @@ diesel::table! {
         id -> Uuid,
         workspace_id -> Uuid,
         actor_id -> Nullable<Uuid>,
+        #[max_length = 50]
+        actor_type -> Nullable<Varchar>,
+        #[max_length = 255]
+        actor_name -> Nullable<Varchar>,
+        #[max_length = 255]
+        actor_email -> Nullable<Varchar>,
         target_user_id -> Nullable<Uuid>,
         target_resource_id -> Nullable<Uuid>,
         #[max_length = 255]
