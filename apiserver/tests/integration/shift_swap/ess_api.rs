@@ -20,6 +20,14 @@ async fn test_ess_shift_swap_flow() {
         spawn_app_with_member().await;
     let target_user_id = factory.user().create().await;
 
+    factory
+        .add_member(
+            workspace_id,
+            target_user_id,
+            uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap(),
+        )
+        .await;
+
     let requester_token = factory.auth().create_token(requester_user_id);
     let target_token = factory.auth().create_token(target_user_id);
 
@@ -116,6 +124,15 @@ async fn test_ess_shift_swap_cancel_and_accept() {
     let (address, workspace_id, owner_id, requester_user_id, factory, _db) =
         spawn_app_with_member().await;
     let target_user_id = factory.user().create().await;
+
+    factory
+        .add_member(
+            workspace_id,
+            target_user_id,
+            uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap(),
+        )
+        .await;
+
     let requester_token = factory.auth().create_token(requester_user_id);
     let target_token = factory.auth().create_token(target_user_id);
     let emp_a = factory

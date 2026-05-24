@@ -4,6 +4,7 @@ use crate::domain::permissions::{self, Permission};
 use crate::errors::{AppError, AppResult};
 use crate::models::GenericResponse;
 use crate::repositories::CacheRepositoryExt;
+use crate::diesel_pool::TenantAuthToken;
 use crate::{AppState, UserId};
 use axum::{
     async_trait,
@@ -123,6 +124,7 @@ pub struct MemberContext {
     pub permissions: HashSet<Permission>,
     /// None = global scope (Admin/Owner/etc). Some = restricted to specific departments.
     pub managed_department_ids: Option<HashSet<Uuid>>,
+    pub auth_token: TenantAuthToken,
 }
 
 impl MemberContext {
@@ -269,6 +271,7 @@ where
             roles: cached_data.roles,
             permissions,
             managed_department_ids: cached_data.managed_department_ids,
+            auth_token: TenantAuthToken::new_authorized(workspace_id),
         })
     }
 }
@@ -386,6 +389,7 @@ pub struct EmployeeContext {
     pub user_id: Uuid,
     pub employee_id: Uuid,
     pub workspace_id: Uuid,
+    pub auth_token: TenantAuthToken,
 }
 
 #[async_trait]
@@ -421,6 +425,7 @@ where
             user_id,
             employee_id,
             workspace_id,
+            auth_token: member_ctx.auth_token,
         })
     }
 }
@@ -465,12 +470,14 @@ mod tests {
         perms: HashSet<Permission>,
         managed: Option<HashSet<Uuid>>,
     ) -> MemberContext {
+        let workspace_id = Uuid::new_v4();
         MemberContext {
             user_id: Uuid::new_v4(),
-            workspace_id: Uuid::new_v4(),
+            workspace_id,
             roles,
             permissions: perms,
             managed_department_ids: managed,
+            auth_token: TenantAuthToken::new_authorized(workspace_id),
         }
     }
 

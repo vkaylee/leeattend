@@ -214,9 +214,51 @@ fn is_transient_supavisor_error(err_msg: &str) -> bool {
         || err_msg.contains("closed")
 }
 
+#[derive(Clone, Copy)]
+pub struct TenantAuthToken(Uuid);
+
+impl TenantAuthToken {
+    /// Chỉ được phép khởi tạo bởi hệ thống auth (Extractors) hoặc System Bypass
+    pub(crate) fn new_authorized(workspace_id: Uuid) -> Self {
+        Self(workspace_id)
+    }
+
+    pub fn workspace_id(&self) -> Uuid {
+        self.0
+    }
+}
+
 impl DieselPools {
-    /// Convenience method: get a connection from the tenant pool for a given workspace.
-    pub async fn tenant_conn(&self, workspace_id: Uuid) -> Result<DieselConnection, AppError> {
+    // Hàm an toàn (Khuyên dùng)
+    pub async fn tenant_conn(&self, token: &TenantAuthToken) -> Result<DieselConnection, AppError> {
+        let workspace_id = token.workspace_id();
+        let pool = self.tenants.get_pool(&workspace_id).await?;
+
+        let mut retries = 3;
+        loop {
+            match pool.get().await {
+                Ok(conn) => return Ok(conn),
+                Err(e) => {
+                    let err_msg = e.to_string();
+                    if retries > 0 && is_transient_supavisor_error(&err_msg) {
+                        tracing::warn!(
+                            workspace_id = %workspace_id,
+                            error = %err_msg,
+                            "Transient Supavisor connection error, retrying in 300ms..."
+                        );
+                        tokio::time::sleep(std::time::Duration::from_millis(300)).await;
+                        retries -= 1;
+                        continue;
+                    }
+                    return Err(AppError::Internal(format!("db: {e}")));
+                }
+            }
+        }
+    }
+
+    // Hàm nguy hiểm, chỉ dùng cho System (Workers/Migrations) hoặc legacy code
+    #[allow(non_snake_case)]
+    pub async fn tenant_conn_bypass_auth_DANGER(&self, workspace_id: Uuid) -> Result<DieselConnection, AppError> {
         let pool = self.tenants.get_pool(&workspace_id).await?;
 
         let mut retries = 3;

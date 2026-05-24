@@ -69,7 +69,7 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
         employee_id: Uuid,
         effective_time: DateTime<Utc>,
     ) -> Result<Option<AttendancePolicyVersion>, AppError> {
-        let mut conn = self.diesel_pools.tenant_conn(workspace_id).await?;
+        let mut conn = self.diesel_pools.tenant_conn_bypass_auth_DANGER(workspace_id).await?;
 
         let row: Option<SinglePolicyRow> = diesel::sql_query(
             r#"
@@ -170,7 +170,7 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
             return Ok(result);
         }
 
-        let mut conn = self.diesel_pools.tenant_conn(workspace_id).await?;
+        let mut conn = self.diesel_pools.tenant_conn_bypass_auth_DANGER(workspace_id).await?;
 
         let rows: Vec<BatchPolicyRow> = diesel::sql_query(
             r#"
@@ -292,7 +292,7 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
         &self,
         workspace_id: Uuid,
     ) -> Result<Option<crate::models::AttendanceRules>, AppError> {
-        let mut conn = self.diesel_pools.tenant_conn(workspace_id).await?;
+        let mut conn = self.diesel_pools.tenant_conn_bypass_auth_DANGER(workspace_id).await?;
 
         use crate::schema::{attendance_policies, attendance_policy_versions};
 
@@ -336,7 +336,7 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
         &self,
         workspace_id: Uuid,
     ) -> Result<Vec<AttendancePolicyVersion>, AppError> {
-        let mut conn = self.diesel_pools.tenant_conn(workspace_id).await?;
+        let mut conn = self.diesel_pools.tenant_conn_bypass_auth_DANGER(workspace_id).await?;
 
         use crate::schema::{attendance_policies, attendance_policy_versions};
 
@@ -371,7 +371,7 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
         user_id: Uuid,
         req: crate::handlers::attendance::policies::UpdateAttendanceRulesRequest,
     ) -> Result<AttendancePolicyVersion, AppError> {
-        let mut conn = self.diesel_pools.tenant_conn(workspace_id).await?;
+        let mut conn = self.diesel_pools.tenant_conn_bypass_auth_DANGER(workspace_id).await?;
 
         use crate::schema::{attendance_policies, attendance_policy_versions};
 
@@ -510,7 +510,7 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
         Vec<crate::handlers::attendance::policy_assignments::PolicyAssignmentResponse>,
         AppError,
     > {
-        let mut conn = self.diesel_pools.tenant_conn(workspace_id).await?;
+        let mut conn = self.diesel_pools.tenant_conn_bypass_auth_DANGER(workspace_id).await?;
 
         #[derive(QueryableByName)]
         struct PolicyAssignmentRow {
@@ -580,7 +580,7 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
         req: crate::handlers::attendance::policy_assignments::UpsertPolicyAssignmentRequest,
     ) -> Result<crate::handlers::attendance::policy_assignments::PolicyAssignmentResponse, AppError>
     {
-        let mut conn = self.diesel_pools.tenant_conn(workspace_id).await?;
+        let mut conn = self.diesel_pools.tenant_conn_bypass_auth_DANGER(workspace_id).await?;
 
         use crate::schema::{
             attendance_policies, attendance_policy_assignments, attendance_policy_versions,
@@ -705,7 +705,7 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
         workspace_id: Uuid,
         assignment_id: Uuid,
     ) -> Result<(), AppError> {
-        let mut conn = self.diesel_pools.tenant_conn(workspace_id).await?;
+        let mut conn = self.diesel_pools.tenant_conn_bypass_auth_DANGER(workspace_id).await?;
 
         // UPDATE attendance_policy_assignments SET valid_to = NOW(), updated_at = NOW()
         // WHERE id = $1 AND target_id IN (SELECT target_id FROM attendance_policy_assignments apa JOIN attendance_policies ap ON ap.id = apa.policy_id WHERE ap.workspace_id = $2)

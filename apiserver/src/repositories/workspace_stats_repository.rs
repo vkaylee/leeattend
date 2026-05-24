@@ -78,7 +78,7 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
         let today = Utc::now().date_naive();
         let tz_str = self.get_timezone(workspace_id).await;
 
-        let mut conn = self.diesel_pools.tenant_conn(workspace_id).await?;
+        let mut conn = self.diesel_pools.tenant_conn_bypass_auth_DANGER(workspace_id).await?;
 
         #[derive(QueryableByName)]
         struct BaseRow {
@@ -221,7 +221,7 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
             _ => today,
         };
 
-        let mut conn = self.diesel_pools.tenant_conn(workspace_id).await?;
+        let mut conn = self.diesel_pools.tenant_conn_bypass_auth_DANGER(workspace_id).await?;
 
         #[derive(QueryableByName)]
         struct DeptRow {
@@ -427,7 +427,7 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
         workspace_id: Uuid,
     ) -> Result<Vec<OvertimeTrendPoint>, AppError> {
         let today = Utc::now().date_naive();
-        let mut conn = self.diesel_pools.tenant_conn(workspace_id).await?;
+        let mut conn = self.diesel_pools.tenant_conn_bypass_auth_DANGER(workspace_id).await?;
 
         #[derive(QueryableByName)]
         struct OtRow {
@@ -475,7 +475,7 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
 
     #[allow(clippy::too_many_lines)]
     async fn fetch_workspace_stats(&self, workspace_id: Uuid) -> Result<WorkspaceStats, AppError> {
-        let mut conn = self.diesel_pools.tenant_conn(workspace_id).await?;
+        let mut conn = self.diesel_pools.tenant_conn_bypass_auth_DANGER(workspace_id).await?;
 
         #[derive(QueryableByName)]
         struct CountRow {
@@ -665,7 +665,7 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
             .and_then(|t| t.and_local_timezone(Utc).single())
             .ok_or_else(|| AppError::Internal("Invalid date".to_string()))?;
 
-        let mut conn = self.diesel_pools.tenant_conn(workspace_id).await?;
+        let mut conn = self.diesel_pools.tenant_conn_bypass_auth_DANGER(workspace_id).await?;
 
         #[derive(QueryableByName)]
         struct SlotRow {
@@ -745,7 +745,7 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
         let month_start = NaiveDate::from_ymd_opt(today.year(), today.month(), 1)
             .ok_or_else(|| AppError::Internal("Invalid date".to_string()))?;
 
-        let mut conn = self.diesel_pools.tenant_conn(workspace_id).await?;
+        let mut conn = self.diesel_pools.tenant_conn_bypass_auth_DANGER(workspace_id).await?;
 
         #[derive(QueryableByName)]
         struct LtRow {
@@ -800,7 +800,7 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
         let today = Utc::now().date_naive();
         let tz_str = self.get_timezone(workspace_id).await;
 
-        let mut conn = self.diesel_pools.tenant_conn(workspace_id).await?;
+        let mut conn = self.diesel_pools.tenant_conn_bypass_auth_DANGER(workspace_id).await?;
 
         #[derive(QueryableByName)]
         struct DayRow {
