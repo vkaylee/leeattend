@@ -8,7 +8,7 @@ export async function fetchWorkspaces(): Promise<Workspace[]> {
   return response.json() as Promise<Workspace[]>;
 }
 
-export async function createWorkspace(data: { name: string; database_url: string }): Promise<Workspace> {
+export async function createWorkspace(data: { name: string; database_url?: string }): Promise<Workspace> {
   const response = await apiFetch(`${API_BASE_URL}/workspaces`, {
     method: "POST",
     body: JSON.stringify(data),

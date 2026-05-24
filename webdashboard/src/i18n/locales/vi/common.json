@@ -900,6 +900,22 @@
       "org_name_placeholder": "VD: Công ty ABC, Team LeeAttend...",
       "start_now_btn": "Bắt đầu ngay",
       "workspace_desc": "Workspace là một môi trường riêng biệt giúp bạn quản lý thiết bị và thành viên tại một nơi duy nhất.",
+      "db_mode_label": "Chế độ Cơ sở dữ liệu",
+      "db_mode_auto": "Tự động khởi tạo (Khuyên dùng)",
+      "db_mode_auto_desc": "Hệ thống sẽ tự động cấp phát Database an toàn, cô lập và chạy migrations ngay lập tức. Phù hợp cho hầu hết doanh nghiệp.",
+      "db_mode_byod": "Tự cung cấp database (BYOD)",
+      "db_mode_byod_desc": "Kết nối tới PostgreSQL cluster riêng của bạn để toàn quyền kiểm soát và lưu trữ dữ liệu nội bộ.",
+      "db_validation_error": "Đường dẫn Database không hợp lệ. Phải bắt đầu bằng postgres:// hoặc postgresql://",
+      "db_placeholder": "postgres://username:password@hostname:port/database",
+      "progress": {
+        "title": "Đang thiết lập Workspace...",
+        "subtitle": "Vui lòng giữ kết nối. Chúng tôi đang chuẩn bị không gian làm việc cho bạn.",
+        "step_1": "Đang khởi tạo cụm cơ sở dữ liệu...",
+        "step_2": "Đang đồng bộ cấu trúc bảng (Migrations)...",
+        "step_3": "Đang thiết lập cấu hình mặc định...",
+        "step_4": "Đang chuẩn bị trang quản trị...",
+        "success": "Hoàn tất! Đang chuyển hướng..."
+      },
       "messages": {
         "create_error": "Không thể tạo Workspace. Vui lòng thử lại."
       }

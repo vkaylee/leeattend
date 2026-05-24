@@ -932,6 +932,22 @@
       "org_name_placeholder": "Ex: ABC Company, LeeAttend Team...",
       "start_now_btn": "Start Now",
       "workspace_desc": "A Workspace is a separate environment to help you manage devices and members in one place.",
+      "db_mode_label": "Database Mode",
+      "db_mode_auto": "Auto Provision (Recommended)",
+      "db_mode_auto_desc": "The system will automatically provision a secure, isolated database and run migrations. Recommended for most organizations.",
+      "db_mode_byod": "Bring Your Own Database (BYOD)",
+      "db_mode_byod_desc": "Connect to your own PostgreSQL cluster to maintain full control and store your data internally.",
+      "db_validation_error": "Invalid Database URL. Must start with postgres:// or postgresql://",
+      "db_placeholder": "postgres://username:password@hostname:port/database",
+      "progress": {
+        "title": "Setting up your Workspace...",
+        "subtitle": "Please keep this page open. We are preparing your secure environment.",
+        "step_1": "Initializing database cluster...",
+        "step_2": "Synchronizing schema (Migrations)...",
+        "step_3": "Configuring workspace default settings...",
+        "step_4": "Preparing administration board...",
+        "success": "Done! Redirecting..."
+      },
       "messages": {
         "create_error": "Could not create Workspace. Please try again."
       }
