@@ -49,7 +49,10 @@ pub trait EmployeeRepository: Send + Sync {
         options: crate::models::EmployeeFilterOptions,
     ) -> Result<(Vec<Employee>, i64), AppError>;
 
-    async fn get_active_employees(&self, auth_token: &crate::diesel_pool::TenantAuthToken) -> Result<Vec<Employee>, AppError>;
+    async fn get_active_employees(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+    ) -> Result<Vec<Employee>, AppError>;
 
     async fn get_active_employee_ids(
         &self,
@@ -87,7 +90,11 @@ pub trait EmployeeRepository: Send + Sync {
         hire_date: NaiveDate,
     ) -> Result<Option<Employee>, AppError>;
 
-    async fn delete_employee(&self, id: Uuid, auth_token: &crate::diesel_pool::TenantAuthToken) -> Result<u64, AppError>;
+    async fn delete_employee(
+        &self,
+        id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+    ) -> Result<u64, AppError>;
 
     async fn get_working_conditions(
         &self,

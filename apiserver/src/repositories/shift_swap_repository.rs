@@ -49,7 +49,10 @@ pub trait ShiftSwapRepository: Send + Sync {
         employee_id: Uuid,
         swap_date: chrono::NaiveDate,
     ) -> Result<bool, AppError>;
-    async fn get_workspace_swap_stats(&self, auth_token: &crate::diesel_pool::TenantAuthToken) -> Result<SwapStats, AppError>;
+    async fn get_workspace_swap_stats(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+    ) -> Result<SwapStats, AppError>;
 }
 
 /// Status counts for a workspace (for stats dashboard).

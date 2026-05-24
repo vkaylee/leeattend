@@ -22,7 +22,10 @@ impl AgentService {
     ) -> Result<(), String> {
         let devices = self
             .repo
-            .find_devices_by_agent_id(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id), agent_id)
+            .find_devices_by_agent_id(
+                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                agent_id,
+            )
             .await?;
         let agent = self.repo.find_by_id(agent_id).await?;
         let max_workers = agent.as_ref().map(|a| a.max_concurrent_workers);

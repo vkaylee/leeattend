@@ -507,7 +507,7 @@ pub async fn upload_leave_excel(
         use crate::repositories::DieselImportJobRepository;
         let import_repo = DieselImportJobRepository::new(state.infra.diesel.clone());
         import_repo
-            .create_job(&import_job)
+            .create_job(&ctx.auth_token, &import_job)
             .await
             .map_err(|e| AppError::Internal(format!("Failed to create import job: {e}")))?;
     }
@@ -561,7 +561,7 @@ pub async fn get_latest_leave_import(
     let repo = DieselImportJobRepository::new(state.infra.diesel.clone());
 
     match repo
-        .get_latest_job(ctx.workspace_id, Some(ImportTargetType::LeaveImport))
+        .get_latest_job(&ctx.auth_token, Some(ImportTargetType::LeaveImport))
         .await
     {
         Ok(Some(job)) => Ok(Json(serde_json::json!({
@@ -597,7 +597,7 @@ pub async fn download_leave_import_errors(
     let repo = DieselImportJobRepository::new(state.infra.diesel.clone());
 
     let job = repo
-        .get_job_by_id(ctx.workspace_id, job_id)
+        .get_job_by_id(&ctx.auth_token, job_id)
         .await
         .map_err(|e| AppError::Internal(format!("DB error: {e}")))?
         .ok_or_else(|| AppError::NotFound("Import job not found".to_string()))?;

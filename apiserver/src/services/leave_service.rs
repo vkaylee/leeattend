@@ -57,7 +57,13 @@ impl LeaveService {
 
         let (data, total) = self
             .leave_balance_repo
-            .get_workspace_balances(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id), year, limit, offset, params.q)
+            .get_workspace_balances(
+                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                year,
+                limit,
+                offset,
+                params.q,
+            )
             .await
             .map_err(|e| {
                 tracing::error!(error = %e, "SQLx Error in get_workspace_balances");
@@ -87,7 +93,12 @@ impl LeaveService {
 
         let requests = self
             .leave_request_repo
-            .get_employee_leave_history_requests(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id), employee_id, year, leave_type_id)
+            .get_employee_leave_history_requests(
+                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                employee_id,
+                year,
+                leave_type_id,
+            )
             .await?;
 
         let mut history: Vec<LeaveHistoryItem> = Vec::new();
@@ -162,7 +173,8 @@ impl LeaveService {
             .ok_or(AppError::Validation("Invalid request".into()))?;
 
         self.leave_balance_repo
-            .adjust_balance(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+            .adjust_balance(
+                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
                 employee_id,
                 req.leave_type_id,
                 amount_dec,
@@ -182,12 +194,19 @@ impl LeaveService {
         // Verify employee belongs to workspace
         let _ = self
             .employee_repo
-            .get_employee_by_id(employee_id, &crate::diesel_pool::TenantAuthToken::system_override(workspace_id))
+            .get_employee_by_id(
+                employee_id,
+                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+            )
             .await?
             .ok_or(AppError::NotFound("Not found".into()))?;
 
         self.leave_balance_repo
-            .get_employee_balances(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id), employee_id, year)
+            .get_employee_balances(
+                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                employee_id,
+                year,
+            )
             .await
     }
 
@@ -202,14 +221,20 @@ impl LeaveService {
         // Verify employee belongs to workspace
         let _ = self
             .employee_repo
-            .get_employee_by_id(req.employee_id, &crate::diesel_pool::TenantAuthToken::system_override(workspace_id))
+            .get_employee_by_id(
+                req.employee_id,
+                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+            )
             .await?
             .ok_or(AppError::NotFound("Not found".into()))?;
 
         // Validate leave_type_id exists for this workspace
         if !self
             .leave_request_repo
-            .check_leave_type_exists(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id), req.leave_type_id)
+            .check_leave_type_exists(
+                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                req.leave_type_id,
+            )
             .await?
         {
             return Err(AppError::Validation("Invalid request".into()));
@@ -270,7 +295,10 @@ impl LeaveService {
         };
 
         self.leave_request_repo
-            .create_leave_request(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id), &request)
+            .create_leave_request(
+                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                &request,
+            )
             .await
             .map_err(|e| {
                 tracing::error!(error = %e, "SQLx Error in submit_leave_request");
@@ -294,7 +322,10 @@ impl LeaveService {
     ) -> Result<(), AppError> {
         let leave_type_name = self
             .leave_request_repo
-            .get_leave_type_name(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id), request.leave_type_id)
+            .get_leave_type_name(
+                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                request.leave_type_id,
+            )
             .await?
             .unwrap_or_else(|| "Leave".to_string());
 
@@ -329,7 +360,10 @@ impl LeaveService {
 
             let _ = self
                 .roster_repo
-                .upsert_roster(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id), &roster)
+                .upsert_roster(
+                    &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                    &roster,
+                )
                 .await
                 .map_err(|e| {
                     tracing::error!(error = %e, "SQLx Error in apply_leave_to_roster");
@@ -356,19 +390,30 @@ impl LeaveService {
     ) -> Result<(), AppError> {
         let request = self
             .leave_request_repo
-            .get_leave_request_by_id(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id), request_id)
+            .get_leave_request_by_id(
+                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                request_id,
+            )
             .await?
             .ok_or(AppError::NotFound("Not found".into()))?;
 
         // Verify employee of this request belongs to the workspace
         let _ = self
             .employee_repo
-            .get_employee_by_id(request.employee_id, &crate::diesel_pool::TenantAuthToken::system_override(workspace_id))
+            .get_employee_by_id(
+                request.employee_id,
+                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+            )
             .await?
             .ok_or(AppError::Forbidden("Forbidden".into()))?;
 
         self.leave_request_repo
-            .update_leave_request_status(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id), request_id, req.status, Some(user_id))
+            .update_leave_request_status(
+                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                request_id,
+                req.status,
+                Some(user_id),
+            )
             .await
             .map_err(|e| {
                 tracing::error!(error = %e, "SQLx Error in approve_leave_request");
@@ -392,12 +437,18 @@ impl LeaveService {
         // Verify employee belongs to workspace
         let _ = self
             .employee_repo
-            .get_employee_by_id(employee_id, &crate::diesel_pool::TenantAuthToken::system_override(workspace_id))
+            .get_employee_by_id(
+                employee_id,
+                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+            )
             .await?
             .ok_or(AppError::NotFound("Not found".into()))?;
 
         self.leave_request_repo
-            .get_employee_leave_requests(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id), employee_id)
+            .get_employee_leave_requests(
+                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                employee_id,
+            )
             .await
     }
 
@@ -408,7 +459,10 @@ impl LeaveService {
         status: Option<LeaveStatus>,
     ) -> Result<Vec<LeaveRequest>, AppError> {
         self.leave_request_repo
-            .get_workspace_leave_requests(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id), status)
+            .get_workspace_leave_requests(
+                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                status,
+            )
             .await
     }
 }
@@ -481,10 +535,18 @@ mod tests {
     }
     #[async_trait]
     impl LeaveRequestRepository for MockLeaveRequestRepo {
-        async fn create_leave_request(&self, _auth_token: &crate::diesel_pool::TenantAuthToken, _r: &LeaveRequest) -> Result<(), AppError> {
+        async fn create_leave_request(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _r: &LeaveRequest,
+        ) -> Result<(), AppError> {
             Ok(())
         }
-        async fn check_leave_type_exists(&self, _auth_token: &crate::diesel_pool::TenantAuthToken, _t: Uuid) -> Result<bool, AppError> {
+        async fn check_leave_type_exists(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _t: Uuid,
+        ) -> Result<bool, AppError> {
             Ok(*self.exists.lock().unwrap())
         }
         async fn get_leave_type_name(
@@ -552,7 +614,10 @@ mod tests {
         ) -> Result<Option<Uuid>, AppError> {
             unimplemented!()
         }
-        async fn get_leave_types(&self, _auth_token: &crate::diesel_pool::TenantAuthToken) -> Result<Vec<(String, String)>, AppError> {
+        async fn get_leave_types(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+        ) -> Result<Vec<(String, String)>, AppError> {
             unimplemented!()
         }
         async fn get_system_generated_holiday_leave(
@@ -563,7 +628,11 @@ mod tests {
         ) -> Result<Option<(Uuid, Uuid, String)>, AppError> {
             unimplemented!()
         }
-        async fn cancel_leave_request(&self, _auth_token: &crate::diesel_pool::TenantAuthToken, _i: Uuid) -> Result<(), AppError> {
+        async fn cancel_leave_request(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _i: Uuid,
+        ) -> Result<(), AppError> {
             unimplemented!()
         }
         async fn get_unpaid_holiday_days_without_leave(
@@ -658,7 +727,11 @@ mod tests {
         ) -> Result<Option<Employee>, AppError> {
             unimplemented!()
         }
-        async fn delete_employee(&self, _i: Uuid, _auth_token: &crate::diesel_pool::TenantAuthToken) -> Result<u64, AppError> {
+        async fn delete_employee(
+            &self,
+            _i: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+        ) -> Result<u64, AppError> {
             unimplemented!()
         }
         async fn get_working_conditions(
@@ -750,7 +823,11 @@ mod tests {
         ) -> Result<Option<crate::models::RecruitmentSource>, AppError> {
             unimplemented!()
         }
-        async fn delete_recruitment_source(&self, _i: Uuid, _auth_token: &crate::diesel_pool::TenantAuthToken) -> Result<u64, AppError> {
+        async fn delete_recruitment_source(
+            &self,
+            _i: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+        ) -> Result<u64, AppError> {
             unimplemented!()
         }
         async fn get_recruitment_source_breakdown(
@@ -767,7 +844,11 @@ mod tests {
         ) -> Result<crate::models::TurnoverAnalytics, AppError> {
             unimplemented!()
         }
-        async fn get_managed_departments(&self, _auth_token: &crate::diesel_pool::TenantAuthToken, _u: Uuid) -> Result<Vec<Uuid>, AppError> {
+        async fn get_managed_departments(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _u: Uuid,
+        ) -> Result<Vec<Uuid>, AppError> {
             unimplemented!()
         }
         async fn get_employee_id_by_user_id(
@@ -853,10 +934,17 @@ mod tests {
         ) -> Result<Option<Employee>, AppError> {
             unimplemented!()
         }
-        async fn find_by_number(&self, _auth_token: &crate::diesel_pool::TenantAuthToken, _i: &str) -> Result<Option<Employee>, AppError> {
+        async fn find_by_number(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _i: &str,
+        ) -> Result<Option<Employee>, AppError> {
             unimplemented!()
         }
-        async fn get_active_employees(&self, _auth_token: &crate::diesel_pool::TenantAuthToken) -> Result<Vec<Employee>, AppError> {
+        async fn get_active_employees(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+        ) -> Result<Vec<Employee>, AppError> {
             unimplemented!()
         }
         async fn get_active_employee_ids(
@@ -897,7 +985,12 @@ mod tests {
         ) -> Result<(Option<Uuid>, Vec<crate::models::ScheduleTrace>), AppError> {
             Ok((None, vec![]))
         }
-        async fn delete_roster(&self, _auth_token: &crate::diesel_pool::TenantAuthToken, _e: Uuid, _d: NaiveDate) -> Result<(), AppError> {
+        async fn delete_roster(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _e: Uuid,
+            _d: NaiveDate,
+        ) -> Result<(), AppError> {
             Ok(())
         }
         // Unused

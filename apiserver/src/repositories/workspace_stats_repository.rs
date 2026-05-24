@@ -16,26 +16,32 @@ use uuid::Uuid;
 pub trait WorkspaceStatsRepository: Send + Sync {
     async fn fetch_attendance_trend(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<Vec<AttendanceTrendPoint>, AppError>;
     async fn fetch_department_attendance(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         range: &str,
     ) -> Result<Vec<DepartmentAttendancePoint>, AppError>;
     async fn fetch_overtime_trend(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<Vec<OvertimeTrendPoint>, AppError>;
-    async fn fetch_workspace_stats(&self, workspace_id: Uuid) -> Result<WorkspaceStats, AppError>;
-    async fn fetch_peak_times(&self, workspace_id: Uuid) -> Result<Vec<PeakTimeSlot>, AppError>;
+    async fn fetch_workspace_stats(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+    ) -> Result<WorkspaceStats, AppError>;
+    async fn fetch_peak_times(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+    ) -> Result<Vec<PeakTimeSlot>, AppError>;
     async fn fetch_leave_types_breakdown(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<Vec<LeaveTypeBreakdown>, AppError>;
     async fn fetch_lateness_by_day(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<Vec<LatenessByDay>, AppError>;
 }
 
@@ -48,7 +54,8 @@ impl DieselWorkspaceStatsRepository {
         Self { diesel_pools }
     }
 
-    async fn get_timezone(&self, workspace_id: Uuid) -> String {
+    async fn get_timezone(&self, auth_token: &crate::diesel_pool::TenantAuthToken) -> String {
+        let workspace_id = auth_token.workspace_id();
         #[derive(QueryableByName)]
         struct TzRow {
             #[diesel(sql_type = diesel::sql_types::Text)]
@@ -73,12 +80,13 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
     #[allow(clippy::too_many_lines)]
     async fn fetch_attendance_trend(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<Vec<AttendanceTrendPoint>, AppError> {
+        let workspace_id = auth_token.workspace_id();
         let today = Utc::now().date_naive();
-        let tz_str = self.get_timezone(workspace_id).await;
+        let tz_str = self.get_timezone(auth_token).await;
 
-        let mut conn = self.diesel_pools.tenant_conn_bypass_auth_DANGER(workspace_id).await?;
+        let mut conn = self.diesel_pools.tenant_conn(auth_token).await?;
 
         #[derive(QueryableByName)]
         struct BaseRow {
@@ -212,16 +220,17 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
     #[allow(clippy::too_many_lines)]
     async fn fetch_department_attendance(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         range: &str,
     ) -> Result<Vec<DepartmentAttendancePoint>, AppError> {
+        let workspace_id = auth_token.workspace_id();
         let today = Utc::now().date_naive();
         let start_date = match range {
             "week" => today - chrono::Duration::days(6),
             _ => today,
         };
 
-        let mut conn = self.diesel_pools.tenant_conn_bypass_auth_DANGER(workspace_id).await?;
+        let mut conn = self.diesel_pools.tenant_conn(auth_token).await?;
 
         #[derive(QueryableByName)]
         struct DeptRow {
@@ -306,7 +315,7 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
             .collect();
 
         let late_map: std::collections::HashMap<Uuid, i64> = if range == "today" {
-            let tz_str = self.get_timezone(workspace_id).await;
+            let tz_str = self.get_timezone(auth_token).await;
 
             #[derive(QueryableByName)]
             struct LateRow {
@@ -424,10 +433,11 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
 
     async fn fetch_overtime_trend(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<Vec<OvertimeTrendPoint>, AppError> {
+        let workspace_id = auth_token.workspace_id();
         let today = Utc::now().date_naive();
-        let mut conn = self.diesel_pools.tenant_conn_bypass_auth_DANGER(workspace_id).await?;
+        let mut conn = self.diesel_pools.tenant_conn(auth_token).await?;
 
         #[derive(QueryableByName)]
         struct OtRow {
@@ -474,8 +484,12 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
     }
 
     #[allow(clippy::too_many_lines)]
-    async fn fetch_workspace_stats(&self, workspace_id: Uuid) -> Result<WorkspaceStats, AppError> {
-        let mut conn = self.diesel_pools.tenant_conn_bypass_auth_DANGER(workspace_id).await?;
+    async fn fetch_workspace_stats(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+    ) -> Result<WorkspaceStats, AppError> {
+        let workspace_id = auth_token.workspace_id();
+        let mut conn = self.diesel_pools.tenant_conn(auth_token).await?;
 
         #[derive(QueryableByName)]
         struct CountRow {
@@ -492,7 +506,7 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
         .map(|r| r.count)
         .unwrap_or(0);
 
-        let tz_str = self.get_timezone(workspace_id).await;
+        let tz_str = self.get_timezone(auth_token).await;
         let today = Utc::now().date_naive();
         let start_of_day = today
             .and_hms_opt(0, 0, 0)
@@ -658,14 +672,18 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
         })
     }
 
-    async fn fetch_peak_times(&self, workspace_id: Uuid) -> Result<Vec<PeakTimeSlot>, AppError> {
+    async fn fetch_peak_times(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+    ) -> Result<Vec<PeakTimeSlot>, AppError> {
+        let workspace_id = auth_token.workspace_id();
         let today = Utc::now().date_naive();
         let start_of_day = today
             .and_hms_opt(0, 0, 0)
             .and_then(|t| t.and_local_timezone(Utc).single())
             .ok_or_else(|| AppError::Internal("Invalid date".to_string()))?;
 
-        let mut conn = self.diesel_pools.tenant_conn_bypass_auth_DANGER(workspace_id).await?;
+        let mut conn = self.diesel_pools.tenant_conn(auth_token).await?;
 
         #[derive(QueryableByName)]
         struct SlotRow {
@@ -739,13 +757,14 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
 
     async fn fetch_leave_types_breakdown(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<Vec<LeaveTypeBreakdown>, AppError> {
+        let workspace_id = auth_token.workspace_id();
         let today = Utc::now().date_naive();
         let month_start = NaiveDate::from_ymd_opt(today.year(), today.month(), 1)
             .ok_or_else(|| AppError::Internal("Invalid date".to_string()))?;
 
-        let mut conn = self.diesel_pools.tenant_conn_bypass_auth_DANGER(workspace_id).await?;
+        let mut conn = self.diesel_pools.tenant_conn(auth_token).await?;
 
         #[derive(QueryableByName)]
         struct LtRow {
@@ -795,12 +814,14 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
     #[allow(clippy::too_many_lines)]
     async fn fetch_lateness_by_day(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<Vec<LatenessByDay>, AppError> {
+        let workspace_id = auth_token.workspace_id();
         let today = Utc::now().date_naive();
-        let tz_str = self.get_timezone(workspace_id).await;
+        let _start_date = today - chrono::Duration::days(29);
+        let tz_str = self.get_timezone(auth_token).await;
 
-        let mut conn = self.diesel_pools.tenant_conn_bypass_auth_DANGER(workspace_id).await?;
+        let mut conn = self.diesel_pools.tenant_conn(auth_token).await?;
 
         #[derive(QueryableByName)]
         struct DayRow {

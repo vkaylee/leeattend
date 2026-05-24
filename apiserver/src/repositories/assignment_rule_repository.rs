@@ -15,13 +15,23 @@ pub trait AssignmentRuleRepository: Send + Sync {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         req: &CreateAssignmentRuleRequest,
     ) -> Result<AssignmentRule, AppError>;
-    async fn get_rules(&self, auth_token: &crate::diesel_pool::TenantAuthToken) -> Result<Vec<AssignmentRule>, AppError>;
-    async fn get_active_rules(&self, auth_token: &crate::diesel_pool::TenantAuthToken) -> Result<Vec<AssignmentRule>, AppError>;
+    async fn get_rules(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+    ) -> Result<Vec<AssignmentRule>, AppError>;
+    async fn get_active_rules(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+    ) -> Result<Vec<AssignmentRule>, AppError>;
     async fn update_rule(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
         id: Uuid,
         req: &UpdateAssignmentRuleRequest,
     ) -> Result<AssignmentRule, AppError>;
-    async fn delete_rule(&self, auth_token: &crate::diesel_pool::TenantAuthToken, id: Uuid) -> Result<(), AppError>;
+    async fn delete_rule(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        id: Uuid,
+    ) -> Result<(), AppError>;
 }

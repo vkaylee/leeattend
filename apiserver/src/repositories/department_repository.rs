@@ -36,8 +36,15 @@ pub trait DepartmentRepository: Send + Sync {
         id: Uuid,
         req: crate::models::UpdateDepartmentRequest,
     ) -> Result<Department, AppError>;
-    async fn delete_department(&self, auth_token: &crate::diesel_pool::TenantAuthToken, id: Uuid) -> Result<(), AppError>;
-    async fn get_departments(&self, auth_token: &crate::diesel_pool::TenantAuthToken) -> Result<Vec<Department>, AppError>;
+    async fn delete_department(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        id: Uuid,
+    ) -> Result<(), AppError>;
+    async fn get_departments(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+    ) -> Result<Vec<Department>, AppError>;
     async fn transfer_employee(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,

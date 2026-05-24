@@ -88,7 +88,12 @@ pub async fn create_test_redis_pool() -> Option<apiserver::queue::RedisPool> {
         match apiserver::queue::RedisPool::new(&url).await {
             Ok(p) => return Some(p),
             Err(e) if attempt < 9 => {
-                tracing::warn!("Failed to connect to redis at {} (attempt {}): {}", url, attempt, e);
+                tracing::warn!(
+                    "Failed to connect to redis at {} (attempt {}): {}",
+                    url,
+                    attempt,
+                    e
+                );
                 tokio::time::sleep(std::time::Duration::from_millis(500 * (attempt + 1))).await;
             }
             Err(e) => panic!(
@@ -598,7 +603,7 @@ pub async fn spawn_app_with_factory_extended(
     tracing::info!("spawn_app_with_factory_extended: creating TestDatabase");
     let test_db = TestDatabase::new().await;
     tracing::info!("spawn_app_with_factory_extended: TestDatabase created");
-    
+
     let pool = test_db.diesel_pools.clone();
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
 

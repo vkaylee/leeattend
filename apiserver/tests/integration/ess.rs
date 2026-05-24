@@ -536,10 +536,10 @@ async fn test_ess_punch_in_already_active() {
 #[tokio::test]
 async fn test_ess_invalid_workspace_id_returns_forbidden() {
     let (_test_db, factory, _state, app) = setup_app_tower().await;
-    
+
     // Create a valid user
     let user_id = factory.user().create().await;
-    
+
     // A fake workspace ID that does not exist in the system database
     let fake_ws_id = Uuid::new_v4();
 

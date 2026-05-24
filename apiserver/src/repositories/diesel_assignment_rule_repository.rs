@@ -66,7 +66,10 @@ impl AssignmentRuleRepository for DieselAssignmentRuleRepository {
             .map(Into::into)
     }
 
-    async fn get_rules(&self, auth_token: &crate::diesel_pool::TenantAuthToken) -> Result<Vec<AssignmentRule>, AppError> {
+    async fn get_rules(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+    ) -> Result<Vec<AssignmentRule>, AppError> {
         let workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
@@ -91,7 +94,10 @@ impl AssignmentRuleRepository for DieselAssignmentRuleRepository {
             .map(|rows| rows.into_iter().map(Into::into).collect())
     }
 
-    async fn get_active_rules(&self, auth_token: &crate::diesel_pool::TenantAuthToken) -> Result<Vec<AssignmentRule>, AppError> {
+    async fn get_active_rules(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+    ) -> Result<Vec<AssignmentRule>, AppError> {
         let workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
@@ -162,7 +168,11 @@ impl AssignmentRuleRepository for DieselAssignmentRuleRepository {
             .map(Into::into)
     }
 
-    async fn delete_rule(&self, auth_token: &crate::diesel_pool::TenantAuthToken, id: Uuid) -> Result<(), AppError> {
+    async fn delete_rule(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        id: Uuid,
+    ) -> Result<(), AppError> {
         let workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools

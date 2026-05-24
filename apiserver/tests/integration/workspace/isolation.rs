@@ -51,7 +51,12 @@ async fn test_get_employee_time_entries_isolated_by_workspace() {
     // Query with correct workspace → should find 1 entry
     let repo = apiserver::repositories::DieselTimeEntryRepository::new(diesel_pools.clone());
     let entries_a = repo
-        .get_employee_time_entries(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_a), emp_a, start, end)
+        .get_employee_time_entries(
+            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_a),
+            emp_a,
+            start,
+            end,
+        )
         .await
         .unwrap();
     assert_eq!(
@@ -62,7 +67,12 @@ async fn test_get_employee_time_entries_isolated_by_workspace() {
 
     // Query with wrong workspace → should find 0 entries
     let entries_b = repo
-        .get_employee_time_entries(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_b), emp_a, start, end)
+        .get_employee_time_entries(
+            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_b),
+            emp_a,
+            start,
+            end,
+        )
         .await
         .unwrap();
     assert_eq!(
@@ -94,14 +104,26 @@ async fn test_get_latest_active_entry_isolated_by_workspace() {
     let repo = Arc::new(DieselTimeEntryRepository::new(diesel_pools.clone()));
 
     // Correct workspace → should find the active entry
-    let active_a = repo.get_latest_active_entry(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_a), emp_a).await.unwrap();
+    let active_a = repo
+        .get_latest_active_entry(
+            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_a),
+            emp_a,
+        )
+        .await
+        .unwrap();
     assert!(
         active_a.is_some(),
         "Active entry should exist in correct workspace"
     );
 
     // Wrong workspace → should NOT find it
-    let active_b = repo.get_latest_active_entry(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_b), emp_a).await.unwrap();
+    let active_b = repo
+        .get_latest_active_entry(
+            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_b),
+            emp_a,
+        )
+        .await
+        .unwrap();
     assert!(
         active_b.is_none(),
         "Active entry should NOT be visible from wrong workspace"
@@ -133,14 +155,24 @@ async fn test_get_workspace_time_entries_batch_isolated() {
     // Batch query with correct workspace
     let repo = apiserver::repositories::DieselTimeEntryRepository::new(diesel_pools.clone());
     let batch_a = repo
-        .get_workspace_time_entries_batch(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_a), &[emp_a], start, end)
+        .get_workspace_time_entries_batch(
+            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_a),
+            &[emp_a],
+            start,
+            end,
+        )
         .await
         .unwrap();
     assert_eq!(batch_a.get(&emp_a).map_or(0, std::vec::Vec::len), 1);
 
     // Batch query with wrong workspace
     let batch_b = repo
-        .get_workspace_time_entries_batch(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_b), &[emp_a], start, end)
+        .get_workspace_time_entries_batch(
+            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_b),
+            &[emp_a],
+            start,
+            end,
+        )
         .await
         .unwrap();
     assert_eq!(
@@ -178,7 +210,10 @@ async fn test_department_history_isolated_by_workspace() {
 
     // Correct workspace → should find 1 history record
     let history_a = dept_repo
-        .get_employee_department_history(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_a), emp_a)
+        .get_employee_department_history(
+            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_a),
+            emp_a,
+        )
         .await
         .unwrap();
     assert_eq!(
@@ -189,7 +224,10 @@ async fn test_department_history_isolated_by_workspace() {
 
     // Wrong workspace → should find 0
     let history_b = dept_repo
-        .get_employee_department_history(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_b), emp_a)
+        .get_employee_department_history(
+            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_b),
+            emp_a,
+        )
         .await
         .unwrap();
     assert_eq!(
@@ -223,14 +261,26 @@ async fn test_get_current_department_isolated_by_workspace() {
         .unwrap();
 
     // Correct workspace
-    let current_a = dept_repo.get_current_department(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_a), emp_a).await.unwrap();
+    let current_a = dept_repo
+        .get_current_department(
+            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_a),
+            emp_a,
+        )
+        .await
+        .unwrap();
     assert!(
         current_a.is_some(),
         "Current department should exist in correct workspace"
     );
 
     // Wrong workspace
-    let current_b = dept_repo.get_current_department(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_b), emp_a).await.unwrap();
+    let current_b = dept_repo
+        .get_current_department(
+            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_b),
+            emp_a,
+        )
+        .await
+        .unwrap();
     assert!(
         current_b.is_none(),
         "Current department should NOT be visible from wrong workspace"

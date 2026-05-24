@@ -41,7 +41,7 @@ pub async fn list_policy_assignments(
     let assignments = state
         .attendance
         .policy_repo
-        .list_policy_assignments(ctx.workspace_id)
+        .list_policy_assignments(&ctx.auth_token)
         .await?;
 
     Ok(Json(assignments))
@@ -58,7 +58,7 @@ pub async fn upsert_policy_assignment(
     let res = state
         .attendance
         .policy_repo
-        .upsert_policy_assignment(ctx.workspace_id, ctx.user_id, req)
+        .upsert_policy_assignment(&ctx.auth_token, ctx.user_id, req)
         .await?;
 
     Ok(Json(res))
@@ -74,7 +74,7 @@ pub async fn delete_policy_assignment(
     state
         .attendance
         .policy_repo
-        .delete_policy_assignment(ctx.workspace_id, assignment_id)
+        .delete_policy_assignment(&ctx.auth_token, assignment_id)
         .await?;
 
     Ok(axum::http::StatusCode::NO_CONTENT)

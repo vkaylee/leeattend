@@ -84,7 +84,10 @@ async fn test_upload_employee_csv_api() {
         let job_opt = _state
             .attendance
             .import_repo
-            .get_job_by_id(ws_id, job_uuid)
+            .get_job_by_id(
+                &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
+                job_uuid,
+            )
             .await
             .unwrap();
         if let Some(job) = job_opt {
@@ -102,7 +105,10 @@ async fn test_upload_employee_csv_api() {
     let emp1 = _state
         .employees
         .repo
-        .find_by_number(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id), "EMP001")
+        .find_by_number(
+            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
+            "EMP001",
+        )
         .await
         .unwrap();
     assert!(emp1.is_some());
@@ -112,7 +118,10 @@ async fn test_upload_employee_csv_api() {
     let emp2 = _state
         .employees
         .repo
-        .find_by_number(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id), "EMP002")
+        .find_by_number(
+            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
+            "EMP002",
+        )
         .await
         .unwrap();
     assert!(emp2.is_some());
@@ -179,7 +188,10 @@ async fn test_upload_employee_duplicate_id_skips() {
         let job = _state
             .attendance
             .import_repo
-            .get_job_by_id(ws_id, job_uuid)
+            .get_job_by_id(
+                &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
+                job_uuid,
+            )
             .await
             .unwrap()
             .unwrap();
@@ -198,7 +210,10 @@ async fn test_upload_employee_duplicate_id_skips() {
     let job = _state
         .attendance
         .import_repo
-        .get_job_by_id(ws_id, job_uuid)
+        .get_job_by_id(
+            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
+            job_uuid,
+        )
         .await
         .unwrap()
         .unwrap();
@@ -221,7 +236,10 @@ async fn test_upload_employee_duplicate_id_skips() {
     let emp_dup = _state
         .employees
         .repo
-        .find_by_number(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id), "DUP001")
+        .find_by_number(
+            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
+            "DUP001",
+        )
         .await
         .unwrap()
         .unwrap();
@@ -231,7 +249,10 @@ async fn test_upload_employee_duplicate_id_skips() {
     let emp_new = _state
         .employees
         .repo
-        .find_by_number(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id), "NEW002")
+        .find_by_number(
+            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
+            "NEW002",
+        )
         .await
         .unwrap();
     assert!(emp_new.is_some());
@@ -291,7 +312,10 @@ async fn test_upload_employee_csv_with_department() {
         let job = _state
             .attendance
             .import_repo
-            .get_job_by_id(ws_id, job_uuid)
+            .get_job_by_id(
+                &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
+                job_uuid,
+            )
             .await
             .unwrap()
             .unwrap();
@@ -309,7 +333,9 @@ async fn test_upload_employee_csv_with_department() {
     let departments = _state
         .payroll
         .department_repo
-        .get_departments(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id))
+        .get_departments(&apiserver::diesel_pool::TenantAuthToken::system_override(
+            ws_id,
+        ))
         .await
         .unwrap();
     let dept_names: Vec<&str> = departments.iter().map(|d| d.name.as_str()).collect();
@@ -326,7 +352,10 @@ async fn test_upload_employee_csv_with_department() {
     let emp1 = _state
         .employees
         .repo
-        .find_by_number(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id), "DEPT001")
+        .find_by_number(
+            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
+            "DEPT001",
+        )
         .await
         .unwrap()
         .expect("Employee DEPT001 should exist");
@@ -334,7 +363,10 @@ async fn test_upload_employee_csv_with_department() {
     let current_dept = _state
         .payroll
         .department_repo
-        .get_current_department(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id), emp1.id)
+        .get_current_department(
+            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
+            emp1.id,
+        )
         .await
         .unwrap();
     assert!(
@@ -356,7 +388,10 @@ async fn test_upload_employee_csv_with_department() {
     let emp3 = _state
         .employees
         .repo
-        .find_by_number(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id), "DEPT003")
+        .find_by_number(
+            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
+            "DEPT003",
+        )
         .await
         .unwrap()
         .expect("Employee DEPT003 should exist");
@@ -364,7 +399,10 @@ async fn test_upload_employee_csv_with_department() {
     let current_dept3 = _state
         .payroll
         .department_repo
-        .get_current_department(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id), emp3.id)
+        .get_current_department(
+            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
+            emp3.id,
+        )
         .await
         .unwrap();
     assert!(current_dept3.is_some());
@@ -436,7 +474,10 @@ async fn test_upload_employee_csv_reuses_existing_department() {
         let job = _state
             .attendance
             .import_repo
-            .get_job_by_id(ws_id, job_uuid)
+            .get_job_by_id(
+                &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
+                job_uuid,
+            )
             .await
             .unwrap()
             .unwrap();
@@ -453,7 +494,9 @@ async fn test_upload_employee_csv_reuses_existing_department() {
     let departments = _state
         .payroll
         .department_repo
-        .get_departments(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id))
+        .get_departments(&apiserver::diesel_pool::TenantAuthToken::system_override(
+            ws_id,
+        ))
         .await
         .unwrap();
     let sales_depts: Vec<_> = departments
@@ -474,7 +517,10 @@ async fn test_upload_employee_csv_reuses_existing_department() {
     let emp = _state
         .employees
         .repo
-        .find_by_number(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id), "RE001")
+        .find_by_number(
+            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
+            "RE001",
+        )
         .await
         .unwrap()
         .expect("Employee RE001 should exist");
@@ -482,7 +528,10 @@ async fn test_upload_employee_csv_reuses_existing_department() {
     let current_dept = _state
         .payroll
         .department_repo
-        .get_current_department(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id), emp.id)
+        .get_current_department(
+            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
+            emp.id,
+        )
         .await
         .unwrap();
     assert!(current_dept.is_some());
@@ -589,7 +638,10 @@ async fn test_upload_employee_xlsx_with_department() {
         let job = _state
             .attendance
             .import_repo
-            .get_job_by_id(ws_id, job_uuid)
+            .get_job_by_id(
+                &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
+                job_uuid,
+            )
             .await
             .unwrap()
             .unwrap();
@@ -607,7 +659,9 @@ async fn test_upload_employee_xlsx_with_department() {
     let departments = _state
         .payroll
         .department_repo
-        .get_departments(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id))
+        .get_departments(&apiserver::diesel_pool::TenantAuthToken::system_override(
+            ws_id,
+        ))
         .await
         .unwrap();
     let dept_names: Vec<&str> = departments.iter().map(|d| d.name.as_str()).collect();
@@ -624,7 +678,10 @@ async fn test_upload_employee_xlsx_with_department() {
     let emp1 = _state
         .employees
         .repo
-        .find_by_number(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id), "XLS001")
+        .find_by_number(
+            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
+            "XLS001",
+        )
         .await
         .unwrap()
         .expect("Employee XLS001 should exist");
@@ -632,7 +689,10 @@ async fn test_upload_employee_xlsx_with_department() {
     let current_dept = _state
         .payroll
         .department_repo
-        .get_current_department(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id), emp1.id)
+        .get_current_department(
+            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
+            emp1.id,
+        )
         .await
         .unwrap();
     assert!(
@@ -654,7 +714,10 @@ async fn test_upload_employee_xlsx_with_department() {
     let emp3 = _state
         .employees
         .repo
-        .find_by_number(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id), "XLS003")
+        .find_by_number(
+            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
+            "XLS003",
+        )
         .await
         .unwrap()
         .expect("Employee XLS003 should exist");
@@ -662,7 +725,10 @@ async fn test_upload_employee_xlsx_with_department() {
     let current_dept3 = _state
         .payroll
         .department_repo
-        .get_current_department(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id), emp3.id)
+        .get_current_department(
+            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
+            emp3.id,
+        )
         .await
         .unwrap();
     assert!(current_dept3.is_some());
@@ -733,7 +799,10 @@ async fn test_upload_employee_xlsx_reuses_existing_department() {
         let job = _state
             .attendance
             .import_repo
-            .get_job_by_id(ws_id, job_uuid)
+            .get_job_by_id(
+                &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
+                job_uuid,
+            )
             .await
             .unwrap()
             .unwrap();
@@ -750,7 +819,9 @@ async fn test_upload_employee_xlsx_reuses_existing_department() {
     let departments = _state
         .payroll
         .department_repo
-        .get_departments(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id))
+        .get_departments(&apiserver::diesel_pool::TenantAuthToken::system_override(
+            ws_id,
+        ))
         .await
         .unwrap();
     let sales_depts: Vec<_> = departments
@@ -771,7 +842,10 @@ async fn test_upload_employee_xlsx_reuses_existing_department() {
     let emp = _state
         .employees
         .repo
-        .find_by_number(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id), "XLSRE001")
+        .find_by_number(
+            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
+            "XLSRE001",
+        )
         .await
         .unwrap()
         .expect("Employee XLSRE001 should exist");
@@ -779,7 +853,10 @@ async fn test_upload_employee_xlsx_reuses_existing_department() {
     let current_dept = _state
         .payroll
         .department_repo
-        .get_current_department(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id), emp.id)
+        .get_current_department(
+            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
+            emp.id,
+        )
         .await
         .unwrap();
     assert!(current_dept.is_some());
@@ -854,7 +931,10 @@ async fn test_upload_csv_existing_employee_new_department() {
         let job = _state
             .attendance
             .import_repo
-            .get_job_by_id(ws_id, job_uuid)
+            .get_job_by_id(
+                &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
+                job_uuid,
+            )
             .await
             .unwrap()
             .unwrap();
@@ -871,7 +951,9 @@ async fn test_upload_csv_existing_employee_new_department() {
     let departments = _state
         .payroll
         .department_repo
-        .get_departments(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id))
+        .get_departments(&apiserver::diesel_pool::TenantAuthToken::system_override(
+            ws_id,
+        ))
         .await
         .unwrap();
     let rd_dept = departments
@@ -883,7 +965,10 @@ async fn test_upload_csv_existing_employee_new_department() {
     let emp = _state
         .employees
         .repo
-        .find_by_number(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id), "EXIST001")
+        .find_by_number(
+            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
+            "EXIST001",
+        )
         .await
         .unwrap()
         .expect("Employee EXIST001 should exist");
@@ -891,7 +976,10 @@ async fn test_upload_csv_existing_employee_new_department() {
     let current_dept = _state
         .payroll
         .department_repo
-        .get_current_department(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id), emp.id)
+        .get_current_department(
+            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
+            emp.id,
+        )
         .await
         .unwrap();
     assert!(
@@ -973,7 +1061,10 @@ async fn test_upload_csv_existing_employee_existing_department() {
         let job = _state
             .attendance
             .import_repo
-            .get_job_by_id(ws_id, job_uuid)
+            .get_job_by_id(
+                &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
+                job_uuid,
+            )
             .await
             .unwrap()
             .unwrap();
@@ -990,7 +1081,9 @@ async fn test_upload_csv_existing_employee_existing_department() {
     let departments = _state
         .payroll
         .department_repo
-        .get_departments(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id))
+        .get_departments(&apiserver::diesel_pool::TenantAuthToken::system_override(
+            ws_id,
+        ))
         .await
         .unwrap();
     let finance_depts: Vec<_> = departments.iter().filter(|d| d.name == "Finance").collect();
@@ -1004,7 +1097,10 @@ async fn test_upload_csv_existing_employee_existing_department() {
     let emp = _state
         .employees
         .repo
-        .find_by_number(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id), "EXIST002")
+        .find_by_number(
+            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
+            "EXIST002",
+        )
         .await
         .unwrap()
         .expect("Employee EXIST002 should exist");
@@ -1012,7 +1108,10 @@ async fn test_upload_csv_existing_employee_existing_department() {
     let current_dept = _state
         .payroll
         .department_repo
-        .get_current_department(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id), emp.id)
+        .get_current_department(
+            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
+            emp.id,
+        )
         .await
         .unwrap();
     assert!(current_dept.is_some());
@@ -1087,7 +1186,10 @@ async fn test_upload_xlsx_existing_employee_new_department() {
         let job = _state
             .attendance
             .import_repo
-            .get_job_by_id(ws_id, job_uuid)
+            .get_job_by_id(
+                &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
+                job_uuid,
+            )
             .await
             .unwrap()
             .unwrap();
@@ -1104,7 +1206,9 @@ async fn test_upload_xlsx_existing_employee_new_department() {
     let departments = _state
         .payroll
         .department_repo
-        .get_departments(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id))
+        .get_departments(&apiserver::diesel_pool::TenantAuthToken::system_override(
+            ws_id,
+        ))
         .await
         .unwrap();
     let devops_dept = departments
@@ -1116,7 +1220,10 @@ async fn test_upload_xlsx_existing_employee_new_department() {
     let emp = _state
         .employees
         .repo
-        .find_by_number(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id), "XLSEX001")
+        .find_by_number(
+            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
+            "XLSEX001",
+        )
         .await
         .unwrap()
         .expect("Employee XLSEX001 should exist");
@@ -1124,7 +1231,10 @@ async fn test_upload_xlsx_existing_employee_new_department() {
     let current_dept = _state
         .payroll
         .department_repo
-        .get_current_department(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id), emp.id)
+        .get_current_department(
+            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
+            emp.id,
+        )
         .await
         .unwrap();
     assert!(current_dept.is_some());
@@ -1202,7 +1312,10 @@ async fn test_upload_xlsx_existing_employee_existing_department() {
         let job = _state
             .attendance
             .import_repo
-            .get_job_by_id(ws_id, job_uuid)
+            .get_job_by_id(
+                &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
+                job_uuid,
+            )
             .await
             .unwrap()
             .unwrap();
@@ -1219,7 +1332,9 @@ async fn test_upload_xlsx_existing_employee_existing_department() {
     let departments = _state
         .payroll
         .department_repo
-        .get_departments(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id))
+        .get_departments(&apiserver::diesel_pool::TenantAuthToken::system_override(
+            ws_id,
+        ))
         .await
         .unwrap();
     let hr_depts: Vec<_> = departments
@@ -1233,7 +1348,10 @@ async fn test_upload_xlsx_existing_employee_existing_department() {
     let emp = _state
         .employees
         .repo
-        .find_by_number(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id), "XLSEX002")
+        .find_by_number(
+            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
+            "XLSEX002",
+        )
         .await
         .unwrap()
         .expect("Employee XLSEX002 should exist");
@@ -1241,7 +1359,10 @@ async fn test_upload_xlsx_existing_employee_existing_department() {
     let current_dept = _state
         .payroll
         .department_repo
-        .get_current_department(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id), emp.id)
+        .get_current_department(
+            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
+            emp.id,
+        )
         .await
         .unwrap();
     assert!(current_dept.is_some());

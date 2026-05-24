@@ -338,7 +338,9 @@ async fn test_dynamic_tenant_registration_idempotency() {
     });
 
     // 4. Run the dynamic registration (First time)
-    let res1 = tenant_manager.register_tenant_dynamic(&tenant_id, &payload).await;
+    let res1 = tenant_manager
+        .register_tenant_dynamic(&tenant_id, &payload)
+        .await;
     assert!(
         res1.is_ok(),
         "First dynamic registration failed: {:?}",
@@ -347,7 +349,9 @@ async fn test_dynamic_tenant_registration_idempotency() {
 
     // 5. Run the dynamic registration AGAIN (Second time)
     // This should hit the GET check and gracefully skip the PUT without error.
-    let res2 = tenant_manager.register_tenant_dynamic(&tenant_id, &payload).await;
+    let res2 = tenant_manager
+        .register_tenant_dynamic(&tenant_id, &payload)
+        .await;
     assert!(
         res2.is_ok(),
         "Second dynamic registration failed: {:?}",
@@ -383,4 +387,3 @@ async fn test_dynamic_tenant_registration_idempotency() {
         del_res.err()
     );
 }
-

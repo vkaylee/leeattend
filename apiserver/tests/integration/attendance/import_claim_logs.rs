@@ -86,7 +86,13 @@ async fn test_import_employee_claims_staged_logs() -> Result<(), Box<dyn std::er
     let mut job_finished = false;
     for _ in 0..20 {
         tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-        if let Ok(Some(j)) = import_repo.get_job_by_id(ws_id, job_id).await {
+        if let Ok(Some(j)) = import_repo
+            .get_job_by_id(
+                &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
+                job_id,
+            )
+            .await
+        {
             if j.status == ImportJobStatus::Completed {
                 job_finished = true;
                 break;
@@ -102,7 +108,10 @@ async fn test_import_employee_claims_staged_logs() -> Result<(), Box<dyn std::er
 
     // 3. Verify employee was created
     let employee = emp_repo
-        .get_employee_by_id_number(&normalized_id, &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id))
+        .get_employee_by_id_number(
+            &normalized_id,
+            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
+        )
         .await?
         .ok_or("Employee should be created")?;
 
@@ -210,7 +219,13 @@ async fn test_import_existing_employee_claims_staged_logs() -> Result<(), Box<dy
     let mut job_finished = false;
     for _ in 0..20 {
         tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-        if let Ok(Some(j)) = import_repo.get_job_by_id(ws_id, job_id).await {
+        if let Ok(Some(j)) = import_repo
+            .get_job_by_id(
+                &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
+                job_id,
+            )
+            .await
+        {
             if j.status == ImportJobStatus::Completed {
                 job_finished = true;
                 break;

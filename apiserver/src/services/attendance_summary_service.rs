@@ -89,7 +89,13 @@ impl AttendanceSummaryService {
         // 2. Get Effective Schedule for this specific date
         let schedules = self
             .roster_repo
-            .get_workspace_schedules(None, &crate::diesel_pool::TenantAuthToken::system_override(workspace_id), date, date, Some(&vec![employee_id]))
+            .get_workspace_schedules(
+                None,
+                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                date,
+                date,
+                Some(&vec![employee_id]),
+            )
             .await
             .map_err(|e| e.to_string())?;
 
@@ -106,7 +112,12 @@ impl AttendanceSummaryService {
 
         let entries = self
             .time_entry_repo
-            .get_employee_time_entries(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id), employee_id, start_dt_utc, end_dt_utc)
+            .get_employee_time_entries(
+                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                employee_id,
+                start_dt_utc,
+                end_dt_utc,
+            )
             .await
             .map_err(|e| e.to_string())?;
 
@@ -209,7 +220,10 @@ impl AttendanceSummaryService {
         // 4b. Check if this date is a holiday
         let holiday = self
             .holiday_repo
-            .is_holiday(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id), date)
+            .is_holiday(
+                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                date,
+            )
             .await
             .unwrap_or(None);
         let is_holiday = holiday.is_some();
@@ -220,7 +234,11 @@ impl AttendanceSummaryService {
             if let Some(ref hol) = holiday {
                 let system_leave = self
                     .leave_request_repo
-                    .get_system_generated_holiday_leave(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id), employee_id, date)
+                    .get_system_generated_holiday_leave(
+                        &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                        employee_id,
+                        date,
+                    )
                     .await
                     .unwrap_or(None);
 
@@ -250,7 +268,10 @@ impl AttendanceSummaryService {
                     if work_percent >= threshold {
                         let _ = self
                             .leave_request_repo
-                            .cancel_leave_request(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id), leave_request_id)
+                            .cancel_leave_request(
+                                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                                leave_request_id,
+                            )
                             .await;
 
                         tracing::info!(
@@ -278,7 +299,11 @@ impl AttendanceSummaryService {
         let summary_repo = self.daily_summary_repo.as_ref();
 
         let existing = summary_repo
-            .get_summary(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id), employee_id, date)
+            .get_summary(
+                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                employee_id,
+                date,
+            )
             .await
             .map_err(|e| e.to_string())?;
 
@@ -300,7 +325,8 @@ impl AttendanceSummaryService {
         };
 
         summary_repo
-            .upsert_calculated_summary(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+            .upsert_calculated_summary(
+                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
                 employee_id,
                 date,
                 actual_work_minutes,
@@ -327,7 +353,13 @@ impl AttendanceSummaryService {
         let summary_repo = self.daily_summary_repo.as_ref();
 
         let rows_affected = summary_repo
-            .claim_ot(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id), employee_id, date, claimed_minutes, reason)
+            .claim_ot(
+                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                employee_id,
+                date,
+                claimed_minutes,
+                reason,
+            )
             .await
             .map_err(|e| e.to_string())?;
 
@@ -350,7 +382,8 @@ impl AttendanceSummaryService {
         let summary_repo = self.daily_summary_repo.as_ref();
 
         let rows_affected = summary_repo
-            .approve_ot(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+            .approve_ot(
+                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
                 employee_id,
                 date,
                 approved_minutes,
@@ -375,7 +408,11 @@ impl AttendanceSummaryService {
 
         // 1. Check existing summary
         let existing = summary_repo
-            .get_summary(&crate::diesel_pool::TenantAuthToken::system_override(args.workspace_id), args.employee_id, args.date)
+            .get_summary(
+                &crate::diesel_pool::TenantAuthToken::system_override(args.workspace_id),
+                args.employee_id,
+                args.date,
+            )
             .await
             .map_err(|e| e.to_string())?;
 
@@ -393,7 +430,8 @@ impl AttendanceSummaryService {
 
         // 3. Upsert with paper form metadata
         let result = summary_repo
-            .upsert_paper_ot(&crate::diesel_pool::TenantAuthToken::system_override(args.workspace_id),
+            .upsert_paper_ot(
+                &crate::diesel_pool::TenantAuthToken::system_override(args.workspace_id),
                 args.employee_id,
                 args.date,
                 args.claimed_minutes,

@@ -73,7 +73,13 @@ async fn test_import_csv_with_line_errors() {
     let mut job: Option<AttendanceImportJob> = None;
     for _ in 0..20 {
         sleep(Duration::from_millis(200)).await;
-        if let Ok(Some(j)) = import_repo.get_job_by_id(ws_id, job_id).await {
+        if let Ok(Some(j)) = import_repo
+            .get_job_by_id(
+                &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
+                job_id,
+            )
+            .await
+        {
             if j.status == ImportJobStatus::Completed || j.status == ImportJobStatus::Failed {
                 job = Some(j);
                 break;
@@ -128,7 +134,13 @@ async fn test_import_timeout_guard_updates_db_on_drop() {
         updated_at: chrono::Utc::now(),
     };
 
-    import_repo.create_job(&job).await.unwrap();
+    import_repo
+        .create_job(
+            &apiserver::diesel_pool::TenantAuthToken::system_override(job.workspace_id),
+            &job,
+        )
+        .await
+        .unwrap();
 
     let completed = Arc::new(AtomicBool::new(false));
     {
@@ -141,7 +153,10 @@ async fn test_import_timeout_guard_updates_db_on_drop() {
     sleep(Duration::from_millis(2000)).await;
 
     let updated_job = import_repo
-        .get_job_by_id(ws_id, job_id)
+        .get_job_by_id(
+            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
+            job_id,
+        )
         .await
         .unwrap()
         .unwrap();
@@ -210,7 +225,13 @@ async fn test_employee_import_chunking() {
         created_at: chrono::Utc::now(),
         updated_at: chrono::Utc::now(),
     };
-    import_repo.create_job(&job).await.unwrap();
+    import_repo
+        .create_job(
+            &apiserver::diesel_pool::TenantAuthToken::system_override(job.workspace_id),
+            &job,
+        )
+        .await
+        .unwrap();
 
     let payload = EmployeeImportPayload {
         user_id,
@@ -317,7 +338,13 @@ async fn test_leave_import_chunking() {
         created_at: chrono::Utc::now(),
         updated_at: chrono::Utc::now(),
     };
-    import_repo.create_job(&job).await.unwrap();
+    import_repo
+        .create_job(
+            &apiserver::diesel_pool::TenantAuthToken::system_override(job.workspace_id),
+            &job,
+        )
+        .await
+        .unwrap();
 
     let payload = LeaveImportPayload {
         user_id,
@@ -464,7 +491,12 @@ async fn test_employee_import_duplicate_department_prevention() {
     assert!(res2.is_ok(), "Second process_row failed");
 
     // Verify exactly one department exists in the database
-    let departments = department_repo.get_departments(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id)).await.unwrap();
+    let departments = department_repo
+        .get_departments(&apiserver::diesel_pool::TenantAuthToken::system_override(
+            ws_id,
+        ))
+        .await
+        .unwrap();
 
     assert_eq!(
         departments.len(),

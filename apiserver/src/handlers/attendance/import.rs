@@ -177,7 +177,7 @@ pub async fn upload_employee_excel(
     state
         .attendance
         .import_repo
-        .create_job(&import_job)
+        .create_job(&ctx.auth_token, &import_job)
         .await
         .map_err(|e| AppError::Internal(format!("Failed to create import job: {e}")))?;
 
@@ -227,7 +227,7 @@ pub async fn get_latest_import_job(
     let mut job_opt = state
         .attendance
         .import_repo
-        .get_latest_job(ctx.workspace_id, query.target_type)
+        .get_latest_job(&ctx.auth_token, query.target_type)
         .await?;
 
     if let Some(ref mut job) = job_opt {
@@ -259,7 +259,7 @@ pub async fn get_import_job_status(
     let mut job = state
         .attendance
         .import_repo
-        .get_job_by_id(ctx.workspace_id, job_id)
+        .get_job_by_id(&ctx.auth_token, job_id)
         .await?
         .ok_or_else(|| AppError::NotFound("Job not found".to_string()))?;
 
@@ -290,7 +290,7 @@ pub async fn download_import_error_file(
     let job = state
         .attendance
         .import_repo
-        .get_job_by_id(ctx.workspace_id, job_id)
+        .get_job_by_id(&ctx.auth_token, job_id)
         .await?
         .ok_or_else(|| AppError::NotFound("Job not found".to_string()))?;
 

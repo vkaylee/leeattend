@@ -30,7 +30,13 @@ async fn test_resolve_attendance_policy_hierarchy() {
     use apiserver::repositories::department_repository::DepartmentRepository;
     // 1. Create a department
     let dept = dept_repo
-        .create_department(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id), "Engineering".to_string(), None, None, None)
+        .create_department(
+            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
+            "Engineering".to_string(),
+            None,
+            None,
+            None,
+        )
         .await
         .unwrap();
     let dept_id = dept.id;

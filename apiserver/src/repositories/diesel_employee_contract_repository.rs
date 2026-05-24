@@ -27,9 +27,7 @@ impl super::EmployeeContractRepository for DieselEmployeeContractRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         req: &CreateContractRequest,
     ) -> Result<EmployeeContract, AppError> {
-        
-        
-use crate::models::enums::ContractStatus;
+        use crate::models::enums::ContractStatus;
         use crate::schema::employee_contracts::dsl::*;
         use diesel_async::AsyncConnection;
 
@@ -188,9 +186,7 @@ use crate::models::enums::ContractStatus;
         contract_id: Uuid,
         req: &UpdateContractRequest,
     ) -> Result<EmployeeContract, AppError> {
-        
-        
-use crate::schema::employee_contracts::dsl::*;
+        use crate::schema::employee_contracts::dsl::*;
 
         let mut conn = self
             .diesel_pools
@@ -230,9 +226,7 @@ use crate::schema::employee_contracts::dsl::*;
         auth_token: &crate::diesel_pool::TenantAuthToken,
         contract_id: Uuid,
     ) -> Result<(), AppError> {
-        
-        
-use crate::schema::employee_contracts::dsl::*;
+        use crate::schema::employee_contracts::dsl::*;
 
         let mut conn = self
             .diesel_pools

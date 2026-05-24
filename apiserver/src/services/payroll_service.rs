@@ -137,6 +137,7 @@ impl PayrollService {
 
     /// Phase 1: Fetch all data needed for payroll calculation.
     /// Public to allow access from decomposed structs.
+    #[allow(clippy::too_many_lines)]
     async fn fetch_context(
         &self,
         employee_id: Uuid,
@@ -175,7 +176,10 @@ impl PayrollService {
 
         let all_dept_history = self
             .department_repo
-            .get_employee_department_history(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id), employee_id)
+            .get_employee_department_history(
+                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                employee_id,
+            )
             .await?;
 
         let start_dt = local_to_utc(&tz, start_date, 0, 0, 0).map_err(AppError::Internal)?;
@@ -183,12 +187,21 @@ impl PayrollService {
 
         let time_entries = self
             .time_entry_repo
-            .get_employee_time_entries(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id), employee_id, start_dt, end_dt)
+            .get_employee_time_entries(
+                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                employee_id,
+                start_dt,
+                end_dt,
+            )
             .await?;
 
         let holidays_map = self
             .holiday_repo
-            .get_holidays_in_range(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id), start_date, end_date)
+            .get_holidays_in_range(
+                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                start_date,
+                end_date,
+            )
             .await?;
 
         let roster_data = self
@@ -202,7 +215,10 @@ impl PayrollService {
 
         let employee = self
             .employee_repo
-            .get_employee_by_id(employee_id, &crate::diesel_pool::TenantAuthToken::system_override(workspace_id))
+            .get_employee_by_id(
+                employee_id,
+                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+            )
             .await?
             .ok_or(AppError::NotFound("Employee not found".into()))?;
 
@@ -211,7 +227,12 @@ impl PayrollService {
 
         let rosters = self
             .roster_repo
-            .get_employee_rosters(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id), employee_id, start_date, end_date)
+            .get_employee_rosters(
+                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                employee_id,
+                start_date,
+                end_date,
+            )
             .await?;
         let payroll_roster_map: HashMap<(Uuid, NaiveDate), Option<Uuid>> = rosters
             .into_iter()

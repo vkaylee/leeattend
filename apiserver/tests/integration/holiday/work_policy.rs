@@ -1032,7 +1032,12 @@ async fn test_leave_breakdown_excludes_holidays() {
         let lr_repo =
             apiserver::repositories::DieselLeaveRequestRepository::new(diesel_pools.clone());
         lr_repo
-            .get_approved_leave_breakdown(emp, leave_start, leave_end, &apiserver::diesel_pool::TenantAuthToken::system_override(workspace_id))
+            .get_approved_leave_breakdown(
+                emp,
+                leave_start,
+                leave_end,
+                &apiserver::diesel_pool::TenantAuthToken::system_override(workspace_id),
+            )
             .await
             .unwrap()
     };

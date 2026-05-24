@@ -36,15 +36,20 @@ impl Drop for ImportTimeoutGuard {
             let job_id = self.job_id;
             let repo = Arc::clone(&self.import_repo);
             tokio::spawn(async move {
-                let current_rows =
-                    if let Ok(Some(job)) = repo.get_job_by_id(workspace_id, job_id).await {
-                        job.processed_rows
-                    } else {
-                        0
-                    };
+                let current_rows = if let Ok(Some(job)) = repo
+                    .get_job_by_id(
+                        &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                        job_id,
+                    )
+                    .await
+                {
+                    job.processed_rows
+                } else {
+                    0
+                };
                 if let Err(e) = repo
                     .update_job_progress(
-                        workspace_id,
+                        &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
                         job_id,
                         current_rows,
                         ImportJobStatus::Failed,

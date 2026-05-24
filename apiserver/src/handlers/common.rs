@@ -1,10 +1,10 @@
 use std::collections::HashSet;
 
+use crate::diesel_pool::TenantAuthToken;
 use crate::domain::permissions::{self, Permission};
 use crate::errors::{AppError, AppResult};
 use crate::models::GenericResponse;
 use crate::repositories::CacheRepositoryExt;
-use crate::diesel_pool::TenantAuthToken;
 use crate::{AppState, UserId};
 use axum::{
     async_trait,
@@ -363,7 +363,10 @@ impl MemberContext {
             let depts = app_state
                 .employees
                 .repo
-                .get_managed_departments(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id), user_id)
+                .get_managed_departments(
+                    &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                    user_id,
+                )
                 .await
                 .unwrap_or_default();
 
@@ -401,9 +404,9 @@ where
     type Rejection = AppError;
 
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
-        // 1. Verify MemberContext FIRST! This queries the System DB and ensures 
-        // the workspace exists and the user is actually a member, preventing DoS 
-        // attacks where an attacker just sends a random X-Workspace-Id and forces 
+        // 1. Verify MemberContext FIRST! This queries the System DB and ensures
+        // the workspace exists and the user is actually a member, preventing DoS
+        // attacks where an attacker just sends a random X-Workspace-Id and forces
         // a connection to Supavisor.
         let member_ctx = MemberContext::from_request_parts(parts, state).await?;
 

@@ -87,7 +87,11 @@ pub async fn clear_debug_db(
 ) -> AppResult<impl IntoResponse> {
     #[cfg(debug_assertions)]
     {
-        let mut conn = state.infra.diesel.tenant_conn_bypass_auth_DANGER(ws_id).await?;
+        let mut conn = state
+            .infra
+            .diesel
+            .tenant_conn(&crate::diesel_pool::TenantAuthToken::system_override(ws_id))
+            .await?;
 
         use diesel_async::AsyncConnection;
         use diesel_async::RunQueryDsl;

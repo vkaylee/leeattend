@@ -24,8 +24,16 @@ pub enum HolidayLeaveResult {
 #[async_trait]
 #[cfg_attr(test, mockall::automock)]
 pub trait HolidayRepository: Send + Sync {
-    async fn list(&self, auth_token: &crate::diesel_pool::TenantAuthToken, year: Option<i32>) -> Result<Vec<Holiday>, AppError>;
-    async fn get_by_id(&self, auth_token: &crate::diesel_pool::TenantAuthToken, id: Uuid) -> Result<Option<Holiday>, AppError>;
+    async fn list(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        year: Option<i32>,
+    ) -> Result<Vec<Holiday>, AppError>;
+    async fn get_by_id(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        id: Uuid,
+    ) -> Result<Option<Holiday>, AppError>;
     async fn create_holiday(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
@@ -37,7 +45,11 @@ pub trait HolidayRepository: Send + Sync {
         id: Uuid,
         req: &crate::models::UpdateHolidayRequest,
     ) -> Result<Option<Holiday>, AppError>;
-    async fn delete(&self, auth_token: &crate::diesel_pool::TenantAuthToken, id: Uuid) -> Result<bool, AppError>;
+    async fn delete(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        id: Uuid,
+    ) -> Result<bool, AppError>;
     async fn get_holidays_in_range(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,

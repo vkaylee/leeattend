@@ -48,7 +48,10 @@ async fn test_employee_without_department_has_null_department_name() {
 
     let repo = DieselEmployeeRepository::new(test_db.diesel_pools.clone());
     let emp = repo
-        .get_employee_by_id(emp_id, &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id))
+        .get_employee_by_id(
+            emp_id,
+            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
+        )
         .await
         .unwrap()
         .unwrap();
@@ -78,7 +81,10 @@ async fn test_employee_with_department_returns_department_name() {
 
     let repo = DieselEmployeeRepository::new(test_db.diesel_pools.clone());
     let emp = repo
-        .get_employee_by_id(emp_id, &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id))
+        .get_employee_by_id(
+            emp_id,
+            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
+        )
         .await
         .unwrap()
         .unwrap();
@@ -195,7 +201,10 @@ async fn test_department_name_uses_latest_transfer() {
 
     let repo = DieselEmployeeRepository::new(test_db.diesel_pools.clone());
     let emp = repo
-        .get_employee_by_id(emp_id, &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id))
+        .get_employee_by_id(
+            emp_id,
+            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
+        )
         .await
         .unwrap()
         .unwrap();
@@ -233,7 +242,14 @@ async fn test_find_by_number_includes_department_name() {
     transfer(&pool, _emp_id, dept_id, today).await;
 
     let repo = DieselEmployeeRepository::new(test_db.diesel_pools.clone());
-    let emp = repo.find_by_number(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id), "DN001").await.unwrap().unwrap();
+    let emp = repo
+        .find_by_number(
+            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
+            "DN001",
+        )
+        .await
+        .unwrap()
+        .unwrap();
     assert_eq!(emp.department_name.as_deref(), Some("R&D"));
 }
 
@@ -264,7 +280,12 @@ async fn test_get_active_employees_includes_department_name() {
     transfer(&pool, emp_id, dept_id, today).await;
 
     let repo = DieselEmployeeRepository::new(test_db.diesel_pools.clone());
-    let actives = repo.get_active_employees(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id)).await.unwrap();
+    let actives = repo
+        .get_active_employees(&apiserver::diesel_pool::TenantAuthToken::system_override(
+            ws_id,
+        ))
+        .await
+        .unwrap();
     assert_eq!(actives.len(), 1);
     assert_eq!(actives[0].department_name.as_deref(), Some("Operations"));
 }

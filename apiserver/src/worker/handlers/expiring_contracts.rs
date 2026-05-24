@@ -31,7 +31,10 @@ impl ExpiringContractsHandler {
             // We check only active contracts.
             let contracts = deps
                 .contract_repo
-                .get_expiring_contracts(&crate::diesel_pool::TenantAuthToken::system_override(ws_id), 30)
+                .get_expiring_contracts(
+                    &crate::diesel_pool::TenantAuthToken::system_override(ws_id),
+                    30,
+                )
                 .await
                 .unwrap_or_default();
 
@@ -61,7 +64,10 @@ impl ExpiringContractsHandler {
                 // We need employee code and name for the message. We could fetch employee info
                 let emp = deps
                     .employee_repo
-                    .get_employee_by_id(contract.employee_id, &crate::diesel_pool::TenantAuthToken::system_override(ws_id))
+                    .get_employee_by_id(
+                        contract.employee_id,
+                        &crate::diesel_pool::TenantAuthToken::system_override(ws_id),
+                    )
                     .await
                     .unwrap_or_default();
 

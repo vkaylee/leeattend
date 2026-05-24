@@ -179,7 +179,8 @@ pub async fn get_assignment_history(
     let history = state
         .shifts
         .roster_repo
-        .get_assignment_history(&ctx.auth_token,
+        .get_assignment_history(
+            &ctx.auth_token,
             50, // Limit to last 50 entries
         )
         .await?;

@@ -93,7 +93,9 @@ pub async fn add_workspace_member(
     if let Some(cache) = &state.infra.cache {
         let _ = cache
             .delete(&format!(
-                "cache:auth:permissions:{}:{}", ctx.auth_token.workspace_id(), user_id
+                "cache:auth:permissions:{}:{}",
+                ctx.auth_token.workspace_id(),
+                user_id
             ))
             .await;
     }
@@ -141,7 +143,9 @@ pub async fn update_workspace_member_role(
     if let Some(cache) = &state.infra.cache {
         let _ = cache
             .delete(&format!(
-                "cache:auth:permissions:{}:{}", ctx.auth_token.workspace_id(), user_id
+                "cache:auth:permissions:{}:{}",
+                ctx.auth_token.workspace_id(),
+                user_id
             ))
             .await;
     }
@@ -185,7 +189,9 @@ pub async fn remove_workspace_member(
     if let Some(cache) = &state.infra.cache {
         let _ = cache
             .delete(&format!(
-                "cache:auth:permissions:{}:{}", ctx.auth_token.workspace_id(), user_id
+                "cache:auth:permissions:{}:{}",
+                ctx.auth_token.workspace_id(),
+                user_id
             ))
             .await;
     }

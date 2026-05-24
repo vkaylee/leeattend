@@ -50,15 +50,24 @@ pub fn parse_postgres_url(db_url: &str) -> Option<(String, String, String, u16, 
         },
         None => (String::new(), String::new()),
     };
-    
-    let user = percent_encoding::percent_decode_str(&user).decode_utf8_lossy().to_string();
-    let password = percent_encoding::percent_decode_str(&password).decode_utf8_lossy().to_string();
+
+    let user = percent_encoding::percent_decode_str(&user)
+        .decode_utf8_lossy()
+        .to_string();
+    let password = percent_encoding::percent_decode_str(&password)
+        .decode_utf8_lossy()
+        .to_string();
 
     Some((user, password, host, port, dbname))
 }
 
-pub fn build_tenant_payload(db_url: &str, opts: TenantPayloadOptions) -> Option<(String, serde_json::Value)> {
-    let Some((mut url_username, url_password, db_host, db_port, db_name)) = parse_postgres_url(db_url) else {
+pub fn build_tenant_payload(
+    db_url: &str,
+    opts: TenantPayloadOptions,
+) -> Option<(String, serde_json::Value)> {
+    let Some((mut url_username, url_password, db_host, db_port, db_name)) =
+        parse_postgres_url(db_url)
+    else {
         tracing::warn!("Failed to parse DATABASE_URL: {db_url}");
         return None;
     };
@@ -217,7 +226,13 @@ impl TenantManager for SupavisorTenantManager {
             return;
         }
 
-        let Some((tenant_id, payload)) = build_tenant_payload(&self.master_db_url, TenantPayloadOptions { is_master: true, ..Default::default() }) else {
+        let Some((tenant_id, payload)) = build_tenant_payload(
+            &self.master_db_url,
+            TenantPayloadOptions {
+                is_master: true,
+                ..Default::default()
+            },
+        ) else {
             return;
         };
 
@@ -338,7 +353,10 @@ impl TenantManager for SupavisorTenantManager {
 
         if let Ok(res) = response_get {
             if res.status().is_success() {
-                tracing::debug!("Supavisor tenant '{}' already exists, skipping dynamic registration", tenant_id);
+                tracing::debug!(
+                    "Supavisor tenant '{}' already exists, skipping dynamic registration",
+                    tenant_id
+                );
                 return Ok(());
             }
         }
@@ -536,7 +554,14 @@ mod tests {
     #[test]
     fn test_build_tenant_payload_valid() {
         let url = "postgres://my_user:my_secret@my_db_host:5433/my_company_db";
-        let (tenant_id, payload) = build_tenant_payload(url, TenantPayloadOptions { is_master: true, ..Default::default() }).expect("Should build payload");
+        let (tenant_id, payload) = build_tenant_payload(
+            url,
+            TenantPayloadOptions {
+                is_master: true,
+                ..Default::default()
+            },
+        )
+        .expect("Should build payload");
 
         assert_eq!(tenant_id, "my_company_db");
 
@@ -559,7 +584,14 @@ mod tests {
 
         // 1. By default (env not set), auth_query should be absent, require_user = true, 1 user
         std::env::remove_var("SUPAVISOR_AUTH_QUERY");
-        let (_, payload) = build_tenant_payload(url, TenantPayloadOptions { is_master: true, ..Default::default() }).unwrap();
+        let (_, payload) = build_tenant_payload(
+            url,
+            TenantPayloadOptions {
+                is_master: true,
+                ..Default::default()
+            },
+        )
+        .unwrap();
         let tenant = payload.get("tenant").unwrap();
         assert!(
             tenant.get("auth_query").is_none(),
@@ -570,7 +602,14 @@ mod tests {
 
         // 2. When set to a custom query, require_user = false, 1 user
         std::env::set_var("SUPAVISOR_AUTH_QUERY", "SELECT 1;");
-        let (_, payload) = build_tenant_payload(url, TenantPayloadOptions { is_master: true, ..Default::default() }).unwrap();
+        let (_, payload) = build_tenant_payload(
+            url,
+            TenantPayloadOptions {
+                is_master: true,
+                ..Default::default()
+            },
+        )
+        .unwrap();
         let tenant = payload.get("tenant").unwrap();
         assert_eq!(tenant["auth_query"], "SELECT 1;");
         assert_eq!(tenant["require_user"], false);
@@ -578,7 +617,14 @@ mod tests {
 
         // 3. When set to "none"
         std::env::set_var("SUPAVISOR_AUTH_QUERY", "none");
-        let (_, payload) = build_tenant_payload(url, TenantPayloadOptions { is_master: true, ..Default::default() }).unwrap();
+        let (_, payload) = build_tenant_payload(
+            url,
+            TenantPayloadOptions {
+                is_master: true,
+                ..Default::default()
+            },
+        )
+        .unwrap();
         let tenant = payload.get("tenant").unwrap();
         assert!(
             tenant.get("auth_query").is_none(),
@@ -589,7 +635,14 @@ mod tests {
 
         // 4. When set to empty string
         std::env::set_var("SUPAVISOR_AUTH_QUERY", "");
-        let (_, payload) = build_tenant_payload(url, TenantPayloadOptions { is_master: true, ..Default::default() }).unwrap();
+        let (_, payload) = build_tenant_payload(
+            url,
+            TenantPayloadOptions {
+                is_master: true,
+                ..Default::default()
+            },
+        )
+        .unwrap();
         let tenant = payload.get("tenant").unwrap();
         assert!(
             tenant.get("auth_query").is_none(),
@@ -605,13 +658,27 @@ mod tests {
     fn test_build_tenant_payload_enforce_ssl_from_env() {
         std::env::set_var("DATABASE_REQUIRE_SSL", "true");
         let url = "postgres://my_user:my_secret@my_db_host:5433/my_company_db";
-        let (_, payload) = build_tenant_payload(url, TenantPayloadOptions { is_master: true, ..Default::default() }).expect("Should build payload");
+        let (_, payload) = build_tenant_payload(
+            url,
+            TenantPayloadOptions {
+                is_master: true,
+                ..Default::default()
+            },
+        )
+        .expect("Should build payload");
         let tenant = payload.get("tenant").expect("missing tenant key");
         assert_eq!(tenant["enforce_ssl"], true);
         std::env::remove_var("DATABASE_REQUIRE_SSL");
 
         // Test false fallback
-        let (_, payload2) = build_tenant_payload(url, TenantPayloadOptions { is_master: true, ..Default::default() }).expect("Should build payload");
+        let (_, payload2) = build_tenant_payload(
+            url,
+            TenantPayloadOptions {
+                is_master: true,
+                ..Default::default()
+            },
+        )
+        .expect("Should build payload");
         let tenant2 = payload2.get("tenant").expect("missing tenant key");
         assert_eq!(tenant2["enforce_ssl"], false);
     }
@@ -619,29 +686,56 @@ mod tests {
     #[test]
     fn test_build_tenant_payload_sets_pool_password_from_env() {
         let physical_db_url = "postgres://tenant_user:physical_pass@my_db_host:5433/tenant_db";
-        
+
         // 1. Without DATABASE_URL or DATABASE_POOLER_URL set, pool_password should default to db_password
         std::env::remove_var("DATABASE_URL");
         std::env::remove_var("DATABASE_POOLER_URL");
-        let (_, payload) = build_tenant_payload(physical_db_url, TenantPayloadOptions { is_master: false, ..Default::default() }).unwrap();
+        let (_, payload) = build_tenant_payload(
+            physical_db_url,
+            TenantPayloadOptions {
+                is_master: false,
+                ..Default::default()
+            },
+        )
+        .unwrap();
         let users = payload.get("tenant").unwrap()["users"].as_array().unwrap();
         assert_eq!(users[0]["db_password"], "physical_pass");
         assert_eq!(users[0]["pool_password"], "physical_pass");
 
         // 2. With DATABASE_URL set, pool_password should fallback to DATABASE_URL password
-        std::env::set_var("DATABASE_URL", "postgres://postgres.leeattend:master_pass@supavisor:6543/leeattend");
-        let (_, payload2) = build_tenant_payload(physical_db_url, TenantPayloadOptions { is_master: false, ..Default::default() }).unwrap();
+        std::env::set_var(
+            "DATABASE_URL",
+            "postgres://postgres.leeattend:master_pass@supavisor:6543/leeattend",
+        );
+        let (_, payload2) = build_tenant_payload(
+            physical_db_url,
+            TenantPayloadOptions {
+                is_master: false,
+                ..Default::default()
+            },
+        )
+        .unwrap();
         let users2 = payload2.get("tenant").unwrap()["users"].as_array().unwrap();
         assert_eq!(users2[0]["db_password"], "physical_pass");
         assert_eq!(users2[0]["pool_password"], "master_pass");
-        
+
         // 3. With DATABASE_POOLER_URL set, pool_password should be the pooler master password
-        std::env::set_var("DATABASE_POOLER_URL", "postgres://postgres.leeattend:pooler_pass@supavisor:6543/leeattend");
-        let (_, payload3) = build_tenant_payload(physical_db_url, TenantPayloadOptions { is_master: false, ..Default::default() }).unwrap();
+        std::env::set_var(
+            "DATABASE_POOLER_URL",
+            "postgres://postgres.leeattend:pooler_pass@supavisor:6543/leeattend",
+        );
+        let (_, payload3) = build_tenant_payload(
+            physical_db_url,
+            TenantPayloadOptions {
+                is_master: false,
+                ..Default::default()
+            },
+        )
+        .unwrap();
         let users3 = payload3.get("tenant").unwrap()["users"].as_array().unwrap();
         assert_eq!(users3[0]["db_password"], "physical_pass");
         assert_eq!(users3[0]["pool_password"], "pooler_pass");
-        
+
         std::env::remove_var("DATABASE_URL");
         std::env::remove_var("DATABASE_POOLER_URL");
     }
@@ -650,7 +744,14 @@ mod tests {
     fn test_build_tenant_payload_with_custom_tenant_id() {
         std::env::set_var("SUPAVISOR_TENANT_ID", "custom_tenant_name");
         let url = "postgres://my_user:my_secret@my_db_host:5433/my_company_db";
-        let (tenant_id, payload) = build_tenant_payload(url, TenantPayloadOptions { is_master: true, ..Default::default() }).expect("Should build payload");
+        let (tenant_id, payload) = build_tenant_payload(
+            url,
+            TenantPayloadOptions {
+                is_master: true,
+                ..Default::default()
+            },
+        )
+        .expect("Should build payload");
 
         assert_eq!(tenant_id, "custom_tenant_name");
 
@@ -663,12 +764,10 @@ mod tests {
         std::env::remove_var("SUPAVISOR_TENANT_ID");
     }
 
-
-
     #[test]
     fn test_build_tenant_payload_dynamic_ignores_global_env() {
         std::env::set_var("SUPAVISOR_TENANT_ID", "global_tenant_id");
-        
+
         let url = "postgres://dynamic_user:dynamic_secret@dynamic_db_host:5433/dynamic_db";
         let (tenant_id, payload) = build_tenant_payload(
             url,
@@ -677,7 +776,8 @@ mod tests {
                 pool_size: None,
                 is_master: false,
             },
-        ).expect("Should build payload");
+        )
+        .expect("Should build payload");
 
         assert_eq!(tenant_id, "dynamic_db");
 
@@ -686,7 +786,7 @@ mod tests {
         assert_eq!(users.len(), 1);
         assert_eq!(users[0]["db_user"], "dynamic_user");
         assert_eq!(users[0]["db_password"], "dynamic_secret");
-        
+
         std::env::remove_var("SUPAVISOR_TENANT_ID");
     }
 
@@ -696,7 +796,7 @@ mod tests {
         std::env::set_var("SUPAVISOR_POOL_SIZE", "50");
 
         let url = "postgres://dynamic_user:dynamic_secret@dynamic_db_host:5433/dynamic_db";
-        
+
         let (tenant_id, payload) = build_tenant_payload(
             url,
             TenantPayloadOptions {
@@ -704,13 +804,20 @@ mod tests {
                 pool_size: Some(99),
                 is_master: false, // The options should override ENV regardless of is_master anyway
             },
-        ).expect("Should build payload");
+        )
+        .expect("Should build payload");
 
-        assert_eq!(tenant_id, "explicit_tenant_id", "Explicit tenant_id option should override env and db_name");
+        assert_eq!(
+            tenant_id, "explicit_tenant_id",
+            "Explicit tenant_id option should override env and db_name"
+        );
 
         let tenant = payload.get("tenant").expect("missing tenant key");
         let users = tenant["users"].as_array().expect("missing users array");
-        assert_eq!(users[0]["pool_size"], 99, "Explicit pool_size option should override env");
+        assert_eq!(
+            users[0]["pool_size"], 99,
+            "Explicit pool_size option should override env"
+        );
 
         std::env::remove_var("SUPAVISOR_TENANT_ID");
         std::env::remove_var("SUPAVISOR_POOL_SIZE");
@@ -727,18 +834,17 @@ mod tests {
                 pool_size: None,
                 is_master: false,
             },
-        ).expect("Should build payload");
+        )
+        .expect("Should build payload");
 
         let tenant = payload.get("tenant").expect("missing tenant key");
         let users = tenant["users"].as_array().expect("missing users array");
         assert_eq!(users.len(), 1);
-        
+
         // Assert they are properly decoded!
         assert_eq!(users[0]["db_user"], "user@name");
         assert_eq!(users[0]["db_password"], "pass#word");
     }
-
-
 
     #[test]
     fn test_build_tenant_payload_with_custom_pool_settings() {
@@ -746,7 +852,14 @@ mod tests {
         std::env::set_var("SUPAVISOR_MODE_TYPE", "session");
 
         let url = "postgres://my_user:my_secret@my_db_host:5433/my_company_db";
-        let (_, payload) = build_tenant_payload(url, TenantPayloadOptions { is_master: true, ..Default::default() }).expect("Should build payload");
+        let (_, payload) = build_tenant_payload(
+            url,
+            TenantPayloadOptions {
+                is_master: true,
+                ..Default::default()
+            },
+        )
+        .expect("Should build payload");
 
         let tenant = payload.get("tenant").expect("missing tenant key");
         let users = tenant["users"].as_array().expect("missing users array");
@@ -765,7 +878,14 @@ mod tests {
         std::env::set_var("SUPAVISOR_IP_VERSION", "v4");
 
         let url = "postgres://my_user:my_secret@my_db_host:5433/my_company_db";
-        let (_, payload) = build_tenant_payload(url, TenantPayloadOptions { is_master: true, ..Default::default() }).expect("Should build payload");
+        let (_, payload) = build_tenant_payload(
+            url,
+            TenantPayloadOptions {
+                is_master: true,
+                ..Default::default()
+            },
+        )
+        .expect("Should build payload");
 
         let tenant = payload.get("tenant").expect("missing tenant key");
         assert_eq!(tenant["ip_version"], "v4");
@@ -776,7 +896,13 @@ mod tests {
     #[test]
     fn test_build_tenant_payload_missing_password() {
         let url = "postgres://my_user@my_db_host:5432/my_company_db";
-        let result = build_tenant_payload(url, TenantPayloadOptions { is_master: true, ..Default::default() });
+        let result = build_tenant_payload(
+            url,
+            TenantPayloadOptions {
+                is_master: true,
+                ..Default::default()
+            },
+        );
         assert!(
             result.is_none(),
             "Should return None if password is missing"
@@ -786,21 +912,39 @@ mod tests {
     #[test]
     fn test_build_tenant_payload_missing_user() {
         let url = "postgres://:my_secret@my_db_host:5432/my_company_db";
-        let result = build_tenant_payload(url, TenantPayloadOptions { is_master: true, ..Default::default() });
+        let result = build_tenant_payload(
+            url,
+            TenantPayloadOptions {
+                is_master: true,
+                ..Default::default()
+            },
+        );
         assert!(result.is_none(), "Should return None if user is missing");
     }
 
     #[test]
     fn test_build_tenant_payload_missing_db_name() {
         let url = "postgres://my_user:my_secret@my_db_host:5432/";
-        let result = build_tenant_payload(url, TenantPayloadOptions { is_master: true, ..Default::default() });
+        let result = build_tenant_payload(
+            url,
+            TenantPayloadOptions {
+                is_master: true,
+                ..Default::default()
+            },
+        );
         assert!(result.is_none(), "Should return None if db name is missing");
     }
 
     #[test]
     fn test_build_tenant_payload_invalid_url() {
         let url = "not_a_url";
-        let result = build_tenant_payload(url, TenantPayloadOptions { is_master: true, ..Default::default() });
+        let result = build_tenant_payload(
+            url,
+            TenantPayloadOptions {
+                is_master: true,
+                ..Default::default()
+            },
+        );
         assert!(result.is_none(), "Should return None for invalid URL");
     }
 
@@ -808,8 +952,14 @@ mod tests {
     fn test_build_tenant_payload_with_query_params() {
         // Query parameters like sslmode or application_name should not break the path extraction
         let url = "postgres://my_user:my_secret@my_db_host:5432/my_company_db?sslmode=disable&application_name=leeattend";
-        let (tenant_id, payload) = build_tenant_payload(url, TenantPayloadOptions { is_master: true, ..Default::default() })
-            .expect("Should build payload correctly even with query params");
+        let (tenant_id, payload) = build_tenant_payload(
+            url,
+            TenantPayloadOptions {
+                is_master: true,
+                ..Default::default()
+            },
+        )
+        .expect("Should build payload correctly even with query params");
 
         assert_eq!(
             tenant_id, "my_company_db",
@@ -826,7 +976,14 @@ mod tests {
         // tenant_<uuid-without-hyphens>. This contract prevents "Tenant or user not found"
         // errors when the API server connects through Supavisor.
         let url = "postgres://admin:secret@db_system:5432/tenant_019e40ee11927492bc2985dad4675f34";
-        let (tenant_id, payload) = build_tenant_payload(url, TenantPayloadOptions { is_master: true, ..Default::default() }).expect("Should build payload");
+        let (tenant_id, payload) = build_tenant_payload(
+            url,
+            TenantPayloadOptions {
+                is_master: true,
+                ..Default::default()
+            },
+        )
+        .expect("Should build payload");
 
         assert_eq!(
             tenant_id, "tenant_019e40ee11927492bc2985dad4675f34",
@@ -867,7 +1024,14 @@ mod tests {
         // When the DB name follows tenant_<uuid-no-hyphens>, tenant_id
         // defaults to the database name from the URL.
         let url = "postgres://admin:secret@db_system:5432/tenant_a1b2c3d4e5f67890abcdef1234567890";
-        let (tenant_id, _) = build_tenant_payload(url, TenantPayloadOptions { is_master: true, ..Default::default() }).expect("Should build");
+        let (tenant_id, _) = build_tenant_payload(
+            url,
+            TenantPayloadOptions {
+                is_master: true,
+                ..Default::default()
+            },
+        )
+        .expect("Should build");
         assert_eq!(tenant_id, "tenant_a1b2c3d4e5f67890abcdef1234567890");
         assert_eq!(tenant_id.len(), 39); // "tenant_" + 32 hex
         assert!(!tenant_id.contains('-'));
@@ -876,14 +1040,28 @@ mod tests {
     #[test]
     fn test_build_tenant_payload_tenant_id_nil_uuid_db_name() {
         let url = "postgres://admin:secret@db_system:5432/tenant_00000000000000000000000000000000";
-        let (tenant_id, _) = build_tenant_payload(url, TenantPayloadOptions { is_master: true, ..Default::default() }).expect("Should build");
+        let (tenant_id, _) = build_tenant_payload(
+            url,
+            TenantPayloadOptions {
+                is_master: true,
+                ..Default::default()
+            },
+        )
+        .expect("Should build");
         assert_eq!(tenant_id, "tenant_00000000000000000000000000000000");
     }
 
     #[test]
     fn test_build_tenant_payload_tenant_id_max_uuid_db_name() {
         let url = "postgres://admin:secret@db_system:5432/tenant_ffffffffffffffffffffffffffffffff";
-        let (tenant_id, _) = build_tenant_payload(url, TenantPayloadOptions { is_master: true, ..Default::default() }).expect("Should build");
+        let (tenant_id, _) = build_tenant_payload(
+            url,
+            TenantPayloadOptions {
+                is_master: true,
+                ..Default::default()
+            },
+        )
+        .expect("Should build");
         assert_eq!(tenant_id, "tenant_ffffffffffffffffffffffffffffffff");
     }
 
@@ -898,7 +1076,14 @@ mod tests {
             "tenant_019e40ee11927492bc2985dad4675f34",
         );
         let url = "postgres://admin:secret@db_system:5432/my_custom_db";
-        let (tenant_id, payload) = build_tenant_payload(url, TenantPayloadOptions { is_master: true, ..Default::default() }).expect("Should build");
+        let (tenant_id, payload) = build_tenant_payload(
+            url,
+            TenantPayloadOptions {
+                is_master: true,
+                ..Default::default()
+            },
+        )
+        .expect("Should build");
         std::env::remove_var("SUPAVISOR_TENANT_ID");
 
         assert_eq!(
@@ -925,7 +1110,14 @@ mod tests {
 
         // Case 1: standard tenant_ DB name
         let url1 = "postgres://u:p@h:5432/tenant_019e40ee11927492bc2985dad4675f34";
-        let (tid1, _) = build_tenant_payload(url1, TenantPayloadOptions { is_master: true, ..Default::default() }).unwrap();
+        let (tid1, _) = build_tenant_payload(
+            url1,
+            TenantPayloadOptions {
+                is_master: true,
+                ..Default::default()
+            },
+        )
+        .unwrap();
         assert!(
             !tid1.contains('-'),
             "standard DB: tenant_id must not have hyphens"
@@ -937,7 +1129,14 @@ mod tests {
             "tenant_a1b2c3d4e5f67890abcdef1234567890",
         );
         let url2 = "postgres://u:p@h:5432/some-custom-db-name";
-        let (tid2, _) = build_tenant_payload(url2, TenantPayloadOptions { is_master: true, ..Default::default() }).unwrap();
+        let (tid2, _) = build_tenant_payload(
+            url2,
+            TenantPayloadOptions {
+                is_master: true,
+                ..Default::default()
+            },
+        )
+        .unwrap();
         std::env::remove_var("SUPAVISOR_TENANT_ID");
         assert!(!tid2.contains('-'), "BYOD: tenant_id must not have hyphens");
 
@@ -945,7 +1144,14 @@ mod tests {
         // (falls back to DB name from URL — caller is responsible for ensuring
         // the correct format via SUPAVISOR_TENANT_ID for non-standard names)
         let url3 = "postgres://u:p@h:5432/custom_db_name";
-        let (tid3, _) = build_tenant_payload(url3, TenantPayloadOptions { is_master: true, ..Default::default() }).unwrap();
+        let (tid3, _) = build_tenant_payload(
+            url3,
+            TenantPayloadOptions {
+                is_master: true,
+                ..Default::default()
+            },
+        )
+        .unwrap();
         assert!(
             !tid3.contains('-'),
             "fallback: tenant_id must not have hyphens"
@@ -966,7 +1172,14 @@ mod tests {
         let db_name = format!("tenant_{}", ws_id.to_string().replace('-', ""));
         let provisioned_url = format!("postgres://admin:secret@db_system:5432/{db_name}");
 
-        let (tenant_id, _) = build_tenant_payload(&provisioned_url, TenantPayloadOptions { is_master: true, ..Default::default() }).unwrap();
+        let (tenant_id, _) = build_tenant_payload(
+            &provisioned_url,
+            TenantPayloadOptions {
+                is_master: true,
+                ..Default::default()
+            },
+        )
+        .unwrap();
 
         // This is the SAME format as in get_tenant_url() — the contract
         assert_eq!(
@@ -984,7 +1197,14 @@ mod tests {
         // The tenant_id for standard workspace DBs is always exactly
         // 39 characters: "tenant_" (7) + 32 hex digits.
         let url = "postgres://u:p@h:5432/tenant_0123456789abcdef0123456789abcdef";
-        let (tenant_id, _) = build_tenant_payload(url, TenantPayloadOptions { is_master: true, ..Default::default() }).unwrap();
+        let (tenant_id, _) = build_tenant_payload(
+            url,
+            TenantPayloadOptions {
+                is_master: true,
+                ..Default::default()
+            },
+        )
+        .unwrap();
         assert_eq!(
             tenant_id.len(),
             39,
@@ -1031,7 +1251,14 @@ mod tests {
         std::env::set_var("SUPAVISOR_AUTH_QUERY", "SELECT 1;");
 
         let url = "postgres://user:pass@host:5432/dbname";
-        let (tenant_id, payload) = build_tenant_payload(url, TenantPayloadOptions { is_master: true, ..Default::default() }).expect("Should build payload");
+        let (tenant_id, payload) = build_tenant_payload(
+            url,
+            TenantPayloadOptions {
+                is_master: true,
+                ..Default::default()
+            },
+        )
+        .expect("Should build payload");
 
         assert_eq!(tenant_id, "test_tenant");
 
@@ -1149,7 +1376,7 @@ mod tests {
         let parsed = parse_postgres_url(url).unwrap();
         assert_eq!(parsed.0, "postgres.leeattend");
         assert_eq!(parsed.1, "master_pass");
-        
+
         // Percent-encoded password
         let url = "postgres://user:pass%40word@host:5432/db";
         let parsed = parse_postgres_url(url).unwrap();
@@ -1159,12 +1386,8 @@ mod tests {
     #[tokio::test]
     #[serial_test::serial]
     async fn test_init_tenant_always_updates_even_if_exists() {
-        use axum::{
-            extract::Path as AxumPath,
-            routing::get,
-            Json, Router,
-        };
         use axum::http::StatusCode;
+        use axum::{extract::Path as AxumPath, routing::get, Json, Router};
         use std::sync::atomic::{AtomicUsize, Ordering};
         use std::sync::Arc;
 
@@ -1174,26 +1397,27 @@ mod tests {
         let get_calls_clone = get_calls.clone();
         let put_calls_clone = put_calls.clone();
 
-        let app = Router::new()
-            .route(
-                "/api/tenants/:id",
-                get(move |AxumPath(id): AxumPath<String>| {
-                    get_calls_clone.fetch_add(1, Ordering::SeqCst);
-                    // Return a fake existing tenant to simulate already exists
-                    let response = json!({
-                        "data": {
-                            "db_database": id,
-                            "default_mode": "session",
-                            "users": []
-                        }
-                    });
-                    async move { Json(response) }
-                })
-                .put(move |AxumPath(_id): AxumPath<String>, Json(_payload): Json<serde_json::Value>| {
+        let app = Router::new().route(
+            "/api/tenants/:id",
+            get(move |AxumPath(id): AxumPath<String>| {
+                get_calls_clone.fetch_add(1, Ordering::SeqCst);
+                // Return a fake existing tenant to simulate already exists
+                let response = json!({
+                    "data": {
+                        "db_database": id,
+                        "default_mode": "session",
+                        "users": []
+                    }
+                });
+                async move { Json(response) }
+            })
+            .put(
+                move |AxumPath(_id): AxumPath<String>, Json(_payload): Json<serde_json::Value>| {
                     put_calls_clone.fetch_add(1, Ordering::SeqCst);
                     async move { StatusCode::OK }
-                }),
-            );
+                },
+            ),
+        );
 
         let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
         let addr = listener.local_addr().unwrap();
@@ -1205,7 +1429,10 @@ mod tests {
         // Set environment variables
         let api_url = format!("http://{}", addr);
         std::env::set_var("SUPAVISOR_API_URL", &api_url);
-        std::env::set_var("API_JWT_SECRET", "super_secret_test_key_with_at_least_32_bytes_length");
+        std::env::set_var(
+            "API_JWT_SECRET",
+            "super_secret_test_key_with_at_least_32_bytes_length",
+        );
         std::env::set_var(
             "DATABASE_URL",
             "postgres://postgres.leeattend:master_pass@postgres-host:5432/leeattend",
@@ -1215,8 +1442,16 @@ mod tests {
         tenant_manager.init_tenant().await;
 
         // Verify that BOTH GET and PUT requests were made!
-        assert_eq!(get_calls.load(Ordering::SeqCst), 1, "Should check if tenant exists");
-        assert_eq!(put_calls.load(Ordering::SeqCst), 1, "Should always update/PUT the tenant");
+        assert_eq!(
+            get_calls.load(Ordering::SeqCst),
+            1,
+            "Should check if tenant exists"
+        );
+        assert_eq!(
+            put_calls.load(Ordering::SeqCst),
+            1,
+            "Should always update/PUT the tenant"
+        );
 
         // Clean up env vars
         std::env::remove_var("SUPAVISOR_API_URL");
@@ -1224,4 +1459,3 @@ mod tests {
         std::env::remove_var("DATABASE_URL");
     }
 }
-

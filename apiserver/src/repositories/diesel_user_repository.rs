@@ -254,9 +254,7 @@ impl UserRepository for DieselUserRepository {
         let workspace_id = auth_token.workspace_id();
 
         use crate::schema::dashboard_preferences;
-        let existing = self
-            .get_dashboard_preferences(user_id, auth_token)
-            .await?;
+        let existing = self.get_dashboard_preferences(user_id, auth_token).await?;
         if let Some(mut prefs) = existing {
             // Update fields
             if let Some(av) = req.active_view {

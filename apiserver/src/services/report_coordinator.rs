@@ -411,7 +411,10 @@ impl ReportCoordinator {
         filter_ids: Option<&Vec<Uuid>>,
     ) -> Result<Vec<Uuid>, ReportError> {
         self.employee_repo
-            .get_active_employee_ids(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id), filter_ids)
+            .get_active_employee_ids(
+                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                filter_ids,
+            )
             .await
             .map_err(|e| ReportError::DatabaseError(e.to_string()))
     }

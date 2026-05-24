@@ -35,7 +35,10 @@ pub trait AgentRepository: Send + Sync {
         agent_id: &str,
         auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<bool, AppError>;
-    async fn get_workspace_devices(&self, auth_token: &crate::diesel_pool::TenantAuthToken) -> Result<Vec<Device>, AppError>;
+    async fn get_workspace_devices(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+    ) -> Result<Vec<Device>, AppError>;
     async fn get_devices_by_agent_ids(
         &self,
         agent_ids: &[String],
@@ -77,7 +80,11 @@ pub trait AgentRepository: Send + Sync {
         device_id: Uuid,
         auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<Option<String>, AppError>;
-    async fn delete_device(&self, device_id: Uuid, auth_token: &crate::diesel_pool::TenantAuthToken) -> Result<u64, AppError>;
+    async fn delete_device(
+        &self,
+        device_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+    ) -> Result<u64, AppError>;
     async fn update_agent_trust(
         &self,
         agent_id: &str,
@@ -89,5 +96,9 @@ pub trait AgentRepository: Send + Sync {
         agent_id: &str,
         auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<Option<AuthorizedAgent>, AppError>;
-    async fn deactivate_agent(&self, agent_id: &str, auth_token: &crate::diesel_pool::TenantAuthToken) -> Result<u64, AppError>;
+    async fn deactivate_agent(
+        &self,
+        agent_id: &str,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+    ) -> Result<u64, AppError>;
 }

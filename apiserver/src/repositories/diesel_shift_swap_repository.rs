@@ -406,7 +406,10 @@ impl ShiftSwapRepository for DieselShiftSwapRepository {
         Ok(exists)
     }
 
-    async fn get_workspace_swap_stats(&self, auth_token: &crate::diesel_pool::TenantAuthToken) -> Result<SwapStats, AppError> {
+    async fn get_workspace_swap_stats(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+    ) -> Result<SwapStats, AppError> {
         let workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools

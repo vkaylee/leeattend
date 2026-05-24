@@ -40,7 +40,13 @@ async fn test_overnight_shift_pairing() {
     let shift_repo = apiserver::repositories::DieselShiftRepository::new(diesel_pools.clone());
     use apiserver::repositories::shift_repository::ShiftRepository;
     shift_repo
-        .assign_employee_shift(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id), employee_id, shift_id, shift_date, None)
+        .assign_employee_shift(
+            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
+            employee_id,
+            shift_id,
+            shift_date,
+            None,
+        )
         .await
         .unwrap();
 

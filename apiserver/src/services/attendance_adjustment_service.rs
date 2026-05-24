@@ -84,7 +84,10 @@ impl AttendanceAdjustmentService {
             if let Some(time_entry_id) = request.time_entry_id {
                 let mut entry = self
                     .time_entry_repo
-                    .get_time_entry_by_id(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id), time_entry_id)
+                    .get_time_entry_by_id(
+                        &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                        time_entry_id,
+                    )
                     .await?
                     .ok_or(AppError::NotFound("Not found".into()))?;
 
@@ -98,7 +101,10 @@ impl AttendanceAdjustmentService {
                 }
 
                 self.time_entry_repo
-                    .update_time_entry(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id), &entry)
+                    .update_time_entry(
+                        &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                        &entry,
+                    )
                     .await?;
             } else {
                 let duration_minutes = request.requested_punch_out_time.map(|punch_out| {
@@ -123,7 +129,10 @@ impl AttendanceAdjustmentService {
                 };
 
                 self.time_entry_repo
-                    .create_time_entry(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id), &entry)
+                    .create_time_entry(
+                        &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                        &entry,
+                    )
                     .await?;
             }
         }

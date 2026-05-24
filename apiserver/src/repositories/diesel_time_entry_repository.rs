@@ -190,7 +190,11 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
         Ok(())
     }
 
-    async fn delete_time_entry(&self, auth_token: &crate::diesel_pool::TenantAuthToken, id: Uuid) -> Result<(), AppError> {
+    async fn delete_time_entry(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        id: Uuid,
+    ) -> Result<(), AppError> {
         let workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools

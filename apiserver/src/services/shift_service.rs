@@ -22,7 +22,8 @@ impl ShiftService {
         req: &crate::models::CreateShiftRequest,
     ) -> Result<Shift, AppError> {
         self.repo
-            .create_shift(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+            .create_shift(
+                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
                 req,
                 true, // is_active
                 None, // parent_shift_id
@@ -32,7 +33,11 @@ impl ShiftService {
 
     #[tracing::instrument(skip_all, err)]
     pub async fn get_workspace_shifts(&self, workspace_id: Uuid) -> Result<Vec<Shift>, AppError> {
-        self.repo.get_workspace_shifts(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id)).await
+        self.repo
+            .get_workspace_shifts(&crate::diesel_pool::TenantAuthToken::system_override(
+                workspace_id,
+            ))
+            .await
     }
 
     #[tracing::instrument(skip_all, err)]
@@ -44,7 +49,10 @@ impl ShiftService {
     ) -> Result<Shift, AppError> {
         let old_shift = self
             .repo
-            .get_shift_by_id(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id), shift_id)
+            .get_shift_by_id(
+                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                shift_id,
+            )
             .await?
             .ok_or(AppError::NotFound("Shift not found".into()))?;
 
@@ -58,7 +66,11 @@ impl ShiftService {
         if req.is_correction || !has_time_changes {
             // Direct update
             self.repo
-                .update_shift_direct(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id), shift_id, &req)
+                .update_shift_direct(
+                    &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                    shift_id,
+                    &req,
+                )
                 .await
         } else {
             // Create new version
@@ -76,7 +88,8 @@ impl ShiftService {
             // Since update_assignments_to_new_version is currently a separate method:
             let new_shift = self
                 .repo
-                .create_shift(&crate::diesel_pool::TenantAuthToken::system_override(old_shift.workspace_id),
+                .create_shift(
+                    &crate::diesel_pool::TenantAuthToken::system_override(old_shift.workspace_id),
                     &crate::models::CreateShiftRequest {
                         name: req.name,
                         report_symbol: req.report_symbol,
@@ -97,11 +110,17 @@ impl ShiftService {
                 .await?;
 
             // 2. Archive old version
-            self.repo.archive_shift(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id), shift_id).await?;
+            self.repo
+                .archive_shift(
+                    &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                    shift_id,
+                )
+                .await?;
 
             // 3. Migrate assignments
             self.repo
-                .update_assignments_to_new_version(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                .update_assignments_to_new_version(
+                    &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
                     shift_id,
                     new_shift.id,
                     effective_date,
@@ -123,7 +142,13 @@ impl ShiftService {
     ) -> Result<(), AppError> {
         match self
             .repo
-            .assign_employee_shift(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id), employee_id, shift_id, start_date, end_date)
+            .assign_employee_shift(
+                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                employee_id,
+                shift_id,
+                start_date,
+                end_date,
+            )
             .await
         {
             Ok(_) => Ok(()),
@@ -219,11 +244,18 @@ mod tests {
             })
         }
 
-        async fn get_shift_by_id(&self, _auth_token: &crate::diesel_pool::TenantAuthToken, _id: Uuid) -> Result<Option<Shift>, AppError> {
+        async fn get_shift_by_id(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _id: Uuid,
+        ) -> Result<Option<Shift>, AppError> {
             Ok(self.shift.lock().unwrap().clone())
         }
 
-        async fn get_workspace_shifts(&self, _auth_token: &crate::diesel_pool::TenantAuthToken) -> Result<Vec<Shift>, AppError> {
+        async fn get_workspace_shifts(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+        ) -> Result<Vec<Shift>, AppError> {
             Ok(self
                 .shift
                 .lock()
@@ -249,7 +281,11 @@ mod tests {
             Ok(s)
         }
 
-        async fn archive_shift(&self, _auth_token: &crate::diesel_pool::TenantAuthToken, _id: Uuid) -> Result<(), AppError> {
+        async fn archive_shift(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _id: Uuid,
+        ) -> Result<(), AppError> {
             *self.archived.lock().unwrap() = true;
             Ok(())
         }

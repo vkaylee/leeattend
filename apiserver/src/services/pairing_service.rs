@@ -124,14 +124,21 @@ impl PairingService {
         // 1. Fetch effective schedule
         let (shift_id_opt, traces) = self
             .roster_repo
-            .get_effective_shift(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id), employee_id, date)
+            .get_effective_shift(
+                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                employee_id,
+                date,
+            )
             .await?;
 
         let mut shift_config = None;
         if let Some(shift_id) = shift_id_opt {
             let shift = self
                 .shift_repo
-                .get_shift_by_id(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id), shift_id)
+                .get_shift_by_id(
+                    &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                    shift_id,
+                )
                 .await?;
 
             if let Some(s) = shift {
@@ -297,7 +304,8 @@ impl PairingService {
         }
 
         self.time_entry_repo
-            .replace_time_entries(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+            .replace_time_entries(
+                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
                 employee_id,
                 start_of_day_utc,
                 next_day_utc,
@@ -340,7 +348,13 @@ impl PairingService {
         end: DateTime<Utc>,
     ) -> Result<(), AppError> {
         self.time_entry_repo
-            .replace_time_entries(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id), employee_id, start, end, Vec::new())
+            .replace_time_entries(
+                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                employee_id,
+                start,
+                end,
+                Vec::new(),
+            )
             .await
     }
 }

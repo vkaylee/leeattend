@@ -9,10 +9,14 @@ use uuid::Uuid;
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait ImportJobRepository: Send + Sync {
-    async fn create_job(&self, job: &AttendanceImportJob) -> Result<(), AppError>;
+    async fn create_job(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        job: &AttendanceImportJob,
+    ) -> Result<(), AppError>;
     async fn update_job_progress(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         id: Uuid,
         processed_rows: i32,
         status: ImportJobStatus,
@@ -20,21 +24,21 @@ pub trait ImportJobRepository: Send + Sync {
     ) -> Result<(), AppError>;
     async fn get_job_by_id(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         id: Uuid,
     ) -> Result<Option<AttendanceImportJob>, AppError>;
     async fn get_latest_job(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         target_type: Option<ImportTargetType>,
     ) -> Result<Option<AttendanceImportJob>, AppError>;
     async fn get_pending_jobs(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<Vec<AttendanceImportJob>, AppError>;
     async fn update_job_total_rows(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         id: Uuid,
         total_rows: i32,
     ) -> Result<(), AppError>;

@@ -99,7 +99,7 @@ impl ProductionTenantPoolManager {
 
     pub fn get_tenant_url(&self, workspace_id: &Uuid) -> Result<String, AppError> {
         let db_name = format!("tenant_{}", workspace_id.to_string().replace('-', ""));
-        
+
         let base_url = &self.base_url;
         let (without_query, query) = match base_url.find('?') {
             Some(idx) => (&base_url[..idx], &base_url[idx..]),
@@ -107,8 +107,12 @@ impl ProductionTenantPoolManager {
         };
 
         let (before_slash, _) = match without_query.rfind('/') {
-            Some(idx) => (&without_query[..idx], &without_query[idx+1..]),
-            None => return Err(AppError::Internal("Invalid base pool URL: missing path slash".into())),
+            Some(idx) => (&without_query[..idx], &without_query[idx + 1..]),
+            None => {
+                return Err(AppError::Internal(
+                    "Invalid base pool URL: missing path slash".into(),
+                ))
+            }
         };
 
         let mut result_url = format!("{before_slash}/{db_name}{query}");
@@ -127,7 +131,7 @@ impl ProductionTenantPoolManager {
             // find last @ before the path
             let path_start = after_prefix.find('/').unwrap_or(after_prefix.len());
             let auth_host = &after_prefix[..path_start];
-            
+
             if let Some(at_idx) = auth_host.rfind('@') {
                 let auth = &auth_host[..at_idx];
                 let user = match auth.find(':') {
@@ -237,33 +241,6 @@ impl DieselPools {
     // Hàm an toàn (Khuyên dùng)
     pub async fn tenant_conn(&self, token: &TenantAuthToken) -> Result<DieselConnection, AppError> {
         let workspace_id = token.workspace_id();
-        let pool = self.tenants.get_pool(&workspace_id).await?;
-
-        let mut retries = 3;
-        loop {
-            match pool.get().await {
-                Ok(conn) => return Ok(conn),
-                Err(e) => {
-                    let err_msg = e.to_string();
-                    if retries > 0 && is_transient_supavisor_error(&err_msg) {
-                        tracing::warn!(
-                            workspace_id = %workspace_id,
-                            error = %err_msg,
-                            "Transient Supavisor connection error, retrying in 300ms..."
-                        );
-                        tokio::time::sleep(std::time::Duration::from_millis(300)).await;
-                        retries -= 1;
-                        continue;
-                    }
-                    return Err(AppError::Internal(format!("db: {e}")));
-                }
-            }
-        }
-    }
-
-    // Hàm nguy hiểm, chỉ dùng cho System (Workers/Migrations) hoặc legacy code
-    #[allow(non_snake_case)]
-    pub async fn tenant_conn_bypass_auth_DANGER(&self, workspace_id: Uuid) -> Result<DieselConnection, AppError> {
         let pool = self.tenants.get_pool(&workspace_id).await?;
 
         let mut retries = 3;
@@ -445,7 +422,7 @@ impl DieselPools {
             };
 
             let mut retries = 10;
-            
+
             loop {
                 match diesel::PgConnection::establish(&tenant_url) {
                     Ok(mut tenant_conn) => {
@@ -468,7 +445,8 @@ impl DieselPools {
                     }
                     Err(e) => {
                         let err_msg = e.to_string();
-                        if retries > 0 && crate::diesel_pool::is_transient_supavisor_error(&err_msg) {
+                        if retries > 0 && crate::diesel_pool::is_transient_supavisor_error(&err_msg)
+                        {
                             tracing::warn!(
                                 workspace_id = %row.id,
                                 error = %err_msg,
@@ -478,7 +456,7 @@ impl DieselPools {
                             retries -= 1;
                             continue;
                         }
-                        
+
                         tracing::warn!(
                             workspace_id = %row.id,
                             error = %e,
@@ -895,10 +873,10 @@ mod tests {
 
     #[test]
     fn test_supavisor_transient_retry_loop() {
+        use diesel::Connection;
         use std::io::{Read, Write};
         use std::net::TcpListener;
         use std::sync::{Arc, Mutex};
-        use diesel::Connection;
 
         let listener = TcpListener::bind("127.0.0.1:0").unwrap();
         let port = listener.local_addr().unwrap().port();
@@ -974,8 +952,15 @@ mod tests {
         }
 
         assert!(!connected, "Should not successfully connect");
-        assert_eq!(*connect_count.lock().unwrap(), 3, "Should have retried exactly 2 times (3 total attempts)");
-        assert!(start.elapsed().as_millis() >= 200, "Should have slept for at least 200ms total");
+        assert_eq!(
+            *connect_count.lock().unwrap(),
+            3,
+            "Should have retried exactly 2 times (3 total attempts)"
+        );
+        assert!(
+            start.elapsed().as_millis() >= 200,
+            "Should have slept for at least 200ms total"
+        );
     }
 
     #[test]
@@ -986,7 +971,7 @@ mod tests {
         );
         let id = Uuid::parse_str("019e5512-4556-7b33-9e9b-84fb5a82c6d4").unwrap();
         let tenant_url = manager.get_tenant_url(&id).unwrap();
-        
+
         // Expected: same password with unencoded #, but db_name changed
         assert_eq!(
             tenant_url,
@@ -997,12 +982,13 @@ mod tests {
     #[test]
     fn test_get_tenant_url_supavisor_mode_preserves_unencoded_chars() {
         let manager = ProductionTenantPoolManager::new(
-            "postgres://postgres.leeattend:master_pass!@#@supavisor:6543/leeattend?sslmode=disable".to_string(),
+            "postgres://postgres.leeattend:master_pass!@#@supavisor:6543/leeattend?sslmode=disable"
+                .to_string(),
             10,
         );
         let id = Uuid::parse_str("019e5512-4556-7b33-9e9b-84fb5a82c6d4").unwrap();
         let tenant_url = manager.get_tenant_url(&id).unwrap();
-        
+
         // Expected: user updated, password intact, db_name updated, query intact
         assert_eq!(
             tenant_url,

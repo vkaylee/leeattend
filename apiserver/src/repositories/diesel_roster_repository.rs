@@ -188,8 +188,8 @@ impl RosterRepository for DieselRosterRepository {
 
             result.push(EmployeeSchedule {
                 employee_id: emp_id,
-                employee_id_number: emp_id_number.to_string(),
-                full_name: emp_full_name.to_string(),
+                employee_id_number: emp_id_number.clone(),
+                full_name: emp_full_name.clone(),
                 schedules: daily_schedules,
             });
         }

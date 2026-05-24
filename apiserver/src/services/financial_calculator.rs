@@ -211,7 +211,8 @@ impl FinancialCalculator {
 
         // Deductions for unpaid holidays where employee has no leave request
         let unpaid_holiday_days: i64 = leave_repo
-            .get_unpaid_holiday_days_without_leave(&crate::diesel_pool::TenantAuthToken::system_override(args.workspace_id),
+            .get_unpaid_holiday_days_without_leave(
+                &crate::diesel_pool::TenantAuthToken::system_override(args.workspace_id),
                 args.employee_id,
                 args.start_date,
                 args.end_date,

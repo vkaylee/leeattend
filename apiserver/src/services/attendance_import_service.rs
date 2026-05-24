@@ -113,7 +113,13 @@ impl ImportStrategy for EmployeeImportStrategy {
         _deps: &crate::worker::deps::WorkerDeps,
         job: &AttendanceImportJob,
     ) -> Result<(), String> {
-        if let Ok(existing_depts) = self.department_repo.get_departments(&crate::diesel_pool::TenantAuthToken::system_override(job.workspace_id)).await {
+        if let Ok(existing_depts) = self
+            .department_repo
+            .get_departments(&crate::diesel_pool::TenantAuthToken::system_override(
+                job.workspace_id,
+            ))
+            .await
+        {
             for dept in existing_depts {
                 self.dept_cache.insert(dept.name.to_lowercase(), dept.id);
             }
@@ -139,7 +145,10 @@ impl ImportStrategy for EmployeeImportStrategy {
                     // If exists, find the ID
                     match self
                         .employee_repo
-                        .get_employee_by_id_number(&emp.id_number, &crate::diesel_pool::TenantAuthToken::system_override(job.workspace_id))
+                        .get_employee_by_id_number(
+                            &emp.id_number,
+                            &crate::diesel_pool::TenantAuthToken::system_override(job.workspace_id),
+                        )
                         .await
                     {
                         Ok(Some(e)) => e.id,
@@ -156,7 +165,12 @@ impl ImportStrategy for EmployeeImportStrategy {
                     } else {
                         let existing = self
                             .department_repo
-                            .get_department_by_name(&crate::diesel_pool::TenantAuthToken::system_override(job.workspace_id), &dept_key)
+                            .get_department_by_name(
+                                &crate::diesel_pool::TenantAuthToken::system_override(
+                                    job.workspace_id,
+                                ),
+                                &dept_key,
+                            )
                             .await;
 
                         if let Ok(Some(id)) = existing {
@@ -165,7 +179,10 @@ impl ImportStrategy for EmployeeImportStrategy {
                         } else {
                             match self
                                 .department_repo
-                                .create_department(&crate::diesel_pool::TenantAuthToken::system_override(job.workspace_id),
+                                .create_department(
+                                    &crate::diesel_pool::TenantAuthToken::system_override(
+                                        job.workspace_id,
+                                    ),
                                     dept_name.clone(),
                                     None,
                                     None,
@@ -181,7 +198,12 @@ impl ImportStrategy for EmployeeImportStrategy {
                                     // Final check in case of a unique constraint race condition
                                     let retry = self
                                         .department_repo
-                                        .get_department_by_name(&crate::diesel_pool::TenantAuthToken::system_override(job.workspace_id), &dept_key)
+                                        .get_department_by_name(
+                                            &crate::diesel_pool::TenantAuthToken::system_override(
+                                                job.workspace_id,
+                                            ),
+                                            &dept_key,
+                                        )
                                         .await;
 
                                     if let Ok(Some(id)) = retry {
@@ -201,7 +223,10 @@ impl ImportStrategy for EmployeeImportStrategy {
                     if !dept_id.is_nil()
                         && self
                             .department_repo
-                            .transfer_employee(&crate::diesel_pool::TenantAuthToken::system_override(job.workspace_id),
+                            .transfer_employee(
+                                &crate::diesel_pool::TenantAuthToken::system_override(
+                                    job.workspace_id,
+                                ),
                                 employee_id,
                                 dept_id,
                                 emp.hire_date,
@@ -318,7 +343,10 @@ impl ImportStrategy for PunchImportStrategy {
     ) -> Result<Option<Uuid>, String> {
         let Ok(Some(employee)) = self
             .employee_repo
-            .get_employee_by_id_number(&row.emp_id_number, &crate::diesel_pool::TenantAuthToken::system_override(job.workspace_id))
+            .get_employee_by_id_number(
+                &row.emp_id_number,
+                &crate::diesel_pool::TenantAuthToken::system_override(job.workspace_id),
+            )
             .await
         else {
             return Err(fmt_msg(
@@ -471,10 +499,16 @@ impl AttendanceImportService {
             updated_at: Utc::now(),
         };
 
-        self.import_repo.create_job(&job).await.map_err(|e| {
-            error!("CREATE_JOB_ERROR: {:?}", e);
-            AppError::Internal("Internal error".into())
-        })?;
+        self.import_repo
+            .create_job(
+                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                &job,
+            )
+            .await
+            .map_err(|e| {
+                error!("CREATE_JOB_ERROR: {:?}", e);
+                AppError::Internal("Internal error".into())
+            })?;
 
         let svc = self.clone();
         tokio::spawn(async move {
@@ -505,7 +539,13 @@ impl AttendanceImportService {
         };
 
         for workspace in workspaces {
-            let Ok(jobs) = self.import_repo.get_pending_jobs(workspace.id).await else {
+            let Ok(jobs) = self
+                .import_repo
+                .get_pending_jobs(&crate::diesel_pool::TenantAuthToken::system_override(
+                    workspace.id,
+                ))
+                .await
+            else {
                 continue;
             };
 
@@ -530,7 +570,14 @@ impl AttendanceImportService {
 
     #[tracing::instrument(skip(self))]
     pub async fn process_job(&self, workspace_id: Uuid, job_id: Uuid) -> Result<(), ()> {
-        let Ok(Some(job)) = self.import_repo.get_job_by_id(workspace_id, job_id).await else {
+        let Ok(Some(job)) = self
+            .import_repo
+            .get_job_by_id(
+                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                job_id,
+            )
+            .await
+        else {
             return Err(());
         };
 
@@ -543,7 +590,7 @@ impl AttendanceImportService {
             let _ = self
                 .import_repo
                 .update_job_progress(
-                    workspace_id,
+                    &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
                     job_id,
                     job.processed_rows,
                     ImportJobStatus::Failed,
@@ -574,7 +621,7 @@ impl AttendanceImportService {
                 let _ = self
                     .import_repo
                     .update_job_progress(
-                        workspace_id,
+                        &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
                         job_id,
                         job.processed_rows,
                         ImportJobStatus::Failed,
@@ -639,7 +686,7 @@ impl AttendanceImportService {
                 let _ = self
                     .import_repo
                     .update_job_progress(
-                        job.workspace_id,
+                        &crate::diesel_pool::TenantAuthToken::system_override(job.workspace_id),
                         job_id,
                         0,
                         ImportJobStatus::Failed,

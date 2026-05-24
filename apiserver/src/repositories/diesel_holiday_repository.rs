@@ -24,7 +24,11 @@ impl DieselHolidayRepository {
 
 #[async_trait]
 impl HolidayRepository for DieselHolidayRepository {
-    async fn list(&self, auth_token: &crate::diesel_pool::TenantAuthToken, year: Option<i32>) -> Result<Vec<Holiday>, AppError> {
+    async fn list(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        year: Option<i32>,
+    ) -> Result<Vec<Holiday>, AppError> {
         let workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
@@ -60,7 +64,11 @@ impl HolidayRepository for DieselHolidayRepository {
         Ok(entities.into_iter().map(Into::into).collect())
     }
 
-    async fn get_by_id(&self, auth_token: &crate::diesel_pool::TenantAuthToken, id: Uuid) -> Result<Option<Holiday>, AppError> {
+    async fn get_by_id(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        id: Uuid,
+    ) -> Result<Option<Holiday>, AppError> {
         let workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
@@ -170,7 +178,11 @@ impl HolidayRepository for DieselHolidayRepository {
         Ok(result.map(Into::into))
     }
 
-    async fn delete(&self, auth_token: &crate::diesel_pool::TenantAuthToken, id: Uuid) -> Result<bool, AppError> {
+    async fn delete(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        id: Uuid,
+    ) -> Result<bool, AppError> {
         let workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools

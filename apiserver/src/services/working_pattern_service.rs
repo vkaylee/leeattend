@@ -59,7 +59,11 @@ pub async fn create_working_pattern(
 
     // For days with >1 shift, validate no time overlaps
     if !day_shifts.is_empty() {
-        let all_shifts = shift_repo.get_workspace_shifts(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id)).await?;
+        let all_shifts = shift_repo
+            .get_workspace_shifts(&crate::diesel_pool::TenantAuthToken::system_override(
+                workspace_id,
+            ))
+            .await?;
         let shift_map: HashMap<Uuid, _> = all_shifts.into_iter().map(|s| (s.id, s)).collect();
 
         for shift_ids in day_shifts.values() {
@@ -147,7 +151,11 @@ pub async fn update_working_pattern(
     }
 
     if !day_shifts.is_empty() {
-        let all_shifts = shift_repo.get_workspace_shifts(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id)).await?;
+        let all_shifts = shift_repo
+            .get_workspace_shifts(&crate::diesel_pool::TenantAuthToken::system_override(
+                workspace_id,
+            ))
+            .await?;
         let shift_map: HashMap<Uuid, _> = all_shifts.into_iter().map(|s| (s.id, s)).collect();
 
         for shift_ids in day_shifts.values() {
@@ -401,10 +409,17 @@ mod tests {
                 updated_at: Utc::now(),
             })
         }
-        async fn get_shift_by_id(&self, _auth_token: &crate::diesel_pool::TenantAuthToken, _id: Uuid) -> Result<Option<Shift>, AppError> {
+        async fn get_shift_by_id(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _id: Uuid,
+        ) -> Result<Option<Shift>, AppError> {
             Ok(None)
         }
-        async fn get_workspace_shifts(&self, _auth_token: &crate::diesel_pool::TenantAuthToken) -> Result<Vec<Shift>, AppError> {
+        async fn get_workspace_shifts(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+        ) -> Result<Vec<Shift>, AppError> {
             Ok(vec![])
         }
         async fn update_shift_direct(
@@ -415,7 +430,11 @@ mod tests {
         ) -> Result<Shift, AppError> {
             unimplemented!()
         }
-        async fn archive_shift(&self, _auth_token: &crate::diesel_pool::TenantAuthToken, _id: Uuid) -> Result<(), AppError> {
+        async fn archive_shift(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _id: Uuid,
+        ) -> Result<(), AppError> {
             Ok(())
         }
         async fn assign_employee_shift(

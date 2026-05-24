@@ -57,7 +57,7 @@ impl FinalizeImportHandler {
 
         let _ = import_repo
             .update_job_progress(
-                job.workspace_id,
+                &crate::diesel_pool::TenantAuthToken::system_override(job.workspace_id),
                 payload.import_job_id,
                 processed_rows,
                 status,
@@ -77,7 +77,10 @@ impl FinalizeImportHandler {
 
         // Cleanup file
         if let Ok(Some(import_job)) = import_repo
-            .get_job_by_id(job.workspace_id, payload.import_job_id)
+            .get_job_by_id(
+                &crate::diesel_pool::TenantAuthToken::system_override(job.workspace_id),
+                payload.import_job_id,
+            )
             .await
         {
             if let Some(file_path) = &import_job.file_path {

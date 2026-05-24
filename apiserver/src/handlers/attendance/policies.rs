@@ -43,7 +43,7 @@ pub async fn get_default_attendance_rules(
     let rules = state
         .attendance
         .policy_repo
-        .get_default_policy_rules(ctx.workspace_id)
+        .get_default_policy_rules(&ctx.auth_token)
         .await?;
 
     match rules {
@@ -67,7 +67,7 @@ pub async fn list_default_attendance_policy_versions(
     let versions = state
         .attendance
         .policy_repo
-        .get_default_policy_versions(ctx.workspace_id)
+        .get_default_policy_versions(&ctx.auth_token)
         .await?;
 
     let response: Vec<AttendancePolicyVersionResponse> = versions
@@ -99,7 +99,7 @@ pub async fn update_default_attendance_rules(
     let v = state
         .attendance
         .policy_repo
-        .update_default_policy_rules(ctx.workspace_id, ctx.user_id, req)
+        .update_default_policy_rules(&ctx.auth_token, ctx.user_id, req)
         .await?;
 
     Ok(Json(AttendancePolicyVersionResponse {

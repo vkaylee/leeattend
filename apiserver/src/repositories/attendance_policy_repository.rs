@@ -9,38 +9,38 @@ use crate::models::AttendancePolicyVersion;
 pub trait AttendancePolicyRepository: Send + Sync {
     async fn get_employee_effective_policy(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id: Uuid,
         effective_time: DateTime<Utc>,
     ) -> Result<Option<AttendancePolicyVersion>, AppError>;
 
     async fn get_employee_effective_policies_batch(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_ids: &[Uuid],
         effective_time: DateTime<Utc>,
     ) -> Result<std::collections::HashMap<Uuid, AttendancePolicyVersion>, AppError>;
 
     async fn get_default_policy_rules(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<Option<crate::models::AttendanceRules>, AppError>;
 
     async fn get_default_policy_versions(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<Vec<AttendancePolicyVersion>, AppError>;
 
     async fn update_default_policy_rules(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         user_id: Uuid,
         req: crate::handlers::attendance::policies::UpdateAttendanceRulesRequest,
     ) -> Result<AttendancePolicyVersion, AppError>;
 
     async fn list_policy_assignments(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<
         Vec<crate::handlers::attendance::policy_assignments::PolicyAssignmentResponse>,
         AppError,
@@ -48,14 +48,14 @@ pub trait AttendancePolicyRepository: Send + Sync {
 
     async fn upsert_policy_assignment(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         user_id: Uuid,
         req: crate::handlers::attendance::policy_assignments::UpsertPolicyAssignmentRequest,
     ) -> Result<crate::handlers::attendance::policy_assignments::PolicyAssignmentResponse, AppError>;
 
     async fn delete_policy_assignment(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         assignment_id: Uuid,
     ) -> Result<(), AppError>;
 }

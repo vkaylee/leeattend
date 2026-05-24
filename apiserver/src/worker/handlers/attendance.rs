@@ -72,12 +72,14 @@ impl AttendanceHandler {
         let auth_token = crate::diesel_pool::TenantAuthToken::system_override(workspace_id);
         let (schedules_result, entries_result) = tokio::join!(
             deps.roster_repo.get_workspace_schedules(
-                roster_cache, &auth_token,
+                roster_cache,
+                &auth_token,
                 start_date,
                 end_date,
                 Some(employee_ids),
             ),
-            deps.time_entry_repo.get_workspace_time_entries_batch(&auth_token,
+            deps.time_entry_repo.get_workspace_time_entries_batch(
+                &auth_token,
                 employee_ids,
                 start_dt,
                 end_dt,
@@ -198,7 +200,12 @@ impl AttendanceHandler {
         // Batch fetch leave data
         let leave_data = args
             .leave_repo
-            .get_batch_leave_days(&crate::diesel_pool::TenantAuthToken::system_override(args.workspace_id), &emp_ids, args.start_date, args.end_date)
+            .get_batch_leave_days(
+                &crate::diesel_pool::TenantAuthToken::system_override(args.workspace_id),
+                &emp_ids,
+                args.start_date,
+                args.end_date,
+            )
             .await
             .map_err(|e| format!("Failed to fetch leave data: {e}"))?;
 

@@ -225,7 +225,11 @@ mod tests {
         async fn get_user_workspaces(&self, _u: Uuid) -> Result<Vec<Workspace>, AppError> {
             Ok(vec![])
         }
-        async fn clear_workspace_data(&self, _auth_token: &crate::diesel_pool::TenantAuthToken, _g: &str) -> Result<(), AppError> {
+        async fn clear_workspace_data(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _g: &str,
+        ) -> Result<(), AppError> {
             Ok(())
         }
         async fn add_member(&self, _ws: Uuid, _u: Uuid, _r: Uuid) -> Result<(), AppError> {
@@ -592,7 +596,9 @@ mod tests {
             _workspace_id: &Uuid,
             _db_url: &str,
         ) -> crate::errors::AppResult<String> {
-            Err(crate::errors::AppError::Internal("provisioning failed".into()))
+            Err(crate::errors::AppError::Internal(
+                "provisioning failed".into(),
+            ))
         }
     }
 
@@ -614,7 +620,13 @@ mod tests {
     async fn test_create_workspace_user_not_found() {
         let svc = build_service(false);
         let err = svc
-            .create_workspace(Uuid::new_v4(), "Acme", Uuid::new_v4(), "postgres://u:p@h:5432/tenant_db", None)
+            .create_workspace(
+                Uuid::new_v4(),
+                "Acme",
+                Uuid::new_v4(),
+                "postgres://u:p@h:5432/tenant_db",
+                None,
+            )
             .await
             .unwrap_err();
         assert!(err.contains("does not exist"));

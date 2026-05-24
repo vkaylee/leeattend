@@ -260,7 +260,11 @@ impl DepartmentRepository for DieselDepartmentRepository {
         Ok(entity.into())
     }
 
-    async fn delete_department(&self, auth_token: &crate::diesel_pool::TenantAuthToken, id: Uuid) -> Result<(), AppError> {
+    async fn delete_department(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        id: Uuid,
+    ) -> Result<(), AppError> {
         let mut conn = self.diesel_pools.tenant_conn(auth_token).await?;
         let workspace_id = auth_token.workspace_id();
 
@@ -274,7 +278,10 @@ impl DepartmentRepository for DieselDepartmentRepository {
         Ok(())
     }
 
-    async fn get_departments(&self, auth_token: &crate::diesel_pool::TenantAuthToken) -> Result<Vec<Department>, AppError> {
+    async fn get_departments(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+    ) -> Result<Vec<Department>, AppError> {
         let mut conn = self.diesel_pools.tenant_conn(auth_token).await?;
         let workspace_id = auth_token.workspace_id();
 

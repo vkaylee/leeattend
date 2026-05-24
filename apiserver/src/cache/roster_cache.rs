@@ -125,7 +125,9 @@ pub async fn build_roster_data(
     workspace_id: Uuid,
 ) -> Result<Arc<RosterData>, String> {
     let mut conn = diesel_pools
-        .tenant_conn_bypass_auth_DANGER(workspace_id)
+        .tenant_conn(&crate::diesel_pool::TenantAuthToken::system_override(
+            workspace_id,
+        ))
         .await
         .map_err(|e| format!("db connection: {e}"))?;
 

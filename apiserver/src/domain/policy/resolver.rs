@@ -29,7 +29,11 @@ impl PolicyResolver {
     ) -> Result<StandardMonthConfig, AppError> {
         // 1. Check Individual Override (Highest Priority)
         let emp_config = employee_repo
-            .get_employee_payroll_config_at(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id), employee_id, date)
+            .get_employee_payroll_config_at(
+                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                employee_id,
+                date,
+            )
             .await?;
 
         if let Some(config) = emp_config {
@@ -107,7 +111,11 @@ impl PolicyResolver {
         let effective_time = date.and_hms_opt(0, 0, 0).unwrap_or_default().and_utc();
 
         let policy_version = policy_repo
-            .get_employee_effective_policy(workspace_id, employee_id, effective_time)
+            .get_employee_effective_policy(
+                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                employee_id,
+                effective_time,
+            )
             .await?;
 
         // Fallback if no policy found
@@ -135,7 +143,11 @@ impl PolicyResolver {
         let effective_time = date.and_hms_opt(0, 0, 0).unwrap_or_default().and_utc();
 
         let versions = policy_repo
-            .get_employee_effective_policies_batch(workspace_id, employee_ids, effective_time)
+            .get_employee_effective_policies_batch(
+                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                employee_ids,
+                effective_time,
+            )
             .await?;
 
         let mut result = std::collections::HashMap::with_capacity(employee_ids.len());
@@ -170,7 +182,11 @@ impl PolicyResolver {
 
         // 2. Get Employee Special Conditions
         let conditions = employee_repo
-            .get_working_conditions_at(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id), employee_id, date)
+            .get_working_conditions_at(
+                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                employee_id,
+                date,
+            )
             .await?;
 
         // 3. Merge logic
@@ -218,7 +234,12 @@ impl PolicyResolver {
         end_date: NaiveDate,
     ) -> Result<HashMap<Uuid, Vec<WorkingCondition>>, AppError> {
         employee_repo
-            .get_working_conditions_batch(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id), employee_ids, start_date, end_date)
+            .get_working_conditions_batch(
+                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                employee_ids,
+                start_date,
+                end_date,
+            )
             .await
     }
 

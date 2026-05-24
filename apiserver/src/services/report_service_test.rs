@@ -50,7 +50,11 @@ mod tests {
         async fn get_user_workspaces(&self, _u: Uuid) -> Result<Vec<Workspace>, AppError> {
             unimplemented!()
         }
-        async fn clear_workspace_data(&self, _auth_token: &crate::diesel_pool::TenantAuthToken, _g: &str) -> Result<(), AppError> {
+        async fn clear_workspace_data(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _g: &str,
+        ) -> Result<(), AppError> {
             unimplemented!()
         }
         async fn add_member(&self, _ws: Uuid, _u: Uuid, _r: Uuid) -> Result<(), AppError> {
@@ -298,7 +302,11 @@ mod tests {
         ) -> Result<Option<crate::models::Employee>, AppError> {
             unimplemented!()
         }
-        async fn delete_employee(&self, _i: Uuid, _auth_token: &crate::diesel_pool::TenantAuthToken) -> Result<u64, AppError> {
+        async fn delete_employee(
+            &self,
+            _i: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+        ) -> Result<u64, AppError> {
             unimplemented!()
         }
         async fn get_working_conditions(
@@ -387,7 +395,11 @@ mod tests {
         ) -> Result<Option<RecruitmentSource>, AppError> {
             unimplemented!()
         }
-        async fn delete_recruitment_source(&self, _i: Uuid, _auth_token: &crate::diesel_pool::TenantAuthToken) -> Result<u64, AppError> {
+        async fn delete_recruitment_source(
+            &self,
+            _i: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+        ) -> Result<u64, AppError> {
             unimplemented!()
         }
         async fn get_recruitment_source_breakdown(
@@ -404,7 +416,11 @@ mod tests {
         ) -> Result<TurnoverAnalytics, AppError> {
             unimplemented!()
         }
-        async fn get_managed_departments(&self, _auth_token: &crate::diesel_pool::TenantAuthToken, _u: Uuid) -> Result<Vec<Uuid>, AppError> {
+        async fn get_managed_departments(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _u: Uuid,
+        ) -> Result<Vec<Uuid>, AppError> {
             unimplemented!()
         }
         async fn get_employee_id_by_user_id(
@@ -519,10 +535,18 @@ mod tests {
         ) -> Result<Option<TimeEntry>, AppError> {
             unimplemented!()
         }
-        async fn update_time_entry(&self, _auth_token: &crate::diesel_pool::TenantAuthToken, _e: &TimeEntry) -> Result<(), AppError> {
+        async fn update_time_entry(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _e: &TimeEntry,
+        ) -> Result<(), AppError> {
             unimplemented!()
         }
-        async fn delete_time_entry(&self, _auth_token: &crate::diesel_pool::TenantAuthToken, _i: Uuid) -> Result<(), AppError> {
+        async fn delete_time_entry(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _i: Uuid,
+        ) -> Result<(), AppError> {
             unimplemented!()
         }
         async fn get_employee_time_entries(
@@ -633,7 +657,12 @@ mod tests {
         ) -> Result<(Option<Uuid>, Vec<ScheduleTrace>), AppError> {
             unimplemented!()
         }
-        async fn delete_roster(&self, _auth_token: &crate::diesel_pool::TenantAuthToken, _e: Uuid, _d: NaiveDate) -> Result<(), AppError> {
+        async fn delete_roster(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _e: Uuid,
+            _d: NaiveDate,
+        ) -> Result<(), AppError> {
             unimplemented!()
         }
     }
@@ -643,7 +672,7 @@ mod tests {
     impl crate::repositories::AttendancePolicyRepository for DummyPolicyRepo {
         async fn get_employee_effective_policy(
             &self,
-            _ws: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
             _e: Uuid,
             _t: DateTime<Utc>,
         ) -> Result<Option<AttendancePolicyVersion>, AppError> {
@@ -651,7 +680,7 @@ mod tests {
         }
         async fn get_employee_effective_policies_batch(
             &self,
-            _w: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
             _e: &[Uuid],
             _t: DateTime<Utc>,
         ) -> Result<HashMap<Uuid, AttendancePolicyVersion>, AppError> {
@@ -659,19 +688,19 @@ mod tests {
         }
         async fn get_default_policy_rules(
             &self,
-            _w: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
         ) -> Result<Option<crate::models::AttendanceRules>, AppError> {
             unimplemented!()
         }
         async fn get_default_policy_versions(
             &self,
-            _w: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
         ) -> Result<Vec<AttendancePolicyVersion>, AppError> {
             unimplemented!()
         }
         async fn update_default_policy_rules(
             &self,
-            _w: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
             _u: Uuid,
             _r: crate::handlers::attendance::policies::UpdateAttendanceRulesRequest,
         ) -> Result<AttendancePolicyVersion, AppError> {
@@ -679,7 +708,7 @@ mod tests {
         }
         async fn list_policy_assignments(
             &self,
-            _w: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
         ) -> Result<
             Vec<crate::handlers::attendance::policy_assignments::PolicyAssignmentResponse>,
             AppError,
@@ -688,7 +717,7 @@ mod tests {
         }
         async fn upsert_policy_assignment(
             &self,
-            _w: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
             _u: Uuid,
             _r: crate::handlers::attendance::policy_assignments::UpsertPolicyAssignmentRequest,
         ) -> Result<
@@ -697,7 +726,11 @@ mod tests {
         > {
             unimplemented!()
         }
-        async fn delete_policy_assignment(&self, _w: Uuid, _a: Uuid) -> Result<(), AppError> {
+        async fn delete_policy_assignment(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _a: Uuid,
+        ) -> Result<(), AppError> {
             unimplemented!()
         }
     }
@@ -705,7 +738,11 @@ mod tests {
     struct DummyLeaveRepo;
     #[async_trait]
     impl crate::repositories::leave_request_repository::LeaveRequestRepository for DummyLeaveRepo {
-        async fn create_leave_request(&self, _auth_token: &crate::diesel_pool::TenantAuthToken, _r: &LeaveRequest) -> Result<(), AppError> {
+        async fn create_leave_request(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _r: &LeaveRequest,
+        ) -> Result<(), AppError> {
             unimplemented!()
         }
         async fn get_leave_request_by_id(
@@ -754,7 +791,10 @@ mod tests {
         ) -> Result<Option<Uuid>, AppError> {
             unimplemented!()
         }
-        async fn get_leave_types(&self, _auth_token: &crate::diesel_pool::TenantAuthToken) -> Result<Vec<(String, String)>, AppError> {
+        async fn get_leave_types(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+        ) -> Result<Vec<(String, String)>, AppError> {
             unimplemented!()
         }
         async fn get_system_generated_holiday_leave(
@@ -765,7 +805,11 @@ mod tests {
         ) -> Result<Option<(Uuid, Uuid, String)>, AppError> {
             unimplemented!()
         }
-        async fn cancel_leave_request(&self, _auth_token: &crate::diesel_pool::TenantAuthToken, _i: Uuid) -> Result<(), AppError> {
+        async fn cancel_leave_request(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _i: Uuid,
+        ) -> Result<(), AppError> {
             unimplemented!()
         }
         async fn get_employee_leave_history_requests(
@@ -777,7 +821,11 @@ mod tests {
         ) -> Result<Vec<LeaveHistoryRequestItem>, AppError> {
             unimplemented!()
         }
-        async fn check_leave_type_exists(&self, _auth_token: &crate::diesel_pool::TenantAuthToken, _l: Uuid) -> Result<bool, AppError> {
+        async fn check_leave_type_exists(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _l: Uuid,
+        ) -> Result<bool, AppError> {
             unimplemented!()
         }
         async fn get_leave_type_name(
@@ -914,10 +962,18 @@ mod tests {
     struct DummyHolidayRepo;
     #[async_trait]
     impl crate::repositories::holiday_repository::HolidayRepository for DummyHolidayRepo {
-        async fn list(&self, _auth_token: &crate::diesel_pool::TenantAuthToken, _y: Option<i32>) -> Result<Vec<Holiday>, AppError> {
+        async fn list(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _y: Option<i32>,
+        ) -> Result<Vec<Holiday>, AppError> {
             unimplemented!()
         }
-        async fn get_by_id(&self, _auth_token: &crate::diesel_pool::TenantAuthToken, _i: Uuid) -> Result<Option<Holiday>, AppError> {
+        async fn get_by_id(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _i: Uuid,
+        ) -> Result<Option<Holiday>, AppError> {
             unimplemented!()
         }
         async fn create_holiday(
@@ -935,7 +991,11 @@ mod tests {
         ) -> Result<Option<Holiday>, AppError> {
             unimplemented!()
         }
-        async fn delete(&self, _auth_token: &crate::diesel_pool::TenantAuthToken, _i: Uuid) -> Result<bool, AppError> {
+        async fn delete(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _i: Uuid,
+        ) -> Result<bool, AppError> {
             unimplemented!()
         }
         async fn get_holidays_in_range(
@@ -946,7 +1006,11 @@ mod tests {
         ) -> Result<HashMap<NaiveDate, Holiday>, AppError> {
             unimplemented!()
         }
-        async fn is_holiday(&self, _auth_token: &crate::diesel_pool::TenantAuthToken, _d: NaiveDate) -> Result<Option<Holiday>, AppError> {
+        async fn is_holiday(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _d: NaiveDate,
+        ) -> Result<Option<Holiday>, AppError> {
             unimplemented!()
         }
     }
@@ -1077,7 +1141,11 @@ mod tests {
         ) -> Result<Option<crate::models::Employee>, AppError> {
             unimplemented!()
         }
-        async fn delete_employee(&self, _i: Uuid, _auth_token: &crate::diesel_pool::TenantAuthToken) -> Result<u64, AppError> {
+        async fn delete_employee(
+            &self,
+            _i: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+        ) -> Result<u64, AppError> {
             unimplemented!()
         }
         async fn get_working_conditions(
@@ -1166,7 +1234,11 @@ mod tests {
         ) -> Result<Option<RecruitmentSource>, AppError> {
             unimplemented!()
         }
-        async fn delete_recruitment_source(&self, _i: Uuid, _auth_token: &crate::diesel_pool::TenantAuthToken) -> Result<u64, AppError> {
+        async fn delete_recruitment_source(
+            &self,
+            _i: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+        ) -> Result<u64, AppError> {
             unimplemented!()
         }
         async fn get_recruitment_source_breakdown(
@@ -1183,7 +1255,11 @@ mod tests {
         ) -> Result<TurnoverAnalytics, AppError> {
             unimplemented!()
         }
-        async fn get_managed_departments(&self, _auth_token: &crate::diesel_pool::TenantAuthToken, _u: Uuid) -> Result<Vec<Uuid>, AppError> {
+        async fn get_managed_departments(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _u: Uuid,
+        ) -> Result<Vec<Uuid>, AppError> {
             unimplemented!()
         }
         async fn get_employee_id_by_user_id(
@@ -1334,7 +1410,12 @@ mod tests {
         ) -> Result<(Option<Uuid>, Vec<ScheduleTrace>), AppError> {
             unimplemented!()
         }
-        async fn delete_roster(&self, _auth_token: &crate::diesel_pool::TenantAuthToken, _e: Uuid, _d: NaiveDate) -> Result<(), AppError> {
+        async fn delete_roster(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _e: Uuid,
+            _d: NaiveDate,
+        ) -> Result<(), AppError> {
             unimplemented!()
         }
     }
@@ -1377,10 +1458,18 @@ mod tests {
         ) -> Result<Option<TimeEntry>, AppError> {
             unimplemented!()
         }
-        async fn update_time_entry(&self, _auth_token: &crate::diesel_pool::TenantAuthToken, _e: &TimeEntry) -> Result<(), AppError> {
+        async fn update_time_entry(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _e: &TimeEntry,
+        ) -> Result<(), AppError> {
             unimplemented!()
         }
-        async fn delete_time_entry(&self, _auth_token: &crate::diesel_pool::TenantAuthToken, _i: Uuid) -> Result<(), AppError> {
+        async fn delete_time_entry(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _i: Uuid,
+        ) -> Result<(), AppError> {
             unimplemented!()
         }
         async fn get_employee_time_entries(
@@ -1444,7 +1533,7 @@ mod tests {
     impl crate::repositories::AttendancePolicyRepository for EmptyPolicyRepo {
         async fn get_employee_effective_policy(
             &self,
-            _w: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
             _e: Uuid,
             _t: DateTime<Utc>,
         ) -> Result<Option<AttendancePolicyVersion>, AppError> {
@@ -1452,7 +1541,7 @@ mod tests {
         }
         async fn get_employee_effective_policies_batch(
             &self,
-            _w: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
             _e: &[Uuid],
             _t: DateTime<Utc>,
         ) -> Result<HashMap<Uuid, AttendancePolicyVersion>, AppError> {
@@ -1460,19 +1549,19 @@ mod tests {
         }
         async fn get_default_policy_rules(
             &self,
-            _w: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
         ) -> Result<Option<crate::models::AttendanceRules>, AppError> {
             unimplemented!()
         }
         async fn get_default_policy_versions(
             &self,
-            _w: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
         ) -> Result<Vec<AttendancePolicyVersion>, AppError> {
             unimplemented!()
         }
         async fn update_default_policy_rules(
             &self,
-            _w: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
             _u: Uuid,
             _r: crate::handlers::attendance::policies::UpdateAttendanceRulesRequest,
         ) -> Result<AttendancePolicyVersion, AppError> {
@@ -1480,7 +1569,7 @@ mod tests {
         }
         async fn list_policy_assignments(
             &self,
-            _w: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
         ) -> Result<
             Vec<crate::handlers::attendance::policy_assignments::PolicyAssignmentResponse>,
             AppError,
@@ -1489,7 +1578,7 @@ mod tests {
         }
         async fn upsert_policy_assignment(
             &self,
-            _w: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
             _u: Uuid,
             _r: crate::handlers::attendance::policy_assignments::UpsertPolicyAssignmentRequest,
         ) -> Result<
@@ -1498,7 +1587,11 @@ mod tests {
         > {
             unimplemented!()
         }
-        async fn delete_policy_assignment(&self, _w: Uuid, _a: Uuid) -> Result<(), AppError> {
+        async fn delete_policy_assignment(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _a: Uuid,
+        ) -> Result<(), AppError> {
             unimplemented!()
         }
     }
@@ -1592,7 +1685,11 @@ mod tests {
     struct EmptyLeaveRepo;
     #[async_trait]
     impl crate::repositories::leave_request_repository::LeaveRequestRepository for EmptyLeaveRepo {
-        async fn create_leave_request(&self, _auth_token: &crate::diesel_pool::TenantAuthToken, _r: &LeaveRequest) -> Result<(), AppError> {
+        async fn create_leave_request(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _r: &LeaveRequest,
+        ) -> Result<(), AppError> {
             unimplemented!()
         }
         async fn get_leave_request_by_id(
@@ -1641,7 +1738,10 @@ mod tests {
         ) -> Result<Option<Uuid>, AppError> {
             unimplemented!()
         }
-        async fn get_leave_types(&self, _auth_token: &crate::diesel_pool::TenantAuthToken) -> Result<Vec<(String, String)>, AppError> {
+        async fn get_leave_types(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+        ) -> Result<Vec<(String, String)>, AppError> {
             unimplemented!()
         }
         async fn get_system_generated_holiday_leave(
@@ -1652,7 +1752,11 @@ mod tests {
         ) -> Result<Option<(Uuid, Uuid, String)>, AppError> {
             unimplemented!()
         }
-        async fn cancel_leave_request(&self, _auth_token: &crate::diesel_pool::TenantAuthToken, _i: Uuid) -> Result<(), AppError> {
+        async fn cancel_leave_request(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _i: Uuid,
+        ) -> Result<(), AppError> {
             unimplemented!()
         }
         async fn get_employee_leave_history_requests(
@@ -1664,7 +1768,11 @@ mod tests {
         ) -> Result<Vec<LeaveHistoryRequestItem>, AppError> {
             unimplemented!()
         }
-        async fn check_leave_type_exists(&self, _auth_token: &crate::diesel_pool::TenantAuthToken, _l: Uuid) -> Result<bool, AppError> {
+        async fn check_leave_type_exists(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _l: Uuid,
+        ) -> Result<bool, AppError> {
             unimplemented!()
         }
         async fn get_leave_type_name(
@@ -1715,10 +1823,18 @@ mod tests {
     struct EmptyHolidayRepo;
     #[async_trait]
     impl crate::repositories::holiday_repository::HolidayRepository for EmptyHolidayRepo {
-        async fn list(&self, _auth_token: &crate::diesel_pool::TenantAuthToken, _y: Option<i32>) -> Result<Vec<Holiday>, AppError> {
+        async fn list(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _y: Option<i32>,
+        ) -> Result<Vec<Holiday>, AppError> {
             unimplemented!()
         }
-        async fn get_by_id(&self, _auth_token: &crate::diesel_pool::TenantAuthToken, _i: Uuid) -> Result<Option<Holiday>, AppError> {
+        async fn get_by_id(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _i: Uuid,
+        ) -> Result<Option<Holiday>, AppError> {
             unimplemented!()
         }
         async fn create_holiday(
@@ -1736,7 +1852,11 @@ mod tests {
         ) -> Result<Option<Holiday>, AppError> {
             unimplemented!()
         }
-        async fn delete(&self, _auth_token: &crate::diesel_pool::TenantAuthToken, _i: Uuid) -> Result<bool, AppError> {
+        async fn delete(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _i: Uuid,
+        ) -> Result<bool, AppError> {
             unimplemented!()
         }
         async fn get_holidays_in_range(
@@ -1747,7 +1867,11 @@ mod tests {
         ) -> Result<HashMap<NaiveDate, Holiday>, AppError> {
             Ok(HashMap::new())
         }
-        async fn is_holiday(&self, _auth_token: &crate::diesel_pool::TenantAuthToken, _d: NaiveDate) -> Result<Option<Holiday>, AppError> {
+        async fn is_holiday(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _d: NaiveDate,
+        ) -> Result<Option<Holiday>, AppError> {
             unimplemented!()
         }
     }

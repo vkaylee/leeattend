@@ -23,7 +23,10 @@ pub trait ShiftRepository: Send + Sync {
         id: Uuid,
     ) -> Result<Option<Shift>, AppError>;
 
-    async fn get_workspace_shifts(&self, auth_token: &crate::diesel_pool::TenantAuthToken) -> Result<Vec<Shift>, AppError>;
+    async fn get_workspace_shifts(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+    ) -> Result<Vec<Shift>, AppError>;
 
     async fn update_shift_direct(
         &self,
@@ -32,7 +35,11 @@ pub trait ShiftRepository: Send + Sync {
         req: &crate::models::UpdateShiftRequest,
     ) -> Result<Shift, AppError>;
 
-    async fn archive_shift(&self, auth_token: &crate::diesel_pool::TenantAuthToken, id: Uuid) -> Result<(), AppError>;
+    async fn archive_shift(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        id: Uuid,
+    ) -> Result<(), AppError>;
 
     async fn assign_employee_shift(
         &self,

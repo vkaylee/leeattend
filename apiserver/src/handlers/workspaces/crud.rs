@@ -30,7 +30,7 @@ pub async fn get_attendance_trend(
     let result = state
         .reports
         .stats_repo
-        .fetch_attendance_trend(workspace_id)
+        .fetch_attendance_trend(&ctx.auth_token)
         .await?;
     Ok(Json(result))
 }
@@ -51,7 +51,7 @@ pub async fn get_department_attendance(
     let result = state
         .reports
         .stats_repo
-        .fetch_department_attendance(workspace_id, &range)
+        .fetch_department_attendance(&ctx.auth_token, &range)
         .await?;
     Ok(Json(result))
 }
@@ -303,7 +303,7 @@ pub async fn get_overtime_trend(
     let result = state
         .reports
         .stats_repo
-        .fetch_overtime_trend(workspace_id)
+        .fetch_overtime_trend(&ctx.auth_token)
         .await?;
     Ok(Json(result))
 }
@@ -317,7 +317,7 @@ pub async fn get_workspace_stats(
     let result = state
         .reports
         .stats_repo
-        .fetch_workspace_stats(workspace_id)
+        .fetch_workspace_stats(&ctx.auth_token)
         .await?;
     Ok(Json(result))
 }
@@ -333,7 +333,7 @@ pub async fn get_peak_times(
     let result = state
         .reports
         .stats_repo
-        .fetch_peak_times(workspace_id)
+        .fetch_peak_times(&ctx.auth_token)
         .await?;
     Ok(Json(result))
 }
@@ -349,7 +349,7 @@ pub async fn get_leave_types_breakdown(
     let result = state
         .reports
         .stats_repo
-        .fetch_leave_types_breakdown(workspace_id)
+        .fetch_leave_types_breakdown(&ctx.auth_token)
         .await?;
     Ok(Json(result))
 }
@@ -365,7 +365,7 @@ pub async fn get_lateness_by_day(
     let result = state
         .reports
         .stats_repo
-        .fetch_lateness_by_day(workspace_id)
+        .fetch_lateness_by_day(&ctx.auth_token)
         .await?;
     Ok(Json(result))
 }

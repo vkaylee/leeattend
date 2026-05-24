@@ -97,7 +97,10 @@ impl ShiftRepository for DieselShiftRepository {
         Ok(entity.map(Into::into))
     }
 
-    async fn get_workspace_shifts(&self, auth_token: &crate::diesel_pool::TenantAuthToken) -> Result<Vec<Shift>, AppError> {
+    async fn get_workspace_shifts(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+    ) -> Result<Vec<Shift>, AppError> {
         let workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
@@ -162,7 +165,11 @@ impl ShiftRepository for DieselShiftRepository {
         Ok(entity.into())
     }
 
-    async fn archive_shift(&self, auth_token: &crate::diesel_pool::TenantAuthToken, id: Uuid) -> Result<(), AppError> {
+    async fn archive_shift(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        id: Uuid,
+    ) -> Result<(), AppError> {
         let workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools

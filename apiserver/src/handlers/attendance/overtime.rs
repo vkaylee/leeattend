@@ -141,7 +141,8 @@ pub async fn get_attendance_summaries(
     let summaries = state
         .attendance
         .attendance_daily_summary_repo
-        .get_summaries(&ctx.auth_token,
+        .get_summaries(
+            &ctx.auth_token,
             target_employee_id,
             query.start_date,
             query.end_date,

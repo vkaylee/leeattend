@@ -21,7 +21,11 @@ pub trait FeatureFlagRepository: Send + Sync {
         auth_token: &TenantAuthToken,
         id: Uuid,
     ) -> Result<Option<FeatureFlag>, AppError>;
-    async fn is_enabled_flag(&self, auth_token: &TenantAuthToken, flag_key: &str) -> Result<bool, AppError>;
+    async fn is_enabled_flag(
+        &self,
+        auth_token: &TenantAuthToken,
+        flag_key: &str,
+    ) -> Result<bool, AppError>;
     async fn create_flag(
         &self,
         auth_token: &TenantAuthToken,

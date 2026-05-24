@@ -38,7 +38,8 @@ pub async fn get_attendance_logs(
     let logs = state
         .attendance
         .time_entry_repo
-        .get_paginated_logs(&ctx.auth_token,
+        .get_paginated_logs(
+            &ctx.auth_token,
             crate::models::TimeEntryLogFilter {
                 employee_id: query.employee_id,
                 from: query.from,

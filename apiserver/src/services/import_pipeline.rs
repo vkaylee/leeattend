@@ -60,7 +60,7 @@ impl<S: ImportStrategy> ImportPipeline<'_, S> {
             let _ = self
                 .import_repo
                 .update_job_progress(
-                    self.job.workspace_id,
+                    &crate::diesel_pool::TenantAuthToken::system_override(self.job.workspace_id),
                     self.job.id,
                     0,
                     ImportJobStatus::Failed,
@@ -114,7 +114,11 @@ impl<S: ImportStrategy> ImportPipeline<'_, S> {
             let total_rows = pending_rows.len() as i32 + failed_rows_data.len() as i32;
             let _ = self
                 .import_repo
-                .update_job_total_rows(self.job.workspace_id, self.job.id, total_rows)
+                .update_job_total_rows(
+                    &crate::diesel_pool::TenantAuthToken::system_override(self.job.workspace_id),
+                    self.job.id,
+                    total_rows,
+                )
                 .await;
         }
 
@@ -152,7 +156,9 @@ impl<S: ImportStrategy> ImportPipeline<'_, S> {
                     let _ = self
                         .import_repo
                         .update_job_progress(
-                            self.job.workspace_id,
+                            &crate::diesel_pool::TenantAuthToken::system_override(
+                                self.job.workspace_id,
+                            ),
                             self.job.id,
                             processed_rows,
                             ImportJobStatus::Processing,
@@ -255,7 +261,7 @@ impl<S: ImportStrategy> ImportPipeline<'_, S> {
             let _ = self
                 .import_repo
                 .update_job_progress(
-                    self.job.workspace_id,
+                    &crate::diesel_pool::TenantAuthToken::system_override(self.job.workspace_id),
                     self.job.id,
                     processed_rows,
                     status,
@@ -366,7 +372,7 @@ mod tests {
         mock_import_repo
             .expect_update_job_progress()
             .with(
-                mockall::predicate::eq(job.workspace_id),
+                mockall::predicate::always(),
                 mockall::predicate::eq(job.id),
                 mockall::predicate::eq(0),
                 mockall::predicate::eq(ImportJobStatus::Failed),

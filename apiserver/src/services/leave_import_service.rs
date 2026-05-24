@@ -138,7 +138,10 @@ impl ImportStrategy for LeaveImportStrategy {
         };
         let (emps, _) = deps
             .employee_repo
-            .get_all_employees(&crate::diesel_pool::TenantAuthToken::system_override(job.workspace_id), options)
+            .get_all_employees(
+                &crate::diesel_pool::TenantAuthToken::system_override(job.workspace_id),
+                options,
+            )
             .await
             .map_err(|e| format!("Failed to load employees: {e}"))?;
 
@@ -232,7 +235,10 @@ impl LeaveImportService {
         let Ok(Some(job)) = self
             .deps
             .import_job_repo
-            .get_job_by_id(workspace_id, import_job_id)
+            .get_job_by_id(
+                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                import_job_id,
+            )
             .await
         else {
             return Err(());

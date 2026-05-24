@@ -235,7 +235,11 @@ async fn register_workspace_tenants_and_migrate(
 
         let workspaces = diesel::sql_query("SELECT id, custom_db_url_encrypted FROM workspaces")
             .load::<WsRow>(&mut conn)
-            .map(|r| r.into_iter().map(|w| (w.id, w.custom_db_url_encrypted)).collect())
+            .map(|r| {
+                r.into_iter()
+                    .map(|w| (w.id, w.custom_db_url_encrypted))
+                    .collect()
+            })
             .map_err(|e| format!("Failed to query workspaces: {e}"))?;
 
         Ok::<_, String>(workspaces)
@@ -258,16 +262,17 @@ async fn register_workspace_tenants_and_migrate(
         return;
     }
 
-    let crypto_service: Option<apiserver::crypto::CryptoService> = std::env::var("ENCRYPTION_KEYS_JSON")
-        .ok()
-        .and_then(|keys| apiserver::crypto::CryptoService::from_json(&keys).ok());
+    let crypto_service: Option<apiserver::crypto::CryptoService> =
+        std::env::var("ENCRYPTION_KEYS_JSON")
+            .ok()
+            .and_then(|keys| apiserver::crypto::CryptoService::from_json(&keys).ok());
 
     // We no longer extract user, password, host, port from DATABASE_URL
     // because ALL tenants MUST be BYOD and have a custom connection string.
 
     for (ws_id, custom_db_url_encrypted) in workspaces {
         let db_name = format!("tenant_{}", ws_id.to_string().replace('-', ""));
-        
+
         let tenant_url = if let Some(encrypted) = custom_db_url_encrypted {
             let decrypted = if let Some(crypto) = &crypto_service {
                 crypto.decrypt(&encrypted).unwrap_or(encrypted)
@@ -276,7 +281,10 @@ async fn register_workspace_tenants_and_migrate(
             };
             decrypted
         } else {
-            tracing::warn!("Workspace {} missing custom_db_url_encrypted! Skipping registration.", ws_id);
+            tracing::warn!(
+                "Workspace {} missing custom_db_url_encrypted! Skipping registration.",
+                ws_id
+            );
             continue;
         };
 

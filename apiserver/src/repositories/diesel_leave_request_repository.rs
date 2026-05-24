@@ -318,7 +318,10 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
         Ok(dept_id)
     }
 
-    async fn get_leave_types(&self, auth_token: &crate::diesel_pool::TenantAuthToken) -> Result<Vec<(String, String)>, AppError> {
+    async fn get_leave_types(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+    ) -> Result<Vec<(String, String)>, AppError> {
         let workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
@@ -384,7 +387,11 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
         Ok(row)
     }
 
-    async fn cancel_leave_request(&self, auth_token: &crate::diesel_pool::TenantAuthToken, id: Uuid) -> Result<(), AppError> {
+    async fn cancel_leave_request(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        id: Uuid,
+    ) -> Result<(), AppError> {
         let workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools

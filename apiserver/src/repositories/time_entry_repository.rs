@@ -42,7 +42,11 @@ pub trait TimeEntryRepository: Send + Sync {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         entry: &TimeEntry,
     ) -> Result<(), AppError>;
-    async fn delete_time_entry(&self, auth_token: &crate::diesel_pool::TenantAuthToken, id: Uuid) -> Result<(), AppError>;
+    async fn delete_time_entry(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        id: Uuid,
+    ) -> Result<(), AppError>;
     async fn get_employee_time_entries(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,

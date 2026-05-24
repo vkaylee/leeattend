@@ -122,7 +122,7 @@ impl EmployeeRepository for DieselEmployeeRepository {
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id_number: &str,
-    ) -> Result<Option<Employee>, AppError>  {
+    ) -> Result<Option<Employee>, AppError> {
         let workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
@@ -153,7 +153,7 @@ impl EmployeeRepository for DieselEmployeeRepository {
         &self,
         id: Uuid,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-    ) -> Result<Option<Employee>, AppError>  {
+    ) -> Result<Option<Employee>, AppError> {
         let workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
@@ -181,7 +181,7 @@ impl EmployeeRepository for DieselEmployeeRepository {
         &self,
         id_number: &str,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-    ) -> Result<Option<Employee>, AppError>  {
+    ) -> Result<Option<Employee>, AppError> {
         self.find_by_number(auth_token, id_number).await
     }
 
@@ -189,7 +189,7 @@ impl EmployeeRepository for DieselEmployeeRepository {
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
         options: EmployeeFilterOptions,
-    ) -> Result<(Vec<Employee>, i64), AppError>  {
+    ) -> Result<(Vec<Employee>, i64), AppError> {
         let workspace_id = auth_token.workspace_id();
         use diesel::sql_types::{Array, BigInt, Nullable, Text};
 
@@ -304,7 +304,10 @@ impl EmployeeRepository for DieselEmployeeRepository {
         Ok((employees, total))
     }
 
-    async fn get_active_employees(&self, auth_token: &crate::diesel_pool::TenantAuthToken) -> Result<Vec<Employee>, AppError>  {
+    async fn get_active_employees(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+    ) -> Result<Vec<Employee>, AppError> {
         let workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
@@ -332,7 +335,7 @@ impl EmployeeRepository for DieselEmployeeRepository {
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
         filter_ids: Option<&Vec<Uuid>>,
-    ) -> Result<Vec<Uuid>, AppError>  {
+    ) -> Result<Vec<Uuid>, AppError> {
         let workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
@@ -367,7 +370,7 @@ impl EmployeeRepository for DieselEmployeeRepository {
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
         args: EmployeePaginationArgs<'_>,
-    ) -> Result<(Vec<EmployeeBasicInfo>, i64), AppError>  {
+    ) -> Result<(Vec<EmployeeBasicInfo>, i64), AppError> {
         let workspace_id = auth_token.workspace_id();
         use crate::schema::employee_department_history;
 
@@ -450,7 +453,7 @@ impl EmployeeRepository for DieselEmployeeRepository {
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
         date: NaiveDate,
-    ) -> Result<std::collections::HashMap<Uuid, (Option<Uuid>, String)>, AppError>  {
+    ) -> Result<std::collections::HashMap<Uuid, (Option<Uuid>, String)>, AppError> {
         let workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
@@ -558,7 +561,7 @@ impl EmployeeRepository for DieselEmployeeRepository {
         id: Uuid,
         auth_token: &crate::diesel_pool::TenantAuthToken,
         req: &UpdateEmployeeRequest,
-    ) -> Result<Option<Employee>, AppError>  {
+    ) -> Result<Option<Employee>, AppError> {
         let workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
@@ -609,7 +612,7 @@ impl EmployeeRepository for DieselEmployeeRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id: Uuid,
         hire_date: chrono::NaiveDate,
-    ) -> Result<Option<Employee>, AppError>  {
+    ) -> Result<Option<Employee>, AppError> {
         let workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
@@ -638,7 +641,11 @@ impl EmployeeRepository for DieselEmployeeRepository {
         Ok(result.map(Into::into))
     }
 
-    async fn delete_employee(&self, id: Uuid, auth_token: &crate::diesel_pool::TenantAuthToken) -> Result<u64, AppError>  {
+    async fn delete_employee(
+        &self,
+        id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+    ) -> Result<u64, AppError> {
         let workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
@@ -664,7 +671,7 @@ impl EmployeeRepository for DieselEmployeeRepository {
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id: Uuid,
-    ) -> Result<Vec<WorkingCondition>, AppError>  {
+    ) -> Result<Vec<WorkingCondition>, AppError> {
         let workspace_id = auth_token.workspace_id();
         use crate::schema::{employees, working_conditions};
 
@@ -725,7 +732,7 @@ impl EmployeeRepository for DieselEmployeeRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id: Uuid,
         date: NaiveDate,
-    ) -> Result<Vec<WorkingCondition>, AppError>  {
+    ) -> Result<Vec<WorkingCondition>, AppError> {
         let workspace_id = auth_token.workspace_id();
         use crate::schema::{employees, working_conditions};
 
@@ -792,7 +799,7 @@ impl EmployeeRepository for DieselEmployeeRepository {
         employee_ids: &[Uuid],
         start_date: NaiveDate,
         end_date: NaiveDate,
-    ) -> Result<std::collections::HashMap<Uuid, Vec<WorkingCondition>>, AppError>  {
+    ) -> Result<std::collections::HashMap<Uuid, Vec<WorkingCondition>>, AppError> {
         let workspace_id = auth_token.workspace_id();
         use crate::schema::{employees, working_conditions};
 
@@ -866,7 +873,7 @@ impl EmployeeRepository for DieselEmployeeRepository {
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
         condition: &WorkingCondition,
-    ) -> Result<(), AppError>  {
+    ) -> Result<(), AppError> {
         let workspace_id = auth_token.workspace_id();
         use crate::schema::working_conditions;
 
@@ -902,7 +909,7 @@ impl EmployeeRepository for DieselEmployeeRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         id: Uuid,
         employee_id: Uuid,
-    ) -> Result<bool, AppError>  {
+    ) -> Result<bool, AppError> {
         let workspace_id = auth_token.workspace_id();
         use crate::schema::working_conditions;
 
@@ -930,7 +937,7 @@ impl EmployeeRepository for DieselEmployeeRepository {
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
         id_numbers: &[String],
-    ) -> Result<Vec<String>, AppError>  {
+    ) -> Result<Vec<String>, AppError> {
         let workspace_id = auth_token.workspace_id();
         if id_numbers.is_empty() {
             return Ok(Vec::new());
@@ -964,7 +971,7 @@ impl EmployeeRepository for DieselEmployeeRepository {
         std_working_days: rust_decimal::Decimal,
         hours_per_day: rust_decimal::Decimal,
         effective_date: chrono::NaiveDate,
-    ) -> Result<crate::models::EmployeePayrollConfig, AppError>  {
+    ) -> Result<crate::models::EmployeePayrollConfig, AppError> {
         let workspace_id = auth_token.workspace_id();
         use crate::schema::employee_payroll_configs;
 
@@ -1029,7 +1036,7 @@ impl EmployeeRepository for DieselEmployeeRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id: Uuid,
         date: chrono::NaiveDate,
-    ) -> Result<Option<crate::models::EmployeePayrollConfig>, AppError>  {
+    ) -> Result<Option<crate::models::EmployeePayrollConfig>, AppError> {
         let workspace_id = auth_token.workspace_id();
         use crate::schema::employee_payroll_configs;
 
@@ -1081,7 +1088,7 @@ impl EmployeeRepository for DieselEmployeeRepository {
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id: Uuid,
-    ) -> Result<Vec<crate::models::EmployeePayrollConfig>, AppError>  {
+    ) -> Result<Vec<crate::models::EmployeePayrollConfig>, AppError> {
         let workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
@@ -1143,7 +1150,7 @@ impl EmployeeRepository for DieselEmployeeRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id: Uuid,
         recruitment_source_id: Option<Uuid>,
-    ) -> Result<(), AppError>  {
+    ) -> Result<(), AppError> {
         let workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
@@ -1195,7 +1202,7 @@ impl EmployeeRepository for DieselEmployeeRepository {
     async fn get_recruitment_sources(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-    ) -> Result<Vec<RecruitmentSource>, AppError>  {
+    ) -> Result<Vec<RecruitmentSource>, AppError> {
         let workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
@@ -1221,7 +1228,7 @@ impl EmployeeRepository for DieselEmployeeRepository {
         &self,
         id: Uuid,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-    ) -> Result<Option<RecruitmentSource>, AppError>  {
+    ) -> Result<Option<RecruitmentSource>, AppError> {
         let workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
@@ -1249,7 +1256,7 @@ impl EmployeeRepository for DieselEmployeeRepository {
         id: Uuid,
         auth_token: &crate::diesel_pool::TenantAuthToken,
         req: &crate::models::UpdateRecruitmentSourceRequest,
-    ) -> Result<Option<RecruitmentSource>, AppError>  {
+    ) -> Result<Option<RecruitmentSource>, AppError> {
         let workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
@@ -1297,7 +1304,7 @@ impl EmployeeRepository for DieselEmployeeRepository {
         &self,
         id: Uuid,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-    ) -> Result<u64, AppError>  {
+    ) -> Result<u64, AppError> {
         let workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
@@ -1322,7 +1329,7 @@ impl EmployeeRepository for DieselEmployeeRepository {
     async fn get_recruitment_source_breakdown(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-    ) -> Result<Vec<RecruitmentSourceBreakdown>, AppError>  {
+    ) -> Result<Vec<RecruitmentSourceBreakdown>, AppError> {
         let workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
@@ -1367,7 +1374,7 @@ impl EmployeeRepository for DieselEmployeeRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         start_date: NaiveDate,
         end_date: NaiveDate,
-    ) -> Result<TurnoverAnalytics, AppError>  {
+    ) -> Result<TurnoverAnalytics, AppError> {
         let workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
@@ -1515,7 +1522,7 @@ impl EmployeeRepository for DieselEmployeeRepository {
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
         user_id: Uuid,
-    ) -> Result<Vec<Uuid>, AppError>  {
+    ) -> Result<Vec<Uuid>, AppError> {
         let workspace_id = auth_token.workspace_id();
         use crate::schema::employee_department_history;
 
@@ -1546,7 +1553,7 @@ impl EmployeeRepository for DieselEmployeeRepository {
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
         user_id: Uuid,
-    ) -> Result<Option<Uuid>, AppError>  {
+    ) -> Result<Option<Uuid>, AppError> {
         let workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
@@ -1578,7 +1585,7 @@ impl EmployeeRepository for DieselEmployeeRepository {
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id: Uuid,
-    ) -> Result<Option<EmployeeProfile>, AppError>  {
+    ) -> Result<Option<EmployeeProfile>, AppError> {
         let workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
@@ -1608,7 +1615,7 @@ impl EmployeeRepository for DieselEmployeeRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id: Uuid,
         req: &UpdateEmployeeProfileRequest,
-    ) -> Result<EmployeeProfile, AppError>  {
+    ) -> Result<EmployeeProfile, AppError> {
         let workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
@@ -1688,7 +1695,7 @@ impl EmployeeRepository for DieselEmployeeRepository {
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id: Uuid,
-    ) -> Result<Vec<EmployeeEmergencyContact>, AppError>  {
+    ) -> Result<Vec<EmployeeEmergencyContact>, AppError> {
         let workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
@@ -1721,7 +1728,7 @@ impl EmployeeRepository for DieselEmployeeRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id: Uuid,
         req: &CreateEmergencyContactRequest,
-    ) -> Result<EmployeeEmergencyContact, AppError>  {
+    ) -> Result<EmployeeEmergencyContact, AppError> {
         let workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
@@ -1771,7 +1778,7 @@ impl EmployeeRepository for DieselEmployeeRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id: Uuid,
         contact_id: Uuid,
-    ) -> Result<u64, AppError>  {
+    ) -> Result<u64, AppError> {
         let workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools
@@ -1802,7 +1809,7 @@ impl EmployeeRepository for DieselEmployeeRepository {
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id: Uuid,
-    ) -> Result<Vec<EmployeeDocument>, AppError>  {
+    ) -> Result<Vec<EmployeeDocument>, AppError> {
         let workspace_id = auth_token.workspace_id();
         let mut conn = self
             .diesel_pools

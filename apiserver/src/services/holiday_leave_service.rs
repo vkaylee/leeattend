@@ -101,7 +101,9 @@ impl HolidayLeaveService {
         // Get all active employees in workspace
         let employees = self
             .employee_repo
-            .get_active_employees(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id))
+            .get_active_employees(&crate::diesel_pool::TenantAuthToken::system_override(
+                workspace_id,
+            ))
             .await
             .map_err(|e| e.to_string())?;
 
@@ -119,7 +121,11 @@ impl HolidayLeaveService {
             // Check leave balance
             let balances = self
                 .leave_balance_repo
-                .get_employee_balances(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id), emp.id, year)
+                .get_employee_balances(
+                    &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                    emp.id,
+                    year,
+                )
                 .await
                 .map_err(|e| e.to_string())?;
 
@@ -146,7 +152,10 @@ impl HolidayLeaveService {
                 };
 
                 self.leave_request_repo
-                    .create_leave_request(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id), &leave_request)
+                    .create_leave_request(
+                        &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                        &leave_request,
+                    )
                     .await
                     .map_err(|e| e.to_string())?;
 
@@ -161,12 +170,19 @@ impl HolidayLeaveService {
                     created_at: Utc::now(),
                     updated_at: Utc::now(),
                 };
-                let _ = self.roster_repo.upsert_roster(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id), &roster).await;
+                let _ = self
+                    .roster_repo
+                    .upsert_roster(
+                        &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                        &roster,
+                    )
+                    .await;
 
                 // Audit log via leave_accrual_logs
                 let _ = self
                     .leave_balance_repo
-                    .adjust_balance(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                    .adjust_balance(
+                        &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
                         emp.id,
                         leave_type_id,
                         rust_decimal::Decimal::ZERO, // Balance change tracked via leave_requests, not here

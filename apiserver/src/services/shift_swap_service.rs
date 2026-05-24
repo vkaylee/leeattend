@@ -53,7 +53,12 @@ impl ShiftSwapService {
         // 1. Duplicate check
         let dup = self
             .swap_repo
-            .has_active_swap(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id), requester_id, target_id, swap_date)
+            .has_active_swap(
+                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                requester_id,
+                target_id,
+                swap_date,
+            )
             .await
             .map_err(|e| {
                 error!("SWAP_DUP_CHECK: {:?}", e);
@@ -67,7 +72,11 @@ impl ShiftSwapService {
         for emp_id in [requester_id, target_id] {
             let conflict = self
                 .swap_repo
-                .has_approved_swap_on_date(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id), emp_id, swap_date)
+                .has_approved_swap_on_date(
+                    &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                    emp_id,
+                    swap_date,
+                )
                 .await
                 .map_err(|e| {
                     error!("SWAP_CONFLICT_CHECK: {:?}", e);
@@ -97,12 +106,18 @@ impl ShiftSwapService {
                     // Compare shift durations: will the receiving employee get a much longer shift?
                     let req_shift = self
                         .shift_repo
-                        .get_shift_by_id(&crate::diesel_pool::TenantAuthToken::system_override(ws_id), req_shift_id)
+                        .get_shift_by_id(
+                            &crate::diesel_pool::TenantAuthToken::system_override(ws_id),
+                            req_shift_id,
+                        )
                         .await
                         .unwrap_or(None);
                     let tgt_shift = self
                         .shift_repo
-                        .get_shift_by_id(&crate::diesel_pool::TenantAuthToken::system_override(ws_id), tgt_shift_id)
+                        .get_shift_by_id(
+                            &crate::diesel_pool::TenantAuthToken::system_override(ws_id),
+                            tgt_shift_id,
+                        )
                         .await
                         .unwrap_or(None);
                     if let (Some(rs), Some(ts)) = (req_shift, tgt_shift) {
@@ -159,11 +174,17 @@ impl ShiftSwapService {
         // Validate both employees belong to this workspace
         let req_emp = self
             .employee_repo
-            .get_employee_by_id(req.requester_id, &crate::diesel_pool::TenantAuthToken::system_override(workspace_id))
+            .get_employee_by_id(
+                req.requester_id,
+                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+            )
             .await?;
         let tgt_emp = self
             .employee_repo
-            .get_employee_by_id(req.target_id, &crate::diesel_pool::TenantAuthToken::system_override(workspace_id))
+            .get_employee_by_id(
+                req.target_id,
+                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+            )
             .await?;
 
         if req_emp.is_none() || tgt_emp.is_none() {
@@ -173,7 +194,11 @@ impl ShiftSwapService {
         // Look up current effective shifts for both employees
         let (requester_shift_id, _) = self
             .roster_repo
-            .get_effective_shift(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id), req.requester_id, req.swap_date)
+            .get_effective_shift(
+                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                req.requester_id,
+                req.swap_date,
+            )
             .await
             .map_err(|e| {
                 error!("SHIFT_SWAP_LOOKUP_REQUESTER: {:?}", e);
@@ -182,7 +207,11 @@ impl ShiftSwapService {
 
         let (target_shift_id, _) = self
             .roster_repo
-            .get_effective_shift(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id), req.target_id, req.swap_date)
+            .get_effective_shift(
+                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                req.target_id,
+                req.swap_date,
+            )
             .await
             .map_err(|e| {
                 error!("SHIFT_SWAP_LOOKUP_TARGET: {:?}", e);
@@ -217,7 +246,10 @@ impl ShiftSwapService {
         };
 
         self.swap_repo
-            .create_swap_request(&crate::diesel_pool::TenantAuthToken::system_override(swap.workspace_id), &swap)
+            .create_swap_request(
+                &crate::diesel_pool::TenantAuthToken::system_override(swap.workspace_id),
+                &swap,
+            )
             .await
             .map_err(|e| {
                 error!("SHIFT_SWAP_CREATE_ERROR: {:?}", e);
@@ -237,7 +269,10 @@ impl ShiftSwapService {
     ) -> Result<(), AppError> {
         let request = self
             .swap_repo
-            .get_swap_request_by_id(request_id, &crate::diesel_pool::TenantAuthToken::system_override(workspace_id))
+            .get_swap_request_by_id(
+                request_id,
+                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+            )
             .await?
             .ok_or(AppError::NotFound("Not found".into()))?;
 
@@ -248,7 +283,12 @@ impl ShiftSwapService {
 
         // Update the status first
         self.swap_repo
-            .update_swap_status(request_id, &crate::diesel_pool::TenantAuthToken::system_override(workspace_id), new_status, Some(approver_id))
+            .update_swap_status(
+                request_id,
+                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                new_status,
+                Some(approver_id),
+            )
             .await
             .map_err(|e| {
                 error!("SHIFT_SWAP_STATUS_UPDATE_ERROR: {:?}", e);
@@ -284,7 +324,10 @@ impl ShiftSwapService {
             };
 
             self.roster_repo
-                .upsert_roster(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id), &requester_roster)
+                .upsert_roster(
+                    &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                    &requester_roster,
+                )
                 .await
                 .map_err(|e| {
                     error!("SHIFT_SWAP_ROSTER_REQUESTER_ERROR: {:?}", e);
@@ -292,7 +335,10 @@ impl ShiftSwapService {
                 })?;
 
             self.roster_repo
-                .upsert_roster(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id), &target_roster)
+                .upsert_roster(
+                    &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                    &target_roster,
+                )
                 .await
                 .map_err(|e| {
                     error!("SHIFT_SWAP_ROSTER_TARGET_ERROR: {:?}", e);
@@ -311,7 +357,10 @@ impl ShiftSwapService {
         status: Option<ShiftSwapStatus>,
     ) -> Result<Vec<ShiftSwapRequestWithNames>, AppError> {
         self.swap_repo
-            .get_workspace_swaps(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id), status)
+            .get_workspace_swaps(
+                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                status,
+            )
             .await
             .map_err(|e| {
                 error!("SHIFT_SWAP_LIST_ERROR: {:?}", e);
@@ -339,7 +388,10 @@ impl ShiftSwapService {
         // Validate target belongs to same workspace
         let target_emp = self
             .employee_repo
-            .get_employee_by_id(req.target_id, &crate::diesel_pool::TenantAuthToken::system_override(workspace_id))
+            .get_employee_by_id(
+                req.target_id,
+                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+            )
             .await?;
 
         if target_emp.map(|e| !e.is_active).unwrap_or(true) {
@@ -349,7 +401,11 @@ impl ShiftSwapService {
         // Look up effective shifts
         let (requester_shift_id, _) = self
             .roster_repo
-            .get_effective_shift(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id), requester_employee_id, req.swap_date)
+            .get_effective_shift(
+                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                requester_employee_id,
+                req.swap_date,
+            )
             .await
             .map_err(|e| {
                 error!("ESS_SWAP_LOOKUP_REQUESTER: {:?}", e);
@@ -358,7 +414,11 @@ impl ShiftSwapService {
 
         let (target_shift_id, _) = self
             .roster_repo
-            .get_effective_shift(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id), req.target_id, req.swap_date)
+            .get_effective_shift(
+                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                req.target_id,
+                req.swap_date,
+            )
             .await
             .map_err(|e| {
                 error!("ESS_SWAP_LOOKUP_TARGET: {:?}", e);
@@ -394,7 +454,10 @@ impl ShiftSwapService {
         };
 
         self.swap_repo
-            .create_swap_request(&crate::diesel_pool::TenantAuthToken::system_override(swap.workspace_id), &swap)
+            .create_swap_request(
+                &crate::diesel_pool::TenantAuthToken::system_override(swap.workspace_id),
+                &swap,
+            )
             .await
             .map_err(|e| {
                 error!("ESS_SWAP_CREATE_ERROR: {:?}", e);
@@ -415,7 +478,10 @@ impl ShiftSwapService {
     ) -> Result<(), AppError> {
         let request = self
             .swap_repo
-            .get_swap_request_by_id(request_id, &crate::diesel_pool::TenantAuthToken::system_override(workspace_id))
+            .get_swap_request_by_id(
+                request_id,
+                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+            )
             .await?
             .ok_or(AppError::NotFound("Not found".into()))?;
 
@@ -436,7 +502,12 @@ impl ShiftSwapService {
         };
 
         self.swap_repo
-            .update_swap_status(request_id, &crate::diesel_pool::TenantAuthToken::system_override(workspace_id), new_status, None)
+            .update_swap_status(
+                request_id,
+                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                new_status,
+                None,
+            )
             .await
             .map_err(|e| {
                 error!("ESS_SWAP_RESPOND_ERROR: {:?}", e);
@@ -454,7 +525,10 @@ impl ShiftSwapService {
     ) -> Result<(), AppError> {
         let request = self
             .swap_repo
-            .get_swap_request_by_id(request_id, &crate::diesel_pool::TenantAuthToken::system_override(workspace_id))
+            .get_swap_request_by_id(
+                request_id,
+                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+            )
             .await?
             .ok_or(AppError::NotFound("Not found".into()))?;
 
@@ -471,7 +545,12 @@ impl ShiftSwapService {
         }
 
         self.swap_repo
-            .update_swap_status(request_id, &crate::diesel_pool::TenantAuthToken::system_override(workspace_id), ShiftSwapStatus::Cancelled, None)
+            .update_swap_status(
+                request_id,
+                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                ShiftSwapStatus::Cancelled,
+                None,
+            )
             .await
             .map_err(|e| {
                 error!("ESS_SWAP_CANCEL_ERROR: {:?}", e);
@@ -487,7 +566,10 @@ impl ShiftSwapService {
         workspace_id: Uuid,
     ) -> Result<Vec<ShiftSwapRequestWithNames>, AppError> {
         self.swap_repo
-            .get_employee_swaps(employee_id, &crate::diesel_pool::TenantAuthToken::system_override(workspace_id))
+            .get_employee_swaps(
+                employee_id,
+                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+            )
             .await
             .map_err(|e| {
                 error!("ESS_SWAP_LIST_ERROR: {:?}", e);

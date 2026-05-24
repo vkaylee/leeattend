@@ -75,7 +75,11 @@ impl FeatureFlagRepository for DieselFeatureFlagRepository {
             .map(|r| r.map(Into::into))
     }
 
-    async fn is_enabled_flag(&self, auth_token: &TenantAuthToken, flag_key: &str) -> Result<bool, AppError> {
+    async fn is_enabled_flag(
+        &self,
+        auth_token: &TenantAuthToken,
+        flag_key: &str,
+    ) -> Result<bool, AppError> {
         let mut conn = self.diesel_pools.tenant_conn(auth_token).await?;
         let workspace_id = auth_token.workspace_id();
 

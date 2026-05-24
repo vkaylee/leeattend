@@ -52,7 +52,10 @@ pub trait LeaveRequestRepository: Send + Sync {
         auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<Option<Uuid>, AppError>;
     /// List all leave types (code, name) for a workspace.
-    async fn get_leave_types(&self, auth_token: &crate::diesel_pool::TenantAuthToken) -> Result<Vec<(String, String)>, AppError>;
+    async fn get_leave_types(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+    ) -> Result<Vec<(String, String)>, AppError>;
 
     async fn get_system_generated_holiday_leave(
         &self,
@@ -61,7 +64,11 @@ pub trait LeaveRequestRepository: Send + Sync {
         date: NaiveDate,
     ) -> Result<Option<(Uuid, Uuid, String)>, AppError>;
 
-    async fn cancel_leave_request(&self, auth_token: &crate::diesel_pool::TenantAuthToken, id: Uuid) -> Result<(), AppError>;
+    async fn cancel_leave_request(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        id: Uuid,
+    ) -> Result<(), AppError>;
 
     async fn get_employee_leave_history_requests(
         &self,

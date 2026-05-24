@@ -35,7 +35,7 @@ impl LeaveImportHandler {
         // Update import job → Processing
         let _ = import_repo
             .update_job_progress(
-                job.workspace_id,
+                &crate::diesel_pool::TenantAuthToken::system_override(job.workspace_id),
                 payload.import_job_id,
                 0,
                 ImportJobStatus::Processing,
@@ -60,13 +60,17 @@ impl LeaveImportHandler {
 
         let total_rows = rows.len();
         let _ = import_repo
-            .update_job_total_rows(job.workspace_id, payload.import_job_id, total_rows as i32)
+            .update_job_total_rows(
+                &crate::diesel_pool::TenantAuthToken::system_override(job.workspace_id),
+                payload.import_job_id,
+                total_rows as i32,
+            )
             .await;
 
         if total_rows == 0 {
             let _ = import_repo
                 .update_job_progress(
-                    job.workspace_id,
+                    &crate::diesel_pool::TenantAuthToken::system_override(job.workspace_id),
                     payload.import_job_id,
                     0,
                     ImportJobStatus::Completed,
@@ -186,7 +190,10 @@ impl LeaveImportChunkHandler {
 
         let import_repo = &*deps.import_job_repo;
         let import_job = import_repo
-            .get_job_by_id(job.workspace_id, payload.import_job_id)
+            .get_job_by_id(
+                &crate::diesel_pool::TenantAuthToken::system_override(job.workspace_id),
+                payload.import_job_id,
+            )
             .await
             .map_err(|e| format!("DB error: {e}"))?
             .ok_or("Job not found".to_string())?;
@@ -313,7 +320,7 @@ mod tests {
         import_repo
             .expect_update_job_progress()
             .with(
-                mockall::predicate::eq(ws_id),
+                mockall::predicate::always(),
                 mockall::predicate::eq(import_job_id),
                 mockall::predicate::eq(0),
                 mockall::predicate::eq(ImportJobStatus::Processing),
@@ -324,7 +331,7 @@ mod tests {
         import_repo
             .expect_update_job_total_rows()
             .with(
-                mockall::predicate::eq(ws_id),
+                mockall::predicate::always(),
                 mockall::predicate::eq(import_job_id),
                 mockall::predicate::eq(2),
             )
