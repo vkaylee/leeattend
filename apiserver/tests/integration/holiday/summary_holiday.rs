@@ -108,7 +108,7 @@ async fn test_summary_records_holiday_flag_after_recalculate() {
     let repo =
         apiserver::repositories::DieselAttendanceDailySummaryRepository::new(diesel_pools.clone());
     let summaries = apiserver::repositories::attendance_daily_summary_repository::AttendanceDailySummaryRepository::get_summaries(
-        &repo, workspace_id, Some(emp), today, today
+        &repo, &apiserver::diesel_pool::TenantAuthToken::system_override(workspace_id), Some(emp), today, today
     ).await.unwrap();
 
     let summary = summaries.into_iter().next().unwrap();

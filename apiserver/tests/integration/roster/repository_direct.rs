@@ -53,7 +53,7 @@ async fn test_upsert_roster_insert_and_update() {
         created_at: Utc::now(),
         updated_at: Utc::now(),
     };
-    let inserted = repo.upsert_roster(ws_id, &roster_in).await.unwrap();
+    let inserted = repo.upsert_roster(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id), &roster_in).await.unwrap();
     assert_eq!(inserted.employee_id, emp_id);
     assert_eq!(inserted.shift_id, Some(shift_id));
     assert_eq!(inserted.date, date);
@@ -76,7 +76,7 @@ async fn test_upsert_roster_insert_and_update() {
         created_at: Utc::now(),
         updated_at: Utc::now(),
     };
-    let updated = repo.upsert_roster(ws_id, &roster_update).await.unwrap();
+    let updated = repo.upsert_roster(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id), &roster_update).await.unwrap();
     assert_eq!(updated.shift_id, Some(shift_id2), "shift should be updated");
     assert_eq!(updated.notes.as_deref(), Some("Updated"));
     // The id should be the original one (INSERT ... ON CONFLICT preserves original id)
@@ -103,7 +103,7 @@ async fn test_upsert_roster_day_off() {
         created_at: Utc::now(),
         updated_at: Utc::now(),
     };
-    let inserted = repo.upsert_roster(ws_id, &roster_off).await.unwrap();
+    let inserted = repo.upsert_roster(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id), &roster_off).await.unwrap();
     assert!(
         inserted.shift_id.is_none(),
         "Day off should have None shift_id"
@@ -135,14 +135,14 @@ async fn test_get_employee_rosters_date_range() {
             created_at: Utc::now(),
             updated_at: Utc::now(),
         };
-        repo.upsert_roster(ws_id, &r).await.unwrap();
+        repo.upsert_roster(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id), &r).await.unwrap();
     }
 
     // Query Mar 3–7 → should return only Mar 5
     let start = NaiveDate::from_ymd_opt(2026, 3, 3).unwrap();
     let end = NaiveDate::from_ymd_opt(2026, 3, 7).unwrap();
     let result = repo
-        .get_employee_rosters(ws_id, emp_id, start, end)
+        .get_employee_rosters(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id), emp_id, start, end)
         .await
         .unwrap();
     assert_eq!(result.len(), 1);
@@ -152,7 +152,7 @@ async fn test_get_employee_rosters_date_range() {
     let start_full = NaiveDate::from_ymd_opt(2026, 3, 1).unwrap();
     let end_full = NaiveDate::from_ymd_opt(2026, 3, 31).unwrap();
     let all = repo
-        .get_employee_rosters(ws_id, emp_id, start_full, end_full)
+        .get_employee_rosters(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id), emp_id, start_full, end_full)
         .await
         .unwrap();
     assert_eq!(all.len(), 3);
@@ -172,7 +172,7 @@ async fn test_get_employee_rosters_empty() {
     let start = NaiveDate::from_ymd_opt(2026, 1, 1).unwrap();
     let end = NaiveDate::from_ymd_opt(2026, 12, 31).unwrap();
     let result = repo
-        .get_employee_rosters(ws_id, emp_id, start, end)
+        .get_employee_rosters(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id), emp_id, start, end)
         .await
         .unwrap();
     assert!(result.is_empty());
@@ -202,14 +202,14 @@ async fn test_delete_roster() {
         created_at: Utc::now(),
         updated_at: Utc::now(),
     };
-    repo.upsert_roster(ws_id, &r).await.unwrap();
-    repo.delete_roster(ws_id, emp_id, date).await.unwrap();
+    repo.upsert_roster(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id), &r).await.unwrap();
+    repo.delete_roster(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id), emp_id, date).await.unwrap();
 
     // Verify gone
     let start = NaiveDate::from_ymd_opt(2026, 3, 1).unwrap();
     let end = NaiveDate::from_ymd_opt(2026, 3, 31).unwrap();
     let remaining = repo
-        .get_employee_rosters(ws_id, emp_id, start, end)
+        .get_employee_rosters(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id), emp_id, start, end)
         .await
         .unwrap();
     assert!(
@@ -229,7 +229,7 @@ async fn test_delete_nonexistent_roster_is_no_op() {
     let date = NaiveDate::from_ymd_opt(2026, 6, 15).unwrap();
 
     // Should not error
-    repo.delete_roster(ws_id, emp_id, date).await.unwrap();
+    repo.delete_roster(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id), emp_id, date).await.unwrap();
 }
 
 // ── Bulk Upsert ─────────────────────────────────────────────────────
@@ -273,12 +273,12 @@ async fn test_bulk_upsert_roster() {
         },
     ];
 
-    repo.bulk_upsert_roster(ws_id, emp_id, items).await.unwrap();
+    repo.bulk_upsert_roster(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id), emp_id, items).await.unwrap();
 
     let start = NaiveDate::from_ymd_opt(2026, 4, 1).unwrap();
     let end = NaiveDate::from_ymd_opt(2026, 4, 30).unwrap();
     let rosters = repo
-        .get_employee_rosters(ws_id, emp_id, start, end)
+        .get_employee_rosters(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id), emp_id, start, end)
         .await
         .unwrap();
     assert_eq!(rosters.len(), 3);
@@ -323,7 +323,7 @@ async fn test_bulk_upsert_overwrites_existing() {
         created_at: Utc::now(),
         updated_at: Utc::now(),
     };
-    repo.upsert_roster(ws_id, &r).await.unwrap();
+    repo.upsert_roster(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id), &r).await.unwrap();
 
     // Bulk upsert with same date → should overwrite
     let items = vec![RosterItem {
@@ -331,12 +331,12 @@ async fn test_bulk_upsert_overwrites_existing() {
         shift_id: Some(shift_new),
         notes: Some("Overwritten".to_string()),
     }];
-    repo.bulk_upsert_roster(ws_id, emp_id, items).await.unwrap();
+    repo.bulk_upsert_roster(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id), emp_id, items).await.unwrap();
 
     let start = NaiveDate::from_ymd_opt(2026, 4, 1).unwrap();
     let end = NaiveDate::from_ymd_opt(2026, 4, 1).unwrap();
     let rosters = repo
-        .get_employee_rosters(ws_id, emp_id, start, end)
+        .get_employee_rosters(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id), emp_id, start, end)
         .await
         .unwrap();
     assert_eq!(rosters.len(), 1);
@@ -375,9 +375,9 @@ async fn test_get_assignment_history_includes_roster_entries() {
         created_at: Utc::now(),
         updated_at: Utc::now(),
     };
-    repo.upsert_roster(ws_id, &r).await.unwrap();
+    repo.upsert_roster(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id), &r).await.unwrap();
 
-    let history = repo.get_assignment_history(ws_id, 100).await.unwrap();
+    let history = repo.get_assignment_history(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id), 100).await.unwrap();
     assert!(
         !history.is_empty(),
         "History should contain the roster entry"
@@ -399,7 +399,7 @@ async fn test_get_assignment_history_empty_workspace() {
     let repo = apiserver::repositories::DieselRosterRepository::new(diesel_pools.clone());
 
     let ws_id = factory.workspace().create().await;
-    let history = repo.get_assignment_history(ws_id, 100).await.unwrap();
+    let history = repo.get_assignment_history(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id), 100).await.unwrap();
     assert!(history.is_empty());
 }
 
@@ -425,10 +425,10 @@ async fn test_get_assignment_history_respects_limit() {
             created_at: Utc::now(),
             updated_at: Utc::now(),
         };
-        repo.upsert_roster(ws_id, &r).await.unwrap();
+        repo.upsert_roster(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id), &r).await.unwrap();
     }
 
-    let history = repo.get_assignment_history(ws_id, 3).await.unwrap();
+    let history = repo.get_assignment_history(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id), 3).await.unwrap();
     assert_eq!(history.len(), 3, "Should respect the limit parameter");
 }
 
@@ -461,9 +461,9 @@ async fn test_get_effective_shift_from_roster() {
         created_at: Utc::now(),
         updated_at: Utc::now(),
     };
-    repo.upsert_roster(ws_id, &r).await.unwrap();
+    repo.upsert_roster(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id), &r).await.unwrap();
 
-    let (resolved_shift, traces) = repo.get_effective_shift(ws_id, emp_id, date).await.unwrap();
+    let (resolved_shift, traces) = repo.get_effective_shift(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id), emp_id, date).await.unwrap();
     assert_eq!(resolved_shift, Some(shift_id));
     assert_eq!(traces.len(), 1);
     assert_eq!(traces[0].rule_name, "Manual Roster");
@@ -480,7 +480,7 @@ async fn test_get_effective_shift_no_assignment_returns_none() {
     let emp_id = factory.employee().with_workspace(ws_id).create().await;
     let date = NaiveDate::from_ymd_opt(2026, 6, 1).unwrap();
 
-    let (resolved_shift, traces) = repo.get_effective_shift(ws_id, emp_id, date).await.unwrap();
+    let (resolved_shift, traces) = repo.get_effective_shift(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id), emp_id, date).await.unwrap();
     assert!(resolved_shift.is_none(), "No assignment → None");
     assert!(traces.is_empty(), "No traces when nothing matched");
 }
@@ -504,7 +504,7 @@ async fn test_get_effective_shift_fixed_assignment() {
         .await;
 
     let date = NaiveDate::from_ymd_opt(2026, 3, 10).unwrap();
-    let (resolved_shift, traces) = repo.get_effective_shift(ws_id, emp_id, date).await.unwrap();
+    let (resolved_shift, traces) = repo.get_effective_shift(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id), emp_id, date).await.unwrap();
     assert_eq!(resolved_shift, Some(shift_id));
     assert_eq!(traces[0].rule_name, "Fixed Assignment");
     assert_eq!(traces[0].priority, 20);

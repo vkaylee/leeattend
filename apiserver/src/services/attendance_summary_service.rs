@@ -461,7 +461,7 @@ mod tests {
     impl AttendanceDailySummaryRepository for MockDailySummaryRepo {
         async fn get_summary(
             &self,
-            _w: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
             _e: Uuid,
             _d: NaiveDate,
         ) -> Result<Option<AttendanceDailySummary>, AppError> {
@@ -473,7 +473,7 @@ mod tests {
         }
         async fn upsert_calculated_summary(
             &self,
-            _w: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
             _e: Uuid,
             _d: NaiveDate,
             _a: i32,
@@ -486,7 +486,7 @@ mod tests {
         }
         async fn claim_ot(
             &self,
-            _w: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
             _e: Uuid,
             _d: NaiveDate,
             _c: i32,
@@ -497,7 +497,7 @@ mod tests {
         }
         async fn approve_ot(
             &self,
-            _w: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
             _e: Uuid,
             _d: NaiveDate,
             _a: i32,
@@ -509,7 +509,7 @@ mod tests {
         }
         async fn upsert_paper_ot(
             &self,
-            _w: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
             _e: Uuid,
             _d: NaiveDate,
             _c: i32,
@@ -522,7 +522,7 @@ mod tests {
         }
         async fn get_batch_ot_statuses(
             &self,
-            _w: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
             _e: &[Uuid],
             _s: NaiveDate,
             _en: NaiveDate,
@@ -531,7 +531,7 @@ mod tests {
         }
         async fn get_summaries(
             &self,
-            _w: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
             _e: Option<Uuid>,
             _s: NaiveDate,
             _en: NaiveDate,
@@ -540,7 +540,7 @@ mod tests {
         }
         async fn get_distinct_work_days_from_summary(
             &self,
-            _w: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
             _e: Uuid,
             _s: NaiveDate,
             _en: NaiveDate,

@@ -376,14 +376,14 @@ mod tests {
     impl ShiftRepository for NopShiftRepo {
         async fn create_shift(
             &self,
-            ws: Uuid,
+            auth_token: &crate::diesel_pool::TenantAuthToken,
             req: &crate::models::CreateShiftRequest,
             _a: bool,
             _p: Option<Uuid>,
         ) -> Result<Shift, AppError> {
             Ok(Shift {
                 id: Uuid::new_v4(),
-                workspace_id: ws,
+                workspace_id: auth_token.0,
                 name: req.name.clone(),
                 report_symbol: None,
                 start_time: req.start_time,
@@ -401,26 +401,26 @@ mod tests {
                 updated_at: Utc::now(),
             })
         }
-        async fn get_shift_by_id(&self, _w: Uuid, _id: Uuid) -> Result<Option<Shift>, AppError> {
+        async fn get_shift_by_id(&self, _auth_token: &crate::diesel_pool::TenantAuthToken, _id: Uuid) -> Result<Option<Shift>, AppError> {
             Ok(None)
         }
-        async fn get_workspace_shifts(&self, _w: Uuid) -> Result<Vec<Shift>, AppError> {
+        async fn get_workspace_shifts(&self, _auth_token: &crate::diesel_pool::TenantAuthToken) -> Result<Vec<Shift>, AppError> {
             Ok(vec![])
         }
         async fn update_shift_direct(
             &self,
-            _w: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
             _id: Uuid,
             _r: &crate::models::UpdateShiftRequest,
         ) -> Result<Shift, AppError> {
             unimplemented!()
         }
-        async fn archive_shift(&self, _w: Uuid, _id: Uuid) -> Result<(), AppError> {
+        async fn archive_shift(&self, _auth_token: &crate::diesel_pool::TenantAuthToken, _id: Uuid) -> Result<(), AppError> {
             Ok(())
         }
         async fn assign_employee_shift(
             &self,
-            _ws: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
             _e: Uuid,
             _s: Uuid,
             _sd: NaiveDate,
@@ -430,7 +430,7 @@ mod tests {
         }
         async fn get_employee_active_shift(
             &self,
-            _ws: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
             _e: Uuid,
             _d: NaiveDate,
         ) -> Result<Option<Shift>, AppError> {
@@ -438,7 +438,7 @@ mod tests {
         }
         async fn update_assignments_to_new_version(
             &self,
-            _ws: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
             _o: Uuid,
             _n: Uuid,
             _d: NaiveDate,

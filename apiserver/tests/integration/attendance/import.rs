@@ -464,7 +464,7 @@ async fn test_employee_import_duplicate_department_prevention() {
     assert!(res2.is_ok(), "Second process_row failed");
 
     // Verify exactly one department exists in the database
-    let departments = department_repo.get_departments(ws_id).await.unwrap();
+    let departments = department_repo.get_departments(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id)).await.unwrap();
 
     assert_eq!(
         departments.len(),

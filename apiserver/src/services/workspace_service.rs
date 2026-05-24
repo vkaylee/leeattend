@@ -225,19 +225,19 @@ mod tests {
         async fn get_user_workspaces(&self, _u: Uuid) -> Result<Vec<Workspace>, AppError> {
             Ok(vec![])
         }
-        async fn clear_workspace_data(&self, _w: Uuid, _g: &str) -> Result<(), AppError> {
+        async fn clear_workspace_data(&self, _auth_token: &crate::diesel_pool::TenantAuthToken, _g: &str) -> Result<(), AppError> {
             Ok(())
         }
-        async fn add_member(&self, _w: Uuid, _u: Uuid, _r: Uuid) -> Result<(), AppError> {
+        async fn add_member(&self, _ws: Uuid, _u: Uuid, _r: Uuid) -> Result<(), AppError> {
             Ok(())
         }
-        async fn update_member_role(&self, _w: Uuid, _u: Uuid, _r: Uuid) -> Result<(), AppError> {
+        async fn update_member_role(&self, _ws: Uuid, _u: Uuid, _r: Uuid) -> Result<(), AppError> {
             Ok(())
         }
-        async fn remove_member(&self, _w: Uuid, _u: Uuid) -> Result<(), AppError> {
+        async fn remove_member(&self, _ws: Uuid, _u: Uuid) -> Result<(), AppError> {
             Ok(())
         }
-        async fn find_primary_role(&self, _w: Uuid, _u: Uuid) -> Result<Option<Uuid>, AppError> {
+        async fn find_primary_role(&self, _ws: Uuid, _u: Uuid) -> Result<Option<Uuid>, AppError> {
             Ok(self.primary_role)
         }
         async fn get_workspace_members(
@@ -379,7 +379,7 @@ mod tests {
         }
         async fn update_workspace_byod_url(
             &self,
-            _workspace_id: Uuid,
+            _ws: Uuid,
             _encrypted_url: Option<String>,
         ) -> Result<(), AppError> {
             Ok(())
@@ -458,7 +458,7 @@ mod tests {
         async fn get_dashboard_preferences(
             &self,
             _u: Uuid,
-            _w: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
         ) -> Result<Option<crate::handlers::dashboard_preferences::DashboardPreferences>, AppError>
         {
             Ok(None)
@@ -466,7 +466,7 @@ mod tests {
         async fn update_dashboard_preferences(
             &self,
             _u: Uuid,
-            _w: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
             _r: crate::handlers::dashboard_preferences::UpdateDashboardPreferences,
         ) -> Result<crate::handlers::dashboard_preferences::DashboardPreferences, AppError>
         {

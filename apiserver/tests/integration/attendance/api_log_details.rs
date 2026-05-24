@@ -53,7 +53,7 @@ async fn test_attendance_logs_include_employee_details() -> Result<(), Box<dyn s
     let raw_log_repo =
         apiserver::repositories::DieselRawAttendanceLogRepository::new(diesel_pools.clone());
     use apiserver::repositories::time_entry_repository::TimeEntryRepository;
-    te_repo.create_time_entry(ws_id, &entry).await?;
+    te_repo.create_time_entry(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id), &entry).await?;
 
     // 2. Create a Device and a RawAttendanceLog
     let device_id = Uuid::new_v4();

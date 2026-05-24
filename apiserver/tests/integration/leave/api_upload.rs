@@ -140,7 +140,7 @@ async fn test_upload_leave_csv_api() {
 
     let lr_repo = apiserver::repositories::DieselLeaveRequestRepository::new(diesel_pools.clone());
     let requests = lr_repo
-        .get_employee_leave_requests(ws_id, emp_id)
+        .get_employee_leave_requests(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id), emp_id)
         .await
         .unwrap();
 

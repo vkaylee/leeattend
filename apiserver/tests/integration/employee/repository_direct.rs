@@ -48,10 +48,10 @@ async fn test_working_condition_crud() {
         end_date: None,
     };
     let repo = DieselEmployeeRepository::new(test_db.diesel_pools.clone());
-    repo.create_working_condition(ws_id, &wc).await.unwrap();
+    repo.create_working_condition(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id), &wc).await.unwrap();
 
     // Read back
-    let conditions = repo.get_working_conditions(ws_id, emp_id).await.unwrap();
+    let conditions = repo.get_working_conditions(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id), emp_id).await.unwrap();
     assert_eq!(conditions.len(), 1);
     assert_eq!(conditions[0].type_, "late_arrival");
     assert_eq!(conditions[0].minute_allowance, 15);
@@ -59,13 +59,13 @@ async fn test_working_condition_crud() {
 
     // Delete
     let deleted = repo
-        .delete_working_condition(ws_id, wc.id, emp_id)
+        .delete_working_condition(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id), wc.id, emp_id)
         .await
         .unwrap();
     assert!(deleted);
 
     // Confirm empty
-    let conditions = repo.get_working_conditions(ws_id, emp_id).await.unwrap();
+    let conditions = repo.get_working_conditions(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id), emp_id).await.unwrap();
     assert!(conditions.is_empty());
 }
 
@@ -80,7 +80,7 @@ async fn test_delete_nonexistent_working_condition_returns_false() {
 
     let repo = DieselEmployeeRepository::new(test_db.diesel_pools.clone());
     let deleted = repo
-        .delete_working_condition(ws_id, Uuid::new_v4(), emp_id)
+        .delete_working_condition(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id), Uuid::new_v4(), emp_id)
         .await
         .unwrap();
     assert!(!deleted, "Should return false for non-existent condition");
@@ -102,7 +102,7 @@ async fn test_payroll_config_upsert_and_lookup() {
     // Insert
     let config = repo
         .upsert_employee_payroll_config(
-            ws_id,
+            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
             emp_id,
             Decimal::from(22),
             Decimal::from(8),
@@ -117,7 +117,7 @@ async fn test_payroll_config_upsert_and_lookup() {
     // Upsert (same effective_date → update)
     let updated = repo
         .upsert_employee_payroll_config(
-            ws_id,
+            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
             emp_id,
             Decimal::from(20),
             Decimal::from(7),
@@ -130,7 +130,7 @@ async fn test_payroll_config_upsert_and_lookup() {
 
     // Lookup at exactly the effective date
     let found = repo
-        .get_employee_payroll_config_at(ws_id, emp_id, effective)
+        .get_employee_payroll_config_at(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id), emp_id, effective)
         .await
         .unwrap();
     assert!(found.is_some());
@@ -139,7 +139,7 @@ async fn test_payroll_config_upsert_and_lookup() {
     // Lookup before effective date → should return None
     let before = NaiveDate::from_ymd_opt(2025, 12, 31).unwrap();
     let not_found = repo
-        .get_employee_payroll_config_at(ws_id, emp_id, before)
+        .get_employee_payroll_config_at(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id), emp_id, before)
         .await
         .unwrap();
     assert!(not_found.is_none());
@@ -160,17 +160,17 @@ async fn test_payroll_config_returns_closest_effective() {
 
     let repo = DieselEmployeeRepository::new(test_db.diesel_pools.clone());
 
-    repo.upsert_employee_payroll_config(ws_id, emp_id, Decimal::from(22), Decimal::from(8), jan)
+    repo.upsert_employee_payroll_config(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id), emp_id, Decimal::from(22), Decimal::from(8), jan)
         .await
         .unwrap();
-    repo.upsert_employee_payroll_config(ws_id, emp_id, Decimal::from(20), Decimal::from(7), jul)
+    repo.upsert_employee_payroll_config(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id), emp_id, Decimal::from(20), Decimal::from(7), jul)
         .await
         .unwrap();
 
     // Lookup in March → should get Jan config
     let march = NaiveDate::from_ymd_opt(2026, 3, 15).unwrap();
     let config = repo
-        .get_employee_payroll_config_at(ws_id, emp_id, march)
+        .get_employee_payroll_config_at(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id), emp_id, march)
         .await
         .unwrap()
         .unwrap();
@@ -179,7 +179,7 @@ async fn test_payroll_config_returns_closest_effective() {
     // Lookup in August → should get Jul config
     let august = NaiveDate::from_ymd_opt(2026, 8, 15).unwrap();
     let config = repo
-        .get_employee_payroll_config_at(ws_id, emp_id, august)
+        .get_employee_payroll_config_at(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id), emp_id, august)
         .await
         .unwrap()
         .unwrap();
@@ -221,7 +221,7 @@ async fn test_get_active_employees_excludes_inactive() {
     );
 
     let repo = DieselEmployeeRepository::new(test_db.diesel_pools.clone());
-    let active = repo.get_active_employees(ws_id).await.unwrap();
+    let active = repo.get_active_employees(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id)).await.unwrap();
     assert_eq!(active.len(), 1);
     assert_eq!(active[0].full_name, "Active One");
 }
@@ -257,7 +257,7 @@ async fn test_get_active_employee_ids_with_filter() {
     let filter = vec![e1, e3];
     let repo = DieselEmployeeRepository::new(test_db.diesel_pools.clone());
     let ids = repo
-        .get_active_employee_ids(ws_id, Some(&filter))
+        .get_active_employee_ids(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id), Some(&filter))
         .await
         .unwrap();
     assert_eq!(ids.len(), 2);
@@ -265,7 +265,7 @@ async fn test_get_active_employee_ids_with_filter() {
     assert!(ids.contains(&e3));
 
     // Without filter → all 3
-    let all_ids = repo.get_active_employee_ids(ws_id, None).await.unwrap();
+    let all_ids = repo.get_active_employee_ids(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id), None).await.unwrap();
     assert_eq!(all_ids.len(), 3);
 }
 
@@ -289,12 +289,12 @@ async fn test_find_by_number_normalizes_input() {
 
     // Search with leading zeros → should still find due to normalization
     let repo = DieselEmployeeRepository::new(test_db.diesel_pools.clone());
-    let found = repo.find_by_number(ws_id, "0042").await.unwrap();
+    let found = repo.find_by_number(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id), "0042").await.unwrap();
     assert!(found.is_some());
     assert_eq!(found.unwrap().full_name, "Number Test");
 
     // Search non-existent
-    let not_found = repo.find_by_number(ws_id, "999999").await.unwrap();
+    let not_found = repo.find_by_number(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id), "999999").await.unwrap();
     assert!(not_found.is_none());
 }
 
@@ -324,7 +324,7 @@ async fn test_get_existing_employee_ids_by_numbers() {
     let to_check = vec!["100".to_string(), "200".to_string(), "300".to_string()];
     let repo = DieselEmployeeRepository::new(test_db.diesel_pools.clone());
     let existing = repo
-        .get_existing_employee_ids_by_numbers(ws_id, &to_check)
+        .get_existing_employee_ids_by_numbers(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id), &to_check)
         .await
         .unwrap();
     assert_eq!(existing.len(), 2);
@@ -333,7 +333,7 @@ async fn test_get_existing_employee_ids_by_numbers() {
 
     // Empty input → empty result
     let empty_result = repo
-        .get_existing_employee_ids_by_numbers(ws_id, &[])
+        .get_existing_employee_ids_by_numbers(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id), &[])
         .await
         .unwrap();
     assert!(empty_result.is_empty());
@@ -371,7 +371,7 @@ async fn test_get_turnover_analytics_direct() {
 
     let repo = DieselEmployeeRepository::new(test_db.diesel_pools.clone());
     let analytics = repo
-        .get_turnover_analytics(ws_id, start_date, end_date)
+        .get_turnover_analytics(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id), start_date, end_date)
         .await
         .unwrap();
 
@@ -425,11 +425,11 @@ async fn test_recruitment_source_breakdown_direct() {
         .create()
         .await;
 
-    repo.set_employee_recruitment_source(ws_id, emp_id, Some(source_id))
+    repo.set_employee_recruitment_source(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id), emp_id, Some(source_id))
         .await
         .expect("Failed to link employee to source");
 
-    let breakdown = repo.get_recruitment_source_breakdown(ws_id).await.unwrap();
+    let breakdown = repo.get_recruitment_source_breakdown(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id)).await.unwrap();
 
     assert_eq!(breakdown.len(), 1);
     assert_eq!(breakdown[0].source_type, "agency");

@@ -112,7 +112,7 @@ mod tests {
         let mut emp_repo = crate::repositories::employee::MockEmployeeRepository::new();
         emp_repo
             .expect_find_by_number()
-            .withf(move |ws, id| *ws == ws_id && id == "1")
+            .withf(move |ws, id| *ws == crate::diesel_pool::TenantAuthToken::system_override(ws_id) && id == "1")
             .returning(move |_, _| {
                 let emp = Employee {
                     id: emp_id,

@@ -212,7 +212,7 @@ async fn test_payroll_std_days_source_traceability() {
     let dept_repo = apiserver::repositories::DieselDepartmentRepository::new(diesel_pools.clone());
     dept_repo
         .upsert_department_payroll_config(
-            workspace_id,
+            &apiserver::diesel_pool::TenantAuthToken::system_override(workspace_id),
             dept_id,
             Decimal::from(22),
             Decimal::from(8),
@@ -289,7 +289,7 @@ async fn test_payroll_std_days_source_traceability() {
         apiserver::repositories::DieselEmployeeRepository::new(diesel_pools.clone());
     employee_repo
         .upsert_employee_payroll_config(
-            workspace_id,
+            &apiserver::diesel_pool::TenantAuthToken::system_override(workspace_id),
             employee_id,
             Decimal::from(20),
             Decimal::from(8),

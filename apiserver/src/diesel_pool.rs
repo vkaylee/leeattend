@@ -214,8 +214,8 @@ fn is_transient_supavisor_error(err_msg: &str) -> bool {
         || err_msg.contains("closed")
 }
 
-#[derive(Clone, Copy)]
-pub struct TenantAuthToken(Uuid);
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct TenantAuthToken(pub(crate) Uuid);
 
 impl TenantAuthToken {
     /// Chỉ được phép khởi tạo bởi hệ thống auth (Extractors) hoặc System Bypass

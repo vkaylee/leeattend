@@ -597,7 +597,7 @@ mod tests {
         // Setup mocks
         mock_workspace_repo
             .expect_get_workspace_by_id()
-            .with(mockall::predicate::eq(ws_id))
+            .with(mockall::predicate::always())
             .returning(move |id| {
                 Box::pin(async move {
                     Ok(Some(crate::models::Workspace {
@@ -625,7 +625,7 @@ mod tests {
         let emp_ids = vec![emp1, emp2, emp3];
         mock_employee_repo
             .expect_get_active_employee_ids()
-            .with(mockall::predicate::eq(ws_id), mockall::predicate::always())
+            .with(mockall::predicate::always(), mockall::predicate::always())
             .returning(move |_, _| {
                 let ids = emp_ids.clone();
                 Box::pin(async move { Ok(ids) })

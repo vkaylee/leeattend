@@ -64,7 +64,7 @@ async fn test_department_with_no_employees_has_zero_count() {
         .create()
         .await;
 
-    let depts = repo.get_departments(ws_id).await.unwrap();
+    let depts = repo.get_departments(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id)).await.unwrap();
     assert_eq!(depts.len(), 1);
     assert_eq!(
         depts[0].active_employee_count, 0,
@@ -94,7 +94,7 @@ async fn test_department_counts_active_employees() {
         transfer(&pool, emp_id, dept_id, today).await;
     }
 
-    let depts = repo.get_departments(ws_id).await.unwrap();
+    let depts = repo.get_departments(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id)).await.unwrap();
     assert_eq!(depts.len(), 1);
     assert_eq!(
         depts[0].active_employee_count, 3,
@@ -131,7 +131,7 @@ async fn test_department_excludes_inactive_employees() {
 
     deactivate_employee(&pool, emp3).await;
 
-    let depts = repo.get_departments(ws_id).await.unwrap();
+    let depts = repo.get_departments(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id)).await.unwrap();
     assert_eq!(depts.len(), 1);
     assert_eq!(
         depts[0].active_employee_count, 2,
@@ -178,7 +178,7 @@ async fn test_department_uses_latest_transfer_only() {
     )
     .await;
 
-    let depts = repo.get_departments(ws_id).await.unwrap();
+    let depts = repo.get_departments(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id)).await.unwrap();
 
     let dept_a_row = depts.iter().find(|d| d.id == dept_a).unwrap();
     let dept_b_row = depts.iter().find(|d| d.id == dept_b).unwrap();
@@ -217,7 +217,7 @@ async fn test_get_department_by_id_includes_employee_count() {
     transfer(&pool, emp2, dept_id, today).await;
 
     let dept = repo
-        .get_department_by_id(ws_id, dept_id)
+        .get_department_by_id(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id), dept_id)
         .await
         .unwrap()
         .unwrap();
@@ -239,7 +239,7 @@ async fn test_create_department_returns_zero_count() {
     let ws_id = factory.workspace().create_with_owner(user_id).await;
 
     let dept = repo
-        .create_department(ws_id, "New Dept".to_string(), None, None, None)
+        .create_department(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id), "New Dept".to_string(), None, None, None)
         .await
         .unwrap();
 
@@ -289,7 +289,7 @@ async fn test_multiple_departments_independent_counts() {
     transfer(&pool, hr_emp, dept_hr, today).await;
     // Empty department has no employees
 
-    let depts = repo.get_departments(ws_id).await.unwrap();
+    let depts = repo.get_departments(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id)).await.unwrap();
 
     let eng = depts.iter().find(|d| d.id == dept_eng).unwrap();
     let hr = depts.iter().find(|d| d.id == dept_hr).unwrap();

@@ -40,7 +40,7 @@ async fn test_overnight_shift_pairing() {
     let shift_repo = apiserver::repositories::DieselShiftRepository::new(diesel_pools.clone());
     use apiserver::repositories::shift_repository::ShiftRepository;
     shift_repo
-        .assign_employee_shift(ws_id, employee_id, shift_id, shift_date, None)
+        .assign_employee_shift(&apiserver::diesel_pool::TenantAuthToken::system_override(ws_id), employee_id, shift_id, shift_date, None)
         .await
         .unwrap();
 
@@ -143,7 +143,7 @@ async fn test_overnight_shift_pairing() {
     use apiserver::repositories::time_entry_repository::TimeEntryRepository;
     let entries = repo
         .get_employee_time_entries(
-            ws_id,
+            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
             employee_id,
             shift_date.and_hms_opt(0, 0, 0).unwrap().and_utc(),
             (shift_date + Duration::days(1))

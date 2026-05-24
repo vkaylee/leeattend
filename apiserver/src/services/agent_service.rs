@@ -143,7 +143,7 @@ mod tests {
 
         async fn find_devices_by_agent_id(
             &self,
-            _workspace_id: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
             _agent_id: &str,
         ) -> Result<Vec<Device>, String> {
             Ok(vec![])
@@ -151,7 +151,7 @@ mod tests {
 
         async fn get_workspace_agents(
             &self,
-            _workspace_id: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
             _include_inactive: bool,
         ) -> Result<Vec<AuthorizedAgent>, crate::errors::AppError> {
             Ok(vec![])
@@ -162,7 +162,7 @@ mod tests {
             _id: &str,
             _name: &str,
             _token: &str,
-            _workspace_id: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
             _max_concurrent_workers: i32,
             _success_cooldown_secs: i32,
             _retention_days: i32,
@@ -173,14 +173,14 @@ mod tests {
         async fn agent_exists_in_workspace(
             &self,
             _agent_id: &str,
-            _workspace_id: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
         ) -> Result<bool, crate::errors::AppError> {
             Ok(true)
         }
 
         async fn get_workspace_devices(
             &self,
-            _workspace_id: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
         ) -> Result<Vec<Device>, crate::errors::AppError> {
             Ok(vec![])
         }
@@ -188,7 +188,7 @@ mod tests {
         async fn get_devices_by_agent_ids(
             &self,
             _agent_ids: &[String],
-            _workspace_id: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
         ) -> Result<Vec<Device>, crate::errors::AppError> {
             Ok(vec![])
         }
@@ -200,7 +200,7 @@ mod tests {
             _name: &str,
             _ip: &str,
             _port: i32,
-            _workspace_id: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
             _brand: &str,
             _password: &str,
             _timezone: &str,
@@ -211,7 +211,7 @@ mod tests {
         async fn get_device_by_id(
             &self,
             _id: Uuid,
-            _workspace_id: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
         ) -> Result<Option<Device>, crate::errors::AppError> {
             Ok(None)
         }
@@ -219,7 +219,7 @@ mod tests {
         async fn update_device(
             &self,
             _id: Uuid,
-            _workspace_id: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
             _name: &str,
             _ip: &str,
             _port: i32,
@@ -234,7 +234,7 @@ mod tests {
         async fn get_agent_id_for_device(
             &self,
             _device_id: Uuid,
-            _workspace_id: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
         ) -> Result<Option<String>, crate::errors::AppError> {
             Ok(None)
         }
@@ -242,7 +242,7 @@ mod tests {
         async fn delete_device(
             &self,
             _device_id: Uuid,
-            _workspace_id: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
         ) -> Result<u64, crate::errors::AppError> {
             Ok(1)
         }
@@ -250,7 +250,7 @@ mod tests {
         async fn update_agent_trust(
             &self,
             _agent_id: &str,
-            _workspace_id: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
             _is_trusted: bool,
         ) -> Result<u64, crate::errors::AppError> {
             Ok(1)
@@ -259,7 +259,7 @@ mod tests {
         async fn get_agent_by_id_in_workspace(
             &self,
             _agent_id: &str,
-            _workspace_id: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
         ) -> Result<Option<AuthorizedAgent>, crate::errors::AppError> {
             Ok(None)
         }
@@ -267,7 +267,7 @@ mod tests {
         async fn deactivate_agent(
             &self,
             _agent_id: &str,
-            _workspace_id: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
         ) -> Result<u64, crate::errors::AppError> {
             Ok(1)
         }

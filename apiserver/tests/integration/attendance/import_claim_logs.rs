@@ -102,7 +102,7 @@ async fn test_import_employee_claims_staged_logs() -> Result<(), Box<dyn std::er
 
     // 3. Verify employee was created
     let employee = emp_repo
-        .get_employee_by_id_number(&normalized_id, ws_id)
+        .get_employee_by_id_number(&normalized_id, &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id))
         .await?
         .ok_or("Employee should be created")?;
 

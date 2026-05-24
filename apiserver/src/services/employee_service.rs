@@ -513,7 +513,7 @@ mod tests {
         }
         async fn find_by_number(
             &self,
-            _ws: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
             _num: &str,
         ) -> Result<Option<Employee>, AppError> {
             Ok(self.employee.lock().expect("lock").clone())
@@ -522,7 +522,7 @@ mod tests {
         async fn get_employee_by_id(
             &self,
             _id: Uuid,
-            _ws: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
         ) -> Result<Option<Employee>, AppError> {
             Ok(self.employee.lock().expect("lock").clone())
         }
@@ -530,14 +530,14 @@ mod tests {
         async fn get_employee_by_id_number(
             &self,
             _num: &str,
-            _ws: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
         ) -> Result<Option<Employee>, AppError> {
             Ok(self.employee.lock().expect("lock").clone())
         }
 
         async fn get_all_employees(
             &self,
-            _ws: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
             _opts: EmployeeFilterOptions,
         ) -> Result<(Vec<Employee>, i64), AppError> {
             let emps = self.employees.lock().expect("lock").clone();
@@ -545,13 +545,13 @@ mod tests {
             Ok((emps, total))
         }
 
-        async fn get_active_employees(&self, _ws: Uuid) -> Result<Vec<Employee>, AppError> {
+        async fn get_active_employees(&self, _auth_token: &crate::diesel_pool::TenantAuthToken) -> Result<Vec<Employee>, AppError> {
             Ok(self.employees.lock().expect("lock").clone())
         }
 
         async fn get_active_employee_ids(
             &self,
-            _ws: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
             _filter: Option<&Vec<Uuid>>,
         ) -> Result<Vec<Uuid>, AppError> {
             Ok(vec![])
@@ -559,7 +559,7 @@ mod tests {
 
         async fn get_paginated_employee_ids(
             &self,
-            _ws: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
             _args: crate::models::EmployeePaginationArgs<'_>,
         ) -> Result<(Vec<EmployeeBasicInfo>, i64), AppError> {
             Ok((vec![], 0))
@@ -567,7 +567,7 @@ mod tests {
 
         async fn get_employee_departments_at(
             &self,
-            _ws: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
             _date: NaiveDate,
         ) -> Result<std::collections::HashMap<Uuid, (Option<Uuid>, String)>, AppError> {
             Ok(std::collections::HashMap::new())
@@ -576,7 +576,7 @@ mod tests {
         async fn update_employee(
             &self,
             _id: Uuid,
-            _ws: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
             _req: &crate::models::UpdateEmployeeRequest,
         ) -> Result<Option<Employee>, AppError> {
             Ok(self.updated_employee.lock().expect("lock").clone())
@@ -584,20 +584,20 @@ mod tests {
 
         async fn rehire_employee(
             &self,
-            _ws: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
             _emp: Uuid,
             _date: NaiveDate,
         ) -> Result<Option<Employee>, AppError> {
             Ok(self.updated_employee.lock().expect("lock").clone())
         }
 
-        async fn delete_employee(&self, _id: Uuid, _ws: Uuid) -> Result<u64, AppError> {
+        async fn delete_employee(&self, _id: Uuid, _auth_token: &crate::diesel_pool::TenantAuthToken) -> Result<u64, AppError> {
             Ok(*self.delete_emp_rows.lock().expect("lock"))
         }
 
         async fn get_working_conditions(
             &self,
-            _ws: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
             _emp: Uuid,
         ) -> Result<Vec<WorkingCondition>, AppError> {
             Ok(self.working_conditions.lock().expect("lock").clone())
@@ -605,7 +605,7 @@ mod tests {
 
         async fn create_working_condition(
             &self,
-            _workspace_id: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
             _cond: &WorkingCondition,
         ) -> Result<(), AppError> {
             Ok(())
@@ -613,7 +613,7 @@ mod tests {
 
         async fn delete_working_condition(
             &self,
-            _workspace_id: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
             _id: Uuid,
             _emp: Uuid,
         ) -> Result<bool, AppError> {
@@ -622,7 +622,7 @@ mod tests {
 
         async fn get_existing_employee_ids_by_numbers(
             &self,
-            _ws: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
             _nums: &[String],
         ) -> Result<Vec<String>, AppError> {
             Ok(vec![])
@@ -630,7 +630,7 @@ mod tests {
 
         async fn upsert_employee_payroll_config(
             &self,
-            _workspace_id: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
             employee_id: Uuid,
             std_working_days: Decimal,
             hours_per_day: Decimal,
@@ -648,7 +648,7 @@ mod tests {
 
         async fn get_employee_payroll_config_at(
             &self,
-            _workspace_id: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
             _emp: Uuid,
             _date: NaiveDate,
         ) -> Result<Option<crate::models::EmployeePayrollConfig>, AppError> {
@@ -657,7 +657,7 @@ mod tests {
 
         async fn get_employee_payroll_configs(
             &self,
-            _ws: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
             _emp: Uuid,
         ) -> Result<Vec<crate::models::EmployeePayrollConfig>, AppError> {
             Ok(vec![])
@@ -665,7 +665,7 @@ mod tests {
 
         async fn set_employee_recruitment_source(
             &self,
-            _workspace_id: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
             _employee_id: Uuid,
             _recruitment_source_id: Option<Uuid>,
         ) -> Result<(), AppError> {
@@ -681,7 +681,7 @@ mod tests {
 
         async fn get_recruitment_sources(
             &self,
-            _ws: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
         ) -> Result<Vec<RecruitmentSource>, AppError> {
             Ok(self.recruitment_sources.lock().expect("lock").clone())
         }
@@ -689,7 +689,7 @@ mod tests {
         async fn get_recruitment_source_by_id(
             &self,
             _id: Uuid,
-            _ws: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
         ) -> Result<Option<RecruitmentSource>, AppError> {
             Ok(None)
         }
@@ -697,7 +697,7 @@ mod tests {
         async fn update_recruitment_source(
             &self,
             _id: Uuid,
-            _ws: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
             _req: &crate::models::UpdateRecruitmentSourceRequest,
         ) -> Result<Option<RecruitmentSource>, AppError> {
             Ok(self
@@ -707,13 +707,13 @@ mod tests {
                 .clone())
         }
 
-        async fn delete_recruitment_source(&self, _id: Uuid, _ws: Uuid) -> Result<u64, AppError> {
+        async fn delete_recruitment_source(&self, _id: Uuid, _auth_token: &crate::diesel_pool::TenantAuthToken) -> Result<u64, AppError> {
             Ok(*self.delete_rs_rows.lock().expect("lock"))
         }
 
         async fn get_recruitment_source_breakdown(
             &self,
-            _ws: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
         ) -> Result<Vec<RecruitmentSourceBreakdown>, AppError> {
             Ok(self
                 .recruitment_source_breakdown
@@ -724,7 +724,7 @@ mod tests {
 
         async fn get_turnover_analytics(
             &self,
-            _ws: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
             start_date: NaiveDate,
             end_date: NaiveDate,
         ) -> Result<TurnoverAnalytics, AppError> {
@@ -745,7 +745,7 @@ mod tests {
 
         async fn get_managed_departments(
             &self,
-            _ws: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
             _user: Uuid,
         ) -> Result<Vec<Uuid>, AppError> {
             Ok(vec![])
@@ -753,7 +753,7 @@ mod tests {
 
         async fn get_employee_id_by_user_id(
             &self,
-            _ws: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
             _user: Uuid,
         ) -> Result<Option<Uuid>, AppError> {
             Ok(None)
@@ -761,7 +761,7 @@ mod tests {
 
         async fn get_working_conditions_at(
             &self,
-            _workspace_id: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
             _employee_id: Uuid,
             _date: NaiveDate,
         ) -> Result<Vec<WorkingCondition>, AppError> {
@@ -770,7 +770,7 @@ mod tests {
 
         async fn get_working_conditions_batch(
             &self,
-            _workspace_id: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
             _employee_ids: &[Uuid],
             _start_date: NaiveDate,
             _end_date: NaiveDate,
@@ -780,7 +780,7 @@ mod tests {
 
         async fn get_employee_profile(
             &self,
-            _workspace_id: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
             _employee_id: Uuid,
         ) -> Result<Option<crate::models::EmployeeProfile>, AppError> {
             Ok(None)
@@ -788,7 +788,7 @@ mod tests {
 
         async fn upsert_employee_profile(
             &self,
-            _workspace_id: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
             _employee_id: Uuid,
             _req: &crate::models::UpdateEmployeeProfileRequest,
         ) -> Result<crate::models::EmployeeProfile, AppError> {
@@ -797,7 +797,7 @@ mod tests {
 
         async fn get_emergency_contacts(
             &self,
-            _workspace_id: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
             _employee_id: Uuid,
         ) -> Result<Vec<crate::models::EmployeeEmergencyContact>, AppError> {
             Ok(vec![])
@@ -805,7 +805,7 @@ mod tests {
 
         async fn upsert_emergency_contact(
             &self,
-            _workspace_id: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
             _employee_id: Uuid,
             _req: &crate::models::CreateEmergencyContactRequest,
         ) -> Result<crate::models::EmployeeEmergencyContact, AppError> {
@@ -814,7 +814,7 @@ mod tests {
 
         async fn delete_emergency_contact(
             &self,
-            _workspace_id: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
             _employee_id: Uuid,
             _contact_id: Uuid,
         ) -> Result<u64, AppError> {
@@ -823,7 +823,7 @@ mod tests {
 
         async fn get_employee_documents(
             &self,
-            _workspace_id: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
             _employee_id: Uuid,
         ) -> Result<Vec<crate::models::EmployeeDocument>, AppError> {
             Ok(vec![])
@@ -844,7 +844,7 @@ mod tests {
     impl crate::repositories::department_repository::DepartmentRepository for NopDepartmentRepo {
         async fn create_department(
             &self,
-            _ws: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
             _name: String,
             _desc: Option<String>,
             _mgr: Option<Uuid>,
@@ -854,38 +854,38 @@ mod tests {
         }
         async fn get_department_by_id(
             &self,
-            _ws: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
             _id: Uuid,
         ) -> Result<Option<crate::models::Department>, AppError> {
             unimplemented!()
         }
         async fn get_department_by_name(
             &self,
-            _ws: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
             _name: &str,
         ) -> Result<Option<Uuid>, AppError> {
             unimplemented!()
         }
         async fn update_department(
             &self,
-            _ws: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
             _id: Uuid,
             _req: crate::models::UpdateDepartmentRequest,
         ) -> Result<crate::models::Department, AppError> {
             unimplemented!()
         }
-        async fn delete_department(&self, _ws: Uuid, _id: Uuid) -> Result<(), AppError> {
+        async fn delete_department(&self, _auth_token: &crate::diesel_pool::TenantAuthToken, _id: Uuid) -> Result<(), AppError> {
             unimplemented!()
         }
         async fn get_departments(
             &self,
-            _ws: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
         ) -> Result<Vec<crate::models::Department>, AppError> {
             unimplemented!()
         }
         async fn transfer_employee(
             &self,
-            _workspace_id: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
             _emp: Uuid,
             _dept: Uuid,
             _date: chrono::NaiveDate,
@@ -895,21 +895,21 @@ mod tests {
         }
         async fn get_employee_department_history(
             &self,
-            _ws: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
             _emp: Uuid,
         ) -> Result<Vec<crate::models::EmployeeDepartmentHistory>, AppError> {
             unimplemented!()
         }
         async fn get_current_department(
             &self,
-            _ws: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
             _emp: Uuid,
         ) -> Result<Option<crate::models::EmployeeDepartmentHistory>, AppError> {
             unimplemented!()
         }
         async fn upsert_department_payroll_config(
             &self,
-            _workspace_id: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
             _dept: Uuid,
             _std_wd: rust_decimal::Decimal,
             _hpd: rust_decimal::Decimal,
@@ -919,7 +919,7 @@ mod tests {
         }
         async fn get_department_payroll_config_at(
             &self,
-            _workspace_id: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
             _dept: Uuid,
             _date: chrono::NaiveDate,
         ) -> Result<Option<crate::models::DepartmentPayrollConfig>, AppError> {
@@ -927,7 +927,7 @@ mod tests {
         }
         async fn get_department_payroll_configs(
             &self,
-            _ws: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
             _dept: Uuid,
         ) -> Result<Vec<crate::models::DepartmentPayrollConfig>, AppError> {
             unimplemented!()
@@ -983,7 +983,7 @@ mod tests {
         async fn get_dashboard_preferences(
             &self,
             _user_id: Uuid,
-            _workspace_id: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
         ) -> Result<Option<crate::handlers::dashboard_preferences::DashboardPreferences>, AppError>
         {
             unimplemented!()
@@ -991,7 +991,7 @@ mod tests {
         async fn update_dashboard_preferences(
             &self,
             _user_id: Uuid,
-            _workspace_id: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
             _req: crate::handlers::dashboard_preferences::UpdateDashboardPreferences,
         ) -> Result<crate::handlers::dashboard_preferences::DashboardPreferences, AppError>
         {
@@ -1114,7 +1114,7 @@ mod tests {
         let emp_id = emp.id;
         let svc = make_service(MockEmployeeRepo::with_employee(emp.clone()));
 
-        let result = svc.get_employee_by_id(emp_id, ws).await;
+        let result = svc.get_employee_by_id(emp_id, &crate::diesel_pool::TenantAuthToken::system_override(ws)).await;
         assert!(result.is_ok());
         assert_eq!(result.expect("ok").id, emp_id);
     }
@@ -1122,7 +1122,7 @@ mod tests {
     #[tokio::test]
     async fn get_employee_by_id_not_found() {
         let svc = make_service(MockEmployeeRepo::empty());
-        let result = svc.get_employee_by_id(Uuid::new_v4(), Uuid::new_v4()).await;
+        let result = svc.get_employee_by_id(Uuid::new_v4(), &crate::diesel_pool::TenantAuthToken::system_override(Uuid::new_v4())).await;
         assert!(result.is_err());
         assert!(matches!(result.unwrap_err(), AppError::NotFound(_)));
     }
@@ -1139,7 +1139,7 @@ mod tests {
 
         let svc = make_service(mock);
         let (list, total) = svc
-            .get_all_employees(ws, EmployeeFilterOptions::default())
+            .get_all_employees(&crate::diesel_pool::TenantAuthToken::system_override(ws), EmployeeFilterOptions::default())
             .await
             .expect("ok");
 
@@ -1152,7 +1152,7 @@ mod tests {
     async fn get_all_employees_empty() {
         let svc = make_service(MockEmployeeRepo::empty());
         let (list, total) = svc
-            .get_all_employees(Uuid::new_v4(), EmployeeFilterOptions::default())
+            .get_all_employees(&crate::diesel_pool::TenantAuthToken::system_override(Uuid::new_v4()), EmployeeFilterOptions::default())
             .await
             .expect("ok");
 
@@ -1172,7 +1172,7 @@ mod tests {
         *mock.working_conditions.lock().expect("lock") = vec![cond.clone()];
 
         let svc = make_service(mock);
-        let result = svc.get_working_conditions(emp.id, ws).await.expect("ok");
+        let result = svc.get_working_conditions(emp.id, &crate::diesel_pool::TenantAuthToken::system_override(ws)).await.expect("ok");
 
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].type_, "late_allowance");
@@ -1183,7 +1183,7 @@ mod tests {
     async fn get_working_conditions_employee_not_found() {
         let svc = make_service(MockEmployeeRepo::empty());
         let result = svc
-            .get_working_conditions(Uuid::new_v4(), Uuid::new_v4())
+            .get_working_conditions(Uuid::new_v4(), &crate::diesel_pool::TenantAuthToken::system_override(Uuid::new_v4()))
             .await;
         assert!(matches!(result.unwrap_err(), AppError::NotFound(_)));
     }
@@ -1204,7 +1204,7 @@ mod tests {
             end_date: None,
         };
 
-        let result = svc.create_working_condition(emp.id, ws, req).await;
+        let result = svc.create_working_condition(emp.id, &crate::diesel_pool::TenantAuthToken::system_override(ws), req).await;
         assert!(result.is_ok());
         let wc = result.expect("ok");
         assert_eq!(wc.type_, "early_leave");
@@ -1224,7 +1224,7 @@ mod tests {
 
         let svc = make_service(mock);
         let result = svc
-            .delete_working_condition(emp.id, ws, Uuid::new_v4())
+            .delete_working_condition(emp.id, &crate::diesel_pool::TenantAuthToken::system_override(ws), Uuid::new_v4())
             .await;
         assert!(result.is_ok());
     }
@@ -1238,7 +1238,7 @@ mod tests {
 
         let svc = make_service(mock);
         let result = svc
-            .delete_working_condition(emp.id, ws, Uuid::new_v4())
+            .delete_working_condition(emp.id, &crate::diesel_pool::TenantAuthToken::system_override(ws), Uuid::new_v4())
             .await;
         assert!(matches!(result.unwrap_err(), AppError::NotFound(_)));
     }
@@ -1247,7 +1247,7 @@ mod tests {
     async fn delete_working_condition_employee_not_found() {
         let svc = make_service(MockEmployeeRepo::empty());
         let result = svc
-            .delete_working_condition(Uuid::new_v4(), Uuid::new_v4(), Uuid::new_v4())
+            .delete_working_condition(Uuid::new_v4(), &crate::diesel_pool::TenantAuthToken::system_override(Uuid::new_v4()), Uuid::new_v4())
             .await;
         assert!(matches!(result.unwrap_err(), AppError::NotFound(_)));
     }
@@ -1260,14 +1260,14 @@ mod tests {
         *mock.delete_emp_rows.lock().expect("lock") = 1;
         let svc = make_service(mock);
 
-        let result = svc.delete_employee(Uuid::new_v4(), Uuid::new_v4()).await;
+        let result = svc.delete_employee(Uuid::new_v4(), &crate::diesel_pool::TenantAuthToken::system_override(Uuid::new_v4())).await;
         assert!(result.is_ok());
     }
 
     #[tokio::test]
     async fn delete_employee_not_found() {
         let svc = make_service(MockEmployeeRepo::empty());
-        let result = svc.delete_employee(Uuid::new_v4(), Uuid::new_v4()).await;
+        let result = svc.delete_employee(Uuid::new_v4(), &crate::diesel_pool::TenantAuthToken::system_override(Uuid::new_v4())).await;
         assert!(matches!(result.unwrap_err(), AppError::NotFound(_)));
     }
 
@@ -1297,7 +1297,7 @@ mod tests {
         *mock.recruitment_sources.lock().expect("lock") = vec![source];
 
         let svc = make_service(mock);
-        let result = svc.get_recruitment_sources(ws).await.expect("ok");
+        let result = svc.get_recruitment_sources(&crate::diesel_pool::TenantAuthToken::system_override(ws)).await.expect("ok");
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].name, "LinkedIn");
     }
@@ -1311,7 +1311,7 @@ mod tests {
         let svc = make_service(mock);
 
         let result = svc
-            .delete_recruitment_source(Uuid::new_v4(), Uuid::new_v4())
+            .delete_recruitment_source(Uuid::new_v4(), &crate::diesel_pool::TenantAuthToken::system_override(Uuid::new_v4()))
             .await;
         assert!(result.is_ok());
     }
@@ -1320,7 +1320,7 @@ mod tests {
     async fn delete_recruitment_source_not_found() {
         let svc = make_service(MockEmployeeRepo::empty());
         let result = svc
-            .delete_recruitment_source(Uuid::new_v4(), Uuid::new_v4())
+            .delete_recruitment_source(Uuid::new_v4(), &crate::diesel_pool::TenantAuthToken::system_override(Uuid::new_v4()))
             .await;
         assert!(matches!(result.unwrap_err(), AppError::NotFound(_)));
     }
@@ -1342,7 +1342,7 @@ mod tests {
             notes: None,
         };
         let result = svc
-            .update_recruitment_source(Uuid::new_v4(), Uuid::new_v4(), req)
+            .update_recruitment_source(Uuid::new_v4(), &crate::diesel_pool::TenantAuthToken::system_override(Uuid::new_v4()), req)
             .await;
         assert!(matches!(result.unwrap_err(), AppError::NotFound(_)));
     }
@@ -1379,7 +1379,7 @@ mod tests {
         let end = NaiveDate::from_ymd_opt(2026, 6, 30).expect("valid date");
 
         let result = svc
-            .get_turnover_analytics(ws, start, end)
+            .get_turnover_analytics(&crate::diesel_pool::TenantAuthToken::system_override(ws), start, end)
             .await
             .expect("ok");
         assert_eq!(result.total_terminated, 5);
@@ -1400,7 +1400,7 @@ mod tests {
             end_date: None,
         };
         let result = svc
-            .create_working_condition(Uuid::new_v4(), Uuid::new_v4(), req)
+            .create_working_condition(Uuid::new_v4(), &crate::diesel_pool::TenantAuthToken::system_override(Uuid::new_v4()), req)
             .await;
         assert!(matches!(result.unwrap_err(), AppError::NotFound(_)));
     }
@@ -1419,7 +1419,7 @@ mod tests {
             agency_fee_amount: None,
             notes: None,
         };
-        let result = svc.create_recruitment_source(ws, req).await;
+        let result = svc.create_recruitment_source(&crate::diesel_pool::TenantAuthToken::system_override(ws), req).await;
         assert!(result.is_ok());
         let src = result.unwrap();
         assert_eq!(src.name, "Indeed");
@@ -1460,7 +1460,7 @@ mod tests {
             agency_fee_paid: None,
             notes: None,
         };
-        let result = svc.update_recruitment_source(id, ws, req).await;
+        let result = svc.update_recruitment_source(id, &crate::diesel_pool::TenantAuthToken::system_override(ws), req).await;
         assert!(result.is_ok());
         assert_eq!(result.unwrap().name, "Updated Name");
     }
@@ -1476,7 +1476,7 @@ mod tests {
         };
         *mock.recruitment_source_breakdown.lock().expect("lock") = vec![breakdown];
         let svc = make_service(mock);
-        let result = svc.get_recruitment_source_breakdown(ws).await;
+        let result = svc.get_recruitment_source_breakdown(&crate::diesel_pool::TenantAuthToken::system_override(ws)).await;
         assert!(result.is_ok());
         let list = result.unwrap();
         assert_eq!(list.len(), 1);
@@ -1490,7 +1490,7 @@ mod tests {
             hire_date: NaiveDate::from_ymd_opt(2026, 2, 1).unwrap(),
         };
         let result = svc
-            .rehire_employee(Uuid::new_v4(), Uuid::new_v4(), req)
+            .rehire_employee(Uuid::new_v4(), &crate::diesel_pool::TenantAuthToken::system_override(Uuid::new_v4()), req)
             .await;
         assert!(matches!(result.unwrap_err(), AppError::NotFound(_)));
     }
@@ -1503,7 +1503,7 @@ mod tests {
         let req = crate::models::RehireEmployeeRequest {
             hire_date: NaiveDate::from_ymd_opt(2026, 2, 1).unwrap(),
         };
-        let result = svc.rehire_employee(emp.id, ws, req).await;
+        let result = svc.rehire_employee(emp.id, &crate::diesel_pool::TenantAuthToken::system_override(ws), req).await;
         assert!(
             matches!(result.unwrap_err(), AppError::Validation(e) if e == "Employee is already active")
         );
@@ -1519,7 +1519,7 @@ mod tests {
         let req = crate::models::RehireEmployeeRequest {
             hire_date: NaiveDate::from_ymd_opt(2026, 4, 1).unwrap(), // Before termination
         };
-        let result = svc.rehire_employee(emp.id, ws, req).await;
+        let result = svc.rehire_employee(emp.id, &crate::diesel_pool::TenantAuthToken::system_override(ws), req).await;
         assert!(
             matches!(result.unwrap_err(), AppError::Validation(e) if e == "Rehire date must be after termination date")
         );
@@ -1540,7 +1540,7 @@ mod tests {
             recruitment_source_id: None,
         };
         let result = svc
-            .update_employee(Uuid::new_v4(), Uuid::new_v4(), req)
+            .update_employee(Uuid::new_v4(), &crate::diesel_pool::TenantAuthToken::system_override(Uuid::new_v4()), req)
             .await;
         assert!(matches!(result.unwrap_err(), AppError::NotFound(_)));
     }
@@ -1564,7 +1564,7 @@ mod tests {
             max_concurrent_workers: None,
             recruitment_source_id: None, // No source ID, no id_number update
         };
-        let result = svc.update_employee(updated_id, ws, req).await;
+        let result = svc.update_employee(updated_id, &crate::diesel_pool::TenantAuthToken::system_override(ws), req).await;
         assert!(result.is_ok());
     }
 
@@ -1572,7 +1572,7 @@ mod tests {
     async fn get_department_history_employee_not_found() {
         let svc = make_service(MockEmployeeRepo::empty());
         let result = svc
-            .get_department_history(Uuid::new_v4(), Uuid::new_v4())
+            .get_department_history(Uuid::new_v4(), &crate::diesel_pool::TenantAuthToken::system_override(Uuid::new_v4()))
             .await;
         assert!(matches!(result.unwrap_err(), AppError::NotFound(_)));
     }
@@ -1586,7 +1586,7 @@ mod tests {
             notes: None,
         };
         let result = svc
-            .transfer_employee(Uuid::new_v4(), Uuid::new_v4(), req)
+            .transfer_employee(Uuid::new_v4(), &crate::diesel_pool::TenantAuthToken::system_override(Uuid::new_v4()), req)
             .await;
         assert!(matches!(result.unwrap_err(), AppError::NotFound(_)));
     }
