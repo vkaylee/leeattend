@@ -1,3 +1,4 @@
+#![allow(unused_imports)]
 use async_trait::async_trait;
 use chrono::Utc;
 use diesel::prelude::*;
@@ -28,7 +29,7 @@ impl DieselAgentRepository {
 
 #[async_trait]
 impl AgentRepository for DieselAgentRepository {
-    async fn find_by_id(&self, id_val: &str) -> Result<Option<AuthorizedAgent>, String> {
+    async fn find_by_id(&self, id: &str) -> Result<Option<AuthorizedAgent>, String> {
         let mut conn = self
             .diesel_pools
             .api
@@ -37,7 +38,7 @@ impl AgentRepository for DieselAgentRepository {
             .map_err(|e| e.to_string())?;
 
         let agent = authorized_agents::table
-            .filter(authorized_agents::id.eq(id_val))
+            .filter(authorized_agents::id.eq(id))
             .filter(authorized_agents::is_active.eq(true))
             .first::<AuthorizedAgentEntity>(&mut conn)
             .await
@@ -47,7 +48,8 @@ impl AgentRepository for DieselAgentRepository {
         Ok(agent.map(Into::into))
     }
 
-    async fn update_last_ip(&self, id_val: &str, ip_val: &str) -> Result<(), String> {
+    async fn update_last_ip(&self, id: &str, ip: &str) -> Result<(), String> {
+
         let mut conn = self
             .diesel_pools
             .api
@@ -55,8 +57,8 @@ impl AgentRepository for DieselAgentRepository {
             .await
             .map_err(|e| e.to_string())?;
 
-        diesel::update(authorized_agents::table.filter(authorized_agents::id.eq(id_val)))
-            .set(authorized_agents::last_ip.eq(ip_val))
+        diesel::update(authorized_agents::table.filter(authorized_agents::id.eq(id)))
+            .set(authorized_agents::last_ip.eq(ip))
             .execute(&mut conn)
             .await
             .map_err(|e| e.to_string())?;
@@ -64,7 +66,8 @@ impl AgentRepository for DieselAgentRepository {
         Ok(())
     }
 
-    async fn update_last_seen(&self, id_val: &str) -> Result<(), String> {
+    async fn update_last_seen(&self, id: &str) -> Result<(), String> {
+
         let mut conn = self
             .diesel_pools
             .api
@@ -72,7 +75,7 @@ impl AgentRepository for DieselAgentRepository {
             .await
             .map_err(|e| e.to_string())?;
 
-        diesel::update(authorized_agents::table.filter(authorized_agents::id.eq(id_val)))
+        diesel::update(authorized_agents::table.filter(authorized_agents::id.eq(id)))
             .set(authorized_agents::last_seen_at.eq(Some(Utc::now())))
             .execute(&mut conn)
             .await
@@ -83,17 +86,17 @@ impl AgentRepository for DieselAgentRepository {
 
     async fn find_devices_by_agent_id(
         &self,
-        workspace_id_val: Uuid,
-        agent_id_val: &str,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        agent_id: &str,
     ) -> Result<Vec<Device>, String> {
         let mut conn = self
             .diesel_pools
-            .tenant_conn_bypass_auth_DANGER(workspace_id_val)
+            .tenant_conn_bypass_auth_DANGER(auth_token.workspace_id())
             .await
             .map_err(|e| e.to_string())?;
 
         let devices_result = devices::table
-            .filter(devices::agent_id.eq(agent_id_val))
+            .filter(devices::agent_id.eq(agent_id))
             .order(devices::created_at.desc())
             .load::<DeviceEntity>(&mut conn)
             .await
@@ -104,7 +107,7 @@ impl AgentRepository for DieselAgentRepository {
 
     async fn get_workspace_agents(
         &self,
-        workspace_id_val: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         include_inactive: bool,
     ) -> Result<Vec<AuthorizedAgent>, AppError> {
         let mut conn = self
@@ -115,7 +118,7 @@ impl AgentRepository for DieselAgentRepository {
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let mut query = authorized_agents::table
-            .filter(authorized_agents::workspace_id.eq(workspace_id_val))
+            .filter(authorized_agents::workspace_id.eq(auth_token.workspace_id()))
             .into_boxed();
 
         if !include_inactive {
@@ -133,14 +136,15 @@ impl AgentRepository for DieselAgentRepository {
 
     async fn create_authorized_agent(
         &self,
-        id_val: &str,
-        name_val: &str,
-        token_val: &str,
-        workspace_id_val: Uuid,
-        max_concurrent_workers_val: i32,
-        success_cooldown_secs_val: i32,
-        retention_days_val: i32,
+        id: &str,
+        name: &str,
+        token: &str,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        max_concurrent_workers: i32,
+        success_cooldown_secs: i32,
+        retention_days: i32,
     ) -> Result<(), AppError> {
+
         let mut conn = self
             .diesel_pools
             .api
@@ -149,18 +153,18 @@ impl AgentRepository for DieselAgentRepository {
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let agent = AuthorizedAgentEntity {
-            id: id_val.to_string(),
-            name: name_val.to_string(),
-            token: token_val.to_string(),
+            id: id.to_string(),
+            name: name.to_string(),
+            token: token.to_string(),
             is_trusted: None,
             last_ip: None,
             created_at: Some(Utc::now()),
             is_active: true,
-            workspace_id: workspace_id_val,
+            workspace_id: auth_token.workspace_id(),
             last_seen_at: None,
-            max_concurrent_workers: max_concurrent_workers_val,
-            success_cooldown_secs: success_cooldown_secs_val,
-            retention_days: retention_days_val,
+            max_concurrent_workers: max_concurrent_workers,
+            success_cooldown_secs: success_cooldown_secs,
+            retention_days: retention_days,
         };
 
         diesel::insert_into(authorized_agents::table)
@@ -174,9 +178,10 @@ impl AgentRepository for DieselAgentRepository {
 
     async fn agent_exists_in_workspace(
         &self,
-        agent_id_val: &str,
-        workspace_id_val: Uuid,
+        agent_id: &str,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<bool, AppError> {
+
         let mut conn = self
             .diesel_pools
             .api
@@ -185,8 +190,8 @@ impl AgentRepository for DieselAgentRepository {
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let count: i64 = authorized_agents::table
-            .filter(authorized_agents::id.eq(agent_id_val))
-            .filter(authorized_agents::workspace_id.eq(workspace_id_val))
+            .filter(authorized_agents::id.eq(agent_id))
+            .filter(authorized_agents::workspace_id.eq(auth_token.workspace_id()))
             .filter(authorized_agents::is_active.eq(true))
             .count()
             .get_result(&mut conn)
@@ -196,11 +201,11 @@ impl AgentRepository for DieselAgentRepository {
         Ok(count > 0)
     }
 
-    async fn get_workspace_devices(&self, workspace_id_val: Uuid) -> Result<Vec<Device>, AppError> {
-        let mut conn = self.diesel_pools.tenant_conn_bypass_auth_DANGER(workspace_id_val).await?;
+    async fn get_workspace_devices(&self, auth_token: &crate::diesel_pool::TenantAuthToken) -> Result<Vec<Device>, AppError> {
+        let mut conn = self.diesel_pools.tenant_conn_bypass_auth_DANGER(auth_token.workspace_id()).await?;
 
         let devices_result = devices::table
-            .filter(devices::workspace_id.eq(workspace_id_val))
+            .filter(devices::workspace_id.eq(auth_token.workspace_id()))
             .order(devices::created_at.desc())
             .load::<DeviceEntity>(&mut conn)
             .await
@@ -211,14 +216,14 @@ impl AgentRepository for DieselAgentRepository {
 
     async fn get_devices_by_agent_ids(
         &self,
-        agent_ids_val: &[String],
-        workspace_id_val: Uuid,
+        agent_ids: &[String],
+        auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<Vec<Device>, AppError> {
-        let mut conn = self.diesel_pools.tenant_conn_bypass_auth_DANGER(workspace_id_val).await?;
+        let mut conn = self.diesel_pools.tenant_conn_bypass_auth_DANGER(auth_token.workspace_id()).await?;
 
         let devices_result = devices::table
-            .filter(devices::agent_id.eq_any(agent_ids_val))
-            .filter(devices::workspace_id.eq(workspace_id_val))
+            .filter(devices::agent_id.eq_any(agent_ids))
+            .filter(devices::workspace_id.eq(auth_token.workspace_id()))
             .order(devices::created_at.desc())
             .load::<DeviceEntity>(&mut conn)
             .await
@@ -229,31 +234,32 @@ impl AgentRepository for DieselAgentRepository {
 
     async fn create_device(
         &self,
-        id_val: Uuid,
-        agent_id_val: &str,
-        name_val: &str,
-        ip_val: &str,
-        port_val: i32,
-        workspace_id_val: Uuid,
-        brand_val: &str,
-        password_val: &str,
-        timezone_val: &str,
+        id: Uuid,
+        agent_id: &str,
+        name: &str,
+        ip: &str,
+        port: i32,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        brand: &str,
+        password: &str,
+        timezone: &str,
     ) -> Result<(), AppError> {
-        let mut conn = self.diesel_pools.tenant_conn_bypass_auth_DANGER(workspace_id_val).await?;
+
+        let mut conn = self.diesel_pools.tenant_conn_bypass_auth_DANGER(auth_token.workspace_id()).await?;
 
         let device = DeviceEntity {
-            id: id_val,
-            agent_id: agent_id_val.to_string(),
-            name: name_val.to_string(),
-            ip: ip_val.to_string(),
-            port: Some(port_val),
+            id: id,
+            agent_id: agent_id.to_string(),
+            name: name.to_string(),
+            ip: ip.to_string(),
+            port: Some(port),
             is_enabled: Some(true),
             last_status: None,
             created_at: Some(Utc::now()),
-            workspace_id: workspace_id_val,
-            brand: brand_val.to_string(),
-            password: Some(password_val.to_string()),
-            timezone: Some(timezone_val.to_string()),
+            workspace_id: auth_token.workspace_id(),
+            brand: brand.to_string(),
+            password: Some(password.to_string()),
+            timezone: Some(timezone.to_string()),
         };
 
         diesel::insert_into(devices::table)
@@ -267,14 +273,14 @@ impl AgentRepository for DieselAgentRepository {
 
     async fn get_device_by_id(
         &self,
-        id_val: Uuid,
-        workspace_id_val: Uuid,
+        id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<Option<Device>, AppError> {
-        let mut conn = self.diesel_pools.tenant_conn_bypass_auth_DANGER(workspace_id_val).await?;
+        let mut conn = self.diesel_pools.tenant_conn_bypass_auth_DANGER(auth_token.workspace_id()).await?;
 
         let device = devices::table
-            .filter(devices::id.eq(id_val))
-            .filter(devices::workspace_id.eq(workspace_id_val))
+            .filter(devices::id.eq(id))
+            .filter(devices::workspace_id.eq(auth_token.workspace_id()))
             .first::<DeviceEntity>(&mut conn)
             .await
             .optional()
@@ -285,36 +291,37 @@ impl AgentRepository for DieselAgentRepository {
 
     async fn update_device(
         &self,
-        id_val: Uuid,
-        workspace_id_val: Uuid,
-        name_val: &str,
-        ip_val: &str,
-        port_val: i32,
-        is_enabled_val: bool,
-        brand_val: &str,
-        password_val: Option<&str>,
-        timezone_val: &str,
+        id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        name: &str,
+        ip: &str,
+        port: i32,
+        is_enabled: bool,
+        brand: &str,
+        password: Option<&str>,
+        timezone: &str,
     ) -> Result<(), AppError> {
-        let mut conn = self.diesel_pools.tenant_conn_bypass_auth_DANGER(workspace_id_val).await?;
+
+        let mut conn = self.diesel_pools.tenant_conn_bypass_auth_DANGER(auth_token.workspace_id()).await?;
 
         // Note: Password update logic. In sqlx it was: password = COALESCE($6, password).
         // Since we use AsChangeset, we can fetch existing if password is None, or we can just fetch and update.
         let mut update_model = UpdateDieselDevice {
-            name: name_val.to_string(),
-            ip: ip_val.to_string(),
-            port: Some(port_val),
-            is_enabled: Some(is_enabled_val),
-            brand: brand_val.to_string(),
-            password: password_val.map(ToString::to_string),
-            timezone: Some(timezone_val.to_string()),
+            name: name.to_string(),
+            ip: ip.to_string(),
+            port: Some(port),
+            is_enabled: Some(is_enabled),
+            brand: brand.to_string(),
+            password: password.map(ToString::to_string),
+            timezone: Some(timezone.to_string()),
         };
 
         if update_model.password.is_none() {
             // Fetch existing password to preserve it
             let existing: Option<String> = devices::table
                 .select(devices::password)
-                .filter(devices::id.eq(id_val))
-                .filter(devices::workspace_id.eq(workspace_id_val))
+                .filter(devices::id.eq(id))
+                .filter(devices::workspace_id.eq(auth_token.workspace_id()))
                 .first(&mut conn)
                 .await
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -323,8 +330,8 @@ impl AgentRepository for DieselAgentRepository {
 
         diesel::update(
             devices::table
-                .filter(devices::id.eq(id_val))
-                .filter(devices::workspace_id.eq(workspace_id_val)),
+                .filter(devices::id.eq(id))
+                .filter(devices::workspace_id.eq(auth_token.workspace_id())),
         )
         .set(&update_model)
         .execute(&mut conn)
@@ -336,15 +343,15 @@ impl AgentRepository for DieselAgentRepository {
 
     async fn get_agent_id_for_device(
         &self,
-        device_id_val: Uuid,
-        workspace_id_val: Uuid,
+        device_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<Option<String>, AppError> {
-        let mut conn = self.diesel_pools.tenant_conn_bypass_auth_DANGER(workspace_id_val).await?;
+        let mut conn = self.diesel_pools.tenant_conn_bypass_auth_DANGER(auth_token.workspace_id()).await?;
 
         let agent_id = devices::table
             .select(devices::agent_id)
-            .filter(devices::id.eq(device_id_val))
-            .filter(devices::workspace_id.eq(workspace_id_val))
+            .filter(devices::id.eq(device_id))
+            .filter(devices::workspace_id.eq(auth_token.workspace_id()))
             .first::<String>(&mut conn)
             .await
             .optional()
@@ -355,15 +362,16 @@ impl AgentRepository for DieselAgentRepository {
 
     async fn delete_device(
         &self,
-        device_id_val: Uuid,
-        workspace_id_val: Uuid,
+        device_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<u64, AppError> {
-        let mut conn = self.diesel_pools.tenant_conn_bypass_auth_DANGER(workspace_id_val).await?;
+
+        let mut conn = self.diesel_pools.tenant_conn_bypass_auth_DANGER(auth_token.workspace_id()).await?;
 
         let affected = diesel::delete(
             devices::table
-                .filter(devices::id.eq(device_id_val))
-                .filter(devices::workspace_id.eq(workspace_id_val)),
+                .filter(devices::id.eq(device_id))
+                .filter(devices::workspace_id.eq(auth_token.workspace_id())),
         )
         .execute(&mut conn)
         .await
@@ -374,10 +382,11 @@ impl AgentRepository for DieselAgentRepository {
 
     async fn update_agent_trust(
         &self,
-        agent_id_val: &str,
-        workspace_id_val: Uuid,
-        is_trusted_val: bool,
+        agent_id: &str,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        is_trusted: bool,
     ) -> Result<u64, AppError> {
+
         let mut conn = self
             .diesel_pools
             .api
@@ -387,10 +396,10 @@ impl AgentRepository for DieselAgentRepository {
 
         let affected = diesel::update(
             authorized_agents::table
-                .filter(authorized_agents::id.eq(agent_id_val))
-                .filter(authorized_agents::workspace_id.eq(workspace_id_val)),
+                .filter(authorized_agents::id.eq(agent_id))
+                .filter(authorized_agents::workspace_id.eq(auth_token.workspace_id())),
         )
-        .set(authorized_agents::is_trusted.eq(Some(is_trusted_val)))
+        .set(authorized_agents::is_trusted.eq(Some(is_trusted)))
         .execute(&mut conn)
         .await
         .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -400,8 +409,8 @@ impl AgentRepository for DieselAgentRepository {
 
     async fn get_agent_by_id_in_workspace(
         &self,
-        agent_id_val: &str,
-        workspace_id_val: Uuid,
+        agent_id: &str,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<Option<AuthorizedAgent>, AppError> {
         let mut conn = self
             .diesel_pools
@@ -411,8 +420,8 @@ impl AgentRepository for DieselAgentRepository {
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let agent = authorized_agents::table
-            .filter(authorized_agents::id.eq(agent_id_val))
-            .filter(authorized_agents::workspace_id.eq(workspace_id_val))
+            .filter(authorized_agents::id.eq(agent_id))
+            .filter(authorized_agents::workspace_id.eq(auth_token.workspace_id()))
             .first::<AuthorizedAgentEntity>(&mut conn)
             .await
             .optional()
@@ -423,9 +432,10 @@ impl AgentRepository for DieselAgentRepository {
 
     async fn deactivate_agent(
         &self,
-        agent_id_val: &str,
-        workspace_id_val: Uuid,
+        agent_id: &str,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<u64, AppError> {
+
         let mut conn = self
             .diesel_pools
             .api
@@ -435,8 +445,8 @@ impl AgentRepository for DieselAgentRepository {
 
         let affected = diesel::update(
             authorized_agents::table
-                .filter(authorized_agents::id.eq(agent_id_val))
-                .filter(authorized_agents::workspace_id.eq(workspace_id_val)),
+                .filter(authorized_agents::id.eq(agent_id))
+                .filter(authorized_agents::workspace_id.eq(auth_token.workspace_id())),
         )
         .set(authorized_agents::is_active.eq(false))
         .execute(&mut conn)

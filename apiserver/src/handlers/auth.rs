@@ -1,3 +1,4 @@
+#![allow(unused_variables)]
 use axum::{
     extract::State,
     http::{header::SET_COOKIE, HeaderMap, HeaderValue, StatusCode},

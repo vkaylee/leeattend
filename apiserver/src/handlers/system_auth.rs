@@ -1,3 +1,4 @@
+#![allow(unused_variables)]
 //! System-level authentication context.
 //!
 //! `SystemContext` is an Axum extractor for endpoints that require **platform-level**

@@ -1,3 +1,4 @@
+#![allow(unused_variables)]
 //! Report Export API Handlers
 //!
 //! Async API endpoints for distributed report job management:

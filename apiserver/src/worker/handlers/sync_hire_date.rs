@@ -20,7 +20,7 @@ impl SyncHireDateHandler {
 
         let current_hire_date = match deps
             .employee_repo
-            .get_employee_by_id(payload.employee_id, job.workspace_id)
+            .get_employee_by_id(payload.employee_id, &crate::diesel_pool::TenantAuthToken::system_override(job.workspace_id))
             .await
         {
             Ok(Some(emp)) => Some(emp.hire_date),
@@ -39,7 +39,7 @@ impl SyncHireDateHandler {
 
         let oldest_contract = match deps
             .contract_repo
-            .list_employee_contracts(job.workspace_id, payload.employee_id)
+            .list_employee_contracts(&crate::diesel_pool::TenantAuthToken::system_override(job.workspace_id), payload.employee_id)
             .await
         {
             Ok(contracts) => contracts
@@ -68,7 +68,7 @@ impl SyncHireDateHandler {
                     .employee_repo
                     .update_employee(
                         payload.employee_id,
-                        job.workspace_id,
+                        &crate::diesel_pool::TenantAuthToken::system_override(job.workspace_id),
                         &crate::models::UpdateEmployeeRequest {
                             user_id: None,
                             full_name: None,

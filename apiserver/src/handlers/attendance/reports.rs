@@ -1,3 +1,4 @@
+#![allow(unused_variables)]
 use axum::{
     extract::{Query, State},
     response::Json,
@@ -13,9 +14,11 @@ use crate::AppState;
 
 pub async fn get_attendance_report(
     State(state): State<Arc<AppState>>,
-    MemberContext { workspace_id, .. }: MemberContext,
+    ctx: MemberContext,
     Query(params): Query<HashMap<String, String>>,
 ) -> AppResult<Json<serde_json::Value>> {
+    let workspace_id = ctx.workspace_id;
+
     let start_date_str = params
         .get("start_date")
         .ok_or_else(|| AppError::Validation("Missing start_date".to_string()))?;

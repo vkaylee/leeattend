@@ -9,44 +9,44 @@ use crate::models::contract::{CreateContractRequest, EmployeeContract, UpdateCon
 pub trait EmployeeContractRepository: Send + Sync {
     async fn create_contract(
         &self,
-        workspace_id_val: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         req: &CreateContractRequest,
     ) -> Result<EmployeeContract, AppError>;
 
     async fn get_contract_by_id(
         &self,
-        workspace_id_val: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         contract_id: Uuid,
     ) -> Result<Option<EmployeeContract>, AppError>;
 
     async fn list_employee_contracts(
         &self,
-        workspace_id_val: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id_val: Uuid,
     ) -> Result<Vec<EmployeeContract>, AppError>;
 
     async fn update_contract(
         &self,
-        workspace_id_val: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         contract_id: Uuid,
         req: &UpdateContractRequest,
     ) -> Result<EmployeeContract, AppError>;
 
     async fn delete_contract(
         &self,
-        workspace_id_val: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         contract_id: Uuid,
     ) -> Result<(), AppError>;
 
     async fn get_expiring_contracts(
         &self,
-        workspace_id_val: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         days_ahead: i32,
     ) -> Result<Vec<EmployeeContract>, AppError>;
 
     async fn get_active_contract_on_date(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id: Uuid,
         date: chrono::NaiveDate,
     ) -> Result<Option<EmployeeContract>, AppError>;

@@ -1,3 +1,4 @@
+#![allow(unused_variables)]
 use std::sync::Arc;
 
 use chrono::Utc;
@@ -38,27 +39,29 @@ impl EmployeeService {
     pub async fn get_working_conditions(
         &self,
         employee_id: Uuid,
-        workspace_id: Uuid,
-    ) -> Result<Vec<WorkingCondition>, AppError> {
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+    ) -> Result<Vec<WorkingCondition>, AppError>  {
+        let workspace_id = auth_token.workspace_id();
         let emp = self
             .repo
-            .get_employee_by_id(employee_id, workspace_id)
+            .get_employee_by_id(employee_id, auth_token)
             .await?
             .ok_or(AppError::NotFound("Employee not found".into()))?;
 
-        self.repo.get_working_conditions(workspace_id, emp.id).await
+        self.repo.get_working_conditions(auth_token, emp.id).await
     }
 
     #[tracing::instrument(skip_all, err)]
     pub async fn create_working_condition(
         &self,
         employee_id: Uuid,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         req: CreateWorkingConditionRequest,
-    ) -> Result<WorkingCondition, AppError> {
+    ) -> Result<WorkingCondition, AppError>  {
+        let workspace_id = auth_token.workspace_id();
         let emp = self
             .repo
-            .get_employee_by_id(employee_id, workspace_id)
+            .get_employee_by_id(employee_id, auth_token)
             .await?
             .ok_or(AppError::NotFound("Employee not found".into()))?;
 
@@ -73,7 +76,7 @@ impl EmployeeService {
         };
 
         self.repo
-            .create_working_condition(workspace_id, &condition)
+            .create_working_condition(auth_token, &condition)
             .await?;
 
         Ok(condition)
@@ -83,18 +86,19 @@ impl EmployeeService {
     pub async fn delete_working_condition(
         &self,
         employee_id: Uuid,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         condition_id: Uuid,
-    ) -> Result<(), AppError> {
+    ) -> Result<(), AppError>  {
+        let workspace_id = auth_token.workspace_id();
         let emp = self
             .repo
-            .get_employee_by_id(employee_id, workspace_id)
+            .get_employee_by_id(employee_id, auth_token)
             .await?
             .ok_or(AppError::NotFound("Employee not found".into()))?;
 
         let deleted = self
             .repo
-            .delete_working_condition(workspace_id, condition_id, emp.id)
+            .delete_working_condition(auth_token, condition_id, emp.id)
             .await?;
 
         if !deleted {
@@ -106,9 +110,10 @@ impl EmployeeService {
     #[tracing::instrument(skip_all, err)]
     pub async fn create_employee(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         req: CreateEmployeeRequest,
-    ) -> Result<Employee, AppError> {
+    ) -> Result<Employee, AppError>  {
+        let workspace_id = auth_token.workspace_id();
         // Optional: Check if user_id exists if provided
         if let Some(user_id) = req.user_id {
             self.user_repo
@@ -139,7 +144,7 @@ impl EmployeeService {
         // Set recruitment source if provided
         if let Some(source_id) = req.recruitment_source_id {
             self.repo
-                .set_employee_recruitment_source(workspace_id, employee.id, Some(source_id))
+                .set_employee_recruitment_source(auth_token, employee.id, Some(source_id))
                 .await?;
         }
 
@@ -163,12 +168,13 @@ impl EmployeeService {
     pub async fn rehire_employee(
         &self,
         employee_id: Uuid,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         req: RehireEmployeeRequest,
-    ) -> Result<Employee, AppError> {
+    ) -> Result<Employee, AppError>  {
+        let workspace_id = auth_token.workspace_id();
         let employee = self
             .repo
-            .get_employee_by_id(employee_id, workspace_id)
+            .get_employee_by_id(employee_id, auth_token)
             .await?
             .ok_or(AppError::NotFound("Employee not found".into()))?;
 
@@ -185,7 +191,7 @@ impl EmployeeService {
         }
 
         self.repo
-            .rehire_employee(workspace_id, employee_id, req.hire_date)
+            .rehire_employee(auth_token, employee_id, req.hire_date)
             .await?
             .ok_or(AppError::NotFound("Employee not found after rehire".into()))
     }
@@ -194,10 +200,11 @@ impl EmployeeService {
     pub async fn get_employee_by_id(
         &self,
         id: Uuid,
-        workspace_id: Uuid,
-    ) -> Result<Employee, AppError> {
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+    ) -> Result<Employee, AppError>  {
+        let workspace_id = auth_token.workspace_id();
         self.repo
-            .get_employee_by_id(id, workspace_id)
+            .get_employee_by_id(id, auth_token)
             .await?
             .ok_or(AppError::NotFound("Employee not found".into()))
     }
@@ -205,19 +212,21 @@ impl EmployeeService {
     #[tracing::instrument(skip_all, err)]
     pub async fn get_all_employees(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         options: crate::models::EmployeeFilterOptions,
-    ) -> Result<(Vec<Employee>, i64), AppError> {
-        self.repo.get_all_employees(workspace_id, options).await
+    ) -> Result<(Vec<Employee>, i64), AppError>  {
+        let workspace_id = auth_token.workspace_id();
+        self.repo.get_all_employees(auth_token, options).await
     }
 
     #[tracing::instrument(skip_all, err)]
     pub async fn update_employee(
         &self,
         id: Uuid,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         req: UpdateEmployeeRequest,
-    ) -> Result<Employee, AppError> {
+    ) -> Result<Employee, AppError>  {
+        let workspace_id = auth_token.workspace_id();
         // Optional: Check if user_id exists if provided
         if let Some(user_id) = req.user_id {
             self.user_repo
@@ -228,14 +237,14 @@ impl EmployeeService {
 
         let employee = self
             .repo
-            .update_employee(id, workspace_id, &req)
+            .update_employee(id, auth_token, &req)
             .await?
             .ok_or(AppError::NotFound("Employee not found".into()))?;
 
         // Update recruitment source if provided
         if req.recruitment_source_id.is_some() {
             self.repo
-                .set_employee_recruitment_source(workspace_id, id, req.recruitment_source_id)
+                .set_employee_recruitment_source(auth_token, id, req.recruitment_source_id)
                 .await?;
         }
 
@@ -263,9 +272,10 @@ impl EmployeeService {
     #[tracing::instrument(skip_all, err)]
     pub async fn create_recruitment_source(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         req: crate::models::CreateRecruitmentSourceRequest,
-    ) -> Result<crate::models::RecruitmentSource, AppError> {
+    ) -> Result<crate::models::RecruitmentSource, AppError>  {
+        let workspace_id = auth_token.workspace_id();
         let source = crate::models::RecruitmentSource {
             id: new_id(),
             workspace_id,
@@ -289,20 +299,22 @@ impl EmployeeService {
     #[tracing::instrument(skip_all, err)]
     pub async fn get_recruitment_sources(
         &self,
-        workspace_id: Uuid,
-    ) -> Result<Vec<crate::models::RecruitmentSource>, AppError> {
-        self.repo.get_recruitment_sources(workspace_id).await
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+    ) -> Result<Vec<crate::models::RecruitmentSource>, AppError>  {
+        let workspace_id = auth_token.workspace_id();
+        self.repo.get_recruitment_sources(auth_token).await
     }
 
     #[tracing::instrument(skip_all, err)]
     pub async fn update_recruitment_source(
         &self,
         id: Uuid,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         req: crate::models::UpdateRecruitmentSourceRequest,
-    ) -> Result<crate::models::RecruitmentSource, AppError> {
+    ) -> Result<crate::models::RecruitmentSource, AppError>  {
+        let workspace_id = auth_token.workspace_id();
         self.repo
-            .update_recruitment_source(id, workspace_id, &req)
+            .update_recruitment_source(id, auth_token, &req)
             .await?
             .ok_or(AppError::NotFound("Recruitment source not found".into()))
     }
@@ -311,11 +323,12 @@ impl EmployeeService {
     pub async fn delete_recruitment_source(
         &self,
         id: Uuid,
-        workspace_id: Uuid,
-    ) -> Result<(), AppError> {
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+    ) -> Result<(), AppError>  {
+        let workspace_id = auth_token.workspace_id();
         let rows = self
             .repo
-            .delete_recruitment_source(id, workspace_id)
+            .delete_recruitment_source(id, auth_token)
             .await?;
         if rows == 0 {
             return Err(AppError::NotFound("Recruitment source not found".into()));
@@ -326,16 +339,18 @@ impl EmployeeService {
     #[tracing::instrument(skip_all, err)]
     pub async fn get_recruitment_source_breakdown(
         &self,
-        workspace_id: Uuid,
-    ) -> Result<Vec<crate::models::RecruitmentSourceBreakdown>, AppError> {
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+    ) -> Result<Vec<crate::models::RecruitmentSourceBreakdown>, AppError>  {
+        let workspace_id = auth_token.workspace_id();
         self.repo
-            .get_recruitment_source_breakdown(workspace_id)
+            .get_recruitment_source_breakdown(auth_token)
             .await
     }
 
     #[tracing::instrument(skip_all, err)]
-    pub async fn delete_employee(&self, id: Uuid, workspace_id: Uuid) -> Result<(), AppError> {
-        let rows_affected = self.repo.delete_employee(id, workspace_id).await?;
+    pub async fn delete_employee(&self, id: Uuid, auth_token: &crate::diesel_pool::TenantAuthToken) -> Result<(), AppError>  {
+        let workspace_id = auth_token.workspace_id();
+        let rows_affected = self.repo.delete_employee(id, auth_token).await?;
 
         if rows_affected == 0 {
             Err(AppError::NotFound("Employee not found".into()))
@@ -349,7 +364,7 @@ impl EmployeeService {
         let workspace_id = auth_token.workspace_id();
         let _ = self
             .repo
-            .get_employee_by_id(employee_id, workspace_id)
+            .get_employee_by_id(employee_id, auth_token)
             .await?
             .ok_or(AppError::NotFound("Employee not found".into()))?;
 
@@ -363,7 +378,7 @@ impl EmployeeService {
         let workspace_id = auth_token.workspace_id();
         let _ = self
             .repo
-            .get_employee_by_id(employee_id, workspace_id)
+            .get_employee_by_id(employee_id, auth_token)
             .await?
             .ok_or(AppError::NotFound("Employee not found".into()))?;
 
@@ -381,12 +396,13 @@ impl EmployeeService {
     #[tracing::instrument(skip_all, err)]
     pub async fn get_turnover_analytics(
         &self,
-        workspace_id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         start_date: chrono::NaiveDate,
         end_date: chrono::NaiveDate,
-    ) -> Result<crate::models::TurnoverAnalytics, AppError> {
+    ) -> Result<crate::models::TurnoverAnalytics, AppError>  {
+        let workspace_id = auth_token.workspace_id();
         self.repo
-            .get_turnover_analytics(workspace_id, start_date, end_date)
+            .get_turnover_analytics(auth_token, start_date, end_date)
             .await
     }
 }

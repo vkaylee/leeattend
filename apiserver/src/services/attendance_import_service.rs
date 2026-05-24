@@ -139,7 +139,7 @@ impl ImportStrategy for EmployeeImportStrategy {
                     // If exists, find the ID
                     match self
                         .employee_repo
-                        .get_employee_by_id_number(&emp.id_number, job.workspace_id)
+                        .get_employee_by_id_number(&emp.id_number, &crate::diesel_pool::TenantAuthToken::system_override(job.workspace_id))
                         .await
                     {
                         Ok(Some(e)) => e.id,
@@ -318,7 +318,7 @@ impl ImportStrategy for PunchImportStrategy {
     ) -> Result<Option<Uuid>, String> {
         let Ok(Some(employee)) = self
             .employee_repo
-            .get_employee_by_id_number(&row.emp_id_number, job.workspace_id)
+            .get_employee_by_id_number(&row.emp_id_number, &crate::diesel_pool::TenantAuthToken::system_override(job.workspace_id))
             .await
         else {
             return Err(fmt_msg(

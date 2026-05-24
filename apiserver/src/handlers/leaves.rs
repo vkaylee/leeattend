@@ -1,3 +1,4 @@
+#![allow(unused_variables)]
 use axum::{
     extract::{Multipart, Path, Query, State},
     http::StatusCode,

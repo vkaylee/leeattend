@@ -159,11 +159,11 @@ impl ShiftSwapService {
         // Validate both employees belong to this workspace
         let req_emp = self
             .employee_repo
-            .get_employee_by_id(req.requester_id, workspace_id)
+            .get_employee_by_id(req.requester_id, &crate::diesel_pool::TenantAuthToken::system_override(workspace_id))
             .await?;
         let tgt_emp = self
             .employee_repo
-            .get_employee_by_id(req.target_id, workspace_id)
+            .get_employee_by_id(req.target_id, &crate::diesel_pool::TenantAuthToken::system_override(workspace_id))
             .await?;
 
         if req_emp.is_none() || tgt_emp.is_none() {
@@ -339,7 +339,7 @@ impl ShiftSwapService {
         // Validate target belongs to same workspace
         let target_emp = self
             .employee_repo
-            .get_employee_by_id(req.target_id, workspace_id)
+            .get_employee_by_id(req.target_id, &crate::diesel_pool::TenantAuthToken::system_override(workspace_id))
             .await?;
 
         if target_emp.map(|e| !e.is_active).unwrap_or(true) {

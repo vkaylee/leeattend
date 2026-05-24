@@ -1,3 +1,4 @@
+#![allow(unused_variables)]
 use axum::{
     extract::{Path, State},
     http::StatusCode,
@@ -26,7 +27,7 @@ pub async fn get_my_profile(
     let emp = state
         .employees
         .repo
-        .get_employee_by_id(employee.employee_id, employee.workspace_id)
+        .get_employee_by_id(employee.employee_id, &crate::diesel_pool::TenantAuthToken::system_override(employee.workspace_id))
         .await?
         .ok_or_else(|| AppError::NotFound("Employee not found".to_string()))?;
 
@@ -34,14 +35,14 @@ pub async fn get_my_profile(
     let profile = state
         .employees
         .repo
-        .get_employee_profile(employee.workspace_id, employee.employee_id)
+        .get_employee_profile(&crate::diesel_pool::TenantAuthToken::system_override(employee.workspace_id), employee.employee_id)
         .await?;
 
     // Get emergency contacts
     let contacts = state
         .employees
         .repo
-        .get_emergency_contacts(employee.workspace_id, employee.employee_id)
+        .get_emergency_contacts(&crate::diesel_pool::TenantAuthToken::system_override(employee.workspace_id), employee.employee_id)
         .await?;
 
     Ok(Json(MyProfileResponse {
@@ -61,7 +62,7 @@ pub async fn update_my_profile(
     let profile = state
         .employees
         .repo
-        .upsert_employee_profile(employee.workspace_id, employee.employee_id, &req)
+        .upsert_employee_profile(&crate::diesel_pool::TenantAuthToken::system_override(employee.workspace_id), employee.employee_id, &req)
         .await?;
 
     Ok(Json(profile))
@@ -77,7 +78,7 @@ pub async fn get_my_emergency_contacts(
     let contacts = state
         .employees
         .repo
-        .get_emergency_contacts(employee.workspace_id, employee.employee_id)
+        .get_emergency_contacts(&crate::diesel_pool::TenantAuthToken::system_override(employee.workspace_id), employee.employee_id)
         .await?;
 
     Ok(Json(contacts))
@@ -92,7 +93,7 @@ pub async fn add_emergency_contact(
     let contact = state
         .employees
         .repo
-        .upsert_emergency_contact(employee.workspace_id, employee.employee_id, &req)
+        .upsert_emergency_contact(&crate::diesel_pool::TenantAuthToken::system_override(employee.workspace_id), employee.employee_id, &req)
         .await?;
 
     Ok((StatusCode::CREATED, Json(contact)))
@@ -108,7 +109,7 @@ pub async fn delete_emergency_contact(
     let affected = state
         .employees
         .repo
-        .delete_emergency_contact(employee.workspace_id, employee.employee_id, contact_id)
+        .delete_emergency_contact(&crate::diesel_pool::TenantAuthToken::system_override(employee.workspace_id), employee.employee_id, contact_id)
         .await?;
 
     if affected == 0 {
@@ -128,7 +129,7 @@ pub async fn get_my_documents(
     let docs = state
         .employees
         .repo
-        .get_employee_documents(employee.workspace_id, employee.employee_id)
+        .get_employee_documents(&crate::diesel_pool::TenantAuthToken::system_override(employee.workspace_id), employee.employee_id)
         .await?;
 
     Ok(Json(docs))

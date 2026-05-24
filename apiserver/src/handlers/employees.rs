@@ -1,3 +1,4 @@
+#![allow(unused_variables)]
 use crate::domain::permissions::Permission;
 use crate::errors::{AppError, AppResult};
 use crate::handlers::common::{self, MemberContext};
@@ -18,12 +19,14 @@ use uuid::Uuid;
 pub async fn get_working_conditions(
     Path((_, id)): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
-    MemberContext { workspace_id, .. }: MemberContext,
+    ctx: MemberContext,
 ) -> AppResult<Json<Vec<WorkingCondition>>> {
+    let workspace_id = ctx.workspace_id;
+
     let conditions = state
         .employees
         .service
-        .get_working_conditions(id, workspace_id)
+        .get_working_conditions(id, &ctx.auth_token)
         .await?;
     Ok(Json(conditions))
 }
@@ -39,7 +42,7 @@ pub async fn create_working_condition(
     let cond = state
         .employees
         .service
-        .create_working_condition(id, ctx.workspace_id, req)
+        .create_working_condition(id, &ctx.auth_token, req)
         .await?;
     Ok((StatusCode::CREATED, Json(cond)))
 }
@@ -54,7 +57,7 @@ pub async fn delete_working_condition(
     state
         .employees
         .service
-        .delete_working_condition(id, ctx.workspace_id, cond_id)
+        .delete_working_condition(id, &ctx.auth_token, cond_id)
         .await?;
     Ok(StatusCode::NO_CONTENT)
 }
@@ -63,9 +66,11 @@ pub async fn delete_working_condition(
 
 pub async fn get_employees(
     State(state): State<Arc<AppState>>,
-    MemberContext { workspace_id, .. }: MemberContext,
+    ctx: MemberContext,
     Query(query): Query<PaginationParams>,
 ) -> AppResult<Json<PaginatedResponse<Employee>>> {
+    let workspace_id = ctx.workspace_id;
+
     let page = query.page.unwrap_or(1).max(1);
     let limit = query.limit.unwrap_or(50).clamp(1, 100);
     let department_ids: Option<Vec<Uuid>> = query
@@ -82,7 +87,7 @@ pub async fn get_employees(
         .employees
         .service
         .get_all_employees(
-            workspace_id,
+            &ctx.auth_token,
             crate::models::EmployeeFilterOptions {
                 search_query: query.q,
                 page,
@@ -105,12 +110,14 @@ pub async fn get_employees(
 pub async fn get_employee(
     Path((_, id)): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
-    MemberContext { workspace_id, .. }: MemberContext,
+    ctx: MemberContext,
 ) -> AppResult<Json<Employee>> {
+    let workspace_id = ctx.workspace_id;
+
     let employee = state
         .employees
         .service
-        .get_employee_by_id(id, workspace_id)
+        .get_employee_by_id(id, &ctx.auth_token)
         .await
         .map_err(|_e| AppError::NotFound("Employee not found".to_string()))?;
     Ok(Json(employee))
@@ -126,7 +133,7 @@ pub async fn create_employee(
     let employee = state
         .employees
         .service
-        .create_employee(ctx.workspace_id, req)
+        .create_employee(&ctx.auth_token, req)
         .await?;
     Ok((StatusCode::CREATED, Json(employee)))
 }
@@ -142,7 +149,7 @@ pub async fn update_employee(
     let employee = state
         .employees
         .service
-        .update_employee(id, ctx.workspace_id, req)
+        .update_employee(id, &ctx.auth_token, req)
         .await?;
     Ok(Json(employee))
 }
@@ -158,7 +165,7 @@ pub async fn delete_employee(
     state
         .employees
         .service
-        .delete_employee(id, workspace_id)
+        .delete_employee(id, &ctx.auth_token)
         .await
         .map_err(|_e| AppError::NotFound("Employee not found".to_string()))?;
     Ok(StatusCode::NO_CONTENT)
@@ -175,7 +182,7 @@ pub async fn rehire_employee(
     let employee = state
         .employees
         .service
-        .rehire_employee(id, ctx.workspace_id, req)
+        .rehire_employee(id, &ctx.auth_token, req)
         .await?;
     Ok(Json(employee))
 }

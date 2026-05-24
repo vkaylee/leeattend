@@ -24,17 +24,19 @@ impl DieselEmployeeContractRepository {
 impl super::EmployeeContractRepository for DieselEmployeeContractRepository {
     async fn create_contract(
         &self,
-        workspace_id_val: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         req: &CreateContractRequest,
     ) -> Result<EmployeeContract, AppError> {
-        use crate::models::enums::ContractStatus;
+        
+        
+use crate::models::enums::ContractStatus;
         use crate::schema::employee_contracts::dsl::*;
         use diesel_async::AsyncConnection;
 
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id_val)
+            .get_pool(&auth_token.workspace_id())
             .await
             .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
@@ -46,7 +48,7 @@ impl super::EmployeeContractRepository for DieselEmployeeContractRepository {
                 Box::pin(async move {
                     // 1. Check for overlapping active contracts
                     let overlaps: Vec<(Uuid, Option<String>)> = employee_contracts
-                        .filter(workspace_id.eq(workspace_id_val))
+                        .filter(workspace_id.eq(auth_token.workspace_id()))
                         .filter(employee_id.eq(req.employee_id))
                         .filter(status.eq(ContractStatus::Active))
                         .filter(start_date.le(req.start_date))
@@ -96,7 +98,7 @@ impl super::EmployeeContractRepository for DieselEmployeeContractRepository {
                     // 2. Insert the new contract
                     let new_contract = EmployeeContractEntity {
                         id: Uuid::new_v4(),
-                        workspace_id: workspace_id_val,
+                        workspace_id: auth_token.workspace_id(),
                         employee_id: req.employee_id,
                         contract_number: req.contract_number.clone(),
                         contract_type: req.contract_type,
@@ -130,7 +132,7 @@ impl super::EmployeeContractRepository for DieselEmployeeContractRepository {
 
     async fn get_contract_by_id(
         &self,
-        workspace_id_val: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         contract_id: Uuid,
     ) -> Result<Option<EmployeeContract>, AppError> {
         use crate::schema::employee_contracts::dsl::*;
@@ -138,7 +140,7 @@ impl super::EmployeeContractRepository for DieselEmployeeContractRepository {
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id_val)
+            .get_pool(&auth_token.workspace_id())
             .await
             .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
@@ -146,7 +148,7 @@ impl super::EmployeeContractRepository for DieselEmployeeContractRepository {
             .map_err(|e| AppError::Internal(format!("Failed to get connection: {e}")))?;
         let contract = employee_contracts
             .filter(id.eq(contract_id))
-            .filter(workspace_id.eq(workspace_id_val))
+            .filter(workspace_id.eq(auth_token.workspace_id()))
             .first::<EmployeeContractEntity>(&mut conn)
             .await
             .optional()?;
@@ -156,7 +158,7 @@ impl super::EmployeeContractRepository for DieselEmployeeContractRepository {
 
     async fn list_employee_contracts(
         &self,
-        workspace_id_val: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id_val: Uuid,
     ) -> Result<Vec<EmployeeContract>, AppError> {
         use crate::schema::employee_contracts::dsl::*;
@@ -164,7 +166,7 @@ impl super::EmployeeContractRepository for DieselEmployeeContractRepository {
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id_val)
+            .get_pool(&auth_token.workspace_id())
             .await
             .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
@@ -172,7 +174,7 @@ impl super::EmployeeContractRepository for DieselEmployeeContractRepository {
             .map_err(|e| AppError::Internal(format!("Failed to get connection: {e}")))?;
         let contracts = employee_contracts
             .filter(employee_id.eq(employee_id_val))
-            .filter(workspace_id.eq(workspace_id_val))
+            .filter(workspace_id.eq(auth_token.workspace_id()))
             .order(start_date.desc())
             .load::<EmployeeContractEntity>(&mut conn)
             .await?;
@@ -182,16 +184,18 @@ impl super::EmployeeContractRepository for DieselEmployeeContractRepository {
 
     async fn update_contract(
         &self,
-        workspace_id_val: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         contract_id: Uuid,
         req: &UpdateContractRequest,
     ) -> Result<EmployeeContract, AppError> {
-        use crate::schema::employee_contracts::dsl::*;
+        
+        
+use crate::schema::employee_contracts::dsl::*;
 
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id_val)
+            .get_pool(&auth_token.workspace_id())
             .await
             .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
@@ -212,7 +216,7 @@ impl super::EmployeeContractRepository for DieselEmployeeContractRepository {
         let updated_contract = diesel::update(
             employee_contracts
                 .filter(id.eq(contract_id))
-                .filter(workspace_id.eq(workspace_id_val)),
+                .filter(workspace_id.eq(auth_token.workspace_id())),
         )
         .set(&update_model)
         .get_result::<EmployeeContractEntity>(&mut conn)
@@ -223,15 +227,17 @@ impl super::EmployeeContractRepository for DieselEmployeeContractRepository {
 
     async fn delete_contract(
         &self,
-        workspace_id_val: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         contract_id: Uuid,
     ) -> Result<(), AppError> {
-        use crate::schema::employee_contracts::dsl::*;
+        
+        
+use crate::schema::employee_contracts::dsl::*;
 
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id_val)
+            .get_pool(&auth_token.workspace_id())
             .await
             .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
@@ -240,7 +246,7 @@ impl super::EmployeeContractRepository for DieselEmployeeContractRepository {
         diesel::delete(
             employee_contracts
                 .filter(id.eq(contract_id))
-                .filter(workspace_id.eq(workspace_id_val)),
+                .filter(workspace_id.eq(auth_token.workspace_id())),
         )
         .execute(&mut conn)
         .await?;
@@ -250,7 +256,7 @@ impl super::EmployeeContractRepository for DieselEmployeeContractRepository {
 
     async fn get_expiring_contracts(
         &self,
-        workspace_id_val: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         days_ahead: i32,
     ) -> Result<Vec<EmployeeContract>, AppError> {
         use crate::models::enums::ContractStatus;
@@ -259,7 +265,7 @@ impl super::EmployeeContractRepository for DieselEmployeeContractRepository {
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id_val)
+            .get_pool(&auth_token.workspace_id())
             .await
             .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
@@ -270,7 +276,7 @@ impl super::EmployeeContractRepository for DieselEmployeeContractRepository {
             chrono::Utc::now().naive_utc().date() + chrono::Duration::days(days_ahead as i64);
 
         let contracts = employee_contracts
-            .filter(workspace_id.eq(workspace_id_val))
+            .filter(workspace_id.eq(auth_token.workspace_id()))
             .filter(status.eq(ContractStatus::Active))
             .filter(end_date.is_not_null())
             .filter(end_date.le(target_date))
@@ -282,7 +288,7 @@ impl super::EmployeeContractRepository for DieselEmployeeContractRepository {
 
     async fn get_active_contract_on_date(
         &self,
-        workspace_id_val: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id_val: Uuid,
         date_val: chrono::NaiveDate,
     ) -> Result<Option<EmployeeContract>, AppError> {
@@ -292,7 +298,7 @@ impl super::EmployeeContractRepository for DieselEmployeeContractRepository {
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id_val)
+            .get_pool(&auth_token.workspace_id())
             .await
             .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
             .get()
@@ -300,7 +306,7 @@ impl super::EmployeeContractRepository for DieselEmployeeContractRepository {
             .map_err(|e| AppError::Internal(format!("Failed to get connection: {e}")))?;
 
         let entity = employee_contracts
-            .filter(workspace_id.eq(workspace_id_val))
+            .filter(workspace_id.eq(auth_token.workspace_id()))
             .filter(employee_id.eq(employee_id_val))
             .filter(status.eq(ContractStatus::Active))
             .filter(start_date.le(date_val))

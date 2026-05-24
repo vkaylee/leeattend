@@ -1,3 +1,4 @@
+#![allow(unused_variables)]
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
@@ -20,9 +21,11 @@ use serde::Deserialize;
 pub async fn submit_attendance_adjustment(
     State(state): State<Arc<AppState>>,
     UserId(user_id): UserId,
-    MemberContext { workspace_id, .. }: MemberContext,
+    ctx: MemberContext,
     Json(req): Json<CreateAttendanceAdjustmentRequest>,
 ) -> AppResult<(StatusCode, Json<AttendanceAdjustmentRequest>)> {
+    let workspace_id = ctx.workspace_id;
+
     let adjustment = state
         .attendance
         .adjustment_service
@@ -71,9 +74,11 @@ pub struct AdjustmentStatusQuery {
 
 pub async fn get_workspace_attendance_adjustments(
     State(state): State<Arc<AppState>>,
-    MemberContext { workspace_id, .. }: MemberContext,
+    ctx: MemberContext,
     Query(query): Query<AdjustmentStatusQuery>,
 ) -> AppResult<Json<Vec<AttendanceAdjustmentRequest>>> {
+    let workspace_id = ctx.workspace_id;
+
     let requests = state
         .attendance
         .adjustment_service

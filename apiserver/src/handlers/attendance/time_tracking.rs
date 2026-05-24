@@ -1,3 +1,4 @@
+#![allow(unused_variables)]
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
@@ -21,9 +22,11 @@ pub struct HistoryQuery {
 
 pub async fn punch_in(
     State(state): State<Arc<AppState>>,
-    MemberContext { workspace_id, .. }: MemberContext,
+    ctx: MemberContext,
     Json(req): Json<PunchInRequest>,
 ) -> AppResult<(StatusCode, Json<TimeEntry>)> {
+    let workspace_id = ctx.workspace_id;
+
     let entry = state
         .attendance
         .time_tracking_service
@@ -41,9 +44,11 @@ pub async fn punch_in(
 pub async fn punch_out(
     Path((_, employee_id)): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
-    MemberContext { workspace_id, .. }: MemberContext,
+    ctx: MemberContext,
     Json(req): Json<PunchOutRequest>,
 ) -> AppResult<Json<TimeEntry>> {
+    let workspace_id = ctx.workspace_id;
+
     let entry = state
         .attendance
         .time_tracking_service
@@ -61,9 +66,11 @@ pub async fn punch_out(
 pub async fn get_time_history(
     Path((_, employee_id)): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
-    MemberContext { workspace_id, .. }: MemberContext,
+    ctx: MemberContext,
     Query(query): Query<HistoryQuery>,
 ) -> AppResult<Json<Vec<TimeEntry>>> {
+    let workspace_id = ctx.workspace_id;
+
     let entries = state
         .attendance
         .time_tracking_service
@@ -76,9 +83,11 @@ pub async fn get_time_history(
 pub async fn update_time_entry(
     Path((_, id)): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
-    MemberContext { workspace_id, .. }: MemberContext,
+    ctx: MemberContext,
     Json(req): Json<UpdateTimeEntryRequest>,
 ) -> AppResult<Json<TimeEntry>> {
+    let workspace_id = ctx.workspace_id;
+
     let entry = state
         .attendance
         .time_tracking_service
@@ -91,8 +100,10 @@ pub async fn update_time_entry(
 pub async fn delete_time_entry(
     Path((_, id)): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
-    MemberContext { workspace_id, .. }: MemberContext,
+    ctx: MemberContext,
 ) -> AppResult<StatusCode> {
+    let workspace_id = ctx.workspace_id;
+
     state
         .attendance
         .time_tracking_service

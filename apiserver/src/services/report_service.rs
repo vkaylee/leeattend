@@ -188,7 +188,7 @@ impl ReportService {
         let (paginated_employees, total_employees) = self
             .employee_repo
             .get_paginated_employee_ids(
-                args.workspace_id,
+                &crate::diesel_pool::TenantAuthToken::system_override(args.workspace_id),
                 crate::models::EmployeePaginationArgs {
                     filter_ids: args.employee_ids.as_ref(),
                     department_id: args.department_id,
@@ -448,7 +448,7 @@ impl ReportService {
         let (paginated_employees, total_employees) = self
             .employee_repo
             .get_paginated_employee_ids(
-                args.workspace_id,
+                &crate::diesel_pool::TenantAuthToken::system_override(args.workspace_id),
                 crate::models::EmployeePaginationArgs {
                     filter_ids: args.employee_ids.as_ref(),
                     department_id: args.department_id,

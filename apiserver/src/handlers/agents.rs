@@ -1,3 +1,4 @@
+#![allow(unused_variables)]
 use axum::{
     extract::{
         ws::{Message, WebSocket, WebSocketUpgrade},
@@ -252,13 +253,15 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
 )]
 pub async fn get_agents(
     State(state): State<Arc<AppState>>,
-    MemberContext { workspace_id, .. }: MemberContext,
+    ctx: MemberContext,
 ) -> AppResult<Json<Vec<AgentStatus>>> {
+    let workspace_id = ctx.workspace_id;
+
     // 1. Fetch workspace-scoped authorized agents from DB
     let db_agents = state
         .agents
         .repo
-        .get_workspace_agents(workspace_id, false)
+        .get_workspace_agents(&ctx.auth_token, false)
         .await?;
 
     // 2. Get status (online/offline) from AgentManager (Redis-backed)
@@ -273,7 +276,7 @@ pub async fn get_agents(
     let devices = state
         .agents
         .repo
-        .get_devices_by_agent_ids(&agent_ids, workspace_id)
+        .get_devices_by_agent_ids(&agent_ids, &ctx.auth_token)
         .await?;
 
     // Group devices by agent_id
@@ -320,7 +323,7 @@ pub async fn send_command(
     let agent_exists = state
         .agents
         .repo
-        .agent_exists_in_workspace(&agent_id, ctx.workspace_id)
+        .agent_exists_in_workspace(&agent_id, &ctx.auth_token)
         .await?;
 
     if !agent_exists {
@@ -366,12 +369,14 @@ pub async fn send_command(
 )]
 pub async fn get_devices(
     State(state): State<Arc<AppState>>,
-    MemberContext { workspace_id, .. }: MemberContext,
+    ctx: MemberContext,
 ) -> AppResult<Json<Vec<Device>>> {
+    let workspace_id = ctx.workspace_id;
+
     let devices = state
         .agents
         .repo
-        .get_workspace_devices(workspace_id)
+        .get_workspace_devices(&ctx.auth_token)
         .await?;
 
     Ok(Json(devices))
@@ -379,9 +384,11 @@ pub async fn get_devices(
 
 pub async fn create_device(
     State(state): State<Arc<AppState>>,
-    MemberContext { workspace_id, .. }: MemberContext,
+    ctx: MemberContext,
     Json(req): Json<CreateDeviceRequest>,
 ) -> AppResult<impl IntoResponse> {
+    let workspace_id = ctx.workspace_id;
+
     let id = crate::utils::id::new_id();
     let port = req.port.unwrap_or(4370);
 
@@ -394,7 +401,7 @@ pub async fn create_device(
             &req.name,
             &req.ip,
             port,
-            workspace_id,
+            &ctx.auth_token,
             &req.brand.unwrap_or_else(|| "zkteco".to_string()),
             req.password.as_deref().unwrap_or(""),
             &req.timezone.unwrap_or_else(|| "UTC".to_string()),
@@ -413,13 +420,15 @@ pub async fn create_device(
 pub async fn update_device(
     Path(id): Path<Uuid>,
     State(state): State<Arc<AppState>>,
-    MemberContext { workspace_id, .. }: MemberContext,
+    ctx: MemberContext,
     Json(req): Json<UpdateDeviceRequest>,
 ) -> AppResult<impl IntoResponse> {
+    let workspace_id = ctx.workspace_id;
+
     let current_device = state
         .agents
         .repo
-        .get_device_by_id(id, workspace_id)
+        .get_device_by_id(id, &ctx.auth_token)
         .await?
         .ok_or_else(|| AppError::NotFound("Device not found".to_string()))?;
 
@@ -440,7 +449,7 @@ pub async fn update_device(
         .repo
         .update_device(
             id,
-            workspace_id,
+            &ctx.auth_token,
             &name,
             &ip,
             port,
@@ -463,15 +472,17 @@ pub async fn update_device(
 pub async fn delete_device(
     Path(id): Path<Uuid>,
     State(state): State<Arc<AppState>>,
-    MemberContext { workspace_id, .. }: MemberContext,
+    ctx: MemberContext,
 ) -> AppResult<impl IntoResponse> {
+    let workspace_id = ctx.workspace_id;
+
     let agent_id = state
         .agents
         .repo
-        .get_agent_id_for_device(id, workspace_id)
+        .get_agent_id_for_device(id, &ctx.auth_token)
         .await?;
 
-    let rows_affected = state.agents.repo.delete_device(id, workspace_id).await?;
+    let rows_affected = state.agents.repo.delete_device(id, &ctx.auth_token).await?;
 
     if rows_affected > 0 {
         if let Some(aid) = agent_id {
@@ -496,14 +507,16 @@ pub struct GetAgentsQueryParams {
 
 pub async fn get_authorized_agents(
     State(state): State<Arc<AppState>>,
-    MemberContext { workspace_id, .. }: MemberContext,
+    ctx: MemberContext,
     Query(params): Query<GetAgentsQueryParams>,
 ) -> AppResult<Json<Vec<AuthorizedAgent>>> {
+    let workspace_id = ctx.workspace_id;
+
     let include_inactive = params.include_inactive.unwrap_or(false);
     let agents = state
         .agents
         .repo
-        .get_workspace_agents(workspace_id, include_inactive)
+        .get_workspace_agents(&ctx.auth_token, include_inactive)
         .await?;
 
     Ok(Json(agents))
@@ -511,9 +524,11 @@ pub async fn get_authorized_agents(
 
 pub async fn create_authorized_agent(
     State(state): State<Arc<AppState>>,
-    MemberContext { workspace_id, .. }: MemberContext,
+    ctx: MemberContext,
     Json(req): Json<CreateAuthorizedAgentRequest>,
 ) -> AppResult<impl IntoResponse> {
+    let workspace_id = ctx.workspace_id;
+
     state
         .agents
         .repo
@@ -521,7 +536,7 @@ pub async fn create_authorized_agent(
             &req.id,
             &req.name,
             &req.token,
-            workspace_id,
+            &ctx.auth_token,
             req.max_concurrent_workers.unwrap_or(2),
             req.success_cooldown_secs.unwrap_or(300),
             req.retention_days.unwrap_or(365),
@@ -537,13 +552,15 @@ pub async fn create_authorized_agent(
 pub async fn update_agent_trust(
     Path(id): Path<String>,
     State(state): State<Arc<AppState>>,
-    MemberContext { workspace_id, .. }: MemberContext,
+    ctx: MemberContext,
     Json(req): Json<TrustAgentRequest>,
 ) -> AppResult<impl IntoResponse> {
+    let workspace_id = ctx.workspace_id;
+
     let rows_affected = state
         .agents
         .repo
-        .update_agent_trust(&id, workspace_id, req.is_trusted)
+        .update_agent_trust(&id, &ctx.auth_token, req.is_trusted)
         .await?;
 
     if rows_affected > 0 {
@@ -559,12 +576,14 @@ pub async fn update_agent_trust(
 pub async fn get_authorized_agent_by_id(
     Path(id): Path<String>,
     State(state): State<Arc<AppState>>,
-    MemberContext { workspace_id, .. }: MemberContext,
+    ctx: MemberContext,
 ) -> AppResult<Json<AuthorizedAgent>> {
+    let workspace_id = ctx.workspace_id;
+
     let agent = state
         .agents
         .repo
-        .get_agent_by_id_in_workspace(&id, workspace_id)
+        .get_agent_by_id_in_workspace(&id, &ctx.auth_token)
         .await?
         .ok_or_else(|| AppError::NotFound("Agent not found".to_string()))?;
 
@@ -574,9 +593,11 @@ pub async fn get_authorized_agent_by_id(
 pub async fn update_authorized_agent(
     Path(id): Path<String>,
     State(state): State<Arc<AppState>>,
-    MemberContext { workspace_id, .. }: MemberContext,
+    ctx: MemberContext,
     Json(req): Json<UpdateAuthorizedAgentRequest>,
 ) -> AppResult<Json<AuthorizedAgent>> {
+    let workspace_id = ctx.workspace_id;
+
     if req.name.is_none()
         && req.token.is_none()
         && req.is_trusted.is_none()
@@ -594,7 +615,7 @@ pub async fn update_authorized_agent(
     let mut current_agent = state
         .agents
         .repo
-        .get_agent_by_id_in_workspace(&id, workspace_id)
+        .get_agent_by_id_in_workspace(&id, &ctx.auth_token)
         .await?
         .ok_or_else(|| AppError::NotFound("Agent not found".to_string()))?;
 
@@ -674,12 +695,14 @@ pub async fn update_authorized_agent(
 pub async fn get_device_info_on_demand(
     Path(id): Path<Uuid>,
     State(state): State<Arc<AppState>>,
-    MemberContext { workspace_id, .. }: MemberContext,
+    ctx: MemberContext,
 ) -> AppResult<Json<serde_json::Value>> {
+    let workspace_id = ctx.workspace_id;
+
     let device = state
         .agents
         .repo
-        .get_device_by_id(id, workspace_id)
+        .get_device_by_id(id, &ctx.auth_token)
         .await?
         .ok_or_else(|| AppError::NotFound("Device not found".to_string()))?;
 
@@ -696,12 +719,14 @@ pub async fn get_device_info_on_demand(
 pub async fn delete_authorized_agent(
     Path(id): Path<String>,
     State(state): State<Arc<AppState>>,
-    MemberContext { workspace_id, .. }: MemberContext,
+    ctx: MemberContext,
 ) -> AppResult<impl IntoResponse> {
+    let workspace_id = ctx.workspace_id;
+
     let rows_affected = state
         .agents
         .repo
-        .deactivate_agent(&id, workspace_id)
+        .deactivate_agent(&id, &ctx.auth_token)
         .await?;
 
     if rows_affected > 0 {

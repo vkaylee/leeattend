@@ -1,3 +1,4 @@
+#![allow(unused_variables)]
 use crate::domain::permissions::Permission;
 use crate::errors::AppResult;
 use crate::handlers::common::MemberContext;
@@ -16,12 +17,14 @@ use uuid::Uuid;
 
 pub async fn get_recruitment_sources(
     State(state): State<Arc<AppState>>,
-    MemberContext { workspace_id, .. }: MemberContext,
+    ctx: MemberContext,
 ) -> AppResult<Json<Vec<RecruitmentSource>>> {
+    let workspace_id = ctx.workspace_id;
+
     let sources = state
         .employees
         .service
-        .get_recruitment_sources(workspace_id)
+        .get_recruitment_sources(&ctx.auth_token)
         .await?;
     Ok(Json(sources))
 }
@@ -35,7 +38,7 @@ pub async fn create_recruitment_source(
     let source = state
         .employees
         .service
-        .create_recruitment_source(ctx.workspace_id, req)
+        .create_recruitment_source(&ctx.auth_token, req)
         .await?;
     Ok((StatusCode::CREATED, Json(source)))
 }
@@ -50,7 +53,7 @@ pub async fn update_recruitment_source(
     let source = state
         .employees
         .service
-        .update_recruitment_source(id, ctx.workspace_id, req)
+        .update_recruitment_source(id, &ctx.auth_token, req)
         .await?;
     Ok(Json(source))
 }
@@ -64,7 +67,7 @@ pub async fn delete_recruitment_source(
     state
         .employees
         .service
-        .delete_recruitment_source(id, ctx.workspace_id)
+        .delete_recruitment_source(id, &ctx.auth_token)
         .await?;
     Ok(StatusCode::NO_CONTENT)
 }
@@ -72,12 +75,14 @@ pub async fn delete_recruitment_source(
 /// Dashboard chart endpoint: recruitment source breakdown
 pub async fn get_recruitment_source_breakdown(
     State(state): State<Arc<AppState>>,
-    MemberContext { workspace_id, .. }: MemberContext,
+    ctx: MemberContext,
 ) -> AppResult<Json<Vec<RecruitmentSourceBreakdown>>> {
+    let workspace_id = ctx.workspace_id;
+
     let breakdown = state
         .employees
         .service
-        .get_recruitment_source_breakdown(workspace_id)
+        .get_recruitment_source_breakdown(&ctx.auth_token)
         .await?;
     Ok(Json(breakdown))
 }
@@ -85,9 +90,11 @@ pub async fn get_recruitment_source_breakdown(
 /// Dashboard chart endpoint: turnover analytics with date range filter
 pub async fn get_turnover_analytics(
     State(state): State<Arc<AppState>>,
-    MemberContext { workspace_id, .. }: MemberContext,
+    ctx: MemberContext,
     axum::extract::Query(params): axum::extract::Query<TurnoverQueryParams>,
 ) -> AppResult<Json<crate::models::TurnoverAnalytics>> {
+    let workspace_id = ctx.workspace_id;
+
     let today = chrono::Utc::now().date_naive();
     let start = params
         .start
@@ -101,7 +108,7 @@ pub async fn get_turnover_analytics(
     let analytics = state
         .employees
         .service
-        .get_turnover_analytics(workspace_id, start, end)
+        .get_turnover_analytics(&ctx.auth_token, start, end)
         .await?;
     Ok(Json(analytics))
 }

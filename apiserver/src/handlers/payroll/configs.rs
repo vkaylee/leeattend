@@ -1,3 +1,4 @@
+#![allow(unused_variables)]
 use axum::{
     extract::{Path, State},
     http::StatusCode,
@@ -45,7 +46,7 @@ pub async fn set_employee_payroll_config(
         .employees
         .repo
         .upsert_employee_payroll_config(
-            ctx.workspace_id,
+            &ctx.auth_token,
             employee_id,
             req.std_working_days,
             req.hours_per_day,
@@ -78,7 +79,7 @@ pub async fn get_employee_payroll_configs(
     let configs = state
         .employees
         .repo
-        .get_employee_payroll_configs(ctx.workspace_id, employee_id)
+        .get_employee_payroll_configs(&ctx.auth_token, employee_id)
         .await?;
 
     Ok(Json(configs))

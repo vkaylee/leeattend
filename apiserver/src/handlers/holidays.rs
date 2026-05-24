@@ -1,3 +1,4 @@
+#![allow(unused_variables)]
 //! Holiday CRUD handlers for workspace holiday calendar management.
 
 use axum::{

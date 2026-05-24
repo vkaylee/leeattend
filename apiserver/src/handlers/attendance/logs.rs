@@ -1,3 +1,4 @@
+#![allow(unused_variables)]
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
@@ -25,9 +26,11 @@ pub struct AttendanceLogQuery {
 
 pub async fn get_attendance_logs(
     State(state): State<Arc<AppState>>,
-    MemberContext { workspace_id, .. }: MemberContext,
+    ctx: MemberContext,
     Query(query): Query<AttendanceLogQuery>,
 ) -> AppResult<Json<serde_json::Value>> {
+    let workspace_id = ctx.workspace_id;
+
     let limit = query.limit.unwrap_or(20).clamp(1, 100);
     let page = query.page.unwrap_or(1).max(1);
     let offset = (page - 1) * limit;
@@ -63,9 +66,11 @@ pub async fn get_attendance_logs(
 
 pub async fn get_raw_attendance_logs(
     State(state): State<Arc<AppState>>,
-    MemberContext { workspace_id, .. }: MemberContext,
+    ctx: MemberContext,
     Query(query): Query<AttendanceLogQuery>,
 ) -> AppResult<Json<serde_json::Value>> {
+    let workspace_id = ctx.workspace_id;
+
     let limit = query.limit.unwrap_or(20).clamp(1, 100);
     let page = query.page.unwrap_or(1).max(1);
     let offset = (page - 1) * limit;
@@ -189,7 +194,7 @@ pub async fn force_reprocess_all_attendance(
     let employees = state
         .employees
         .repo
-        .get_active_employees(ctx.workspace_id)
+        .get_active_employees(&ctx.auth_token)
         .await?;
 
     tracing::info!(

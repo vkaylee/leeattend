@@ -1,3 +1,4 @@
+#![allow(unused_variables)]
 use axum::{
     extract::{Path, State},
     http::StatusCode,
@@ -16,8 +17,10 @@ use crate::AppState;
 
 pub async fn get_incentive_policies(
     State(state): State<Arc<AppState>>,
-    MemberContext { workspace_id, .. }: MemberContext,
+    ctx: MemberContext,
 ) -> AppResult<Json<Vec<PayrollIncentivePolicyResponse>>> {
+    let workspace_id = ctx.workspace_id;
+
     let policies = state
         .payroll
         .repo

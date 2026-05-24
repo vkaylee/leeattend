@@ -183,7 +183,7 @@ impl LeaveService {
         // Verify employee belongs to workspace
         let _ = self
             .employee_repo
-            .get_employee_by_id(employee_id, workspace_id)
+            .get_employee_by_id(employee_id, &crate::diesel_pool::TenantAuthToken::system_override(workspace_id))
             .await?
             .ok_or(AppError::NotFound("Not found".into()))?;
 
@@ -203,7 +203,7 @@ impl LeaveService {
         // Verify employee belongs to workspace
         let _ = self
             .employee_repo
-            .get_employee_by_id(req.employee_id, workspace_id)
+            .get_employee_by_id(req.employee_id, &crate::diesel_pool::TenantAuthToken::system_override(workspace_id))
             .await?
             .ok_or(AppError::NotFound("Not found".into()))?;
 
@@ -364,7 +364,7 @@ impl LeaveService {
         // Verify employee of this request belongs to the workspace
         let _ = self
             .employee_repo
-            .get_employee_by_id(request.employee_id, workspace_id)
+            .get_employee_by_id(request.employee_id, &crate::diesel_pool::TenantAuthToken::system_override(workspace_id))
             .await?
             .ok_or(AppError::Forbidden("Forbidden".into()))?;
 
@@ -393,7 +393,7 @@ impl LeaveService {
         // Verify employee belongs to workspace
         let _ = self
             .employee_repo
-            .get_employee_by_id(employee_id, workspace_id)
+            .get_employee_by_id(employee_id, &crate::diesel_pool::TenantAuthToken::system_override(workspace_id))
             .await?
             .ok_or(AppError::NotFound("Not found".into()))?;
 

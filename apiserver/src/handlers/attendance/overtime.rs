@@ -1,3 +1,4 @@
+#![allow(unused_variables)]
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
@@ -31,7 +32,7 @@ pub async fn claim_ot(
     let employee = state
         .employees
         .repo
-        .get_employee_by_id(employee_id, ctx.workspace_id)
+        .get_employee_by_id(employee_id, &ctx.auth_token)
         .await?
         .ok_or_else(|| AppError::NotFound("Employee not found".to_string()))?;
 
@@ -125,7 +126,7 @@ pub async fn get_attendance_summaries(
         let my_id = state
             .employees
             .repo
-            .get_employee_id_by_user_id(ctx.workspace_id, ctx.user_id)
+            .get_employee_id_by_user_id(&ctx.auth_token, ctx.user_id)
             .await?
             .ok_or_else(|| AppError::Forbidden("Forbidden".to_string()))?;
 

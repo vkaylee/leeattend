@@ -1,3 +1,4 @@
+#![allow(unused_variables)]
 use axum::{
     extract::{Path, Query, State},
     response::Json,
@@ -22,8 +23,10 @@ use crate::{AppState, UserId};
 
 pub async fn get_attendance_trend(
     State(state): State<Arc<AppState>>,
-    MemberContext { workspace_id, .. }: MemberContext,
+    ctx: MemberContext,
 ) -> AppResult<Json<Vec<AttendanceTrendPoint>>> {
+    let workspace_id = ctx.workspace_id;
+
     let result = state
         .reports
         .stats_repo
@@ -39,9 +42,11 @@ pub struct DeptAttendanceQuery {
 
 pub async fn get_department_attendance(
     State(state): State<Arc<AppState>>,
-    MemberContext { workspace_id, .. }: MemberContext,
+    ctx: MemberContext,
     Query(params): Query<DeptAttendanceQuery>,
 ) -> AppResult<Json<Vec<DepartmentAttendancePoint>>> {
+    let workspace_id = ctx.workspace_id;
+
     let range = params.range.unwrap_or_else(|| "today".to_string());
     let result = state
         .reports
@@ -61,9 +66,11 @@ pub struct UnexcusedAbsencesQuery {
 #[allow(clippy::too_many_lines)]
 pub async fn get_unexcused_absences(
     State(state): State<Arc<AppState>>,
-    MemberContext { workspace_id, .. }: MemberContext,
+    ctx: MemberContext,
     Query(params): Query<UnexcusedAbsencesQuery>,
 ) -> AppResult<Json<Vec<UnexcusedAbsencesPoint>>> {
+    let workspace_id = ctx.workspace_id;
+
     use crate::services::attendance_utils::{
         self, determine_daily_status, AttendanceStatus, DailyStatusInput,
     };
@@ -145,7 +152,7 @@ pub async fn get_unexcused_absences(
     let dept_map = state
         .employees
         .repo
-        .get_employee_departments_at(workspace_id, end_date)
+        .get_employee_departments_at(&ctx.auth_token, end_date)
         .await?;
 
     // 7. Determine status per day using attendance_utils::determine_daily_status
@@ -289,8 +296,10 @@ pub async fn get_unexcused_absences(
 
 pub async fn get_overtime_trend(
     State(state): State<Arc<AppState>>,
-    MemberContext { workspace_id, .. }: MemberContext,
+    ctx: MemberContext,
 ) -> AppResult<Json<Vec<OvertimeTrendPoint>>> {
+    let workspace_id = ctx.workspace_id;
+
     let result = state
         .reports
         .stats_repo
@@ -301,8 +310,10 @@ pub async fn get_overtime_trend(
 
 pub async fn get_workspace_stats(
     State(state): State<Arc<AppState>>,
-    MemberContext { workspace_id, .. }: MemberContext,
+    ctx: MemberContext,
 ) -> AppResult<Json<WorkspaceStats>> {
+    let workspace_id = ctx.workspace_id;
+
     let result = state
         .reports
         .stats_repo
@@ -315,8 +326,10 @@ pub async fn get_workspace_stats(
 
 pub async fn get_peak_times(
     State(state): State<Arc<AppState>>,
-    MemberContext { workspace_id, .. }: MemberContext,
+    ctx: MemberContext,
 ) -> AppResult<Json<Vec<PeakTimeSlot>>> {
+    let workspace_id = ctx.workspace_id;
+
     let result = state
         .reports
         .stats_repo
@@ -329,8 +342,10 @@ pub async fn get_peak_times(
 
 pub async fn get_leave_types_breakdown(
     State(state): State<Arc<AppState>>,
-    MemberContext { workspace_id, .. }: MemberContext,
+    ctx: MemberContext,
 ) -> AppResult<Json<Vec<LeaveTypeBreakdown>>> {
+    let workspace_id = ctx.workspace_id;
+
     let result = state
         .reports
         .stats_repo
@@ -343,8 +358,10 @@ pub async fn get_leave_types_breakdown(
 
 pub async fn get_lateness_by_day(
     State(state): State<Arc<AppState>>,
-    MemberContext { workspace_id, .. }: MemberContext,
+    ctx: MemberContext,
 ) -> AppResult<Json<Vec<LatenessByDay>>> {
+    let workspace_id = ctx.workspace_id;
+
     let result = state
         .reports
         .stats_repo

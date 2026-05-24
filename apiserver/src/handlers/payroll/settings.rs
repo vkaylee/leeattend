@@ -1,3 +1,4 @@
+#![allow(unused_variables)]
 use axum::{extract::State, response::Json};
 use chrono::Utc;
 use std::sync::Arc;
@@ -9,8 +10,10 @@ use crate::AppState;
 
 pub async fn get_payroll_settings(
     State(state): State<Arc<AppState>>,
-    MemberContext { workspace_id, .. }: MemberContext,
+    ctx: MemberContext,
 ) -> AppResult<Json<PayrollSettings>> {
+    let workspace_id = ctx.workspace_id;
+
     let settings = state
         .payroll
         .repo
@@ -23,8 +26,10 @@ pub async fn get_payroll_settings(
 
 pub async fn get_payroll_settings_history(
     State(state): State<Arc<AppState>>,
-    MemberContext { workspace_id, .. }: MemberContext,
+    ctx: MemberContext,
 ) -> AppResult<Json<Vec<PayrollSettings>>> {
+    let workspace_id = ctx.workspace_id;
+
     let history = state
         .payroll
         .repo
@@ -36,9 +41,11 @@ pub async fn get_payroll_settings_history(
 
 pub async fn update_payroll_settings(
     State(state): State<Arc<AppState>>,
-    MemberContext { workspace_id, .. }: MemberContext,
+    ctx: MemberContext,
     Json(req): Json<UpdatePayrollSettingsRequest>,
 ) -> AppResult<Json<PayrollSettings>> {
+    let workspace_id = ctx.workspace_id;
+
     // Get current settings first to fill in missing fields if needed
     let effective_date = req
         .effective_date

@@ -426,7 +426,7 @@ impl LeaveAccrualService {
         // Get all active employees
         let employees = self
             .employee_repo
-            .get_active_employees(workspace_id)
+            .get_active_employees(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id))
             .await?;
         let mut all_logs = Vec::new();
 
@@ -502,7 +502,7 @@ impl LeaveAccrualService {
         // Pre-fetch employment history once per employee using contracts
         let contracts = self
             .contract_repo
-            .list_employee_contracts(workspace_id, emp.id)
+            .list_employee_contracts(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id), emp.id)
             .await?;
 
         let ctx = AccrualContext {

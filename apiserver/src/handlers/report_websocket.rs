@@ -1,3 +1,4 @@
+#![allow(unused_variables)]
 //! WebSocket endpoint for streaming report data.
 //!
 //! Connects clients to Redis Pub/Sub for real-time report chunk delivery.

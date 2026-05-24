@@ -159,7 +159,7 @@ impl AttendanceLogService {
         // 1. Resolve employee_id from employee_id_number and workspace_id
         let employee = match self
             .employee_repo
-            .find_by_number(args.workspace_id, &normalized_emp_id)
+            .find_by_number(&crate::diesel_pool::TenantAuthToken::system_override(args.workspace_id), &normalized_emp_id)
             .await
         {
             Ok(Some(emp)) => emp,

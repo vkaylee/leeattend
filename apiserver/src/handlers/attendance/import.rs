@@ -1,3 +1,4 @@
+#![allow(unused_variables)]
 use axum::{
     extract::{Multipart, Path, State},
     response::Json,
@@ -218,9 +219,11 @@ pub struct ImportJobQuery {
 
 pub async fn get_latest_import_job(
     State(state): State<Arc<AppState>>,
-    MemberContext { workspace_id, .. }: MemberContext,
+    ctx: MemberContext,
     axum::extract::Query(query): axum::extract::Query<ImportJobQuery>,
 ) -> AppResult<Json<Option<AttendanceImportJob>>> {
+    let workspace_id = ctx.workspace_id;
+
     let mut job_opt = state
         .attendance
         .import_repo
@@ -248,9 +251,11 @@ pub async fn get_latest_import_job(
 
 pub async fn get_import_job_status(
     State(state): State<Arc<AppState>>,
-    MemberContext { workspace_id, .. }: MemberContext,
+    ctx: MemberContext,
     Path((_, job_id)): Path<(Uuid, Uuid)>,
 ) -> AppResult<Json<AttendanceImportJob>> {
+    let workspace_id = ctx.workspace_id;
+
     let mut job = state
         .attendance
         .import_repo
@@ -277,9 +282,11 @@ pub async fn get_import_job_status(
 
 pub async fn download_import_error_file(
     State(state): State<Arc<AppState>>,
-    MemberContext { workspace_id, .. }: MemberContext,
+    ctx: MemberContext,
     Path((_, job_id)): Path<(Uuid, Uuid)>,
 ) -> AppResult<impl axum::response::IntoResponse> {
+    let workspace_id = ctx.workspace_id;
+
     let job = state
         .attendance
         .import_repo

@@ -1,3 +1,4 @@
+#![allow(unused_variables)]
 use axum::{extract::State, response::Json};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -77,17 +78,15 @@ fn default_collapsed_sections() -> serde_json::Value {
 /// If none exist, returns smart defaults without persisting.
 pub async fn get_dashboard_preferences(
     State(state): State<Arc<AppState>>,
-    MemberContext {
-        user_id,
-        workspace_id,
-        auth_token,
-        ..
-    }: MemberContext,
+    ctx: MemberContext,
 ) -> AppResult<Json<DashboardPreferences>> {
+    let workspace_id = ctx.workspace_id;
+    let user_id = ctx.user_id;
+
     let prefs = state
         .core
         .user_repo
-        .get_dashboard_preferences(user_id, &auth_token)
+        .get_dashboard_preferences(user_id, &ctx.auth_token)
         .await?;
 
     match prefs {
@@ -111,18 +110,16 @@ pub async fn get_dashboard_preferences(
 /// Creates or updates the current user's dashboard preferences (upsert).
 pub async fn update_dashboard_preferences(
     State(state): State<Arc<AppState>>,
-    MemberContext {
-        user_id,
-        workspace_id: _,
-        auth_token,
-        ..
-    }: MemberContext,
+    ctx: MemberContext,
     Json(body): Json<UpdateDashboardPreferences>,
 ) -> AppResult<Json<DashboardPreferences>> {
+    let workspace_id = ctx.workspace_id;
+    let user_id = ctx.user_id;
+
     let result = state
         .core
         .user_repo
-        .update_dashboard_preferences(user_id, &auth_token, body)
+        .update_dashboard_preferences(user_id, &ctx.auth_token, body)
         .await?;
     Ok(Json(result))
 }

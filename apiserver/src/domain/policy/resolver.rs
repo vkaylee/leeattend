@@ -29,7 +29,7 @@ impl PolicyResolver {
     ) -> Result<StandardMonthConfig, AppError> {
         // 1. Check Individual Override (Highest Priority)
         let emp_config = employee_repo
-            .get_employee_payroll_config_at(workspace_id, employee_id, date)
+            .get_employee_payroll_config_at(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id), employee_id, date)
             .await?;
 
         if let Some(config) = emp_config {
@@ -170,7 +170,7 @@ impl PolicyResolver {
 
         // 2. Get Employee Special Conditions
         let conditions = employee_repo
-            .get_working_conditions_at(workspace_id, employee_id, date)
+            .get_working_conditions_at(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id), employee_id, date)
             .await?;
 
         // 3. Merge logic
@@ -218,7 +218,7 @@ impl PolicyResolver {
         end_date: NaiveDate,
     ) -> Result<HashMap<Uuid, Vec<WorkingCondition>>, AppError> {
         employee_repo
-            .get_working_conditions_batch(workspace_id, employee_ids, start_date, end_date)
+            .get_working_conditions_batch(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id), employee_ids, start_date, end_date)
             .await
     }
 

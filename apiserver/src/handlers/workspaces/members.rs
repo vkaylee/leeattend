@@ -1,3 +1,4 @@
+#![allow(unused_variables)]
 use axum::{
     extract::{Path, State},
     http::{HeaderMap, StatusCode},
@@ -21,8 +22,10 @@ pub struct UpdateMemberRoleRequest {
 
 pub async fn get_workspace_members(
     State(state): State<Arc<AppState>>,
-    MemberContext { workspace_id, .. }: MemberContext,
+    ctx: MemberContext,
 ) -> AppResult<Json<Vec<WorkspaceMemberDetailResponse>>> {
+    let workspace_id = ctx.workspace_id;
+
     let members = state
         .core
         .workspace_repo

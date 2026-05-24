@@ -1,3 +1,4 @@
+#![allow(unused_variables)]
 //! System-level administration endpoints.
 //!
 //! All routes here require `SystemContext` with `PlatformAdmin` role.

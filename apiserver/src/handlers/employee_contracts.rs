@@ -1,3 +1,4 @@
+#![allow(unused_variables)]
 use std::sync::Arc;
 
 use axum::{
@@ -59,13 +60,15 @@ async fn dispatch_sync_hire_date(
 )]
 pub async fn list_employee_contracts(
     State(state): State<Arc<AppState>>,
-    MemberContext { workspace_id, .. }: MemberContext,
+    ctx: MemberContext,
     Path((_ws_id, employee_id)): Path<(Uuid, Uuid)>,
 ) -> AppResult<Json<Vec<EmployeeContract>>> {
+    let workspace_id = ctx.workspace_id;
+
     let contracts = state
         .employees
         .contract_repo
-        .list_employee_contracts(workspace_id, employee_id)
+        .list_employee_contracts(&ctx.auth_token, employee_id)
         .await?;
 
     Ok(Json(contracts))
@@ -86,13 +89,15 @@ pub async fn list_employee_contracts(
 )]
 pub async fn get_contract(
     State(state): State<Arc<AppState>>,
-    MemberContext { workspace_id, .. }: MemberContext,
+    ctx: MemberContext,
     Path((_ws_id, _employee_id, contract_id)): Path<(Uuid, Uuid, Uuid)>,
 ) -> AppResult<Json<EmployeeContract>> {
+    let workspace_id = ctx.workspace_id;
+
     let contract = state
         .employees
         .contract_repo
-        .get_contract_by_id(workspace_id, contract_id)
+        .get_contract_by_id(&ctx.auth_token, contract_id)
         .await?
         .ok_or_else(|| crate::errors::AppError::NotFound("Contract not found".to_string()))?;
 
@@ -114,14 +119,16 @@ pub async fn get_contract(
 )]
 pub async fn create_contract(
     State(state): State<Arc<AppState>>,
-    MemberContext { workspace_id, .. }: MemberContext,
+    ctx: MemberContext,
     Path((_ws_id, _employee_id)): Path<(Uuid, Uuid)>,
     Json(payload): Json<CreateContractRequest>,
 ) -> AppResult<(StatusCode, Json<EmployeeContract>)> {
+    let workspace_id = ctx.workspace_id;
+
     let contract = state
         .employees
         .contract_repo
-        .create_contract(workspace_id, &payload)
+        .create_contract(&ctx.auth_token, &payload)
         .await?;
 
     // Assign employment phase if requested
@@ -167,14 +174,16 @@ pub async fn create_contract(
 )]
 pub async fn update_contract(
     State(state): State<Arc<AppState>>,
-    MemberContext { workspace_id, .. }: MemberContext,
+    ctx: MemberContext,
     Path((_ws_id, _employee_id, contract_id)): Path<(Uuid, Uuid, Uuid)>,
     Json(payload): Json<UpdateContractRequest>,
 ) -> AppResult<Json<EmployeeContract>> {
+    let workspace_id = ctx.workspace_id;
+
     let contract = state
         .employees
         .contract_repo
-        .update_contract(workspace_id, contract_id, &payload)
+        .update_contract(&ctx.auth_token, contract_id, &payload)
         .await?;
 
     dispatch_sync_hire_date(&state, workspace_id, contract.employee_id, contract.id).await;
@@ -197,13 +206,15 @@ pub async fn update_contract(
 )]
 pub async fn delete_contract(
     State(state): State<Arc<AppState>>,
-    MemberContext { workspace_id, .. }: MemberContext,
+    ctx: MemberContext,
     Path((_ws_id, _employee_id, contract_id)): Path<(Uuid, Uuid, Uuid)>,
 ) -> AppResult<StatusCode> {
+    let workspace_id = ctx.workspace_id;
+
     state
         .employees
         .contract_repo
-        .delete_contract(workspace_id, contract_id)
+        .delete_contract(&ctx.auth_token, contract_id)
         .await?;
 
     // Since we don't return the contract, we use the employee_id from path

@@ -1,3 +1,4 @@
+#![allow(unused_variables)]
 //! Worker Monitoring API Handlers
 //!
 //! Provides real-time monitoring endpoints for distributed worker system.

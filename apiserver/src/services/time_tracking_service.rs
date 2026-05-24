@@ -65,7 +65,7 @@ impl TimeTrackingService {
         // Verify employee belongs to workspace
         let employee = self
             .employee_repo
-            .get_employee_by_id(employee_id, workspace_id)
+            .get_employee_by_id(employee_id, &crate::diesel_pool::TenantAuthToken::system_override(workspace_id))
             .await?
             .ok_or(AppError::NotFound("Employee not found".into()))?;
 
@@ -172,7 +172,7 @@ impl TimeTrackingService {
         // Verify employee belongs to workspace
         let _ = self
             .employee_repo
-            .get_employee_by_id(employee_id, workspace_id)
+            .get_employee_by_id(employee_id, &crate::diesel_pool::TenantAuthToken::system_override(workspace_id))
             .await?
             .ok_or(AppError::NotFound("Employee not found".into()))?;
 
@@ -197,7 +197,7 @@ impl TimeTrackingService {
         // Verify employee of this entry belongs to the workspace
         let _ = self
             .employee_repo
-            .get_employee_by_id(entry.employee_id, workspace_id)
+            .get_employee_by_id(entry.employee_id, &crate::diesel_pool::TenantAuthToken::system_override(workspace_id))
             .await?
             .ok_or(AppError::Forbidden(
                 "Employee does not belong to workspace".into(),
@@ -258,7 +258,7 @@ impl TimeTrackingService {
         // Verify employee of this entry belongs to the workspace
         let _ = self
             .employee_repo
-            .get_employee_by_id(entry.employee_id, workspace_id)
+            .get_employee_by_id(entry.employee_id, &crate::diesel_pool::TenantAuthToken::system_override(workspace_id))
             .await?
             .ok_or(AppError::Forbidden(
                 "Employee does not belong to workspace".into(),

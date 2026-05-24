@@ -363,7 +363,7 @@ impl MemberContext {
             let depts = app_state
                 .employees
                 .repo
-                .get_managed_departments(workspace_id, user_id)
+                .get_managed_departments(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id), user_id)
                 .await
                 .unwrap_or_default();
 
@@ -415,7 +415,7 @@ where
         let employee_id = app_state
             .employees
             .repo
-            .get_employee_id_by_user_id(workspace_id, user_id)
+            .get_employee_id_by_user_id(&member_ctx.auth_token, user_id)
             .await?
             .ok_or_else(|| {
                 AppError::Forbidden("No employee record linked to your account".to_string())

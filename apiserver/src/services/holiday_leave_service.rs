@@ -101,7 +101,7 @@ impl HolidayLeaveService {
         // Get all active employees in workspace
         let employees = self
             .employee_repo
-            .get_active_employees(workspace_id)
+            .get_active_employees(&crate::diesel_pool::TenantAuthToken::system_override(workspace_id))
             .await
             .map_err(|e| e.to_string())?;
 

@@ -1,3 +1,4 @@
+#![allow(unused_variables)]
 pub mod audit;
 pub mod crud;
 pub mod data_management;

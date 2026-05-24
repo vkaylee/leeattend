@@ -1,3 +1,4 @@
+#![allow(unused_variables)]
 use axum::{
     extract::{Query, State},
     http::StatusCode,

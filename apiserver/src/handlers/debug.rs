@@ -1,3 +1,4 @@
+#![allow(unused_variables)]
 use crate::errors::{AppError, AppResult};
 use crate::AppState;
 #[allow(unused_imports)]

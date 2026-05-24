@@ -1,3 +1,4 @@
+#![allow(unused_variables)]
 use axum::{
     extract::{Multipart, Path, State},
     response::Json,
@@ -39,7 +40,7 @@ pub async fn enter_paper_ot(
     let _employee = state
         .employees
         .repo
-        .get_employee_by_id(employee_id, ctx.workspace_id)
+        .get_employee_by_id(employee_id, &ctx.auth_token)
         .await?
         .ok_or_else(|| AppError::NotFound("Employee not found".to_string()))?;
 
@@ -221,7 +222,7 @@ pub async fn bulk_upload_paper_ot(
         let Some(employee) = (match state
             .employees
             .repo
-            .get_employee_by_id_number(&employee_id_str, ctx.workspace_id)
+            .get_employee_by_id_number(&employee_id_str, &ctx.auth_token)
             .await
         {
             Ok(Some(emp)) => Some(emp),

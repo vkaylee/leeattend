@@ -1,3 +1,4 @@
+#![allow(unused_variables)]
 use crate::errors::AppError;
 use crate::models::{NotificationCursorRequest, NotificationResponse, UnreadCountResponse};
 use crate::AppState;

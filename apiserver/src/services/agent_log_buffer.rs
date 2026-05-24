@@ -255,7 +255,7 @@ async fn parse_log_entry(
 ) -> Result<ParsedLogEntry, String> {
     // Resolve employee_id from employee_id_number
     let employee = match employee_repo
-        .find_by_number(entry.workspace_id, &entry.employee_id_number)
+        .find_by_number(&crate::diesel_pool::TenantAuthToken::system_override(entry.workspace_id), &entry.employee_id_number)
         .await
     {
         Ok(Some(emp)) => emp,

@@ -1,3 +1,4 @@
+#![allow(unused_variables)]
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
@@ -57,8 +58,10 @@ async fn reprocess_after_roster_change(
 
 pub async fn get_shifts(
     State(state): State<Arc<AppState>>,
-    MemberContext { workspace_id, .. }: MemberContext,
+    ctx: MemberContext,
 ) -> AppResult<Json<Vec<Shift>>> {
+    let workspace_id = ctx.workspace_id;
+
     let shifts = state
         .shifts
         .service
@@ -137,9 +140,11 @@ pub async fn assign_shift(
 
 pub async fn get_workspace_schedules(
     State(state): State<Arc<AppState>>,
-    MemberContext { workspace_id, .. }: MemberContext,
+    ctx: MemberContext,
     Query(params): Query<HashMap<String, String>>,
 ) -> AppResult<Json<Vec<EmployeeSchedule>>> {
+    let workspace_id = ctx.workspace_id;
+
     let start_date = params
         .get("start_date")
         .and_then(|d| NaiveDate::parse_from_str(d, "%Y-%m-%d").ok())
@@ -167,8 +172,10 @@ pub async fn get_workspace_schedules(
 
 pub async fn get_assignment_history(
     State(state): State<Arc<AppState>>,
-    MemberContext { workspace_id, .. }: MemberContext,
+    ctx: MemberContext,
 ) -> AppResult<Json<Vec<AssignmentHistory>>> {
+    let workspace_id = ctx.workspace_id;
+
     let history = state
         .shifts
         .roster_repo

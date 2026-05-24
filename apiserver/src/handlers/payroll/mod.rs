@@ -1,3 +1,4 @@
+#![allow(unused_variables)]
 pub mod configs;
 pub mod incentives;
 pub mod payslips;
