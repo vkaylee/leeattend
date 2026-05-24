@@ -255,6 +255,7 @@ impl ShiftRepository for DieselShiftRepository {
         Ok(entity.map(Into::into))
     }
 
+    #[allow(clippy::mut_mut)]
     async fn update_assignments_to_new_version(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,

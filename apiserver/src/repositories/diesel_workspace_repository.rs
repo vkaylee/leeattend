@@ -982,6 +982,7 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
         Ok(result.exists)
     }
 
+    #[allow(clippy::mut_mut)]
     async fn set_role_permissions(
         &self,
         role_id: Uuid,
