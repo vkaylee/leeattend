@@ -9,8 +9,10 @@ use uuid::Uuid;
 pub trait WorkspaceRepository: Send + Sync {
     async fn create_workspace_with_owner(
         &self,
+        id: Uuid,
         name: &str,
         owner_id: Uuid,
+        custom_db_url_encrypted: Option<String>,
     ) -> Result<Workspace, AppError>;
     async fn get_workspace_by_id(&self, id: Uuid) -> Result<Option<Workspace>, AppError>;
     async fn get_all_workspaces(&self) -> Result<Vec<Workspace>, AppError>;

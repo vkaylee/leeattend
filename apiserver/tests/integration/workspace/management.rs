@@ -70,6 +70,22 @@ async fn test_workspace_creation_and_membership_smoke() {
     let workspace: serde_json::Value = response.json().await.unwrap();
     let ws_id = workspace["id"].as_str().unwrap();
 
+    // Verify BYOD URL is encrypted and stored
+    use diesel::ExpressionMethods;
+    use diesel::QueryDsl;
+    use diesel_async::RunQueryDsl;
+    let mut conn = factory.diesel_pools.api.get().await.unwrap();
+    let stored_encrypted_url: Option<String> = apiserver::schema::workspaces::dsl::workspaces
+        .select(apiserver::schema::workspaces::dsl::custom_db_url_encrypted)
+        .filter(apiserver::schema::workspaces::dsl::id.eq(Uuid::parse_str(ws_id).unwrap()))
+        .first(&mut conn)
+        .await
+        .unwrap();
+    assert!(
+        stored_encrypted_url.is_some(),
+        "custom_db_url_encrypted must be set for BYOD"
+    );
+
     // 3. Check member list — creator should be owner
     let response = client
         .get(format!("{address}/api/workspaces/{ws_id}/members"))
@@ -201,14 +217,13 @@ async fn test_workspace_rbac_flow() {
 async fn test_workspace_repository_directly() {
     let test_db = TestDatabase::new().await;
     let pool = test_db.diesel_pools.clone();
-    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
     let factory = TestFactory::new(pool.clone());
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
     let repo = DieselWorkspaceRepository::new(diesel_pools.clone());
 
     let user_id: Uuid = factory.user().create().await;
     let ws = repo
-        .create_workspace_with_owner("Test WS", user_id)
+        .create_workspace_with_owner(uuid::Uuid::new_v4(), "Test WS", user_id, None)
         .await
         .unwrap();
 

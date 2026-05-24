@@ -24,7 +24,7 @@ async fn test_workspace_creation_no_default_leave_types() {
 
     // 2. Create workspace using repository directly (which is used by Service)
     let workspace = repo
-        .create_workspace_with_owner("Fresh Start WS", user_id)
+        .create_workspace_with_owner(uuid::Uuid::new_v4(), "Fresh Start WS", user_id, None)
         .await
         .expect("Failed to create workspace");
 

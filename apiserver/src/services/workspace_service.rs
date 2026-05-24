@@ -50,9 +50,11 @@ impl WorkspaceService {
     #[tracing::instrument(skip_all, err)]
     pub async fn create_workspace(
         &self,
+        id: Uuid,
         name: &str,
         owner_id: Uuid,
         database_url: &str,
+        custom_db_url_encrypted: Option<String>,
     ) -> Result<Workspace, String> {
         // 1. Check if user exists
         let user_exists = self
@@ -66,25 +68,18 @@ impl WorkspaceService {
             return Err(format!("User with ID {owner_id} does not exist"));
         }
 
-        // 2. Create workspace with owner using repository
-        let ws = self
-            .workspace_repo
-            .create_workspace_with_owner(name, owner_id)
-            .await
-            .map_err(|e| e.to_string())?;
-
-        // 3. Run migrations on the provided database (BYOD)
+        // 2. Run migrations on the provided database (BYOD)
         let new_db_url = self
             .tenant_provisioner
-            .provision_tenant_db(&ws.id, database_url)
+            .provision_tenant_db(&id, database_url)
             .await
             .map_err(|e| format!("Failed to provision DB: {e}"))?;
 
-        // 4. Register Tenant with Supavisor connection pooler.
+        // 3. Register Tenant with Supavisor connection pooler.
         // The tenant_id must match the format produced by diesel_pool::get_tenant_url(),
         // which constructs tenant_<uuid-without-hyphens>. Using the raw UUID with hyphens
         // causes a mismatch when the API connects via Supavisor.
-        let tenant_id_alias = format!("tenant_{}", ws.id.to_string().replace('-', ""));
+        let tenant_id_alias = format!("tenant_{}", id.to_string().replace('-', ""));
         let payload_opt = crate::supavisor::build_tenant_payload(
             &new_db_url,
             crate::supavisor::TenantPayloadOptions {
@@ -98,8 +93,15 @@ impl WorkspaceService {
             self.tenant_manager
                 .register_tenant_dynamic(&tenant_id, &payload)
                 .await
-                .map_err(|e| format!("Failed to register with Supavisor: {e}"))?;
+                .map_err(|e| format!("Failed to register tenant with pooler: {e}"))?;
         }
+
+        // 4. Create workspace with owner using repository
+        let ws = self
+            .workspace_repo
+            .create_workspace_with_owner(id, name, owner_id, custom_db_url_encrypted)
+            .await
+            .map_err(|e| e.to_string())?;
 
         Ok(ws)
     }
@@ -204,10 +206,13 @@ mod tests {
     impl WorkspaceRepository for MockWorkspaceRepo {
         async fn create_workspace_with_owner(
             &self,
+            id: Uuid,
             name: &str,
             _owner_id: Uuid,
+            _custom_db_url_encrypted: Option<String>,
         ) -> Result<Workspace, AppError> {
             let mut ws = dummy_workspace();
+            ws.id = id;
             ws.name = name.to_string();
             Ok(ws)
         }
@@ -579,16 +584,56 @@ mod tests {
         )
     }
 
+    struct FailingMockTenantProvisioner;
+    #[async_trait]
+    impl crate::services::tenant_provisioner::TenantProvisionerTrait for FailingMockTenantProvisioner {
+        async fn provision_tenant_db(
+            &self,
+            _workspace_id: &Uuid,
+            _db_url: &str,
+        ) -> crate::errors::AppResult<String> {
+            Err(crate::errors::AppError::Internal("provisioning failed".into()))
+        }
+    }
+
+    fn build_service_with_failing_provisioner() -> WorkspaceService {
+        WorkspaceService::new(
+            std::sync::Arc::new(MockWorkspaceRepo {
+                workspace: Some(dummy_workspace()),
+                primary_role: Some(Uuid::new_v4()),
+            }),
+            std::sync::Arc::new(MockUserRepo { user_exists: true }),
+            std::sync::Arc::new(FailingMockTenantProvisioner),
+            std::sync::Arc::new(MockTenantManager::new()),
+        )
+    }
+
     // ── Tests ────────────────────────────────────────────────────────────────
 
     #[tokio::test]
     async fn test_create_workspace_user_not_found() {
         let svc = build_service(false);
         let err = svc
-            .create_workspace("Acme", Uuid::new_v4(), "postgres://u:p@h:5432/tenant_db")
+            .create_workspace(Uuid::new_v4(), "Acme", Uuid::new_v4(), "postgres://u:p@h:5432/tenant_db", None)
             .await
             .unwrap_err();
         assert!(err.contains("does not exist"));
+    }
+
+    #[tokio::test]
+    async fn test_create_workspace_fails_when_provisioning_fails() {
+        let svc = build_service_with_failing_provisioner();
+        let err = svc
+            .create_workspace(
+                Uuid::new_v4(),
+                "Acme",
+                Uuid::new_v4(),
+                "postgres://u:p@h:5432/tenant_db",
+                None,
+            )
+            .await
+            .unwrap_err();
+        assert!(err.to_string().contains("provisioning failed"));
     }
 
     #[tokio::test]
@@ -596,9 +641,11 @@ mod tests {
         let svc = build_service(true);
         let ws = svc
             .create_workspace(
+                Uuid::new_v4(),
                 "Acme Corp",
                 Uuid::new_v4(),
                 "postgres://u:p@h:5432/tenant_db",
+                None,
             )
             .await
             .unwrap();
@@ -612,9 +659,11 @@ mod tests {
 
         let ws = svc
             .create_workspace(
+                Uuid::new_v4(),
                 "Acme Corp",
                 Uuid::new_v4(),
                 "postgres://test_user:test_password@localhost:5432/tenant_db",
+                None,
             )
             .await
             .unwrap();

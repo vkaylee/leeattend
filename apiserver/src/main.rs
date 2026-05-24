@@ -218,23 +218,24 @@ async fn register_workspace_tenants_and_migrate(
 ) {
     // Query workspaces from system DB via direct connection
     let primary_url = db_config.primary_url.clone();
-    let primary_url_for_parse = primary_url.clone();
-    let workspaces: Vec<Uuid> = match tokio::task::spawn_blocking(move || {
-        use diesel::sql_types::Uuid as UuidSql;
+    let workspaces: Vec<(Uuid, Option<String>)> = match tokio::task::spawn_blocking(move || {
+        use diesel::sql_types::{Nullable, Text, Uuid as UuidSql};
         use diesel::{Connection, QueryableByName, RunQueryDsl};
 
         #[derive(QueryableByName)]
         struct WsRow {
             #[diesel(sql_type = UuidSql)]
             id: Uuid,
+            #[diesel(sql_type = Nullable<Text>)]
+            custom_db_url_encrypted: Option<String>,
         }
 
         let mut conn = diesel::PgConnection::establish(&primary_url)
             .map_err(|e| format!("Failed to connect: {e}"))?;
 
-        let workspaces = diesel::sql_query("SELECT id FROM workspaces")
+        let workspaces = diesel::sql_query("SELECT id, custom_db_url_encrypted FROM workspaces")
             .load::<WsRow>(&mut conn)
-            .map(|r| r.into_iter().map(|w| w.id).collect())
+            .map(|r| r.into_iter().map(|w| (w.id, w.custom_db_url_encrypted)).collect())
             .map_err(|e| format!("Failed to query workspaces: {e}"))?;
 
         Ok::<_, String>(workspaces)
@@ -257,21 +258,30 @@ async fn register_workspace_tenants_and_migrate(
         return;
     }
 
-    // Build Supavisor payload for each workspace tenant and register (idempotent PUT)
-    let parsed_url = match reqwest::Url::parse(&primary_url_for_parse) {
-        Ok(u) => u,
-        Err(e) => {
-            tracing::error!("Invalid DATABASE_URL: {e} — skipping tenant registration");
-            return;
-        }
-    };
-    for ws_id in &workspaces {
+    let crypto_service: Option<apiserver::crypto::CryptoService> = std::env::var("ENCRYPTION_KEYS_JSON")
+        .ok()
+        .and_then(|keys| apiserver::crypto::CryptoService::from_json(&keys).ok());
+
+    // We no longer extract user, password, host, port from DATABASE_URL
+    // because ALL tenants MUST be BYOD and have a custom connection string.
+
+    for (ws_id, custom_db_url_encrypted) in workspaces {
         let db_name = format!("tenant_{}", ws_id.to_string().replace('-', ""));
-        let mut tenant_url = parsed_url.clone();
-        tenant_url.set_path(&db_name);
+        
+        let tenant_url = if let Some(encrypted) = custom_db_url_encrypted {
+            let decrypted = if let Some(crypto) = &crypto_service {
+                crypto.decrypt(&encrypted).unwrap_or(encrypted)
+            } else {
+                encrypted
+            };
+            decrypted
+        } else {
+            tracing::warn!("Workspace {} missing custom_db_url_encrypted! Skipping registration.", ws_id);
+            continue;
+        };
 
         let Some((_, payload)) = apiserver::supavisor::build_tenant_payload(
-            tenant_url.as_str(),
+            &tenant_url,
             apiserver::supavisor::TenantPayloadOptions {
                 tenant_id: Some(db_name.clone()),
                 pool_size: None,

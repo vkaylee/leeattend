@@ -27,8 +27,10 @@ impl DieselWorkspaceRepository {
 impl WorkspaceRepository for DieselWorkspaceRepository {
     async fn create_workspace_with_owner(
         &self,
+        id: Uuid,
         name: &str,
         owner_id: Uuid,
+        custom_db_url_encrypted: Option<String>,
     ) -> Result<Workspace, AppError> {
         let mut conn = self
             .diesel_pools
@@ -37,9 +39,8 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
-        let workspace_id = crate::utils::id::new_id();
         let entity = WorkspaceEntity {
-            id: workspace_id,
+            id,
             name: name.to_string(),
             created_at: Some(Utc::now()),
             date_format: "yyyy-MM-dd".to_string(),
@@ -51,14 +52,14 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
             default_holiday_ot_multiplier: bigdecimal::BigDecimal::from(2),
             logo_url: None,
             tagline: None,
-            custom_db_url_encrypted: None,
+            custom_db_url_encrypted,
         };
 
         let owner_role_id = Uuid::parse_str("a0000000-0000-0000-0000-000000000001")
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let member_entity = WorkspaceMemberEntity {
-            workspace_id,
+            workspace_id: id,
             user_id: owner_id,
             role_id: owner_role_id,
         };

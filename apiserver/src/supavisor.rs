@@ -1,22 +1,13 @@
 use serde_json::json;
 
+#[derive(Default)]
 pub struct TenantPayloadOptions {
     pub tenant_id: Option<String>,
     pub pool_size: Option<u32>,
     pub is_master: bool,
 }
 
-impl Default for TenantPayloadOptions {
-    fn default() -> Self {
-        Self {
-            tenant_id: None,
-            pool_size: None,
-            is_master: false,
-        }
-    }
-}
-
-fn parse_postgres_url(db_url: &str) -> Option<(String, String, String, u16, String)> {
+pub fn parse_postgres_url(db_url: &str) -> Option<(String, String, String, u16, String)> {
     let prefix = if db_url.starts_with("postgres://") {
         "postgres://"
     } else if db_url.starts_with("postgresql://") {
@@ -33,7 +24,7 @@ fn parse_postgres_url(db_url: &str) -> Option<(String, String, String, u16, Stri
 
     let (auth_host_port, dbname) = match rest.rsplit_once('/') {
         Some((ahp, db)) => (ahp, db.to_string()),
-        None => (rest, "".to_string()),
+        None => (rest, String::new()),
     };
 
     let (auth, host_port) = match auth_host_port.rsplit_once('@') {
@@ -55,9 +46,9 @@ fn parse_postgres_url(db_url: &str) -> Option<(String, String, String, u16, Stri
     let (user, password) = match auth {
         Some(a) => match a.split_once(':') {
             Some((u, p)) => (u.to_string(), p.to_string()),
-            None => (a.to_string(), "".to_string()),
+            None => (a.to_string(), String::new()),
         },
-        None => ("".to_string(), "".to_string()),
+        None => (String::new(), String::new()),
     };
     
     let user = percent_encoding::percent_decode_str(&user).decode_utf8_lossy().to_string();
@@ -72,29 +63,15 @@ pub fn build_tenant_payload(db_url: &str, opts: TenantPayloadOptions) -> Option<
         return None;
     };
 
-    // If it's the master connection and user has a dot (Supavisor connection string), 
-    // the actual upstream DB user is just the first part (e.g. postgres)
-    if opts.is_master && url_username.contains('.') {
-        url_username = url_username.split_once('.').unwrap().0.to_string();
+    // The actual upstream DB user shouldn't include the tenant dot prefix
+    if url_username.contains('.') {
+        if let Some((prefix, _)) = url_username.split_once('.') {
+            url_username = prefix.to_string();
+        }
     }
 
-    let db_user = if opts.is_master {
-        std::env::var("SUPAVISOR_POOL_USER")
-            .ok()
-            .filter(|s| !s.is_empty())
-            .unwrap_or_else(|| url_username.clone())
-    } else {
-        url_username
-    };
-
-    let db_password = if opts.is_master {
-        std::env::var("SUPAVISOR_POOL_PASSWORD")
-            .ok()
-            .filter(|s| !s.is_empty())
-            .unwrap_or_else(|| url_password.clone())
-    } else {
-        url_password
-    };
+    let db_user = url_username;
+    let db_password = url_password;
 
     if db_name.is_empty() || db_user.is_empty() || db_password.is_empty() {
         tracing::warn!("DATABASE_URL is missing required components (user/password/name). Cannot initialize Supavisor.");
@@ -151,9 +128,11 @@ pub fn build_tenant_payload(db_url: &str, opts: TenantPayloadOptions) -> Option<
         tenant_map.insert("require_user".to_string(), json!(true));
     }
 
-    // Determine pool_password from API Server's DATABASE_URL
-    let client_password = std::env::var("DATABASE_URL")
+    // Determine pool_password from API Server's DATABASE_POOLER_URL or DATABASE_URL
+    let client_password = std::env::var("DATABASE_POOLER_URL")
         .ok()
+        .filter(|url| !url.is_empty())
+        .or_else(|| std::env::var("DATABASE_URL").ok())
         .and_then(|url| parse_postgres_url(&url))
         .map(|(_, pass, _, _, _)| pass)
         .filter(|p| !p.is_empty())
@@ -641,21 +620,30 @@ mod tests {
     fn test_build_tenant_payload_sets_pool_password_from_env() {
         let physical_db_url = "postgres://tenant_user:physical_pass@my_db_host:5433/tenant_db";
         
-        // 1. Without DATABASE_URL set, pool_password should default to db_password
+        // 1. Without DATABASE_URL or DATABASE_POOLER_URL set, pool_password should default to db_password
         std::env::remove_var("DATABASE_URL");
+        std::env::remove_var("DATABASE_POOLER_URL");
         let (_, payload) = build_tenant_payload(physical_db_url, TenantPayloadOptions { is_master: false, ..Default::default() }).unwrap();
         let users = payload.get("tenant").unwrap()["users"].as_array().unwrap();
         assert_eq!(users[0]["db_password"], "physical_pass");
         assert_eq!(users[0]["pool_password"], "physical_pass");
 
-        // 2. With DATABASE_URL set to Supavisor URL, pool_password should be the master password
+        // 2. With DATABASE_URL set, pool_password should fallback to DATABASE_URL password
         std::env::set_var("DATABASE_URL", "postgres://postgres.leeattend:master_pass@supavisor:6543/leeattend");
         let (_, payload2) = build_tenant_payload(physical_db_url, TenantPayloadOptions { is_master: false, ..Default::default() }).unwrap();
         let users2 = payload2.get("tenant").unwrap()["users"].as_array().unwrap();
         assert_eq!(users2[0]["db_password"], "physical_pass");
         assert_eq!(users2[0]["pool_password"], "master_pass");
         
+        // 3. With DATABASE_POOLER_URL set, pool_password should be the pooler master password
+        std::env::set_var("DATABASE_POOLER_URL", "postgres://postgres.leeattend:pooler_pass@supavisor:6543/leeattend");
+        let (_, payload3) = build_tenant_payload(physical_db_url, TenantPayloadOptions { is_master: false, ..Default::default() }).unwrap();
+        let users3 = payload3.get("tenant").unwrap()["users"].as_array().unwrap();
+        assert_eq!(users3[0]["db_password"], "physical_pass");
+        assert_eq!(users3[0]["pool_password"], "pooler_pass");
+        
         std::env::remove_var("DATABASE_URL");
+        std::env::remove_var("DATABASE_POOLER_URL");
     }
 
     #[test]
@@ -675,32 +663,10 @@ mod tests {
         std::env::remove_var("SUPAVISOR_TENANT_ID");
     }
 
-    #[test]
-    fn test_build_tenant_payload_with_custom_user_and_password() {
-        std::env::set_var("SUPAVISOR_POOL_USER", "custom_pool_user");
-        std::env::set_var("SUPAVISOR_POOL_PASSWORD", "custom_pool_secret");
 
-        let url = "postgres://my_user:my_secret@my_db_host:5433/my_company_db";
-        let (_, payload) = build_tenant_payload(url, TenantPayloadOptions { is_master: true, ..Default::default() }).expect("Should build payload");
-
-        let tenant = payload.get("tenant").expect("missing tenant key");
-        let users = tenant["users"].as_array().expect("missing users array");
-        assert_eq!(users.len(), 1);
-        assert_eq!(users[0]["db_user"], "custom_pool_user");
-        assert_eq!(users[0]["db_password"], "custom_pool_secret");
-        assert_eq!(users[0]["pool_size"], 20); // Default
-        assert_eq!(users[0]["mode_type"], "session"); // Default
-        assert!(users[0].get("pool_password").is_some());
-        assert_eq!(users[0]["is_manager"], true);
-
-        std::env::remove_var("SUPAVISOR_POOL_USER");
-        std::env::remove_var("SUPAVISOR_POOL_PASSWORD");
-    }
 
     #[test]
     fn test_build_tenant_payload_dynamic_ignores_global_env() {
-        std::env::set_var("SUPAVISOR_POOL_USER", "global_pool_user");
-        std::env::set_var("SUPAVISOR_POOL_PASSWORD", "global_pool_secret");
         std::env::set_var("SUPAVISOR_TENANT_ID", "global_tenant_id");
         
         let url = "postgres://dynamic_user:dynamic_secret@dynamic_db_host:5433/dynamic_db";
@@ -721,8 +687,6 @@ mod tests {
         assert_eq!(users[0]["db_user"], "dynamic_user");
         assert_eq!(users[0]["db_password"], "dynamic_secret");
         
-        std::env::remove_var("SUPAVISOR_POOL_USER");
-        std::env::remove_var("SUPAVISOR_POOL_PASSWORD");
         std::env::remove_var("SUPAVISOR_TENANT_ID");
     }
 

@@ -391,13 +391,33 @@ pub async fn create_workspace(
 ) -> AppResult<Json<Workspace>> {
     ctx.require_role(SystemRoleType::PlatformAdmin)?;
 
-    state
+    let ws_id = crate::utils::id::new_id();
+
+    // Encrypt database_url as custom_db_url_encrypted for BYOD support across restarts
+    let encrypted_url = if let Some(crypto) = &state.infra.crypto_service {
+        crypto.encrypt(&req.database_url).map_err(|e| {
+            tracing::error!("Failed to encrypt DB URL: {}", e);
+            AppError::Internal("Encryption failed".into())
+        })?
+    } else {
+        tracing::warn!("No crypto service available, storing URL in plaintext!");
+        req.database_url.clone()
+    };
+
+    let ws = state
         .core
         .workspace_service
-        .create_workspace(&req.name, ctx.user_id, &req.database_url)
+        .create_workspace(
+            ws_id,
+            &req.name,
+            ctx.user_id,
+            &req.database_url,
+            Some(encrypted_url),
+        )
         .await
-        .map(Json)
-        .map_err(AppError::from)
+        .map_err(AppError::from)?;
+
+    Ok(Json(ws))
 }
 
 pub async fn update_workspace(

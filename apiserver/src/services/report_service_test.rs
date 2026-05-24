@@ -40,8 +40,10 @@ mod tests {
         }
         async fn create_workspace_with_owner(
             &self,
+            _id: Uuid,
             _n: &str,
             _o: Uuid,
+            _c: Option<String>,
         ) -> Result<Workspace, AppError> {
             unimplemented!()
         }
