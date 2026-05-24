@@ -99,9 +99,7 @@ services:
       "
     healthcheck:
       <<: *healthcheck-base
-      # Note: Supavisor does not have a standard /api/health out-of-the-box on 4000, 
-      # but checking if the port is open is sufficient for healthcheck
-      test: [ "CMD", "curl", "-s", "-o", "/dev/null", "http://localhost:4000" ]
+      test: [ "CMD", "curl", "-s", "-f", "-o", "/dev/null", "http://localhost:4000/api/health" ]
 
   apiserver:
     image: localhost/leeattend_apiserver
