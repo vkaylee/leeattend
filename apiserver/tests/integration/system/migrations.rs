@@ -33,7 +33,8 @@ async fn test_system_migrations_only_create_system_tables() {
     let db_url = format!("{base_connection_string}/{db_name}");
     let config = DbPoolConfig {
         primary_url: db_url.clone(),
-        pooler_url: None,
+        pooler_tx_url: None,
+        pooler_sess_url: None,
         reader_url: None,
         api_max_conn: 1,
         api_acquire_timeout_secs: 5,
@@ -146,7 +147,8 @@ async fn test_run_tenant_migrations_on_existing_workspace() {
 
     let config = DbPoolConfig {
         primary_url: sys_db_url.clone(),
-        pooler_url: None,
+        pooler_tx_url: None,
+        pooler_sess_url: None,
         reader_url: None,
         api_max_conn: 1,
         api_acquire_timeout_secs: 5,
@@ -160,7 +162,8 @@ async fn test_run_tenant_migrations_on_existing_workspace() {
     tokio::task::spawn_blocking(move || {
         DieselPools::run_system_migrations(&DbPoolConfig {
             primary_url: sys_url_clone.clone(),
-            pooler_url: None,
+            pooler_tx_url: None,
+            pooler_sess_url: None,
             reader_url: None,
             api_max_conn: 1,
             api_acquire_timeout_secs: 5,
@@ -289,7 +292,8 @@ async fn test_notifications_table_in_system_db() {
     tokio::task::spawn_blocking(move || {
         DieselPools::run_system_migrations(&DbPoolConfig {
             primary_url: url_clone,
-            pooler_url: None,
+            pooler_tx_url: None,
+            pooler_sess_url: None,
             reader_url: None,
             api_max_conn: 1,
             api_acquire_timeout_secs: 5,
@@ -415,7 +419,8 @@ async fn test_authorized_agents_only_in_system_db() {
     tokio::task::spawn_blocking(move || {
         DieselPools::run_system_migrations(&DbPoolConfig {
             primary_url: url_clone,
-            pooler_url: None,
+            pooler_tx_url: None,
+            pooler_sess_url: None,
             reader_url: None,
             api_max_conn: 1,
             api_acquire_timeout_secs: 5,
@@ -546,7 +551,8 @@ async fn test_workspace_tables_fk_cascade_in_system_db() {
     tokio::task::spawn_blocking(move || {
         DieselPools::run_system_migrations(&DbPoolConfig {
             primary_url: url_clone,
-            pooler_url: None,
+            pooler_tx_url: None,
+            pooler_sess_url: None,
             reader_url: None,
             api_max_conn: 1,
             api_acquire_timeout_secs: 5,
@@ -738,7 +744,8 @@ async fn test_run_tenant_migrations_falls_back_to_primary_url() {
 
         let config = DbPoolConfig {
             primary_url: url_clone.clone(),
-            pooler_url: None,
+            pooler_tx_url: None,
+            pooler_sess_url: None,
             reader_url: None,
             api_max_conn: 1,
             api_acquire_timeout_secs: 5,
@@ -758,10 +765,11 @@ async fn test_run_tenant_migrations_falls_back_to_primary_url() {
     .await
     .unwrap();
 
-    // Run tenant migrations with pooler_url: None — should fall back to primary_url
+    // Run tenant migrations with pooler_tx_url: None, pooler_sess_url: None — should fall back to primary_url
     let config_no_pooler = DbPoolConfig {
         primary_url: sys_db_url.clone(),
-        pooler_url: None,
+        pooler_tx_url: None,
+        pooler_sess_url: None,
         reader_url: None,
         api_max_conn: 1,
         api_acquire_timeout_secs: 5,

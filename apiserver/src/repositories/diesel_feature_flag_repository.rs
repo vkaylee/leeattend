@@ -24,14 +24,17 @@ impl DieselFeatureFlagRepository {
 #[async_trait]
 impl FeatureFlagRepository for DieselFeatureFlagRepository {
     async fn list_flags(&self, auth_token: &TenantAuthToken) -> Result<Vec<FeatureFlag>, AppError> {
-        let mut conn = self.diesel_pools.tenant_conn(auth_token).await?;
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
         let workspace_id = auth_token.workspace_id();
 
         feature_flags::table
             .filter(feature_flags::workspace_id.eq(workspace_id))
             .order(feature_flags::flag_key.asc())
             .select(FeatureFlagEntity::as_select())
-            .load::<FeatureFlagEntity>(&mut conn)
+            .load::<FeatureFlagEntity>(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))
             .map(|rows| rows.into_iter().map(Into::into).collect())
@@ -42,14 +45,17 @@ impl FeatureFlagRepository for DieselFeatureFlagRepository {
         auth_token: &TenantAuthToken,
         flag_key: &str,
     ) -> Result<Option<FeatureFlag>, AppError> {
-        let mut conn = self.diesel_pools.tenant_conn(auth_token).await?;
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
         let workspace_id = auth_token.workspace_id();
 
         feature_flags::table
             .filter(feature_flags::workspace_id.eq(workspace_id))
             .filter(feature_flags::flag_key.eq(flag_key))
             .select(FeatureFlagEntity::as_select())
-            .first::<FeatureFlagEntity>(&mut conn)
+            .first::<FeatureFlagEntity>(&mut *conn)
             .await
             .optional()
             .map_err(|e| AppError::Internal(format!("db: {e}")))
@@ -61,14 +67,17 @@ impl FeatureFlagRepository for DieselFeatureFlagRepository {
         auth_token: &TenantAuthToken,
         id: Uuid,
     ) -> Result<Option<FeatureFlag>, AppError> {
-        let mut conn = self.diesel_pools.tenant_conn(auth_token).await?;
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
         let workspace_id = auth_token.workspace_id();
 
         feature_flags::table
             .filter(feature_flags::workspace_id.eq(workspace_id))
             .filter(feature_flags::id.eq(id))
             .select(FeatureFlagEntity::as_select())
-            .first::<FeatureFlagEntity>(&mut conn)
+            .first::<FeatureFlagEntity>(&mut *conn)
             .await
             .optional()
             .map_err(|e| AppError::Internal(format!("db: {e}")))
@@ -80,14 +89,17 @@ impl FeatureFlagRepository for DieselFeatureFlagRepository {
         auth_token: &TenantAuthToken,
         flag_key: &str,
     ) -> Result<bool, AppError> {
-        let mut conn = self.diesel_pools.tenant_conn(auth_token).await?;
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
         let workspace_id = auth_token.workspace_id();
 
         let enabled = feature_flags::table
             .filter(feature_flags::workspace_id.eq(workspace_id))
             .filter(feature_flags::flag_key.eq(flag_key))
             .select(feature_flags::enabled)
-            .first::<bool>(&mut conn)
+            .first::<bool>(&mut *conn)
             .await
             .optional()
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -103,7 +115,10 @@ impl FeatureFlagRepository for DieselFeatureFlagRepository {
         description: Option<&str>,
         metadata: &serde_json::Value,
     ) -> Result<FeatureFlag, AppError> {
-        let mut conn = self.diesel_pools.tenant_conn(auth_token).await?;
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
         let workspace_id = auth_token.workspace_id();
         let now = Utc::now();
 
@@ -121,7 +136,7 @@ impl FeatureFlagRepository for DieselFeatureFlagRepository {
         diesel::insert_into(feature_flags::table)
             .values(&entity)
             .returning(FeatureFlagEntity::as_returning())
-            .get_result(&mut conn)
+            .get_result(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))
             .map(Into::into)
@@ -135,7 +150,10 @@ impl FeatureFlagRepository for DieselFeatureFlagRepository {
         description: Option<&str>,
         metadata: Option<&serde_json::Value>,
     ) -> Result<Option<FeatureFlag>, AppError> {
-        let mut conn = self.diesel_pools.tenant_conn(auth_token).await?;
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
         let workspace_id = auth_token.workspace_id();
 
         let target = feature_flags::table
@@ -150,7 +168,7 @@ impl FeatureFlagRepository for DieselFeatureFlagRepository {
                 feature_flags::updated_at.eq(Utc::now()),
             ))
             .returning(FeatureFlagEntity::as_returning())
-            .get_result(&mut conn)
+            .get_result(&mut *conn)
             .await
             .optional()
             .map_err(|e| AppError::Internal(format!("db: {e}")))
@@ -158,7 +176,10 @@ impl FeatureFlagRepository for DieselFeatureFlagRepository {
     }
 
     async fn delete_flag(&self, auth_token: &TenantAuthToken, id: Uuid) -> Result<bool, AppError> {
-        let mut conn = self.diesel_pools.tenant_conn(auth_token).await?;
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
         let workspace_id = auth_token.workspace_id();
 
         diesel::delete(
@@ -166,7 +187,7 @@ impl FeatureFlagRepository for DieselFeatureFlagRepository {
                 .filter(feature_flags::workspace_id.eq(workspace_id))
                 .filter(feature_flags::id.eq(id)),
         )
-        .execute(&mut conn)
+        .execute(&mut *conn)
         .await
         .map_err(|e| AppError::Internal(format!("db: {e}")))
         .map(|count| count > 0)
@@ -180,7 +201,10 @@ impl FeatureFlagRepository for DieselFeatureFlagRepository {
         description: Option<&str>,
         metadata: &serde_json::Value,
     ) -> Result<FeatureFlag, AppError> {
-        let mut conn = self.diesel_pools.tenant_conn(auth_token).await?;
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
         let workspace_id = auth_token.workspace_id();
         let now = Utc::now();
 
@@ -206,13 +230,12 @@ impl FeatureFlagRepository for DieselFeatureFlagRepository {
                 feature_flags::updated_at.eq(Utc::now()),
             ))
             .returning(FeatureFlagEntity::as_returning())
-            .get_result(&mut conn)
+            .get_result(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))
             .map(Into::into)
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -221,9 +244,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_repo_initialization() {
-        let test_db_url = std::env::var("DATABASE_URL")
-            .unwrap_or_else(|_| "postgres://user:pass@localhost:5432/leeattend_test_db".to_string());
-        
+        let test_db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://user:pass@localhost:5432/leeattend_test_db".to_string()
+        });
+
         let pools = DieselPools::for_test(&test_db_url);
         let _repo = DieselFeatureFlagRepository::new(pools);
         // DI connection test passes if it compiles

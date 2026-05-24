@@ -8,11 +8,11 @@ use axum::{
     http::StatusCode,
     response::Json,
 };
+use chrono::Utc;
 use serde::Deserialize;
 use std::sync::Arc;
 use utoipa::ToSchema;
 use uuid::Uuid;
-use chrono::Utc;
 
 use crate::errors::AppResult;
 use crate::handlers::common::ApiContext;
@@ -90,7 +90,11 @@ pub async fn delete_db_cluster(
 ) -> AppResult<StatusCode> {
     ctx.require_role(SystemRoleType::PlatformAdmin)?;
 
-    state.infra.system_db_cluster_repo.delete_cluster(id).await?;
+    state
+        .infra
+        .system_db_cluster_repo
+        .delete_cluster(id)
+        .await?;
 
     Ok(StatusCode::NO_CONTENT)
 }

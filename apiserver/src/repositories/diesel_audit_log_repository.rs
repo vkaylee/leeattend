@@ -23,18 +23,19 @@ impl DieselAuditLogRepository {
 #[async_trait]
 impl AuditLogRepository for DieselAuditLogRepository {
     async fn create_log(&self, log: &AuditLog) -> Result<AuditLog, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .api
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .api
+                .get()
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let entity: AuditLogEntity = log.clone().into();
 
         let inserted: AuditLogEntity = diesel::insert_into(audit_logs::table)
             .values(&entity)
-            .get_result(&mut conn)
+            .get_result(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -50,12 +51,13 @@ impl AuditLogRepository for DieselAuditLogRepository {
         start_date_val: Option<chrono::DateTime<chrono::Utc>>,
         end_date_val: Option<chrono::DateTime<chrono::Utc>>,
     ) -> Result<(Vec<AuditLog>, i64), AppError> {
-        let mut conn = self
-            .diesel_pools
-            .api
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .api
+                .get()
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let mut query = audit_logs::table
             .filter(audit_logs::workspace_id.eq(workspace_id_val))
@@ -82,7 +84,7 @@ impl AuditLogRepository for DieselAuditLogRepository {
 
         let count: i64 = count_query
             .count()
-            .get_result(&mut conn)
+            .get_result(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -90,14 +92,13 @@ impl AuditLogRepository for DieselAuditLogRepository {
             .order(audit_logs::created_at.desc())
             .limit(limit)
             .offset(offset)
-            .load::<AuditLogEntity>(&mut conn)
+            .load::<AuditLogEntity>(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok((logs_result.into_iter().map(Into::into).collect(), count))
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -106,9 +107,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_repo_initialization() {
-        let test_db_url = std::env::var("DATABASE_URL")
-            .unwrap_or_else(|_| "postgres://user:pass@localhost:5432/leeattend_test_db".to_string());
-        
+        let test_db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://user:pass@localhost:5432/leeattend_test_db".to_string()
+        });
+
         let pools = DieselPools::for_test(&test_db_url);
         let _repo = DieselAuditLogRepository::new(pools);
         // DI connection test passes if it compiles

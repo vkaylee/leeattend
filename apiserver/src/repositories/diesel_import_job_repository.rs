@@ -28,9 +28,12 @@ impl ImportJobRepository for DieselImportJobRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         job: &AttendanceImportJob,
     ) -> Result<(), AppError> {
-        let mut conn = self.diesel_pools.tenant_conn(auth_token).await?;
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
 
-        diesel::sql_query(
+        crate::crud_sql_query!(&mut conn, 
             "INSERT INTO attendance_import_jobs (id, workspace_id, user_id, status, total_rows, processed_rows, file_path, error_log, target_type, created_at, updated_at) VALUES ($1, $2, $3, $4::import_job_status_type, $5, $6, $7, $8, $9, $10, $11)"
         )
         .bind::<diesel::sql_types::Uuid, _>(job.id)
@@ -44,7 +47,7 @@ impl ImportJobRepository for DieselImportJobRepository {
         .bind::<diesel::sql_types::Text, _>(job.target_type.to_string())
         .bind::<diesel::sql_types::Timestamptz, _>(job.created_at)
         .bind::<diesel::sql_types::Timestamptz, _>(job.updated_at)
-        .execute(&mut conn)
+        .execute(&mut *conn)
         .await
         .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -59,9 +62,12 @@ impl ImportJobRepository for DieselImportJobRepository {
         status: ImportJobStatus,
         error_log: Option<String>,
     ) -> Result<(), AppError> {
-        let mut conn = self.diesel_pools.tenant_conn(auth_token).await?;
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
 
-        diesel::sql_query(
+        crate::crud_sql_query!(&mut conn, 
             "UPDATE attendance_import_jobs SET processed_rows = $1, status = $2::import_job_status_type, error_log = $3, updated_at = $4 WHERE id = $5"
         )
         .bind::<diesel::sql_types::Int4, _>(processed_rows)
@@ -69,7 +75,7 @@ impl ImportJobRepository for DieselImportJobRepository {
         .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(&error_log)
         .bind::<diesel::sql_types::Timestamptz, _>(Utc::now())
         .bind::<diesel::sql_types::Uuid, _>(id)
-        .execute(&mut conn)
+        .execute(&mut *conn)
         .await
         .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -81,13 +87,16 @@ impl ImportJobRepository for DieselImportJobRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         id: Uuid,
     ) -> Result<Option<AttendanceImportJob>, AppError> {
-        let mut conn = self.diesel_pools.tenant_conn(auth_token).await?;
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
 
-        let row: Option<ImportJobEntity> = diesel::sql_query(
+        let row: Option<ImportJobEntity> = crate::crud_sql_query!(&mut conn, 
             "SELECT id, workspace_id, user_id, status::text, total_rows, processed_rows, file_path, error_log, target_type::text, created_at, updated_at FROM attendance_import_jobs WHERE id = $1"
         )
         .bind::<diesel::sql_types::Uuid, _>(id)
-        .get_result(&mut conn)
+        .get_result(&mut *conn)
         .await
         .optional()
         .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -100,24 +109,27 @@ impl ImportJobRepository for DieselImportJobRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         target_type: Option<ImportTargetType>,
     ) -> Result<Option<AttendanceImportJob>, AppError> {
-        let mut conn = self.diesel_pools.tenant_conn(auth_token).await?;
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
         let workspace_id = auth_token.workspace_id();
 
         let row: Option<ImportJobEntity> = if let Some(tt) = target_type {
-            diesel::sql_query(
+            crate::crud_sql_query!(&mut conn, 
                 "SELECT id, workspace_id, user_id, status::text, total_rows, processed_rows, file_path, error_log, target_type::text, created_at, updated_at FROM attendance_import_jobs WHERE workspace_id = $1 AND target_type = $2 ORDER BY created_at DESC LIMIT 1"
             )
             .bind::<diesel::sql_types::Uuid, _>(workspace_id)
             .bind::<diesel::sql_types::Text, _>(tt.to_string())
-            .get_result(&mut conn)
+            .get_result(&mut *conn)
             .await
             .optional()?
         } else {
-            diesel::sql_query(
+            crate::crud_sql_query!(&mut conn, 
                 "SELECT id, workspace_id, user_id, status::text, total_rows, processed_rows, file_path, error_log, target_type::text, created_at, updated_at FROM attendance_import_jobs WHERE workspace_id = $1 ORDER BY created_at DESC LIMIT 1"
             )
             .bind::<diesel::sql_types::Uuid, _>(workspace_id)
-            .get_result(&mut conn)
+            .get_result(&mut *conn)
             .await
             .optional()?
         };
@@ -129,12 +141,15 @@ impl ImportJobRepository for DieselImportJobRepository {
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<Vec<AttendanceImportJob>, AppError> {
-        let mut conn = self.diesel_pools.tenant_conn(auth_token).await?;
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
 
-        let rows: Vec<ImportJobEntity> = diesel::sql_query(
+        let rows: Vec<ImportJobEntity> = crate::crud_sql_query!(&mut conn, 
             "SELECT id, workspace_id, user_id, status::text, total_rows, processed_rows, file_path, error_log, target_type::text, created_at, updated_at FROM attendance_import_jobs WHERE status = 'processing'"
         )
-        .load(&mut conn)
+        .load(&mut *conn)
         .await
         .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -147,22 +162,25 @@ impl ImportJobRepository for DieselImportJobRepository {
         id: Uuid,
         total_rows: i32,
     ) -> Result<(), AppError> {
-        let mut conn = self.diesel_pools.tenant_conn(auth_token).await?;
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
 
-        diesel::sql_query(
+        crate::crud_sql_query!(
+            &mut conn,
             "UPDATE attendance_import_jobs SET total_rows = $1, updated_at = $2 WHERE id = $3",
         )
         .bind::<diesel::sql_types::Int4, _>(total_rows)
         .bind::<diesel::sql_types::Timestamptz, _>(Utc::now())
         .bind::<diesel::sql_types::Uuid, _>(id)
-        .execute(&mut conn)
+        .execute(&mut *conn)
         .await
         .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(())
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -171,9 +189,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_repo_initialization() {
-        let test_db_url = std::env::var("DATABASE_URL")
-            .unwrap_or_else(|_| "postgres://user:pass@localhost:5432/leeattend_test_db".to_string());
-        
+        let test_db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://user:pass@localhost:5432/leeattend_test_db".to_string()
+        });
+
         let pools = DieselPools::for_test(&test_db_url);
         let _repo = DieselImportJobRepository::new(pools);
         // DI connection test passes if it compiles

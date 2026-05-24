@@ -133,7 +133,10 @@ impl DepartmentRepository for DieselDepartmentRepository {
         manager_id: Option<Uuid>,
         default_working_pattern_id: Option<Uuid>,
     ) -> Result<Department, AppError> {
-        let mut conn = self.diesel_pools.tenant_conn(auth_token).await?;
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
         let workspace_id = auth_token.workspace_id();
 
         let new_dept = NewDieselDepartment {
@@ -147,12 +150,12 @@ impl DepartmentRepository for DieselDepartmentRepository {
 
         let result: DieselDepartment = diesel::insert_into(departments::table)
             .values(&new_dept)
-            .get_result(&mut conn)
+            .get_result(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         // Re-fetch using sql_query to include active_employee_count
-        let entity: DepartmentWithCountEntity = diesel::sql_query(
+        let entity: DepartmentWithCountEntity = crate::crud_sql_query!(&mut conn, 
             r#"SELECT d.id, d.workspace_id, d.name, d.description, d.manager_id, d.default_working_pattern_id, d.created_at, d.updated_at,
                COALESCE((SELECT COUNT(DISTINCT e.id) FROM employees e
                  JOIN (SELECT DISTINCT ON (employee_id) employee_id, department_id FROM employee_department_history ORDER BY employee_id, effective_date DESC) edh ON e.id = edh.employee_id
@@ -161,7 +164,7 @@ impl DepartmentRepository for DieselDepartmentRepository {
         )
         .bind::<diesel::sql_types::Uuid, _>(result.id)
         .bind::<diesel::sql_types::Uuid, _>(result.workspace_id)
-        .get_result(&mut conn)
+        .get_result(&mut *conn)
         .await
         .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -173,10 +176,13 @@ impl DepartmentRepository for DieselDepartmentRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         id: Uuid,
     ) -> Result<Option<Department>, AppError> {
-        let mut conn = self.diesel_pools.tenant_conn(auth_token).await?;
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
         let workspace_id = auth_token.workspace_id();
 
-        let entity: Option<DepartmentWithCountEntity> = diesel::sql_query(
+        let entity: Option<DepartmentWithCountEntity> = crate::crud_sql_query!(&mut conn, 
             r#"SELECT d.id, d.workspace_id, d.name, d.description, d.manager_id, d.default_working_pattern_id, d.created_at, d.updated_at,
                COALESCE((SELECT COUNT(DISTINCT e.id) FROM employees e
                  JOIN (SELECT DISTINCT ON (employee_id) employee_id, department_id FROM employee_department_history ORDER BY employee_id, effective_date DESC) edh ON e.id = edh.employee_id
@@ -185,7 +191,7 @@ impl DepartmentRepository for DieselDepartmentRepository {
         )
         .bind::<diesel::sql_types::Uuid, _>(id)
         .bind::<diesel::sql_types::Uuid, _>(workspace_id)
-        .get_result(&mut conn)
+        .get_result(&mut *conn)
         .await
         .optional()
         .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -204,15 +210,19 @@ impl DepartmentRepository for DieselDepartmentRepository {
             id: Uuid,
         }
 
-        let mut conn = self.diesel_pools.tenant_conn(auth_token).await?;
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
         let workspace_id = auth_token.workspace_id();
 
-        let result: Option<IdOnly> = diesel::sql_query(
+        let result: Option<IdOnly> = crate::crud_sql_query!(
+            &mut conn,
             "SELECT id FROM departments WHERE workspace_id = $1 AND LOWER(name) = $2 LIMIT 1",
         )
         .bind::<diesel::sql_types::Uuid, _>(workspace_id)
         .bind::<diesel::sql_types::Text, _>(name.to_lowercase())
-        .get_result(&mut conn)
+        .get_result(&mut *conn)
         .await
         .optional()
         .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -226,7 +236,10 @@ impl DepartmentRepository for DieselDepartmentRepository {
         id: Uuid,
         req: crate::models::UpdateDepartmentRequest,
     ) -> Result<Department, AppError> {
-        let mut conn = self.diesel_pools.tenant_conn(auth_token).await?;
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
         let workspace_id = auth_token.workspace_id();
 
         let update_model = UpdateDieselDepartment {
@@ -240,11 +253,11 @@ impl DepartmentRepository for DieselDepartmentRepository {
             .filter(departments::id.eq(id))
             .filter(departments::workspace_id.eq(workspace_id))
             .set(&update_model)
-            .execute(&mut conn)
+            .execute(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
-        let entity: DepartmentWithCountEntity = diesel::sql_query(
+        let entity: DepartmentWithCountEntity = crate::crud_sql_query!(&mut conn, 
             r#"SELECT d.id, d.workspace_id, d.name, d.description, d.manager_id, d.default_working_pattern_id, d.created_at, d.updated_at,
                COALESCE((SELECT COUNT(DISTINCT e.id) FROM employees e
                  JOIN (SELECT DISTINCT ON (employee_id) employee_id, department_id FROM employee_department_history ORDER BY employee_id, effective_date DESC) edh ON e.id = edh.employee_id
@@ -253,7 +266,7 @@ impl DepartmentRepository for DieselDepartmentRepository {
         )
         .bind::<diesel::sql_types::Uuid, _>(id)
         .bind::<diesel::sql_types::Uuid, _>(workspace_id)
-        .get_result(&mut conn)
+        .get_result(&mut *conn)
         .await
         .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -265,13 +278,16 @@ impl DepartmentRepository for DieselDepartmentRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         id: Uuid,
     ) -> Result<(), AppError> {
-        let mut conn = self.diesel_pools.tenant_conn(auth_token).await?;
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
         let workspace_id = auth_token.workspace_id();
 
         diesel::delete(departments::table)
             .filter(departments::id.eq(id))
             .filter(departments::workspace_id.eq(workspace_id))
-            .execute(&mut conn)
+            .execute(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -282,10 +298,13 @@ impl DepartmentRepository for DieselDepartmentRepository {
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<Vec<Department>, AppError> {
-        let mut conn = self.diesel_pools.tenant_conn(auth_token).await?;
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
         let workspace_id = auth_token.workspace_id();
 
-        let results: Vec<DepartmentWithCountEntity> = diesel::sql_query(
+        let results: Vec<DepartmentWithCountEntity> = crate::crud_sql_query!(&mut conn, 
             r#"SELECT d.id, d.workspace_id, d.name, d.description, d.manager_id, d.default_working_pattern_id, d.created_at, d.updated_at,
                COALESCE((SELECT COUNT(DISTINCT e.id) FROM employees e
                  JOIN (SELECT DISTINCT ON (employee_id) employee_id, department_id FROM employee_department_history ORDER BY employee_id, effective_date DESC) edh ON e.id = edh.employee_id
@@ -293,7 +312,7 @@ impl DepartmentRepository for DieselDepartmentRepository {
                FROM departments d WHERE d.workspace_id = $1 ORDER BY d.name"#
         )
         .bind::<diesel::sql_types::Uuid, _>(workspace_id)
-        .load(&mut conn)
+        .load(&mut *conn)
         .await
         .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -308,10 +327,13 @@ impl DepartmentRepository for DieselDepartmentRepository {
         effective_date: NaiveDate,
         notes: Option<String>,
     ) -> Result<EmployeeDepartmentHistory, AppError> {
-        let mut conn = self.diesel_pools.tenant_conn(auth_token).await?;
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
         let _workspace_id = auth_token.workspace_id();
 
-        let entity: EmployeeDepartmentHistoryEntity = diesel::sql_query(
+        let entity: EmployeeDepartmentHistoryEntity = crate::crud_sql_query!(&mut conn, 
             r#"INSERT INTO employee_department_history (employee_id, department_id, effective_date, notes)
                VALUES ($1, $2, $3, $4)
                RETURNING id, employee_id, department_id, effective_date, notes, created_at"#
@@ -320,7 +342,7 @@ impl DepartmentRepository for DieselDepartmentRepository {
         .bind::<diesel::sql_types::Uuid, _>(department_id)
         .bind::<diesel::sql_types::Date, _>(effective_date)
         .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(notes)
-        .get_result(&mut conn)
+        .get_result(&mut *conn)
         .await
         .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -332,10 +354,13 @@ impl DepartmentRepository for DieselDepartmentRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id: Uuid,
     ) -> Result<Vec<EmployeeDepartmentHistory>, AppError> {
-        let mut conn = self.diesel_pools.tenant_conn(auth_token).await?;
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
         let workspace_id = auth_token.workspace_id();
 
-        let results: Vec<EmployeeDepartmentHistoryEntity> = diesel::sql_query(
+        let results: Vec<EmployeeDepartmentHistoryEntity> = crate::crud_sql_query!(&mut conn, 
             r#"SELECT edh.id, edh.employee_id, edh.department_id, edh.effective_date, edh.notes, edh.created_at 
                FROM employee_department_history edh
                JOIN employees e ON e.id = edh.employee_id
@@ -344,7 +369,7 @@ impl DepartmentRepository for DieselDepartmentRepository {
         )
         .bind::<diesel::sql_types::Uuid, _>(employee_id)
         .bind::<diesel::sql_types::Uuid, _>(workspace_id)
-        .load(&mut conn)
+        .load(&mut *conn)
         .await
         .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -356,10 +381,13 @@ impl DepartmentRepository for DieselDepartmentRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id: Uuid,
     ) -> Result<Option<EmployeeDepartmentHistory>, AppError> {
-        let mut conn = self.diesel_pools.tenant_conn(auth_token).await?;
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
         let workspace_id = auth_token.workspace_id();
 
-        let result: Option<EmployeeDepartmentHistoryEntity> = diesel::sql_query(
+        let result: Option<EmployeeDepartmentHistoryEntity> = crate::crud_sql_query!(&mut conn, 
             r#"SELECT edh.id, edh.employee_id, edh.department_id, edh.effective_date, edh.notes, edh.created_at 
                FROM employee_department_history edh
                JOIN employees e ON e.id = edh.employee_id
@@ -368,7 +396,7 @@ impl DepartmentRepository for DieselDepartmentRepository {
         )
         .bind::<diesel::sql_types::Uuid, _>(employee_id)
         .bind::<diesel::sql_types::Uuid, _>(workspace_id)
-        .get_result(&mut conn)
+        .get_result(&mut *conn)
         .await
         .optional()
         .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -384,7 +412,10 @@ impl DepartmentRepository for DieselDepartmentRepository {
         hours_per_day: Decimal,
         effective_date: NaiveDate,
     ) -> Result<DepartmentPayrollConfig, AppError> {
-        let mut conn = self.diesel_pools.tenant_conn(auth_token).await?;
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
         let _workspace_id = auth_token.workspace_id();
 
         use std::str::FromStr;
@@ -393,7 +424,7 @@ impl DepartmentRepository for DieselDepartmentRepository {
         let h_per_d =
             bigdecimal::BigDecimal::from_str(&hours_per_day.to_string()).unwrap_or_default();
 
-        let entity: DepartmentPayrollConfigEntity = diesel::sql_query(
+        let entity: DepartmentPayrollConfigEntity = crate::crud_sql_query!(&mut conn, 
             r#"INSERT INTO department_payroll_configs (department_id, std_working_days, hours_per_day, effective_date)
                VALUES ($1, $2, $3, $4)
                ON CONFLICT (department_id, effective_date) DO UPDATE 
@@ -405,7 +436,7 @@ impl DepartmentRepository for DieselDepartmentRepository {
         .bind::<diesel::sql_types::Numeric, _>(std_wd)
         .bind::<diesel::sql_types::Numeric, _>(h_per_d)
         .bind::<diesel::sql_types::Date, _>(effective_date)
-        .get_result(&mut conn)
+        .get_result(&mut *conn)
         .await
         .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -418,10 +449,14 @@ impl DepartmentRepository for DieselDepartmentRepository {
         department_id: Uuid,
         date: NaiveDate,
     ) -> Result<Option<DepartmentPayrollConfig>, AppError> {
-        let mut conn = self.diesel_pools.tenant_conn(auth_token).await?;
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
         let _workspace_id = auth_token.workspace_id();
 
-        let result: Option<DepartmentPayrollConfigEntity> = diesel::sql_query(
+        let result: Option<DepartmentPayrollConfigEntity> = crate::crud_sql_query!(
+            &mut conn,
             r#"SELECT id, department_id, std_working_days, hours_per_day, effective_date, created_at
                FROM department_payroll_configs
                WHERE department_id = $1 AND effective_date <= $2
@@ -429,7 +464,7 @@ impl DepartmentRepository for DieselDepartmentRepository {
         )
         .bind::<diesel::sql_types::Uuid, _>(department_id)
         .bind::<diesel::sql_types::Date, _>(date)
-        .get_result(&mut conn)
+        .get_result(&mut *conn)
         .await
         .optional()
         .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -442,10 +477,13 @@ impl DepartmentRepository for DieselDepartmentRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         department_id: Uuid,
     ) -> Result<Vec<DepartmentPayrollConfig>, AppError> {
-        let mut conn = self.diesel_pools.tenant_conn(auth_token).await?;
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
         let workspace_id = auth_token.workspace_id();
 
-        let results: Vec<DepartmentPayrollConfigEntity> = diesel::sql_query(
+        let results: Vec<DepartmentPayrollConfigEntity> = crate::crud_sql_query!(&mut conn, 
             r#"SELECT dpc.id, dpc.department_id, dpc.std_working_days, dpc.hours_per_day, dpc.effective_date, dpc.created_at
                FROM department_payroll_configs dpc
                JOIN departments d ON d.id = dpc.department_id
@@ -454,14 +492,13 @@ impl DepartmentRepository for DieselDepartmentRepository {
         )
         .bind::<diesel::sql_types::Uuid, _>(department_id)
         .bind::<diesel::sql_types::Uuid, _>(workspace_id)
-        .load(&mut conn)
+        .load(&mut *conn)
         .await
         .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(results.into_iter().map(Into::into).collect())
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -470,9 +507,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_repo_initialization() {
-        let test_db_url = std::env::var("DATABASE_URL")
-            .unwrap_or_else(|_| "postgres://user:pass@localhost:5432/leeattend_test_db".to_string());
-        
+        let test_db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://user:pass@localhost:5432/leeattend_test_db".to_string()
+        });
+
         let pools = DieselPools::for_test(&test_db_url);
         let _repo = DieselDepartmentRepository::new(pools);
         // DI connection test passes if it compiles

@@ -29,10 +29,12 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
         let workspace_id = auth_token.workspace_id();
         use crate::schema::attendance_daily_summaries::dsl as ads;
 
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&auth_token.workspace_id()).await?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&auth_token.workspace_id())
+                .await?,
+        );
 
         use crate::models::diesel::attendance_daily_summary::AttendanceDailySummaryEntity;
 
@@ -40,7 +42,7 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
             .filter(ads::workspace_id.eq(workspace_id))
             .filter(ads::employee_id.eq(employee_id))
             .filter(ads::date.eq(date))
-            .first::<AttendanceDailySummaryEntity>(&mut conn)
+            .first::<AttendanceDailySummaryEntity>(&mut *conn)
             .await
             .optional()
             .map(|opt| opt.map(Into::into))
@@ -63,10 +65,12 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
         use crate::schema::attendance_daily_summaries::dsl as ads;
         use diesel::upsert::excluded;
 
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&auth_token.workspace_id()).await?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&auth_token.workspace_id())
+                .await?,
+        );
 
         diesel::insert_into(ads::attendance_daily_summaries)
             .values((
@@ -94,7 +98,7 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
                 )),
                 ads::updated_at.eq(diesel::dsl::now),
             ))
-            .execute(&mut conn)
+            .execute(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -112,10 +116,12 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
         let workspace_id = auth_token.workspace_id();
         use crate::schema::attendance_daily_summaries::dsl as ads;
 
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&auth_token.workspace_id()).await?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&auth_token.workspace_id())
+                .await?,
+        );
 
         let rows = diesel::update(ads::attendance_daily_summaries)
             .filter(ads::workspace_id.eq(workspace_id))
@@ -132,7 +138,7 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
                 ads::ot_status.eq(OtStatus::PendingManager),
                 ads::updated_at.eq(diesel::dsl::now),
             ))
-            .execute(&mut conn)
+            .execute(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -151,10 +157,12 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
         let workspace_id = auth_token.workspace_id();
         use crate::schema::attendance_daily_summaries::dsl as ads;
 
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&auth_token.workspace_id()).await?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&auth_token.workspace_id())
+                .await?,
+        );
 
         let rows = diesel::update(ads::attendance_daily_summaries)
             .filter(ads::workspace_id.eq(workspace_id))
@@ -167,7 +175,7 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
                 ads::ot_status.eq(status),
                 ads::updated_at.eq(diesel::dsl::now),
             ))
-            .execute(&mut conn)
+            .execute(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -189,10 +197,12 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
         use crate::schema::attendance_daily_summaries::dsl as ads;
         use diesel::upsert::excluded;
 
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&auth_token.workspace_id()).await?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&auth_token.workspace_id())
+                .await?,
+        );
 
         use crate::models::diesel::attendance_daily_summary::AttendanceDailySummaryEntity;
 
@@ -224,7 +234,7 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
                 ads::claim_entered_at.eq(Some(Utc::now())),
                 ads::updated_at.eq(Utc::now()),
             ))
-            .get_result::<AttendanceDailySummaryEntity>(&mut conn)
+            .get_result::<AttendanceDailySummaryEntity>(&mut *conn)
             .await
             .map(Into::into)
             .map_err(|e| AppError::Internal(format!("db: {e}")))
@@ -240,10 +250,12 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
         let workspace_id = auth_token.workspace_id();
         use crate::schema::attendance_daily_summaries::dsl as ads;
 
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&auth_token.workspace_id()).await?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&auth_token.workspace_id())
+                .await?,
+        );
 
         let rows = ads::attendance_daily_summaries
             .filter(ads::workspace_id.eq(workspace_id))
@@ -251,7 +263,7 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
             .filter(ads::date.ge(start_date))
             .filter(ads::date.le(end_date))
             .select((ads::employee_id, ads::date, ads::ot_status))
-            .load::<(Uuid, NaiveDate, OtStatus)>(&mut conn)
+            .load::<(Uuid, NaiveDate, OtStatus)>(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -271,10 +283,12 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
         let workspace_id = auth_token.workspace_id();
         use crate::schema::attendance_daily_summaries::dsl as ads;
 
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&auth_token.workspace_id()).await?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&auth_token.workspace_id())
+                .await?,
+        );
 
         let mut query = ads::attendance_daily_summaries
             .filter(ads::workspace_id.eq(workspace_id))
@@ -290,7 +304,7 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
 
         query
             .order_by((ads::date.asc(), ads::employee_id.asc()))
-            .load::<AttendanceDailySummaryEntity>(&mut conn)
+            .load::<AttendanceDailySummaryEntity>(&mut *conn)
             .await
             .map(|list| list.into_iter().map(Into::into).collect())
             .map_err(|e| AppError::Internal(format!("db: {e}")))
@@ -306,10 +320,12 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
         let workspace_id = auth_token.workspace_id();
         use crate::schema::attendance_daily_summaries::dsl as ads;
 
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&auth_token.workspace_id()).await?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&auth_token.workspace_id())
+                .await?,
+        );
 
         let rows = ads::attendance_daily_summaries
             .filter(ads::workspace_id.eq(workspace_id))
@@ -319,14 +335,13 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
             .filter(ads::actual_work_minutes.gt(0))
             .select(ads::date)
             .distinct()
-            .load::<NaiveDate>(&mut conn)
+            .load::<NaiveDate>(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(rows)
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -335,9 +350,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_repo_initialization() {
-        let test_db_url = std::env::var("DATABASE_URL")
-            .unwrap_or_else(|_| "postgres://user:pass@localhost:5432/leeattend_test_db".to_string());
-        
+        let test_db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://user:pass@localhost:5432/leeattend_test_db".to_string()
+        });
+
         let pools = DieselPools::for_test(&test_db_url);
         let _repo = DieselAttendanceDailySummaryRepository::new(pools);
         // DI connection test passes if it compiles

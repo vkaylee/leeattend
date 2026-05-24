@@ -22,12 +22,13 @@ impl DieselUserRepository {
 #[async_trait]
 impl UserRepository for DieselUserRepository {
     async fn create_user(&self, user: &User) -> Result<(), AppError> {
-        let mut conn = self
-            .diesel_pools
-            .api
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .api
+                .get()
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let entity = UserEntity {
             id: user.id,
@@ -42,7 +43,7 @@ impl UserRepository for DieselUserRepository {
 
         diesel::insert_into(users::table)
             .values(&entity)
-            .execute(&mut conn)
+            .execute(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -50,16 +51,17 @@ impl UserRepository for DieselUserRepository {
     }
 
     async fn get_user_count(&self) -> Result<i64, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .api
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .api
+                .get()
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let count = users::table
             .count()
-            .get_result::<i64>(&mut conn)
+            .get_result::<i64>(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -67,17 +69,18 @@ impl UserRepository for DieselUserRepository {
     }
 
     async fn assign_platform_admin(&self, user_id: Uuid) -> Result<(), AppError> {
-        let mut conn = self
-            .diesel_pools
-            .api
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .api
+                .get()
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let role_id_opt: Option<Uuid> = system_roles::table
             .filter(system_roles::name.eq("platform_admin"))
             .select(system_roles::id)
-            .first::<Uuid>(&mut conn)
+            .first::<Uuid>(&mut *conn)
             .await
             .optional()
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -91,7 +94,7 @@ impl UserRepository for DieselUserRepository {
                 user_system_roles::user_id.eq(user_id),
                 user_system_roles::role_id.eq(role_id),
             ))
-            .execute(&mut conn)
+            .execute(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -99,17 +102,18 @@ impl UserRepository for DieselUserRepository {
     }
 
     async fn get_user_by_email(&self, email: &str) -> Result<Option<User>, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .api
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .api
+                .get()
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let entity = users::table
             .filter(users::email.eq(email))
             .select(UserEntity::as_select())
-            .first::<UserEntity>(&mut conn)
+            .first::<UserEntity>(&mut *conn)
             .await
             .optional()
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -118,17 +122,18 @@ impl UserRepository for DieselUserRepository {
     }
 
     async fn get_user_by_id(&self, id: Uuid) -> Result<Option<User>, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .api
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .api
+                .get()
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let entity = users::table
             .find(id)
             .select(UserEntity::as_select())
-            .first::<UserEntity>(&mut conn)
+            .first::<UserEntity>(&mut *conn)
             .await
             .optional()
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -141,16 +146,17 @@ impl UserRepository for DieselUserRepository {
         user_id: Uuid,
         password_hash: &str,
     ) -> Result<(), AppError> {
-        let mut conn = self
-            .diesel_pools
-            .api
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .api
+                .get()
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         diesel::update(users::table.find(user_id))
             .set(users::password_hash.eq(password_hash))
-            .execute(&mut conn)
+            .execute(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -158,18 +164,19 @@ impl UserRepository for DieselUserRepository {
     }
 
     async fn get_system_roles_for_user(&self, user_id: Uuid) -> Result<Vec<String>, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .api
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .api
+                .get()
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let roles = user_system_roles::table
             .inner_join(system_roles::table.on(system_roles::id.eq(user_system_roles::role_id)))
             .filter(user_system_roles::user_id.eq(user_id))
             .select(system_roles::name)
-            .load::<String>(&mut conn)
+            .load::<String>(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -183,12 +190,13 @@ impl UserRepository for DieselUserRepository {
         avatar_url: Option<String>,
         bio: Option<String>,
     ) -> Result<User, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .api
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .api
+                .get()
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let entity = diesel::update(users::table.find(user_id))
             .set((
@@ -196,7 +204,7 @@ impl UserRepository for DieselUserRepository {
                 avatar_url.map(|a| users::avatar_url.eq(a)),
                 bio.map(|b| users::bio.eq(b)),
             ))
-            .get_result::<UserEntity>(&mut conn)
+            .get_result::<UserEntity>(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -204,19 +212,20 @@ impl UserRepository for DieselUserRepository {
     }
 
     async fn get_workspace_users(&self, workspace_id: Uuid) -> Result<Vec<User>, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .api
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .api
+                .get()
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let entities = users::table
             .inner_join(workspace_members::table.on(workspace_members::user_id.eq(users::id)))
             .filter(workspace_members::workspace_id.eq(workspace_id))
             .select(users::all_columns)
             .order(users::created_at.desc())
-            .load::<UserEntity>(&mut conn)
+            .load::<UserEntity>(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -229,14 +238,17 @@ impl UserRepository for DieselUserRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<Option<crate::handlers::dashboard_preferences::DashboardPreferences>, AppError>
     {
-        let mut conn = self.diesel_pools.tenant_conn(auth_token).await?;
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
         let workspace_id = auth_token.workspace_id();
 
         use crate::schema::dashboard_preferences;
         let entity = dashboard_preferences::table
             .filter(dashboard_preferences::user_id.eq(user_id))
             .filter(dashboard_preferences::workspace_id.eq(workspace_id))
-            .first::<crate::models::diesel::core::DashboardPreferenceEntity>(&mut conn)
+            .first::<crate::models::diesel::core::DashboardPreferenceEntity>(&mut *conn)
             .await
             .optional()
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -250,7 +262,10 @@ impl UserRepository for DieselUserRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         req: crate::handlers::dashboard_preferences::UpdateDashboardPreferences,
     ) -> Result<crate::handlers::dashboard_preferences::DashboardPreferences, AppError> {
-        let mut conn = self.diesel_pools.tenant_conn(auth_token).await?;
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
         let workspace_id = auth_token.workspace_id();
 
         use crate::schema::dashboard_preferences;
@@ -280,7 +295,7 @@ impl UserRepository for DieselUserRepository {
                 dashboard_preferences::collapsed_sections.eq(prefs.collapsed_sections),
                 dashboard_preferences::updated_at.eq(chrono::Utc::now()),
             ))
-            .get_result::<crate::models::diesel::core::DashboardPreferenceEntity>(&mut conn)
+            .get_result::<crate::models::diesel::core::DashboardPreferenceEntity>(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
             return Ok(entity.into());
@@ -303,7 +318,7 @@ impl UserRepository for DieselUserRepository {
                 dashboard_preferences::created_at.eq(chrono::Utc::now()),
                 dashboard_preferences::updated_at.eq(chrono::Utc::now()),
             ))
-            .get_result::<crate::models::diesel::core::DashboardPreferenceEntity>(&mut conn)
+            .get_result::<crate::models::diesel::core::DashboardPreferenceEntity>(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
         return Ok(entity.into());
@@ -315,12 +330,13 @@ impl UserRepository for DieselUserRepository {
         limit: i64,
         cursor: Option<chrono::DateTime<chrono::Utc>>,
     ) -> Result<Vec<crate::models::Notification>, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .api
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .api
+                .get()
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         use crate::schema::notifications;
         let mut query = notifications::table
@@ -334,7 +350,7 @@ impl UserRepository for DieselUserRepository {
         let entities = query
             .order(notifications::created_at.desc())
             .limit(limit)
-            .load::<crate::models::diesel::core::NotificationEntity>(&mut conn)
+            .load::<crate::models::diesel::core::NotificationEntity>(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -342,19 +358,20 @@ impl UserRepository for DieselUserRepository {
     }
 
     async fn get_unread_notification_count(&self, user_id: Uuid) -> Result<i64, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .api
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .api
+                .get()
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         use crate::schema::notifications;
         let count = notifications::table
             .filter(notifications::user_id.eq(user_id))
             .filter(notifications::is_read.eq(false))
             .count()
-            .get_result::<i64>(&mut conn)
+            .get_result::<i64>(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -366,12 +383,13 @@ impl UserRepository for DieselUserRepository {
         user_id: Uuid,
         notification_id: Uuid,
     ) -> Result<(), AppError> {
-        let mut conn = self
-            .diesel_pools
-            .api
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .api
+                .get()
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         use crate::schema::notifications;
         diesel::update(
@@ -380,7 +398,7 @@ impl UserRepository for DieselUserRepository {
                 .filter(notifications::user_id.eq(user_id)),
         )
         .set(notifications::is_read.eq(true))
-        .execute(&mut conn)
+        .execute(&mut *conn)
         .await
         .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -388,17 +406,18 @@ impl UserRepository for DieselUserRepository {
     }
 
     async fn mark_all_notifications_as_read(&self, user_id: Uuid) -> Result<(), AppError> {
-        let mut conn = self
-            .diesel_pools
-            .api
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .api
+                .get()
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         use crate::schema::notifications;
         diesel::update(notifications::table.filter(notifications::user_id.eq(user_id)))
             .set(notifications::is_read.eq(true))
-            .execute(&mut conn)
+            .execute(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -411,12 +430,13 @@ impl UserRepository for DieselUserRepository {
         link_val: &str,
         since_days: i32,
     ) -> Result<bool, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .api
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .api
+                .get()
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let target_date = chrono::Utc::now() - chrono::Duration::days(since_days as i64);
 
@@ -429,7 +449,7 @@ impl UserRepository for DieselUserRepository {
                 .filter(notifications::link.eq(link_val))
                 .filter(notifications::created_at.ge(target_date)),
         ))
-        .get_result(&mut conn)
+        .get_result(&mut *conn)
         .await
         .unwrap_or(false);
 
@@ -440,12 +460,13 @@ impl UserRepository for DieselUserRepository {
         &self,
         notification: &crate::models::Notification,
     ) -> Result<(), AppError> {
-        let mut conn = self
-            .diesel_pools
-            .api
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .api
+                .get()
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         use crate::schema::notifications;
 
@@ -476,14 +497,13 @@ impl UserRepository for DieselUserRepository {
 
         diesel::insert_into(notifications::table)
             .values(&new_notification)
-            .execute(&mut conn)
+            .execute(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(())
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -492,9 +512,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_repo_initialization() {
-        let test_db_url = std::env::var("DATABASE_URL")
-            .unwrap_or_else(|_| "postgres://user:pass@localhost:5432/leeattend_test_db".to_string());
-        
+        let test_db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://user:pass@localhost:5432/leeattend_test_db".to_string()
+        });
+
         let pools = DieselPools::for_test(&test_db_url);
         let _repo = DieselUserRepository::new(pools);
         // DI connection test passes if it compiles

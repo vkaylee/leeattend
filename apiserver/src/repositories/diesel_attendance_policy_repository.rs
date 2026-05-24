@@ -70,9 +70,12 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
         effective_time: DateTime<Utc>,
     ) -> Result<Option<AttendancePolicyVersion>, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = self.diesel_pools.tenant_conn(auth_token).await?;
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
 
-        let row: Option<SinglePolicyRow> = diesel::sql_query(
+        let row: Option<SinglePolicyRow> = crate::crud_sql_query!(&mut conn, 
             r#"
             WITH dept_history AS (
                 SELECT department_id
@@ -139,7 +142,7 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
         .bind::<UuidType, _>(workspace_id)
         .bind::<UuidType, _>(employee_id)
         .bind::<Timestamptz, _>(effective_time)
-        .get_result(&mut conn)
+        .get_result(&mut *conn)
         .await
         .optional()
         .map_err(|e| AppError::Internal(e.to_string()))?;
@@ -172,9 +175,13 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
             return Ok(result);
         }
 
-        let mut conn = self.diesel_pools.tenant_conn(auth_token).await?;
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
 
-        let rows: Vec<BatchPolicyRow> = diesel::sql_query(
+        let rows: Vec<BatchPolicyRow> = crate::crud_sql_query!(
+            &mut conn,
             r#"
             WITH inputs AS (
                 SELECT unnest($2::uuid[]) AS employee_id
@@ -264,7 +271,7 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
         .bind::<UuidType, _>(workspace_id)
         .bind::<Array<UuidType>, _>(employee_ids.to_vec())
         .bind::<Timestamptz, _>(effective_time)
-        .load(&mut conn)
+        .load(&mut *conn)
         .await
         .map_err(|e| AppError::Internal(e.to_string()))?;
 
@@ -295,7 +302,10 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<Option<crate::models::AttendanceRules>, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = self.diesel_pools.tenant_conn(auth_token).await?;
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
 
         use crate::schema::{attendance_policies, attendance_policy_versions};
 
@@ -304,7 +314,7 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
             .filter(attendance_policies::workspace_id.eq(workspace_id))
             .filter(attendance_policies::is_default.eq(true))
             .select(attendance_policies::id)
-            .first::<Uuid>(&mut conn)
+            .first::<Uuid>(&mut *conn)
             .await
             .optional()
             .map_err(|e| AppError::Internal(e.to_string()))?;
@@ -318,7 +328,7 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
             .filter(attendance_policy_versions::policy_id.eq(p_id))
             .order(attendance_policy_versions::valid_from.desc())
             .select(attendance_policy_versions::rules)
-            .first::<serde_json::Value>(&mut conn)
+            .first::<serde_json::Value>(&mut *conn)
             .await
             .optional()
             .map_err(|e| AppError::Internal(e.to_string()))?;
@@ -340,7 +350,10 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<Vec<AttendancePolicyVersion>, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = self.diesel_pools.tenant_conn(auth_token).await?;
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
 
         use crate::schema::{attendance_policies, attendance_policy_versions};
 
@@ -348,7 +361,7 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
             .filter(attendance_policies::workspace_id.eq(workspace_id))
             .filter(attendance_policies::is_default.eq(true))
             .select(attendance_policies::id)
-            .first::<Uuid>(&mut conn)
+            .first::<Uuid>(&mut *conn)
             .await
             .optional()
             .map_err(|e| AppError::Internal(e.to_string()))?;
@@ -361,7 +374,7 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
             .filter(attendance_policy_versions::policy_id.eq(p_id))
             .order(attendance_policy_versions::valid_from.desc())
             .load::<crate::models::diesel::attendance_policy::AttendancePolicyVersionEntity>(
-                &mut conn,
+                &mut *conn,
             )
             .await
             .map_err(|e| AppError::Internal(e.to_string()))?;
@@ -376,17 +389,20 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
         req: crate::handlers::attendance::policies::UpdateAttendanceRulesRequest,
     ) -> Result<AttendancePolicyVersion, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = self.diesel_pools.tenant_conn(auth_token).await?;
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
 
         use crate::schema::{attendance_policies, attendance_policy_versions};
 
-        conn.transaction(|mut conn| {
+        conn.transaction(|conn| {
             Box::pin(async move {
                 let policy_id_opt: Option<Uuid> = attendance_policies::table
                     .filter(attendance_policies::workspace_id.eq(workspace_id))
                     .filter(attendance_policies::is_default.eq(true))
                     .select(attendance_policies::id)
-                    .first::<Uuid>(&mut conn)
+                    .first::<Uuid>(&mut *conn)
                     .await
                     .optional()
                     .map_err(|e| AppError::Internal(e.to_string()))?;
@@ -405,7 +421,7 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
                     };
                     diesel::insert_into(attendance_policies::table)
                         .values(&entity)
-                        .execute(&mut conn)
+                        .execute(&mut *conn)
                         .await
                         .map_err(|e| AppError::Internal(e.to_string()))?;
                     new_id
@@ -416,7 +432,7 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
                         .filter(attendance_policy_versions::policy_id.eq(policy_id))
                         .order(attendance_policy_versions::valid_from.desc())
                         .select(attendance_policy_versions::rules)
-                        .first::<serde_json::Value>(&mut conn)
+                        .first::<serde_json::Value>(&mut *conn)
                         .await
                         .optional()
                         .map_err(|e| AppError::Internal(e.to_string()))?;
@@ -471,7 +487,7 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
                         .filter(attendance_policy_versions::valid_to.is_null()),
                 )
                 .set(attendance_policy_versions::valid_to.eq(Some(valid_from)))
-                .execute(&mut conn)
+                .execute(&mut *conn)
                 .await
                 .map_err(|e| AppError::Internal(e.to_string()))?;
 
@@ -490,7 +506,7 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
 
                 diesel::insert_into(attendance_policy_versions::table)
                     .values(&version_entity)
-                    .execute(&mut conn)
+                    .execute(&mut *conn)
                     .await
                     .map_err(|e| AppError::Internal(e.to_string()))?;
 
@@ -516,7 +532,10 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
         AppError,
     > {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = self.diesel_pools.tenant_conn(auth_token).await?;
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
 
         #[derive(QueryableByName)]
         struct PolicyAssignmentRow {
@@ -534,7 +553,8 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
             rules: Value,
         }
 
-        let rows: Vec<PolicyAssignmentRow> = diesel::sql_query(
+        let rows: Vec<PolicyAssignmentRow> = crate::crud_sql_query!(
+            &mut conn,
             r#"
             SELECT 
                 apa.id,
@@ -554,7 +574,7 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
             "#,
         )
         .bind::<UuidType, _>(workspace_id)
-        .load(&mut conn)
+        .load(&mut *conn)
         .await
         .map_err(|e| AppError::Internal(e.to_string()))?;
 
@@ -587,13 +607,16 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
     ) -> Result<crate::handlers::attendance::policy_assignments::PolicyAssignmentResponse, AppError>
     {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = self.diesel_pools.tenant_conn(auth_token).await?;
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
 
         use crate::schema::{
             attendance_policies, attendance_policy_assignments, attendance_policy_versions,
         };
 
-        conn.transaction(|mut conn| {
+        conn.transaction(|conn| {
             Box::pin(async move {
                 let valid_from = match &req.valid_from {
                     Some(s) => chrono::DateTime::parse_from_rfc3339(s)
@@ -616,7 +639,7 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
                     .filter(attendance_policy_assignments::target_id.eq(&req.target_id))
                     .filter(attendance_policy_assignments::valid_to.is_null())
                     .select((attendance_policy_assignments::id, attendance_policy_assignments::policy_id))
-                    .first::<(Uuid, Uuid)>(&mut conn)
+                    .first::<(Uuid, Uuid)>(&mut *conn)
                     .await
                     .optional()
                     .map_err(|e| AppError::Internal(e.to_string()))?;
@@ -634,7 +657,7 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
                             .filter(attendance_policy_versions::valid_to.is_null()),
                     )
                     .set(attendance_policy_versions::valid_to.eq(Some(valid_from)))
-                    .execute(&mut conn)
+                    .execute(&mut *conn)
                     .await
                     .map_err(|e| AppError::Internal(e.to_string()))?;
                 } else {
@@ -649,7 +672,7 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
                     };
                     diesel::insert_into(attendance_policies::table)
                         .values(&policy_entity)
-                        .execute(&mut conn)
+                        .execute(&mut *conn)
                         .await
                         .map_err(|e| AppError::Internal(e.to_string()))?;
 
@@ -666,7 +689,7 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
                     };
                     diesel::insert_into(attendance_policy_assignments::table)
                         .values(&assignment_entity)
-                        .execute(&mut conn)
+                        .execute(&mut *conn)
                         .await
                         .map_err(|e| AppError::Internal(e.to_string()))?;
                 }
@@ -690,7 +713,7 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
 
                 diesel::insert_into(attendance_policy_versions::table)
                     .values(&version_entity)
-                    .execute(&mut conn)
+                    .execute(&mut *conn)
                     .await
                     .map_err(|e| AppError::Internal(e.to_string()))?;
 
@@ -713,24 +736,26 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
         assignment_id: Uuid,
     ) -> Result<(), AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = self.diesel_pools.tenant_conn(auth_token).await?;
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
 
         // UPDATE attendance_policy_assignments SET valid_to = NOW(), updated_at = NOW()
         // WHERE id = $1 AND target_id IN (SELECT target_id FROM attendance_policy_assignments apa JOIN attendance_policies ap ON ap.id = apa.policy_id WHERE ap.workspace_id = $2)
         // Using diesel_sql_query for the complex IN clause
-        diesel::sql_query(
+        crate::crud_sql_query!(&mut conn, 
             "UPDATE attendance_policy_assignments SET valid_to = NOW(), updated_at = NOW() WHERE id = $1 AND target_id IN (SELECT target_id FROM attendance_policy_assignments apa JOIN attendance_policies ap ON ap.id = apa.policy_id WHERE ap.workspace_id = $2)"
         )
         .bind::<UuidType, _>(assignment_id)
         .bind::<UuidType, _>(workspace_id)
-        .execute(&mut conn)
+        .execute(&mut *conn)
         .await
         .map_err(|e| AppError::Internal(e.to_string()))?;
 
         Ok(())
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -739,9 +764,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_repo_initialization() {
-        let test_db_url = std::env::var("DATABASE_URL")
-            .unwrap_or_else(|_| "postgres://user:pass@localhost:5432/leeattend_test_db".to_string());
-        
+        let test_db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://user:pass@localhost:5432/leeattend_test_db".to_string()
+        });
+
         let pools = DieselPools::for_test(&test_db_url);
         let _repo = DieselAttendancePolicyRepository::new(pools);
         // DI connection test passes if it compiles

@@ -125,7 +125,7 @@ pub async fn build_roster_data(
     workspace_id: Uuid,
 ) -> Result<Arc<RosterData>, String> {
     let mut conn = diesel_pools
-        .tenant_conn(&crate::diesel_pool::TenantAuthToken::system_override(
+        .tenant_transaction_conn(&crate::diesel_pool::TenantAuthToken::system_override(
             workspace_id,
         ))
         .await

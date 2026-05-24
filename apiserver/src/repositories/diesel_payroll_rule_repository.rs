@@ -32,10 +32,12 @@ impl PayrollRuleRepository for DieselPayrollRuleRepository {
         &self,
         args: CreatePayrollRuleDefinitionArgs,
     ) -> Result<PayrollRuleDefinition, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&args.workspace_id).await?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&args.workspace_id)
+                .await?,
+        );
 
         let entity = PayrollRuleDefinitionEntity {
             id: Uuid::new_v4(),
@@ -56,7 +58,7 @@ impl PayrollRuleRepository for DieselPayrollRuleRepository {
 
         let result = diesel::insert_into(payroll_rule_definitions::table)
             .values(&entity)
-            .get_result::<PayrollRuleDefinitionEntity>(&mut conn)
+            .get_result::<PayrollRuleDefinitionEntity>(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("Failed to create definition: {e}")))?;
 
@@ -67,12 +69,13 @@ impl PayrollRuleRepository for DieselPayrollRuleRepository {
         &self,
         workspace_id: Uuid,
     ) -> Result<Vec<PayrollRuleDefinition>, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&workspace_id)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&workspace_id)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let entities = payroll_rule_definitions::table
             .filter(payroll_rule_definitions::workspace_id.eq(workspace_id))
@@ -80,7 +83,7 @@ impl PayrollRuleRepository for DieselPayrollRuleRepository {
                 payroll_rule_definitions::display_order.asc(),
                 payroll_rule_definitions::created_at.desc(),
             ))
-            .load::<PayrollRuleDefinitionEntity>(&mut conn)
+            .load::<PayrollRuleDefinitionEntity>(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("Failed to fetch definitions: {e}")))?;
 
@@ -97,12 +100,13 @@ impl PayrollRuleRepository for DieselPayrollRuleRepository {
         rate: Decimal,
         fixed_amount: Decimal,
     ) -> Result<PayrollRuleTier, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&workspace_id)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&workspace_id)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let entity = PayrollRuleTierEntity {
             id: Uuid::new_v4(),
@@ -118,7 +122,7 @@ impl PayrollRuleRepository for DieselPayrollRuleRepository {
 
         let result = diesel::insert_into(payroll_rule_tiers::table)
             .values(&entity)
-            .get_result::<PayrollRuleTierEntity>(&mut conn)
+            .get_result::<PayrollRuleTierEntity>(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("Failed to create tier: {e}")))?;
 
@@ -130,17 +134,18 @@ impl PayrollRuleRepository for DieselPayrollRuleRepository {
         workspace_id: Uuid,
         rule_definition_id: Uuid,
     ) -> Result<Vec<PayrollRuleTier>, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&workspace_id)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&workspace_id)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let entities = payroll_rule_tiers::table
             .filter(payroll_rule_tiers::rule_definition_id.eq(rule_definition_id))
             .order(payroll_rule_tiers::tier_order.asc())
-            .load::<PayrollRuleTierEntity>(&mut conn)
+            .load::<PayrollRuleTierEntity>(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("Failed to fetch tiers: {e}")))?;
 
@@ -153,17 +158,18 @@ impl PayrollRuleRepository for DieselPayrollRuleRepository {
         rule_definition_id: Uuid,
         tier_id: Uuid,
     ) -> Result<(), AppError> {
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&workspace_id)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&workspace_id)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         diesel::delete(payroll_rule_tiers::table)
             .filter(payroll_rule_tiers::id.eq(tier_id))
             .filter(payroll_rule_tiers::rule_definition_id.eq(rule_definition_id))
-            .execute(&mut conn)
+            .execute(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("Failed to delete tier: {e}")))?;
 
@@ -174,10 +180,12 @@ impl PayrollRuleRepository for DieselPayrollRuleRepository {
         &self,
         args: AssignPayrollRuleArgs,
     ) -> Result<PayrollRuleAssignment, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&args.workspace_id).await?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&args.workspace_id)
+                .await?,
+        );
 
         let entity = PayrollRuleAssignmentEntity {
             id: Uuid::new_v4(),
@@ -193,7 +201,7 @@ impl PayrollRuleRepository for DieselPayrollRuleRepository {
 
         let result = diesel::insert_into(payroll_rule_assignments::table)
             .values(&entity)
-            .get_result::<PayrollRuleAssignmentEntity>(&mut conn)
+            .get_result::<PayrollRuleAssignmentEntity>(&mut *conn)
             .await
             .map_err(|e| {
                 if let diesel::result::Error::DatabaseError(
@@ -218,18 +226,19 @@ impl PayrollRuleRepository for DieselPayrollRuleRepository {
         workspace_id: Uuid,
         rule_definition_id: Uuid,
     ) -> Result<Vec<PayrollRuleAssignment>, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&workspace_id)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&workspace_id)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let entities = payroll_rule_assignments::table
             .filter(payroll_rule_assignments::workspace_id.eq(workspace_id))
             .filter(payroll_rule_assignments::rule_definition_id.eq(rule_definition_id))
             .order(payroll_rule_assignments::created_at.desc())
-            .load::<PayrollRuleAssignmentEntity>(&mut conn)
+            .load::<PayrollRuleAssignmentEntity>(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("Failed to fetch assignments: {e}")))?;
 
@@ -242,25 +251,25 @@ impl PayrollRuleRepository for DieselPayrollRuleRepository {
         rule_definition_id: Uuid,
         assignment_id: Uuid,
     ) -> Result<(), AppError> {
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&workspace_id)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&workspace_id)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         diesel::delete(payroll_rule_assignments::table)
             .filter(payroll_rule_assignments::id.eq(assignment_id))
             .filter(payroll_rule_assignments::workspace_id.eq(workspace_id))
             .filter(payroll_rule_assignments::rule_definition_id.eq(rule_definition_id))
-            .execute(&mut conn)
+            .execute(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("Failed to delete assignment: {e}")))?;
 
         Ok(())
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -269,9 +278,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_repo_initialization() {
-        let test_db_url = std::env::var("DATABASE_URL")
-            .unwrap_or_else(|_| "postgres://user:pass@localhost:5432/leeattend_test_db".to_string());
-        
+        let test_db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://user:pass@localhost:5432/leeattend_test_db".to_string()
+        });
+
         let pools = DieselPools::for_test(&test_db_url);
         let _repo = DieselPayrollRuleRepository::new(pools);
         // DI connection test passes if it compiles

@@ -28,9 +28,9 @@ pub mod salary_base;
 pub mod schedule;
 pub mod shift;
 pub mod shift_swap;
+pub mod system_db_cluster;
 pub mod time_tracking;
 pub mod workspace;
-pub mod system_db_cluster;
 
 // Re-export everything to maintain backward compatibility with all consumers
 pub use agent::*;

@@ -66,9 +66,10 @@ impl DieselWorkspaceStatsRepository {
             return "UTC".to_string();
         };
 
+        #[allow(clippy::disallowed_methods)]
         diesel::sql_query("SELECT timezone::text FROM workspaces WHERE id = $1")
             .bind::<diesel::sql_types::Uuid, _>(workspace_id)
-            .get_result::<TzRow>(&mut conn)
+            .get_result::<TzRow>(&mut *conn)
             .await
             .map(|r| r.timezone)
             .unwrap_or_else(|_| "UTC".to_string())
@@ -86,7 +87,10 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
         let today = Utc::now().date_naive();
         let tz_str = self.get_timezone(auth_token).await;
 
-        let mut conn = self.diesel_pools.tenant_conn(auth_token).await?;
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
 
         #[derive(QueryableByName)]
         struct BaseRow {
@@ -98,7 +102,8 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
             on_leave: i64,
         }
 
-        let base_rows: Vec<BaseRow> = diesel::sql_query(
+        let base_rows: Vec<BaseRow> = crate::crud_sql_query!(
+            &mut conn,
             r#"
         WITH days AS (
             SELECT d::date AS date
@@ -138,7 +143,7 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
         .bind::<diesel::sql_types::Date, _>(today)
         .bind::<diesel::sql_types::Uuid, _>(workspace_id)
         .bind::<diesel::sql_types::Text, _>(&tz_str)
-        .load(&mut conn)
+        .load(&mut *conn)
         .await?;
 
         #[derive(QueryableByName)]
@@ -149,7 +154,7 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
             late_count: i64,
         }
 
-        let late_rows: Vec<LateRow> = diesel::sql_query(
+        let late_rows: Vec<LateRow> = crate::crud_sql_query!(&mut conn, 
             r#"
         WITH first_punches AS (
             SELECT te.employee_id,
@@ -172,7 +177,7 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
         .bind::<diesel::sql_types::Date, _>(today)
         .bind::<diesel::sql_types::Uuid, _>(workspace_id)
         .bind::<diesel::sql_types::Text, _>(&tz_str)
-        .load(&mut conn)
+        .load(&mut *conn)
         .await
         .unwrap_or_else(|e| {
             tracing::warn!(error = %e, "late detection query failed, degrading gracefully");
@@ -190,11 +195,11 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
             count: i64,
         }
 
-        let total_active: i64 = diesel::sql_query(
+        let total_active: i64 = crate::crud_sql_query!(&mut conn, 
             "SELECT COUNT(*)::bigint as count FROM employees WHERE workspace_id = $1 AND is_active = TRUE",
         )
         .bind::<diesel::sql_types::Uuid, _>(workspace_id)
-        .get_result::<CountRow>(&mut conn)
+        .get_result::<CountRow>(&mut *conn)
         .await
         .map(|r| r.count)
         .unwrap_or(0);
@@ -230,7 +235,10 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
             _ => today,
         };
 
-        let mut conn = self.diesel_pools.tenant_conn(auth_token).await?;
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
 
         #[derive(QueryableByName)]
         struct DeptRow {
@@ -242,7 +250,8 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
             total_employees: i64,
         }
 
-        let departments: Vec<DeptRow> = diesel::sql_query(
+        let departments: Vec<DeptRow> = crate::crud_sql_query!(
+            &mut conn,
             r#"
         SELECT d.id AS department_id,
                d.name::text AS department_name,
@@ -262,7 +271,7 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
         )
         .bind::<diesel::sql_types::Uuid, _>(workspace_id)
         .bind::<diesel::sql_types::Date, _>(today)
-        .load(&mut conn)
+        .load(&mut *conn)
         .await?;
 
         if departments.is_empty() {
@@ -282,7 +291,7 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
             present_count: i64,
         }
 
-        let present_rows: Vec<PresentRow> = diesel::sql_query(
+        let present_rows: Vec<PresentRow> = crate::crud_sql_query!(&mut conn, 
             r#"
         WITH latest_dept AS (
             SELECT DISTINCT ON (edh.employee_id) edh.employee_id, edh.department_id
@@ -302,7 +311,7 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
         .bind::<diesel::sql_types::Uuid, _>(workspace_id)
         .bind::<diesel::sql_types::Timestamptz, _>(start_dt)
         .bind::<diesel::sql_types::Date, _>(today)
-        .load(&mut conn)
+        .load(&mut *conn)
         .await
         .unwrap_or_else(|e| {
             tracing::warn!(error = %e, "present count query failed, degrading gracefully");
@@ -324,7 +333,7 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
                 #[diesel(sql_type = diesel::sql_types::BigInt)]
                 late_count: i64,
             }
-            let late_rows: Vec<LateRow> = diesel::sql_query(
+            let late_rows: Vec<LateRow> = crate::crud_sql_query!(&mut conn, 
                 r#"
             WITH latest_dept AS (
                 SELECT DISTINCT ON (edh.employee_id) edh.employee_id, edh.department_id
@@ -354,7 +363,7 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
             .bind::<diesel::sql_types::Timestamptz, _>(start_dt)
             .bind::<diesel::sql_types::Date, _>(today)
             .bind::<diesel::sql_types::Text, _>(&tz_str)
-            .load(&mut conn)
+            .load(&mut *conn)
             .await
             .unwrap_or_else(|e| {
                 tracing::warn!(error = %e, "late detection query failed, degrading gracefully");
@@ -376,7 +385,7 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
             leave_count: i64,
         }
 
-        let leave_rows: Vec<LeaveRow> = diesel::sql_query(
+        let leave_rows: Vec<LeaveRow> = crate::crud_sql_query!(&mut conn, 
             r#"
         WITH latest_dept AS (
             SELECT DISTINCT ON (edh.employee_id) edh.employee_id, edh.department_id
@@ -397,7 +406,7 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
         .bind::<diesel::sql_types::Uuid, _>(workspace_id)
         .bind::<diesel::sql_types::Date, _>(start_date)
         .bind::<diesel::sql_types::Date, _>(today)
-        .load(&mut conn)
+        .load(&mut *conn)
         .await
         .unwrap_or_else(|e| {
             tracing::warn!(error = %e, "leave count query failed, degrading gracefully");
@@ -437,7 +446,10 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
     ) -> Result<Vec<OvertimeTrendPoint>, AppError> {
         let workspace_id = auth_token.workspace_id();
         let today = Utc::now().date_naive();
-        let mut conn = self.diesel_pools.tenant_conn(auth_token).await?;
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
 
         #[derive(QueryableByName)]
         struct OtRow {
@@ -449,7 +461,8 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
             approved_ot_minutes: i64,
         }
 
-        let rows: Vec<OtRow> = diesel::sql_query(
+        let rows: Vec<OtRow> = crate::crud_sql_query!(
+            &mut conn,
             r#"
         SELECT ads.date,
                COALESCE(SUM(ads.system_detected_ot_minutes), 0)::bigint AS system_ot_minutes,
@@ -464,7 +477,7 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
         )
         .bind::<diesel::sql_types::Uuid, _>(workspace_id)
         .bind::<diesel::sql_types::Date, _>(today)
-        .load(&mut conn)
+        .load(&mut *conn)
         .await
         .unwrap_or_else(|e| {
             tracing::warn!(error = %e, "overtime trend query failed, degrading gracefully");
@@ -489,7 +502,10 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<WorkspaceStats, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = self.diesel_pools.tenant_conn(auth_token).await?;
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
 
         #[derive(QueryableByName)]
         struct CountRow {
@@ -497,11 +513,11 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
             count: i64,
         }
 
-        let total_employees: i64 = diesel::sql_query(
+        let total_employees: i64 = crate::crud_sql_query!(&mut conn, 
             "SELECT COUNT(*)::bigint as count FROM employees WHERE workspace_id = $1 AND is_active = TRUE",
         )
         .bind::<diesel::sql_types::Uuid, _>(workspace_id)
-        .get_result::<CountRow>(&mut conn)
+        .get_result::<CountRow>(&mut *conn)
         .await
         .map(|r| r.count)
         .unwrap_or(0);
@@ -513,7 +529,8 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
             .and_then(|t| t.and_local_timezone(Utc).single())
             .ok_or_else(|| AppError::Internal("Invalid date calculation".to_string()))?;
 
-        let present_today: i64 = diesel::sql_query(
+        let present_today: i64 = crate::crud_sql_query!(
+            &mut conn,
             "SELECT COUNT(DISTINCT employee_id)::bigint as count FROM time_entries
          WHERE (punch_in_time AT TIME ZONE $3)::date = $1::date
          AND employee_id IN (SELECT id FROM employees WHERE workspace_id = $2)",
@@ -521,18 +538,19 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
         .bind::<diesel::sql_types::Date, _>(today)
         .bind::<diesel::sql_types::Uuid, _>(workspace_id)
         .bind::<diesel::sql_types::Text, _>(&tz_str)
-        .get_result::<CountRow>(&mut conn)
+        .get_result::<CountRow>(&mut *conn)
         .await
         .map(|r| r.count)
         .unwrap_or(0);
 
-        let pending_leave: i64 = diesel::sql_query(
+        let pending_leave: i64 = crate::crud_sql_query!(
+            &mut conn,
             "SELECT COUNT(*)::bigint as count FROM leave_requests
          WHERE status = 'pending'
          AND employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)",
         )
         .bind::<diesel::sql_types::Uuid, _>(workspace_id)
-        .get_result::<CountRow>(&mut conn)
+        .get_result::<CountRow>(&mut *conn)
         .await
         .map(|r| r.count)
         .unwrap_or(0);
@@ -543,7 +561,8 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
             amount: rust_decimal::Decimal,
         }
 
-        let payroll: rust_decimal::Decimal = diesel::sql_query(
+        let payroll: rust_decimal::Decimal = crate::crud_sql_query!(
+            &mut conn,
             r#"
         WITH active_emps AS (
             SELECT id FROM employees WHERE workspace_id = $1 AND is_active = TRUE
@@ -566,12 +585,12 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
         "#,
         )
         .bind::<diesel::sql_types::Uuid, _>(workspace_id)
-        .get_result::<DecimalRow>(&mut conn)
+        .get_result::<DecimalRow>(&mut *conn)
         .await
         .map(|r| r.amount)
         .unwrap_or(rust_decimal::Decimal::ZERO);
 
-        let on_leave_today: i64 = diesel::sql_query(
+        let on_leave_today: i64 = crate::crud_sql_query!(&mut conn, 
         "SELECT COUNT(DISTINCT lr.employee_id)::bigint as count FROM leave_requests lr
          WHERE lr.status IN ('approved', 'pre_approved')
          AND lr.start_date <= $1 AND lr.end_date >= $1
@@ -579,14 +598,14 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
     )
     .bind::<diesel::sql_types::Date, _>(today)
     .bind::<diesel::sql_types::Uuid, _>(workspace_id)
-    .get_result::<CountRow>(&mut conn)
+    .get_result::<CountRow>(&mut *conn)
     .await
     .map(|r| r.count)
     .unwrap_or(0);
 
         let absent_today = (total_employees - present_today - on_leave_today).max(0);
 
-        let late_today: i64 = diesel::sql_query(
+        let late_today: i64 = crate::crud_sql_query!(&mut conn, 
         r#"
         WITH today_punches AS (
             SELECT te.employee_id,
@@ -606,12 +625,12 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
     .bind::<diesel::sql_types::Uuid, _>(workspace_id)
     .bind::<diesel::sql_types::Date, _>(today)
     .bind::<diesel::sql_types::Text, _>(&tz_str)
-    .get_result::<CountRow>(&mut conn)
+    .get_result::<CountRow>(&mut *conn)
     .await
     .map(|r| r.count)
     .unwrap_or(0);
 
-        let early_departure_today: i64 = diesel::sql_query(
+        let early_departure_today: i64 = crate::crud_sql_query!(&mut conn, 
         r#"
         WITH today_completed AS (
             SELECT te.employee_id,
@@ -632,7 +651,7 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
     .bind::<diesel::sql_types::Uuid, _>(workspace_id)
     .bind::<diesel::sql_types::Date, _>(today)
     .bind::<diesel::sql_types::Text, _>(&tz_str)
-    .get_result::<CountRow>(&mut conn)
+    .get_result::<CountRow>(&mut *conn)
     .await
     .map(|r| r.count)
     .unwrap_or(0);
@@ -643,7 +662,7 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
             amount: Option<f64>,
         }
 
-        let avg_work_minutes: Option<f64> = diesel::sql_query(
+        let avg_work_minutes: Option<f64> = crate::crud_sql_query!(&mut conn, 
         "SELECT AVG(duration_minutes)::float8 as amount FROM time_entries
          WHERE punch_in_time >= $1
          AND punch_out_time IS NOT NULL
@@ -652,7 +671,7 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
     )
     .bind::<diesel::sql_types::Timestamptz, _>(start_of_day)
     .bind::<diesel::sql_types::Uuid, _>(workspace_id)
-    .get_result::<FloatRow>(&mut conn)
+    .get_result::<FloatRow>(&mut *conn)
     .await
     .ok()
     .and_then(|r| r.amount);
@@ -683,7 +702,10 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
             .and_then(|t| t.and_local_timezone(Utc).single())
             .ok_or_else(|| AppError::Internal("Invalid date".to_string()))?;
 
-        let mut conn = self.diesel_pools.tenant_conn(auth_token).await?;
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
 
         #[derive(QueryableByName)]
         struct SlotRow {
@@ -695,7 +717,7 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
             check_out: i64,
         }
 
-        let rows: Vec<SlotRow> = diesel::sql_query(
+        let rows: Vec<SlotRow> = crate::crud_sql_query!(&mut conn, 
         r#"
         WITH slots AS (
             SELECT generate_series(0, 47) AS slot_index
@@ -739,7 +761,7 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
     )
     .bind::<diesel::sql_types::Timestamptz, _>(start_of_day)
     .bind::<diesel::sql_types::Uuid, _>(workspace_id)
-    .load(&mut conn)
+    .load(&mut *conn)
     .await
     .unwrap_or_else(|e| { tracing::warn!(error = %e, "peak times query failed, degrading gracefully"); vec![] });
 
@@ -764,7 +786,10 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
         let month_start = NaiveDate::from_ymd_opt(today.year(), today.month(), 1)
             .ok_or_else(|| AppError::Internal("Invalid date".to_string()))?;
 
-        let mut conn = self.diesel_pools.tenant_conn(auth_token).await?;
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
 
         #[derive(QueryableByName)]
         struct LtRow {
@@ -774,7 +799,8 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
             count: i64,
         }
 
-        let rows: Vec<LtRow> = diesel::sql_query(
+        let rows: Vec<LtRow> = crate::crud_sql_query!(
+            &mut conn,
             r#"
         SELECT COALESCE(lt.name, 'Other')::text AS leave_type,
                COUNT(*)::bigint AS count
@@ -793,7 +819,7 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
         .bind::<diesel::sql_types::Date, _>(month_start)
         .bind::<diesel::sql_types::Date, _>(today)
         .bind::<diesel::sql_types::Uuid, _>(workspace_id)
-        .load(&mut conn)
+        .load(&mut *conn)
         .await
         .unwrap_or_else(|e| {
             tracing::warn!(error = %e, "leave types query failed, degrading gracefully");
@@ -821,7 +847,10 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
         let _start_date = today - chrono::Duration::days(29);
         let tz_str = self.get_timezone(auth_token).await;
 
-        let mut conn = self.diesel_pools.tenant_conn(auth_token).await?;
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
 
         #[derive(QueryableByName)]
         struct DayRow {
@@ -833,7 +862,7 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
             avg_late_minutes: f64,
         }
 
-        let rows: Vec<DayRow> = diesel::sql_query(
+        let rows: Vec<DayRow> = crate::crud_sql_query!(&mut conn, 
         r#"
         WITH first_punches AS (
             SELECT te.employee_id,
@@ -865,7 +894,7 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
     .bind::<diesel::sql_types::Date, _>(today)
     .bind::<diesel::sql_types::Uuid, _>(workspace_id)
     .bind::<diesel::sql_types::Text, _>(&tz_str)
-    .load(&mut conn)
+    .load(&mut *conn)
     .await
     .unwrap_or_else(|e| { tracing::warn!(error = %e, "lateness by day query failed, degrading gracefully"); vec![] });
 

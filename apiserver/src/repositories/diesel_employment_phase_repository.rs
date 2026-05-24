@@ -28,12 +28,13 @@ impl DieselEmploymentPhaseRepository {
         rule_config: &serde_json::Value,
         display_order: i32,
     ) -> Result<EmploymentPhaseDefinition, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&workspace_id)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&workspace_id)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let entity = EmploymentPhaseDefinitionEntity {
             id: crate::utils::id::new_id(),
@@ -50,7 +51,7 @@ impl DieselEmploymentPhaseRepository {
 
         let result = diesel::insert_into(employment_phase_definitions::table)
             .values(&entity)
-            .get_result::<EmploymentPhaseDefinitionEntity>(&mut conn)
+            .get_result::<EmploymentPhaseDefinitionEntity>(&mut *conn)
             .await
             .map_err(|e| {
                 if let diesel::result::Error::DatabaseError(
@@ -78,12 +79,13 @@ impl DieselEmploymentPhaseRepository {
         &self,
         workspace_id: Uuid,
     ) -> Result<Vec<EmploymentPhaseDefinition>, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&workspace_id)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&workspace_id)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let entities = employment_phase_definitions::table
             .filter(employment_phase_definitions::workspace_id.eq(workspace_id))
@@ -91,7 +93,7 @@ impl DieselEmploymentPhaseRepository {
                 employment_phase_definitions::display_order.asc(),
                 employment_phase_definitions::created_at.desc(),
             ))
-            .load::<EmploymentPhaseDefinitionEntity>(&mut conn)
+            .load::<EmploymentPhaseDefinitionEntity>(&mut *conn)
             .await
             .map_err(|e| {
                 AppError::Internal(format!("Failed to fetch employment phase definitions: {e}"))
@@ -110,12 +112,13 @@ impl DieselEmploymentPhaseRepository {
         end_date: NaiveDate,
         override_config: Option<&serde_json::Value>,
     ) -> Result<EmployeePhase, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&workspace_id)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&workspace_id)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let auto_close_date = start_date
             .checked_sub_days(chrono::Days::new(1))
@@ -123,7 +126,7 @@ impl DieselEmploymentPhaseRepository {
 
         let override_config_owned = override_config.cloned();
         let result = conn
-            .transaction(|mut conn| {
+            .transaction(|conn| {
                 Box::pin(async move {
                     // Auto-close any active phases that started before or on the new start_date
                     diesel::update(
@@ -143,7 +146,7 @@ impl DieselEmploymentPhaseRepository {
                         employee_phases::completed_at.eq(Utc::now()),
                         employee_phases::updated_at.eq(Utc::now()),
                     ))
-                    .execute(&mut conn)
+                    .execute(&mut *conn)
                     .await?;
 
                     // Insert new phase
@@ -165,7 +168,7 @@ impl DieselEmploymentPhaseRepository {
 
                     let result = diesel::insert_into(employee_phases::table)
                         .values(&new_entity)
-                        .get_result::<EmployeePhaseEntity>(&mut conn)
+                        .get_result::<EmployeePhaseEntity>(&mut *conn)
                         .await?;
 
                     Ok::<_, diesel::result::Error>(result)
@@ -187,12 +190,13 @@ impl DieselEmploymentPhaseRepository {
         evaluation_notes: Option<&str>,
         evaluated_by: Uuid,
     ) -> Result<EmployeePhase, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&workspace_id)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&workspace_id)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let result = diesel::update(
             employee_phases::table.filter(
@@ -209,7 +213,7 @@ impl DieselEmploymentPhaseRepository {
             employee_phases::completed_at.eq(Utc::now()),
             employee_phases::updated_at.eq(Utc::now()),
         ))
-        .get_result::<EmployeePhaseEntity>(&mut conn)
+        .get_result::<EmployeePhaseEntity>(&mut *conn)
         .await
         .optional()
         .map_err(|e| {
@@ -226,12 +230,13 @@ impl DieselEmploymentPhaseRepository {
         workspace_id: Uuid,
         employee_id: Uuid,
     ) -> Result<Vec<EmployeePhase>, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&workspace_id)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&workspace_id)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let entities = employee_phases::table
             .filter(
@@ -243,14 +248,13 @@ impl DieselEmploymentPhaseRepository {
                 employee_phases::start_date.asc(),
                 employee_phases::created_at.desc(),
             ))
-            .load::<EmployeePhaseEntity>(&mut conn)
+            .load::<EmployeePhaseEntity>(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("Failed to fetch employee phases: {e}")))?;
 
         Ok(entities.into_iter().map(Into::into).collect())
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -259,9 +263,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_repo_initialization() {
-        let test_db_url = std::env::var("DATABASE_URL")
-            .unwrap_or_else(|_| "postgres://user:pass@localhost:5432/leeattend_test_db".to_string());
-        
+        let test_db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://user:pass@localhost:5432/leeattend_test_db".to_string()
+        });
+
         let pools = DieselPools::for_test(&test_db_url);
         let _repo = DieselEmploymentPhaseRepository::new(pools);
         // DI connection test passes if it compiles

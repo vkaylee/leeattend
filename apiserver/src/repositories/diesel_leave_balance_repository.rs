@@ -33,12 +33,13 @@ impl LeaveBalanceRepository for DieselLeaveBalanceRepository {
         year: i32,
     ) -> Result<Vec<EmployeeLeaveBalance>, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&auth_token.workspace_id())
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&auth_token.workspace_id())
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         // Using raw SQL for the complex CTE report to ensure compatibility
         let sql = r#"
@@ -78,11 +79,11 @@ impl LeaveBalanceRepository for DieselLeaveBalanceRepository {
             WHERE lb.employee_id = $1 AND lb.year = $2 AND e.workspace_id = $3
         "#;
 
-        let balances = diesel::sql_query(sql)
+        let balances = crate::crud_sql_query!(&mut conn, sql)
             .bind::<diesel::sql_types::Uuid, _>(employee_id)
             .bind::<diesel::sql_types::Int4, _>(year)
             .bind::<diesel::sql_types::Uuid, _>(workspace_id)
-            .load::<crate::models::diesel::leave::EmployeeLeaveBalanceRaw>(&mut conn)
+            .load::<crate::models::diesel::leave::EmployeeLeaveBalanceRaw>(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -98,12 +99,13 @@ impl LeaveBalanceRepository for DieselLeaveBalanceRepository {
         search: Option<String>,
     ) -> Result<(Vec<WorkspaceLeaveBalance>, i64), AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&auth_token.workspace_id())
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&auth_token.workspace_id())
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let search_term = format!("%{}%", search.unwrap_or_default());
 
@@ -135,11 +137,11 @@ impl LeaveBalanceRepository for DieselLeaveBalanceRepository {
               )
         "#;
 
-        let total: i64 = diesel::sql_query(count_sql)
+        let total: i64 = crate::crud_sql_query!(&mut conn, count_sql)
             .bind::<diesel::sql_types::Uuid, _>(workspace_id)
             .bind::<diesel::sql_types::Int4, _>(year)
             .bind::<diesel::sql_types::Text, _>(&search_term)
-            .get_result::<crate::models::diesel::BigIntCount>(&mut conn)
+            .get_result::<crate::models::diesel::BigIntCount>(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db count: {e}")))?
             .count;
@@ -220,13 +222,13 @@ impl LeaveBalanceRepository for DieselLeaveBalanceRepository {
             LIMIT $4 OFFSET $5
         "#;
 
-        let data = diesel::sql_query(sql)
+        let data = crate::crud_sql_query!(&mut conn, sql)
             .bind::<diesel::sql_types::Uuid, _>(workspace_id)
             .bind::<diesel::sql_types::Int4, _>(year)
             .bind::<diesel::sql_types::Text, _>(&search_term)
             .bind::<diesel::sql_types::BigInt, _>(limit)
             .bind::<diesel::sql_types::BigInt, _>(offset)
-            .load::<crate::models::diesel::leave::WorkspaceLeaveBalanceRaw>(&mut conn)
+            .load::<crate::models::diesel::leave::WorkspaceLeaveBalanceRaw>(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db data: {e}")))?;
 
@@ -239,12 +241,13 @@ impl LeaveBalanceRepository for DieselLeaveBalanceRepository {
         balance: &LeaveBalance,
     ) -> Result<(), AppError> {
         let _workspace_id = auth_token.workspace_id();
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&auth_token.workspace_id())
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&auth_token.workspace_id())
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let entity = LeaveBalanceEntity {
             id: balance.id,
@@ -272,7 +275,7 @@ impl LeaveBalanceRepository for DieselLeaveBalanceRepository {
                 leave_balances::carried_over.eq(entity.carried_over),
                 leave_balances::updated_at.eq(diesel::dsl::now),
             ))
-            .execute(&mut conn)
+            .execute(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -289,18 +292,19 @@ impl LeaveBalanceRepository for DieselLeaveBalanceRepository {
         reason: &str,
     ) -> Result<(), AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&auth_token.workspace_id())
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&auth_token.workspace_id())
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let amount_bd = BigDecimal::from_str(&amount.to_string())
             .map_err(|e| AppError::Internal(format!("BigDecimal conversion failed: {e}")))?;
         let year = transaction_date.year();
 
-        conn.transaction(|mut conn| {
+        conn.transaction(|conn| {
             Box::pin(async move {
                 // 1. Log adjustment
                 diesel::insert_into(leave_accrual_logs::table)
@@ -312,7 +316,7 @@ impl LeaveBalanceRepository for DieselLeaveBalanceRepository {
                         leave_accrual_logs::leave_type_id.eq(leave_type_id),
                         leave_accrual_logs::notes.eq(reason),
                     ))
-                    .execute(&mut conn)
+                    .execute(&mut *conn)
                     .await?;
 
                 // 2. Update balance
@@ -337,7 +341,7 @@ impl LeaveBalanceRepository for DieselLeaveBalanceRepository {
                             .eq(leave_balances::accrued_amount + &amount_bd),
                         leave_balances::updated_at.eq(diesel::dsl::now),
                     ))
-                    .execute(&mut conn)
+                    .execute(&mut *conn)
                     .await?;
 
                 Ok::<_, diesel::result::Error>(())
@@ -350,7 +354,6 @@ impl LeaveBalanceRepository for DieselLeaveBalanceRepository {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -358,9 +361,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_repo_initialization() {
-        let test_db_url = std::env::var("DATABASE_URL")
-            .unwrap_or_else(|_| "postgres://user:pass@localhost:5432/leeattend_test_db".to_string());
-        
+        let test_db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://user:pass@localhost:5432/leeattend_test_db".to_string()
+        });
+
         let pools = DieselPools::for_test(&test_db_url);
         let _repo = DieselLeaveBalanceRepository::new(pools);
         // DI connection test passes if it compiles

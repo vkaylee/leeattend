@@ -130,12 +130,13 @@ impl ShiftSwapRepository for DieselShiftSwapRepository {
         request: &ShiftSwapRequest,
     ) -> Result<ShiftSwapRequest, AppError> {
         let _workspace_id = auth_token.workspace_id();
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&auth_token.workspace_id())
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&auth_token.workspace_id())
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let entity = ShiftSwapRequestEntity {
             id: request.id,
@@ -161,7 +162,7 @@ impl ShiftSwapRepository for DieselShiftSwapRepository {
 
         let result: ShiftSwapRequestEntity = diesel::insert_into(shift_swap_requests::table)
             .values(&entity)
-            .get_result(&mut conn)
+            .get_result(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -174,17 +175,18 @@ impl ShiftSwapRepository for DieselShiftSwapRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<Option<ShiftSwapRequest>, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&auth_token.workspace_id())
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&auth_token.workspace_id())
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let entity: Option<ShiftSwapRequestEntity> = shift_swap_requests::table
             .filter(shift_swap_requests::id.eq(id))
             .filter(shift_swap_requests::workspace_id.eq(workspace_id))
-            .first(&mut conn)
+            .first(&mut *conn)
             .await
             .optional()
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -198,12 +200,13 @@ impl ShiftSwapRepository for DieselShiftSwapRepository {
         status_filter: Option<ShiftSwapStatus>,
     ) -> Result<Vec<ShiftSwapRequestWithNames>, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&auth_token.workspace_id())
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&auth_token.workspace_id())
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let status_str = status_filter.map(|s| match s {
             ShiftSwapStatus::PendingTarget => "pending_target",
@@ -213,7 +216,8 @@ impl ShiftSwapRepository for DieselShiftSwapRepository {
             ShiftSwapStatus::Cancelled => "cancelled",
         });
 
-        let entities: Vec<ShiftSwapRequestWithNamesEntity> = diesel::sql_query(
+        let entities: Vec<ShiftSwapRequestWithNamesEntity> = crate::crud_sql_query!(
+            &mut conn,
             r#"
             SELECT
                 s.id, s.workspace_id, s.requester_id, s.target_id, s.swap_date,
@@ -236,7 +240,7 @@ impl ShiftSwapRepository for DieselShiftSwapRepository {
         )
         .bind::<diesel::sql_types::Uuid, _>(workspace_id)
         .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(status_str)
-        .load(&mut conn)
+        .load(&mut *conn)
         .await
         .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -251,12 +255,13 @@ impl ShiftSwapRepository for DieselShiftSwapRepository {
         approver_id: Option<Uuid>,
     ) -> Result<(), AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&auth_token.workspace_id())
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&auth_token.workspace_id())
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let status_str = match status {
             ShiftSwapStatus::PendingTarget => "pending_target",
@@ -274,7 +279,7 @@ impl ShiftSwapRepository for DieselShiftSwapRepository {
                 shift_swap_requests::approved_by_user_id.eq(approver_id),
                 shift_swap_requests::updated_at.eq(Utc::now()),
             ))
-            .execute(&mut conn)
+            .execute(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -287,14 +292,16 @@ impl ShiftSwapRepository for DieselShiftSwapRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<Vec<ShiftSwapRequestWithNames>, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&auth_token.workspace_id())
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&auth_token.workspace_id())
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
-        let entities: Vec<ShiftSwapRequestWithNamesEntity> = diesel::sql_query(
+        let entities: Vec<ShiftSwapRequestWithNamesEntity> = crate::crud_sql_query!(
+            &mut conn,
             r#"
             SELECT
                 s.id, s.workspace_id, s.requester_id, s.target_id, s.swap_date,
@@ -316,7 +323,7 @@ impl ShiftSwapRepository for DieselShiftSwapRepository {
         )
         .bind::<diesel::sql_types::Uuid, _>(employee_id)
         .bind::<diesel::sql_types::Uuid, _>(workspace_id)
-        .load(&mut conn)
+        .load(&mut *conn)
         .await
         .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -331,12 +338,13 @@ impl ShiftSwapRepository for DieselShiftSwapRepository {
         swap_date: NaiveDate,
     ) -> Result<bool, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&auth_token.workspace_id())
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&auth_token.workspace_id())
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let exists: bool = diesel::select(diesel::dsl::exists(
             shift_swap_requests::table
@@ -346,7 +354,7 @@ impl ShiftSwapRepository for DieselShiftSwapRepository {
                 .filter(shift_swap_requests::swap_date.eq(swap_date))
                 .filter(shift_swap_requests::status.ne_all(["cancelled", "rejected"])),
         ))
-        .get_result(&mut conn)
+        .get_result(&mut *conn)
         .await
         .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -360,12 +368,13 @@ impl ShiftSwapRepository for DieselShiftSwapRepository {
         swap_date: NaiveDate,
     ) -> Result<bool, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&auth_token.workspace_id())
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&auth_token.workspace_id())
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let exists: bool = diesel::select(diesel::dsl::exists(
             shift_swap_requests::table
@@ -378,7 +387,7 @@ impl ShiftSwapRepository for DieselShiftSwapRepository {
                 .filter(shift_swap_requests::swap_date.eq(swap_date))
                 .filter(shift_swap_requests::status.eq("approved")),
         ))
-        .get_result(&mut conn)
+        .get_result(&mut *conn)
         .await
         .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -390,14 +399,16 @@ impl ShiftSwapRepository for DieselShiftSwapRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<SwapStats, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&auth_token.workspace_id())
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&auth_token.workspace_id())
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
-        let entity: SwapStatsEntity = diesel::sql_query(
+        let entity: SwapStatsEntity = crate::crud_sql_query!(
+            &mut conn,
             r#"
             SELECT
                 COUNT(*) FILTER (WHERE status = 'pending_target') AS pending_target,
@@ -414,14 +425,13 @@ impl ShiftSwapRepository for DieselShiftSwapRepository {
             "#,
         )
         .bind::<diesel::sql_types::Uuid, _>(workspace_id)
-        .get_result(&mut conn)
+        .get_result(&mut *conn)
         .await
         .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(entity.into())
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -430,9 +440,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_repo_initialization() {
-        let test_db_url = std::env::var("DATABASE_URL")
-            .unwrap_or_else(|_| "postgres://user:pass@localhost:5432/leeattend_test_db".to_string());
-        
+        let test_db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://user:pass@localhost:5432/leeattend_test_db".to_string()
+        });
+
         let pools = DieselPools::for_test(&test_db_url);
         let _repo = DieselShiftSwapRepository::new(pools);
         // DI connection test passes if it compiles

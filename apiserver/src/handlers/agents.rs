@@ -652,7 +652,8 @@ pub async fn update_authorized_agent(
 
     use diesel_async::RunQueryDsl;
 
-    diesel::sql_query(
+    crate::system_crud_query!(
+        &mut conn,
         r#"
         UPDATE authorized_agents 
         SET name = $1,
@@ -674,7 +675,7 @@ pub async fn update_authorized_agent(
     .bind::<diesel::sql_types::Integer, _>(current_agent.retention_days)
     .bind::<diesel::sql_types::Text, _>(&current_agent.id)
     .bind::<diesel::sql_types::Uuid, _>(current_agent.workspace_id)
-    .execute(&mut conn)
+    .execute(&mut *conn)
     .await
     .map_err(|e| AppError::Internal(e.to_string()))?;
 

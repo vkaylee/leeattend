@@ -83,7 +83,7 @@ impl DieselSalaryBaseRepository {
         AppError,
     > {
         self.diesel_pools
-            .tenants
+            .tenants_tx
             .get_connection(&workspace_id)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))
@@ -108,7 +108,7 @@ impl crate::repositories::salary_base_repository::SalaryBaseRepository
                 salary_base_groups::name.asc(),
             ))
             .select(SalaryBaseGroupRow::as_select())
-            .load(&mut conn)
+            .load(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("Failed to fetch salary bases: {e}")))
             .map(|rows| rows.into_iter().map(Into::into).collect())
@@ -137,7 +137,7 @@ impl crate::repositories::salary_base_repository::SalaryBaseRepository
         diesel::insert_into(salary_base_groups::table)
             .values(&new_group)
             .returning(SalaryBaseGroupRow::as_returning())
-            .get_result(&mut conn)
+            .get_result(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("Failed to create salary base group: {e}")))
             .map(Into::into)
@@ -157,7 +157,7 @@ impl crate::repositories::salary_base_repository::SalaryBaseRepository
                     .or(salary_base_groups::workspace_id.is_null()),
             )
             .select(SalaryBaseGroupMemberRow::as_select())
-            .load(&mut conn)
+            .load(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("Failed to fetch salary base members: {e}")))
             .map(|rows| rows.into_iter().map(Into::into).collect())
@@ -184,7 +184,7 @@ impl crate::repositories::salary_base_repository::SalaryBaseRepository
                 salary_component_base_members::base_group_id,
             ))
             .do_nothing()
-            .execute(&mut conn)
+            .execute(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("Failed to assign component to base: {e}")))?;
 
@@ -204,14 +204,13 @@ impl crate::repositories::salary_base_repository::SalaryBaseRepository
                 .filter(salary_component_base_members::component_definition_id.eq(component_id))
                 .filter(salary_component_base_members::base_group_id.eq(base_group_id)),
         )
-        .execute(&mut conn)
+        .execute(&mut *conn)
         .await
         .map_err(|e| AppError::Internal(format!("Failed to unassign component from base: {e}")))?;
 
         Ok(())
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -220,9 +219,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_repo_initialization() {
-        let test_db_url = std::env::var("DATABASE_URL")
-            .unwrap_or_else(|_| "postgres://user:pass@localhost:5432/leeattend_test_db".to_string());
-        
+        let test_db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://user:pass@localhost:5432/leeattend_test_db".to_string()
+        });
+
         let pools = DieselPools::for_test(&test_db_url);
         let _repo = DieselSalaryBaseRepository::new(pools);
         // DI connection test passes if it compiles

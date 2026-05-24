@@ -12,7 +12,10 @@ pub trait SystemDbClusterRepository: Send + Sync {
     async fn increment_active_tenants(&self, cluster_id: Uuid) -> Result<(), AppError>;
 
     /// Creates a new cluster record
-    async fn create_cluster(&self, cluster: &NewSystemDbCluster) -> Result<SystemDbCluster, AppError>;
+    async fn create_cluster(
+        &self,
+        cluster: &NewSystemDbCluster,
+    ) -> Result<SystemDbCluster, AppError>;
 
     /// Lists all database clusters
     async fn list_clusters(&self) -> Result<Vec<SystemDbCluster>, AppError>;
@@ -21,5 +24,9 @@ pub trait SystemDbClusterRepository: Send + Sync {
     async fn delete_cluster(&self, cluster_id: Uuid) -> Result<(), AppError>;
 
     /// Updates the active status of a cluster
-    async fn update_cluster_status(&self, cluster_id: Uuid, is_active: bool) -> Result<SystemDbCluster, AppError>;
+    async fn update_cluster_status(
+        &self,
+        cluster_id: Uuid,
+        is_active: bool,
+    ) -> Result<SystemDbCluster, AppError>;
 }

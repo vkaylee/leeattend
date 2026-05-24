@@ -27,12 +27,13 @@ impl AttendanceLogErrorRepository for DieselAttendanceLogErrorRepository {
         source: &str,
     ) -> Result<(), AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&auth_token.workspace_id())
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&auth_token.workspace_id())
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let entity = AttendanceLogErrorEntity {
             id: crate::utils::id::new_id(),
@@ -47,7 +48,7 @@ impl AttendanceLogErrorRepository for DieselAttendanceLogErrorRepository {
 
         diesel::insert_into(attendance_log_errors::table)
             .values(&entity)
-            .execute(&mut conn)
+            .execute(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -64,12 +65,13 @@ impl AttendanceLogErrorRepository for DieselAttendanceLogErrorRepository {
         fingerprint: &str,
     ) -> Result<bool, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&auth_token.workspace_id())
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&auth_token.workspace_id())
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let entity = AttendanceLogErrorEntity {
             id: crate::utils::id::new_id(),
@@ -89,14 +91,13 @@ impl AttendanceLogErrorRepository for DieselAttendanceLogErrorRepository {
                 attendance_log_errors::fingerprint,
             ))
             .do_nothing()
-            .execute(&mut conn)
+            .execute(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(rows_affected > 0)
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -105,9 +106,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_repo_initialization() {
-        let test_db_url = std::env::var("DATABASE_URL")
-            .unwrap_or_else(|_| "postgres://user:pass@localhost:5432/leeattend_test_db".to_string());
-        
+        let test_db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://user:pass@localhost:5432/leeattend_test_db".to_string()
+        });
+
         let pools = DieselPools::for_test(&test_db_url);
         let _repo = DieselAttendanceLogErrorRepository::new(pools);
         // DI connection test passes if it compiles

@@ -30,17 +30,18 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
         &self,
         workspace_id: Uuid,
     ) -> Result<Vec<crate::models::LeaveType>, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&workspace_id)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&workspace_id)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let entities = leave_types::table
             .filter(leave_types::workspace_id.eq(workspace_id))
             .order(leave_types::name.asc())
-            .load::<LeaveTypeEntity>(&mut conn)
+            .load::<LeaveTypeEntity>(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -55,12 +56,13 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
         is_paid: bool,
         policy_config: crate::models::LeaveTypeConfig,
     ) -> Result<crate::models::LeaveType, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&workspace_id)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&workspace_id)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let entity = LeaveTypeEntity {
             id: Uuid::new_v4(),
@@ -74,7 +76,7 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
 
         let result = diesel::insert_into(leave_types::table)
             .values(&entity)
-            .get_result::<LeaveTypeEntity>(&mut conn)
+            .get_result::<LeaveTypeEntity>(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -87,12 +89,13 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
         workspace_id: Uuid,
         policy_config: crate::models::LeaveTypeConfig,
     ) -> Result<crate::models::LeaveType, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&workspace_id)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&workspace_id)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let result = diesel::update(
             leave_types::table
@@ -100,7 +103,7 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
                 .filter(leave_types::workspace_id.eq(workspace_id)),
         )
         .set(leave_types::policy_config.eq(serde_json::to_value(policy_config).unwrap_or_default()))
-        .get_result::<LeaveTypeEntity>(&mut conn)
+        .get_result::<LeaveTypeEntity>(&mut *conn)
         .await
         .map_err(|e| match e {
             diesel::result::Error::NotFound => {
@@ -113,12 +116,13 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
     }
 
     async fn delete_leave_type(&self, id: Uuid, workspace_id: Uuid) -> Result<u64, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&workspace_id)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&workspace_id)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         // First check if there are any balances using this leave type
         use crate::schema::{employees, leave_balances};
@@ -127,7 +131,7 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
             .filter(leave_balances::leave_type_id.eq(id))
             .filter(employees::workspace_id.eq(workspace_id))
             .select(diesel::dsl::sql::<diesel::sql_types::Integer>("1"))
-            .first(&mut conn)
+            .first(&mut *conn)
             .await
             .optional()
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -143,7 +147,7 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
                 .filter(leave_types::id.eq(id))
                 .filter(leave_types::workspace_id.eq(workspace_id)),
         )
-        .execute(&mut conn)
+        .execute(&mut *conn)
         .await
         .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -158,12 +162,13 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
         leave_type_id: Uuid,
         rule_config: LeavePolicyConfig,
     ) -> Result<LeavePolicyDefinition, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&workspace_id)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&workspace_id)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let entity = LeavePolicyDefinitionEntity {
             id: Uuid::new_v4(),
@@ -178,7 +183,7 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
 
         let result = diesel::insert_into(leave_policy_definitions::table)
             .values(&entity)
-            .get_result::<LeavePolicyDefinitionEntity>(&mut conn)
+            .get_result::<LeavePolicyDefinitionEntity>(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -189,17 +194,18 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
         &self,
         workspace_id: Uuid,
     ) -> Result<Vec<LeavePolicyDefinition>, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&workspace_id)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&workspace_id)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let entities = leave_policy_definitions::table
             .filter(leave_policy_definitions::workspace_id.eq(workspace_id))
             .order(leave_policy_definitions::created_at.desc())
-            .load::<LeavePolicyDefinitionEntity>(&mut conn)
+            .load::<LeavePolicyDefinitionEntity>(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -215,12 +221,13 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
         leave_type_id: Option<Uuid>,
         rule_config: Option<LeavePolicyConfig>,
     ) -> Result<LeavePolicyDefinition, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&workspace_id)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&workspace_id)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let result = diesel::update(
             leave_policy_definitions::table
@@ -237,7 +244,7 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
             }),
             leave_policy_definitions::updated_at.eq(Some(Utc::now())),
         ))
-        .get_result::<LeavePolicyDefinitionEntity>(&mut conn)
+        .get_result::<LeavePolicyDefinitionEntity>(&mut *conn)
         .await
         .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -249,14 +256,15 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
         id: Uuid,
         workspace_id: Uuid,
     ) -> Result<u64, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&workspace_id)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&workspace_id)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
-        conn.transaction(|mut conn| {
+        conn.transaction(|conn| {
             Box::pin(async move {
                 // 1. Delete assignments
                 diesel::delete(
@@ -264,7 +272,7 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
                         .filter(leave_policy_assignments::policy_id.eq(id))
                         .filter(leave_policy_assignments::workspace_id.eq(workspace_id)),
                 )
-                .execute(&mut conn)
+                .execute(&mut *conn)
                 .await?;
 
                 // 2. Delete definition
@@ -273,7 +281,7 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
                         .filter(leave_policy_definitions::id.eq(id))
                         .filter(leave_policy_definitions::workspace_id.eq(workspace_id)),
                 )
-                .execute(&mut conn)
+                .execute(&mut *conn)
                 .await?;
 
                 Ok::<_, diesel::result::Error>(affected as u64)
@@ -288,16 +296,17 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
         workspace_id: Uuid,
         assignment: &LeavePolicyAssignment,
     ) -> Result<LeavePolicyAssignment, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&workspace_id)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&workspace_id)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let assignment_owned = assignment.clone();
         let result = conn
-            .transaction(|mut conn| {
+            .transaction(|conn| {
                 Box::pin(async move {
                     // 1. Get leave_type_id
                     let lt_id: Uuid = leave_policy_definitions::table
@@ -307,7 +316,7 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
                                 .eq(assignment_owned.workspace_id),
                         )
                         .select(leave_policy_definitions::leave_type_id)
-                        .first(&mut conn)
+                        .first(&mut *conn)
                         .await?;
 
                     // 2a. Delete future assignments
@@ -337,7 +346,7 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
                                     .ge(assignment_owned.effective_from),
                             ),
                     )
-                    .execute(&mut conn)
+                    .execute(&mut *conn)
                     .await?;
 
                     // 2. Auto-close existing
@@ -377,7 +386,7 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
                         leave_policy_assignments::effective_to
                             .eq(assignment_owned.effective_from.pred_opt()),
                     )
-                    .execute(&mut conn)
+                    .execute(&mut *conn)
                     .await?;
 
                     // 3. Insert new
@@ -394,7 +403,7 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
 
                     let saved = diesel::insert_into(leave_policy_assignments::table)
                         .values(&entity)
-                        .get_result::<LeavePolicyAssignmentEntity>(&mut conn)
+                        .get_result::<LeavePolicyAssignmentEntity>(&mut *conn)
                         .await?;
 
                     Ok::<_, diesel::result::Error>(saved.into())
@@ -413,12 +422,13 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
         department_id: Option<Uuid>,
         date: NaiveDate,
     ) -> Result<Option<(LeavePolicyDefinition, Uuid, String)>, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&workspace_id)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&workspace_id)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         // Priority 1: Employee
         let employee_result = leave_policy_assignments::table
@@ -440,7 +450,7 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
                 leave_policy_assignments::id,
                 leave_types::code,
             ))
-            .first::<(LeavePolicyDefinitionEntity, Uuid, String)>(&mut conn)
+            .first::<(LeavePolicyDefinitionEntity, Uuid, String)>(&mut *conn)
             .await
             .optional()
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -471,7 +481,7 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
                     leave_policy_assignments::id,
                     leave_types::code,
                 ))
-                .first::<(LeavePolicyDefinitionEntity, Uuid, String)>(&mut conn)
+                .first::<(LeavePolicyDefinitionEntity, Uuid, String)>(&mut *conn)
                 .await
                 .optional()
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -500,7 +510,7 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
                 leave_policy_assignments::id,
                 leave_types::code,
             ))
-            .first::<(LeavePolicyDefinitionEntity, Uuid, String)>(&mut conn)
+            .first::<(LeavePolicyDefinitionEntity, Uuid, String)>(&mut *conn)
             .await
             .optional()
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -516,12 +526,13 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
         &self,
         workspace_id: Uuid,
     ) -> Result<Vec<LeavePolicyAssignmentDetail>, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&workspace_id)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&workspace_id)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let results = leave_policy_assignments::table
             .inner_join(leave_policy_definitions::table)
@@ -535,7 +546,7 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
                 leave_policy_definitions::name,
                 leave_types::name,
             ))
-            .load::<(LeavePolicyAssignmentEntity, String, String)>(&mut conn)
+            .load::<(LeavePolicyAssignmentEntity, String, String)>(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -557,7 +568,6 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -565,9 +575,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_repo_initialization() {
-        let test_db_url = std::env::var("DATABASE_URL")
-            .unwrap_or_else(|_| "postgres://user:pass@localhost:5432/leeattend_test_db".to_string());
-        
+        let test_db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://user:pass@localhost:5432/leeattend_test_db".to_string()
+        });
+
         let pools = DieselPools::for_test(&test_db_url);
         let _repo = DieselLeavePolicyRepository::new(pools);
         // DI connection test passes if it compiles

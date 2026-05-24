@@ -82,22 +82,25 @@ impl WorkspaceService {
                 .get_least_loaded_cluster()
                 .await
                 .map_err(|e| e.to_string())?
-                .ok_or_else(|| "No available database clusters for auto-provisioning".to_string())?;
+                .ok_or_else(|| {
+                    "No available database clusters for auto-provisioning".to_string()
+                })?;
 
             let admin_url = cluster.admin_database_url;
             let tenant_db_name = format!("tenant_{}", id.to_string().replace('-', ""));
             let create_db_sql = format!("CREATE DATABASE {tenant_db_name}");
-            
-            use diesel_async::{AsyncConnection, RunQueryDsl, AsyncPgConnection};
+
+            use diesel_async::{AsyncConnection, AsyncPgConnection, RunQueryDsl};
             let mut conn = AsyncPgConnection::establish(&admin_url)
                 .await
                 .map_err(|e| format!("Failed to connect to admin DB: {e}"))?;
-                
+
+            #[allow(clippy::disallowed_methods)]
             diesel::sql_query(create_db_sql)
                 .execute(&mut conn)
                 .await
                 .map_err(|e| format!("Failed to create tenant database: {e}"))?;
-                
+
             // Increment active tenants
             self.system_db_cluster_repo
                 .increment_active_tenants(cluster.id)
@@ -617,8 +620,12 @@ mod tests {
 
     struct MockSystemDbClusterRepo;
     #[async_trait]
-    impl crate::repositories::system_db_cluster_repository::SystemDbClusterRepository for MockSystemDbClusterRepo {
-        async fn get_least_loaded_cluster(&self) -> Result<Option<crate::models::system_db_cluster::SystemDbCluster>, AppError> {
+    impl crate::repositories::system_db_cluster_repository::SystemDbClusterRepository
+        for MockSystemDbClusterRepo
+    {
+        async fn get_least_loaded_cluster(
+            &self,
+        ) -> Result<Option<crate::models::system_db_cluster::SystemDbCluster>, AppError> {
             Ok(Some(crate::models::system_db_cluster::SystemDbCluster {
                 id: Uuid::new_v4(),
                 name: "Test Cluster".to_string(),
@@ -634,16 +641,25 @@ mod tests {
         async fn increment_active_tenants(&self, _cluster_id: Uuid) -> Result<(), AppError> {
             Ok(())
         }
-        async fn create_cluster(&self, _cluster: &crate::models::system_db_cluster::NewSystemDbCluster) -> Result<crate::models::system_db_cluster::SystemDbCluster, AppError> {
+        async fn create_cluster(
+            &self,
+            _cluster: &crate::models::system_db_cluster::NewSystemDbCluster,
+        ) -> Result<crate::models::system_db_cluster::SystemDbCluster, AppError> {
             unimplemented!()
         }
-        async fn list_clusters(&self) -> Result<Vec<crate::models::system_db_cluster::SystemDbCluster>, AppError> {
+        async fn list_clusters(
+            &self,
+        ) -> Result<Vec<crate::models::system_db_cluster::SystemDbCluster>, AppError> {
             unimplemented!()
         }
         async fn delete_cluster(&self, _cluster_id: Uuid) -> Result<(), AppError> {
             unimplemented!()
         }
-        async fn update_cluster_status(&self, _cluster_id: Uuid, _is_active: bool) -> Result<crate::models::system_db_cluster::SystemDbCluster, AppError> {
+        async fn update_cluster_status(
+            &self,
+            _cluster_id: Uuid,
+            _is_active: bool,
+        ) -> Result<crate::models::system_db_cluster::SystemDbCluster, AppError> {
             unimplemented!()
         }
     }

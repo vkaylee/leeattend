@@ -77,7 +77,8 @@ services:
       - RUST_LOG=apiserver=debug,tower_http=debug
       - STORAGE_DIR=/app/apiserver/storage
       - DATABASE_URL=postgres://${DB_USER}:${DB_PASSWORD}@db_system:5432/${DB_NAME}
-      - DATABASE_POOLER_URL=postgres://${DB_USER}.${SUPAVISOR_TENANT_ID:-${DB_NAME}}:${DB_PASSWORD}@${SUPAVISOR_HOST:-supavisor}:5452/${DB_NAME}
+      - DATABASE_POOLER_TX_URL=postgres://${DB_USER}.${SUPAVISOR_TENANT_ID:-${DB_NAME}}:${DB_PASSWORD}@${SUPAVISOR_HOST:-supavisor}:6543/${DB_NAME}
+      - DATABASE_POOLER_SESS_URL=postgres://${DB_USER}.${SUPAVISOR_TENANT_ID:-${DB_NAME}}:${DB_PASSWORD}@${SUPAVISOR_HOST:-supavisor}:5452/${DB_NAME}
       - SUPAVISOR_API_URL=http://${SUPAVISOR_HOST:-supavisor}:${SUPAVISOR_API_PORT:-4000}
       - SUPAVISOR_TENANT_ID=${SUPAVISOR_TENANT_ID:-}
       - SUPAVISOR_POOL_USER=${SUPAVISOR_POOL_USER:-}

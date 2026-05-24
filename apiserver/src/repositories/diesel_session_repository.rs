@@ -27,12 +27,13 @@ impl SessionRepository for DieselSessionRepository {
         token: &str,
         expires_at: chrono::DateTime<chrono::Utc>,
     ) -> Result<(), AppError> {
-        let mut conn = self
-            .diesel_pools
-            .api
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .api
+                .get()
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let entity = SessionEntity {
             id: Uuid::new_v4(),
@@ -45,7 +46,7 @@ impl SessionRepository for DieselSessionRepository {
 
         diesel::insert_into(sessions::table)
             .values(&entity)
-            .execute(&mut conn)
+            .execute(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -53,19 +54,20 @@ impl SessionRepository for DieselSessionRepository {
     }
 
     async fn get_session_by_token(&self, token: &str) -> Result<Option<SessionEntity>, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .api
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .api
+                .get()
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let session = sessions::table
             .filter(sessions::token.eq(token))
             .filter(sessions::expires_at.gt(Utc::now()))
             .filter(sessions::revoked_at.is_null())
             .select(SessionEntity::as_select())
-            .first::<SessionEntity>(&mut conn)
+            .first::<SessionEntity>(&mut *conn)
             .await
             .optional()
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -78,16 +80,17 @@ impl SessionRepository for DieselSessionRepository {
         session_id: Uuid,
         new_token: &str,
     ) -> Result<(), AppError> {
-        let mut conn = self
-            .diesel_pools
-            .api
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .api
+                .get()
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         diesel::update(sessions::table.find(session_id))
             .set(sessions::token.eq(new_token))
-            .execute(&mut conn)
+            .execute(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -95,16 +98,17 @@ impl SessionRepository for DieselSessionRepository {
     }
 
     async fn revoke_session(&self, token: &str) -> Result<(), AppError> {
-        let mut conn = self
-            .diesel_pools
-            .api
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .api
+                .get()
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         diesel::update(sessions::table.filter(sessions::token.eq(token)))
             .set(sessions::revoked_at.eq(Utc::now()))
-            .execute(&mut conn)
+            .execute(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -112,23 +116,23 @@ impl SessionRepository for DieselSessionRepository {
     }
 
     async fn revoke_all_sessions_for_user(&self, user_id: Uuid) -> Result<(), AppError> {
-        let mut conn = self
-            .diesel_pools
-            .api
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .api
+                .get()
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         diesel::update(sessions::table.filter(sessions::user_id.eq(user_id)))
             .set(sessions::revoked_at.eq(Utc::now()))
-            .execute(&mut conn)
+            .execute(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(())
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -137,9 +141,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_repo_initialization() {
-        let test_db_url = std::env::var("DATABASE_URL")
-            .unwrap_or_else(|_| "postgres://user:pass@localhost:5432/leeattend_test_db".to_string());
-        
+        let test_db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://user:pass@localhost:5432/leeattend_test_db".to_string()
+        });
+
         let pools = DieselPools::for_test(&test_db_url);
         let _repo = DieselSessionRepository::new(pools);
         // DI connection test passes if it compiles

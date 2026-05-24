@@ -17,22 +17,22 @@ impl DieselSystemRepository {
 #[async_trait]
 impl SystemRepository for DieselSystemRepository {
     async fn execute_partition_query(&self, query: &str) -> Result<(), AppError> {
-        let mut conn = self
-            .diesel_pools
-            .api
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db conn error: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .api
+                .get()
+                .await
+                .map_err(|e| AppError::Internal(format!("db conn error: {e}")))?,
+        );
 
-        diesel::sql_query(query)
-            .execute(&mut conn)
+        crate::system_crud_query!(&mut conn, query)
+            .execute(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("failed to execute query: {e}")))?;
 
         Ok(())
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -41,9 +41,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_repo_initialization() {
-        let test_db_url = std::env::var("DATABASE_URL")
-            .unwrap_or_else(|_| "postgres://user:pass@localhost:5432/leeattend_test_db".to_string());
-        
+        let test_db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://user:pass@localhost:5432/leeattend_test_db".to_string()
+        });
+
         let pools = DieselPools::for_test(&test_db_url);
         let _repo = DieselSystemRepository::new(pools);
         // DI connection test passes if it compiles

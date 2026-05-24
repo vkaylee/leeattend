@@ -6,14 +6,82 @@ use std::time::Duration;
 pub type DieselPool = Pool<AsyncPgConnection>;
 pub type DieselConnection = Object<AsyncPgConnection>;
 
+pub struct TransactionConn(pub DieselConnection);
+
+impl std::ops::Deref for TransactionConn {
+    type Target = DieselConnection;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl std::ops::DerefMut for TransactionConn {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
+pub struct SessionConn(pub DieselConnection);
+
+impl std::ops::Deref for SessionConn {
+    type Target = DieselConnection;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl std::ops::DerefMut for SessionConn {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
+/// Macro for safely executing CRUD raw SQL on a TransactionConn
+#[macro_export]
+macro_rules! crud_sql_query {
+    ($conn:expr, $sql:expr $(,)?) => {{
+        // Type-check that $conn is exactly &mut TransactionConn
+        let _check: &mut $crate::diesel_pool::TransactionConn = $conn;
+
+        #[allow(clippy::disallowed_methods)]
+        diesel::sql_query($sql)
+    }};
+}
+
+/// Macro for safely executing stateful SQL on a SessionConn
+#[macro_export]
+macro_rules! stateful_session_query {
+    ($conn:expr, $sql:expr $(,)?) => {{
+        // Type-check that $conn is exactly &mut SessionConn
+        let _check: &mut $crate::diesel_pool::SessionConn = $conn;
+
+        #[allow(clippy::disallowed_methods)]
+        diesel::sql_query($sql)
+    }};
+}
+
+/// Macro for safely executing CRUD raw SQL on a System DB connection
+#[macro_export]
+macro_rules! system_crud_query {
+    ($conn:expr, $sql:expr $(,)?) => {{
+        // Type-check that $conn is exactly &mut DieselConnection (System DB)
+        let _check: &mut $crate::diesel_pool::DieselConnection = $conn;
+
+        #[allow(clippy::disallowed_methods)]
+        diesel::sql_query($sql)
+    }};
+}
+
 /// Configuration for all database pools, read from environment variables.
 #[derive(Debug, Clone)]
 pub struct DbPoolConfig {
     /// Primary database URL (read + write). Used for migrations.
     pub primary_url: String,
-    /// Connection pooler URL (e.g., Supavisor). Used for API and Worker pools.
-    pub pooler_url: Option<String>,
-    /// Optional read-replica URL. Falls back to `pooler_url` then `primary_url`.
+    /// Transaction Pooler URL (Port 6543)
+    pub pooler_tx_url: Option<String>,
+    /// Session Pooler URL (Port 5452)
+    pub pooler_sess_url: Option<String>,
+    /// Optional read-replica URL. Falls back to `pooler_tx_url` then `primary_url`.
     pub reader_url: Option<String>,
 
     /// API pool: max connections (default: 20)
@@ -35,7 +103,11 @@ impl DbPoolConfig {
         #[allow(clippy::expect_used)]
         let primary_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
 
-        let pooler_url = std::env::var("DATABASE_POOLER_URL")
+        let pooler_tx_url = std::env::var("DATABASE_POOLER_TX_URL")
+            .ok()
+            .filter(|s| !s.trim().is_empty());
+
+        let pooler_sess_url = std::env::var("DATABASE_POOLER_SESS_URL")
             .ok()
             .filter(|s| !s.trim().is_empty());
 
@@ -45,7 +117,8 @@ impl DbPoolConfig {
 
         Self {
             primary_url,
-            pooler_url,
+            pooler_tx_url,
+            pooler_sess_url,
             reader_url,
             api_max_conn: env_parse("DB_API_MAX_CONN", 20),
             api_acquire_timeout_secs: env_parse("DB_API_ACQUIRE_TIMEOUT_SECS", 5),
@@ -56,10 +129,11 @@ impl DbPoolConfig {
     }
 
     pub fn resolve_pool_urls(&self) -> (&str, &str, &str) {
-        let api_worker_url = self.pooler_url.as_deref().unwrap_or(&self.primary_url);
+        let api_worker_url = self.pooler_tx_url.as_deref().unwrap_or(&self.primary_url);
         let reader_url = self.reader_url.as_deref().unwrap_or(api_worker_url);
+        let sess_url = self.pooler_sess_url.as_deref().unwrap_or(&self.primary_url);
 
-        (api_worker_url, api_worker_url, reader_url)
+        (api_worker_url, sess_url, reader_url)
     }
 }
 
@@ -226,7 +300,10 @@ impl TestTenantPoolManager {
 #[async_trait::async_trait]
 impl TenantConnectionProvider for TestTenantPoolManager {
     async fn get_connection(&self, _workspace_id: &Uuid) -> Result<DieselConnection, AppError> {
-        self.pool.get().await.map_err(|e| AppError::Internal(format!("db: {e}")))
+        self.pool
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))
     }
 }
 
@@ -234,7 +311,8 @@ impl TenantConnectionProvider for TestTenantPoolManager {
 pub struct DieselPools {
     pub api: DieselPool,
     pub worker: DieselPool,
-    pub tenants: Arc<dyn TenantConnectionProvider>,
+    pub tenants_tx: Arc<dyn TenantConnectionProvider>,
+    pub tenants_sess: Arc<dyn TenantConnectionProvider>,
 }
 
 fn is_transient_supavisor_error(err_msg: &str) -> bool {
@@ -266,8 +344,26 @@ impl TenantAuthToken {
 
 impl DieselPools {
     // Hàm an toàn (Khuyên dùng)
-    pub async fn tenant_conn(&self, token: &TenantAuthToken) -> Result<DieselConnection, AppError> {
-        self.tenants.get_connection(&token.workspace_id()).await
+    pub async fn tenant_transaction_conn(
+        &self,
+        token: &TenantAuthToken,
+    ) -> Result<TransactionConn, AppError> {
+        let conn = self
+            .tenants_tx
+            .get_connection(&token.workspace_id())
+            .await?;
+        Ok(TransactionConn(conn))
+    }
+
+    pub async fn tenant_session_conn(
+        &self,
+        token: &TenantAuthToken,
+    ) -> Result<SessionConn, AppError> {
+        let conn = self
+            .tenants_sess
+            .get_connection(&token.workspace_id())
+            .await?;
+        Ok(SessionConn(conn))
     }
 
     #[allow(clippy::unused_async, clippy::expect_used)]
@@ -278,9 +374,9 @@ impl DieselPools {
             "Initializing Diesel pools"
         );
 
-        let (api_conn_url, worker_conn_url, _) = config.resolve_pool_urls();
+        let (api_tx_url, worker_sess_url, _) = config.resolve_pool_urls();
 
-        let api_manager = AsyncDieselConnectionManager::<AsyncPgConnection>::new(api_conn_url);
+        let api_manager = AsyncDieselConnectionManager::<AsyncPgConnection>::new(api_tx_url);
         let api_pool = Pool::builder(api_manager)
             .max_size(config.api_max_conn as usize)
             .wait_timeout(Some(Duration::from_secs(config.api_acquire_timeout_secs)))
@@ -290,7 +386,7 @@ impl DieselPools {
             .expect("Failed to create API Diesel pool");
 
         let worker_manager =
-            AsyncDieselConnectionManager::<AsyncPgConnection>::new(worker_conn_url);
+            AsyncDieselConnectionManager::<AsyncPgConnection>::new(worker_sess_url);
         let worker_pool = Pool::builder(worker_manager)
             .max_size(config.worker_max_conn as usize)
             .wait_timeout(Some(Duration::from_secs(
@@ -301,8 +397,13 @@ impl DieselPools {
             .build()
             .expect("Failed to create Worker Diesel pool");
 
-        let tenant_manager = Arc::new(SupavisorTenantPoolManager::new(
-            api_conn_url.to_string(),
+        let tenant_tx_manager = Arc::new(SupavisorTenantPoolManager::new(
+            api_tx_url.to_string(),
+            config.tenant_max_conn as usize,
+        ));
+
+        let tenant_sess_manager = Arc::new(SupavisorTenantPoolManager::new(
+            worker_sess_url.to_string(), // sess_url was returned as the second element in resolve_pool_urls
             config.tenant_max_conn as usize,
         ));
 
@@ -311,7 +412,8 @@ impl DieselPools {
         Self {
             api: api_pool,
             worker: worker_pool,
-            tenants: tenant_manager,
+            tenants_tx: tenant_tx_manager,
+            tenants_sess: tenant_sess_manager,
         }
     }
 
@@ -384,6 +486,7 @@ impl DieselPools {
         let mut sys_conn = diesel::PgConnection::establish(&config.primary_url)
             .expect("Failed to connect to system DB for tenant migrations");
 
+        #[allow(clippy::disallowed_methods)]
         let workspace_rows: Vec<WorkspaceRow> = diesel::sql_query("SELECT id FROM workspaces")
             .load(&mut sys_conn)
             .expect("Failed to query workspaces for tenant migrations");
@@ -398,7 +501,7 @@ impl DieselPools {
             "Running tenant migrations on existing workspaces"
         );
 
-        let session_port: Option<u16> = if config.pooler_url.is_some() {
+        let session_port: Option<u16> = if config.pooler_sess_url.is_some() {
             let port: u16 = std::env::var("SUPAVISOR_PORT_SESSION")
                 .unwrap_or_else(|_| "5452".to_string())
                 .parse()
@@ -411,7 +514,7 @@ impl DieselPools {
         for row in &workspace_rows {
             let tenant_url = match Self::resolve_tenant_migration_url(
                 &config.primary_url,
-                config.pooler_url.as_deref(),
+                config.pooler_sess_url.as_deref(),
                 &row.id,
                 session_port,
             ) {
@@ -516,7 +619,9 @@ impl DieselPools {
         Self {
             api: api_pool,
             worker: worker_pool,
-            tenants: tenant_manager,
+            #[allow(clippy::clone_on_ref_ptr)]
+            tenants_tx: tenant_manager.clone(),
+            tenants_sess: tenant_manager,
         }
     }
 }
@@ -928,12 +1033,12 @@ mod tests {
         });
 
         let url = format!("postgres://test_user:pass@127.0.0.1:{}/db", port);
-        
+
         let manager = SupavisorTenantPoolManager::new(url, 1);
         let start = std::time::Instant::now();
 
         let ws = Uuid::new_v4();
-        
+
         // This should trigger the retry loop inside `get_connection`
         let result = manager.get_connection(&ws).await;
 

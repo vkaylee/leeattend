@@ -31,12 +31,13 @@ impl AssignmentRuleRepository for DieselAssignmentRuleRepository {
         req: &CreateAssignmentRuleRequest,
     ) -> Result<AssignmentRule, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&auth_token.workspace_id())
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&auth_token.workspace_id())
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let conditions = serde_json::to_value(&req.conditions)
             .map_err(|e| AppError::Internal(format!("serde: {e}")))?;
@@ -57,7 +58,7 @@ impl AssignmentRuleRepository for DieselAssignmentRuleRepository {
         diesel::insert_into(assignment_rules::table)
             .values(&entity)
             .returning(AssignmentRuleEntity::as_returning())
-            .get_result(&mut conn)
+            .get_result(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))
             .map(Into::into)
@@ -68,12 +69,13 @@ impl AssignmentRuleRepository for DieselAssignmentRuleRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<Vec<AssignmentRule>, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&auth_token.workspace_id())
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&auth_token.workspace_id())
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         assignment_rules::table
             .filter(assignment_rules::workspace_id.eq(workspace_id))
@@ -82,7 +84,7 @@ impl AssignmentRuleRepository for DieselAssignmentRuleRepository {
                 assignment_rules::created_at.asc(),
             ))
             .select(AssignmentRuleEntity::as_select())
-            .load::<AssignmentRuleEntity>(&mut conn)
+            .load::<AssignmentRuleEntity>(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))
             .map(|rows| rows.into_iter().map(Into::into).collect())
@@ -93,12 +95,13 @@ impl AssignmentRuleRepository for DieselAssignmentRuleRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<Vec<AssignmentRule>, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&auth_token.workspace_id())
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&auth_token.workspace_id())
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         assignment_rules::table
             .filter(assignment_rules::workspace_id.eq(workspace_id))
@@ -108,7 +111,7 @@ impl AssignmentRuleRepository for DieselAssignmentRuleRepository {
                 assignment_rules::created_at.asc(),
             ))
             .select(AssignmentRuleEntity::as_select())
-            .load::<AssignmentRuleEntity>(&mut conn)
+            .load::<AssignmentRuleEntity>(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))
             .map(|rows| rows.into_iter().map(Into::into).collect())
@@ -121,12 +124,13 @@ impl AssignmentRuleRepository for DieselAssignmentRuleRepository {
         req: &UpdateAssignmentRuleRequest,
     ) -> Result<AssignmentRule, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&auth_token.workspace_id())
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&auth_token.workspace_id())
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let conditions_json = req
             .conditions
@@ -150,7 +154,7 @@ impl AssignmentRuleRepository for DieselAssignmentRuleRepository {
                 assignment_rules::updated_at.eq(Some(Utc::now())),
             ))
             .returning(AssignmentRuleEntity::as_returning())
-            .get_result(&mut conn)
+            .get_result(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))
             .map(Into::into)
@@ -162,26 +166,26 @@ impl AssignmentRuleRepository for DieselAssignmentRuleRepository {
         id: Uuid,
     ) -> Result<(), AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&auth_token.workspace_id())
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&auth_token.workspace_id())
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         diesel::delete(
             assignment_rules::table
                 .filter(assignment_rules::id.eq(id))
                 .filter(assignment_rules::workspace_id.eq(workspace_id)),
         )
-        .execute(&mut conn)
+        .execute(&mut *conn)
         .await
         .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(())
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -190,9 +194,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_repo_initialization() {
-        let test_db_url = std::env::var("DATABASE_URL")
-            .unwrap_or_else(|_| "postgres://user:pass@localhost:5432/leeattend_test_db".to_string());
-        
+        let test_db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://user:pass@localhost:5432/leeattend_test_db".to_string()
+        });
+
         let pools = DieselPools::for_test(&test_db_url);
         let _repo = DieselAssignmentRuleRepository::new(pools);
         // DI connection test passes if it compiles

@@ -43,19 +43,20 @@ impl WorkingPatternRepositoryTrait for DieselWorkingPatternRepository {
         cycle_length_days: Option<i32>,
         details: Vec<(i32, Option<Uuid>)>,
     ) -> Result<WorkingPattern, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&workspace_id)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&workspace_id)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let name_owned = name.to_string();
         let description_owned = description.map(ToString::to_string);
         let pattern_type_owned = pattern_type.to_string();
 
         let result = conn
-            .transaction(|mut conn| {
+            .transaction(|conn| {
                 Box::pin(async move {
                     let pattern_entity = diesel::insert_into(working_patterns::table)
                         .values((
@@ -66,7 +67,7 @@ impl WorkingPatternRepositoryTrait for DieselWorkingPatternRepository {
                             working_patterns::cycle_length_days.eq(cycle_length_days),
                         ))
                         .returning(WorkingPatternEntity::as_returning())
-                        .get_result::<WorkingPatternEntity>(&mut conn)
+                        .get_result::<WorkingPatternEntity>(&mut *conn)
                         .await?;
 
                     for (schedule_day, shift_id) in details {
@@ -76,7 +77,7 @@ impl WorkingPatternRepositoryTrait for DieselWorkingPatternRepository {
                                 working_pattern_details::schedule_day.eq(schedule_day),
                                 working_pattern_details::shift_id.eq(shift_id),
                             ))
-                            .execute(&mut conn)
+                            .execute(&mut *conn)
                             .await?;
                     }
 
@@ -102,19 +103,20 @@ impl WorkingPatternRepositoryTrait for DieselWorkingPatternRepository {
         cycle_length_days: Option<i32>,
         details: Vec<(i32, Option<Uuid>)>,
     ) -> Result<WorkingPattern, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&workspace_id)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&workspace_id)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let name_owned = name.to_string();
         let description_owned = description.map(ToString::to_string);
         let pattern_type_owned = pattern_type.to_string();
 
         let result = conn
-            .transaction(|mut conn| {
+            .transaction(|conn| {
                 Box::pin(async move {
                     let pattern_entity = diesel::update(
                         working_patterns::table
@@ -128,14 +130,14 @@ impl WorkingPatternRepositoryTrait for DieselWorkingPatternRepository {
                         working_patterns::cycle_length_days.eq(cycle_length_days),
                     ))
                     .returning(WorkingPatternEntity::as_returning())
-                    .get_result::<WorkingPatternEntity>(&mut conn)
+                    .get_result::<WorkingPatternEntity>(&mut *conn)
                     .await?;
 
                     diesel::delete(
                         working_pattern_details::table
                             .filter(working_pattern_details::pattern_id.eq(pattern_id)),
                     )
-                    .execute(&mut conn)
+                    .execute(&mut *conn)
                     .await?;
 
                     for (schedule_day, shift_id) in details {
@@ -145,7 +147,7 @@ impl WorkingPatternRepositoryTrait for DieselWorkingPatternRepository {
                                 working_pattern_details::schedule_day.eq(schedule_day),
                                 working_pattern_details::shift_id.eq(shift_id),
                             ))
-                            .execute(&mut conn)
+                            .execute(&mut *conn)
                             .await?;
                     }
 
@@ -161,12 +163,13 @@ impl WorkingPatternRepositoryTrait for DieselWorkingPatternRepository {
     }
 
     async fn get_patterns(&self, workspace_id: Uuid) -> Result<Vec<WorkingPattern>, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&workspace_id)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&workspace_id)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         map_db_err!(
             working_patterns::table
@@ -174,7 +177,7 @@ impl WorkingPatternRepositoryTrait for DieselWorkingPatternRepository {
                 .filter(working_patterns::is_active.eq(true))
                 .order(working_patterns::name.asc())
                 .select(WorkingPatternEntity::as_select())
-                .load(&mut conn)
+                .load(&mut *conn)
                 .await
         )
         .map(|rows| rows.into_iter().map(Into::into).collect())
@@ -185,19 +188,20 @@ impl WorkingPatternRepositoryTrait for DieselWorkingPatternRepository {
         workspace_id: Uuid,
         pattern_id: Uuid,
     ) -> Result<Vec<WorkingPatternDetail>, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&workspace_id)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&workspace_id)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         map_db_err!(
             working_pattern_details::table
                 .filter(working_pattern_details::pattern_id.eq(pattern_id))
                 .order(working_pattern_details::schedule_day.asc())
                 .select(WorkingPatternDetailEntity::as_select())
-                .load(&mut conn)
+                .load(&mut *conn)
                 .await
         )
         .map(|rows| rows.into_iter().map(Into::into).collect())
@@ -212,12 +216,13 @@ impl WorkingPatternRepositoryTrait for DieselWorkingPatternRepository {
         end_date: Option<NaiveDate>,
         anchor_date: Option<NaiveDate>,
     ) -> Result<EmployeeWorkingPattern, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&workspace_id)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&workspace_id)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         map_db_err!(
             diesel::insert_into(employee_working_patterns::table)
@@ -230,7 +235,7 @@ impl WorkingPatternRepositoryTrait for DieselWorkingPatternRepository {
                     employee_working_patterns::anchor_date.eq(anchor_date),
                 ))
                 .returning(EmployeeWorkingPatternEntity::as_returning())
-                .get_result(&mut conn)
+                .get_result(&mut *conn)
                 .await
         )
         .map(Into::into)
@@ -241,12 +246,13 @@ impl WorkingPatternRepositoryTrait for DieselWorkingPatternRepository {
         workspace_id: Uuid,
         employee_id: Uuid,
     ) -> Result<Vec<EmployeeWorkingPattern>, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&workspace_id)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&workspace_id)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         map_db_err!(
             employee_working_patterns::table
@@ -254,7 +260,7 @@ impl WorkingPatternRepositoryTrait for DieselWorkingPatternRepository {
                 .filter(employee_working_patterns::employee_id.eq(employee_id))
                 .order(employee_working_patterns::start_date.desc())
                 .select(EmployeeWorkingPatternEntity::as_select())
-                .load(&mut conn)
+                .load(&mut *conn)
                 .await
         )
         .map(|rows| rows.into_iter().map(Into::into).collect())
@@ -269,19 +275,20 @@ impl WorkingPatternRepositoryTrait for DieselWorkingPatternRepository {
         end_date: Option<NaiveDate>,
         anchor_date: Option<NaiveDate>,
     ) -> Result<BulkAssignResponse, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&workspace_id)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&workspace_id)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let conflicts: Vec<Uuid> = employee_working_patterns::table
             .filter(employee_working_patterns::workspace_id.eq(workspace_id))
             .filter(employee_working_patterns::start_date.eq(start_date))
             .filter(employee_working_patterns::employee_id.eq_any(employee_ids))
             .select(employee_working_patterns::employee_id)
-            .load(&mut conn)
+            .load(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -302,7 +309,7 @@ impl WorkingPatternRepositoryTrait for DieselWorkingPatternRepository {
                     employee_working_patterns::end_date.eq(end_date),
                     employee_working_patterns::anchor_date.eq(anchor_date),
                 ))
-                .execute(&mut conn)
+                .execute(&mut *conn)
                 .await
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?;
         }
@@ -314,21 +321,22 @@ impl WorkingPatternRepositoryTrait for DieselWorkingPatternRepository {
     }
 
     async fn delete_pattern(&self, workspace_id: Uuid, pattern_id: Uuid) -> Result<(), AppError> {
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&workspace_id)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&workspace_id)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let result = conn
-            .transaction(|mut conn| {
+            .transaction(|conn| {
                 Box::pin(async move {
                     diesel::delete(
                         working_pattern_details::table
                             .filter(working_pattern_details::pattern_id.eq(pattern_id)),
                     )
-                    .execute(&mut conn)
+                    .execute(&mut *conn)
                     .await?;
 
                     diesel::delete(
@@ -336,7 +344,7 @@ impl WorkingPatternRepositoryTrait for DieselWorkingPatternRepository {
                             .filter(working_patterns::id.eq(pattern_id))
                             .filter(working_patterns::workspace_id.eq(workspace_id)),
                     )
-                    .execute(&mut conn)
+                    .execute(&mut *conn)
                     .await?;
 
                     Ok::<_, diesel::result::Error>(())
@@ -349,7 +357,6 @@ impl WorkingPatternRepositoryTrait for DieselWorkingPatternRepository {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -357,9 +364,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_repo_initialization() {
-        let test_db_url = std::env::var("DATABASE_URL")
-            .unwrap_or_else(|_| "postgres://user:pass@localhost:5432/leeattend_test_db".to_string());
-        
+        let test_db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://user:pass@localhost:5432/leeattend_test_db".to_string()
+        });
+
         let pools = DieselPools::for_test(&test_db_url);
         let _repo = DieselWorkingPatternRepository::new(pools);
         // DI connection test passes if it compiles

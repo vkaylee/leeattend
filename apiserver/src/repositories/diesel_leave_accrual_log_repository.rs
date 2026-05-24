@@ -32,12 +32,13 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
         accrual_date: NaiveDate,
         workspace_id: Uuid,
     ) -> Result<Option<ExistingAccrualLog>, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&workspace_id)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&workspace_id)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let row = leave_accrual_logs::table
             .filter(leave_accrual_logs::employee_id.eq(employee_id))
@@ -45,7 +46,7 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
             .filter(leave_accrual_logs::accrual_date.eq(accrual_date))
             .filter(leave_accrual_logs::workspace_id.eq(workspace_id))
             .select((leave_accrual_logs::id, leave_accrual_logs::amount))
-            .first::<(Uuid, bigdecimal::BigDecimal)>(&mut conn)
+            .first::<(Uuid, bigdecimal::BigDecimal)>(&mut *conn)
             .await
             .optional()
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -61,18 +62,19 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
         assignment_id: Uuid,
         workspace_id: Uuid,
     ) -> Result<NaiveDate, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&workspace_id)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&workspace_id)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let date = leave_policy_assignments::table
             .filter(leave_policy_assignments::id.eq(assignment_id))
             .filter(leave_policy_assignments::workspace_id.eq(workspace_id))
             .select(leave_policy_assignments::effective_from)
-            .first::<NaiveDate>(&mut conn)
+            .first::<NaiveDate>(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -80,17 +82,18 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
     }
 
     async fn get_workspace_timezone(&self, workspace_id: Uuid) -> Result<String, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&workspace_id)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&workspace_id)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let tz = workspaces::table
             .filter(workspaces::id.eq(workspace_id))
             .select(workspaces::timezone)
-            .first::<String>(&mut conn)
+            .first::<String>(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -104,12 +107,13 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
         year: i32,
         leave_type_id: Option<Uuid>,
     ) -> Result<Vec<LeaveHistoryLogItem>, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&workspace_id)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&workspace_id)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let mut query = leave_accrual_logs::table
             .inner_join(leave_types::table)
@@ -145,7 +149,7 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
                 Option<String>,
                 Option<DateTime<Utc>>,
                 Option<Uuid>,
-            )>(&mut conn)
+            )>(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -169,12 +173,13 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
         workspace_id: Uuid,
         new_amount: Decimal,
     ) -> Result<LeaveAccrualLog, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&workspace_id)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&workspace_id)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let amount_bd = bigdecimal::BigDecimal::from_str(&new_amount.to_string())
             .map_err(|e| AppError::Internal(format!("BigDecimal conversion failed: {e}")))?;
@@ -190,7 +195,7 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
                     "COALESCE(notes, '') || ' (Re-calculated)'"
                 )),
             ))
-            .get_result::<LeaveAccrualLogEntity>(&mut conn)
+            .get_result::<LeaveAccrualLogEntity>(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -206,12 +211,13 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
         amount: Decimal,
         leave_type_id: Uuid,
     ) -> Result<Option<LeaveAccrualLog>, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&workspace_id)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&workspace_id)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let amount_bd = bigdecimal::BigDecimal::from_str(&amount.to_string())
             .map_err(|e| AppError::Internal(format!("BigDecimal conversion failed: {e}")))?;
@@ -232,7 +238,7 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
                 leave_accrual_logs::accrual_date,
             ))
             .do_nothing()
-            .get_result::<LeaveAccrualLogEntity>(&mut conn)
+            .get_result::<LeaveAccrualLogEntity>(&mut *conn)
             .await
             .optional()
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -248,12 +254,13 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
         leave_type_id: Uuid,
         amount: Decimal,
     ) -> Result<(), AppError> {
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&workspace_id)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&workspace_id)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let amount_bd = bigdecimal::BigDecimal::from_str(&amount.to_string())
             .map_err(|e| AppError::Internal(format!("BigDecimal conversion failed: {e}")))?;
@@ -278,7 +285,7 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
                 leave_balances::accrued_amount.eq(leave_balances::accrued_amount + &amount_bd),
                 leave_balances::updated_at.eq(diesel::dsl::now),
             ))
-            .execute(&mut conn)
+            .execute(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -293,12 +300,13 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
         leave_type_id: Uuid,
         diff: Decimal,
     ) -> Result<(), AppError> {
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&workspace_id)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&workspace_id)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let diff_bd = bigdecimal::BigDecimal::from_str(&diff.to_string())
             .map_err(|e| AppError::Internal(format!("BigDecimal conversion failed: {e}")))?;
@@ -311,14 +319,13 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
                 leave_balances::accrued_amount.eq(leave_balances::accrued_amount + &diff_bd),
                 leave_balances::updated_at.eq(diesel::dsl::now),
             ))
-            .execute(&mut conn)
+            .execute(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(())
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -327,9 +334,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_repo_initialization() {
-        let test_db_url = std::env::var("DATABASE_URL")
-            .unwrap_or_else(|_| "postgres://user:pass@localhost:5432/leeattend_test_db".to_string());
-        
+        let test_db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://user:pass@localhost:5432/leeattend_test_db".to_string()
+        });
+
         let pools = DieselPools::for_test(&test_db_url);
         let _repo = DieselLeaveAccrualLogRepository::new(pools);
         // DI connection test passes if it compiles

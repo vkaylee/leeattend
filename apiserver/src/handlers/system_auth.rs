@@ -103,7 +103,8 @@ impl SystemContext {
 
         use diesel_async::RunQueryDsl;
 
-        let rows: Vec<RoleRow> = diesel::sql_query(
+        let rows: Vec<RoleRow> = crate::system_crud_query!(
+            &mut conn,
             r#"
             SELECT sr.name
               FROM user_system_roles usr
@@ -112,7 +113,7 @@ impl SystemContext {
             "#,
         )
         .bind::<diesel::sql_types::Uuid, _>(user_id)
-        .load(&mut conn)
+        .load(&mut *conn)
         .await
         .map_err(|e| {
             tracing::error!(user_id = %user_id, error = %e, "Failed to fetch system roles");

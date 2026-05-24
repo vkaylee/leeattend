@@ -27,12 +27,13 @@ impl RawAttendanceLogRepository for DieselRawAttendanceLogRepository {
         workspace_id: Uuid,
         log: &RawAttendanceLog,
     ) -> Result<bool, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&workspace_id)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&workspace_id)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let entity = RawAttendanceLogEntity {
             id: log.id,
@@ -57,7 +58,7 @@ impl RawAttendanceLogRepository for DieselRawAttendanceLogRepository {
                 raw_attendance_logs::status,
             ))
             .do_nothing()
-            .execute(&mut conn)
+            .execute(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -69,17 +70,18 @@ impl RawAttendanceLogRepository for DieselRawAttendanceLogRepository {
         workspace_id: Uuid,
         id: Uuid,
     ) -> Result<Option<RawAttendanceLog>, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&workspace_id)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&workspace_id)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let res: Option<RawAttendanceLogEntity> = raw_attendance_logs::table
             .filter(raw_attendance_logs::id.eq(id))
             .filter(raw_attendance_logs::workspace_id.eq(workspace_id))
-            .first(&mut conn)
+            .first(&mut *conn)
             .await
             .optional()
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -92,18 +94,19 @@ impl RawAttendanceLogRepository for DieselRawAttendanceLogRepository {
         workspace_id: Uuid,
         employee_id: Uuid,
     ) -> Result<Option<RawAttendanceLog>, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&workspace_id)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&workspace_id)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let res: Option<RawAttendanceLogEntity> = raw_attendance_logs::table
             .filter(raw_attendance_logs::employee_id.eq(employee_id))
             .filter(raw_attendance_logs::workspace_id.eq(workspace_id))
             .order(raw_attendance_logs::punch_time.desc())
-            .first(&mut conn)
+            .first(&mut *conn)
             .await
             .optional()
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -120,12 +123,13 @@ impl RawAttendanceLogRepository for DieselRawAttendanceLogRepository {
         p_limit: i64,
         p_offset: i64,
     ) -> Result<Vec<RawAttendanceLogWithEmployee>, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&workspace_id)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&workspace_id)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let mut query = raw_attendance_logs::table
             .inner_join(employees::table.on(raw_attendance_logs::employee_id.eq(employees::id)))
@@ -160,7 +164,7 @@ impl RawAttendanceLogRepository for DieselRawAttendanceLogRepository {
             .order(raw_attendance_logs::punch_time.desc())
             .limit(p_limit)
             .offset(p_offset)
-            .load::<(RawAttendanceLogEntity, String, String, Option<String>)>(&mut conn)
+            .load::<(RawAttendanceLogEntity, String, String, Option<String>)>(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -194,12 +198,13 @@ impl RawAttendanceLogRepository for DieselRawAttendanceLogRepository {
         p_from: Option<DateTime<Utc>>,
         p_to: Option<DateTime<Utc>>,
     ) -> Result<i64, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&workspace_id)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&workspace_id)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let mut query = raw_attendance_logs::table
             .filter(raw_attendance_logs::workspace_id.eq(workspace_id))
@@ -219,7 +224,7 @@ impl RawAttendanceLogRepository for DieselRawAttendanceLogRepository {
 
         let count = query
             .count()
-            .get_result::<i64>(&mut conn)
+            .get_result::<i64>(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -235,12 +240,13 @@ impl RawAttendanceLogRepository for DieselRawAttendanceLogRepository {
             return Ok(0);
         }
 
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&workspace_id)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&workspace_id)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let entities: Vec<RawAttendanceLogEntity> = logs
             .iter()
@@ -268,7 +274,7 @@ impl RawAttendanceLogRepository for DieselRawAttendanceLogRepository {
                 raw_attendance_logs::status,
             ))
             .do_nothing()
-            .execute(&mut conn)
+            .execute(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -282,12 +288,13 @@ impl RawAttendanceLogRepository for DieselRawAttendanceLogRepository {
         log_id: Uuid,
         punch_time: DateTime<Utc>,
     ) -> Result<bool, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&workspace_id)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&workspace_id)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let duplicate_exists = diesel::select(diesel::dsl::exists(
             raw_attendance_logs::table
@@ -296,7 +303,7 @@ impl RawAttendanceLogRepository for DieselRawAttendanceLogRepository {
                 .filter(raw_attendance_logs::id.ne(log_id))
                 .filter(raw_attendance_logs::punch_time.eq(punch_time)),
         ))
-        .get_result::<bool>(&mut conn)
+        .get_result::<bool>(&mut *conn)
         .await
         .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -310,12 +317,13 @@ impl RawAttendanceLogRepository for DieselRawAttendanceLogRepository {
         start_time: DateTime<Utc>,
         end_time: DateTime<Utc>,
     ) -> Result<Vec<RawAttendanceLog>, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&workspace_id)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&workspace_id)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let results = raw_attendance_logs::table
             .filter(raw_attendance_logs::workspace_id.eq(workspace_id))
@@ -323,14 +331,13 @@ impl RawAttendanceLogRepository for DieselRawAttendanceLogRepository {
             .filter(raw_attendance_logs::punch_time.ge(start_time))
             .filter(raw_attendance_logs::punch_time.lt(end_time))
             .order(raw_attendance_logs::punch_time.asc())
-            .load::<RawAttendanceLogEntity>(&mut conn)
+            .load::<RawAttendanceLogEntity>(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(results.into_iter().map(Into::into).collect())
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -339,9 +346,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_repo_initialization() {
-        let test_db_url = std::env::var("DATABASE_URL")
-            .unwrap_or_else(|_| "postgres://user:pass@localhost:5432/leeattend_test_db".to_string());
-        
+        let test_db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://user:pass@localhost:5432/leeattend_test_db".to_string()
+        });
+
         let pools = DieselPools::for_test(&test_db_url);
         let _repo = DieselRawAttendanceLogRepository::new(pools);
         // DI connection test passes if it compiles

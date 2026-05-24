@@ -137,10 +137,11 @@ pub fn build_tenant_payload(
         tenant_map.insert("require_user".to_string(), json!(true));
     }
 
-    // Determine pool_password from API Server's DATABASE_POOLER_URL or DATABASE_URL
-    let client_password = std::env::var("DATABASE_POOLER_URL")
+    // Determine pool_password from API Server's DATABASE_POOLER_TX_URL or DATABASE_URL
+    let client_password = std::env::var("DATABASE_POOLER_TX_URL")
         .ok()
         .filter(|url| !url.is_empty())
+        .or_else(|| std::env::var("DATABASE_POOLER_SESS_URL").ok())
         .or_else(|| std::env::var("DATABASE_URL").ok())
         .and_then(|url| parse_postgres_url(&url))
         .map(|(_, pass, _, _, _)| pass)

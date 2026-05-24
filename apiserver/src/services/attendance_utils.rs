@@ -246,6 +246,7 @@ pub async fn build_leave_date_set(
         end_date: NaiveDate,
     }
 
+    #[allow(clippy::disallowed_methods)]
     let leave_rows: Vec<LeaveRow> = diesel::sql_query(
         r#"SELECT lr.employee_id, lr.start_date, lr.end_date
            FROM leave_requests lr

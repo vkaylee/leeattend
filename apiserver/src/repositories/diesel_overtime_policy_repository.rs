@@ -32,12 +32,13 @@ impl OvertimePolicyRepositoryTrait for DieselOvertimePolicyRepository {
         name: &str,
         description: Option<&str>,
     ) -> Result<OvertimePolicy, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&workspace_id)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&workspace_id)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         diesel::insert_into(overtime_policy_definitions::table)
             .values((
@@ -46,7 +47,7 @@ impl OvertimePolicyRepositoryTrait for DieselOvertimePolicyRepository {
                 overtime_policy_definitions::description.eq(description),
             ))
             .returning(OvertimePolicyEntity::as_returning())
-            .get_result(&mut conn)
+            .get_result(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))
             .map(Into::into)
@@ -56,18 +57,19 @@ impl OvertimePolicyRepositoryTrait for DieselOvertimePolicyRepository {
         &self,
         workspace_id: Uuid,
     ) -> Result<Vec<OvertimePolicy>, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&workspace_id)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&workspace_id)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         overtime_policy_definitions::table
             .filter(overtime_policy_definitions::workspace_id.eq(workspace_id))
             .order(overtime_policy_definitions::created_at.desc())
             .select(OvertimePolicyEntity::as_select())
-            .load(&mut conn)
+            .load(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))
             .map(|rows| rows.into_iter().map(Into::into).collect())
@@ -78,18 +80,19 @@ impl OvertimePolicyRepositoryTrait for DieselOvertimePolicyRepository {
         workspace_id: Uuid,
         id: Uuid,
     ) -> Result<Option<(OvertimePolicy, Vec<OvertimeRule>)>, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&workspace_id)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&workspace_id)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let policy: Option<OvertimePolicyEntity> = overtime_policy_definitions::table
             .filter(overtime_policy_definitions::id.eq(id))
             .filter(overtime_policy_definitions::workspace_id.eq(workspace_id))
             .select(OvertimePolicyEntity::as_select())
-            .first(&mut conn)
+            .first(&mut *conn)
             .await
             .optional()
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -99,7 +102,7 @@ impl OvertimePolicyRepositoryTrait for DieselOvertimePolicyRepository {
                 .filter(overtime_rules::policy_id.eq(id))
                 .order(overtime_rules::priority.desc())
                 .select(OvertimeRuleEntity::as_select())
-                .load(&mut conn)
+                .load(&mut *conn)
                 .await
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -117,12 +120,13 @@ impl OvertimePolicyRepositoryTrait for DieselOvertimePolicyRepository {
         workspace_id: Uuid,
         rule: &OvertimeRule,
     ) -> Result<OvertimeRule, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&workspace_id)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&workspace_id)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         diesel::insert_into(overtime_rules::table)
             .values((
@@ -135,7 +139,7 @@ impl OvertimePolicyRepositoryTrait for DieselOvertimePolicyRepository {
                 overtime_rules::is_holiday.eq(rule.is_holiday),
             ))
             .returning(OvertimeRuleEntity::as_returning())
-            .get_result(&mut conn)
+            .get_result(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))
             .map(Into::into)
@@ -147,12 +151,13 @@ impl OvertimePolicyRepositoryTrait for DieselOvertimePolicyRepository {
         workspace_id: Uuid,
         date: NaiveDate,
     ) -> Result<Option<Uuid>, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&workspace_id)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&workspace_id)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         // 1. Employee Override
         let emp_policy: Option<Uuid> = overtime_policy_assignments::table
@@ -167,7 +172,7 @@ impl OvertimePolicyRepositoryTrait for DieselOvertimePolicyRepository {
             )
             .order(overtime_policy_assignments::created_at.desc())
             .select(overtime_policy_assignments::policy_id)
-            .first(&mut conn)
+            .first(&mut *conn)
             .await
             .optional()
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -200,7 +205,7 @@ impl OvertimePolicyRepositoryTrait for DieselOvertimePolicyRepository {
                 overtime_policy_assignments::created_at.desc(),
             ))
             .select(overtime_policy_assignments::policy_id)
-            .first(&mut conn)
+            .first(&mut *conn)
             .await
             .optional()
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -221,7 +226,7 @@ impl OvertimePolicyRepositoryTrait for DieselOvertimePolicyRepository {
             )
             .order(overtime_policy_assignments::created_at.desc())
             .select(overtime_policy_assignments::policy_id)
-            .first(&mut conn)
+            .first(&mut *conn)
             .await
             .optional()
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -237,12 +242,13 @@ impl OvertimePolicyRepositoryTrait for DieselOvertimePolicyRepository {
         policy_id: Uuid,
         effective_from: NaiveDate,
     ) -> Result<(), AppError> {
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&workspace_id)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&workspace_id)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         diesel::insert_into(overtime_policy_assignments::table)
             .values((
@@ -252,14 +258,13 @@ impl OvertimePolicyRepositoryTrait for DieselOvertimePolicyRepository {
                 overtime_policy_assignments::policy_id.eq(policy_id),
                 overtime_policy_assignments::effective_from.eq(effective_from),
             ))
-            .execute(&mut conn)
+            .execute(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(())
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -268,9 +273,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_repo_initialization() {
-        let test_db_url = std::env::var("DATABASE_URL")
-            .unwrap_or_else(|_| "postgres://user:pass@localhost:5432/leeattend_test_db".to_string());
-        
+        let test_db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://user:pass@localhost:5432/leeattend_test_db".to_string()
+        });
+
         let pools = DieselPools::for_test(&test_db_url);
         let _repo = DieselOvertimePolicyRepository::new(pools);
         // DI connection test passes if it compiles

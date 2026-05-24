@@ -113,7 +113,9 @@ async fn test_db_cluster_api_lifecycle() {
         "is_active": false
     });
     let patch_res = client
-        .patch(&format!("{address}/api/system/db-clusters/{cluster_id}/status"))
+        .patch(&format!(
+            "{address}/api/system/db-clusters/{cluster_id}/status"
+        ))
         .header("X-User-Id", user_id.to_string())
         .json(&status_payload)
         .send()

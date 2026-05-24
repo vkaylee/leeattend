@@ -32,12 +32,13 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
         request: &LeaveRequest,
     ) -> Result<(), AppError> {
         let _workspace_id = auth_token.workspace_id();
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&auth_token.workspace_id())
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&auth_token.workspace_id())
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         diesel::insert_into(leave_requests::table)
             .values((
@@ -56,7 +57,7 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
                 leave_requests::created_at.eq(request.created_at),
                 leave_requests::updated_at.eq(request.updated_at),
             ))
-            .execute(&mut conn)
+            .execute(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -69,19 +70,20 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
         id: Uuid,
     ) -> Result<Option<LeaveRequest>, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&auth_token.workspace_id())
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&auth_token.workspace_id())
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let entity = leave_requests::table
             .inner_join(employees::table)
             .filter(leave_requests::id.eq(id))
             .filter(employees::workspace_id.eq(workspace_id))
             .select(LeaveRequestEntity::as_select())
-            .first::<LeaveRequestEntity>(&mut conn)
+            .first::<LeaveRequestEntity>(&mut *conn)
             .await
             .optional()
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -97,12 +99,13 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
         approved_by: Option<Uuid>,
     ) -> Result<(), AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&auth_token.workspace_id())
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&auth_token.workspace_id())
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         diesel::update(leave_requests::table)
             .filter(leave_requests::id.eq(id))
@@ -116,7 +119,7 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
                 leave_requests::approved_by_user_id.eq(approved_by),
                 leave_requests::updated_at.eq(Utc::now()),
             ))
-            .execute(&mut conn)
+            .execute(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -129,12 +132,13 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
         employee_id: Uuid,
     ) -> Result<Vec<LeaveRequest>, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&auth_token.workspace_id())
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&auth_token.workspace_id())
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let entities = leave_requests::table
             .inner_join(employees::table)
@@ -142,7 +146,7 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
             .filter(employees::workspace_id.eq(workspace_id))
             .order(leave_requests::start_date.desc())
             .select(LeaveRequestEntity::as_select())
-            .load::<LeaveRequestEntity>(&mut conn)
+            .load::<LeaveRequestEntity>(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -155,12 +159,13 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
         status: Option<LeaveStatus>,
     ) -> Result<Vec<LeaveRequest>, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&auth_token.workspace_id())
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&auth_token.workspace_id())
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let mut query = leave_requests::table
             .inner_join(employees::table)
@@ -174,7 +179,7 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
         let entities = query
             .order(leave_requests::created_at.desc())
             .select(LeaveRequestEntity::as_select())
-            .load::<LeaveRequestEntity>(&mut conn)
+            .load::<LeaveRequestEntity>(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -189,12 +194,13 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<LeaveBreakdown, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&auth_token.workspace_id())
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&auth_token.workspace_id())
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         // Step 1: Get raw leave days per type
         let rows = leave_requests::table
@@ -216,7 +222,7 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
                     "SUM(LEAST(end_date, '{end_date}') - GREATEST(start_date, '{start_date}') + 1)"
                 )),
             ))
-            .load::<(String, i64)>(&mut conn)
+            .load::<(String, i64)>(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -238,7 +244,7 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
                     .filter(leave_requests::end_date.ge(holidays::date)),
             ))
             .count()
-            .get_result::<i64>(&mut conn)
+            .get_result::<i64>(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -272,12 +278,13 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<Option<Uuid>, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&auth_token.workspace_id())
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&auth_token.workspace_id())
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let dept_id = leave_requests::table
             .inner_join(
@@ -289,7 +296,7 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
             .filter(employees::workspace_id.eq(workspace_id))
             .order(employee_department_history::effective_date.desc())
             .select(employee_department_history::department_id)
-            .first::<Uuid>(&mut conn)
+            .first::<Uuid>(&mut *conn)
             .await
             .optional()
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -302,18 +309,19 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<Vec<(String, String)>, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&auth_token.workspace_id())
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&auth_token.workspace_id())
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let rows = leave_types::table
             .filter(leave_types::workspace_id.eq(workspace_id))
             .order(leave_types::code.asc())
             .select((leave_types::code, leave_types::name))
-            .load::<(String, String)>(&mut conn)
+            .load::<(String, String)>(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -327,12 +335,13 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
         date: NaiveDate,
     ) -> Result<Option<(Uuid, Uuid, String)>, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&auth_token.workspace_id())
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&auth_token.workspace_id())
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let row = leave_requests::table
             .inner_join(leave_types::table)
@@ -352,7 +361,7 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
                 leave_requests::leave_type_id,
                 leave_types::code,
             ))
-            .first::<(Uuid, Uuid, String)>(&mut conn)
+            .first::<(Uuid, Uuid, String)>(&mut *conn)
             .await
             .optional()
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -366,12 +375,13 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
         id: Uuid,
     ) -> Result<(), AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&auth_token.workspace_id())
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&auth_token.workspace_id())
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         diesel::update(leave_requests::table)
             .filter(leave_requests::id.eq(id))
@@ -384,7 +394,7 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
                 leave_requests::status.eq(LeaveStatus::Cancelled),
                 leave_requests::updated_at.eq(Utc::now()),
             ))
-            .execute(&mut conn)
+            .execute(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -399,12 +409,13 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
         leave_type_id: Option<Uuid>,
     ) -> Result<Vec<LeaveHistoryRequestItem>, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&auth_token.workspace_id())
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&auth_token.workspace_id())
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let mut query = leave_requests::table
             .inner_join(leave_types::table)
@@ -444,7 +455,7 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
                 String,
                 Option<String>,
                 Option<DateTime<Utc>>,
-            )>(&mut conn)
+            )>(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -467,18 +478,19 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
         leave_type_id: Uuid,
     ) -> Result<bool, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&auth_token.workspace_id())
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&auth_token.workspace_id())
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let exists = leave_types::table
             .filter(leave_types::id.eq(leave_type_id))
             .filter(leave_types::workspace_id.eq(workspace_id))
             .count()
-            .get_result::<i64>(&mut conn)
+            .get_result::<i64>(&mut *conn)
             .await
             .map(|c| c > 0)
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -492,18 +504,19 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
         leave_type_id: Uuid,
     ) -> Result<Option<String>, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&auth_token.workspace_id())
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&auth_token.workspace_id())
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let name = leave_types::table
             .filter(leave_types::id.eq(leave_type_id))
             .filter(leave_types::workspace_id.eq(workspace_id))
             .select(leave_types::name)
-            .first::<String>(&mut conn)
+            .first::<String>(&mut *conn)
             .await
             .optional()
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -519,12 +532,13 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
         end_date: NaiveDate,
     ) -> Result<i64, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&auth_token.workspace_id())
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&auth_token.workspace_id())
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let count = holidays::table
             .filter(holidays::workspace_id.eq(workspace_id))
@@ -543,7 +557,7 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
                     .filter(leave_requests::end_date.ge(holidays::date)),
             )))
             .count()
-            .get_result::<i64>(&mut conn)
+            .get_result::<i64>(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -558,12 +572,13 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
         end_date: NaiveDate,
     ) -> Result<std::collections::HashMap<Uuid, i64>, AppError> {
         let _workspace_id = auth_token.workspace_id();
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&auth_token.workspace_id())
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&auth_token.workspace_id())
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let rows = leave_requests::table
             .filter(leave_requests::employee_id.eq_any(employee_ids))
@@ -579,7 +594,7 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
                 leave_requests::employee_id,
                 diesel::dsl::sql::<diesel::sql_types::BigInt>("SUM(end_date - start_date + 1)"),
             ))
-            .load::<(Uuid, i64)>(&mut conn)
+            .load::<(Uuid, i64)>(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -594,13 +609,15 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
         end_date: NaiveDate,
     ) -> Result<std::collections::HashSet<(Uuid, NaiveDate)>, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&auth_token.workspace_id()).await?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&auth_token.workspace_id())
+                .await?,
+        );
 
         crate::services::attendance_utils::build_leave_date_set(
-            &mut conn,
+            &mut *conn,
             workspace_id,
             employee_ids,
             start_date,
@@ -617,12 +634,13 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
         end_date: NaiveDate,
     ) -> Result<Vec<(NaiveDate, NaiveDate)>, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&auth_token.workspace_id())
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&auth_token.workspace_id())
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         #[derive(diesel::QueryableByName)]
         struct LeaveRow {
@@ -632,7 +650,8 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
             end_date: NaiveDate,
         }
 
-        let leave_days: Vec<LeaveRow> = diesel::sql_query(
+        let leave_days: Vec<LeaveRow> = crate::crud_sql_query!(
+            &mut conn,
             r#"
             SELECT lr.start_date, lr.end_date
             FROM leave_requests lr
@@ -648,7 +667,7 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
         .bind::<diesel::sql_types::Date, _>(start_date)
         .bind::<diesel::sql_types::Date, _>(end_date)
         .bind::<diesel::sql_types::Uuid, _>(workspace_id)
-        .load(&mut conn)
+        .load(&mut *conn)
         .await
         .map_err(|e| AppError::Internal(e.to_string()))?;
 
@@ -659,7 +678,6 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -667,9 +685,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_repo_initialization() {
-        let test_db_url = std::env::var("DATABASE_URL")
-            .unwrap_or_else(|_| "postgres://user:pass@localhost:5432/leeattend_test_db".to_string());
-        
+        let test_db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://user:pass@localhost:5432/leeattend_test_db".to_string()
+        });
+
         let pools = DieselPools::for_test(&test_db_url);
         let _repo = DieselLeaveRequestRepository::new(pools);
         // DI connection test passes if it compiles

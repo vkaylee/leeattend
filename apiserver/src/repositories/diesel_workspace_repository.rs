@@ -32,12 +32,13 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
         owner_id: Uuid,
         custom_db_url_encrypted: Option<String>,
     ) -> Result<Workspace, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .api
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .api
+                .get()
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let entity = WorkspaceEntity {
             id,
@@ -65,16 +66,16 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
         };
 
         let entity_clone = entity.clone();
-        conn.transaction(|mut conn| {
+        conn.transaction(|conn| {
             Box::pin(async move {
                 diesel::insert_into(workspaces::table)
                     .values(&entity)
-                    .execute(&mut conn)
+                    .execute(&mut *conn)
                     .await?;
 
                 diesel::insert_into(workspace_members::table)
                     .values(&member_entity)
-                    .execute(&mut conn)
+                    .execute(&mut *conn)
                     .await?;
 
                 Ok::<_, diesel::result::Error>(())
@@ -87,17 +88,18 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
     }
 
     async fn get_workspace_by_id(&self, id: Uuid) -> Result<Option<Workspace>, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .api
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .api
+                .get()
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let entity = workspaces::table
             .find(id)
             .select(WorkspaceEntity::as_select())
-            .first::<WorkspaceEntity>(&mut conn)
+            .first::<WorkspaceEntity>(&mut *conn)
             .await
             .optional()
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -106,16 +108,17 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
     }
 
     async fn get_all_workspaces(&self) -> Result<Vec<Workspace>, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .api
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .api
+                .get()
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let results = workspaces::table
             .select(WorkspaceEntity::as_select())
-            .load(&mut conn)
+            .load(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -126,12 +129,13 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
         &self,
         user_id: Uuid,
     ) -> Result<Vec<crate::models::Workspace>, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .api
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .api
+                .get()
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         use crate::schema::{workspace_members, workspaces};
 
@@ -141,7 +145,7 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
             )
             .filter(workspace_members::user_id.eq(user_id))
             .select(WorkspaceEntity::as_select())
-            .load(&mut conn)
+            .load(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -153,7 +157,10 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         group: &str,
     ) -> Result<(), AppError> {
-        let mut conn = self.diesel_pools.tenant_conn(auth_token).await?;
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
         let workspace_id = auth_token.workspace_id();
 
         conn.transaction(|mut conn| {
@@ -162,44 +169,44 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
 
                 match group {
                     "attendance" => {
-                        diesel::sql_query("DELETE FROM time_entries WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut conn).await?;
-                        diesel::sql_query("DELETE FROM raw_attendance_logs WHERE workspace_id = $1").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut conn).await?;
-                        diesel::sql_query("DELETE FROM attendance_adjustment_requests WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut conn).await?;
-                        diesel::sql_query("DELETE FROM attendance_import_jobs WHERE workspace_id = $1").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut conn).await?;
+                        crate::crud_sql_query!(&mut conn, "DELETE FROM time_entries WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
+                        crate::crud_sql_query!(&mut conn, "DELETE FROM raw_attendance_logs WHERE workspace_id = $1").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
+                        crate::crud_sql_query!(&mut conn, "DELETE FROM attendance_adjustment_requests WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
+                        crate::crud_sql_query!(&mut conn, "DELETE FROM attendance_import_jobs WHERE workspace_id = $1").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
                     }
                     "schedules" => {
-                        diesel::sql_query("DELETE FROM shift_rosters WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut conn).await?;
-                        diesel::sql_query("DELETE FROM employee_shifts WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut conn).await?;
+                        crate::crud_sql_query!(&mut conn, "DELETE FROM shift_rosters WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
+                        crate::crud_sql_query!(&mut conn, "DELETE FROM employee_shifts WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
                     }
                     "leave" => {
-                        diesel::sql_query("DELETE FROM leave_accrual_logs WHERE workspace_id = $1").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut conn).await?;
-                        diesel::sql_query("DELETE FROM leave_requests WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut conn).await?;
-                        diesel::sql_query("DELETE FROM leave_balances WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut conn).await?;
+                        crate::crud_sql_query!(&mut conn, "DELETE FROM leave_accrual_logs WHERE workspace_id = $1").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
+                        crate::crud_sql_query!(&mut conn, "DELETE FROM leave_requests WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
+                        crate::crud_sql_query!(&mut conn, "DELETE FROM leave_balances WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
                     }
                     "payroll" => {
-                        diesel::sql_query("DELETE FROM payslips WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut conn).await?;
-                        diesel::sql_query("DELETE FROM employee_salary_components WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut conn).await?;
-                        diesel::sql_query("DELETE FROM salary_component_definitions WHERE workspace_id = $1").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut conn).await?;
+                        crate::crud_sql_query!(&mut conn, "DELETE FROM payslips WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
+                        crate::crud_sql_query!(&mut conn, "DELETE FROM employee_salary_components WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
+                        crate::crud_sql_query!(&mut conn, "DELETE FROM salary_component_definitions WHERE workspace_id = $1").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
                     }
                     "full_reset" => {
-                        diesel::sql_query("DELETE FROM time_entries WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut conn).await?;
-                        diesel::sql_query("DELETE FROM raw_attendance_logs WHERE workspace_id = $1").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut conn).await?;
-                        diesel::sql_query("DELETE FROM attendance_adjustment_requests WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut conn).await?;
-                        diesel::sql_query("DELETE FROM attendance_import_jobs WHERE workspace_id = $1").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut conn).await?;
-                        diesel::sql_query("DELETE FROM shift_rosters WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut conn).await?;
-                        diesel::sql_query("DELETE FROM employee_shifts WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut conn).await?;
-                        diesel::sql_query("DELETE FROM leave_accrual_logs WHERE workspace_id = $1").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut conn).await?;
-                        diesel::sql_query("DELETE FROM leave_requests WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut conn).await?;
-                        diesel::sql_query("DELETE FROM leave_balances WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut conn).await?;
-                        diesel::sql_query("DELETE FROM payslips WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut conn).await?;
-                        diesel::sql_query("DELETE FROM employee_salary_components WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut conn).await?;
-                        diesel::sql_query("DELETE FROM salary_component_definitions WHERE workspace_id = $1").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut conn).await?;
-                        diesel::sql_query("DELETE FROM employee_department_history WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut conn).await?;
-                        diesel::sql_query("DELETE FROM leave_policy_assignments WHERE workspace_id = $1").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut conn).await?;
-                        diesel::sql_query("DELETE FROM leave_policy_definitions WHERE workspace_id = $1").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut conn).await?;
-                        diesel::sql_query("DELETE FROM employees WHERE workspace_id = $1").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut conn).await?;
-                        diesel::sql_query("DELETE FROM shifts WHERE workspace_id = $1").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut conn).await?;
-                        diesel::sql_query("DELETE FROM departments WHERE workspace_id = $1").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut conn).await?;
+                        crate::crud_sql_query!(&mut conn, "DELETE FROM time_entries WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
+                        crate::crud_sql_query!(&mut conn, "DELETE FROM raw_attendance_logs WHERE workspace_id = $1").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
+                        crate::crud_sql_query!(&mut conn, "DELETE FROM attendance_adjustment_requests WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
+                        crate::crud_sql_query!(&mut conn, "DELETE FROM attendance_import_jobs WHERE workspace_id = $1").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
+                        crate::crud_sql_query!(&mut conn, "DELETE FROM shift_rosters WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
+                        crate::crud_sql_query!(&mut conn, "DELETE FROM employee_shifts WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
+                        crate::crud_sql_query!(&mut conn, "DELETE FROM leave_accrual_logs WHERE workspace_id = $1").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
+                        crate::crud_sql_query!(&mut conn, "DELETE FROM leave_requests WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
+                        crate::crud_sql_query!(&mut conn, "DELETE FROM leave_balances WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
+                        crate::crud_sql_query!(&mut conn, "DELETE FROM payslips WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
+                        crate::crud_sql_query!(&mut conn, "DELETE FROM employee_salary_components WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
+                        crate::crud_sql_query!(&mut conn, "DELETE FROM salary_component_definitions WHERE workspace_id = $1").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
+                        crate::crud_sql_query!(&mut conn, "DELETE FROM employee_department_history WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
+                        crate::crud_sql_query!(&mut conn, "DELETE FROM leave_policy_assignments WHERE workspace_id = $1").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
+                        crate::crud_sql_query!(&mut conn, "DELETE FROM leave_policy_definitions WHERE workspace_id = $1").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
+                        crate::crud_sql_query!(&mut conn, "DELETE FROM employees WHERE workspace_id = $1").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
+                        crate::crud_sql_query!(&mut conn, "DELETE FROM shifts WHERE workspace_id = $1").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
+                        crate::crud_sql_query!(&mut conn, "DELETE FROM departments WHERE workspace_id = $1").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
                     }
                     _ => return Err(diesel::result::Error::RollbackTransaction),
                 }
@@ -221,12 +228,13 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
         user_id: Uuid,
         role_id: Uuid,
     ) -> Result<(), AppError> {
-        let mut conn = self
-            .diesel_pools
-            .api
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .api
+                .get()
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let entity = WorkspaceMemberEntity {
             workspace_id,
@@ -238,7 +246,7 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
             .values(&entity)
             .on_conflict((workspace_members::workspace_id, workspace_members::user_id))
             .do_nothing()
-            .execute(&mut conn)
+            .execute(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -251,12 +259,13 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
         user_id: Uuid,
         role_id: Uuid,
     ) -> Result<(), AppError> {
-        let mut conn = self
-            .diesel_pools
-            .api
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .api
+                .get()
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         diesel::update(
             workspace_members::table.filter(
@@ -266,7 +275,7 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
             ),
         )
         .set(workspace_members::role_id.eq(role_id))
-        .execute(&mut conn)
+        .execute(&mut *conn)
         .await
         .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -274,12 +283,13 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
     }
 
     async fn remove_member(&self, workspace_id: Uuid, user_id: Uuid) -> Result<(), AppError> {
-        let mut conn = self
-            .diesel_pools
-            .api
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .api
+                .get()
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         diesel::delete(
             workspace_members::table.filter(
@@ -288,7 +298,7 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
                     .and(workspace_members::user_id.eq(user_id)),
             ),
         )
-        .execute(&mut conn)
+        .execute(&mut *conn)
         .await
         .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -300,12 +310,13 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
         workspace_id: Uuid,
         user_id: Uuid,
     ) -> Result<Option<Uuid>, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .api
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .api
+                .get()
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let role_id = workspace_members::table
             .filter(
@@ -314,7 +325,7 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
                     .and(workspace_members::user_id.eq(user_id)),
             )
             .select(workspace_members::role_id)
-            .first::<Uuid>(&mut conn)
+            .first::<Uuid>(&mut *conn)
             .await
             .optional()
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -326,12 +337,13 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
         &self,
         workspace_id: Uuid,
     ) -> Result<Vec<crate::models::WorkspaceMemberDetail>, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .api
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .api
+                .get()
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         #[derive(Debug, diesel::QueryableByName)]
         struct Entity {
@@ -349,14 +361,15 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
             avatar_url: Option<String>,
         }
 
-        let results: Vec<Entity> = diesel::sql_query(
+        let results: Vec<Entity> = crate::crud_sql_query!(
+            &mut conn,
             "SELECT wm.workspace_id, wm.user_id, wm.role_id, u.email, u.full_name, u.avatar_url
              FROM workspace_members wm
              JOIN users u ON wm.user_id = u.id
              WHERE wm.workspace_id = $1",
         )
         .bind::<diesel::sql_types::Uuid, _>(workspace_id)
-        .load(&mut conn)
+        .load(&mut *conn)
         .await
         .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -378,12 +391,13 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
         workspace_id_val: Uuid,
         permissions: &[&str],
     ) -> Result<Vec<Uuid>, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .api
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .api
+                .get()
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         #[derive(Debug, diesel::QueryableByName)]
         struct UserIdEntity {
@@ -392,7 +406,8 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
         }
 
         // We use ANY to check against the permissions array safely
-        let results: Vec<UserIdEntity> = diesel::sql_query(
+        let results: Vec<UserIdEntity> = crate::crud_sql_query!(
+            &mut conn,
             r#"
             SELECT DISTINCT wm.user_id 
             FROM workspace_members wm
@@ -404,7 +419,7 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
         )
         .bind::<diesel::sql_types::Uuid, _>(workspace_id_val)
         .bind::<diesel::sql_types::Array<diesel::sql_types::Text>, _>(permissions)
-        .load(&mut conn)
+        .load(&mut *conn)
         .await
         .map_err(|e| AppError::Internal(format!("db error fetching admins: {e}")))?;
 
@@ -415,12 +430,13 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
         &self,
         workspace_id: Uuid,
     ) -> Result<Vec<MemberExtraRole>, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .api
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .api
+                .get()
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let entities = member_extra_roles::table
             .filter(
@@ -428,7 +444,7 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
                     .eq(workspace_id)
                     .and(member_extra_roles::expires_at.gt(Utc::now())),
             )
-            .load::<MemberExtraRoleEntity>(&mut conn)
+            .load::<MemberExtraRoleEntity>(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -440,12 +456,13 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
         workspace_id: Uuid,
         user_id: Uuid,
     ) -> Result<Vec<MemberExtraRole>, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .api
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .api
+                .get()
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let entities = member_extra_roles::table
             .filter(
@@ -453,7 +470,7 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
                     .eq(workspace_id)
                     .and(member_extra_roles::user_id.eq(user_id)),
             )
-            .load::<MemberExtraRoleEntity>(&mut conn)
+            .load::<MemberExtraRoleEntity>(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -465,12 +482,13 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
         workspace_id: Uuid,
         user_id: Uuid,
     ) -> Result<Vec<String>, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .api
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .api
+                .get()
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let permissions = workspace_member_extra_permissions::table
             .filter(
@@ -480,7 +498,7 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
                     .and(workspace_member_extra_permissions::expires_at.gt(Utc::now())),
             )
             .select(workspace_member_extra_permissions::permission)
-            .load::<String>(&mut conn)
+            .load::<String>(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -492,12 +510,13 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
         workspace_id: Uuid,
         user_id: Uuid,
     ) -> Result<Vec<crate::models::MemberExtraPermission>, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .api
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .api
+                .get()
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         #[derive(Debug, diesel::QueryableByName)]
         struct Entity {
@@ -517,17 +536,18 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
             assigned_at: chrono::DateTime<chrono::Utc>,
         }
 
-        let results: Vec<Entity> = diesel::sql_query(
+        let results: Vec<Entity> =
+            crate::crud_sql_query!(&mut conn, 
             "SELECT id, workspace_id, user_id, permission, expires_at, assigned_by, assigned_at 
              FROM workspace_member_extra_permissions 
              WHERE workspace_id = $1 AND user_id = $2 AND expires_at > NOW() 
              ORDER BY assigned_at DESC",
         )
-        .bind::<diesel::sql_types::Uuid, _>(workspace_id)
-        .bind::<diesel::sql_types::Uuid, _>(user_id)
-        .load(&mut conn)
-        .await
-        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .bind::<diesel::sql_types::Uuid, _>(workspace_id)
+            .bind::<diesel::sql_types::Uuid, _>(user_id)
+            .load(&mut *conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(results
             .into_iter()
@@ -551,12 +571,13 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
         expires_at: chrono::DateTime<chrono::Utc>,
         assigned_by: Uuid,
     ) -> Result<crate::models::MemberExtraPermission, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .api
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .api
+                .get()
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         #[derive(Debug, diesel::QueryableByName)]
         struct Entity {
@@ -576,7 +597,7 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
             assigned_at: chrono::DateTime<chrono::Utc>,
         }
 
-        let entity: Entity = diesel::sql_query(
+        let entity: Entity = crate::crud_sql_query!(&mut conn, 
             "INSERT INTO workspace_member_extra_permissions (workspace_id, user_id, permission, expires_at, assigned_by) 
              VALUES ($1, $2, $3, $4, $5) RETURNING *"
         )
@@ -585,7 +606,7 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
         .bind::<diesel::sql_types::Text, _>(permission)
         .bind::<diesel::sql_types::Timestamptz, _>(expires_at)
         .bind::<diesel::sql_types::Uuid, _>(assigned_by)
-        .get_result(&mut conn)
+        .get_result(&mut *conn)
         .await
         .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -606,19 +627,20 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
         _user_id: Uuid,
         perm_id: Uuid,
     ) -> Result<u64, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .api
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .api
+                .get()
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let affected = diesel::delete(
             workspace_member_extra_permissions::table
                 .filter(workspace_member_extra_permissions::id.eq(perm_id))
                 .filter(workspace_member_extra_permissions::workspace_id.eq(workspace_id)),
         )
-        .execute(&mut conn)
+        .execute(&mut *conn)
         .await
         .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -632,12 +654,13 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
         role_id: Uuid,
         expires_at: chrono::DateTime<chrono::Utc>,
     ) -> Result<crate::models::MemberExtraRole, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .api
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .api
+                .get()
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         use crate::schema::member_extra_roles;
 
@@ -652,7 +675,7 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
 
         let entity: MemberExtraRoleEntity = diesel::insert_into(member_extra_roles::table)
             .values(&new_role)
-            .get_result(&mut conn)
+            .get_result(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -664,20 +687,23 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
         workspace_id: Uuid,
         extra_role_id: Uuid,
     ) -> Result<u64, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .api
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
-
-        let affected =
-            diesel::sql_query("DELETE FROM member_extra_roles WHERE id = $1 AND workspace_id = $2")
-                .bind::<diesel::sql_types::Uuid, _>(extra_role_id)
-                .bind::<diesel::sql_types::Uuid, _>(workspace_id)
-                .execute(&mut conn)
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .api
+                .get()
                 .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
+
+        let affected = crate::crud_sql_query!(
+            &mut conn,
+            "DELETE FROM member_extra_roles WHERE id = $1 AND workspace_id = $2"
+        )
+        .bind::<diesel::sql_types::Uuid, _>(extra_role_id)
+        .bind::<diesel::sql_types::Uuid, _>(workspace_id)
+        .execute(&mut *conn)
+        .await
+        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(affected as u64)
     }
@@ -686,12 +712,13 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
         &self,
         workspace_id: Uuid,
     ) -> Result<Vec<crate::models::WorkspaceRole>, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .api
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .api
+                .get()
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         #[derive(Debug, diesel::QueryableByName)]
         struct Entity {
@@ -715,11 +742,11 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
             scope_type: String,
         }
 
-        let results: Vec<Entity> = diesel::sql_query(
+        let results: Vec<Entity> = crate::crud_sql_query!(&mut conn, 
             "SELECT * FROM workspace_roles WHERE workspace_id = $1 OR is_system = true ORDER BY is_system DESC, created_at ASC"
         )
         .bind::<diesel::sql_types::Uuid, _>(workspace_id)
-        .load(&mut conn)
+        .load(&mut *conn)
         .await
         .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -747,12 +774,13 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
         color: String,
         scope_type: String,
     ) -> Result<crate::models::WorkspaceRole, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .api
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .api
+                .get()
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         #[derive(Debug, diesel::QueryableByName)]
         struct Entity {
@@ -776,7 +804,7 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
             scope_type: String,
         }
 
-        let entity: Entity = diesel::sql_query(
+        let entity: Entity = crate::crud_sql_query!(&mut conn, 
             "INSERT INTO workspace_roles (workspace_id, name, description, color, is_system, scope_type) VALUES ($1, $2, $3, $4, false, $5) RETURNING *"
         )
         .bind::<diesel::sql_types::Uuid, _>(workspace_id)
@@ -784,7 +812,7 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
         .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(description)
         .bind::<diesel::sql_types::Text, _>(color)
         .bind::<diesel::sql_types::Text, _>(scope_type)
-        .get_result(&mut conn)
+        .get_result(&mut *conn)
         .await
         .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -809,12 +837,13 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
         description: Option<String>,
         color: Option<String>,
     ) -> Result<Option<crate::models::WorkspaceRole>, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .api
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .api
+                .get()
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         #[derive(Debug, diesel::QueryableByName)]
         struct Entity {
@@ -838,7 +867,7 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
             scope_type: String,
         }
 
-        let result: Option<Entity> = diesel::sql_query(
+        let result: Option<Entity> = crate::crud_sql_query!(&mut conn, 
             "UPDATE workspace_roles SET name = COALESCE($1, name), description = COALESCE($2, description), color = COALESCE($3, color), updated_at = NOW() WHERE id = $4 AND workspace_id = $5 AND is_system = false RETURNING *"
         )
         .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(name)
@@ -846,7 +875,7 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
         .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(color)
         .bind::<diesel::sql_types::Uuid, _>(role_id)
         .bind::<diesel::sql_types::Uuid, _>(workspace_id)
-        .get_result(&mut conn)
+        .get_result(&mut *conn)
         .await
         .optional()
         .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -869,21 +898,23 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
         workspace_id: Uuid,
         role_id: Uuid,
     ) -> Result<u64, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .api
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .api
+                .get()
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
-        let affected = diesel::sql_query(
+        let affected =
+            crate::crud_sql_query!(&mut conn, 
             "DELETE FROM workspace_roles WHERE id = $1 AND workspace_id = $2 AND is_system = false",
         )
-        .bind::<diesel::sql_types::Uuid, _>(role_id)
-        .bind::<diesel::sql_types::Uuid, _>(workspace_id)
-        .execute(&mut conn)
-        .await
-        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .bind::<diesel::sql_types::Uuid, _>(role_id)
+            .bind::<diesel::sql_types::Uuid, _>(workspace_id)
+            .execute(&mut *conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(affected as u64)
     }
@@ -893,12 +924,13 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
         workspace_id: Uuid,
         role_id: Uuid,
     ) -> Result<Vec<String>, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .api
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .api
+                .get()
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         #[derive(Debug, diesel::QueryableByName)]
         struct StringEntity {
@@ -906,12 +938,12 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
             permission_name: String,
         }
 
-        let results: Vec<StringEntity> = diesel::sql_query(
+        let results: Vec<StringEntity> = crate::crud_sql_query!(&mut conn, 
             "SELECT permission_name FROM workspace_role_permissions WHERE role_id = $1 AND role_id IN (SELECT id FROM workspace_roles WHERE workspace_id = $2 OR is_system = true)"
         )
         .bind::<diesel::sql_types::Uuid, _>(role_id)
         .bind::<diesel::sql_types::Uuid, _>(workspace_id)
-        .load(&mut conn)
+        .load(&mut *conn)
         .await
         .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -923,12 +955,13 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
         workspace_id: Uuid,
         role_id: Uuid,
     ) -> Result<bool, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .api
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .api
+                .get()
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         #[derive(Debug, diesel::QueryableByName)]
         struct Exists {
@@ -936,12 +969,12 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
             exists: bool,
         }
 
-        let result: Exists = diesel::sql_query(
+        let result: Exists = crate::crud_sql_query!(&mut conn, 
             "SELECT EXISTS(SELECT 1 FROM workspace_roles WHERE id = $1 AND workspace_id = $2 AND is_system = false) as exists"
         )
         .bind::<diesel::sql_types::Uuid, _>(role_id)
         .bind::<diesel::sql_types::Uuid, _>(workspace_id)
-        .get_result(&mut conn)
+        .get_result(&mut *conn)
         .await
         .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -953,27 +986,28 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
         role_id: Uuid,
         permissions: Vec<String>,
     ) -> Result<(), AppError> {
-        let mut conn = self
-            .diesel_pools
-            .api
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .api
+                .get()
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         conn.transaction(|mut conn| {
             Box::pin(async move {
-                diesel::sql_query("DELETE FROM workspace_role_permissions WHERE role_id = $1")
+                crate::crud_sql_query!(&mut conn, "DELETE FROM workspace_role_permissions WHERE role_id = $1")
                     .bind::<diesel::sql_types::Uuid, _>(role_id)
-                    .execute(&mut conn)
+                    .execute(&mut *conn)
                     .await?;
 
                 for perm in permissions {
-                    diesel::sql_query(
+                    crate::crud_sql_query!(&mut conn, 
                         "INSERT INTO workspace_role_permissions (role_id, permission_name) VALUES ($1, $2)",
                     )
                     .bind::<diesel::sql_types::Uuid, _>(role_id)
                     .bind::<diesel::sql_types::Text, _>(perm)
-                    .execute(&mut conn)
+                    .execute(&mut *conn)
                     .await?;
                 }
 
@@ -987,17 +1021,18 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
     }
 
     async fn get_permissions_for_roles(&self, role_ids: &[Uuid]) -> Result<Vec<String>, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .api
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .api
+                .get()
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let permissions = workspace_role_permissions::table
             .filter(workspace_role_permissions::role_id.eq_any(role_ids))
             .select(workspace_role_permissions::permission_name)
-            .load::<String>(&mut conn)
+            .load::<String>(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -1019,12 +1054,13 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
         logo_url: Option<String>,
         tagline: Option<String>,
     ) -> Result<Workspace, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .api
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .api
+                .get()
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         #[derive(AsChangeset)]
         #[diesel(table_name = workspaces)]
@@ -1075,7 +1111,7 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
 
         let result: WorkspaceEntity = diesel::update(workspaces::table.find(id))
             .set(&update)
-            .get_result(&mut conn)
+            .get_result(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -1083,19 +1119,20 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
     }
 
     async fn is_any_role_global(&self, role_ids: &[Uuid]) -> Result<bool, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .api
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .api
+                .get()
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let query = workspace_roles::table
             .filter(workspace_roles::id.eq_any(role_ids))
             .filter(workspace_roles::scope_type.eq("global"));
 
         let is_global: bool = diesel::select(diesel::dsl::exists(query))
-            .get_result(&mut conn)
+            .get_result(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -1107,23 +1144,23 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
         workspace_id: Uuid,
         encrypted_url: Option<String>,
     ) -> Result<(), AppError> {
-        let mut conn = self
-            .diesel_pools
-            .api
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .api
+                .get()
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         diesel::update(workspaces::table.find(workspace_id))
             .set(workspaces::custom_db_url_encrypted.eq(encrypted_url))
-            .execute(&mut conn)
+            .execute(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(())
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -1132,9 +1169,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_repo_initialization() {
-        let test_db_url = std::env::var("DATABASE_URL")
-            .unwrap_or_else(|_| "postgres://user:pass@localhost:5432/leeattend_test_db".to_string());
-        
+        let test_db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://user:pass@localhost:5432/leeattend_test_db".to_string()
+        });
+
         let pools = DieselPools::for_test(&test_db_url);
         let _repo = DieselWorkspaceRepository::new(pools);
         // DI connection test passes if it compiles

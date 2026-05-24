@@ -29,12 +29,13 @@ impl AttendanceAdjustmentRepository for DieselAttendanceAdjustmentRepository {
         workspace_id: Uuid,
         request: &AttendanceAdjustmentRequest,
     ) -> Result<(), AppError> {
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&workspace_id)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&workspace_id)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let new_entity = NewAttendanceAdjustmentEntity {
             id: request.id,
@@ -52,7 +53,7 @@ impl AttendanceAdjustmentRepository for DieselAttendanceAdjustmentRepository {
 
         diesel::insert_into(attendance_adjustment_requests::table)
             .values(&new_entity)
-            .execute(&mut conn)
+            .execute(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -64,12 +65,13 @@ impl AttendanceAdjustmentRepository for DieselAttendanceAdjustmentRepository {
         workspace_id: Uuid,
         id: Uuid,
     ) -> Result<Option<AttendanceAdjustmentRequest>, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&workspace_id)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&workspace_id)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let entry: Option<AttendanceAdjustmentEntity> = attendance_adjustment_requests::table
             .inner_join(
@@ -78,7 +80,7 @@ impl AttendanceAdjustmentRepository for DieselAttendanceAdjustmentRepository {
             .filter(employees::workspace_id.eq(workspace_id))
             .filter(attendance_adjustment_requests::id.eq(id))
             .select(attendance_adjustment_requests::all_columns)
-            .first(&mut conn)
+            .first(&mut *conn)
             .await
             .optional()
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -93,12 +95,13 @@ impl AttendanceAdjustmentRepository for DieselAttendanceAdjustmentRepository {
         status: AdjustmentStatus,
         approved_by: Option<Uuid>,
     ) -> Result<(), AppError> {
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&workspace_id)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&workspace_id)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let update_model = UpdateAttendanceAdjustmentEntity {
             status: Some(status),
@@ -116,7 +119,7 @@ impl AttendanceAdjustmentRepository for DieselAttendanceAdjustmentRepository {
                 ),
             )
             .set(&update_model)
-            .execute(&mut conn)
+            .execute(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -128,12 +131,13 @@ impl AttendanceAdjustmentRepository for DieselAttendanceAdjustmentRepository {
         workspace_id: Uuid,
         status: Option<AdjustmentStatus>,
     ) -> Result<Vec<AttendanceAdjustmentRequest>, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&workspace_id)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&workspace_id)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let mut query = attendance_adjustment_requests::table
             .inner_join(
@@ -149,7 +153,7 @@ impl AttendanceAdjustmentRepository for DieselAttendanceAdjustmentRepository {
         let results: Vec<AttendanceAdjustmentEntity> = query
             .select(attendance_adjustment_requests::all_columns)
             .order(attendance_adjustment_requests::created_at.desc())
-            .load(&mut conn)
+            .load(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -161,12 +165,13 @@ impl AttendanceAdjustmentRepository for DieselAttendanceAdjustmentRepository {
         workspace_id: Uuid,
         employee_id: Uuid,
     ) -> Result<Vec<AttendanceAdjustmentRequest>, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&workspace_id)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&workspace_id)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let results: Vec<AttendanceAdjustmentEntity> = attendance_adjustment_requests::table
             .inner_join(
@@ -176,14 +181,13 @@ impl AttendanceAdjustmentRepository for DieselAttendanceAdjustmentRepository {
             .filter(attendance_adjustment_requests::employee_id.eq(employee_id))
             .select(attendance_adjustment_requests::all_columns)
             .order(attendance_adjustment_requests::created_at.desc())
-            .load(&mut conn)
+            .load(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(results.into_iter().map(Into::into).collect())
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -192,9 +196,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_repo_initialization() {
-        let test_db_url = std::env::var("DATABASE_URL")
-            .unwrap_or_else(|_| "postgres://user:pass@localhost:5432/leeattend_test_db".to_string());
-        
+        let test_db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://user:pass@localhost:5432/leeattend_test_db".to_string()
+        });
+
         let pools = DieselPools::for_test(&test_db_url);
         let _repo = DieselAttendanceAdjustmentRepository::new(pools);
         // DI connection test passes if it compiles

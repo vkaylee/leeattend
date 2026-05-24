@@ -31,10 +31,12 @@ impl super::EmployeeContractRepository for DieselEmployeeContractRepository {
         use crate::schema::employee_contracts::dsl::*;
         use diesel_async::AsyncConnection;
 
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&auth_token.workspace_id()).await?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&auth_token.workspace_id())
+                .await?,
+        );
 
         let created_entity = conn
             .transaction::<_, diesel::result::Error, _>(|conn| {
@@ -130,14 +132,16 @@ impl super::EmployeeContractRepository for DieselEmployeeContractRepository {
     ) -> Result<Option<EmployeeContract>, AppError> {
         use crate::schema::employee_contracts::dsl::*;
 
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&auth_token.workspace_id()).await?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&auth_token.workspace_id())
+                .await?,
+        );
         let contract = employee_contracts
             .filter(id.eq(contract_id))
             .filter(workspace_id.eq(auth_token.workspace_id()))
-            .first::<EmployeeContractEntity>(&mut conn)
+            .first::<EmployeeContractEntity>(&mut *conn)
             .await
             .optional()?;
 
@@ -151,15 +155,17 @@ impl super::EmployeeContractRepository for DieselEmployeeContractRepository {
     ) -> Result<Vec<EmployeeContract>, AppError> {
         use crate::schema::employee_contracts::dsl::*;
 
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&auth_token.workspace_id()).await?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&auth_token.workspace_id())
+                .await?,
+        );
         let contracts = employee_contracts
             .filter(employee_id.eq(employee_id_val))
             .filter(workspace_id.eq(auth_token.workspace_id()))
             .order(start_date.desc())
-            .load::<EmployeeContractEntity>(&mut conn)
+            .load::<EmployeeContractEntity>(&mut *conn)
             .await?;
 
         Ok(contracts.into_iter().map(Into::into).collect())
@@ -173,10 +179,12 @@ impl super::EmployeeContractRepository for DieselEmployeeContractRepository {
     ) -> Result<EmployeeContract, AppError> {
         use crate::schema::employee_contracts::dsl::*;
 
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&auth_token.workspace_id()).await?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&auth_token.workspace_id())
+                .await?,
+        );
 
         let update_model = UpdateDieselEmployeeContract {
             contract_number: req.contract_number.clone(),
@@ -195,7 +203,7 @@ impl super::EmployeeContractRepository for DieselEmployeeContractRepository {
                 .filter(workspace_id.eq(auth_token.workspace_id())),
         )
         .set(&update_model)
-        .get_result::<EmployeeContractEntity>(&mut conn)
+        .get_result::<EmployeeContractEntity>(&mut *conn)
         .await?;
 
         Ok(updated_contract.into())
@@ -208,16 +216,18 @@ impl super::EmployeeContractRepository for DieselEmployeeContractRepository {
     ) -> Result<(), AppError> {
         use crate::schema::employee_contracts::dsl::*;
 
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&auth_token.workspace_id()).await?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&auth_token.workspace_id())
+                .await?,
+        );
         diesel::delete(
             employee_contracts
                 .filter(id.eq(contract_id))
                 .filter(workspace_id.eq(auth_token.workspace_id())),
         )
-        .execute(&mut conn)
+        .execute(&mut *conn)
         .await?;
 
         Ok(())
@@ -231,10 +241,12 @@ impl super::EmployeeContractRepository for DieselEmployeeContractRepository {
         use crate::models::enums::ContractStatus;
         use crate::schema::employee_contracts::dsl::*;
 
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&auth_token.workspace_id()).await?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&auth_token.workspace_id())
+                .await?,
+        );
 
         let target_date =
             chrono::Utc::now().naive_utc().date() + chrono::Duration::days(days_ahead as i64);
@@ -244,7 +256,7 @@ impl super::EmployeeContractRepository for DieselEmployeeContractRepository {
             .filter(status.eq(ContractStatus::Active))
             .filter(end_date.is_not_null())
             .filter(end_date.le(target_date))
-            .load::<EmployeeContractEntity>(&mut conn)
+            .load::<EmployeeContractEntity>(&mut *conn)
             .await?;
 
         Ok(contracts.into_iter().map(Into::into).collect())
@@ -259,10 +271,12 @@ impl super::EmployeeContractRepository for DieselEmployeeContractRepository {
         use crate::models::enums::ContractStatus;
         use crate::schema::employee_contracts::dsl::*;
 
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&auth_token.workspace_id()).await?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&auth_token.workspace_id())
+                .await?,
+        );
 
         let entity = employee_contracts
             .filter(workspace_id.eq(auth_token.workspace_id()))
@@ -271,7 +285,7 @@ impl super::EmployeeContractRepository for DieselEmployeeContractRepository {
             .filter(start_date.le(date_val))
             .filter(end_date.is_null().or(end_date.ge(date_val)))
             .order(start_date.desc())
-            .first::<EmployeeContractEntity>(&mut conn)
+            .first::<EmployeeContractEntity>(&mut *conn)
             .await
             .optional()
             .map_err(|e| AppError::Internal(format!("db error: {e}")))?;
@@ -280,7 +294,6 @@ impl super::EmployeeContractRepository for DieselEmployeeContractRepository {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -288,9 +301,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_repo_initialization() {
-        let test_db_url = std::env::var("DATABASE_URL")
-            .unwrap_or_else(|_| "postgres://user:pass@localhost:5432/leeattend_test_db".to_string());
-        
+        let test_db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://user:pass@localhost:5432/leeattend_test_db".to_string()
+        });
+
         let pools = DieselPools::for_test(&test_db_url);
         let _repo = DieselEmployeeContractRepository::new(pools);
         // DI connection test passes if it compiles

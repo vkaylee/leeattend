@@ -30,12 +30,13 @@ impl HolidayRepository for DieselHolidayRepository {
         year: Option<i32>,
     ) -> Result<Vec<Holiday>, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&auth_token.workspace_id())
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&auth_token.workspace_id())
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let mut query = holidays::table
             .filter(holidays::workspace_id.eq(workspace_id))
@@ -54,7 +55,7 @@ impl HolidayRepository for DieselHolidayRepository {
 
         let entities: Vec<HolidayEntity> = query
             .order(holidays::date.asc())
-            .load(&mut conn)
+            .load(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -67,17 +68,18 @@ impl HolidayRepository for DieselHolidayRepository {
         id: Uuid,
     ) -> Result<Option<Holiday>, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&auth_token.workspace_id())
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&auth_token.workspace_id())
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let entity: Option<HolidayEntity> = holidays::table
             .filter(holidays::id.eq(id))
             .filter(holidays::workspace_id.eq(workspace_id))
-            .first(&mut conn)
+            .first(&mut *conn)
             .await
             .optional()
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -91,12 +93,13 @@ impl HolidayRepository for DieselHolidayRepository {
         req: &crate::models::CreateHolidayRequest,
     ) -> Result<Holiday, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&auth_token.workspace_id())
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&auth_token.workspace_id())
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let new_holiday = HolidayEntity {
             id: Uuid::new_v4(),
@@ -116,7 +119,7 @@ impl HolidayRepository for DieselHolidayRepository {
 
         let result: HolidayEntity = diesel::insert_into(holidays::table)
             .values(&new_holiday)
-            .get_result(&mut conn)
+            .get_result(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -130,12 +133,13 @@ impl HolidayRepository for DieselHolidayRepository {
         req: &crate::models::UpdateHolidayRequest,
     ) -> Result<Option<Holiday>, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&auth_token.workspace_id())
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&auth_token.workspace_id())
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let result: Option<HolidayEntity> = diesel::update(holidays::table)
             .filter(holidays::id.eq(id))
@@ -158,7 +162,7 @@ impl HolidayRepository for DieselHolidayRepository {
                     .map(|c| holidays::is_credit_on_work.eq(c)),
                 Some(holidays::updated_at.eq(Utc::now())),
             ))
-            .get_result(&mut conn)
+            .get_result(&mut *conn)
             .await
             .optional()
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -172,17 +176,18 @@ impl HolidayRepository for DieselHolidayRepository {
         id: Uuid,
     ) -> Result<bool, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&auth_token.workspace_id())
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&auth_token.workspace_id())
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let affected = diesel::delete(holidays::table)
             .filter(holidays::id.eq(id))
             .filter(holidays::workspace_id.eq(workspace_id))
-            .execute(&mut conn)
+            .execute(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -196,19 +201,20 @@ impl HolidayRepository for DieselHolidayRepository {
         end_date: NaiveDate,
     ) -> Result<HashMap<NaiveDate, Holiday>, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&auth_token.workspace_id())
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&auth_token.workspace_id())
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let entities: Vec<HolidayEntity> = holidays::table
             .filter(holidays::workspace_id.eq(workspace_id))
             .filter(holidays::date.ge(start_date))
             .filter(holidays::date.le(end_date))
             .order(holidays::date.asc())
-            .load(&mut conn)
+            .load(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -221,17 +227,18 @@ impl HolidayRepository for DieselHolidayRepository {
         date: NaiveDate,
     ) -> Result<Option<Holiday>, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&auth_token.workspace_id())
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&auth_token.workspace_id())
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let entity: Option<HolidayEntity> = holidays::table
             .filter(holidays::workspace_id.eq(workspace_id))
             .filter(holidays::date.eq(date))
-            .first(&mut conn)
+            .first(&mut *conn)
             .await
             .optional()
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -248,12 +255,13 @@ mod tests {
     #[tokio::test]
     async fn test_holiday_repo_list_empty_for_new_tenant() {
         // 1. Fetch DB URL provided by the test environment container
-        let test_db_url = std::env::var("DATABASE_URL")
-            .unwrap_or_else(|_| "postgres://user:pass@localhost:5432/leeattend_test_db".to_string());
-        
+        let test_db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://user:pass@localhost:5432/leeattend_test_db".to_string()
+        });
+
         // 2. Initialize test pools with TestTenantPoolManager automatically injected
         let pools = DieselPools::for_test(&test_db_url);
-        
+
         // 3. Inject DI pools into the repository
         let repo = DieselHolidayRepository::new(pools);
 
@@ -264,9 +272,12 @@ mod tests {
         // 5. Query the database using the injected TestTenantPoolManager
         // This validates that the DI provides a physical connection that works
         let result = repo.list(&token, Some(2026)).await;
-        
+
         assert!(result.is_ok(), "Query failed: {:?}", result.err());
         let holidays = result.unwrap();
-        assert!(holidays.is_empty(), "Expected empty holidays for a mock workspace");
+        assert!(
+            holidays.is_empty(),
+            "Expected empty holidays for a mock workspace"
+        );
     }
 }

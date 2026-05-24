@@ -78,14 +78,15 @@ pub async fn list_system_roles(
 
     use diesel_async::RunQueryDsl;
 
-    let rows: Vec<RoleRow> = diesel::sql_query(
+    let rows: Vec<RoleRow> = crate::system_crud_query!(
+        &mut conn,
         r#"
         SELECT id, name, description
           FROM system_roles
          ORDER BY name
         "#,
     )
-    .load(&mut conn)
+    .load(&mut *conn)
     .await
     .map_err(|e| AppError::Internal(e.to_string()))?;
 
@@ -102,7 +103,8 @@ pub async fn list_system_roles(
     }
 
     for row in rows {
-        let assignees_rows: Vec<AssigneeRow> = diesel::sql_query(
+        let assignees_rows: Vec<AssigneeRow> = crate::system_crud_query!(
+            &mut conn,
             r#"
             SELECT user_id, assigned_by, assigned_at
               FROM user_system_roles
@@ -111,7 +113,7 @@ pub async fn list_system_roles(
             "#,
         )
         .bind::<diesel::sql_types::Uuid, _>(row.id)
-        .load(&mut conn)
+        .load(&mut *conn)
         .await
         .map_err(|e| AppError::Internal(e.to_string()))?;
 
@@ -163,7 +165,8 @@ pub async fn get_user_system_roles(
 
     use diesel_async::RunQueryDsl;
 
-    let roles: Vec<RoleNameRow> = diesel::sql_query(
+    let roles: Vec<RoleNameRow> = crate::system_crud_query!(
+        &mut conn,
         r#"
         SELECT sr.name
           FROM user_system_roles usr
@@ -173,7 +176,7 @@ pub async fn get_user_system_roles(
         "#,
     )
     .bind::<diesel::sql_types::Uuid, _>(user_id)
-    .load(&mut conn)
+    .load(&mut *conn)
     .await
     .map_err(|e| AppError::Internal(e.to_string()))?;
 
@@ -211,9 +214,9 @@ pub async fn assign_system_role(
 
     // Resolve role_id from name
     let role_id_row: Option<RoleIdRow> =
-        diesel::sql_query("SELECT id FROM system_roles WHERE name = $1")
+        crate::system_crud_query!(&mut conn, "SELECT id FROM system_roles WHERE name = $1")
             .bind::<diesel::sql_types::Text, _>(req.role_name.to_string())
-            .get_result(&mut conn)
+            .get_result(&mut *conn)
             .await
             .optional()
             .map_err(|e| AppError::Internal(e.to_string()))?;
@@ -223,7 +226,8 @@ pub async fn assign_system_role(
         .ok_or_else(|| AppError::NotFound(format!("System role '{}' not found", req.role_name)))?;
 
     // Upsert — idempotent assign
-    diesel::sql_query(
+    crate::system_crud_query!(
+        &mut conn,
         r#"
         INSERT INTO user_system_roles (user_id, role_id, assigned_by)
              VALUES ($1, $2, $3)
@@ -233,7 +237,7 @@ pub async fn assign_system_role(
     .bind::<diesel::sql_types::Uuid, _>(user_id)
     .bind::<diesel::sql_types::Uuid, _>(role_id)
     .bind::<diesel::sql_types::Uuid, _>(ctx.user_id)
-    .execute(&mut conn)
+    .execute(&mut *conn)
     .await
     .map_err(|e| AppError::Internal(e.to_string()))?;
 
@@ -286,7 +290,8 @@ pub async fn revoke_system_role(
             count: i64,
         }
 
-        let count_row: CountRow = diesel::sql_query(
+        let count_row: CountRow = crate::system_crud_query!(
+            &mut conn,
             r#"
             SELECT COUNT(*) as count
               FROM user_system_roles usr
@@ -294,7 +299,7 @@ pub async fn revoke_system_role(
              WHERE sr.name = 'platform_admin'
             "#,
         )
-        .get_result(&mut conn)
+        .get_result(&mut *conn)
         .await
         .map_err(|e| AppError::Internal(e.to_string()))?;
 
@@ -305,7 +310,8 @@ pub async fn revoke_system_role(
         }
     }
 
-    let res = diesel::sql_query(
+    let res = crate::system_crud_query!(
+        &mut conn,
         r#"
         DELETE FROM user_system_roles
          WHERE user_id = $1
@@ -314,7 +320,7 @@ pub async fn revoke_system_role(
     )
     .bind::<diesel::sql_types::Uuid, _>(user_id)
     .bind::<diesel::sql_types::Text, _>(role_name)
-    .execute(&mut conn)
+    .execute(&mut *conn)
     .await
     .map_err(|e| AppError::Internal(e.to_string()))?;
 

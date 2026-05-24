@@ -46,12 +46,13 @@ impl RosterRepository for DieselRosterRepository {
                 .map_err(|e| AppError::Internal(format!("db build: {e}")))?,
         };
 
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&auth_token.workspace_id())
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&auth_token.workspace_id())
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         // 2. Fetch Employees
         let mut query = crate::schema::employees::table
@@ -70,7 +71,7 @@ impl RosterRepository for DieselRosterRepository {
                 crate::schema::employees::employee_id_number,
                 crate::schema::employees::tags,
             ))
-            .load::<(Uuid, String, String, Option<Vec<Option<String>>>)>(&mut conn)
+            .load::<(Uuid, String, String, Option<Vec<Option<String>>>)>(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -92,7 +93,7 @@ impl RosterRepository for DieselRosterRepository {
             .filter(crate::schema::holidays::workspace_id.eq(workspace_id))
             .filter(crate::schema::holidays::date.ge(start_date))
             .filter(crate::schema::holidays::date.le(end_date))
-            .load::<crate::models::diesel::holiday::HolidayEntity>(&mut conn)
+            .load::<crate::models::diesel::holiday::HolidayEntity>(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -108,7 +109,7 @@ impl RosterRepository for DieselRosterRepository {
             .filter(crate::schema::shift_rosters::date.ge(start_date))
             .filter(crate::schema::shift_rosters::date.le(end_date))
             .select(crate::schema::shift_rosters::all_columns)
-            .load::<crate::models::diesel::roster::ShiftRosterEntity>(&mut conn)
+            .load::<crate::models::diesel::roster::ShiftRosterEntity>(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -200,14 +201,15 @@ impl RosterRepository for DieselRosterRepository {
         limit: i64,
     ) -> Result<Vec<crate::models::AssignmentHistory>, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&auth_token.workspace_id())
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&auth_token.workspace_id())
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
-        let history = diesel::sql_query(
+        let history = crate::crud_sql_query!(&mut conn, 
             r#"
             SELECT 
                 id,
@@ -301,7 +303,7 @@ impl RosterRepository for DieselRosterRepository {
         )
         .bind::<diesel::sql_types::Uuid, _>(workspace_id)
         .bind::<diesel::sql_types::BigInt, _>(limit)
-        .load::<crate::models::AssignmentHistory>(&mut conn)
+        .load::<crate::models::AssignmentHistory>(&mut *conn)
         .await
         .map_err(|e| AppError::Internal(format!("db history: {e}")))?;
 
@@ -316,18 +318,19 @@ impl RosterRepository for DieselRosterRepository {
         end_date: NaiveDate,
     ) -> Result<Vec<ShiftRoster>, AppError> {
         let _workspace_id = auth_token.workspace_id();
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&auth_token.workspace_id())
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&auth_token.workspace_id())
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let rosters = crate::schema::shift_rosters::table
             .filter(crate::schema::shift_rosters::employee_id.eq(employee_id))
             .filter(crate::schema::shift_rosters::date.ge(start_date))
             .filter(crate::schema::shift_rosters::date.le(end_date))
-            .load::<crate::models::diesel::roster::ShiftRosterEntity>(&mut conn)
+            .load::<crate::models::diesel::roster::ShiftRosterEntity>(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -340,12 +343,13 @@ impl RosterRepository for DieselRosterRepository {
         roster: &ShiftRoster,
     ) -> Result<ShiftRoster, AppError> {
         let _workspace_id = auth_token.workspace_id();
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&auth_token.workspace_id())
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&auth_token.workspace_id())
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let entity: crate::models::diesel::roster::ShiftRosterEntity = roster.clone().into();
 
@@ -362,7 +366,7 @@ impl RosterRepository for DieselRosterRepository {
                 crate::schema::shift_rosters::notes.eq(entity.notes.clone()),
                 crate::schema::shift_rosters::updated_at.eq(Utc::now()),
             ))
-            .get_result::<crate::models::diesel::roster::ShiftRosterEntity>(&mut conn)
+            .get_result::<crate::models::diesel::roster::ShiftRosterEntity>(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -376,12 +380,13 @@ impl RosterRepository for DieselRosterRepository {
         items: Vec<RosterItem>,
     ) -> Result<(), AppError> {
         let _workspace_id = auth_token.workspace_id();
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&auth_token.workspace_id())
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&auth_token.workspace_id())
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let entities: Vec<ShiftRosterEntity> = items
             .into_iter()
@@ -407,7 +412,7 @@ impl RosterRepository for DieselRosterRepository {
                 shift_rosters::notes.eq(diesel::dsl::sql("EXCLUDED.notes")),
                 shift_rosters::updated_at.eq(Utc::now()),
             ))
-            .execute(&mut conn)
+            .execute(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -421,12 +426,13 @@ impl RosterRepository for DieselRosterRepository {
         date: NaiveDate,
     ) -> Result<(Option<Uuid>, Vec<ScheduleTrace>), AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&auth_token.workspace_id())
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&auth_token.workspace_id())
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let mut traces = Vec::new();
 
@@ -437,7 +443,7 @@ impl RosterRepository for DieselRosterRepository {
             .filter(crate::schema::shift_rosters::date.eq(date))
             .filter(crate::schema::employees::workspace_id.eq(workspace_id))
             .select(crate::schema::shift_rosters::shift_id)
-            .first::<Option<Uuid>>(&mut conn)
+            .first::<Option<Uuid>>(&mut *conn)
             .await
             .optional()
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -480,7 +486,7 @@ impl RosterRepository for DieselRosterRepository {
                     crate::schema::working_pattern_details::shift_id,
                     crate::schema::employee_working_patterns::pattern_id,
                 ))
-                .first::<(Option<Uuid>, Uuid)>(&mut conn)
+                .first::<(Option<Uuid>, Uuid)>(&mut *conn)
                 .await
                 .optional()
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -513,7 +519,7 @@ impl RosterRepository for DieselRosterRepository {
                 crate::schema::employees::tags,
                 crate::schema::employee_department_history::department_id.nullable(),
             ))
-            .first::<(String, Option<Vec<Option<String>>>, Option<Uuid>)>(&mut conn)
+            .first::<(String, Option<Vec<Option<String>>>, Option<Uuid>)>(&mut *conn)
             .await
             .optional()
             .map(|opt| {
@@ -532,7 +538,7 @@ impl RosterRepository for DieselRosterRepository {
                         crate::schema::assignment_rules::priority.desc(),
                         crate::schema::assignment_rules::created_at.asc(),
                     ))
-                    .load(&mut conn)
+                    .load(&mut *conn)
                     .await
                     .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -561,7 +567,7 @@ impl RosterRepository for DieselRosterRepository {
                             )
                             .filter(crate::schema::working_pattern_details::schedule_day.eq(dow))
                             .select(crate::schema::working_pattern_details::shift_id)
-                            .first::<Option<Uuid>>(&mut conn)
+                            .first::<Option<Uuid>>(&mut *conn)
                             .await
                             .optional()
                             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -599,7 +605,7 @@ impl RosterRepository for DieselRosterRepository {
                     crate::schema::working_pattern_details::shift_id,
                     crate::schema::departments::default_working_pattern_id.assume_not_null(),
                 ))
-                .first::<(Option<Uuid>, Uuid)>(&mut conn)
+                .first::<(Option<Uuid>, Uuid)>(&mut *conn)
                 .await
                 .optional()
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -631,7 +637,7 @@ impl RosterRepository for DieselRosterRepository {
                 .filter(crate::schema::employees::workspace_id.eq(workspace_id))
                 .order(crate::schema::employee_shifts::created_at.desc())
                 .select(crate::schema::employee_shifts::shift_id)
-                .first::<Uuid>(&mut conn)
+                .first::<Uuid>(&mut *conn)
                 .await
                 .optional()
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -663,7 +669,7 @@ impl RosterRepository for DieselRosterRepository {
             .filter(crate::schema::employees::workspace_id.eq(workspace_id))
             .order(crate::schema::employee_department_history::effective_date.desc())
             .select(crate::schema::department_default_shifts::shift_id)
-            .first::<Uuid>(&mut conn)
+            .first::<Uuid>(&mut *conn)
             .await
             .optional()
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -689,26 +695,26 @@ impl RosterRepository for DieselRosterRepository {
         date: NaiveDate,
     ) -> Result<(), AppError> {
         let _workspace_id = auth_token.workspace_id();
-        let mut conn = self
-            .diesel_pools
-            .tenants
-            .get_connection(&auth_token.workspace_id())
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&auth_token.workspace_id())
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         diesel::delete(
             shift_rosters::table
                 .filter(shift_rosters::employee_id.eq(employee_id))
                 .filter(shift_rosters::date.eq(date)),
         )
-        .execute(&mut conn)
+        .execute(&mut *conn)
         .await
         .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(())
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -717,9 +723,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_repo_initialization() {
-        let test_db_url = std::env::var("DATABASE_URL")
-            .unwrap_or_else(|_| "postgres://user:pass@localhost:5432/leeattend_test_db".to_string());
-        
+        let test_db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://user:pass@localhost:5432/leeattend_test_db".to_string()
+        });
+
         let pools = DieselPools::for_test(&test_db_url);
         let _repo = DieselRosterRepository::new(pools);
         // DI connection test passes if it compiles

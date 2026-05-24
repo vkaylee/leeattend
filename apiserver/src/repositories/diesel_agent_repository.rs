@@ -30,17 +30,18 @@ impl DieselAgentRepository {
 #[async_trait]
 impl AgentRepository for DieselAgentRepository {
     async fn find_by_id(&self, id: &str) -> Result<Option<AuthorizedAgent>, String> {
-        let mut conn = self
-            .diesel_pools
-            .api
-            .get()
-            .await
-            .map_err(|e| e.to_string())?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .api
+                .get()
+                .await
+                .map_err(|e| e.to_string())?,
+        );
 
         let agent = authorized_agents::table
             .filter(authorized_agents::id.eq(id))
             .filter(authorized_agents::is_active.eq(true))
-            .first::<AuthorizedAgentEntity>(&mut conn)
+            .first::<AuthorizedAgentEntity>(&mut *conn)
             .await
             .optional()
             .map_err(|e| e.to_string())?;
@@ -49,16 +50,17 @@ impl AgentRepository for DieselAgentRepository {
     }
 
     async fn update_last_ip(&self, id: &str, ip: &str) -> Result<(), String> {
-        let mut conn = self
-            .diesel_pools
-            .api
-            .get()
-            .await
-            .map_err(|e| e.to_string())?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .api
+                .get()
+                .await
+                .map_err(|e| e.to_string())?,
+        );
 
         diesel::update(authorized_agents::table.filter(authorized_agents::id.eq(id)))
             .set(authorized_agents::last_ip.eq(ip))
-            .execute(&mut conn)
+            .execute(&mut *conn)
             .await
             .map_err(|e| e.to_string())?;
 
@@ -66,16 +68,17 @@ impl AgentRepository for DieselAgentRepository {
     }
 
     async fn update_last_seen(&self, id: &str) -> Result<(), String> {
-        let mut conn = self
-            .diesel_pools
-            .api
-            .get()
-            .await
-            .map_err(|e| e.to_string())?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .api
+                .get()
+                .await
+                .map_err(|e| e.to_string())?,
+        );
 
         diesel::update(authorized_agents::table.filter(authorized_agents::id.eq(id)))
             .set(authorized_agents::last_seen_at.eq(Some(Utc::now())))
-            .execute(&mut conn)
+            .execute(&mut *conn)
             .await
             .map_err(|e| e.to_string())?;
 
@@ -89,14 +92,14 @@ impl AgentRepository for DieselAgentRepository {
     ) -> Result<Vec<Device>, String> {
         let mut conn = self
             .diesel_pools
-            .tenant_conn(auth_token)
+            .tenant_transaction_conn(auth_token)
             .await
             .map_err(|e| e.to_string())?;
 
         let devices_result = devices::table
             .filter(devices::agent_id.eq(agent_id))
             .order(devices::created_at.desc())
-            .load::<DeviceEntity>(&mut conn)
+            .load::<DeviceEntity>(&mut *conn)
             .await
             .map_err(|e| e.to_string())?;
 
@@ -108,12 +111,13 @@ impl AgentRepository for DieselAgentRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         include_inactive: bool,
     ) -> Result<Vec<AuthorizedAgent>, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .api
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .api
+                .get()
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let mut query = authorized_agents::table
             .filter(authorized_agents::workspace_id.eq(auth_token.workspace_id()))
@@ -125,7 +129,7 @@ impl AgentRepository for DieselAgentRepository {
 
         let agents = query
             .order(authorized_agents::created_at.desc())
-            .load::<AuthorizedAgentEntity>(&mut conn)
+            .load::<AuthorizedAgentEntity>(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -142,12 +146,13 @@ impl AgentRepository for DieselAgentRepository {
         success_cooldown_secs: i32,
         retention_days: i32,
     ) -> Result<(), AppError> {
-        let mut conn = self
-            .diesel_pools
-            .api
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .api
+                .get()
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let agent = AuthorizedAgentEntity {
             id: id.to_string(),
@@ -166,7 +171,7 @@ impl AgentRepository for DieselAgentRepository {
 
         diesel::insert_into(authorized_agents::table)
             .values(&agent)
-            .execute(&mut conn)
+            .execute(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -178,19 +183,20 @@ impl AgentRepository for DieselAgentRepository {
         agent_id: &str,
         auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<bool, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .api
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .api
+                .get()
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let count: i64 = authorized_agents::table
             .filter(authorized_agents::id.eq(agent_id))
             .filter(authorized_agents::workspace_id.eq(auth_token.workspace_id()))
             .filter(authorized_agents::is_active.eq(true))
             .count()
-            .get_result(&mut conn)
+            .get_result(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -201,12 +207,15 @@ impl AgentRepository for DieselAgentRepository {
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<Vec<Device>, AppError> {
-        let mut conn = self.diesel_pools.tenant_conn(auth_token).await?;
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
 
         let devices_result = devices::table
             .filter(devices::workspace_id.eq(auth_token.workspace_id()))
             .order(devices::created_at.desc())
-            .load::<DeviceEntity>(&mut conn)
+            .load::<DeviceEntity>(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -218,13 +227,16 @@ impl AgentRepository for DieselAgentRepository {
         agent_ids: &[String],
         auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<Vec<Device>, AppError> {
-        let mut conn = self.diesel_pools.tenant_conn(auth_token).await?;
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
 
         let devices_result = devices::table
             .filter(devices::agent_id.eq_any(agent_ids))
             .filter(devices::workspace_id.eq(auth_token.workspace_id()))
             .order(devices::created_at.desc())
-            .load::<DeviceEntity>(&mut conn)
+            .load::<DeviceEntity>(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -243,7 +255,10 @@ impl AgentRepository for DieselAgentRepository {
         password: &str,
         timezone: &str,
     ) -> Result<(), AppError> {
-        let mut conn = self.diesel_pools.tenant_conn(auth_token).await?;
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
 
         let device = DeviceEntity {
             id,
@@ -262,7 +277,7 @@ impl AgentRepository for DieselAgentRepository {
 
         diesel::insert_into(devices::table)
             .values(&device)
-            .execute(&mut conn)
+            .execute(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -274,12 +289,15 @@ impl AgentRepository for DieselAgentRepository {
         id: Uuid,
         auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<Option<Device>, AppError> {
-        let mut conn = self.diesel_pools.tenant_conn(auth_token).await?;
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
 
         let device = devices::table
             .filter(devices::id.eq(id))
             .filter(devices::workspace_id.eq(auth_token.workspace_id()))
-            .first::<DeviceEntity>(&mut conn)
+            .first::<DeviceEntity>(&mut *conn)
             .await
             .optional()
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -299,7 +317,10 @@ impl AgentRepository for DieselAgentRepository {
         password: Option<&str>,
         timezone: &str,
     ) -> Result<(), AppError> {
-        let mut conn = self.diesel_pools.tenant_conn(auth_token).await?;
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
 
         // Note: Password update logic. In sqlx it was: password = COALESCE($6, password).
         // Since we use AsChangeset, we can fetch existing if password is None, or we can just fetch and update.
@@ -319,7 +340,7 @@ impl AgentRepository for DieselAgentRepository {
                 .select(devices::password)
                 .filter(devices::id.eq(id))
                 .filter(devices::workspace_id.eq(auth_token.workspace_id()))
-                .first(&mut conn)
+                .first(&mut *conn)
                 .await
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?;
             update_model.password = existing;
@@ -331,7 +352,7 @@ impl AgentRepository for DieselAgentRepository {
                 .filter(devices::workspace_id.eq(auth_token.workspace_id())),
         )
         .set(&update_model)
-        .execute(&mut conn)
+        .execute(&mut *conn)
         .await
         .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -343,13 +364,16 @@ impl AgentRepository for DieselAgentRepository {
         device_id: Uuid,
         auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<Option<String>, AppError> {
-        let mut conn = self.diesel_pools.tenant_conn(auth_token).await?;
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
 
         let agent_id = devices::table
             .select(devices::agent_id)
             .filter(devices::id.eq(device_id))
             .filter(devices::workspace_id.eq(auth_token.workspace_id()))
-            .first::<String>(&mut conn)
+            .first::<String>(&mut *conn)
             .await
             .optional()
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -362,14 +386,17 @@ impl AgentRepository for DieselAgentRepository {
         device_id: Uuid,
         auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<u64, AppError> {
-        let mut conn = self.diesel_pools.tenant_conn(auth_token).await?;
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
 
         let affected = diesel::delete(
             devices::table
                 .filter(devices::id.eq(device_id))
                 .filter(devices::workspace_id.eq(auth_token.workspace_id())),
         )
-        .execute(&mut conn)
+        .execute(&mut *conn)
         .await
         .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -382,12 +409,13 @@ impl AgentRepository for DieselAgentRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         is_trusted: bool,
     ) -> Result<u64, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .api
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .api
+                .get()
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let affected = diesel::update(
             authorized_agents::table
@@ -395,7 +423,7 @@ impl AgentRepository for DieselAgentRepository {
                 .filter(authorized_agents::workspace_id.eq(auth_token.workspace_id())),
         )
         .set(authorized_agents::is_trusted.eq(Some(is_trusted)))
-        .execute(&mut conn)
+        .execute(&mut *conn)
         .await
         .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -407,17 +435,18 @@ impl AgentRepository for DieselAgentRepository {
         agent_id: &str,
         auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<Option<AuthorizedAgent>, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .api
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .api
+                .get()
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let agent = authorized_agents::table
             .filter(authorized_agents::id.eq(agent_id))
             .filter(authorized_agents::workspace_id.eq(auth_token.workspace_id()))
-            .first::<AuthorizedAgentEntity>(&mut conn)
+            .first::<AuthorizedAgentEntity>(&mut *conn)
             .await
             .optional()
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -430,12 +459,13 @@ impl AgentRepository for DieselAgentRepository {
         agent_id: &str,
         auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<u64, AppError> {
-        let mut conn = self
-            .diesel_pools
-            .api
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .api
+                .get()
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
 
         let affected = diesel::update(
             authorized_agents::table
@@ -443,14 +473,13 @@ impl AgentRepository for DieselAgentRepository {
                 .filter(authorized_agents::workspace_id.eq(auth_token.workspace_id())),
         )
         .set(authorized_agents::is_active.eq(false))
-        .execute(&mut conn)
+        .execute(&mut *conn)
         .await
         .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(affected as u64)
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -459,9 +488,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_repo_initialization() {
-        let test_db_url = std::env::var("DATABASE_URL")
-            .unwrap_or_else(|_| "postgres://user:pass@localhost:5432/leeattend_test_db".to_string());
-        
+        let test_db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://user:pass@localhost:5432/leeattend_test_db".to_string()
+        });
+
         let pools = DieselPools::for_test(&test_db_url);
         let _repo = DieselAgentRepository::new(pools);
         // DI connection test passes if it compiles

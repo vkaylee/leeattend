@@ -23,26 +23,52 @@ impl TenantProvisionerTrait for DummyTenantProvisioner {
     }
 }
 
-
 struct DummySystemDbClusterRepository;
 #[async_trait::async_trait]
-impl apiserver::repositories::system_db_cluster_repository::SystemDbClusterRepository for DummySystemDbClusterRepository {
-    async fn get_least_loaded_cluster(&self) -> Result<Option<apiserver::models::system_db_cluster::SystemDbCluster>, apiserver::errors::AppError> {
+impl apiserver::repositories::system_db_cluster_repository::SystemDbClusterRepository
+    for DummySystemDbClusterRepository
+{
+    async fn get_least_loaded_cluster(
+        &self,
+    ) -> Result<
+        Option<apiserver::models::system_db_cluster::SystemDbCluster>,
+        apiserver::errors::AppError,
+    > {
         Ok(None)
     }
-    async fn increment_active_tenants(&self, _cluster_id: uuid::Uuid) -> Result<(), apiserver::errors::AppError> {
+    async fn increment_active_tenants(
+        &self,
+        _cluster_id: uuid::Uuid,
+    ) -> Result<(), apiserver::errors::AppError> {
         Ok(())
     }
-    async fn create_cluster(&self, _cluster: &apiserver::models::system_db_cluster::NewSystemDbCluster) -> Result<apiserver::models::system_db_cluster::SystemDbCluster, apiserver::errors::AppError> {
+    async fn create_cluster(
+        &self,
+        _cluster: &apiserver::models::system_db_cluster::NewSystemDbCluster,
+    ) -> Result<apiserver::models::system_db_cluster::SystemDbCluster, apiserver::errors::AppError>
+    {
         unimplemented!()
     }
-    async fn list_clusters(&self) -> Result<Vec<apiserver::models::system_db_cluster::SystemDbCluster>, apiserver::errors::AppError> {
+    async fn list_clusters(
+        &self,
+    ) -> Result<
+        Vec<apiserver::models::system_db_cluster::SystemDbCluster>,
+        apiserver::errors::AppError,
+    > {
         Ok(vec![])
     }
-    async fn delete_cluster(&self, _cluster_id: uuid::Uuid) -> Result<(), apiserver::errors::AppError> {
+    async fn delete_cluster(
+        &self,
+        _cluster_id: uuid::Uuid,
+    ) -> Result<(), apiserver::errors::AppError> {
         Ok(())
     }
-    async fn update_cluster_status(&self, _cluster_id: uuid::Uuid, _is_active: bool) -> Result<apiserver::models::system_db_cluster::SystemDbCluster, apiserver::errors::AppError> {
+    async fn update_cluster_status(
+        &self,
+        _cluster_id: uuid::Uuid,
+        _is_active: bool,
+    ) -> Result<apiserver::models::system_db_cluster::SystemDbCluster, apiserver::errors::AppError>
+    {
         unimplemented!()
     }
 }

@@ -52,10 +52,11 @@ pub async fn get_debug_users(
             role: String,
         }
 
-        let users: Vec<DebugUserRow> = diesel::sql_query(
+        let users: Vec<DebugUserRow> = crate::system_crud_query!(
+            &mut conn,
             r#"SELECT id, COALESCE(full_name, 'Unknown') as name, email, role FROM users LIMIT 20"#,
         )
-        .load(&mut conn)
+        .load(&mut *conn)
         .await
         .map_err(|e| AppError::Internal(e.to_string()))?;
 
@@ -90,7 +91,7 @@ pub async fn clear_debug_db(
         let mut conn = state
             .infra
             .diesel
-            .tenant_conn(&crate::diesel_pool::TenantAuthToken::system_override(ws_id))
+            .tenant_transaction_conn(&crate::diesel_pool::TenantAuthToken::system_override(ws_id))
             .await?;
 
         use diesel_async::AsyncConnection;
@@ -107,7 +108,7 @@ pub async fn clear_debug_db(
                             "DELETE FROM attendance_import_jobs WHERE workspace_id = $1",
                         ];
                         for q in queries {
-                            diesel::sql_query(q)
+                            crate::system_crud_query!(conn, q)
                                 .bind::<diesel::sql_types::Uuid, _>(ws_id)
                                 .execute(conn)
                                 .await
@@ -120,7 +121,7 @@ pub async fn clear_debug_db(
                             "DELETE FROM payslips WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)",
                         ];
                         for q in queries {
-                            diesel::sql_query(q)
+                            crate::system_crud_query!(conn, q)
                                 .bind::<diesel::sql_types::Uuid, _>(ws_id)
                                 .execute(conn)
                                 .await
@@ -132,7 +133,7 @@ pub async fn clear_debug_db(
                             "DELETE FROM shift_rosters WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)",
                         ];
                         for q in queries {
-                            diesel::sql_query(q)
+                            crate::system_crud_query!(conn, q)
                                 .bind::<diesel::sql_types::Uuid, _>(ws_id)
                                 .execute(conn)
                                 .await
@@ -161,7 +162,7 @@ pub async fn clear_debug_db(
                             "DELETE FROM employees WHERE workspace_id = $1",
                         ];
                         for q in queries {
-                            diesel::sql_query(q)
+                            crate::system_crud_query!(conn, q)
                                 .bind::<diesel::sql_types::Uuid, _>(ws_id)
                                 .execute(conn)
                                 .await
@@ -200,7 +201,7 @@ pub async fn clear_debug_db(
                         ];
 
                         for q in queries {
-                            diesel::sql_query(q)
+                            crate::system_crud_query!(conn, q)
                                 .bind::<diesel::sql_types::Uuid, _>(ws_id)
                                 .execute(conn)
                                 .await
@@ -214,7 +215,7 @@ pub async fn clear_debug_db(
                             id: Uuid,
                         }
 
-                        let dept_eng: IdRow = diesel::sql_query(
+                        let dept_eng: IdRow = crate::system_crud_query!(conn, 
                             "INSERT INTO departments (workspace_id, name, description) VALUES ($1, 'Engineering', 'Software Development') RETURNING id"
                         )
                         .bind::<diesel::sql_types::Uuid, _>(ws_id)
@@ -222,7 +223,7 @@ pub async fn clear_debug_db(
                         .await
                         .map_err(|e| AppError::Internal(e.to_string()))?;
 
-                        let dept_hr: IdRow = diesel::sql_query(
+                        let dept_hr: IdRow = crate::system_crud_query!(conn, 
                             "INSERT INTO departments (workspace_id, name, description) VALUES ($1, 'Human Resources', 'People Operations') RETURNING id"
                         )
                         .bind::<diesel::sql_types::Uuid, _>(ws_id)
@@ -230,7 +231,7 @@ pub async fn clear_debug_db(
                         .await
                         .map_err(|e| AppError::Internal(e.to_string()))?;
 
-                        let _shift_morning: IdRow = diesel::sql_query(
+                        let _shift_morning: IdRow = crate::system_crud_query!(conn, 
                             "INSERT INTO shifts (workspace_id, name, start_time, end_time) VALUES ($1, 'Morning Shift', '08:00:00', '17:00:00') RETURNING id"
                         )
                         .bind::<diesel::sql_types::Uuid, _>(ws_id)
@@ -248,7 +249,7 @@ pub async fn clear_debug_db(
 
                         for (name, email, code, dept_id) in employees {
                             let emp_id = crate::utils::id::new_id();
-                            diesel::sql_query(
+                            crate::system_crud_query!(conn, 
                                 "INSERT INTO employees (id, workspace_id, full_name, email, employee_id_number, original_hire_date, hire_date, is_active) VALUES ($1, $2, $3, $4, $5, CURRENT_DATE, CURRENT_DATE, true)"
                             )
                             .bind::<diesel::sql_types::Uuid, _>(emp_id)
@@ -260,7 +261,7 @@ pub async fn clear_debug_db(
                             .await
                             .map_err(|e| AppError::Internal(e.to_string()))?;
 
-                            diesel::sql_query(
+                            crate::system_crud_query!(conn, 
                                 "INSERT INTO employee_department_history (employee_id, department_id, effective_date) VALUES ($1, $2, CURRENT_DATE)"
                             )
                             .bind::<diesel::sql_types::Uuid, _>(emp_id)
