@@ -73,8 +73,7 @@ export default function TenantsPage() {
   });
 
   const statsConfig = tenantStats ? (tenantStats.config.data ?? tenantStats.config.tenant ?? tenantStats.config) : undefined;
-  const poolSizeVal = statsConfig?.users?.[0]?.pool_size?.toString() ?? "N/A";
-  const poolModeVal = statsConfig?.users?.[0]?.mode_type ?? "N/A";
+  const poolUsers = statsConfig?.users ?? [];
   const rawConfigString = JSON.stringify(statsConfig, null, 2);
 
   const createMutation = useMutation({
@@ -403,29 +402,41 @@ export default function TenantsPage() {
                 </p>
               </div>
 
-              {/* Stats Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-xl shadow-sm flex flex-col gap-1">
-                  <div className="flex items-center gap-2 text-slate-500 mb-2">
-                    <Server className="w-4 h-4" />
-                    <span className="text-xs font-medium uppercase tracking-wider">Pool Config</span>
+              {/* Users Config */}
+              <div className="space-y-3">
+                <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                  <Activity className="w-4 h-4 text-blue-500" />
+                  Database Users & Pool Modes
+                </h4>
+                {poolUsers.length > 0 ? (
+                  <div className="grid grid-cols-1 gap-3">
+                    {poolUsers.map((u: any, idx: number) => (
+                      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-xl shadow-sm flex items-center justify-between" key={idx}>
+                        <div>
+                          <div className="font-mono text-sm text-slate-800 dark:text-slate-200 font-semibold">
+                            {u.db_user}
+                          </div>
+                          <div className="text-xs text-slate-500 mt-1">
+                            Pool size: <span className="font-medium text-slate-700 dark:text-slate-300">{u.pool_size ?? "N/A"}</span>
+                          </div>
+                        </div>
+                        <div className="flex flex-col items-end">
+                          <span className={`px-2.5 py-1 rounded-full text-xs font-medium capitalize ${
+                            u.mode_type === 'transaction' 
+                              ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' 
+                              : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'
+                          }`}>
+                            {u.mode_type ?? "Unknown"} Mode
+                          </span>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                  <div className="text-2xl font-bold text-slate-800 dark:text-white">
-                    {poolSizeVal}
+                ) : (
+                  <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700 text-sm text-slate-500 text-center">
+                    No explicit users configured for this tenant.
                   </div>
-                  <span className="text-xs text-slate-500">Max connections</span>
-                </div>
-                
-                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-xl shadow-sm flex flex-col gap-1">
-                  <div className="flex items-center gap-2 text-slate-500 mb-2">
-                    <Activity className="w-4 h-4" />
-                    <span className="text-xs font-medium uppercase tracking-wider">Mode</span>
-                  </div>
-                  <div className="text-xl font-bold text-slate-800 dark:text-white capitalize">
-                    {poolModeVal}
-                  </div>
-                  <span className="text-xs text-slate-500">Pooling strategy</span>
-                </div>
+                )}
               </div>
 
               {/* Raw Details */}
