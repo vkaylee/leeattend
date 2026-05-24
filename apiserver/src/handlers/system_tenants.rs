@@ -144,7 +144,7 @@ pub async fn list_tenants(
         &mut conn,
         r#"
         SELECT external_id, default_pool_size, inserted_at, updated_at 
-        FROM _supavisor.tenants_tx
+        FROM _supavisor.tenants
         ORDER BY inserted_at DESC
         "#,
     )
@@ -568,7 +568,7 @@ pub async fn list_stale_tenants(
         &mut conn,
         r#"
         SELECT external_id, default_pool_size, inserted_at, updated_at
-        FROM _supavisor.tenants_tx
+        FROM _supavisor.tenants
         ORDER BY inserted_at DESC
         "#,
     )
