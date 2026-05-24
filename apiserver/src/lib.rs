@@ -171,6 +171,20 @@ mod ax_auth {
                 }
             }
 
+            // 3. Try query string (For SSE and WebSockets where custom headers are not supported)
+            if let Some(query) = parts.uri.query() {
+                for param in query.split('&') {
+                    if let Some(token) = param.strip_prefix("access_token=") {
+                        let app_state = Arc::<AppState>::from_ref(state);
+                        if let Ok(user_id) =
+                            AuthService::verify_token(token, &app_state.core.jwt_secret)
+                        {
+                            return Ok(Self(user_id));
+                        }
+                    }
+                }
+            }
+
             #[cfg(debug_assertions)]
             {
                 if let Some(user_id_str) =

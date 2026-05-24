@@ -92,10 +92,12 @@ async fn test_monitor_stream_sse() {
         .await
         .unwrap();
 
+    // Generate valid access token
+    let token = factory.auth().create_token(user_id);
+
     // 2. Connect to SSE stream
     let response = client
-        .get(format!("{address}/api/monitor/stream"))
-        .header("X-User-Id", user_id.to_string())
+        .get(format!("{address}/api/monitor/stream?access_token={token}"))
         .send()
         .await
         .unwrap();
