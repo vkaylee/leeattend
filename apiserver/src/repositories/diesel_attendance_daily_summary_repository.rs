@@ -32,12 +32,7 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&auth_token.workspace_id())
-            .await
-            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(e.to_string()))?;
+            .get_connection(&auth_token.workspace_id()).await?;
 
         use crate::models::diesel::attendance_daily_summary::AttendanceDailySummaryEntity;
 
@@ -71,12 +66,7 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&auth_token.workspace_id())
-            .await
-            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(e.to_string()))?;
+            .get_connection(&auth_token.workspace_id()).await?;
 
         diesel::insert_into(ads::attendance_daily_summaries)
             .values((
@@ -125,12 +115,7 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&auth_token.workspace_id())
-            .await
-            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(e.to_string()))?;
+            .get_connection(&auth_token.workspace_id()).await?;
 
         let rows = diesel::update(ads::attendance_daily_summaries)
             .filter(ads::workspace_id.eq(workspace_id))
@@ -169,12 +154,7 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&auth_token.workspace_id())
-            .await
-            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(e.to_string()))?;
+            .get_connection(&auth_token.workspace_id()).await?;
 
         let rows = diesel::update(ads::attendance_daily_summaries)
             .filter(ads::workspace_id.eq(workspace_id))
@@ -212,12 +192,7 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&auth_token.workspace_id())
-            .await
-            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(e.to_string()))?;
+            .get_connection(&auth_token.workspace_id()).await?;
 
         use crate::models::diesel::attendance_daily_summary::AttendanceDailySummaryEntity;
 
@@ -268,12 +243,7 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&auth_token.workspace_id())
-            .await
-            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(e.to_string()))?;
+            .get_connection(&auth_token.workspace_id()).await?;
 
         let rows = ads::attendance_daily_summaries
             .filter(ads::workspace_id.eq(workspace_id))
@@ -304,12 +274,7 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&auth_token.workspace_id())
-            .await
-            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(e.to_string()))?;
+            .get_connection(&auth_token.workspace_id()).await?;
 
         let mut query = ads::attendance_daily_summaries
             .filter(ads::workspace_id.eq(workspace_id))
@@ -344,12 +309,7 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&auth_token.workspace_id())
-            .await
-            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(e.to_string()))?;
+            .get_connection(&auth_token.workspace_id()).await?;
 
         let rows = ads::attendance_daily_summaries
             .filter(ads::workspace_id.eq(workspace_id))
@@ -364,5 +324,22 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(rows)
+    }
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::diesel_pool::DieselPools;
+
+    #[tokio::test]
+    async fn test_repo_initialization() {
+        let test_db_url = std::env::var("DATABASE_URL")
+            .unwrap_or_else(|_| "postgres://user:pass@localhost:5432/leeattend_test_db".to_string());
+        
+        let pools = DieselPools::for_test(&test_db_url);
+        let _repo = DieselAttendanceDailySummaryRepository::new(pools);
+        // DI connection test passes if it compiles
     }
 }

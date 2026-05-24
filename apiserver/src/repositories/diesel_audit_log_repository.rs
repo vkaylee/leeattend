@@ -97,3 +97,20 @@ impl AuditLogRepository for DieselAuditLogRepository {
         Ok((logs_result.into_iter().map(Into::into).collect(), count))
     }
 }
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::diesel_pool::DieselPools;
+
+    #[tokio::test]
+    async fn test_repo_initialization() {
+        let test_db_url = std::env::var("DATABASE_URL")
+            .unwrap_or_else(|_| "postgres://user:pass@localhost:5432/leeattend_test_db".to_string());
+        
+        let pools = DieselPools::for_test(&test_db_url);
+        let _repo = DieselAuditLogRepository::new(pools);
+        // DI connection test passes if it compiles
+    }
+}

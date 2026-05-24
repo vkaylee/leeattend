@@ -36,10 +36,7 @@ impl LeaveBalanceRepository for DieselLeaveBalanceRepository {
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&auth_token.workspace_id())
-            .await
-            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
-            .get()
+            .get_connection(&auth_token.workspace_id())
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -104,10 +101,7 @@ impl LeaveBalanceRepository for DieselLeaveBalanceRepository {
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&auth_token.workspace_id())
-            .await
-            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
-            .get()
+            .get_connection(&auth_token.workspace_id())
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -248,10 +242,7 @@ impl LeaveBalanceRepository for DieselLeaveBalanceRepository {
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&auth_token.workspace_id())
-            .await
-            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
-            .get()
+            .get_connection(&auth_token.workspace_id())
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -301,10 +292,7 @@ impl LeaveBalanceRepository for DieselLeaveBalanceRepository {
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&auth_token.workspace_id())
-            .await
-            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
-            .get()
+            .get_connection(&auth_token.workspace_id())
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -359,5 +347,22 @@ impl LeaveBalanceRepository for DieselLeaveBalanceRepository {
         .map_err(|e| AppError::Internal(format!("db transaction: {e}")))?;
 
         Ok(())
+    }
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::diesel_pool::DieselPools;
+
+    #[tokio::test]
+    async fn test_repo_initialization() {
+        let test_db_url = std::env::var("DATABASE_URL")
+            .unwrap_or_else(|_| "postgres://user:pass@localhost:5432/leeattend_test_db".to_string());
+        
+        let pools = DieselPools::for_test(&test_db_url);
+        let _repo = DieselLeaveBalanceRepository::new(pools);
+        // DI connection test passes if it compiles
     }
 }

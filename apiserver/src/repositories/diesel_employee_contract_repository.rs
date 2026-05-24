@@ -34,12 +34,7 @@ impl super::EmployeeContractRepository for DieselEmployeeContractRepository {
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&auth_token.workspace_id())
-            .await
-            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("Failed to get connection: {e}")))?;
+            .get_connection(&auth_token.workspace_id()).await?;
 
         let created_entity = conn
             .transaction::<_, diesel::result::Error, _>(|conn| {
@@ -138,12 +133,7 @@ impl super::EmployeeContractRepository for DieselEmployeeContractRepository {
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&auth_token.workspace_id())
-            .await
-            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("Failed to get connection: {e}")))?;
+            .get_connection(&auth_token.workspace_id()).await?;
         let contract = employee_contracts
             .filter(id.eq(contract_id))
             .filter(workspace_id.eq(auth_token.workspace_id()))
@@ -164,12 +154,7 @@ impl super::EmployeeContractRepository for DieselEmployeeContractRepository {
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&auth_token.workspace_id())
-            .await
-            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("Failed to get connection: {e}")))?;
+            .get_connection(&auth_token.workspace_id()).await?;
         let contracts = employee_contracts
             .filter(employee_id.eq(employee_id_val))
             .filter(workspace_id.eq(auth_token.workspace_id()))
@@ -191,12 +176,7 @@ impl super::EmployeeContractRepository for DieselEmployeeContractRepository {
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&auth_token.workspace_id())
-            .await
-            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("Failed to get connection: {e}")))?;
+            .get_connection(&auth_token.workspace_id()).await?;
 
         let update_model = UpdateDieselEmployeeContract {
             contract_number: req.contract_number.clone(),
@@ -231,12 +211,7 @@ impl super::EmployeeContractRepository for DieselEmployeeContractRepository {
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&auth_token.workspace_id())
-            .await
-            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("Failed to get connection: {e}")))?;
+            .get_connection(&auth_token.workspace_id()).await?;
         diesel::delete(
             employee_contracts
                 .filter(id.eq(contract_id))
@@ -259,12 +234,7 @@ impl super::EmployeeContractRepository for DieselEmployeeContractRepository {
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&auth_token.workspace_id())
-            .await
-            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("Failed to get connection: {e}")))?;
+            .get_connection(&auth_token.workspace_id()).await?;
 
         let target_date =
             chrono::Utc::now().naive_utc().date() + chrono::Duration::days(days_ahead as i64);
@@ -292,12 +262,7 @@ impl super::EmployeeContractRepository for DieselEmployeeContractRepository {
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&auth_token.workspace_id())
-            .await
-            .map_err(|e| AppError::Internal(format!("db pool error: {e}")))?
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("Failed to get connection: {e}")))?;
+            .get_connection(&auth_token.workspace_id()).await?;
 
         let entity = employee_contracts
             .filter(workspace_id.eq(auth_token.workspace_id()))
@@ -312,5 +277,22 @@ impl super::EmployeeContractRepository for DieselEmployeeContractRepository {
             .map_err(|e| AppError::Internal(format!("db error: {e}")))?;
 
         Ok(entity.map(Into::into))
+    }
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::diesel_pool::DieselPools;
+
+    #[tokio::test]
+    async fn test_repo_initialization() {
+        let test_db_url = std::env::var("DATABASE_URL")
+            .unwrap_or_else(|_| "postgres://user:pass@localhost:5432/leeattend_test_db".to_string());
+        
+        let pools = DieselPools::for_test(&test_db_url);
+        let _repo = DieselEmployeeContractRepository::new(pools);
+        // DI connection test passes if it compiles
     }
 }

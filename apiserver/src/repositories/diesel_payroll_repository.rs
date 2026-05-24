@@ -41,12 +41,7 @@ impl PayrollRepository for DieselPayrollRepository {
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .get_connection(&workspace_id).await?;
 
         let entities = payroll_incentive_policies::table
             .filter(payroll_incentive_policies::workspace_id.eq(workspace_id))
@@ -67,12 +62,7 @@ impl PayrollRepository for DieselPayrollRepository {
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .get_connection(&workspace_id).await?;
 
         let entities = payroll_incentive_policies::table
             .filter(payroll_incentive_policies::workspace_id.eq(workspace_id))
@@ -98,12 +88,7 @@ impl PayrollRepository for DieselPayrollRepository {
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .get_connection(&workspace_id).await?;
 
         let entities = payroll_incentive_tiers::table
             .filter(payroll_incentive_tiers::policy_id.eq(policy_id))
@@ -125,12 +110,7 @@ impl PayrollRepository for DieselPayrollRepository {
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .get_connection(&workspace_id).await?;
 
         let policy_id = crate::utils::id::new_id();
         let entity = crate::models::diesel::payroll::PayrollIncentivePolicyEntity {
@@ -189,12 +169,7 @@ impl PayrollRepository for DieselPayrollRepository {
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .get_connection(&workspace_id).await?;
 
         diesel::delete(
             payroll_incentive_policies::table
@@ -218,12 +193,7 @@ impl PayrollRepository for DieselPayrollRepository {
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .get_connection(&workspace_id).await?;
 
         let (cloned_entity, _tiers) = conn
             .transaction::<_, AppError, _>(|mut conn| {
@@ -304,12 +274,7 @@ impl PayrollRepository for DieselPayrollRepository {
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .get_connection(&workspace_id).await?;
 
         let entity = PayslipIncentiveEntity {
             id: Uuid::new_v4(),
@@ -338,12 +303,7 @@ impl PayrollRepository for DieselPayrollRepository {
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .get_connection(&workspace_id).await?;
 
         let entities = payslip_incentives::table
             .filter(payslip_incentives::payslip_id.eq(payslip_id))
@@ -372,12 +332,7 @@ impl PayrollRepository for DieselPayrollRepository {
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .get_connection(&workspace_id).await?;
 
         let entity = PayslipRuleEvaluationEntity {
             id: Uuid::new_v4(),
@@ -404,12 +359,7 @@ impl PayrollRepository for DieselPayrollRepository {
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .get_connection(&workspace_id).await?;
 
         let entities = payslip_rule_evaluations::table
             .filter(payslip_rule_evaluations::payslip_id.eq(payslip_id))
@@ -437,12 +387,7 @@ impl PayrollRepository for DieselPayrollRepository {
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .get_connection(&workspace_id).await?;
 
         let entity = payroll_settings::table
             .filter(payroll_settings::workspace_id.eq(workspace_id))
@@ -463,12 +408,7 @@ impl PayrollRepository for DieselPayrollRepository {
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .get_connection(&workspace_id).await?;
 
         let entities = payroll_settings::table
             .filter(payroll_settings::workspace_id.eq(workspace_id))
@@ -488,12 +428,7 @@ impl PayrollRepository for DieselPayrollRepository {
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .get_connection(&workspace_id).await?;
 
         let entity = PayrollSettingsEntity {
             workspace_id,
@@ -536,12 +471,7 @@ impl PayrollRepository for DieselPayrollRepository {
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .get_connection(&workspace_id).await?;
 
         let entities = salary_component_definitions::table
             .filter(salary_component_definitions::workspace_id.eq(workspace_id))
@@ -562,12 +492,7 @@ impl PayrollRepository for DieselPayrollRepository {
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .get_connection(&workspace_id).await?;
 
         let entity = SalaryComponentDefinitionEntity {
             id: Uuid::new_v4(),
@@ -600,12 +525,7 @@ impl PayrollRepository for DieselPayrollRepository {
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .get_connection(&workspace_id).await?;
 
         let entity = EmployeeSalaryComponentEntity {
             id: Uuid::new_v4(),
@@ -635,12 +555,7 @@ impl PayrollRepository for DieselPayrollRepository {
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .get_connection(&workspace_id).await?;
 
         let rows = employee_salary_components::table
             .inner_join(salary_component_definitions::table)
@@ -675,12 +590,7 @@ impl PayrollRepository for DieselPayrollRepository {
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&payslip.workspace_id)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .get_connection(&payslip.workspace_id).await?;
 
         let entity = PayslipEntity {
             id: payslip.id,
@@ -728,12 +638,7 @@ impl PayrollRepository for DieselPayrollRepository {
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .get_connection(&workspace_id).await?;
 
         let entities = payslips::table
             .filter(payslips::workspace_id.eq(workspace_id))
@@ -755,12 +660,7 @@ impl PayrollRepository for DieselPayrollRepository {
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .get_connection(&workspace_id).await?;
 
         let entities = payslips::table
             .filter(payslips::workspace_id.eq(workspace_id))
@@ -784,12 +684,7 @@ impl PayrollRepository for DieselPayrollRepository {
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .get_connection(&workspace_id).await?;
 
         // Last component before start_date
         let last_before = employee_salary_components::table
@@ -848,12 +743,7 @@ impl PayrollRepository for DieselPayrollRepository {
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .get_connection(&workspace_id).await?;
 
         let entity = PayslipSegmentEntity {
             id: Uuid::new_v4(),
@@ -897,12 +787,7 @@ impl PayrollRepository for DieselPayrollRepository {
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .get_connection(&workspace_id).await?;
 
         let entities = payslip_segments::table
             .filter(payslip_segments::payslip_id.eq(payslip_id))
@@ -924,12 +809,7 @@ impl PayrollRepository for DieselPayrollRepository {
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .get_connection(&workspace_id).await?;
 
         let sql = r#"
             WITH resolved_assignments AS (
@@ -1011,12 +891,7 @@ impl PayrollRepository for DieselPayrollRepository {
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .get_connection(&workspace_id).await?;
 
         let entities = payroll_rule_tiers::table
             .filter(payroll_rule_tiers::rule_definition_id.eq(rule_definition_id))
@@ -1037,12 +912,7 @@ impl PayrollRepository for DieselPayrollRepository {
         let mut conn = self
             .diesel_pools
             .tenants
-            .get_pool(&workspace_id)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .get_connection(&workspace_id).await?;
 
         let result = crate::schema::department_payroll_configs::table
             .filter(crate::schema::department_payroll_configs::department_id.eq(department_id))
@@ -1055,5 +925,22 @@ impl PayrollRepository for DieselPayrollRepository {
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(result.map(Into::into))
+    }
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::diesel_pool::DieselPools;
+
+    #[tokio::test]
+    async fn test_repo_initialization() {
+        let test_db_url = std::env::var("DATABASE_URL")
+            .unwrap_or_else(|_| "postgres://user:pass@localhost:5432/leeattend_test_db".to_string());
+        
+        let pools = DieselPools::for_test(&test_db_url);
+        let _repo = DieselPayrollRepository::new(pools);
+        // DI connection test passes if it compiles
     }
 }

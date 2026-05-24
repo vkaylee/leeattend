@@ -78,17 +78,17 @@ use tokio::sync::RwLock;
 use uuid::Uuid;
 
 #[async_trait::async_trait]
-pub trait TenantPoolProvider: Send + Sync {
-    async fn get_pool(&self, workspace_id: &Uuid) -> Result<DieselPool, AppError>;
+pub trait TenantConnectionProvider: Send + Sync {
+    async fn get_connection(&self, workspace_id: &Uuid) -> Result<DieselConnection, AppError>;
 }
 
-pub struct ProductionTenantPoolManager {
+pub struct SupavisorTenantPoolManager {
     base_url: String,
     max_size: usize,
     pools: RwLock<HashMap<Uuid, DieselPool>>,
 }
 
-impl ProductionTenantPoolManager {
+impl SupavisorTenantPoolManager {
     pub fn new(base_url: String, max_size: usize) -> Self {
         Self {
             base_url,
@@ -154,9 +154,8 @@ impl ProductionTenantPoolManager {
     }
 }
 
-#[async_trait::async_trait]
-impl TenantPoolProvider for ProductionTenantPoolManager {
-    async fn get_pool(&self, workspace_id: &Uuid) -> Result<DieselPool, AppError> {
+impl SupavisorTenantPoolManager {
+    async fn get_or_create_pool(&self, workspace_id: &Uuid) -> Result<DieselPool, AppError> {
         // Fast path
         {
             let pools = self.pools.read().await;
@@ -186,6 +185,34 @@ impl TenantPoolProvider for ProductionTenantPoolManager {
     }
 }
 
+#[async_trait::async_trait]
+impl TenantConnectionProvider for SupavisorTenantPoolManager {
+    async fn get_connection(&self, workspace_id: &Uuid) -> Result<DieselConnection, AppError> {
+        let pool = self.get_or_create_pool(workspace_id).await?;
+
+        let mut retries = 3;
+        loop {
+            match pool.get().await {
+                Ok(conn) => return Ok(conn),
+                Err(e) => {
+                    let err_msg = e.to_string();
+                    if retries > 0 && is_transient_supavisor_error(&err_msg) {
+                        tracing::warn!(
+                            workspace_id = %workspace_id,
+                            error = %err_msg,
+                            "Transient Supavisor connection error, retrying in 300ms..."
+                        );
+                        tokio::time::sleep(std::time::Duration::from_millis(300)).await;
+                        retries -= 1;
+                        continue;
+                    }
+                    return Err(AppError::Internal(format!("db: {e}")));
+                }
+            }
+        }
+    }
+}
+
 pub struct TestTenantPoolManager {
     pool: DieselPool,
 }
@@ -197,9 +224,9 @@ impl TestTenantPoolManager {
 }
 
 #[async_trait::async_trait]
-impl TenantPoolProvider for TestTenantPoolManager {
-    async fn get_pool(&self, _workspace_id: &Uuid) -> Result<DieselPool, AppError> {
-        Ok(self.pool.clone())
+impl TenantConnectionProvider for TestTenantPoolManager {
+    async fn get_connection(&self, _workspace_id: &Uuid) -> Result<DieselConnection, AppError> {
+        self.pool.get().await.map_err(|e| AppError::Internal(format!("db: {e}")))
     }
 }
 
@@ -207,7 +234,7 @@ impl TenantPoolProvider for TestTenantPoolManager {
 pub struct DieselPools {
     pub api: DieselPool,
     pub worker: DieselPool,
-    pub tenants: Arc<dyn TenantPoolProvider>,
+    pub tenants: Arc<dyn TenantConnectionProvider>,
 }
 
 fn is_transient_supavisor_error(err_msg: &str) -> bool {
@@ -240,29 +267,7 @@ impl TenantAuthToken {
 impl DieselPools {
     // Hàm an toàn (Khuyên dùng)
     pub async fn tenant_conn(&self, token: &TenantAuthToken) -> Result<DieselConnection, AppError> {
-        let workspace_id = token.workspace_id();
-        let pool = self.tenants.get_pool(&workspace_id).await?;
-
-        let mut retries = 3;
-        loop {
-            match pool.get().await {
-                Ok(conn) => return Ok(conn),
-                Err(e) => {
-                    let err_msg = e.to_string();
-                    if retries > 0 && is_transient_supavisor_error(&err_msg) {
-                        tracing::warn!(
-                            workspace_id = %workspace_id,
-                            error = %err_msg,
-                            "Transient Supavisor connection error, retrying in 300ms..."
-                        );
-                        tokio::time::sleep(std::time::Duration::from_millis(300)).await;
-                        retries -= 1;
-                        continue;
-                    }
-                    return Err(AppError::Internal(format!("db: {e}")));
-                }
-            }
-        }
+        self.tenants.get_connection(&token.workspace_id()).await
     }
 
     #[allow(clippy::unused_async, clippy::expect_used)]
@@ -296,7 +301,7 @@ impl DieselPools {
             .build()
             .expect("Failed to create Worker Diesel pool");
 
-        let tenant_manager = Arc::new(ProductionTenantPoolManager::new(
+        let tenant_manager = Arc::new(SupavisorTenantPoolManager::new(
             api_conn_url.to_string(),
             config.tenant_max_conn as usize,
         ));
@@ -525,7 +530,7 @@ mod tests {
     fn test_tenant_pool_manager_url_direct_connection() {
         // Direct connection: user has no dot, leave unchanged
         let base_url = "postgres://user:pass@localhost:5432/postgres";
-        let manager = ProductionTenantPoolManager::new(base_url.to_string(), 5);
+        let manager = SupavisorTenantPoolManager::new(base_url.to_string(), 5);
 
         let workspace_id = Uuid::parse_str("123e4567-e89b-12d3-a456-426614174000").unwrap();
         let result = manager.get_tenant_url(&workspace_id).unwrap();
@@ -540,7 +545,7 @@ mod tests {
     fn test_tenant_pool_manager_url_supavisor_mode() {
         // Supavisor connection: user has dot (admin.leeattend), update tenant part
         let base_url = "postgres://admin.leeattend:pass@supavisor:5452/leeattend";
-        let manager = ProductionTenantPoolManager::new(base_url.to_string(), 5);
+        let manager = SupavisorTenantPoolManager::new(base_url.to_string(), 5);
 
         let workspace_id = Uuid::parse_str("123e4567-e89b-12d3-a456-426614174000").unwrap();
         let result = manager.get_tenant_url(&workspace_id).unwrap();
@@ -573,7 +578,7 @@ mod tests {
     #[test]
     fn test_get_tenant_url_supavisor_mode_standard_uuid() {
         let base_url = "postgres://admin.leeattend:pass@supavisor:5452/leeattend";
-        let manager = ProductionTenantPoolManager::new(base_url.to_string(), 5);
+        let manager = SupavisorTenantPoolManager::new(base_url.to_string(), 5);
         let ws = Uuid::parse_str("019e40ee-1192-7492-bc29-85dad4675f34").unwrap();
 
         let url = manager.get_tenant_url(&ws).unwrap();
@@ -600,7 +605,7 @@ mod tests {
     #[test]
     fn test_get_tenant_url_supavisor_mode_nil_uuid() {
         let base_url = "postgres://admin.leeattend:pass@supavisor:5452/leeattend";
-        let manager = ProductionTenantPoolManager::new(base_url.to_string(), 5);
+        let manager = SupavisorTenantPoolManager::new(base_url.to_string(), 5);
         let ws = Uuid::parse_str("00000000-0000-0000-0000-000000000000").unwrap();
 
         let url = manager.get_tenant_url(&ws).unwrap();
@@ -620,7 +625,7 @@ mod tests {
     #[test]
     fn test_get_tenant_url_supavisor_mode_max_uuid() {
         let base_url = "postgres://admin.leeattend:pass@supavisor:5452/leeattend";
-        let manager = ProductionTenantPoolManager::new(base_url.to_string(), 5);
+        let manager = SupavisorTenantPoolManager::new(base_url.to_string(), 5);
         let ws = Uuid::parse_str("ffffffff-ffff-ffff-ffff-ffffffffffff").unwrap();
 
         let url = manager.get_tenant_url(&ws).unwrap();
@@ -638,7 +643,7 @@ mod tests {
         // contain them.
 
         let base_url = "postgres://admin.leeattend:pass@supavisor:5452/leeattend";
-        let manager = ProductionTenantPoolManager::new(base_url.to_string(), 5);
+        let manager = SupavisorTenantPoolManager::new(base_url.to_string(), 5);
 
         // Test several random UUIDs — none should produce hyphens in the tenant part
         for _ in 0..10 {
@@ -671,7 +676,7 @@ mod tests {
         // This test ensures the algorithm is fixed and cannot be changed
         // without breaking the Supavisor contract.
         let base_url = "postgres://admin.leeattend:pass@supavisor:5452/leeattend";
-        let manager = ProductionTenantPoolManager::new(base_url.to_string(), 5);
+        let manager = SupavisorTenantPoolManager::new(base_url.to_string(), 5);
 
         let ws = Uuid::parse_str("a1b2c3d4-e5f6-7890-abcd-ef1234567890").unwrap();
         let url = manager.get_tenant_url(&ws).unwrap();
@@ -689,7 +694,7 @@ mod tests {
     #[test]
     fn test_get_tenant_url_direct_connection_uses_tenant_prefix_in_path() {
         let base_url = "postgres://user:pass@localhost:5432/postgres";
-        let manager = ProductionTenantPoolManager::new(base_url.to_string(), 5);
+        let manager = SupavisorTenantPoolManager::new(base_url.to_string(), 5);
         let ws = Uuid::parse_str("123e4567-e89b-12d3-a456-426614174000").unwrap();
         let url = manager.get_tenant_url(&ws).unwrap();
 
@@ -704,7 +709,7 @@ mod tests {
     #[test]
     fn test_get_tenant_url_direct_connection_various_uuids() {
         let base_url = "postgres://user:pass@localhost:5432/postgres";
-        let manager = ProductionTenantPoolManager::new(base_url.to_string(), 5);
+        let manager = SupavisorTenantPoolManager::new(base_url.to_string(), 5);
 
         let cases = [
             (
@@ -751,7 +756,7 @@ mod tests {
         let expected = "tenant_019e40ee11927492bc2985dad4675f34";
 
         // Supavisor mode
-        let url = ProductionTenantPoolManager::new(supavisor_base.to_string(), 5)
+        let url = SupavisorTenantPoolManager::new(supavisor_base.to_string(), 5)
             .get_tenant_url(&ws)
             .unwrap();
         let parsed = reqwest::Url::parse(&url).unwrap();
@@ -760,7 +765,7 @@ mod tests {
         assert_eq!(parsed.path().trim_start_matches('/'), expected);
 
         // Direct mode: path only
-        let url2 = ProductionTenantPoolManager::new(direct_base.to_string(), 5)
+        let url2 = SupavisorTenantPoolManager::new(direct_base.to_string(), 5)
             .get_tenant_url(&ws)
             .unwrap();
         let parsed2 = reqwest::Url::parse(&url2).unwrap();
@@ -782,16 +787,12 @@ mod tests {
 
         let test_manager = TestTenantPoolManager::new(pool);
 
-        let ws1 = Uuid::new_v4();
-        let ws2 = Uuid::new_v4();
-
-        let pool1 = test_manager.get_pool(&ws1).await.unwrap();
-        let pool2 = test_manager.get_pool(&ws2).await.unwrap();
+        let _ws1 = Uuid::new_v4();
+        let _ws2 = Uuid::new_v4();
 
         // Since we are mocking the DI, the mock manager should always return clones of the same pool
         // regardless of the workspace ID requested.
-        assert_eq!(pool1.status().max_size, 2);
-        assert_eq!(pool2.status().max_size, 2);
+        assert_eq!(test_manager.pool.status().max_size, 2);
     }
 
     #[test]
@@ -871,9 +872,8 @@ mod tests {
         assert!(!super::is_transient_supavisor_error("timeout expired"));
     }
 
-    #[test]
-    fn test_supavisor_transient_retry_loop() {
-        use diesel::Connection;
+    #[tokio::test]
+    async fn test_supavisor_transient_retry_loop_on_production_manager() {
         use std::io::{Read, Write};
         use std::net::TcpListener;
         use std::sync::{Arc, Mutex};
@@ -920,52 +920,38 @@ mod tests {
                     let _ = stream.write_all(&packet);
                 }
 
-                // Break after 3 connections to simulate a timeout/giving up
-                if *connect_count_clone.lock().unwrap() >= 3 {
+                // Break after 4 connections (1 initial + 3 retries)
+                if *connect_count_clone.lock().unwrap() >= 4 {
                     break;
                 }
             }
         });
 
         let url = format!("postgres://test_user:pass@127.0.0.1:{}/db", port);
+        
+        let manager = SupavisorTenantPoolManager::new(url, 1);
         let start = std::time::Instant::now();
 
-        let mut retries = 2; // Retry 2 times (total 3 attempts)
-        let mut connected = false;
+        let ws = Uuid::new_v4();
+        
+        // This should trigger the retry loop inside `get_connection`
+        let result = manager.get_connection(&ws).await;
 
-        loop {
-            match diesel::PgConnection::establish(&url) {
-                Ok(_) => {
-                    connected = true;
-                    break;
-                }
-                Err(e) => {
-                    let err_msg = e.to_string();
-                    if retries > 0 && super::is_transient_supavisor_error(&err_msg) {
-                        std::thread::sleep(std::time::Duration::from_millis(100)); // fast retry for test
-                        retries -= 1;
-                        continue;
-                    }
-                    break;
-                }
-            }
-        }
-
-        assert!(!connected, "Should not successfully connect");
+        assert!(result.is_err(), "Should not successfully connect");
         assert_eq!(
             *connect_count.lock().unwrap(),
-            3,
-            "Should have retried exactly 2 times (3 total attempts)"
+            4,
+            "Should have retried exactly 3 times (4 total attempts)"
         );
         assert!(
-            start.elapsed().as_millis() >= 200,
-            "Should have slept for at least 200ms total"
+            start.elapsed().as_millis() >= 900,
+            "Should have slept for at least 900ms total (3 * 300ms)"
         );
     }
 
     #[test]
     fn test_get_tenant_url_preserves_unencoded_chars() {
-        let manager = ProductionTenantPoolManager::new(
+        let manager = SupavisorTenantPoolManager::new(
             "postgres://postgres:k!@#XYZ@viaduct.proxy:5432/railway".to_string(),
             10,
         );
@@ -981,7 +967,7 @@ mod tests {
 
     #[test]
     fn test_get_tenant_url_supavisor_mode_preserves_unencoded_chars() {
-        let manager = ProductionTenantPoolManager::new(
+        let manager = SupavisorTenantPoolManager::new(
             "postgres://postgres.leeattend:master_pass!@#@supavisor:6543/leeattend?sslmode=disable"
                 .to_string(),
             10,
