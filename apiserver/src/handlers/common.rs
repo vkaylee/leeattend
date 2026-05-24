@@ -397,21 +397,17 @@ where
     type Rejection = AppError;
 
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
-        let UserId(user_id) = UserId::from_request_parts(parts, state).await?;
-        let api_context = ApiContext::from_request_parts(parts, state).await?;
+        // 1. Verify MemberContext FIRST! This queries the System DB and ensures 
+        // the workspace exists and the user is actually a member, preventing DoS 
+        // attacks where an attacker just sends a random X-Workspace-Id and forces 
+        // a connection to Supavisor.
+        let member_ctx = MemberContext::from_request_parts(parts, state).await?;
 
-        let workspace_id = match api_context {
-            ApiContext::Tenant(ws_id) => ws_id.into_inner(),
-            ApiContext::System => {
-                return Err(AppError::Forbidden(
-                    "Cannot use Tenant context (EmployeeContext) in a System route".to_string(),
-                ))
-            }
-        };
-
+        let workspace_id = member_ctx.workspace_id;
+        let user_id = member_ctx.user_id;
         let app_state = Arc::<AppState>::from_ref(state);
 
-        // Find employee linked to this user in this workspace
+        // 2. Find employee linked to this user in this workspace
         let employee_id = app_state
             .employees
             .repo
