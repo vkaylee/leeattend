@@ -164,50 +164,50 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
             .await?;
         let workspace_id = auth_token.workspace_id();
 
-        conn.transaction(|mut conn| {
+        conn.transaction(|conn| {
             Box::pin(async move {
                 let ws_id = workspace_id;
 
                 match group {
                     "attendance" => {
-                        crate::crud_sql_query!(&mut conn, "DELETE FROM time_entries WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
-                        crate::crud_sql_query!(&mut conn, "DELETE FROM raw_attendance_logs WHERE workspace_id = $1").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
-                        crate::crud_sql_query!(&mut conn, "DELETE FROM attendance_adjustment_requests WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
-                        crate::crud_sql_query!(&mut conn, "DELETE FROM attendance_import_jobs WHERE workspace_id = $1").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
+                        diesel::sql_query("DELETE FROM time_entries WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
+                        diesel::sql_query("DELETE FROM raw_attendance_logs WHERE workspace_id = $1").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
+                        diesel::sql_query("DELETE FROM attendance_adjustment_requests WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
+                        diesel::sql_query("DELETE FROM attendance_import_jobs WHERE workspace_id = $1").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
                     }
                     "schedules" => {
-                        crate::crud_sql_query!(&mut conn, "DELETE FROM shift_rosters WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
-                        crate::crud_sql_query!(&mut conn, "DELETE FROM employee_shifts WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
+                        diesel::sql_query("DELETE FROM shift_rosters WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
+                        diesel::sql_query("DELETE FROM employee_shifts WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
                     }
                     "leave" => {
-                        crate::crud_sql_query!(&mut conn, "DELETE FROM leave_accrual_logs WHERE workspace_id = $1").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
-                        crate::crud_sql_query!(&mut conn, "DELETE FROM leave_requests WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
-                        crate::crud_sql_query!(&mut conn, "DELETE FROM leave_balances WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
+                        diesel::sql_query("DELETE FROM leave_accrual_logs WHERE workspace_id = $1").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
+                        diesel::sql_query("DELETE FROM leave_requests WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
+                        diesel::sql_query("DELETE FROM leave_balances WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
                     }
                     "payroll" => {
-                        crate::crud_sql_query!(&mut conn, "DELETE FROM payslips WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
-                        crate::crud_sql_query!(&mut conn, "DELETE FROM employee_salary_components WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
-                        crate::crud_sql_query!(&mut conn, "DELETE FROM salary_component_definitions WHERE workspace_id = $1").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
+                        diesel::sql_query("DELETE FROM payslips WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
+                        diesel::sql_query("DELETE FROM employee_salary_components WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
+                        diesel::sql_query("DELETE FROM salary_component_definitions WHERE workspace_id = $1").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
                     }
                     "full_reset" => {
-                        crate::crud_sql_query!(&mut conn, "DELETE FROM time_entries WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
-                        crate::crud_sql_query!(&mut conn, "DELETE FROM raw_attendance_logs WHERE workspace_id = $1").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
-                        crate::crud_sql_query!(&mut conn, "DELETE FROM attendance_adjustment_requests WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
-                        crate::crud_sql_query!(&mut conn, "DELETE FROM attendance_import_jobs WHERE workspace_id = $1").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
-                        crate::crud_sql_query!(&mut conn, "DELETE FROM shift_rosters WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
-                        crate::crud_sql_query!(&mut conn, "DELETE FROM employee_shifts WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
-                        crate::crud_sql_query!(&mut conn, "DELETE FROM leave_accrual_logs WHERE workspace_id = $1").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
-                        crate::crud_sql_query!(&mut conn, "DELETE FROM leave_requests WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
-                        crate::crud_sql_query!(&mut conn, "DELETE FROM leave_balances WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
-                        crate::crud_sql_query!(&mut conn, "DELETE FROM payslips WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
-                        crate::crud_sql_query!(&mut conn, "DELETE FROM employee_salary_components WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
-                        crate::crud_sql_query!(&mut conn, "DELETE FROM salary_component_definitions WHERE workspace_id = $1").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
-                        crate::crud_sql_query!(&mut conn, "DELETE FROM employee_department_history WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
-                        crate::crud_sql_query!(&mut conn, "DELETE FROM leave_policy_assignments WHERE workspace_id = $1").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
-                        crate::crud_sql_query!(&mut conn, "DELETE FROM leave_policy_definitions WHERE workspace_id = $1").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
-                        crate::crud_sql_query!(&mut conn, "DELETE FROM employees WHERE workspace_id = $1").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
-                        crate::crud_sql_query!(&mut conn, "DELETE FROM shifts WHERE workspace_id = $1").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
-                        crate::crud_sql_query!(&mut conn, "DELETE FROM departments WHERE workspace_id = $1").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
+                        diesel::sql_query("DELETE FROM time_entries WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
+                        diesel::sql_query("DELETE FROM raw_attendance_logs WHERE workspace_id = $1").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
+                        diesel::sql_query("DELETE FROM attendance_adjustment_requests WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
+                        diesel::sql_query("DELETE FROM attendance_import_jobs WHERE workspace_id = $1").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
+                        diesel::sql_query("DELETE FROM shift_rosters WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
+                        diesel::sql_query("DELETE FROM employee_shifts WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
+                        diesel::sql_query("DELETE FROM leave_accrual_logs WHERE workspace_id = $1").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
+                        diesel::sql_query("DELETE FROM leave_requests WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
+                        diesel::sql_query("DELETE FROM leave_balances WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
+                        diesel::sql_query("DELETE FROM payslips WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
+                        diesel::sql_query("DELETE FROM employee_salary_components WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
+                        diesel::sql_query("DELETE FROM salary_component_definitions WHERE workspace_id = $1").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
+                        diesel::sql_query("DELETE FROM employee_department_history WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
+                        diesel::sql_query("DELETE FROM leave_policy_assignments WHERE workspace_id = $1").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
+                        diesel::sql_query("DELETE FROM leave_policy_definitions WHERE workspace_id = $1").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
+                        diesel::sql_query("DELETE FROM employees WHERE workspace_id = $1").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
+                        diesel::sql_query("DELETE FROM shifts WHERE workspace_id = $1").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
+                        diesel::sql_query("DELETE FROM departments WHERE workspace_id = $1").bind::<diesel::sql_types::Uuid, _>(ws_id).execute(&mut *conn).await?;
                     }
                     _ => return Err(diesel::result::Error::RollbackTransaction),
                 }
@@ -362,9 +362,7 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
             avatar_url: Option<String>,
         }
 
-        let results: Vec<Entity> = crate::crud_sql_query!(
-            &mut conn,
-            "SELECT wm.workspace_id, wm.user_id, wm.role_id, u.email, u.full_name, u.avatar_url
+        let results: Vec<Entity> = diesel::sql_query("SELECT wm.workspace_id, wm.user_id, wm.role_id, u.email, u.full_name, u.avatar_url
              FROM workspace_members wm
              JOIN users u ON wm.user_id = u.id
              WHERE wm.workspace_id = $1",
@@ -407,9 +405,7 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
         }
 
         // We use ANY to check against the permissions array safely
-        let results: Vec<UserIdEntity> = crate::crud_sql_query!(
-            &mut conn,
-            r#"
+        let results: Vec<UserIdEntity> = diesel::sql_query(r#"
             SELECT DISTINCT wm.user_id
             FROM workspace_members wm
             JOIN workspace_roles wr ON wm.role_id = wr.id
@@ -537,9 +533,7 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
             assigned_at: chrono::DateTime<chrono::Utc>,
         }
 
-        let results: Vec<Entity> = crate::crud_sql_query!(
-            &mut conn,
-            "SELECT id, workspace_id, user_id, permission, expires_at, assigned_by, assigned_at
+        let results: Vec<Entity> = diesel::sql_query("SELECT id, workspace_id, user_id, permission, expires_at, assigned_by, assigned_at
              FROM workspace_member_extra_permissions
              WHERE workspace_id = $1 AND user_id = $2 AND expires_at > NOW()
              ORDER BY assigned_at DESC",
@@ -598,8 +592,7 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
             assigned_at: chrono::DateTime<chrono::Utc>,
         }
 
-        let entity: Entity = crate::crud_sql_query!(&mut conn,
-            "INSERT INTO workspace_member_extra_permissions (workspace_id, user_id, permission, expires_at, assigned_by)
+        let entity: Entity = diesel::sql_query("INSERT INTO workspace_member_extra_permissions (workspace_id, user_id, permission, expires_at, assigned_by)
              VALUES ($1, $2, $3, $4, $5) RETURNING *"
         )
         .bind::<diesel::sql_types::Uuid, _>(workspace_id)
@@ -696,9 +689,7 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?,
         );
 
-        let affected = crate::crud_sql_query!(
-            &mut conn,
-            "DELETE FROM member_extra_roles WHERE id = $1 AND workspace_id = $2"
+        let affected = diesel::sql_query("DELETE FROM member_extra_roles WHERE id = $1 AND workspace_id = $2"
         )
         .bind::<diesel::sql_types::Uuid, _>(extra_role_id)
         .bind::<diesel::sql_types::Uuid, _>(workspace_id)
@@ -743,8 +734,7 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
             scope_type: String,
         }
 
-        let results: Vec<Entity> = crate::crud_sql_query!(&mut conn,
-            "SELECT * FROM workspace_roles WHERE workspace_id = $1 OR is_system = true ORDER BY is_system DESC, created_at ASC"
+        let results: Vec<Entity> = diesel::sql_query("SELECT * FROM workspace_roles WHERE workspace_id = $1 OR is_system = true ORDER BY is_system DESC, created_at ASC"
         )
         .bind::<diesel::sql_types::Uuid, _>(workspace_id)
         .load(&mut *conn)
@@ -805,8 +795,7 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
             scope_type: String,
         }
 
-        let entity: Entity = crate::crud_sql_query!(&mut conn,
-            "INSERT INTO workspace_roles (workspace_id, name, description, color, is_system, scope_type) VALUES ($1, $2, $3, $4, false, $5) RETURNING *"
+        let entity: Entity = diesel::sql_query("INSERT INTO workspace_roles (workspace_id, name, description, color, is_system, scope_type) VALUES ($1, $2, $3, $4, false, $5) RETURNING *"
         )
         .bind::<diesel::sql_types::Uuid, _>(workspace_id)
         .bind::<diesel::sql_types::Text, _>(name)
@@ -868,8 +857,7 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
             scope_type: String,
         }
 
-        let result: Option<Entity> = crate::crud_sql_query!(&mut conn,
-            "UPDATE workspace_roles SET name = COALESCE($1, name), description = COALESCE($2, description), color = COALESCE($3, color), updated_at = NOW() WHERE id = $4 AND workspace_id = $5 AND is_system = false RETURNING *"
+        let result: Option<Entity> = diesel::sql_query("UPDATE workspace_roles SET name = COALESCE($1, name), description = COALESCE($2, description), color = COALESCE($3, color), updated_at = NOW() WHERE id = $4 AND workspace_id = $5 AND is_system = false RETURNING *"
         )
         .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(name)
         .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(description)
@@ -908,8 +896,7 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
         );
 
         let affected =
-            crate::crud_sql_query!(&mut conn,
-            "DELETE FROM workspace_roles WHERE id = $1 AND workspace_id = $2 AND is_system = false",
+            diesel::sql_query("DELETE FROM workspace_roles WHERE id = $1 AND workspace_id = $2 AND is_system = false",
         )
             .bind::<diesel::sql_types::Uuid, _>(role_id)
             .bind::<diesel::sql_types::Uuid, _>(workspace_id)
@@ -939,8 +926,7 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
             permission_name: String,
         }
 
-        let results: Vec<StringEntity> = crate::crud_sql_query!(&mut conn,
-            "SELECT permission_name FROM workspace_role_permissions WHERE role_id = $1 AND role_id IN (SELECT id FROM workspace_roles WHERE workspace_id = $2 OR is_system = true)"
+        let results: Vec<StringEntity> = diesel::sql_query("SELECT permission_name FROM workspace_role_permissions WHERE role_id = $1 AND role_id IN (SELECT id FROM workspace_roles WHERE workspace_id = $2 OR is_system = true)"
         )
         .bind::<diesel::sql_types::Uuid, _>(role_id)
         .bind::<diesel::sql_types::Uuid, _>(workspace_id)
@@ -970,8 +956,7 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
             exists: bool,
         }
 
-        let result: Exists = crate::crud_sql_query!(&mut conn,
-            "SELECT EXISTS(SELECT 1 FROM workspace_roles WHERE id = $1 AND workspace_id = $2 AND is_system = false) as exists"
+        let result: Exists = diesel::sql_query("SELECT EXISTS(SELECT 1 FROM workspace_roles WHERE id = $1 AND workspace_id = $2 AND is_system = false) as exists"
         )
         .bind::<diesel::sql_types::Uuid, _>(role_id)
         .bind::<diesel::sql_types::Uuid, _>(workspace_id)
@@ -996,16 +981,15 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?,
         );
 
-        conn.transaction(|mut conn| {
+        conn.transaction(|conn| {
             Box::pin(async move {
-                crate::crud_sql_query!(&mut conn, "DELETE FROM workspace_role_permissions WHERE role_id = $1")
+                diesel::sql_query("DELETE FROM workspace_role_permissions WHERE role_id = $1")
                     .bind::<diesel::sql_types::Uuid, _>(role_id)
                     .execute(&mut *conn)
                     .await?;
 
                 for perm in permissions {
-                    crate::crud_sql_query!(&mut conn,
-                        "INSERT INTO workspace_role_permissions (role_id, permission_name) VALUES ($1, $2)",
+                    diesel::sql_query("INSERT INTO workspace_role_permissions (role_id, permission_name) VALUES ($1, $2)",
                     )
                     .bind::<diesel::sql_types::Uuid, _>(role_id)
                     .bind::<diesel::sql_types::Text, _>(perm)

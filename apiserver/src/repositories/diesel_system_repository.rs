@@ -25,7 +25,7 @@ impl SystemRepository for DieselSystemRepository {
                 .map_err(|e| AppError::Internal(format!("db conn error: {e}")))?,
         );
 
-        crate::system_crud_query!(&mut conn, query)
+        diesel::sql_query(query)
             .execute(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("failed to execute query: {e}")))?;
@@ -46,7 +46,7 @@ impl SystemRepository for DieselSystemRepository {
                 .map_err(|e| AppError::Internal(format!("db conn error: {e}")))?,
         );
 
-        crate::crud_sql_query!(&mut conn, query)
+        diesel::sql_query(query)
             .execute(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("failed to execute query: {e}")))?;

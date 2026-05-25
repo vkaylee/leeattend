@@ -36,41 +36,6 @@ impl std::ops::DerefMut for SessionConn {
     }
 }
 
-/// Macro for safely executing CRUD raw SQL on a TransactionConn
-#[macro_export]
-macro_rules! crud_sql_query {
-    ($conn:expr, $sql:expr $(,)?) => {{
-        // Type-check that $conn is exactly &mut TransactionConn
-        let _check: &mut $crate::diesel_pool::TransactionConn = $conn;
-
-        #[allow(clippy::disallowed_methods)]
-        diesel::sql_query($sql)
-    }};
-}
-
-/// Macro for safely executing stateful SQL on a SessionConn
-#[macro_export]
-macro_rules! stateful_session_query {
-    ($conn:expr, $sql:expr $(,)?) => {{
-        // Type-check that $conn is exactly &mut SessionConn
-        let _check: &mut $crate::diesel_pool::SessionConn = $conn;
-
-        #[allow(clippy::disallowed_methods)]
-        diesel::sql_query($sql)
-    }};
-}
-
-/// Macro for safely executing CRUD raw SQL on a System DB connection
-#[macro_export]
-macro_rules! system_crud_query {
-    ($conn:expr, $sql:expr $(,)?) => {{
-        // Type-check that $conn is exactly &mut DieselConnection (System DB)
-        let _check: &mut $crate::diesel_pool::DieselConnection = $conn;
-
-        #[allow(clippy::disallowed_methods)]
-        diesel::sql_query($sql)
-    }};
-}
 
 /// Configuration for all database pools, read from environment variables.
 #[derive(Debug, Clone)]

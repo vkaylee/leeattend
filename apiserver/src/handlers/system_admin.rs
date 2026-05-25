@@ -78,9 +78,7 @@ pub async fn list_system_roles(
 
     use diesel_async::RunQueryDsl;
 
-    let rows: Vec<RoleRow> = crate::system_crud_query!(
-        &mut conn,
-        r#"
+    let rows: Vec<RoleRow> = diesel::sql_query(r#"
         SELECT id, name, description
           FROM system_roles
          ORDER BY name
@@ -103,9 +101,7 @@ pub async fn list_system_roles(
     }
 
     for row in rows {
-        let assignees_rows: Vec<AssigneeRow> = crate::system_crud_query!(
-            &mut conn,
-            r#"
+        let assignees_rows: Vec<AssigneeRow> = diesel::sql_query(r#"
             SELECT user_id, assigned_by, assigned_at
               FROM user_system_roles
              WHERE role_id = $1
@@ -165,9 +161,7 @@ pub async fn get_user_system_roles(
 
     use diesel_async::RunQueryDsl;
 
-    let roles: Vec<RoleNameRow> = crate::system_crud_query!(
-        &mut conn,
-        r#"
+    let roles: Vec<RoleNameRow> = diesel::sql_query(r#"
         SELECT sr.name
           FROM user_system_roles usr
           JOIN system_roles sr ON sr.id = usr.role_id
@@ -214,7 +208,7 @@ pub async fn assign_system_role(
 
     // Resolve role_id from name
     let role_id_row: Option<RoleIdRow> =
-        crate::system_crud_query!(&mut conn, "SELECT id FROM system_roles WHERE name = $1")
+        diesel::sql_query("SELECT id FROM system_roles WHERE name = $1")
             .bind::<diesel::sql_types::Text, _>(req.role_name.to_string())
             .get_result(&mut *conn)
             .await
@@ -226,9 +220,7 @@ pub async fn assign_system_role(
         .ok_or_else(|| AppError::NotFound(format!("System role '{}' not found", req.role_name)))?;
 
     // Upsert — idempotent assign
-    crate::system_crud_query!(
-        &mut conn,
-        r#"
+    diesel::sql_query(r#"
         INSERT INTO user_system_roles (user_id, role_id, assigned_by)
              VALUES ($1, $2, $3)
         ON CONFLICT (user_id, role_id) DO NOTHING
@@ -290,9 +282,7 @@ pub async fn revoke_system_role(
             count: i64,
         }
 
-        let count_row: CountRow = crate::system_crud_query!(
-            &mut conn,
-            r#"
+        let count_row: CountRow = diesel::sql_query(r#"
             SELECT COUNT(*) as count
               FROM user_system_roles usr
               JOIN system_roles sr ON sr.id = usr.role_id
@@ -310,9 +300,7 @@ pub async fn revoke_system_role(
         }
     }
 
-    let res = crate::system_crud_query!(
-        &mut conn,
-        r#"
+    let res = diesel::sql_query(r#"
         DELETE FROM user_system_roles
          WHERE user_id = $1
            AND role_id = (SELECT id FROM system_roles WHERE name = $2)

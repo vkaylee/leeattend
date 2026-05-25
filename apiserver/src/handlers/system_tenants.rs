@@ -117,7 +117,7 @@ pub async fn list_tenants(
     }
 
     let workspaces: Vec<(Uuid, String)> =
-        crate::system_crud_query!(&mut conn, "SELECT id, name FROM workspaces")
+        diesel::sql_query("SELECT id, name FROM workspaces")
             .load::<WsRow>(&mut *conn)
             .await
             .map(|rows| rows.into_iter().map(|r| (r.id, r.name)).collect())
@@ -140,9 +140,7 @@ pub async fn list_tenants(
         updated_at: chrono::NaiveDateTime,
     }
 
-    let tenants_result = crate::system_crud_query!(
-        &mut conn,
-        r#"
+    let tenants_result = diesel::sql_query(r#"
         SELECT external_id, default_pool_size, inserted_at, updated_at
         FROM _supavisor.tenants
         ORDER BY inserted_at DESC
@@ -250,9 +248,7 @@ pub async fn create_tenant(
         .await
         .map_err(|e| AppError::Internal(e.to_string()))?;
 
-    crate::system_crud_query!(
-        &mut conn,
-        r#"
+    diesel::sql_query(r#"
         INSERT INTO system_audit_logs (id, actor_id, action, details, created_at)
         VALUES ($1, $2, 'tenant.create', $3, NOW())
         "#,
@@ -293,9 +289,7 @@ pub async fn delete_tenant_handler(
         "tenant_id": tenant_id
     });
 
-    crate::system_crud_query!(
-        &mut conn,
-        r#"
+    diesel::sql_query(r#"
         INSERT INTO system_audit_logs (id, actor_id, action, details, created_at)
         VALUES ($1, $2, 'tenant.delete', $3, NOW())
         "#,
@@ -382,9 +376,7 @@ pub async fn update_tenant_database(
         .await
         .map_err(|e| AppError::Internal(e.to_string()))?;
 
-    crate::system_crud_query!(
-        &mut conn,
-        r#"
+    diesel::sql_query(r#"
         INSERT INTO system_audit_logs (id, actor_id, action, details, created_at)
         VALUES ($1, $2, 'tenant.update_db', $3, NOW())
         "#,
@@ -478,7 +470,7 @@ pub async fn list_stale_tenants(
     }
 
     let workspace_ids: Vec<Uuid> =
-        crate::system_crud_query!(&mut conn, "SELECT id FROM workspaces")
+        diesel::sql_query("SELECT id FROM workspaces")
             .load::<WsRow>(&mut *conn)
             .await
             .map(|rows| rows.into_iter().map(|r| r.id).collect())
@@ -505,9 +497,7 @@ pub async fn list_stale_tenants(
         updated_at: chrono::NaiveDateTime,
     }
 
-    let tenants_result = crate::system_crud_query!(
-        &mut conn,
-        r#"
+    let tenants_result = diesel::sql_query(r#"
         SELECT external_id, default_pool_size, inserted_at, updated_at
         FROM _supavisor.tenants
         ORDER BY inserted_at DESC

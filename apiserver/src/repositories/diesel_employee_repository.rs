@@ -136,7 +136,7 @@ impl EmployeeRepository for DieselEmployeeRepository {
         let query = format!(
             "{EMPLOYEE_SELECT_QUERY} WHERE e.workspace_id = $1 AND e.employee_id_number = $2"
         );
-        let emp: Option<EmployeeRow> = crate::crud_sql_query!(&mut conn, &query)
+        let emp: Option<EmployeeRow> = diesel::sql_query(&query)
             .bind::<UuidType, _>(workspace_id)
             .bind::<diesel::sql_types::Text, _>(normalized_id)
             .get_result(&mut *conn)
@@ -162,7 +162,7 @@ impl EmployeeRepository for DieselEmployeeRepository {
         );
 
         let query = format!("{EMPLOYEE_SELECT_QUERY} WHERE e.id = $1 AND e.workspace_id = $2");
-        let emp: Option<EmployeeRow> = crate::crud_sql_query!(&mut conn, &query)
+        let emp: Option<EmployeeRow> = diesel::sql_query(&query)
             .bind::<UuidType, _>(id)
             .bind::<UuidType, _>(workspace_id)
             .get_result(&mut *conn)
@@ -232,7 +232,7 @@ impl EmployeeRepository for DieselEmployeeRepository {
         let dept_ids = options.department_ids.clone();
 
         let total_row: CountRow = if search_sql.has_search {
-            crate::crud_sql_query!(&mut conn, &count_sql)
+            diesel::sql_query(&count_sql)
                 .bind::<UuidType, _>(workspace_id)
                 .bind::<Nullable<Text>, _>(count_search_param)
                 .bind::<Nullable<Array<UuidType>>, _>(dept_ids)
@@ -240,7 +240,7 @@ impl EmployeeRepository for DieselEmployeeRepository {
                 .await
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?
         } else {
-            crate::crud_sql_query!(&mut conn, &count_sql)
+            diesel::sql_query(&count_sql)
                 .bind::<UuidType, _>(workspace_id)
                 .bind::<Nullable<Array<UuidType>>, _>(dept_ids)
                 .get_result(&mut *conn)
@@ -282,7 +282,7 @@ impl EmployeeRepository for DieselEmployeeRepository {
 
         let offset = (options.page - 1) * options.limit;
 
-        let employee_rows: Vec<EmployeeRow> = crate::crud_sql_query!(&mut conn, &sql)
+        let employee_rows: Vec<EmployeeRow> = diesel::sql_query(&sql)
             .bind::<UuidType, _>(workspace_id)
             .bind::<Nullable<Text>, _>(search_str_1)
             .bind::<BigInt, _>(options.limit)
@@ -314,7 +314,7 @@ impl EmployeeRepository for DieselEmployeeRepository {
         let query = format!(
             "{EMPLOYEE_SELECT_QUERY} WHERE e.workspace_id = $1 AND e.is_active = true ORDER BY e.full_name ASC"
         );
-        let emps: Vec<EmployeeRow> = crate::crud_sql_query!(&mut conn, &query)
+        let emps: Vec<EmployeeRow> = diesel::sql_query(&query)
             .bind::<UuidType, _>(workspace_id)
             .load(&mut *conn)
             .await
@@ -477,7 +477,7 @@ impl EmployeeRepository for DieselEmployeeRepository {
             WHERE e.is_active = TRUE AND e.workspace_id = $1
         "#;
 
-        let rows: Vec<DeptRow> = crate::crud_sql_query!(&mut conn, query)
+        let rows: Vec<DeptRow> = diesel::sql_query(query)
             .bind::<diesel::sql_types::Uuid, _>(workspace_id)
             .bind::<diesel::sql_types::Date, _>(date)
             .load(&mut *conn)
@@ -1074,8 +1074,7 @@ impl EmployeeRepository for DieselEmployeeRepository {
             created_at: chrono::DateTime<chrono::Utc>,
         }
 
-        let results: Vec<Entity> = crate::crud_sql_query!(&mut conn,
-            r#"SELECT epc.id, epc.employee_id, epc.std_working_days, epc.hours_per_day, epc.effective_date, epc.created_at
+        let results: Vec<Entity> = diesel::sql_query(r#"SELECT epc.id, epc.employee_id, epc.std_working_days, epc.hours_per_day, epc.effective_date, epc.created_at
                FROM employee_payroll_configs epc
                JOIN employees e ON e.id = epc.employee_id
                WHERE epc.employee_id = $1 AND e.workspace_id = $2
@@ -1285,9 +1284,7 @@ impl EmployeeRepository for DieselEmployeeRepository {
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?,
         );
 
-        let rows: Vec<RecruitmentSourceBreakdownRow> = crate::crud_sql_query!(
-            &mut conn,
-            r#"
+        let rows: Vec<RecruitmentSourceBreakdownRow> = diesel::sql_query(r#"
             SELECT
                 COALESCE(rs.source_type::text, 'direct') AS source_type,
                 COALESCE(rs.name, 'Direct Hire') AS source_name,
@@ -1330,9 +1327,7 @@ impl EmployeeRepository for DieselEmployeeRepository {
         );
 
         // 1. Total terminated count
-        let total: i64 = crate::crud_sql_query!(
-            &mut conn,
-            r#"SELECT COUNT(*) FROM employees e
+        let total: i64 = diesel::sql_query(r#"SELECT COUNT(*) FROM employees e
                WHERE e.workspace_id = $1 AND e.is_active = FALSE
                  AND e.termination_date IS NOT NULL
                  AND e.termination_date >= $2 AND e.termination_date <= $3"#,
@@ -1346,9 +1341,7 @@ impl EmployeeRepository for DieselEmployeeRepository {
         .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         // 2. Tenure distribution
-        let tenure_rows: Vec<TenureRow> = crate::crud_sql_query!(
-            &mut conn,
-            r#"
+        let tenure_rows: Vec<TenureRow> = diesel::sql_query(r#"
             SELECT bucket, COUNT(*) AS count FROM (
                 SELECT CASE
                     WHEN e.termination_date - e.hire_date < 90 THEN '< 3 months'
@@ -1383,9 +1376,7 @@ impl EmployeeRepository for DieselEmployeeRepository {
         .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         // 3. By recruitment source
-        let source_rows: Vec<RecruitmentSourceBreakdownRow> = crate::crud_sql_query!(
-            &mut conn,
-            r#"
+        let source_rows: Vec<RecruitmentSourceBreakdownRow> = diesel::sql_query(r#"
             SELECT
                 COALESCE(rs.source_type::text, 'direct') AS source_type,
                 COALESCE(rs.name, 'Direct Hire') AS source_name,
@@ -1407,9 +1398,7 @@ impl EmployeeRepository for DieselEmployeeRepository {
         .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         // 4. By department (latest department assignment before termination)
-        let dept_rows: Vec<DeptRow> = crate::crud_sql_query!(
-            &mut conn,
-            r#"
+        let dept_rows: Vec<DeptRow> = diesel::sql_query(r#"
             SELECT
                 COALESCE(d.name, 'Unassigned') AS department_name,
                 COUNT(*) AS count

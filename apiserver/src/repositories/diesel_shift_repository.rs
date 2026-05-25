@@ -274,11 +274,9 @@ impl ShiftRepository for DieselShiftRepository {
 
         let yesterday = effective_date.pred_opt().unwrap_or(effective_date);
 
-        conn.transaction::<_, AppError, _>(|mut conn| {
+        conn.transaction::<_, AppError, _>(|conn| {
             Box::pin(async move {
-                crate::crud_sql_query!(
-                    &mut conn,
-                    "UPDATE employee_shifts
+                diesel::sql_query("UPDATE employee_shifts
                      SET end_date = $2, updated_at = CURRENT_TIMESTAMP
                      WHERE shift_id = $1 AND (end_date IS NULL OR end_date >= $3)",
                 )
@@ -289,9 +287,7 @@ impl ShiftRepository for DieselShiftRepository {
                 .await
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
-                crate::crud_sql_query!(
-                    &mut conn,
-                    "INSERT INTO employee_shifts (employee_id, shift_id, start_date, end_date)
+                diesel::sql_query("INSERT INTO employee_shifts (employee_id, shift_id, start_date, end_date)
                      SELECT employee_id, $2, $3, NULL
                      FROM employee_shifts
                      WHERE shift_id = $1 AND end_date = $4",

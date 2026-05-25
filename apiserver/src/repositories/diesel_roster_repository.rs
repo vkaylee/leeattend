@@ -209,8 +209,7 @@ impl RosterRepository for DieselRosterRepository {
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?,
         );
 
-        let history = crate::crud_sql_query!(&mut conn,
-            r#"
+        let history = diesel::sql_query(r#"
             SELECT
                 id,
                 employee_id,

@@ -79,7 +79,7 @@ impl LeaveBalanceRepository for DieselLeaveBalanceRepository {
             WHERE lb.employee_id = $1 AND lb.year = $2 AND e.workspace_id = $3
         "#;
 
-        let balances = crate::crud_sql_query!(&mut conn, sql)
+        let balances = diesel::sql_query(sql)
             .bind::<diesel::sql_types::Uuid, _>(employee_id)
             .bind::<diesel::sql_types::Int4, _>(year)
             .bind::<diesel::sql_types::Uuid, _>(workspace_id)
@@ -137,7 +137,7 @@ impl LeaveBalanceRepository for DieselLeaveBalanceRepository {
               )
         "#;
 
-        let total: i64 = crate::crud_sql_query!(&mut conn, count_sql)
+        let total: i64 = diesel::sql_query(count_sql)
             .bind::<diesel::sql_types::Uuid, _>(workspace_id)
             .bind::<diesel::sql_types::Int4, _>(year)
             .bind::<diesel::sql_types::Text, _>(&search_term)
@@ -222,7 +222,7 @@ impl LeaveBalanceRepository for DieselLeaveBalanceRepository {
             LIMIT $4 OFFSET $5
         "#;
 
-        let data = crate::crud_sql_query!(&mut conn, sql)
+        let data = diesel::sql_query(sql)
             .bind::<diesel::sql_types::Uuid, _>(workspace_id)
             .bind::<diesel::sql_types::Int4, _>(year)
             .bind::<diesel::sql_types::Text, _>(&search_term)
