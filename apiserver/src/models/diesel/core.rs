@@ -190,11 +190,11 @@ pub struct WorkspaceRoleEntity {
     pub workspace_id: Option<Uuid>,
     pub name: String,
     pub description: Option<String>,
-    pub color: String,
-    pub is_system: bool,
+    pub color: Option<String>,
+    pub is_system: Option<bool>,
+    pub created_at: Option<DateTime<Utc>>,
+    pub updated_at: Option<DateTime<Utc>>,
     pub scope_type: String,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
 }
 
 impl From<WorkspaceRoleEntity> for WorkspaceRole {
@@ -205,12 +205,12 @@ impl From<WorkspaceRoleEntity> for WorkspaceRole {
             workspace_id: entity.workspace_id,
             name: entity.name,
             description: entity.description,
-            color: entity.color,
-            is_system: entity.is_system,
+            color: entity.color.unwrap_or_else(|| "#000000".to_string()),
+            is_system: entity.is_system.unwrap_or(false),
             scope_type: crate::models::enums::RoleScopeType::from_str(&entity.scope_type)
                 .unwrap_or(crate::models::enums::RoleScopeType::Scoped),
-            created_at: entity.created_at,
-            updated_at: entity.updated_at,
+            created_at: entity.created_at.unwrap_or_else(Utc::now),
+            updated_at: entity.updated_at.unwrap_or_else(Utc::now),
         }
     }
 }
