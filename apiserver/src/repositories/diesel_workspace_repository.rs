@@ -4,7 +4,7 @@ use crate::models::diesel::core::{MemberExtraRoleEntity, WorkspaceEntity, Worksp
 use crate::models::{MemberExtraRole, Workspace};
 use crate::repositories::workspace_repository::WorkspaceRepository;
 use crate::schema::{
-    member_extra_roles, workspace_member_extra_permissions, workspace_members,
+    member_extra_roles, users, workspace_member_extra_permissions, workspace_members,
     workspace_role_permissions, workspace_roles, workspaces,
 };
 use async_trait::async_trait;
@@ -359,41 +359,22 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?,
         );
 
-        #[derive(Debug, diesel::QueryableByName)]
-        struct Entity {
-            #[diesel(sql_type = diesel::sql_types::Uuid)]
-            workspace_id: Uuid,
-            #[diesel(sql_type = diesel::sql_types::Uuid)]
-            user_id: Uuid,
-            #[diesel(sql_type = diesel::sql_types::Uuid)]
-            role_id: Uuid,
-            #[diesel(sql_type = diesel::sql_types::Text)]
-            email: String,
-            #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]
-            full_name: Option<String>,
-            #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]
-            avatar_url: Option<String>,
-        }
-
-        let results: Vec<Entity> = diesel::sql_query("SELECT wm.workspace_id, wm.user_id, wm.role_id, u.email, u.full_name, u.avatar_url
-             FROM workspace_members wm
-             JOIN users u ON wm.user_id = u.id
-             WHERE wm.workspace_id = $1",
-        )
-        .bind::<diesel::sql_types::Uuid, _>(workspace_id)
-        .load(&mut *conn)
-        .await
-        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let results: Vec<(WorkspaceMemberEntity, crate::models::diesel::core::UserEntity)> = workspace_members::table
+            .inner_join(users::table.on(workspace_members::user_id.eq(users::id)))
+            .filter(workspace_members::workspace_id.eq(workspace_id))
+            .load::<(WorkspaceMemberEntity, crate::models::diesel::core::UserEntity)>(&mut *conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(results
             .into_iter()
-            .map(|e| crate::models::WorkspaceMemberDetail {
-                workspace_id: e.workspace_id,
-                user_id: e.user_id,
-                role_id: e.role_id,
-                email: e.email,
-                full_name: e.full_name,
-                avatar_url: e.avatar_url,
+            .map(|(wm, u)| crate::models::WorkspaceMemberDetail {
+                workspace_id: wm.workspace_id,
+                user_id: wm.user_id,
+                role_id: wm.role_id,
+                email: u.email,
+                full_name: u.full_name,
+                avatar_url: u.avatar_url,
             })
             .collect())
     }
@@ -411,29 +392,21 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?,
         );
 
-        #[derive(Debug, diesel::QueryableByName)]
-        struct UserIdEntity {
-            #[diesel(sql_type = diesel::sql_types::Uuid)]
-            user_id: Uuid,
-        }
+        let results: Vec<Uuid> = workspace_members::table
+            .inner_join(workspace_roles::table.on(workspace_members::role_id.eq(workspace_roles::id)))
+            .left_join(workspace_role_permissions::table.on(workspace_roles::id.eq(workspace_role_permissions::role_id)))
+            .filter(workspace_members::workspace_id.eq(workspace_id_val))
+            .filter(
+                workspace_roles::scope_type.eq("global")
+                    .or(workspace_role_permissions::permission_name.eq_any(permissions))
+            )
+            .select(workspace_members::user_id)
+            .distinct()
+            .load::<Uuid>(&mut *conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db error fetching admins: {e}")))?;
 
-        // We use ANY to check against the permissions array safely
-        let results: Vec<UserIdEntity> = diesel::sql_query(r#"
-            SELECT DISTINCT wm.user_id
-            FROM workspace_members wm
-            JOIN workspace_roles wr ON wm.role_id = wr.id
-            LEFT JOIN workspace_role_permissions wrp ON wr.id = wrp.role_id
-            WHERE wm.workspace_id = $1
-              AND (wr.scope_type = 'global' OR wrp.permission_name = ANY($2))
-            "#,
-        )
-        .bind::<diesel::sql_types::Uuid, _>(workspace_id_val)
-        .bind::<diesel::sql_types::Array<diesel::sql_types::Text>, _>(permissions)
-        .load(&mut *conn)
-        .await
-        .map_err(|e| AppError::Internal(format!("db error fetching admins: {e}")))?;
-
-        Ok(results.into_iter().map(|e| e.user_id).collect())
+        Ok(results)
     }
 
     async fn get_all_extra_roles(

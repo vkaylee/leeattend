@@ -642,38 +642,23 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?,
         );
 
-        #[derive(diesel::QueryableByName)]
-        struct LeaveRow {
-            #[diesel(sql_type = diesel::sql_types::Date)]
-            start_date: NaiveDate,
-            #[diesel(sql_type = diesel::sql_types::Date)]
-            end_date: NaiveDate,
-        }
+        let rows: Vec<(NaiveDate, NaiveDate)> = leave_requests::table
+            .inner_join(employees::table)
+            .filter(leave_requests::employee_id.eq(employee_id))
+            .filter(employees::workspace_id.eq(workspace_id))
+            .filter(
+                leave_requests::status
+                    .eq(LeaveStatus::Approved)
+                    .or(leave_requests::status.eq(LeaveStatus::PreApproved)),
+            )
+            .filter(leave_requests::start_date.le(end_date))
+            .filter(leave_requests::end_date.ge(start_date))
+            .select((leave_requests::start_date, leave_requests::end_date))
+            .load(&mut *conn)
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
 
-        let leave_days: Vec<LeaveRow> = diesel::sql_query(
-            r#"
-            SELECT lr.start_date, lr.end_date
-            FROM leave_requests lr
-            JOIN employees e ON lr.employee_id = e.id
-            WHERE lr.employee_id = $1
-              AND e.workspace_id = $4
-              AND lr.status IN ('approved', 'pre_approved')
-              AND lr.start_date <= $3
-              AND lr.end_date >= $2
-            "#,
-        )
-        .bind::<diesel::sql_types::Uuid, _>(employee_id)
-        .bind::<diesel::sql_types::Date, _>(start_date)
-        .bind::<diesel::sql_types::Date, _>(end_date)
-        .bind::<diesel::sql_types::Uuid, _>(workspace_id)
-        .load(&mut *conn)
-        .await
-        .map_err(|e| AppError::Internal(e.to_string()))?;
-
-        Ok(leave_days
-            .into_iter()
-            .map(|row| (row.start_date, row.end_date))
-            .collect())
+        Ok(rows)
     }
 }
 
