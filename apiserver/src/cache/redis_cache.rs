@@ -239,6 +239,8 @@ mod tests {
         let dept_id = uuid::Uuid::new_v4();
 
         let original = CachedMemberContext {
+            user_name: Some("Test User".to_string()),
+            user_email: "test@example.com".to_string(),
             roles: vec![role_a, role_b],
             permissions: vec![
                 "employees:read".to_string(),
@@ -267,6 +269,8 @@ mod tests {
         use crate::handlers::common::CachedMemberContext;
 
         let ctx = CachedMemberContext {
+            user_name: None,
+            user_email: "admin@example.com".to_string(),
             roles: vec![uuid::Uuid::new_v4()],
             permissions: vec!["employees:read".to_string()],
             managed_department_ids: None,
@@ -286,6 +290,8 @@ mod tests {
         use crate::handlers::common::CachedMemberContext;
 
         let ctx = CachedMemberContext {
+            user_name: Some("Empty".to_string()),
+            user_email: "empty@example.com".to_string(),
             roles: vec![uuid::Uuid::new_v4()],
             permissions: vec![],
             managed_department_ids: Some(HashSet::new()),

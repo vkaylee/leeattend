@@ -119,6 +119,8 @@ where
 
 pub struct MemberContext {
     pub user_id: Uuid,
+    pub user_name: Option<String>,
+    pub user_email: String,
     pub workspace_id: Uuid,
     pub roles: Vec<Uuid>,
     pub permissions: HashSet<Permission>,
@@ -267,6 +269,8 @@ where
 
         Ok(MemberContext {
             user_id,
+            user_name: cached_data.user_name,
+            user_email: cached_data.user_email,
             workspace_id,
             roles: cached_data.roles,
             permissions,
@@ -278,6 +282,8 @@ where
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CachedMemberContext {
+    pub user_name: Option<String>,
+    pub user_email: String,
     pub roles: Vec<Uuid>,
     pub permissions: Vec<String>,
     pub managed_department_ids: Option<HashSet<Uuid>>,
@@ -289,6 +295,14 @@ impl MemberContext {
         workspace_id: Uuid,
         app_state: &Arc<AppState>,
     ) -> Result<CachedMemberContext, String> {
+        let user = app_state
+            .core
+            .user_repo
+            .get_user_by_id(user_id)
+            .await
+            .map_err(|e| e.to_string())?
+            .ok_or_else(|| "User not found".to_string())?;
+
         // 1. Fetch Primary Role
         let primary_role = app_state
             .core
@@ -374,6 +388,8 @@ impl MemberContext {
         };
 
         Ok(CachedMemberContext {
+            user_name: user.full_name,
+            user_email: user.email,
             roles,
             permissions: permissions
                 .into_iter()
@@ -476,6 +492,8 @@ mod tests {
         let workspace_id = Uuid::new_v4();
         MemberContext {
             user_id: Uuid::new_v4(),
+            user_name: Some("Test User".to_string()),
+            user_email: "test@example.com".to_string(),
             workspace_id,
             roles,
             permissions: perms,
