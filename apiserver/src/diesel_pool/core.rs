@@ -74,7 +74,7 @@ impl DieselPools {
         Ok(SessionConn(conn))
     }
 
-    pub fn connect(config: &DbPoolConfig) -> Result<Self, AppError> {
+    pub fn connect(config: &DbPoolConfig, tenant_manager: std::sync::Arc<dyn crate::supavisor::TenantManager>) -> Result<Self, AppError> {
         tracing::info!(
             api_max = config.api_max_conn,
             worker_max = config.worker_max_conn,
@@ -107,11 +107,13 @@ impl DieselPools {
         let tenant_tx_manager = Arc::new(SupavisorTenantPoolManager::new(
             api_tx_url.to_string(),
             config.tenant_max_conn as usize,
+            tenant_manager.clone(),
         ));
 
         let tenant_sess_manager = Arc::new(SupavisorTenantPoolManager::new(
             worker_sess_url.to_string(), // sess_url was returned as the second element in resolve_pool_urls
             config.tenant_max_conn as usize,
+            tenant_manager,
         ));
 
         tracing::info!("Diesel pools connected successfully");

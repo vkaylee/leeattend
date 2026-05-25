@@ -29,81 +29,6 @@ mod tests {
         assert_eq!(users[0]["is_manager"], true);
     }
 
-    #[test]
-    fn test_build_tenant_payload_auth_query_config() {
-        let url = "postgres://my_user:my_secret@my_db_host:5433/my_company_db";
-
-        // 1. By default (env not set), auth_query should be absent, require_user = true, 1 user
-        std::env::remove_var("SUPAVISOR_AUTH_QUERY");
-        let (_, payload) = build_tenant_payload(
-            url,
-            TenantPayloadOptions {
-                is_master: true,
-                ..Default::default()
-            },
-        )
-        .unwrap();
-        let tenant = payload.get("tenant").unwrap();
-        assert!(
-            tenant.get("auth_query").is_none(),
-            "auth_query should be absent by default"
-        );
-        assert_eq!(tenant["require_user"], true);
-        assert_eq!(tenant["users"].as_array().unwrap().len(), 1);
-
-        // 2. When set to a custom query, require_user = false, 1 user
-        std::env::set_var("SUPAVISOR_AUTH_QUERY", "SELECT 1;");
-        let (_, payload) = build_tenant_payload(
-            url,
-            TenantPayloadOptions {
-                is_master: true,
-                ..Default::default()
-            },
-        )
-        .unwrap();
-        let tenant = payload.get("tenant").unwrap();
-        assert_eq!(tenant["auth_query"], "SELECT 1;");
-        assert_eq!(tenant["require_user"], false);
-        assert_eq!(tenant["users"].as_array().unwrap().len(), 1);
-
-        // 3. When set to "none"
-        std::env::set_var("SUPAVISOR_AUTH_QUERY", "none");
-        let (_, payload) = build_tenant_payload(
-            url,
-            TenantPayloadOptions {
-                is_master: true,
-                ..Default::default()
-            },
-        )
-        .unwrap();
-        let tenant = payload.get("tenant").unwrap();
-        assert!(
-            tenant.get("auth_query").is_none(),
-            "auth_query should be absent when set to 'none'"
-        );
-        assert_eq!(tenant["require_user"], true);
-        assert_eq!(tenant["users"].as_array().unwrap().len(), 1);
-
-        // 4. When set to empty string
-        std::env::set_var("SUPAVISOR_AUTH_QUERY", "");
-        let (_, payload) = build_tenant_payload(
-            url,
-            TenantPayloadOptions {
-                is_master: true,
-                ..Default::default()
-            },
-        )
-        .unwrap();
-        let tenant = payload.get("tenant").unwrap();
-        assert!(
-            tenant.get("auth_query").is_none(),
-            "auth_query should be absent when set to empty string"
-        );
-        assert_eq!(tenant["require_user"], true);
-        assert_eq!(tenant["users"].as_array().unwrap().len(), 1);
-
-        std::env::remove_var("SUPAVISOR_AUTH_QUERY");
-    }
 
     #[test]
     fn test_build_tenant_payload_enforce_ssl_from_env() {
@@ -696,11 +621,9 @@ mod tests {
     #[test]
     fn test_build_tenant_payload_includes_default_mode_and_pool_size() {
         // Test that Supavisor payload correctly injects default_mode and default_pool_size
-        // which are required by Supavisor 2.7+ when require_user is false.
         std::env::set_var("SUPAVISOR_MODE_TYPE", "session");
         std::env::set_var("SUPAVISOR_POOL_SIZE", "42");
         std::env::set_var("SUPAVISOR_TENANT_ID", "test_tenant");
-        std::env::set_var("SUPAVISOR_AUTH_QUERY", "SELECT 1;");
 
         let url = "postgres://user:pass@host:5432/dbname";
         let (tenant_id, payload) = build_tenant_payload(
@@ -718,7 +641,7 @@ mod tests {
 
         assert_eq!(
             tenant_obj.get("require_user").unwrap().as_bool(),
-            Some(false)
+            Some(true)
         );
 
         // Assert the new edge-case fields are present
@@ -731,7 +654,6 @@ mod tests {
         std::env::remove_var("SUPAVISOR_MODE_TYPE");
         std::env::remove_var("SUPAVISOR_POOL_SIZE");
         std::env::remove_var("SUPAVISOR_TENANT_ID");
-        std::env::remove_var("SUPAVISOR_AUTH_QUERY");
     }
 
     #[test]

@@ -121,20 +121,11 @@ pub fn build_tenant_payload(
     tenant_map.insert("enforce_ssl".to_string(), json!(enforce_ssl));
     tenant_map.insert("default_pool_size".to_string(), json!(pool_size));
 
-    let auth_query = std::env::var("SUPAVISOR_AUTH_QUERY").ok();
-    let has_auth_query = auth_query
-        .as_ref()
-        .map(|v| !v.is_empty() && v != "none")
-        .unwrap_or(false);
-
-    if has_auth_query {
-        tenant_map.insert("require_user".to_string(), json!(false));
-        if let Some(query) = auth_query {
-            tenant_map.insert("auth_query".to_string(), json!(query));
-        }
-    } else {
-        tenant_map.insert("require_user".to_string(), json!(true));
-    }
+    // BYOD architecture: We explicitely push all user credentials to Supavisor via the API.
+    // We strictly disable `auth_query` and force `require_user = true`. This prevents Supavisor
+    // from querying the upstream database's `pg_authid` table, which external BYOD users
+    // usually do not have permission to read.
+    tenant_map.insert("require_user".to_string(), json!(true));
 
     // Determine pool_password from API Server's DATABASE_POOLER_TX_URL or DATABASE_URL
     let client_password = std::env::var("DATABASE_POOLER_TX_URL")

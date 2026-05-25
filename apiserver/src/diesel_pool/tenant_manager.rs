@@ -17,18 +17,20 @@ pub struct SupavisorTenantPoolManager {
     base_url: String,
     max_size: usize,
     pools: RwLock<HashMap<Uuid, DieselPool>>,
+    tenant_api: std::sync::Arc<dyn crate::supavisor::TenantManager>,
 }
 
 impl SupavisorTenantPoolManager {
-    pub fn new(base_url: String, max_size: usize) -> Self {
+    pub fn new(base_url: String, max_size: usize, tenant_api: std::sync::Arc<dyn crate::supavisor::TenantManager>) -> Self {
         Self {
             base_url,
             max_size,
             pools: RwLock::new(HashMap::new()),
+            tenant_api,
         }
     }
 
-    pub fn get_tenant_url(&self, workspace_id: &Uuid) -> Result<String, AppError> {
+    pub fn get_tenant_url_with_user(&self, workspace_id: &Uuid, override_user: &str) -> Result<String, AppError> {
         let db_name = format!("tenant_{}", workspace_id.to_string().replace('-', ""));
 
         let base_url = &self.base_url;
@@ -71,12 +73,22 @@ impl SupavisorTenantPoolManager {
                 };
 
                 if user.contains('.') {
-                    if let Some((prefix, _old_tenant)) = user.split_once('.') {
-                        let new_user = format!("{prefix}.{db_name}");
-                        let replace_start = plen;
-                        let replace_end = plen + user.len();
-                        result_url.replace_range(replace_start..replace_end, &new_user);
-                    }
+                    // Supavisor mode: username needs .tenant suffix
+                    let actual_prefix = if override_user.is_empty() {
+                        user.split_once('.').map(|(p, _)| p).unwrap_or(user)
+                    } else {
+                        override_user
+                    };
+                    let new_user = format!("{actual_prefix}.{db_name}");
+                    let replace_start = plen;
+                    let replace_end = plen + user.len();
+                    result_url.replace_range(replace_start..replace_end, &new_user);
+                } else if !override_user.is_empty() {
+                    // Direct connection mode: replace user entirely, no .tenant suffix
+                    let new_user = override_user.to_string();
+                    let replace_start = plen;
+                    let replace_end = plen + user.len();
+                    result_url.replace_range(replace_start..replace_end, &new_user);
                 }
             }
         }
@@ -101,7 +113,19 @@ impl SupavisorTenantPoolManager {
             return Ok(pool.clone());
         }
 
-        let tenant_url = self.get_tenant_url(workspace_id)?;
+        let db_name = format!("tenant_{}", workspace_id.to_string().replace('-', ""));
+        let mut db_user = String::new();
+        if let Ok(tenant_data) = self.tenant_api.get_tenant(&db_name).await {
+            if let Some(users) = tenant_data.get("users").and_then(|u| u.as_array()) {
+                if let Some(first_user) = users.first() {
+                    if let Some(u) = first_user.get("db_user").and_then(|v| v.as_str()) {
+                        db_user = u.to_string();
+                    }
+                }
+            }
+        }
+
+        let tenant_url = self.get_tenant_url_with_user(workspace_id, &db_user)?;
         let manager = AsyncDieselConnectionManager::<AsyncPgConnection>::new(tenant_url);
         let pool = Pool::builder(manager)
             .max_size(self.max_size)
