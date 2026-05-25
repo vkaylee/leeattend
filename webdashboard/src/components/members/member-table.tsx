@@ -10,6 +10,7 @@ import {
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import { TableSkeleton } from "@/components/common/table-skeleton";
 import PermissionGate from "@/components/common/permission-gate";
 import PermissionManagementModal from "@/components/features/settings/permission-management-modal";
 import RoleManagementModal from "@/components/features/settings/role-management-modal";
@@ -29,7 +30,7 @@ const roleColorMap: Record<string, string> = {
 
 function MemberRoleCell({ member, roles }: { member: WorkspaceMember; roles: WorkspaceRole[] }) {
   const primaryRole = roles.find((r) => r.id === member.role_id);
-  if (!primaryRole) return <span className="text-xs text-slate-400">Loading...</span>;
+  if (!primaryRole) return <div className="h-6 w-16 bg-slate-200 dark:bg-slate-800 rounded-full animate-pulse"></div>;
 
   const extraRoles = (member.extra_role_ids ?? [])
     .map((id) => roles.find((r) => r.id === id))
@@ -97,8 +98,6 @@ export default function MemberTable() {
     try { await removeMember(userId); } catch (e: unknown) { console.error(e); } 
   };
 
-  if (isLoading) return <div className="flex justify-center py-32"><div className="animate-spin rounded-full h-12 w-12 border-4 border-primary-600 border-t-transparent shadow-xl"></div></div>;
-
   return (
     <>
       <div className="bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden animate-in fade-in duration-700">
@@ -112,56 +111,62 @@ export default function MemberTable() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
-              {members.map((member) => (
-                <tr className="group hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all" key={member.user_id}>
-                  <td className="px-10 py-6">
-                    <div className="flex items-center gap-5">
-                      <div className="w-14 h-14 rounded-2xl bg-primary-50 dark:bg-primary-950 flex items-center justify-center text-primary-600 dark:text-primary-400 font-bold shadow-inner border border-primary-100 dark:border-primary-800/50 overflow-hidden group-hover:scale-110 transition-transform">
-                        {member.avatar_url ? (
-                          <img alt="Member avatar" className="w-full h-full object-cover" src={member.avatar_url} />
-                        ) : (
-                          <span className="text-lg uppercase">{(member.full_name ?? member.email).substring(0, 2)}</span>
-                        )}
-                      </div>
-                      <div>
-                        <div className="font-bold text-slate-700 dark:text-slate-200 text-sm tracking-tight uppercase leading-none mb-1.5">{member.full_name ?? t("common.no_name")}</div>
-                        <div className="text-[10px] text-slate-500 dark:text-slate-400 font-mono font-bold flex items-center gap-2 opacity-70">
-                          <Mail className="text-primary-400" size={12} /> {member.email}
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-8 py-6">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <MemberRoleCell member={member} roles={roles} />
-                    </div>
-                  </td>
-                  <td className="px-10 py-6 text-right">
-                    <div className="flex items-center justify-end gap-3 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-2 group-hover:translate-x-0">
-                      <PermissionGate permission="members:roles:manage">
-                        <button className="p-3 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90" onClick={() => { handleManageRoles(member.user_id); }} title={t("members.table.manage_roles")}><UserCog size={20} /></button>
-                      </PermissionGate>
-                      <PermissionGate permission="members:roles:manage">
-                        <button className="p-3 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-amber-600 dark:text-amber-400 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90" onClick={() => { handleManagePermissions(member.user_id); }} title={t("members.table.manage_permissions", { defaultValue: "Manage Permissions" })}><KeyRound size={20} /></button>
-                      </PermissionGate>
-                      {roles.find(r => r.id === member.role_id)?.name.toLowerCase() !== "owner" && (
-                        <PermissionGate permission="members:remove">
-                          <button className="p-3 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:text-rose-300 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90" onClick={() => handleRemoveMember(member.user_id)} title={t("members.table.remove_member")}><Trash2 size={20} /></button>
-                        </PermissionGate>
-                      )}
+              {isLoading ? (
+                <TableSkeleton rows={5} />
+              ) : members.length === 0 ? (
+                <tr>
+                  <td colSpan={3}>
+                    <div className="py-32 text-center bg-slate-50 dark:bg-slate-800/30 flex flex-col items-center">
+                      <UserIcon className="w-20 h-20 mb-6 text-slate-200 dark:text-slate-700" />
+                      <p className="text-[10px] font-bold text-slate-300 dark:text-slate-600 uppercase tracking-[0.25em]">{t("members.table.messages.no_members")}</p>
                     </div>
                   </td>
                 </tr>
-              ))}
+              ) : (
+                members.map((member) => (
+                  <tr className="group hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all" key={member.user_id}>
+                    <td className="px-10 py-6">
+                      <div className="flex items-center gap-5">
+                        <div className="w-14 h-14 rounded-2xl bg-primary-50 dark:bg-primary-950 flex items-center justify-center text-primary-600 dark:text-primary-400 font-bold shadow-inner border border-primary-100 dark:border-primary-800/50 overflow-hidden group-hover:scale-110 transition-transform">
+                          {member.avatar_url ? (
+                            <img alt="Member avatar" className="w-full h-full object-cover" src={member.avatar_url} />
+                          ) : (
+                            <span className="text-lg uppercase">{(member.full_name ?? member.email).substring(0, 2)}</span>
+                          )}
+                        </div>
+                        <div>
+                          <div className="font-bold text-slate-700 dark:text-slate-200 text-sm tracking-tight uppercase leading-none mb-1.5">{member.full_name ?? t("common.no_name")}</div>
+                          <div className="text-[10px] text-slate-500 dark:text-slate-400 font-mono font-bold flex items-center gap-2 opacity-70">
+                            <Mail className="text-primary-400" size={12} /> {member.email}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-8 py-6">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <MemberRoleCell member={member} roles={roles} />
+                      </div>
+                    </td>
+                    <td className="px-10 py-6 text-right">
+                      <div className="flex items-center justify-end gap-3 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-2 group-hover:translate-x-0">
+                        <PermissionGate permission="members:roles:manage">
+                          <button className="p-3 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90" onClick={() => { handleManageRoles(member.user_id); }} title={t("members.table.manage_roles")}><UserCog size={20} /></button>
+                        </PermissionGate>
+                        <PermissionGate permission="members:roles:manage">
+                          <button className="p-3 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-amber-600 dark:text-amber-400 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90" onClick={() => { handleManagePermissions(member.user_id); }} title={t("members.table.manage_permissions", { defaultValue: "Manage Permissions" })}><KeyRound size={20} /></button>
+                        </PermissionGate>
+                        {roles.find(r => r.id === member.role_id)?.name.toLowerCase() !== "owner" && (
+                          <PermissionGate permission="members:remove">
+                            <button className="p-3 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:text-rose-300 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90" onClick={() => handleRemoveMember(member.user_id)} title={t("members.table.remove_member")}><Trash2 size={20} /></button>
+                          </PermissionGate>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
-
-          {members.length === 0 && (
-            <div className="py-32 text-center bg-slate-50 dark:bg-slate-800/30 flex flex-col items-center">
-              <UserIcon className="w-20 h-20 mb-6 text-slate-200 dark:text-slate-700" />
-              <p className="text-[10px] font-bold text-slate-300 dark:text-slate-600 uppercase tracking-[0.25em]">{t("members.table.messages.no_members")}</p>
-            </div>
-          )}
         </div>
       </div>
 

@@ -1,10 +1,10 @@
 #[cfg(test)]
 mod tests {
     use crate::diesel_pool::*;
-    use uuid::Uuid;
     use diesel_async::pooled_connection::deadpool::Pool;
     use diesel_async::pooled_connection::AsyncDieselConnectionManager;
     use diesel_async::AsyncPgConnection;
+    use uuid::Uuid;
 
     #[test]
     fn test_tenant_pool_manager_url_direct_connection() {
@@ -331,9 +331,7 @@ mod tests {
         assert!(is_transient_supavisor_error(
             "Failed to get secret: {:error, \"No auth_query specified\"}"
         ));
-        assert!(is_transient_supavisor_error(
-            "Tenant or user not found"
-        ));
+        assert!(is_transient_supavisor_error("Tenant or user not found"));
         assert!(is_transient_supavisor_error(
             "terminating connection due to administrator command"
         ));
@@ -346,9 +344,7 @@ mod tests {
             "password authentication failed for user"
         ));
         assert!(!is_transient_supavisor_error("Connection refused"));
-        assert!(!is_transient_supavisor_error(
-            "database does not exist"
-        ));
+        assert!(!is_transient_supavisor_error("database does not exist"));
         assert!(!is_transient_supavisor_error("timeout expired"));
     }
 

@@ -246,6 +246,23 @@ impl EmployeeRepository for DieselEmployeeRepository {
             .await
     }
 
+    async fn get_employee_ids_by_numbers(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        id_numbers: &[String],
+    ) -> Result<std::collections::HashMap<String, Uuid>, AppError> {
+        EmployeeCoreRepository::get_employee_ids_by_numbers(self, auth_token, id_numbers).await
+    }
+
+    async fn bulk_create_employees_skip_duplicates(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        employees: &[Employee],
+    ) -> Result<(), AppError> {
+        EmployeeCoreRepository::bulk_create_employees_skip_duplicates(self, auth_token, employees)
+            .await
+    }
+
     async fn get_managed_departments(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,

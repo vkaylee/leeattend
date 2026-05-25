@@ -449,7 +449,7 @@ impl LeaveAccrualService {
             .leave_request_repo
             .get_batch_leave_days(&auth_token, employee_ids, range_start, range_end)
             .await?;
-        
+
         let approved_leaves = self
             .leave_request_repo
             .get_approved_leave_dates(&auth_token, employee_ids, range_start, range_end)
@@ -462,7 +462,8 @@ impl LeaveAccrualService {
             let emp_map = result_map.entry(emp_id).or_default();
             for entry in entries {
                 let date = entry.punch_in_time.with_timezone(&tz).date_naive();
-                let month_key = NaiveDate::from_ymd_opt(date.year(), date.month(), 1).unwrap_or(date);
+                let month_key =
+                    NaiveDate::from_ymd_opt(date.year(), date.month(), 1).unwrap_or(date);
                 *emp_map.entry(month_key).or_insert(0) += 1;
             }
         }
@@ -494,11 +495,8 @@ impl LeaveAccrualService {
         let tz: Tz = crate::utils::tz::parse_workspace_tz(&tz_str);
         let auth_token = crate::diesel_pool::TenantAuthToken::system_override(workspace_id);
 
-        let employees = self
-            .employee_repo
-            .get_active_employees(&auth_token)
-            .await?;
-        
+        let employees = self.employee_repo.get_active_employees(&auth_token).await?;
+
         if employees.is_empty() {
             return Ok(vec![]);
         }
@@ -527,26 +525,37 @@ impl LeaveAccrualService {
 
         for emp in &employees {
             let dept_id = dept_map.get(&emp.id).map(|h| h.department_id);
-            
-            let mut matched = all_assignments.iter().find(|(a, _, _)| a.assignee_type == "employee" && a.assignee_id == Some(emp.id));
+
+            let mut matched = all_assignments
+                .iter()
+                .find(|(a, _, _)| a.assignee_type == "employee" && a.assignee_id == Some(emp.id));
             if matched.is_none() {
                 if let Some(d_id) = dept_id {
-                    matched = all_assignments.iter().find(|(a, _, _)| a.assignee_type == "department" && a.assignee_id == Some(d_id));
+                    matched = all_assignments.iter().find(|(a, _, _)| {
+                        a.assignee_type == "department" && a.assignee_id == Some(d_id)
+                    });
                 }
             }
             if matched.is_none() {
-                matched = all_assignments.iter().find(|(a, _, _)| a.assignee_type == "workspace" && a.assignee_id == Some(workspace_id));
+                matched = all_assignments.iter().find(|(a, _, _)| {
+                    a.assignee_type == "workspace" && a.assignee_id == Some(workspace_id)
+                });
             }
 
             if let Some((assignment, def, _code)) = matched {
                 let config = &def.rule_config;
                 let effective_from = assignment.effective_from;
-                let dates = Self::get_accrual_dates(&config.frequency, &config.accrual_timing, effective_from, date);
-                
+                let dates = Self::get_accrual_dates(
+                    &config.frequency,
+                    &config.accrual_timing,
+                    effective_from,
+                    date,
+                );
+
                 if !dates.is_empty() {
                     emp_policy_map.insert(emp.id, (def.clone(), assignment.id));
                     accrual_plan.insert(emp.id, dates);
-                    
+
                     let q_start = Self::compute_qualifying_range_start(config, effective_from);
                     if q_start < global_qualifying_start {
                         global_qualifying_start = q_start;
@@ -574,14 +583,16 @@ impl LeaveAccrualService {
 
         // 5. Process each employee using strictly memory-cached references
         for emp in employees {
-            let Some(dates) = accrual_plan.get(&emp.id) else { continue; };
+            let Some(dates) = accrual_plan.get(&emp.id) else {
+                continue;
+            };
             let (def, assignment_id) = emp_policy_map.get(&emp.id).unwrap();
             let config = &def.rule_config;
             let leave_type_id = def.leave_type_id;
 
             let empty_contracts = vec![];
             let contracts = contract_map.get(&emp.id).unwrap_or(&empty_contracts);
-            
+
             let empty_q_map = HashMap::new();
             let q_map = qualifying_days_map.get(&emp.id).unwrap_or(&empty_q_map);
 
@@ -593,12 +604,14 @@ impl LeaveAccrualService {
             };
 
             for accrual_date in dates {
-                let months_service = Self::calculate_total_months_seniority(contracts, *accrual_date);
+                let months_service =
+                    Self::calculate_total_months_seniority(contracts, *accrual_date);
                 let work_days = Self::resolve_qualifying_days(config, *accrual_date, q_map);
                 let amount = Self::calculate_accrual_amount(config, months_service, work_days);
 
                 if amount > 0.0 {
-                    self.persist_accrual(&ctx, *accrual_date, amount, force, &mut all_logs).await?;
+                    self.persist_accrual(&ctx, *accrual_date, amount, force, &mut all_logs)
+                        .await?;
                 }
             }
         }
@@ -1185,19 +1198,19 @@ mod tests {
 
     #[tokio::test]
     async fn test_process_workspace_accruals_empty_employees() {
+        use crate::repositories::attendance_daily_summary_repository::MockAttendanceDailySummaryRepository;
         use crate::repositories::department_repository::MockDepartmentRepository;
-        use crate::repositories::employee_contract_repository::MockEmployeeContractRepository;
         use crate::repositories::employee::MockEmployeeRepository;
+        use crate::repositories::employee_contract_repository::MockEmployeeContractRepository;
+        use crate::repositories::leave_accrual_log_repository::MockLeaveAccrualLogRepository;
         use crate::repositories::leave_policy_repository::MockLeavePolicyRepository;
         use crate::repositories::leave_request_repository::MockLeaveRequestRepository;
-        use crate::repositories::leave_accrual_log_repository::MockLeaveAccrualLogRepository;
-        use crate::repositories::attendance_daily_summary_repository::MockAttendanceDailySummaryRepository;
         use crate::repositories::time_entry_repository::MockTimeEntryRepository;
         use std::sync::Arc;
 
         let mut mock_emp_repo = MockEmployeeRepository::new();
         let mut mock_accrual_repo = MockLeaveAccrualLogRepository::new();
-        
+
         mock_accrual_repo
             .expect_get_workspace_timezone()
             .returning(|_| Ok("UTC".to_string()));

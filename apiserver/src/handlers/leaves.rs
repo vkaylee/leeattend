@@ -358,15 +358,13 @@ pub async fn trigger_accrual_run(
         None, // No report type for leave accrual
     );
 
-    queue
-        .create_job_metadata(&meta)
-        .await
-        .map_err(|e| AppError::BackgroundJobError(format!("Failed to create job job metadata/queue: {e}")))?;
+    queue.create_job_metadata(&meta).await.map_err(|e| {
+        AppError::BackgroundJobError(format!("Failed to create job job metadata/queue: {e}"))
+    })?;
 
-    queue
-        .enqueue_jobs(vec![job])
-        .await
-        .map_err(|e| AppError::BackgroundJobError(format!("Failed to enqueue accrual job metadata/queue: {e}")))?;
+    queue.enqueue_jobs(vec![job]).await.map_err(|e| {
+        AppError::BackgroundJobError(format!("Failed to enqueue accrual job metadata/queue: {e}"))
+    })?;
 
     Ok((
         StatusCode::ACCEPTED,
@@ -402,10 +400,9 @@ pub async fn get_job_status(
     use crate::queue::JobQueue;
     let queue = JobQueue::new(redis.clone());
 
-    let meta = queue
-        .get_job_metadata(job_id)
-        .await
-        .map_err(|e| AppError::BackgroundJobError(format!("Failed to get job job metadata/queue: {e}")))?;
+    let meta = queue.get_job_metadata(job_id).await.map_err(|e| {
+        AppError::BackgroundJobError(format!("Failed to get job job metadata/queue: {e}"))
+    })?;
 
     match meta {
         Some(m) => Ok(Json(JobStatusResponse {
@@ -509,7 +506,11 @@ pub async fn upload_leave_excel(
         import_repo
             .create_job(&ctx.auth_token, &import_job)
             .await
-            .map_err(|e| AppError::BackgroundJobError(format!("Failed to create import job metadata/queue: {e}")))?;
+            .map_err(|e| {
+                AppError::BackgroundJobError(format!(
+                    "Failed to create import job metadata/queue: {e}"
+                ))
+            })?;
     }
 
     // Require Redis for background processing
@@ -537,10 +538,9 @@ pub async fn upload_leave_excel(
     );
 
     let queue = JobQueue::new(redis.clone());
-    queue
-        .enqueue_jobs(vec![job])
-        .await
-        .map_err(|e| AppError::BackgroundJobError(format!("Failed to enqueue leave import job: {e}")))?;
+    queue.enqueue_jobs(vec![job]).await.map_err(|e| {
+        AppError::BackgroundJobError(format!("Failed to enqueue leave import job: {e}"))
+    })?;
 
     Ok(Json(serde_json::json!({
         "job_id": import_job_id.to_string(),

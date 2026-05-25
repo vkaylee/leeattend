@@ -142,15 +142,24 @@ mod tests {
 
     #[async_trait]
     impl PayrollRepository for MockPayrollRepo {
-    async fn get_salary_components_history_batch(
-        &self,
-        _workspace_id: uuid::Uuid,
-        _employee_ids: &[uuid::Uuid],
-        _start_date: chrono::NaiveDate,
-        _end_date: chrono::NaiveDate,
-    ) -> Result<std::collections::HashMap<uuid::Uuid, Vec<(crate::models::EmployeeSalaryComponent, crate::models::SalaryComponentDefinition)>>, crate::errors::AppError> {
-        Ok(std::collections::HashMap::new())
-    }
+        async fn get_salary_components_history_batch(
+            &self,
+            _workspace_id: uuid::Uuid,
+            _employee_ids: &[uuid::Uuid],
+            _start_date: chrono::NaiveDate,
+            _end_date: chrono::NaiveDate,
+        ) -> Result<
+            std::collections::HashMap<
+                uuid::Uuid,
+                Vec<(
+                    crate::models::EmployeeSalaryComponent,
+                    crate::models::SalaryComponentDefinition,
+                )>,
+            >,
+            crate::errors::AppError,
+        > {
+            Ok(std::collections::HashMap::new())
+        }
 
         async fn get_resolved_rule_assignments(
             &self,

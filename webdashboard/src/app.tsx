@@ -4,6 +4,7 @@ import { RouterProvider } from "@tanstack/react-router";
 import React, { Suspense } from "react";
 
 import { ErrorBoundary } from "./components/common/error-boundary";
+import { GlobalLoader } from "./components/common/global-loader";
 import { NewVersionBanner } from "./components/common/new-version-banner";
 import { DarkModeProvider } from "./context/dark-mode-context";
 import { DebugProvider } from "./context/debug-context";
@@ -46,7 +47,7 @@ function App() {
       <DebugProvider>
         <DarkModeProvider>
           <Sentry.ErrorBoundary fallback={(_error: unknown) => <ErrorBoundary>{null}</ErrorBoundary>}>
-            <Suspense fallback={<div className="flex h-screen items-center justify-center">Loading...</div>}>
+            <Suspense fallback={<GlobalLoader />}>
               <AppContent />
             </Suspense>
           </Sentry.ErrorBoundary>

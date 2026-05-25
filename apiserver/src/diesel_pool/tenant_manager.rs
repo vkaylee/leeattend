@@ -1,12 +1,12 @@
+use crate::diesel_pool::core::{DieselConnection, DieselPool};
 use crate::errors::AppError;
-use std::collections::HashMap;
-use tokio::sync::RwLock;
-use uuid::Uuid;
 use diesel_async::pooled_connection::deadpool::Pool;
 use diesel_async::pooled_connection::AsyncDieselConnectionManager;
 use diesel_async::AsyncPgConnection;
+use std::collections::HashMap;
 use std::time::Duration;
-use crate::diesel_pool::core::{DieselConnection, DieselPool};
+use tokio::sync::RwLock;
+use uuid::Uuid;
 
 #[async_trait::async_trait]
 pub trait TenantConnectionProvider: Send + Sync {

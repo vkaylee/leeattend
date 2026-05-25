@@ -1,7 +1,6 @@
+use super::*;
 use crate::errors::{AppError, AppResult};
 use async_trait::async_trait;
-use super::*;
-
 
 #[cfg(test)]
 use mockall::automock;
@@ -276,7 +275,9 @@ impl TenantManager for NoopTenantManager {
     }
 }
 
-pub(crate) fn generate_supavisor_token(secret: &str) -> Result<String, jsonwebtoken::errors::Error> {
+pub(crate) fn generate_supavisor_token(
+    secret: &str,
+) -> Result<String, jsonwebtoken::errors::Error> {
     use jsonwebtoken::{encode, Algorithm, EncodingKey, Header};
     use serde::{Deserialize, Serialize};
 

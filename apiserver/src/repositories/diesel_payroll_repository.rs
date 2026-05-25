@@ -781,7 +781,10 @@ impl PayrollRepository for DieselPayrollRepository {
         employee_ids: &[Uuid],
         start_date: NaiveDate,
         end_date: NaiveDate,
-    ) -> Result<std::collections::HashMap<Uuid, Vec<(EmployeeSalaryComponent, SalaryComponentDefinition)>>, AppError> {
+    ) -> Result<
+        std::collections::HashMap<Uuid, Vec<(EmployeeSalaryComponent, SalaryComponentDefinition)>>,
+        AppError,
+    > {
         let mut conn = crate::diesel_pool::TransactionConn(
             self.diesel_pools
                 .tenants_tx
@@ -808,11 +811,23 @@ impl PayrollRepository for DieselPayrollRepository {
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
-        let mut map: std::collections::HashMap<Uuid, Vec<(EmployeeSalaryComponent, SalaryComponentDefinition)>> = std::collections::HashMap::new();
-        
+        let mut map: std::collections::HashMap<
+            Uuid,
+            Vec<(EmployeeSalaryComponent, SalaryComponentDefinition)>,
+        > = std::collections::HashMap::new();
+
         // We need to keep only the latest before start_date, and all within range.
         // Group by employee and component id
-        let mut employee_components: std::collections::HashMap<Uuid, std::collections::HashMap<Uuid, Vec<(EmployeeSalaryComponentEntity, SalaryComponentDefinitionEntity)>>> = std::collections::HashMap::new();
+        let mut employee_components: std::collections::HashMap<
+            Uuid,
+            std::collections::HashMap<
+                Uuid,
+                Vec<(
+                    EmployeeSalaryComponentEntity,
+                    SalaryComponentDefinitionEntity,
+                )>,
+            >,
+        > = std::collections::HashMap::new();
 
         for row in rows {
             let emp_id = row.0.employee_id;
@@ -826,13 +841,16 @@ impl PayrollRepository for DieselPayrollRepository {
         }
 
         for (emp_id, comp_map) in employee_components {
-            let mut emp_history: Vec<(crate::models::EmployeeSalaryComponent, crate::models::SalaryComponentDefinition)> = Vec::new();
+            let mut emp_history: Vec<(
+                crate::models::EmployeeSalaryComponent,
+                crate::models::SalaryComponentDefinition,
+            )> = Vec::new();
             for (_, history) in comp_map {
                 // history is sorted desc by effective_date
                 // Find all within range
                 let mut within_range = Vec::new();
                 let mut last_before = None;
-                
+
                 for item in history {
                     if item.0.effective_date >= start_date {
                         within_range.push(item);
@@ -840,7 +858,7 @@ impl PayrollRepository for DieselPayrollRepository {
                         last_before = Some(item);
                     }
                 }
-                
+
                 if let Some(item) = last_before {
                     emp_history.push((item.0.into(), item.1.into()));
                 }

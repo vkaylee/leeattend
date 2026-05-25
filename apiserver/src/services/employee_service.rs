@@ -509,13 +509,13 @@ mod tests {
 
     #[async_trait]
     impl EmployeeRepository for MockEmployeeRepo {
-    async fn get_employees_by_ids(
-        &self,
-        _ids: &[uuid::Uuid],
-        _auth_token: &crate::diesel_pool::TenantAuthToken,
-    ) -> Result<Vec<crate::models::Employee>, crate::errors::AppError> {
-        Ok(vec![])
-    }
+        async fn get_employees_by_ids(
+            &self,
+            _ids: &[uuid::Uuid],
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+        ) -> Result<Vec<crate::models::Employee>, crate::errors::AppError> {
+            Ok(vec![])
+        }
 
         async fn create_employee(&self, _employee: &Employee) -> Result<(), AppError> {
             Ok(())
@@ -869,13 +869,16 @@ mod tests {
 
     #[async_trait]
     impl crate::repositories::department_repository::DepartmentRepository for NopDepartmentRepo {
-    async fn get_employee_department_history_batch(
-        &self,
-        _auth_token: &crate::diesel_pool::TenantAuthToken,
-        _employee_ids: &[uuid::Uuid],
-    ) -> Result<std::collections::HashMap<uuid::Uuid, Vec<crate::models::EmployeeDepartmentHistory>>, crate::errors::AppError> {
-        Ok(std::collections::HashMap::new())
-    }
+        async fn get_employee_department_history_batch(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _employee_ids: &[uuid::Uuid],
+        ) -> Result<
+            std::collections::HashMap<uuid::Uuid, Vec<crate::models::EmployeeDepartmentHistory>>,
+            crate::errors::AppError,
+        > {
+            Ok(std::collections::HashMap::new())
+        }
 
         async fn create_department(
             &self,
@@ -951,7 +954,10 @@ mod tests {
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,
             _employee_ids: &[Uuid],
-        ) -> Result<std::collections::HashMap<Uuid, crate::models::EmployeeDepartmentHistory>, AppError> {
+        ) -> Result<
+            std::collections::HashMap<Uuid, crate::models::EmployeeDepartmentHistory>,
+            AppError,
+        > {
             Ok(std::collections::HashMap::new())
         }
 

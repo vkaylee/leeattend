@@ -126,7 +126,14 @@ impl LeavePolicyRepository for DummyLeavePolicyRepository {
         &self,
         _workspace_id: uuid::Uuid,
         _date: chrono::NaiveDate,
-    ) -> Result<Vec<(crate::models::LeavePolicyAssignment, crate::models::LeavePolicyDefinition, String)>, crate::errors::AppError> {
+    ) -> Result<
+        Vec<(
+            crate::models::LeavePolicyAssignment,
+            crate::models::LeavePolicyDefinition,
+            String,
+        )>,
+        crate::errors::AppError,
+    > {
         Ok(vec![])
     }
 

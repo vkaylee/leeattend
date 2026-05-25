@@ -613,7 +613,9 @@ impl PayrollService {
 
         let workspace = match self.workspace_repo.get_workspace_by_id(workspace_id).await {
             Ok(Some(w)) => w,
-            Ok(None) | Err(_) => return crate::models::BatchCalculatePayrollResponse { results: vec![] },
+            Ok(None) | Err(_) => {
+                return crate::models::BatchCalculatePayrollResponse { results: vec![] }
+            }
         };
         let tz: Tz = crate::utils::tz::parse_workspace_tz(&workspace.timezone);
 
@@ -622,7 +624,8 @@ impl PayrollService {
             NaiveDate::from_ymd_opt(year + 1, 1, 1)
         } else {
             NaiveDate::from_ymd_opt(year, month + 1, 1)
-        }.unwrap_or_default();
+        }
+        .unwrap_or_default();
         let end_date = next_month_date.pred_opt().unwrap_or_default();
 
         let start_dt = local_to_utc(&tz, start_date, 0, 0, 0).unwrap_or_default();
@@ -630,7 +633,11 @@ impl PayrollService {
 
         let token = &crate::diesel_pool::TenantAuthToken::system_override(workspace_id);
 
-        let holidays_map = match self.holiday_repo.get_holidays_in_range(token, start_date, end_date).await {
+        let holidays_map = match self
+            .holiday_repo
+            .get_holidays_in_range(token, start_date, end_date)
+            .await
+        {
             Ok(h) => h,
             Err(_) => HashMap::new(),
         };
@@ -643,23 +650,28 @@ impl PayrollService {
         let mut results = Vec::new();
         for chunk in employee_ids.chunks(50) {
             let chunk_ids = chunk.to_vec();
-            
-            let (
-                salary_histories,
-                dept_histories,
-                time_entries,
-                employees_res,
-                rosters,
-            ) = tokio::join!(
-                self.payroll_repo.get_salary_components_history_batch(workspace_id, &chunk_ids, start_date, end_date),
-                self.department_repo.get_employee_department_history_batch(token, &chunk_ids),
-                self.time_entry_repo.get_workspace_time_entries_batch(token, &chunk_ids, start_dt, end_dt),
+
+            let (salary_histories, dept_histories, time_entries, employees_res, rosters) = tokio::join!(
+                self.payroll_repo.get_salary_components_history_batch(
+                    workspace_id,
+                    &chunk_ids,
+                    start_date,
+                    end_date
+                ),
+                self.department_repo
+                    .get_employee_department_history_batch(token, &chunk_ids),
+                self.time_entry_repo
+                    .get_workspace_time_entries_batch(token, &chunk_ids, start_dt, end_dt),
                 self.employee_repo.get_employees_by_ids(&chunk_ids, token),
-                self.roster_repo.get_employee_rosters_batch(token, &chunk_ids, start_date, end_date),
+                self.roster_repo
+                    .get_employee_rosters_batch(token, &chunk_ids, start_date, end_date),
             );
 
             let mut employees = match employees_res {
-                Ok(emps) => emps.into_iter().map(|e| (e.id, e)).collect::<HashMap<_, _>>(),
+                Ok(emps) => emps
+                    .into_iter()
+                    .map(|e| (e.id, e))
+                    .collect::<HashMap<_, _>>(),
                 Err(_) => continue,
             };
 
@@ -671,7 +683,8 @@ impl PayrollService {
             let mut contexts = Vec::new();
             for emp_id in chunk_ids {
                 if let Some(employee) = employees.remove(&emp_id) {
-                    let mut daily_entries_map: HashMap<NaiveDate, Vec<crate::models::TimeEntry>> = HashMap::new();
+                    let mut daily_entries_map: HashMap<NaiveDate, Vec<crate::models::TimeEntry>> =
+                        HashMap::new();
                     if let Some(entries) = time_map.remove(&emp_id) {
                         for entry in entries {
                             let local_date = entry.punch_in_time.with_timezone(&tz).date_naive();

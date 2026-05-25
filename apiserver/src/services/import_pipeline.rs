@@ -38,6 +38,16 @@ pub trait ImportStrategy: Send + Sync {
     ) -> Result<(), String> {
         Ok(())
     }
+
+    /// Optional hook to pre-process a chunk of rows in bulk (e.g., bulk fetch cache or bulk insert)
+    async fn pre_process_chunk(
+        &mut self,
+        _deps: &crate::worker::deps::WorkerDeps,
+        _job: &AttendanceImportJob,
+        _rows: &[Self::RowData],
+    ) -> Result<(), String> {
+        Ok(())
+    }
 }
 
 pub struct ImportPipeline<'a, S: ImportStrategy> {
@@ -99,6 +109,24 @@ impl<S: ImportStrategy> ImportPipeline<'_, S> {
 
         let parsed_rows: Vec<S::RowData> = pending_rows.iter().map(|(r, _)| r).cloned().collect();
         if let Err(e) = self.strategy.init(&self.deps, self.job, &parsed_rows).await {
+            let _ = self
+                .import_repo
+                .update_job_progress(
+                    &crate::diesel_pool::TenantAuthToken::system_override(self.job.workspace_id),
+                    self.job.id,
+                    0,
+                    ImportJobStatus::Failed,
+                    Some(e),
+                )
+                .await;
+            return Err(());
+        }
+
+        if let Err(e) = self
+            .strategy
+            .pre_process_chunk(&self.deps, self.job, &parsed_rows)
+            .await
+        {
             let _ = self
                 .import_repo
                 .update_job_progress(

@@ -157,7 +157,10 @@ pub trait PayrollRepository: Send + Sync {
         employee_ids: &[Uuid],
         start_date: NaiveDate,
         end_date: NaiveDate,
-    ) -> Result<std::collections::HashMap<Uuid, Vec<(EmployeeSalaryComponent, SalaryComponentDefinition)>>, AppError>;
+    ) -> Result<
+        std::collections::HashMap<Uuid, Vec<(EmployeeSalaryComponent, SalaryComponentDefinition)>>,
+        AppError,
+    >;
 
     async fn create_payslip_segment(
         &self,

@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
-use crate::supavisor::*;
-use serde_json::json;
+    use crate::supavisor::*;
+    use serde_json::json;
     #[test]
     fn test_build_tenant_payload_valid() {
         let url = "postgres://my_user:my_secret@my_db_host:5433/my_company_db";

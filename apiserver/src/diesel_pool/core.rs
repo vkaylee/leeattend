@@ -1,11 +1,13 @@
+use crate::diesel_pool::config::DbPoolConfig;
+use crate::diesel_pool::tenant_manager::{
+    SupavisorTenantPoolManager, TenantAuthToken, TenantConnectionProvider, TestTenantPoolManager,
+};
+use crate::errors::AppError;
 use diesel_async::pooled_connection::deadpool::{Object, Pool};
 use diesel_async::pooled_connection::AsyncDieselConnectionManager;
 use diesel_async::AsyncPgConnection;
-use std::time::Duration;
-use crate::diesel_pool::config::DbPoolConfig;
-use crate::diesel_pool::tenant_manager::{TenantConnectionProvider, SupavisorTenantPoolManager, TestTenantPoolManager, TenantAuthToken};
 use std::sync::Arc;
-use crate::errors::AppError;
+use std::time::Duration;
 
 pub type DieselPool = Pool<AsyncPgConnection>;
 pub type DieselConnection = Object<AsyncPgConnection>;

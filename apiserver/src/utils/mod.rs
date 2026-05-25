@@ -5,9 +5,9 @@ pub mod debug;
 pub mod excel_format_utils;
 pub mod file_parser;
 pub mod id;
+pub mod masking;
 pub mod serde_helpers;
 pub mod tz;
-pub mod masking;
 
 /// Returns the base storage directory from the STORAGE_DIR environment variable, defaulting to "storage".
 pub fn get_storage_dir() -> String {

@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct User {
     pub id: Uuid,
     pub email: String,
@@ -15,17 +15,51 @@ pub struct User {
     pub preferred_language: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+impl std::fmt::Debug for User {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("User")
+            .field("id", &self.id)
+            .field("email", &crate::utils::masking::mask_email(&self.email))
+            .field("password_hash", &"***")
+            .field("created_at", &self.created_at)
+            .field("full_name", &self.full_name)
+            .field("avatar_url", &self.avatar_url)
+            .field("bio", &self.bio)
+            .field("preferred_language", &self.preferred_language)
+            .finish()
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone)]
 pub struct LoginRequest {
     pub email: String,
     pub password: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+impl std::fmt::Debug for LoginRequest {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("LoginRequest")
+            .field("email", &crate::utils::masking::mask_email(&self.email))
+            .field("password", &"***")
+            .finish()
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone)]
 pub struct RegisterRequest {
     pub email: String,
     pub password: String,
     pub full_name: String,
+}
+
+impl std::fmt::Debug for RegisterRequest {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("RegisterRequest")
+            .field("email", &crate::utils::masking::mask_email(&self.email))
+            .field("password", &"***")
+            .field("full_name", &self.full_name)
+            .finish()
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -61,8 +95,17 @@ pub struct UpdateUserRequest {
     pub preferred_language: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct ChangePasswordRequest {
     pub old_password: String,
     pub new_password: String,
+}
+
+impl std::fmt::Debug for ChangePasswordRequest {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ChangePasswordRequest")
+            .field("old_password", &"***")
+            .field("new_password", &"***")
+            .finish()
+    }
 }

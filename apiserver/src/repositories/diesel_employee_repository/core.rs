@@ -616,6 +616,73 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
         Ok(result)
     }
 
+    async fn get_employee_ids_by_numbers(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        id_numbers: &[String],
+    ) -> Result<std::collections::HashMap<String, Uuid>, AppError> {
+        let workspace_id = auth_token.workspace_id();
+        if id_numbers.is_empty() {
+            return Ok(std::collections::HashMap::new());
+        }
+
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&workspace_id)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
+
+        let results: Vec<(String, Uuid)> = employees::table
+            .select((employees::employee_id_number, employees::id))
+            .filter(employees::workspace_id.eq(workspace_id))
+            .filter(employees::employee_id_number.eq_any(id_numbers))
+            .load(&mut *conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        let mut map = std::collections::HashMap::new();
+        for (num, id) in results {
+            map.insert(num, id);
+        }
+
+        Ok(map)
+    }
+
+    async fn bulk_create_employees_skip_duplicates(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        new_employees: &[Employee],
+    ) -> Result<(), AppError> {
+        if new_employees.is_empty() {
+            return Ok(());
+        }
+        let workspace_id = auth_token.workspace_id();
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&workspace_id)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
+
+        let new_entities: Vec<EmployeeEntity> =
+            new_employees.iter().map(|e| e.clone().into()).collect();
+
+        for chunk in new_entities.chunks(1000) {
+            diesel::insert_into(employees::table)
+                .values(chunk)
+                .on_conflict((employees::workspace_id, employees::employee_id_number))
+                .do_nothing()
+                .execute(&mut *conn)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        }
+
+        Ok(())
+    }
+
     async fn get_managed_departments(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,

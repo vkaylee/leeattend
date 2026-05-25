@@ -1,7 +1,7 @@
 use async_trait::async_trait;
-use std::collections::HashMap;
 use chrono::NaiveDate;
 use rust_decimal::Decimal;
+use std::collections::HashMap;
 use uuid::Uuid;
 
 use crate::errors::AppError;
@@ -31,6 +31,16 @@ pub trait DepartmentRepository: Send + Sync {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         name: &str,
     ) -> Result<Option<Uuid>, AppError>;
+    async fn get_department_ids_by_names(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        names: &[String],
+    ) -> Result<HashMap<String, Uuid>, AppError>;
+    async fn bulk_create_departments_skip_duplicates(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        departments: &[Department],
+    ) -> Result<(), AppError>;
     async fn update_department(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,

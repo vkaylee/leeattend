@@ -360,9 +360,12 @@ impl RosterRepository for DieselRosterRepository {
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
-        let mut map: std::collections::HashMap<Uuid, Vec<ShiftRoster>> = std::collections::HashMap::new();
+        let mut map: std::collections::HashMap<Uuid, Vec<ShiftRoster>> =
+            std::collections::HashMap::new();
         for roster in rosters {
-            map.entry(roster.employee_id).or_default().push(roster.into());
+            map.entry(roster.employee_id)
+                .or_default()
+                .push(roster.into());
         }
         Ok(map)
     }

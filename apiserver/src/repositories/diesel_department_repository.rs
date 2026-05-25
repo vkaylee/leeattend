@@ -262,6 +262,85 @@ impl DepartmentRepository for DieselDepartmentRepository {
         Ok(result.map(|r| r.id))
     }
 
+    async fn get_department_ids_by_names(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        names: &[String],
+    ) -> Result<std::collections::HashMap<String, Uuid>, AppError> {
+        if names.is_empty() {
+            return Ok(std::collections::HashMap::new());
+        }
+
+        #[derive(Debug, diesel::Queryable)]
+        struct IdNameOnly {
+            id: Uuid,
+            name: String,
+        }
+
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
+        let workspace_id = auth_token.workspace_id();
+        let lower_names: Vec<String> = names.iter().map(|n| n.to_lowercase()).collect();
+
+        let results: Vec<IdNameOnly> = departments::table
+            .filter(departments::workspace_id.eq(workspace_id))
+            .filter(departments::deleted_at.is_null())
+            .filter(
+                diesel::dsl::sql::<diesel::sql_types::Bool>("LOWER(name) = ANY(")
+                    .bind::<diesel::sql_types::Array<diesel::sql_types::Text>, _>(lower_names)
+                    .sql(")"),
+            )
+            .select((departments::id, departments::name))
+            .load::<IdNameOnly>(&mut *conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        let mut map = std::collections::HashMap::new();
+        for r in results {
+            map.insert(r.name.to_lowercase(), r.id);
+        }
+
+        Ok(map)
+    }
+
+    async fn bulk_create_departments_skip_duplicates(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        deps: &[Department],
+    ) -> Result<(), AppError> {
+        if deps.is_empty() {
+            return Ok(());
+        }
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
+
+        let new_entities: Vec<NewDieselDepartment> = deps
+            .iter()
+            .map(|d| NewDieselDepartment {
+                id: d.id,
+                workspace_id: d.workspace_id,
+                name: d.name.clone(),
+                description: d.description.clone(),
+                manager_id: d.manager_id,
+                default_working_pattern_id: d.default_working_pattern_id,
+            })
+            .collect();
+
+        for chunk in new_entities.chunks(1000) {
+            diesel::insert_into(departments::table)
+                .values(chunk)
+                .execute(&mut *conn)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        }
+
+        Ok(())
+    }
+
     async fn update_department(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
@@ -473,9 +552,12 @@ impl DepartmentRepository for DieselDepartmentRepository {
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
-        let mut map: std::collections::HashMap<Uuid, Vec<EmployeeDepartmentHistory>> = std::collections::HashMap::new();
+        let mut map: std::collections::HashMap<Uuid, Vec<EmployeeDepartmentHistory>> =
+            std::collections::HashMap::new();
         for entity in results {
-            map.entry(entity.employee_id).or_default().push(entity.into());
+            map.entry(entity.employee_id)
+                .or_default()
+                .push(entity.into());
         }
 
         Ok(map)
@@ -546,7 +628,8 @@ impl DepartmentRepository for DieselDepartmentRepository {
         for entity in results {
             // Because they are ordered by employee_id ASC and effective_date DESC,
             // the first one we encounter for a given employee_id is their current department.
-            map.entry(entity.employee_id).or_insert_with(|| entity.into());
+            map.entry(entity.employee_id)
+                .or_insert_with(|| entity.into());
         }
 
         Ok(map)

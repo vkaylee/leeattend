@@ -216,9 +216,9 @@ impl EmployeeRecruitmentRepository for DieselEmployeeRepository {
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?,
         );
 
-        let rows: Vec<RecruitmentSourceBreakdownRow> = diesel::sql_query(
-            include_str!("../sql/recruitment/recruitment_source_breakdown.sql"),
-        )
+        let rows: Vec<RecruitmentSourceBreakdownRow> = diesel::sql_query(include_str!(
+            "../sql/recruitment/recruitment_source_breakdown.sql"
+        ))
         .bind::<UuidType, _>(workspace_id)
         .load(&mut *conn)
         .await
@@ -250,49 +250,44 @@ impl EmployeeRecruitmentRepository for DieselEmployeeRepository {
         );
 
         // 1. Total terminated count
-        let total: i64 = diesel::sql_query(
-            include_str!("../sql/recruitment/turnover_total.sql"),
-        )
-        .bind::<UuidType, _>(workspace_id)
-        .bind::<Date, _>(start_date)
-        .bind::<Date, _>(end_date)
-        .get_result::<CountRow>(&mut *conn)
-        .await
-        .map(|r| r.count)
-        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let total: i64 = diesel::sql_query(include_str!("../sql/recruitment/turnover_total.sql"))
+            .bind::<UuidType, _>(workspace_id)
+            .bind::<Date, _>(start_date)
+            .bind::<Date, _>(end_date)
+            .get_result::<CountRow>(&mut *conn)
+            .await
+            .map(|r| r.count)
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         // 2. Tenure distribution
-        let tenure_rows: Vec<TenureRow> = diesel::sql_query(
-            include_str!("../sql/recruitment/turnover_tenure.sql"),
-        )
-        .bind::<UuidType, _>(workspace_id)
-        .bind::<Date, _>(start_date)
-        .bind::<Date, _>(end_date)
-        .load(&mut *conn)
-        .await
-        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let tenure_rows: Vec<TenureRow> =
+            diesel::sql_query(include_str!("../sql/recruitment/turnover_tenure.sql"))
+                .bind::<UuidType, _>(workspace_id)
+                .bind::<Date, _>(start_date)
+                .bind::<Date, _>(end_date)
+                .load(&mut *conn)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         // 3. By recruitment source
-        let source_rows: Vec<RecruitmentSourceBreakdownRow> = diesel::sql_query(
-            include_str!("../sql/recruitment/turnover_source.sql"),
-        )
-        .bind::<UuidType, _>(workspace_id)
-        .bind::<Date, _>(start_date)
-        .bind::<Date, _>(end_date)
-        .load(&mut *conn)
-        .await
-        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let source_rows: Vec<RecruitmentSourceBreakdownRow> =
+            diesel::sql_query(include_str!("../sql/recruitment/turnover_source.sql"))
+                .bind::<UuidType, _>(workspace_id)
+                .bind::<Date, _>(start_date)
+                .bind::<Date, _>(end_date)
+                .load(&mut *conn)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         // 4. By department (latest department assignment before termination)
-        let dept_rows: Vec<DeptRow> = diesel::sql_query(
-            include_str!("../sql/recruitment/turnover_department.sql"),
-        )
-        .bind::<UuidType, _>(workspace_id)
-        .bind::<Date, _>(start_date)
-        .bind::<Date, _>(end_date)
-        .load(&mut *conn)
-        .await
-        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let dept_rows: Vec<DeptRow> =
+            diesel::sql_query(include_str!("../sql/recruitment/turnover_department.sql"))
+                .bind::<UuidType, _>(workspace_id)
+                .bind::<Date, _>(start_date)
+                .bind::<Date, _>(end_date)
+                .load(&mut *conn)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(TurnoverAnalytics {
             tenure_distribution: tenure_rows

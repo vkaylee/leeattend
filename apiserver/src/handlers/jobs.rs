@@ -16,11 +16,9 @@ pub async fn get_generic_job_status(
     ctx: MemberContext,
     Path((_ws_id, job_id)): Path<(Uuid, Uuid)>,
 ) -> Result<Json<serde_json::Value>, AppError> {
-    let redis = state
-        .infra
-        .redis
-        .as_ref()
-        .ok_or_else(|| AppError::ServiceUnavailable("Redis is required for job tracking".to_string()))?;
+    let redis = state.infra.redis.as_ref().ok_or_else(|| {
+        AppError::ServiceUnavailable("Redis is required for job tracking".to_string())
+    })?;
 
     let queue = JobQueue::new(redis.clone());
 

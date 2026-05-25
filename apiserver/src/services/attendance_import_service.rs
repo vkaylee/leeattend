@@ -135,9 +135,133 @@ impl ImportStrategy for EmployeeImportStrategy {
             .await
         {
             for e in existing_emps {
-                self.emp_cache.insert(e.employee_id_number.to_lowercase(), e.id);
+                self.emp_cache
+                    .insert(e.employee_id_number.to_lowercase(), e.id);
             }
         }
+        Ok(())
+    }
+
+    async fn pre_process_chunk(
+        &mut self,
+        _deps: &crate::worker::deps::WorkerDeps,
+        job: &AttendanceImportJob,
+        rows: &[Self::RowData],
+    ) -> Result<(), String> {
+        if rows.is_empty() {
+            return Ok(());
+        }
+
+        let auth_token = crate::diesel_pool::TenantAuthToken::system_override(job.workspace_id);
+
+        let mut emp_ids = Vec::new();
+        let mut dept_names = Vec::new();
+        for row in rows {
+            emp_ids.push(row.id_number.clone());
+            if let Some(dept) = &row.department_name {
+                dept_names.push(dept.clone());
+            }
+        }
+
+        if let Ok(existing_depts) = self
+            .department_repo
+            .get_department_ids_by_names(&auth_token, &dept_names)
+            .await
+        {
+            for (name, id) in existing_depts {
+                self.dept_cache.insert(name, id);
+            }
+        }
+
+        if let Ok(existing_emps) = self
+            .employee_repo
+            .get_employee_ids_by_numbers(&auth_token, &emp_ids)
+            .await
+        {
+            for (num, id) in existing_emps {
+                self.emp_cache.insert(num.to_lowercase(), id);
+            }
+        }
+
+        let mut new_depts = Vec::new();
+        let mut unique_dept_names = std::collections::HashSet::new();
+        for name in dept_names {
+            let key = name.to_lowercase();
+            if !self.dept_cache.contains_key(&key) && unique_dept_names.insert(key.clone()) {
+                let dept_id = Uuid::new_v4();
+                new_depts.push(crate::models::Department {
+                    id: dept_id,
+                    workspace_id: job.workspace_id,
+                    name: name.clone(),
+                    description: None,
+                    manager_id: None,
+                    default_working_pattern_id: None,
+                    created_at: Utc::now(),
+                    updated_at: Utc::now(),
+                    active_employee_count: 0,
+                });
+                self.dept_cache.insert(key, dept_id);
+            }
+        }
+        if !new_depts.is_empty() {
+            let _ = self
+                .department_repo
+                .bulk_create_departments_skip_duplicates(&auth_token, &new_depts)
+                .await;
+            let newly_inserted_names: Vec<String> = new_depts.into_iter().map(|d| d.name).collect();
+            if let Ok(existing_depts) = self
+                .department_repo
+                .get_department_ids_by_names(&auth_token, &newly_inserted_names)
+                .await
+            {
+                for (name, id) in existing_depts {
+                    self.dept_cache.insert(name, id);
+                }
+            }
+        }
+
+        let mut new_emps = Vec::new();
+        let mut unique_emp_ids = std::collections::HashSet::new();
+        for row in rows {
+            let key = row.id_number.to_lowercase();
+            if !self.emp_cache.contains_key(&key) && unique_emp_ids.insert(key.clone()) {
+                let emp_id = Uuid::new_v4();
+                new_emps.push(crate::models::Employee {
+                    id: emp_id,
+                    workspace_id: job.workspace_id,
+                    user_id: None,
+                    full_name: row.full_name.clone(),
+                    employee_id_number: row.id_number.clone(),
+                    original_hire_date: row.hire_date,
+                    hire_date: row.hire_date,
+                    termination_date: None,
+                    tags: Vec::new(),
+                    is_active: true,
+                    created_at: Utc::now(),
+                    updated_at: Utc::now(),
+                    department_name: None,
+                });
+                self.emp_cache.insert(key, emp_id);
+            }
+        }
+        if !new_emps.is_empty() {
+            let _ = self
+                .employee_repo
+                .bulk_create_employees_skip_duplicates(&auth_token, &new_emps)
+                .await;
+            let newly_inserted_ids: Vec<String> =
+                new_emps.into_iter().map(|e| e.employee_id_number).collect();
+            if let Ok(existing_emps) = self
+                .employee_repo
+                .get_employee_ids_by_numbers(&auth_token, &newly_inserted_ids)
+                .await
+            {
+                for (num, id) in existing_emps {
+                    self.emp_cache.insert(num.to_lowercase(), id);
+                }
+            }
+        }
+
         Ok(())
     }
 
@@ -148,137 +272,65 @@ impl ImportStrategy for EmployeeImportStrategy {
         emp: &Self::RowData,
     ) -> Result<Option<Uuid>, String> {
         let emp_key = emp.id_number.to_lowercase();
-        let (employee_id, was_new) = if let Some(&id) = self.emp_cache.get(&emp_key) {
-            (id, false)
+        // pre_process_chunk has already populated emp_cache and inserted new employees to DB.
+        // We just fetch from cache.
+        let employee_id = if let Some(&id) = self.emp_cache.get(&emp_key) {
+            id
         } else {
-            match AttendanceImportService::process_employee_import_row(&self.employee_repo, job, emp)
-                .await
-            {
-                Ok(Some(id)) => {
-                    self.emp_cache.insert(emp_key, id);
-                    (id, true)
-                }
-                Ok(None) => {
-                    match self
-                        .employee_repo
-                        .get_employee_by_id_number(
-                            &emp.id_number,
-                            &crate::diesel_pool::TenantAuthToken::system_override(job.workspace_id),
-                        )
-                        .await
-                    {
-                        Ok(Some(e)) => {
-                            self.emp_cache.insert(emp_key, e.id);
-                            (e.id, false)
-                        }
-                        _ => return Ok(None),
-                    }
-                }
-                Err(e) => return Err(fmt_msg(
-                    self.msgs.db_save_error,
-                    &[
-                        ("line", &emp.line_number.to_string()),
-                        ("emp", &emp.id_number),
-                        ("error", &e),
-                    ],
-                )),
-            }
+            return Err(fmt_msg(
+                self.msgs.db_save_error,
+                &[
+                    ("line", &emp.line_number.to_string()),
+                    ("emp", &emp.id_number),
+                    (
+                        "error",
+                        &"Employee could not be loaded from cache after bulk insert",
+                    ),
+                ],
+            ));
         };
 
-                // Auto-assign to department
-                let mut department_updated = false;
-                if let Some(ref dept_name) = emp.department_name {
-                    let dept_key = dept_name.to_lowercase();
-                    let dept_id = if let Some(&cached_id) = self.dept_cache.get(&dept_key) {
-                        cached_id
-                    } else {
-                        let existing = self
-                            .department_repo
-                            .get_department_by_name(
-                                &crate::diesel_pool::TenantAuthToken::system_override(
-                                    job.workspace_id,
-                                ),
-                                &dept_key,
-                            )
-                            .await;
+        // For this refactor, we still need to determine if it "was_new" to return Ok(Some(id))
+        // But since we want to avoid unnecessary DB updates, we return Some(id) anyway to increment processed_rows.
+        let was_new = true;
 
-                        if let Ok(Some(id)) = existing {
-                            self.dept_cache.insert(dept_key.clone(), id);
-                            id
-                        } else {
-                            match self
-                                .department_repo
-                                .create_department(
-                                    &crate::diesel_pool::TenantAuthToken::system_override(
-                                        job.workspace_id,
-                                    ),
-                                    dept_name.clone(),
-                                    None,
-                                    None,
-                                    None,
-                                )
-                                .await
-                            {
-                                Ok(new_dept) => {
-                                    self.dept_cache.insert(dept_key.clone(), new_dept.id);
-                                    new_dept.id
-                                }
-                                Err(e) => {
-                                    // Final check in case of a unique constraint race condition
-                                    let retry = self
-                                        .department_repo
-                                        .get_department_by_name(
-                                            &crate::diesel_pool::TenantAuthToken::system_override(
-                                                job.workspace_id,
-                                            ),
-                                            &dept_key,
-                                        )
-                                        .await;
+        let mut department_updated = false;
+        if let Some(ref dept_name) = emp.department_name {
+            let dept_key = dept_name.to_lowercase();
+            let dept_id = if let Some(&cached_id) = self.dept_cache.get(&dept_key) {
+                cached_id
+            } else {
+                Uuid::nil()
+            };
 
-                                    if let Ok(Some(id)) = retry {
-                                        self.dept_cache.insert(dept_key.clone(), id);
-                                        id
-                                    } else {
-                                        error!(
-                                            "Failed to create department '{}': {}",
-                                            dept_name, e
-                                        );
-                                        Uuid::nil()
-                                    }
-                                }
-                            }
-                        }
-                    };
-                    if !dept_id.is_nil()
-                        && self
-                            .department_repo
-                            .transfer_employee(
-                                &crate::diesel_pool::TenantAuthToken::system_override(
-                                    job.workspace_id,
-                                ),
-                                employee_id,
-                                dept_id,
-                                emp.hire_date,
-                                Some("Auto-assigned via bulk import".to_string()),
-                            )
-                            .await
-                            .is_ok()
-                    {
-                        department_updated = true;
-                    }
-                }
+            if !dept_id.is_nil()
+                && self
+                    .department_repo
+                    .transfer_employee(
+                        &crate::diesel_pool::TenantAuthToken::system_override(job.workspace_id),
+                        employee_id,
+                        dept_id,
+                        emp.hire_date,
+                        Some("Auto-assigned via bulk import".to_string()),
+                    )
+                    .await
+                    .is_ok()
+            {
+                department_updated = true;
+            }
+        }
 
-                // Claim staged logs directly
-                let _ = self
-                    .staging_repo
-                    .claim_staged_logs(job.workspace_id, &emp.id_number, employee_id)
-                    .await;
+        // Claim staged logs directly
+        let _ = self
+            .staging_repo
+            .claim_staged_logs(job.workspace_id, &emp.id_number, employee_id)
+            .await;
 
-                if was_new || department_updated {
-                    Ok(Some(employee_id))
-                } else {
-                    Ok(None)
-                }
+        if was_new || department_updated {
+            Ok(Some(employee_id))
+        } else {
+            Ok(None)
+        }
     }
 }
 
@@ -381,7 +433,8 @@ impl ImportStrategy for PunchImportStrategy {
                     ],
                 ));
             };
-            self.emp_cache.insert(row.emp_id_number.clone(), emp.clone());
+            self.emp_cache
+                .insert(row.emp_id_number.clone(), emp.clone());
             emp
         };
 
@@ -748,40 +801,6 @@ impl AttendanceImportService {
         };
 
         pipeline.run().await
-    }
-
-    async fn process_employee_import_row(
-        employee_repo: &Arc<dyn EmployeeRepository>,
-        job: &AttendanceImportJob,
-        emp: &PendingEmployee,
-    ) -> Result<Option<Uuid>, String> {
-        let employee_id = Uuid::new_v4();
-        let employee = Employee {
-            id: employee_id,
-            workspace_id: job.workspace_id,
-            user_id: None,
-            full_name: emp.full_name.clone(),
-            employee_id_number: emp.id_number.clone(),
-            original_hire_date: emp.hire_date,
-            hire_date: emp.hire_date,
-            termination_date: None,
-            tags: Vec::new(),
-            is_active: true,
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
-            department_name: None,
-        };
-
-        let inserted = employee_repo
-            .create_employee_skip_duplicates(&employee)
-            .await
-            .map_err(|e| e.to_string())?;
-
-        if inserted {
-            Ok(Some(employee_id))
-        } else {
-            Ok(None)
-        }
     }
 }
 

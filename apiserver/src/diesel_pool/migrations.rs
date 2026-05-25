@@ -137,7 +137,10 @@ impl crate::diesel_pool::core::DieselPools {
                     }
                     Err(e) => {
                         let err_msg = e.to_string();
-                        if retries > 0 && crate::diesel_pool::tenant_manager::is_transient_supavisor_error(&err_msg)
+                        if retries > 0
+                            && crate::diesel_pool::tenant_manager::is_transient_supavisor_error(
+                                &err_msg,
+                            )
                         {
                             tracing::warn!(
                                 workspace_id = %row.id,

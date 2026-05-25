@@ -169,11 +169,11 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
                 let ws_id = workspace_id;
 
                 use crate::schema::{
-                    time_entries, raw_attendance_logs, attendance_adjustment_requests, attendance_import_jobs,
-                    shift_rosters, employee_shifts, leave_accrual_logs, leave_requests, leave_balances,
-                    payslips, employee_salary_components, salary_component_definitions,
-                    employee_department_history, leave_policy_assignments, leave_policy_definitions,
-                    employees, shifts, departments
+                    attendance_adjustment_requests, attendance_import_jobs, departments,
+                    employee_department_history, employee_salary_components, employee_shifts,
+                    employees, leave_accrual_logs, leave_balances, leave_policy_assignments,
+                    leave_policy_definitions, leave_requests, payslips, raw_attendance_logs,
+                    salary_component_definitions, shift_rosters, shifts, time_entries,
                 };
 
                 let emp_subquery = employees::dsl::employees
@@ -182,45 +182,203 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
 
                 match group {
                     "attendance" => {
-                        diesel::delete(time_entries::dsl::time_entries.filter(time_entries::dsl::employee_id.eq_any(emp_subquery))).execute(&mut *conn).await?;
-                        diesel::delete(raw_attendance_logs::dsl::raw_attendance_logs.filter(raw_attendance_logs::dsl::workspace_id.eq(ws_id))).execute(&mut *conn).await?;
-                        diesel::delete(attendance_adjustment_requests::dsl::attendance_adjustment_requests.filter(attendance_adjustment_requests::dsl::employee_id.eq_any(emp_subquery))).execute(&mut *conn).await?;
-                        diesel::delete(attendance_import_jobs::dsl::attendance_import_jobs.filter(attendance_import_jobs::dsl::workspace_id.eq(ws_id))).execute(&mut *conn).await?;
+                        diesel::delete(
+                            time_entries::dsl::time_entries
+                                .filter(time_entries::dsl::employee_id.eq_any(emp_subquery)),
+                        )
+                        .execute(&mut *conn)
+                        .await?;
+                        diesel::delete(
+                            raw_attendance_logs::dsl::raw_attendance_logs
+                                .filter(raw_attendance_logs::dsl::workspace_id.eq(ws_id)),
+                        )
+                        .execute(&mut *conn)
+                        .await?;
+                        diesel::delete(
+                            attendance_adjustment_requests::dsl::attendance_adjustment_requests
+                                .filter(
+                                    attendance_adjustment_requests::dsl::employee_id
+                                        .eq_any(emp_subquery),
+                                ),
+                        )
+                        .execute(&mut *conn)
+                        .await?;
+                        diesel::delete(
+                            attendance_import_jobs::dsl::attendance_import_jobs
+                                .filter(attendance_import_jobs::dsl::workspace_id.eq(ws_id)),
+                        )
+                        .execute(&mut *conn)
+                        .await?;
                     }
                     "schedules" => {
-                        diesel::delete(shift_rosters::dsl::shift_rosters.filter(shift_rosters::dsl::employee_id.eq_any(emp_subquery))).execute(&mut *conn).await?;
-                        diesel::delete(employee_shifts::dsl::employee_shifts.filter(employee_shifts::dsl::employee_id.eq_any(emp_subquery))).execute(&mut *conn).await?;
+                        diesel::delete(
+                            shift_rosters::dsl::shift_rosters
+                                .filter(shift_rosters::dsl::employee_id.eq_any(emp_subquery)),
+                        )
+                        .execute(&mut *conn)
+                        .await?;
+                        diesel::delete(
+                            employee_shifts::dsl::employee_shifts
+                                .filter(employee_shifts::dsl::employee_id.eq_any(emp_subquery)),
+                        )
+                        .execute(&mut *conn)
+                        .await?;
                     }
                     "leave" => {
-                        diesel::delete(leave_accrual_logs::dsl::leave_accrual_logs.filter(leave_accrual_logs::dsl::workspace_id.eq(ws_id))).execute(&mut *conn).await?;
-                        diesel::delete(leave_requests::dsl::leave_requests.filter(leave_requests::dsl::employee_id.eq_any(emp_subquery))).execute(&mut *conn).await?;
-                        diesel::delete(leave_balances::dsl::leave_balances.filter(leave_balances::dsl::employee_id.eq_any(emp_subquery))).execute(&mut *conn).await?;
+                        diesel::delete(
+                            leave_accrual_logs::dsl::leave_accrual_logs
+                                .filter(leave_accrual_logs::dsl::workspace_id.eq(ws_id)),
+                        )
+                        .execute(&mut *conn)
+                        .await?;
+                        diesel::delete(
+                            leave_requests::dsl::leave_requests
+                                .filter(leave_requests::dsl::employee_id.eq_any(emp_subquery)),
+                        )
+                        .execute(&mut *conn)
+                        .await?;
+                        diesel::delete(
+                            leave_balances::dsl::leave_balances
+                                .filter(leave_balances::dsl::employee_id.eq_any(emp_subquery)),
+                        )
+                        .execute(&mut *conn)
+                        .await?;
                     }
                     "payroll" => {
-                        diesel::delete(payslips::dsl::payslips.filter(payslips::dsl::employee_id.eq_any(emp_subquery))).execute(&mut *conn).await?;
-                        diesel::delete(employee_salary_components::dsl::employee_salary_components.filter(employee_salary_components::dsl::employee_id.eq_any(emp_subquery))).execute(&mut *conn).await?;
-                        diesel::delete(salary_component_definitions::dsl::salary_component_definitions.filter(salary_component_definitions::dsl::workspace_id.eq(ws_id))).execute(&mut *conn).await?;
+                        diesel::delete(
+                            payslips::dsl::payslips
+                                .filter(payslips::dsl::employee_id.eq_any(emp_subquery)),
+                        )
+                        .execute(&mut *conn)
+                        .await?;
+                        diesel::delete(
+                            employee_salary_components::dsl::employee_salary_components.filter(
+                                employee_salary_components::dsl::employee_id.eq_any(emp_subquery),
+                            ),
+                        )
+                        .execute(&mut *conn)
+                        .await?;
+                        diesel::delete(
+                            salary_component_definitions::dsl::salary_component_definitions
+                                .filter(salary_component_definitions::dsl::workspace_id.eq(ws_id)),
+                        )
+                        .execute(&mut *conn)
+                        .await?;
                     }
                     "full_reset" => {
-                        diesel::delete(time_entries::dsl::time_entries.filter(time_entries::dsl::employee_id.eq_any(emp_subquery))).execute(&mut *conn).await?;
-                        diesel::delete(raw_attendance_logs::dsl::raw_attendance_logs.filter(raw_attendance_logs::dsl::workspace_id.eq(ws_id))).execute(&mut *conn).await?;
-                        diesel::delete(attendance_adjustment_requests::dsl::attendance_adjustment_requests.filter(attendance_adjustment_requests::dsl::employee_id.eq_any(emp_subquery))).execute(&mut *conn).await?;
-                        diesel::delete(attendance_import_jobs::dsl::attendance_import_jobs.filter(attendance_import_jobs::dsl::workspace_id.eq(ws_id))).execute(&mut *conn).await?;
-                        diesel::delete(shift_rosters::dsl::shift_rosters.filter(shift_rosters::dsl::employee_id.eq_any(emp_subquery))).execute(&mut *conn).await?;
-                        diesel::delete(employee_shifts::dsl::employee_shifts.filter(employee_shifts::dsl::employee_id.eq_any(emp_subquery))).execute(&mut *conn).await?;
-                        diesel::delete(leave_accrual_logs::dsl::leave_accrual_logs.filter(leave_accrual_logs::dsl::workspace_id.eq(ws_id))).execute(&mut *conn).await?;
-                        diesel::delete(leave_requests::dsl::leave_requests.filter(leave_requests::dsl::employee_id.eq_any(emp_subquery))).execute(&mut *conn).await?;
-                        diesel::delete(leave_balances::dsl::leave_balances.filter(leave_balances::dsl::employee_id.eq_any(emp_subquery))).execute(&mut *conn).await?;
-                        diesel::delete(payslips::dsl::payslips.filter(payslips::dsl::employee_id.eq_any(emp_subquery))).execute(&mut *conn).await?;
-                        diesel::delete(employee_salary_components::dsl::employee_salary_components.filter(employee_salary_components::dsl::employee_id.eq_any(emp_subquery))).execute(&mut *conn).await?;
-                        diesel::delete(salary_component_definitions::dsl::salary_component_definitions.filter(salary_component_definitions::dsl::workspace_id.eq(ws_id))).execute(&mut *conn).await?;
-                        
-                        diesel::delete(employee_department_history::dsl::employee_department_history.filter(employee_department_history::dsl::employee_id.eq_any(emp_subquery))).execute(&mut *conn).await?;
-                        diesel::delete(leave_policy_assignments::dsl::leave_policy_assignments.filter(leave_policy_assignments::dsl::workspace_id.eq(ws_id))).execute(&mut *conn).await?;
-                        diesel::delete(leave_policy_definitions::dsl::leave_policy_definitions.filter(leave_policy_definitions::dsl::workspace_id.eq(ws_id))).execute(&mut *conn).await?;
-                        diesel::delete(employees::dsl::employees.filter(employees::dsl::workspace_id.eq(ws_id))).execute(&mut *conn).await?;
-                        diesel::delete(shifts::dsl::shifts.filter(shifts::dsl::workspace_id.eq(ws_id))).execute(&mut *conn).await?;
-                        diesel::delete(departments::dsl::departments.filter(departments::dsl::workspace_id.eq(ws_id))).execute(&mut *conn).await?;
+                        diesel::delete(
+                            time_entries::dsl::time_entries
+                                .filter(time_entries::dsl::employee_id.eq_any(emp_subquery)),
+                        )
+                        .execute(&mut *conn)
+                        .await?;
+                        diesel::delete(
+                            raw_attendance_logs::dsl::raw_attendance_logs
+                                .filter(raw_attendance_logs::dsl::workspace_id.eq(ws_id)),
+                        )
+                        .execute(&mut *conn)
+                        .await?;
+                        diesel::delete(
+                            attendance_adjustment_requests::dsl::attendance_adjustment_requests
+                                .filter(
+                                    attendance_adjustment_requests::dsl::employee_id
+                                        .eq_any(emp_subquery),
+                                ),
+                        )
+                        .execute(&mut *conn)
+                        .await?;
+                        diesel::delete(
+                            attendance_import_jobs::dsl::attendance_import_jobs
+                                .filter(attendance_import_jobs::dsl::workspace_id.eq(ws_id)),
+                        )
+                        .execute(&mut *conn)
+                        .await?;
+                        diesel::delete(
+                            shift_rosters::dsl::shift_rosters
+                                .filter(shift_rosters::dsl::employee_id.eq_any(emp_subquery)),
+                        )
+                        .execute(&mut *conn)
+                        .await?;
+                        diesel::delete(
+                            employee_shifts::dsl::employee_shifts
+                                .filter(employee_shifts::dsl::employee_id.eq_any(emp_subquery)),
+                        )
+                        .execute(&mut *conn)
+                        .await?;
+                        diesel::delete(
+                            leave_accrual_logs::dsl::leave_accrual_logs
+                                .filter(leave_accrual_logs::dsl::workspace_id.eq(ws_id)),
+                        )
+                        .execute(&mut *conn)
+                        .await?;
+                        diesel::delete(
+                            leave_requests::dsl::leave_requests
+                                .filter(leave_requests::dsl::employee_id.eq_any(emp_subquery)),
+                        )
+                        .execute(&mut *conn)
+                        .await?;
+                        diesel::delete(
+                            leave_balances::dsl::leave_balances
+                                .filter(leave_balances::dsl::employee_id.eq_any(emp_subquery)),
+                        )
+                        .execute(&mut *conn)
+                        .await?;
+                        diesel::delete(
+                            payslips::dsl::payslips
+                                .filter(payslips::dsl::employee_id.eq_any(emp_subquery)),
+                        )
+                        .execute(&mut *conn)
+                        .await?;
+                        diesel::delete(
+                            employee_salary_components::dsl::employee_salary_components.filter(
+                                employee_salary_components::dsl::employee_id.eq_any(emp_subquery),
+                            ),
+                        )
+                        .execute(&mut *conn)
+                        .await?;
+                        diesel::delete(
+                            salary_component_definitions::dsl::salary_component_definitions
+                                .filter(salary_component_definitions::dsl::workspace_id.eq(ws_id)),
+                        )
+                        .execute(&mut *conn)
+                        .await?;
+
+                        diesel::delete(
+                            employee_department_history::dsl::employee_department_history.filter(
+                                employee_department_history::dsl::employee_id.eq_any(emp_subquery),
+                            ),
+                        )
+                        .execute(&mut *conn)
+                        .await?;
+                        diesel::delete(
+                            leave_policy_assignments::dsl::leave_policy_assignments
+                                .filter(leave_policy_assignments::dsl::workspace_id.eq(ws_id)),
+                        )
+                        .execute(&mut *conn)
+                        .await?;
+                        diesel::delete(
+                            leave_policy_definitions::dsl::leave_policy_definitions
+                                .filter(leave_policy_definitions::dsl::workspace_id.eq(ws_id)),
+                        )
+                        .execute(&mut *conn)
+                        .await?;
+                        diesel::delete(
+                            employees::dsl::employees
+                                .filter(employees::dsl::workspace_id.eq(ws_id)),
+                        )
+                        .execute(&mut *conn)
+                        .await?;
+                        diesel::delete(
+                            shifts::dsl::shifts.filter(shifts::dsl::workspace_id.eq(ws_id)),
+                        )
+                        .execute(&mut *conn)
+                        .await?;
+                        diesel::delete(
+                            departments::dsl::departments
+                                .filter(departments::dsl::workspace_id.eq(ws_id)),
+                        )
+                        .execute(&mut *conn)
+                        .await?;
                     }
                     _ => return Err(diesel::result::Error::RollbackTransaction),
                 }
@@ -229,7 +387,9 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
         })
         .await
         .map_err(|e| match e {
-            diesel::result::Error::RollbackTransaction => AppError::Validation("Invalid group".to_string()),
+            diesel::result::Error::RollbackTransaction => {
+                AppError::Validation("Invalid group".to_string())
+            }
             e => AppError::Internal(format!("db error: {e}")),
         })?;
 
@@ -359,10 +519,16 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?,
         );
 
-        let results: Vec<(WorkspaceMemberEntity, crate::models::diesel::core::UserEntity)> = workspace_members::table
+        let results: Vec<(
+            WorkspaceMemberEntity,
+            crate::models::diesel::core::UserEntity,
+        )> = workspace_members::table
             .inner_join(users::table.on(workspace_members::user_id.eq(users::id)))
             .filter(workspace_members::workspace_id.eq(workspace_id))
-            .load::<(WorkspaceMemberEntity, crate::models::diesel::core::UserEntity)>(&mut *conn)
+            .load::<(
+                WorkspaceMemberEntity,
+                crate::models::diesel::core::UserEntity,
+            )>(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
@@ -393,12 +559,18 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
         );
 
         let results: Vec<Uuid> = workspace_members::table
-            .inner_join(workspace_roles::table.on(workspace_members::role_id.eq(workspace_roles::id)))
-            .left_join(workspace_role_permissions::table.on(workspace_roles::id.eq(workspace_role_permissions::role_id)))
+            .inner_join(
+                workspace_roles::table.on(workspace_members::role_id.eq(workspace_roles::id)),
+            )
+            .left_join(
+                workspace_role_permissions::table
+                    .on(workspace_roles::id.eq(workspace_role_permissions::role_id)),
+            )
             .filter(workspace_members::workspace_id.eq(workspace_id_val))
             .filter(
-                workspace_roles::scope_type.eq("global")
-                    .or(workspace_role_permissions::permission_name.eq_any(permissions))
+                workspace_roles::scope_type
+                    .eq("global")
+                    .or(workspace_role_permissions::permission_name.eq_any(permissions)),
             )
             .select(workspace_members::user_id)
             .distinct()
@@ -501,17 +673,18 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?,
         );
 
-        use crate::schema::workspace_member_extra_permissions;
         use crate::models::diesel::core::MemberExtraPermissionEntity;
+        use crate::schema::workspace_member_extra_permissions;
 
-        let results: Vec<MemberExtraPermissionEntity> = workspace_member_extra_permissions::dsl::workspace_member_extra_permissions
-            .filter(workspace_member_extra_permissions::dsl::workspace_id.eq(workspace_id))
-            .filter(workspace_member_extra_permissions::dsl::user_id.eq(user_id))
-            .filter(workspace_member_extra_permissions::dsl::expires_at.gt(chrono::Utc::now()))
-            .order_by(workspace_member_extra_permissions::dsl::assigned_at.desc())
-            .load(&mut *conn)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let results: Vec<MemberExtraPermissionEntity> =
+            workspace_member_extra_permissions::dsl::workspace_member_extra_permissions
+                .filter(workspace_member_extra_permissions::dsl::workspace_id.eq(workspace_id))
+                .filter(workspace_member_extra_permissions::dsl::user_id.eq(user_id))
+                .filter(workspace_member_extra_permissions::dsl::expires_at.gt(chrono::Utc::now()))
+                .order_by(workspace_member_extra_permissions::dsl::assigned_at.desc())
+                .load(&mut *conn)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(results
             .into_iter()
@@ -543,20 +716,21 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?,
         );
 
-        use crate::schema::workspace_member_extra_permissions;
         use crate::models::diesel::core::MemberExtraPermissionEntity;
+        use crate::schema::workspace_member_extra_permissions;
 
-        let entity: MemberExtraPermissionEntity = diesel::insert_into(workspace_member_extra_permissions::table)
-            .values((
-                workspace_member_extra_permissions::dsl::workspace_id.eq(workspace_id),
-                workspace_member_extra_permissions::dsl::user_id.eq(user_id),
-                workspace_member_extra_permissions::dsl::permission.eq(permission),
-                workspace_member_extra_permissions::dsl::expires_at.eq(expires_at),
-                workspace_member_extra_permissions::dsl::assigned_by.eq(assigned_by),
-            ))
-            .get_result(&mut *conn)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let entity: MemberExtraPermissionEntity =
+            diesel::insert_into(workspace_member_extra_permissions::table)
+                .values((
+                    workspace_member_extra_permissions::dsl::workspace_id.eq(workspace_id),
+                    workspace_member_extra_permissions::dsl::user_id.eq(user_id),
+                    workspace_member_extra_permissions::dsl::permission.eq(permission),
+                    workspace_member_extra_permissions::dsl::expires_at.eq(expires_at),
+                    workspace_member_extra_permissions::dsl::assigned_by.eq(assigned_by),
+                ))
+                .get_result(&mut *conn)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(crate::models::MemberExtraPermission {
             id: entity.id,
@@ -647,7 +821,7 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
         let affected = diesel::delete(
             member_extra_roles::dsl::member_extra_roles
                 .filter(member_extra_roles::dsl::id.eq(extra_role_id))
-                .filter(member_extra_roles::dsl::workspace_id.eq(workspace_id))
+                .filter(member_extra_roles::dsl::workspace_id.eq(workspace_id)),
         )
         .execute(&mut *conn)
         .await
@@ -668,12 +842,19 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?,
         );
 
-        use crate::schema::workspace_roles;
         use crate::models::diesel::core::WorkspaceRoleEntity;
+        use crate::schema::workspace_roles;
 
         let results: Vec<WorkspaceRoleEntity> = workspace_roles::dsl::workspace_roles
-            .filter(workspace_roles::dsl::workspace_id.eq(workspace_id).or(workspace_roles::dsl::is_system.eq(true)))
-            .order_by((workspace_roles::dsl::is_system.desc(), workspace_roles::dsl::created_at.asc()))
+            .filter(
+                workspace_roles::dsl::workspace_id
+                    .eq(workspace_id)
+                    .or(workspace_roles::dsl::is_system.eq(true)),
+            )
+            .order_by((
+                workspace_roles::dsl::is_system.desc(),
+                workspace_roles::dsl::created_at.asc(),
+            ))
             .load(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -697,8 +878,8 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?,
         );
 
-        use crate::schema::workspace_roles;
         use crate::models::diesel::core::WorkspaceRoleEntity;
+        use crate::schema::workspace_roles;
 
         let entity: WorkspaceRoleEntity = diesel::insert_into(workspace_roles::table)
             .values((
@@ -732,8 +913,8 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?,
         );
 
-        use crate::schema::workspace_roles;
         use crate::models::diesel::core::WorkspaceRoleEntity;
+        use crate::schema::workspace_roles;
 
         #[derive(AsChangeset)]
         #[diesel(table_name = crate::schema::workspace_roles)]
@@ -755,7 +936,7 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
             workspace_roles::dsl::workspace_roles
                 .filter(workspace_roles::dsl::id.eq(role_id))
                 .filter(workspace_roles::dsl::workspace_id.eq(workspace_id))
-                .filter(workspace_roles::dsl::is_system.eq(false))
+                .filter(workspace_roles::dsl::is_system.eq(false)),
         )
         .set(&update_data)
         .get_result(&mut *conn)
@@ -784,7 +965,7 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
             workspace_roles::dsl::workspace_roles
                 .filter(workspace_roles::dsl::id.eq(role_id))
                 .filter(workspace_roles::dsl::workspace_id.eq(workspace_id))
-                .filter(workspace_roles::dsl::is_system.eq(false))
+                .filter(workspace_roles::dsl::is_system.eq(false)),
         )
         .execute(&mut *conn)
         .await
@@ -806,9 +987,13 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?,
         );
 
-        use crate::schema::{workspace_roles, workspace_role_permissions};
+        use crate::schema::{workspace_role_permissions, workspace_roles};
         let valid_roles = workspace_roles::dsl::workspace_roles
-            .filter(workspace_roles::dsl::workspace_id.eq(workspace_id).or(workspace_roles::dsl::is_system.eq(true)))
+            .filter(
+                workspace_roles::dsl::workspace_id
+                    .eq(workspace_id)
+                    .or(workspace_roles::dsl::is_system.eq(true)),
+            )
             .select(workspace_roles::dsl::id);
 
         let results: Vec<String> = workspace_role_permissions::dsl::workspace_role_permissions
@@ -836,13 +1021,13 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
         );
 
         use crate::schema::workspace_roles;
-        use diesel::dsl::{select, exists};
+        use diesel::dsl::{exists, select};
 
         let result: bool = select(exists(
             workspace_roles::dsl::workspace_roles
                 .filter(workspace_roles::dsl::id.eq(role_id))
                 .filter(workspace_roles::dsl::workspace_id.eq(workspace_id))
-                .filter(workspace_roles::dsl::is_system.eq(false))
+                .filter(workspace_roles::dsl::is_system.eq(false)),
         ))
         .get_result(&mut *conn)
         .await
@@ -871,18 +1056,21 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
 
                 diesel::delete(
                     workspace_role_permissions::dsl::workspace_role_permissions
-                        .filter(workspace_role_permissions::dsl::role_id.eq(role_id))
+                        .filter(workspace_role_permissions::dsl::role_id.eq(role_id)),
                 )
                 .execute(&mut *conn)
                 .await?;
 
                 if !permissions.is_empty() {
-                    let inserts: Vec<_> = permissions.into_iter().map(|perm| {
-                        (
-                            workspace_role_permissions::dsl::role_id.eq(role_id),
-                            workspace_role_permissions::dsl::permission_name.eq(perm),
-                        )
-                    }).collect();
+                    let inserts: Vec<_> = permissions
+                        .into_iter()
+                        .map(|perm| {
+                            (
+                                workspace_role_permissions::dsl::role_id.eq(role_id),
+                                workspace_role_permissions::dsl::permission_name.eq(perm),
+                            )
+                        })
+                        .collect();
 
                     diesel::insert_into(workspace_role_permissions::table)
                         .values(&inserts)
