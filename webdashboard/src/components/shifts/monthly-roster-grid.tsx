@@ -1,11 +1,9 @@
-import * as Popover from "@radix-ui/react-popover";
 import { 
   AlertCircle,
   CalendarDays,
   CalendarRange,
   ChevronLeft,
   ChevronRight,
-  Clock,
   Copy,
   Loader2,
   Search,
@@ -20,11 +18,11 @@ import { format, isToday as isDateToday } from "date-fns";
 import { vi, enUS, zhCN, type Locale } from "date-fns/locale";
 
 import { EmployeeSearch } from "@/components/common/employee-search";
-import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { EffectiveSchedule, Employee, EmployeeSchedule, Shift } from "@/lib/api/types";
 import { useShifts } from "@/pages/shifts/hooks/use-shifts";
 
 import { ScheduleTracePopover } from "./schedule-trace-popover";
+import { ShiftPickerModal } from "./shift-picker-modal";
 
 
 const dateLocales: Partial<Record<string, Locale>> = {
@@ -159,7 +157,6 @@ interface MonthlyRosterGridProps {
 export function MonthlyRosterGrid({ hook }: MonthlyRosterGridProps) {
   const { i18n, t } = useTranslation();
   const currentLocale = dateLocales[i18n.language] ?? vi;
-  const { formatTime } = useDateTimeFormatter();
 
   const {
     monthDays,
@@ -362,18 +359,24 @@ export function MonthlyRosterGrid({ hook }: MonthlyRosterGridProps) {
           assignLabel={t("shifts.monthly.assign_selected")}
           cancelLabel={t("common.cancel")}
           clearLabel={t("shifts.monthly.clear_month")}
-          formatTime={formatTime}
-          handleApplyShift={handleApplyShift}
           isMutating={isMutating}
-          isShiftPickerOpen={isShiftPickerOpen}
+          onAssignSelected={() => { setIsShiftPickerOpen(true); }}
           onCancel={() => { setSelectedCells(new Set()); }}
           onClearOverrides={handleClearSelectedOverrides}
           selectedCount={selectedCells.size}
           selectedLabel={t("shifts.monthly.cells_selected", { count: selectedCells.size })}
-          setIsShiftPickerOpen={setIsShiftPickerOpen}
-          shifts={shifts}
         />
       )}
+
+      {isShiftPickerOpen ? (
+        <ShiftPickerModal
+          isOpen={isShiftPickerOpen}
+          onClose={() => { setIsShiftPickerOpen(false); }}
+          onSelectShift={handleApplyShift}
+          shifts={shifts}
+          targetDates={Array.from(selectedCells).map(c => c.split(":")[1])}
+        />
+      ) : null}
 
       <div className="bg-white dark:bg-slate-900 rounded-[28px] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
         {isMonthError || isEmployeesError ? (
@@ -585,34 +588,24 @@ interface RosterActionBarProps {
   assignLabel: string;
   cancelLabel: string;
   clearLabel: string;
-  formatTime: (time: string | null | undefined) => string;
-  handleApplyShift: (shiftId: string | null) => void;
   isMutating: boolean;
-  isShiftPickerOpen: boolean;
+  onAssignSelected: () => void;
   onCancel: () => void;
   onClearOverrides: () => void;
   selectedCount: number;
   selectedLabel: string;
-  setIsShiftPickerOpen: (open: boolean) => void;
-  shifts?: Shift[];
 }
 
 const RosterActionBar = memo(function RosterActionBar({
   assignLabel,
   cancelLabel,
   clearLabel,
-  formatTime,
-  handleApplyShift,
   isMutating,
-  isShiftPickerOpen,
+  onAssignSelected,
   onCancel,
   onClearOverrides,
   selectedLabel,
-  setIsShiftPickerOpen,
-  shifts,
 }: RosterActionBarProps) {
-  const { t } = useTranslation();
-
   return (
     <div className="bg-primary-600 text-white p-4 rounded-[24px] flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xl shadow-primary-100 dark:shadow-black/30 animate-in slide-in-from-top-4 duration-300">
       <div className="flex items-center gap-3">
@@ -625,58 +618,13 @@ const RosterActionBar = memo(function RosterActionBar({
       </div>
 
       <div className="flex items-center gap-2.5">
-        <Popover.Root onOpenChange={setIsShiftPickerOpen} open={isShiftPickerOpen}>
-          <Popover.Trigger asChild>
-            <button
-              className="px-4 py-2 bg-white text-primary-700 hover:bg-white/90 active:scale-95 rounded-xl text-[10px] font-extrabold uppercase tracking-widest transition-all disabled:opacity-50 cursor-pointer shadow-sm"
-              disabled={isMutating}
-            >
-              {assignLabel}
-            </button>
-          </Popover.Trigger>
-          <Popover.Portal>
-            <Popover.Content
-              className="z-50 w-72 bg-white dark:bg-slate-900 rounded-[2rem] shadow-premium-2xl border border-slate-100 dark:border-slate-800 p-5 animate-in fade-in zoom-in-95 duration-200 flex flex-col gap-4"
-              onClick={(e) => { e.stopPropagation(); }}
-              side="bottom"
-              sideOffset={12}
-            >
-              <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest border-b border-slate-50 dark:border-slate-800 pb-2">
-                {t("shifts.modal.select_shift_title")}
-              </div>
-              <div className="grid grid-cols-1 gap-2 max-h-[240px] overflow-y-auto custom-scrollbar pr-1">
-                {shifts?.map(shift => (
-                  <button
-                    className="p-3.5 rounded-2xl border text-left transition-all relative overflow-hidden group hover:border-primary-500 hover:bg-primary-50 dark:bg-primary-950/30 border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/30 cursor-pointer"
-                    key={shift.id}
-                    onClick={() => {
-                      handleApplyShift(shift.id);
-                      setIsShiftPickerOpen(false);
-                    }}
-                  >
-                    <div className="font-bold text-xs uppercase tracking-tight text-slate-700 dark:text-slate-200">{shift.name}</div>
-                    <div className="flex items-center gap-1.5 mt-1 text-[10px] text-slate-500 dark:text-slate-400 font-bold">
-                      <Clock size={10} /> {formatTime(shift.start_time)} - {formatTime(shift.end_time)}
-                    </div>
-                  </button>
-                ))}
-
-                <button
-                  className="p-3.5 rounded-2xl border border-dashed text-left transition-all hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700 border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/30 cursor-pointer"
-                  onClick={() => {
-                    handleApplyShift(null);
-                    setIsShiftPickerOpen(false);
-                  }}
-                >
-                  <div className="font-bold text-xs uppercase tracking-tight text-slate-500 dark:text-slate-400">{t("shifts.off_day")}</div>
-                  <div className="text-[10px] text-slate-500 dark:text-slate-400 font-bold mt-1">
-                    {t("shifts.modal.mark_as_off")}
-                  </div>
-                </button>
-              </div>
-            </Popover.Content>
-          </Popover.Portal>
-        </Popover.Root>
+        <button
+          className="px-4 py-2 bg-white text-primary-700 hover:bg-white/90 active:scale-95 rounded-xl text-[10px] font-extrabold uppercase tracking-widest transition-all disabled:opacity-50 cursor-pointer shadow-sm"
+          disabled={isMutating}
+          onClick={onAssignSelected}
+        >
+          {assignLabel}
+        </button>
 
         <button
           className="p-2 border border-white/20 hover:bg-white/10 text-white rounded-xl transition-all active:scale-90 disabled:opacity-50 cursor-pointer"
