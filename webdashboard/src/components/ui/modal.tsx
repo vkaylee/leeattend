@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
 
 interface ModalProps {
+  backdropClassName?: string;
   children: React.ReactNode;
   className?: string;
   icon?: React.ReactNode;
@@ -27,15 +28,16 @@ const maxWidthMap = {
 };
 
 export default function Modal({
-  isOpen,
-  onClose,
-  title,
-  subtitle,
-  icon,
+  backdropClassName,
   children,
-  maxWidth = "md",
   className,
+  icon,
+  isOpen,
+  maxWidth = "md",
+  onClose,
+  subtitle,
   testId,
+  title,
 }: ModalProps) {
   // Prevent scrolling when modal is open
   useEffect(() => {
@@ -52,7 +54,7 @@ export default function Modal({
   if (!isOpen) return null;
 
   return createPortal(
-    <div className="modal-backdrop" data-testid={testId} onClick={onClose} onKeyDown={(e) => { if (e.key === 'Escape') onClose(); }} role="presentation">
+    <div className={cn("modal-backdrop", backdropClassName)} data-testid={testId} onClick={onClose} onKeyDown={(e) => { if (e.key === 'Escape') onClose(); }} role="presentation">
       {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions -- Element has interactive role via onClick/onKeyDown */}
       <div 
         aria-modal="true"

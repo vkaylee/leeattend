@@ -31,6 +31,7 @@ export function ShiftPickerModal({
 
   return (
     <Modal
+      backdropClassName="bg-slate-900/5 dark:bg-slate-950/10 backdrop-blur-none"
       isOpen={isOpen}
       onClose={onClose}
       subtitle={t("shifts.modal.select_shift_subtitle", { count: targetDates.length })}

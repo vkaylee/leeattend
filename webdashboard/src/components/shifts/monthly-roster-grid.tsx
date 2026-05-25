@@ -11,7 +11,7 @@ import {
   AlertCircle,
   User
 } from "lucide-react";
-import React, { memo, useMemo, useState } from "react";
+import React, { memo, useMemo, useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
 import { format, isToday as isDateToday } from "date-fns";
@@ -212,14 +212,70 @@ export function MonthlyRosterGrid({ hook }: MonthlyRosterGridProps) {
     );
   }, [combinedSchedules, selectedEmployeeIds]);
 
-  const handleCellClick = (employeeId: string, dateStr: string) => {
+  const [dragStartCell, setDragStartCell] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragSnapshot, setDragSnapshot] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    const handleGlobalMouseUp = () => {
+      setIsDragging(false);
+      setDragStartCell(null);
+    };
+
+    if (isDragging) {
+      window.addEventListener("mouseup", handleGlobalMouseUp);
+      return () => {
+        window.removeEventListener("mouseup", handleGlobalMouseUp);
+      };
+    }
+  }, [isDragging]);
+
+  const handleCellMouseDown = (employeeId: string, dateStr: string, e: React.MouseEvent) => {
+    if (e.button !== 0) return; // Only left click
+    const key = `${employeeId}:${dateStr}`;
+    setIsDragging(true);
+    setDragStartCell(key);
+    
     setSelectedCells(prev => {
       const next = new Set(prev);
-      const key = `${employeeId}:${dateStr}`;
       if (next.has(key)) {
         next.delete(key);
       } else {
         next.add(key);
+      }
+      setDragSnapshot(new Set(next));
+      return next;
+    });
+  };
+
+  const handleCellMouseEnter = (employeeId: string, dateStr: string) => {
+    if (!isDragging || !dragStartCell) return;
+
+    const [startEmpId, startDateStr] = dragStartCell.split(":");
+
+    const startEmpIdx = filteredSchedules.findIndex(s => s.employee_id === startEmpId);
+    const endEmpIdx = filteredSchedules.findIndex(s => s.employee_id === employeeId);
+
+    if (startEmpIdx === -1 || endEmpIdx === -1) return;
+
+    const startDayIdx = monthDays.findIndex(d => format(d, "yyyy-MM-dd") === startDateStr);
+    const endDayIdx = monthDays.findIndex(d => format(d, "yyyy-MM-dd") === dateStr);
+
+    if (startDayIdx === -1 || endDayIdx === -1) return;
+
+    const minEmpIdx = Math.min(startEmpIdx, endEmpIdx);
+    const maxEmpIdx = Math.max(startEmpIdx, endEmpIdx);
+    const minDayIdx = Math.min(startDayIdx, endDayIdx);
+    const maxDayIdx = Math.max(startDayIdx, endDayIdx);
+
+    setSelectedCells(() => {
+      const next = new Set(dragSnapshot);
+      for (let i = minEmpIdx; i <= maxEmpIdx; i++) {
+        const empId = filteredSchedules[i].employee_id;
+        for (let j = minDayIdx; j <= maxDayIdx; j++) {
+          const dStr = format(monthDays[j], "yyyy-MM-dd");
+          next.add(`${empId}:${dStr}`);
+        }
       }
       return next;
     });
@@ -367,9 +423,11 @@ export function MonthlyRosterGrid({ hook }: MonthlyRosterGridProps) {
           <RosterGridTable
             currentLocale={currentLocale}
             employeesLabel={t("shifts.monthly.all_employees")}
+            isDragging={isDragging}
             monthDays={monthDays}
             monthSchedules={filteredSchedules}
-            onCellClick={handleCellClick}
+            onCellMouseDown={handleCellMouseDown}
+            onCellMouseEnter={handleCellMouseEnter}
             selectedCells={selectedCells}
             shifts={shifts}
           />
@@ -594,9 +652,11 @@ RosterActionBar.displayName = "RosterActionBar";
 interface RosterGridTableProps {
   currentLocale: Locale;
   employeesLabel: string;
+  isDragging: boolean;
   monthDays: Date[];
   monthSchedules: EmployeeSchedule[];
-  onCellClick: (employeeId: string, dateStr: string) => void;
+  onCellMouseDown: (employeeId: string, dateStr: string, e: React.MouseEvent) => void;
+  onCellMouseEnter: (employeeId: string, dateStr: string) => void;
   selectedCells: Set<string>;
   shifts?: Shift[];
 }
@@ -604,14 +664,16 @@ interface RosterGridTableProps {
 const RosterGridTable = memo(function RosterGridTable({
   currentLocale,
   employeesLabel,
+  isDragging,
   monthDays,
   monthSchedules,
-  onCellClick,
+  onCellMouseDown,
+  onCellMouseEnter,
   selectedCells,
   shifts,
 }: RosterGridTableProps) {
   return (
-    <div className="overflow-x-auto relative max-w-full">
+    <div className={`overflow-x-auto relative max-w-full roster-scrollbar ${isDragging ? "select-none" : ""}`}>
       <table className="w-full border-collapse">
         <thead>
           <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-850/50">
@@ -686,7 +748,8 @@ const RosterGridTable = memo(function RosterGridTable({
                     isHoliday={cellData.isHoliday}
                     isSelected={isSelected}
                     key={dateStr}
-                    onClick={onCellClick}
+                    onMouseDown={onCellMouseDown}
+                    onMouseEnter={onCellMouseEnter}
                     shiftBgClass={cellData.shiftBgClass}
                     shiftSymbol={cellData.shiftSymbol}
                     source={cellData.source}
@@ -712,7 +775,8 @@ interface RosterCellProps {
   holidayName?: string | null;
   isHoliday: boolean;
   isSelected: boolean;
-  onClick: (employeeId: string, dateStr: string) => void;
+  onMouseDown: (employeeId: string, dateStr: string, e: React.MouseEvent) => void;
+  onMouseEnter: (employeeId: string, dateStr: string) => void;
   shiftBgClass: string;
   shiftSymbol: string;
   source?: string;
@@ -727,14 +791,20 @@ const RosterCell = memo(function RosterCell({
   hasTraces,
   holidayName,
   isHoliday,
-  onClick,
+  onMouseDown,
+  onMouseEnter,
   shiftBgClass,
   shiftSymbol,
   source,
   traces,
 }: RosterCellProps) {
-  const handleCellClick = () => {
-    onClick(employeeId, dateStr);
+  const handleMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault(); // Prevent text highlighting while dragging
+    onMouseDown(employeeId, dateStr, e);
+  };
+
+  const handleMouseEnter = () => {
+    onMouseEnter(employeeId, dateStr);
   };
 
   const handleTraceClick = (e: React.MouseEvent) => {
@@ -744,7 +814,8 @@ const RosterCell = memo(function RosterCell({
   return (
     <td
       className={cellStyles}
-      onClick={handleCellClick}
+      onMouseDown={handleMouseDown}
+      onMouseEnter={handleMouseEnter}
     >
       <div className="py-2.5 px-1 min-h-[44px] flex flex-col justify-center items-center">
         {hasShift ? (
