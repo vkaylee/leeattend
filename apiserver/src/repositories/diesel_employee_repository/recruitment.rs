@@ -217,17 +217,7 @@ impl EmployeeRecruitmentRepository for DieselEmployeeRepository {
         );
 
         let rows: Vec<RecruitmentSourceBreakdownRow> = diesel::sql_query(
-            r#"
-            SELECT
-                COALESCE(rs.source_type::text, 'direct') AS source_type,
-                COALESCE(rs.name, 'Direct Hire') AS source_name,
-                COUNT(*) AS count
-            FROM employees e
-            LEFT JOIN recruitment_sources rs ON e.recruitment_source_id = rs.id
-            WHERE e.workspace_id = $1 AND e.is_active = TRUE
-            GROUP BY rs.source_type, rs.name
-            ORDER BY count DESC
-            "#,
+            include_str!("../sql/recruitment/recruitment_source_breakdown.sql"),
         )
         .bind::<UuidType, _>(workspace_id)
         .load(&mut *conn)
@@ -261,10 +251,7 @@ impl EmployeeRecruitmentRepository for DieselEmployeeRepository {
 
         // 1. Total terminated count
         let total: i64 = diesel::sql_query(
-            r#"SELECT COUNT(*) FROM employees e
-               WHERE e.workspace_id = $1 AND e.is_active = FALSE
-                 AND e.termination_date IS NOT NULL
-                 AND e.termination_date >= $2 AND e.termination_date <= $3"#,
+            include_str!("../sql/recruitment/turnover_total.sql"),
         )
         .bind::<UuidType, _>(workspace_id)
         .bind::<Date, _>(start_date)
@@ -276,32 +263,7 @@ impl EmployeeRecruitmentRepository for DieselEmployeeRepository {
 
         // 2. Tenure distribution
         let tenure_rows: Vec<TenureRow> = diesel::sql_query(
-            r#"
-            SELECT bucket, COUNT(*) AS count FROM (
-                SELECT CASE
-                    WHEN e.termination_date - e.hire_date < 90 THEN '< 3 months'
-                    WHEN e.termination_date - e.hire_date < 180 THEN '3-6 months'
-                    WHEN e.termination_date - e.hire_date < 365 THEN '6-12 months'
-                    WHEN e.termination_date - e.hire_date < 730 THEN '1-2 years'
-                    WHEN e.termination_date - e.hire_date < 1825 THEN '2-5 years'
-                    ELSE '> 5 years'
-                END AS bucket
-                FROM employees e
-                WHERE e.workspace_id = $1 AND e.is_active = FALSE
-                  AND e.termination_date IS NOT NULL
-                  AND e.termination_date >= $2 AND e.termination_date <= $3
-            ) sub
-            GROUP BY bucket
-            ORDER BY CASE bucket
-                WHEN '< 3 months' THEN 1
-                WHEN '3-6 months' THEN 2
-                WHEN '6-12 months' THEN 3
-                WHEN '1-2 years' THEN 4
-                WHEN '2-5 years' THEN 5
-                WHEN '> 5 years' THEN 6
-                ELSE 7
-            END
-            "#,
+            include_str!("../sql/recruitment/turnover_tenure.sql"),
         )
         .bind::<UuidType, _>(workspace_id)
         .bind::<Date, _>(start_date)
@@ -312,19 +274,7 @@ impl EmployeeRecruitmentRepository for DieselEmployeeRepository {
 
         // 3. By recruitment source
         let source_rows: Vec<RecruitmentSourceBreakdownRow> = diesel::sql_query(
-            r#"
-            SELECT
-                COALESCE(rs.source_type::text, 'direct') AS source_type,
-                COALESCE(rs.name, 'Direct Hire') AS source_name,
-                COUNT(*) AS count
-            FROM employees e
-            LEFT JOIN recruitment_sources rs ON e.recruitment_source_id = rs.id
-            WHERE e.workspace_id = $1 AND e.is_active = FALSE
-              AND e.termination_date IS NOT NULL
-              AND e.termination_date >= $2 AND e.termination_date <= $3
-            GROUP BY rs.source_type, rs.name
-            ORDER BY count DESC
-            "#,
+            include_str!("../sql/recruitment/turnover_source.sql"),
         )
         .bind::<UuidType, _>(workspace_id)
         .bind::<Date, _>(start_date)
@@ -335,25 +285,7 @@ impl EmployeeRecruitmentRepository for DieselEmployeeRepository {
 
         // 4. By department (latest department assignment before termination)
         let dept_rows: Vec<DeptRow> = diesel::sql_query(
-            r#"
-            SELECT
-                COALESCE(d.name, 'Unassigned') AS department_name,
-                COUNT(*) AS count
-            FROM employees e
-            LEFT JOIN LATERAL (
-                SELECT edh.department_id
-                FROM employee_department_history edh
-                WHERE edh.employee_id = e.id
-                ORDER BY edh.effective_date DESC
-                LIMIT 1
-            ) latest_dept ON TRUE
-            LEFT JOIN departments d ON d.id = latest_dept.department_id
-            WHERE e.workspace_id = $1 AND e.is_active = FALSE
-              AND e.termination_date IS NOT NULL
-              AND e.termination_date >= $2 AND e.termination_date <= $3
-            GROUP BY d.name
-            ORDER BY count DESC
-            "#,
+            include_str!("../sql/recruitment/turnover_department.sql"),
         )
         .bind::<UuidType, _>(workspace_id)
         .bind::<Date, _>(start_date)
