@@ -2,6 +2,8 @@ import React, { lazy, Suspense, memo } from "react";
 
 import type { WidgetId } from "@/hooks/use-dashboard-layout";
 
+import { ErrorBoundary } from "@/components/common/error-boundary";
+
 // ── Lazy-loaded chart components ───────────────────────────────────
 
 const AttendanceTrendChart = lazy(
@@ -80,9 +82,11 @@ const WidgetRenderer = memo(function WidgetRenderer({ widgetId }: WidgetRenderer
     }
 
     return (
-        <Suspense fallback={<ChartSkeleton />}>
-            <ChartComponent />
-        </Suspense>
+        <ErrorBoundary variant="compact">
+            <Suspense fallback={<ChartSkeleton />}>
+                <ChartComponent />
+            </Suspense>
+        </ErrorBoundary>
     );
 });
 

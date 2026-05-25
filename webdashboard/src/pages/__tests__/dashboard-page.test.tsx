@@ -39,6 +39,16 @@ vi.mock("@/hooks/use-dashboard-layout", () => ({
   useDashboardLayout: vi.fn(),
 }));
 
+let shouldQuickStatsThrow = false;
+vi.mock("@/components/features/dashboard/hr-quick-stats", () => ({
+  HrQuickStats: () => {
+    if (shouldQuickStatsThrow) {
+      throw new Error("Simulated Quick Stats Render Error");
+    }
+    return <div data-testid="quick-stats-mock">Quick Stats</div>;
+  }
+}));
+
 import { useAgentsStatus } from "@/hooks/use-agents";
 import { useDashboardStats } from "@/hooks/use-dashboard";
 import { useDashboardLayout } from "@/hooks/use-dashboard-layout";
@@ -54,6 +64,7 @@ describe("DashboardPage", () => {
       defaultOptions: { queries: { retry: false } },
     });
     vi.clearAllMocks();
+    shouldQuickStatsThrow = false;
 
     vi.mocked(useAgentsStatus).mockReturnValue({
       agents: [],
@@ -150,5 +161,26 @@ describe("DashboardPage", () => {
     expect(screen.getByText("dashboard.system.total_agents")).toBeInTheDocument();
     expect(screen.getByText("dashboard.system.online_agents")).toBeInTheDocument();
     expect(screen.getByText("dashboard.system.total_devices")).toBeInTheDocument();
+  });
+
+  it("isolates render crash inside a single widget using ErrorBoundary", () => {
+    shouldQuickStatsThrow = true;
+    
+    // Suppress console.error output during the throwing test to keep test runs clean
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(vi.fn());
+    
+    renderComponent();
+    
+    // 1. Verify that the crashed widget renders the fallback UI
+    expect(screen.getByText("Widget Error")).toBeInTheDocument();
+    expect(screen.getByText("Simulated Quick Stats Render Error")).toBeInTheDocument();
+    
+    // 2. Verify that sibling components (e.g., dashboard title and KPI card) still render correctly
+    expect(screen.getByTestId("dashboard-title")).toBeInTheDocument();
+    expect(screen.getByText("100")).toBeInTheDocument(); // total_employees
+    
+    // Clean up
+    consoleErrorSpy.mockRestore();
+    shouldQuickStatsThrow = false;
   });
 });

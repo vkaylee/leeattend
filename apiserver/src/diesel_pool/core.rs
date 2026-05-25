@@ -74,8 +74,7 @@ impl DieselPools {
         Ok(SessionConn(conn))
     }
 
-    #[allow(clippy::unused_async, clippy::expect_used)]
-    pub async fn connect(config: &DbPoolConfig) -> Self {
+    pub async fn connect(config: &DbPoolConfig) -> Result<Self, AppError> {
         tracing::info!(
             api_max = config.api_max_conn,
             worker_max = config.worker_max_conn,
@@ -91,7 +90,7 @@ impl DieselPools {
             .create_timeout(Some(Duration::from_secs(5)))
             .runtime(deadpool::Runtime::Tokio1)
             .build()
-            .expect("Failed to create API Diesel pool");
+            .map_err(|e| AppError::Internal(format!("Failed to create API Diesel pool: {}", e)))?;
 
         let worker_manager =
             AsyncDieselConnectionManager::<AsyncPgConnection>::new(worker_sess_url);
@@ -103,7 +102,7 @@ impl DieselPools {
             .create_timeout(Some(Duration::from_secs(5)))
             .runtime(deadpool::Runtime::Tokio1)
             .build()
-            .expect("Failed to create Worker Diesel pool");
+            .map_err(|e| AppError::Internal(format!("Failed to create Worker Diesel pool: {}", e)))?;
 
         let tenant_tx_manager = Arc::new(SupavisorTenantPoolManager::new(
             api_tx_url.to_string(),
@@ -117,37 +116,36 @@ impl DieselPools {
 
         tracing::info!("Diesel pools connected successfully");
 
-        Self {
+        Ok(Self {
             api: api_pool,
             worker: worker_pool,
             tenants_tx: tenant_tx_manager,
             tenants_sess: tenant_sess_manager,
-        }
+        })
     }
 
-    #[allow(clippy::expect_used)]
-    pub fn for_test(url: &str) -> Self {
+    pub fn for_test(url: &str) -> Result<Self, AppError> {
         let api_manager = AsyncDieselConnectionManager::<AsyncPgConnection>::new(url.to_string());
         let api_pool = Pool::builder(api_manager)
             .max_size(5)
             .build()
-            .expect("Failed to create test API Diesel pool");
+            .map_err(|e| AppError::Internal(format!("Failed to create test API Diesel pool: {}", e)))?;
 
         let worker_manager =
             AsyncDieselConnectionManager::<AsyncPgConnection>::new(url.to_string());
         let worker_pool = Pool::builder(worker_manager)
             .max_size(5)
             .build()
-            .expect("Failed to create test Worker Diesel pool");
+            .map_err(|e| AppError::Internal(format!("Failed to create test Worker Diesel pool: {}", e)))?;
 
         let tenant_manager = Arc::new(TestTenantPoolManager::new(api_pool.clone()));
 
-        Self {
+        Ok(Self {
             api: api_pool,
             worker: worker_pool,
             #[allow(clippy::clone_on_ref_ptr)]
             tenants_tx: tenant_manager.clone(),
             tenants_sess: tenant_manager,
-        }
+        })
     }
 }

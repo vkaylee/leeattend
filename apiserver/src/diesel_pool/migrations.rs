@@ -1,20 +1,20 @@
 use crate::diesel_pool::config::DbPoolConfig;
 
 impl crate::diesel_pool::core::DieselPools {
-    #[allow(clippy::expect_used)]
-    pub fn run_system_migrations(config: &DbPoolConfig) {
+    pub fn run_system_migrations(config: &DbPoolConfig) -> Result<(), crate::errors::AppError> {
         use diesel::Connection;
         use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 
         pub const SYSTEM_MIGRATIONS: EmbeddedMigrations = embed_migrations!("./migrations/system");
 
         let mut conn = diesel::PgConnection::establish(&config.primary_url)
-            .expect("Failed to connect to primary database for system migrations");
+            .map_err(|e| crate::errors::AppError::Internal(format!("Failed to connect to primary database for system migrations: {}", e)))?;
 
         conn.run_pending_migrations(SYSTEM_MIGRATIONS)
-            .expect("Failed to run system migrations");
+            .map_err(|e| crate::errors::AppError::Internal(format!("Failed to run system migrations: {}", e)))?;
 
         tracing::info!("Database system migrations completed successfully");
+        Ok(())
     }
 
     /// Resolve the tenant database connection URL for running migrations.
@@ -52,8 +52,7 @@ impl crate::diesel_pool::core::DieselPools {
     ///
     /// Iterates over every workspace in the system DB, connects to each tenant DB,
     /// and runs any pending tenant-level migrations. Called once at startup.
-    #[allow(clippy::expect_used)]
-    pub fn run_tenant_migrations(config: &DbPoolConfig) {
+    pub fn run_tenant_migrations(config: &DbPoolConfig) -> Result<(), crate::errors::AppError> {
         use diesel::sql_types::Uuid as UuidSql;
         use diesel::{Connection, QueryableByName, RunQueryDsl};
         use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
@@ -68,16 +67,15 @@ impl crate::diesel_pool::core::DieselPools {
 
         // Connect to system DB and list all workspaces
         let mut sys_conn = diesel::PgConnection::establish(&config.primary_url)
-            .expect("Failed to connect to system DB for tenant migrations");
+            .map_err(|e| crate::errors::AppError::Internal(format!("Failed to connect to system DB for tenant migrations: {}", e)))?;
 
-        #[allow(clippy::disallowed_methods)]
         let workspace_rows: Vec<WorkspaceRow> = diesel::sql_query("SELECT id FROM workspaces")
             .load(&mut sys_conn)
-            .expect("Failed to query workspaces for tenant migrations");
+            .map_err(|e| crate::errors::AppError::Internal(format!("Failed to query workspaces for tenant migrations: {}", e)))?;
 
         if workspace_rows.is_empty() {
             tracing::info!("No workspaces found — skipping tenant migrations");
-            return;
+            return Ok(());
         }
 
         tracing::info!(
@@ -164,10 +162,10 @@ impl crate::diesel_pool::core::DieselPools {
         }
 
         tracing::info!("Tenant migrations on existing workspaces completed");
+        Ok(())
     }
 
-    #[allow(clippy::expect_used)]
-    pub fn run_all_migrations_for_test(config: &DbPoolConfig) {
+    pub fn run_all_migrations_for_test(config: &DbPoolConfig) -> Result<(), crate::errors::AppError> {
         use diesel::Connection;
         use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 
@@ -176,14 +174,15 @@ impl crate::diesel_pool::core::DieselPools {
         pub const TENANT_MIGRATIONS: EmbeddedMigrations = embed_migrations!("./migrations/tenant");
 
         let mut conn = diesel::PgConnection::establish(&config.primary_url)
-            .expect("Failed to connect to primary database for all migrations");
+            .map_err(|e| crate::errors::AppError::Internal(format!("Failed to connect to primary database for all migrations: {}", e)))?;
 
         conn.run_pending_migrations(SYSTEM_MIGRATIONS)
-            .expect("Failed to run system migrations");
+            .map_err(|e| crate::errors::AppError::Internal(format!("Failed to run system migrations: {}", e)))?;
 
         conn.run_pending_migrations(TENANT_MIGRATIONS)
-            .expect("Failed to run tenant migrations");
+            .map_err(|e| crate::errors::AppError::Internal(format!("Failed to run tenant migrations: {}", e)))?;
 
         tracing::info!("Database test migrations (system + tenant) completed successfully");
+        Ok(())
     }
 }

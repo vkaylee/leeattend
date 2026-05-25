@@ -629,8 +629,33 @@ impl AttendanceImportService {
                 continue;
             };
 
+            let mut failed_jobs = Vec::new();
+
             for job in jobs {
                 if !Self::should_resume_job(&job.target_type) {
+                    continue;
+                }
+
+                let file_path = match &job.file_path {
+                    Some(p) => p,
+                    None => {
+                        failed_jobs.push((
+                            job.id,
+                            job.processed_rows,
+                            ImportJobStatus::Failed,
+                            Some("Missing file path".to_string()),
+                        ));
+                        continue;
+                    }
+                };
+
+                if !tokio::fs::try_exists(file_path).await.unwrap_or(false) {
+                    failed_jobs.push((
+                        job.id,
+                        job.processed_rows,
+                        ImportJobStatus::Failed,
+                        Some("Could not read file: Not found or inaccessible".to_string()),
+                    ));
                     continue;
                 }
 
@@ -644,6 +669,16 @@ impl AttendanceImportService {
                 tokio::spawn(async move {
                     let _ = svc.process_job(ws_id, job.id).await;
                 });
+            }
+
+            if !failed_jobs.is_empty() {
+                let _ = self
+                    .import_repo
+                    .batch_update_job_progress(
+                        &crate::diesel_pool::TenantAuthToken::system_override(workspace.id),
+                        failed_jobs,
+                    )
+                    .await;
             }
         }
     }

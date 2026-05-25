@@ -22,6 +22,11 @@ pub trait ImportJobRepository: Send + Sync {
         status: ImportJobStatus,
         error_log: Option<String>,
     ) -> Result<(), AppError>;
+    async fn batch_update_job_progress(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        updates: Vec<(Uuid, i32, ImportJobStatus, Option<String>)>,
+    ) -> Result<(), AppError>;
     async fn get_job_by_id(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,

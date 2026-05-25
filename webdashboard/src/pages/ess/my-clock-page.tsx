@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { UserX } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -15,6 +16,7 @@ import { fetchWorkspace, getCurrentWorkspaceId, submitAttendanceAdjustment } fro
 import { toUTCISO } from "@/lib/datetime";
 
 import { HistoryTable } from "./components/history-table";
+import { MyClockSkeleton } from "./components/my-clock-skeleton";
 
 export default function MyClockPage() {
   const { t } = useTranslation();
@@ -76,7 +78,7 @@ export default function MyClockPage() {
     }
   };
 
-  if (isLoadingProfile || isLoadingClock) return <LoadingState />;
+  if (isLoadingProfile || isLoadingClock) return <MyClockSkeleton />;
 
   if (!employee) return <EmptyState t={t} />;
 
@@ -112,18 +114,18 @@ export default function MyClockPage() {
   );
 }
 
-function LoadingState() {
-  return (
-    <div className="flex items-center justify-center min-h-[400px]">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-    </div>
-  );
-}
-
 function EmptyState({ t }: { t: TFunction }) {
   return (
-    <div className="p-8 text-center text-slate-500 dark:text-slate-400 font-bold italic">
-      {t("common.no_profile")}
+    <div className="py-24 text-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-[2.5rem] bg-slate-50 dark:bg-slate-800/30 flex flex-col items-center max-w-lg mx-auto mt-10">
+      <div className="w-20 h-20 bg-white dark:bg-slate-900 rounded-full flex items-center justify-center shadow-sm dark:shadow-black/10 mb-6 border border-slate-100 dark:border-slate-800 text-slate-350 dark:text-slate-650">
+        <UserX size={32} />
+      </div>
+      <p className="text-[10px] font-bold text-slate-300 dark:text-slate-600 uppercase tracking-[0.25em] mb-2">
+        {t("common.no_profile")}
+      </p>
+      <p className="text-xs text-slate-400 dark:text-slate-500 max-w-xs leading-relaxed px-6">
+        Please contact your administrator to set up your employee profile.
+      </p>
     </div>
   );
 }

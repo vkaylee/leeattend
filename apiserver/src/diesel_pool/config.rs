@@ -25,9 +25,9 @@ pub struct DbPoolConfig {
 }
 
 impl DbPoolConfig {
-    pub fn from_env() -> Self {
-        #[allow(clippy::expect_used)]
-        let primary_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+    pub fn from_env() -> Result<Self, crate::errors::AppError> {
+        let primary_url = std::env::var("DATABASE_URL")
+            .map_err(|_| crate::errors::AppError::Internal("DATABASE_URL must be set".to_string()))?;
 
         let pooler_tx_url = std::env::var("DATABASE_POOLER_TX_URL")
             .ok()
@@ -41,7 +41,7 @@ impl DbPoolConfig {
             .ok()
             .filter(|s| !s.trim().is_empty());
 
-        Self {
+        Ok(Self {
             primary_url,
             pooler_tx_url,
             pooler_sess_url,
@@ -51,7 +51,7 @@ impl DbPoolConfig {
             worker_max_conn: env_parse("DB_WORKER_MAX_CONN", 5),
             worker_acquire_timeout_secs: env_parse("DB_WORKER_ACQUIRE_TIMEOUT_SECS", 30),
             tenant_max_conn: env_parse("DB_TENANT_MAX_CONN", 5),
-        }
+        })
     }
 
     pub fn resolve_pool_urls(&self) -> (&str, &str, &str) {

@@ -88,6 +88,39 @@ impl ImportJobRepository for DieselImportJobRepository {
         Ok(())
     }
 
+    async fn batch_update_job_progress(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        updates: Vec<(Uuid, i32, ImportJobStatus, Option<String>)>,
+    ) -> Result<(), AppError> {
+        if updates.is_empty() {
+            return Ok(());
+        }
+
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
+
+        use crate::schema::attendance_import_jobs;
+        for (id, processed_rows, status, error_log) in updates {
+            diesel::update(attendance_import_jobs::table)
+                .filter(attendance_import_jobs::id.eq(id))
+                .filter(attendance_import_jobs::workspace_id.eq(auth_token.workspace_id()))
+                .set((
+                    attendance_import_jobs::processed_rows.eq(processed_rows),
+                    attendance_import_jobs::status.eq(status),
+                    attendance_import_jobs::error_log.eq(error_log),
+                    attendance_import_jobs::updated_at.eq(Utc::now()),
+                ))
+                .execute(&mut *conn)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        }
+
+        Ok(())
+    }
+
     async fn get_job_by_id(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,

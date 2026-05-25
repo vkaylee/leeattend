@@ -56,10 +56,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .init();
 
     // Initialize configurable database pools (API + Worker + optional Reader)
-    let db_config = DbPoolConfig::from_env();
+    let db_config = DbPoolConfig::from_env()?;
 
     // 1. System migrations must run via direct connection before Supavisor is available
-    DieselPools::run_system_migrations(&db_config);
+    DieselPools::run_system_migrations(&db_config)?;
 
     // 2. Initialize Supavisor pooler — system tenant must be registered before pools connect
     let tenant_manager: std::sync::Arc<dyn apiserver::supavisor::TenantManager> =
@@ -71,7 +71,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tenant_manager.init_tenant().await;
 
     // 3. Connect pools (API/worker/tenant all go through Supavisor)
-    let diesel_pools = DieselPools::connect(&db_config).await;
+    let diesel_pools = DieselPools::connect(&db_config).await?;
 
     // 4. Register existing workspace tenants with Supavisor, then run pending migrations
     register_workspace_tenants_and_migrate(&db_config, &diesel_pools, &*tenant_manager).await;
@@ -314,12 +314,10 @@ async fn register_workspace_tenants_and_migrate(
 
     // Run pending tenant migrations through the pooler (via Supavisor)
     let config_clone = db_config.clone();
-    if let Err(e) = tokio::task::spawn_blocking(move || {
-        DieselPools::run_tenant_migrations(&config_clone);
-    })
-    .await
-    {
-        tracing::error!("Tenant migration task panicked: {e}");
+    match tokio::task::spawn_blocking(move || DieselPools::run_tenant_migrations(&config_clone)).await {
+        Ok(Err(e)) => tracing::error!("Tenant migration failed: {e}"),
+        Err(e) => tracing::error!("Tenant migration task panicked: {e}"),
+        Ok(Ok(_)) => {}
     }
 }
 

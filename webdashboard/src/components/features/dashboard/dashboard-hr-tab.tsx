@@ -1,5 +1,6 @@
 import { type TFunction } from "i18next";
 
+import { ErrorBoundary } from "@/components/common/error-boundary";
 import { AttendanceBreakdown } from "@/components/features/dashboard/attendance-breakdown";
 import CollapsibleSection from "@/components/features/dashboard/collapsible-section";
 import { HrKpiCards } from "@/components/features/dashboard/hr-kpi-cards";
@@ -41,32 +42,38 @@ export function DashboardHrTab({
   return (
     <div className="space-y-8">
       {visibleWidgets.kpi_cards ? (
-        <HrKpiCards
-          hrStats={hrStats}
-          isCollapsed={collapsedSections.summary}
-          isLoading={isLoading}
-          onToggle={toggleSection}
-          t={t}
-        />
+        <ErrorBoundary variant="compact">
+          <HrKpiCards
+            hrStats={hrStats}
+            isCollapsed={collapsedSections.summary}
+            isLoading={isLoading}
+            onToggle={toggleSection}
+            t={t}
+          />
+        </ErrorBoundary>
       ) : null}
 
       {visibleWidgets.donut_chart || visibleWidgets.quick_stats ? (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {visibleWidgets.donut_chart ? (
-            <AttendanceBreakdown
-              donutData={donutData}
-              hasDonutData={hasDonutData}
-              t={t}
-            />
+            <ErrorBoundary variant="compact">
+              <AttendanceBreakdown
+                donutData={donutData}
+                hasDonutData={hasDonutData}
+                t={t}
+              />
+            </ErrorBoundary>
           ) : null}
 
           {visibleWidgets.quick_stats ? (
-            <HrQuickStats
-              formatCurrency={formatCurrency}
-              hrStats={hrStats}
-              isLoading={isLoading}
-              t={t}
-            />
+            <ErrorBoundary variant="compact">
+              <HrQuickStats
+                formatCurrency={formatCurrency}
+                hrStats={hrStats}
+                isLoading={isLoading}
+                t={t}
+              />
+            </ErrorBoundary>
           ) : null}
         </div>
       ) : null}
@@ -85,11 +92,13 @@ export function DashboardHrTab({
       ) : null}
 
       {visibleWidgets.promo_cards ? (
-        <HrPromoCards
-          isCollapsed={collapsedSections.actions}
-          onToggle={toggleSection}
-          t={t}
-        />
+        <ErrorBoundary variant="compact">
+          <HrPromoCards
+            isCollapsed={collapsedSections.actions}
+            onToggle={toggleSection}
+            t={t}
+          />
+        </ErrorBoundary>
       ) : null}
     </div>
   );

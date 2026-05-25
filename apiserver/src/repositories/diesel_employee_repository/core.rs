@@ -161,11 +161,10 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
         );
 
         let count_search_param = if search_sql.has_search {
-            #[allow(clippy::expect_used)]
             let raw_q = options
                 .search_query
-                .as_ref()
-                .expect("search_query verified non-empty by has_search")
+                .as_deref()
+                .unwrap_or_default()
                 .trim()
                 .to_string();
             Some(format!("%{raw_q}%"))
@@ -212,11 +211,10 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
         );
 
         let (search_str_1, search_str_2) = if search_sql.has_search {
-            #[allow(clippy::expect_used)]
             let raw_q = options
                 .search_query
-                .as_ref()
-                .expect("search_query verified non-empty by has_search")
+                .as_deref()
+                .unwrap_or_default()
                 .trim()
                 .to_string();
             (Some(format!("%{raw_q}%")), Some(raw_q))
