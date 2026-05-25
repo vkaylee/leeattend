@@ -20,6 +20,16 @@ vi.mock("react-i18next", () => ({
   }),
 }));
 
+vi.mock("@/hooks/use-datetime", () => ({
+  useDateTimeFormatter: () => ({
+    formatDate: (date: any) => date ? String(date) : "---",
+    formatTime: (time: any) => time ? String(time).substring(0, 5) : "---",
+    formatTime24h: (time: any) => time ? String(time).substring(0, 5) : "",
+    formatDateTime: (dt: any) => dt ? String(dt) : "---",
+    formatMonthYear: (dt: any) => dt ? String(dt) : "---",
+  }),
+}));
+
 vi.mock("@/components/common/employee-search", () => ({
   EmployeeSearch: ({
     onChange,
