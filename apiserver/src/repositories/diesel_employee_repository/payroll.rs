@@ -3,8 +3,8 @@ use crate::errors::AppError;
 use async_trait::async_trait;
 use chrono::NaiveDate;
 use diesel::prelude::*;
-use diesel_async::RunQueryDsl;
 use diesel_async::AsyncConnection;
+use diesel_async::RunQueryDsl;
 use rust_decimal::Decimal;
 use uuid::Uuid;
 
@@ -26,7 +26,10 @@ use crate::schema::{
 };
 use diesel::sql_types::{Date, Uuid as UuidType};
 
-use super::{DieselEmployeeRepository, EMPLOYEE_SELECT_QUERY, EMPLOYEE_DEPT_JOIN, EmployeeSearchSql, build_employee_search_sql};
+use super::{
+    build_employee_search_sql, DieselEmployeeRepository, EmployeeSearchSql, EMPLOYEE_DEPT_JOIN,
+    EMPLOYEE_SELECT_QUERY,
+};
 
 #[allow(clippy::too_many_lines)]
 #[async_trait]
@@ -161,48 +164,42 @@ impl EmployeePayrollConfigRepository for DieselEmployeeRepository {
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?,
         );
 
-        #[derive(Debug, diesel::QueryableByName)]
-        struct Entity {
-            #[diesel(sql_type = diesel::sql_types::Uuid)]
-            id: Uuid,
-            #[diesel(sql_type = diesel::sql_types::Uuid)]
-            employee_id: Uuid,
-            #[diesel(sql_type = diesel::sql_types::Numeric)]
-            std_working_days: bigdecimal::BigDecimal,
-            #[diesel(sql_type = diesel::sql_types::Numeric)]
-            hours_per_day: bigdecimal::BigDecimal,
-            #[diesel(sql_type = diesel::sql_types::Date)]
-            effective_date: chrono::NaiveDate,
-            #[diesel(sql_type = diesel::sql_types::Timestamptz)]
-            created_at: chrono::DateTime<chrono::Utc>,
-        }
+        use crate::schema::{employee_payroll_configs, employees};
 
-        let results: Vec<Entity> = diesel::sql_query(r#"SELECT epc.id, epc.employee_id, epc.std_working_days, epc.hours_per_day, epc.effective_date, epc.created_at
-               FROM employee_payroll_configs epc
-               JOIN employees e ON e.id = epc.employee_id
-               WHERE epc.employee_id = $1 AND e.workspace_id = $2
-               ORDER BY epc.effective_date DESC"#,
-        )
-        .bind::<diesel::sql_types::Uuid, _>(employee_id)
-        .bind::<diesel::sql_types::Uuid, _>(workspace_id)
-        .load(&mut *conn)
-        .await
-        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let results = employee_payroll_configs::table
+            .inner_join(employees::table)
+            .filter(employee_payroll_configs::employee_id.eq(employee_id))
+            .filter(employees::workspace_id.eq(workspace_id))
+            .order(employee_payroll_configs::effective_date.desc())
+            .select((
+                employee_payroll_configs::id,
+                employee_payroll_configs::employee_id,
+                employee_payroll_configs::std_working_days,
+                employee_payroll_configs::hours_per_day,
+                employee_payroll_configs::effective_date,
+                employee_payroll_configs::created_at,
+            ))
+            .load::<(
+                Uuid,
+                Uuid,
+                rust_decimal::Decimal,
+                rust_decimal::Decimal,
+                chrono::NaiveDate,
+                Option<chrono::DateTime<chrono::Utc>>,
+            )>(&mut *conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
-        use std::str::FromStr;
         Ok(results
             .into_iter()
             .map(|t| crate::models::EmployeePayrollConfig {
-                id: t.id,
-                employee_id: t.employee_id,
-                std_working_days: rust_decimal::Decimal::from_str(&t.std_working_days.to_string())
-                    .unwrap_or_default(),
-                hours_per_day: rust_decimal::Decimal::from_str(&t.hours_per_day.to_string())
-                    .unwrap_or_default(),
-                effective_date: t.effective_date,
-                created_at: t.created_at,
+                id: t.0,
+                employee_id: t.1,
+                std_working_days: t.2,
+                hours_per_day: t.3,
+                effective_date: t.4,
+                created_at: t.5.unwrap_or_else(chrono::Utc::now),
             })
             .collect())
     }
-
 }
