@@ -1,16 +1,18 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { Skeleton } from "@/components/ui/skeleton";
+import { RouteErrorFallback } from "@/components/common/route-error-fallback";
 
 function PageSkeleton() {
   return (
-    <div className="p-6 space-y-6 animate-pulse">
+    <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
-        <div className="h-8 w-40 bg-slate-200 dark:bg-slate-700 rounded-full" />
-        <div className="h-10 w-32 bg-slate-200 dark:bg-slate-700 rounded-lg" />
+        <Skeleton className="h-8 w-40 rounded-full" />
+        <Skeleton className="h-10 w-32 rounded-lg" />
       </div>
-      <div className="h-12 bg-slate-100 dark:bg-slate-800 rounded-xl" />
+      <Skeleton className="h-12 rounded-xl" />
       <div className="space-y-3">
         {[1, 2, 3, 4, 5].map((index) => (
-          <div className="h-16 bg-slate-50 dark:bg-slate-800/50 rounded-xl" key={index} />
+          <Skeleton className="h-16 rounded-xl" key={index} />
         ))}
       </div>
     </div>
@@ -19,4 +21,5 @@ function PageSkeleton() {
 
 export const Route = createFileRoute("/_authenticated/_workspace/employees")({
   pendingComponent: PageSkeleton,
+  errorComponent: RouteErrorFallback,
 });

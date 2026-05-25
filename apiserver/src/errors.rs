@@ -35,6 +35,12 @@ pub enum AppError {
 
     #[error("Service Unavailable: {0}")]
     ServiceUnavailable(String),
+
+    #[error("Background Job Error: {0}")]
+    BackgroundJobError(String),
+
+    #[error("Template Error: {0}")]
+    TemplateError(String),
 }
 
 impl From<String> for AppError {
@@ -83,7 +89,7 @@ impl From<(StatusCode, String)> for AppError {
 impl AppError {
     pub fn status_code(&self) -> StatusCode {
         match self {
-            Self::Diesel(_) | Self::Redis(_) | Self::Internal(_) => {
+            Self::Diesel(_) | Self::Redis(_) | Self::Internal(_) | Self::BackgroundJobError(_) | Self::TemplateError(_) => {
                 StatusCode::INTERNAL_SERVER_ERROR
             }
             Self::Auth(_) => StatusCode::UNAUTHORIZED,
@@ -106,6 +112,8 @@ impl AppError {
             Self::Internal(_) => "INTERNAL_ERROR",
             Self::Conflict(_) => "CONFLICT",
             Self::ServiceUnavailable(_) => "SERVICE_UNAVAILABLE",
+            Self::BackgroundJobError(_) => "BACKGROUND_JOB_ERROR",
+            Self::TemplateError(_) => "TEMPLATE_ERROR",
         }
     }
 }
@@ -118,7 +126,7 @@ impl IntoResponse for AppError {
         // Determine the message to send to the client
         let message = match &self {
             // Hide internal details in production
-            Self::Diesel(_) | Self::Redis(_) | Self::Internal(_) => {
+            Self::Diesel(_) | Self::Redis(_) | Self::Internal(_) | Self::BackgroundJobError(_) | Self::TemplateError(_) => {
                 // Log the full error for debugging
                 error!(error = ?self, "Internal API Error");
                 "An internal server error occurred.".to_string()

@@ -445,6 +445,42 @@ impl DepartmentRepository for DieselDepartmentRepository {
         Ok(results.into_iter().map(Into::into).collect())
     }
 
+    async fn get_employee_department_history_batch(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        employee_ids: &[Uuid],
+    ) -> Result<std::collections::HashMap<Uuid, Vec<EmployeeDepartmentHistory>>, AppError> {
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
+        let workspace_id = auth_token.workspace_id();
+
+        use crate::schema::{employee_department_history, employees};
+
+        let results: Vec<EmployeeDepartmentHistoryEntity> = employee_department_history::table
+            .inner_join(
+                employees::table.on(employees::id.eq(employee_department_history::employee_id)),
+            )
+            .filter(employee_department_history::employee_id.eq_any(employee_ids))
+            .filter(employees::workspace_id.eq(workspace_id))
+            .select(employee_department_history::all_columns)
+            .order((
+                employee_department_history::employee_id,
+                employee_department_history::effective_date.desc(),
+            ))
+            .load(&mut *conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        let mut map: std::collections::HashMap<Uuid, Vec<EmployeeDepartmentHistory>> = std::collections::HashMap::new();
+        for entity in results {
+            map.entry(entity.employee_id).or_default().push(entity.into());
+        }
+
+        Ok(map)
+    }
+
     async fn get_current_department(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,

@@ -100,6 +100,31 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
         .await
     }
 
+    async fn get_employees_by_ids(
+        &self,
+        ids: &[Uuid],
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+    ) -> Result<Vec<Employee>, AppError> {
+        let workspace_id = auth_token.workspace_id();
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&workspace_id)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
+
+        let query = format!("{EMPLOYEE_SELECT_QUERY} WHERE e.workspace_id = $1 AND e.id = ANY($2)");
+        let emps: Vec<EmployeeRow> = diesel::sql_query(&query)
+            .bind::<UuidType, _>(workspace_id)
+            .bind::<diesel::sql_types::Array<UuidType>, _>(ids)
+            .load(&mut *conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        Ok(emps.into_iter().map(Into::into).collect())
+    }
+
     async fn get_all_employees(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,

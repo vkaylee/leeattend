@@ -1,5 +1,6 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
+import { ErrorBoundary } from "@/components/common/error-boundary";
 
 import { cn } from "@/lib/utils";
 
@@ -89,7 +90,8 @@ export default function ApprovalListLayout({
   const { t } = useTranslation();
 
   return (
-    <div className="space-y-10 animate-in fade-in duration-700 pb-20">
+    <ErrorBoundary>
+      <div className="space-y-10 animate-in fade-in duration-700 pb-20">
       <div className="flex flex-col md:flex-row justify-between items-center gap-8 px-2">
         <div className="space-y-1">
           <h1 className="text-5xl font-bold tracking-tighter text-primary-700 dark:text-primary-300 uppercase leading-none">
@@ -119,11 +121,15 @@ export default function ApprovalListLayout({
           </thead>
           <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
             {isLoading ? (
-              <tr>
-                <td className="px-10 py-20 text-center text-primary-400 font-bold italic uppercase tracking-widest text-xs opacity-50 animate-pulse" colSpan={tableHeaders.length}>
-                  {t("common.loading")}
-                </td>
-              </tr>
+              Array.from({ length: 3 }).map((_, i) => (
+                 <tr className="animate-pulse border-b border-primary-50 dark:border-primary-800/30" key={`skeleton-${i}`}>
+                   {tableHeaders.map((_, colIdx) => (
+                     <td className="px-8 py-8" key={`skel-col-${colIdx}`}>
+                       <div className={cn("h-4 bg-slate-200 dark:bg-slate-800 rounded-lg opacity-50", colIdx === 0 ? "w-32" : colIdx === tableHeaders.length - 1 ? "w-24 ml-auto" : "w-20")} />
+                     </td>
+                   ))}
+                 </tr>
+               ))
             ) : isEmpty ? (
               <tr>
                 <td className="px-10 py-32 text-center text-primary-400 font-bold italic uppercase tracking-widest text-xs opacity-50" colSpan={tableHeaders.length}>
@@ -138,6 +144,7 @@ export default function ApprovalListLayout({
       </div>
 
       {modals}
-    </div>
+      </div>
+    </ErrorBoundary>
   );
 }

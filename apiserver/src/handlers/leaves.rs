@@ -361,12 +361,12 @@ pub async fn trigger_accrual_run(
     queue
         .create_job_metadata(&meta)
         .await
-        .map_err(|e| AppError::Internal(format!("Failed to create job metadata: {e}")))?;
+        .map_err(|e| AppError::BackgroundJobError(format!("Failed to create job job metadata/queue: {e}")))?;
 
     queue
         .enqueue_jobs(vec![job])
         .await
-        .map_err(|e| AppError::Internal(format!("Failed to enqueue accrual job: {e}")))?;
+        .map_err(|e| AppError::BackgroundJobError(format!("Failed to enqueue accrual job metadata/queue: {e}")))?;
 
     Ok((
         StatusCode::ACCEPTED,
@@ -397,7 +397,7 @@ pub async fn get_job_status(
         .infra
         .redis
         .as_ref()
-        .ok_or_else(|| AppError::Internal("Redis not available".to_string()))?;
+        .ok_or_else(|| AppError::ServiceUnavailable("Redis not available".to_string()))?;
 
     use crate::queue::JobQueue;
     let queue = JobQueue::new(redis.clone());
@@ -405,7 +405,7 @@ pub async fn get_job_status(
     let meta = queue
         .get_job_metadata(job_id)
         .await
-        .map_err(|e| AppError::Internal(format!("Failed to get job metadata: {e}")))?;
+        .map_err(|e| AppError::BackgroundJobError(format!("Failed to get job job metadata/queue: {e}")))?;
 
     match meta {
         Some(m) => Ok(Json(JobStatusResponse {
@@ -509,7 +509,7 @@ pub async fn upload_leave_excel(
         import_repo
             .create_job(&ctx.auth_token, &import_job)
             .await
-            .map_err(|e| AppError::Internal(format!("Failed to create import job: {e}")))?;
+            .map_err(|e| AppError::BackgroundJobError(format!("Failed to create import job metadata/queue: {e}")))?;
     }
 
     // Require Redis for background processing
@@ -540,7 +540,7 @@ pub async fn upload_leave_excel(
     queue
         .enqueue_jobs(vec![job])
         .await
-        .map_err(|e| AppError::Internal(format!("Failed to enqueue leave import job: {e}")))?;
+        .map_err(|e| AppError::BackgroundJobError(format!("Failed to enqueue leave import job: {e}")))?;
 
     Ok(Json(serde_json::json!({
         "job_id": import_job_id.to_string(),
@@ -599,7 +599,7 @@ pub async fn download_leave_import_errors(
     let job = repo
         .get_job_by_id(&ctx.auth_token, job_id)
         .await
-        .map_err(|e| AppError::Internal(format!("DB error: {e}")))?
+        .map_err(|e| AppError::ServiceUnavailable(format!("DB error: {e}")))?
         .ok_or_else(|| AppError::NotFound("Import job not found".to_string()))?;
 
     // Extract error file path from error_log JSON
@@ -629,7 +629,7 @@ pub async fn download_leave_import_errors(
             format!("attachment; filename=\"leave_import_{job_id}_errors.xlsx\""),
         )
         .body(axum::body::Body::from(bytes))
-        .map_err(|e| AppError::Internal(format!("Failed to build response: {e}")))
+        .map_err(|e| AppError::TemplateError(format!("Failed to build response: {e}")))
 }
 
 #[derive(serde::Deserialize)]
@@ -657,7 +657,7 @@ pub async fn download_leave_import_template(
         &leave_types,
         lang,
     )
-    .map_err(|e| AppError::Internal(format!("Failed to generate template: {e}")))?;
+    .map_err(|e| AppError::TemplateError(format!("Failed to generate template: {e}")))?;
 
     use axum::http::header;
 
@@ -671,5 +671,5 @@ pub async fn download_leave_import_template(
             "attachment; filename=\"leave_import_template.xlsx\"",
         )
         .body(axum::body::Body::from(bytes))
-        .map_err(|e| AppError::Internal(format!("Failed to build response: {e}")))
+        .map_err(|e| AppError::TemplateError(format!("Failed to build response: {e}")))
 }

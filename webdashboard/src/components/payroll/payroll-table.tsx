@@ -21,8 +21,33 @@ import { useMyPermissions } from "@/hooks/use-permissions";
 import { Employee, Workspace, Payslip, AttendanceAdjustmentRequest, PayrollSegment  } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 
+import { ErrorBoundary } from "@/components/common/error-boundary";
 import { PayrollPriorityLegend } from "./payroll-priority-legend";
 import PayslipModal from "./payslip-modal";
+
+function PayslipCardSkeleton() {
+  return (
+    <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2rem] shadow-sm p-8 flex items-center justify-between animate-pulse">
+      <div className="flex items-center gap-8">
+        <div className="w-14 h-14 rounded-2xl bg-slate-200 dark:bg-slate-800" />
+        <div className="space-y-3">
+          <div className="h-4 w-32 bg-slate-200 dark:bg-slate-800 rounded" />
+          <div className="flex items-center gap-3">
+            <div className="h-5 w-16 bg-slate-200 dark:bg-slate-800 rounded-full" />
+            <div className="h-3 w-24 bg-slate-200 dark:bg-slate-800 rounded" />
+          </div>
+        </div>
+      </div>
+      <div className="flex items-center gap-10 pr-2">
+        <div className="text-right space-y-2">
+          <div className="h-2 w-16 bg-slate-200 dark:bg-slate-800 rounded ml-auto" />
+          <div className="h-6 w-24 bg-slate-200 dark:bg-slate-800 rounded" />
+        </div>
+        <div className="w-10 h-10 rounded-xl bg-slate-200 dark:bg-slate-800" />
+      </div>
+    </div>
+  );
+}
 
 interface PayrollTableProps {
   adjustments: AttendanceAdjustmentRequest[];
@@ -291,7 +316,15 @@ export default function PayrollTable({
   const { hasPermission } = useMyPermissions();
   const canReadSensitive = hasPermission("payroll:sensitive:read");
 
-  if (isLoading) return <div className="p-20 text-center text-slate-500 dark:text-slate-400 font-bold italic animate-pulse uppercase tracking-widest text-xs opacity-50">{t("common.loading")}</div>;
+  if (isLoading) {
+    return (
+      <div className="flex flex-col gap-6">
+        <PayslipCardSkeleton />
+        <PayslipCardSkeleton />
+        <PayslipCardSkeleton />
+      </div>
+    );
+  }
 
   if (payslips.length === 0) {
     return (
@@ -305,7 +338,8 @@ export default function PayrollTable({
   }
 
   return (
-    <div className="flex flex-col gap-6 animate-in fade-in duration-700">
+    <ErrorBoundary>
+      <div className="flex flex-col gap-6 animate-in fade-in duration-700">
       {payslips.map((slip) => {
         const isExpanded = expandedId === slip.id;
         const slipAdjustments = adjustments.filter(adj => 
@@ -343,6 +377,7 @@ export default function PayrollTable({
           workspace={workspace}
         />
       ) : null}
-    </div>
+      </div>
+    </ErrorBoundary>
   );
 }

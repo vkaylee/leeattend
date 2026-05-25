@@ -222,6 +222,14 @@ mod tests {
     struct MockEmployeeRepo;
     #[async_trait]
     impl crate::repositories::employee::EmployeeRepository for MockEmployeeRepo {
+    async fn get_employees_by_ids(
+        &self,
+        _ids: &[uuid::Uuid],
+        _auth_token: &crate::diesel_pool::TenantAuthToken,
+    ) -> Result<Vec<crate::models::Employee>, crate::errors::AppError> {
+        Ok(vec![])
+    }
+
         async fn get_paginated_employee_ids(
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,
@@ -608,6 +616,16 @@ mod tests {
     struct DummyRosterRepo;
     #[async_trait]
     impl crate::repositories::roster::RosterRepository for DummyRosterRepo {
+    async fn get_employee_rosters_batch(
+        &self,
+        _auth_token: &crate::diesel_pool::TenantAuthToken,
+        _employee_ids: &[uuid::Uuid],
+        _start_date: chrono::NaiveDate,
+        _end_date: chrono::NaiveDate,
+    ) -> Result<std::collections::HashMap<uuid::Uuid, Vec<crate::models::ShiftRoster>>, crate::errors::AppError> {
+        Ok(std::collections::HashMap::new())
+    }
+
         async fn get_workspace_schedules(
             &self,
             _c: Option<&crate::cache::RosterCache>,
@@ -1054,6 +1072,14 @@ mod tests {
     struct AbsentEmployeeRepo;
     #[async_trait]
     impl crate::repositories::employee::EmployeeRepository for AbsentEmployeeRepo {
+    async fn get_employees_by_ids(
+        &self,
+        _ids: &[uuid::Uuid],
+        _auth_token: &crate::diesel_pool::TenantAuthToken,
+    ) -> Result<Vec<crate::models::Employee>, crate::errors::AppError> {
+        Ok(vec![])
+    }
+
         async fn get_paginated_employee_ids(
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,
@@ -1339,6 +1365,16 @@ mod tests {
     struct ScheduleRosterRepo;
     #[async_trait]
     impl crate::repositories::roster::RosterRepository for ScheduleRosterRepo {
+    async fn get_employee_rosters_batch(
+        &self,
+        _auth_token: &crate::diesel_pool::TenantAuthToken,
+        _employee_ids: &[uuid::Uuid],
+        _start_date: chrono::NaiveDate,
+        _end_date: chrono::NaiveDate,
+    ) -> Result<std::collections::HashMap<uuid::Uuid, Vec<crate::models::ShiftRoster>>, crate::errors::AppError> {
+        Ok(std::collections::HashMap::new())
+    }
+
         async fn get_workspace_schedules(
             &self,
             _c: Option<&crate::cache::RosterCache>,

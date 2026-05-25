@@ -156,6 +156,14 @@ impl EmployeeRepository for DieselEmployeeRepository {
         EmployeeCoreRepository::get_employee_by_id_number(self, id_number, auth_token).await
     }
 
+    async fn get_employees_by_ids(
+        &self,
+        ids: &[Uuid],
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+    ) -> Result<Vec<Employee>, AppError> {
+        EmployeeCoreRepository::get_employees_by_ids(self, ids, auth_token).await
+    }
+
     async fn get_all_employees(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,

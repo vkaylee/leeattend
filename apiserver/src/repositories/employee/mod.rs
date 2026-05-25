@@ -43,6 +43,12 @@ pub trait EmployeeCoreRepository: Send + Sync {
         auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<Option<Employee>, AppError>;
 
+    async fn get_employees_by_ids(
+        &self,
+        ids: &[Uuid],
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+    ) -> Result<Vec<Employee>, AppError>;
+
     async fn get_all_employees(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
@@ -311,6 +317,12 @@ pub trait EmployeeRepository: Send + Sync {
         id_number: &str,
         auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<Option<Employee>, AppError>;
+
+    async fn get_employees_by_ids(
+        &self,
+        ids: &[Uuid],
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+    ) -> Result<Vec<Employee>, AppError>;
 
     async fn get_all_employees(
         &self,

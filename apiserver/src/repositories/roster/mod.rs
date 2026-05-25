@@ -36,6 +36,13 @@ pub trait RosterRepository: Send + Sync {
         start_date: NaiveDate,
         end_date: NaiveDate,
     ) -> Result<Vec<ShiftRoster>, AppError>;
+    async fn get_employee_rosters_batch(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        employee_ids: &[Uuid],
+        start_date: NaiveDate,
+        end_date: NaiveDate,
+    ) -> Result<std::collections::HashMap<Uuid, Vec<ShiftRoster>>, AppError>;
 
     async fn upsert_roster(
         &self,

@@ -36,7 +36,7 @@ pub async fn get_debug_users(
             .api
             .get()
             .await
-            .map_err(|e| AppError::Internal(e.to_string()))?;
+            .map_err(|e| AppError::ServiceUnavailable(e.to_string()))?;
 
         use diesel_async::RunQueryDsl;
 
@@ -57,7 +57,7 @@ pub async fn get_debug_users(
         )
         .load(&mut *conn)
         .await
-        .map_err(|e| AppError::Internal(e.to_string()))?;
+        .map_err(|e| AppError::ServiceUnavailable(e.to_string()))?;
 
         let mapped = users
             .into_iter()
@@ -111,7 +111,7 @@ pub async fn clear_debug_db(
                                 .bind::<diesel::sql_types::Uuid, _>(ws_id)
                                 .execute(conn)
                                 .await
-                                .map_err(|e| AppError::Internal(e.to_string()))?;
+                                .map_err(|e| AppError::ServiceUnavailable(e.to_string()))?;
                         }
                     }
                     "payroll" => {
@@ -124,7 +124,7 @@ pub async fn clear_debug_db(
                                 .bind::<diesel::sql_types::Uuid, _>(ws_id)
                                 .execute(conn)
                                 .await
-                                .map_err(|e| AppError::Internal(e.to_string()))?;
+                                .map_err(|e| AppError::ServiceUnavailable(e.to_string()))?;
                         }
                     }
                     "rosters" => {
@@ -136,7 +136,7 @@ pub async fn clear_debug_db(
                                 .bind::<diesel::sql_types::Uuid, _>(ws_id)
                                 .execute(conn)
                                 .await
-                                .map_err(|e| AppError::Internal(e.to_string()))?;
+                                .map_err(|e| AppError::ServiceUnavailable(e.to_string()))?;
                         }
                     }
                     "employees" => {
@@ -165,7 +165,7 @@ pub async fn clear_debug_db(
                                 .bind::<diesel::sql_types::Uuid, _>(ws_id)
                                 .execute(conn)
                                 .await
-                                .map_err(|e| AppError::Internal(e.to_string()))?;
+                                .map_err(|e| AppError::ServiceUnavailable(e.to_string()))?;
                         }
                     }
                     "full_reset" => {
@@ -204,7 +204,7 @@ pub async fn clear_debug_db(
                                 .bind::<diesel::sql_types::Uuid, _>(ws_id)
                                 .execute(conn)
                                 .await
-                                .map_err(|e| AppError::Internal(e.to_string()))?;
+                                .map_err(|e| AppError::ServiceUnavailable(e.to_string()))?;
                         }
                     }
                     "seed" => {
@@ -219,21 +219,21 @@ pub async fn clear_debug_db(
                         .bind::<diesel::sql_types::Uuid, _>(ws_id)
                         .get_result(conn)
                         .await
-                        .map_err(|e| AppError::Internal(e.to_string()))?;
+                        .map_err(|e| AppError::ServiceUnavailable(e.to_string()))?;
 
                         let dept_hr: IdRow = diesel::sql_query("INSERT INTO departments (workspace_id, name, description) VALUES ($1, 'Human Resources', 'People Operations') RETURNING id"
                         )
                         .bind::<diesel::sql_types::Uuid, _>(ws_id)
                         .get_result(conn)
                         .await
-                        .map_err(|e| AppError::Internal(e.to_string()))?;
+                        .map_err(|e| AppError::ServiceUnavailable(e.to_string()))?;
 
                         let _shift_morning: IdRow = diesel::sql_query("INSERT INTO shifts (workspace_id, name, start_time, end_time) VALUES ($1, 'Morning Shift', '08:00:00', '17:00:00') RETURNING id"
                         )
                         .bind::<diesel::sql_types::Uuid, _>(ws_id)
                         .get_result(conn)
                         .await
-                        .map_err(|e| AppError::Internal(e.to_string()))?;
+                        .map_err(|e| AppError::ServiceUnavailable(e.to_string()))?;
 
                         let employees = vec![
                             ("Alice Engineer", "alice@example.com", "EMP001", dept_eng.id),
@@ -254,7 +254,7 @@ pub async fn clear_debug_db(
                             .bind::<diesel::sql_types::Text, _>(code)
                             .execute(conn)
                             .await
-                            .map_err(|e| AppError::Internal(e.to_string()))?;
+                            .map_err(|e| AppError::ServiceUnavailable(e.to_string()))?;
 
                             diesel::sql_query("INSERT INTO employee_department_history (employee_id, department_id, effective_date) VALUES ($1, $2, CURRENT_DATE)"
                             )
@@ -262,7 +262,7 @@ pub async fn clear_debug_db(
                             .bind::<diesel::sql_types::Uuid, _>(dept_id)
                             .execute(conn)
                             .await
-                            .map_err(|e| AppError::Internal(e.to_string()))?;
+                            .map_err(|e| AppError::ServiceUnavailable(e.to_string()))?;
                         }
                     }
                     _ => return Err(AppError::Validation("Invalid group".to_string())),

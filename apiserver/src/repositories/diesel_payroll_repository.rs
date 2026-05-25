@@ -775,6 +775,86 @@ impl PayrollRepository for DieselPayrollRepository {
             .collect())
     }
 
+    async fn get_salary_components_history_batch(
+        &self,
+        workspace_id: Uuid,
+        employee_ids: &[Uuid],
+        start_date: NaiveDate,
+        end_date: NaiveDate,
+    ) -> Result<std::collections::HashMap<Uuid, Vec<(EmployeeSalaryComponent, SalaryComponentDefinition)>>, AppError> {
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&workspace_id)
+                .await?,
+        );
+
+        // Fetch all components for these employees up to end_date
+        let rows = employee_salary_components::table
+            .inner_join(salary_component_definitions::table)
+            .filter(employee_salary_components::employee_id.eq_any(employee_ids))
+            .filter(employee_salary_components::effective_date.le(end_date))
+            .filter(salary_component_definitions::workspace_id.eq(workspace_id))
+            .order((
+                employee_salary_components::employee_id,
+                employee_salary_components::component_definition_id,
+                employee_salary_components::effective_date.desc(),
+                employee_salary_components::created_at.desc(),
+            ))
+            .load::<(
+                EmployeeSalaryComponentEntity,
+                SalaryComponentDefinitionEntity,
+            )>(&mut *conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        let mut map: std::collections::HashMap<Uuid, Vec<(EmployeeSalaryComponent, SalaryComponentDefinition)>> = std::collections::HashMap::new();
+        
+        // We need to keep only the latest before start_date, and all within range.
+        // Group by employee and component id
+        let mut employee_components: std::collections::HashMap<Uuid, std::collections::HashMap<Uuid, Vec<(EmployeeSalaryComponentEntity, SalaryComponentDefinitionEntity)>>> = std::collections::HashMap::new();
+
+        for row in rows {
+            let emp_id = row.0.employee_id;
+            let comp_id = row.0.component_definition_id;
+            employee_components
+                .entry(emp_id)
+                .or_default()
+                .entry(comp_id)
+                .or_default()
+                .push(row);
+        }
+
+        for (emp_id, comp_map) in employee_components {
+            let mut emp_history: Vec<(crate::models::EmployeeSalaryComponent, crate::models::SalaryComponentDefinition)> = Vec::new();
+            for (_, history) in comp_map {
+                // history is sorted desc by effective_date
+                // Find all within range
+                let mut within_range = Vec::new();
+                let mut last_before = None;
+                
+                for item in history {
+                    if item.0.effective_date >= start_date {
+                        within_range.push(item);
+                    } else if last_before.is_none() {
+                        last_before = Some(item);
+                    }
+                }
+                
+                if let Some(item) = last_before {
+                    emp_history.push((item.0.into(), item.1.into()));
+                }
+                for item in within_range {
+                    emp_history.push((item.0.into(), item.1.into()));
+                }
+            }
+            emp_history.sort_by_key(|(esc, _)| esc.effective_date);
+            map.insert(emp_id, emp_history);
+        }
+
+        Ok(map)
+    }
+
     async fn create_payslip_segment(
         &self,
         workspace_id: Uuid,

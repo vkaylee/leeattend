@@ -151,6 +151,14 @@ pub trait PayrollRepository: Send + Sync {
         end_date: NaiveDate,
     ) -> Result<Vec<(EmployeeSalaryComponent, SalaryComponentDefinition)>, AppError>;
 
+    async fn get_salary_components_history_batch(
+        &self,
+        workspace_id: Uuid,
+        employee_ids: &[Uuid],
+        start_date: NaiveDate,
+        end_date: NaiveDate,
+    ) -> Result<std::collections::HashMap<Uuid, Vec<(EmployeeSalaryComponent, SalaryComponentDefinition)>>, AppError>;
+
     async fn create_payslip_segment(
         &self,
         workspace_id: Uuid,

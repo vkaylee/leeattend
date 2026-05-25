@@ -20,14 +20,14 @@ pub async fn get_generic_job_status(
         .infra
         .redis
         .as_ref()
-        .ok_or_else(|| AppError::Internal("Redis is required for job tracking".to_string()))?;
+        .ok_or_else(|| AppError::ServiceUnavailable("Redis is required for job tracking".to_string()))?;
 
     let queue = JobQueue::new(redis.clone());
 
     let meta = queue
         .get_job_metadata(job_id)
         .await
-        .map_err(|e| AppError::Internal(format!("Redis error: {e}")))?
+        .map_err(|e| AppError::BackgroundJobError(format!("Redis error: {e}")))?
         .ok_or_else(|| AppError::NotFound("Job not found".to_string()))?;
 
     // Security check

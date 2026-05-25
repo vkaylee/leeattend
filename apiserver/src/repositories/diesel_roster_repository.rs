@@ -336,6 +336,37 @@ impl RosterRepository for DieselRosterRepository {
         Ok(rosters.into_iter().map(Into::into).collect())
     }
 
+    async fn get_employee_rosters_batch(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        employee_ids: &[Uuid],
+        start_date: NaiveDate,
+        end_date: NaiveDate,
+    ) -> Result<std::collections::HashMap<Uuid, Vec<ShiftRoster>>, AppError> {
+        let _workspace_id = auth_token.workspace_id();
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&auth_token.workspace_id())
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
+
+        let rosters = crate::schema::shift_rosters::table
+            .filter(crate::schema::shift_rosters::employee_id.eq_any(employee_ids))
+            .filter(crate::schema::shift_rosters::date.ge(start_date))
+            .filter(crate::schema::shift_rosters::date.le(end_date))
+            .load::<crate::models::diesel::roster::ShiftRosterEntity>(&mut *conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        let mut map: std::collections::HashMap<Uuid, Vec<ShiftRoster>> = std::collections::HashMap::new();
+        for roster in rosters {
+            map.entry(roster.employee_id).or_default().push(roster.into());
+        }
+        Ok(map)
+    }
+
     async fn upsert_roster(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
