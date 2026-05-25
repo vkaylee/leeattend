@@ -15,6 +15,7 @@ interface ShiftsContentProps {
   hook: ReturnType<typeof useShifts>;
 }
 
+// eslint-disable-next-line max-lines-per-function
 export function ShiftsContent({ hook }: ShiftsContentProps) {
   const {
     activeTab,

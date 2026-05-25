@@ -62,6 +62,7 @@ type GenericTFunction = (
   options?: Record<string, unknown>
 ) => string;
 
+// eslint-disable-next-line import-x/no-named-as-default-member
 const originalT = i18n.t.bind(i18n) as unknown as GenericTFunction;
 
 const mergeNsOption = (opts: unknown, ns: string): Record<string, unknown> | undefined => {

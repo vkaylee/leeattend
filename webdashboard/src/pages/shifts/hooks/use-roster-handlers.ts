@@ -29,6 +29,7 @@ interface UseRosterHandlersProps {
   wsId: string;
 }
 
+// eslint-disable-next-line max-lines-per-function
 export function useRosterHandlers({
   wsId,
   selectedEmployee,

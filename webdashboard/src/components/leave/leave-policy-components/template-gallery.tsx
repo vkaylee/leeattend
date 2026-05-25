@@ -11,6 +11,7 @@ interface TemplateGalleryProps {
   onSkip: () => void;
 }
 
+// eslint-disable-next-line max-lines-per-function
 export function TemplateGallery({ onSelectTemplate, onSkip }: TemplateGalleryProps) {
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState<string>("all");

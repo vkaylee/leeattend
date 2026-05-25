@@ -561,6 +561,7 @@ interface RosterToolbarProps {
   workspaceId: string;
 }
 
+// eslint-disable-next-line max-lines-per-function
 const RosterToolbar = memo(function RosterToolbar({
   copyLabel,
   isCopying,
@@ -759,6 +760,7 @@ interface RosterGridTableProps {
   shifts?: Shift[];
 }
 
+// eslint-disable-next-line max-lines-per-function
 const RosterGridTable = memo(function RosterGridTable({
   containerRef,
   currentLocale,

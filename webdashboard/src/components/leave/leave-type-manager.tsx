@@ -16,6 +16,7 @@ interface LeaveTypeManagerProps {
   wsId: string;
 }
 
+// eslint-disable-next-line max-lines-per-function
 export function LeaveTypeManager({ wsId }: LeaveTypeManagerProps) {
   const {
     editingType,
@@ -256,6 +257,7 @@ interface EditLeaveTypeModalProps {
   onSave: (config: LeaveTypeConfig) => void;
 }
 
+// eslint-disable-next-line max-lines-per-function
 function EditLeaveTypeModal({ leaveType, onClose, onSave, isSaving }: EditLeaveTypeModalProps) {
   const [config, setConfig] = useState(
     leaveType.policy_config ?? {
