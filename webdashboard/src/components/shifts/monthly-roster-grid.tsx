@@ -204,17 +204,32 @@ export function MonthlyRosterGrid({ hook }: MonthlyRosterGridProps) {
   const [isMutating, setIsMutating] = useState(false);
 
   const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<string[]>([]);
+  const [selectedEmployees, setSelectedEmployees] = useState<Employee[]>([]);
 
   const monthHeaderLabel = format(currentMonth, "MMMM yyyy", { locale: currentLocale });
 
   const selectedEmployeesMeta = useMemo(() => {
-    if (!employees) return [];
-    return employees.filter(emp => selectedEmployeeIds.includes(emp.id));
-  }, [employees, selectedEmployeeIds]);
+    const list = [...selectedEmployees];
+    if (employees) {
+      selectedEmployeeIds.forEach(id => {
+        if (!list.some(e => e.id === id)) {
+          const emp = employees.find(e => e.id === id);
+          if (emp) list.push(emp);
+        }
+      });
+    }
+    return list;
+  }, [employees, selectedEmployeeIds, selectedEmployees]);
 
   const combinedSchedules = useMemo(() => {
     if (!employees) return [];
-    return employees.map(emp => {
+    const list = [...employees];
+    selectedEmployees.forEach(selectedEmp => {
+      if (!list.some(e => e.id === selectedEmp.id)) {
+        list.push(selectedEmp);
+      }
+    });
+    return list.map(emp => {
       const existing = monthSchedules?.find(s => s.employee_id === emp.id);
       if (existing) {
         return existing;
@@ -225,7 +240,7 @@ export function MonthlyRosterGrid({ hook }: MonthlyRosterGridProps) {
         schedules: []
       };
     });
-  }, [employees, monthSchedules]);
+  }, [employees, monthSchedules, selectedEmployees]);
 
   const filteredSchedules = useMemo(() => {
     if (selectedEmployeeIds.length === 0) return [];
@@ -387,7 +402,10 @@ export function MonthlyRosterGrid({ hook }: MonthlyRosterGridProps) {
           monthHeaderLabel={monthHeaderLabel}
           onCopyMonth={handleCopyMonth}
           onNavigateMonth={handleNavigateMonth}
-          onSelectedEmployeesChange={setSelectedEmployeeIds}
+          onSelectedEmployeesChange={(ids, emps) => {
+            setSelectedEmployeeIds(ids);
+            if (emps) setSelectedEmployees(emps);
+          }}
           searchPlaceholder={t("shifts.monthly.search_placeholder")}
           selectedEmployeeIds={selectedEmployeeIds}
           selectedEmployeesMeta={selectedEmployeesMeta}
@@ -534,7 +552,7 @@ interface RosterToolbarProps {
   monthHeaderLabel: string;
   onCopyMonth: () => void;
   onNavigateMonth: (dir: "prev" | "next") => void;
-  onSelectedEmployeesChange: (ids: string[]) => void;
+  onSelectedEmployeesChange: (ids: string[], selectedEmps?: Employee[]) => void;
   searchPlaceholder: string;
   selectedEmployeeIds: string[];
   selectedEmployeesMeta: Employee[];
@@ -556,6 +574,11 @@ const RosterToolbar = memo(function RosterToolbar({
   selectedEmployeesMeta,
 }: RosterToolbarProps) {
   const { t } = useTranslation();
+  const selectedMetaRef = useRef<Employee[]>(selectedEmployeesMeta);
+
+  useEffect(() => {
+    selectedMetaRef.current = selectedEmployeesMeta;
+  }, [selectedEmployeesMeta]);
 
   return (
     <div className="flex flex-col gap-4 bg-white dark:bg-slate-900 p-5 rounded-[28px] border border-slate-100 dark:border-slate-800 shadow-sm">
@@ -613,7 +636,13 @@ const RosterToolbar = memo(function RosterToolbar({
           multiple
           onChange={(val) => {
             const ids = Array.isArray(val) ? val : (val ? [val] : []);
-            onSelectedEmployeesChange(ids);
+            selectedMetaRef.current = selectedMetaRef.current.filter(e => ids.includes(e.id));
+            onSelectedEmployeesChange(ids, selectedMetaRef.current);
+          }}
+          onSelectEmployee={(emp) => {
+            if (!selectedMetaRef.current.some(e => e.id === emp.id)) {
+              selectedMetaRef.current = [...selectedMetaRef.current, emp];
+            }
           }}
           placeholder={searchPlaceholder}
           value={selectedEmployeeIds}
@@ -635,7 +664,9 @@ const RosterToolbar = memo(function RosterToolbar({
                   checked={selectedEmployeeIds.includes(emp.id)}
                   className="rounded border-slate-350 dark:border-slate-700 text-primary-600 focus:ring-primary-500 cursor-pointer h-3.5 w-3.5"
                   onChange={() => {
-                    onSelectedEmployeesChange(selectedEmployeeIds.filter((id) => id !== emp.id));
+                    const newIds = selectedEmployeeIds.filter((id) => id !== emp.id);
+                    selectedMetaRef.current = selectedMetaRef.current.filter(e => e.id !== emp.id);
+                    onSelectedEmployeesChange(newIds, selectedMetaRef.current);
                   }}
                   type="checkbox"
                 />
