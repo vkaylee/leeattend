@@ -4,6 +4,8 @@
     "syncing_data": "正在同步数据...",
     "preparing_environment": "正在准备环境...",
     "search": "搜索...",
+    "previous": "上一个",
+    "next": "下一个",
     "ip_address": "IP 地址",
     "dashboard": "仪表板",
     "my_account": "我的账户",

@@ -11,7 +11,7 @@ import {
   Trash2,
   User
 } from "lucide-react";
-import React, { memo, useMemo, useState, useEffect } from "react";
+import React, { memo, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { format, isToday as isDateToday } from "date-fns";
@@ -157,6 +157,28 @@ interface MonthlyRosterGridProps {
 export function MonthlyRosterGrid({ hook }: MonthlyRosterGridProps) {
   const { i18n, t } = useTranslation();
   const currentLocale = dateLocales[i18n.language] ?? vi;
+
+  const gridContainerRef = useRef<HTMLDivElement | null>(null);
+  const [showLeftArrow, setShowLeftArrow] = useState(false);
+  const [showRightArrow, setShowRightArrow] = useState(false);
+
+  const updateArrowVisibility = () => {
+    if (gridContainerRef.current) {
+      const { clientWidth, scrollLeft, scrollWidth } = gridContainerRef.current;
+      setShowLeftArrow(scrollLeft > 10);
+      setShowRightArrow(scrollLeft < scrollWidth - clientWidth - 10);
+    }
+  };
+
+  const scrollGrid = (direction: "left" | "right") => {
+    if (gridContainerRef.current) {
+      const scrollAmount = 300;
+      gridContainerRef.current.scrollBy({
+        behavior: "smooth",
+        left: direction === "left" ? -scrollAmount : scrollAmount,
+      });
+    }
+  };
 
   const {
     monthDays,
@@ -338,6 +360,24 @@ export function MonthlyRosterGrid({ hook }: MonthlyRosterGridProps) {
     }
   };
 
+  useEffect(() => {
+    const container = gridContainerRef.current;
+    if (!container) return;
+
+    updateArrowVisibility();
+    container.addEventListener("scroll", updateArrowVisibility);
+
+    const resizeObserver = new ResizeObserver(() => {
+      updateArrowVisibility();
+    });
+    resizeObserver.observe(container);
+
+    return () => {
+      container.removeEventListener("scroll", updateArrowVisibility);
+      resizeObserver.disconnect();
+    };
+  }, [isMonthLoading, isEmployeesLoading, filteredSchedules.length]);
+
   return (
     <div className="space-y-4">
       <RosterToolbar
@@ -378,7 +418,31 @@ export function MonthlyRosterGrid({ hook }: MonthlyRosterGridProps) {
         />
       ) : null}
 
-      <div className="bg-white dark:bg-slate-900 rounded-[28px] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-slate-900 rounded-[28px] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden relative group/grid">
+        {/* Scroll Left Button */}
+        {showLeftArrow ? (
+          <button
+            className="absolute left-4 top-1/2 -translate-y-1/2 z-30 p-3 rounded-full bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border border-slate-250/60 dark:border-slate-800 shadow-premium-lg hover:bg-primary-50 dark:hover:bg-primary-950/40 text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 hover:scale-105 active:scale-95 transition-all cursor-pointer opacity-0 group-hover/grid:opacity-100 focus:opacity-100"
+            onClick={() => { scrollGrid("left"); }}
+            title={t("common.previous")}
+            type="button"
+          >
+            <ChevronLeft size={16} />
+          </button>
+        ) : null}
+
+        {/* Scroll Right Button */}
+        {showRightArrow ? (
+          <button
+            className="absolute right-4 top-1/2 -translate-y-1/2 z-30 p-3 rounded-full bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border border-slate-250/60 dark:border-slate-800 shadow-premium-lg hover:bg-primary-50 dark:hover:bg-primary-950/40 text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 hover:scale-105 active:scale-95 transition-all cursor-pointer opacity-0 group-hover/grid:opacity-100 focus:opacity-100"
+            onClick={() => { scrollGrid("right"); }}
+            title={t("common.next")}
+            type="button"
+          >
+            <ChevronRight size={16} />
+          </button>
+        ) : null}
+
         {isMonthError || isEmployeesError ? (
           <div className="p-12 text-center flex flex-col items-center justify-center gap-4 animate-in fade-in zoom-in duration-300">
             <div className="w-12 h-12 rounded-full bg-rose-50 dark:bg-rose-950/20 flex items-center justify-center border border-dashed border-rose-200 dark:border-rose-800/50">
@@ -445,6 +509,7 @@ export function MonthlyRosterGrid({ hook }: MonthlyRosterGridProps) {
           </div>
         ) : (
           <RosterGridTable
+            containerRef={gridContainerRef}
             currentLocale={currentLocale}
             employeesLabel={t("shifts.monthly.all_employees")}
             isDragging={isDragging}
@@ -648,6 +713,7 @@ const RosterActionBar = memo(function RosterActionBar({
 RosterActionBar.displayName = "RosterActionBar";
 
 interface RosterGridTableProps {
+  containerRef?: React.RefObject<HTMLDivElement | null>;
   currentLocale: Locale;
   employeesLabel: string;
   isDragging: boolean;
@@ -660,6 +726,7 @@ interface RosterGridTableProps {
 }
 
 const RosterGridTable = memo(function RosterGridTable({
+  containerRef,
   currentLocale,
   employeesLabel,
   isDragging,
@@ -671,7 +738,10 @@ const RosterGridTable = memo(function RosterGridTable({
   shifts,
 }: RosterGridTableProps) {
   return (
-    <div className={`overflow-x-auto relative max-w-full roster-scrollbar ${isDragging ? "select-none" : ""}`}>
+    <div 
+      className={`overflow-x-auto relative max-w-full roster-scrollbar ${isDragging ? "select-none" : ""}`}
+      ref={containerRef}
+    >
       <table className="w-full border-collapse">
         <thead>
           <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-850/50">

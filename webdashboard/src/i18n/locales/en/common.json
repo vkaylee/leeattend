@@ -4,6 +4,8 @@
     "syncing_data": "Syncing data...",
     "preparing_environment": "Preparing environment...",
     "search": "Search...",
+    "previous": "Previous",
+    "next": "Next",
     "ip_address": "IP Address",
     "dashboard": "Dashboard",
     "my_account": "My Account",
