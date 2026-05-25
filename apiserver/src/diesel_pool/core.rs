@@ -74,7 +74,7 @@ impl DieselPools {
         Ok(SessionConn(conn))
     }
 
-    pub async fn connect(config: &DbPoolConfig) -> Result<Self, AppError> {
+    pub fn connect(config: &DbPoolConfig) -> Result<Self, AppError> {
         tracing::info!(
             api_max = config.api_max_conn,
             worker_max = config.worker_max_conn,
@@ -90,7 +90,7 @@ impl DieselPools {
             .create_timeout(Some(Duration::from_secs(5)))
             .runtime(deadpool::Runtime::Tokio1)
             .build()
-            .map_err(|e| AppError::Internal(format!("Failed to create API Diesel pool: {}", e)))?;
+            .map_err(|e| AppError::Internal(format!("Failed to create API Diesel pool: {e}")))?;
 
         let worker_manager =
             AsyncDieselConnectionManager::<AsyncPgConnection>::new(worker_sess_url);
@@ -102,7 +102,7 @@ impl DieselPools {
             .create_timeout(Some(Duration::from_secs(5)))
             .runtime(deadpool::Runtime::Tokio1)
             .build()
-            .map_err(|e| AppError::Internal(format!("Failed to create Worker Diesel pool: {}", e)))?;
+            .map_err(|e| AppError::Internal(format!("Failed to create Worker Diesel pool: {e}")))?;
 
         let tenant_tx_manager = Arc::new(SupavisorTenantPoolManager::new(
             api_tx_url.to_string(),
@@ -129,14 +129,14 @@ impl DieselPools {
         let api_pool = Pool::builder(api_manager)
             .max_size(5)
             .build()
-            .map_err(|e| AppError::Internal(format!("Failed to create test API Diesel pool: {}", e)))?;
+            .map_err(|e| AppError::Internal(format!("Failed to create test API Diesel pool: {e}")))?;
 
         let worker_manager =
             AsyncDieselConnectionManager::<AsyncPgConnection>::new(url.to_string());
         let worker_pool = Pool::builder(worker_manager)
             .max_size(5)
             .build()
-            .map_err(|e| AppError::Internal(format!("Failed to create test Worker Diesel pool: {}", e)))?;
+            .map_err(|e| AppError::Internal(format!("Failed to create test Worker Diesel pool: {e}")))?;
 
         let tenant_manager = Arc::new(TestTenantPoolManager::new(api_pool.clone()));
 

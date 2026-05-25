@@ -71,7 +71,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tenant_manager.init_tenant().await;
 
     // 3. Connect pools (API/worker/tenant all go through Supavisor)
-    let diesel_pools = DieselPools::connect(&db_config).await?;
+    let diesel_pools = DieselPools::connect(&db_config)?;
 
     // 4. Register existing workspace tenants with Supavisor, then run pending migrations
     register_workspace_tenants_and_migrate(&db_config, &diesel_pools, &*tenant_manager).await;
