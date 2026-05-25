@@ -253,39 +253,3 @@ impl HolidayRepository for DieselHolidayRepository {
         Ok(entity.map(Into::into))
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::diesel_pool::TenantAuthToken;
-
-    #[tokio::test]
-    #[ignore = "Requires migrated DB, should be in tests/integration"]
-    async fn test_holiday_repo_list_empty_for_new_tenant() {
-        // 1. Fetch DB URL provided by the test environment container
-        let test_db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
-            "postgres://user:pass@localhost:5432/leeattend_test_db".to_string()
-        });
-
-        // 2. Initialize test pools with TestTenantPoolManager automatically injected
-        let pools = DieselPools::for_test(&test_db_url);
-
-        // 3. Inject DI pools into the repository
-        let repo = DieselHolidayRepository::new(pools);
-
-        // 4. Create a mock workspace ID & token
-        let mock_workspace_id = Uuid::new_v4();
-        let token = TenantAuthToken(mock_workspace_id);
-
-        // 5. Query the database using the injected TestTenantPoolManager
-        // This validates that the DI provides a physical connection that works
-        let result = repo.list(&token, Some(2026)).await;
-
-        assert!(result.is_ok(), "Query failed: {:?}", result.err());
-        let holidays = result.unwrap();
-        assert!(
-            holidays.is_empty(),
-            "Expected empty holidays for a mock workspace"
-        );
-    }
-}
