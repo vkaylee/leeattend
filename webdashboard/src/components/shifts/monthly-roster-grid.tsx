@@ -49,7 +49,7 @@ const getCellStyles = (source?: string, isSelected?: boolean) => {
   const baseStyles = "transition-all relative border border-slate-100 dark:border-slate-800 text-center select-none cursor-pointer ";
   
   if (isSelected) {
-    return baseStyles + "ring-2 ring-primary-500 ring-inset bg-primary-50 dark:bg-primary-950/40 z-10";
+    return baseStyles + "ring-2 ring-primary-500 ring-inset bg-primary-50 dark:bg-primary-950/40 z-[5]";
   }
 
   switch (source) {
