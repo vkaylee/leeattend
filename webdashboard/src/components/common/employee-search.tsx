@@ -143,7 +143,6 @@ export function EmployeeSearch({
     if (multiple) {
       const current = Array.isArray(value) ? value : [];
       if (!current.includes(selectedId)) onChange([...current, selectedId]);
-      setSearchTerm('');
     } else {
       onChange(selectedId);
     }

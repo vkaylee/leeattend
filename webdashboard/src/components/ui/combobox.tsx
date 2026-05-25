@@ -218,7 +218,15 @@ export function Combobox({
   }
 
   return (
-    <Popover.Root onOpenChange={setOpen} open={open}>
+    <Popover.Root
+      onOpenChange={(isOpen) => {
+        setOpen(isOpen);
+        if (!isOpen && onSearchChange) {
+          onSearchChange("");
+        }
+      }}
+      open={open}
+    >
       <select aria-hidden="true" className="sr-only" data-testid={testId ? `${testId}-select` : undefined} id={id ? `${id}-select` : undefined} onChange={(e) => { onChange(e.target.value); }} tabIndex={-1} value={value}>
         <option value="">{placeholder ?? t("common.combobox.placeholder")}</option>
         {options.map(opt => (<option key={opt.value} value={opt.value}>{opt.label}</option>))}
