@@ -45,20 +45,17 @@ pub async fn get_member_roles(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> AppResult<Json<serde_json::Value>> {
-    match WorkspaceService::get_member_roles(
+    let (primary, extra) = WorkspaceService::get_member_roles(
         state.core.workspace_repo.as_ref(),
         ctx.workspace_id,
         user_id,
     )
-    .await
-    {
-        Ok((primary, extra)) => Ok(Json(serde_json::json!({
-            "primary": primary,
-            "extra": extra
-        }))),
-        Err(e) if e == "NOT_FOUND" => Err(AppError::NotFound("Member not found".to_string())),
-        Err(e) => Err(AppError::from(e)),
-    }
+    .await?;
+
+    Ok(Json(serde_json::json!({
+        "primary": primary,
+        "extra": extra
+    })))
 }
 
 pub async fn assign_extra_role(

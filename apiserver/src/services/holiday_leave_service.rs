@@ -56,7 +56,7 @@ impl HolidayLeaveService {
         &self,
         workspace_id: Uuid,
         holiday: &Holiday,
-    ) -> Result<Vec<HolidayLeaveResult>, String> {
+    ) -> Result<Vec<HolidayLeaveResult>, crate::errors::AppError> {
         // Paid holidays need no deduction
         if holiday.is_paid {
             return Ok(vec![HolidayLeaveResult::Paid]);
@@ -70,13 +70,13 @@ impl HolidayLeaveService {
                 self.find_default_paid_leave_type(workspace_id)
                     .await?
                     .ok_or_else(|| {
-                        "No paid leave type found in workspace for auto-deduction".to_string()
+                        crate::errors::AppError::Validation("No paid leave type found in workspace for auto-deduction".to_string())
                     })?
             }
         };
 
         // Get leave type name for audit trail
-        let mut conn = self.diesel.api.get().await.map_err(|e| e.to_string())?;
+        let mut conn = self.diesel.api.get().await.map_err(|e| crate::errors::AppError::Internal(e.to_string()))?;
         use diesel_async::RunQueryDsl;
 
         #[derive(diesel::QueryableByName)]
@@ -93,7 +93,7 @@ impl HolidayLeaveService {
                 .get_result(&mut *conn)
                 .await
                 .optional()
-                .map_err(|e| e.to_string())?;
+                .map_err(|e| crate::errors::AppError::Internal(e.to_string()))?;
 
         let leave_type_name = leave_type_name_row
             .map(|r| r.name)
@@ -106,7 +106,7 @@ impl HolidayLeaveService {
                 workspace_id,
             ))
             .await
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| crate::errors::AppError::Internal(e.to_string()))?;
 
         let year = holiday.date.year();
         let mut results = Vec::new();
@@ -128,7 +128,7 @@ impl HolidayLeaveService {
                     year,
                 )
                 .await
-                .map_err(|e| e.to_string())?;
+                .map_err(|e| crate::errors::AppError::Internal(e.to_string()))?;
 
             let balance = balances.iter().find(|b| b.leave_type_id == leave_type_id);
             let remaining = balance.map(|b| b.remaining).unwrap_or(0.0);
@@ -158,7 +158,7 @@ impl HolidayLeaveService {
                         &leave_request,
                     )
                     .await
-                    .map_err(|e| e.to_string())?;
+                    .map_err(|e| crate::errors::AppError::Internal(e.to_string()))?;
 
                 // Update roster to reflect leave
                 let roster = ShiftRoster {
@@ -212,8 +212,8 @@ impl HolidayLeaveService {
     async fn find_default_paid_leave_type(
         &self,
         workspace_id: Uuid,
-    ) -> Result<Option<Uuid>, String> {
-        let mut conn = self.diesel.api.get().await.map_err(|e| e.to_string())?;
+    ) -> Result<Option<Uuid>, crate::errors::AppError> {
+        let mut conn = self.diesel.api.get().await.map_err(|e| crate::errors::AppError::Internal(e.to_string()))?;
         use diesel_async::RunQueryDsl;
 
         #[derive(diesel::QueryableByName)]
@@ -230,7 +230,7 @@ impl HolidayLeaveService {
         .get_result(&mut *conn)
         .await
         .optional()
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| crate::errors::AppError::Internal(e.to_string()))?;
 
         Ok(result.map(|r| r.id))
     }

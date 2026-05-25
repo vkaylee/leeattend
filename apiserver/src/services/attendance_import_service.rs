@@ -60,7 +60,7 @@ impl ImportStrategy for EmployeeImportStrategy {
         row_data: &HashMap<String, String>,
         current_line: usize,
         workspace_tz: Tz,
-    ) -> Result<Self::RowData, String> {
+    ) -> Result<Self::RowData, AppError> {
         let raw_id = row_data
             .get("employee_code")
             .map(std::string::String::as_str)
@@ -80,10 +80,10 @@ impl ImportStrategy for EmployeeImportStrategy {
             .trim();
 
         if id_number.is_empty() || full_name.is_empty() {
-            return Err(fmt_msg(
+            return Err(AppError::Validation(fmt_msg(
                 self.msgs.missing_employee_or_id,
                 &[("line", &current_line.to_string())],
-            ));
+            )));
         }
 
         let hire_date_str = hire_date_raw.split(' ').next().unwrap_or(hire_date_raw);
@@ -115,7 +115,7 @@ impl ImportStrategy for EmployeeImportStrategy {
         _deps: &crate::worker::deps::WorkerDeps,
         job: &AttendanceImportJob,
         _rows: &[Self::RowData],
-    ) -> Result<(), String> {
+    ) -> Result<(), AppError> {
         if let Ok(existing_depts) = self
             .department_repo
             .get_departments(&crate::diesel_pool::TenantAuthToken::system_override(
@@ -147,7 +147,7 @@ impl ImportStrategy for EmployeeImportStrategy {
         _deps: &crate::worker::deps::WorkerDeps,
         job: &AttendanceImportJob,
         rows: &[Self::RowData],
-    ) -> Result<(), String> {
+    ) -> Result<(), AppError> {
         if rows.is_empty() {
             return Ok(());
         }
@@ -270,14 +270,14 @@ impl ImportStrategy for EmployeeImportStrategy {
         _deps: &crate::worker::deps::WorkerDeps,
         job: &AttendanceImportJob,
         emp: &Self::RowData,
-    ) -> Result<Option<Uuid>, String> {
+    ) -> Result<Option<Uuid>, AppError> {
         let emp_key = emp.id_number.to_lowercase();
         // pre_process_chunk has already populated emp_cache and inserted new employees to DB.
         // We just fetch from cache.
         let employee_id = if let Some(&id) = self.emp_cache.get(&emp_key) {
             id
         } else {
-            return Err(fmt_msg(
+            return Err(AppError::Internal(fmt_msg(
                 self.msgs.db_save_error,
                 &[
                     ("line", &emp.line_number.to_string()),
@@ -287,7 +287,7 @@ impl ImportStrategy for EmployeeImportStrategy {
                         &"Employee could not be loaded from cache after bulk insert",
                     ),
                 ],
-            ));
+            )));
         };
 
         // For this refactor, we still need to determine if it "was_new" to return Ok(Some(id))
@@ -358,7 +358,7 @@ impl ImportStrategy for PunchImportStrategy {
         row_data: &HashMap<String, String>,
         current_line: usize,
         workspace_tz: Tz,
-    ) -> Result<Self::RowData, String> {
+    ) -> Result<Self::RowData, AppError> {
         let raw_id = row_data
             .get("employee_code")
             .map(std::string::String::as_str)
@@ -372,10 +372,10 @@ impl ImportStrategy for PunchImportStrategy {
             .trim();
 
         if emp_id_number.is_empty() || emp_dt_str.is_empty() {
-            return Err(fmt_msg(
+            return Err(AppError::Validation(fmt_msg(
                 self.msgs.missing_employee_or_time,
                 &[("line", &current_line.to_string())],
-            ));
+            )));
         }
 
         match AttendanceAdjustmentService::parse_datetime(
@@ -389,13 +389,13 @@ impl ImportStrategy for PunchImportStrategy {
                 punch_time: dt,
                 line_number: current_line,
             }),
-            Err(_) => Err(format!(
+            Err(_) => Err(AppError::Validation(format!(
                 "{} [Raw: '{emp_dt_str}']",
                 fmt_msg(
                     self.msgs.missing_employee_or_time,
                     &[("line", &current_line.to_string())],
                 )
-            )),
+            ))),
         }
     }
 
@@ -404,7 +404,7 @@ impl ImportStrategy for PunchImportStrategy {
         _deps: &crate::worker::deps::WorkerDeps,
         _job: &AttendanceImportJob,
         _rows: &[Self::RowData],
-    ) -> Result<(), String> {
+    ) -> Result<(), AppError> {
         Ok(())
     }
 
@@ -413,7 +413,7 @@ impl ImportStrategy for PunchImportStrategy {
         _deps: &crate::worker::deps::WorkerDeps,
         job: &AttendanceImportJob,
         row: &Self::RowData,
-    ) -> Result<Option<Uuid>, String> {
+    ) -> Result<Option<Uuid>, AppError> {
         let employee = if let Some(e) = self.emp_cache.get(&row.emp_id_number) {
             e.clone()
         } else {
@@ -425,13 +425,13 @@ impl ImportStrategy for PunchImportStrategy {
                 )
                 .await
             else {
-                return Err(fmt_msg(
+                return Err(AppError::Internal(fmt_msg(
                     self.msgs.system_save_error,
                     &[
                         ("emp", &row.emp_id_number),
                         ("line", &row.line_number.to_string()),
                     ],
-                ));
+                )));
             };
             self.emp_cache
                 .insert(row.emp_id_number.clone(), emp.clone());
@@ -440,13 +440,13 @@ impl ImportStrategy for PunchImportStrategy {
 
         if job.target_type == ImportTargetType::Log {
             let Some(log_svc) = self.log_svc.as_ref() else {
-                return Err(fmt_msg(
+                return Err(AppError::Internal(fmt_msg(
                     self.msgs.system_save_error,
                     &[
                         ("emp", &row.emp_id_number),
                         ("line", &row.line_number.to_string()),
                     ],
-                ));
+                )));
             };
             match log_svc
                 .process_parsed_log(
@@ -463,13 +463,13 @@ impl ImportStrategy for PunchImportStrategy {
                 Ok(false) => Ok(None),
                 Err(e) => {
                     error!("UNIFIED_LOG_SERVICE_ERROR: {}", e);
-                    Err(fmt_msg(
+                    Err(AppError::Internal(fmt_msg(
                         self.msgs.system_save_error,
                         &[
                             ("emp", &row.emp_id_number),
                             ("line", &row.line_number.to_string()),
                         ],
-                    ))
+                    )))
                 }
             }
         } else {
@@ -504,13 +504,13 @@ impl ImportStrategy for PunchImportStrategy {
                 }
                 Err(e) => {
                     error!("ADJUSTMENT_SUBMIT_ERROR: {}", e);
-                    Err(fmt_msg(
+                    Err(AppError::Internal(fmt_msg(
                         self.msgs.system_save_error,
                         &[
                             ("emp", &row.emp_id_number),
                             ("line", &row.line_number.to_string()),
                         ],
-                    ))
+                    )))
                 }
             }
         }

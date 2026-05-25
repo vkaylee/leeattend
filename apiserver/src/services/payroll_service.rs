@@ -69,7 +69,7 @@ pub trait RosterDataProvider: Send + Sync {
     async fn get_roster_data(
         &self,
         workspace_id: Uuid,
-    ) -> Result<Arc<crate::cache::RosterData>, String>;
+    ) -> Result<Arc<crate::cache::RosterData>, crate::errors::AppError>;
 }
 
 /// Concrete `RosterDataProvider` that calls `build_roster_data` directly.
@@ -81,8 +81,10 @@ impl RosterDataProvider for DirectRosterDataProvider {
     async fn get_roster_data(
         &self,
         workspace_id: Uuid,
-    ) -> Result<Arc<crate::cache::RosterData>, String> {
-        crate::cache::build_roster_data(&self.0, workspace_id).await
+    ) -> Result<Arc<crate::cache::RosterData>, crate::errors::AppError> {
+        crate::cache::build_roster_data(&self.0, workspace_id)
+            .await
+            .map_err(crate::errors::AppError::Internal)
     }
 }
 
@@ -207,11 +209,7 @@ impl PayrollService {
         let roster_data = self
             .roster_provider
             .get_roster_data(workspace_id)
-            .await
-            .map_err(|e| {
-                tracing::error!("Failed to build roster data: {}", e);
-                AppError::Internal(format!("Roster data error: {e}"))
-            })?;
+            .await?;
 
         let employee = self
             .employee_repo

@@ -202,12 +202,16 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                                         ));
                                         break;
                                     }
-                                    Err(code) => {
-                                        warn!("Agent authorization error for {}: {}", id, code);
-                                        let message = match code.as_str() {
-                                            "INVALID_TOKEN" => "Token không chính xác.",
-                                            "AGENT_NOT_TRUSTED" => "Agent chưa được phê duyệt.",
-                                            _ => "Lỗi xác thực.",
+                                    Err(err) => {
+                                        warn!("Agent authorization error for {}: {}", id, err);
+                                        let (code, message) = match err {
+                                            AppError::Validation(ref msg) if msg == "INVALID_TOKEN" => {
+                                                ("INVALID_TOKEN", "Token không chính xác.")
+                                            }
+                                            AppError::Validation(ref msg) if msg == "AGENT_NOT_TRUSTED" => {
+                                                ("AGENT_NOT_TRUSTED", "Agent chưa được phê duyệt.")
+                                            }
+                                            _ => ("AUTH_ERROR", "Lỗi xác thực."),
                                         };
                                         let _ = tx.send(Message::Text(
                                             serde_json::json!({

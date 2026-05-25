@@ -55,8 +55,7 @@ pub async fn claim_ot(
             req.claimed_minutes,
             req.reason,
         )
-        .await
-        .map_err(|e| AppError::Validation(format!("Claim OT Error: {e}")))?;
+        .await?;
 
     Ok(StatusCode::OK)
 }
@@ -98,8 +97,7 @@ pub async fn approve_ot(
             req.manager_note,
             status_enum,
         )
-        .await
-        .map_err(|e| AppError::Validation(format!("Approve OT Error: {e}")))?;
+        .await?;
 
     Ok(StatusCode::OK)
 }

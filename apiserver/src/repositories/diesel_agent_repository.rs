@@ -29,13 +29,13 @@ impl DieselAgentRepository {
 
 #[async_trait]
 impl AgentRepository for DieselAgentRepository {
-    async fn find_by_id(&self, id: &str) -> Result<Option<AuthorizedAgent>, String> {
+    async fn find_by_id(&self, id: &str) -> Result<Option<AuthorizedAgent>, AppError> {
         let mut conn = crate::diesel_pool::TransactionConn(
             self.diesel_pools
                 .api
                 .get()
                 .await
-                .map_err(|e| e.to_string())?,
+                .map_err(|e| AppError::Internal(e.to_string()))?,
         );
 
         let agent = authorized_agents::table
@@ -44,43 +44,43 @@ impl AgentRepository for DieselAgentRepository {
             .first::<AuthorizedAgentEntity>(&mut *conn)
             .await
             .optional()
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| AppError::Internal(e.to_string()))?;
 
         Ok(agent.map(Into::into))
     }
 
-    async fn update_last_ip(&self, id: &str, ip: &str) -> Result<(), String> {
+    async fn update_last_ip(&self, id: &str, ip: &str) -> Result<(), AppError> {
         let mut conn = crate::diesel_pool::TransactionConn(
             self.diesel_pools
                 .api
                 .get()
                 .await
-                .map_err(|e| e.to_string())?,
+                .map_err(|e| AppError::Internal(e.to_string()))?,
         );
 
         diesel::update(authorized_agents::table.filter(authorized_agents::id.eq(id)))
             .set(authorized_agents::last_ip.eq(ip))
             .execute(&mut *conn)
             .await
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| AppError::Internal(e.to_string()))?;
 
         Ok(())
     }
 
-    async fn update_last_seen(&self, id: &str) -> Result<(), String> {
+    async fn update_last_seen(&self, id: &str) -> Result<(), AppError> {
         let mut conn = crate::diesel_pool::TransactionConn(
             self.diesel_pools
                 .api
                 .get()
                 .await
-                .map_err(|e| e.to_string())?,
+                .map_err(|e| AppError::Internal(e.to_string()))?,
         );
 
         diesel::update(authorized_agents::table.filter(authorized_agents::id.eq(id)))
             .set(authorized_agents::last_seen_at.eq(Some(Utc::now())))
             .execute(&mut *conn)
             .await
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| AppError::Internal(e.to_string()))?;
 
         Ok(())
     }
@@ -89,19 +89,19 @@ impl AgentRepository for DieselAgentRepository {
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
         agent_id: &str,
-    ) -> Result<Vec<Device>, String> {
+    ) -> Result<Vec<Device>, AppError> {
         let mut conn = self
             .diesel_pools
             .tenant_transaction_conn(auth_token)
             .await
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| AppError::Internal(e.to_string()))?;
 
         let devices_result = devices::table
             .filter(devices::agent_id.eq(agent_id))
             .order(devices::created_at.desc())
             .load::<DeviceEntity>(&mut *conn)
             .await
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| AppError::Internal(e.to_string()))?;
 
         Ok(devices_result.into_iter().map(Into::into).collect())
     }

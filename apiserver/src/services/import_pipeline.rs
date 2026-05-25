@@ -19,7 +19,7 @@ pub trait ImportStrategy: Send + Sync {
         row_data: &HashMap<String, String>,
         current_line: usize,
         workspace_tz: Tz,
-    ) -> Result<Self::RowData, String>;
+    ) -> Result<Self::RowData, crate::errors::AppError>;
 
     /// Process a single valid row. Returns Ok(Some(id)) for success, Ok(None) for skipped, Err(reason) for failure.
     async fn process_row(
@@ -27,7 +27,7 @@ pub trait ImportStrategy: Send + Sync {
         deps: &crate::worker::deps::WorkerDeps,
         job: &AttendanceImportJob,
         row: &Self::RowData,
-    ) -> Result<Option<Uuid>, String>;
+    ) -> Result<Option<Uuid>, crate::errors::AppError>;
 
     /// Optional hook to initialize caching or do pre-flight checks
     async fn init(
@@ -35,7 +35,7 @@ pub trait ImportStrategy: Send + Sync {
         _deps: &crate::worker::deps::WorkerDeps,
         _job: &AttendanceImportJob,
         _rows: &[Self::RowData],
-    ) -> Result<(), String> {
+    ) -> Result<(), crate::errors::AppError> {
         Ok(())
     }
 
@@ -45,7 +45,7 @@ pub trait ImportStrategy: Send + Sync {
         _deps: &crate::worker::deps::WorkerDeps,
         _job: &AttendanceImportJob,
         _rows: &[Self::RowData],
-    ) -> Result<(), String> {
+    ) -> Result<(), crate::errors::AppError> {
         Ok(())
     }
 }
@@ -96,8 +96,8 @@ impl<S: ImportStrategy> ImportPipeline<'_, S> {
                             pending_rows.push((mapped_data, row_data));
                         }
                         Err(e) => {
-                            errors.push(e.clone());
-                            failed_rows_data.push((row_data, e));
+                            errors.push(e.to_string());
+                            failed_rows_data.push((row_data, e.to_string()));
                         }
                     }
                 }
@@ -116,7 +116,7 @@ impl<S: ImportStrategy> ImportPipeline<'_, S> {
                     self.job.id,
                     0,
                     ImportJobStatus::Failed,
-                    Some(e),
+                    Some(e.to_string()),
                 )
                 .await;
             return Err(());
@@ -134,7 +134,7 @@ impl<S: ImportStrategy> ImportPipeline<'_, S> {
                     self.job.id,
                     0,
                     ImportJobStatus::Failed,
-                    Some(e),
+                    Some(e.to_string()),
                 )
                 .await;
             return Err(());
@@ -172,8 +172,8 @@ impl<S: ImportStrategy> ImportPipeline<'_, S> {
                     ));
                 }
                 Err(e) => {
-                    errors.push(e.clone());
-                    failed_rows_data.push((raw_row_data, e));
+                    errors.push(e.to_string());
+                    failed_rows_data.push((raw_row_data, e.to_string()));
                 }
             }
 
@@ -340,7 +340,7 @@ mod tests {
             _row_data: &HashMap<String, String>,
             _current_line: usize,
             _workspace_tz: Tz,
-        ) -> Result<Self::RowData, String> {
+        ) -> Result<Self::RowData, crate::errors::AppError> {
             Ok("dummy_data".to_string())
         }
 
@@ -349,7 +349,7 @@ mod tests {
             _deps: &WorkerDeps,
             _job: &AttendanceImportJob,
             _rows: &[Self::RowData],
-        ) -> Result<(), String> {
+        ) -> Result<(), crate::errors::AppError> {
             Ok(())
         }
 
@@ -358,8 +358,8 @@ mod tests {
             _deps: &WorkerDeps,
             _job: &AttendanceImportJob,
             _row: &Self::RowData,
-        ) -> Result<Option<Uuid>, String> {
-            self.process_result.clone()
+        ) -> Result<Option<Uuid>, crate::errors::AppError> {
+            self.process_result.clone().map_err(crate::errors::AppError::Internal)
         }
     }
 

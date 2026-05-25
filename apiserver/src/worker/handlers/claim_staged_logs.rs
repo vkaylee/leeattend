@@ -24,7 +24,8 @@ impl ClaimStagedLogsHandler {
                 payload.employee_id,
                 &payload.employee_id_number,
             )
-            .await?;
+            .await
+            .map_err(|e| e.to_string())?;
 
         info!(
             employee_id_number = %payload.employee_id_number,

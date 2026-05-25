@@ -1,3 +1,4 @@
+use crate::errors::{AppError, AppResult};
 use crate::models::{AuthResponse, UserResponse};
 use bcrypt::{hash, verify};
 use chrono::{Duration, Utc};
@@ -40,7 +41,7 @@ impl AuthService {
         user_id: Uuid,
         secret: &str,
         duration_mins: i64,
-    ) -> Result<String, String> {
+    ) -> AppResult<String> {
         let expiration = Utc::now()
             .checked_add_signed(Duration::minutes(duration_mins))
             .expect("valid timestamp")
@@ -57,27 +58,27 @@ impl AuthService {
             &claims,
             &EncodingKey::from_secret(secret.as_ref()),
         )
-        .map_err(|e| e.to_string())
+        .map_err(|e| AppError::Auth(format!("Token generation failed: {e}")))
     }
 
-    pub fn verify_token(token: &str, secret: &str) -> Result<Uuid, String> {
+    pub fn verify_token(token: &str, secret: &str) -> AppResult<Uuid> {
         let token_data = decode::<Claims>(
             token,
             &DecodingKey::from_secret(secret.as_ref()),
             &Validation::default(),
         )
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| AppError::Auth(format!("Invalid token: {e}")))?;
 
-        Uuid::parse_str(&token_data.claims.sub).map_err(|e| e.to_string())
+        Uuid::parse_str(&token_data.claims.sub).map_err(|e| AppError::Auth(format!("Invalid token subject: {e}")))
     }
 
-    pub fn hash_password(password: &str) -> Result<String, String> {
+    pub fn hash_password(password: &str) -> AppResult<String> {
         #[cfg(debug_assertions)]
         let cost = 4;
         #[cfg(not(debug_assertions))]
         let cost = bcrypt::DEFAULT_COST;
 
-        hash(password, cost).map_err(|e| e.to_string())
+        hash(password, cost).map_err(|e| AppError::Internal(format!("Failed to hash password: {e}")))
     }
 
     pub fn verify_password(password: &str, hash: &str) -> bool {
@@ -87,14 +88,13 @@ impl AuthService {
     // --- DB methods (use self.pool) ---
 
     #[tracing::instrument(skip_all, err)]
-    pub async fn create_session(&self, user_id: Uuid) -> Result<String, String> {
+    pub async fn create_session(&self, user_id: Uuid) -> AppResult<String> {
         let token = Uuid::new_v4().to_string();
         let expires_at = Utc::now() + Duration::days(7);
 
         self.session_repo
             .create_session(user_id, &token, expires_at)
-            .await
-            .map_err(|e| e.to_string())?;
+            .await?;
 
         Ok(token)
     }
@@ -104,20 +104,18 @@ impl AuthService {
         &self,
         refresh_token: &str,
         secret: &str,
-    ) -> Result<AuthResponse, String> {
+    ) -> AppResult<AuthResponse> {
         let session = self
             .session_repo
             .get_session_by_token(refresh_token)
-            .await
-            .map_err(|e| e.to_string())?
-            .ok_or_else(|| "Invalid or expired refresh token".to_string())?;
+            .await?
+            .ok_or_else(|| AppError::Auth("Invalid or expired refresh token".to_string()))?;
 
         let user = self
             .user_repo
             .get_user_by_id(session.user_id)
-            .await
-            .map_err(|e| e.to_string())?
-            .ok_or_else(|| "User not found".to_string())?;
+            .await?
+            .ok_or_else(|| AppError::NotFound("User not found".to_string()))?;
 
         let access_token = Self::generate_token(user.id, secret, 60)?; // 1 hour access
 
@@ -125,15 +123,13 @@ impl AuthService {
         let new_refresh_token = Uuid::new_v4().to_string();
         self.session_repo
             .rotate_refresh_token(session.id, &new_refresh_token)
-            .await
-            .map_err(|e| e.to_string())?;
+            .await?;
 
         // Fetch system-level roles for this user
         let system_roles = self
             .user_repo
             .get_system_roles_for_user(user.id)
-            .await
-            .map_err(|e| e.to_string())?;
+            .await?;
 
         Ok(AuthResponse {
             access_token,
@@ -152,18 +148,18 @@ impl AuthService {
     }
 
     #[tracing::instrument(skip_all, err)]
-    pub async fn revoke_session(&self, refresh_token: &str) -> Result<(), String> {
+    pub async fn revoke_session(&self, refresh_token: &str) -> AppResult<()> {
         self.session_repo
             .revoke_session(refresh_token)
             .await
-            .map_err(|e| e.to_string())
+            .map_err(AppError::from)
     }
 
     #[tracing::instrument(skip_all, err)]
-    pub async fn revoke_all_sessions_for_user(&self, user_id: Uuid) -> Result<(), String> {
+    pub async fn revoke_all_sessions_for_user(&self, user_id: Uuid) -> AppResult<()> {
         self.session_repo
             .revoke_all_sessions_for_user(user_id)
             .await
-            .map_err(|e| e.to_string())
+            .map_err(AppError::from)
     }
 }

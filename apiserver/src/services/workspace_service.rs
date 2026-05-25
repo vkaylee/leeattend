@@ -59,17 +59,16 @@ impl WorkspaceService {
         owner_id: Uuid,
         database_url: Option<String>,
         custom_db_url_encrypted: Option<String>,
-    ) -> Result<Workspace, String> {
+    ) -> crate::errors::AppResult<Workspace> {
         // 1. Check if user exists
         let user_exists = self
             .user_repo
             .get_user_by_id(owner_id)
-            .await
-            .map_err(|e| e.to_string())?
+            .await?
             .is_some();
 
         if !user_exists {
-            return Err(format!("User with ID {owner_id} does not exist"));
+            return Err(crate::errors::AppError::NotFound(format!("User with ID {owner_id} does not exist")));
         }
 
         // 2. Resolve database_url
@@ -80,10 +79,9 @@ impl WorkspaceService {
             let cluster = self
                 .system_db_cluster_repo
                 .get_least_loaded_cluster()
-                .await
-                .map_err(|e| e.to_string())?
+                .await?
                 .ok_or_else(|| {
-                    "No available database clusters for auto-provisioning".to_string()
+                    crate::errors::AppError::Internal("No available database clusters for auto-provisioning".to_string())
                 })?;
 
             let admin_url = cluster.admin_database_url;
@@ -93,22 +91,21 @@ impl WorkspaceService {
             use diesel_async::{AsyncConnection, AsyncPgConnection, RunQueryDsl};
             let mut conn = AsyncPgConnection::establish(&admin_url)
                 .await
-                .map_err(|e| format!("Failed to connect to admin DB: {e}"))?;
+                .map_err(|e| crate::errors::AppError::Internal(format!("Failed to connect to admin DB: {e}")))?;
 
             #[allow(clippy::disallowed_methods)]
             diesel::sql_query(create_db_sql)
                 .execute(&mut conn)
                 .await
-                .map_err(|e| format!("Failed to create tenant database: {e}"))?;
+                .map_err(|e| crate::errors::AppError::Internal(format!("Failed to create tenant database: {e}")))?;
 
             // Increment active tenants
             self.system_db_cluster_repo
                 .increment_active_tenants(cluster.id)
-                .await
-                .map_err(|e| e.to_string())?;
+                .await?;
 
             // Replace the database name in the url
-            let mut parsed_url = reqwest::Url::parse(&admin_url).map_err(|e| e.to_string())?;
+            let mut parsed_url = reqwest::Url::parse(&admin_url).map_err(|e| crate::errors::AppError::Internal(e.to_string()))?;
             parsed_url.set_path(&format!("/{tenant_db_name}"));
             parsed_url.to_string()
         };
@@ -117,8 +114,7 @@ impl WorkspaceService {
         let new_db_url = self
             .tenant_provisioner
             .provision_tenant_db(&id, &final_db_url)
-            .await
-            .map_err(|e| format!("Failed to provision DB: {e}"))?;
+            .await?;
 
         // 4. Register Tenant with Supavisor connection pooler.
         // The tenant_id must match the format produced by diesel_pool::get_tenant_url(),
@@ -137,16 +133,14 @@ impl WorkspaceService {
         if let Some((tenant_id, payload)) = payload_opt {
             self.tenant_manager
                 .register_tenant_dynamic(&tenant_id, &payload)
-                .await
-                .map_err(|e| format!("Failed to register tenant with pooler: {e}"))?;
+                .await?;
         }
 
         // 5. Create workspace with owner using repository
         let ws = self
             .workspace_repo
             .create_workspace_with_owner(id, name, owner_id, custom_db_url_encrypted)
-            .await
-            .map_err(|e| e.to_string())?;
+            .await?;
 
         Ok(ws)
     }
@@ -156,23 +150,20 @@ impl WorkspaceService {
         repo: &dyn WorkspaceRepository,
         workspace_id: Uuid,
         user_id: Uuid,
-    ) -> Result<(Uuid, Vec<MemberExtraRole>), String> {
+    ) -> crate::errors::AppResult<(Uuid, Vec<MemberExtraRole>)> {
         let primary_role_id = repo
             .find_primary_role(workspace_id, user_id)
-            .await
-            .map_err(|e| e.to_string())?
-            .ok_or_else(|| "NOT_FOUND".to_string())?;
+            .await?
+            .ok_or_else(|| crate::errors::AppError::NotFound("Primary role not found".to_string()))?;
 
         let extra_roles = repo
             .find_extra_roles(workspace_id, user_id)
-            .await
-            .map_err(|e| e.to_string())?;
+            .await?;
 
         Ok((primary_role_id, extra_roles))
     }
 
-    #[tracing::instrument(skip_all, err)]
-    pub async fn update_workspace(&self, args: UpdateWorkspaceArgs) -> Result<Workspace, String> {
+    pub async fn update_workspace(&self, args: UpdateWorkspaceArgs) -> crate::errors::AppResult<Workspace> {
         let multiplier = args.default_holiday_ot_multiplier.map(|m| {
             bigdecimal::BigDecimal::from_str(&m.to_string())
                 .unwrap_or_else(|_| bigdecimal::BigDecimal::from(2))
@@ -189,7 +180,7 @@ impl WorkspaceService {
             && args.holiday_overnight_strategy.is_none()
             && multiplier.is_none()
         {
-            return Err("No fields to update".to_string());
+            return Err(crate::errors::AppError::Validation("No fields to update".to_string()));
         }
 
         self.workspace_repo
@@ -207,7 +198,6 @@ impl WorkspaceService {
                 args.tagline,
             )
             .await
-            .map_err(|e| e.to_string())
     }
 }
 
@@ -715,7 +705,7 @@ mod tests {
             )
             .await
             .unwrap_err();
-        assert!(err.contains("does not exist"));
+        assert!(matches!(err, AppError::NotFound(_)));
     }
 
     #[tokio::test]
@@ -731,6 +721,7 @@ mod tests {
             )
             .await
             .unwrap_err();
+        assert!(matches!(err, AppError::Internal(_)));
         assert!(err.to_string().contains("provisioning failed"));
     }
 
@@ -820,7 +811,7 @@ mod tests {
         let err = WorkspaceService::get_member_roles(&repo, Uuid::new_v4(), Uuid::new_v4())
             .await
             .unwrap_err();
-        assert_eq!(err, "NOT_FOUND");
+        assert!(matches!(err, AppError::NotFound(_)));
     }
 
     #[tokio::test]
@@ -840,7 +831,7 @@ mod tests {
             default_holiday_ot_multiplier: None,
         };
         let err = svc.update_workspace(args).await.unwrap_err();
-        assert!(err.contains("No fields to update"));
+        assert!(matches!(err, AppError::Validation(_)));
     }
 
     #[tokio::test]

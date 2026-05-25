@@ -98,14 +98,14 @@ impl AgentLogBuffer {
     /// Send a log entry to the buffer
     /// Uses timeout to apply backpressure if buffer is full
     #[tracing::instrument(skip_all, err)]
-    pub async fn send(&self, entry: AgentLogEntry) -> Result<(), String> {
+    pub async fn send(&self, entry: AgentLogEntry) -> Result<(), crate::errors::AppError> {
         // Apply backpressure with 100ms timeout
         match timeout(Duration::from_millis(100), self.sender.send(entry)).await {
             Ok(Ok(())) => Ok(()),
-            Ok(Err(_)) => Err("Buffer channel closed".to_string()),
+            Ok(Err(_)) => Err(crate::errors::AppError::Internal("Buffer channel closed".to_string())),
             Err(_) => {
                 warn!("Agent log buffer full, backpressure applied");
-                Err("Buffer full, timeout".to_string())
+                Err(crate::errors::AppError::Internal("Buffer full, timeout".to_string()))
             }
         }
     }
@@ -252,7 +252,7 @@ async fn process_batch(
 async fn parse_log_entry(
     employee_repo: &dyn EmployeeRepository,
     entry: &AgentLogEntry,
-) -> Result<ParsedLogEntry, String> {
+) -> Result<ParsedLogEntry, crate::errors::AppError> {
     // Resolve employee_id from employee_id_number
     let employee = match employee_repo
         .find_by_number(
@@ -263,13 +263,13 @@ async fn parse_log_entry(
     {
         Ok(Some(emp)) => emp,
         Ok(None) => {
-            return Err(format!(
+            return Err(crate::errors::AppError::Validation(format!(
                 "Employee not found: {} in workspace {}",
                 entry.employee_id_number, entry.workspace_id
-            ));
+            )));
         }
         Err(e) => {
-            return Err(format!("Database error finding employee: {e}"));
+            return Err(crate::errors::AppError::Internal(format!("Database error finding employee: {e}")));
         }
     };
 
@@ -281,10 +281,10 @@ async fn parse_log_entry(
         Some(&entry.time_fmt),
     )
     .map_err(|e| {
-        format!(
+        crate::errors::AppError::Validation(format!(
             "Failed to parse timestamp '{}': {}",
             entry.punch_time_raw, e
-        )
+        ))
     })?;
 
     let (punch, status) =

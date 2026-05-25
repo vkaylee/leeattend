@@ -19,7 +19,7 @@ impl AgentService {
         &self,
         workspace_id: Uuid,
         agent_id: &str,
-    ) -> Result<(), String> {
+    ) -> Result<(), crate::errors::AppError> {
         let devices = self
             .repo
             .find_devices_by_agent_id(
@@ -54,6 +54,7 @@ impl AgentService {
         self.manager
             .push_message(agent_id, CentralMessage::ConfigPush { data: config_data })
             .await
+            .map_err(crate::errors::AppError::Internal)
     }
 
     #[tracing::instrument(skip_all, err)]
@@ -61,15 +62,15 @@ impl AgentService {
         &self,
         id: &str,
         token: &str,
-    ) -> Result<Option<AuthorizedAgent>, String> {
+    ) -> Result<Option<AuthorizedAgent>, crate::errors::AppError> {
         let agent = self.repo.find_by_id(id).await?;
 
         if let Some(ref a) = agent {
             if a.token != token {
-                return Err("INVALID_TOKEN".to_string());
+                return Err(crate::errors::AppError::Validation("INVALID_TOKEN".to_string()));
             }
             if !a.is_trusted {
-                return Err("AGENT_NOT_TRUSTED".to_string());
+                return Err(crate::errors::AppError::Validation("AGENT_NOT_TRUSTED".to_string()));
             }
         }
 
@@ -77,12 +78,12 @@ impl AgentService {
     }
 
     #[tracing::instrument(skip_all, err)]
-    pub async fn update_last_ip(&self, id: &str, ip: &str) -> Result<(), String> {
+    pub async fn update_last_ip(&self, id: &str, ip: &str) -> Result<(), crate::errors::AppError> {
         self.repo.update_last_ip(id, ip).await
     }
 
     #[tracing::instrument(skip_all, err)]
-    pub async fn update_last_seen(&self, id: &str) -> Result<(), String> {
+    pub async fn update_last_seen(&self, id: &str) -> Result<(), crate::errors::AppError> {
         self.repo.update_last_seen(id).await
     }
 }
@@ -100,7 +101,7 @@ mod tests {
 
     #[async_trait]
     impl AgentRepository for MockAgentRepo {
-        async fn find_by_id(&self, id: &str) -> Result<Option<AuthorizedAgent>, String> {
+        async fn find_by_id(&self, id: &str) -> Result<Option<AuthorizedAgent>, crate::errors::AppError> {
             if id == "trusted_agent" {
                 Ok(Some(AuthorizedAgent {
                     id: id.to_string(),
@@ -136,11 +137,11 @@ mod tests {
             }
         }
 
-        async fn update_last_ip(&self, _id: &str, _ip: &str) -> Result<(), String> {
+        async fn update_last_ip(&self, _id: &str, _ip: &str) -> Result<(), crate::errors::AppError> {
             Ok(())
         }
 
-        async fn update_last_seen(&self, _id: &str) -> Result<(), String> {
+        async fn update_last_seen(&self, _id: &str) -> Result<(), crate::errors::AppError> {
             Ok(())
         }
 
@@ -148,7 +149,7 @@ mod tests {
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,
             _agent_id: &str,
-        ) -> Result<Vec<Device>, String> {
+        ) -> Result<Vec<Device>, crate::errors::AppError> {
             Ok(vec![])
         }
 
@@ -299,7 +300,7 @@ mod tests {
             .authorize_agent("trusted_agent", "wrong_token")
             .await;
         assert!(res.is_err());
-        assert_eq!(res.err().unwrap(), "INVALID_TOKEN");
+        assert_eq!(res.err().unwrap().to_string(), "Validation error: INVALID_TOKEN");
     }
 
     #[tokio::test]
@@ -312,7 +313,7 @@ mod tests {
             .authorize_agent("untrusted_agent", "valid_token")
             .await;
         assert!(res.is_err());
-        assert_eq!(res.err().unwrap(), "AGENT_NOT_TRUSTED");
+        assert_eq!(res.err().unwrap().to_string(), "Validation error: AGENT_NOT_TRUSTED");
     }
 
     #[tokio::test]

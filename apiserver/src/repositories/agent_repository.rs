@@ -6,14 +6,14 @@ use uuid::Uuid;
 
 #[async_trait]
 pub trait AgentRepository: Send + Sync {
-    async fn find_by_id(&self, id: &str) -> Result<Option<AuthorizedAgent>, String>;
-    async fn update_last_ip(&self, id: &str, ip: &str) -> Result<(), String>;
-    async fn update_last_seen(&self, id: &str) -> Result<(), String>;
+    async fn find_by_id(&self, id: &str) -> Result<Option<AuthorizedAgent>, AppError>;
+    async fn update_last_ip(&self, id: &str, ip: &str) -> Result<(), AppError>;
+    async fn update_last_seen(&self, id: &str) -> Result<(), AppError>;
     async fn find_devices_by_agent_id(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
         agent_id: &str,
-    ) -> Result<Vec<Device>, String>;
+    ) -> Result<Vec<Device>, AppError>;
     async fn get_workspace_agents(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,

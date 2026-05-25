@@ -435,8 +435,7 @@ pub async fn create_workspace(
             req.database_url.clone(),
             encrypted_url,
         )
-        .await
-        .map_err(AppError::from)?;
+        .await?;
 
     Ok(Json(ws))
 }
@@ -465,5 +464,4 @@ pub async fn update_workspace(
         })
         .await
         .map(Json)
-        .map_err(AppError::from)
 }

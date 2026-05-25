@@ -16,12 +16,12 @@ import {
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import { ErrorBoundary } from "@/components/common/error-boundary";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { useMyPermissions } from "@/hooks/use-permissions";
 import { Employee, Workspace, Payslip, AttendanceAdjustmentRequest, PayrollSegment  } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 
-import { ErrorBoundary } from "@/components/common/error-boundary";
 import { PayrollPriorityLegend } from "./payroll-priority-legend";
 import PayslipModal from "./payslip-modal";
 

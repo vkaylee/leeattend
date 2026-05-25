@@ -188,8 +188,7 @@ pub async fn register(
         .core
         .auth_service
         .create_session(user.id)
-        .await
-        .map_err(AppError::from)?;
+        .await?;
 
     // Convert to UserResponse for the client
     let user_response = UserResponse {
@@ -205,7 +204,7 @@ pub async fn register(
 
     // 7. Generate access token (stateless, no DB write needed)
     let access_token =
-        AuthService::generate_token(user.id, &state.core.jwt_secret, 60).map_err(AppError::from)?;
+        AuthService::generate_token(user.id, &state.core.jwt_secret, 60)?;
 
     let headers = create_auth_cookies(&access_token, &refresh_token);
 
@@ -254,14 +253,13 @@ pub async fn login(
     };
 
     let access_token =
-        AuthService::generate_token(user.id, &state.core.jwt_secret, 60).map_err(AppError::from)?;
+        AuthService::generate_token(user.id, &state.core.jwt_secret, 60)?;
 
     let refresh_token = state
         .core
         .auth_service
         .create_session(user.id)
-        .await
-        .map_err(AppError::from)?;
+        .await?;
 
     let headers = create_auth_cookies(&access_token, &refresh_token);
 
@@ -303,8 +301,7 @@ pub async fn refresh_token(
         .core
         .auth_service
         .refresh_session(&token, &state.core.jwt_secret)
-        .await
-        .map_err(AppError::Auth)?;
+        .await?;
 
     let resp_headers =
         create_auth_cookies(&auth_response.access_token, &auth_response.refresh_token);

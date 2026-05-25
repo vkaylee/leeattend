@@ -4,6 +4,7 @@ import { ChevronRight, Search, Loader2 } from "lucide-react";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import { Skeleton } from "@/components/ui/skeleton";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
 import { useKeyboardListNav } from "@/hooks/use-keyboard-list-nav";
 import { useStickyHeader } from "@/hooks/use-sticky-header";
@@ -81,9 +82,9 @@ function InfiniteScrollSentinel({
     <tr ref={sentinelRef}>
       <td className="px-8 py-4 text-center" colSpan={colSpan}>
         {isFetchingNextPage ? (
-          <div className="flex items-center justify-center gap-2 text-slate-400">
-            <Loader2 className="animate-spin" size={16} />
-            <span className="text-[10px] font-bold uppercase tracking-widest">Loading...</span>
+          <div className="flex items-center justify-center gap-3">
+            <Loader2 className="animate-spin text-slate-400" size={16} />
+            <Skeleton className="h-2.5 w-16 bg-slate-200 dark:bg-slate-700" />
           </div>
         ) : null}
       </td>

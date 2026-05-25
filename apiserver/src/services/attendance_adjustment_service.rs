@@ -145,13 +145,14 @@ impl AttendanceAdjustmentService {
         timezone: &str,
         preferred_date: Option<&str>,
         preferred_time: Option<&str>,
-    ) -> Result<chrono::DateTime<chrono::Utc>, String> {
+    ) -> Result<chrono::DateTime<chrono::Utc>, AppError> {
         crate::utils::datetime::parse_datetime_with_tz(
             dt_str,
             timezone,
             preferred_date,
             preferred_time,
         )
+        .map_err(AppError::Validation)
     }
 
     #[tracing::instrument(skip_all, err)]

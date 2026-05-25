@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use crate::errors::{AppError, AppResult};
 
 use chrono::{NaiveDate, TimeZone};
 use chrono_tz::Tz;
@@ -75,14 +76,14 @@ impl AttendanceSummaryService {
         workspace_id: Uuid,
         employee_id: Uuid,
         date: NaiveDate,
-    ) -> Result<(), String> {
+    ) -> AppResult<()> {
         // 1. Get Workspace Settings
         let workspace = self
             .workspace_repo
             .get_workspace_by_id(workspace_id)
             .await
-            .map_err(|e| e.to_string())?
-            .ok_or("Workspace not found")?;
+            .map_err(AppError::from)?
+            .ok_or_else(|| AppError::NotFound("Workspace not found".to_string()))?;
 
         let tz: Tz = crate::utils::tz::parse_workspace_tz(&workspace.timezone);
 
@@ -97,18 +98,18 @@ impl AttendanceSummaryService {
                 Some(&vec![employee_id]),
             )
             .await
-            .map_err(|e| e.to_string())?;
+            .map_err(AppError::from)?;
 
-        let emp_sched = schedules.first().ok_or("No schedule found for employee")?;
+        let emp_sched = schedules.first().ok_or_else(|| AppError::NotFound("No schedule found for employee".to_string()))?;
         let daily_schedule = emp_sched
             .schedules
             .iter()
             .find(|s| s.date == date)
-            .ok_or("No schedule for date")?;
+            .ok_or_else(|| AppError::NotFound("No schedule for date".to_string()))?;
 
         // 3. Get Time Entries for the date (in UTC range)
-        let start_dt_utc = local_midnight_to_utc(&tz, date, 0, 0, 0)?;
-        let end_dt_utc = local_midnight_to_utc(&tz, date, 23, 59, 59)?;
+        let start_dt_utc = local_midnight_to_utc(&tz, date, 0, 0, 0).map_err(|e| AppError::Internal(e.to_string()))?;
+        let end_dt_utc = local_midnight_to_utc(&tz, date, 23, 59, 59).map_err(|e| AppError::Internal(e.to_string()))?;
 
         let entries = self
             .time_entry_repo
@@ -119,7 +120,7 @@ impl AttendanceSummaryService {
                 end_dt_utc,
             )
             .await
-            .map_err(|e| e.to_string())?;
+            .map_err(AppError::from)?;
 
         // Filter entries that actually belong to this date in local time
         let day_entries: Vec<_> = entries
@@ -174,7 +175,7 @@ impl AttendanceSummaryService {
                             date,
                         )
                         .await
-                        .map_err(|e| e.to_string())?;
+                        .map_err(AppError::from)?;
 
                     // Resolve Policy Rules
                     let policy_rules = PolicyResolver::resolve_with_shift_overrides(
@@ -305,7 +306,7 @@ impl AttendanceSummaryService {
                 date,
             )
             .await
-            .map_err(|e| e.to_string())?;
+            .map_err(AppError::from)?;
 
         let new_status = match existing {
             Some(ref s) => {
@@ -336,7 +337,7 @@ impl AttendanceSummaryService {
                 holiday_name,
             )
             .await
-            .map_err(|e| e.to_string())?;
+            .map_err(AppError::from)?;
 
         Ok(())
     }
@@ -349,7 +350,7 @@ impl AttendanceSummaryService {
         date: NaiveDate,
         claimed_minutes: i32,
         reason: Option<String>,
-    ) -> Result<(), String> {
+    ) -> AppResult<()> {
         let summary_repo = self.daily_summary_repo.as_ref();
 
         let rows_affected = summary_repo
@@ -361,10 +362,10 @@ impl AttendanceSummaryService {
                 reason,
             )
             .await
-            .map_err(|e| e.to_string())?;
+            .map_err(AppError::from)?;
 
         if rows_affected == 0 {
-            return Err("Record not found".to_string());
+            return Err(AppError::NotFound("Record not found".to_string()));
         }
         Ok(())
     }
@@ -378,7 +379,7 @@ impl AttendanceSummaryService {
         approved_minutes: i32,
         manager_note: Option<String>,
         status: OtStatus, // Approved or Rejected
-    ) -> Result<(), String> {
+    ) -> AppResult<()> {
         let summary_repo = self.daily_summary_repo.as_ref();
 
         let rows_affected = summary_repo
@@ -391,10 +392,10 @@ impl AttendanceSummaryService {
                 status,
             )
             .await
-            .map_err(|e| e.to_string())?;
+            .map_err(AppError::from)?;
 
         if rows_affected == 0 {
-            return Err("Record not found".to_string());
+            return Err(AppError::NotFound("Record not found".to_string()));
         }
         Ok(())
     }
@@ -403,7 +404,7 @@ impl AttendanceSummaryService {
     pub async fn enter_paper_ot(
         &self,
         args: EnterPaperOtArgs,
-    ) -> Result<AttendanceDailySummary, String> {
+    ) -> AppResult<AttendanceDailySummary> {
         let summary_repo = self.daily_summary_repo.as_ref();
 
         // 1. Check existing summary
@@ -414,16 +415,16 @@ impl AttendanceSummaryService {
                 args.date,
             )
             .await
-            .map_err(|e| e.to_string())?;
+            .map_err(AppError::from)?;
 
         // 2. Validate against system detected (if not allowing exceed)
         if !args.allow_exceed {
             if let Some(ref ex) = existing {
                 if args.claimed_minutes > ex.system_detected_ot_minutes {
-                    return Err(format!(
+                    return Err(AppError::Validation(format!(
                         "Claimed {} minutes exceeds system detected {} minutes",
                         args.claimed_minutes, ex.system_detected_ot_minutes
-                    ));
+                    )));
                 }
             }
         }
@@ -440,7 +441,7 @@ impl AttendanceSummaryService {
                 args.photo_url,
             )
             .await
-            .map_err(|e| e.to_string())?;
+            .map_err(AppError::from)?;
 
         Ok(result)
     }

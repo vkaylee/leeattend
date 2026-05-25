@@ -68,7 +68,7 @@ pub fn build_tenant_payload(
     let Some((mut url_username, url_password, db_host, db_port, db_name)) =
         parse_postgres_url(db_url)
     else {
-        tracing::warn!("Failed to parse DATABASE_URL: {db_url}");
+        tracing::warn!("Failed to parse DATABASE_URL (details omitted for security)");
         return None;
     };
 

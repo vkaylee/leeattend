@@ -58,8 +58,8 @@ async fn test_auth_session_lifecycle_smoke() {
         .auth_service
         .refresh_session(&new_refresh_token, &state.core.jwt_secret)
         .await;
-    assert!(result.is_err());
-    assert_eq!(result.unwrap_err(), "Invalid or expired refresh token");
+    let err = result.unwrap_err();
+    assert!(err.to_string().contains("Invalid or expired refresh token"));
 }
 
 #[tokio::test]

@@ -137,8 +137,7 @@ pub async fn process_holiday_leave(
         .leaves
         .holiday_leave_service
         .process_holiday_leave(ctx.workspace_id, &holiday)
-        .await
-        .map_err(AppError::Internal)?;
+        .await?;
 
     Ok(Json(results))
 }

@@ -40,6 +40,7 @@ impl LogIngestionHandler {
             })
             .await
             .map(|_| ())
+            .map_err(|e| e.to_string())
     }
 }
 

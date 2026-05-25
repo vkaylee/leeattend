@@ -62,7 +62,7 @@ impl ImportStrategy for LeaveImportStrategy {
         row_data: &std::collections::HashMap<String, String>,
         current_line: usize,
         _workspace_tz: chrono_tz::Tz,
-    ) -> Result<Self::RowData, String> {
+    ) -> Result<Self::RowData, crate::errors::AppError> {
         let emp_id = row_data
             .get("employee_code")
             .map(|s| s.trim())
@@ -95,19 +95,19 @@ impl ImportStrategy for LeaveImportStrategy {
             .to_string();
 
         if emp_id.is_empty() {
-            return Err(self.msgs.missing_employee_id.to_string());
+            return Err(crate::errors::AppError::Validation(self.msgs.missing_employee_id.to_string()));
         }
         if leave_code.is_empty() {
-            return Err(self.msgs.missing_leave_type.to_string());
+            return Err(crate::errors::AppError::Validation(self.msgs.missing_leave_type.to_string()));
         }
         let Some(start_date) = parse_date(&start_str) else {
-            return Err(self.msgs.invalid_start_date.to_string());
+            return Err(crate::errors::AppError::Validation(self.msgs.invalid_start_date.to_string()));
         };
         let Some(end_date) = parse_date(&end_str) else {
-            return Err(self.msgs.invalid_end_date.to_string());
+            return Err(crate::errors::AppError::Validation(self.msgs.invalid_end_date.to_string()));
         };
         if end_date < start_date {
-            return Err(self.msgs.end_before_start.to_string());
+            return Err(crate::errors::AppError::Validation(self.msgs.end_before_start.to_string()));
         }
         let duration_type = parse_duration_type(&duration_str);
 
@@ -131,7 +131,7 @@ impl ImportStrategy for LeaveImportStrategy {
         deps: &crate::worker::deps::WorkerDeps,
         job: &AttendanceImportJob,
         _rows: &[Self::RowData],
-    ) -> Result<(), String> {
+    ) -> Result<(), crate::errors::AppError> {
         let options = crate::models::EmployeeFilterOptions {
             page: 1,
             limit: 100000,
@@ -144,7 +144,7 @@ impl ImportStrategy for LeaveImportStrategy {
                 options,
             )
             .await
-            .map_err(|e| format!("Failed to load employees: {e}"))?;
+            .map_err(|e| crate::errors::AppError::Internal(format!("Failed to load employees: {e}")))?;
 
         for emp in emps {
             println!(
@@ -161,7 +161,7 @@ impl ImportStrategy for LeaveImportStrategy {
             .leave_policy_repo
             .get_leave_types(job.workspace_id)
             .await
-            .map_err(|e| format!("Failed to load leave types: {e}"))?;
+            .map_err(|e| crate::errors::AppError::Internal(format!("Failed to load leave types: {e}")))?;
 
         for lt in leaves {
             self.leave_types_cache.insert(lt.code.to_uppercase(), lt.id);
@@ -175,23 +175,23 @@ impl ImportStrategy for LeaveImportStrategy {
         _deps: &crate::worker::deps::WorkerDeps,
         job: &AttendanceImportJob,
         row: &Self::RowData,
-    ) -> Result<Option<Uuid>, String> {
+    ) -> Result<Option<Uuid>, crate::errors::AppError> {
         let employee_id = *self
             .employees_cache
             .get(&row.employee_id_number.to_uppercase())
             .ok_or_else(|| {
-                self.msgs
+                crate::errors::AppError::Validation(self.msgs
                     .employee_not_found_tpl
-                    .replace("{}", &row.employee_id_number)
+                    .replace("{}", &row.employee_id_number))
             })?;
 
         let leave_type_id = *self
             .leave_types_cache
             .get(&row.leave_type_code.to_uppercase())
             .ok_or_else(|| {
-                self.msgs
+                crate::errors::AppError::Validation(self.msgs
                     .leave_type_not_found_tpl
-                    .replace("{}", &row.leave_type_code)
+                    .replace("{}", &row.leave_type_code))
             })?;
 
         let submit = SubmitLeaveRequest {
@@ -211,7 +211,7 @@ impl ImportStrategy for LeaveImportStrategy {
             .await
         {
             Ok(res) => Ok(Some(res.id)),
-            Err(e) => Err(format!("{}: {e}", self.msgs.submission_error_prefix)),
+            Err(e) => Err(crate::errors::AppError::Internal(format!("{}: {e}", self.msgs.submission_error_prefix))),
         }
     }
 }

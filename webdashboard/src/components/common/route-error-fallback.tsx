@@ -1,7 +1,8 @@
 import { useRouter } from "@tanstack/react-router";
 import { AlertTriangle } from "lucide-react";
-import Button from "@/components/ui/button";
 import { useTranslation } from "react-i18next";
+
+import Button from "@/components/ui/button";
 
 export function RouteErrorFallback({ error }: { error: Error }) {
   const router = useRouter();
@@ -13,19 +14,19 @@ export function RouteErrorFallback({ error }: { error: Error }) {
         <AlertTriangle className="h-6 w-6 text-destructive" />
       </div>
       <h2 className="text-lg font-semibold text-destructive mb-2">
-        {t("common.error.unexpected", "An unexpected error occurred")}
+        {t("common.error_occurred", "An error occurred")}
       </h2>
       <p className="text-sm text-muted-foreground mb-6 max-w-md">
-        {error.message || t("common.error.description", "We're sorry, but something went wrong while loading this page.")}
+        {error.message || t("common.system_connection_error", "System connection error")}
       </p>
       <div className="flex gap-4">
         <Button
-          variant="outline"
           onClick={() => {
-            router.invalidate();
+            void router.invalidate();
           }}
+          variant="outline"
         >
-          {t("common.action.try_again", "Try Again")}
+          {t("common.retry", "Retry")}
         </Button>
       </div>
     </div>

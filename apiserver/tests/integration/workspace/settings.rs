@@ -289,6 +289,6 @@ async fn test_update_workspace_no_fields() {
     )
     .await;
 
-    assert!(result.is_err());
-    assert_eq!(result.unwrap_err(), "No fields to update");
+    let err = result.unwrap_err();
+    assert!(err.to_string().contains("No fields to update"));
 }

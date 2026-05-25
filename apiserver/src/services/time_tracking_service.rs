@@ -162,8 +162,7 @@ impl TimeTrackingService {
                 Some("ESS_WEB".to_string()),
                 Some(raw_data),
             )
-            .await
-            .map_err(AppError::Internal)?;
+            .await?;
 
         let entry = self
             .repo

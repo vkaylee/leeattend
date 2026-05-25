@@ -10,8 +10,8 @@ import {
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { TableSkeleton } from "@/components/common/table-skeleton";
 import PermissionGate from "@/components/common/permission-gate";
+import { TableSkeleton } from "@/components/common/table-skeleton";
 import PermissionManagementModal from "@/components/features/settings/permission-management-modal";
 import RoleManagementModal from "@/components/features/settings/role-management-modal";
 import { useConfirm } from "@/hooks/use-confirm";

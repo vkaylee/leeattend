@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import Button from "@/components/ui/button";
 import Modal from "@/components/ui/modal";
 import PageHeader from "@/components/ui/page-header";
+import { Skeleton } from "@/components/ui/skeleton";
 import StatusBadge from "@/components/ui/status-badge";
 import { useToast } from "@/components/ui/toast";
 import { useConfirm } from "@/hooks/use-confirm";
@@ -489,10 +490,14 @@ export default function TenantsPage() {
                 <KeyRound className="w-4 h-4 text-primary-500" />
                 <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-200">Current Connection URL</h4>
               </div>
-              <div className="bg-slate-900 rounded-lg p-3 overflow-x-auto">
-                <code className="text-xs text-green-400 whitespace-nowrap">
-                  {isStatsLoading ? "Loading..." : (renderConnectionTemplate(tenantStats) ?? "Not configured")}
-                </code>
+              <div className="bg-slate-900 rounded-lg p-3 overflow-x-auto min-h-[44px] flex items-center">
+                {isStatsLoading ? (
+                  <Skeleton className="h-4 w-64 bg-slate-800" />
+                ) : (
+                  <code className="text-xs text-green-400 whitespace-nowrap">
+                    {renderConnectionTemplate(tenantStats) ?? "Not configured"}
+                  </code>
+                )}
               </div>
             </div>
 

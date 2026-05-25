@@ -651,6 +651,22 @@ mod tests {
             Ok(vec![])
         }
 
+        async fn get_employee_ids_by_numbers(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _id_numbers: &[String],
+        ) -> Result<std::collections::HashMap<String, Uuid>, AppError> {
+            Ok(std::collections::HashMap::new())
+        }
+
+        async fn bulk_create_employees_skip_duplicates(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _employees: &[Employee],
+        ) -> Result<(), AppError> {
+            Ok(())
+        }
+
         async fn upsert_employee_payroll_config(
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,
@@ -878,6 +894,22 @@ mod tests {
             crate::errors::AppError,
         > {
             Ok(std::collections::HashMap::new())
+        }
+
+        async fn get_department_ids_by_names(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _names: &[String],
+        ) -> Result<std::collections::HashMap<String, Uuid>, AppError> {
+            Ok(std::collections::HashMap::new())
+        }
+
+        async fn bulk_create_departments_skip_duplicates(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _departments: &[crate::models::Department],
+        ) -> Result<(), AppError> {
+            Ok(())
         }
 
         async fn create_department(

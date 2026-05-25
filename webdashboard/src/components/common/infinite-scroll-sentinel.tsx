@@ -1,6 +1,7 @@
 import { Loader2 } from "lucide-react";
 import React, { memo } from "react";
-import { useTranslation } from "react-i18next";
+
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface InfiniteScrollSentinelProps {
     /** Number of columns to span */
@@ -21,17 +22,13 @@ const InfiniteScrollSentinel = memo(function InfiniteScrollSentinel({
     isFetchingNextPage,
     colSpan = 5,
 }: InfiniteScrollSentinelProps) {
-    const { t } = useTranslation();
-
     return (
         <tr ref={sentinelRef}>
             <td className="py-4 text-center" colSpan={colSpan}>
                 {isFetchingNextPage ? (
-                    <div className="flex items-center justify-center gap-2 text-slate-400 dark:text-slate-500">
-                        <Loader2 className="animate-spin" size={16} />
-                        <span className="text-[10px] font-bold uppercase tracking-widest">
-                            {t("common.loading", "Loading...")}
-                        </span>
+                    <div className="flex items-center justify-center gap-3">
+                        <Loader2 className="animate-spin text-slate-400 dark:text-slate-500" size={16} />
+                        <Skeleton className="h-2.5 w-16 bg-slate-200 dark:bg-slate-700" />
                     </div>
                   ) : null}
             </td>

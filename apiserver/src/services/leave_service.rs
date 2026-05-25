@@ -686,6 +686,22 @@ mod tests {
             Ok(vec![])
         }
 
+        async fn get_employee_ids_by_numbers(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _id_numbers: &[String],
+        ) -> Result<std::collections::HashMap<String, Uuid>, AppError> {
+            Ok(std::collections::HashMap::new())
+        }
+
+        async fn bulk_create_employees_skip_duplicates(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _employees: &[Employee],
+        ) -> Result<(), AppError> {
+            Ok(())
+        }
+
         async fn get_employee_by_id(
             &self,
             _i: Uuid,

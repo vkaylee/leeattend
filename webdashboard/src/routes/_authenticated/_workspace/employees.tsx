@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Skeleton } from "@/components/ui/skeleton";
+
 import { RouteErrorFallback } from "@/components/common/route-error-fallback";
+import { Skeleton } from "@/components/ui/skeleton";
 
 function PageSkeleton() {
   return (

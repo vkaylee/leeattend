@@ -67,8 +67,7 @@ pub async fn enter_paper_ot(
                 allow_exceed: req.allow_exceed_system_detected,
             },
         )
-        .await
-        .map_err(|e| AppError::Validation(format!("Enter Paper OT Error: {e}")))?;
+        .await?;
 
     Ok(Json(result))
 }
@@ -292,7 +291,7 @@ pub async fn bulk_upload_paper_ot(
                 errors.push(BulkOtEntryError {
                     line_number,
                     employee_id: employee_id_str,
-                    error_message: e,
+                    error_message: e.to_string(),
                 });
             }
         }

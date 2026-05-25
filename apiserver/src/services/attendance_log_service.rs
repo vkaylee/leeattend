@@ -127,7 +127,7 @@ impl AttendanceLogService {
     /// Returns Ok(()) for ALL cases except database connection errors.
     /// Unknown users and validation errors are swallowed with 200 OK to prevent agent retries.
     #[tracing::instrument(skip_all, err)]
-    pub async fn ingest_agent_log(&self, entry: AgentLogEntry) -> Result<(), String> {
+    pub async fn ingest_agent_log(&self, entry: AgentLogEntry) -> Result<(), crate::errors::AppError> {
         self.process_log(ProcessLogArgs {
             workspace_id: entry.workspace_id,
             employee_id_number: &entry.employee_id_number,
@@ -140,7 +140,7 @@ impl AttendanceLogService {
             time_fmt: Some(&entry.time_fmt),
         })
         .await
-        .map(|_| ()) // Convert Result<bool, String> to Result<(), String>
+        .map(|_| ()) // Convert Result<bool, AppError> to Result<(), AppError>
     }
 
     /// Processes a single attendance log entry from any source (Agent or Import).
@@ -152,7 +152,7 @@ impl AttendanceLogService {
     /// - Case 4: Database connection error → Err(msg) (agent should retry)
     #[tracing::instrument(skip_all, err)]
     #[allow(clippy::too_many_lines)]
-    pub async fn process_log(&self, args: ProcessLogArgs<'_>) -> Result<bool, String> {
+    pub async fn process_log(&self, args: ProcessLogArgs<'_>) -> Result<bool, crate::errors::AppError> {
         // Sanitize raw_data to strip null bytes that PostgreSQL jsonb rejects
         let raw_data = args.raw_data.map(AgentLogEntry::sanitize_json_value);
         let normalized_emp_id = crate::utils::normalize_employee_id(args.employee_id_number);
@@ -208,7 +208,7 @@ impl AttendanceLogService {
                 // Case 4: Database error → Agent should retry
                 let msg = format!("Database error finding employee: {e}");
                 error!("{}", msg);
-                return Err(msg);
+                return Err(crate::errors::AppError::Internal(msg));
             }
         };
 
@@ -293,7 +293,7 @@ impl AttendanceLogService {
             Err(e) => {
                 let msg = format!("Failed to save raw attendance log: {e}");
                 error!("{}", msg);
-                Err(msg)
+                Err(crate::errors::AppError::Internal(msg))
             }
         }
     }
@@ -308,7 +308,7 @@ impl AttendanceLogService {
         source: LogSource,
         device_id: Option<String>,
         raw_data: Option<serde_json::Value>,
-    ) -> Result<bool, String> {
+    ) -> Result<bool, crate::errors::AppError> {
         // Sanitize raw_data to strip null bytes that PostgreSQL jsonb rejects
         let raw_data = raw_data.map(AgentLogEntry::sanitize_json_value);
         let (punch, status) = Self::extract_punch_status(raw_data.as_ref());
@@ -336,7 +336,7 @@ impl AttendanceLogService {
                 Ok(true)
             }
             Ok(false) => Ok(false),
-            Err(e) => Err(e.to_string()),
+            Err(e) => Err(crate::errors::AppError::Internal(e.to_string())),
         }
     }
 
@@ -349,13 +349,13 @@ impl AttendanceLogService {
         workspace_id: Uuid,
         employee_id: Uuid,
         employee_id_number: &str,
-    ) -> Result<u32, String> {
+    ) -> Result<u32, crate::errors::AppError> {
         // 1. Find all pending staging logs for this employee_id_number
         let staged_logs = self
             .staging_repo
             .get_pending_staged_logs(workspace_id, employee_id_number)
             .await
-            .map_err(|e| format!("Failed to fetch staged logs: {e}"))?;
+            .map_err(|e| crate::errors::AppError::Internal(format!("Failed to fetch staged logs: {e}")))?;
 
         if staged_logs.is_empty() {
             return Ok(0);
@@ -407,7 +407,7 @@ impl AttendanceLogService {
                 }
                 Err(e) => {
                     error!("Failed to claim staged log {}: {}", staged.id, e);
-                    return Err(format!("Aborted due to DB error: {e}"));
+                    return Err(crate::errors::AppError::Internal(format!("Aborted due to DB error: {e}")));
                 }
             }
         }
