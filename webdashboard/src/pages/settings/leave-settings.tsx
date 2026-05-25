@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { AssignPolicyModal } from "@/components/leave/assign-policy-modal";
 import { LeavePolicyManager } from "@/components/leave/leave-policy-manager";
 import { LeaveTypeManager } from "@/components/leave/leave-type-manager";
+import { Typography } from "@/components/ui/typography";
 
 import { LeaveAssignmentsTab } from "./components/leave/leave-assignments-tab";
 import { LeaveSettingsHeader } from "./components/leave/leave-settings-header";
@@ -35,12 +36,12 @@ export default function LeaveSettings() {
           {activeTab === "types" && (
             <div>
               <div className="mb-8 border-b border-slate-50 dark:border-slate-800 pb-6">
-                <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 tracking-tight uppercase">
+                <Typography className="text-xl font-bold text-slate-800 dark:text-slate-100 tracking-tight uppercase" variant="h3">
                   {t("settings.leave.tabs.types")}
-                </h3>
-                <p className="text-xs font-bold text-slate-500 dark:text-slate-400 mt-1 uppercase tracking-tight">
+                </Typography>
+                <Typography className="text-xs font-bold text-slate-500 dark:text-slate-400 mt-1 uppercase tracking-tight" variant="p">
                   {t("settings.leave.tabs.types_desc")}
-                </p>
+                </Typography>
               </div>
               <LeaveTypeManager wsId={wsId} />
             </div>
@@ -49,12 +50,12 @@ export default function LeaveSettings() {
           {activeTab === "policies" && (
             <div>
               <div className="mb-8 border-b border-slate-50 dark:border-slate-800 pb-6">
-                <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 tracking-tight uppercase">
+                <Typography className="text-xl font-bold text-slate-800 dark:text-slate-100 tracking-tight uppercase" variant="h3">
                   {t("settings.leave.tabs.policies")}
-                </h3>
-                <p className="text-xs font-bold text-slate-500 dark:text-slate-400 mt-1 uppercase tracking-tight">
+                </Typography>
+                <Typography className="text-xs font-bold text-slate-500 dark:text-slate-400 mt-1 uppercase tracking-tight" variant="p">
                   {t("settings.leave.tabs.policies_desc")}
-                </p>
+                </Typography>
               </div>
               <LeavePolicyManager wsId={wsId} />
             </div>

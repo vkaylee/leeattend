@@ -1,6 +1,7 @@
 import { Search, ChevronRight } from "lucide-react";
 import React, { useState, useMemo } from "react";
 
+import { Typography } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
 
 import { LEAVE_TEMPLATES, LeaveTemplate } from "../leave-templates";
@@ -122,16 +123,16 @@ export function TemplateGallery({ onSelectTemplate, onSkip }: TemplateGalleryPro
                   </div>
                   <div className="flex-1 min-w-0 pr-6">
                     <div className="flex items-center gap-2 mb-1">
-                      <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100 uppercase tracking-tight truncate">
+                      <Typography className="text-sm font-bold text-slate-800 dark:text-slate-100 uppercase tracking-tight truncate" variant="h4">
                         {template.name}
-                      </h4>
+                      </Typography>
                       <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 shrink-0">
                         {template.code}
                       </span>
                     </div>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">
+                    <Typography className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed" variant="p">
                       {template.description}
-                    </p>
+                    </Typography>
                     <div className="mt-2 flex items-center gap-2">
                       <span
                         className={cn(
@@ -156,12 +157,12 @@ export function TemplateGallery({ onSelectTemplate, onSkip }: TemplateGalleryPro
         ) : (
           <div className="h-full flex flex-col items-center justify-center py-12 text-center">
             <Search className="text-slate-200 dark:text-slate-800 mb-4" size={32} />
-            <h4 className="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight">
+            <Typography className="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight" variant="h4">
               No templates found
-            </h4>
-            <p className="text-xs text-slate-400 dark:text-slate-500 mt-1 max-w-[200px]">
+            </Typography>
+            <Typography className="text-xs text-slate-400 dark:text-slate-500 mt-1 max-w-[200px]" variant="p">
               Try a different keyword or category
-            </p>
+            </Typography>
           </div>
         )}
       </div>

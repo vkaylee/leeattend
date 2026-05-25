@@ -274,9 +274,7 @@ impl ImportStrategy for EmployeeImportStrategy {
         let emp_key = emp.id_number.to_lowercase();
         // pre_process_chunk has already populated emp_cache and inserted new employees to DB.
         // We just fetch from cache.
-        let employee_id = if let Some(&id) = self.emp_cache.get(&emp_key) {
-            id
-        } else {
+        let Some(&employee_id) = self.emp_cache.get(&emp_key) else {
             return Err(AppError::Internal(fmt_msg(
                 self.msgs.db_save_error,
                 &[
@@ -284,7 +282,7 @@ impl ImportStrategy for EmployeeImportStrategy {
                     ("emp", &emp.id_number),
                     (
                         "error",
-                        &"Employee could not be loaded from cache after bulk insert",
+                        "Employee could not be loaded from cache after bulk insert",
                     ),
                 ],
             )));
@@ -636,17 +634,14 @@ impl AttendanceImportService {
                     continue;
                 }
 
-                let file_path = match &job.file_path {
-                    Some(p) => p,
-                    None => {
-                        failed_jobs.push((
-                            job.id,
-                            job.processed_rows,
-                            ImportJobStatus::Failed,
-                            Some("Missing file path".to_string()),
-                        ));
-                        continue;
-                    }
+                let Some(file_path) = &job.file_path else {
+                    failed_jobs.push((
+                        job.id,
+                        job.processed_rows,
+                        ImportJobStatus::Failed,
+                        Some("Missing file path".to_string()),
+                    ));
+                    continue;
                 };
 
                 if !tokio::fs::try_exists(file_path).await.unwrap_or(false) {

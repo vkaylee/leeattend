@@ -8,6 +8,7 @@ import { useTranslation } from "react-i18next";
 import { format } from "date-fns";
 
 import { EmployeeSearch } from "@/components/common/employee-search";
+import { Typography } from "@/components/ui/typography";
 import { useEnterPaperOt } from "@/hooks/use-attendance";
 import { getCurrentWorkspaceId } from "@/lib/api/helpers";
 
@@ -113,7 +114,7 @@ function PhotoPlaceholder({ t }: { t: TFunction }) {
       </label>
       <div className="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl p-4 text-center hover:border-primary-400 transition-colors cursor-not-allowed opacity-50">
         <Upload className="w-8 h-8 text-slate-400 dark:text-slate-500 mx-auto mb-2" />
-        <p className="text-xs text-slate-500 dark:text-slate-400">{t("approvals.paper_ot.photo_coming_soon") || "Photo upload coming soon"}</p>
+        <Typography className="text-xs text-slate-500 dark:text-slate-400" variant="p">{t("approvals.paper_ot.photo_coming_soon") || "Photo upload coming soon"}</Typography>
       </div>
     </div>
   );
@@ -167,7 +168,7 @@ function EnterPaperOtForm({
       {!!error && (
         <div className="p-4 bg-rose-50 dark:bg-rose-950/30 border border-rose-100 dark:border-rose-800 rounded-2xl flex items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
           <AlertCircle className="text-rose-600 dark:text-rose-300" size={18} />
-          <p className="text-[10px] font-bold text-rose-600 dark:text-rose-300 uppercase tracking-widest">{error}</p>
+          <Typography className="text-[10px] font-bold text-rose-600 dark:text-rose-300 uppercase tracking-widest" variant="p">{error}</Typography>
         </div>
       )}
 

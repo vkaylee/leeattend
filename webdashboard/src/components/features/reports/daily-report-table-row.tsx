@@ -1,6 +1,7 @@
 import { RefreshCw, Bug, CheckCircle, ThumbsUp, ThumbsDown } from "lucide-react";
 import React from "react";
 
+import { Typography } from "@/components/ui/typography";
 import { DailyAttendanceReport, AttendanceAdjustmentRequest } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { formatHours } from "@/lib/utils/attendance";
@@ -18,12 +19,12 @@ function DailyReportTableRowExpanded({ row }: { row: DailyAttendanceReport }) {
               <Bug size={20} />
             </div>
             <div>
-              <h4 className="text-[10px] font-bold text-amber-400 uppercase tracking-[0.3em]">
+              <Typography className="text-[10px] font-bold text-amber-400 uppercase tracking-[0.3em]" variant="h4">
                 Audit Trail Analysis
-              </h4>
-              <p className="text-[9px] text-white/40 uppercase tracking-widest mt-1 font-bold">
+              </Typography>
+              <Typography className="text-[9px] text-white/40 uppercase tracking-widest mt-1 font-bold" variant="p">
                 BSON Traceability Metadata — Real-time Evaluator Logs
-              </p>
+              </Typography>
             </div>
           </div>
           <pre className="text-[11px] font-mono text-emerald-400 leading-relaxed overflow-x-auto custom-scrollbar relative z-10 p-2 selection:bg-emerald-50 dark:bg-emerald-950/20 max-h-[400px]">

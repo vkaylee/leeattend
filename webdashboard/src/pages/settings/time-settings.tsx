@@ -7,6 +7,7 @@ import { TFunction } from "i18next";
 
 import { PolicyAssignmentsSection } from "@/components/features/attendance/policy-assignments-section";
 import { useToast } from "@/components/ui/toast";
+import { Typography } from "@/components/ui/typography";
 import {
   fetchWorkspace,
   getCurrentWorkspaceId,
@@ -281,10 +282,10 @@ function PageHeader({ onNewVersion, t }: { onNewVersion: () => void; t: TFunctio
           <Clock size={24} />
         </div>
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-700 dark:text-slate-200 leading-tight">
+          <Typography className="text-3xl font-bold tracking-tight text-slate-700 dark:text-slate-200 leading-tight" variant="h1">
             {t("common.settings.categories.time")}
-          </h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-1 font-medium">{t("common.settings.categories.time_desc")}</p>
+          </Typography>
+          <Typography className="text-slate-500 dark:text-slate-400 mt-1 font-medium" variant="p">{t("common.settings.categories.time_desc")}</Typography>
         </div>
       </div>
       <Button

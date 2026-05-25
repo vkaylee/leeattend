@@ -3,6 +3,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 
 import { Combobox } from "@/components/ui/combobox";
+import { Typography } from "@/components/ui/typography";
 
 interface LeaveBalancesFiltersProps {
   searchTerm: string;
@@ -27,7 +28,7 @@ export const LeaveBalancesFilters: React.FC<LeaveBalancesFiltersProps> = ({
     <div className="p-5 md:p-8 border-b border-slate-50 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-5 md:gap-6 bg-slate-50 dark:bg-slate-800/30">
       <div className="flex items-center gap-3">
         <Filter className="w-5 h-5 text-primary-600 dark:text-primary-400" />
-        <h2 className="text-lg md:text-xl font-bold text-slate-800 dark:text-slate-100 tracking-tight uppercase">{t("leave_balances.summary_table")}</h2>
+        <Typography className="text-lg md:text-xl font-bold text-slate-800 dark:text-slate-100 tracking-tight uppercase" variant="h2">{t("leave_balances.summary_table")}</Typography>
         {totalItems > 0 && (
           <span className="px-2 py-0.5 bg-slate-200 dark:bg-slate-600 text-slate-600 dark:text-slate-300 rounded-full text-xs font-bold">
             {totalItems}

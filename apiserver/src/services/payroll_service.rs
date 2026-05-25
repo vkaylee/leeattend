@@ -600,6 +600,7 @@ impl PayrollService {
     }
 
     #[tracing::instrument(skip_all)]
+    #[allow(clippy::too_many_lines)]
     pub async fn calculate_batch_payslips(
         &self,
         employee_ids: Vec<Uuid>,
@@ -609,11 +610,8 @@ impl PayrollService {
     ) -> crate::models::BatchCalculatePayrollResponse {
         const MAX_CONCURRENT_PAYROLL: usize = 10;
 
-        let workspace = match self.workspace_repo.get_workspace_by_id(workspace_id).await {
-            Ok(Some(w)) => w,
-            Ok(None) | Err(_) => {
-                return crate::models::BatchCalculatePayrollResponse { results: vec![] }
-            }
+        let Ok(Some(workspace)) = self.workspace_repo.get_workspace_by_id(workspace_id).await else {
+            return crate::models::BatchCalculatePayrollResponse { results: vec![] };
         };
         let tz: Tz = crate::utils::tz::parse_workspace_tz(&workspace.timezone);
 
@@ -631,18 +629,14 @@ impl PayrollService {
 
         let token = &crate::diesel_pool::TenantAuthToken::system_override(workspace_id);
 
-        let holidays_map = match self
+        let holidays_map = self
             .holiday_repo
             .get_holidays_in_range(token, start_date, end_date)
             .await
-        {
-            Ok(h) => h,
-            Err(_) => HashMap::new(),
-        };
+            .unwrap_or_default();
 
-        let roster_data = match self.roster_provider.get_roster_data(workspace_id).await {
-            Ok(r) => r,
-            Err(_) => return crate::models::BatchCalculatePayrollResponse { results: vec![] },
+        let Ok(roster_data) = self.roster_provider.get_roster_data(workspace_id).await else {
+            return crate::models::BatchCalculatePayrollResponse { results: vec![] };
         };
 
         let mut results = Vec::new();

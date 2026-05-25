@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 
 import PermissionGate from "@/components/common/permission-gate";
 import Button from "@/components/ui/button";
+import { Typography } from "@/components/ui/typography";
 
 interface AttendanceLogsHeaderProps {
   dateRange: { start: string; end: string };
@@ -17,10 +18,10 @@ export function AttendanceLogsHeader({ dateRange, setIsImportDialogOpen }: Atten
   return (
     <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 px-2">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-slate-700 dark:text-slate-200" data-testid="attendance-logs-title">
+        <Typography className="text-3xl font-bold tracking-tight text-slate-700 dark:text-slate-200" data-testid="attendance-logs-title" variant="h1">
           {t("attendance_logs.title")}
-        </h1>
-        <p className="text-slate-500 dark:text-slate-400 mt-1 font-medium">{t("attendance_logs.subtitle")}</p>
+        </Typography>
+        <Typography className="text-slate-500 dark:text-slate-400 mt-1 font-medium" variant="p">{t("attendance_logs.subtitle")}</Typography>
       </div>
       <div className="flex items-center gap-3">
         <Link

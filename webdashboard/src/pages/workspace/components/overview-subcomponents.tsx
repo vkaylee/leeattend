@@ -2,6 +2,8 @@ import { Building2, CalendarDays, Clock, Users, BarChart3 } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
+import { Typography } from "@/components/ui/typography";
+
 import type { Workspace, WorkspaceMember, WorkspaceRole } from "../../../lib/api/types";
 
 interface WorkspaceHeroCardProps {
@@ -23,7 +25,7 @@ export const WorkspaceHeroCard = ({ workspace }: WorkspaceHeroCardProps) => {
             {t('overview.activeWorkspace', { defaultValue: 'Active Workspace' })}
           </span>
         </div>
-        <h2 className="text-5xl font-black tracking-tight mb-2">{workspace.name}</h2>
+        <Typography className="text-5xl font-black tracking-tight mb-2" variant="h2">{workspace.name}</Typography>
         <div className="flex items-center gap-6 mt-8 text-slate-300 font-medium">
           <div className="flex items-center gap-2">
             <Clock className="opacity-70" size={16} />
@@ -115,9 +117,9 @@ export const AdminMembersPreview = ({ members, roles }: AdminMembersPreviewProps
   return (
     <div className="bg-slate-50 dark:bg-slate-800/50 rounded-[2.5rem] p-8 border border-slate-100 dark:border-slate-800">
       <div className="flex items-center justify-between mb-6">
-        <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200">
+        <Typography className="text-lg font-bold text-slate-800 dark:text-slate-200" variant="h3">
           {t('overview.adminMembers', { defaultValue: 'Admin Members' })}
-        </h3>
+        </Typography>
         <span className="px-3 py-1 bg-white dark:bg-slate-900 rounded-xl text-[10px] font-bold text-slate-500 uppercase tracking-widest shadow-sm">
           {admins.length} {t('overview.admins', { defaultValue: 'Admins' })}
         </span>

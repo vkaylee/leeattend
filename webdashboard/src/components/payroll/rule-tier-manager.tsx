@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useToast } from "@/components/ui/toast";
+import { Typography } from "@/components/ui/typography";
 import { fetchPayrollRuleTiers, createPayrollRuleTier } from "@/lib/api/payroll";
 import { PayrollRuleTier } from "@/lib/api/types";
 
@@ -54,8 +55,8 @@ export default function RuleTierManager({ wsId, ruleId, onClose: _onClose }: Pro
             <LayoutList size={16} />
           </div>
           <div>
-            <h3 className="font-bold text-sm uppercase tracking-widest text-slate-700 dark:text-slate-200">{t("payroll.rule_tiers.title")}</h3>
-            <p className="text-[10px] text-slate-500 uppercase tracking-widest mt-1">{t("payroll.rule_tiers.subtitle")}</p>
+            <Typography className="font-bold text-sm uppercase tracking-widest text-slate-700 dark:text-slate-200" variant="h3">{t("payroll.rule_tiers.title")}</Typography>
+            <Typography className="text-[10px] text-slate-500 uppercase tracking-widest mt-1" variant="p">{t("payroll.rule_tiers.subtitle")}</Typography>
           </div>
         </div>
 

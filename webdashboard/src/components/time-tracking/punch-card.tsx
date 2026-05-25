@@ -1,6 +1,7 @@
 import { Clock } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
+import { Typography } from "@/components/ui/typography";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { TimeEntry } from "@/lib/api";
 
@@ -39,19 +40,19 @@ export function PunchCard({
       </div>
 
       <div className="mb-10 relative z-10">
-        <h2 className="text-2xl font-bold text-slate-700 dark:text-slate-200 tracking-tight uppercase leading-tight">
+        <Typography className="text-2xl font-bold text-slate-700 dark:text-slate-200 tracking-tight uppercase leading-tight" variant="h2">
           {userName}
-        </h2>
+        </Typography>
         <div className="mt-3 flex items-center justify-center gap-2">
           <span className={`w-2 h-2 rounded-full ${
             activeEntry ? 'bg-amber-50 dark:bg-amber-950 animate-ping' : 'bg-emerald-50 dark:bg-emerald-950'
           }`} />
-          <p className="text-slate-500 dark:text-slate-400 text-xs font-bold uppercase tracking-widest">
+          <Typography className="text-slate-500 dark:text-slate-400 text-xs font-bold uppercase tracking-widest" variant="p">
             {activeEntry
               ? t("time_tracking.status.working")
               : t("time_tracking.status.off_duty")
             }
-          </p>
+          </Typography>
         </div>
       </div>
 

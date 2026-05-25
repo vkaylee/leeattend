@@ -9,6 +9,7 @@ import PageHeader from "@/components/ui/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
 import StatusBadge from "@/components/ui/status-badge";
 import { useToast } from "@/components/ui/toast";
+import { Typography } from "@/components/ui/typography";
 import { useConfirm } from "@/hooks/use-confirm";
 import {
   createSystemTenant,
@@ -391,24 +392,24 @@ export default function TenantsPage() {
               <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
                 <div className="flex items-center gap-2 mb-3">
                   <KeyRound className="w-4 h-4 text-primary-500" />
-                  <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-200">Connection String</h4>
+                  <Typography className="text-sm font-semibold text-slate-800 dark:text-slate-200" variant="h4">Connection String</Typography>
                 </div>
                 <div className="bg-slate-900 rounded-lg p-3 overflow-x-auto">
                   <code className="text-xs text-green-400 whitespace-nowrap">
                     {renderConnectionTemplate(tenantStats)}
                   </code>
                 </div>
-                <p className="text-xs text-slate-500 mt-2">
+                <Typography className="text-xs text-slate-500 mt-2" variant="p">
                   * Password is masked for security reasons. Replace *** with the actual tenant database password.
-                </p>
+                </Typography>
               </div>
 
               {/* Users Config */}
               <div className="space-y-3">
-                <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                <Typography className="text-sm font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-2" variant="h4">
                   <Activity className="w-4 h-4 text-blue-500" />
                   Database Users & Pool Modes
-                </h4>
+                </Typography>
                 {poolUsers.length > 0 ? (
                   <div className="grid grid-cols-1 gap-3">
                     {poolUsers.map((u: { db_user?: string; pool_size?: number }, idx: number) => (
@@ -439,10 +440,10 @@ export default function TenantsPage() {
 
               {/* Raw Details */}
               <div className="pt-4 border-t border-slate-200 dark:border-slate-800">
-                <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-200 mb-3 flex items-center gap-2">
+                <Typography className="text-sm font-semibold text-slate-800 dark:text-slate-200 mb-3 flex items-center gap-2" variant="h4">
                   <ShieldAlert className="w-4 h-4 text-orange-500" />
                   Raw Configuration
-                </h4>
+                </Typography>
                 <div className="bg-slate-50 dark:bg-slate-900 rounded-lg p-3 border border-slate-200 dark:border-slate-800 max-h-48 overflow-y-auto">
                   <pre className="text-xs text-slate-600 dark:text-slate-400">
                     {rawConfigString}
@@ -476,19 +477,19 @@ export default function TenantsPage() {
             <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 flex gap-3">
               <ShieldAlert className="w-5 h-5 text-red-600 dark:text-red-400 shrink-0" />
               <div className="text-sm text-red-800 dark:text-red-200">
-                <p className="font-semibold mb-1">Critical Warning</p>
-                <p>
+                <Typography className="font-semibold mb-1" variant="p">Critical Warning</Typography>
+                <Typography variant="p">
                   This operation only updates the connection string in Supavisor and the system database. 
                   <strong> It DOES NOT copy or migrate data.</strong> You must ensure the target database 
                   already contains the necessary schema and data for this tenant.
-                </p>
+                </Typography>
               </div>
             </div>
 
             <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
               <div className="flex items-center gap-2 mb-3">
                 <KeyRound className="w-4 h-4 text-primary-500" />
-                <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-200">Current Connection URL</h4>
+                <Typography className="text-sm font-semibold text-slate-800 dark:text-slate-200" variant="h4">Current Connection URL</Typography>
               </div>
               <div className="bg-slate-900 rounded-lg p-3 overflow-x-auto min-h-[44px] flex items-center">
                 {isStatsLoading ? (
@@ -550,24 +551,24 @@ export default function TenantsPage() {
               <div className="h-12 bg-slate-100 dark:bg-slate-800 animate-pulse rounded-lg"></div>
               <div className="h-12 bg-slate-100 dark:bg-slate-800 animate-pulse rounded-lg"></div>
               <div className="h-12 bg-slate-100 dark:bg-slate-800 animate-pulse rounded-lg"></div>
-              <p className="text-xs text-center text-slate-400">{t("system_admin.tenants.stale_modal.scanning")}</p>
+              <Typography className="text-xs text-center text-slate-400" variant="p">{t("system_admin.tenants.stale_modal.scanning")}</Typography>
             </div>
           ) : staleTenants.length === 0 ? (
             <div className="text-center py-10">
               <div className="w-16 h-16 rounded-full bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center mx-auto mb-4">
                 <SearchX className="w-8 h-8 text-emerald-500" />
               </div>
-              <p className="text-slate-600 dark:text-slate-300 font-medium">
+              <Typography className="text-slate-600 dark:text-slate-300 font-medium" variant="p">
                 {t("system_admin.tenants.stale_modal.no_stale")}
-              </p>
+              </Typography>
             </div>
           ) : (
             <>
               <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3 flex gap-3 items-center">
                 <ShieldAlert className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0" />
-                <p className="text-sm text-amber-800 dark:text-amber-200">
+                <Typography className="text-sm text-amber-800 dark:text-amber-200" variant="p">
                   {staleTenants.length} stale configuration{staleTenants.length > 1 ? "s" : ""} detected.
-                </p>
+                </Typography>
               </div>
               <div className="divide-y divide-slate-200 dark:divide-slate-800 border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden">
                 {staleTenants.map((tenant) => (
@@ -576,10 +577,10 @@ export default function TenantsPage() {
                     key={tenant.id}
                   >
                     <div>
-                      <p className="font-mono text-xs text-slate-700 dark:text-slate-300">{tenant.id}</p>
-                      <p className="text-xs text-slate-400 mt-0.5">
+                      <Typography className="font-mono text-xs text-slate-700 dark:text-slate-300" variant="p">{tenant.id}</Typography>
+                      <Typography className="text-xs text-slate-400 mt-0.5" variant="p">
                         Pool: {tenant.pool_size} &middot; Created: {new Date(tenant.created_at).toLocaleDateString()}
-                      </p>
+                      </Typography>
                     </div>
                     <Button
                       disabled={cleanStaleMutation.isPending}

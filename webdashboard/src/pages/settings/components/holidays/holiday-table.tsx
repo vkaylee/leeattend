@@ -4,6 +4,8 @@ import { useTranslation } from "react-i18next";
 
 import type { Holiday, LeaveType } from "@/lib/api/types";
 
+import { Typography } from "@/components/ui/typography";
+
 interface HolidayTableProps {
     holidays: Holiday[];
     isLoading: boolean;
@@ -115,9 +117,9 @@ export function HolidayTable({ holidays, isLoading, leaveTypes, onDelete, onEdit
             <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
                 <div className="p-12 text-center">
                     <CalendarDays className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
-                    <p className="text-slate-400 text-sm font-medium">
+                    <Typography className="text-slate-400 text-sm font-medium" variant="p">
                         {t("holidays.no_holidays", { year })}
-                    </p>
+                    </Typography>
                 </div>
             </div>
         );

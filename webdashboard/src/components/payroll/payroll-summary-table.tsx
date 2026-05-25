@@ -5,6 +5,7 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import PaginationControls from "@/components/common/pagination-controls";
+import { Typography } from "@/components/ui/typography";
 import { useMyPermissions } from "@/hooks/use-permissions";
 import { Employee, Payslip } from "@/lib/api/types";
 
@@ -113,8 +114,8 @@ export default function PayrollSummaryTable({
             {filteredEmployees.length === 0 && (
               <div className="py-32 text-center border-2 border-dashed border-slate-100 dark:border-slate-800 m-8 rounded-[3rem] bg-slate-50 dark:bg-slate-800/30 flex flex-col items-center">
                 <div className="w-20 h-20 bg-white dark:bg-slate-900 rounded-full flex items-center justify-center shadow-sm mb-4 border border-slate-100 dark:border-slate-800"><User className="text-slate-200 dark:text-slate-700" size={32} /></div>
-                <h3 className="text-lg font-bold text-slate-700 dark:text-slate-200">{t("employees.search.no_results")}</h3>
-                <p className="text-slate-500 dark:text-slate-400 text-sm mt-1 uppercase font-bold tracking-widest opacity-50">{t("common.no_records_found")}</p>
+                <Typography className="text-lg font-bold text-slate-700 dark:text-slate-200" variant="h3">{t("employees.search.no_results")}</Typography>
+                <Typography className="text-slate-500 dark:text-slate-400 text-sm mt-1 uppercase font-bold tracking-widest opacity-50" variant="p">{t("common.no_records_found")}</Typography>
               </div>
             )}
           </div>

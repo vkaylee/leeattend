@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { format } from "date-fns";
 
 import { MonthYearPicker } from "@/components/common/month-year-picker";
+import { Typography } from "@/components/ui/typography";
 
 interface AttendanceHeaderProps {
   currentMonth: Date;
@@ -24,12 +25,12 @@ export function AttendanceHeader({
   return (
     <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 px-2">
       <div className="space-y-1">
-        <h1 className="text-4xl font-bold tracking-tighter text-slate-700 dark:text-slate-200 uppercase leading-none">
+        <Typography className="text-4xl font-bold tracking-tighter text-slate-700 dark:text-slate-200 uppercase leading-none" variant="h1">
           {t("ess.attendance.title")}
-        </h1>
-        <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] opacity-60">
+        </Typography>
+        <Typography className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] opacity-60" variant="p">
           {t("ess.attendance.subtitle")}
-        </p>
+        </Typography>
       </div>
 
       <div className="flex items-center gap-4 bg-white dark:bg-slate-900 p-2.5 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-xl shadow-slate-900/5">

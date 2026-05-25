@@ -5,6 +5,8 @@ import { Info, CheckCircle2, AlertCircle, Shield, ChevronDown, ChevronRight } fr
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { Typography } from "@/components/ui/typography";
+
 import { ScheduleTrace } from '../../lib/api/types';
 
 interface ScheduleTracePopoverProps {
@@ -29,9 +31,9 @@ function AppliedRuleSection({ appliedRule, t }: { appliedRule: ScheduleTrace; t:
           <span className="text-xs font-bold">{appliedRule.rule_name}</span>
         </div>
         {appliedRule.reason ? (
-          <p className="text-[10px] text-emerald-600 dark:text-emerald-300/80 leading-relaxed pl-5">
+          <Typography className="text-[10px] text-emerald-600 dark:text-emerald-300/80 leading-relaxed pl-5" variant="p">
             {appliedRule.reason}
-          </p>
+          </Typography>
         ) : null}
         <div className="pt-1 flex items-center gap-3 pl-5">
           <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase">
@@ -41,7 +43,7 @@ function AppliedRuleSection({ appliedRule, t }: { appliedRule: ScheduleTrace; t:
         
         {/* Smart Hint */}
         <div className="mt-3 pt-3 border-t border-emerald-100 dark:border-emerald-800/50">
-          <p className="text-[9px] text-emerald-700 dark:text-emerald-300 font-medium leading-relaxed flex gap-2">
+          <Typography className="text-[9px] text-emerald-700 dark:text-emerald-300 font-medium leading-relaxed flex gap-2" variant="p">
             <span className="shrink-0 text-emerald-500">💡</span>
             <span>
               {appliedRule.priority < 100 ? 
@@ -49,7 +51,7 @@ function AppliedRuleSection({ appliedRule, t }: { appliedRule: ScheduleTrace; t:
                 t("shifts.traceability.highest_priority_hint")
               }
             </span>
-          </p>
+          </Typography>
         </div>
       </div>
     </div>
@@ -80,9 +82,9 @@ function OverriddenRulesSection({ overriddenRules, showOverridden, setShowOverri
                 <span className="text-xs font-bold">{rule.rule_name}</span>
               </div>
               {rule.reason ? (
-                <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-relaxed pl-5 italic">
+                <Typography className="text-[10px] text-slate-500 dark:text-slate-400 leading-relaxed pl-5 italic" variant="p">
                   {rule.reason}
-                </p>
+                </Typography>
               ) : null}
               <div className="pt-1 flex items-center gap-3 pl-5">
                 <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase">
@@ -128,12 +130,12 @@ export const ScheduleTracePopover: React.FC<ScheduleTracePopoverProps> = ({ trac
                 <Shield size={16} />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight">
+                <Typography className="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight" variant="h3">
                   {t("shifts.traceability.title")}
-                </h3>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest">
+                </Typography>
+                <Typography className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest" variant="p">
                   {t("shifts.traceability.source")}: {source}
-                </p>
+                </Typography>
               </div>
             </div>
 

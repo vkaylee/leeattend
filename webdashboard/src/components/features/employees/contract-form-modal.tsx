@@ -1,3 +1,4 @@
+import { Typography } from "@/components/ui/typography";
 /* eslint-disable complexity */
 /* eslint-disable perfectionist/sort-imports */
 import { useQuery } from "@tanstack/react-query";
@@ -241,7 +242,7 @@ export default function ContractFormModal({
                   <option value="indefinite">Không xác định thời hạn</option>
                 </select>
               </label>
-              {!!errors.contract_type && <p className="text-xs text-rose-500 font-medium">{errors.contract_type.message}</p>}
+              {!!errors.contract_type && <Typography className="text-xs text-rose-500 font-medium" variant="p">{errors.contract_type.message}</Typography>}
             </div>
           </div>
 
@@ -254,9 +255,9 @@ export default function ContractFormModal({
                 error={errors.start_date?.message}
                 required
               />
-              <p className="text-[10px] text-slate-500 italic px-1">
+              <Typography className="text-[10px] text-slate-500 italic px-1" variant="p">
                 Lưu ý: Ngày bắt đầu hợp đồng cũ nhất sẽ tự động cập nhật lại thành Ngày vào làm của nhân viên.
-              </p>
+              </Typography>
             </div>
             
             <FormField
@@ -321,7 +322,7 @@ export default function ContractFormModal({
                   ))}
                 </select>
               </label>
-              {!!errors.assign_phase_id && <p className="text-xs text-rose-500 font-medium">{errors.assign_phase_id.message}</p>}
+              {!!errors.assign_phase_id && <Typography className="text-xs text-rose-500 font-medium" variant="p">{errors.assign_phase_id.message}</Typography>}
             </div>
           )}
 
@@ -370,12 +371,12 @@ export default function ContractFormModal({
         title="Trùng Lặp Hợp Đồng"
       >
         <div className="space-y-6 pt-4">
-          <p className="text-sm text-slate-600 dark:text-slate-300">
+          <Typography className="text-sm text-slate-600 dark:text-slate-300" variant="p">
             Ngày bắt đầu của hợp đồng mới đang giao nhau với một hợp đồng hiện tại đang còn hiệu lực của nhân viên.
-          </p>
-          <p className="text-sm text-slate-600 dark:text-slate-300">
+          </Typography>
+          <Typography className="text-sm text-slate-600 dark:text-slate-300" variant="p">
             Bạn có muốn hệ thống tự động kết thúc hợp đồng cũ vào ngày trước đó để nhường chỗ cho hợp đồng mới này không?
-          </p>
+          </Typography>
           <div className="flex items-center justify-end gap-3 pt-6 border-t border-slate-100 dark:border-slate-800">
             <Button onClick={() => { setIsConfirmingOverlap(false); }} type="button" variant="outline">
               QUAY LẠI SỬA NGÀY

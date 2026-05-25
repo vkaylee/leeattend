@@ -4,6 +4,7 @@ import React from "react";
 import { TFunction } from "i18next";
 
 import StatusBadge from "@/components/ui/status-badge";
+import { Typography } from "@/components/ui/typography";
 
 import { ShiftSwapRequest } from "../../lib/api/shift-swaps";
 
@@ -71,9 +72,9 @@ export function ShiftSwapListItem({
 
       {/* Reason */}
       <td className="px-8 py-6">
-        <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-tight line-clamp-2 italic opacity-70 leading-relaxed">
+        <Typography className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-tight line-clamp-2 italic opacity-70 leading-relaxed" variant="p">
           {swap.reason ?? t("common.no_notes")}
-        </p>
+        </Typography>
       </td>
 
       {/* Status */}

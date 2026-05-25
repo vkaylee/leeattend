@@ -81,8 +81,7 @@ impl AttendanceSummaryService {
         let workspace = self
             .workspace_repo
             .get_workspace_by_id(workspace_id)
-            .await
-            .map_err(AppError::from)?
+            .await?
             .ok_or_else(|| AppError::NotFound("Workspace not found".to_string()))?;
 
         let tz: Tz = crate::utils::tz::parse_workspace_tz(&workspace.timezone);
@@ -97,8 +96,7 @@ impl AttendanceSummaryService {
                 date,
                 Some(&vec![employee_id]),
             )
-            .await
-            .map_err(AppError::from)?;
+            .await?;
 
         let emp_sched = schedules.first().ok_or_else(|| AppError::NotFound("No schedule found for employee".to_string()))?;
         let daily_schedule = emp_sched
@@ -108,8 +106,8 @@ impl AttendanceSummaryService {
             .ok_or_else(|| AppError::NotFound("No schedule for date".to_string()))?;
 
         // 3. Get Time Entries for the date (in UTC range)
-        let start_dt_utc = local_midnight_to_utc(&tz, date, 0, 0, 0).map_err(|e| AppError::Internal(e.to_string()))?;
-        let end_dt_utc = local_midnight_to_utc(&tz, date, 23, 59, 59).map_err(|e| AppError::Internal(e.to_string()))?;
+        let start_dt_utc = local_midnight_to_utc(&tz, date, 0, 0, 0).map_err(AppError::Internal)?;
+        let end_dt_utc = local_midnight_to_utc(&tz, date, 23, 59, 59).map_err(AppError::Internal)?;
 
         let entries = self
             .time_entry_repo
@@ -119,8 +117,7 @@ impl AttendanceSummaryService {
                 start_dt_utc,
                 end_dt_utc,
             )
-            .await
-            .map_err(AppError::from)?;
+            .await?;
 
         // Filter entries that actually belong to this date in local time
         let day_entries: Vec<_> = entries
@@ -174,8 +171,7 @@ impl AttendanceSummaryService {
                             workspace_id,
                             date,
                         )
-                        .await
-                        .map_err(AppError::from)?;
+                        .await?;
 
                     // Resolve Policy Rules
                     let policy_rules = PolicyResolver::resolve_with_shift_overrides(
@@ -305,8 +301,7 @@ impl AttendanceSummaryService {
                 employee_id,
                 date,
             )
-            .await
-            .map_err(AppError::from)?;
+            .await?;
 
         let new_status = match existing {
             Some(ref s) => {
@@ -336,8 +331,7 @@ impl AttendanceSummaryService {
                 is_holiday,
                 holiday_name,
             )
-            .await
-            .map_err(AppError::from)?;
+            .await?;
 
         Ok(())
     }
@@ -361,8 +355,7 @@ impl AttendanceSummaryService {
                 claimed_minutes,
                 reason,
             )
-            .await
-            .map_err(AppError::from)?;
+            .await?;
 
         if rows_affected == 0 {
             return Err(AppError::NotFound("Record not found".to_string()));
@@ -391,8 +384,7 @@ impl AttendanceSummaryService {
                 manager_note,
                 status,
             )
-            .await
-            .map_err(AppError::from)?;
+            .await?;
 
         if rows_affected == 0 {
             return Err(AppError::NotFound("Record not found".to_string()));
@@ -414,8 +406,7 @@ impl AttendanceSummaryService {
                 args.employee_id,
                 args.date,
             )
-            .await
-            .map_err(AppError::from)?;
+            .await?;
 
         // 2. Validate against system detected (if not allowing exceed)
         if !args.allow_exceed {
@@ -440,8 +431,7 @@ impl AttendanceSummaryService {
                 args.entered_by_user_id,
                 args.photo_url,
             )
-            .await
-            .map_err(AppError::from)?;
+            .await?;
 
         Ok(result)
     }

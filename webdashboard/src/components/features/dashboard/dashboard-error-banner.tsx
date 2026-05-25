@@ -1,6 +1,8 @@
 import { ShieldAlert } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
+import { Typography } from "@/components/ui/typography";
+
 export function DashboardErrorBanner() {
   const { t } = useTranslation();
   
@@ -10,8 +12,8 @@ export function DashboardErrorBanner() {
         <ShieldAlert className="text-rose-500" size={40} />
       </div>
       <div>
-        <p className="font-bold text-xl sm:text-2xl uppercase tracking-tighter leading-none mb-2">{t("dashboard.connection_error")}</p>
-        <p className="font-bold opacity-70 uppercase tracking-tight text-sm">{t("dashboard.connection_error_desc")}</p>
+        <Typography className="font-bold text-xl sm:text-2xl uppercase tracking-tighter leading-none mb-2" variant="p">{t("dashboard.connection_error")}</Typography>
+        <Typography className="font-bold opacity-70 uppercase tracking-tight text-sm" variant="p">{t("dashboard.connection_error_desc")}</Typography>
       </div>
     </div>
   );

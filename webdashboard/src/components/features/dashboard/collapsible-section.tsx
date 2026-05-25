@@ -1,6 +1,7 @@
 import { ChevronDown } from "lucide-react";
 import { useState, useRef, useEffect, type ReactNode } from "react";
 
+import { Typography } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
 
 interface CollapsibleSectionProps {
@@ -49,9 +50,9 @@ export default function CollapsibleSection({
                 onClick={() => onToggle?.(id)}
                 type="button"
             >
-                <h2 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]">
+                <Typography className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]" variant="h2">
                     {title}
-                </h2>
+                </Typography>
                 <ChevronDown
                     className={cn(
                         "text-slate-400 dark:text-slate-500 transition-transform duration-300",

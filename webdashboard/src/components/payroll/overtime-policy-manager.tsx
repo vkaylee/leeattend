@@ -10,6 +10,7 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { useToast } from '@/components/ui/toast';
+import { Typography } from "@/components/ui/typography";
 import { fetchOvertimePolicies, createOvertimePolicy, fetchOvertimePolicy } from '@/lib/api/payroll';
 
 import AssignOvertimePolicyModal from './assign-overtime-policy-modal';
@@ -36,8 +37,8 @@ function OvertimePolicyCard({ policy, wsId }: { policy: OvertimePolicy, wsId: st
             <Settings2 size={24} />
           </div>
           <div>
-            <h3 className='font-bold text-slate-700 dark:text-slate-200 text-lg'>{policy.name}</h3>
-            <p className='text-sm text-slate-500 dark:text-slate-400'>{policy.description}</p>
+            <Typography className='font-bold text-slate-700 dark:text-slate-200 text-lg' variant="h3">{policy.name}</Typography>
+            <Typography className='text-sm text-slate-500 dark:text-slate-400' variant="p">{policy.description}</Typography>
           </div>
         </div>
       </div>
@@ -132,11 +133,11 @@ export default function OvertimePolicyManager({ wsId }: OvertimePolicyManagerPro
     <div className='space-y-6'>
       <div className='flex items-center justify-between'>
         <div>
-          <h2 className='text-xl font-bold text-slate-700 dark:text-slate-200 flex items-center gap-2'>
+          <Typography className='text-xl font-bold text-slate-700 dark:text-slate-200 flex items-center gap-2' variant="h2">
             <Calculator className='text-primary-600 dark:text-primary-400' size={20} />
             {t('payroll.overtime_policies')}
-          </h2>
-          <p className='text-sm text-slate-500 dark:text-slate-400 mt-1'>{t('payroll.overtime_policies_desc')}</p>
+          </Typography>
+          <Typography className='text-sm text-slate-500 dark:text-slate-400 mt-1' variant="p">{t('payroll.overtime_policies_desc')}</Typography>
         </div>
         <div className='flex items-center gap-3'>
           <button
@@ -173,7 +174,7 @@ export default function OvertimePolicyManager({ wsId }: OvertimePolicyManagerPro
         {policies.length === 0 && !isCreating ? (
           <div className='flex flex-col items-center justify-center py-12 bg-slate-50 dark:bg-slate-800 rounded-[2.5rem] border-2 border-dashed border-slate-200 dark:border-slate-700'>
              <AlertCircle className='text-slate-300 dark:text-slate-600 mb-4' size={48} />
-             <p className='text-slate-500 dark:text-slate-400 font-medium'>{t('payroll.no_overtime_policies')}</p>
+             <Typography className='text-slate-500 dark:text-slate-400 font-medium' variant="p">{t('payroll.no_overtime_policies')}</Typography>
              <button className='mt-4 text-primary-600 dark:text-primary-400 font-bold hover:underline' onClick={() => { setIsCreating(true); }}>{t('payroll.create_first_policy')}</button>
           </div>
         ) : null}

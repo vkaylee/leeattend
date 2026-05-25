@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { TFunction } from "i18next";
 
 import Modal from "@/components/ui/modal";
+import { Typography } from "@/components/ui/typography";
 import { Shift } from "@/lib/api";
 
 interface EditShiftModalProps {
@@ -179,7 +180,7 @@ function BreakConfigPanel({
   return (
     <div className="space-y-3 bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
       <div className="flex items-center justify-between">
-        <h4 className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">{t("shifts.modal.break_config")}</h4>
+        <Typography className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest" variant="h4">{t("shifts.modal.break_config")}</Typography>
         <div className="flex items-center gap-2">
           <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">{t("shifts.types.fixed")}</span>
           <button
@@ -267,8 +268,8 @@ function CorrectionConfigPanel({
           <Zap size={16} />
         </div>
         <div>
-          <h4 className="text-xs font-bold text-amber-900 uppercase tracking-tight leading-none">{t("shifts.modal.correction_label")}</h4>
-          <p className="text-[10px] font-bold text-amber-700 dark:text-amber-300 leading-tight">{t("shifts.modal.correction_desc")}</p>
+          <Typography className="text-xs font-bold text-amber-900 uppercase tracking-tight leading-none" variant="h4">{t("shifts.modal.correction_label")}</Typography>
+          <Typography className="text-[10px] font-bold text-amber-700 dark:text-amber-300 leading-tight" variant="p">{t("shifts.modal.correction_desc")}</Typography>
         </div>
       </div>
 
@@ -294,9 +295,9 @@ function CorrectionConfigPanel({
             type="date"
             value={correctionEffectiveDate}
           />
-          <p className="text-[9px] font-bold text-amber-600 dark:text-amber-300 leading-tight italic px-1">
+          <Typography className="text-[9px] font-bold text-amber-600 dark:text-amber-300 leading-tight italic px-1" variant="p">
             {t("shifts.modal.effective_date_desc")}
-          </p>
+          </Typography>
         </div>
       )}
     </div>

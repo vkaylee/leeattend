@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import type { Holiday, LeaveType } from "@/lib/api/types";
 
 import { Combobox } from "@/components/ui/combobox";
+import { Typography } from "@/components/ui/typography";
 
 interface HolidayFormProps {
     editingHoliday: Holiday | null;
@@ -119,12 +120,12 @@ function HolidayFormPaidSection({ formActions, formState, leaveTypes }: Pick<Hol
                     <div className="p-3 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800/50 rounded-xl flex items-start gap-3">
                         <Info className="w-5 h-5 text-blue-500 dark:text-blue-400 mt-0.5 shrink-0" />
                         <div>
-                            <h4 className="text-sm font-bold text-blue-900 dark:text-blue-200 mb-1">
+                            <Typography className="text-sm font-bold text-blue-900 dark:text-blue-200 mb-1" variant="h4">
                                 {t("holidays.info.title")}
-                            </h4>
-                            <p className="text-xs text-blue-800 dark:text-blue-300 font-medium mb-2">
+                            </Typography>
+                            <Typography className="text-xs text-blue-800 dark:text-blue-300 font-medium mb-2" variant="p">
                                 {t("holidays.info.body_1")}
-                            </p>
+                            </Typography>
                             <ul className="text-xs text-blue-800 dark:text-blue-300 space-y-1 list-disc list-inside">
                                 <li><span className="font-bold">{t("holidays.info.rule_1").split(":")[0]}:</span> {t("holidays.info.rule_1").split(":")[1]}</li>
                                 <li><span className="font-bold">{t("holidays.info.rule_2").split(":")[0]}:</span> {t("holidays.info.rule_2").split(":")[1]}</li>
@@ -145,9 +146,9 @@ function HolidayFormPaidSection({ formActions, formState, leaveTypes }: Pick<Hol
                             placeholder={t("holidays.fields.auto_first_paid")}
                             value={formState.leaveTypeId}
                         />
-                        <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                        <Typography className="text-xs text-amber-600 dark:text-amber-400 mt-1" variant="p">
                             ⚠️ {t("holidays.fields.deduction_warning")}
-                        </p>
+                        </Typography>
                     </div>
                 </div>
             ) : null}
@@ -159,9 +160,9 @@ function HolidayWorkPolicySection({ formActions, formState }: Pick<HolidayFormPr
     const { t } = useTranslation();
     return (
         <div className="mt-2 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700">
-            <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+            <Typography className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-1.5" variant="h3">
                 ⚙️ {t("holidays.fields.work_policy_title", "Chính sách khi NV đi làm ngày lễ")}
-            </h3>
+            </Typography>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="flex items-start gap-2">
                     <input
@@ -175,9 +176,9 @@ function HolidayWorkPolicySection({ formActions, formState }: Pick<HolidayFormPr
                         <label className="text-sm text-slate-700 dark:text-slate-300 font-medium" htmlFor="isCreditOnWork">
                             {t("holidays.fields.credit_on_work", "Credit lương ngày lễ")}
                         </label>
-                        <p className="text-[10px] text-slate-400">
+                        <Typography className="text-[10px] text-slate-400" variant="p">
                             {t("holidays.fields.credit_on_work_help", "NV vẫn nhận lương ngày lễ + lương giờ làm")}
-                        </p>
+                        </Typography>
                     </div>
                 </div>
                 <div>
@@ -193,9 +194,9 @@ function HolidayWorkPolicySection({ formActions, formState }: Pick<HolidayFormPr
                         type="number"
                         value={formState.thresholdPercent}
                     />
-                    <p className="text-[10px] text-slate-400 mt-0.5">
+                    <Typography className="text-[10px] text-slate-400 mt-0.5" variant="p">
                         {t("holidays.fields.threshold_help", "NV làm ≥ ngưỡng → hoàn phép. < ngưỡng → giữ phép")}
-                    </p>
+                    </Typography>
                 </div>
                 <div>
                     <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
@@ -209,9 +210,9 @@ function HolidayWorkPolicySection({ formActions, formState }: Pick<HolidayFormPr
                         type="number"
                         value={formState.otMultiplier}
                     />
-                    <p className="text-[10px] text-slate-400 mt-0.5">
+                    <Typography className="text-[10px] text-slate-400 mt-0.5" variant="p">
                         {t("holidays.fields.ot_multiplier_help", "VD: 3× = 300% lương cho mỗi giờ đi làm")}
-                    </p>
+                    </Typography>
                 </div>
             </div>
         </div>
@@ -223,9 +224,9 @@ export function HolidayForm({ editingHoliday, formActions, formState, leaveTypes
 
     return (
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-lg">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4">
+            <Typography className="text-lg font-bold text-slate-900 dark:text-white mb-4" variant="h2">
                 {editingHoliday ? t("holidays.modal_title_edit") : t("holidays.modal_title_new")}
-            </h2>
+            </Typography>
             <form className="space-y-4" onSubmit={formActions.handleSubmit}>
                 <HolidayFormBasics formActions={formActions} formState={formState} />
                 <HolidayFormPaidSection formActions={formActions} formState={formState} leaveTypes={leaveTypes} />

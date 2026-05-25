@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 
+import { Typography } from "@/components/ui/typography";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 
 interface ProfileHeroProps {
@@ -28,9 +29,9 @@ export function ProfileHero({ employee }: ProfileHeroProps) {
           
           <div className="flex-1 pb-4">
             <div className="backdrop-blur-xl bg-white/60 dark:bg-slate-900/60 p-6 sm:p-8 rounded-[2.5rem] border border-white/40 dark:border-slate-800/50 shadow-xl shadow-slate-200/20 dark:shadow-none inline-block min-w-full sm:min-w-[400px]">
-              <h2 className="text-3xl sm:text-4xl font-black text-slate-800 dark:text-white tracking-tight uppercase leading-none mb-4 drop-shadow-sm">
+              <Typography className="text-3xl sm:text-4xl font-black text-slate-800 dark:text-white tracking-tight uppercase leading-none mb-4 drop-shadow-sm" variant="h2">
                 {employee.full_name}
-              </h2>
+              </Typography>
               <div className="flex flex-wrap gap-4 items-center">
                 <div className="flex items-center gap-2 text-[10px] font-black text-primary-700 dark:text-primary-300 bg-primary-100/50 dark:bg-primary-900/50 px-4 py-2 rounded-2xl border border-primary-200/50 dark:border-primary-700/50 uppercase tracking-widest">
                   <span className="opacity-60">{t("common.employee_id")}:</span>

@@ -3,6 +3,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 
 import InfiniteScrollSentinel from "@/components/common/infinite-scroll-sentinel";
+import { Typography } from "@/components/ui/typography";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
 import { RawAttendanceLog } from "@/lib/api";
@@ -71,12 +72,12 @@ export default function RawLogsTable({
                                     <div className="w-16 h-16 mb-4 rounded-3xl bg-slate-50 dark:bg-slate-800/80 flex items-center justify-center text-slate-300 dark:text-slate-600 shadow-inner border border-slate-100 dark:border-slate-700/50 rotate-3">
                                         <SearchX className="-rotate-3" size={24} />
                                     </div>
-                                    <h3 className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-widest mb-1">
+                                    <Typography className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-widest mb-1" variant="h3">
                                         {t("attendance_logs.messages.no_data")}
-                                    </h3>
-                                    <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 max-w-[200px]">
+                                    </Typography>
+                                    <Typography className="text-[10px] font-medium text-slate-500 dark:text-slate-400 max-w-[200px]" variant="p">
                                         No punches were recorded for this day.
-                                    </p>
+                                    </Typography>
                                 </div>
                             </td>
                         </tr>

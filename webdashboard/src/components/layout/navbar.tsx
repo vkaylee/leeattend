@@ -7,6 +7,7 @@ import type { ThemeMode } from "@/hooks/use-dark-mode";
 
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { LanguageSwitcher } from "@/components/ui/language-switcher";
+import { Typography } from "@/components/ui/typography";
 import { useDarkModeContext } from "@/context/use-dark-mode-context";
 import { useMyPermissions } from "@/hooks/use-permissions";
 import { useProfile } from "@/hooks/use-profile";
@@ -128,16 +129,16 @@ function UserProfileMenu() {
         <div className="flex items-center gap-4 pl-2 group cursor-pointer active:scale-95 transition-all outline-none" data-testid="navbar-user-menu-trigger">
           <div className="hidden sm:block text-right">
             <div className="flex items-center justify-end gap-2">
-              <p className="text-xs font-bold text-slate-700 dark:text-slate-200 leading-none group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors uppercase tracking-tight">
+              <Typography className="text-xs font-bold text-slate-700 dark:text-slate-200 leading-none group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors uppercase tracking-tight" variant="p">
                 {user?.full_name ?? (roles[0] ?? t("common.admin"))}
-              </p>
+              </Typography>
               {roles.includes('TeamLead') && managedDepartmentIds !== null && (
                 <span className="inline-flex items-center px-2 py-0.5 rounded text-[9px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 border border-amber-200 dark:border-amber-800 uppercase tracking-wider">
                   Department-scoped
                 </span>
               )}
             </div>
-            <p className="text-[9px] font-bold text-slate-500 dark:text-slate-400 mt-1.5 uppercase tracking-[0.2em] opacity-60 leading-none">{t("common.workspace_owner")}</p>
+            <Typography className="text-[9px] font-bold text-slate-500 dark:text-slate-400 mt-1.5 uppercase tracking-[0.2em] opacity-60 leading-none" variant="p">{t("common.workspace_owner")}</Typography>
           </div>
           <div className="w-12 h-12 rounded-[1.25rem] bg-slate-900 text-white flex items-center justify-center font-bold text-sm shadow-2xl shadow-slate-400 dark:shadow-black border border-slate-800 group-hover:bg-primary-600 group-hover:border-primary-500 transition-all duration-500 group-hover:scale-110 group-hover:rotate-3">
             {user?.full_name ? user.full_name.charAt(0).toUpperCase() : (roles[0]?.substring(0, 2).toUpperCase() ?? "AD")}

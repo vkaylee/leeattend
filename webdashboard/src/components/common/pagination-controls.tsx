@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-r
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { Typography } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
 
 interface PaginationControlsProps {
@@ -74,9 +75,9 @@ function DesktopPagination({
   return (
       <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between gap-8">
         <div className="flex items-center gap-6">
-          <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
+          <Typography className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest" variant="p">
             {t('common.pagination.showing')} <span className="text-slate-700 dark:text-slate-200 mx-1 font-mono">{startItem}</span> - <span className="text-slate-700 dark:text-slate-200 mx-1 font-mono">{endItem}</span> {t('common.pagination.out_of')} <span className="text-slate-700 dark:text-slate-200 mx-1 font-mono">{totalItems}</span> {t('common.pagination.records')}
-          </p>
+          </Typography>
           {!!onPageSizeChange && (
             <div className="flex items-center gap-3">
               <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">{t('common.pagination.rows_per_page', 'Rows per page')}:</span>

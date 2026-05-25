@@ -1,5 +1,6 @@
 import { FileBarChart, Users2, Clock } from "lucide-react";
 
+import { Typography } from "@/components/ui/typography";
 import { AttendanceSummary, DailyAttendanceReport } from "@/lib/api";
 import { formatHours } from "@/lib/utils/attendance";
 
@@ -35,13 +36,13 @@ export default function ReportStats({
         <div className="bg-primary-50 dark:bg-primary-950/20 w-16 h-16 rounded-[1.5rem] flex items-center justify-center mb-8 text-primary-400 shadow-inner border border-white/5 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-500">
           <FileBarChart size={32} />
         </div>
-        <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] mb-2 opacity-70">
+        <Typography className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] mb-2 opacity-70" variant="p">
           {t("reports.quick_stats.std_hours")}
-        </p>
-        <p className="text-5xl font-bold text-white tracking-tighter">
+        </Typography>
+        <Typography className="text-5xl font-bold text-white tracking-tighter" variant="p">
           {stdHours}{" "}
           <span className="text-xl opacity-30 font-bold uppercase tracking-widest ml-1">HRS</span>
-        </p>
+        </Typography>
         <FileBarChart className="absolute -right-8 -bottom-8 w-40 h-44 text-white opacity-5 -rotate-12 group-hover:rotate-0 transition-transform duration-1000" />
       </div>
 
@@ -49,13 +50,13 @@ export default function ReportStats({
         <div className="bg-orange-800/30 w-16 h-16 rounded-[1.5rem] flex items-center justify-center mb-8 text-orange-400 shadow-inner border border-orange-700/30 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-500">
           <Clock size={32} />
         </div>
-        <p className="text-[10px] font-bold text-orange-400/70 uppercase tracking-[0.25em] mb-2">
+        <Typography className="text-[10px] font-bold text-orange-400/70 uppercase tracking-[0.25em] mb-2" variant="p">
           {t("reports.quick_stats.ot_hours")}
-        </p>
-        <p className="text-5xl font-bold text-orange-100 tracking-tighter">
+        </Typography>
+        <Typography className="text-5xl font-bold text-orange-100 tracking-tighter" variant="p">
           {otHours}{" "}
           <span className="text-xl opacity-30 font-bold uppercase tracking-widest ml-1">OT</span>
-        </p>
+        </Typography>
         <Clock className="absolute -right-8 -bottom-8 w-40 h-44 text-orange-400 opacity-5 -rotate-12 group-hover:rotate-0 transition-transform duration-1000" />
       </div>
 
@@ -63,13 +64,13 @@ export default function ReportStats({
         <div className="bg-primary-50 dark:bg-primary-950 w-16 h-16 rounded-[1.5rem] flex items-center justify-center mb-8 text-primary-600 dark:text-primary-400 shadow-inner border border-primary-100 dark:border-primary-800 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-500">
           <Users2 size={32} />
         </div>
-        <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] mb-2 opacity-70">
+        <Typography className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] mb-2 opacity-70" variant="p">
           {t("common.employees")}
-        </p>
-        <p className="text-5xl font-bold text-slate-700 dark:text-slate-200 tracking-tighter">
+        </Typography>
+        <Typography className="text-5xl font-bold text-slate-700 dark:text-slate-200 tracking-tighter" variant="p">
           {totalEmployees}{" "}
           <span className="text-xl opacity-20 font-bold uppercase tracking-widest ml-1">STAFF</span>
-        </p>
+        </Typography>
         <Users2 className="absolute -right-8 -bottom-8 w-40 h-44 text-slate-100 opacity-20 -rotate-12 group-hover:rotate-0 transition-transform duration-1000" />
       </div>
     </div>

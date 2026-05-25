@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import Modal from "@/components/ui/modal";
+import { Typography } from "@/components/ui/typography";
 import { uploadAttendance, fetchLatestImportJob, fetchImportJobStatus, getCurrentWorkspaceId } from "@/lib/api";
 import { AttendanceImportJob } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
@@ -50,7 +51,7 @@ const getStatusConfig = (status: string | undefined, t: (key: string) => string)
 function ErrorLog({ errorLog, t }: { errorLog: string; t: (key: string) => string }) {
   return (
     <div className="bg-slate-50 dark:bg-slate-900 rounded-2xl p-6 border border-rose-200 dark:border-rose-900/50 shadow-sm relative overflow-hidden">
-      <h4 className="text-[10px] font-bold text-rose-600 dark:text-rose-400 mb-4 flex items-center gap-2 uppercase tracking-[0.25em]"><AlertCircle size={14} /> {t("attendance_import.error_list_title")}</h4>
+      <Typography className="text-[10px] font-bold text-rose-600 dark:text-rose-400 mb-4 flex items-center gap-2 uppercase tracking-[0.25em]" variant="h4"><AlertCircle size={14} /> {t("attendance_import.error_list_title")}</Typography>
       <div className="space-y-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar relative z-10">
         {errorLog.split("\n").map((error, index) => {
           if (error.startsWith("DL_LINK:")) {
@@ -90,10 +91,10 @@ function ImportProgressInfo({ processed, total, percentage, config, t }: { proce
           {config.icon}
         </div>
         <div>
-          <h3 className="font-bold text-slate-800 dark:text-slate-200 uppercase tracking-tight text-base leading-none mb-1">
+          <Typography className="font-bold text-slate-800 dark:text-slate-200 uppercase tracking-tight text-base leading-none mb-1" variant="h3">
             {config.text}
-          </h3>
-          <p className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-[0.2em]">{processed} / {total} {t("attendance_import.rows_processed")}</p>
+          </Typography>
+          <Typography className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-[0.2em]" variant="p">{processed} / {total} {t("attendance_import.rows_processed")}</Typography>
         </div>
       </div>
       {total > 0 && <span className="text-[10px] font-bold text-primary-700 dark:text-primary-400 bg-primary-50 dark:bg-primary-950 px-3 py-1 rounded-full border border-primary-200 dark:border-primary-800 shadow-sm">{percentage}%</span>}
@@ -121,7 +122,7 @@ function ImportRequirements({ t, customRequirements, targetType }: { t: (key: st
     <div className="bg-primary-50 dark:bg-primary-950/50 rounded-2xl p-5 border border-primary-200 dark:border-primary-800/50 flex gap-4">
       <div className="w-9 h-9 rounded-xl bg-white dark:bg-slate-900 flex items-center justify-center text-primary-600 dark:text-primary-400 shadow-sm border border-primary-200 dark:border-primary-800 shrink-0"><AlertCircle size={18} /></div>
       <div className="text-xs text-primary-800 dark:text-primary-200 leading-relaxed font-medium pt-0.5 flex-1">
-        <p className="font-bold uppercase tracking-[0.2em] mb-2 text-slate-700 dark:text-slate-300">{t("attendance_import.file_requirements.title")}</p>
+        <Typography className="font-bold uppercase tracking-[0.2em] mb-2 text-slate-700 dark:text-slate-300" variant="p">{t("attendance_import.file_requirements.title")}</Typography>
         <ul className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-1.5 text-slate-600 dark:text-slate-400 font-bold uppercase tracking-tight">
           {customRequirements ? (
             customRequirements.map((request, index) => (
@@ -155,15 +156,15 @@ function FileUploadZone({ file, setFile, t }: { file: File | null; setFile: (fil
       {file ? (
         <div className="text-center animate-in zoom-in-95 duration-500">
           <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-900 rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-lg shadow-emerald-200/50 dark:shadow-emerald-900/30 rotate-3 group-hover:rotate-0 transition-transform"><FileText className="text-emerald-600 dark:text-emerald-300" size={28} /></div>
-          <p className="font-bold text-slate-800 dark:text-slate-200 mb-1 text-lg tracking-tight uppercase">{file.name}</p>
-          <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">{(file.size / 1024).toFixed(1)} KB — READY TO START</p>
+          <Typography className="font-bold text-slate-800 dark:text-slate-200 mb-1 text-lg tracking-tight uppercase" variant="p">{file.name}</Typography>
+          <Typography className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest" variant="p">{(file.size / 1024).toFixed(1)} KB — READY TO START</Typography>
           <button className="mt-5 text-[10px] font-bold text-rose-600 dark:text-rose-400 uppercase tracking-widest hover:text-rose-700 dark:hover:text-rose-300 transition-all bg-white dark:bg-slate-900 px-5 py-2 rounded-lg border border-rose-200 dark:border-rose-800 shadow-sm hover:shadow-md active:scale-90" onClick={(e) => { e.stopPropagation(); setFile(null); }}>{t("attendance_import.select_another_file")}</button>
         </div>
       ) : (
         <div className="text-center group-hover:scale-105 transition-transform duration-500">
           <div className="w-16 h-16 bg-white dark:bg-slate-900 rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-lg border border-slate-200 dark:border-slate-700 -rotate-3 group-hover:rotate-0 transition-all"><Upload className="text-slate-400 dark:text-slate-500" size={28} /></div>
-          <p className="font-bold text-slate-800 dark:text-slate-200 mb-1 text-lg tracking-tight uppercase">{t("attendance_import.upload_prompt")}</p>
-          <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">{t("attendance_import.upload_limit")}</p>
+          <Typography className="font-bold text-slate-800 dark:text-slate-200 mb-1 text-lg tracking-tight uppercase" variant="p">{t("attendance_import.upload_prompt")}</Typography>
+          <Typography className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest" variant="p">{t("attendance_import.upload_limit")}</Typography>
         </div>
       )}
     </label>

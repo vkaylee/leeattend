@@ -2,6 +2,7 @@ import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
+import { Typography } from "@/components/ui/typography";
 import { profileKeys } from "@/hooks/use-profile";
 import { fetchMe, clearAuthSession } from "@/lib/api";
 
@@ -11,9 +12,9 @@ function AuthPendingComponent() {
     <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-800">
       <div className="flex flex-col items-center gap-4">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
-        <p className="text-slate-500 dark:text-slate-400 text-sm">
+        <Typography className="text-slate-500 dark:text-slate-400 text-sm" variant="p">
           {t("auth.checking_security")}
-        </p>
+        </Typography>
       </div>
     </div>
   );

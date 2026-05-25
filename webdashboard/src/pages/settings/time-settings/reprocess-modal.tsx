@@ -4,6 +4,7 @@ import React from "react";
 import { TFunction } from "i18next";
 
 import Modal from "@/components/ui/modal";
+import { Typography } from "@/components/ui/typography";
 
 interface ReprocessModalProps {
   isOpen: boolean;
@@ -38,13 +39,13 @@ export function ReprocessModal({
     >
       <div className="space-y-6 pt-2 animate-in fade-in duration-500">
         <div className="p-4 bg-orange-50 dark:bg-orange-950 rounded-2xl border border-orange-200 dark:border-orange-800">
-          <p className="text-sm font-bold text-orange-800 dark:text-orange-300">
+          <Typography className="text-sm font-bold text-orange-800 dark:text-orange-300" variant="p">
             Are you sure you want to reprocess attendance from {reprocessStart} to {reprocessEnd}?
-          </p>
-          <p className="text-xs text-orange-700 dark:text-orange-400 mt-2">
+          </Typography>
+          <Typography className="text-xs text-orange-700 dark:text-orange-400 mt-2" variant="p">
             {t("reports.reprocess.bulk_confirm_message") ||
               "This action will recalculate work hours, overtime, and late/early statuses for ALL employees in the selected date range. This process cannot be undone."}
-          </p>
+          </Typography>
         </div>
 
         {pollingJobId && jobStatus ? (
@@ -59,9 +60,9 @@ export function ReprocessModal({
                 style={{ width: `${Math.max(5, jobStatus.progress.percentage).toString()}%` }}
               />
             </div>
-            <p className="text-center text-xs text-slate-400 mt-2 font-medium">
+            <Typography className="text-center text-xs text-slate-400 mt-2 font-medium" variant="p">
               {t("common.workspace_settings.please_wait_minutes")}
-            </p>
+            </Typography>
           </div>
         ) : (
           <div className="flex gap-4 border-t border-slate-100 dark:border-slate-800 pt-4">

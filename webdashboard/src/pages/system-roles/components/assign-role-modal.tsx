@@ -2,6 +2,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 
 import Modal from "@/components/ui/modal";
+import { Typography } from "@/components/ui/typography";
 
 interface AssignRoleModalProps {
   assignError: string;
@@ -47,7 +48,7 @@ export function AssignRoleModal({
             type="text"
             value={userIdInput}
           />
-          {assignError ? <p className="text-sm text-rose-500 font-medium mt-1">{assignError}</p> : null}
+          {assignError ? <Typography className="text-sm text-rose-500 font-medium mt-1" variant="p">{assignError}</Typography> : null}
         </div>
         
         <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">

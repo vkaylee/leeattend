@@ -3,6 +3,7 @@ import { ArrowRight, MessageSquare, Calendar, CheckCircle2 } from "lucide-react"
 import React from "react";
 import { useTranslation } from "react-i18next";
 
+import { Typography } from "@/components/ui/typography";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { fetchWorkspaceAttendanceAdjustments, approveAttendanceAdjustment, getCurrentWorkspaceId } from "@/lib/api";
 
@@ -62,8 +63,8 @@ export default function AdjustmentDrawer({
         ) : employeeAdjustments.length === 0 ? (
           <div className="p-16 text-center border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-[2.5rem] bg-slate-50 dark:bg-slate-800/30 flex flex-col items-center">
             <div className="bg-white dark:bg-slate-900 w-16 h-16 rounded-3xl flex items-center justify-center shadow-sm mb-4 border border-slate-100 dark:border-slate-800"><CheckCircle2 className="w-8 h-8 text-emerald-400" /></div>
-            <h3 className="text-lg font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight">{t("payroll.adjustments.all_clear")}</h3>
-            <p className="text-slate-500 dark:text-slate-400 text-[10px] font-bold uppercase tracking-widest mt-1 opacity-50">No pending adjustments.</p>
+            <Typography className="text-lg font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight" variant="h3">{t("payroll.adjustments.all_clear")}</Typography>
+            <Typography className="text-slate-500 dark:text-slate-400 text-[10px] font-bold uppercase tracking-widest mt-1 opacity-50" variant="p">No pending adjustments.</Typography>
           </div>
         ) : (
           employeeAdjustments.map((adj) => (
@@ -72,8 +73,8 @@ export default function AdjustmentDrawer({
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 flex items-center justify-center text-slate-500 dark:text-slate-400 shadow-inner group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors"><Calendar size={14} /></div>
                   <div>
-                    <p className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] leading-none mb-1">Requested Date</p>
-                    <p className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight">{formatDate(adj.requested_punch_in_time)}</p>
+                    <Typography className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] leading-none mb-1" variant="p">Requested Date</Typography>
+                    <Typography className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight" variant="p">{formatDate(adj.requested_punch_in_time)}</Typography>
                   </div>
                 </div>
                 <span className="bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-300 px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest border border-amber-100 dark:border-amber-800 shadow-sm animate-pulse">Pending</span>
@@ -81,21 +82,21 @@ export default function AdjustmentDrawer({
 
               <div className="flex items-center gap-4 mb-6">
                 <div className="flex-1 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl text-center border border-slate-100 dark:border-slate-800 shadow-inner group-hover:bg-white dark:hover:bg-slate-900 transition-colors">
-                  <p className="text-[8px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest mb-1.5 opacity-70">Punch In</p>
-                  <p className="text-sm font-bold text-slate-700 dark:text-slate-200 font-mono tracking-tighter">{formatTime(adj.requested_punch_in_time)}</p>
+                  <Typography className="text-[8px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest mb-1.5 opacity-70" variant="p">Punch In</Typography>
+                  <Typography className="text-sm font-bold text-slate-700 dark:text-slate-200 font-mono tracking-tighter" variant="p">{formatTime(adj.requested_punch_in_time)}</Typography>
                 </div>
                 <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center shadow-inner"><ArrowRight className="text-slate-300 dark:text-slate-600" size={14} /></div>
                 <div className="flex-1 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl text-center border border-slate-100 dark:border-slate-800 shadow-inner group-hover:bg-white dark:hover:bg-slate-900 transition-colors">
-                  <p className="text-[8px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest mb-1.5 opacity-70">Punch Out</p>
-                  <p className="text-sm font-bold text-slate-700 dark:text-slate-200 font-mono tracking-tighter">
+                  <Typography className="text-[8px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest mb-1.5 opacity-70" variant="p">Punch Out</Typography>
+                  <Typography className="text-sm font-bold text-slate-700 dark:text-slate-200 font-mono tracking-tighter" variant="p">
                     {adj.requested_punch_out_time ? formatTime(adj.requested_punch_out_time) : "--:--"}
-                  </p>
+                  </Typography>
                 </div>
               </div>
 
               {!!adj.reason && (
                 <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-xl mb-6 border border-slate-100 dark:border-slate-800 shadow-inner" data-testid="adjustment-reason">
-                  <div className="flex gap-2 items-start"><MessageSquare className="text-slate-300 dark:text-slate-600 mt-0.5 shrink-0" size={12} /><p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-tight leading-relaxed italic">&quot;{adj.reason}&quot;</p></div>
+                  <div className="flex gap-2 items-start"><MessageSquare className="text-slate-300 dark:text-slate-600 mt-0.5 shrink-0" size={12} /><Typography className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-tight leading-relaxed italic" variant="p">&quot;{adj.reason}&quot;</Typography></div>
                 </div>
               )}
 

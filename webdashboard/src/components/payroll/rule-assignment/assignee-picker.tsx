@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import type { Department } from "@/lib/api/types";
 
 import { EmployeeSearch } from "@/components/common/employee-search";
+import { Typography } from "@/components/ui/typography";
 
 import type { ScopeType } from "./scope-selector";
 
@@ -77,12 +78,12 @@ export function AssigneePicker({
   return (
     <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-100 dark:border-amber-800 rounded-2xl p-5 flex items-center gap-4">
       <Globe className="text-amber-600 dark:text-amber-400 shrink-0" size={20} />
-      <p className="text-xs font-bold text-amber-800 dark:text-amber-200 uppercase tracking-tight">
+      <Typography className="text-xs font-bold text-amber-800 dark:text-amber-200 uppercase tracking-tight" variant="p">
         {t(
           "payroll.workspace_scope_info",
           "This rule will apply to all employees in the workspace"
         )}
-      </p>
+      </Typography>
     </div>
   );
 

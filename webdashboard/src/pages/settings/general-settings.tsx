@@ -9,6 +9,7 @@ import Button from "@/components/ui/button";
 import { Combobox } from "@/components/ui/combobox";
 import { LABEL_BASE } from "@/components/ui/form-field";
 import { useToast } from "@/components/ui/toast";
+import { Typography } from "@/components/ui/typography";
 import { useDarkModeContext } from "@/context/use-dark-mode-context";
 import { useTheme } from "@/hooks/use-theme";
 import { fetchWorkspace, updateWorkspace, getCurrentWorkspaceId, Workspace } from "@/lib/api";
@@ -92,8 +93,8 @@ function GeneralSettingsContent({ workspace }: { workspace: Workspace }) {
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 rounded-[1.25rem] bg-primary-50 dark:bg-primary-950 flex items-center justify-center text-primary-600 dark:text-primary-400 shadow-sm border border-primary-100 dark:border-primary-800/50"><Settings2 size={24} /></div>
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-slate-700 dark:text-slate-200 leading-tight" data-testid="general-settings-title">{t("common.settings.categories.general")}</h1>
-            <p className="text-slate-500 dark:text-slate-400 mt-1 font-medium">{t("common.workspace_settings.description")}</p>
+            <Typography className="text-3xl font-bold tracking-tight text-slate-700 dark:text-slate-200 leading-tight" data-testid="general-settings-title" variant="h1">{t("common.settings.categories.general")}</Typography>
+            <Typography className="text-slate-500 dark:text-slate-400 mt-1 font-medium" variant="p">{t("common.workspace_settings.description")}</Typography>
           </div>
         </div>
         <Button data-testid="save-workspace-config-btn" icon={<Save size={18} />} loading={updateWsMutation.isPending} onClick={handleSaveConfig}>{t("common.workspace_settings.save_config").toUpperCase()}</Button>
@@ -107,7 +108,7 @@ function GeneralSettingsContent({ workspace }: { workspace: Workspace }) {
       <div className="animate-in slide-in-from-bottom-4 duration-500">
         {activeTab === "localization" ? (
           <div className="bg-white dark:bg-slate-900 p-10 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm space-y-10">
-            <div className="flex items-center gap-3 border-b border-slate-50 dark:border-slate-800 pb-6"><Globe className="w-6 h-6 text-primary-500" /><h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 tracking-tight uppercase">{t("common.workspace_settings.general_config")}</h2></div>
+            <div className="flex items-center gap-3 border-b border-slate-50 dark:border-slate-800 pb-6"><Globe className="w-6 h-6 text-primary-500" /><Typography className="text-xl font-bold text-slate-800 dark:text-slate-100 tracking-tight uppercase" variant="h2">{t("common.workspace_settings.general_config")}</Typography></div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
               <div className="space-y-3">
                 <label className={LABEL_BASE}>{t("common.workspace_settings.date_format")}</label>
@@ -134,9 +135,9 @@ function GeneralSettingsContent({ workspace }: { workspace: Workspace }) {
             {/* Branding Section */}
             <div className="flex items-center gap-3 border-b border-slate-50 dark:border-slate-800 pb-6">
               <Building2 className="w-6 h-6 text-indigo-500" />
-              <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 tracking-tight uppercase">
+              <Typography className="text-xl font-bold text-slate-800 dark:text-slate-100 tracking-tight uppercase" variant="h2">
                 {t("common.workspace_settings.branding", { defaultValue: "Branding" })}
-              </h2>
+              </Typography>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
@@ -224,8 +225,8 @@ function GeneralSettingsContent({ workspace }: { workspace: Workspace }) {
                       <UploadCloud size={24} />
                     </div>
                     <div className="text-center">
-                      <p className="text-sm font-bold text-slate-600 dark:text-slate-300 group-hover:text-primary-600 dark:group-hover:text-primary-400">{t("common.workspace_settings.upload_logo", { defaultValue: "Click to set logo URL" })}</p>
-                      <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wider mt-1">{t("common.workspace_settings.logo_reqs", { defaultValue: "SVG, PNG, JPG. Max 2MB." })}</p>
+                      <Typography className="text-sm font-bold text-slate-600 dark:text-slate-300 group-hover:text-primary-600 dark:group-hover:text-primary-400" variant="p">{t("common.workspace_settings.upload_logo", { defaultValue: "Click to set logo URL" })}</Typography>
+                      <Typography className="text-[10px] text-slate-400 font-medium uppercase tracking-wider mt-1" variant="p">{t("common.workspace_settings.logo_reqs", { defaultValue: "SVG, PNG, JPG. Max 2MB." })}</Typography>
                     </div>
                   </button>
                 )}
@@ -234,7 +235,7 @@ function GeneralSettingsContent({ workspace }: { workspace: Workspace }) {
 
             <div className="w-full h-px bg-slate-100 dark:bg-slate-800 my-10" />
 
-            <div className="flex items-center gap-3 border-b border-slate-50 dark:border-slate-800 pb-6"><Palette className="w-6 h-6 text-pink-500" /><h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 tracking-tight uppercase">{t("common.workspace_settings.theme_config")}</h2></div>
+            <div className="flex items-center gap-3 border-b border-slate-50 dark:border-slate-800 pb-6"><Palette className="w-6 h-6 text-pink-500" /><Typography className="text-xl font-bold text-slate-800 dark:text-slate-100 tracking-tight uppercase" variant="h2">{t("common.workspace_settings.theme_config")}</Typography></div>
             <div className="space-y-10">
               <div className="space-y-6">
                 <label className={LABEL_BASE}>{t("common.workspace_settings.primary_color")}</label>
@@ -254,7 +255,7 @@ function GeneralSettingsContent({ workspace }: { workspace: Workspace }) {
                   </div>
                 </div>
               </div>
-              <div className="p-8 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-[2rem] shadow-inner"><p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 leading-relaxed italic uppercase tracking-tight opacity-80">{t("common.workspace_settings.theme_desc")}</p></div>
+              <div className="p-8 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-[2rem] shadow-inner"><Typography className="text-[11px] font-bold text-slate-500 dark:text-slate-400 leading-relaxed italic uppercase tracking-tight opacity-80" variant="p">{t("common.workspace_settings.theme_desc")}</Typography></div>
 
               {/* Dark Mode Preference */}
               <DarkModeSelector />

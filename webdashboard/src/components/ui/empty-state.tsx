@@ -1,5 +1,6 @@
 import React, { memo } from "react";
 
+import { Typography } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
 
 // ── Component ──────────────────────────────────────────────────────
@@ -33,13 +34,13 @@ const EmptyState = memo(function EmptyState({
       <div className="w-24 h-24 bg-white dark:bg-slate-900 rounded-full flex items-center justify-center shadow-sm mb-6 border border-slate-100 dark:border-slate-800 text-slate-200 dark:text-slate-700">
         {icon}
       </div>
-      <h3 className="text-xl font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight">
+      <Typography className="text-xl font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight" variant="h3">
         {title}
-      </h3>
+      </Typography>
       {!!description && (
-        <p className="text-slate-500 dark:text-slate-400 text-[11px] font-bold uppercase tracking-widest leading-relaxed max-w-sm mx-auto">
+        <Typography className="text-slate-500 dark:text-slate-400 text-[11px] font-bold uppercase tracking-widest leading-relaxed max-w-sm mx-auto" variant="p">
           {description}
-        </p>
+        </Typography>
       )}
       {!!action && (
         <div className="pt-4 scale-110">

@@ -2,6 +2,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Terminal, User, Calendar, X, RefreshCcw, Power, Database, Trash2, UserPlus, UserMinus } from "lucide-react";
 import React, { useState, useEffect } from "react";
 
+import { Typography } from "@/components/ui/typography";
+
 import { useToast } from "../../components/ui/toast";
 import { useDebug } from "../../context/debug-context";
 import { useConfirm } from "../../hooks/use-confirm";
@@ -89,9 +91,9 @@ function DebugTimeTab({ temporaryDate, setTemporaryDate, setMockDate }: DebugTim
             Apply
           </button>
         </div>
-        <p className="text-[9px] text-slate-500 dark:text-slate-400 italic mt-2">
+        <Typography className="text-[9px] text-slate-500 dark:text-slate-400 italic mt-2" variant="p">
           Note: Mock date affects payroll segments and policy resolution.
-        </p>
+        </Typography>
       </div>
     </div>
   );

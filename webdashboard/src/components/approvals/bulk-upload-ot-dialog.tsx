@@ -3,6 +3,7 @@ import { X, Upload, Download, FileText, AlertCircle, CheckCircle2, XCircle } fro
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import { Typography } from "@/components/ui/typography";
 import { useBulkUploadPaperOt } from "@/hooks/use-attendance";
 import { useConfirm } from "@/hooks/use-confirm";
 
@@ -49,10 +50,10 @@ function FileUploadZone({
       <div className="border-2 border-dashed rounded-xl p-8 text-center border-slate-200 dark:border-slate-700">
         <div className="space-y-3">
           <FileText className="w-12 h-12 text-primary-600 dark:text-primary-400 mx-auto" />
-          <p className="text-sm font-bold text-slate-700 dark:text-slate-200">{selectedFile.name}</p>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
+          <Typography className="text-sm font-bold text-slate-700 dark:text-slate-200" variant="p">{selectedFile.name}</Typography>
+          <Typography className="text-xs text-slate-500 dark:text-slate-400" variant="p">
             {(selectedFile.size / 1024).toFixed(2)} KB
-          </p>
+          </Typography>
           <button
             className="text-xs text-rose-600 dark:text-rose-300 hover:underline"
             onClick={(e) => {
@@ -79,12 +80,12 @@ function FileUploadZone({
       onDrop={onDrop}
     >
       <Upload className="w-12 h-12 text-slate-400 dark:text-slate-500 mx-auto mb-3" />
-      <p className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-1">
+      <Typography className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-1" variant="p">
         {t("approvals.bulk_upload.drag_drop")}
-      </p>
-      <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
+      </Typography>
+      <Typography className="text-xs text-slate-500 dark:text-slate-400 mb-4" variant="p">
         {t("approvals.bulk_upload.or_click")}
-      </p>
+      </Typography>
       <input
         accept=".csv"
         className="hidden"
@@ -110,29 +111,29 @@ interface UploadSummaryProps {
 function UploadSummary({ t, uploadResult }: UploadSummaryProps) {
   return (
     <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-4 space-y-2">
-      <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wide">
+      <Typography className="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wide" variant="h3">
         {t("approvals.bulk_upload.result_summary")}
-      </h3>
+      </Typography>
       <div className="grid grid-cols-3 gap-3 text-center">
         <div className="bg-white dark:bg-slate-900 rounded-lg p-3 border border-slate-100 dark:border-slate-800">
-          <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
+          <Typography className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1" variant="p">
             {t("approvals.bulk_upload.total")}
-          </p>
-          <p className="text-2xl font-bold text-slate-700 dark:text-slate-200">{uploadResult.total_rows}</p>
+          </Typography>
+          <Typography className="text-2xl font-bold text-slate-700 dark:text-slate-200" variant="p">{uploadResult.total_rows}</Typography>
         </div>
         <div className="bg-emerald-50 dark:bg-emerald-950 rounded-lg p-3 border border-emerald-200 dark:border-emerald-800">
-          <p className="text-xs text-emerald-600 dark:text-emerald-300 uppercase tracking-wider mb-1 flex items-center justify-center gap-1">
+          <Typography className="text-xs text-emerald-600 dark:text-emerald-300 uppercase tracking-wider mb-1 flex items-center justify-center gap-1" variant="p">
             <CheckCircle2 className="w-3 h-3" />
             {t("approvals.bulk_upload.success")}
-          </p>
-          <p className="text-2xl font-bold text-emerald-700 dark:text-emerald-300">{uploadResult.success_count}</p>
+          </Typography>
+          <Typography className="text-2xl font-bold text-emerald-700 dark:text-emerald-300" variant="p">{uploadResult.success_count}</Typography>
         </div>
         <div className="bg-rose-50 dark:bg-rose-950 rounded-lg p-3 border border-rose-200">
-          <p className="text-xs text-rose-600 dark:text-rose-300 uppercase tracking-wider mb-1 flex items-center justify-center gap-1">
+          <Typography className="text-xs text-rose-600 dark:text-rose-300 uppercase tracking-wider mb-1 flex items-center justify-center gap-1" variant="p">
             <XCircle className="w-3 h-3" />
             {t("approvals.bulk_upload.failed")}
-          </p>
-          <p className="text-2xl font-bold text-rose-700 dark:text-rose-300">{uploadResult.failed_count}</p>
+          </Typography>
+          <Typography className="text-2xl font-bold text-rose-700 dark:text-rose-300" variant="p">{uploadResult.failed_count}</Typography>
         </div>
       </div>
     </div>
@@ -151,9 +152,9 @@ function ErrorDetailsTable({ onDownloadErrorReport, t, uploadResult }: ErrorDeta
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wide">
+        <Typography className="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wide" variant="h3">
           {t("approvals.bulk_upload.error_details")}
-        </h3>
+        </Typography>
         <button
           className="px-4 py-2 rounded-xl bg-rose-100 dark:bg-rose-900 hover:bg-rose-200 text-rose-700 dark:text-rose-300 text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2"
           onClick={onDownloadErrorReport}
@@ -244,10 +245,10 @@ function SuccessMessage({ count, t }: SuccessMessageProps) {
   return (
     <div className="flex items-center gap-3 bg-emerald-50 dark:bg-emerald-950 border border-emerald-200 dark:border-emerald-800 rounded-xl p-4">
       <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-300 flex-shrink-0" />
-      <p className="text-xs font-bold text-emerald-700 dark:text-emerald-300 uppercase tracking-wide">
+      <Typography className="text-xs font-bold text-emerald-700 dark:text-emerald-300 uppercase tracking-wide" variant="p">
         {t("approvals.bulk_upload.success_message", { count }) ||
           `${count.toString()} OT claims entered successfully`}
-      </p>
+      </Typography>
     </div>
   );
 }
@@ -378,7 +379,7 @@ function BulkUploadDialogContent({
         {!!error && (
           <div className="flex items-center gap-3 bg-rose-50 dark:bg-rose-950 border border-rose-200 rounded-xl p-4">
             <AlertCircle className="w-5 h-5 text-rose-600 dark:text-rose-300 flex-shrink-0" />
-            <p className="text-xs font-bold text-rose-600 dark:text-rose-300 uppercase tracking-wide">{error}</p>
+            <Typography className="text-xs font-bold text-rose-600 dark:text-rose-300 uppercase tracking-wide" variant="p">{error}</Typography>
           </div>
         )}
         {!!uploadResult && (

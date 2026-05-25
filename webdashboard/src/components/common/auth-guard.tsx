@@ -2,6 +2,7 @@ import { Navigate, Outlet, useLocation } from "@tanstack/react-router";
 import React, { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
+import { Typography } from "@/components/ui/typography";
 import { useProfile } from "@/hooks/use-profile";
 import { getCurrentUserId, clearAuthSession } from "@/lib/api";
 import { ROUTES } from "@/lib/routes";
@@ -31,7 +32,7 @@ export default function AuthGuard() {
       <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-800">
         <div className="flex flex-col items-center gap-4">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-          <p className="text-slate-500 dark:text-slate-400 text-sm">{t("auth.checking_security")}</p>
+          <Typography className="text-slate-500 dark:text-slate-400 text-sm" variant="p">{t("auth.checking_security")}</Typography>
         </div>
       </div>
     );

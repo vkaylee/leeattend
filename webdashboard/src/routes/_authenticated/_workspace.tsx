@@ -2,6 +2,7 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 import React from "react";
 
 import MainLayout from "@/components/layout/main-layout";
+import { Typography } from "@/components/ui/typography";
 import { workspaceKeys } from "@/hooks/use-workspace";
 import { fetchWorkspaces, getCurrentWorkspaceId, setCurrentWorkspaceId } from "@/lib/api";
 
@@ -10,7 +11,7 @@ function WorkspacePendingComponent() {
     <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-800">
       <div className="flex flex-col items-center gap-4">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
-        <p className="text-slate-500 dark:text-slate-400 text-sm">Loading workspace...</p>
+        <Typography className="text-slate-500 dark:text-slate-400 text-sm" variant="p">Loading workspace...</Typography>
       </div>
     </div>
   );

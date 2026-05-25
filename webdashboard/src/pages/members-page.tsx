@@ -6,6 +6,7 @@ import PermissionGate from "@/components/common/permission-gate";
 import InviteMemberDialog from "@/components/members/invite-member-dialog";
 import MemberTable from "@/components/members/member-table";
 import Button from "@/components/ui/button";
+import { Typography } from "@/components/ui/typography";
 
 export default function MembersPage() {
   const { t } = useTranslation();
@@ -19,12 +20,12 @@ export default function MembersPage() {
             <Users size={32} />
           </div>
           <div>
-            <h1 className="text-4xl font-bold text-slate-700 dark:text-slate-200 tracking-tighter uppercase leading-none">
+            <Typography className="text-4xl font-bold text-slate-700 dark:text-slate-200 tracking-tighter uppercase leading-none" variant="h1">
               {t("members.title")}
-            </h1>
-            <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] mt-2 opacity-60">
+            </Typography>
+            <Typography className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] mt-2 opacity-60" variant="p">
               {t("members.subtitle")}
-            </p>
+            </Typography>
           </div>
         </div>
 

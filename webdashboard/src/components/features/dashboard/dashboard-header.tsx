@@ -3,6 +3,7 @@ import { Users, Cpu, Settings2 } from "lucide-react";
 import { type TFunction } from "i18next";
 
 import DashboardViewTabs from "@/components/features/dashboard/dashboard-view-tabs";
+import { Typography } from "@/components/ui/typography";
 import { type DashboardView } from "@/hooks/use-dashboard-layout";
 import { cn } from "@/lib/utils";
 
@@ -20,8 +21,8 @@ export function DashboardHeader({ t, showSystemTab, setShowSystemTab, activeView
     <header className="flex flex-col gap-6 px-2">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="space-y-1">
-          <h1 className="text-5xl font-bold text-slate-700 dark:text-slate-200 tracking-tighter uppercase leading-normal pt-2" data-testid="dashboard-title">{t("dashboard.title")}</h1>
-          <p className="text-slate-500 dark:text-slate-400 text-lg font-bold uppercase tracking-[0.25em] opacity-60">{t("dashboard.welcome")}</p>
+          <Typography className="text-5xl font-bold text-slate-700 dark:text-slate-200 tracking-tighter uppercase leading-normal pt-2" data-testid="dashboard-title" variant="h1">{t("dashboard.title")}</Typography>
+          <Typography className="text-slate-500 dark:text-slate-400 text-lg font-bold uppercase tracking-[0.25em] opacity-60" variant="p">{t("dashboard.welcome")}</Typography>
         </div>
         <div className="flex bg-slate-100 dark:bg-slate-700/50 p-1.5 rounded-[22px] w-fit border border-slate-200 dark:border-slate-700/50 shadow-inner">
           <button

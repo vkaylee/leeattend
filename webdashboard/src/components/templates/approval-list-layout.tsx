@@ -2,6 +2,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 
 import { ErrorBoundary } from "@/components/common/error-boundary";
+import { Typography } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
 
 export interface TabConfig {
@@ -94,12 +95,12 @@ export default function ApprovalListLayout({
       <div className="space-y-10 animate-in fade-in duration-700 pb-20">
       <div className="flex flex-col md:flex-row justify-between items-center gap-8 px-2">
         <div className="space-y-1">
-          <h1 className="text-5xl font-bold tracking-tighter text-primary-700 dark:text-primary-300 uppercase leading-none">
+          <Typography className="text-5xl font-bold tracking-tighter text-primary-700 dark:text-primary-300 uppercase leading-none" variant="h1">
             {title}
-          </h1>
-          <p className="text-[10px] font-bold text-primary-400 uppercase tracking-[0.25em] opacity-60">
+          </Typography>
+          <Typography className="text-[10px] font-bold text-primary-400 uppercase tracking-[0.25em] opacity-60" variant="p">
             {subtitle}
-          </p>
+          </Typography>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
           {headerActions}

@@ -1,6 +1,7 @@
 import { Loader2, Info } from "lucide-react";
 import React from "react";
 
+import { Typography } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
 
 interface HistoryItem {
@@ -37,7 +38,7 @@ export function HistoryTable({ history, isLoading, formatDate, t }: HistoryTable
     return (
       <div className="py-20 text-center border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-[2.5rem] bg-slate-50 dark:bg-slate-800/30 flex flex-col items-center">
         <Info className="text-slate-200 dark:text-slate-700 mb-4" size={32} />
-        <p className="text-[10px] font-bold text-slate-300 dark:text-slate-600 uppercase tracking-widest">{t("leave_balances.history.no_history")}</p>
+        <Typography className="text-[10px] font-bold text-slate-300 dark:text-slate-600 uppercase tracking-widest" variant="p">{t("leave_balances.history.no_history")}</Typography>
       </div>
     );
   }

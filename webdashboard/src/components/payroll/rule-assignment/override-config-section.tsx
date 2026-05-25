@@ -2,6 +2,7 @@ import { Sliders } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
+import { Typography } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
 
 interface OverrideConfigSectionProps {
@@ -44,16 +45,16 @@ function OverrideConfigToggle({
         type="checkbox"
       />
       <div>
-        <p className="font-bold text-sm text-slate-700 dark:text-slate-200 uppercase tracking-tight flex items-center gap-2">
+        <Typography className="font-bold text-sm text-slate-700 dark:text-slate-200 uppercase tracking-tight flex items-center gap-2" variant="p">
           <Sliders className="opacity-50" size={14} />{" "}
           {t("payroll.override_config", "Override Default Config")}
-        </p>
-        <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-1 opacity-70">
+        </Typography>
+        <Typography className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-1 opacity-70" variant="p">
           {t(
             "payroll.override_config_desc",
             "Apply a different rate or amount for this specific assignment"
           )}
-        </p>
+        </Typography>
       </div>
     </label>
     </>

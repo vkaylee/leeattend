@@ -4,6 +4,7 @@ import { Plus, Calendar, History, Save, Calculator, AlertCircle, CheckCircle2 } 
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import { Typography } from "@/components/ui/typography";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { ConfigRecord } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
@@ -50,7 +51,7 @@ function TemporalConfigAddForm({
     <div className="bg-white dark:bg-slate-900 border-2 border-primary-100 dark:border-primary-800 rounded-[2.5rem] p-8 shadow-xl shadow-primary-50/50 animate-in slide-in-from-top-4 duration-500">
       <div className="flex items-center gap-3 mb-8 text-primary-700 dark:text-primary-300">
         <div className="w-8 h-8 rounded-xl bg-primary-50 dark:bg-primary-950 flex items-center justify-center shadow-inner"><Plus size={16} /></div>
-        <h4 className="text-[10px] font-bold uppercase tracking-[0.2em]">{t("payroll.settings.add_version")}</h4>
+        <Typography className="text-[10px] font-bold uppercase tracking-[0.2em]" variant="h4">{t("payroll.settings.add_version")}</Typography>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
@@ -71,18 +72,18 @@ function TemporalConfigAddForm({
         <div className="space-y-3">
           <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("payroll.settings.max_ot_hours_per_day")}</label>
           <input className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-mono" onChange={e => { setNewMaxOtDay(e.target.value); }} placeholder={t("payroll.settings.no_limit") || ""} step="0.5" type="number" value={newMaxOtDay} />
-          <p className="text-[9px] text-slate-400 ml-1">{t("payroll.settings.ot_empty_hint")}</p>
+          <Typography className="text-[9px] text-slate-400 ml-1" variant="p">{t("payroll.settings.ot_empty_hint")}</Typography>
         </div>
         <div className="space-y-3">
           <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("payroll.settings.max_ot_hours_per_month")}</label>
           <input className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-mono" onChange={e => { setNewMaxOtMonth(e.target.value); }} placeholder={t("payroll.settings.no_limit") || ""} step="0.5" type="number" value={newMaxOtMonth} />
-          <p className="text-[9px] text-slate-400 ml-1">{t("payroll.settings.ot_empty_hint")}</p>
+          <Typography className="text-[9px] text-slate-400 ml-1" variant="p">{t("payroll.settings.ot_empty_hint")}</Typography>
         </div>
       </div>
 
       <div className="p-6 bg-amber-50 dark:bg-amber-950/50 border border-amber-100 dark:border-amber-800 rounded-[1.5rem] flex gap-4 mb-8 shadow-inner">
         <AlertCircle className="w-6 h-6 text-amber-500 shrink-0" />
-        <p className="text-[10px] text-amber-800 leading-relaxed font-bold uppercase tracking-tight opacity-80">{t("payroll.settings.date_warning")}</p>
+        <Typography className="text-[10px] text-amber-800 leading-relaxed font-bold uppercase tracking-tight opacity-80" variant="p">{t("payroll.settings.date_warning")}</Typography>
       </div>
 
       <div className="flex justify-end gap-4">
@@ -213,8 +214,8 @@ function TemporalConfigHeader({ title, t, isAdding, setIsAdding }: { isAdding: b
       <div className="flex items-center gap-4">
         <div className="w-10 h-10 rounded-2xl bg-primary-50 dark:bg-primary-950 flex items-center justify-center text-primary-600 dark:text-primary-400 shadow-sm border border-primary-100 dark:border-primary-800/50"><Calculator size={20} /></div>
         <div>
-          <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 tracking-tight uppercase">{title}</h3>
-          <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-0.5">{t("payroll.settings.policy_desc")}</p>
+          <Typography className="text-lg font-bold text-slate-800 dark:text-slate-100 tracking-tight uppercase" variant="h3">{title}</Typography>
+          <Typography className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-0.5" variant="p">{t("payroll.settings.policy_desc")}</Typography>
         </div>
       </div>
       {!isAdding && (

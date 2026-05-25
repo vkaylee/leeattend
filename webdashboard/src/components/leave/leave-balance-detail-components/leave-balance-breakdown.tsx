@@ -2,6 +2,7 @@ import { TrendingUp } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
+import { Typography } from "@/components/ui/typography";
 import { WorkspaceLeaveBalance } from "@/lib/api";
 
 export function LeaveBalanceBreakdown({ balance }: { balance: WorkspaceLeaveBalance }) {
@@ -10,9 +11,9 @@ export function LeaveBalanceBreakdown({ balance }: { balance: WorkspaceLeaveBala
     <div className="space-y-4">
       <div className="flex items-center gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
         <TrendingUp className="w-5 h-5 text-slate-600 dark:text-slate-300" />
-        <h3 className="text-sm font-bold text-slate-600 dark:text-slate-300 uppercase tracking-[0.15em]">
+        <Typography className="text-sm font-bold text-slate-600 dark:text-slate-300 uppercase tracking-[0.15em]" variant="h3">
           {t("leave_balances.detail.breakdown", "Balance Breakdown")}
-        </h3>
+        </Typography>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

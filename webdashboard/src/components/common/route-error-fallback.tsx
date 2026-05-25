@@ -3,6 +3,7 @@ import { AlertTriangle } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
+import { Typography } from "@/components/ui/typography";
 
 export function RouteErrorFallback({ error }: { error: Error }) {
   const router = useRouter();
@@ -13,12 +14,12 @@ export function RouteErrorFallback({ error }: { error: Error }) {
       <div className="h-12 w-12 rounded-full bg-destructive/10 flex items-center justify-center mb-4">
         <AlertTriangle className="h-6 w-6 text-destructive" />
       </div>
-      <h2 className="text-lg font-semibold text-destructive mb-2">
+      <Typography className="text-lg font-semibold text-destructive mb-2" variant="h2">
         {t("common.error_occurred", "An error occurred")}
-      </h2>
-      <p className="text-sm text-muted-foreground mb-6 max-w-md">
+      </Typography>
+      <Typography className="text-sm text-muted-foreground mb-6 max-w-md" variant="p">
         {error.message || t("common.system_connection_error", "System connection error")}
-      </p>
+      </Typography>
       <div className="flex gap-4">
         <Button
           onClick={() => {

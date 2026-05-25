@@ -3,6 +3,7 @@ import { CalendarRange, Plus } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
+import { Typography } from "@/components/ui/typography";
 import { ROUTES } from "@/lib/routes";
 
 interface ShiftsHeaderProps {
@@ -15,15 +16,15 @@ export function ShiftsHeader({ onCreateClick }: ShiftsHeaderProps) {
   return (
     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
       <div>
-        <h1
-          className="text-3xl font-bold text-slate-700 dark:text-slate-200 tracking-tight"
+        <Typography className="text-3xl font-bold text-slate-700 dark:text-slate-200 tracking-tight"
           data-testid="shifts-title"
+          variant="h1"
         >
           {t("shifts.title")}
-        </h1>
-        <p className="text-slate-500 dark:text-slate-400 mt-1">
+        </Typography>
+        <Typography className="text-slate-500 dark:text-slate-400 mt-1" variant="p">
           {t("shifts.subtitle")}
-        </p>
+        </Typography>
       </div>
       <div className="flex items-center gap-3">
         <Link

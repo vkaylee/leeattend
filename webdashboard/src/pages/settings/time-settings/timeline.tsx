@@ -3,6 +3,7 @@ import React from "react";
 
 import { TFunction } from "i18next";
 
+import { Typography } from "@/components/ui/typography";
 import { AttendancePolicyVersion } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
@@ -41,9 +42,9 @@ function TimelineHeader({ count, t }: { count: number; t: TFunction }) {
     <div className="flex items-center justify-between border-b border-slate-50 dark:border-slate-800 pb-6">
       <div className="flex items-center gap-3">
         <History className="w-6 h-6 text-primary-500" />
-        <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 tracking-tight uppercase">
+        <Typography className="text-xl font-bold text-slate-800 dark:text-slate-100 tracking-tight uppercase" variant="h2">
           {t("common.workspace_settings.attendance_config")}
-        </h2>
+        </Typography>
       </div>
       <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
         {count} {count === 1 ? "VERSION" : "VERSIONS"}
@@ -58,12 +59,12 @@ function EmptyTimeline({ t }: { t: TFunction }) {
       <div className="w-20 h-20 bg-white dark:bg-slate-900 rounded-full flex items-center justify-center shadow-sm mb-5 border border-slate-100 dark:border-slate-800">
         <Calculator className="text-slate-200 dark:text-slate-700" size={36} />
       </div>
-      <h3 className="text-lg font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight">
+      <Typography className="text-lg font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight" variant="h3">
         {t("common.workspace_settings.no_versions") || "No configuration yet"}
-      </h3>
-      <p className="text-slate-500 dark:text-slate-400 text-xs font-bold uppercase tracking-widest mt-1 opacity-50 italic">
+      </Typography>
+      <Typography className="text-slate-500 dark:text-slate-400 text-xs font-bold uppercase tracking-widest mt-1 opacity-50 italic" variant="p">
         {t("common.workspace_settings.no_versions_desc") || "Create the first version to get started"}
-      </p>
+      </Typography>
     </div>
   );
 }
@@ -109,18 +110,18 @@ function TimelineItem({ isCurrent, t, version }: TimelineItemProps) {
                 </span>
               ) : null}
             </div>
-            <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
+            <Typography className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest" variant="p">
               {formatDate(version.valid_from)}
               {version.valid_to ? ` → ${formatDate(version.valid_to)}` : " → Present"}
-            </p>
+            </Typography>
           </div>
         </div>
       </div>
 
       <TimelineItemGrid isCurrent={isCurrent} t={t} version={version} />
-      <p className="mt-3 text-[9px] font-medium text-slate-400 dark:text-slate-500 italic">
+      <Typography className="mt-3 text-[9px] font-medium text-slate-400 dark:text-slate-500 italic" variant="p">
         Created {formatDate(version.created_at)}
-      </p>
+      </Typography>
     </div>
   );
 }
@@ -137,44 +138,44 @@ function TimelineItemGrid({
   return (
     <div className="mt-4 grid grid-cols-2 gap-4">
       <div className="p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800">
-        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">
+        <Typography className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1" variant="p">
           {t("common.workspace_settings.work_unit")}
-        </p>
-        <p
-          className={cn(
+        </Typography>
+        <Typography className={cn(
             "text-lg font-bold tracking-tight",
             isCurrent ? "text-primary-600 dark:text-primary-400" : "text-slate-600 dark:text-slate-300"
           )}
+          variant="p"
         >
           {workUnitLabel(version.work_unit_minutes, t)}
-        </p>
+        </Typography>
       </div>
       <div className="p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800">
-        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">
+        <Typography className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1" variant="p">
           {t("common.workspace_settings.rounding_policy")}
-        </p>
-        <p
-          className={cn(
+        </Typography>
+        <Typography className={cn(
             "text-lg font-bold tracking-tight",
             isCurrent ? "text-primary-600 dark:text-primary-400" : "text-slate-600 dark:text-slate-300"
           )}
+          variant="p"
         >
           {roundingLabel(version.rounding_policy, t)}
-        </p>
+        </Typography>
       </div>
       <div className="col-span-2 p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800 flex items-center justify-between">
         <div>
-          <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">
+          <Typography className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1" variant="p">
             {t("common.workspace_settings.early_arrival_strategy")}
-          </p>
-          <p
-            className={cn(
+          </Typography>
+          <Typography className={cn(
               "text-sm font-bold tracking-tight",
               isCurrent ? "text-amber-600 dark:text-amber-400" : "text-slate-600 dark:text-slate-300"
             )}
+            variant="p"
           >
             {t(`common.workspace_settings.early_arrival_options.${version.early_arrival_strategy}`)}
-          </p>
+          </Typography>
         </div>
         <ShieldAlert
           className={cn("w-5 h-5", isCurrent ? "text-amber-500/50" : "text-slate-400/50")}

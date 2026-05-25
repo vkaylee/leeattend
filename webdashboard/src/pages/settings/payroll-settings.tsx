@@ -8,6 +8,7 @@ import PayrollRulesManager from "@/components/payroll/payroll-rules-manager";
 import PayrollSettingsSection from "@/components/payroll/payroll-settings-section";
 import SalaryBaseGroupManager from "@/components/payroll/salary-base-group-manager";
 import SalaryComponentManager from "@/components/payroll/salary-component-manager";
+import { Typography } from "@/components/ui/typography";
 import { getCurrentWorkspaceId } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
@@ -80,8 +81,8 @@ export default function PayrollSettings() {
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 rounded-[1.25rem] bg-primary-50 dark:bg-primary-950 flex items-center justify-center text-primary-600 dark:text-primary-400 shadow-sm border border-primary-100 dark:border-primary-800/50"><Coins size={24} /></div>
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-slate-700 dark:text-slate-200 leading-tight">{t("common.settings.categories.payroll")}</h1>
-            <p className="text-slate-500 dark:text-slate-400 mt-1 font-medium">{t("common.settings.categories.payroll_desc")}</p>
+            <Typography className="text-3xl font-bold tracking-tight text-slate-700 dark:text-slate-200 leading-tight" variant="h1">{t("common.settings.categories.payroll")}</Typography>
+            <Typography className="text-slate-500 dark:text-slate-400 mt-1 font-medium" variant="p">{t("common.settings.categories.payroll_desc")}</Typography>
           </div>
         </div>
       </div>

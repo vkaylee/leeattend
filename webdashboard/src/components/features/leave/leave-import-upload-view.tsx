@@ -3,6 +3,7 @@ import type { TFunction, i18n as I18nType } from "i18next";
 import { Upload, FileText, Loader2, AlertCircle, Download } from "lucide-react";
 import React from "react";
 
+import { Typography } from "@/components/ui/typography";
 import { downloadLeaveImportTemplate } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
@@ -26,9 +27,9 @@ function RequirementsPanel({ t }: { t: TFunction }) {
         <AlertCircle size={18} />
       </div>
       <div className="text-xs text-primary-800 dark:text-primary-200 leading-relaxed font-medium pt-0.5">
-        <p className="font-bold uppercase tracking-[0.2em] mb-2 text-slate-700 dark:text-slate-300">
+        <Typography className="font-bold uppercase tracking-[0.2em] mb-2 text-slate-700 dark:text-slate-300" variant="p">
           {t("leave_import.requirements_title", "Yêu cầu file")}
-        </p>
+        </Typography>
         <ul className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-1.5 text-slate-600 dark:text-slate-400 font-bold uppercase tracking-tight">
           <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-primary-500 dark:bg-primary-400 rounded-full" /> {t("leave_import.req_col_a", "Cột A: Mã nhân viên")}</li>
           <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-primary-500 dark:bg-primary-400 rounded-full" /> {t("leave_import.req_col_b", "Cột B: Mã loại nghỉ")}</li>
@@ -74,10 +75,10 @@ function FileDropZone({ file, setFile, t }: { file: File | null; setFile: (file:
           <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-900 rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-lg shadow-emerald-200/50 dark:shadow-emerald-900/30 rotate-3 group-hover:rotate-0 transition-transform">
             <FileText className="text-emerald-600 dark:text-emerald-300" size={28} />
           </div>
-          <p className="font-bold text-slate-800 dark:text-slate-200 mb-1 text-lg tracking-tight uppercase">{file.name}</p>
-          <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
+          <Typography className="font-bold text-slate-800 dark:text-slate-200 mb-1 text-lg tracking-tight uppercase" variant="p">{file.name}</Typography>
+          <Typography className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest" variant="p">
             {(file.size / 1024).toFixed(1)} KB — {t("leave_import.ready", "SẴN SÀNG UPLOAD")}
-          </p>
+          </Typography>
           <button
             className="mt-5 text-[10px] font-bold text-rose-600 dark:text-rose-400 uppercase tracking-widest hover:text-rose-700 dark:hover:text-rose-300 transition-all bg-white dark:bg-slate-900 px-5 py-2 rounded-lg border border-rose-200 dark:border-rose-800 shadow-sm hover:shadow-md active:scale-90"
             onClick={(e) => { e.stopPropagation(); setFile(null); }}
@@ -90,12 +91,12 @@ function FileDropZone({ file, setFile, t }: { file: File | null; setFile: (file:
           <div className="w-16 h-16 bg-white dark:bg-slate-900 rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-lg border border-slate-200 dark:border-slate-700 -rotate-3 group-hover:rotate-0 transition-all">
             <Upload className="text-slate-400 dark:text-slate-500" size={28} />
           </div>
-          <p className="font-bold text-slate-800 dark:text-slate-200 mb-1 text-lg tracking-tight uppercase">
+          <Typography className="font-bold text-slate-800 dark:text-slate-200 mb-1 text-lg tracking-tight uppercase" variant="p">
             {t("leave_import.drop_prompt", "Nhấn để chọn file Excel")}
-          </p>
-          <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
+          </Typography>
+          <Typography className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest" variant="p">
             {t("leave_import.drop_hint", "Hỗ trợ .xlsx, .xls, .csv")}
-          </p>
+          </Typography>
         </div>
       )}
     </div>

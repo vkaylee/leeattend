@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
 import { LABEL_BASE } from "@/components/ui/form-field";
+import { Typography } from "@/components/ui/typography";
 import {
   register,
   setAccessToken,
@@ -54,10 +55,10 @@ export default function RegisterPage() {
           <div className="bg-slate-900 w-20 h-20 rounded-[2rem] flex items-center justify-center mx-auto mb-8 shadow-2xl shadow-slate-400 dark:shadow-black/40 transform hover:rotate-6 hover:scale-110 transition-all duration-700 group/logo">
              <span className="text-white text-4xl font-bold italic tracking-tighter group-hover:text-primary-400 transition-colors">L</span>
           </div>
-          <h2 className="text-4xl font-bold text-slate-700 dark:text-slate-200 tracking-tighter uppercase leading-normal pt-2">{t("auth.register_title")}</h2>
-          <p className="mt-4 text-slate-500 dark:text-slate-400 font-bold uppercase tracking-[0.3em] text-[9px] opacity-60 leading-relaxed">
+          <Typography className="text-4xl font-bold text-slate-700 dark:text-slate-200 tracking-tighter uppercase leading-normal pt-2" variant="h2">{t("auth.register_title")}</Typography>
+          <Typography className="mt-4 text-slate-500 dark:text-slate-400 font-bold uppercase tracking-[0.3em] text-[9px] opacity-60 leading-relaxed" variant="p">
             {t("auth.slogan").toUpperCase()}
-          </p>
+          </Typography>
         </div>
 
         {error ? (

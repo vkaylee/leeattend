@@ -1,6 +1,7 @@
 import { Clock, Milestone, Pencil, Trash2 } from "lucide-react";
 import React from "react";
 
+import { Typography } from "@/components/ui/typography";
 import { LeavePolicy } from "@/lib/api/types";
 
 interface PolicyCardProps {
@@ -36,7 +37,7 @@ export function PolicyCard({ policy, typeName, bonusCount, onEdit, onDelete }: P
             </button>
           </div>
         </div>
-        <h3 className="mt-5 text-lg font-bold text-slate-800 dark:text-slate-100 tracking-tight leading-none uppercase">{policy.name}</h3>
+        <Typography className="mt-5 text-lg font-bold text-slate-800 dark:text-slate-100 tracking-tight leading-none uppercase" variant="h3">{policy.name}</Typography>
         
         <div className="mt-6 p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-800 space-y-3">
           <div className="flex items-center justify-between">

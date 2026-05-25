@@ -2,6 +2,7 @@ import { Shield, Plus, Users } from "lucide-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import { Typography } from "@/components/ui/typography";
 import { PayrollRuleAssignment } from "@/lib/api/types";
 
 import { AssignmentFormModal } from "./rule-assignment/assignment-form-modal";
@@ -47,13 +48,13 @@ export default function RuleAssignmentManager({
             <Shield size={16} />
           </div>
           <div>
-            <h3 className="font-bold text-sm uppercase tracking-widest text-slate-700 dark:text-slate-200 leading-none">
+            <Typography className="font-bold text-sm uppercase tracking-widest text-slate-700 dark:text-slate-200 leading-none" variant="h3">
               {t("payroll_rules.rule_assignments", "Rule Assignments")}
-            </h3>
-            <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-1 opacity-70">
+            </Typography>
+            <Typography className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-1 opacity-70" variant="p">
               {totalCount} active{" "}
               {totalCount === 1 ? "assignment" : "assignments"} across all scopes
-            </p>
+            </Typography>
           </div>
         </div>
         <button
@@ -77,12 +78,12 @@ export default function RuleAssignmentManager({
           <div className="w-14 h-14 bg-white dark:bg-slate-900 rounded-2xl flex items-center justify-center shadow-sm border border-slate-100 dark:border-slate-800">
             <Users className="text-slate-200 dark:text-slate-700" size={24} />
           </div>
-          <p className="text-[10px] font-bold text-slate-300 dark:text-slate-600 uppercase tracking-widest">
+          <Typography className="text-[10px] font-bold text-slate-300 dark:text-slate-600 uppercase tracking-widest" variant="p">
             {t(
               "payroll.no_assignments_yet",
               "No assignments yet — click 'Assign' to get started"
             )}
-          </p>
+          </Typography>
         </div>
       ) : null}
 

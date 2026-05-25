@@ -5,6 +5,7 @@ import React from "react";
 
 import type { Department, Employee, WorkingPattern } from "@/lib/api";
 
+import { Typography } from "@/components/ui/typography";
 import { useConfirm } from "@/hooks/use-confirm";
 
 export interface DepartmentCardProps {
@@ -42,8 +43,8 @@ export function DepartmentCard({ dept, employees, patterns, onEdit, onConfig, de
           <Building2 size={32} />
         </div>
         
-        <h2 className="text-2xl font-bold text-slate-700 dark:text-slate-200 tracking-tight mb-3 uppercase leading-none">{dept.name}</h2>
-        <p className="text-slate-500 dark:text-slate-400 text-xs mb-10 line-clamp-2 min-h-[3rem] font-bold uppercase tracking-tight opacity-60 leading-relaxed italic">{dept.description ?? t("common.no_description")}</p>
+        <Typography className="text-2xl font-bold text-slate-700 dark:text-slate-200 tracking-tight mb-3 uppercase leading-none" variant="h2">{dept.name}</Typography>
+        <Typography className="text-slate-500 dark:text-slate-400 text-xs mb-10 line-clamp-2 min-h-[3rem] font-bold uppercase tracking-tight opacity-60 leading-relaxed italic" variant="p">{dept.description ?? t("common.no_description")}</Typography>
         
         <div className="mt-auto pt-8 border-t border-slate-50 dark:border-slate-800 flex flex-col gap-6">
           <div className="flex items-center gap-5 group/info">

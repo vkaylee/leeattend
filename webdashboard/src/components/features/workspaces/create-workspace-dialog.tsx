@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import Modal from "@/components/ui/modal";
+import { Typography } from "@/components/ui/typography";
 import { useWorkspaces } from "@/hooks/use-workspace";
 
 
@@ -47,7 +48,7 @@ export default function CreateWorkspaceDialog({
         {!!error && (
           <div className="p-4 bg-rose-50 dark:bg-rose-950/30 border border-rose-100 dark:border-rose-800 rounded-2xl flex items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
             <AlertCircle className="text-rose-600 dark:text-rose-300" size={18} />
-            <p className="text-[10px] font-bold text-rose-600 dark:text-rose-300 uppercase tracking-widest">{error}</p>
+            <Typography className="text-[10px] font-bold text-rose-600 dark:text-rose-300 uppercase tracking-widest" variant="p">{error}</Typography>
           </div>
         )}
 
@@ -75,9 +76,9 @@ export default function CreateWorkspaceDialog({
             type="url"
             value={databaseUrl}
           />
-          <p className="text-[9px] text-slate-400 dark:text-slate-500 ml-1 tracking-wide">
+          <Typography className="text-[9px] text-slate-400 dark:text-slate-500 ml-1 tracking-wide" variant="p">
             {t("common.database_url_hint")}
-          </p>
+          </Typography>
         </div>
 
         <div className="pt-2">

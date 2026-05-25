@@ -1,6 +1,7 @@
 import { CheckCircle2, AlertCircle, Calculator, ChevronRight } from "lucide-react";
 import React from "react";
 
+import { Typography } from "@/components/ui/typography";
 import { Employee, Payslip } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 
@@ -112,8 +113,8 @@ export function PayrollSummaryTableRow({
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-700 border border-slate-100 dark:border-slate-800 flex items-center justify-center font-bold text-slate-500 dark:text-slate-400 group-hover:bg-primary-50 dark:group-hover:bg-primary-950 group-hover:text-primary-600 dark:group-hover:text-primary-400 group-hover:border-primary-100 dark:border-primary-800 group-hover:shadow-md transition-all shadow-inner uppercase">{emp.full_name[0]}</div>
           <div>
-            <p className="font-bold text-slate-700 dark:text-slate-200 text-sm tracking-tight uppercase leading-tight">{emp.full_name}</p>
-            <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-1 opacity-70 tracking-tighter font-mono leading-none">{emp.employee_id_number}</p>
+            <Typography className="font-bold text-slate-700 dark:text-slate-200 text-sm tracking-tight uppercase leading-tight" variant="p">{emp.full_name}</Typography>
+            <Typography className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-1 opacity-70 tracking-tighter font-mono leading-none" variant="p">{emp.employee_id_number}</Typography>
           </div>
         </div>
       </td>

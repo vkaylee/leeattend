@@ -147,7 +147,7 @@ impl ImportStrategy for LeaveImportStrategy {
             .map_err(|e| crate::errors::AppError::Internal(format!("Failed to load employees: {e}")))?;
 
         for emp in emps {
-            println!(
+            tracing::info!(
                 "Loaded employee into cache: id_number = '{}'",
                 emp.employee_id_number
             );

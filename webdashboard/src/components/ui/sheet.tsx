@@ -2,6 +2,7 @@ import { X, Menu } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
+import { Typography } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
 
 interface SheetProps {
@@ -68,14 +69,14 @@ function SheetHeader({
         </div>
         <div>
           {title ? (
-            <h2 className="text-xl font-bold text-slate-700 dark:text-slate-200 tracking-tight uppercase">
+            <Typography className="text-xl font-bold text-slate-700 dark:text-slate-200 tracking-tight uppercase" variant="h2">
               {title}
-            </h2>
+            </Typography>
           ) : null}
           {subtitle ? (
-            <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-1 opacity-70">
+            <Typography className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-1 opacity-70" variant="p">
               {subtitle}
-            </p>
+            </Typography>
           ) : null}
         </div>
       </div>

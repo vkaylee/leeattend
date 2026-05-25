@@ -2,6 +2,8 @@ import { Plus, Shield, ShieldAlert, ShieldCheck, ShieldHalf, Trash2, Users } fro
 import React from "react";
 import { useTranslation } from "react-i18next";
 
+import { Typography } from "@/components/ui/typography";
+
 interface Assignee {
   assigned_at: string;
   user_id: string;
@@ -46,9 +48,9 @@ export function SystemRoleCard({ isRevoking, onAssign, onRevoke, role }: SystemR
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200">
+              <Typography className="text-lg font-bold text-slate-800 dark:text-slate-200" variant="h3">
                 {role.name}
-              </h3>
+              </Typography>
               <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400">
                 {t("system_roles.system_label")}
               </span>
@@ -69,14 +71,14 @@ export function SystemRoleCard({ isRevoking, onAssign, onRevoke, role }: SystemR
         </button>
       </div>
 
-      <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-6 flex-1">
+      <Typography className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-6 flex-1" variant="p">
         {role.description ?? t(roleDescriptions[role.name] ?? "system_roles.descriptions.default")}
-      </p>
+      </Typography>
 
       <div className="space-y-3 pt-4 border-t border-slate-100 dark:border-slate-800">
-        <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">{t("system_roles.assigned_users")}</h4>
+        <Typography className="text-xs font-bold text-slate-400 uppercase tracking-wider" variant="h4">{t("system_roles.assigned_users")}</Typography>
         {role.assignees.length === 0 ? (
-          <p className="text-sm text-slate-500 italic">{t("system_roles.no_users")}</p>
+          <Typography className="text-sm text-slate-500 italic" variant="p">{t("system_roles.no_users")}</Typography>
         ) : (
           <div className="space-y-2 max-h-[200px] overflow-y-auto pr-2 custom-scrollbar">
             {role.assignees.map((assignee) => (

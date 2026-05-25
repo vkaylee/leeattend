@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 
 import CreateWorkspaceDialog from "@/components/features/workspaces/create-workspace-dialog";
 import { Combobox } from "@/components/ui/combobox";
+import { Typography } from "@/components/ui/typography";
 import { useWorkspaces } from "@/hooks/use-workspace";
 import {
   Workspace,
@@ -54,7 +55,7 @@ export default function WorkspaceSwitcher() {
     {
       value: "ADD_NEW", label: t("common.create_workspace"),
       icon: (<div className="bg-slate-100 dark:bg-slate-700 p-2 rounded-xl border border-slate-200 dark:border-slate-700 shadow-inner group-hover:bg-emerald-600 group-hover:text-white transition-all"><Plus size={16} /></div>),
-      description: (<p className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-1 opacity-60 italic">{t("common.add_office_branch")}</p>)
+      description: (<Typography className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-1 opacity-60 italic" variant="p">{t("common.add_office_branch")}</Typography>)
     }
   ];
 

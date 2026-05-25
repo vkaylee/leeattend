@@ -15,6 +15,7 @@ import {
     Legend,
 } from "recharts";
 
+import { Typography } from "@/components/ui/typography";
 import { useTurnoverAnalytics } from "@/hooks/use-dashboard";
 
 type TabKey = "tenure" | "source" | "department";
@@ -85,12 +86,12 @@ function ChartHeader({
     return (
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
             <div>
-                <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200">
+                <Typography className="text-lg font-semibold text-slate-800 dark:text-slate-200" variant="h3">
                     {t("dashboard.hr.turnover_title")}
-                </h3>
-                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                </Typography>
+                <Typography className="text-sm text-slate-500 dark:text-slate-400 mt-1" variant="p">
                     {t("dashboard.hr.turnover_subtitle")}
-                </p>
+                </Typography>
             </div>
 
             <div className="flex items-center gap-3">

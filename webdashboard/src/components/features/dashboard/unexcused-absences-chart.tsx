@@ -12,6 +12,7 @@ import {
     ResponsiveContainer,
 } from "recharts";
 
+import { Typography } from "@/components/ui/typography";
 import { useUnexcusedAbsences } from "@/hooks/use-dashboard";
 import { cn } from "@/lib/utils";
 
@@ -49,9 +50,9 @@ function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
 
     return (
         <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-100 dark:border-slate-800 shadow-xl min-w-[200px]">
-            <p className="text-xs font-bold text-slate-700 dark:text-slate-200 mb-2">
+            <Typography className="text-xs font-bold text-slate-700 dark:text-slate-200 mb-2" variant="p">
                 {label}
-            </p>
+            </Typography>
             <div className="space-y-1.5">
                 <TooltipRow color="text-red-500" label={t("dashboard.hr.unexcused")} value={data.unexcused_count ?? 0} />
                 <TooltipRow color="text-orange-500" label={t("dashboard.hr.consecutive_days")} value={data.consecutive_count ?? 0} />
@@ -191,12 +192,12 @@ function ChartHeader({
                     <ShieldAlert size={22} />
                 </div>
                 <div>
-                    <h2 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]">
+                    <Typography className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]" variant="h2">
                         {t("dashboard.hr.unexcused_absences")}
-                    </h2>
-                    <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-0.5">
+                    </Typography>
+                    <Typography className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-0.5" variant="p">
                         {t("dashboard.hr.unexcused_absences_subtitle")}
-                    </p>
+                    </Typography>
                 </div>
             </div>
 
@@ -256,9 +257,9 @@ function ChartEmpty() {
     return (
         <div className="h-[320px] flex flex-col items-center justify-center">
             <ShieldAlert className="text-slate-200 dark:text-slate-700 mb-4" size={48} />
-            <p className="text-[10px] font-bold text-slate-300 dark:text-slate-600 uppercase tracking-widest">
+            <Typography className="text-[10px] font-bold text-slate-300 dark:text-slate-600 uppercase tracking-widest" variant="p">
                 {t("common.no_data")}
-            </p>
+            </Typography>
         </div>
     );
 }

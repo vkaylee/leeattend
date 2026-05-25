@@ -5,6 +5,7 @@ import React from "react";
 
 import type { LeaveImportJob } from "@/lib/api/leaves";
 
+import { Typography } from "@/components/ui/typography";
 import { downloadLeaveImportErrors } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
@@ -29,9 +30,9 @@ function ProcessingState({ importJob, t }: { importJob: LeaveImportJob; t: TFunc
     <>
       <Loader2 className="animate-spin text-blue-500 flex-shrink-0" size={20} />
       <div>
-        <p className="text-sm font-semibold text-blue-700 dark:text-blue-300">
+        <Typography className="text-sm font-semibold text-blue-700 dark:text-blue-300" variant="p">
           {t("leave_requests.upload_processing", "Đang xử lý {{processed}}/{{total}} dòng...").replace('{{processed}}', String(importJob.processed_rows)).replace('{{total}}', String(importJob.total_rows || '?'))}
-        </p>
+        </Typography>
         {importJob.total_rows > 0 && (
           <div className="mt-2 h-2 rounded-full bg-blue-100 dark:bg-blue-900 overflow-hidden w-48">
             <div
@@ -50,9 +51,9 @@ function SuccessState({ importJob, t }: { importJob: LeaveImportJob; t: TFunctio
   return (
     <>
       <CheckCircle2 className="text-emerald-500 flex-shrink-0" size={20} />
-      <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">
+      <Typography className="text-sm font-semibold text-emerald-700 dark:text-emerald-300" variant="p">
         {t("leave_requests.upload_success", "Import thành công {{success}} đơn nghỉ").replace('{{success}}', String(importJob.processed_rows))}
-      </p>
+      </Typography>
     </>
   );
 }
@@ -66,12 +67,12 @@ function PartialSuccessState({ importJob, wsId, t }: { importJob: LeaveImportJob
   return (
     <>
       <AlertTriangle className="text-amber-500 flex-shrink-0" size={20} />
-      <p className="text-sm font-semibold text-amber-700 dark:text-amber-300">
+      <Typography className="text-sm font-semibold text-amber-700 dark:text-amber-300" variant="p">
         {t("leave_requests.upload_partial", "Thành công {{success}}/{{total}}. {{errors}} dòng lỗi.")
           .replace('{{success}}', String(successCount))
           .replace('{{total}}', String(totalCount))
           .replace('{{errors}}', String(errorCount))}
-      </p>
+      </Typography>
       {info?.error_file_path ? (
         <button
           className="ml-2 flex items-center gap-1.5 text-xs font-bold text-amber-600 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-200 underline underline-offset-2"
@@ -89,10 +90,10 @@ function FailedState({ importJob, t }: { importJob: LeaveImportJob; t: TFunction
   return (
     <>
       <XCircle className="text-red-500 flex-shrink-0" size={20} />
-      <p className="text-sm font-semibold text-red-700 dark:text-red-300">
+      <Typography className="text-sm font-semibold text-red-700 dark:text-red-300" variant="p">
         {t("leave_requests.upload_failed", "Import thất bại")}
         {importJob.error_log ? <span className="font-normal ml-2 text-xs opacity-75">— {importJob.error_log.substring(0, 100)}</span> : null}
-      </p>
+      </Typography>
     </>
   );
 }

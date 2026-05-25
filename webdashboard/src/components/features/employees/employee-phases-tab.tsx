@@ -1,5 +1,5 @@
-/* eslint-disable complexity, max-lines-per-function */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+/* eslint-disable complexity, max-lines-per-function */
 import { Plus, Milestone, CheckCircle2, XCircle, Pencil, AlertTriangle  } from "lucide-react";
 import React, { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
@@ -7,6 +7,7 @@ import { useTranslation } from "react-i18next";
 import PermissionGate from "@/components/common/permission-gate";
 import Modal from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
+import { Typography } from "@/components/ui/typography";
 import { fetchEmployeePhases, fetchEmploymentPhases, assignEmployeePhase, updateEmployeePhaseStatus } from "@/lib/api/employees";
 import { EmployeePhase } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
@@ -129,14 +130,14 @@ export default function EmployeePhasesTab({ wsId, employeeId, formatDate }: Prop
     <div className="space-y-6">
       <div className="flex items-center justify-between px-2">
         <div className="max-w-xl">
-          <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100 uppercase tracking-widest flex items-center gap-2">
+          <Typography className="text-sm font-bold text-slate-800 dark:text-slate-100 uppercase tracking-widest flex items-center gap-2" variant="h3">
             Hành trình Phát triển
             <span className="bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded-full text-[10px] normal-case tracking-normal border border-blue-100 dark:border-blue-800/50">Phục vụ Đánh giá</span>
-          </h3>
-          <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 mt-2 leading-relaxed">
+          </Typography>
+          <Typography className="text-[11px] font-medium text-slate-500 dark:text-slate-400 mt-2 leading-relaxed" variant="p">
             Theo dõi các cột mốc trong lộ trình phát triển của nhân sự (Ví dụ: Thử việc, Lên Senior, Thăng chức). 
             Đây cũng là nơi lưu trữ đánh giá hiệu suất khi hoàn thành mỗi cột mốc.
-          </p>
+          </Typography>
         </div>
         <PermissionGate permission="employment_phases:manage">
           <button 
@@ -156,7 +157,7 @@ export default function EmployeePhasesTab({ wsId, employeeId, formatDate }: Prop
         ) : phases?.length === 0 ? (
           <div className="p-10 text-center bg-slate-50 dark:bg-slate-800/30 rounded-[2rem] border border-dashed border-slate-200 dark:border-slate-700">
             <Milestone className="w-10 h-10 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
-            <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Chưa có cột mốc nào trong hành trình</p>
+            <Typography className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest" variant="p">Chưa có cột mốc nào trong hành trình</Typography>
           </div>
         ) : (
           <div className="relative pl-10 space-y-6 before:absolute before:left-[19px] before:top-4 before:bottom-4 before:w-px before:bg-slate-200 dark:before:bg-slate-700">
@@ -176,7 +177,7 @@ export default function EmployeePhasesTab({ wsId, employeeId, formatDate }: Prop
                     <div className="flex justify-between items-start mb-4">
                       <div>
                         <div className="flex items-center gap-2 mb-1">
-                          <h4 className="font-bold text-slate-800 dark:text-slate-100 uppercase tracking-tight">{def?.name ?? "Unknown Phase"}</h4>
+                          <Typography className="font-bold text-slate-800 dark:text-slate-100 uppercase tracking-tight" variant="h4">{def?.name ?? "Unknown Phase"}</Typography>
                           <span className={cn(
                             "text-[8px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full",
                             isCompleted ? "bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400" :
@@ -186,9 +187,9 @@ export default function EmployeePhasesTab({ wsId, employeeId, formatDate }: Prop
                             {phase.status}
                           </span>
                         </div>
-                        <p className="text-[10px] text-slate-500 dark:text-slate-400 font-mono font-bold tracking-widest">
+                        <Typography className="text-[10px] text-slate-500 dark:text-slate-400 font-mono font-bold tracking-widest" variant="p">
                           {formatDate(phase.start_date)} — {formatDate(phase.end_date)}
-                        </p>
+                        </Typography>
                       </div>
                       
                       <PermissionGate permission="employment_phases:manage">
@@ -204,8 +205,8 @@ export default function EmployeePhasesTab({ wsId, employeeId, formatDate }: Prop
 
                     {!!phase.evaluation_notes && (
                       <div className="mt-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-700/50">
-                        <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">Đánh giá</p>
-                        <p className="text-sm text-slate-600 dark:text-slate-300">{phase.evaluation_notes}</p>
+                        <Typography className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1" variant="p">Đánh giá</Typography>
+                        <Typography className="text-sm text-slate-600 dark:text-slate-300" variant="p">{phase.evaluation_notes}</Typography>
                       </div>
                     )}
                   </div>
@@ -287,8 +288,8 @@ export default function EmployeePhasesTab({ wsId, employeeId, formatDate }: Prop
             <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 p-4 rounded-2xl flex gap-3 items-start animate-in fade-in slide-in-from-top-2">
               <AlertTriangle className="text-amber-500 shrink-0 mt-0.5" size={18} />
               <div>
-                <p className="text-[11px] font-bold text-amber-800 dark:text-amber-500 uppercase tracking-widest mb-1">Cảnh báo Mềm</p>
-                <p className="text-xs text-amber-700 dark:text-amber-600 font-medium leading-relaxed">{isOutOfContractBounds} Bạn vẫn có thể lưu lại nếu đây là chủ đích của mình.</p>
+                <Typography className="text-[11px] font-bold text-amber-800 dark:text-amber-500 uppercase tracking-widest mb-1" variant="p">Cảnh báo Mềm</Typography>
+                <Typography className="text-xs text-amber-700 dark:text-amber-600 font-medium leading-relaxed" variant="p">{isOutOfContractBounds} Bạn vẫn có thể lưu lại nếu đây là chủ đích của mình.</Typography>
               </div>
             </div>
           )}

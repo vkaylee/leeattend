@@ -2,6 +2,7 @@ import { Mail, UserPlus, Loader2, AlertCircle } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import { Typography } from "@/components/ui/typography";
 import { useWorkspaceMembers, useWorkspaceRoles } from "@/hooks/use-workspace";
 
 import Modal from "../ui/modal";
@@ -40,7 +41,7 @@ export default function InviteMemberDialog({
         {!!error && (
           <div className="p-4 bg-rose-50 dark:bg-rose-950/30 border border-rose-100 dark:border-rose-800 rounded-2xl flex items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
             <AlertCircle className="text-rose-600 dark:text-rose-300" size={18} />
-            <p className="text-[10px] font-bold text-rose-600 dark:text-rose-300 uppercase tracking-widest">{error}</p>
+            <Typography className="text-[10px] font-bold text-rose-600 dark:text-rose-300 uppercase tracking-widest" variant="p">{error}</Typography>
           </div>
         )}
 

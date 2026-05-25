@@ -20,7 +20,7 @@ pub fn mask_email(email: &str) -> String {
         format!("{}***", &local_part[..3])
     } + "@";
 
-    format!("{}{}", masked_local, domain_part)
+    format!("{masked_local}{domain_part}")
 }
 
 #[cfg(test)]

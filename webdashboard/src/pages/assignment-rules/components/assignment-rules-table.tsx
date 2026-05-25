@@ -2,6 +2,7 @@ import { Zap } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
+import { Typography } from "@/components/ui/typography";
 import { AssignmentRule } from "@/lib/api";
 
 import { AssignmentRuleRow } from "./assignment-rule-row";
@@ -52,7 +53,7 @@ export const AssignmentRulesTable: React.FC<AssignmentRulesTableProps> = ({
             <tr>
               <td className="px-10 py-32 text-center bg-slate-50 dark:bg-slate-800/30 flex flex-col items-center" colSpan={5}>
                 <Zap className="text-slate-200 dark:text-slate-700 mb-4" size={40} />
-                <p className="text-[10px] font-bold text-slate-300 dark:text-slate-600 uppercase tracking-widest">{t("rules.empty_list")}</p>
+                <Typography className="text-[10px] font-bold text-slate-300 dark:text-slate-600 uppercase tracking-widest" variant="p">{t("rules.empty_list")}</Typography>
               </td>
             </tr>
           )}

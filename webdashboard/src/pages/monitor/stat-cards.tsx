@@ -12,6 +12,7 @@ import React from "react";
 
 import { TFunction } from "i18next";
 
+import { Typography } from "@/components/ui/typography";
 import { WorkerMonitorStats } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 
@@ -114,12 +115,12 @@ function StatCard({
       <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center mb-4 border", color)}>
         <Icon size={22} />
       </div>
-      <p className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] mb-1 opacity-70">
+      <Typography className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] mb-1 opacity-70" variant="p">
         {label}
-      </p>
-      <p className="text-3xl font-bold text-slate-700 dark:text-slate-200 tracking-tighter">
+      </Typography>
+      <Typography className="text-3xl font-bold text-slate-700 dark:text-slate-200 tracking-tighter" variant="p">
         {isLoading ? "..." : value}
-      </p>
+      </Typography>
       <Icon
         className={cn(
           "absolute -right-4 -bottom-4 w-24 h-24 opacity-10 -rotate-12 group-hover:rotate-0 transition-transform duration-500",

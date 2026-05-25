@@ -1,7 +1,8 @@
 import { LayoutGrid, Clock, Milestone, Plus, Trash2 } from "lucide-react";
 import React from "react";
- 
+
 import { Combobox } from "@/components/ui/combobox";
+import { Typography } from "@/components/ui/typography";
 import { SeniorityBonus } from "@/lib/api/types";
 
 interface PolicyFormData {
@@ -20,7 +21,7 @@ export const FormRow = ({ label, children, info }: { label: string; children: Re
       <label className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight block group-hover:text-primary-600 transition-colors">
         {label}
       </label>
-      {!!info && <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5 leading-relaxed">{info}</p>}
+      {!!info && <Typography className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5 leading-relaxed" variant="p">{info}</Typography>}
     </div>
     <div className="w-full sm:w-[55%]">
       {children}
@@ -41,7 +42,7 @@ export function PolicyIdentitySection({
     <div className="space-y-4">
       <div className="flex items-center gap-3">
         <div className="h-8 w-8 rounded-xl bg-primary-50 dark:bg-primary-950 flex items-center justify-center text-primary-600 dark:text-primary-400 shrink-0"><LayoutGrid size={16} /></div>
-        <h4 className="text-sm font-black text-slate-800 dark:text-slate-100 uppercase tracking-tighter">Identity</h4>
+        <Typography className="text-sm font-black text-slate-800 dark:text-slate-100 uppercase tracking-tighter" variant="h4">Identity</Typography>
       </div>
       <div className="rounded-[2rem] bg-slate-50/50 dark:bg-slate-800/30 border border-slate-100 dark:border-slate-800 overflow-hidden">
         <FormRow label="Policy Name">
@@ -66,7 +67,7 @@ export function AccrualLogicSection({
     <div className="space-y-4">
       <div className="flex items-center gap-3">
         <div className="h-8 w-8 rounded-xl bg-emerald-50 dark:bg-emerald-950 flex items-center justify-center text-emerald-600 dark:text-emerald-300 shrink-0"><Clock size={16} /></div>
-        <h4 className="text-sm font-black text-slate-800 dark:text-slate-100 uppercase tracking-tighter">Accrual Logic</h4>
+        <Typography className="text-sm font-black text-slate-800 dark:text-slate-100 uppercase tracking-tighter" variant="h4">Accrual Logic</Typography>
       </div>
       <div className="rounded-[2rem] bg-slate-50/50 dark:bg-slate-800/30 border border-slate-100 dark:border-slate-800 overflow-hidden">
         <FormRow info="Days to grant per period" label="Base Amount">
@@ -106,7 +107,7 @@ export function SeniorityBonusSection({
       <div className="flex justify-between items-center">
         <div className="flex items-center gap-3">
           <div className="h-8 w-8 rounded-xl bg-blue-50 dark:bg-blue-950 flex items-center justify-center text-blue-600 shrink-0"><Milestone size={16} /></div>
-          <h4 className="text-sm font-black text-slate-800 dark:text-slate-100 uppercase tracking-tighter">Service Bonuses</h4>
+          <Typography className="text-sm font-black text-slate-800 dark:text-slate-100 uppercase tracking-tighter" variant="h4">Service Bonuses</Typography>
         </div>
         <button className="flex items-center gap-2 rounded-xl bg-primary-600 px-4 py-2 text-[10px] font-bold text-white uppercase tracking-widest hover:bg-primary-700 transition-all shadow-lg shadow-primary-100" onClick={addBonusMilestone} type="button"><Plus size={12} /> Add Row</button>
       </div>

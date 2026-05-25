@@ -2,6 +2,7 @@ import { CreditCard } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import PageHeader from "@/components/ui/page-header";
+import { Typography } from "@/components/ui/typography";
 
 export default function WorkspaceBillingPage() {
   const { t } = useTranslation();
@@ -16,10 +17,10 @@ export default function WorkspaceBillingPage() {
         <div className="w-20 h-20 bg-white dark:bg-slate-900 rounded-3xl flex items-center justify-center text-emerald-500 shadow-xl mb-6">
           <CreditCard size={40} />
         </div>
-        <h3 className="text-xl font-bold text-slate-800 dark:text-slate-200 mb-2">{t('billing.comingSoon', { defaultValue: 'Billing Coming Soon' })}</h3>
-        <p className="text-sm font-medium text-slate-500 max-w-md">
+        <Typography className="text-xl font-bold text-slate-800 dark:text-slate-200 mb-2" variant="h3">{t('billing.comingSoon', { defaultValue: 'Billing Coming Soon' })}</Typography>
+        <Typography className="text-sm font-medium text-slate-500 max-w-md" variant="p">
           {t('billing.comingSoonDesc', { defaultValue: 'Billing and subscription management features will be integrated once the commercial version is released.' })}
-        </p>
+        </Typography>
       </div>
     </div>
   );

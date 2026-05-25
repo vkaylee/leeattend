@@ -3,6 +3,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 
 import StatusBadge from "@/components/ui/status-badge";
+import { Typography } from "@/components/ui/typography";
 import { AttendanceAdjustmentRequest } from "@/lib/api/types";
 
 interface AdjustmentsTableRowProps {
@@ -55,9 +56,9 @@ export function AdjustmentsTableRow({
         </div>
       </td>
       <td className="px-8 py-6">
-        <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-tight line-clamp-2 italic opacity-70 leading-relaxed">
+        <Typography className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-tight line-clamp-2 italic opacity-70 leading-relaxed" variant="p">
           {request.reason ?? t("common.no_notes")}
-        </p>
+        </Typography>
       </td>
       <td className="px-8 py-6 text-center">
         <StatusBadge

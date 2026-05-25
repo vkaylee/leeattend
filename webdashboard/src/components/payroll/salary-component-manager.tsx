@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 
 import Modal from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
+import { Typography } from "@/components/ui/typography";
 import { fetchSalaryComponents, createSalaryComponent, fetchSalaryBaseGroups } from "@/lib/api/payroll";
 import { CreateSalaryComponentRequest } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
@@ -36,8 +37,8 @@ export default function SalaryComponentManager({ wsId }: Props) {
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 rounded-[1.25rem] bg-amber-50 dark:bg-amber-950 flex items-center justify-center text-amber-600 dark:text-amber-300 shadow-inner border border-amber-100 dark:border-amber-800/50"><Coins size={24} /></div>
           <div>
-            <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 tracking-tight uppercase leading-none">{t("payroll.components.title")}</h2>
-            <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-1.5 opacity-70">{t("payroll.components.subtitle")}</p>
+            <Typography className="text-xl font-bold text-slate-800 dark:text-slate-100 tracking-tight uppercase leading-none" variant="h2">{t("payroll.components.title")}</Typography>
+            <Typography className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-1.5 opacity-70" variant="p">{t("payroll.components.subtitle")}</Typography>
           </div>
         </div>
         <button className="flex items-center gap-3 bg-primary-600 text-white px-8 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95" onClick={() => { setIsModalOpen(true); }}><Plus size={18} /> {t("common.add").toUpperCase()}</button>
@@ -49,7 +50,7 @@ export default function SalaryComponentManager({ wsId }: Props) {
         ) : components?.length === 0 ? (
           <div className="p-32 text-center bg-slate-50 dark:bg-slate-800/30 m-8 rounded-[3rem] border-2 border-dashed border-slate-100 dark:border-slate-800 flex flex-col items-center">
             <div className="w-20 h-20 bg-white dark:bg-slate-900 rounded-full flex items-center justify-center shadow-sm mb-4 border border-slate-100 dark:border-slate-800"><Coins className="text-slate-200 dark:text-slate-700" size={32} /></div>
-            <p className="text-[10px] font-bold text-slate-300 dark:text-slate-600 uppercase tracking-widest">{t("payroll.components.no_components")}</p>
+            <Typography className="text-[10px] font-bold text-slate-300 dark:text-slate-600 uppercase tracking-widest" variant="p">{t("payroll.components.no_components")}</Typography>
           </div>
         ) : (
           components?.map((comp) => (
@@ -57,8 +58,8 @@ export default function SalaryComponentManager({ wsId }: Props) {
               <div className="flex items-center gap-6">
                 <div className="w-14 h-14 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 flex items-center justify-center text-slate-500 dark:text-slate-400 font-bold text-lg shadow-inner group-hover:bg-white dark:hover:bg-slate-900 group-hover:text-primary-600 dark:group-hover:text-primary-400 group-hover:border-primary-100 dark:border-primary-800 group-hover:shadow-md transition-all uppercase">{comp.code.slice(0, 2)}</div>
                 <div>
-                  <p className="font-bold text-slate-700 dark:text-slate-200 text-sm tracking-tight uppercase leading-none">{comp.name}</p>
-                  <p className="text-[10px] font-mono font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-2 opacity-70">{comp.code}</p>
+                  <Typography className="font-bold text-slate-700 dark:text-slate-200 text-sm tracking-tight uppercase leading-none" variant="p">{comp.name}</Typography>
+                  <Typography className="text-[10px] font-mono font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-2 opacity-70" variant="p">{comp.code}</Typography>
                 </div>
               </div>
               

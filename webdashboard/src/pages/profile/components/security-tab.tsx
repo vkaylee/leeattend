@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import Button from "@/components/ui/button";
 import { LABEL_BASE } from "@/components/ui/form-field";
 import { useToast } from "@/components/ui/toast";
+import { Typography } from "@/components/ui/typography";
 import { changePassword, clearAuthSession } from "@/lib/api";
 import { ROUTES } from "@/lib/routes";
 
@@ -19,12 +20,12 @@ export const SecurityTab: React.FC = () => {
           <ShieldCheck size={28} />
         </div>
         <div>
-          <h2 className="text-2xl font-bold text-slate-700 dark:text-slate-200 tracking-tighter uppercase leading-none mb-1">
+          <Typography className="text-2xl font-bold text-slate-700 dark:text-slate-200 tracking-tighter uppercase leading-none mb-1" variant="h2">
             {t("profile.security.title")}
-          </h2>
-          <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest opacity-70">
+          </Typography>
+          <Typography className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest opacity-70" variant="p">
             {t("profile.security.subtitle")}
-          </p>
+          </Typography>
         </div>
       </div>
       <div className="bg-slate-50 dark:bg-slate-800/50 p-10 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-inner">

@@ -6,6 +6,7 @@ import React from "react";
 import type { fetchWorkspaceLeaveRequests } from "@/lib/api";
 import type { Employee, LeaveType } from "@/lib/api/types";
 
+import { Typography } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
 
 type LeaveRequestItem = Awaited<ReturnType<typeof fetchWorkspaceLeaveRequests>>[0];
@@ -137,10 +138,10 @@ export function LeaveRequestRow({ request, emp, leaveTypes, formatDate, t, onApp
           )}
         </div>
         <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-primary-100 dark:border-primary-800/50 shadow-inner group-hover:bg-white dark:hover:bg-slate-900 transition-colors">
-          <p className="text-[10px] text-primary-400 font-bold leading-relaxed line-clamp-1 italic opacity-80 flex gap-2">
+          <Typography className="text-[10px] text-primary-400 font-bold leading-relaxed line-clamp-1 italic opacity-80 flex gap-2" variant="p">
             <MessageSquare className="text-slate-300 dark:text-slate-600 mt-0.5 shrink-0" size={12} /> 
             &quot;{request.reason ?? t("common.no_description")}&quot;
-          </p>
+          </Typography>
         </div>
       </td>
       <td className="px-8 py-6 text-center">

@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { TFunction } from "i18next";
 
 import Modal from "@/components/ui/modal";
+import { Typography } from "@/components/ui/typography";
 
 interface CreateShiftModalProps {
   isAutoDeduct: boolean;
@@ -133,7 +134,7 @@ function BreakConfigPanel({
   return (
     <div className="space-y-4 bg-slate-50 dark:bg-slate-800 p-6 rounded-[32px] border border-slate-100 dark:border-slate-800">
       <div className="flex items-center justify-between">
-        <h4 className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">{t("shifts.modal.break_config")}</h4>
+        <Typography className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest" variant="h4">{t("shifts.modal.break_config")}</Typography>
         <div className="flex items-center gap-2">
           <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">{t("shifts.types.fixed")}</span>
           <button

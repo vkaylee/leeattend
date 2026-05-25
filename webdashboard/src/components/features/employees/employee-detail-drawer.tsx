@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import {
     Trash2,
@@ -18,6 +17,7 @@ import PermissionGate from "@/components/common/permission-gate";
 import WorkingConditionConfig from "@/components/employees/working-condition-config";
 import EmployeeSalaryConfig from "@/components/payroll/employee-salary-config";
 import Sheet from "@/components/ui/sheet";
+import { Typography } from "@/components/ui/typography";
 import { fetchWorkspaceMembers } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
@@ -69,7 +69,7 @@ function DrawerHeader({
                 <div className="flex items-center gap-6">
                     <div className="w-20 h-20 bg-primary-600 text-white rounded-[2rem] flex items-center justify-center font-bold text-3xl shadow-xl shadow-primary-100 dark:shadow-black/30 border-4 border-white rotate-3 group hover:rotate-0 transition-transform duration-500 uppercase">{employee.full_name[0]}</div>
                     <div>
-                        <h2 className="text-3xl font-bold text-slate-700 dark:text-slate-200 tracking-tighter uppercase leading-none mb-2">{employee.full_name}</h2>
+                        <Typography className="text-3xl font-bold text-slate-700 dark:text-slate-200 tracking-tighter uppercase leading-none mb-2" variant="h2">{employee.full_name}</Typography>
                         <div className="flex items-center gap-3">
                             <span className="text-primary-600 dark:text-primary-400 font-mono text-xs font-bold tracking-widest uppercase bg-white dark:bg-slate-900 px-3 py-1 rounded-full border border-primary-100 dark:border-primary-800 shadow-sm">{employee.employee_id_number}</span>
                             <div className="w-1.5 h-1.5 bg-slate-200 dark:bg-slate-600 rounded-full" />

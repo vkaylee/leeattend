@@ -6,6 +6,7 @@ import Button from "@/components/ui/button";
 import Modal from "@/components/ui/modal";
 import PageHeader from "@/components/ui/page-header";
 import { useToast } from "@/components/ui/toast";
+import { Typography } from "@/components/ui/typography";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { getCurrentWorkspaceId } from "@/lib/api";
 import { clearWorkspaceData } from "@/lib/api/workspaces";
@@ -29,10 +30,10 @@ export default function WorkspaceDangerPage() {
             <AlertTriangle size={24} />
           </div>
           <div>
-            <h3 className="text-xl font-bold text-rose-700 dark:text-rose-400">{t('danger.clearDataTitle', { defaultValue: 'Clear Workspace Data' })}</h3>
-            <p className="text-sm font-medium text-rose-600/70 dark:text-rose-400/70 mt-1">
+            <Typography className="text-xl font-bold text-rose-700 dark:text-rose-400" variant="h3">{t('danger.clearDataTitle', { defaultValue: 'Clear Workspace Data' })}</Typography>
+            <Typography className="text-sm font-medium text-rose-600/70 dark:text-rose-400/70 mt-1" variant="p">
               {t('danger.clearDataDesc', { defaultValue: 'Delete all employees, time entries, leaves, and other data. This action cannot be undone.' })}
-            </p>
+            </Typography>
           </div>
         </div>
 

@@ -2,6 +2,7 @@ import { Check, ChevronLeft, ChevronRight, Info, KeyRound } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
+import { Typography } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
 
 import type { WorkspaceRole } from "../../../lib/api/types";
@@ -76,12 +77,12 @@ export const PermissionTableHeader = ({ visibleRoles }: PermissionTableHeaderPro
               <KeyRound className="w-5 h-5 text-blue-500" />
             </div>
             <div>
-              <h3 className="font-bold text-slate-800 dark:text-slate-200">
+              <Typography className="font-bold text-slate-800 dark:text-slate-200" variant="h3">
                 {t("permissions.modules", { defaultValue: "Modules" })}
-              </h3>
-              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">
+              </Typography>
+              <Typography className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-0.5" variant="p">
                 {t("permissions.permissionsLabel", { defaultValue: "Permissions" })}
-              </p>
+              </Typography>
             </div>
           </div>
         </th>
@@ -91,12 +92,12 @@ export const PermissionTableHeader = ({ visibleRoles }: PermissionTableHeaderPro
             key={role.id}
           >
             <div className="flex flex-col items-center justify-center gap-2">
-              <h4
-                className="font-bold text-sm text-slate-800 dark:text-slate-200 truncate w-full px-2"
+              <Typography className="font-bold text-sm text-slate-800 dark:text-slate-200 truncate w-full px-2"
                 title={t(`roles.${role.name}`, { defaultValue: role.name })}
+                variant="h4"
               >
                 {t(`roles.${role.name}`, { defaultValue: role.name })}
-              </h4>
+              </Typography>
               {role.is_system ? (
                 <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-slate-100 dark:bg-slate-800 text-slate-500">
                   {t("common.system", { defaultValue: "System" })}
@@ -136,12 +137,12 @@ export const PermissionTableRow = ({
       <td className="sticky left-0 z-10 bg-white dark:bg-slate-900 group-hover:bg-slate-50 dark:group-hover:bg-slate-800 border-b border-r border-slate-100 dark:border-slate-800 p-4 pl-6">
         <div className="flex items-start gap-2">
           <div>
-            <p className="text-sm font-bold text-slate-700 dark:text-slate-300">
+            <Typography className="text-sm font-bold text-slate-700 dark:text-slate-300" variant="p">
               {t(`permissions.items.${perm.id}.name`, { defaultValue: perm.name })}
-            </p>
-            <p className="text-xs text-slate-500 mt-0.5">
+            </Typography>
+            <Typography className="text-xs text-slate-500 mt-0.5" variant="p">
               {t(`permissions.items.${perm.id}.desc`, { defaultValue: perm.desc })}
-            </p>
+            </Typography>
           </div>
         </div>
       </td>
@@ -189,11 +190,11 @@ export const PermissionMatrixFooter = () => {
   return (
     <div className="bg-slate-50 dark:bg-slate-800/50 p-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-center gap-2">
       <Info className="w-4 h-4 text-slate-400" />
-      <p className="text-xs font-medium text-slate-500">
+      <Typography className="text-xs font-medium text-slate-500" variant="p">
         {t("permissions.systemRoleInfo", {
           defaultValue: "System roles (like Admin) have fixed permissions that cannot be modified.",
         })}
-      </p>
+      </Typography>
     </div>
   );
 };

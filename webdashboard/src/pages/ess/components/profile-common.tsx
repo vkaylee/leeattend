@@ -3,6 +3,7 @@ import React from "react";
 
 import { TFunction } from "i18next";
 
+import { Typography } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
 
 type TabType = "personal" | "banking" | "emergency";
@@ -19,12 +20,12 @@ export function Header({
   return (
     <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 px-2">
       <div className="space-y-1">
-        <h1 className="text-4xl font-bold tracking-tighter text-slate-700 dark:text-slate-200 uppercase leading-none">
+        <Typography className="text-4xl font-bold tracking-tighter text-slate-700 dark:text-slate-200 uppercase leading-none" variant="h1">
           {t("ess.my_profile")}
-        </h1>
-        <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] opacity-60">
+        </Typography>
+        <Typography className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] opacity-60" variant="p">
           {t("ess.profile.subtitle")}
-        </p>
+        </Typography>
       </div>
 
       <div className="flex bg-slate-100 dark:bg-slate-700/50 p-1.5 rounded-[22px] w-fit border border-slate-200 dark:border-slate-700/50 shadow-inner">
@@ -73,12 +74,12 @@ export function ErrorState({ t }: { t: TFunction }) {
           <AlertCircle size={40} />
         </div>
         <div>
-          <h3 className="text-2xl font-bold text-rose-900 uppercase tracking-tighter leading-none mb-2">
+          <Typography className="text-2xl font-bold text-rose-900 uppercase tracking-tighter leading-none mb-2" variant="h3">
             {t("ess.no_employee_linked")}
-          </h3>
-          <p className="font-bold text-rose-600 dark:text-rose-300 uppercase tracking-tight text-sm opacity-80">
+          </Typography>
+          <Typography className="font-bold text-rose-600 dark:text-rose-300 uppercase tracking-tight text-sm opacity-80" variant="p">
             {t("ess.contact_hr")}
-          </p>
+          </Typography>
         </div>
       </div>
     </div>

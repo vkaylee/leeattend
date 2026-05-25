@@ -3,6 +3,7 @@ import { ShieldAlert, Clock } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { useToast } from "@/components/ui/toast";
+import { Typography } from "@/components/ui/typography";
 import { updatePayrollSettings, fetchPayrollSettingsHistory } from "@/lib/api/payroll";
 
 import TemporalConfigTable from "../common/temporal-config-table";
@@ -63,8 +64,8 @@ export default function PayrollSettingsSection({ wsId }: Props) {
             <ShieldAlert size={20} />
           </div>
           <div className="text-xs text-blue-800 leading-relaxed font-medium">
-            <p className="font-bold uppercase tracking-widest mb-1 text-blue-900">{t("common.payroll.settings.note_title")}</p>
-            <p className="opacity-80">{t("common.payroll.settings.note_desc")}</p>
+            <Typography className="font-bold uppercase tracking-widest mb-1 text-blue-900" variant="p">{t("common.payroll.settings.note_title")}</Typography>
+            <Typography className="opacity-80" variant="p">{t("common.payroll.settings.note_desc")}</Typography>
           </div>
         </div>
 
@@ -73,8 +74,8 @@ export default function PayrollSettingsSection({ wsId }: Props) {
             <Clock size={20} />
           </div>
           <div className="text-xs text-amber-800 leading-relaxed font-medium">
-            <p className="font-bold uppercase tracking-widest mb-1 text-amber-900">{t("payroll.settings.max_ot_guide_title")}</p>
-            <p className="opacity-80">{t("payroll.settings.max_ot_guide_desc")}</p>
+            <Typography className="font-bold uppercase tracking-widest mb-1 text-amber-900" variant="p">{t("payroll.settings.max_ot_guide_title")}</Typography>
+            <Typography className="opacity-80" variant="p">{t("payroll.settings.max_ot_guide_desc")}</Typography>
           </div>
         </div>
       </div>

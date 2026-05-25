@@ -14,6 +14,7 @@ import PermissionGate from "@/components/common/permission-gate";
 import { TableSkeleton } from "@/components/common/table-skeleton";
 import PermissionManagementModal from "@/components/features/settings/permission-management-modal";
 import RoleManagementModal from "@/components/features/settings/role-management-modal";
+import { Typography } from "@/components/ui/typography";
 import { useConfirm } from "@/hooks/use-confirm";
 import { useWorkspaceMembers, useWorkspaceRoles } from "@/hooks/use-workspace";
 import { WorkspaceRole, WorkspaceMember } from "@/lib/api";
@@ -118,7 +119,7 @@ export default function MemberTable() {
                   <td colSpan={3}>
                     <div className="py-32 text-center bg-slate-50 dark:bg-slate-800/30 flex flex-col items-center">
                       <UserIcon className="w-20 h-20 mb-6 text-slate-200 dark:text-slate-700" />
-                      <p className="text-[10px] font-bold text-slate-300 dark:text-slate-600 uppercase tracking-[0.25em]">{t("members.table.messages.no_members")}</p>
+                      <Typography className="text-[10px] font-bold text-slate-300 dark:text-slate-600 uppercase tracking-[0.25em]" variant="p">{t("members.table.messages.no_members")}</Typography>
                     </div>
                   </td>
                 </tr>

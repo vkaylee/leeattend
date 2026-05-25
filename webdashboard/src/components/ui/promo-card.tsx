@@ -3,6 +3,7 @@ import type { LucideIcon } from "lucide-react";
 import { ArrowRight } from "lucide-react";
 import React, { memo } from "react";
 
+import { Typography } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
 
 // ── Component ──────────────────────────────────────────────────────
@@ -60,19 +61,19 @@ const PromoCard = memo(function PromoCard({
         >
           {eyebrow}
         </span>
-        <h3 className="text-3xl sm:text-5xl font-bold mb-6 sm:mb-8 tracking-tighter leading-[1.1] uppercase">
+        <Typography className="text-3xl sm:text-5xl font-bold mb-6 sm:mb-8 tracking-tighter leading-[1.1] uppercase" variant="h3">
           {title}
-        </h3>
-        <p
-          className={cn(
+        </Typography>
+        <Typography className={cn(
             "mb-8 sm:mb-12 text-base sm:text-lg leading-relaxed max-w-sm font-bold uppercase tracking-tight opacity-80",
             isDark
               ? "text-slate-500 dark:text-slate-400"
               : "text-primary-100",
           )}
+          variant="p"
         >
           {description}
-        </p>
+        </Typography>
         {linkElement ?? (
           <span
             className={cn(

@@ -5,6 +5,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import { ToastProvider } from "@/components/ui/toast";
+import { Typography } from "@/components/ui/typography";
 import * as departmentsApi from "@/lib/api/departments";
 import * as payrollApi from "@/lib/api/payroll";
 
@@ -30,7 +31,7 @@ vi.mock("@/components/ui/modal", () => {
       if (!isOpen) return null;
       return (
         <div data-testid="mock-modal">
-          <h2>{title}</h2>
+          <Typography variant="h2">{title}</Typography>
           {children}
         </div>
       );

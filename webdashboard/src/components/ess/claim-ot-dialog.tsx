@@ -3,6 +3,7 @@ import { X, Clock, AlertCircle } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import { Typography } from "@/components/ui/typography";
 import { useSubmitOtClaim } from "@/hooks/use-ess";
 import { AttendanceDailySummary } from "@/lib/api/types";
 
@@ -42,8 +43,8 @@ function OtClaimForm({
       <div className="bg-amber-50 dark:bg-amber-950 border border-amber-100 dark:border-amber-800 rounded-xl p-4 flex items-start gap-3">
         <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-300 mt-0.5" />
         <div>
-          <p className="text-xs font-bold text-amber-800 uppercase tracking-wide">{t("ess.ot.system_detected")}</p>
-          <p className="text-lg font-bold text-amber-900">{systemOt} min</p>
+          <Typography className="text-xs font-bold text-amber-800 uppercase tracking-wide" variant="p">{t("ess.ot.system_detected")}</Typography>
+          <Typography className="text-lg font-bold text-amber-900" variant="p">{systemOt} min</Typography>
         </div>
       </div>
 

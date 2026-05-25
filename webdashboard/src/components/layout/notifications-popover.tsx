@@ -7,6 +7,7 @@ import { formatDistanceToNow } from "date-fns";
 import { vi, enUS } from "date-fns/locale";
 
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Typography } from "@/components/ui/typography";
 import { useNotifications } from "@/hooks/use-notifications";
 import { NotificationType } from "@/lib/api";
 import { ROUTES } from "@/lib/routes";
@@ -53,9 +54,9 @@ export function NotificationsPopover() {
       <PopoverContent align="end" className="w-80 p-0 overflow-hidden shadow-2xl border-slate-100 dark:border-slate-800 rounded-2xl" sideOffset={8}>
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
-          <h3 className="font-bold text-sm text-slate-800 dark:text-slate-200">
+          <Typography className="font-bold text-sm text-slate-800 dark:text-slate-200" variant="h3">
             {t('common.notifications', { defaultValue: 'Thông báo' })}
-          </h3>
+          </Typography>
           {unreadCount > 0 && (
             <button 
               className="text-xs font-medium text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 flex items-center gap-1 transition-colors"
@@ -72,13 +73,13 @@ export function NotificationsPopover() {
           {isLoading ? (
             <div className="p-8 text-center text-slate-500 dark:text-slate-400">
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600 mx-auto mb-2"></div>
-              <p className="text-xs">Đang tải...</p>
+              <Typography className="text-xs" variant="p">Đang tải...</Typography>
             </div>
           ) : notifications.length === 0 ? (
             <div className="p-8 text-center text-slate-500 dark:text-slate-400 flex flex-col items-center">
               <Bell className="opacity-20 mb-2" size={24} />
-              <p className="text-sm font-medium">Chưa có thông báo nào</p>
-              <p className="text-xs opacity-70 mt-1">Bạn đã xem hết tất cả thông báo.</p>
+              <Typography className="text-sm font-medium" variant="p">Chưa có thông báo nào</Typography>
+              <Typography className="text-xs opacity-70 mt-1" variant="p">Bạn đã xem hết tất cả thông báo.</Typography>
             </div>
           ) : (
             <div className="flex flex-col">
@@ -103,18 +104,18 @@ export function NotificationsPopover() {
                   </div>
                   
                   <div className="flex-1 min-w-0">
-                    <p className={cn(
+                    <Typography className={cn(
                       "text-sm font-medium leading-tight mb-1",
                       !notification.is_read ? "text-slate-900 dark:text-slate-100" : "text-slate-700 dark:text-slate-300"
-                    )}>
+                    )} variant="p">
                       {notification.title}
-                    </p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 mb-1.5 leading-relaxed">
+                    </Typography>
+                    <Typography className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 mb-1.5 leading-relaxed" variant="p">
                       {notification.content}
-                    </p>
-                    <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">
+                    </Typography>
+                    <Typography className="text-[10px] text-slate-400 dark:text-slate-500 font-medium" variant="p">
                       {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true, locale: currentLocale })}
-                    </p>
+                    </Typography>
                   </div>
                 </button>
               ))}

@@ -23,6 +23,7 @@ impl DieselWorkspaceRepository {
     }
 }
 
+#[allow(clippy::too_many_lines)]
 #[async_trait]
 impl WorkspaceRepository for DieselWorkspaceRepository {
     async fn create_workspace_with_owner(

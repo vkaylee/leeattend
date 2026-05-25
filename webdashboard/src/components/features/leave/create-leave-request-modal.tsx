@@ -12,6 +12,7 @@ import { Combobox } from "@/components/ui/combobox";
 import FormField from "@/components/ui/form-field";
 import Modal from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
+import { Typography } from "@/components/ui/typography";
 import { fetchEmployeeLeaveBalances, submitLeaveRequest } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
@@ -39,8 +40,8 @@ function LeaveBalancesPanel({ balances, selectedEmpId, t }: { balances: Employee
     <div className="bg-primary-50 dark:bg-primary-950/50 p-8 rounded-[2.5rem] border border-primary-100 dark:border-primary-800/50 grid grid-cols-2 gap-8 shadow-inner">
       {balances.map(b => (
         <div className="space-y-2" key={b.leave_type_id || b.leave_type_code}>
-          <p className="text-[9px] font-bold uppercase tracking-[0.25em] text-primary-600 dark:text-primary-400 opacity-70 leading-none">{(b.leave_type_name || b.leave_type_code || "Unknown").toUpperCase()}</p>
-          <p className="text-base font-bold text-primary-700 dark:text-primary-300 tracking-tighter uppercase">{t("leave_requests.remaining")}: <span className="text-primary-600 dark:text-primary-400 text-2xl font-mono ml-1">{b.remaining}</span><span className="text-[10px] opacity-40 ml-1">/ {b.entitlement + b.carried_over}</span></p>
+          <Typography className="text-[9px] font-bold uppercase tracking-[0.25em] text-primary-600 dark:text-primary-400 opacity-70 leading-none" variant="p">{(b.leave_type_name || b.leave_type_code || "Unknown").toUpperCase()}</Typography>
+          <Typography className="text-base font-bold text-primary-700 dark:text-primary-300 tracking-tighter uppercase" variant="p">{t("leave_requests.remaining")}: <span className="text-primary-600 dark:text-primary-400 text-2xl font-mono ml-1">{b.remaining}</span><span className="text-[10px] opacity-40 ml-1">/ {b.entitlement + b.carried_over}</span></Typography>
         </div>
       ))}
     </div>
@@ -91,7 +92,7 @@ function LeaveDurationSelector({
         ))}
       </div>
       {durationType !== "full_day" && durationType !== "custom_hours" && (
-        <p className="text-[10px] text-primary-400 italic ml-1 flex items-center gap-1"><Info size={10} /> {t("leave_requests.duration.half_day_note")}</p>
+        <Typography className="text-[10px] text-primary-400 italic ml-1 flex items-center gap-1" variant="p"><Info size={10} /> {t("leave_requests.duration.half_day_note")}</Typography>
       )}
     </div>
   );

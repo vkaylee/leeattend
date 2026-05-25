@@ -154,8 +154,7 @@ pub async fn register(
     let password = req.password.clone();
     let password_hash = tokio::task::spawn_blocking(move || AuthService::hash_password(&password))
         .await
-        .map_err(|e| AppError::Internal(format!("Failed to spawn blocking task: {e}")))?
-        .map_err(AppError::from)?;
+        .map_err(|e| AppError::Internal(format!("Failed to spawn blocking task: {e}")))??;
 
     // 4. Create User
     let user_id = crate::utils::id::new_id();
@@ -352,8 +351,7 @@ pub async fn change_password(
     let new_password = req.new_password.clone();
     let new_hash = tokio::task::spawn_blocking(move || AuthService::hash_password(&new_password))
         .await
-        .map_err(|e| AppError::Internal(format!("Failed to spawn blocking task: {e}")))?
-        .map_err(AppError::from)?;
+        .map_err(|e| AppError::Internal(format!("Failed to spawn blocking task: {e}")))??;
 
     // 5. Update DB via repository
     state

@@ -6,6 +6,7 @@ import {
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { Typography } from "@/components/ui/typography";
 import { useDateTimeFormatter } from '@/hooks/use-datetime';
 import { Employee, Payslip, Workspace } from '@/lib/api/types';
 
@@ -34,8 +35,8 @@ function PayslipHeader({ workspace, payslip, formatMonthYear, formatDate, t }: P
             <Building2 size={24} />
           </div>
           <div>
-            <h1 className='text-2xl font-bold uppercase tracking-tight' data-testid="workspace-name">{workspace?.name ?? 'LeeAttend'}</h1>
-            <p className='text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em]'>{t('payroll.document.system_subtitle')}</p>
+            <Typography className='text-2xl font-bold uppercase tracking-tight' data-testid="workspace-name" variant="h1">{workspace?.name ?? 'LeeAttend'}</Typography>
+            <Typography className='text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em]' variant="p">{t('payroll.document.system_subtitle')}</Typography>
           </div>
         </div>
         <div className='inline-flex items-center gap-2 px-3 py-1 bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 rounded-full border border-emerald-100 dark:border-emerald-800 print:bg-white dark:bg-slate-900 print:border-slate-200 dark:border-slate-700'>
@@ -45,16 +46,16 @@ function PayslipHeader({ workspace, payslip, formatMonthYear, formatDate, t }: P
       </div>
 
       <div className='text-right'>
-        <h2 className='text-4xl font-bold uppercase tracking-tighter text-slate-700 dark:text-slate-200 mb-1' data-testid="payslip-title">{t('payroll.document.title')}</h2>
+        <Typography className='text-4xl font-bold uppercase tracking-tighter text-slate-700 dark:text-slate-200 mb-1' data-testid="payslip-title" variant="h2">{t('payroll.document.title')}</Typography>
         <div className='flex items-center justify-end gap-2 text-slate-500 dark:text-slate-400'>
           <CalendarDays size={14} />
           <span className='text-sm font-bold uppercase tracking-widest' data-testid="period-month">
             {t('common.month')} {formatMonthYear(payslip.period_start)}
           </span>
         </div>
-        <p className='text-[10px] font-bold text-slate-500 dark:text-slate-400 mt-2 uppercase tracking-widest' data-testid="period-range">
+        <Typography className='text-[10px] font-bold text-slate-500 dark:text-slate-400 mt-2 uppercase tracking-widest' data-testid="period-range" variant="p">
           {t('payroll.document.period')}: {formatDate(payslip.period_start)} - {formatDate(payslip.period_end)}
-        </p>
+        </Typography>
       </div>
     </div>
   );
@@ -71,7 +72,7 @@ function EmployeeDetails({ employee, payslip, formatAmount, t }: EmployeeDetails
   return (
     <div className='grid grid-cols-2 gap-12 mb-12'>
       <div className='space-y-6' data-testid="employee-details">
-        <h3 className='text-[10px] font-bold uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800 pb-2'>{t('payroll.document.employee_details')}</h3>
+        <Typography className='text-[10px] font-bold uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800 pb-2' variant="h3">{t('payroll.document.employee_details')}</Typography>
         <div className='grid grid-cols-[100px_1fr] gap-y-4 text-sm'>
           <span className='font-bold text-slate-500 dark:text-slate-400 uppercase text-[10px] tracking-widest'>{t('payroll.document.name')}</span>
           <span className='font-bold text-slate-700 dark:text-slate-200 uppercase' data-testid="employee-name">{employee.full_name}</span>
@@ -85,12 +86,12 @@ function EmployeeDetails({ employee, payslip, formatAmount, t }: EmployeeDetails
       </div>
 
       <div className='bg-slate-50 dark:bg-slate-800 rounded-3xl p-8 border border-slate-100 dark:border-slate-800 print:bg-white dark:bg-slate-900 print:border-slate-200 dark:border-slate-700' data-testid="net-payment-box">
-        <h3 className='text-[10px] font-bold uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400 mb-6 text-center'>{t('payroll.document.net_payment')}</h3>
+        <Typography className='text-[10px] font-bold uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400 mb-6 text-center' variant="h3">{t('payroll.document.net_payment')}</Typography>
         <div className='text-center space-y-1'>
-          <p className='text-5xl font-bold text-slate-700 dark:text-slate-200 tracking-tighter leading-none' data-testid="net-pay-amount">
+          <Typography className='text-5xl font-bold text-slate-700 dark:text-slate-200 tracking-tighter leading-none' data-testid="net-pay-amount" variant="p">
             {formatAmount(payslip.net_pay_amount)}
-          </p>
-          <p className='text-[10px] font-bold text-emerald-600 dark:text-emerald-300 uppercase tracking-[0.2em] pt-2'>Paid via Bank Transfer</p>
+          </Typography>
+          <Typography className='text-[10px] font-bold text-emerald-600 dark:text-emerald-300 uppercase tracking-[0.2em] pt-2' variant="p">Paid via Bank Transfer</Typography>
         </div>
       </div>
     </div>
@@ -105,7 +106,7 @@ interface EarningsBreakdownProps {
 function EarningsBreakdown({ payslip, formatAmount }: EarningsBreakdownProps) {
   return (
     <div>
-      <h3 className='text-[10px] font-bold uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800 pb-4 mb-4'>Earnings Breakdown</h3>
+      <Typography className='text-[10px] font-bold uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800 pb-4 mb-4' variant="h3">Earnings Breakdown</Typography>
       <table className='w-full text-sm'>
         <thead>
           <tr className='text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400'>
@@ -131,10 +132,10 @@ function EarningsBreakdown({ payslip, formatAmount }: EarningsBreakdownProps) {
                   <div className='flex items-center gap-3'>
                     <div className='w-1.5 h-1.5 bg-blue-600 rounded-full' />
                     <div>
-                      <p className='font-bold text-slate-700 dark:text-slate-200'>{sc.definition.name}</p>
-                      <p className='text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase'>
+                      <Typography className='font-bold text-slate-700 dark:text-slate-200' variant="p">{sc.definition.name}</Typography>
+                      <Typography className='text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase' variant="p">
                         Code: {sc.definition.code} • Monthly: {formatAmount(monthlyRate)} • {totalPaidDays.toFixed(1)} Days @ {formatAmount(dailyRate)}/day
-                      </p>
+                      </Typography>
                     </div>
                   </div>
                 </td>
@@ -152,10 +153,10 @@ function EarningsBreakdown({ payslip, formatAmount }: EarningsBreakdownProps) {
                 <div className='flex items-center gap-3'>
                   <div className='w-1.5 h-1.5 bg-blue-600 rounded-full' />
                   <div>
-                    <p className='font-bold text-slate-700 dark:text-slate-200'>Base Salary {index > 0 ? ` (Segment ${index + 1})` : ''}</p>
-                    <p className='text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase'>
+                    <Typography className='font-bold text-slate-700 dark:text-slate-200' variant="p">Base Salary {index > 0 ? ` (Segment ${index + 1})` : ''}</Typography>
+                    <Typography className='text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase' variant="p">
                       {seg.start_date} - {seg.end_date} • {seg.paid_work_days.toFixed(1)} Days @ {formatAmount(seg.applied_base_salary)}
-                    </p>
+                    </Typography>
                   </div>
                 </div>
               </td>
@@ -172,8 +173,8 @@ function EarningsBreakdown({ payslip, formatAmount }: EarningsBreakdownProps) {
                 <div className='flex items-center gap-3'>
                   <div className='w-1.5 h-1.5 bg-emerald-50 dark:bg-emerald-950 rounded-full' />
                   <div>
-                    <p className='font-bold text-slate-700 dark:text-slate-200 uppercase'>Overtime Compensation</p>
-                    <p className='text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase'>{payslip.overtime_units} Units</p>
+                    <Typography className='font-bold text-slate-700 dark:text-slate-200 uppercase' variant="p">Overtime Compensation</Typography>
+                    <Typography className='text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase' variant="p">{payslip.overtime_units} Units</Typography>
                   </div>
                 </div>
               </td>
@@ -189,7 +190,7 @@ function EarningsBreakdown({ payslip, formatAmount }: EarningsBreakdownProps) {
               <td className='py-4'>
                 <div className='flex items-center gap-3'>
                   <div className='w-1.5 h-1.5 bg-amber-400 rounded-full' />
-                  <p className='font-bold text-slate-700 dark:text-slate-200 uppercase'>{inc.policy_name}</p>
+                  <Typography className='font-bold text-slate-700 dark:text-slate-200 uppercase' variant="p">{inc.policy_name}</Typography>
                 </div>
               </td>
               <td className='text-right py-4 font-bold text-slate-700 dark:text-slate-200'>
@@ -214,10 +215,10 @@ function PayslipTotals({ payslip, grossPay, formatAmount }: PayslipTotalsProps) 
     <div className='pt-8 border-t-2 border-slate-900' data-testid="totals-section">
       <div className='grid grid-cols-[1fr_250px] gap-12'>
         <div className='space-y-4'>
-            <p className='text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest italic'>
+            <Typography className='text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest italic' variant="p">
               Note: This is a computer-generated document and does not require a physical signature.
               Any discrepancies should be reported to the HR department within 3 working days.
-            </p>
+            </Typography>
         </div>
         <div className='space-y-3'>
           <div className='flex justify-between text-sm'>
@@ -265,8 +266,8 @@ export default function PayslipDocument({ employee, payslip, workspace }: Paysli
       </div>
 
       <footer className='mt-20 pt-10 border-t border-slate-50 dark:border-slate-800 text-center space-y-2 opacity-50 print:opacity-100' data-testid="payslip-footer">
-        <p className='text-[9px] font-bold uppercase tracking-[0.5em] text-slate-500 dark:text-slate-400'>Generated by LeeAttend System</p>
-        <p className='text-[8px] font-bold text-slate-300 dark:text-slate-600 tracking-widest'>{new Date().toISOString()}</p>
+        <Typography className='text-[9px] font-bold uppercase tracking-[0.5em] text-slate-500 dark:text-slate-400' variant="p">Generated by LeeAttend System</Typography>
+        <Typography className='text-[8px] font-bold text-slate-300 dark:text-slate-600 tracking-widest' variant="p">{new Date().toISOString()}</Typography>
       </footer>
     </div>
   );

@@ -7,6 +7,7 @@ import { useTranslation } from "react-i18next";
 import Button from "@/components/ui/button";
 import { LABEL_BASE } from "@/components/ui/form-field";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Typography } from "@/components/ui/typography";
 import { useWorkspaces, workspaceKeys } from "@/hooks/use-workspace";
 import { setCurrentWorkspaceId } from "@/lib/api";
 import { ROUTES } from "@/lib/routes";
@@ -88,12 +89,12 @@ function ProgressOverlay({
               <DatabaseZap className="text-primary-500 dark:text-primary-400 animate-pulse" size={28} />
             )}
           </div>
-          <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100 tracking-tight">
+          <Typography className="text-2xl font-bold text-slate-800 dark:text-slate-100 tracking-tight" variant="h2">
             {t("onboarding.progress.title")}
-          </h2>
-          <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xs leading-relaxed">
+          </Typography>
+          <Typography className="text-xs text-slate-500 dark:text-slate-400 max-w-xs leading-relaxed" variant="p">
             {t("onboarding.progress.subtitle")}
-          </p>
+          </Typography>
         </div>
 
         {/* Circular Progress Bar Indicator */}
@@ -222,17 +223,17 @@ function DatabaseConfig({
 
         <TabsContent value="auto">
           <div className="p-4 bg-slate-50 dark:bg-slate-800/30 rounded-2xl border border-slate-100 dark:border-slate-800/50">
-            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+            <Typography className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed" variant="p">
               {t("onboarding.db_mode_auto_desc")}
-            </p>
+            </Typography>
           </div>
         </TabsContent>
 
         <TabsContent value="byod">
           <div className="space-y-3 p-4 bg-slate-50 dark:bg-slate-800/30 rounded-2xl border border-slate-100 dark:border-slate-800/50">
-            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed mb-1">
+            <Typography className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed mb-1" variant="p">
               {t("onboarding.db_mode_byod_desc")}
-            </p>
+            </Typography>
             
             <div className="space-y-1">
               <div className="relative flex items-center">
@@ -252,13 +253,13 @@ function DatabaseConfig({
                 />
               </div>
               {validationError ? (
-                <p className="text-[10px] text-rose-500 font-bold ml-1 tracking-tight">
+                <Typography className="text-[10px] text-rose-500 font-bold ml-1 tracking-tight" variant="p">
                   {validationError}
-                </p>
+                </Typography>
               ) : (
-                <p className="text-[9px] text-slate-400 dark:text-slate-500 ml-1 tracking-wide">
+                <Typography className="text-[9px] text-slate-400 dark:text-slate-500 ml-1 tracking-wide" variant="p">
                   {t("common.database_url_hint")}
-                </p>
+                </Typography>
               )}
             </div>
           </div>
@@ -362,12 +363,12 @@ export default function OnboardingPage() {
             <LayoutDashboard className="text-white group-hover:scale-110 transition-transform" size={32} />
           </div>
           <div className="text-center space-y-2">
-            <h1 className="text-3xl font-bold text-slate-700 dark:text-slate-200 tracking-tighter leading-none uppercase">
+            <Typography className="text-3xl font-bold text-slate-700 dark:text-slate-200 tracking-tighter leading-none uppercase" variant="h1">
               {t("onboarding.welcome_title")}
-            </h1>
-            <p className="text-slate-500 dark:text-slate-400 font-bold uppercase tracking-[0.25em] text-[9px] opacity-60 leading-relaxed max-w-xs mx-auto">
+            </Typography>
+            <Typography className="text-slate-500 dark:text-slate-400 font-bold uppercase tracking-[0.25em] text-[9px] opacity-60 leading-relaxed max-w-xs mx-auto" variant="p">
               {t("onboarding.welcome_subtitle")}
-            </p>
+            </Typography>
           </div>
         </div>
 
@@ -422,9 +423,9 @@ export default function OnboardingPage() {
         </form>
 
         <div className="mt-10 p-6 bg-slate-50 dark:bg-slate-800/30 rounded-[2rem] border border-slate-100 dark:border-slate-800/50 shadow-inner">
-          <p className="text-[9px] text-slate-500 dark:text-slate-400 text-center uppercase font-bold tracking-[0.2em] leading-relaxed opacity-60 italic">
+          <Typography className="text-[9px] text-slate-500 dark:text-slate-400 text-center uppercase font-bold tracking-[0.2em] leading-relaxed opacity-60 italic" variant="p">
             {t("onboarding.workspace_desc")}
-          </p>
+          </Typography>
         </div>
       </div>
 

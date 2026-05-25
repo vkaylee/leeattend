@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { addMonths, endOfMonth, format, startOfMonth, subMonths } from "date-fns";
 
 import { ClaimOtDialog } from "@/components/ess/claim-ot-dialog";
+import { Typography } from "@/components/ui/typography";
 import { useMyAttendance, useMyAttendanceSummaries } from "@/hooks/use-ess";
 import { AttendanceDailySummary } from "@/lib/api/types";
 
@@ -89,12 +90,12 @@ function EmptyState() {
       <div className="w-24 h-24 bg-white dark:bg-slate-900 rounded-full flex items-center justify-center shadow-xl border border-slate-100 dark:border-slate-800 mb-8">
         <Calendar className="text-slate-200 dark:text-slate-700" size={40} />
       </div>
-      <h3 className="text-xl font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight">
+      <Typography className="text-xl font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight" variant="h3">
         {t("ess.attendance.no_data")}
-      </h3>
-      <p className="text-slate-500 dark:text-slate-400 text-[10px] font-bold uppercase tracking-widest mt-2 opacity-50 italic">
+      </Typography>
+      <Typography className="text-slate-500 dark:text-slate-400 text-[10px] font-bold uppercase tracking-widest mt-2 opacity-50 italic" variant="p">
         {t("common.no_records_found")}
-      </p>
+      </Typography>
     </div>
   );
 }

@@ -1,5 +1,5 @@
-/* eslint-disable max-lines-per-function, complexity, react-hooks/set-state-in-effect */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+/* eslint-disable max-lines-per-function, complexity, react-hooks/set-state-in-effect */
 import { useNavigate, useParams, useBlocker } from "@tanstack/react-router";
 import {
   CalendarDays,
@@ -18,6 +18,7 @@ import { Combobox } from "@/components/ui/combobox";
 import ConfirmDialog from "@/components/ui/confirm-dialog";
 import FormField, { LABEL_BASE } from "@/components/ui/form-field";
 import { useToast } from "@/components/ui/toast";
+import { Typography } from "@/components/ui/typography";
 import {
   createWorkingPattern,
   fetchPatternDetails,
@@ -328,12 +329,12 @@ export default function WorkingPatternsEditorPage() {
             <ArrowLeft size={18} />
           </button>
           <div>
-            <h1 className="text-3xl font-extrabold text-slate-700 dark:text-slate-100 tracking-tight uppercase">
+            <Typography className="text-3xl font-extrabold text-slate-700 dark:text-slate-100 tracking-tight uppercase" variant="h1">
               {isEditMode ? t("patterns.form.editor_title_edit") : t("patterns.form.editor_title_new")}
-            </h1>
-            <p className="text-slate-400 dark:text-slate-500 text-xs font-bold uppercase tracking-wider mt-1">
+            </Typography>
+            <Typography className="text-slate-400 dark:text-slate-500 text-xs font-bold uppercase tracking-wider mt-1" variant="p">
               {isEditMode ? t("patterns.view_details") : t("patterns.modal.subtitle")}
-            </p>
+            </Typography>
           </div>
         </div>
         <div className="flex items-center gap-4">
@@ -364,9 +365,9 @@ export default function WorkingPatternsEditorPage() {
         {/* Left Column: Metadata & General Config */}
         <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] p-10 shadow-sm space-y-8 flex flex-col justify-start">
           <div className="space-y-6">
-            <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] border-b border-slate-50 dark:border-slate-800 pb-4">
+            <Typography className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] border-b border-slate-50 dark:border-slate-800 pb-4" variant="h3">
               {t("patterns.form.desc_label").toUpperCase()}
-            </h3>
+            </Typography>
             <FormField
               inputClassName="font-bold tracking-tight rounded-2xl"
               label={t("patterns.form.name_label")}
@@ -392,9 +393,9 @@ export default function WorkingPatternsEditorPage() {
           </div>
 
           <div className="space-y-6">
-            <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] border-b border-slate-50 dark:border-slate-800 pb-4">
+            <Typography className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] border-b border-slate-50 dark:border-slate-800 pb-4" variant="h3">
               {t("patterns.form.pattern_type").toUpperCase()}
-            </h3>
+            </Typography>
             
             <div className="space-y-4">
               <label className={LABEL_BASE}>{t("patterns.form.pattern_type").toUpperCase()}</label>
@@ -452,9 +453,9 @@ export default function WorkingPatternsEditorPage() {
                   />
                 </div>
 
-                <p className="text-[9px] text-slate-400 font-bold uppercase leading-relaxed italic opacity-75">
+                <Typography className="text-[9px] text-slate-400 font-bold uppercase leading-relaxed italic opacity-75" variant="p">
                   {t("patterns.form.cycle_length_note")}
-                </p>
+                </Typography>
               </div>
             )}
           </div>
@@ -463,14 +464,14 @@ export default function WorkingPatternsEditorPage() {
         {/* Right Column: Interactive Schedule Grid */}
         <div className="lg:col-span-2 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] p-10 shadow-sm flex flex-col">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-50 dark:border-slate-800 pb-6 mb-6">
-            <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2.5">
+            <Typography className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2.5" variant="h3">
               <Clock className="text-primary-500" size={16} />
               {activeViewMode === "preview"
                 ? t("patterns.form.view_mode_preview")
                 : patternType === "weekly"
                 ? t("patterns.form.weekly_grid_title")
                 : t("patterns.form.cycle_grid_title") || "Cycle Schedule Grid"}
-            </h3>
+            </Typography>
             <div className="flex flex-wrap items-center gap-4">
               {patternType === "rotation" && (
                 <div className="flex bg-slate-50 dark:bg-slate-800 p-1.5 rounded-2xl border border-slate-100 dark:border-slate-700/50 shadow-inner">

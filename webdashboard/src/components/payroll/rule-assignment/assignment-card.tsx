@@ -3,6 +3,7 @@ import React from "react";
 
 import { TFunction } from "i18next";
 
+import { Typography } from "@/components/ui/typography";
 import { PayrollRuleAssignment, Department } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 
@@ -100,9 +101,9 @@ export function AssignmentCard({
           <Icon size={18} />
         </div>
         <div className="min-w-0">
-          <p className="font-bold text-sm text-slate-700 dark:text-slate-200 uppercase tracking-tight truncate leading-none">
+          <Typography className="font-bold text-sm text-slate-700 dark:text-slate-200 uppercase tracking-tight truncate leading-none" variant="p">
             {getAssigneeName(a)}
-          </p>
+          </Typography>
           <div className="flex items-center gap-3 mt-1.5 flex-wrap">
             <span className="flex items-center gap-1 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
               <Calendar className="opacity-50" size={10} />

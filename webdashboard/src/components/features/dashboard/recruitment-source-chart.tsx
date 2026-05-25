@@ -9,6 +9,7 @@ import {
     Legend,
 } from "recharts";
 
+import { Typography } from "@/components/ui/typography";
 import { useRecruitmentSourceBreakdown } from "@/hooks/use-dashboard";
 
 const SOURCE_COLORS: Record<string, string> = {
@@ -43,12 +44,12 @@ function getRecruitmentChartData(data: { source_type: string; source_name: strin
 function RecruitmentHeader({ t }: { t: (k: string) => string }) {
     return (
         <div className="mb-6">
-            <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200">
+            <Typography className="text-lg font-semibold text-slate-800 dark:text-slate-200" variant="h3">
                 {t("dashboard.hr.recruitment_sources")}
-            </h3>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+            </Typography>
+            <Typography className="text-sm text-slate-500 dark:text-slate-400 mt-1" variant="p">
                 {t("dashboard.hr.recruitment_sources_subtitle")}
-            </p>
+            </Typography>
         </div>
     );
 }

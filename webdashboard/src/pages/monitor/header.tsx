@@ -3,6 +3,7 @@ import React from "react";
 
 import { TFunction } from "i18next";
 
+import { Typography } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
 
 interface MonitorHeaderProps {
@@ -26,12 +27,12 @@ export function MonitorHeader({
           />
         </div>
         <div>
-          <h3 className="text-4xl font-bold tracking-tighter text-slate-700 dark:text-slate-200 uppercase leading-none">
+          <Typography className="text-4xl font-bold tracking-tighter text-slate-700 dark:text-slate-200 uppercase leading-none" variant="h3">
             {t("monitor.title")}
-          </h3>
-          <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] mt-2 opacity-60">
+          </Typography>
+          <Typography className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] mt-2 opacity-60" variant="p">
             {t("monitor.subtitle")}
-          </p>
+          </Typography>
         </div>
       </div>
 

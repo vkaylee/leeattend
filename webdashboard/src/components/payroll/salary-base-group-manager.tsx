@@ -1,5 +1,3 @@
-
-
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Database, Info, Plus, X } from "lucide-react";
 import React, { useState } from "react";
@@ -9,6 +7,7 @@ import type { SalaryBaseGroup, SalaryBaseGroupMember, SalaryComponentDefinition 
 
 import Modal from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
+import { Typography } from "@/components/ui/typography";
 import { 
   fetchSalaryBaseGroups, 
   fetchSalaryComponents,
@@ -43,17 +42,17 @@ function BaseGroupCard({
     <div className="bg-white dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
       <div className="p-5 border-b border-slate-100 dark:border-slate-700/50 bg-slate-50 dark:bg-slate-800/80">
         <div className="flex justify-between items-start mb-2">
-          <h3 className="font-semibold text-slate-800 dark:text-slate-200">{displayName}</h3>
+          <Typography className="font-semibold text-slate-800 dark:text-slate-200" variant="h3">{displayName}</Typography>
           {group.is_system ? <span className="bg-primary-50 text-primary-600 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full dark:bg-primary-900/30 dark:text-primary-400 border border-primary-100 dark:border-primary-800/50">System</span> : null}
         </div>
-        <p className="text-xs text-slate-500 line-clamp-2">{displayDesc}</p>
+        <Typography className="text-xs text-slate-500 line-clamp-2" variant="p">{displayDesc}</Typography>
         <div className="mt-3 text-xs font-mono text-slate-400 bg-slate-100 dark:bg-slate-900 px-2 py-1 rounded inline-block">
           {group.slug}
         </div>
       </div>
 
       <div className="p-4">
-        <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Included Components</h4>
+        <Typography className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3" variant="h4">Included Components</Typography>
         <div className="space-y-2 max-h-64 overflow-y-auto pr-2 custom-scrollbar">
           {components.length === 0 ? (
             <div className="text-center py-4 text-sm text-slate-400 flex flex-col items-center">
@@ -74,10 +73,10 @@ function BaseGroupCard({
                   key={comp.id}
                 >
                   <div className="flex-1 min-w-0 pr-3">
-                    <p className={`text-sm font-medium truncate ${isAssigned ? 'text-primary-700 dark:text-primary-300' : 'text-slate-600 dark:text-slate-300'}`}>
+                    <Typography className={`text-sm font-medium truncate ${isAssigned ? 'text-primary-700 dark:text-primary-300' : 'text-slate-600 dark:text-slate-300'}`} variant="p">
                       {comp.name}
-                    </p>
-                    <p className="text-xs text-slate-400 font-mono mt-0.5">{comp.code}</p>
+                    </Typography>
+                    <Typography className="text-xs text-slate-400 font-mono mt-0.5" variant="p">{comp.code}</Typography>
                   </div>
                   
                   <button
@@ -258,13 +257,13 @@ export default function SalaryBaseGroupManager({ wsId }: { wsId: string }) {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+          <Typography className="text-xl font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2" variant="h2">
             <Database className="w-5 h-5 text-primary-500" />
             Salary Bases
-          </h2>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+          </Typography>
+          <Typography className="text-sm text-slate-500 dark:text-slate-400 mt-1" variant="p">
             Group your salary components into functional bases (e.g., Gross Salary, BHXH Base) to be used in Payroll Rules.
-          </p>
+          </Typography>
         </div>
         <button
           className="flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-semibold rounded-xl shadow-sm transition-colors"

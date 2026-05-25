@@ -12,6 +12,7 @@ import {
     Legend,
 } from "recharts";
 
+import { Typography } from "@/components/ui/typography";
 import { useOvertimeTrend } from "@/hooks/use-dashboard";
 
 const COLORS = {
@@ -43,12 +44,12 @@ function OvertimeHeader({ t }: { t: (k: string) => string }) {
                     <Clock size={22} />
                 </div>
                 <div>
-                    <h2 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]">
+                    <Typography className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]" variant="h2">
                         {t("dashboard.hr.overtime_trend")}
-                    </h2>
-                    <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-0.5">
+                    </Typography>
+                    <Typography className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-0.5" variant="p">
                         {t("dashboard.hr.overtime_trend_subtitle")}
-                    </p>
+                    </Typography>
                 </div>
             </div>
         </div>
@@ -59,9 +60,9 @@ function OvertimeEmptyState({ t }: { t: (k: string) => string }) {
     return (
         <div className="h-[280px] flex flex-col items-center justify-center">
             <Clock className="text-slate-200 dark:text-slate-700 mb-4" size={48} />
-            <p className="text-[10px] font-bold text-slate-300 dark:text-slate-600 uppercase tracking-widest">
+            <Typography className="text-[10px] font-bold text-slate-300 dark:text-slate-600 uppercase tracking-widest" variant="p">
                 {t("common.no_data")}
-            </p>
+            </Typography>
         </div>
     );
 }

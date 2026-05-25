@@ -3,6 +3,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 
 import { LABEL_BASE } from "@/components/ui/form-field";
+import { Typography } from "@/components/ui/typography";
 import { useTheme } from "@/hooks/use-theme";
 import { cn } from "@/lib/utils";
 
@@ -28,12 +29,12 @@ export const PersonalizationTab: React.FC = () => {
             <Palette size={28} />
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-slate-700 dark:text-slate-200 tracking-tighter uppercase leading-none mb-1">
+            <Typography className="text-2xl font-bold text-slate-700 dark:text-slate-200 tracking-tighter uppercase leading-none mb-1" variant="h2">
               {t("profile.personalization.title")}
-            </h2>
-            <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest opacity-70">
+            </Typography>
+            <Typography className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest opacity-70" variant="p">
               {t("profile.personalization.subtitle")}
-            </p>
+            </Typography>
           </div>
         </div>
         {isOverridden ? (
@@ -86,9 +87,9 @@ export const PersonalizationTab: React.FC = () => {
           </div>
         </div>
         <div className="p-10 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] shadow-inner">
-          <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 leading-relaxed italic uppercase tracking-tight opacity-80">
+          <Typography className="text-[11px] font-bold text-slate-500 dark:text-slate-400 leading-relaxed italic uppercase tracking-tight opacity-80" variant="p">
             {t("profile.personalization.note")}
-          </p>
+          </Typography>
         </div>
       </div>
     </div>

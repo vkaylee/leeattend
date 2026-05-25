@@ -1,6 +1,7 @@
 import { RefreshCw, CheckCircle } from "lucide-react";
 import React from "react";
 
+import { Typography } from "@/components/ui/typography";
 import { AttendanceAdjustmentRequest } from "@/lib/api";
 
 export function ExistingRequestBanner({ 
@@ -12,13 +13,13 @@ export function ExistingRequestBanner({
 }) {
   return (
     <div className="p-4 bg-orange-50 dark:bg-orange-950 rounded-2xl border border-orange-200 dark:border-orange-800">
-      <p className="text-xs font-bold text-orange-600 dark:text-orange-300 uppercase tracking-wider">
+      <Typography className="text-xs font-bold text-orange-600 dark:text-orange-300 uppercase tracking-wider" variant="p">
         {t("reports.confirm.existing_request")}
-      </p>
+      </Typography>
       {existingRequest.reason ? (
-        <p className="text-sm text-orange-700 dark:text-orange-200 mt-2 italic">
+        <Typography className="text-sm text-orange-700 dark:text-orange-200 mt-2 italic" variant="p">
           &ldquo;{existingRequest.reason}&rdquo;
-        </p>
+        </Typography>
       ) : null}
     </div>
   );

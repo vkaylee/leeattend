@@ -2,6 +2,7 @@ import { Plus, AlertCircle } from "lucide-react";
 import React from "react";
 
 import Button from "@/components/ui/button";
+import { Typography } from "@/components/ui/typography";
 
 import { AssignmentRuleModal } from "./assignment-rules/components/assignment-rule-modal";
 import { AssignmentRulesTable } from "./assignment-rules/components/assignment-rules-table";
@@ -37,12 +38,12 @@ export default function AssignmentRulesPage() {
     <div className="space-y-10 animate-in fade-in duration-700 pb-20">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 px-2">
         <div className="space-y-1">
-          <h1 className="text-4xl font-bold tracking-tighter text-slate-700 dark:text-slate-200 uppercase leading-none" data-testid="assignment-rules-title">
+          <Typography className="text-4xl font-bold tracking-tighter text-slate-700 dark:text-slate-200 uppercase leading-none" data-testid="assignment-rules-title" variant="h1">
             {t("rules.title")}
-          </h1>
-          <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] opacity-60">
+          </Typography>
+          <Typography className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] opacity-60" variant="p">
             {t("rules.subtitle")}
-          </p>
+          </Typography>
         </div>
         <Button icon={<Plus size={18} />} onClick={openCreateModal}>
           {t("rules.create_btn").toUpperCase()}
@@ -63,12 +64,12 @@ export default function AssignmentRulesPage() {
           <AlertCircle size={24} />
         </div>
         <div className="text-xs text-blue-900 dark:text-blue-200 leading-relaxed font-medium pt-1">
-          <p className="font-bold uppercase tracking-[0.2em] mb-2 text-blue-950 dark:text-blue-100 opacity-80">
+          <Typography className="font-bold uppercase tracking-[0.2em] mb-2 text-blue-950 dark:text-blue-100 opacity-80" variant="p">
             {t("common.did_you_know")}
-          </p>
-          <p className="opacity-70 font-bold uppercase tracking-tight">
+          </Typography>
+          <Typography className="opacity-70 font-bold uppercase tracking-tight" variant="p">
             {t("rules.info_priority")}
-          </p>
+          </Typography>
         </div>
       </div>
 

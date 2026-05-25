@@ -18,6 +18,7 @@ import { useTranslation } from "react-i18next";
 
 import type { WorkingCondition } from "@/lib/api/types";
 
+import { Typography } from "@/components/ui/typography";
 import { useConfirm } from "@/hooks/use-confirm";
 import { useWorkingConditions } from "@/hooks/use-employees";
 import { cn } from "@/lib/utils";
@@ -84,7 +85,7 @@ function WorkingConditionForm({
     <div className="bg-white dark:bg-slate-900 border-2 border-primary-100 dark:border-primary-800 rounded-[2.5rem] p-8 shadow-xl shadow-primary-50/50 animate-in slide-in-from-top-4 duration-500">
       <div className="flex items-center gap-3 mb-8 text-primary-700 dark:text-primary-300">
         <div className="w-8 h-8 rounded-xl bg-primary-50 dark:bg-primary-950 flex items-center justify-center shadow-inner"><Plus size={16} /></div>
-        <h4 className="text-[10px] font-bold uppercase tracking-[0.2em]">{t("employees.policies.add_condition")}</h4>
+        <Typography className="text-[10px] font-bold uppercase tracking-[0.2em]" variant="h4">{t("employees.policies.add_condition")}</Typography>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
@@ -132,8 +133,8 @@ function WorkingConditionHeader({ isAdding, setIsAdding, t }: { isAdding: boolea
       <div className="flex items-center gap-4">
         <div className="w-10 h-10 rounded-2xl bg-primary-50 dark:bg-primary-950 flex items-center justify-center text-primary-600 dark:text-primary-400 shadow-sm border border-primary-100 dark:border-primary-800/50"><FileSpreadsheet size={20} /></div>
         <div>
-          <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 tracking-tight uppercase">{t("employees.policies.conditions_title")}</h3>
-          <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-0.5">{t("employees.policies.conditions_desc")}</p>
+          <Typography className="text-lg font-bold text-slate-800 dark:text-slate-100 tracking-tight uppercase" variant="h3">{t("employees.policies.conditions_title")}</Typography>
+          <Typography className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-0.5" variant="p">{t("employees.policies.conditions_desc")}</Typography>
         </div>
       </div>
       {!isAdding && (
@@ -232,7 +233,7 @@ export default function WorkingConditionConfig({ employeeId }: Props) {
         {conditions.length === 0 ? (
           <div className="bg-slate-50 dark:bg-slate-800/50 border border-dashed border-slate-200 dark:border-slate-700 rounded-[2rem] p-16 text-center">
             <div className="w-16 h-16 bg-white dark:bg-slate-900 rounded-3xl flex items-center justify-center text-slate-300 dark:text-slate-600 mx-auto mb-6 shadow-sm border border-slate-100 dark:border-slate-800"><History size={32} /></div>
-            <h4 className="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">{t("employees.policies.no_conditions")}</h4>
+            <Typography className="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest" variant="h4">{t("employees.policies.no_conditions")}</Typography>
           </div>
         ) : (
           conditions.map((cond) => (
@@ -244,7 +245,7 @@ export default function WorkingConditionConfig({ employeeId }: Props) {
                   </div>
                   <div>
                     <div className="flex items-center gap-3 mb-1.5">
-                      <h4 className="font-bold text-slate-700 dark:text-slate-200 text-lg tracking-tight uppercase leading-none">{t(`employees.policies.types.${cond.type.toLowerCase()}`)}</h4>
+                      <Typography className="font-bold text-slate-700 dark:text-slate-200 text-lg tracking-tight uppercase leading-none" variant="h4">{t(`employees.policies.types.${cond.type.toLowerCase()}`)}</Typography>
                       <span className={cn("px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-widest border", cond.is_paid ? "bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-300 border-emerald-100 dark:border-emerald-800" : "bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-100 dark:border-slate-800")}>
                         {cond.is_paid ? t("employees.policies.paid_allowance") : t("employees.policies.unpaid_allowance")}
                       </span>

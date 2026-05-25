@@ -12,6 +12,7 @@ import { useTranslation } from "react-i18next";
 import { MonthYearPicker } from "@/components/common/month-year-picker";
 import Modal from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
+import { Typography } from "@/components/ui/typography";
 import { calculateBatchPayslips } from "@/lib/api";
 import { BatchCalculateResult } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
@@ -32,10 +33,10 @@ function BatchCalculationLoading({ employeeCount }: { employeeCount: number }) {
         <Loader2 className="w-12 h-12 text-primary-600 dark:text-primary-400 animate-spin" />
         <div className="absolute inset-0 border-4 border-primary-100 dark:border-primary-800 border-t-transparent rounded-full opacity-50" />
       </div>
-      <h3 className="text-2xl font-bold text-slate-700 dark:text-slate-200 mb-2 uppercase tracking-tight">{t("common.processing")}</h3>
-      <p className="text-slate-500 dark:text-slate-400 text-sm font-medium max-w-xs leading-relaxed">
+      <Typography className="text-2xl font-bold text-slate-700 dark:text-slate-200 mb-2 uppercase tracking-tight" variant="h3">{t("common.processing")}</Typography>
+      <Typography className="text-slate-500 dark:text-slate-400 text-sm font-medium max-w-xs leading-relaxed" variant="p">
         Calculating payroll for {employeeCount} employees. This may take a moment...
-      </p>
+      </Typography>
     </div>
   );
 }
@@ -57,12 +58,12 @@ function BatchCalculationResults({
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="grid grid-cols-2 gap-6">
         <div className="bg-emerald-50 dark:bg-emerald-950/50 p-6 rounded-[2rem] border border-emerald-100 dark:border-emerald-800 shadow-inner">
-          <p className="text-[10px] font-bold text-emerald-600 dark:text-emerald-300 uppercase tracking-widest mb-1 opacity-70">Success</p>
-          <p className="text-3xl font-bold text-emerald-700 dark:text-emerald-300 font-mono tracking-tighter">{successCount}</p>
+          <Typography className="text-[10px] font-bold text-emerald-600 dark:text-emerald-300 uppercase tracking-widest mb-1 opacity-70" variant="p">Success</Typography>
+          <Typography className="text-3xl font-bold text-emerald-700 dark:text-emerald-300 font-mono tracking-tighter" variant="p">{successCount}</Typography>
         </div>
         <div className="bg-rose-50 dark:bg-rose-950/50 p-6 rounded-[2rem] border border-rose-100 dark:border-rose-800 shadow-inner">
-          <p className="text-[10px] font-bold text-rose-600 dark:text-rose-300 uppercase tracking-widest mb-1 opacity-70">Errors</p>
-          <p className="text-3xl font-bold text-rose-700 dark:text-rose-300 font-mono tracking-tighter">{errorCount}</p>
+          <Typography className="text-[10px] font-bold text-rose-600 dark:text-rose-300 uppercase tracking-widest mb-1 opacity-70" variant="p">Errors</Typography>
+          <Typography className="text-3xl font-bold text-rose-700 dark:text-rose-300 font-mono tracking-tighter" variant="p">{errorCount}</Typography>
         </div>
       </div>
 
@@ -74,8 +75,8 @@ function BatchCalculationResults({
                 {res.status === 'success' ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
               </div>
               <div>
-                <p className="font-bold text-slate-700 dark:text-slate-200 text-sm tracking-tight uppercase">{employeeNames[res.employee_id] || "—"}</p>
-                {res.error_message ? <p className="text-[10px] text-rose-500 font-bold uppercase tracking-widest mt-0.5 opacity-80">{res.error_message}</p> : null}
+                <Typography className="font-bold text-slate-700 dark:text-slate-200 text-sm tracking-tight uppercase" variant="p">{employeeNames[res.employee_id] || "—"}</Typography>
+                {res.error_message ? <Typography className="text-[10px] text-rose-500 font-bold uppercase tracking-widest mt-0.5 opacity-80" variant="p">{res.error_message}</Typography> : null}
               </div>
             </div>
             {res.status === 'success' && res.payslip ? (
@@ -147,10 +148,10 @@ export default function BatchCalculationModal({
                 <User size={32} />
               </div>
               <div>
-                <p className="text-[10px] font-bold text-primary-400 uppercase tracking-[0.2em] mb-1 opacity-70">{t("common.employees")}</p>
-                <p className="text-2xl font-bold text-slate-700 dark:text-slate-200 tracking-tight uppercase">
+                <Typography className="text-[10px] font-bold text-primary-400 uppercase tracking-[0.2em] mb-1 opacity-70" variant="p">{t("common.employees")}</Typography>
+                <Typography className="text-2xl font-bold text-slate-700 dark:text-slate-200 tracking-tight uppercase" variant="p">
                   {employeeIds.length} {t("common.people")}
-                </p>
+                </Typography>
               </div>
             </div>
 

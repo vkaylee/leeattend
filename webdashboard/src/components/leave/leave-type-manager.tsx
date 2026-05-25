@@ -3,6 +3,7 @@ import React, { useState } from "react";
 
 import EmptyState from "@/components/ui/empty-state";
 import Modal from "@/components/ui/modal";
+import { Typography } from "@/components/ui/typography";
 import { LeaveType, LeaveTypeConfig } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 
@@ -44,9 +45,9 @@ export function LeaveTypeManager({ wsId }: LeaveTypeManagerProps) {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center px-1">
-        <p className="text-xs font-medium text-slate-500 dark:text-slate-400 max-w-md italic">
+        <Typography className="text-xs font-medium text-slate-500 dark:text-slate-400 max-w-md italic" variant="p">
           Define the categories of leave available in your organization (e.g., Annual Leave, Sick Leave).
-        </p>
+        </Typography>
         <button
           className="flex items-center gap-2 rounded-xl bg-primary-600 px-6 py-2.5 text-[10px] font-bold text-white uppercase tracking-widest hover:bg-primary-700 transition-all shadow-lg shadow-primary-100"
           onClick={() => {
@@ -95,12 +96,12 @@ export function LeaveTypeManager({ wsId }: LeaveTypeManagerProps) {
                     </button>
                   </div>
                 </div>
-                <h3 className="mt-5 text-lg font-bold text-slate-800 dark:text-slate-100 tracking-tight leading-none uppercase">
+                <Typography className="mt-5 text-lg font-bold text-slate-800 dark:text-slate-100 tracking-tight leading-none uppercase" variant="h3">
                   {type.name}
-                </h3>
-                <p className="mt-1 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                </Typography>
+                <Typography className="mt-1 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest" variant="p">
                   Code: {type.code}
-                </p>
+                </Typography>
                 <div className="mt-4 flex gap-2">
                   <span
                     className={cn(
@@ -168,7 +169,7 @@ export function LeaveTypeManager({ wsId }: LeaveTypeManagerProps) {
           title="Confirm Delete"
         >
           <div className="p-8">
-            <p className="text-sm">Are you sure you want to delete &quot;{deletingType.name}&quot;?</p>
+            <Typography className="text-sm" variant="p">Are you sure you want to delete &quot;{deletingType.name}&quot;?</Typography>
             <div className="mt-8 flex justify-end gap-3">
               <button
                 className="px-6 py-2 text-xs font-bold text-slate-400 dark:text-slate-500"
@@ -289,7 +290,7 @@ function EditLeaveTypeModal({ leaveType, onClose, onSave, isSaving }: EditLeaveT
                 <label className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight block" htmlFor="approval-req-input">
                   Approval Required
                 </label>
-                <p className="text-[10px] text-slate-400 dark:text-slate-500">Managers must approve requests</p>
+                <Typography className="text-[10px] text-slate-400 dark:text-slate-500" variant="p">Managers must approve requests</Typography>
               </div>
             </div>
             <div className="relative inline-flex items-center cursor-pointer">
@@ -315,7 +316,7 @@ function EditLeaveTypeModal({ leaveType, onClose, onSave, isSaving }: EditLeaveT
                 <label className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight block" htmlFor="doc-req-input">
                   Requires Document
                 </label>
-                <p className="text-[10px] text-slate-400 dark:text-slate-500">Proof/Medical cert is mandatory</p>
+                <Typography className="text-[10px] text-slate-400 dark:text-slate-500" variant="p">Proof/Medical cert is mandatory</Typography>
               </div>
             </div>
             <div className="relative inline-flex items-center cursor-pointer">
@@ -341,7 +342,7 @@ function EditLeaveTypeModal({ leaveType, onClose, onSave, isSaving }: EditLeaveT
                 <label className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight block" htmlFor="negative-bal-input">
                   Negative Balance
                 </label>
-                <p className="text-[10px] text-slate-400 dark:text-slate-500">Allow users to take leave beyond 0</p>
+                <Typography className="text-[10px] text-slate-400 dark:text-slate-500" variant="p">Allow users to take leave beyond 0</Typography>
               </div>
             </div>
             <div className="relative inline-flex items-center cursor-pointer">

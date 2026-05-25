@@ -140,6 +140,15 @@ export default tseslint.config(
       'react/jsx-no-leaked-render': ['error', { validStrategies: ['coerce', 'ternary'] }],
       'react/prop-types': 'off', // Using TS instead
       'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
+      'react/forbid-elements': ['error', { forbid: [
+        { element: 'h1', message: 'Use <Typography variant="h1"> instead.' },
+        { element: 'h2', message: 'Use <Typography variant="h2"> instead.' },
+        { element: 'h3', message: 'Use <Typography variant="h3"> instead.' },
+        { element: 'h4', message: 'Use <Typography variant="h4"> instead.' },
+        { element: 'h5', message: 'Use <Typography variant="h5"> instead.' },
+        { element: 'h6', message: 'Use <Typography variant="h6"> instead.' },
+        { element: 'p', message: 'Use <Typography variant="p"> instead.' }
+      ] }],
     },
   },
   {

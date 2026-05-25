@@ -7,6 +7,7 @@ import {
 import React from "react";
 import { useTranslation } from "react-i18next";
 
+import { Typography } from "@/components/ui/typography";
 import { ROUTES } from "@/lib/routes";
 
 import { NavGroup } from "./components/nav-group";
@@ -38,12 +39,12 @@ export default function SettingsLayout() {
               <Settings className="w-5 h-5 text-blue-600 dark:text-blue-400" />
             </div>
             <div>
-              <h2 className="text-sm font-bold text-slate-800 dark:text-slate-200">
+              <Typography className="text-sm font-bold text-slate-800 dark:text-slate-200" variant="h2">
                 {t("common.settings.title")}
-              </h2>
-              <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-0.5">
+              </Typography>
+              <Typography className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-0.5" variant="p">
                 {t("settings.layout.control_panel")}
-              </p>
+              </Typography>
             </div>
           </div>
           

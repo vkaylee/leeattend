@@ -2,6 +2,7 @@ import { Navigate, Outlet } from "@tanstack/react-router";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import { Typography } from "@/components/ui/typography";
 import { useWorkspaces } from "@/hooks/use-workspace";
 import { getCurrentWorkspaceId, setCurrentWorkspaceId } from "@/lib/api";
 import { ROUTES } from "@/lib/routes";
@@ -33,9 +34,9 @@ export default function WorkspaceGuard() {
       <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-800">
         <div className="flex flex-col items-center gap-4">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-          <p className="text-slate-500 dark:text-slate-400 text-sm">
+          <Typography className="text-slate-500 dark:text-slate-400 text-sm" variant="p">
             {t("common.loading_workspace")}
-          </p>
+          </Typography>
         </div>
       </div>
     );
@@ -45,7 +46,7 @@ export default function WorkspaceGuard() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-800">
         <div className="text-center p-8 bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-slate-100 dark:border-slate-800 max-w-sm">
-          <p className="text-red-500 font-bold mb-4">{t("common.system_connection_error")}</p>
+          <Typography className="text-red-500 font-bold mb-4" variant="p">{t("common.system_connection_error")}</Typography>
           <button
             className="px-6 py-2 bg-primary-600 text-white rounded-xl font-bold"
             onClick={() => { window.location.reload(); }}

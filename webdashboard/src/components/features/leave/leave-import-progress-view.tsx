@@ -5,6 +5,7 @@ import React from "react";
 
 import type { LeaveImportJob } from "@/lib/api/leaves";
 
+import { Typography } from "@/components/ui/typography";
 import { downloadLeaveImportErrors } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
@@ -42,12 +43,12 @@ function ProgressHeader({ importJob, isProcessing, t }: { importJob: LeaveImport
           {getStatusIcon(importJob.status, hasError, isProcessing)}
         </div>
         <div>
-          <h3 className="font-bold text-slate-800 dark:text-slate-200 uppercase tracking-tight text-base leading-none mb-1">
+          <Typography className="font-bold text-slate-800 dark:text-slate-200 uppercase tracking-tight text-base leading-none mb-1" variant="h3">
             {getStatusText(importJob.status, hasError, isProcessing, t)}
-          </h3>
-          <p className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-[0.2em]">
+          </Typography>
+          <Typography className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-[0.2em]" variant="p">
             {importJob.processed_rows || 0} / {importJob.total_rows || "?"} {t("leave_import.rows_label", "dòng đã xử lý")}
-          </p>
+          </Typography>
         </div>
       </div>
       {importJob.total_rows ? (
@@ -68,11 +69,11 @@ interface ErrorInfo {
 function PartialSuccessDetails({ info, importJob, t, wsId }: { info: ErrorInfo | null; importJob: LeaveImportJob; t: TFunction; wsId: string | null }) {
   return (
     <div className="bg-slate-50 dark:bg-slate-900 rounded-2xl p-6 border border-amber-200 dark:border-amber-900/50 shadow-sm">
-      <p className="text-sm font-semibold text-amber-700 dark:text-amber-300 mb-3">
+      <Typography className="text-sm font-semibold text-amber-700 dark:text-amber-300 mb-3" variant="p">
         {t("leave_import.partial_detail", "Thành công {{success}} dòng, {{errors}} dòng bị lỗi")
           .replace("{{success}}", String(info?.success_count ?? importJob.processed_rows))
           .replace("{{errors}}", String(info?.error_count ?? 0))}
-      </p>
+      </Typography>
       {Boolean(info?.error_file_path) && Boolean(wsId) ? (
         <button
           className="inline-flex items-center gap-2 px-5 py-2.5 bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-amber-200 dark:hover:bg-amber-800/50 transition-all border border-amber-200 dark:border-amber-800 active:scale-95"
@@ -92,10 +93,10 @@ function PartialSuccessDetails({ info, importJob, t, wsId }: { info: ErrorInfo |
 function FailedDetails({ errorLog, t }: { errorLog: string; t: TFunction }) {
   return (
     <div className="bg-slate-50 dark:bg-slate-900 rounded-2xl p-6 border border-rose-200 dark:border-rose-900/50 shadow-sm">
-      <h4 className="text-[10px] font-bold text-rose-600 dark:text-rose-400 mb-2 flex items-center gap-2 uppercase tracking-[0.25em]">
+      <Typography className="text-[10px] font-bold text-rose-600 dark:text-rose-400 mb-2 flex items-center gap-2 uppercase tracking-[0.25em]" variant="h4">
         <AlertCircle size={14} /> {t("leave_import.error_detail", "Chi tiết lỗi")}
-      </h4>
-      <p className="text-xs text-slate-600 dark:text-slate-400 font-mono">{errorLog.substring(0, 200)}</p>
+      </Typography>
+      <Typography className="text-xs text-slate-600 dark:text-slate-400 font-mono" variant="p">{errorLog.substring(0, 200)}</Typography>
     </div>
   );
 }

@@ -8,6 +8,7 @@ import { enUS, vi } from "date-fns/locale";
 
 import Button from "@/components/ui/button";
 import PageHeader from "@/components/ui/page-header";
+import { Typography } from "@/components/ui/typography";
 import { useNotifications } from "@/hooks/use-notifications";
 import { AppNotification, NotificationType } from "@/lib/api";
 import { cn } from "@/lib/utils";
@@ -61,23 +62,23 @@ const NotificationItem = memo(({
     
     <div className="flex-1 min-w-0">
       <div className="flex items-start justify-between gap-2 mb-1">
-        <h4 className={cn(
+        <Typography className={cn(
           "text-sm font-bold truncate transition-colors",
           !notification.is_read ? "text-slate-900 dark:text-slate-100" : "text-slate-600 dark:text-slate-400"
-        )}>
+        )} variant="h4">
           {notification.title}
-        </h4>
+        </Typography>
         <span className="text-[10px] text-slate-400 dark:text-slate-500 whitespace-nowrap font-medium">
           {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true, locale: currentLocale })}
         </span>
       </div>
       
-      <p className={cn(
+      <Typography className={cn(
         "text-sm leading-relaxed mb-3",
         !notification.is_read ? "text-slate-700 dark:text-slate-300" : "text-slate-500 dark:text-slate-500"
-      )}>
+      )} variant="p">
         {notification.content}
-      </p>
+      </Typography>
       
       {!notification.is_read && (
         <Button 
@@ -130,12 +131,12 @@ const NotificationsList = memo(({
         <div className="w-20 h-20 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4">
           <Bell className="h-10 w-10 text-slate-300 dark:text-slate-600" />
         </div>
-        <h3 className="text-lg font-medium text-slate-900 dark:text-slate-100">
+        <Typography className="text-lg font-medium text-slate-900 dark:text-slate-100" variant="h3">
           {t("notifications.no_notifications", "Không có thông báo nào")}
-        </h3>
-        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 max-w-xs mx-auto">
+        </Typography>
+        <Typography className="text-sm text-slate-500 dark:text-slate-400 mt-1 max-w-xs mx-auto" variant="p">
           {t("notifications.empty_state", "Bạn chưa có thông báo nào. Các cập nhật quan trọng sẽ xuất hiện ở đây.")}
-        </p>
+        </Typography>
       </div>
     );
   }

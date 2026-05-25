@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useToast } from "@/components/ui/toast";
+import { Typography } from "@/components/ui/typography";
 import { useConfirm } from "@/hooks/use-confirm";
 import { fetchLeavePolicies, createLeavePolicy, deleteLeavePolicy, updateLeavePolicy, fetchLeaveTypes } from "@/lib/api/leaves";
 import { LeavePolicy } from "@/lib/api/types";
@@ -74,7 +75,7 @@ export function LeavePolicyManager({ wsId }: LeavePolicyManagerProps) {
         {policies.length === 0 ? (
           <div className="col-span-full py-20 bg-slate-50 dark:bg-slate-800 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-[2.5rem] flex flex-col items-center justify-center text-slate-400 dark:text-slate-500">
             <ShieldCheck className="mb-4 opacity-20" size={40} />
-            <p className="text-xs font-bold uppercase tracking-widest">No policies defined yet</p>
+            <Typography className="text-xs font-bold uppercase tracking-widest" variant="p">No policies defined yet</Typography>
           </div>
         ) : policies.map((policy) => (
           <PolicyCard 

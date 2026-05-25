@@ -2,6 +2,7 @@ import { Clock, ArrowUpRight, ArrowDownRight, Calendar } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
+import { Typography } from "@/components/ui/typography";
 import { LeaveHistoryItem } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
@@ -58,9 +59,9 @@ export function HistoryList({ items, isLoading }: { items: LeaveHistoryItem[], i
     return (
       <div className="py-12 text-center">
         <Clock className="w-12 h-12 text-slate-200 dark:text-slate-700 mx-auto mb-3" />
-        <p className="text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest italic">
+        <Typography className="text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest italic" variant="p">
           {t("common.no_data", "No history found")}
-        </p>
+        </Typography>
       </div>
     );
   }

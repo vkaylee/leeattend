@@ -14,6 +14,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 
 import PermissionGate from "@/components/common/permission-gate";
+import { Typography } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
 
 import type { WorkspaceRole } from "../../../lib/api/types";
@@ -130,7 +131,7 @@ export const RoleInfo = ({ role }: RoleInfoProps) => {
   return (
     <div>
       <div className="flex items-center gap-2">
-        <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200">{role.name}</h3>
+        <Typography className="text-lg font-bold text-slate-800 dark:text-slate-200" variant="h3">{role.name}</Typography>
         {role.is_system ? (
           <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">
             {t("common.system", { defaultValue: "System" })}

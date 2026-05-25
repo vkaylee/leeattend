@@ -2,7 +2,9 @@ import type { LucideIcon } from "lucide-react";
 
 import React, { memo } from "react";
 
+import { Typography } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
+
 
 // ── Component ──────────────────────────────────────────────────────
 
@@ -51,17 +53,19 @@ const StatCard = memo(function StatCard({
           <Icon size={24} />
         </div>
         <div>
-          <p className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] mb-1">
+          <Typography className="text-[9px] mb-1 text-slate-500 dark:text-slate-400" variant="overline">
             {label}
-          </p>
-          <p
+          </Typography>
+          <Typography
+            as="p"
             className={cn(
-              "text-2xl sm:text-3xl font-bold text-slate-700 dark:text-slate-200 tracking-tighter",
+              "text-2xl sm:text-3xl tracking-tighter text-slate-700 dark:text-slate-200",
               mono && "font-mono",
             )}
+            variant="h2"
           >
             {isLoading ? "..." : value}
-          </p>
+          </Typography>
         </div>
       </div>
     );
@@ -82,17 +86,19 @@ const StatCard = memo(function StatCard({
       >
         <Icon size={20} />
       </div>
-      <p className="text-[8px] sm:text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] mb-1">
+      <Typography className="text-[8px] sm:text-[9px] mb-1 text-slate-500 dark:text-slate-400" variant="overline">
         {label}
-      </p>
-      <p
+      </Typography>
+      <Typography
+        as="p"
         className={cn(
-          "text-2xl sm:text-3xl font-bold text-slate-700 dark:text-slate-200 tracking-tighter",
+          "text-2xl sm:text-3xl tracking-tighter text-slate-700 dark:text-slate-200",
           mono && "font-mono",
         )}
+        variant="h2"
       >
         {isLoading ? "..." : value}
-      </p>
+      </Typography>
       <Icon className="absolute -right-4 -bottom-4 w-20 sm:w-24 h-20 sm:h-24 text-slate-50 dark:text-slate-800 opacity-10 -rotate-12 group-hover:rotate-0 transition-transform duration-1000" />
     </div>
   );

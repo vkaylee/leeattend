@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import Button from "@/components/ui/button";
 import { Combobox } from "@/components/ui/combobox";
 import { LABEL_BASE } from "@/components/ui/form-field";
+import { Typography } from "@/components/ui/typography";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { User } from "@/lib/api";
 
@@ -47,12 +48,12 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
             )}
           </div>
           <div className="mb-2">
-            <h2 className="text-3xl font-bold text-slate-700 dark:text-slate-200 tracking-tighter uppercase leading-none mb-2">
+            <Typography className="text-3xl font-bold text-slate-700 dark:text-slate-200 tracking-tighter uppercase leading-none mb-2" variant="h2">
               {user?.full_name ?? user?.email}
-            </h2>
-            <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest opacity-70">
+            </Typography>
+            <Typography className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest opacity-70" variant="p">
               {t("profile.join_date")}: {formatDate(user?.created_at ?? "")}
-            </p>
+            </Typography>
           </div>
         </div>
 

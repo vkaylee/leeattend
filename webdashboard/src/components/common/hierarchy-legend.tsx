@@ -2,6 +2,7 @@ import { ChevronDown, HelpCircle } from 'lucide-react';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { Typography } from "@/components/ui/typography";
 import { cn } from '@/lib/utils';
 
 export interface HierarchyStep {
@@ -84,9 +85,9 @@ export const HierarchyLegend: React.FC<HierarchyLegendProps> = ({ steps, title, 
                <HelpCircle className="text-primary-500 opacity-50" size={14} />
                <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em]">{t("common.note")}</span>
             </div>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-bold leading-relaxed uppercase tracking-tight">
+            <Typography className="text-[11px] text-slate-500 dark:text-slate-400 font-bold leading-relaxed uppercase tracking-tight" variant="p">
               {explanation}
-            </p>
+            </Typography>
           </div>
         </div>
       ) : null}

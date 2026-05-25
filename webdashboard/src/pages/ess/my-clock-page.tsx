@@ -11,6 +11,7 @@ import {
 } from "@/components/time-tracking/adjustment-request-modal";
 import { PunchCard } from "@/components/time-tracking/punch-card";
 import { useToast } from "@/components/ui/toast";
+import { Typography } from "@/components/ui/typography";
 import { useMyClock, useMyProfile } from "@/hooks/use-ess";
 import { fetchWorkspace, getCurrentWorkspaceId, submitAttendanceAdjustment } from "@/lib/api";
 import { toUTCISO } from "@/lib/datetime";
@@ -120,12 +121,12 @@ function EmptyState({ t }: { t: TFunction }) {
       <div className="w-20 h-20 bg-white dark:bg-slate-900 rounded-full flex items-center justify-center shadow-sm dark:shadow-black/10 mb-6 border border-slate-100 dark:border-slate-800 text-slate-350 dark:text-slate-650">
         <UserX size={32} />
       </div>
-      <p className="text-[10px] font-bold text-slate-300 dark:text-slate-600 uppercase tracking-[0.25em] mb-2">
+      <Typography className="text-[10px] font-bold text-slate-300 dark:text-slate-600 uppercase tracking-[0.25em] mb-2" variant="p">
         {t("common.no_profile")}
-      </p>
-      <p className="text-xs text-slate-400 dark:text-slate-500 max-w-xs leading-relaxed px-6">
+      </Typography>
+      <Typography className="text-xs text-slate-400 dark:text-slate-500 max-w-xs leading-relaxed px-6" variant="p">
         Please contact your administrator to set up your employee profile.
-      </p>
+      </Typography>
     </div>
   );
 }
@@ -134,12 +135,12 @@ function Header({ t }: { t: TFunction }) {
   return (
     <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 px-2">
       <div>
-        <h1 className="text-4xl font-bold tracking-tighter text-slate-700 dark:text-slate-200 uppercase leading-none">
+        <Typography className="text-4xl font-bold tracking-tighter text-slate-700 dark:text-slate-200 uppercase leading-none" variant="h1">
           {t("ess.clock.title")}
-        </h1>
-        <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] opacity-60 mt-1.5">
+        </Typography>
+        <Typography className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] opacity-60 mt-1.5" variant="p">
           {t("ess.clock.subtitle")}
-        </p>
+        </Typography>
       </div>
     </div>
   );

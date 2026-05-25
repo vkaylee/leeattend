@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import Modal from "@/components/ui/modal";
+import { Typography } from "@/components/ui/typography";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { DailyAttendanceReport, Shift } from "@/lib/api";
 
@@ -44,12 +45,12 @@ export default function ResolveUnscheduledModal({
                         <AlertTriangle size={20} />
                     </div>
                     <div>
-                        <p className="text-sm font-bold text-amber-800 dark:text-amber-200">
+                        <Typography className="text-sm font-bold text-amber-800 dark:text-amber-200" variant="p">
                             {row.employee_name}
-                        </p>
-                        <p className="text-xs font-mono font-bold text-amber-600 dark:text-amber-400 uppercase">
+                        </Typography>
+                        <Typography className="text-xs font-mono font-bold text-amber-600 dark:text-amber-400 uppercase" variant="p">
                             {formatDate(row.date)}
-                        </p>
+                        </Typography>
                     </div>
                 </div>
 
@@ -57,12 +58,12 @@ export default function ResolveUnscheduledModal({
                 {!!row.actual_punch_in && (
                     <div className="grid grid-cols-2 gap-4">
                         <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
-                            <p className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1">{t("reports.confirm.punch_in")}</p>
-                            <p className="font-mono font-bold text-sm text-slate-700 dark:text-slate-200">{formatTime(row.actual_punch_in)}</p>
+                            <Typography className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1" variant="p">{t("reports.confirm.punch_in")}</Typography>
+                            <Typography className="font-mono font-bold text-sm text-slate-700 dark:text-slate-200" variant="p">{formatTime(row.actual_punch_in)}</Typography>
                         </div>
                         <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
-                            <p className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1">{t("reports.confirm.punch_out")}</p>
-                            <p className="font-mono font-bold text-sm text-slate-700 dark:text-slate-200">{formatTime(row.actual_punch_out)}</p>
+                            <Typography className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1" variant="p">{t("reports.confirm.punch_out")}</Typography>
+                            <Typography className="font-mono font-bold text-sm text-slate-700 dark:text-slate-200" variant="p">{formatTime(row.actual_punch_out)}</Typography>
                         </div>
                     </div>
                   )}
@@ -87,9 +88,9 @@ export default function ResolveUnscheduledModal({
                 </div>
 
                 {/* Explanation note */}
-                <p className="text-[10px] text-slate-500 dark:text-slate-400 italic leading-relaxed">
+                <Typography className="text-[10px] text-slate-500 dark:text-slate-400 italic leading-relaxed" variant="p">
                     {t("reports.unscheduled.resolve_subtitle")}
-                </p>
+                </Typography>
 
                 {/* Buttons */}
                 <div className="flex gap-4 border-t border-slate-100 dark:border-slate-800 pt-4">

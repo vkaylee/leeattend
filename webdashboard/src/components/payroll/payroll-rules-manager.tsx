@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 
 import Modal from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
+import { Typography } from "@/components/ui/typography";
 import { fetchPayrollRules, createPayrollRule, fetchSalaryBaseGroups } from "@/lib/api/payroll";
 import { PayrollRuleDefinition, SalaryBaseGroup } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
@@ -120,7 +121,7 @@ function TieredConfig({ formData, setFormData, bases }: { formData: Partial<Payr
             </>
           ) : null}
         </select>
-        <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 ml-1 italic">Note: Tier brackets (e.g. 0-5M, 5-10M) will be configured after creating the rule.</p>
+        <Typography className="text-xs text-slate-500 dark:text-slate-400 mt-2 ml-1 italic" variant="p">Note: Tier brackets (e.g. 0-5M, 5-10M) will be configured after creating the rule.</Typography>
       </div>
     </div>
   );
@@ -139,7 +140,7 @@ function RuleLogicConfig({
     <div className="bg-slate-50 dark:bg-slate-800/50 p-8 rounded-[2rem] border border-slate-100 dark:border-slate-800 space-y-6">
       <div className="flex items-center gap-3 mb-2">
         <Calculator className="text-primary-600 dark:text-primary-400" size={18} />
-        <h3 className="font-bold text-slate-700 dark:text-slate-200 text-sm uppercase tracking-widest">Logic Configuration</h3>
+        <Typography className="font-bold text-slate-700 dark:text-slate-200 text-sm uppercase tracking-widest" variant="h3">Logic Configuration</Typography>
       </div>
       
       {formData.calculation_method === "percentage" ? (
@@ -194,8 +195,8 @@ function PayrollRuleForm({
             )} htmlFor={`rule-${field.key}`}>
               <input checked={(formData as Record<string, boolean>)[field.key]} className="w-7 h-7 rounded-xl text-primary-600 dark:text-primary-400 focus:ring-primary-500 transition-all border-slate-200 dark:border-slate-700 shadow-inner cursor-pointer" id={`rule-${field.key}`} onChange={e => { setFormData({...formData, [field.key]: e.target.checked}); }} type="checkbox" />
               <div>
-                <p className="font-bold text-slate-800 dark:text-slate-100 text-sm uppercase tracking-tight group-hover/check:text-primary-600 dark:text-primary-400 transition-colors flex items-center gap-2"><field.icon className="opacity-50" size={14} /> {field.label}</p>
-                <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-1.5 opacity-70 leading-relaxed max-w-sm">{field.desc}</p>
+                <Typography className="font-bold text-slate-800 dark:text-slate-100 text-sm uppercase tracking-tight group-hover/check:text-primary-600 dark:text-primary-400 transition-colors flex items-center gap-2" variant="p"><field.icon className="opacity-50" size={14} /> {field.label}</Typography>
+                <Typography className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-1.5 opacity-70 leading-relaxed max-w-sm" variant="p">{field.desc}</Typography>
               </div>
             </label>
           </React.Fragment>
@@ -227,8 +228,8 @@ export default function PayrollRulesManager({ wsId }: Props) {
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 rounded-[1.25rem] bg-rose-50 dark:bg-rose-950 flex items-center justify-center text-rose-600 dark:text-rose-300 shadow-inner border border-rose-100 dark:border-rose-800/50"><FileText size={24} /></div>
           <div>
-            <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 tracking-tight uppercase leading-none">Statutory Rules</h2>
-            <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-1.5 opacity-70">Manage dynamic statutory deductions and rules</p>
+            <Typography className="text-xl font-bold text-slate-800 dark:text-slate-100 tracking-tight uppercase leading-none" variant="h2">Statutory Rules</Typography>
+            <Typography className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-1.5 opacity-70" variant="p">Manage dynamic statutory deductions and rules</Typography>
           </div>
         </div>
         <button className="flex items-center gap-3 bg-primary-600 text-white px-8 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95" onClick={() => { setIsModalOpen(true); }}><Plus size={18} /> {t("common.add").toUpperCase()}</button>
@@ -240,7 +241,7 @@ export default function PayrollRulesManager({ wsId }: Props) {
         ) : rules?.length === 0 ? (
           <div className="p-32 text-center bg-slate-50 dark:bg-slate-800/30 m-8 rounded-[3rem] border-2 border-dashed border-slate-100 dark:border-slate-800 flex flex-col items-center">
             <div className="w-20 h-20 bg-white dark:bg-slate-900 rounded-full flex items-center justify-center shadow-sm mb-4 border border-slate-100 dark:border-slate-800"><FileText className="text-slate-200 dark:text-slate-700" size={32} /></div>
-            <p className="text-[10px] font-bold text-slate-300 dark:text-slate-600 uppercase tracking-widest">No Statutory Rules Configured</p>
+            <Typography className="text-[10px] font-bold text-slate-300 dark:text-slate-600 uppercase tracking-widest" variant="p">No Statutory Rules Configured</Typography>
           </div>
         ) : (
           rules?.map((rule) => (
@@ -262,12 +263,12 @@ export default function PayrollRulesManager({ wsId }: Props) {
                 <div className="flex items-center gap-6">
                   <div className="w-14 h-14 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 flex items-center justify-center text-slate-500 dark:text-slate-400 font-bold text-lg shadow-sm group-hover:text-primary-600 dark:group-hover:text-primary-400 group-hover:border-primary-100 dark:border-primary-800 transition-all uppercase">{rule.code.slice(0, 2)}</div>
                   <div>
-                    <p className="font-bold text-slate-700 dark:text-slate-200 text-sm tracking-tight uppercase leading-none">{rule.name}</p>
-                    <p className="text-[10px] font-mono font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-2 opacity-70">
+                    <Typography className="font-bold text-slate-700 dark:text-slate-200 text-sm tracking-tight uppercase leading-none" variant="p">{rule.name}</Typography>
+                    <Typography className="text-[10px] font-mono font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-2 opacity-70" variant="p">
                       {rule.category} • {rule.calculation_method} 
                       {rule.calculation_method === "percentage" && 'rate' in rule.rule_config ? ` (${String(rule.rule_config.rate)}%)` : null}
                       {rule.calculation_method === "fixed" ? ` (Fixed Amount)` : null}
-                    </p>
+                    </Typography>
                   </div>
                 </div>
                 

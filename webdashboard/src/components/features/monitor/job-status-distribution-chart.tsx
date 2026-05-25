@@ -4,6 +4,7 @@ import { PieChart, Pie, Cell, Tooltip } from "recharts";
 
 import type { JobStatusCount } from "@/hooks/use-monitor-charts";
 
+import { Typography } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -21,9 +22,9 @@ export default function JobStatusDistributionChart({ data, isLoading }: Props) {
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 rounded-full bg-gradient-to-br from-blue-400/15 to-blue-400/10 blur-2xl" />
       </div>
 
-      <h5 className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] w-full text-center">
+      <Typography className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] w-full text-center" variant="h5">
         {t("monitor.job_distribution")}
-      </h5>
+      </Typography>
 
       {isLoading ? (
         <div className="w-[160px] h-[160px] flex items-center justify-center">
@@ -34,9 +35,9 @@ export default function JobStatusDistributionChart({ data, isLoading }: Props) {
           <div className="w-12 h-12 rounded-2xl bg-slate-50 dark:bg-slate-800/50 flex items-center justify-center">
             <span className="text-xl">📊</span>
           </div>
-          <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+          <Typography className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest" variant="p">
             {t("monitor.no_data", { defaultValue: "No data" })}
-          </p>
+          </Typography>
         </div>
       ) : (
         <PieChart height={160} width={160}>

@@ -18,6 +18,7 @@ import { format, isToday as isDateToday } from "date-fns";
 import { vi, enUS, zhCN, type Locale } from "date-fns/locale";
 
 import { EmployeeSearch } from "@/components/common/employee-search";
+import { Typography } from "@/components/ui/typography";
 import { EffectiveSchedule, Employee, EmployeeSchedule, Shift } from "@/lib/api/types";
 import { useShifts } from "@/pages/shifts/hooks/use-shifts";
 
@@ -471,9 +472,9 @@ export function MonthlyRosterGrid({ hook }: MonthlyRosterGridProps) {
             <div className="text-xs font-bold uppercase tracking-widest text-slate-700 dark:text-slate-200">
               {t("common.error")}
             </div>
-            <p className="text-xs text-slate-450 dark:text-slate-500 max-w-xs mx-auto">
+            <Typography className="text-xs text-slate-450 dark:text-slate-500 max-w-xs mx-auto" variant="p">
               {t("shifts.monthly.failed_to_load")}
-            </p>
+            </Typography>
             <button
               className="mt-2 px-4 py-2 text-xs font-semibold text-white bg-primary-600 hover:bg-primary-700 active:scale-95 rounded-xl transition-all shadow-sm shadow-primary-500/10 cursor-pointer"
               onClick={() => {
@@ -499,9 +500,9 @@ export function MonthlyRosterGrid({ hook }: MonthlyRosterGridProps) {
             <div className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
               {t("shifts.monthly.all_employees")}
             </div>
-            <p className="text-xs text-slate-400 dark:text-slate-500 max-w-xs mx-auto">
+            <Typography className="text-xs text-slate-400 dark:text-slate-500 max-w-xs mx-auto" variant="p">
               {t("shifts.monthly.empty_state_desc")}
-            </p>
+            </Typography>
           </div>
         ) : selectedEmployeeIds.length === 0 ? (
           <div className="p-12 text-center flex flex-col items-center justify-center gap-4">
@@ -511,9 +512,9 @@ export function MonthlyRosterGrid({ hook }: MonthlyRosterGridProps) {
             <div className="text-xs font-bold uppercase tracking-widest text-slate-700 dark:text-slate-300">
               {t("shifts.empty_state.title")}
             </div>
-            <p className="text-xs text-slate-450 dark:text-slate-500 max-w-xs mx-auto">
+            <Typography className="text-xs text-slate-450 dark:text-slate-500 max-w-xs mx-auto" variant="p">
               {t("shifts.empty_state.desc")}
-            </p>
+            </Typography>
           </div>
         ) : filteredSchedules.length === 0 ? (
           <div className="p-12 text-center flex flex-col items-center justify-center gap-4">
@@ -523,9 +524,9 @@ export function MonthlyRosterGrid({ hook }: MonthlyRosterGridProps) {
             <div className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
               {t("common.combobox.no_results")}
             </div>
-            <p className="text-xs text-slate-450 dark:text-slate-500 max-w-xs mx-auto">
+            <Typography className="text-xs text-slate-450 dark:text-slate-500 max-w-xs mx-auto" variant="p">
               {t("shifts.monthly.no_results_desc")}
-            </p>
+            </Typography>
           </div>
         ) : (
           <RosterGridTable
@@ -586,9 +587,9 @@ const RosterToolbar = memo(function RosterToolbar({
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div className="flex items-center gap-2">
           <CalendarDays className="text-primary-600 dark:text-primary-400" size={20} />
-          <h2 className="text-sm font-bold uppercase tracking-wider text-slate-700 dark:text-slate-200">
+          <Typography className="text-sm font-bold uppercase tracking-wider text-slate-700 dark:text-slate-200" variant="h2">
             {title}
-          </h2>
+          </Typography>
         </div>
 
         <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto">

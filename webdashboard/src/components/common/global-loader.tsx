@@ -1,5 +1,7 @@
 import { Loader2 } from "lucide-react";
 
+import { Typography } from "@/components/ui/typography";
+
 export function GlobalLoader() {
   return (
     <div className="flex flex-col h-screen w-full items-center justify-center bg-slate-50 dark:bg-slate-900 animate-in fade-in duration-500">
@@ -9,9 +11,9 @@ export function GlobalLoader() {
           <Loader2 className="w-10 h-10 text-primary-600 dark:text-primary-400 animate-spin" />
         </div>
       </div>
-      <p className="mt-8 text-[10px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-[0.3em] animate-pulse opacity-80">
+      <Typography className="mt-8 text-[10px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-[0.3em] animate-pulse opacity-80" variant="p">
         Initializing Workspace...
-      </p>
+      </Typography>
     </div>
   );
 }

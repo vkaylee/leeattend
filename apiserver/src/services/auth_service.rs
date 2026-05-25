@@ -152,7 +152,6 @@ impl AuthService {
         self.session_repo
             .revoke_session(refresh_token)
             .await
-            .map_err(AppError::from)
     }
 
     #[tracing::instrument(skip_all, err)]
@@ -160,6 +159,5 @@ impl AuthService {
         self.session_repo
             .revoke_all_sessions_for_user(user_id)
             .await
-            .map_err(AppError::from)
     }
 }

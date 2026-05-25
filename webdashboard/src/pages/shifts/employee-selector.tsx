@@ -3,6 +3,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 
 import { EmployeeSearch } from "@/components/common/employee-search";
+import { Typography } from "@/components/ui/typography";
 import { Employee } from "@/lib/api/types";
 
 interface EmployeeSelectorProps {
@@ -49,12 +50,12 @@ export function EmptyEmployeeState() {
       <div className="bg-slate-50 dark:bg-slate-800 p-6 rounded-[32px] mb-6 animate-pulse text-slate-300 dark:text-slate-600">
         <User className="w-12 h-12" />
       </div>
-      <h3 className="text-xl font-bold text-slate-700 dark:text-slate-200">
+      <Typography className="text-xl font-bold text-slate-700 dark:text-slate-200" variant="h3">
         {t("shifts.empty_state.title")}
-      </h3>
-      <p className="text-slate-500 dark:text-slate-400 mt-2 max-w-xs mx-auto text-sm">
+      </Typography>
+      <Typography className="text-slate-500 dark:text-slate-400 mt-2 max-w-xs mx-auto text-sm" variant="p">
         {t("shifts.empty_state.desc")}
-      </p>
+      </Typography>
     </div>
   );
 }

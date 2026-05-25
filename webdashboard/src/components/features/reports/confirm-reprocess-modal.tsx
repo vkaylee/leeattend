@@ -3,6 +3,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 
 import Modal from "@/components/ui/modal";
+import { Typography } from "@/components/ui/typography";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 
 export interface ConfirmReprocessModalProps {
@@ -37,14 +38,14 @@ export default function ConfirmReprocessModal({
         >
             <div className="space-y-10 pt-4 animate-in fade-in duration-500">
                 <div className="p-8 bg-slate-50 dark:bg-slate-800 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-inner">
-                    <p className="text-base font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight leading-relaxed text-center italic opacity-80">
+                    <Typography className="text-base font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight leading-relaxed text-center italic opacity-80" variant="p">
                         &quot;
                         {!!dialogData && t("reports.reprocess.confirm_message", {
                                 employee: dialogData.employeeName,
                                 date: formatDate(dialogData.date),
                             })}
                         &quot;
-                    </p>
+                    </Typography>
                 </div>
                 <div className="flex gap-6 border-t border-slate-50 dark:border-slate-800 pt-2">
                     <button

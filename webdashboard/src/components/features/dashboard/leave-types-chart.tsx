@@ -10,6 +10,7 @@ import {
     Legend,
 } from "recharts";
 
+import { Typography } from "@/components/ui/typography";
 import { useLeaveTypesBreakdown } from "@/hooks/use-dashboard";
 
 const LEAVE_COLORS = [
@@ -41,12 +42,12 @@ export default function LeaveTypesChart() {
                     <PieChartIcon size={22} />
                 </div>
                 <div>
-                    <h2 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]">
+                    <Typography className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]" variant="h2">
                         {t("dashboard.hr.leave_types")}
-                    </h2>
-                    <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-0.5">
+                    </Typography>
+                    <Typography className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-0.5" variant="p">
                         {t("dashboard.hr.leave_types_subtitle")}
-                    </p>
+                    </Typography>
                 </div>
             </div>
 
@@ -57,9 +58,9 @@ export default function LeaveTypesChart() {
             ) : !hasData ? (
                 <div className="h-[280px] flex flex-col items-center justify-center">
                     <PieChartIcon className="text-slate-200 dark:text-slate-700 mb-4" size={48} />
-                    <p className="text-[10px] font-bold text-slate-300 dark:text-slate-600 uppercase tracking-widest">
+                    <Typography className="text-[10px] font-bold text-slate-300 dark:text-slate-600 uppercase tracking-widest" variant="p">
                         {t("common.no_data")}
-                    </p>
+                    </Typography>
                 </div>
             ) : (
                 <div className="flex flex-col items-center">

@@ -197,7 +197,7 @@ impl TenantManager for SupavisorTenantManager {
             .send()
             .await
             .map_err(|e| {
-                println!("Failed to reach Supavisor API: {e:?}");
+                tracing::warn!("Failed to reach Supavisor API: {e:?}");
                 AppError::Internal(format!("Failed to reach Supavisor API: {e:?}"))
             })?;
 
@@ -206,7 +206,7 @@ impl TenantManager for SupavisorTenantManager {
             Ok(())
         } else {
             let text = response.text().await.unwrap_or_default();
-            println!("Supavisor returned {status}: {text}");
+            tracing::warn!("Supavisor returned {status}: {text}");
             Err(AppError::Internal(format!(
                 "Supavisor returned {status}: {text}"
             )))

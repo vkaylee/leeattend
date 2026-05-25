@@ -13,6 +13,7 @@ import {
     Legend,
 } from "recharts";
 
+import { Typography } from "@/components/ui/typography";
 import { useDepartmentAttendance } from "@/hooks/use-dashboard";
 import { cn } from "@/lib/utils";
 
@@ -125,12 +126,12 @@ export default function DepartmentAttendanceChart() {
                         <Building2 size={22} />
                     </div>
                     <div>
-                        <h2 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]">
+                        <Typography className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]" variant="h2">
                             {t("dashboard.hr.dept_attendance")}
-                        </h2>
-                        <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-0.5">
+                        </Typography>
+                        <Typography className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-0.5" variant="p">
                             {t("dashboard.hr.dept_attendance_subtitle")}
-                        </p>
+                        </Typography>
                     </div>
                 </div>
 
@@ -167,9 +168,9 @@ export default function DepartmentAttendanceChart() {
             ) : !hasData ? (
                 <div className="h-[320px] flex flex-col items-center justify-center">
                     <Building2 className="text-slate-200 dark:text-slate-700 mb-4" size={48} />
-                    <p className="text-[10px] font-bold text-slate-300 dark:text-slate-600 uppercase tracking-widest">
+                    <Typography className="text-[10px] font-bold text-slate-300 dark:text-slate-600 uppercase tracking-widest" variant="p">
                         {t("common.no_data")}
-                    </p>
+                    </Typography>
                 </div>
             ) : (
                 <DepartmentAttendanceChartBar chartData={chartData} t={t} />

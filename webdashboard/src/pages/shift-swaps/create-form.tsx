@@ -6,6 +6,7 @@ import { TFunction } from "i18next";
 import Button from "@/components/ui/button";
 import { Combobox } from "@/components/ui/combobox";
 import FormField from "@/components/ui/form-field";
+import { Typography } from "@/components/ui/typography";
 
 interface Employee {
   full_name: string;
@@ -45,10 +46,10 @@ export function ShiftSwapCreateForm({
 }: ShiftSwapCreateFormProps) {
   return (
     <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-8 rounded-[2rem] shadow-sm animate-in zoom-in-95 duration-300 mb-8">
-      <h3 className="text-xl font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight mb-6 flex items-center gap-2">
+      <Typography className="text-xl font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight mb-6 flex items-center gap-2" variant="h3">
         <ArrowLeftRight className="text-primary-500" />
         {t("shift_swaps.create_title")}
-      </h3>
+      </Typography>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-6">
         <EmployeeSelect

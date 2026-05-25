@@ -21,6 +21,7 @@ import { format } from "date-fns";
 import { vi, enUS, zhCN, type Locale } from "date-fns/locale";
 
 import { Combobox } from "@/components/ui/combobox";
+import { Typography } from "@/components/ui/typography";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { Employee, EmployeeSchedule, EffectiveSchedule } from "@/lib/api/types";
 
@@ -258,8 +259,8 @@ export function WeeklyRosterGridHeader({
           {selectedEmployee.full_name[0]}
         </div>
         <div>
-          <h2 className="text-lg font-bold text-slate-700 dark:text-slate-200 leading-tight">{selectedEmployee.full_name}</h2>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">{t("shifts.current_week_roster")}</p>
+          <Typography className="text-lg font-bold text-slate-700 dark:text-slate-200 leading-tight" variant="h2">{selectedEmployee.full_name}</Typography>
+          <Typography className="text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400" variant="p">{t("shifts.current_week_roster")}</Typography>
         </div>
       </div>
 

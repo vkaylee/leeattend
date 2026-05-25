@@ -1,5 +1,7 @@
 import React, { Component } from "react";
 
+import { Typography } from "@/components/ui/typography";
+
 interface ErrorBoundaryProps {
   children?: React.ReactNode;
   fallback?: React.ReactNode;
@@ -50,12 +52,12 @@ export class ErrorBoundary extends Component<
           </svg>
         </div>
         <div>
-          <h4 className="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider">
+          <Typography className="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider" variant="h4">
             Widget Error
-          </h4>
-          <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1 max-w-xs">
+          </Typography>
+          <Typography className="text-[11px] text-slate-400 dark:text-slate-500 mt-1 max-w-xs" variant="p">
             {this.state.error?.message ?? "An unexpected error occurred"}
-          </p>
+          </Typography>
         </div>
         <button
           className="flex items-center gap-2 px-4 py-2 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-xl border border-slate-100 dark:border-slate-800 transition-all text-xs font-semibold active:scale-95"
@@ -78,12 +80,12 @@ export class ErrorBoundary extends Component<
               <line x1="9" x2="15" y1="9" y2="15" />
             </svg>
           </div>
-          <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-200">
+          <Typography className="text-lg font-semibold text-slate-800 dark:text-slate-200" variant="h2">
             Something went wrong
-          </h2>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
+          </Typography>
+          <Typography className="text-sm text-slate-500 dark:text-slate-400" variant="p">
             {this.state.error?.message ?? "An unexpected error occurred"}
-          </p>
+          </Typography>
           <div className="flex justify-center gap-3">
             <button
               className="px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors"

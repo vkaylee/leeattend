@@ -2,6 +2,8 @@ import { Link } from "@tanstack/react-router";
 import { ChevronRight } from "lucide-react";
 import React from "react";
 
+import { Typography } from "@/components/ui/typography";
+
 import { SettingItem } from "../hooks/use-settings-nav";
 
 interface NavGroupProps {
@@ -13,7 +15,7 @@ interface NavGroupProps {
 export function NavGroup({ title, items, isActive }: NavGroupProps) {
   return (
     <div className="mb-6">
-      <h3 className="px-4 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] mb-2">{title}</h3>
+      <Typography className="px-4 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] mb-2" variant="h3">{title}</Typography>
       <div className="space-y-1">
         {items.map((item) => (
           <Link

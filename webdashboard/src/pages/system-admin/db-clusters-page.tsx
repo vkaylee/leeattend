@@ -8,6 +8,7 @@ import Modal from "@/components/ui/modal";
 import PageHeader from "@/components/ui/page-header";
 import StatusBadge from "@/components/ui/status-badge";
 import { useToast } from "@/components/ui/toast";
+import { Typography } from "@/components/ui/typography";
 import { useConfirm } from "@/hooks/use-confirm";
 import {
   createSystemDbCluster,
@@ -141,8 +142,8 @@ export default function DbClustersPage() {
       ) : clusters.length === 0 ? (
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-12 text-center shadow-sm">
           <Database className="w-12 h-12 text-slate-300 dark:text-slate-700 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-slate-900 dark:text-white mb-2">No Database Clusters</h3>
-          <p className="text-slate-500 mb-6">You have not configured any database clusters yet.</p>
+          <Typography className="text-lg font-medium text-slate-900 dark:text-white mb-2" variant="h3">No Database Clusters</Typography>
+          <Typography className="text-slate-500 mb-6" variant="p">You have not configured any database clusters yet.</Typography>
           <Button onClick={() => { setIsModalOpen(true); }}>
             <Plus className="w-4 h-4 mr-2" />
             Add Your First Cluster
@@ -159,11 +160,11 @@ export default function DbClustersPage() {
               <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow" key={cluster.id}>
                 <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex justify-between items-start">
                   <div>
-                    <h3 className="font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                    <Typography className="font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-2" variant="h3">
                       <Database className="w-4 h-4 text-primary-500" />
                       {cluster.name}
-                    </h3>
-                    <p className="text-xs text-slate-500 mt-1">Region: {cluster.region}</p>
+                    </Typography>
+                    <Typography className="text-xs text-slate-500 mt-1" variant="p">Region: {cluster.region}</Typography>
                   </div>
                   <StatusBadge variant={cluster.is_active ? "success" : "neutral"}>
                     {cluster.is_active ? "Active" : "Inactive"}
@@ -179,9 +180,9 @@ export default function DbClustersPage() {
                     <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2.5">
                       <div className={`h-2.5 rounded-full ${progressColor}`} style={{ width: `${Math.min(utilization, 100)}%` }}></div>
                     </div>
-                    <p className="text-xs text-slate-500 text-right">
+                    <Typography className="text-xs text-slate-500 text-right" variant="p">
                       {cluster.active_tenants} / {cluster.max_tenants} tenants
-                    </p>
+                    </Typography>
                   </div>
                 </div>
 
@@ -243,7 +244,7 @@ export default function DbClustersPage() {
                 required
                 value={formData.admin_database_url}
               />
-              <p className="text-xs text-slate-500">Must be a highly privileged account to create databases.</p>
+              <Typography className="text-xs text-slate-500" variant="p">Must be a highly privileged account to create databases.</Typography>
             </div>
 
             <div className="grid grid-cols-2 gap-4">

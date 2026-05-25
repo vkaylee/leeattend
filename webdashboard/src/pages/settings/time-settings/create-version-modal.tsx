@@ -7,6 +7,7 @@ import Button from "@/components/ui/button";
 import { Combobox } from "@/components/ui/combobox";
 import { LABEL_BASE } from "@/components/ui/form-field";
 import Modal from "@/components/ui/modal";
+import { Typography } from "@/components/ui/typography";
 
 interface CreateVersionModalProps {
   earlyArrivalStrategy: "allow" | "block" | "clamp";
@@ -108,10 +109,10 @@ function DateInput({
         type="date"
         value={newValidFrom}
       />
-      <p className="text-[9px] text-slate-500 dark:text-slate-400 font-bold uppercase italic leading-relaxed px-1 opacity-60">
+      <Typography className="text-[9px] text-slate-500 dark:text-slate-400 font-bold uppercase italic leading-relaxed px-1 opacity-60" variant="p">
         {t("common.workspace_settings.valid_from_note") ||
           "Payroll calculations will use this configuration from this date forward."}
-      </p>
+      </Typography>
     </div>
   );
 }

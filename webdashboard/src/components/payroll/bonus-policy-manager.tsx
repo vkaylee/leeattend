@@ -12,6 +12,7 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useToast } from "@/components/ui/toast";
+import { Typography } from "@/components/ui/typography";
 import { fetchIncentivePolicies, createIncentivePolicy, deleteIncentivePolicy, cloneIncentivePolicy } from "@/lib/api/payroll";
 import { IncentiveTier, PayrollIncentivePolicy, RuleCondition } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
@@ -121,7 +122,7 @@ function BonusTierInput({
           </button>
         </div>
         {tier.rule_config.length === 0 ? (
-          <p className="text-xs text-slate-400 italic">No conditions. This tier applies to everyone.</p>
+          <Typography className="text-xs text-slate-400 italic" variant="p">No conditions. This tier applies to everyone.</Typography>
         ) : (
           tier.rule_config.map((rule, ruleIdx) => (
             <div className="flex items-center gap-2" key={ruleIdx}>
@@ -245,7 +246,7 @@ function BonusPolicyForm({
 
       <div className="space-y-6">
         <div className="flex items-center justify-between px-1">
-          <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em]">{t("payroll.incentives.tiers_config", { defaultValue: "EVALUATION TIERS" })}</h3>
+          <Typography className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em]" variant="h3">{t("payroll.incentives.tiers_config", { defaultValue: "EVALUATION TIERS" })}</Typography>
           <button className="text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:text-primary-300 font-bold text-[10px] uppercase tracking-widest flex items-center gap-1.5" onClick={handleAddTier}><Plus size={14} /> {t("common.add")}</button>
         </div>
 
@@ -326,7 +327,7 @@ function BonusPolicyCard({
             <Target size={32} />
           </div>
           <div>
-            <h3 className="text-xl font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight">{policy.name}</h3>
+            <Typography className="text-xl font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight" variant="h3">{policy.name}</Typography>
             <div className="flex items-center gap-4 mt-1.5">
               <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest bg-slate-50 dark:bg-slate-800 px-3 py-1 rounded-lg border border-slate-100 dark:border-slate-800">BASE: {new Intl.NumberFormat('vi-VN').format(policy.base_amount)} VND</span>
               {policy.is_active ? (
@@ -428,11 +429,11 @@ export default function BonusPolicyManager({ wsId }: BonusPolicyManagerProps) {
     <div className="space-y-10">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight flex items-center gap-3">
+          <Typography className="text-xl font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight flex items-center gap-3" variant="h2">
             <Sparkles className="text-primary-600 dark:text-primary-400" size={24} />
             {t("payroll.incentives.title", { defaultValue: "INCENTIVE & BONUS POLICIES" })}
-          </h2>
-          <p className="text-sm text-slate-500 dark:text-slate-400 font-medium mt-1 uppercase tracking-widest text-[10px] opacity-70">Manage Diligence, Performance and Safety bonuses</p>
+          </Typography>
+          <Typography className="text-sm text-slate-500 dark:text-slate-400 font-medium mt-1 uppercase tracking-widest text-[10px] opacity-70" variant="p">Manage Diligence, Performance and Safety bonuses</Typography>
         </div>
         <button 
           className={cn(
@@ -466,8 +467,8 @@ export default function BonusPolicyManager({ wsId }: BonusPolicyManagerProps) {
         {!isLoading && policies.length === 0 && !isCreating ? (
           <div className="py-24 text-center border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-[3rem] bg-slate-50 dark:bg-slate-800/30 flex flex-col items-center">
             <div className="w-20 h-20 bg-white dark:bg-slate-900 rounded-full flex items-center justify-center shadow-sm mb-4 border border-slate-100 dark:border-slate-800"><Sparkles className="text-slate-200 dark:text-slate-700" size={32} /></div>
-            <h3 className="text-lg font-bold text-slate-700 dark:text-slate-200">{t("payroll.incentives.no_policies", { defaultValue: "NO INCENTIVE POLICIES" })}</h3>
-            <p className="text-slate-500 dark:text-slate-400 text-sm mt-1 uppercase font-bold tracking-widest opacity-50">Configure your first bonus rule to reward diligent staff</p>
+            <Typography className="text-lg font-bold text-slate-700 dark:text-slate-200" variant="h3">{t("payroll.incentives.no_policies", { defaultValue: "NO INCENTIVE POLICIES" })}</Typography>
+            <Typography className="text-slate-500 dark:text-slate-400 text-sm mt-1 uppercase font-bold tracking-widest opacity-50" variant="p">Configure your first bonus rule to reward diligent staff</Typography>
           </div>
         ) : null}
       </div>

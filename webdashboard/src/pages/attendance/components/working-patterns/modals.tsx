@@ -16,6 +16,7 @@ import Button from "@/components/ui/button";
 import { Combobox } from "@/components/ui/combobox";
 import FormField, { INPUT_BASE, LABEL_BASE } from "@/components/ui/form-field";
 import Modal from "@/components/ui/modal";
+import { Typography } from "@/components/ui/typography";
 import { Shift } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 
@@ -159,12 +160,12 @@ function CreatePatternModal({ hook }: PatternModalsProps) {
 
         <div className="space-y-6">
           <div className="flex items-center justify-between px-1">
-            <h4 className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.3em] flex items-center gap-3">
+            <Typography className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.3em] flex items-center gap-3" variant="h4">
               <Clock className="text-primary-500" size={16} /> 
               {(patternType === "weekly" 
                 ? t("patterns.form.weekly_grid_title") 
                 : t("patterns.form.cycle_grid_title") || "Cycle Schedule Grid").toUpperCase()}
-            </h4>
+            </Typography>
             {patternType === "weekly" && (
               <Button className="text-[9px] text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-950 border-primary-100 dark:border-primary-800 hover:bg-primary-100 dark:hover:bg-primary-900" onClick={() => { prefillStandard(); }} size="sm" variant="outline">{t("patterns.form.prefill_standard").toUpperCase()}</Button>
             )}
@@ -269,7 +270,7 @@ function BulkAssignModal({ hook }: PatternModalsProps) {
                 <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none text-slate-300 dark:text-slate-600 group-focus-within:text-primary-500 dark:group-focus-within:text-primary-400 transition-colors"><Info size={18} /></div>
                 <input className={cn(INPUT_BASE, "pl-14 font-bold tracking-tight shadow-inner")} onChange={(e) => { setAssignStartDate(e.target.value); }} type="date" value={assignStartDate} />
               </div>
-              <p className="text-[9px] text-slate-500 dark:text-slate-400 font-bold uppercase italic leading-relaxed px-1 opacity-60">{t("patterns.form.start_date_note")}</p>
+              <Typography className="text-[9px] text-slate-500 dark:text-slate-400 font-bold uppercase italic leading-relaxed px-1 opacity-60" variant="p">{t("patterns.form.start_date_note")}</Typography>
             </div>
 
             {isRotation ? (
@@ -279,9 +280,9 @@ function BulkAssignModal({ hook }: PatternModalsProps) {
                   <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none text-slate-300 dark:text-slate-600 group-focus-within:text-primary-500 dark:group-focus-within:text-primary-400 transition-colors"><CalendarDays size={18} /></div>
                   <input className={cn(INPUT_BASE, "pl-14 font-bold tracking-tight shadow-inner")} onChange={(e) => { setAssignAnchorDate(e.target.value); }} type="date" value={assignAnchorDate} />
                 </div>
-                <p className="text-[9px] text-slate-500 dark:text-slate-400 font-bold uppercase italic leading-relaxed px-1 opacity-60">
+                <Typography className="text-[9px] text-slate-500 dark:text-slate-400 font-bold uppercase italic leading-relaxed px-1 opacity-60" variant="p">
                   {t("patterns.form.anchor_date_note") || "Anchor Date determines Day 1 of the rotating cycle."}
-                </p>
+                </Typography>
               </div>
             ) : null}
           </div>

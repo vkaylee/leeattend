@@ -16,6 +16,7 @@ import {
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import { Typography } from "@/components/ui/typography";
 import { useAuthorizedAgents } from "@/hooks/use-agents";
 import { AuthorizedAgent } from "@/lib/api";
 import { cn } from "@/lib/utils";
@@ -59,10 +60,10 @@ function AgentEditModalHeader({ t, onClose }: { onClose: () => void; t: TFunctio
           <UserCheck size={24} />
         </div>
         <div>
-          <h2 className="text-xl font-bold text-slate-700 dark:text-slate-200 tracking-tight uppercase">
+          <Typography className="text-xl font-bold text-slate-700 dark:text-slate-200 tracking-tight uppercase" variant="h2">
             {t("common.agents.edit_modal.title")}
-          </h2>
-          <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest mt-1 opacity-70">{t("common.agents.edit_modal.subtitle")}</p>
+          </Typography>
+          <Typography className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest mt-1 opacity-70" variant="p">{t("common.agents.edit_modal.subtitle")}</Typography>
         </div>
       </div>
       <button className="p-3 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-all shadow-md border border-slate-100 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:text-rose-300 active:scale-90" onClick={onClose}><X size={20} /></button>
@@ -148,7 +149,7 @@ function AgentEditModalSections({
       <div className="grid grid-cols-2 gap-8">
         <div className="space-y-2 px-1">
           <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("common.agents.edit_modal.cooldown_label")}</label>
-          <p className="text-[10px] text-slate-400 dark:text-slate-500 ml-1 -mt-1">{t("common.agents.edit_modal.cooldown_hint")}</p>
+          <Typography className="text-[10px] text-slate-400 dark:text-slate-500 ml-1 -mt-1" variant="p">{t("common.agents.edit_modal.cooldown_hint")}</Typography>
           <div className="relative group">
             <input className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all pr-12 font-mono font-bold text-sm text-slate-700 dark:text-slate-200" max="3600" min="60" onChange={(e) => { setSuccessCooldownSecs(parseInt(e.target.value)); }} required step="60" type="number" value={successCooldownSecs} />
             <Timer className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300 dark:text-slate-600 group-focus-within:text-primary-500 dark:group-focus-within:text-primary-400 transition-colors" />
@@ -156,7 +157,7 @@ function AgentEditModalSections({
         </div>
         <div className="space-y-2 px-1">
           <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("common.agents.edit_modal.retention_label")}</label>
-          <p className="text-[10px] text-slate-400 dark:text-slate-500 ml-1 -mt-1">{t("common.agents.edit_modal.retention_hint")}</p>
+          <Typography className="text-[10px] text-slate-400 dark:text-slate-500 ml-1 -mt-1" variant="p">{t("common.agents.edit_modal.retention_hint")}</Typography>
           <div className="relative group">
             <input className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all pr-12 font-mono font-bold text-sm text-slate-700 dark:text-slate-200" max="3650" min="1" onChange={(e) => { setRetentionDays(parseInt(e.target.value)); }} required type="number" value={retentionDays} />
             <Calendar className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300 dark:text-slate-600 group-focus-within:text-primary-500 dark:group-focus-within:text-primary-400 transition-colors" />

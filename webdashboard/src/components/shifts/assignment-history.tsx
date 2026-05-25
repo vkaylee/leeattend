@@ -2,6 +2,8 @@ import { History, Zap, ShieldCheck } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
+import { Typography } from "@/components/ui/typography";
+
 import { useDateTimeFormatter } from "../../hooks/use-datetime";
 import { AssignmentHistory as AssignmentHistoryType, Employee } from "../../lib/api";
 
@@ -18,7 +20,7 @@ export function AssignmentHistory({ history, selectedEmployee }: AssignmentHisto
     <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-[40px] p-8 shadow-sm animate-in fade-in slide-in-from-bottom-8 duration-500">
       <div className="flex items-center gap-3 mb-6">
         <History className="w-5 h-5 text-slate-500 dark:text-slate-400" />
-        <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-widest">{t("shifts.history_title")}</h3>
+        <Typography className="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-widest" variant="h3">{t("shifts.history_title")}</Typography>
       </div>
       
       <div className="overflow-hidden rounded-3xl border border-slate-100 dark:border-slate-800">

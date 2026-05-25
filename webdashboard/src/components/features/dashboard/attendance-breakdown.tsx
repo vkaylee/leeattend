@@ -3,6 +3,8 @@ import { Users2 } from "lucide-react";
 import { type TFunction } from "i18next";
 import { PieChart, Pie, ResponsiveContainer, Tooltip } from "recharts";
 
+import { Typography } from "@/components/ui/typography";
+
 interface DonutData {
   fill: string;
   name: string;
@@ -18,9 +20,9 @@ interface AttendanceBreakdownProps {
 export function AttendanceBreakdown({ donutData, hasDonutData, t }: AttendanceBreakdownProps) {
   return (
     <div className="bg-white dark:bg-slate-900 rounded-[3rem] p-8 sm:p-10 border border-slate-100 dark:border-slate-800 shadow-sm">
-      <h2 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] mb-8">
+      <Typography className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] mb-8" variant="h2">
         {t("dashboard.hr.attendance_breakdown")}
-      </h2>
+      </Typography>
       {hasDonutData ? (
         <div className="flex flex-col items-center">
           <ResponsiveContainer height={260} width="100%">
@@ -60,9 +62,9 @@ export function AttendanceBreakdown({ donutData, hasDonutData, t }: AttendanceBr
       ) : (
         <div className="flex flex-col items-center justify-center h-[260px]">
           <Users2 className="text-slate-200 dark:text-slate-700 mb-4" size={48} />
-          <p className="text-[10px] font-bold text-slate-300 dark:text-slate-600 uppercase tracking-widest">
+          <Typography className="text-[10px] font-bold text-slate-300 dark:text-slate-600 uppercase tracking-widest" variant="p">
             {t("common.no_data")}
-          </p>
+          </Typography>
         </div>
       )}
     </div>

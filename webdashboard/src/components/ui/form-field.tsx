@@ -1,5 +1,6 @@
 import React, { memo } from "react";
 
+import { Typography } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
 
 // ── Shared input class ─────────────────────────────────────────────
@@ -107,7 +108,7 @@ const FormField = memo(function FormField({
         />
       )}
       {!!error && (
-        <p className="text-xs text-rose-500 font-medium px-1 mt-1">{error}</p>
+        <Typography className="text-xs text-rose-500 font-medium px-1 mt-1" variant="p">{error}</Typography>
       )}
     </div>
   );

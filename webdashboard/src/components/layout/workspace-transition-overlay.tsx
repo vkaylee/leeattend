@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 
+import { Typography } from "@/components/ui/typography";
 import { Workspace } from "@/lib/api";
 
 interface Props {
@@ -50,16 +51,16 @@ export default function WorkspaceTransitionOverlay({ workspace }: Props) {
 
         {/* Text Details */}
         <div className="relative w-full text-center space-y-3">
-          <h2 className="text-2xl font-bold text-white tracking-tight">
+          <Typography className="text-2xl font-bold text-white tracking-tight" variant="h2">
             {workspace.name}
-          </h2>
+          </Typography>
           <div className="h-6 flex items-center justify-center overflow-hidden">
-             <p 
-               className="text-sm font-medium text-white/70 animate-in slide-in-from-bottom-4 fade-in duration-300" 
-               key={step}
+             <Typography className="text-sm font-medium text-white/70 animate-in slide-in-from-bottom-4 fade-in duration-300" 
+               key={step} 
+               variant="p"
              >
                {getStepText()}
-             </p>
+             </Typography>
           </div>
         </div>
 

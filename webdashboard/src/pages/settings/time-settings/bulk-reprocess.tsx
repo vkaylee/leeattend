@@ -5,6 +5,7 @@ import { TFunction } from "i18next";
 
 import Button from "@/components/ui/button";
 import { LABEL_BASE } from "@/components/ui/form-field";
+import { Typography } from "@/components/ui/typography";
 
 interface BulkReprocessSectionProps {
   reprocessEnd: string;
@@ -28,15 +29,15 @@ export function BulkReprocessSection({
       <div className="flex items-center justify-between border-b border-slate-50 dark:border-slate-800 pb-6">
         <div className="flex items-center gap-3">
           <RefreshCw className="w-6 h-6 text-orange-500" />
-          <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 tracking-tight uppercase">
+          <Typography className="text-xl font-bold text-slate-800 dark:text-slate-100 tracking-tight uppercase" variant="h2">
             {t("reports.reprocess.bulk_tooltip") || "Reprocess Attendance"}
-          </h2>
+          </Typography>
         </div>
       </div>
-      <p className="text-sm text-slate-500 dark:text-slate-400">
+      <Typography className="text-sm text-slate-500 dark:text-slate-400" variant="p">
         {t("reports.reprocess.bulk_confirm_message") ||
           "Recalculate attendance for all employees in the selected date range."}
-      </p>
+      </Typography>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
         <div className="space-y-3">
           <label className={LABEL_BASE}>{t("common.startDate") || "Start Date"}</label>

@@ -23,6 +23,7 @@ import { CSS } from "@dnd-kit/utilities";
 
 import type { WidgetId } from "@/hooks/use-dashboard-layout";
 
+import { Typography } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
 
 // ── Types ──────────────────────────────────────────────────────────
@@ -140,9 +141,9 @@ function CustomizePanelHeader({ onClose, isSaving, t }: CustomizePanelHeaderProp
     return (
         <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 dark:border-slate-800">
             <div className="flex items-center gap-3">
-                <h2 className="text-lg font-bold text-slate-700 dark:text-slate-200">
+                <Typography className="text-lg font-bold text-slate-700 dark:text-slate-200" variant="h2">
                     {t("dashboard.customize.title")}
-                </h2>
+                </Typography>
                 {!!isSaving && <Loader2 className="animate-spin text-primary-500" size={16} />}
             </div>
             <button
@@ -237,9 +238,9 @@ export default function CustomizePanel({
 
                 {/* Widget list */}
                 <div className="flex-1 overflow-y-auto px-6 py-5 space-y-3">
-                    <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-4">
+                    <Typography className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-4" variant="p">
                         {t("dashboard.customize.widgets")}
-                    </p>
+                    </Typography>
 
                     <DndContext
                         collisionDetection={closestCenter}

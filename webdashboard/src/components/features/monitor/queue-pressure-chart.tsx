@@ -4,6 +4,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 
 import type { QueuePressureData, PressureLevel } from "@/hooks/use-monitor-charts";
 
+import { Typography } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -55,9 +56,9 @@ export default function QueuePressureChart({ data, isLoading }: Props) {
       </div>
 
       <div className="flex items-center justify-between">
-        <h5 className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]">
+        <Typography className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]" variant="h5">
           {t("monitor.queue_pressure")}
-        </h5>
+        </Typography>
         {/* Pressure level badge */}
         <span
           className={cn(
@@ -81,9 +82,9 @@ export default function QueuePressureChart({ data, isLoading }: Props) {
           <div className="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 flex items-center justify-center">
             <span className="text-xl">✓</span>
           </div>
-          <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+          <Typography className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest" variant="p">
             {t("monitor.queue_empty", { defaultValue: "Queue clear" })}
-          </p>
+          </Typography>
         </div>
       ) : (
         <ResponsiveContainer height={160} width="100%">

@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import EmploymentPhaseManager from "@/components/people/employment-phase-manager";
+import { Typography } from "@/components/ui/typography";
 import { getCurrentWorkspaceId } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import DepartmentsPage from "@/pages/departments-page";
@@ -27,9 +28,9 @@ export default function OrganizationSettings() {
 
           <div>
 
-            <h1 className="text-3xl font-bold tracking-tight text-slate-700 dark:text-slate-200 leading-tight" data-testid="organization-settings-title">{t("common.settings.categories.organization", { defaultValue: "Organization" })}</h1>
+            <Typography className="text-3xl font-bold tracking-tight text-slate-700 dark:text-slate-200 leading-tight" data-testid="organization-settings-title" variant="h1">{t("common.settings.categories.organization", { defaultValue: "Organization" })}</Typography>
 
-            <p className="text-slate-500 dark:text-slate-400 mt-1 font-medium">{t("common.settings.categories.organization_desc", { defaultValue: "Manage departments and employment phases" })}</p>
+            <Typography className="text-slate-500 dark:text-slate-400 mt-1 font-medium" variant="p">{t("common.settings.categories.organization_desc", { defaultValue: "Manage departments and employment phases" })}</Typography>
 
           </div>
 

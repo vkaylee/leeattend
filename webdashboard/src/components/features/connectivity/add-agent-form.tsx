@@ -2,6 +2,8 @@ import { Plus } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
+import { Typography } from "@/components/ui/typography";
+
 interface AddAgentFormProps {
   newAgent: { id: string; name: string; token: string };
   onCancel: () => void;
@@ -21,7 +23,7 @@ export function AddAgentForm({
     <form className="bg-white dark:bg-slate-900 border-2 border-primary-100 dark:border-primary-800 p-10 rounded-[2.5rem] shadow-xl shadow-primary-50/50 animate-in slide-in-from-top-4 duration-500" data-testid="add-agent-form" onSubmit={onSubmit}>
       <div className="flex items-center gap-3 mb-8 text-primary-700 dark:text-primary-300">
         <div className="w-8 h-8 rounded-xl bg-primary-50 dark:bg-primary-950 flex items-center justify-center shadow-inner"><Plus size={16} /></div>
-        <h4 className="text-[10px] font-bold uppercase tracking-[0.2em]">{t("agents.add_form_title")}</h4>
+        <Typography className="text-[10px] font-bold uppercase tracking-[0.2em]" variant="h4">{t("agents.add_form_title")}</Typography>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         <div className="space-y-3 px-1">

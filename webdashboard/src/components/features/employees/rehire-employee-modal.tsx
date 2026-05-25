@@ -9,6 +9,7 @@ import Button from "@/components/ui/button";
 import FormField from "@/components/ui/form-field";
 import Modal from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
+import { Typography } from "@/components/ui/typography";
 import { rehireEmployee, Employee } from "@/lib/api";
 
 interface RehireEmployeeModalProps {
@@ -61,9 +62,9 @@ export default function RehireEmployeeModal({
     >
       <div className="space-y-10 pt-4 animate-in fade-in duration-500">
         <div className="p-8 bg-slate-50 dark:bg-slate-800 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-inner text-center italic">
-          <p className="text-sm font-bold text-slate-600 dark:text-slate-300 uppercase tracking-tight leading-relaxed">
+          <Typography className="text-sm font-bold text-slate-600 dark:text-slate-300 uppercase tracking-tight leading-relaxed" variant="p">
             &quot;{t("employees.rehire.confirm_msg")}&quot;
-          </p>
+          </Typography>
         </div>
         <form className="space-y-8" onSubmit={handleRehireSubmit}>
           <FormField

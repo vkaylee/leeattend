@@ -3,6 +3,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 
 import { Combobox } from "@/components/ui/combobox";
+import { Typography } from "@/components/ui/typography";
 import { AssignmentRuleConditions } from "@/lib/api";
 
 interface AssignmentRuleFormProps {
@@ -70,9 +71,9 @@ export const AssignmentRuleForm: React.FC<AssignmentRuleFormProps> = ({
       </div>
 
       <div className="bg-slate-50 dark:bg-slate-800 rounded-[32px] p-6 border border-slate-100 dark:border-slate-800 space-y-4">
-        <h4 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest flex items-center gap-2">
+        <Typography className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest flex items-center gap-2" variant="h4">
           <Filter size={14} /> {t("rules.conditions_title")}
-        </h4>
+        </Typography>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
@@ -101,9 +102,9 @@ export const AssignmentRuleForm: React.FC<AssignmentRuleFormProps> = ({
           </div>
         </div>
 
-        <p className="text-[10px] text-slate-500 dark:text-slate-400 italic">
+        <Typography className="text-[10px] text-slate-500 dark:text-slate-400 italic" variant="p">
           {t("rules.condition_help")}
-        </p>
+        </Typography>
       </div>
     </div>
   );

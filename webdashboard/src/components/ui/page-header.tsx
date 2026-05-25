@@ -1,6 +1,8 @@
 import React, { memo } from "react";
 
+import { Typography } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
+
 
 // ── Component ──────────────────────────────────────────────────────
 
@@ -39,13 +41,13 @@ const PageHeader = memo(function PageHeader({
           </div>
         )}
         <div>
-          <h1 className="text-3xl font-black text-slate-800 dark:text-slate-100 tracking-tight leading-normal pt-2 mb-1 uppercase" data-testid={testId}>
+          <Typography as="h1" className="font-black pt-2 mb-1 uppercase" data-testid={testId} variant="h2">
             {title}
-          </h1>
+          </Typography>
           {!!subtitle && (
-            <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] opacity-60">
+            <Typography className="opacity-60 text-slate-500 dark:text-slate-400" variant="overline">
               {subtitle}
-            </p>
+            </Typography>
           )}
         </div>
       </div>

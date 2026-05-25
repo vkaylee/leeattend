@@ -2,6 +2,8 @@ import { ChevronRight, Clock, Zap, Pencil, Trash2 } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
+import { Typography } from "@/components/ui/typography";
+
 import { useDateTimeFormatter } from "../../hooks/use-datetime";
 import { Shift } from "../../lib/api";
 
@@ -18,7 +20,7 @@ export function ShiftList({ shifts, onEdit, onDelete }: ShiftListProps) {
   return (
     <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] overflow-hidden shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="p-8 border-b border-slate-50 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/30 flex items-center justify-between">
-        <h2 className="font-bold text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em]">{t("shifts.directory_title")}</h2>
+        <Typography className="font-bold text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em]" variant="h2">{t("shifts.directory_title")}</Typography>
         <span className="text-[10px] font-bold text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-950 px-3 py-1 rounded-full border border-primary-100 dark:border-primary-800 shadow-sm">{t("common.total").toUpperCase()}: {shifts?.length ?? 0}</span>
       </div>
       <table className="w-full text-left border-collapse">
@@ -83,8 +85,8 @@ export function ShiftList({ shifts, onEdit, onDelete }: ShiftListProps) {
                 <div className="bg-white dark:bg-slate-900 w-20 h-20 rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-sm border border-slate-100 dark:border-slate-800">
                   <Clock className="text-slate-200 dark:text-slate-700" size={32} />
                 </div>
-                <h3 className="text-lg font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight">{t("shifts.messages.no_shifts")}</h3>
-                <p className="text-slate-500 dark:text-slate-400 text-[10px] font-bold uppercase tracking-widest mt-1 opacity-50">{t("shifts.directory_title")} is empty</p>
+                <Typography className="text-lg font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight" variant="h3">{t("shifts.messages.no_shifts")}</Typography>
+                <Typography className="text-slate-500 dark:text-slate-400 text-[10px] font-bold uppercase tracking-widest mt-1 opacity-50" variant="p">{t("shifts.directory_title")} is empty</Typography>
               </td>
             </tr>
           )}

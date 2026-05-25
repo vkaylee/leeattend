@@ -2,6 +2,7 @@ import { CalendarRange, Calendar, Save } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
+import { Typography } from "@/components/ui/typography";
 import { Employee } from "@/lib/api";
 
 interface WorkingPattern {
@@ -55,9 +56,9 @@ function PatternSelector({
             <div className={`font-bold text-sm uppercase tracking-tight ${selectedPatternId === pattern.id ? 'text-primary-700 dark:text-primary-300' : 'text-slate-700 dark:text-slate-200'}`}>
               {pattern.name}
             </div>
-            <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold mt-1 line-clamp-1">
+            <Typography className="text-[10px] text-slate-500 dark:text-slate-400 font-bold mt-1 line-clamp-1" variant="p">
               {pattern.description ?? t("common.no_description")}
-            </p>
+            </Typography>
             {selectedPatternId === pattern.id && (
               <div className="absolute top-4 right-4 w-3 h-3 bg-primary-600 rounded-full animate-pulse" />
             )}
@@ -91,10 +92,10 @@ export function PatternAssignmentForm({
           {selectedEmployee.full_name[0]}
         </div>
         <div>
-          <h2 className="text-2xl font-bold text-slate-700 dark:text-slate-200">{selectedEmployee.full_name}</h2>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 mt-1">
+          <Typography className="text-2xl font-bold text-slate-700 dark:text-slate-200" variant="h2">{selectedEmployee.full_name}</Typography>
+          <Typography className="text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 mt-1" variant="p">
             {t("shifts.fixed_assignment_subtitle")}
-          </p>
+          </Typography>
         </div>
       </div>
       <div className="space-y-10">

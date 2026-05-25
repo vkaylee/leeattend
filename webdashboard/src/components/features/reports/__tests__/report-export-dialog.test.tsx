@@ -4,6 +4,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 
+import { Typography } from "@/components/ui/typography";
 import { useReportStream } from "@/hooks/use-report-stream";
 import * as attendanceApi from "@/lib/api/attendance";
 
@@ -32,7 +33,7 @@ vi.mock("@/components/ui/modal", () => ({
   default: ({ isOpen, title, children, testId, ...props }: { isOpen?: boolean; title?: React.ReactNode; children?: React.ReactNode; testId?: string } & Record<string, unknown>) =>
     isOpen ? (
       <div data-testid={testId ?? "modal"} {...props}>
-        <h2>{title}</h2>
+        <Typography variant="h2">{title}</Typography>
         {children}
       </div>
     ) : null,

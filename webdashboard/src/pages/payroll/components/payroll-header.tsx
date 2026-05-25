@@ -9,6 +9,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Typography } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
 
 interface PayrollHeaderProps {
@@ -33,12 +34,12 @@ export const PayrollHeader: React.FC<PayrollHeaderProps> = ({
   return (
     <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 px-2">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-slate-700 dark:text-slate-200" data-testid="payroll-title">
+        <Typography className="text-3xl font-bold tracking-tight text-slate-700 dark:text-slate-200" data-testid="payroll-title" variant="h1">
           {t("payroll.title")}
-        </h1>
-        <p className="text-slate-500 dark:text-slate-400 mt-1 font-medium">
+        </Typography>
+        <Typography className="text-slate-500 dark:text-slate-400 mt-1 font-medium" variant="p">
           {t("payroll.subtitle")}
-        </p>
+        </Typography>
       </div>
 
       <div className="flex items-center gap-4 bg-white dark:bg-slate-900 p-2 rounded-[2rem] border border-slate-200 dark:border-slate-700 shadow-sm">

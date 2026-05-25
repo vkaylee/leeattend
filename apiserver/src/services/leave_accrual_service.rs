@@ -481,6 +481,7 @@ impl LeaveAccrualService {
     /// Optimized: uses pre-computed accrual dates and batched qualifying-days queries.
     /// All persistence is delegated to `accrual_log_repo` (Repository pattern).
     #[tracing::instrument(skip_all, err)]
+    #[allow(clippy::too_many_lines)]
     pub async fn process_workspace_accruals(
         &self,
         workspace_id: Uuid,
@@ -586,7 +587,10 @@ impl LeaveAccrualService {
             let Some(dates) = accrual_plan.get(&emp.id) else {
                 continue;
             };
-            let (def, assignment_id) = emp_policy_map.get(&emp.id).unwrap();
+            let Some((def, assignment_id)) = emp_policy_map.get(&emp.id) else {
+                tracing::error!("policy must exist for accrued employee {}", emp.id);
+                continue;
+            };
             let config = &def.rule_config;
             let leave_type_id = def.leave_type_id;
 

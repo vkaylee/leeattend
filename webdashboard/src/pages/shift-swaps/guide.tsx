@@ -3,6 +3,8 @@ import React from "react";
 
 import { TFunction } from "i18next";
 
+import { Typography } from "@/components/ui/typography";
+
 interface ShiftSwapGuideProps {
   setShowGuide: (show: boolean) => void;
   showGuide: boolean;
@@ -60,9 +62,9 @@ export function ShiftSwapGuide({
 
           <div className="mt-6 p-4 bg-white/50 dark:bg-slate-900/30 rounded-2xl flex items-start gap-3">
             <Info className="text-blue-500 mt-0.5 shrink-0" size={16} />
-            <p className="text-xs font-bold text-blue-800 dark:text-blue-200 tracking-tight leading-relaxed">
+            <Typography className="text-xs font-bold text-blue-800 dark:text-blue-200 tracking-tight leading-relaxed" variant="p">
               {t("shift_swaps.guide.note")}
-            </p>
+            </Typography>
           </div>
         </div>
       ) : null}
@@ -84,10 +86,10 @@ function GuideStep({
       <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold font-mono text-xs">
         {number}
       </div>
-      <h4 className="font-bold text-sm text-slate-700 dark:text-slate-300">{title}</h4>
-      <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider leading-relaxed opacity-80">
+      <Typography className="font-bold text-sm text-slate-700 dark:text-slate-300" variant="h4">{title}</Typography>
+      <Typography className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider leading-relaxed opacity-80" variant="p">
         {description}
-      </p>
+      </Typography>
     </div>
   );
 }

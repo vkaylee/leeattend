@@ -8,6 +8,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Typography } from "@/components/ui/typography";
 import { Device, DeviceStatus } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
@@ -43,9 +44,9 @@ export function DeviceTopBar({
           <Cpu className={cn(isOnline && "animate-pulse")} size={20} />
         </div>
         <div className="min-w-0">
-          <h3 className="font-black text-slate-700 dark:text-slate-200 text-sm uppercase tracking-tight truncate">
+          <Typography className="font-black text-slate-700 dark:text-slate-200 text-sm uppercase tracking-tight truncate" variant="h3">
             {device.name}
-          </h3>
+          </Typography>
           <div className="flex items-center gap-2 text-[10px] font-mono font-bold text-slate-400">
             <Globe size={10} /> {device.ip}
           </div>

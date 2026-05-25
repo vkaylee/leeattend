@@ -3,6 +3,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 
 import { Combobox } from "@/components/ui/combobox";
+import { Typography } from "@/components/ui/typography";
 
 interface AuditLogFiltersProps {
     actionFilter: string;
@@ -41,7 +42,7 @@ export function AuditLogFilters({
         <div className="border-b border-slate-200 dark:border-slate-800 px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-2">
                 <Activity className="h-5 w-5 text-slate-400" />
-                <h3 className="font-medium text-slate-900 dark:text-white">{t("audit_logs.section_title")}</h3>
+                <Typography className="font-medium text-slate-900 dark:text-white" variant="h3">{t("audit_logs.section_title")}</Typography>
             </div>
 
             <div className="flex flex-wrap items-center gap-3">

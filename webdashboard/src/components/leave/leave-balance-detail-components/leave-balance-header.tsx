@@ -2,6 +2,7 @@ import { X } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
+import { Typography } from "@/components/ui/typography";
 import { WorkspaceLeaveBalance } from "@/lib/api";
 
 export function LeaveBalanceHeader({ balance, onClose }: { balance: WorkspaceLeaveBalance; onClose: () => void }) {
@@ -14,9 +15,9 @@ export function LeaveBalanceHeader({ balance, onClose }: { balance: WorkspaceLea
             {balance.employee_name.split(' ').map(n => n[0]).join('').slice(0, 2)}
           </div>
           <div className="flex-1 min-w-0">
-            <h2 className="text-xl md:text-2xl font-bold text-slate-800 dark:text-slate-100 tracking-tight uppercase leading-tight truncate">
+            <Typography className="text-xl md:text-2xl font-bold text-slate-800 dark:text-slate-100 tracking-tight uppercase leading-tight truncate" variant="h2">
               {balance.employee_name}
-            </h2>
+            </Typography>
             <div className="flex items-center gap-2 mt-2">
               <span className="inline-block px-3 py-1.5 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl text-xs font-bold uppercase tracking-wider border border-slate-200 dark:border-slate-700 shadow-sm">
                 {balance.leave_type_name}

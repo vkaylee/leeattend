@@ -4,6 +4,7 @@ import React from "react";
 import { formatDistanceToNow } from "date-fns";
 import { TFunction } from "i18next";
 
+import { Typography } from "@/components/ui/typography";
 import { RecentJob } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 
@@ -16,20 +17,20 @@ export function JobsTable({ recentJobs, t }: JobsTableProps) {
   return (
     <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] overflow-hidden shadow-sm dark:shadow-black/10">
       <div className="p-6 border-b border-slate-100 dark:border-slate-800">
-        <h4 className="text-lg font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight">
+        <Typography className="text-lg font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight" variant="h4">
           {t("monitor.recent_jobs", { defaultValue: "Recent Jobs" })}
-        </h4>
-        <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] mt-1 opacity-60">
+        </Typography>
+        <Typography className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] mt-1 opacity-60" variant="p">
           {t("monitor.recent_jobs_subtitle", { defaultValue: "Job metadata from last 24 hours" })}
-        </p>
+        </Typography>
       </div>
 
       {recentJobs.length === 0 ? (
         <div className="p-12 text-center">
           <Briefcase className="mx-auto text-slate-200 dark:text-slate-700 mb-4" size={48} />
-          <p className="text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+          <Typography className="text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest" variant="p">
             {t("monitor.no_jobs", { defaultValue: "No recent jobs" })}
-          </p>
+          </Typography>
         </div>
       ) : (
         <div className="overflow-x-auto">

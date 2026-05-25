@@ -3,6 +3,7 @@ import { X, Printer } from 'lucide-react';
 import React, { useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { Typography } from "@/components/ui/typography";
 import { useDateTimeFormatter } from '@/hooks/use-datetime';
 import { Employee, Payslip, Workspace } from '@/lib/api/types';
 
@@ -45,10 +46,10 @@ export default function PayslipModal({
           <div className='p-6 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between print:hidden'>
             <div className='flex items-center gap-4'>
               <div>
-                <h2 className='text-sm font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400'>Official Payslip Preview</h2>
-                <p className='text-xs font-bold text-slate-600 dark:text-slate-300 mt-1'>
+                <Typography className='text-sm font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400' variant="h2">Official Payslip Preview</Typography>
+                <Typography className='text-xs font-bold text-slate-600 dark:text-slate-300 mt-1' variant="p">
                   {t('common.month')} {formatMonthYear(payslip.period_start)}
-                </p>
+                </Typography>
               </div>
             </div>
             <div className='flex items-center gap-3'>
@@ -80,9 +81,9 @@ export default function PayslipModal({
           
           {/* Footer Warning */}
           <div className='p-4 bg-amber-50 dark:bg-amber-950 border-t border-amber-100 dark:border-amber-800 text-center print:hidden'>
-            <p className='text-[9px] font-bold text-amber-700 dark:text-amber-300 uppercase tracking-widest'>
+            <Typography className='text-[9px] font-bold text-amber-700 dark:text-amber-300 uppercase tracking-widest' variant="p">
               Use the print button above to save as PDF or print a physical copy.
-            </p>
+            </Typography>
           </div>
         </Dialog.Content>
       </Dialog.Portal>

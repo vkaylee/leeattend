@@ -3,6 +3,7 @@ import { Timer, LogOut, Banknote } from "lucide-react";
 import { type TFunction } from "i18next";
 
 import StatCard from "@/components/ui/stat-card";
+import { Typography } from "@/components/ui/typography";
 import { type WorkspaceStats } from "@/hooks/use-dashboard";
 
 interface HrQuickStatsProps {
@@ -39,9 +40,9 @@ export function HrQuickStats({ hrStats, isLoading, formatCurrency, t }: HrQuickS
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      <h2 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] px-4">
+      <Typography className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] px-4" variant="h2">
         {t("dashboard.hr.quick_stats")}
-      </h2>
+      </Typography>
       {stats.map((item, index) => (
         <StatCard
           colorClasses={item.color}

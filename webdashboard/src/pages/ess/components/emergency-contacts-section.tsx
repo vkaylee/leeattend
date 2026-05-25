@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
 import StatusBadge from "@/components/ui/status-badge";
+import { Typography } from "@/components/ui/typography";
 
 interface Contact {
   contact_name: string;
@@ -35,12 +36,12 @@ export function EmergencyContactsSection({
             <Users size={28} />
           </div>
           <div>
-            <h3 className="text-2xl font-bold text-slate-700 dark:text-slate-200 tracking-tighter uppercase leading-none mb-1">
+            <Typography className="text-2xl font-bold text-slate-700 dark:text-slate-200 tracking-tighter uppercase leading-none mb-1" variant="h3">
               {t("ess.emergency_contacts")}
-            </h3>
-            <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] opacity-70">
+            </Typography>
+            <Typography className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] opacity-70" variant="p">
               {t("ess.emergency_contact.subtitle")}
-            </p>
+            </Typography>
           </div>
         </div>
         <Button
@@ -58,9 +59,9 @@ export function EmergencyContactsSection({
           <div className="w-20 h-20 bg-white dark:bg-slate-900 rounded-full flex items-center justify-center shadow-sm mb-6 border border-slate-100 dark:border-slate-800">
             <Users className="text-slate-200 dark:text-slate-700" size={32} />
           </div>
-          <p className="text-[10px] font-bold text-slate-300 dark:text-slate-600 uppercase tracking-widest italic">
+          <Typography className="text-[10px] font-bold text-slate-300 dark:text-slate-600 uppercase tracking-widest italic" variant="p">
             {t("ess.no_emergency_contacts")}
-          </p>
+          </Typography>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

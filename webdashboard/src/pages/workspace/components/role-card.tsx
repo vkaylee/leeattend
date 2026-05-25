@@ -4,6 +4,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 
 import PermissionGate from "@/components/common/permission-gate";
+import { Typography } from "@/components/ui/typography";
 
 import type { WorkspaceRole } from "../../../lib/api/types";
 
@@ -37,9 +38,9 @@ export function RoleCard({ role, activeMenu, setActiveMenu, onEdit, onDelete }: 
         />
       </div>
 
-      <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-6 line-clamp-2 min-h-[40px]">
+      <Typography className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-6 line-clamp-2 min-h-[40px]" variant="p">
         {role.description ?? t("rolesPage.noDescription", { defaultValue: "No description provided." })}
-      </p>
+      </Typography>
 
       <div className="space-y-4">
         <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">

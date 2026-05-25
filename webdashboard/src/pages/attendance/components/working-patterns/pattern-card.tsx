@@ -10,6 +10,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 
 import StatusBadge from "@/components/ui/status-badge";
+import { Typography } from "@/components/ui/typography";
 import { Shift, WorkingPattern, WorkingPatternDetail } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 
@@ -72,7 +73,7 @@ export function PatternCard({ expandedPatternId, onDelete, onEdit, onToggleExpan
       <div className="flex items-center gap-5 mb-8">
         <div className="w-16 h-16 bg-primary-50 dark:bg-primary-950 text-primary-600 dark:text-primary-400 rounded-[1.5rem] flex items-center justify-center shadow-inner border border-primary-100 dark:border-primary-800/50 group-hover:scale-110 group-hover:rotate-3 transition-all duration-500"><CalendarDays size={32} /></div>
         <div>
-          <h3 className="font-bold text-2xl text-slate-700 dark:text-slate-200 leading-none uppercase tracking-tight mb-2">{pattern.name}</h3>
+          <Typography className="font-bold text-2xl text-slate-700 dark:text-slate-200 leading-none uppercase tracking-tight mb-2" variant="h3">{pattern.name}</Typography>
           <div className="flex items-center gap-2">
             <StatusBadge variant={pattern.is_active ? "success" : "neutral"}>{pattern.is_active ? t("status_active_caps") : t("status_off")}</StatusBadge>
             <StatusBadge variant="primary">
@@ -83,7 +84,7 @@ export function PatternCard({ expandedPatternId, onDelete, onEdit, onToggleExpan
           </div>
         </div>
       </div>
-      <p className="text-slate-500 dark:text-slate-400 text-xs mb-10 line-clamp-2 min-h-[3rem] font-bold uppercase tracking-tight opacity-60 leading-relaxed italic">{pattern.description ?? t("common.no_description")}</p>
+      <Typography className="text-slate-500 dark:text-slate-400 text-xs mb-10 line-clamp-2 min-h-[3rem] font-bold uppercase tracking-tight opacity-60 leading-relaxed italic" variant="p">{pattern.description ?? t("common.no_description")}</Typography>
       <button className="mt-auto flex items-center justify-between w-full p-5 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl hover:bg-white dark:hover:bg-slate-900 hover:border-primary-100 dark:border-primary-800 transition-all group/btn" onClick={() => { onToggleExpand(pattern.id); }} type="button"><span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 group-hover/btn:text-primary-600 dark:text-primary-400 uppercase tracking-widest transition-colors">{t("patterns.view_details").toUpperCase()}</span>{isExpanded ? <ChevronUp className="text-slate-300 dark:text-slate-600" size={16} /> : <ChevronDown className="text-slate-300 dark:text-slate-600" size={16} />}</button>
       {isExpanded ? (
         <div className="mt-6 pt-6 border-t border-slate-100 dark:border-slate-800 animate-in slide-in-from-top-4 duration-500">

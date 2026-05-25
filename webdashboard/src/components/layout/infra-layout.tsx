@@ -3,6 +3,7 @@ import { Building2 } from "lucide-react";
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
+import { Typography } from "@/components/ui/typography";
 import { useI18nSync } from "@/hooks/use-i18n-sync";
 import { useTheme } from "@/hooks/use-theme";
 import { useWorkspaces } from "@/hooks/use-workspace";
@@ -45,7 +46,7 @@ function WorkspaceSwitcherModal({ isOpen, onClose }: { isOpen: boolean; onClose:
       title={t("common.switch_workspace")}
     >
       <div className="space-y-8">
-        <p className="text-sm text-slate-500 dark:text-slate-400 font-medium px-1">{t("common.select_workspace_desc")}</p>
+        <Typography className="text-sm text-slate-500 dark:text-slate-400 font-medium px-1" variant="p">{t("common.select_workspace_desc")}</Typography>
         <WorkspaceSwitcher />
         <div className="pt-6 border-t border-slate-50 dark:border-slate-800 flex justify-end">
           <button

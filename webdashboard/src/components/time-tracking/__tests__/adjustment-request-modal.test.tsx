@@ -4,6 +4,7 @@ import React from "react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
+import { Typography } from "@/components/ui/typography";
 import { TimeEntry } from "@/lib/api/types";
 
 import { AdjustmentRequestModal } from "../adjustment-request-modal";
@@ -43,7 +44,7 @@ vi.mock("@/components/ui/modal", () => ({
     return (
  
       <div data-testid="modal">
-        <h2>{title}</h2>
+        <Typography variant="h2">{title}</Typography>
         {children}
       </div>
     );

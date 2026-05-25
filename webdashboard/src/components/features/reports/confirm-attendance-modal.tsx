@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import Modal from "@/components/ui/modal";
+import { Typography } from "@/components/ui/typography";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { DailyAttendanceReport, AttendanceAdjustmentRequest } from "@/lib/api";
 
@@ -78,17 +79,17 @@ function EmployeeInfo({ row, t, formatDate }: { row: DailyAttendanceReport; t: (
                 <label className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
                     {t("reports.confirm.employee")}
                 </label>
-                <p className="text-sm font-bold text-slate-700 dark:text-slate-200 mt-1">
+                <Typography className="text-sm font-bold text-slate-700 dark:text-slate-200 mt-1" variant="p">
                     {row.employee_name}
-                </p>
+                </Typography>
             </div>
             <div>
                 <label className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
                     {t("reports.confirm.date")}
                 </label>
-                <p className="text-sm font-bold text-slate-700 dark:text-slate-200 mt-1">
+                <Typography className="text-sm font-bold text-slate-700 dark:text-slate-200 mt-1" variant="p">
                     {formatDate(row.date)}
-                </p>
+                </Typography>
             </div>
         </div>
     );

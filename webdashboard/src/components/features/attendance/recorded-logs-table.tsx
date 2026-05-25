@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import InfiniteScrollSentinel from '@/components/common/infinite-scroll-sentinel';
 import { TableSkeleton } from '@/components/common/table-skeleton';
 import StatusBadge from '@/components/ui/status-badge';
+import { Typography } from "@/components/ui/typography";
 import { RawAttendanceLog } from '@/lib/api/types';
 
 interface RecordedLogsTableProps {
@@ -55,8 +56,8 @@ export function RecordedLogsTable({
                       <CalendarRange size={32} />
                     </div>
                     <div>
-                      <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 uppercase tracking-widest">{t("attendance_logs.messages.no_data")}</h3>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 max-w-sm mx-auto font-medium">{t("attendance_logs.messages.no_data_hint")}</p>
+                      <Typography className="text-sm font-bold text-slate-700 dark:text-slate-300 uppercase tracking-widest" variant="h3">{t("attendance_logs.messages.no_data")}</Typography>
+                      <Typography className="text-xs text-slate-500 dark:text-slate-400 mt-2 max-w-sm mx-auto font-medium" variant="p">{t("attendance_logs.messages.no_data_hint")}</Typography>
                     </div>
                   </div>
                 </td>

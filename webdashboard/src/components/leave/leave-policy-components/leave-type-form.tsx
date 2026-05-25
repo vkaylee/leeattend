@@ -1,6 +1,7 @@
 import { Wallet, AlertTriangle } from "lucide-react";
 import React, { useState } from "react";
 
+import { Typography } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
 
 interface LeaveTypeFormProps {
@@ -79,9 +80,9 @@ export function LeaveTypeForm({
               <label className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight" htmlFor="paid-leave-input">
                 Paid Status
               </label>
-              <p className="text-[10px] text-slate-400 dark:text-slate-500">
+              <Typography className="text-[10px] text-slate-400 dark:text-slate-500" variant="p">
                 {formData.is_paid ? "Paid time off" : "Unpaid leave"}
-              </p>
+              </Typography>
             </div>
           </div>
           <div className="relative inline-flex items-center cursor-pointer">

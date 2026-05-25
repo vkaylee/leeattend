@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { EmployeeSearch } from '@/components/common/employee-search';
 import InfiniteScrollSentinel from '@/components/common/infinite-scroll-sentinel';
 import { TableSkeleton } from '@/components/common/table-skeleton';
+import { Typography } from "@/components/ui/typography";
 import { StagingLog } from '@/lib/api/attendance';
 
 interface StagingLogsTableProps {
@@ -169,8 +170,8 @@ export function StagingLogsTable({
                       <Check className="h-8 w-8 text-emerald-400" />
                     </div>
                     <div>
-                      <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 uppercase tracking-widest">{t("attendance_logs.messages.no_unknown_logs")}</h3>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 font-medium">{t("attendance_logs.messages.all_matched")}</p>
+                      <Typography className="text-sm font-bold text-slate-700 dark:text-slate-300 uppercase tracking-widest" variant="h3">{t("attendance_logs.messages.no_unknown_logs")}</Typography>
+                      <Typography className="text-xs text-slate-500 dark:text-slate-400 mt-2 font-medium" variant="p">{t("attendance_logs.messages.all_matched")}</Typography>
                     </div>
                   </div>
                 </td>

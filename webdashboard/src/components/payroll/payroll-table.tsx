@@ -17,6 +17,7 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { ErrorBoundary } from "@/components/common/error-boundary";
+import { Typography } from "@/components/ui/typography";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { useMyPermissions } from "@/hooks/use-permissions";
 import { Employee, Workspace, Payslip, AttendanceAdjustmentRequest, PayrollSegment  } from "@/lib/api/types";
@@ -73,8 +74,8 @@ function SegmentCard({ segment, index, canReadSensitive }: { segment: PayrollSeg
                <ArrowDownRight size={18} />
              </div>
              <div>
-               <p className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] leading-none mb-1.5">{t("common.segment")} {index + 1}</p>
-               <p className="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight">{formatDate(segment.start_date)} — {formatDate(segment.end_date)}</p>
+               <Typography className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] leading-none mb-1.5" variant="p">{t("common.segment")} {index + 1}</Typography>
+               <Typography className="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight" variant="p">{formatDate(segment.start_date)} — {formatDate(segment.end_date)}</Typography>
              </div>
           </div>
           <span className={cn("text-[9px] font-bold uppercase tracking-[0.2em] px-3 py-1 rounded-lg border shadow-sm", segment.reason === 'Standard' ? "bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 border-slate-100 dark:border-slate-800" : "bg-primary-50 dark:bg-primary-950 text-primary-600 dark:text-primary-400 border-primary-100 dark:border-primary-800")}>{segment.reason}</span>
@@ -85,13 +86,13 @@ function SegmentCard({ segment, index, canReadSensitive }: { segment: PayrollSeg
             <div className="flex items-center gap-3 mb-2 px-1 opacity-60"><Target className="text-slate-500 dark:text-slate-400" size={14} /><span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]">Configuration Applied</span></div>
             <div className="grid grid-cols-2 gap-6">
               <div className="bg-slate-50 dark:bg-slate-800/50 p-5 rounded-[1.5rem] border border-slate-100 dark:border-slate-800 shadow-inner">
-                <p className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2 opacity-70">Base Salary</p>
+                <Typography className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2 opacity-70" variant="p">Base Salary</Typography>
                 <div className="flex items-center gap-2 text-slate-700 dark:text-slate-200 font-bold font-mono text-sm tracking-tighter">
                   <Banknote className="text-primary-500 opacity-50" size={14} /> {!canReadSensitive ? "***" : new Intl.NumberFormat('vi-VN').format(segment.applied_base_salary)}
                 </div>
               </div>
               <div className="bg-slate-50 dark:bg-slate-800/50 p-5 rounded-[1.5rem] border border-slate-100 dark:border-slate-800 shadow-inner">
-                <p className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2 opacity-70">Std. Period</p>
+                <Typography className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2 opacity-70" variant="p">Std. Period</Typography>
                 <div className="flex items-center gap-3">
                   <span className="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tighter">{segment.applied_std_days} Days</span>
                   {segment.std_days_source ? (
@@ -115,13 +116,13 @@ function SegmentCard({ segment, index, canReadSensitive }: { segment: PayrollSeg
             <div className="bg-primary-600 rounded-[1.5rem] p-6 text-white shadow-xl shadow-primary-100 dark:shadow-black/30 relative overflow-hidden group/out">
               <div className="flex items-center justify-between relative z-10">
                 <div>
-                  <p className="text-[9px] font-bold text-primary-200 uppercase tracking-widest mb-1 opacity-80">Paid Days</p>
-                  <p className="text-xl font-bold tracking-tighter">{segment.paid_work_days} <span className="text-xs text-primary-300 font-bold">/ {segment.actual_work_days}</span></p>
+                  <Typography className="text-[9px] font-bold text-primary-200 uppercase tracking-widest mb-1 opacity-80" variant="p">Paid Days</Typography>
+                  <Typography className="text-xl font-bold tracking-tighter" variant="p">{segment.paid_work_days} <span className="text-xs text-primary-300 font-bold">/ {segment.actual_work_days}</span></Typography>
                 </div>
                 <div className="h-10 w-px bg-white dark:bg-slate-900/10" />
                 <div className="text-right">
-                  <p className="text-[9px] font-bold text-primary-200 uppercase tracking-widest mb-1 opacity-80">Segment Net</p>
-                  <p className="text-xl font-bold font-mono tracking-tighter">{!canReadSensitive ? "***" : new Intl.NumberFormat('vi-VN').format(segment.amount)}</p>
+                  <Typography className="text-[9px] font-bold text-primary-200 uppercase tracking-widest mb-1 opacity-80" variant="p">Segment Net</Typography>
+                  <Typography className="text-xl font-bold font-mono tracking-tighter" variant="p">{!canReadSensitive ? "***" : new Intl.NumberFormat('vi-VN').format(segment.amount)}</Typography>
                 </div>
               </div>
               <Calculator className="absolute -right-4 -bottom-4 w-20 h-20 text-white opacity-5 -rotate-12 transition-transform group-hover/out:rotate-0 duration-700" />
@@ -161,7 +162,7 @@ function PayslipCardHeader({ slip, isExpanded, setExpandedId, t, formatMonthYear
           <Calendar size={24} />
         </div>
         <div>
-          <p className="text-lg font-bold text-slate-700 dark:text-slate-200 tracking-tight leading-none mb-2 uppercase">{t("common.month")} {formatMonthYear(slip.period_start)}</p>
+          <Typography className="text-lg font-bold text-slate-700 dark:text-slate-200 tracking-tight leading-none mb-2 uppercase" variant="p">{t("common.month")} {formatMonthYear(slip.period_start)}</Typography>
           <div className="flex items-center gap-3">
             <span className={cn("text-[9px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full border shadow-sm", slip.status === 'paid' ? "bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-300 border-emerald-100 dark:border-emerald-800" : "bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-300 border-blue-100 dark:border-blue-800")}>{slip.status === 'paid' ? t("common.payroll.status.paid") : t("common.payroll.status.finalized")}</span>
             <div className="w-1 h-1 bg-slate-200 dark:bg-slate-600 rounded-full" />
@@ -183,8 +184,8 @@ function PayslipCardHeader({ slip, isExpanded, setExpandedId, t, formatMonthYear
       </button>
       <div className="flex items-center gap-10 pr-2">
         <div className="text-right">
-          <p className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest leading-none mb-1.5 opacity-60">{t("common.payroll.table.net_pay")}</p>
-          <p className="text-2xl font-bold text-primary-600 dark:text-primary-400 tracking-tighter font-mono">{!canReadSensitive ? "***" : new Intl.NumberFormat('vi-VN').format(parseFloat(slip.net_pay_amount))}</p>
+          <Typography className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest leading-none mb-1.5 opacity-60" variant="p">{t("common.payroll.table.net_pay")}</Typography>
+          <Typography className="text-2xl font-bold text-primary-600 dark:text-primary-400 tracking-tighter font-mono" variant="p">{!canReadSensitive ? "***" : new Intl.NumberFormat('vi-VN').format(parseFloat(slip.net_pay_amount))}</Typography>
         </div>
         <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center border transition-all shadow-sm", isExpanded ? "bg-white dark:bg-slate-900 border-primary-200 dark:border-primary-800 text-primary-600 dark:text-primary-400 rotate-180" : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 text-slate-300 dark:text-slate-600 group-hover:text-primary-400")}>
           <ChevronDown size={20} />
@@ -212,8 +213,8 @@ function PayslipCardBody({ slip, slipAdjustments, onResolveAdjustments, canReadS
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 bg-white dark:bg-slate-900 rounded-2xl flex items-center justify-center text-amber-500 shadow-sm border border-amber-100 dark:border-amber-800"><AlertTriangle size={24} /></div>
             <div>
-              <p className="text-sm font-bold text-amber-900 uppercase tracking-tight">{t("payroll.traceability.pending_adjustments")}</p>
-              <p className="text-[10px] text-amber-700 dark:text-amber-300 font-bold uppercase tracking-widest opacity-70 mt-0.5">{t("payroll.traceability.recalc_needed")}</p>
+              <Typography className="text-sm font-bold text-amber-900 uppercase tracking-tight" variant="p">{t("payroll.traceability.pending_adjustments")}</Typography>
+              <Typography className="text-[10px] text-amber-700 dark:text-amber-300 font-bold uppercase tracking-widest opacity-70 mt-0.5" variant="p">{t("payroll.traceability.recalc_needed")}</Typography>
             </div>
           </div>
           <button className="px-6 py-2.5 bg-amber-50 dark:bg-amber-950 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-amber-600 transition-all shadow-lg shadow-amber-200 active:scale-95" onClick={onResolveAdjustments}>{t("payroll.traceability.view_adjustments")}</button>
@@ -268,8 +269,8 @@ function PayslipCardBody({ slip, slipAdjustments, onResolveAdjustments, canReadS
           { label: "Deductions", value: slip.deductions_amount, color: "text-rose-600 dark:text-rose-300", prefix: "-" }
         ].map((stat, index) => (
           <div className="p-6 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-[2rem] shadow-inner flex flex-col gap-1" key={index}>
-             <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em]">{stat.label}</p>
-             <p className={cn("text-xl font-bold font-mono tracking-tighter", stat.color)}>{!canReadSensitive ? "***" : `${stat.prefix ?? ''}${new Intl.NumberFormat('vi-VN').format(parseFloat(stat.value))}`}</p>
+             <Typography className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em]" variant="p">{stat.label}</Typography>
+             <Typography className={cn("text-xl font-bold font-mono tracking-tighter", stat.color)} variant="p">{!canReadSensitive ? "***" : `${stat.prefix ?? ''}${new Intl.NumberFormat('vi-VN').format(parseFloat(stat.value))}`}</Typography>
           </div>
         ))}
       </div>
@@ -332,7 +333,7 @@ export default function PayrollTable({
         <div className="w-20 h-20 bg-white dark:bg-slate-900 rounded-full flex items-center justify-center shadow-sm dark:shadow-black/10 mb-6 border border-slate-100 dark:border-slate-800">
           <History className="text-slate-200 dark:text-slate-600" size={32} />
         </div>
-        <p className="text-[10px] font-bold text-slate-300 dark:text-slate-600 uppercase tracking-widest">{t("common.payroll.table.no_payslips")}</p>
+        <Typography className="text-[10px] font-bold text-slate-300 dark:text-slate-600 uppercase tracking-widest" variant="p">{t("common.payroll.table.no_payslips")}</Typography>
       </div>
     );
   }

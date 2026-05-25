@@ -2,6 +2,8 @@ import { CalendarDays } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
+import { Typography } from "@/components/ui/typography";
+
 export function LeaveSettingsHeader() {
   const { t } = useTranslation();
   return (
@@ -11,12 +13,12 @@ export function LeaveSettingsHeader() {
           <CalendarDays className="text-white w-6 h-6" />
         </div>
         <div>
-          <h2 className="text-3xl font-bold tracking-tighter text-slate-800 dark:text-slate-100 uppercase leading-none">
+          <Typography className="text-3xl font-bold tracking-tighter text-slate-800 dark:text-slate-100 uppercase leading-none" variant="h2">
             {t("settings.leave.title")}
-          </h2>
-          <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] mt-1 opacity-60">
+          </Typography>
+          <Typography className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] mt-1 opacity-60" variant="p">
             {t("settings.leave.desc")}
-          </p>
+          </Typography>
         </div>
       </div>
     </header>

@@ -5,6 +5,7 @@ import { RadialBarChart, RadialBar, PolarAngleAxis } from "recharts";
 
 import type { UtilizationData } from "@/hooks/use-monitor-charts";
 
+import { Typography } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -30,9 +31,9 @@ export default function WorkerUtilizationGauge({ data, isLoading }: Props) {
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 rounded-full bg-gradient-to-br from-emerald-400/20 to-teal-400/10 blur-2xl" />
       </div>
 
-      <h5 className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] w-full text-center">
+      <Typography className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] w-full text-center" variant="h5">
         {t("monitor.charts.utilization")}
-      </h5>
+      </Typography>
 
       {isLoading ? (
         <div className="w-[160px] h-[160px] flex items-center justify-center">
@@ -101,14 +102,14 @@ export default function WorkerUtilizationGauge({ data, isLoading }: Props) {
 
       {/* Scaling hints */}
       {!isLoading && data.percent > 80 && (
-        <p className="text-[10px] text-rose-500 dark:text-rose-400 font-medium text-center">
+        <Typography className="text-[10px] text-rose-500 dark:text-rose-400 font-medium text-center" variant="p">
           {t("monitor.charts.scale_up_warning")}
-        </p>
+        </Typography>
       )}
       {!isLoading && data.percent < 30 && data.percent > 0 && (
-        <p className="text-[10px] text-sky-500 dark:text-sky-400 font-medium text-center">
+        <Typography className="text-[10px] text-sky-500 dark:text-sky-400 font-medium text-center" variant="p">
           {t("monitor.charts.scale_down_hint")}
-        </p>
+        </Typography>
       )}
     </div>
   );

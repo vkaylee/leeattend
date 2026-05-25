@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 
 import { format } from "date-fns";
 
+import { Typography } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
 
 import type { LeaveAssignment } from "../../hooks/use-leave-settings";
@@ -25,12 +26,12 @@ export function LeaveAssignmentsTab({
     <div>
       <div className="mb-8 border-b border-slate-50 dark:border-slate-800 pb-6 flex justify-between items-end">
         <div>
-          <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 tracking-tight uppercase">
+          <Typography className="text-xl font-bold text-slate-800 dark:text-slate-100 tracking-tight uppercase" variant="h3">
             {t("settings.leave.tabs.assignments")}
-          </h3>
-          <p className="text-xs font-bold text-slate-500 dark:text-slate-400 mt-1 uppercase tracking-tight">
+          </Typography>
+          <Typography className="text-xs font-bold text-slate-500 dark:text-slate-400 mt-1 uppercase tracking-tight" variant="p">
             {t("settings.leave.tabs.assignments_desc")}
-          </p>
+          </Typography>
         </div>
         <button
           className="flex items-center gap-2 rounded-xl bg-primary-600 px-6 py-2.5 text-[10px] font-bold text-white uppercase tracking-widest hover:bg-primary-700 shadow-lg shadow-primary-100"
@@ -45,10 +46,10 @@ export function LeaveAssignmentsTab({
       <div className="bg-amber-50 dark:bg-amber-950 border border-amber-100 dark:border-amber-800 p-8 rounded-[2.5rem] flex items-start gap-6">
         <Info className="text-amber-600 dark:text-amber-300 w-6 h-6 mt-1 shrink-0" />
         <div className="space-y-2">
-          <p className="font-bold text-amber-900 uppercase tracking-widest text-xs">{t("common.important_note")}</p>
-          <p className="text-sm text-amber-800 leading-relaxed">
+          <Typography className="font-bold text-amber-900 uppercase tracking-widest text-xs" variant="p">{t("common.important_note")}</Typography>
+          <Typography className="text-sm text-amber-800 leading-relaxed" variant="p">
             {t("settings.leave.messages.assignment_note")}
-          </p>
+          </Typography>
         </div>
       </div>
 

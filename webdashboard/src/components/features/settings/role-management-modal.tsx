@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 
 import { Combobox } from "@/components/ui/combobox";
 import Modal from "@/components/ui/modal";
+import { Typography } from "@/components/ui/typography";
 import { useConfirm } from "@/hooks/use-confirm";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { useMemberRoles, useWorkspaceRoles } from "@/hooks/use-workspace";
@@ -37,7 +38,7 @@ function ExtraRolesList({
         {extraRoles.map((extraRole) => (
           <div className="flex items-center justify-between p-6 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-[2rem] hover:bg-white dark:hover:bg-slate-900 hover:shadow-xl hover:shadow-primary-100/10 transition-all group relative overflow-hidden shadow-inner" key={extraRole.id}>
             <div className="space-y-2">
-              <p className="font-bold text-slate-700 dark:text-slate-200 text-base uppercase tracking-tight leading-none">{getRoleName(extraRole.role_id)}</p>
+              <Typography className="font-bold text-slate-700 dark:text-slate-200 text-base uppercase tracking-tight leading-none" variant="p">{getRoleName(extraRole.role_id)}</Typography>
               <div className="flex items-center gap-2 text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest opacity-70">
                 <Clock className="text-primary-400" size={12} /> <span>{t("members.roles.expires_at").toUpperCase()}: {formatDateTime(extraRole.expires_at)}</span>
               </div>
@@ -49,7 +50,7 @@ function ExtraRolesList({
         {extraRoles.length === 0 && (
           <div className="text-center py-12 border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-[2.5rem] bg-slate-50 dark:bg-slate-800/30 flex flex-col items-center">
             <Shield className="text-slate-200 dark:text-slate-700 mb-4" size={32} />
-            <p className="text-[10px] font-bold text-slate-300 dark:text-slate-600 uppercase tracking-widest opacity-60 italic">{t("members.roles.no_extra_roles")}</p>
+            <Typography className="text-[10px] font-bold text-slate-300 dark:text-slate-600 uppercase tracking-widest opacity-60 italic" variant="p">{t("members.roles.no_extra_roles")}</Typography>
           </div>
         )}
       </div>
@@ -101,9 +102,9 @@ function AssignExtraRoleForm({
   const { t } = useTranslation();
   return (
     <div className="pt-10 border-t border-slate-50 dark:border-slate-800 space-y-8">
-      <h3 className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.3em] flex items-center gap-3 px-1">
+      <Typography className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.3em] flex items-center gap-3 px-1" variant="h3">
         <Plus className="text-primary-500" size={16} /> {t("members.roles.assign_new_title").toUpperCase()}
-      </h3>
+      </Typography>
       <form className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-in slide-in-from-bottom-4 duration-700" onSubmit={handleAssign}>
         <div className="space-y-3 px-1">
           <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="extra-role-select">{t("members.invite.role_label")}</label>

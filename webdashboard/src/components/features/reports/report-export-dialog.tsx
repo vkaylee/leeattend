@@ -5,6 +5,8 @@ import { Download, Loader2, CheckCircle2, AlertCircle, FileSpreadsheet } from "l
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
+import { Typography } from "@/components/ui/typography";
+
 import { useReportStream } from "../../../hooks/use-report-stream";
 import {
   createReportExportJob,
@@ -120,20 +122,20 @@ function ExportProgressPanel({ phase, percentage, totalBatches, completedBatches
       </div>
 
       {phase === "polling" && totalBatches > 0 && (
-        <p className="text-center text-sm text-slate-500 dark:text-slate-400" data-testid="report-export-batch-counter">
+        <Typography className="text-center text-sm text-slate-500 dark:text-slate-400" data-testid="report-export-batch-counter" variant="p">
           {t("report_export.batches_completed", { completed: completedBatches, total: totalBatches })}
-        </p>
+        </Typography>
       )}
 
       {error ? (
         <div className="bg-rose-50 dark:bg-rose-950 border border-rose-200 rounded-xl p-4" data-testid="report-export-error">
-          <p className="text-sm text-rose-700 dark:text-rose-300">{error}</p>
+          <Typography className="text-sm text-rose-700 dark:text-rose-300" variant="p">{error}</Typography>
         </div>
       ) : null}
 
       {useFallbackPolling && phase === "polling" ? (
         <div className="bg-amber-50 dark:bg-amber-950 border border-amber-200 rounded-xl p-3" data-testid="report-export-fallback-notice">
-          <p className="text-xs text-amber-700 dark:text-amber-300">{t("report_export.fallback_mode")}</p>
+          <Typography className="text-xs text-amber-700 dark:text-amber-300" variant="p">{t("report_export.fallback_mode")}</Typography>
         </div>
       ) : null}
     </div>

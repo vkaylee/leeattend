@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
 import { LABEL_BASE } from "@/components/ui/form-field";
+import { Typography } from "@/components/ui/typography";
 import {
   getCurrentUserId,
   login as apiLogin,
@@ -59,10 +60,10 @@ export default function LoginPage() {
           <div className="bg-slate-900 w-24 h-24 rounded-[2.5rem] flex items-center justify-center mx-auto mb-10 shadow-2xl shadow-slate-400 dark:shadow-black/40 transform hover:rotate-6 hover:scale-110 transition-all duration-700 group/logo">
              <span className="text-white text-5xl font-bold italic tracking-tighter group-hover:text-primary-400 transition-colors pl-3">L</span>
           </div>
-          <h2 className="text-5xl font-bold text-slate-700 dark:text-slate-200 tracking-tighter uppercase leading-normal pt-2 px-4">Attend</h2>
-          <p className="mt-4 text-slate-500 dark:text-slate-400 font-bold uppercase tracking-[0.3em] text-[10px] opacity-60 leading-relaxed">
+          <Typography className="text-5xl font-bold text-slate-700 dark:text-slate-200 tracking-tighter uppercase leading-normal pt-2 px-4" variant="h2">Attend</Typography>
+          <Typography className="mt-4 text-slate-500 dark:text-slate-400 font-bold uppercase tracking-[0.3em] text-[10px] opacity-60 leading-relaxed" variant="p">
             {t("auth.slogan").toUpperCase()}
-          </p>
+          </Typography>
         </div>
 
         {error ? (

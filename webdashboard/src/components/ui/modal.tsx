@@ -2,6 +2,7 @@ import { X } from "lucide-react";
 import React, { useEffect } from "react";
 import { createPortal } from "react-dom";
 
+import { Typography } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
 
 interface ModalProps {
@@ -78,14 +79,14 @@ export default function Modal({
               )}
               <div className="min-w-0">
                 {Boolean(title) && (
-                  <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 tracking-tight truncate leading-normal pt-1 uppercase">
+                  <Typography className="text-xl font-bold text-slate-800 dark:text-slate-100 tracking-tight truncate leading-normal pt-1 uppercase" variant="h2">
                     {title}
-                  </h2>
+                  </Typography>
                 )}
                 {Boolean(subtitle) && (
-                  <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest opacity-70 truncate">
+                  <Typography className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest opacity-70 truncate" variant="p">
                     {subtitle}
-                  </p>
+                  </Typography>
                 )}
               </div>
             </div>

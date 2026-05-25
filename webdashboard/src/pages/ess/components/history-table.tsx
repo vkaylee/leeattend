@@ -2,6 +2,7 @@ import { History } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { TimeEntryRow } from "@/components/time-tracking/time-entry-row";
+import { Typography } from "@/components/ui/typography";
 import { AttendanceEntry } from "@/lib/api/types";
 
 interface HistoryTableProps {
@@ -16,9 +17,9 @@ export function HistoryTable({ entries }: HistoryTableProps) {
       <div className="px-8 py-6 border-b border-slate-50 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/30 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <History className="w-5 h-5 text-primary-500" />
-          <h3 className="font-bold text-slate-800 dark:text-slate-100 uppercase tracking-widest text-xs">
+          <Typography className="font-bold text-slate-800 dark:text-slate-100 uppercase tracking-widest text-xs" variant="h3">
             {t("ess.clock.recent_history")}
-          </h3>
+          </Typography>
         </div>
       </div>
       <div className="flex-1 overflow-y-auto max-h-[600px]">

@@ -2,6 +2,7 @@ import { Plus, Share2 } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
+import { Typography } from "@/components/ui/typography";
 import { AuthorizedAgent } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
@@ -31,12 +32,12 @@ export function ConnectivityHeader({
           <Share2 size={24} />
         </div>
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-700 dark:text-slate-200 leading-tight">
+          <Typography className="text-3xl font-bold tracking-tight text-slate-700 dark:text-slate-200 leading-tight" variant="h1">
             {t("common.settings.categories.connectivity")}
-          </h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-1 font-medium">
+          </Typography>
+          <Typography className="text-slate-500 dark:text-slate-400 mt-1 font-medium" variant="p">
             {t("common.settings.categories.connectivity_desc")}
-          </p>
+          </Typography>
         </div>
       </div>
 

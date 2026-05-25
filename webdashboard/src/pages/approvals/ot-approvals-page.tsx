@@ -7,6 +7,7 @@ import { addMonths, endOfMonth, format, startOfMonth, subMonths } from "date-fns
 import { BulkUploadOtDialog } from "@/components/approvals/bulk-upload-ot-dialog";
 import { EnterPaperOtDialog } from "@/components/approvals/enter-paper-ot-dialog";
 import { useToast } from "@/components/ui/toast";
+import { Typography } from "@/components/ui/typography";
 import { useApproveOt, useAttendanceSummaries } from "@/hooks/use-attendance";
 
 import { OtApprovalsFilters, SourceFilter } from "./components/ot-approvals-filters";
@@ -130,12 +131,12 @@ function EmptyState() {
       <div className="w-24 h-24 bg-white dark:bg-slate-900 rounded-full flex items-center justify-center shadow-xl border border-slate-100 dark:border-slate-800 mb-8">
         <CheckCircle className="text-emerald-200" size={40} />
       </div>
-      <h3 className="text-xl font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight">
+      <Typography className="text-xl font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight" variant="h3">
         {t("ot_approvals.empty_state.title")}
-      </h3>
-      <p className="text-slate-500 dark:text-slate-400 text-[10px] font-bold uppercase tracking-widest mt-2 opacity-50 italic">
+      </Typography>
+      <Typography className="text-slate-500 dark:text-slate-400 text-[10px] font-bold uppercase tracking-widest mt-2 opacity-50 italic" variant="p">
         {t("ot_approvals.empty_state.description")}
-      </p>
+      </Typography>
     </div>
   );
 }

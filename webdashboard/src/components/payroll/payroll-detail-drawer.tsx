@@ -9,6 +9,7 @@ import {
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import { Typography } from "@/components/ui/typography";
 import { useMyPermissions } from "@/hooks/use-permissions";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { Employee, Payslip, AttendanceAdjustmentRequest } from "@/lib/api/types";
@@ -69,12 +70,12 @@ function PayrollDetailSummary({ employee, payslips, canReadSensitive }: { employ
             <Banknote size={24} />
           </div>
           <div>
-            <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] mb-1 opacity-70">{t("common.payroll.table.net_pay")} (Latest)</p>
-            <p className="text-2xl font-bold text-slate-700 dark:text-slate-200 font-mono tracking-tighter">
+            <Typography className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] mb-1 opacity-70" variant="p">{t("common.payroll.table.net_pay")} (Latest)</Typography>
+            <Typography className="text-2xl font-bold text-slate-700 dark:text-slate-200 font-mono tracking-tighter" variant="p">
               {!canReadSensitive ? "***" : (payslips.length > 0 
                 ? new Intl.NumberFormat('vi-VN').format(parseFloat(payslips[0].net_pay_amount))
                 : "—")}
-            </p>
+            </Typography>
           </div>
        </div>
        <div className="bg-slate-50 dark:bg-slate-800/50 p-8 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 flex items-center gap-5 shadow-inner">
@@ -82,8 +83,8 @@ function PayrollDetailSummary({ employee, payslips, canReadSensitive }: { employ
             <CalendarDays size={24} />
           </div>
           <div>
-            <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] mb-1 opacity-70">{t("employees.hire_date")}</p>
-            <p className="text-2xl font-bold text-slate-700 dark:text-slate-200 font-mono tracking-tighter">{employee.hire_date}</p>
+            <Typography className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] mb-1 opacity-70" variant="p">{t("employees.hire_date")}</Typography>
+            <Typography className="text-2xl font-bold text-slate-700 dark:text-slate-200 font-mono tracking-tighter" variant="p">{employee.hire_date}</Typography>
           </div>
        </div>
     </div>
