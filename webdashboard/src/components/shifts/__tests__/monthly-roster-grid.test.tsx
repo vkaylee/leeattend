@@ -34,15 +34,36 @@ vi.mock("@/components/common/employee-search", () => ({
   EmployeeSearch: ({
     onChange,
     value,
+    onSelectEmployee,
   }: {
     onChange: (val: string[]) => void;
     value?: string | string[];
+    onSelectEmployee?: (emp: any) => void;
   }) => {
     return (
       <input
         data-testid="mock-employee-search"
         onChange={(e) => {
-          onChange(e.target.value ? e.target.value.split(",") : []);
+          const val = e.target.value;
+          const ids = val ? val.split(",") : [];
+          if (ids.length > 0 && onSelectEmployee) {
+            const lastId = ids[ids.length - 1];
+            const localMockEmployees = [
+              { id: "emp-1", full_name: "Alice Security", department_name: "Security Guard" },
+              { id: "emp-2", full_name: "Bob Patrol", department_name: "Patrol Officer" },
+              { id: "emp-3", full_name: "Charlie Freelance" },
+            ];
+            const existing = localMockEmployees.find((emp) => emp.id === lastId);
+            if (existing) {
+              onSelectEmployee(existing);
+            } else {
+              onSelectEmployee({
+                id: lastId,
+                full_name: `Searched Employee ${lastId.toUpperCase()}`,
+              });
+            }
+          }
+          onChange(ids);
         }}
         value={Array.isArray(value) ? value.join(",") : (value ?? "")}
       />
@@ -281,5 +302,30 @@ describe("MonthlyRosterGrid Filtering", () => {
 
     expect(hook.refetchMonthSchedules).toHaveBeenCalled();
     expect(hook.refetchEmployees).toHaveBeenCalled();
+  });
+
+  it("successfully syncs and renders selected employees missing from preloaded list", async () => {
+    const user = userEvent.setup();
+    const hook = createMockHook();
+    render(<MonthlyRosterGrid hook={hook} />);
+
+    // Initially shows empty state
+    expect(screen.getByText("shifts.empty_state.title")).toBeInTheDocument();
+
+    // Select employee "emp-new" (who is not in hook.employees)
+    const searchInput = screen.getByTestId("mock-employee-search");
+    await user.type(searchInput, "emp-new");
+
+    // The grid should now show "Searched Employee EMP-NEW"
+    expect(screen.getAllByText("Searched Employee EMP-NEW").length).toBeGreaterThanOrEqual(1);
+    expect(screen.queryByText("shifts.empty_state.title")).not.toBeInTheDocument();
+
+    // The checklist checkbox for the employee should be checked
+    const checkbox = screen.getByRole("checkbox", { name: "Searched Employee EMP-NEW" });
+    expect(checkbox).toBeChecked();
+
+    // Deselecting should remove them and revert to empty state
+    await user.click(checkbox);
+    expect(screen.getByText("shifts.empty_state.title")).toBeInTheDocument();
   });
 });
