@@ -908,7 +908,7 @@ impl PayrollRepository for DieselPayrollRepository {
             pub category: String,
         }
 
-        let rows = crate::crud_sql_query!(&mut conn, sql)
+        let rows = diesel::sql_query(sql)
             .bind::<diesel::sql_types::Uuid, _>(workspace_id)
             .bind::<diesel::sql_types::Uuid, _>(employee_id)
             .bind::<diesel::sql_types::Nullable<diesel::sql_types::Uuid>, _>(department_id)

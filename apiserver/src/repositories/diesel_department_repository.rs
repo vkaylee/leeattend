@@ -154,19 +154,32 @@ impl DepartmentRepository for DieselDepartmentRepository {
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
-        // Re-fetch using sql_query to include active_employee_count
-        let entity: DepartmentWithCountEntity = crate::crud_sql_query!(&mut conn,
-            r#"SELECT d.id, d.workspace_id, d.name, d.description, d.manager_id, d.default_working_pattern_id, d.created_at, d.updated_at,
-               COALESCE((SELECT COUNT(DISTINCT e.id) FROM employees e
+        let entity = departments::table
+            .filter(departments::id.eq(result.id))
+            .filter(departments::workspace_id.eq(workspace_id))
+            .select((
+                departments::all_columns,
+                diesel::dsl::sql::<diesel::sql_types::BigInt>(
+                    r#"COALESCE((SELECT COUNT(DISTINCT e.id) FROM employees e
                  JOIN (SELECT DISTINCT ON (employee_id) employee_id, department_id FROM employee_department_history ORDER BY employee_id, effective_date DESC) edh ON e.id = edh.employee_id
-                 WHERE edh.department_id = d.id AND e.is_active = true), 0) as active_employee_count
-               FROM departments d WHERE d.id = $1 AND d.workspace_id = $2"#
-        )
-        .bind::<diesel::sql_types::Uuid, _>(result.id)
-        .bind::<diesel::sql_types::Uuid, _>(result.workspace_id)
-        .get_result(&mut *conn)
-        .await
-        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+                 WHERE edh.department_id = departments.id AND e.is_active = true AND e.workspace_id = departments.workspace_id), 0)"#,
+                ),
+            ))
+            .first::<(DieselDepartment, i64)>(&mut *conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        let entity = DepartmentWithCountEntity {
+            id: entity.0.id,
+            workspace_id: entity.0.workspace_id,
+            name: entity.0.name,
+            description: entity.0.description,
+            manager_id: entity.0.manager_id,
+            default_working_pattern_id: entity.0.default_working_pattern_id,
+            created_at: entity.0.created_at,
+            updated_at: entity.0.updated_at,
+            active_employee_count: entity.1,
+        };
 
         Ok(entity.into())
     }
@@ -182,19 +195,33 @@ impl DepartmentRepository for DieselDepartmentRepository {
             .await?;
         let workspace_id = auth_token.workspace_id();
 
-        let entity: Option<DepartmentWithCountEntity> = crate::crud_sql_query!(&mut conn,
-            r#"SELECT d.id, d.workspace_id, d.name, d.description, d.manager_id, d.default_working_pattern_id, d.created_at, d.updated_at,
-               COALESCE((SELECT COUNT(DISTINCT e.id) FROM employees e
+        let entity = departments::table
+            .filter(departments::id.eq(id))
+            .filter(departments::workspace_id.eq(workspace_id))
+            .select((
+                departments::all_columns,
+                diesel::dsl::sql::<diesel::sql_types::BigInt>(
+                    r#"COALESCE((SELECT COUNT(DISTINCT e.id) FROM employees e
                  JOIN (SELECT DISTINCT ON (employee_id) employee_id, department_id FROM employee_department_history ORDER BY employee_id, effective_date DESC) edh ON e.id = edh.employee_id
-                 WHERE edh.department_id = d.id AND e.is_active = true), 0) as active_employee_count
-               FROM departments d WHERE d.id = $1 AND d.workspace_id = $2"#
-        )
-        .bind::<diesel::sql_types::Uuid, _>(id)
-        .bind::<diesel::sql_types::Uuid, _>(workspace_id)
-        .get_result(&mut *conn)
-        .await
-        .optional()
-        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+                 WHERE edh.department_id = departments.id AND e.is_active = true AND e.workspace_id = departments.workspace_id), 0)"#,
+                ),
+            ))
+            .first::<(DieselDepartment, i64)>(&mut *conn)
+            .await
+            .optional()
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        let entity = entity.map(|(d, count)| DepartmentWithCountEntity {
+            id: d.id,
+            workspace_id: d.workspace_id,
+            name: d.name,
+            description: d.description,
+            manager_id: d.manager_id,
+            default_working_pattern_id: d.default_working_pattern_id,
+            created_at: d.created_at,
+            updated_at: d.updated_at,
+            active_employee_count: count,
+        });
 
         Ok(entity.map(Into::into))
     }
@@ -216,16 +243,15 @@ impl DepartmentRepository for DieselDepartmentRepository {
             .await?;
         let workspace_id = auth_token.workspace_id();
 
-        let result: Option<IdOnly> = crate::crud_sql_query!(
-            &mut conn,
-            "SELECT id FROM departments WHERE workspace_id = $1 AND LOWER(name) = $2 LIMIT 1",
-        )
-        .bind::<diesel::sql_types::Uuid, _>(workspace_id)
-        .bind::<diesel::sql_types::Text, _>(name.to_lowercase())
-        .get_result(&mut *conn)
-        .await
-        .optional()
-        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let result: Option<IdOnly> = departments::table
+            .filter(departments::workspace_id.eq(workspace_id))
+            .filter(diesel::dsl::sql::<diesel::sql_types::Bool>("LOWER(name) = ").bind::<diesel::sql_types::Text, _>(name.to_lowercase()))
+            .select(departments::id)
+            .first::<Uuid>(&mut *conn)
+            .await
+            .map(|id| IdOnly { id })
+            .optional()
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(result.map(|r| r.id))
     }
@@ -257,18 +283,32 @@ impl DepartmentRepository for DieselDepartmentRepository {
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
-        let entity: DepartmentWithCountEntity = crate::crud_sql_query!(&mut conn,
-            r#"SELECT d.id, d.workspace_id, d.name, d.description, d.manager_id, d.default_working_pattern_id, d.created_at, d.updated_at,
-               COALESCE((SELECT COUNT(DISTINCT e.id) FROM employees e
+        let entity = departments::table
+            .filter(departments::id.eq(id))
+            .filter(departments::workspace_id.eq(workspace_id))
+            .select((
+                departments::all_columns,
+                diesel::dsl::sql::<diesel::sql_types::BigInt>(
+                    r#"COALESCE((SELECT COUNT(DISTINCT e.id) FROM employees e
                  JOIN (SELECT DISTINCT ON (employee_id) employee_id, department_id FROM employee_department_history ORDER BY employee_id, effective_date DESC) edh ON e.id = edh.employee_id
-                 WHERE edh.department_id = d.id AND e.is_active = true), 0) as active_employee_count
-               FROM departments d WHERE d.id = $1 AND d.workspace_id = $2"#
-        )
-        .bind::<diesel::sql_types::Uuid, _>(id)
-        .bind::<diesel::sql_types::Uuid, _>(workspace_id)
-        .get_result(&mut *conn)
-        .await
-        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+                 WHERE edh.department_id = departments.id AND e.is_active = true AND e.workspace_id = departments.workspace_id), 0)"#,
+                ),
+            ))
+            .first::<(DieselDepartment, i64)>(&mut *conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        let entity = DepartmentWithCountEntity {
+            id: entity.0.id,
+            workspace_id: entity.0.workspace_id,
+            name: entity.0.name,
+            description: entity.0.description,
+            manager_id: entity.0.manager_id,
+            default_working_pattern_id: entity.0.default_working_pattern_id,
+            created_at: entity.0.created_at,
+            updated_at: entity.0.updated_at,
+            active_employee_count: entity.1,
+        };
 
         Ok(entity.into())
     }
@@ -304,19 +344,36 @@ impl DepartmentRepository for DieselDepartmentRepository {
             .await?;
         let workspace_id = auth_token.workspace_id();
 
-        let results: Vec<DepartmentWithCountEntity> = crate::crud_sql_query!(&mut conn,
-            r#"SELECT d.id, d.workspace_id, d.name, d.description, d.manager_id, d.default_working_pattern_id, d.created_at, d.updated_at,
-               COALESCE((SELECT COUNT(DISTINCT e.id) FROM employees e
+        let results = departments::table
+            .filter(departments::workspace_id.eq(workspace_id))
+            .select((
+                departments::all_columns,
+                diesel::dsl::sql::<diesel::sql_types::BigInt>(
+                    r#"COALESCE((SELECT COUNT(DISTINCT e.id) FROM employees e
                  JOIN (SELECT DISTINCT ON (employee_id) employee_id, department_id FROM employee_department_history ORDER BY employee_id, effective_date DESC) edh ON e.id = edh.employee_id
-                 WHERE edh.department_id = d.id AND e.is_active = true), 0) as active_employee_count
-               FROM departments d WHERE d.workspace_id = $1 ORDER BY d.name"#
-        )
-        .bind::<diesel::sql_types::Uuid, _>(workspace_id)
-        .load(&mut *conn)
-        .await
-        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
-
-        Ok(results.into_iter().map(Into::into).collect())
+                 WHERE edh.department_id = departments.id AND e.is_active = true AND e.workspace_id = departments.workspace_id), 0)"#,
+                ),
+            ))
+            .order(departments::name)
+            .load::<(DieselDepartment, i64)>(&mut *conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            
+        Ok(results
+            .into_iter()
+            .map(|(d, count)| DepartmentWithCountEntity {
+                id: d.id,
+                workspace_id: d.workspace_id,
+                name: d.name,
+                description: d.description,
+                manager_id: d.manager_id,
+                default_working_pattern_id: d.default_working_pattern_id,
+                created_at: d.created_at,
+                updated_at: d.updated_at,
+                active_employee_count: count,
+            })
+            .map(Into::into)
+            .collect())
     }
 
     async fn transfer_employee(
@@ -333,18 +390,19 @@ impl DepartmentRepository for DieselDepartmentRepository {
             .await?;
         let _workspace_id = auth_token.workspace_id();
 
-        let entity: EmployeeDepartmentHistoryEntity = crate::crud_sql_query!(&mut conn,
-            r#"INSERT INTO employee_department_history (employee_id, department_id, effective_date, notes)
-               VALUES ($1, $2, $3, $4)
-               RETURNING id, employee_id, department_id, effective_date, notes, created_at"#
-        )
-        .bind::<diesel::sql_types::Uuid, _>(employee_id)
-        .bind::<diesel::sql_types::Uuid, _>(department_id)
-        .bind::<diesel::sql_types::Date, _>(effective_date)
-        .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(notes)
-        .get_result(&mut *conn)
-        .await
-        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        use crate::schema::employee_department_history;
+        
+        let entity: EmployeeDepartmentHistoryEntity = diesel::insert_into(employee_department_history::table)
+            .values((
+                employee_department_history::employee_id.eq(employee_id),
+                employee_department_history::department_id.eq(department_id),
+                employee_department_history::effective_date.eq(effective_date),
+                employee_department_history::notes.eq(notes),
+            ))
+            .returning(employee_department_history::all_columns)
+            .get_result(&mut *conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(entity.into())
     }
@@ -360,18 +418,17 @@ impl DepartmentRepository for DieselDepartmentRepository {
             .await?;
         let workspace_id = auth_token.workspace_id();
 
-        let results: Vec<EmployeeDepartmentHistoryEntity> = crate::crud_sql_query!(&mut conn,
-            r#"SELECT edh.id, edh.employee_id, edh.department_id, edh.effective_date, edh.notes, edh.created_at
-               FROM employee_department_history edh
-               JOIN employees e ON e.id = edh.employee_id
-               WHERE edh.employee_id = $1 AND e.workspace_id = $2
-               ORDER BY edh.effective_date DESC"#
-        )
-        .bind::<diesel::sql_types::Uuid, _>(employee_id)
-        .bind::<diesel::sql_types::Uuid, _>(workspace_id)
-        .load(&mut *conn)
-        .await
-        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        use crate::schema::{employee_department_history, employees};
+        
+        let results: Vec<EmployeeDepartmentHistoryEntity> = employee_department_history::table
+            .inner_join(employees::table.on(employees::id.eq(employee_department_history::employee_id)))
+            .filter(employee_department_history::employee_id.eq(employee_id))
+            .filter(employees::workspace_id.eq(workspace_id))
+            .select(employee_department_history::all_columns)
+            .order(employee_department_history::effective_date.desc())
+            .load(&mut *conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(results.into_iter().map(Into::into).collect())
     }
@@ -387,19 +444,20 @@ impl DepartmentRepository for DieselDepartmentRepository {
             .await?;
         let workspace_id = auth_token.workspace_id();
 
-        let result: Option<EmployeeDepartmentHistoryEntity> = crate::crud_sql_query!(&mut conn,
-            r#"SELECT edh.id, edh.employee_id, edh.department_id, edh.effective_date, edh.notes, edh.created_at
-               FROM employee_department_history edh
-               JOIN employees e ON e.id = edh.employee_id
-               WHERE edh.employee_id = $1 AND e.workspace_id = $2 AND edh.effective_date <= CURRENT_DATE
-               ORDER BY edh.effective_date DESC LIMIT 1"#
-        )
-        .bind::<diesel::sql_types::Uuid, _>(employee_id)
-        .bind::<diesel::sql_types::Uuid, _>(workspace_id)
-        .get_result(&mut *conn)
-        .await
-        .optional()
-        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        use crate::schema::{employee_department_history, employees};
+        
+        let today = Utc::now().date_naive();
+        let result: Option<EmployeeDepartmentHistoryEntity> = employee_department_history::table
+            .inner_join(employees::table.on(employees::id.eq(employee_department_history::employee_id)))
+            .filter(employee_department_history::employee_id.eq(employee_id))
+            .filter(employees::workspace_id.eq(workspace_id))
+            .filter(employee_department_history::effective_date.le(today))
+            .select(employee_department_history::all_columns)
+            .order(employee_department_history::effective_date.desc())
+            .first(&mut *conn)
+            .await
+            .optional()
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(result.map(Into::into))
     }
@@ -424,21 +482,25 @@ impl DepartmentRepository for DieselDepartmentRepository {
         let h_per_d =
             bigdecimal::BigDecimal::from_str(&hours_per_day.to_string()).unwrap_or_default();
 
-        let entity: DepartmentPayrollConfigEntity = crate::crud_sql_query!(&mut conn,
-            r#"INSERT INTO department_payroll_configs (department_id, std_working_days, hours_per_day, effective_date)
-               VALUES ($1, $2, $3, $4)
-               ON CONFLICT (department_id, effective_date) DO UPDATE
-               SET std_working_days = EXCLUDED.std_working_days,
-                   hours_per_day = EXCLUDED.hours_per_day
-               RETURNING id, department_id, std_working_days, hours_per_day, effective_date, created_at"#
-        )
-        .bind::<diesel::sql_types::Uuid, _>(department_id)
-        .bind::<diesel::sql_types::Numeric, _>(std_wd)
-        .bind::<diesel::sql_types::Numeric, _>(h_per_d)
-        .bind::<diesel::sql_types::Date, _>(effective_date)
-        .get_result(&mut *conn)
-        .await
-        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        use crate::schema::department_payroll_configs;
+        
+        let entity: DepartmentPayrollConfigEntity = diesel::insert_into(department_payroll_configs::table)
+            .values((
+                department_payroll_configs::department_id.eq(department_id),
+                department_payroll_configs::std_working_days.eq(std_wd.clone()),
+                department_payroll_configs::hours_per_day.eq(h_per_d.clone()),
+                department_payroll_configs::effective_date.eq(effective_date),
+            ))
+            .on_conflict((department_payroll_configs::department_id, department_payroll_configs::effective_date))
+            .do_update()
+            .set((
+                department_payroll_configs::std_working_days.eq(std_wd),
+                department_payroll_configs::hours_per_day.eq(h_per_d),
+            ))
+            .returning(department_payroll_configs::all_columns)
+            .get_result(&mut *conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(entity.into())
     }
@@ -455,19 +517,16 @@ impl DepartmentRepository for DieselDepartmentRepository {
             .await?;
         let _workspace_id = auth_token.workspace_id();
 
-        let result: Option<DepartmentPayrollConfigEntity> = crate::crud_sql_query!(
-            &mut conn,
-            r#"SELECT id, department_id, std_working_days, hours_per_day, effective_date, created_at
-               FROM department_payroll_configs
-               WHERE department_id = $1 AND effective_date <= $2
-               ORDER BY effective_date DESC LIMIT 1"#,
-        )
-        .bind::<diesel::sql_types::Uuid, _>(department_id)
-        .bind::<diesel::sql_types::Date, _>(date)
-        .get_result(&mut *conn)
-        .await
-        .optional()
-        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        use crate::schema::department_payroll_configs;
+        
+        let result: Option<DepartmentPayrollConfigEntity> = department_payroll_configs::table
+            .filter(department_payroll_configs::department_id.eq(department_id))
+            .filter(department_payroll_configs::effective_date.le(date))
+            .order(department_payroll_configs::effective_date.desc())
+            .first(&mut *conn)
+            .await
+            .optional()
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(result.map(Into::into))
     }
@@ -483,18 +542,17 @@ impl DepartmentRepository for DieselDepartmentRepository {
             .await?;
         let workspace_id = auth_token.workspace_id();
 
-        let results: Vec<DepartmentPayrollConfigEntity> = crate::crud_sql_query!(&mut conn,
-            r#"SELECT dpc.id, dpc.department_id, dpc.std_working_days, dpc.hours_per_day, dpc.effective_date, dpc.created_at
-               FROM department_payroll_configs dpc
-               JOIN departments d ON d.id = dpc.department_id
-               WHERE dpc.department_id = $1 AND d.workspace_id = $2
-               ORDER BY dpc.effective_date DESC"#,
-        )
-        .bind::<diesel::sql_types::Uuid, _>(department_id)
-        .bind::<diesel::sql_types::Uuid, _>(workspace_id)
-        .load(&mut *conn)
-        .await
-        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        use crate::schema::department_payroll_configs;
+        
+        let results: Vec<DepartmentPayrollConfigEntity> = department_payroll_configs::table
+            .inner_join(departments::table.on(departments::id.eq(department_payroll_configs::department_id)))
+            .filter(department_payroll_configs::department_id.eq(department_id))
+            .filter(departments::workspace_id.eq(workspace_id))
+            .select(department_payroll_configs::all_columns)
+            .order(department_payroll_configs::effective_date.desc())
+            .load(&mut *conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(results.into_iter().map(Into::into).collect())
     }

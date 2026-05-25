@@ -75,7 +75,7 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
             .tenant_transaction_conn(auth_token)
             .await?;
 
-        let row: Option<SinglePolicyRow> = crate::crud_sql_query!(&mut conn,
+        let row: Option<SinglePolicyRow> = diesel::sql_query(
             r#"
             WITH dept_history AS (
                 SELECT department_id
@@ -180,8 +180,7 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
             .tenant_transaction_conn(auth_token)
             .await?;
 
-        let rows: Vec<BatchPolicyRow> = crate::crud_sql_query!(
-            &mut conn,
+        let rows: Vec<BatchPolicyRow> = diesel::sql_query(
             r#"
             WITH inputs AS (
                 SELECT unnest($2::uuid[]) AS employee_id
@@ -537,7 +536,7 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
             .tenant_transaction_conn(auth_token)
             .await?;
 
-        #[derive(QueryableByName)]
+        #[derive(diesel::QueryableByName, diesel::Queryable)]
         struct PolicyAssignmentRow {
             #[diesel(sql_type = UuidType)]
             id: Uuid,
@@ -553,30 +552,30 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
             rules: Value,
         }
 
-        let rows: Vec<PolicyAssignmentRow> = crate::crud_sql_query!(
-            &mut conn,
-            r#"
-            SELECT
-                apa.id,
-                apa.target_type,
-                apa.target_id,
-                apa.valid_from,
-                apa.valid_to,
-                apv.rules
-            FROM attendance_policy_assignments apa
-            JOIN attendance_policies ap ON ap.id = apa.policy_id
-            JOIN attendance_policy_versions apv ON apv.policy_id = ap.id
-            WHERE ap.workspace_id = $1
-              AND apv.valid_from <= NOW()
-              AND (apv.valid_to IS NULL OR apv.valid_to >= NOW())
-              AND apa.valid_from <= NOW()
-              AND (apa.valid_to IS NULL OR apa.valid_to >= NOW())
-            "#,
-        )
-        .bind::<UuidType, _>(workspace_id)
-        .load(&mut *conn)
-        .await
-        .map_err(|e| AppError::Internal(e.to_string()))?;
+        use crate::schema::{attendance_policies, attendance_policy_assignments, attendance_policy_versions};
+        use diesel::{JoinOnDsl, BoolExpressionMethods};
+        
+        let now = Utc::now();
+        
+        let rows: Vec<PolicyAssignmentRow> = attendance_policy_assignments::table
+            .inner_join(attendance_policies::table.on(attendance_policies::id.eq(attendance_policy_assignments::policy_id)))
+            .inner_join(attendance_policy_versions::table.on(attendance_policy_versions::policy_id.eq(attendance_policies::id)))
+            .filter(attendance_policies::workspace_id.eq(workspace_id))
+            .filter(attendance_policy_versions::valid_from.le(now))
+            .filter(attendance_policy_versions::valid_to.is_null().or(attendance_policy_versions::valid_to.ge(now)))
+            .filter(attendance_policy_assignments::valid_from.le(now))
+            .filter(attendance_policy_assignments::valid_to.is_null().or(attendance_policy_assignments::valid_to.ge(now)))
+            .select((
+                attendance_policy_assignments::id,
+                attendance_policy_assignments::target_type,
+                attendance_policy_assignments::target_id,
+                attendance_policy_assignments::valid_from,
+                attendance_policy_assignments::valid_to,
+                attendance_policy_versions::rules,
+            ))
+            .load(&mut *conn)
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
 
         let assignments = rows
             .into_iter()
@@ -741,14 +740,27 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
             .tenant_transaction_conn(auth_token)
             .await?;
 
-        // UPDATE attendance_policy_assignments SET valid_to = NOW(), updated_at = NOW()
-        // WHERE id = $1 AND target_id IN (SELECT target_id FROM attendance_policy_assignments apa JOIN attendance_policies ap ON ap.id = apa.policy_id WHERE ap.workspace_id = $2)
-        // Using diesel_sql_query for the complex IN clause
-        crate::crud_sql_query!(&mut conn,
-            "UPDATE attendance_policy_assignments SET valid_to = NOW(), updated_at = NOW() WHERE id = $1 AND target_id IN (SELECT target_id FROM attendance_policy_assignments apa JOIN attendance_policies ap ON ap.id = apa.policy_id WHERE ap.workspace_id = $2)"
+        use crate::schema::{attendance_policies, attendance_policy_assignments};
+        
+        let target_ids: Vec<Uuid> = attendance_policy_assignments::table
+            .inner_join(attendance_policies::table)
+            .filter(attendance_policies::workspace_id.eq(workspace_id))
+            .select(attendance_policy_assignments::target_id)
+            .load::<Uuid>(&mut *conn)
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
+
+        let now = Utc::now();
+
+        diesel::update(
+            attendance_policy_assignments::table
+                .filter(attendance_policy_assignments::id.eq(assignment_id))
+                .filter(attendance_policy_assignments::target_id.eq_any(target_ids))
         )
-        .bind::<UuidType, _>(assignment_id)
-        .bind::<UuidType, _>(workspace_id)
+        .set((
+            attendance_policy_assignments::valid_to.eq(Some(now)),
+            attendance_policy_assignments::updated_at.eq(now),
+        ))
         .execute(&mut *conn)
         .await
         .map_err(|e| AppError::Internal(e.to_string()))?;

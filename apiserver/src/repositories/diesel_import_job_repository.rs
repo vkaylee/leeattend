@@ -1,6 +1,7 @@
 use async_trait::async_trait;
 use chrono::Utc;
 use diesel::OptionalExtension;
+use diesel::{ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 use uuid::Uuid;
 
@@ -33,23 +34,26 @@ impl ImportJobRepository for DieselImportJobRepository {
             .tenant_transaction_conn(auth_token)
             .await?;
 
-        crate::crud_sql_query!(&mut conn,
-            "INSERT INTO attendance_import_jobs (id, workspace_id, user_id, status, total_rows, processed_rows, file_path, error_log, target_type, created_at, updated_at) VALUES ($1, $2, $3, $4::import_job_status_type, $5, $6, $7, $8, $9, $10, $11)"
-        )
-        .bind::<diesel::sql_types::Uuid, _>(job.id)
-        .bind::<diesel::sql_types::Uuid, _>(job.workspace_id)
-        .bind::<diesel::sql_types::Uuid, _>(job.user_id)
-        .bind::<diesel::sql_types::Text, _>(job.status.to_string())
-        .bind::<diesel::sql_types::Int4, _>(job.total_rows)
-        .bind::<diesel::sql_types::Int4, _>(job.processed_rows)
-        .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(&job.file_path)
-        .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(&job.error_log)
-        .bind::<diesel::sql_types::Text, _>(job.target_type.to_string())
-        .bind::<diesel::sql_types::Timestamptz, _>(job.created_at)
-        .bind::<diesel::sql_types::Timestamptz, _>(job.updated_at)
-        .execute(&mut *conn)
-        .await
-        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let entity = ImportJobEntity {
+            id: job.id,
+            workspace_id: job.workspace_id,
+            user_id: job.user_id,
+            status: job.status,
+            total_rows: job.total_rows,
+            processed_rows: job.processed_rows,
+            file_path: job.file_path.clone(),
+            error_log: job.error_log.clone(),
+            target_type: job.target_type.to_string(),
+            created_at: job.created_at,
+            updated_at: job.updated_at,
+        };
+
+        use crate::schema::attendance_import_jobs;
+        diesel::insert_into(attendance_import_jobs::table)
+            .values(&entity)
+            .execute(&mut *conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(())
     }
@@ -67,17 +71,19 @@ impl ImportJobRepository for DieselImportJobRepository {
             .tenant_transaction_conn(auth_token)
             .await?;
 
-        crate::crud_sql_query!(&mut conn,
-            "UPDATE attendance_import_jobs SET processed_rows = $1, status = $2::import_job_status_type, error_log = $3, updated_at = $4 WHERE id = $5"
-        )
-        .bind::<diesel::sql_types::Int4, _>(processed_rows)
-        .bind::<diesel::sql_types::Text, _>(status.to_string())
-        .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(&error_log)
-        .bind::<diesel::sql_types::Timestamptz, _>(Utc::now())
-        .bind::<diesel::sql_types::Uuid, _>(id)
-        .execute(&mut *conn)
-        .await
-        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        use crate::schema::attendance_import_jobs;
+        diesel::update(attendance_import_jobs::table)
+            .filter(attendance_import_jobs::id.eq(id))
+            .filter(attendance_import_jobs::workspace_id.eq(auth_token.workspace_id()))
+            .set((
+                attendance_import_jobs::processed_rows.eq(processed_rows),
+                attendance_import_jobs::status.eq(status),
+                attendance_import_jobs::error_log.eq(error_log),
+                attendance_import_jobs::updated_at.eq(Utc::now()),
+            ))
+            .execute(&mut *conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(())
     }
@@ -92,14 +98,14 @@ impl ImportJobRepository for DieselImportJobRepository {
             .tenant_transaction_conn(auth_token)
             .await?;
 
-        let row: Option<ImportJobEntity> = crate::crud_sql_query!(&mut conn,
-            "SELECT id, workspace_id, user_id, status::text, total_rows, processed_rows, file_path, error_log, target_type::text, created_at, updated_at FROM attendance_import_jobs WHERE id = $1"
-        )
-        .bind::<diesel::sql_types::Uuid, _>(id)
-        .get_result(&mut *conn)
-        .await
-        .optional()
-        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        use crate::schema::attendance_import_jobs;
+        let row: Option<ImportJobEntity> = attendance_import_jobs::table
+            .filter(attendance_import_jobs::id.eq(id))
+            .filter(attendance_import_jobs::workspace_id.eq(auth_token.workspace_id()))
+            .first(&mut *conn)
+            .await
+            .optional()
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(row.map(Into::into))
     }
@@ -115,24 +121,21 @@ impl ImportJobRepository for DieselImportJobRepository {
             .await?;
         let workspace_id = auth_token.workspace_id();
 
-        let row: Option<ImportJobEntity> = if let Some(tt) = target_type {
-            crate::crud_sql_query!(&mut conn,
-                "SELECT id, workspace_id, user_id, status::text, total_rows, processed_rows, file_path, error_log, target_type::text, created_at, updated_at FROM attendance_import_jobs WHERE workspace_id = $1 AND target_type = $2 ORDER BY created_at DESC LIMIT 1"
-            )
-            .bind::<diesel::sql_types::Uuid, _>(workspace_id)
-            .bind::<diesel::sql_types::Text, _>(tt.to_string())
-            .get_result(&mut *conn)
+        use crate::schema::attendance_import_jobs;
+
+        let mut query = attendance_import_jobs::table
+            .filter(attendance_import_jobs::workspace_id.eq(workspace_id))
+            .into_boxed();
+
+        if let Some(tt) = target_type {
+            query = query.filter(attendance_import_jobs::target_type.eq(tt.to_string()));
+        }
+
+        let row: Option<ImportJobEntity> = query
+            .order(attendance_import_jobs::created_at.desc())
+            .first(&mut *conn)
             .await
-            .optional()?
-        } else {
-            crate::crud_sql_query!(&mut conn,
-                "SELECT id, workspace_id, user_id, status::text, total_rows, processed_rows, file_path, error_log, target_type::text, created_at, updated_at FROM attendance_import_jobs WHERE workspace_id = $1 ORDER BY created_at DESC LIMIT 1"
-            )
-            .bind::<diesel::sql_types::Uuid, _>(workspace_id)
-            .get_result(&mut *conn)
-            .await
-            .optional()?
-        };
+            .optional()?;
 
         Ok(row.map(Into::into))
     }
@@ -146,12 +149,13 @@ impl ImportJobRepository for DieselImportJobRepository {
             .tenant_transaction_conn(auth_token)
             .await?;
 
-        let rows: Vec<ImportJobEntity> = crate::crud_sql_query!(&mut conn,
-            "SELECT id, workspace_id, user_id, status::text, total_rows, processed_rows, file_path, error_log, target_type::text, created_at, updated_at FROM attendance_import_jobs WHERE status = 'processing'"
-        )
-        .load(&mut *conn)
-        .await
-        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        use crate::schema::attendance_import_jobs;
+        let rows: Vec<ImportJobEntity> = attendance_import_jobs::table
+            .filter(attendance_import_jobs::workspace_id.eq(auth_token.workspace_id()))
+            .filter(attendance_import_jobs::status.eq(crate::models::enums::ImportJobStatus::Processing))
+            .load(&mut *conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(rows.into_iter().map(Into::into).collect())
     }
@@ -167,16 +171,17 @@ impl ImportJobRepository for DieselImportJobRepository {
             .tenant_transaction_conn(auth_token)
             .await?;
 
-        crate::crud_sql_query!(
-            &mut conn,
-            "UPDATE attendance_import_jobs SET total_rows = $1, updated_at = $2 WHERE id = $3",
-        )
-        .bind::<diesel::sql_types::Int4, _>(total_rows)
-        .bind::<diesel::sql_types::Timestamptz, _>(Utc::now())
-        .bind::<diesel::sql_types::Uuid, _>(id)
-        .execute(&mut *conn)
-        .await
-        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        use crate::schema::attendance_import_jobs;
+        diesel::update(attendance_import_jobs::table)
+            .filter(attendance_import_jobs::id.eq(id))
+            .filter(attendance_import_jobs::workspace_id.eq(auth_token.workspace_id()))
+            .set((
+                attendance_import_jobs::total_rows.eq(total_rows),
+                attendance_import_jobs::updated_at.eq(Utc::now()),
+            ))
+            .execute(&mut *conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(())
     }

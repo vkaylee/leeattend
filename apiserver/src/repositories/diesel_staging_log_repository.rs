@@ -227,24 +227,26 @@ impl StagingLogRepository for DieselStagingLogRepository {
         let mut claimed = 0u64;
         for staged in staged_logs {
             let id = crate::utils::id::new_id();
-            let rows = crate::crud_sql_query!(&mut conn,
-                r#"
-                INSERT INTO raw_attendance_logs
-                    (id, workspace_id, employee_id, punch_time, source, device_id, raw_data, punch, status, created_at)
-                VALUES ($1, $2, $3, $4, 'device', $5, $6, -1, -1, $7)
-                ON CONFLICT DO NOTHING
-                "#,
-            )
-            .bind::<diesel::sql_types::Uuid, _>(id)
-            .bind::<diesel::sql_types::Uuid, _>(workspace_id)
-            .bind::<diesel::sql_types::Uuid, _>(employee_id)
-            .bind::<diesel::sql_types::Timestamptz, _>(staged.punch_time)
-            .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(staged.device_id)
-            .bind::<diesel::sql_types::Nullable<diesel::sql_types::Jsonb>, _>(staged.raw_data)
-            .bind::<diesel::sql_types::Timestamptz, _>(chrono::Utc::now())
-            .execute(&mut *conn)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            let raw_log_entity =
+                crate::models::diesel::attendance_log::RawAttendanceLogEntity {
+                    id,
+                    workspace_id,
+                    employee_id,
+                    punch_time: staged.punch_time,
+                    source: crate::models::LogSource::Device,
+                    device_id: staged.device_id.clone(),
+                    raw_data: staged.raw_data.clone(),
+                    punch: -1,
+                    status: -1,
+                    created_at: Some(chrono::Utc::now()),
+                };
+
+            let rows = diesel::insert_into(crate::schema::raw_attendance_logs::table)
+                .values(&raw_log_entity)
+                .on_conflict_do_nothing()
+                .execute(&mut *conn)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
             if rows > 0 {
                 claimed += 1;

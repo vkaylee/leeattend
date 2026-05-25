@@ -137,8 +137,20 @@ pub enum LogSource {
 }
 
 #[derive(
-    Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, strum_macros::Display, ToSchema,
+    Debug,
+    Serialize,
+    Deserialize,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    strum_macros::Display,
+    strum_macros::EnumString,
+    ToSchema,
+    diesel::expression::AsExpression,
+    diesel::deserialize::FromSqlRow,
 )]
+#[diesel(sql_type = crate::schema::sql_types::ImportJobStatusType)]
 #[serde(rename_all = "snake_case")]
 #[strum(serialize_all = "snake_case")]
 pub enum ImportJobStatus {
