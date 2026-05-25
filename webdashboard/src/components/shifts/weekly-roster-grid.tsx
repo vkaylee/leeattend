@@ -321,36 +321,38 @@ export function WeeklyRosterGrid({
 
   return (
     <div className="space-y-6">
-      <WeeklyRosterGridHeader
-        formatDate={formatDate}
-        onAssignAllWeek={onAssignAllWeek}
-        onClearWeek={onClearWeek}
-        onCopyPreviousWeek={onCopyPreviousWeek}
-        onNavigateWeek={onNavigateWeek}
-        selectedEmployee={selectedEmployee}
-        t={t}
-        weekDays={weekDays}
-      />
+      <div className="relative">
+        <WeeklyRosterGridHeader
+          formatDate={formatDate}
+          onAssignAllWeek={onAssignAllWeek}
+          onClearWeek={onClearWeek}
+          onCopyPreviousWeek={onCopyPreviousWeek}
+          onNavigateWeek={onNavigateWeek}
+          selectedEmployee={selectedEmployee}
+          t={t}
+          weekDays={weekDays}
+        />
 
-      {selectedDays.length > 0 && (
-        <div className="bg-primary-600 text-white p-4 rounded-[24px] flex items-center justify-between shadow-xl shadow-primary-100 dark:shadow-black/30 animate-in slide-in-from-top-4 duration-300">
-          <div className="flex items-center gap-4">
-            <span className="text-xs font-bold uppercase tracking-widest">
-              {t("shifts.days_selected", { count: selectedDays.length })}
-            </span>
-            <div className="h-4 w-px bg-white dark:bg-slate-900/20" />
-            <button
-              className="bg-white dark:bg-slate-900/10 border border-white/20 rounded-xl px-4 py-2 text-[10px] font-bold uppercase tracking-widest hover:bg-white dark:hover:bg-slate-900/20 transition-all flex items-center gap-2"
-              onClick={() => { onOpenShiftPicker(selectedDays); }}
-            >
-              <Plus size={14} /> {t("shifts.assign_selected_btn")}
+        {selectedDays.length > 0 ? (
+          <div className="absolute inset-0 z-40 bg-primary-600 text-white px-6 py-4 rounded-[32px] flex items-center justify-between shadow-xl shadow-primary-100 dark:shadow-black/30 animate-in fade-in duration-300">
+            <div className="flex items-center gap-4">
+              <span className="text-xs font-bold uppercase tracking-widest">
+                {t("shifts.days_selected", { count: selectedDays.length })}
+              </span>
+              <div className="h-4 w-px bg-white dark:bg-slate-900/20" />
+              <button
+                className="bg-white dark:bg-slate-900/10 border border-white/20 rounded-xl px-4 py-2 text-[10px] font-bold uppercase tracking-widest hover:bg-white dark:hover:bg-slate-900/20 transition-all flex items-center gap-2 cursor-pointer"
+                onClick={() => { onOpenShiftPicker(selectedDays); }}
+              >
+                <Plus size={14} /> {t("shifts.assign_selected_btn")}
+              </button>
+            </div>
+            <button className="hover:bg-white dark:hover:bg-slate-900/10 p-2 rounded-xl transition-all cursor-pointer" onClick={onClearSelection}>
+              <X size={18} />
             </button>
           </div>
-          <button className="hover:bg-white dark:hover:bg-slate-900/10 p-2 rounded-xl transition-all" onClick={onClearSelection}>
-            <X size={18} />
-          </button>
-        </div>
-      )}
+        ) : null}
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
         {weekDays.map((day, index) => {

@@ -380,33 +380,35 @@ export function MonthlyRosterGrid({ hook }: MonthlyRosterGridProps) {
 
   return (
     <div className="space-y-4">
-      <RosterToolbar
-        copyLabel={t("shifts.monthly.copy_previous_month")}
-        isCopying={isCopying}
-        monthHeaderLabel={monthHeaderLabel}
-        onCopyMonth={handleCopyMonth}
-        onNavigateMonth={handleNavigateMonth}
-        onSelectedEmployeesChange={setSelectedEmployeeIds}
-        searchPlaceholder={t("shifts.monthly.search_placeholder")}
-        selectedEmployeeIds={selectedEmployeeIds}
-        selectedEmployeesMeta={selectedEmployeesMeta}
-        title={t("shifts.monthly.title")}
-        workspaceId={hook.wsId}
-      />
-
-      {selectedCells.size > 0 && (
-        <RosterActionBar
-          assignLabel={t("shifts.monthly.assign_selected")}
-          cancelLabel={t("common.cancel")}
-          clearLabel={t("shifts.monthly.clear_month")}
-          isMutating={isMutating}
-          onAssignSelected={() => { setIsShiftPickerOpen(true); }}
-          onCancel={() => { setSelectedCells(new Set()); }}
-          onClearOverrides={handleClearSelectedOverrides}
-          selectedCount={selectedCells.size}
-          selectedLabel={t("shifts.monthly.cells_selected", { count: selectedCells.size })}
+      <div className="relative">
+        <RosterToolbar
+          copyLabel={t("shifts.monthly.copy_previous_month")}
+          isCopying={isCopying}
+          monthHeaderLabel={monthHeaderLabel}
+          onCopyMonth={handleCopyMonth}
+          onNavigateMonth={handleNavigateMonth}
+          onSelectedEmployeesChange={setSelectedEmployeeIds}
+          searchPlaceholder={t("shifts.monthly.search_placeholder")}
+          selectedEmployeeIds={selectedEmployeeIds}
+          selectedEmployeesMeta={selectedEmployeesMeta}
+          title={t("shifts.monthly.title")}
+          workspaceId={hook.wsId}
         />
-      )}
+
+        {selectedCells.size > 0 ? (
+          <RosterActionBar
+            assignLabel={t("shifts.monthly.assign_selected")}
+            cancelLabel={t("common.cancel")}
+            clearLabel={t("shifts.monthly.clear_month")}
+            isMutating={isMutating}
+            onAssignSelected={() => { setIsShiftPickerOpen(true); }}
+            onCancel={() => { setSelectedCells(new Set()); }}
+            onClearOverrides={handleClearSelectedOverrides}
+            selectedCount={selectedCells.size}
+            selectedLabel={t("shifts.monthly.cells_selected", { count: selectedCells.size })}
+          />
+        ) : null}
+      </div>
 
       {isShiftPickerOpen ? (
         <ShiftPickerModal
@@ -672,7 +674,7 @@ const RosterActionBar = memo(function RosterActionBar({
   selectedLabel,
 }: RosterActionBarProps) {
   return (
-    <div className="bg-primary-600 text-white p-4 rounded-[24px] flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xl shadow-primary-100 dark:shadow-black/30 animate-in slide-in-from-top-4 duration-300">
+    <div className="absolute inset-0 z-40 bg-primary-600 text-white px-6 py-4 rounded-[28px] shadow-lg flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-in fade-in duration-200">
       <div className="flex items-center gap-3">
         <div className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center">
           <Sparkles className="text-white animate-pulse" size={12} />
