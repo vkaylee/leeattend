@@ -527,6 +527,4 @@ pub trait EmployeeRepository: Send + Sync {
         &self,
         doc: &crate::models::EmployeeDocument,
     ) -> Result<(), AppError>;
-
 }
-

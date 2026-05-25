@@ -116,15 +116,14 @@ pub async fn list_tenants(
         name: String,
     }
 
-    let workspaces: Vec<(Uuid, String)> =
-        diesel::sql_query("SELECT id, name FROM workspaces")
-            .load::<WsRow>(&mut *conn)
-            .await
-            .map(|rows| rows.into_iter().map(|r| (r.id, r.name)).collect())
-            .unwrap_or_else(|e| {
-                tracing::warn!("Failed to query workspaces for tenant mapping: {e}");
-                vec![]
-            });
+    let workspaces: Vec<(Uuid, String)> = diesel::sql_query("SELECT id, name FROM workspaces")
+        .load::<WsRow>(&mut *conn)
+        .await
+        .map(|rows| rows.into_iter().map(|r| (r.id, r.name)).collect())
+        .unwrap_or_else(|e| {
+            tracing::warn!("Failed to query workspaces for tenant mapping: {e}");
+            vec![]
+        });
 
     // 2. Query Supavisor schema directly to list tenants
     // If the schema doesn't exist (e.g. pooler not enabled), return empty array
@@ -140,7 +139,8 @@ pub async fn list_tenants(
         updated_at: chrono::NaiveDateTime,
     }
 
-    let tenants_result = diesel::sql_query(r#"
+    let tenants_result = diesel::sql_query(
+        r#"
         SELECT external_id, default_pool_size, inserted_at, updated_at
         FROM _supavisor.tenants
         ORDER BY inserted_at DESC
@@ -248,7 +248,8 @@ pub async fn create_tenant(
         .await
         .map_err(|e| AppError::Internal(e.to_string()))?;
 
-    diesel::sql_query(r#"
+    diesel::sql_query(
+        r#"
         INSERT INTO system_audit_logs (id, actor_id, action, details, created_at)
         VALUES ($1, $2, 'tenant.create', $3, NOW())
         "#,
@@ -289,7 +290,8 @@ pub async fn delete_tenant_handler(
         "tenant_id": tenant_id
     });
 
-    diesel::sql_query(r#"
+    diesel::sql_query(
+        r#"
         INSERT INTO system_audit_logs (id, actor_id, action, details, created_at)
         VALUES ($1, $2, 'tenant.delete', $3, NOW())
         "#,
@@ -376,7 +378,8 @@ pub async fn update_tenant_database(
         .await
         .map_err(|e| AppError::Internal(e.to_string()))?;
 
-    diesel::sql_query(r#"
+    diesel::sql_query(
+        r#"
         INSERT INTO system_audit_logs (id, actor_id, action, details, created_at)
         VALUES ($1, $2, 'tenant.update_db', $3, NOW())
         "#,
@@ -469,15 +472,14 @@ pub async fn list_stale_tenants(
         id: Uuid,
     }
 
-    let workspace_ids: Vec<Uuid> =
-        diesel::sql_query("SELECT id FROM workspaces")
-            .load::<WsRow>(&mut *conn)
-            .await
-            .map(|rows| rows.into_iter().map(|r| r.id).collect())
-            .unwrap_or_else(|e| {
-                tracing::warn!("Failed to query workspaces for stale tenant check: {e}");
-                vec![]
-            });
+    let workspace_ids: Vec<Uuid> = diesel::sql_query("SELECT id FROM workspaces")
+        .load::<WsRow>(&mut *conn)
+        .await
+        .map(|rows| rows.into_iter().map(|r| r.id).collect())
+        .unwrap_or_else(|e| {
+            tracing::warn!("Failed to query workspaces for stale tenant check: {e}");
+            vec![]
+        });
 
     let active_tenant_ids: std::collections::HashSet<String> = workspace_ids
         .iter()
@@ -497,7 +499,8 @@ pub async fn list_stale_tenants(
         updated_at: chrono::NaiveDateTime,
     }
 
-    let tenants_result = diesel::sql_query(r#"
+    let tenants_result = diesel::sql_query(
+        r#"
         SELECT external_id, default_pool_size, inserted_at, updated_at
         FROM _supavisor.tenants
         ORDER BY inserted_at DESC

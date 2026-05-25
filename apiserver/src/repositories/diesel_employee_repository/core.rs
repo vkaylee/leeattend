@@ -3,8 +3,8 @@ use crate::errors::AppError;
 use async_trait::async_trait;
 use chrono::NaiveDate;
 use diesel::prelude::*;
-use diesel_async::RunQueryDsl;
 use diesel_async::AsyncConnection;
+use diesel_async::RunQueryDsl;
 use rust_decimal::Decimal;
 use uuid::Uuid;
 
@@ -26,7 +26,10 @@ use crate::schema::{
 };
 use diesel::sql_types::{Date, Uuid as UuidType};
 
-use super::{DieselEmployeeRepository, EMPLOYEE_SELECT_QUERY, EMPLOYEE_DEPT_JOIN, EmployeeSearchSql, build_employee_search_sql};
+use super::{
+    build_employee_search_sql, DieselEmployeeRepository, EmployeeSearchSql, EMPLOYEE_DEPT_JOIN,
+    EMPLOYEE_SELECT_QUERY,
+};
 
 #[allow(clippy::too_many_lines)]
 #[async_trait]
@@ -91,7 +94,10 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
         id_number: &str,
         auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<Option<Employee>, AppError> {
-        crate::repositories::employee::EmployeeCoreRepository::find_by_number(self, auth_token, id_number).await
+        crate::repositories::employee::EmployeeCoreRepository::find_by_number(
+            self, auth_token, id_number,
+        )
+        .await
     }
 
     async fn get_all_employees(
@@ -643,5 +649,4 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
     }
 
     // --- ESS (Employee Self Service) ---
-
 }

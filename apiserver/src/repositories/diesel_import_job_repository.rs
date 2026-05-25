@@ -152,7 +152,10 @@ impl ImportJobRepository for DieselImportJobRepository {
         use crate::schema::attendance_import_jobs;
         let rows: Vec<ImportJobEntity> = attendance_import_jobs::table
             .filter(attendance_import_jobs::workspace_id.eq(auth_token.workspace_id()))
-            .filter(attendance_import_jobs::status.eq(crate::models::enums::ImportJobStatus::Processing))
+            .filter(
+                attendance_import_jobs::status
+                    .eq(crate::models::enums::ImportJobStatus::Processing),
+            )
             .load(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;

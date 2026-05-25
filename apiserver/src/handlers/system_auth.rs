@@ -103,7 +103,8 @@ impl SystemContext {
 
         use diesel_async::RunQueryDsl;
 
-        let rows: Vec<RoleRow> = diesel::sql_query(r#"
+        let rows: Vec<RoleRow> = diesel::sql_query(
+            r#"
             SELECT sr.name
               FROM user_system_roles usr
               JOIN system_roles sr ON sr.id = usr.role_id

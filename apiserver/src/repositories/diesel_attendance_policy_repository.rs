@@ -552,19 +552,35 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
             rules: Value,
         }
 
-        use crate::schema::{attendance_policies, attendance_policy_assignments, attendance_policy_versions};
-        use diesel::{JoinOnDsl, BoolExpressionMethods};
-        
+        use crate::schema::{
+            attendance_policies, attendance_policy_assignments, attendance_policy_versions,
+        };
+        use diesel::{BoolExpressionMethods, JoinOnDsl};
+
         let now = Utc::now();
-        
+
         let rows: Vec<PolicyAssignmentRow> = attendance_policy_assignments::table
-            .inner_join(attendance_policies::table.on(attendance_policies::id.eq(attendance_policy_assignments::policy_id)))
-            .inner_join(attendance_policy_versions::table.on(attendance_policy_versions::policy_id.eq(attendance_policies::id)))
+            .inner_join(
+                attendance_policies::table
+                    .on(attendance_policies::id.eq(attendance_policy_assignments::policy_id)),
+            )
+            .inner_join(
+                attendance_policy_versions::table
+                    .on(attendance_policy_versions::policy_id.eq(attendance_policies::id)),
+            )
             .filter(attendance_policies::workspace_id.eq(workspace_id))
             .filter(attendance_policy_versions::valid_from.le(now))
-            .filter(attendance_policy_versions::valid_to.is_null().or(attendance_policy_versions::valid_to.ge(now)))
+            .filter(
+                attendance_policy_versions::valid_to
+                    .is_null()
+                    .or(attendance_policy_versions::valid_to.ge(now)),
+            )
             .filter(attendance_policy_assignments::valid_from.le(now))
-            .filter(attendance_policy_assignments::valid_to.is_null().or(attendance_policy_assignments::valid_to.ge(now)))
+            .filter(
+                attendance_policy_assignments::valid_to
+                    .is_null()
+                    .or(attendance_policy_assignments::valid_to.ge(now)),
+            )
             .select((
                 attendance_policy_assignments::id,
                 attendance_policy_assignments::target_type,
@@ -741,7 +757,7 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
             .await?;
 
         use crate::schema::{attendance_policies, attendance_policy_assignments};
-        
+
         let target_ids: Vec<Uuid> = attendance_policy_assignments::table
             .inner_join(attendance_policies::table)
             .filter(attendance_policies::workspace_id.eq(workspace_id))
@@ -755,7 +771,7 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
         diesel::update(
             attendance_policy_assignments::table
                 .filter(attendance_policy_assignments::id.eq(assignment_id))
-                .filter(attendance_policy_assignments::target_id.eq_any(target_ids))
+                .filter(attendance_policy_assignments::target_id.eq_any(target_ids)),
         )
         .set((
             attendance_policy_assignments::valid_to.eq(Some(now)),

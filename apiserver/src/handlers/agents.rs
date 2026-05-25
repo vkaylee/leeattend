@@ -652,7 +652,8 @@ pub async fn update_authorized_agent(
 
     use diesel_async::RunQueryDsl;
 
-    diesel::sql_query(r#"
+    diesel::sql_query(
+        r#"
         UPDATE authorized_agents
         SET name = $1,
             token = $2,

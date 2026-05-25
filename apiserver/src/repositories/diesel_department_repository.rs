@@ -245,7 +245,10 @@ impl DepartmentRepository for DieselDepartmentRepository {
 
         let result: Option<IdOnly> = departments::table
             .filter(departments::workspace_id.eq(workspace_id))
-            .filter(diesel::dsl::sql::<diesel::sql_types::Bool>("LOWER(name) = ").bind::<diesel::sql_types::Text, _>(name.to_lowercase()))
+            .filter(
+                diesel::dsl::sql::<diesel::sql_types::Bool>("LOWER(name) = ")
+                    .bind::<diesel::sql_types::Text, _>(name.to_lowercase()),
+            )
             .select(departments::id)
             .first::<Uuid>(&mut *conn)
             .await
@@ -358,7 +361,7 @@ impl DepartmentRepository for DieselDepartmentRepository {
             .load::<(DieselDepartment, i64)>(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
-            
+
         Ok(results
             .into_iter()
             .map(|(d, count)| DepartmentWithCountEntity {
@@ -391,18 +394,19 @@ impl DepartmentRepository for DieselDepartmentRepository {
         let _workspace_id = auth_token.workspace_id();
 
         use crate::schema::employee_department_history;
-        
-        let entity: EmployeeDepartmentHistoryEntity = diesel::insert_into(employee_department_history::table)
-            .values((
-                employee_department_history::employee_id.eq(employee_id),
-                employee_department_history::department_id.eq(department_id),
-                employee_department_history::effective_date.eq(effective_date),
-                employee_department_history::notes.eq(notes),
-            ))
-            .returning(employee_department_history::all_columns)
-            .get_result(&mut *conn)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        let entity: EmployeeDepartmentHistoryEntity =
+            diesel::insert_into(employee_department_history::table)
+                .values((
+                    employee_department_history::employee_id.eq(employee_id),
+                    employee_department_history::department_id.eq(department_id),
+                    employee_department_history::effective_date.eq(effective_date),
+                    employee_department_history::notes.eq(notes),
+                ))
+                .returning(employee_department_history::all_columns)
+                .get_result(&mut *conn)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(entity.into())
     }
@@ -419,9 +423,11 @@ impl DepartmentRepository for DieselDepartmentRepository {
         let workspace_id = auth_token.workspace_id();
 
         use crate::schema::{employee_department_history, employees};
-        
+
         let results: Vec<EmployeeDepartmentHistoryEntity> = employee_department_history::table
-            .inner_join(employees::table.on(employees::id.eq(employee_department_history::employee_id)))
+            .inner_join(
+                employees::table.on(employees::id.eq(employee_department_history::employee_id)),
+            )
             .filter(employee_department_history::employee_id.eq(employee_id))
             .filter(employees::workspace_id.eq(workspace_id))
             .select(employee_department_history::all_columns)
@@ -445,10 +451,12 @@ impl DepartmentRepository for DieselDepartmentRepository {
         let workspace_id = auth_token.workspace_id();
 
         use crate::schema::{employee_department_history, employees};
-        
+
         let today = Utc::now().date_naive();
         let result: Option<EmployeeDepartmentHistoryEntity> = employee_department_history::table
-            .inner_join(employees::table.on(employees::id.eq(employee_department_history::employee_id)))
+            .inner_join(
+                employees::table.on(employees::id.eq(employee_department_history::employee_id)),
+            )
             .filter(employee_department_history::employee_id.eq(employee_id))
             .filter(employees::workspace_id.eq(workspace_id))
             .filter(employee_department_history::effective_date.le(today))
@@ -483,24 +491,28 @@ impl DepartmentRepository for DieselDepartmentRepository {
             bigdecimal::BigDecimal::from_str(&hours_per_day.to_string()).unwrap_or_default();
 
         use crate::schema::department_payroll_configs;
-        
-        let entity: DepartmentPayrollConfigEntity = diesel::insert_into(department_payroll_configs::table)
-            .values((
-                department_payroll_configs::department_id.eq(department_id),
-                department_payroll_configs::std_working_days.eq(std_wd.clone()),
-                department_payroll_configs::hours_per_day.eq(h_per_d.clone()),
-                department_payroll_configs::effective_date.eq(effective_date),
-            ))
-            .on_conflict((department_payroll_configs::department_id, department_payroll_configs::effective_date))
-            .do_update()
-            .set((
-                department_payroll_configs::std_working_days.eq(std_wd),
-                department_payroll_configs::hours_per_day.eq(h_per_d),
-            ))
-            .returning(department_payroll_configs::all_columns)
-            .get_result(&mut *conn)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        let entity: DepartmentPayrollConfigEntity =
+            diesel::insert_into(department_payroll_configs::table)
+                .values((
+                    department_payroll_configs::department_id.eq(department_id),
+                    department_payroll_configs::std_working_days.eq(std_wd.clone()),
+                    department_payroll_configs::hours_per_day.eq(h_per_d.clone()),
+                    department_payroll_configs::effective_date.eq(effective_date),
+                ))
+                .on_conflict((
+                    department_payroll_configs::department_id,
+                    department_payroll_configs::effective_date,
+                ))
+                .do_update()
+                .set((
+                    department_payroll_configs::std_working_days.eq(std_wd),
+                    department_payroll_configs::hours_per_day.eq(h_per_d),
+                ))
+                .returning(department_payroll_configs::all_columns)
+                .get_result(&mut *conn)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(entity.into())
     }
@@ -518,7 +530,7 @@ impl DepartmentRepository for DieselDepartmentRepository {
         let _workspace_id = auth_token.workspace_id();
 
         use crate::schema::department_payroll_configs;
-        
+
         let result: Option<DepartmentPayrollConfigEntity> = department_payroll_configs::table
             .filter(department_payroll_configs::department_id.eq(department_id))
             .filter(department_payroll_configs::effective_date.le(date))
@@ -543,9 +555,12 @@ impl DepartmentRepository for DieselDepartmentRepository {
         let workspace_id = auth_token.workspace_id();
 
         use crate::schema::department_payroll_configs;
-        
+
         let results: Vec<DepartmentPayrollConfigEntity> = department_payroll_configs::table
-            .inner_join(departments::table.on(departments::id.eq(department_payroll_configs::department_id)))
+            .inner_join(
+                departments::table
+                    .on(departments::id.eq(department_payroll_configs::department_id)),
+            )
             .filter(department_payroll_configs::department_id.eq(department_id))
             .filter(departments::workspace_id.eq(workspace_id))
             .select(department_payroll_configs::all_columns)

@@ -3,8 +3,8 @@ use crate::errors::AppError;
 use async_trait::async_trait;
 use chrono::NaiveDate;
 use diesel::prelude::*;
-use diesel_async::RunQueryDsl;
 use diesel_async::AsyncConnection;
+use diesel_async::RunQueryDsl;
 use rust_decimal::Decimal;
 use uuid::Uuid;
 
@@ -26,7 +26,10 @@ use crate::schema::{
 };
 use diesel::sql_types::{Date, Uuid as UuidType};
 
-use super::{DieselEmployeeRepository, EMPLOYEE_SELECT_QUERY, EMPLOYEE_DEPT_JOIN, EmployeeSearchSql, build_employee_search_sql};
+use super::{
+    build_employee_search_sql, DieselEmployeeRepository, EmployeeSearchSql, EMPLOYEE_DEPT_JOIN,
+    EMPLOYEE_SELECT_QUERY,
+};
 
 #[allow(clippy::too_many_lines)]
 #[async_trait]
@@ -213,7 +216,8 @@ impl EmployeeRecruitmentRepository for DieselEmployeeRepository {
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?,
         );
 
-        let rows: Vec<RecruitmentSourceBreakdownRow> = diesel::sql_query(r#"
+        let rows: Vec<RecruitmentSourceBreakdownRow> = diesel::sql_query(
+            r#"
             SELECT
                 COALESCE(rs.source_type::text, 'direct') AS source_type,
                 COALESCE(rs.name, 'Direct Hire') AS source_name,
@@ -256,7 +260,8 @@ impl EmployeeRecruitmentRepository for DieselEmployeeRepository {
         );
 
         // 1. Total terminated count
-        let total: i64 = diesel::sql_query(r#"SELECT COUNT(*) FROM employees e
+        let total: i64 = diesel::sql_query(
+            r#"SELECT COUNT(*) FROM employees e
                WHERE e.workspace_id = $1 AND e.is_active = FALSE
                  AND e.termination_date IS NOT NULL
                  AND e.termination_date >= $2 AND e.termination_date <= $3"#,
@@ -270,7 +275,8 @@ impl EmployeeRecruitmentRepository for DieselEmployeeRepository {
         .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         // 2. Tenure distribution
-        let tenure_rows: Vec<TenureRow> = diesel::sql_query(r#"
+        let tenure_rows: Vec<TenureRow> = diesel::sql_query(
+            r#"
             SELECT bucket, COUNT(*) AS count FROM (
                 SELECT CASE
                     WHEN e.termination_date - e.hire_date < 90 THEN '< 3 months'
@@ -305,7 +311,8 @@ impl EmployeeRecruitmentRepository for DieselEmployeeRepository {
         .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         // 3. By recruitment source
-        let source_rows: Vec<RecruitmentSourceBreakdownRow> = diesel::sql_query(r#"
+        let source_rows: Vec<RecruitmentSourceBreakdownRow> = diesel::sql_query(
+            r#"
             SELECT
                 COALESCE(rs.source_type::text, 'direct') AS source_type,
                 COALESCE(rs.name, 'Direct Hire') AS source_name,
@@ -327,7 +334,8 @@ impl EmployeeRecruitmentRepository for DieselEmployeeRepository {
         .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         // 4. By department (latest department assignment before termination)
-        let dept_rows: Vec<DeptRow> = diesel::sql_query(r#"
+        let dept_rows: Vec<DeptRow> = diesel::sql_query(
+            r#"
             SELECT
                 COALESCE(d.name, 'Unassigned') AS department_name,
                 COUNT(*) AS count
@@ -382,5 +390,4 @@ impl EmployeeRecruitmentRepository for DieselEmployeeRepository {
             period_end: end_date.to_string(),
         })
     }
-
 }

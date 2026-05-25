@@ -36,7 +36,6 @@ impl std::ops::DerefMut for SessionConn {
     }
 }
 
-
 /// Configuration for all database pools, read from environment variables.
 #[derive(Debug, Clone)]
 pub struct DbPoolConfig {

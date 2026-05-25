@@ -283,7 +283,9 @@ impl ShiftSwapRepository for DieselShiftSwapRepository {
                 updated_at: s.updated_at,
                 requester_name: emp_map.get(&s.requester_id).cloned(),
                 target_name: emp_map.get(&s.target_id).cloned(),
-                requester_shift_name: s.requester_shift_id.and_then(|id| shift_map.get(&id).cloned()),
+                requester_shift_name: s
+                    .requester_shift_id
+                    .and_then(|id| shift_map.get(&id).cloned()),
                 target_shift_name: s.target_shift_id.and_then(|id| shift_map.get(&id).cloned()),
             })
             .map(Into::into)
@@ -345,7 +347,11 @@ impl ShiftSwapRepository for DieselShiftSwapRepository {
 
         let swaps: Vec<ShiftSwapRequestEntity> = shift_swap_requests::table
             .filter(shift_swap_requests::workspace_id.eq(workspace_id))
-            .filter(shift_swap_requests::requester_id.eq(employee_id).or(shift_swap_requests::target_id.eq(employee_id)))
+            .filter(
+                shift_swap_requests::requester_id
+                    .eq(employee_id)
+                    .or(shift_swap_requests::target_id.eq(employee_id)),
+            )
             .order(shift_swap_requests::created_at.desc())
             .limit(50)
             .load(&mut *conn)
@@ -404,7 +410,9 @@ impl ShiftSwapRepository for DieselShiftSwapRepository {
                 updated_at: s.updated_at,
                 requester_name: emp_map.get(&s.requester_id).cloned(),
                 target_name: emp_map.get(&s.target_id).cloned(),
-                requester_shift_name: s.requester_shift_id.and_then(|id| shift_map.get(&id).cloned()),
+                requester_shift_name: s
+                    .requester_shift_id
+                    .and_then(|id| shift_map.get(&id).cloned()),
                 target_shift_name: s.target_shift_id.and_then(|id| shift_map.get(&id).cloned()),
             })
             .map(Into::into)

@@ -227,19 +227,18 @@ impl StagingLogRepository for DieselStagingLogRepository {
         let mut claimed = 0u64;
         for staged in staged_logs {
             let id = crate::utils::id::new_id();
-            let raw_log_entity =
-                crate::models::diesel::attendance_log::RawAttendanceLogEntity {
-                    id,
-                    workspace_id,
-                    employee_id,
-                    punch_time: staged.punch_time,
-                    source: crate::models::LogSource::Device,
-                    device_id: staged.device_id.clone(),
-                    raw_data: staged.raw_data.clone(),
-                    punch: -1,
-                    status: -1,
-                    created_at: Some(chrono::Utc::now()),
-                };
+            let raw_log_entity = crate::models::diesel::attendance_log::RawAttendanceLogEntity {
+                id,
+                workspace_id,
+                employee_id,
+                punch_time: staged.punch_time,
+                source: crate::models::LogSource::Device,
+                device_id: staged.device_id.clone(),
+                raw_data: staged.raw_data.clone(),
+                punch: -1,
+                status: -1,
+                created_at: Some(chrono::Utc::now()),
+            };
 
             let rows = diesel::insert_into(crate::schema::raw_attendance_logs::table)
                 .values(&raw_log_entity)

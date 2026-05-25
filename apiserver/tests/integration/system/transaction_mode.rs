@@ -46,7 +46,8 @@ async fn test_transaction_rollback_on_error() {
         count: i64,
     }
 
-    let rows: Vec<CountResult> = diesel::sql_query("SELECT COUNT(*) as count FROM departments WHERE name = 'Temp Dept Rollback'"
+    let rows: Vec<CountResult> = diesel::sql_query(
+        "SELECT COUNT(*) as count FROM departments WHERE name = 'Temp Dept Rollback'",
     )
     .load(&mut session_conn)
     .await
@@ -93,7 +94,8 @@ async fn test_transaction_commit_on_success() {
         count: i64,
     }
 
-    let rows: Vec<CountResult> = diesel::sql_query("SELECT COUNT(*) as count FROM departments WHERE name = 'Temp Dept Commit'"
+    let rows: Vec<CountResult> = diesel::sql_query(
+        "SELECT COUNT(*) as count FROM departments WHERE name = 'Temp Dept Commit'",
     )
     .load(&mut session_conn)
     .await

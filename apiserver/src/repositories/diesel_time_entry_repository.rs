@@ -364,7 +364,8 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
             date: chrono::NaiveDate,
         }
 
-        let work_days: Vec<DateRow> = diesel::sql_query(r#"
+        let work_days: Vec<DateRow> = diesel::sql_query(
+            r#"
             SELECT DISTINCT(te.punch_in_time AT TIME ZONE $2)::date as date
             FROM time_entries te
             JOIN employees e ON te.employee_id = e.id

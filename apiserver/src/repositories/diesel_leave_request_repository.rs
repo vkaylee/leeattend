@@ -650,7 +650,8 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
             end_date: NaiveDate,
         }
 
-        let leave_days: Vec<LeaveRow> = diesel::sql_query(r#"
+        let leave_days: Vec<LeaveRow> = diesel::sql_query(
+            r#"
             SELECT lr.start_date, lr.end_date
             FROM leave_requests lr
             JOIN employees e ON lr.employee_id = e.id

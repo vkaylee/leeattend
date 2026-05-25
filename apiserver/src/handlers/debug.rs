@@ -52,7 +52,8 @@ pub async fn get_debug_users(
             role: String,
         }
 
-        let users: Vec<DebugUserRow> = diesel::sql_query(r#"SELECT id, COALESCE(full_name, 'Unknown') as name, email, role FROM users LIMIT 20"#,
+        let users: Vec<DebugUserRow> = diesel::sql_query(
+            r#"SELECT id, COALESCE(full_name, 'Unknown') as name, email, role FROM users LIMIT 20"#,
         )
         .load(&mut *conn)
         .await

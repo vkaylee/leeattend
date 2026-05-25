@@ -2,6 +2,7 @@ use crate::models::{
     enums::{ImportJobStatus, ImportTargetType},
     AttendanceImportJob,
 };
+use crate::schema::sql_types::ImportJobStatusType;
 use chrono::{DateTime, Utc};
 use diesel::deserialize::{self, FromSql};
 use diesel::pg::{Pg, PgValue};
@@ -9,7 +10,6 @@ use diesel::serialize::{self, IsNull, Output, ToSql};
 use std::io::Write;
 use std::str::FromStr;
 use uuid::Uuid;
-use crate::schema::sql_types::ImportJobStatusType;
 
 // ---------------------------------------------------------------------------
 // Enum Mapping: ImportJobStatusType
@@ -39,7 +39,9 @@ impl FromSql<ImportJobStatusType, Pg> for ImportJobStatus {
     }
 }
 
-#[derive(Debug, Clone, diesel::QueryableByName, diesel::Queryable, diesel::Selectable, diesel::Insertable)]
+#[derive(
+    Debug, Clone, diesel::QueryableByName, diesel::Queryable, diesel::Selectable, diesel::Insertable,
+)]
 #[diesel(table_name = crate::schema::attendance_import_jobs)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct ImportJobEntity {

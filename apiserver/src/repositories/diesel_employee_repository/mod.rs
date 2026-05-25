@@ -3,13 +3,10 @@ use crate::errors::AppError;
 use async_trait::async_trait;
 use chrono::NaiveDate;
 use diesel::prelude::*;
-use diesel_async::RunQueryDsl;
 use diesel_async::AsyncConnection;
-use uuid::Uuid;
+use diesel_async::RunQueryDsl;
 use rust_decimal::Decimal;
-
-
-
+use uuid::Uuid;
 
 use crate::models::diesel::employee::{
     CountRow, DeptRow, EmployeeDocumentEntity, EmployeeEmergencyContactEntity, EmployeeEntity,
@@ -17,11 +14,11 @@ use crate::models::diesel::employee::{
     TenureRow, UpdateDieselEmployee,
 };
 use crate::models::{
-    EmployeePayrollConfig,
     CreateEmergencyContactRequest, Employee, EmployeeDocument, EmployeeEmergencyContact,
-    EmployeeFilterOptions, EmployeePaginationArgs, EmployeeProfile, RecruitmentSource,
-    RecruitmentSourceBreakdown, TurnoverAnalytics, TurnoverByDepartment, TurnoverBySource,
-    TurnoverTenureBucket, UpdateEmployeeProfileRequest, UpdateEmployeeRequest, WorkingCondition,
+    EmployeeFilterOptions, EmployeePaginationArgs, EmployeePayrollConfig, EmployeeProfile,
+    RecruitmentSource, RecruitmentSourceBreakdown, TurnoverAnalytics, TurnoverByDepartment,
+    TurnoverBySource, TurnoverTenureBucket, UpdateEmployeeProfileRequest, UpdateEmployeeRequest,
+    WorkingCondition,
 };
 use crate::repositories::employee::*;
 use crate::schema::{
@@ -120,18 +117,17 @@ fn build_employee_search_sql(
     }
 }
 
-
 mod core;
-mod working_condition;
+mod ess;
 mod payroll;
 mod recruitment;
-mod ess;
+mod working_condition;
 
 pub use core::*;
-pub use working_condition::*;
+pub use ess::*;
 pub use payroll::*;
 pub use recruitment::*;
-pub use ess::*;
+pub use working_condition::*;
 
 #[async_trait]
 #[async_trait]
@@ -238,7 +234,8 @@ impl EmployeeRepository for DieselEmployeeRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         id_numbers: &[String],
     ) -> Result<Vec<String>, AppError> {
-        EmployeeCoreRepository::get_existing_employee_ids_by_numbers(self, auth_token, id_numbers).await
+        EmployeeCoreRepository::get_existing_employee_ids_by_numbers(self, auth_token, id_numbers)
+            .await
     }
 
     async fn get_managed_departments(
@@ -262,7 +259,8 @@ impl EmployeeRepository for DieselEmployeeRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id: Uuid,
     ) -> Result<Vec<WorkingCondition>, AppError> {
-        EmployeeWorkingConditionRepository::get_working_conditions(self, auth_token, employee_id).await
+        EmployeeWorkingConditionRepository::get_working_conditions(self, auth_token, employee_id)
+            .await
     }
 
     async fn create_working_condition(
@@ -270,7 +268,8 @@ impl EmployeeRepository for DieselEmployeeRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         condition: &WorkingCondition,
     ) -> Result<(), AppError> {
-        EmployeeWorkingConditionRepository::create_working_condition(self, auth_token, condition).await
+        EmployeeWorkingConditionRepository::create_working_condition(self, auth_token, condition)
+            .await
     }
 
     async fn delete_working_condition(
@@ -279,7 +278,13 @@ impl EmployeeRepository for DieselEmployeeRepository {
         id: Uuid,
         employee_id: Uuid,
     ) -> Result<bool, AppError> {
-        EmployeeWorkingConditionRepository::delete_working_condition(self, auth_token, id, employee_id).await
+        EmployeeWorkingConditionRepository::delete_working_condition(
+            self,
+            auth_token,
+            id,
+            employee_id,
+        )
+        .await
     }
 
     async fn get_working_conditions_at(
@@ -288,7 +293,13 @@ impl EmployeeRepository for DieselEmployeeRepository {
         employee_id: Uuid,
         date: NaiveDate,
     ) -> Result<Vec<WorkingCondition>, AppError> {
-        EmployeeWorkingConditionRepository::get_working_conditions_at(self, auth_token, employee_id, date).await
+        EmployeeWorkingConditionRepository::get_working_conditions_at(
+            self,
+            auth_token,
+            employee_id,
+            date,
+        )
+        .await
     }
 
     async fn get_working_conditions_batch(
@@ -298,7 +309,14 @@ impl EmployeeRepository for DieselEmployeeRepository {
         start_date: NaiveDate,
         end_date: NaiveDate,
     ) -> Result<std::collections::HashMap<Uuid, Vec<WorkingCondition>>, AppError> {
-        EmployeeWorkingConditionRepository::get_working_conditions_batch(self, auth_token, employee_ids, start_date, end_date).await
+        EmployeeWorkingConditionRepository::get_working_conditions_batch(
+            self,
+            auth_token,
+            employee_ids,
+            start_date,
+            end_date,
+        )
+        .await
     }
 
     async fn upsert_employee_payroll_config(
@@ -309,7 +327,15 @@ impl EmployeeRepository for DieselEmployeeRepository {
         hours_per_day: Decimal,
         effective_date: NaiveDate,
     ) -> Result<EmployeePayrollConfig, AppError> {
-        EmployeePayrollConfigRepository::upsert_employee_payroll_config(self, auth_token, employee_id, std_working_days, hours_per_day, effective_date).await
+        EmployeePayrollConfigRepository::upsert_employee_payroll_config(
+            self,
+            auth_token,
+            employee_id,
+            std_working_days,
+            hours_per_day,
+            effective_date,
+        )
+        .await
     }
 
     async fn get_employee_payroll_config_at(
@@ -318,7 +344,13 @@ impl EmployeeRepository for DieselEmployeeRepository {
         employee_id: Uuid,
         date: NaiveDate,
     ) -> Result<Option<EmployeePayrollConfig>, AppError> {
-        EmployeePayrollConfigRepository::get_employee_payroll_config_at(self, auth_token, employee_id, date).await
+        EmployeePayrollConfigRepository::get_employee_payroll_config_at(
+            self,
+            auth_token,
+            employee_id,
+            date,
+        )
+        .await
     }
 
     async fn get_employee_payroll_configs(
@@ -326,7 +358,8 @@ impl EmployeeRepository for DieselEmployeeRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id: Uuid,
     ) -> Result<Vec<EmployeePayrollConfig>, AppError> {
-        EmployeePayrollConfigRepository::get_employee_payroll_configs(self, auth_token, employee_id).await
+        EmployeePayrollConfigRepository::get_employee_payroll_configs(self, auth_token, employee_id)
+            .await
     }
 
     async fn set_employee_recruitment_source(
@@ -335,7 +368,13 @@ impl EmployeeRepository for DieselEmployeeRepository {
         employee_id: Uuid,
         recruitment_source_id: Option<Uuid>,
     ) -> Result<(), AppError> {
-        EmployeeRecruitmentRepository::set_employee_recruitment_source(self, auth_token, employee_id, recruitment_source_id).await
+        EmployeeRecruitmentRepository::set_employee_recruitment_source(
+            self,
+            auth_token,
+            employee_id,
+            recruitment_source_id,
+        )
+        .await
     }
 
     async fn create_recruitment_source(&self, source: &RecruitmentSource) -> Result<(), AppError> {
@@ -387,7 +426,10 @@ impl EmployeeRepository for DieselEmployeeRepository {
         start_date: NaiveDate,
         end_date: NaiveDate,
     ) -> Result<TurnoverAnalytics, AppError> {
-        EmployeeRecruitmentRepository::get_turnover_analytics(self, auth_token, start_date, end_date).await
+        EmployeeRecruitmentRepository::get_turnover_analytics(
+            self, auth_token, start_date, end_date,
+        )
+        .await
     }
 
     async fn get_employee_profile(
@@ -404,7 +446,8 @@ impl EmployeeRepository for DieselEmployeeRepository {
         employee_id: Uuid,
         req: &crate::models::UpdateEmployeeProfileRequest,
     ) -> Result<crate::models::EmployeeProfile, AppError> {
-        EmployeeSelfServiceRepository::upsert_employee_profile(self, auth_token, employee_id, req).await
+        EmployeeSelfServiceRepository::upsert_employee_profile(self, auth_token, employee_id, req)
+            .await
     }
 
     async fn get_emergency_contacts(
@@ -421,7 +464,8 @@ impl EmployeeRepository for DieselEmployeeRepository {
         employee_id: Uuid,
         req: &crate::models::CreateEmergencyContactRequest,
     ) -> Result<crate::models::EmployeeEmergencyContact, AppError> {
-        EmployeeSelfServiceRepository::upsert_emergency_contact(self, auth_token, employee_id, req).await
+        EmployeeSelfServiceRepository::upsert_emergency_contact(self, auth_token, employee_id, req)
+            .await
     }
 
     async fn delete_emergency_contact(
@@ -430,7 +474,13 @@ impl EmployeeRepository for DieselEmployeeRepository {
         employee_id: Uuid,
         contact_id: Uuid,
     ) -> Result<u64, AppError> {
-        EmployeeSelfServiceRepository::delete_emergency_contact(self, auth_token, employee_id, contact_id).await
+        EmployeeSelfServiceRepository::delete_emergency_contact(
+            self,
+            auth_token,
+            employee_id,
+            contact_id,
+        )
+        .await
     }
 
     async fn get_employee_documents(
@@ -447,7 +497,6 @@ impl EmployeeRepository for DieselEmployeeRepository {
     ) -> Result<(), AppError> {
         EmployeeSelfServiceRepository::create_employee_document(self, doc).await
     }
-
 }
 
 // TESTS ARE MOVED/COMMENTED OUT FOR NOW
