@@ -130,6 +130,7 @@ impl ImportStrategy for LeaveImportStrategy {
         &mut self,
         deps: &crate::worker::deps::WorkerDeps,
         job: &AttendanceImportJob,
+        _rows: &[Self::RowData],
     ) -> Result<(), String> {
         let options = crate::models::EmployeeFilterOptions {
             page: 1,

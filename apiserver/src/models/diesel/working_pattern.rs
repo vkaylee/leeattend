@@ -16,6 +16,7 @@ pub struct WorkingPatternEntity {
     pub updated_at: DateTime<Utc>,
     pub pattern_type: String,
     pub cycle_length_days: Option<i32>,
+    pub deleted_at: Option<DateTime<Utc>>,
 }
 
 impl From<WorkingPatternEntity> for WorkingPattern {

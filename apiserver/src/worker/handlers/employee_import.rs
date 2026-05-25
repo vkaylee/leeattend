@@ -233,6 +233,7 @@ impl EmployeeImportChunkHandler {
             department_repo: Arc::clone(&deps.department_repo),
             staging_repo: Arc::clone(&deps.staging_repo),
             dept_cache: HashMap::new(),
+            emp_cache: HashMap::new(),
         };
 
         let pipeline = ImportPipeline {

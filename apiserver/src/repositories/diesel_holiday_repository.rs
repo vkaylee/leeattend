@@ -40,6 +40,7 @@ impl HolidayRepository for DieselHolidayRepository {
 
         let mut query = holidays::table
             .filter(holidays::workspace_id.eq(workspace_id))
+            .filter(holidays::deleted_at.is_null())
             .into_boxed();
 
         if let Some(y) = year {
@@ -79,6 +80,7 @@ impl HolidayRepository for DieselHolidayRepository {
         let entity: Option<HolidayEntity> = holidays::table
             .filter(holidays::id.eq(id))
             .filter(holidays::workspace_id.eq(workspace_id))
+            .filter(holidays::deleted_at.is_null())
             .first(&mut *conn)
             .await
             .optional()
@@ -115,6 +117,7 @@ impl HolidayRepository for DieselHolidayRepository {
             updated_at: Utc::now(),
             work_threshold_percent: req.work_threshold_percent,
             is_credit_on_work: req.is_credit_on_work,
+            deleted_at: None,
         };
 
         let result: HolidayEntity = diesel::insert_into(holidays::table)
@@ -144,6 +147,7 @@ impl HolidayRepository for DieselHolidayRepository {
         let result: Option<HolidayEntity> = diesel::update(holidays::table)
             .filter(holidays::id.eq(id))
             .filter(holidays::workspace_id.eq(workspace_id))
+            .filter(holidays::deleted_at.is_null())
             .set((
                 req.name.as_ref().map(|n| holidays::name.eq(n)),
                 req.date.map(|d| holidays::date.eq(d)),
@@ -184,9 +188,10 @@ impl HolidayRepository for DieselHolidayRepository {
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?,
         );
 
-        let affected = diesel::delete(holidays::table)
+        let affected = diesel::update(holidays::table)
             .filter(holidays::id.eq(id))
             .filter(holidays::workspace_id.eq(workspace_id))
+            .set(holidays::deleted_at.eq(Utc::now()))
             .execute(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -211,6 +216,7 @@ impl HolidayRepository for DieselHolidayRepository {
 
         let entities: Vec<HolidayEntity> = holidays::table
             .filter(holidays::workspace_id.eq(workspace_id))
+            .filter(holidays::deleted_at.is_null())
             .filter(holidays::date.ge(start_date))
             .filter(holidays::date.le(end_date))
             .order(holidays::date.asc())
@@ -237,6 +243,7 @@ impl HolidayRepository for DieselHolidayRepository {
 
         let entity: Option<HolidayEntity> = holidays::table
             .filter(holidays::workspace_id.eq(workspace_id))
+            .filter(holidays::deleted_at.is_null())
             .filter(holidays::date.eq(date))
             .first(&mut *conn)
             .await

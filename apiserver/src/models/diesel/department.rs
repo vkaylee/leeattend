@@ -15,6 +15,7 @@ pub struct DieselDepartment {
     pub updated_at: Option<DateTime<Utc>>,
     pub default_working_pattern_id: Option<Uuid>,
     pub std_working_days: Option<bigdecimal::BigDecimal>,
+    pub deleted_at: Option<DateTime<Utc>>,
 }
 
 impl From<DieselDepartment> for crate::models::Department {

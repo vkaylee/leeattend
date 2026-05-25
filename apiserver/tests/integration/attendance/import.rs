@@ -449,6 +449,7 @@ async fn test_employee_import_duplicate_department_prevention() {
             apiserver::repositories::DieselStagingLogRepository::new(diesel_pools.clone()),
         ),
         dept_cache: HashMap::new(), // Empty cache
+        emp_cache: HashMap::new(),
     };
 
     // Strategy 2 (simulating chunk 2 running independently)
@@ -460,6 +461,7 @@ async fn test_employee_import_duplicate_department_prevention() {
             apiserver::repositories::DieselStagingLogRepository::new(diesel_pools.clone()),
         ),
         dept_cache: HashMap::new(), // Empty cache
+        emp_cache: HashMap::new(),
     };
 
     let dept_name = "Engineering".to_string();

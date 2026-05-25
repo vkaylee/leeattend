@@ -175,6 +175,7 @@ impl WorkingPatternRepositoryTrait for DieselWorkingPatternRepository {
             working_patterns::table
                 .filter(working_patterns::workspace_id.eq(workspace_id))
                 .filter(working_patterns::is_active.eq(true))
+                .filter(working_patterns::deleted_at.is_null())
                 .order(working_patterns::name.asc())
                 .select(WorkingPatternEntity::as_select())
                 .load(&mut *conn)
@@ -332,18 +333,12 @@ impl WorkingPatternRepositoryTrait for DieselWorkingPatternRepository {
         let result = conn
             .transaction(|conn| {
                 Box::pin(async move {
-                    diesel::delete(
-                        working_pattern_details::table
-                            .filter(working_pattern_details::pattern_id.eq(pattern_id)),
-                    )
-                    .execute(&mut *conn)
-                    .await?;
-
-                    diesel::delete(
+                    diesel::update(
                         working_patterns::table
                             .filter(working_patterns::id.eq(pattern_id))
                             .filter(working_patterns::workspace_id.eq(workspace_id)),
                     )
+                    .set(working_patterns::deleted_at.eq(chrono::Utc::now()))
                     .execute(&mut *conn)
                     .await?;
 

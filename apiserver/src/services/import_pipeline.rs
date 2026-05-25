@@ -8,7 +8,7 @@ use crate::repositories::import_job_repository::ImportJobRepository;
 
 #[async_trait]
 pub trait ImportStrategy: Send + Sync {
-    type RowData: Send + Sync;
+    type RowData: Send + Sync + Clone;
 
     /// Expected headers in the Excel file
     fn expected_headers(&self) -> &'static [&'static str];
@@ -34,6 +34,7 @@ pub trait ImportStrategy: Send + Sync {
         &mut self,
         _deps: &crate::worker::deps::WorkerDeps,
         _job: &AttendanceImportJob,
+        _rows: &[Self::RowData],
     ) -> Result<(), String> {
         Ok(())
     }
@@ -56,20 +57,6 @@ pub struct ImportPipeline<'a, S: ImportStrategy> {
 impl<S: ImportStrategy> ImportPipeline<'_, S> {
     #[allow(clippy::too_many_lines)]
     pub async fn run(mut self) -> Result<(), ()> {
-        if let Err(e) = self.strategy.init(&self.deps, self.job).await {
-            let _ = self
-                .import_repo
-                .update_job_progress(
-                    &crate::diesel_pool::TenantAuthToken::system_override(self.job.workspace_id),
-                    self.job.id,
-                    0,
-                    ImportJobStatus::Failed,
-                    Some(e),
-                )
-                .await;
-            return Err(());
-        }
-
         let mut errors = Vec::new();
         let mut failed_rows_data: Vec<(HashMap<String, String>, String)> = Vec::new();
         let mut pending_rows: Vec<(S::RowData, HashMap<String, String>)> = Vec::new();
@@ -108,6 +95,21 @@ impl<S: ImportStrategy> ImportPipeline<'_, S> {
             Err(e) => {
                 errors.push(e);
             }
+        }
+
+        let parsed_rows: Vec<S::RowData> = pending_rows.iter().map(|(r, _)| r).cloned().collect();
+        if let Err(e) = self.strategy.init(&self.deps, self.job, &parsed_rows).await {
+            let _ = self
+                .import_repo
+                .update_job_progress(
+                    &crate::diesel_pool::TenantAuthToken::system_override(self.job.workspace_id),
+                    self.job.id,
+                    0,
+                    ImportJobStatus::Failed,
+                    Some(e),
+                )
+                .await;
+            return Err(());
         }
 
         if !self.is_chunk {
@@ -312,6 +314,15 @@ mod tests {
             _workspace_tz: Tz,
         ) -> Result<Self::RowData, String> {
             Ok("dummy_data".to_string())
+        }
+
+        async fn init(
+            &mut self,
+            _deps: &WorkerDeps,
+            _job: &AttendanceImportJob,
+            _rows: &[Self::RowData],
+        ) -> Result<(), String> {
+            Ok(())
         }
 
         async fn process_row(

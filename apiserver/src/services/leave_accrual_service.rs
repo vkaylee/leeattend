@@ -428,6 +428,54 @@ impl LeaveAccrualService {
         Ok(result)
     }
 
+    pub async fn batch_count_qualifying_days_for_workspace(
+        &self,
+        workspace_id: Uuid,
+        employee_ids: &[Uuid],
+        range_start: NaiveDate,
+        range_end: NaiveDate,
+        tz: Tz,
+    ) -> Result<HashMap<Uuid, HashMap<NaiveDate, i32>>, AppError> {
+        let start_dt = local_to_utc(&tz, range_start, 0, 0, 0).map_err(AppError::Internal)?;
+        let end_dt = local_to_utc(&tz, range_end, 23, 59, 59).map_err(AppError::Internal)?;
+        let auth_token = crate::diesel_pool::TenantAuthToken::system_override(workspace_id);
+
+        let work_entries = self
+            .time_entry_repo
+            .get_workspace_time_entries_batch(&auth_token, employee_ids, start_dt, end_dt)
+            .await?;
+
+        let _leave_days_map = self
+            .leave_request_repo
+            .get_batch_leave_days(&auth_token, employee_ids, range_start, range_end)
+            .await?;
+        
+        let approved_leaves = self
+            .leave_request_repo
+            .get_approved_leave_dates(&auth_token, employee_ids, range_start, range_end)
+            .await?;
+
+        let mut result_map: HashMap<Uuid, HashMap<NaiveDate, i32>> = HashMap::new();
+        use chrono::Datelike;
+
+        for (emp_id, entries) in work_entries {
+            let emp_map = result_map.entry(emp_id).or_default();
+            for entry in entries {
+                let date = entry.punch_in_time.with_timezone(&tz).date_naive();
+                let month_key = NaiveDate::from_ymd_opt(date.year(), date.month(), 1).unwrap_or(date);
+                *emp_map.entry(month_key).or_insert(0) += 1;
+            }
+        }
+
+        for (emp_id, date) in approved_leaves {
+            let emp_map = result_map.entry(emp_id).or_default();
+            let month_key = NaiveDate::from_ymd_opt(date.year(), date.month(), 1).unwrap_or(date);
+            *emp_map.entry(month_key).or_insert(0) += 1;
+        }
+
+        Ok(result_map)
+    }
+
     /// Main orchestrator to process accruals for a workspace on a specific date.
     /// Optimized: uses pre-computed accrual dates and batched qualifying-days queries.
     /// All persistence is delegated to `accrual_log_repo` (Repository pattern).
@@ -438,123 +486,124 @@ impl LeaveAccrualService {
         date: NaiveDate,
         force: bool,
     ) -> Result<Vec<LeaveAccrualLog>, AppError> {
-        // Get workspace timezone via repository
+        // 1. Setup & Workspace-level queries
         let tz_str = self
             .accrual_log_repo
             .get_workspace_timezone(workspace_id)
             .await?;
         let tz: Tz = crate::utils::tz::parse_workspace_tz(&tz_str);
+        let auth_token = crate::diesel_pool::TenantAuthToken::system_override(workspace_id);
 
-        // Get all active employees
         let employees = self
             .employee_repo
-            .get_active_employees(&crate::diesel_pool::TenantAuthToken::system_override(
-                workspace_id,
-            ))
+            .get_active_employees(&auth_token)
             .await?;
-        let mut all_logs = Vec::new();
-
-        for emp in employees {
-            self.process_employee_accruals(workspace_id, &emp, date, force, tz, &mut all_logs)
-                .await?;
+        
+        if employees.is_empty() {
+            return Ok(vec![]);
         }
+        let employee_ids: Vec<Uuid> = employees.iter().map(|e| e.id).collect();
 
-        Ok(all_logs)
-    }
-
-    /// Process accruals for a single employee. Extracted to reduce orchestrator complexity.
-    async fn process_employee_accruals(
-        &self,
-        workspace_id: Uuid,
-        emp: &crate::models::Employee,
-        date: NaiveDate,
-        force: bool,
-        tz: Tz,
-        all_logs: &mut Vec<LeaveAccrualLog>,
-    ) -> Result<(), AppError> {
-        let dept_hist = self
+        // 2. Batch fetch all necessary data
+        let dept_map = self
             .department_repo
-            .get_current_department(
-                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
-                emp.id,
-            )
-            .await
-            .ok()
-            .flatten();
+            .get_current_departments_batch(&auth_token, &employee_ids)
+            .await?;
 
-        let Some((policy, assignment_id, _leave_type_code)) = self
+        let all_assignments = self
             .leave_policy_repo
-            .find_active_assignment_for_employee(
-                workspace_id,
-                emp.id,
-                dept_hist.map(|d| d.department_id),
-                date,
-            )
-            .await?
-        else {
-            return Ok(());
-        };
-
-        let config = &policy.rule_config;
-        let leave_type_id = policy.leave_type_id;
-
-        // Fetch effective_from via repository
-        let effective_from = self
-            .accrual_log_repo
-            .get_assignment_effective_from(assignment_id, workspace_id)
+            .find_all_active_assignments_for_workspace(workspace_id, date)
             .await?;
 
-        // Pre-compute accrual dates instead of day-by-day iteration
-        let accrual_dates = Self::get_accrual_dates(
-            &config.frequency,
-            &config.accrual_timing,
-            effective_from,
-            date,
-        );
-
-        if accrual_dates.is_empty() {
-            return Ok(());
-        }
-
-        // Batch-fetch qualifying days for all months at once
-        let qualifying_range_start = Self::compute_qualifying_range_start(config, effective_from);
-
-        let qualifying_days_map = if config.min_work_days_threshold.is_some() {
-            self.batch_count_qualifying_days(workspace_id, emp.id, qualifying_range_start, date, tz)
-                .await?
-        } else {
-            HashMap::new()
-        };
-
-        // Pre-fetch employment history once per employee using contracts
-        let contracts = self
+        let contract_map = self
             .contract_repo
-            .list_employee_contracts(
-                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
-                emp.id,
-            )
+            .list_contracts_batch(&auth_token, &employee_ids)
             .await?;
 
-        let ctx = AccrualContext {
-            workspace_id,
-            employee_id: emp.id,
-            assignment_id,
-            leave_type_id,
-        };
+        // 3. Match policies and compute overall qualifying range
+        let mut emp_policy_map = HashMap::new();
+        let mut accrual_plan = HashMap::new();
+        let mut global_qualifying_start = date;
 
-        for accrual_date in accrual_dates {
-            let months_service = Self::calculate_total_months_seniority(&contracts, accrual_date);
-            let work_days =
-                Self::resolve_qualifying_days(config, accrual_date, &qualifying_days_map);
-            let amount = Self::calculate_accrual_amount(config, months_service, work_days);
+        for emp in &employees {
+            let dept_id = dept_map.get(&emp.id).map(|h| h.department_id);
+            
+            let mut matched = all_assignments.iter().find(|(a, _, _)| a.assignee_type == "employee" && a.assignee_id == Some(emp.id));
+            if matched.is_none() {
+                if let Some(d_id) = dept_id {
+                    matched = all_assignments.iter().find(|(a, _, _)| a.assignee_type == "department" && a.assignee_id == Some(d_id));
+                }
+            }
+            if matched.is_none() {
+                matched = all_assignments.iter().find(|(a, _, _)| a.assignee_type == "workspace" && a.assignee_id == Some(workspace_id));
+            }
 
-            if amount > 0.0 {
-                self.persist_accrual(&ctx, accrual_date, amount, force, all_logs)
-                    .await?;
+            if let Some((assignment, def, _code)) = matched {
+                let config = &def.rule_config;
+                let effective_from = assignment.effective_from;
+                let dates = Self::get_accrual_dates(&config.frequency, &config.accrual_timing, effective_from, date);
+                
+                if !dates.is_empty() {
+                    emp_policy_map.insert(emp.id, (def.clone(), assignment.id));
+                    accrual_plan.insert(emp.id, dates);
+                    
+                    let q_start = Self::compute_qualifying_range_start(config, effective_from);
+                    if q_start < global_qualifying_start {
+                        global_qualifying_start = q_start;
+                    }
+                }
             }
         }
 
-        Ok(())
+        if accrual_plan.is_empty() {
+            return Ok(vec![]);
+        }
+
+        // 4. Batch fetch qualifying days
+        let qualifying_days_map = self
+            .batch_count_qualifying_days_for_workspace(
+                workspace_id,
+                &employee_ids,
+                global_qualifying_start,
+                date,
+                tz,
+            )
+            .await?;
+
+        let mut all_logs = Vec::new();
+
+        // 5. Process each employee using strictly memory-cached references
+        for emp in employees {
+            let Some(dates) = accrual_plan.get(&emp.id) else { continue; };
+            let (def, assignment_id) = emp_policy_map.get(&emp.id).unwrap();
+            let config = &def.rule_config;
+            let leave_type_id = def.leave_type_id;
+
+            let empty_contracts = vec![];
+            let contracts = contract_map.get(&emp.id).unwrap_or(&empty_contracts);
+            
+            let empty_q_map = HashMap::new();
+            let q_map = qualifying_days_map.get(&emp.id).unwrap_or(&empty_q_map);
+
+            let ctx = AccrualContext {
+                workspace_id,
+                employee_id: emp.id,
+                assignment_id: *assignment_id,
+                leave_type_id,
+            };
+
+            for accrual_date in dates {
+                let months_service = Self::calculate_total_months_seniority(contracts, *accrual_date);
+                let work_days = Self::resolve_qualifying_days(config, *accrual_date, q_map);
+                let amount = Self::calculate_accrual_amount(config, months_service, work_days);
+
+                if amount > 0.0 {
+                    self.persist_accrual(&ctx, *accrual_date, amount, force, &mut all_logs).await?;
+                }
+            }
+        }
+
+        Ok(all_logs)
     }
 
     /// Compute the start of the qualifying-days query range.
@@ -1132,5 +1181,47 @@ mod tests {
         assert_eq!(dates[1], nd(2026, 6, 30));
         assert_eq!(dates[2], nd(2026, 9, 30));
         assert_eq!(dates[3], nd(2026, 12, 31));
+    }
+
+    #[tokio::test]
+    async fn test_process_workspace_accruals_empty_employees() {
+        use crate::repositories::department_repository::MockDepartmentRepository;
+        use crate::repositories::employee_contract_repository::MockEmployeeContractRepository;
+        use crate::repositories::employee::MockEmployeeRepository;
+        use crate::repositories::leave_policy_repository::MockLeavePolicyRepository;
+        use crate::repositories::leave_request_repository::MockLeaveRequestRepository;
+        use crate::repositories::leave_accrual_log_repository::MockLeaveAccrualLogRepository;
+        use crate::repositories::attendance_daily_summary_repository::MockAttendanceDailySummaryRepository;
+        use crate::repositories::time_entry_repository::MockTimeEntryRepository;
+        use std::sync::Arc;
+
+        let mut mock_emp_repo = MockEmployeeRepository::new();
+        let mut mock_accrual_repo = MockLeaveAccrualLogRepository::new();
+        
+        mock_accrual_repo
+            .expect_get_workspace_timezone()
+            .returning(|_| Ok("UTC".to_string()));
+
+        mock_emp_repo
+            .expect_get_active_employees()
+            .returning(|_| Box::pin(std::future::ready(Ok(vec![]))));
+
+        let service = LeaveAccrualService {
+            employee_repo: Arc::new(mock_emp_repo),
+            department_repo: Arc::new(MockDepartmentRepository::new()),
+            leave_policy_repo: Arc::new(MockLeavePolicyRepository::new()),
+            accrual_log_repo: Arc::new(mock_accrual_repo),
+            time_entry_repo: Arc::new(MockTimeEntryRepository::new()),
+            leave_request_repo: Arc::new(MockLeaveRequestRepository::new()),
+            contract_repo: Arc::new(MockEmployeeContractRepository::new()),
+            daily_summary_repo: Arc::new(MockAttendanceDailySummaryRepository::new()),
+        };
+
+        let result = service
+            .process_workspace_accruals(Uuid::new_v4(), nd(2026, 1, 1), false)
+            .await
+            .unwrap();
+
+        assert!(result.is_empty());
     }
 }

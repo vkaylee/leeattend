@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use std::collections::HashMap;
 use uuid::Uuid;
 
 use crate::errors::AppError;
@@ -24,6 +25,12 @@ pub trait EmployeeContractRepository: Send + Sync {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id_val: Uuid,
     ) -> Result<Vec<EmployeeContract>, AppError>;
+
+    async fn list_contracts_batch(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        employee_ids: &[Uuid],
+    ) -> Result<HashMap<Uuid, Vec<EmployeeContract>>, AppError>;
 
     async fn update_contract(
         &self,

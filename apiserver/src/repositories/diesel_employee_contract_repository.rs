@@ -171,6 +171,37 @@ impl super::EmployeeContractRepository for DieselEmployeeContractRepository {
         Ok(contracts.into_iter().map(Into::into).collect())
     }
 
+    async fn list_contracts_batch(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        employee_ids: &[Uuid],
+    ) -> Result<std::collections::HashMap<Uuid, Vec<EmployeeContract>>, AppError> {
+        use crate::schema::employee_contracts::dsl::*;
+
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&auth_token.workspace_id())
+                .await?,
+        );
+        let contracts = employee_contracts
+            .filter(employee_id.eq_any(employee_ids))
+            .filter(workspace_id.eq(auth_token.workspace_id()))
+            .order((employee_id.asc(), start_date.desc()))
+            .load::<EmployeeContractEntity>(&mut *conn)
+            .await?;
+
+        let mut map: std::collections::HashMap<Uuid, Vec<EmployeeContract>> =
+            std::collections::HashMap::new();
+        for contract in contracts {
+            map.entry(contract.employee_id)
+                .or_default()
+                .push(contract.into());
+        }
+
+        Ok(map)
+    }
+
     async fn update_contract(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,

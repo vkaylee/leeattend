@@ -1179,6 +1179,7 @@ diesel::table! {
         #[max_length = 10]
         pattern_type -> Varchar,
         cycle_length_days -> Nullable<Int4>,
+        deleted_at -> Nullable<Timestamptz>,
     }
 }
 

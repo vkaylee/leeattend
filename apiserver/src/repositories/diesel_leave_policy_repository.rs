@@ -40,6 +40,7 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
 
         let entities = leave_types::table
             .filter(leave_types::workspace_id.eq(workspace_id))
+            .filter(leave_types::deleted_at.is_null())
             .order(leave_types::name.asc())
             .load::<LeaveTypeEntity>(&mut *conn)
             .await
@@ -72,6 +73,7 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
             is_paid,
             policy_config: serde_json::to_value(policy_config).unwrap_or_default(),
             created_at: Utc::now(),
+            deleted_at: None,
         };
 
         let result = diesel::insert_into(leave_types::table)
@@ -142,11 +144,12 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
             ));
         }
 
-        let affected = diesel::delete(
+        let affected = diesel::update(
             leave_types::table
                 .filter(leave_types::id.eq(id))
                 .filter(leave_types::workspace_id.eq(workspace_id)),
         )
+        .set(leave_types::deleted_at.eq(Utc::now()))
         .execute(&mut *conn)
         .await
         .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -179,6 +182,7 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
             rule_config: serde_json::to_value(rule_config).unwrap_or_default(),
             created_at: Some(Utc::now()),
             updated_at: Some(Utc::now()),
+            deleted_at: None,
         };
 
         let result = diesel::insert_into(leave_policy_definitions::table)
@@ -204,6 +208,7 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
 
         let entities = leave_policy_definitions::table
             .filter(leave_policy_definitions::workspace_id.eq(workspace_id))
+            .filter(leave_policy_definitions::deleted_at.is_null())
             .order(leave_policy_definitions::created_at.desc())
             .load::<LeavePolicyDefinitionEntity>(&mut *conn)
             .await
@@ -275,12 +280,13 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
                 .execute(&mut *conn)
                 .await?;
 
-                // 2. Delete definition
-                let affected = diesel::delete(
+                // 2. Soft delete definition
+                let affected = diesel::update(
                     leave_policy_definitions::table
                         .filter(leave_policy_definitions::id.eq(id))
                         .filter(leave_policy_definitions::workspace_id.eq(workspace_id)),
                 )
+                .set(leave_policy_definitions::deleted_at.eq(Utc::now()))
                 .execute(&mut *conn)
                 .await?;
 
@@ -315,6 +321,7 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
                             leave_policy_definitions::workspace_id
                                 .eq(assignment_owned.workspace_id),
                         )
+                        .filter(leave_policy_definitions::deleted_at.is_null())
                         .select(leave_policy_definitions::leave_type_id)
                         .first(&mut *conn)
                         .await?;
@@ -437,6 +444,8 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
                 leave_types::table.on(leave_policy_definitions::leave_type_id.eq(leave_types::id)),
             )
             .filter(leave_policy_assignments::workspace_id.eq(workspace_id))
+            .filter(leave_policy_definitions::deleted_at.is_null())
+            .filter(leave_types::deleted_at.is_null())
             .filter(leave_policy_assignments::assignee_type.eq("employee"))
             .filter(leave_policy_assignments::assignee_id.eq(employee_id))
             .filter(leave_policy_assignments::effective_from.le(date))
@@ -468,6 +477,8 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
                         .on(leave_policy_definitions::leave_type_id.eq(leave_types::id)),
                 )
                 .filter(leave_policy_assignments::workspace_id.eq(workspace_id))
+                .filter(leave_policy_definitions::deleted_at.is_null())
+                .filter(leave_types::deleted_at.is_null())
                 .filter(leave_policy_assignments::assignee_type.eq("department"))
                 .filter(leave_policy_assignments::assignee_id.eq(dept_id))
                 .filter(leave_policy_assignments::effective_from.le(date))
@@ -498,6 +509,8 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
                 leave_types::table.on(leave_policy_definitions::leave_type_id.eq(leave_types::id)),
             )
             .filter(leave_policy_assignments::workspace_id.eq(workspace_id))
+            .filter(leave_policy_definitions::deleted_at.is_null())
+            .filter(leave_types::deleted_at.is_null())
             .filter(leave_policy_assignments::assignee_type.eq("workspace"))
             .filter(leave_policy_assignments::effective_from.le(date))
             .filter(
@@ -522,6 +535,52 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
         Ok(None)
     }
 
+    async fn find_all_active_assignments_for_workspace(
+        &self,
+        workspace_id: Uuid,
+        date: NaiveDate,
+    ) -> Result<Vec<(LeavePolicyAssignment, LeavePolicyDefinition, String)>, AppError> {
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&workspace_id)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
+
+        let results = leave_policy_assignments::table
+            .inner_join(leave_policy_definitions::table)
+            .inner_join(
+                leave_types::table.on(leave_policy_definitions::leave_type_id.eq(leave_types::id)),
+            )
+            .filter(leave_policy_assignments::workspace_id.eq(workspace_id))
+            .filter(leave_policy_definitions::deleted_at.is_null())
+            .filter(leave_types::deleted_at.is_null())
+            .filter(leave_policy_assignments::effective_from.le(date))
+            .filter(
+                leave_policy_assignments::effective_to
+                    .is_null()
+                    .or(leave_policy_assignments::effective_to.gt(date)),
+            )
+            .select((
+                leave_policy_assignments::all_columns,
+                leave_policy_definitions::all_columns,
+                leave_types::code,
+            ))
+            .load::<(
+                LeavePolicyAssignmentEntity,
+                LeavePolicyDefinitionEntity,
+                String,
+            )>(&mut *conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        Ok(results
+            .into_iter()
+            .map(|(assign, def, code)| (assign.into(), def.into(), code))
+            .collect())
+    }
+
     async fn get_policy_assignments(
         &self,
         workspace_id: Uuid,
@@ -540,6 +599,8 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
                 leave_types::table.on(leave_policy_definitions::leave_type_id.eq(leave_types::id)),
             )
             .filter(leave_policy_assignments::workspace_id.eq(workspace_id))
+            .filter(leave_policy_definitions::deleted_at.is_null())
+            .filter(leave_types::deleted_at.is_null())
             .order(leave_policy_assignments::created_at.desc())
             .select((
                 leave_policy_assignments::all_columns,

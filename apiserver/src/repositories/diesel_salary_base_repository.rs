@@ -171,6 +171,19 @@ impl crate::repositories::salary_base_repository::SalaryBaseRepository
     ) -> Result<(), AppError> {
         let mut conn = self.conn(workspace_id).await?;
 
+        let valid_group: Option<Uuid> = salary_base_groups::table
+            .filter(salary_base_groups::id.eq(base_group_id))
+            .filter(salary_base_groups::workspace_id.eq(workspace_id))
+            .select(salary_base_groups::id)
+            .first(&mut *conn)
+            .await
+            .optional()
+            .map_err(|e| AppError::Internal(format!("Failed to validate group: {e}")))?;
+
+        if valid_group.is_none() {
+            return Err(AppError::Forbidden("Invalid base group".to_string()));
+        }
+
         let new_member = SalaryBaseGroupMemberRow {
             component_definition_id: component_id,
             base_group_id,
@@ -202,7 +215,15 @@ impl crate::repositories::salary_base_repository::SalaryBaseRepository
         diesel::delete(
             salary_component_base_members::table
                 .filter(salary_component_base_members::component_definition_id.eq(component_id))
-                .filter(salary_component_base_members::base_group_id.eq(base_group_id)),
+                .filter(salary_component_base_members::base_group_id.eq(base_group_id))
+                .filter(
+                    salary_component_base_members::base_group_id.eq_any(
+                        salary_base_groups::table
+                            .filter(salary_base_groups::id.eq(base_group_id))
+                            .filter(salary_base_groups::workspace_id.eq(workspace_id))
+                            .select(salary_base_groups::id),
+                    ),
+                ),
         )
         .execute(&mut *conn)
         .await
@@ -226,5 +247,41 @@ mod tests {
         let pools = DieselPools::for_test(&test_db_url);
         let _repo = DieselSalaryBaseRepository::new(pools);
         // DI connection test passes if it compiles
+    }
+
+    #[tokio::test]
+    async fn test_tenant_isolation_assign_component() {
+        let test_db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://user:pass@localhost:5432/leeattend_test_db".to_string()
+        });
+        let pools = DieselPools::for_test(&test_db_url);
+        let repo = DieselSalaryBaseRepository::new(pools);
+
+        let workspace_id = Uuid::new_v4();
+        let component_id = Uuid::new_v4();
+        let base_group_id = Uuid::new_v4();
+
+        use crate::repositories::salary_base_repository::SalaryBaseRepository;
+        let result = repo.assign_component_to_group(workspace_id, component_id, base_group_id).await;
+
+        // Since the base_group_id does not exist, the workspace validation must fail
+        assert!(matches!(result, Err(crate::errors::AppError::Forbidden(_))));
+    }
+    #[tokio::test]
+    async fn test_tenant_isolation_unassign_component() {
+        let test_db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://user:pass@localhost:5432/leeattend_test_db".to_string()
+        });
+        let pools = DieselPools::for_test(&test_db_url);
+        let repo = DieselSalaryBaseRepository::new(pools);
+
+        let workspace_id = Uuid::new_v4();
+        let component_id = Uuid::new_v4();
+        let base_group_id = Uuid::new_v4();
+
+        use crate::repositories::salary_base_repository::SalaryBaseRepository;
+        // This should not fail with Forbidden since the DB just deletes 0 rows safely if validation fails.
+        let result = repo.unassign_component_from_group(workspace_id, component_id, base_group_id).await;
+        assert!(result.is_ok());
     }
 }

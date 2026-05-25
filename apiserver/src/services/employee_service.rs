@@ -926,10 +926,19 @@ mod tests {
         async fn get_current_department(
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,
-            _emp: Uuid,
+            _employee_id: Uuid,
         ) -> Result<Option<crate::models::EmployeeDepartmentHistory>, AppError> {
-            unimplemented!()
+            Ok(None)
         }
+
+        async fn get_current_departments_batch(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _employee_ids: &[Uuid],
+        ) -> Result<std::collections::HashMap<Uuid, crate::models::EmployeeDepartmentHistory>, AppError> {
+            Ok(std::collections::HashMap::new())
+        }
+
         async fn upsert_department_payroll_config(
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,

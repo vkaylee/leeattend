@@ -269,6 +269,7 @@ diesel::table! {
         updated_at -> Nullable<Timestamptz>,
         default_working_pattern_id -> Nullable<Uuid>,
         std_working_days -> Nullable<Numeric>,
+        deleted_at -> Nullable<Timestamptz>,
     }
 }
 
@@ -520,6 +521,7 @@ diesel::table! {
         leave_type_id -> Nullable<Uuid>,
         work_threshold_percent -> Nullable<Int4>,
         is_credit_on_work -> Bool,
+        deleted_at -> Nullable<Timestamptz>,
     }
 }
 
@@ -574,6 +576,7 @@ diesel::table! {
         created_at -> Nullable<Timestamptz>,
         updated_at -> Nullable<Timestamptz>,
         leave_type_id -> Uuid,
+        deleted_at -> Nullable<Timestamptz>,
     }
 }
 
@@ -610,6 +613,7 @@ diesel::table! {
         is_paid -> Bool,
         created_at -> Timestamptz,
         policy_config -> Jsonb,
+        deleted_at -> Nullable<Timestamptz>,
     }
 }
 
@@ -1127,6 +1131,7 @@ diesel::table! {
         #[max_length = 10]
         pattern_type -> Varchar,
         cycle_length_days -> Nullable<Int4>,
+        deleted_at -> Nullable<Timestamptz>,
     }
 }
 

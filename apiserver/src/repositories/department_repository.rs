@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use std::collections::HashMap;
 use chrono::NaiveDate;
 use rust_decimal::Decimal;
 use uuid::Uuid;
@@ -63,6 +64,11 @@ pub trait DepartmentRepository: Send + Sync {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id: Uuid,
     ) -> Result<Option<EmployeeDepartmentHistory>, AppError>;
+    async fn get_current_departments_batch(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        employee_ids: &[Uuid],
+    ) -> Result<HashMap<Uuid, EmployeeDepartmentHistory>, AppError>;
     async fn upsert_department_payroll_config(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,

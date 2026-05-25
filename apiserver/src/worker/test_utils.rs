@@ -122,6 +122,14 @@ impl LeavePolicyRepository for DummyLeavePolicyRepository {
         unimplemented!()
     }
 
+    async fn find_all_active_assignments_for_workspace(
+        &self,
+        _workspace_id: uuid::Uuid,
+        _date: chrono::NaiveDate,
+    ) -> Result<Vec<(crate::models::LeavePolicyAssignment, crate::models::LeavePolicyDefinition, String)>, crate::errors::AppError> {
+        Ok(vec![])
+    }
+
     async fn get_policy_assignments(
         &self,
         _workspace_id: uuid::Uuid,

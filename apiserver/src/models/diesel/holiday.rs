@@ -22,6 +22,7 @@ pub struct HolidayEntity {
     pub leave_type_id: Option<Uuid>,
     pub work_threshold_percent: Option<i32>,
     pub is_credit_on_work: bool,
+    pub deleted_at: Option<DateTime<Utc>>,
 }
 
 impl From<HolidayEntity> for Holiday {

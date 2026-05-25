@@ -19,6 +19,7 @@ use crate::services::attendance_adjustment_service::AttendanceAdjustmentService;
 use crate::services::import_messages::{fmt_msg, AttendanceImportMessages};
 use std::collections::HashMap;
 
+#[derive(Clone)]
 struct PendingRow {
     emp_id_number: String,
     punch_time: DateTime<Utc>,
@@ -42,6 +43,7 @@ pub struct EmployeeImportStrategy {
     pub department_repo: Arc<dyn crate::repositories::department_repository::DepartmentRepository>,
     pub staging_repo: Arc<dyn crate::repositories::staging_log_repository::StagingLogRepository>,
     pub dept_cache: HashMap<String, Uuid>,
+    pub emp_cache: HashMap<String, Uuid>,
 }
 
 #[allow(clippy::too_many_lines)]
@@ -112,6 +114,7 @@ impl ImportStrategy for EmployeeImportStrategy {
         &mut self,
         _deps: &crate::worker::deps::WorkerDeps,
         job: &AttendanceImportJob,
+        _rows: &[Self::RowData],
     ) -> Result<(), String> {
         if let Ok(existing_depts) = self
             .department_repo
@@ -124,6 +127,17 @@ impl ImportStrategy for EmployeeImportStrategy {
                 self.dept_cache.insert(dept.name.to_lowercase(), dept.id);
             }
         }
+        if let Ok(existing_emps) = self
+            .employee_repo
+            .get_active_employees(&crate::diesel_pool::TenantAuthToken::system_override(
+                job.workspace_id,
+            ))
+            .await
+        {
+            for e in existing_emps {
+                self.emp_cache.insert(e.employee_id_number.to_lowercase(), e.id);
+            }
+        }
         Ok(())
     }
 
@@ -133,16 +147,18 @@ impl ImportStrategy for EmployeeImportStrategy {
         job: &AttendanceImportJob,
         emp: &Self::RowData,
     ) -> Result<Option<Uuid>, String> {
-        match AttendanceImportService::process_employee_import_row(&self.employee_repo, job, emp)
-            .await
-        {
-            Ok(maybe_id) => {
-                let mut was_new = true;
-                let employee_id = if let Some(id) = maybe_id {
-                    id
-                } else {
-                    was_new = false;
-                    // If exists, find the ID
+        let emp_key = emp.id_number.to_lowercase();
+        let (employee_id, was_new) = if let Some(&id) = self.emp_cache.get(&emp_key) {
+            (id, false)
+        } else {
+            match AttendanceImportService::process_employee_import_row(&self.employee_repo, job, emp)
+                .await
+            {
+                Ok(Some(id)) => {
+                    self.emp_cache.insert(emp_key, id);
+                    (id, true)
+                }
+                Ok(None) => {
                     match self
                         .employee_repo
                         .get_employee_by_id_number(
@@ -151,10 +167,23 @@ impl ImportStrategy for EmployeeImportStrategy {
                         )
                         .await
                     {
-                        Ok(Some(e)) => e.id,
+                        Ok(Some(e)) => {
+                            self.emp_cache.insert(emp_key, e.id);
+                            (e.id, false)
+                        }
                         _ => return Ok(None),
                     }
-                };
+                }
+                Err(e) => return Err(fmt_msg(
+                    self.msgs.db_save_error,
+                    &[
+                        ("line", &emp.line_number.to_string()),
+                        ("emp", &emp.id_number),
+                        ("error", &e),
+                    ],
+                )),
+            }
+        };
 
                 // Auto-assign to department
                 let mut department_updated = false;
@@ -250,16 +279,6 @@ impl ImportStrategy for EmployeeImportStrategy {
                 } else {
                     Ok(None)
                 }
-            }
-            Err(e) => Err(fmt_msg(
-                self.msgs.db_save_error,
-                &[
-                    ("line", &emp.line_number.to_string()),
-                    ("emp", &emp.id_number),
-                    ("error", &e),
-                ],
-            )),
-        }
     }
 }
 
@@ -271,6 +290,7 @@ struct PunchImportStrategy {
     time_entry_repo: Arc<dyn TimeEntryRepository>,
     employee_repo: Arc<dyn EmployeeRepository>,
     log_svc: Option<Arc<crate::services::attendance_log_service::AttendanceLogService>>,
+    emp_cache: std::collections::HashMap<String, Employee>,
 }
 
 #[async_trait::async_trait]
@@ -331,6 +351,7 @@ impl ImportStrategy for PunchImportStrategy {
         &mut self,
         _deps: &crate::worker::deps::WorkerDeps,
         _job: &AttendanceImportJob,
+        _rows: &[Self::RowData],
     ) -> Result<(), String> {
         Ok(())
     }
@@ -341,21 +362,27 @@ impl ImportStrategy for PunchImportStrategy {
         job: &AttendanceImportJob,
         row: &Self::RowData,
     ) -> Result<Option<Uuid>, String> {
-        let Ok(Some(employee)) = self
-            .employee_repo
-            .get_employee_by_id_number(
-                &row.emp_id_number,
-                &crate::diesel_pool::TenantAuthToken::system_override(job.workspace_id),
-            )
-            .await
-        else {
-            return Err(fmt_msg(
-                self.msgs.system_save_error,
-                &[
-                    ("emp", &row.emp_id_number),
-                    ("line", &row.line_number.to_string()),
-                ],
-            ));
+        let employee = if let Some(e) = self.emp_cache.get(&row.emp_id_number) {
+            e.clone()
+        } else {
+            let Ok(Some(emp)) = self
+                .employee_repo
+                .get_employee_by_id_number(
+                    &row.emp_id_number,
+                    &crate::diesel_pool::TenantAuthToken::system_override(job.workspace_id),
+                )
+                .await
+            else {
+                return Err(fmt_msg(
+                    self.msgs.system_save_error,
+                    &[
+                        ("emp", &row.emp_id_number),
+                        ("line", &row.line_number.to_string()),
+                    ],
+                ));
+            };
+            self.emp_cache.insert(row.emp_id_number.clone(), emp.clone());
+            emp
         };
 
         if job.target_type == ImportTargetType::Log {
@@ -642,6 +669,7 @@ impl AttendanceImportService {
             time_entry_repo: Arc::clone(&self.time_entry_repo),
             employee_repo: Arc::clone(&self.employee_repo),
             log_svc: self.log_svc.clone(),
+            emp_cache: std::collections::HashMap::new(),
         };
 
         let pipeline = ImportPipeline {
@@ -703,6 +731,7 @@ impl AttendanceImportService {
             department_repo: Arc::clone(&self.dept_repo),
             staging_repo: Arc::clone(&self.staging_repo),
             dept_cache: HashMap::new(),
+            emp_cache: HashMap::new(),
         };
 
         let pipeline = ImportPipeline {

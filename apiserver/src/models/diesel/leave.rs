@@ -79,6 +79,7 @@ pub struct LeaveTypeEntity {
     pub is_paid: bool,
     pub created_at: DateTime<Utc>,
     pub policy_config: serde_json::Value,
+    pub deleted_at: Option<DateTime<Utc>>,
 }
 
 // ---------------------------------------------------------------------------
@@ -114,6 +115,7 @@ pub struct LeavePolicyDefinitionEntity {
     pub created_at: Option<DateTime<Utc>>,
     pub updated_at: Option<DateTime<Utc>>,
     pub leave_type_id: Uuid,
+    pub deleted_at: Option<DateTime<Utc>>,
 }
 
 // ---------------------------------------------------------------------------

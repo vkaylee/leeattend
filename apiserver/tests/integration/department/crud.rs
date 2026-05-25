@@ -96,6 +96,23 @@ async fn test_department_crud_smoke() {
 
     let depts: Vec<serde_json::Value> = response.json().await.unwrap();
     assert!(!depts.iter().any(|d| d["id"] == dept_id));
+
+    // 6. Verify recreation with same name (Soft Delete uniqueness test)
+    let response = client
+        .post(format!(
+            "{address}/api/workspaces/{workspace_id}/departments"
+        ))
+        .header("X-User-Id", user_id.to_string())
+        .header("X-Workspace-Id", workspace_id.to_string())
+        .json(&serde_json::json!({
+            "name": "Software Engineering",
+            "description": "Recreated after soft delete"
+        }))
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::CREATED);
 }
 
 #[tokio::test]

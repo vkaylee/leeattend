@@ -157,6 +157,7 @@ impl DepartmentRepository for DieselDepartmentRepository {
         let entity = departments::table
             .filter(departments::id.eq(result.id))
             .filter(departments::workspace_id.eq(workspace_id))
+            .filter(departments::deleted_at.is_null())
             .select((
                 departments::all_columns,
                 diesel::dsl::sql::<diesel::sql_types::BigInt>(
@@ -198,6 +199,7 @@ impl DepartmentRepository for DieselDepartmentRepository {
         let entity = departments::table
             .filter(departments::id.eq(id))
             .filter(departments::workspace_id.eq(workspace_id))
+            .filter(departments::deleted_at.is_null())
             .select((
                 departments::all_columns,
                 diesel::dsl::sql::<diesel::sql_types::BigInt>(
@@ -245,6 +247,7 @@ impl DepartmentRepository for DieselDepartmentRepository {
 
         let result: Option<IdOnly> = departments::table
             .filter(departments::workspace_id.eq(workspace_id))
+            .filter(departments::deleted_at.is_null())
             .filter(
                 diesel::dsl::sql::<diesel::sql_types::Bool>("LOWER(name) = ")
                     .bind::<diesel::sql_types::Text, _>(name.to_lowercase()),
@@ -289,6 +292,7 @@ impl DepartmentRepository for DieselDepartmentRepository {
         let entity = departments::table
             .filter(departments::id.eq(id))
             .filter(departments::workspace_id.eq(workspace_id))
+            .filter(departments::deleted_at.is_null())
             .select((
                 departments::all_columns,
                 diesel::dsl::sql::<diesel::sql_types::BigInt>(
@@ -327,9 +331,10 @@ impl DepartmentRepository for DieselDepartmentRepository {
             .await?;
         let workspace_id = auth_token.workspace_id();
 
-        diesel::delete(departments::table)
+        diesel::update(departments::table)
             .filter(departments::id.eq(id))
             .filter(departments::workspace_id.eq(workspace_id))
+            .set(departments::deleted_at.eq(Utc::now()))
             .execute(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -349,6 +354,7 @@ impl DepartmentRepository for DieselDepartmentRepository {
 
         let results = departments::table
             .filter(departments::workspace_id.eq(workspace_id))
+            .filter(departments::deleted_at.is_null())
             .select((
                 departments::all_columns,
                 diesel::dsl::sql::<diesel::sql_types::BigInt>(
@@ -468,6 +474,46 @@ impl DepartmentRepository for DieselDepartmentRepository {
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(result.map(Into::into))
+    }
+
+    async fn get_current_departments_batch(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        employee_ids: &[Uuid],
+    ) -> Result<std::collections::HashMap<Uuid, EmployeeDepartmentHistory>, AppError> {
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
+        let workspace_id = auth_token.workspace_id();
+
+        use crate::schema::{employee_department_history, employees};
+
+        let today = Utc::now().date_naive();
+        let results: Vec<EmployeeDepartmentHistoryEntity> = employee_department_history::table
+            .inner_join(
+                employees::table.on(employees::id.eq(employee_department_history::employee_id)),
+            )
+            .filter(employees::workspace_id.eq(workspace_id))
+            .filter(employee_department_history::employee_id.eq_any(employee_ids))
+            .filter(employee_department_history::effective_date.le(today))
+            .select(employee_department_history::all_columns)
+            .order((
+                employee_department_history::employee_id.asc(),
+                employee_department_history::effective_date.desc(),
+            ))
+            .load(&mut *conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        let mut map = std::collections::HashMap::new();
+        for entity in results {
+            // Because they are ordered by employee_id ASC and effective_date DESC,
+            // the first one we encounter for a given employee_id is their current department.
+            map.entry(entity.employee_id).or_insert_with(|| entity.into());
+        }
+
+        Ok(map)
     }
 
     async fn upsert_department_payroll_config(

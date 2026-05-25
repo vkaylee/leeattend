@@ -8,6 +8,7 @@ use uuid::Uuid;
 // Trait: LeavePolicyRepository — DIP abstraction
 // ---------------------------------------------------------------------------
 #[async_trait]
+#[cfg_attr(test, mockall::automock)]
 pub trait LeavePolicyRepository: Send + Sync {
     async fn get_leave_types(
         &self,
@@ -64,6 +65,11 @@ pub trait LeavePolicyRepository: Send + Sync {
         department_id: Option<Uuid>,
         date: NaiveDate,
     ) -> Result<Option<(LeavePolicyDefinition, Uuid, String)>, AppError>;
+    async fn find_all_active_assignments_for_workspace(
+        &self,
+        workspace_id: Uuid,
+        date: NaiveDate,
+    ) -> Result<Vec<(LeavePolicyAssignment, LeavePolicyDefinition, String)>, AppError>;
     async fn get_policy_assignments(
         &self,
         workspace_id: Uuid,
