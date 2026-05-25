@@ -1,5 +1,5 @@
-use std::sync::Arc;
 use crate::errors::{AppError, AppResult};
+use std::sync::Arc;
 
 use chrono::{NaiveDate, TimeZone};
 use chrono_tz::Tz;
@@ -98,7 +98,9 @@ impl AttendanceSummaryService {
             )
             .await?;
 
-        let emp_sched = schedules.first().ok_or_else(|| AppError::NotFound("No schedule found for employee".to_string()))?;
+        let emp_sched = schedules
+            .first()
+            .ok_or_else(|| AppError::NotFound("No schedule found for employee".to_string()))?;
         let daily_schedule = emp_sched
             .schedules
             .iter()
@@ -107,7 +109,8 @@ impl AttendanceSummaryService {
 
         // 3. Get Time Entries for the date (in UTC range)
         let start_dt_utc = local_midnight_to_utc(&tz, date, 0, 0, 0).map_err(AppError::Internal)?;
-        let end_dt_utc = local_midnight_to_utc(&tz, date, 23, 59, 59).map_err(AppError::Internal)?;
+        let end_dt_utc =
+            local_midnight_to_utc(&tz, date, 23, 59, 59).map_err(AppError::Internal)?;
 
         let entries = self
             .time_entry_repo

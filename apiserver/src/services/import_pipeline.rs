@@ -359,7 +359,9 @@ mod tests {
             _job: &AttendanceImportJob,
             _row: &Self::RowData,
         ) -> Result<Option<Uuid>, crate::errors::AppError> {
-            self.process_result.clone().map_err(crate::errors::AppError::Internal)
+            self.process_result
+                .clone()
+                .map_err(crate::errors::AppError::Internal)
         }
     }
 

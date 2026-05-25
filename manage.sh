@@ -12,4 +12,18 @@ if [ $# -eq 0 ]; then
     exit 0
 fi
 
-"$PYTHON_BIN" "$SCRIPT_DIR/scripts/_orchestrator.py" manage "$@"
+# Run orchestrator in background so we can trap signals
+"$PYTHON_BIN" "$SCRIPT_DIR/scripts/_orchestrator.py" manage "$@" &
+PID=$!
+
+cleanup_trap() {
+    # Forward SIGTERM to Python process
+    kill -TERM "$PID" 2>/dev/null
+    wait "$PID" 2>/dev/null
+    exit 143
+}
+
+trap cleanup_trap TERM INT HUP
+
+wait "$PID"
+exit $?

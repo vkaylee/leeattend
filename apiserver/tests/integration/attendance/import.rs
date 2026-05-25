@@ -450,6 +450,7 @@ async fn test_employee_import_duplicate_department_prevention() {
         ),
         dept_cache: HashMap::new(), // Empty cache
         emp_cache: HashMap::new(),
+        newly_added_emps: std::collections::HashSet::new(),
     };
 
     // Strategy 2 (simulating chunk 2 running independently)
@@ -462,6 +463,7 @@ async fn test_employee_import_duplicate_department_prevention() {
         ),
         dept_cache: HashMap::new(), // Empty cache
         emp_cache: HashMap::new(),
+        newly_added_emps: std::collections::HashSet::new(),
     };
 
     let dept_name = "Engineering".to_string();
@@ -484,13 +486,23 @@ async fn test_employee_import_duplicate_department_prevention() {
 
     let deps = apiserver::worker::deps::WorkerDeps::new(&diesel_pools.clone());
     // Chunk 1 processes emp1. It should create the department.
+    let rows1 = vec![emp1.clone()];
+    strategy1
+        .pre_process_chunk(&deps, &job, &rows1)
+        .await
+        .unwrap();
     let res1 = strategy1.process_row(&deps, &job, &emp1).await;
-    assert!(res1.is_ok(), "First process_row failed");
+    assert!(res1.is_ok(), "First process_row failed: {:?}", res1.err());
 
     // Chunk 2 processes emp2. Cache is empty, so it will miss cache.
     // Thanks to the DB double-check, it should NOT create a duplicate department.
+    let rows2 = vec![emp2.clone()];
+    strategy2
+        .pre_process_chunk(&deps, &job, &rows2)
+        .await
+        .unwrap();
     let res2 = strategy2.process_row(&deps, &job, &emp2).await;
-    assert!(res2.is_ok(), "Second process_row failed");
+    assert!(res2.is_ok(), "Second process_row failed: {:?}", res2.err());
 
     // Verify exactly one department exists in the database
     let departments = department_repo

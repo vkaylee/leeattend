@@ -15,11 +15,23 @@ fn get_active_dbs() -> &'static ActiveDbSet {
 }
 
 #[allow(dead_code)]
-pub struct E2eTestDatabase {
+pub struct E2eTestDatabaseInner {
     pub diesel_pools: apiserver::diesel_pool::DieselPools,
     db_name: String,
     base_url: String, // The direct postgres URL used to drop it
     tenant_id: String,
+}
+
+#[allow(dead_code)]
+pub struct E2eTestDatabase {
+    inner: Option<E2eTestDatabaseInner>,
+}
+
+impl std::ops::Deref for E2eTestDatabase {
+    type Target = E2eTestDatabaseInner;
+    fn deref(&self) -> &Self::Target {
+        self.inner.as_ref().unwrap()
+    }
 }
 
 impl E2eTestDatabase {
@@ -87,7 +99,8 @@ impl E2eTestDatabase {
                     worker_acquire_timeout_secs: 5,
                     tenant_max_conn: 1,
                 },
-            );
+            )
+            .expect("Failed to run migrations for e2e test");
         }
 
         {
@@ -117,10 +130,12 @@ impl E2eTestDatabase {
 
         let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&pooler_url);
         Some(Self {
-            diesel_pools,
-            db_name,
-            base_url: base_url.clone(),
-            tenant_id,
+            inner: Some(E2eTestDatabaseInner {
+                diesel_pools,
+                db_name,
+                base_url: base_url.clone(),
+                tenant_id,
+            }),
         })
     }
 
@@ -332,9 +347,18 @@ impl E2eTestDatabase {
 
 impl Drop for E2eTestDatabase {
     fn drop(&mut self) {
-        if let Ok(mut dbs) = get_active_dbs().lock() {
-            dbs.remove(&(self.tenant_id.clone(), self.base_url.clone()));
+        if let Some(inner) = self.inner.take() {
+            let tenant_id = inner.tenant_id.clone();
+            let base_url = inner.base_url.clone();
+
+            // Drop connection pools BEFORE trying to delete the database
+            // to prevent connection pools from reconnecting during DROP DATABASE
+            drop(inner);
+
+            if let Ok(mut dbs) = get_active_dbs().lock() {
+                dbs.remove(&(tenant_id.clone(), base_url.clone()));
+            }
+            Self::cleanup_blocking(tenant_id, base_url);
         }
-        Self::cleanup_blocking(self.tenant_id.clone(), self.base_url.clone());
     }
 }

@@ -185,11 +185,7 @@ pub async fn register(
     }
 
     // 6. Create session (post-commit — session is ephemeral, safe outside tx)
-    let refresh_token = state
-        .core
-        .auth_service
-        .create_session(user.id)
-        .await?;
+    let refresh_token = state.core.auth_service.create_session(user.id).await?;
 
     // Convert to UserResponse for the client
     let user_response = UserResponse {
@@ -204,8 +200,7 @@ pub async fn register(
     };
 
     // 7. Generate access token (stateless, no DB write needed)
-    let access_token =
-        AuthService::generate_token(user.id, &state.core.jwt_secret, 60)?;
+    let access_token = AuthService::generate_token(user.id, &state.core.jwt_secret, 60)?;
 
     let headers = create_auth_cookies(&access_token, &refresh_token);
 
@@ -262,14 +257,9 @@ pub async fn login(
         system_roles: vec![],
     };
 
-    let access_token =
-        AuthService::generate_token(user.id, &state.core.jwt_secret, 60)?;
+    let access_token = AuthService::generate_token(user.id, &state.core.jwt_secret, 60)?;
 
-    let refresh_token = state
-        .core
-        .auth_service
-        .create_session(user.id)
-        .await?;
+    let refresh_token = state.core.auth_service.create_session(user.id).await?;
 
     let headers = create_auth_cookies(&access_token, &refresh_token);
 

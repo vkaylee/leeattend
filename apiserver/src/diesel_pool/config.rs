@@ -26,8 +26,9 @@ pub struct DbPoolConfig {
 
 impl DbPoolConfig {
     pub fn from_env() -> Result<Self, crate::errors::AppError> {
-        let primary_url = std::env::var("DATABASE_URL")
-            .map_err(|_e| crate::errors::AppError::Internal("DATABASE_URL must be set".to_string()))?;
+        let primary_url = std::env::var("DATABASE_URL").map_err(|_e| {
+            crate::errors::AppError::Internal("DATABASE_URL must be set".to_string())
+        })?;
 
         let pooler_tx_url = std::env::var("DATABASE_POOLER_TX_URL")
             .ok()

@@ -228,12 +228,13 @@ impl EmployeeImportChunkHandler {
         };
 
         let strategy = EmployeeImportStrategy {
-            msgs: msgs.clone(),
-            employee_repo: Arc::clone(&deps.employee_repo),
-            department_repo: Arc::clone(&deps.department_repo),
-            staging_repo: Arc::clone(&deps.staging_repo),
+            msgs,
+            employee_repo: std::sync::Arc::clone(&deps.employee_repo),
+            department_repo: std::sync::Arc::clone(&deps.department_repo),
+            staging_repo: std::sync::Arc::clone(&deps.staging_repo),
             dept_cache: HashMap::new(),
             emp_cache: HashMap::new(),
+            newly_added_emps: std::collections::HashSet::new(),
         };
 
         let pipeline = ImportPipeline {

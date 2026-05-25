@@ -127,7 +127,10 @@ impl AttendanceLogService {
     /// Returns Ok(()) for ALL cases except database connection errors.
     /// Unknown users and validation errors are swallowed with 200 OK to prevent agent retries.
     #[tracing::instrument(skip_all, err)]
-    pub async fn ingest_agent_log(&self, entry: AgentLogEntry) -> Result<(), crate::errors::AppError> {
+    pub async fn ingest_agent_log(
+        &self,
+        entry: AgentLogEntry,
+    ) -> Result<(), crate::errors::AppError> {
         self.process_log(ProcessLogArgs {
             workspace_id: entry.workspace_id,
             employee_id_number: &entry.employee_id_number,
@@ -152,7 +155,10 @@ impl AttendanceLogService {
     /// - Case 4: Database connection error → Err(msg) (agent should retry)
     #[tracing::instrument(skip_all, err)]
     #[allow(clippy::too_many_lines)]
-    pub async fn process_log(&self, args: ProcessLogArgs<'_>) -> Result<bool, crate::errors::AppError> {
+    pub async fn process_log(
+        &self,
+        args: ProcessLogArgs<'_>,
+    ) -> Result<bool, crate::errors::AppError> {
         // Sanitize raw_data to strip null bytes that PostgreSQL jsonb rejects
         let raw_data = args.raw_data.map(AgentLogEntry::sanitize_json_value);
         let normalized_emp_id = crate::utils::normalize_employee_id(args.employee_id_number);
@@ -355,7 +361,9 @@ impl AttendanceLogService {
             .staging_repo
             .get_pending_staged_logs(workspace_id, employee_id_number)
             .await
-            .map_err(|e| crate::errors::AppError::Internal(format!("Failed to fetch staged logs: {e}")))?;
+            .map_err(|e| {
+                crate::errors::AppError::Internal(format!("Failed to fetch staged logs: {e}"))
+            })?;
 
         if staged_logs.is_empty() {
             return Ok(0);
@@ -407,7 +415,9 @@ impl AttendanceLogService {
                 }
                 Err(e) => {
                     error!("Failed to claim staged log {}: {}", staged.id, e);
-                    return Err(crate::errors::AppError::Internal(format!("Aborted due to DB error: {e}")));
+                    return Err(crate::errors::AppError::Internal(format!(
+                        "Aborted due to DB error: {e}"
+                    )));
                 }
             }
         }

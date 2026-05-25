@@ -13,7 +13,25 @@ if [ $# -eq 0 ]; then
 fi
 
 export SKIP_SAFE_RUN=1 # Orchestrator handles safe-run internally
-"$PYTHON_BIN" "$SCRIPT_DIR/scripts/_orchestrator.py" test "$@"
+
+# Run orchestrator in background so we can trap signals
+"$PYTHON_BIN" "$SCRIPT_DIR/scripts/_orchestrator.py" test "$@" &
+PID=$!
+
+cleanup_trap() {
+    # Forward SIGTERM to Python process
+    kill -TERM "$PID" 2>/dev/null
+    wait "$PID" 2>/dev/null
+    
+    if [ -t 1 ]; then
+        stty sane 2>/dev/null || true
+    fi
+    exit 143
+}
+
+trap cleanup_trap TERM INT HUP
+
+wait "$PID"
 EXIT_CODE=$?
 
 # Restore PTY state to prevent hang

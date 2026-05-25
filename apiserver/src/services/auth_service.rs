@@ -37,11 +37,7 @@ impl AuthService {
     // --- Pure functions (no pool needed) — kept as associated functions ---
 
     #[allow(clippy::expect_used)]
-    pub fn generate_token(
-        user_id: Uuid,
-        secret: &str,
-        duration_mins: i64,
-    ) -> AppResult<String> {
+    pub fn generate_token(user_id: Uuid, secret: &str, duration_mins: i64) -> AppResult<String> {
         let expiration = Utc::now()
             .checked_add_signed(Duration::minutes(duration_mins))
             .expect("valid timestamp")
@@ -69,7 +65,8 @@ impl AuthService {
         )
         .map_err(|e| AppError::Auth(format!("Invalid token: {e}")))?;
 
-        Uuid::parse_str(&token_data.claims.sub).map_err(|e| AppError::Auth(format!("Invalid token subject: {e}")))
+        Uuid::parse_str(&token_data.claims.sub)
+            .map_err(|e| AppError::Auth(format!("Invalid token subject: {e}")))
     }
 
     pub fn hash_password(password: &str) -> AppResult<String> {
@@ -78,7 +75,8 @@ impl AuthService {
         #[cfg(not(debug_assertions))]
         let cost = bcrypt::DEFAULT_COST;
 
-        hash(password, cost).map_err(|e| AppError::Internal(format!("Failed to hash password: {e}")))
+        hash(password, cost)
+            .map_err(|e| AppError::Internal(format!("Failed to hash password: {e}")))
     }
 
     pub fn verify_password(password: &str, hash: &str) -> bool {
@@ -126,10 +124,7 @@ impl AuthService {
             .await?;
 
         // Fetch system-level roles for this user
-        let system_roles = self
-            .user_repo
-            .get_system_roles_for_user(user.id)
-            .await?;
+        let system_roles = self.user_repo.get_system_roles_for_user(user.id).await?;
 
         Ok(AuthResponse {
             access_token,
@@ -149,9 +144,7 @@ impl AuthService {
 
     #[tracing::instrument(skip_all, err)]
     pub async fn revoke_session(&self, refresh_token: &str) -> AppResult<()> {
-        self.session_repo
-            .revoke_session(refresh_token)
-            .await
+        self.session_repo.revoke_session(refresh_token).await
     }
 
     #[tracing::instrument(skip_all, err)]

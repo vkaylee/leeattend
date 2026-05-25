@@ -332,7 +332,12 @@ mod tests {
         let req = Request::builder().uri("/test").body(Body::empty()).unwrap();
 
         let identity = resolve_identity(&req, "test_secret");
-        assert_eq!(identity, "ip:unknown");
+        assert!(identity.starts_with("ip:"));
+        let ip_part = identity.strip_prefix("ip:").unwrap();
+        assert!(
+            uuid::Uuid::parse_str(ip_part).is_ok(),
+            "Fallback IP should be a valid UUID"
+        );
     }
 
     #[test]

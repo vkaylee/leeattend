@@ -206,10 +206,7 @@ impl PayrollService {
             )
             .await?;
 
-        let roster_data = self
-            .roster_provider
-            .get_roster_data(workspace_id)
-            .await?;
+        let roster_data = self.roster_provider.get_roster_data(workspace_id).await?;
 
         let employee = self
             .employee_repo
@@ -610,7 +607,8 @@ impl PayrollService {
     ) -> crate::models::BatchCalculatePayrollResponse {
         const MAX_CONCURRENT_PAYROLL: usize = 10;
 
-        let Ok(Some(workspace)) = self.workspace_repo.get_workspace_by_id(workspace_id).await else {
+        let Ok(Some(workspace)) = self.workspace_repo.get_workspace_by_id(workspace_id).await
+        else {
             return crate::models::BatchCalculatePayrollResponse { results: vec![] };
         };
         let tz: Tz = crate::utils::tz::parse_workspace_tz(&workspace.timezone);

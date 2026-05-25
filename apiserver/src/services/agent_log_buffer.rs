@@ -102,10 +102,14 @@ impl AgentLogBuffer {
         // Apply backpressure with 100ms timeout
         match timeout(Duration::from_millis(100), self.sender.send(entry)).await {
             Ok(Ok(())) => Ok(()),
-            Ok(Err(_)) => Err(crate::errors::AppError::Internal("Buffer channel closed".to_string())),
+            Ok(Err(_)) => Err(crate::errors::AppError::Internal(
+                "Buffer channel closed".to_string(),
+            )),
             Err(_) => {
                 warn!("Agent log buffer full, backpressure applied");
-                Err(crate::errors::AppError::Internal("Buffer full, timeout".to_string()))
+                Err(crate::errors::AppError::Internal(
+                    "Buffer full, timeout".to_string(),
+                ))
             }
         }
     }
@@ -269,7 +273,9 @@ async fn parse_log_entry(
             )));
         }
         Err(e) => {
-            return Err(crate::errors::AppError::Internal(format!("Database error finding employee: {e}")));
+            return Err(crate::errors::AppError::Internal(format!(
+                "Database error finding employee: {e}"
+            )));
         }
     };
 

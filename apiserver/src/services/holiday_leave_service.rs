@@ -70,13 +70,20 @@ impl HolidayLeaveService {
                 self.find_default_paid_leave_type(workspace_id)
                     .await?
                     .ok_or_else(|| {
-                        crate::errors::AppError::Validation("No paid leave type found in workspace for auto-deduction".to_string())
+                        crate::errors::AppError::Validation(
+                            "No paid leave type found in workspace for auto-deduction".to_string(),
+                        )
                     })?
             }
         };
 
         // Get leave type name for audit trail
-        let mut conn = self.diesel.api.get().await.map_err(|e| crate::errors::AppError::Internal(e.to_string()))?;
+        let mut conn = self
+            .diesel
+            .api
+            .get()
+            .await
+            .map_err(|e| crate::errors::AppError::Internal(e.to_string()))?;
         use diesel_async::RunQueryDsl;
 
         #[derive(diesel::QueryableByName)]
@@ -213,7 +220,12 @@ impl HolidayLeaveService {
         &self,
         workspace_id: Uuid,
     ) -> Result<Option<Uuid>, crate::errors::AppError> {
-        let mut conn = self.diesel.api.get().await.map_err(|e| crate::errors::AppError::Internal(e.to_string()))?;
+        let mut conn = self
+            .diesel
+            .api
+            .get()
+            .await
+            .map_err(|e| crate::errors::AppError::Internal(e.to_string()))?;
         use diesel_async::RunQueryDsl;
 
         #[derive(diesel::QueryableByName)]

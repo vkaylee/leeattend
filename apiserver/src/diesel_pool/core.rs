@@ -124,28 +124,29 @@ impl DieselPools {
         })
     }
 
-    pub fn for_test(url: &str) -> Result<Self, AppError> {
+    #[allow(clippy::panic)]
+    pub fn for_test(url: &str) -> Self {
         let api_manager = AsyncDieselConnectionManager::<AsyncPgConnection>::new(url.to_string());
         let api_pool = Pool::builder(api_manager)
             .max_size(5)
             .build()
-            .map_err(|e| AppError::Internal(format!("Failed to create test API Diesel pool: {e}")))?;
+            .unwrap_or_else(|e| panic!("Failed to create test API Diesel pool: {e}"));
 
         let worker_manager =
             AsyncDieselConnectionManager::<AsyncPgConnection>::new(url.to_string());
         let worker_pool = Pool::builder(worker_manager)
             .max_size(5)
             .build()
-            .map_err(|e| AppError::Internal(format!("Failed to create test Worker Diesel pool: {e}")))?;
+            .unwrap_or_else(|e| panic!("Failed to create test Worker Diesel pool: {e}"));
 
         let tenant_manager = Arc::new(TestTenantPoolManager::new(api_pool.clone()));
 
-        Ok(Self {
+        Self {
             api: api_pool,
             worker: worker_pool,
             #[allow(clippy::clone_on_ref_ptr)]
             tenants_tx: tenant_manager.clone(),
             tenants_sess: tenant_manager,
-        })
+        }
     }
 }

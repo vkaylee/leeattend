@@ -106,6 +106,8 @@ class Orchestrator:
 
         signal.signal(signal.SIGINT, signal_handler)
         signal.signal(signal.SIGTERM, signal_handler)
+        if hasattr(signal, "SIGHUP"):
+            signal.signal(signal.SIGHUP, signal_handler)
 
     def cleanup(self) -> None:
         """Final cleanup of infrastructure."""

@@ -314,7 +314,9 @@ async fn register_workspace_tenants_and_migrate(
 
     // Run pending tenant migrations through the pooler (via Supavisor)
     let config_clone = db_config.clone();
-    match tokio::task::spawn_blocking(move || DieselPools::run_tenant_migrations(&config_clone)).await {
+    match tokio::task::spawn_blocking(move || DieselPools::run_tenant_migrations(&config_clone))
+        .await
+    {
         Ok(Err(e)) => tracing::error!("Tenant migration failed: {e}"),
         Err(e) => tracing::error!("Tenant migration task panicked: {e}"),
         Ok(Ok(_)) => {}

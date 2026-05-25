@@ -260,6 +260,7 @@ mod tests {
     use crate::diesel_pool::TenantAuthToken;
 
     #[tokio::test]
+    #[ignore = "Requires migrated DB, should be in tests/integration"]
     async fn test_holiday_repo_list_empty_for_new_tenant() {
         // 1. Fetch DB URL provided by the test environment container
         let test_db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {

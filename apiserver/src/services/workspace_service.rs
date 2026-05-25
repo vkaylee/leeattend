@@ -61,14 +61,12 @@ impl WorkspaceService {
         custom_db_url_encrypted: Option<String>,
     ) -> crate::errors::AppResult<Workspace> {
         // 1. Check if user exists
-        let user_exists = self
-            .user_repo
-            .get_user_by_id(owner_id)
-            .await?
-            .is_some();
+        let user_exists = self.user_repo.get_user_by_id(owner_id).await?.is_some();
 
         if !user_exists {
-            return Err(crate::errors::AppError::NotFound(format!("User with ID {owner_id} does not exist")));
+            return Err(crate::errors::AppError::NotFound(format!(
+                "User with ID {owner_id} does not exist"
+            )));
         }
 
         // 2. Resolve database_url
@@ -81,7 +79,9 @@ impl WorkspaceService {
                 .get_least_loaded_cluster()
                 .await?
                 .ok_or_else(|| {
-                    crate::errors::AppError::Internal("No available database clusters for auto-provisioning".to_string())
+                    crate::errors::AppError::Internal(
+                        "No available database clusters for auto-provisioning".to_string(),
+                    )
                 })?;
 
             let admin_url = cluster.admin_database_url;
@@ -91,13 +91,19 @@ impl WorkspaceService {
             use diesel_async::{AsyncConnection, AsyncPgConnection, RunQueryDsl};
             let mut conn = AsyncPgConnection::establish(&admin_url)
                 .await
-                .map_err(|e| crate::errors::AppError::Internal(format!("Failed to connect to admin DB: {e}")))?;
+                .map_err(|e| {
+                    crate::errors::AppError::Internal(format!("Failed to connect to admin DB: {e}"))
+                })?;
 
             #[allow(clippy::disallowed_methods)]
             diesel::sql_query(create_db_sql)
                 .execute(&mut conn)
                 .await
-                .map_err(|e| crate::errors::AppError::Internal(format!("Failed to create tenant database: {e}")))?;
+                .map_err(|e| {
+                    crate::errors::AppError::Internal(format!(
+                        "Failed to create tenant database: {e}"
+                    ))
+                })?;
 
             // Increment active tenants
             self.system_db_cluster_repo
@@ -105,7 +111,8 @@ impl WorkspaceService {
                 .await?;
 
             // Replace the database name in the url
-            let mut parsed_url = reqwest::Url::parse(&admin_url).map_err(|e| crate::errors::AppError::Internal(e.to_string()))?;
+            let mut parsed_url = reqwest::Url::parse(&admin_url)
+                .map_err(|e| crate::errors::AppError::Internal(e.to_string()))?;
             parsed_url.set_path(&format!("/{tenant_db_name}"));
             parsed_url.to_string()
         };
@@ -154,16 +161,19 @@ impl WorkspaceService {
         let primary_role_id = repo
             .find_primary_role(workspace_id, user_id)
             .await?
-            .ok_or_else(|| crate::errors::AppError::NotFound("Primary role not found".to_string()))?;
+            .ok_or_else(|| {
+                crate::errors::AppError::NotFound("Primary role not found".to_string())
+            })?;
 
-        let extra_roles = repo
-            .find_extra_roles(workspace_id, user_id)
-            .await?;
+        let extra_roles = repo.find_extra_roles(workspace_id, user_id).await?;
 
         Ok((primary_role_id, extra_roles))
     }
 
-    pub async fn update_workspace(&self, args: UpdateWorkspaceArgs) -> crate::errors::AppResult<Workspace> {
+    pub async fn update_workspace(
+        &self,
+        args: UpdateWorkspaceArgs,
+    ) -> crate::errors::AppResult<Workspace> {
         let multiplier = args.default_holiday_ot_multiplier.map(|m| {
             bigdecimal::BigDecimal::from_str(&m.to_string())
                 .unwrap_or_else(|_| bigdecimal::BigDecimal::from(2))
@@ -180,7 +190,9 @@ impl WorkspaceService {
             && args.holiday_overnight_strategy.is_none()
             && multiplier.is_none()
         {
-            return Err(crate::errors::AppError::Validation("No fields to update".to_string()));
+            return Err(crate::errors::AppError::Validation(
+                "No fields to update".to_string(),
+            ));
         }
 
         self.workspace_repo

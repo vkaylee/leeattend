@@ -44,6 +44,7 @@ pub struct EmployeeImportStrategy {
     pub staging_repo: Arc<dyn crate::repositories::staging_log_repository::StagingLogRepository>,
     pub dept_cache: HashMap<String, Uuid>,
     pub emp_cache: HashMap<String, Uuid>,
+    pub newly_added_emps: std::collections::HashSet<String>,
 }
 
 #[allow(clippy::too_many_lines)]
@@ -241,7 +242,8 @@ impl ImportStrategy for EmployeeImportStrategy {
                     updated_at: Utc::now(),
                     department_name: None,
                 });
-                self.emp_cache.insert(key, emp_id);
+                self.emp_cache.insert(key.clone(), emp_id);
+                self.newly_added_emps.insert(key);
             }
         }
         if !new_emps.is_empty() {
@@ -289,8 +291,8 @@ impl ImportStrategy for EmployeeImportStrategy {
         };
 
         // For this refactor, we still need to determine if it "was_new" to return Ok(Some(id))
-        // But since we want to avoid unnecessary DB updates, we return Some(id) anyway to increment processed_rows.
-        let was_new = true;
+        // We track newly inserted employees during pre_process_chunk in self.newly_added_emps
+        let was_new = self.newly_added_emps.contains(&emp_key);
 
         let mut department_updated = false;
         if let Some(ref dept_name) = emp.department_name {
@@ -810,11 +812,12 @@ impl AttendanceImportService {
 
         let strategy = EmployeeImportStrategy {
             msgs: msgs.clone(),
-            employee_repo: std::sync::Arc::clone(&self.employee_repo),
+            employee_repo: Arc::clone(&self.employee_repo),
             department_repo: Arc::clone(&self.dept_repo),
             staging_repo: Arc::clone(&self.staging_repo),
             dept_cache: HashMap::new(),
             emp_cache: HashMap::new(),
+            newly_added_emps: std::collections::HashSet::new(),
         };
 
         let pipeline = ImportPipeline {

@@ -13,10 +13,22 @@ fn get_active_dbs() -> &'static ActiveDbSet {
 }
 
 #[allow(dead_code)]
-pub struct TestDatabase {
+pub struct TestDatabaseInner {
     pub diesel_pools: apiserver::diesel_pool::DieselPools,
     db_name: String,
     base_url: String,
+}
+
+#[allow(dead_code)]
+pub struct TestDatabase {
+    inner: Option<TestDatabaseInner>,
+}
+
+impl std::ops::Deref for TestDatabase {
+    type Target = TestDatabaseInner;
+    fn deref(&self) -> &Self::Target {
+        self.inner.as_ref().unwrap()
+    }
 }
 
 #[allow(dead_code)]
@@ -105,9 +117,11 @@ impl TestDatabase {
             }
 
             return Self {
-                diesel_pools: apiserver::diesel_pool::DieselPools::for_test(&db_url),
-                db_name,
-                base_url: base_url.clone(),
+                inner: Some(TestDatabaseInner {
+                    diesel_pools: apiserver::diesel_pool::DieselPools::for_test(&db_url),
+                    db_name,
+                    base_url: base_url.clone(),
+                }),
             };
         }
 
@@ -119,9 +133,11 @@ impl TestDatabase {
         let db_url = format!("{base_connection_string}/{db_name}");
 
         Self {
-            diesel_pools: apiserver::diesel_pool::DieselPools::for_test(&db_url),
-            db_name,
-            base_url: base_url.clone(),
+            inner: Some(TestDatabaseInner {
+                diesel_pools: apiserver::diesel_pool::DieselPools::for_test(&db_url),
+                db_name,
+                base_url: base_url.clone(),
+            }),
         }
     }
 
@@ -218,11 +234,18 @@ impl TestDatabase {
 
 impl Drop for TestDatabase {
     fn drop(&mut self) {
-        {
+        if let Some(inner) = self.inner.take() {
+            let db_name = inner.db_name.clone();
+            let base_url = inner.base_url.clone();
+
+            // Drop connection pools BEFORE trying to delete the database
+            // to prevent connection pools from reconnecting during DROP DATABASE
+            drop(inner);
+
             if let Ok(mut dbs) = get_active_dbs().lock() {
-                dbs.remove(&(self.db_name.clone(), self.base_url.clone()));
+                dbs.remove(&(db_name.clone(), base_url.clone()));
             }
+            Self::cleanup_database_blocking(db_name, base_url);
         }
-        Self::cleanup_database_blocking(self.db_name.clone(), self.base_url.clone());
     }
 }

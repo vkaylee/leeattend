@@ -169,7 +169,7 @@ def sweep_stale_environments() -> None:
     max_age_mins = int(os.environ.get("TEST_CLEANUP_MAX_AGE_MINUTES", "15"))
     engine = _get_engine()
     age_filter = f"until={max_age_mins}m"
-    prefix = "leeattend-test-"
+    prefix = "leeattend-test"
 
     try:
         if engine == "podman":
