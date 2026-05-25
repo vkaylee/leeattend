@@ -248,7 +248,8 @@
       "no_department": "Không thuộc phòng ban",
       "no_results_desc": "Không tìm thấy nhân viên nào khớp với tiêu chí tìm kiếm hoặc lọc.",
       "empty_state_desc": "Không tìm thấy nhân viên hoặc lịch trình làm việc. Vui lòng kiểm tra lại phòng ban hoặc cấu hình nhân sự.",
-      "failed_to_load": "Tải lịch làm việc tháng thất bại. Vui lòng thử lại."
+      "failed_to_load": "Tải lịch làm việc tháng thất bại. Vui lòng thử lại.",
+      "selected_employees": "Nhân sự đang chọn ({{count}})"
     },
     "title": "Hệ thống Lịch trình",
     "subtitle": "Quản lý ca làm việc linh hoạt và cố định",

@@ -20,6 +20,26 @@ vi.mock("react-i18next", () => ({
   }),
 }));
 
+vi.mock("@/components/common/employee-search", () => ({
+  EmployeeSearch: ({
+    onChange,
+    value,
+  }: {
+    onChange: (val: string[]) => void;
+    value?: string | string[];
+  }) => {
+    return (
+      <input
+        data-testid="mock-employee-search"
+        onChange={(e) => {
+          onChange(e.target.value ? e.target.value.split(",") : []);
+        }}
+        value={Array.isArray(value) ? value.join(",") : (value ?? "")}
+      />
+    );
+  },
+}));
+
 const mockEmployees = [
   { id: "emp-1", full_name: "Alice Security", department_name: "Security Guard" },
   { id: "emp-2", full_name: "Bob Patrol", department_name: "Patrol Officer" },
@@ -181,80 +201,51 @@ const createMockHook = (overrides = {}) => {
 };
 
 describe("MonthlyRosterGrid Filtering", () => {
-  it("renders all employees by default", () => {
+  it("renders empty state by default when no employees are selected", () => {
     const hook = createMockHook();
     render(<MonthlyRosterGrid hook={hook} />);
 
-    expect(screen.getByText("Alice Security")).toBeInTheDocument();
-    expect(screen.getByText("Bob Patrol")).toBeInTheDocument();
-    expect(screen.getByText("Charlie Freelance")).toBeInTheDocument();
-  });
-
-  it("filters employees based on search input", async () => {
-    const user = userEvent.setup();
-    const hook = createMockHook();
-    render(<MonthlyRosterGrid hook={hook} />);
-
-    const searchInput = screen.getByPlaceholderText("shifts.monthly.search_placeholder");
-    await user.type(searchInput, "Alice");
-
-    expect(screen.getByText("Alice Security")).toBeInTheDocument();
-    expect(screen.queryByText("Bob Patrol")).not.toBeInTheDocument();
-    expect(screen.queryByText("Charlie Freelance")).not.toBeInTheDocument();
-  });
-
-  it("filters employees based on department selection", async () => {
-    const user = userEvent.setup();
-    const hook = createMockHook();
-    render(<MonthlyRosterGrid hook={hook} />);
-
-    // Click on department filter button to open dropdown
-    const deptFilterButton = screen.getByRole("button", { name: /shifts\.monthly\.all_departments/i });
-    await user.click(deptFilterButton);
-
-    // Verify departments are in dropdown
-    const deptOption = screen.getByRole("menuitemradio", { name: "Security Guard" });
-    await user.click(deptOption);
-
-    // Grid should only show Alice (Security Guard)
-    expect(screen.getByText("Alice Security")).toBeInTheDocument();
-    expect(screen.queryByText("Bob Patrol")).not.toBeInTheDocument();
-    expect(screen.queryByText("Charlie Freelance")).not.toBeInTheDocument();
-  });
-
-  it("filters employees with No Department selected", async () => {
-    const user = userEvent.setup();
-    const hook = createMockHook();
-    render(<MonthlyRosterGrid hook={hook} />);
-
-    // Click on department filter button to open dropdown
-    const deptFilterButton = screen.getByRole("button", { name: /shifts\.monthly\.all_departments/i });
-    await user.click(deptFilterButton);
-
-    // Select 'No Department'
-    const noDeptOption = screen.getByRole("menuitemradio", { name: "shifts.monthly.no_department" });
-    await user.click(noDeptOption);
-
-    // Grid should only show Charlie Freelance (no department)
-    expect(screen.getByText("Charlie Freelance")).toBeInTheDocument();
+    expect(screen.getByText("shifts.empty_state.title")).toBeInTheDocument();
+    expect(screen.getByText("shifts.empty_state.desc")).toBeInTheDocument();
     expect(screen.queryByText("Alice Security")).not.toBeInTheDocument();
-    expect(screen.queryByText("Bob Patrol")).not.toBeInTheDocument();
   });
 
-  it("displays search empty state when no results match", async () => {
+  it("renders grid and employee when selected", async () => {
     const user = userEvent.setup();
     const hook = createMockHook();
     render(<MonthlyRosterGrid hook={hook} />);
 
-    const searchInput = screen.getByPlaceholderText("shifts.monthly.search_placeholder");
-    await user.type(searchInput, "xyz");
+    // Check empty state initially
+    expect(screen.getByText("shifts.empty_state.title")).toBeInTheDocument();
 
-    // Verify that empty state is shown
-    expect(screen.getByText("common.combobox.no_results")).toBeInTheDocument();
-    expect(screen.getByText("shifts.monthly.no_results_desc")).toBeInTheDocument();
+    // Select employee "emp-1" (Alice Security)
+    const searchInput = screen.getByTestId("mock-employee-search");
+    await user.type(searchInput, "emp-1");
 
-    // Verify grid contents are not shown
-    expect(screen.queryByText("Alice Security")).not.toBeInTheDocument();
+    // Grid and checklist should show Alice Security
+    expect(screen.getAllByText("Alice Security").length).toBeGreaterThanOrEqual(1);
+    expect(screen.queryByText("Bob Patrol")).not.toBeInTheDocument();
+    expect(screen.queryByText("shifts.empty_state.title")).not.toBeInTheDocument();
+  });
+
+  it("can deselect employee by unchecking their name in the checklist", async () => {
+    const user = userEvent.setup();
+    const hook = createMockHook();
+    render(<MonthlyRosterGrid hook={hook} />);
+
+    // Select employee "emp-1" (Alice Security)
+    const searchInput = screen.getByTestId("mock-employee-search");
+    await user.type(searchInput, "emp-1");
+
+    // Grid and checklist should show Alice Security
+    expect(screen.getAllByText("Alice Security").length).toBeGreaterThanOrEqual(1);
+
+    // Click checkbox to deselect
+    const checkbox = screen.getByRole("checkbox", { name: "Alice Security" });
+    await user.click(checkbox);
+
+    // Verify empty state is shown again
+    expect(screen.getByText("shifts.empty_state.title")).toBeInTheDocument();
   });
 
   it("displays loading state when isMonthLoading or isEmployeesLoading is true", () => {

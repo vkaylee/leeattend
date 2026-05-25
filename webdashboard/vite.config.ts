@@ -207,7 +207,7 @@ export default defineConfig(async ({ mode }: ConfigEnv) => {
             'vendor-charts': ['recharts'],
             'vendor-i18n': ['i18next', 'react-i18next', 'i18next-browser-languagedetector'],
             'vendor-dnd': ['@dnd-kit/core', '@dnd-kit/sortable', '@dnd-kit/utilities'],
-            'vendor-ui': ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-popover', 'cmdk'],
+            'vendor-ui': ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-popover', 'cmdk', 'lucide-react'],
           },
         },
       },

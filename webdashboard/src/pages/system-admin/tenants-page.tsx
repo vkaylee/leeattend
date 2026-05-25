@@ -410,7 +410,7 @@ export default function TenantsPage() {
                 </h4>
                 {poolUsers.length > 0 ? (
                   <div className="grid grid-cols-1 gap-3">
-                    {poolUsers.map((u: any, idx: number) => (
+                    {poolUsers.map((u: { db_user?: string; pool_size?: number }, idx: number) => (
                       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-xl shadow-sm flex items-center justify-between" key={idx}>
                         <div>
                           <div className="font-mono text-sm text-slate-800 dark:text-slate-200 font-semibold flex items-center gap-2">

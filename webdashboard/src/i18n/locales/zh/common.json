@@ -932,6 +932,22 @@
       "org_name_placeholder": "例：ABC 公司、LeeAttend 团队...",
       "start_now_btn": "立即开始",
       "workspace_desc": "工作区是一个独立的环境，可帮助您在一个地方管理设备和成员。",
+      "db_mode_label": "数据库模式",
+      "db_mode_auto": "自动托管（推荐）",
+      "db_mode_auto_desc": "系统将自动分配安全、隔离的数据库并运行迁移。推荐大多数企业使用。",
+      "db_mode_byod": "自带数据库 (BYOD)",
+      "db_mode_byod_desc": "连接到您自己的 PostgreSQL 集群，以完全控制和存储您的内部数据。",
+      "db_validation_error": "数据库连接地址无效。必须以 postgres:// 或 postgresql:// 开头",
+      "db_placeholder": "postgres://username:password@hostname:port/database",
+      "progress": {
+        "title": "正在配置工作空间...",
+        "subtitle": "请保持此页面打开。我们正在为您准备安全的环境。",
+        "step_1": "正在初始化数据库集群...",
+        "step_2": "正在同步数据表结构 (Migrations)...",
+        "step_3": "正在配置默认工作空间设置...",
+        "step_4": "正在准备系统管理后台...",
+        "success": "配置完成！正在跳转..."
+      },
       "messages": {
         "create_error": "无法创建工作区。请再试一次。"
       }

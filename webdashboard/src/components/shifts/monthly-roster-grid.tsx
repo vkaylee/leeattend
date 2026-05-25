@@ -1,8 +1,6 @@
 import { 
-  Building2,
   CalendarDays,
   CalendarRange,
-  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Copy,
@@ -10,8 +8,8 @@ import {
   Search,
   Sparkles,
   Trash2,
-  X,
-  AlertCircle
+  AlertCircle,
+  User
 } from "lucide-react";
 import React, { memo, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -19,15 +17,8 @@ import { useTranslation } from "react-i18next";
 import { format, isToday as isDateToday } from "date-fns";
 import { vi, enUS, zhCN, type Locale } from "date-fns/locale";
 
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuLabel,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Department, EffectiveSchedule, Employee, EmployeeSchedule, Shift } from "@/lib/api/types";
+import { EmployeeSearch } from "@/components/common/employee-search";
+import { EffectiveSchedule, Employee, EmployeeSchedule, Shift } from "@/lib/api/types";
 import { useShifts } from "@/pages/shifts/hooks/use-shifts";
 
 import { ScheduleTracePopover } from "./schedule-trace-popover";
@@ -156,29 +147,7 @@ const computeCellData = (
   };
 };
 
-const matchesSearch = (fullName: string, searchTerm: string): boolean => {
-  const query = searchTerm.trim().toLowerCase();
-  if (!query) return true;
-  return fullName.toLowerCase().includes(query);
-};
 
-const matchesDepartment = (
-  employeeId: string,
-  selectedDeptId: string,
-  employees: Employee[] | undefined,
-  departments: Department[] | undefined
-): boolean => {
-  if (selectedDeptId === "all") return true;
-
-  const employee = employees?.find((e) => e.id === employeeId);
-
-  if (selectedDeptId === "none") {
-    return !employee?.department_name;
-  }
-
-  const dept = departments?.find((d) => d.id === selectedDeptId);
-  return !!(dept && employee?.department_name === dept.name);
-};
 
 interface MonthlyRosterGridProps {
   hook: ReturnType<typeof useShifts>;
@@ -205,7 +174,6 @@ export function MonthlyRosterGrid({ hook }: MonthlyRosterGridProps) {
     isEmployeesLoading,
     isEmployeesError,
     refetchEmployees,
-    departments,
   } = hook;
 
   const [selectedCells, setSelectedCells] = useState<Set<string>>(new Set());
@@ -213,10 +181,14 @@ export function MonthlyRosterGrid({ hook }: MonthlyRosterGridProps) {
   const [isCopying, setIsCopying] = useState(false);
   const [isMutating, setIsMutating] = useState(false);
 
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedDepartmentId, setSelectedDepartmentId] = useState("all");
+  const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<string[]>([]);
 
   const monthHeaderLabel = format(currentMonth, "MMMM yyyy", { locale: currentLocale });
+
+  const selectedEmployeesMeta = useMemo(() => {
+    if (!employees) return [];
+    return employees.filter(emp => selectedEmployeeIds.includes(emp.id));
+  }, [employees, selectedEmployeeIds]);
 
   const combinedSchedules = useMemo(() => {
     if (!employees) return [];
@@ -234,11 +206,11 @@ export function MonthlyRosterGrid({ hook }: MonthlyRosterGridProps) {
   }, [employees, monthSchedules]);
 
   const filteredSchedules = useMemo(() => {
+    if (selectedEmployeeIds.length === 0) return [];
     return combinedSchedules.filter(schedule => 
-      matchesSearch(schedule.full_name, searchTerm) &&
-      matchesDepartment(schedule.employee_id, selectedDepartmentId, employees, departments)
+      selectedEmployeeIds.includes(schedule.employee_id)
     );
-  }, [combinedSchedules, searchTerm, selectedDepartmentId, employees, departments]);
+  }, [combinedSchedules, selectedEmployeeIds]);
 
   const handleCellClick = (employeeId: string, dateStr: string) => {
     setSelectedCells(prev => {
@@ -313,21 +285,17 @@ export function MonthlyRosterGrid({ hook }: MonthlyRosterGridProps) {
   return (
     <div className="space-y-4">
       <RosterToolbar
-        allDepartmentsLabel={t("shifts.monthly.all_departments")}
         copyLabel={t("shifts.monthly.copy_previous_month")}
-        departments={departments}
-        filterDepartmentLabel={t("shifts.monthly.filter_department")}
         isCopying={isCopying}
         monthHeaderLabel={monthHeaderLabel}
-        noDepartmentLabel={t("shifts.monthly.no_department")}
         onCopyMonth={handleCopyMonth}
-        onDepartmentChange={setSelectedDepartmentId}
         onNavigateMonth={handleNavigateMonth}
-        onSearchChange={setSearchTerm}
+        onSelectedEmployeesChange={setSelectedEmployeeIds}
         searchPlaceholder={t("shifts.monthly.search_placeholder")}
-        searchTerm={searchTerm}
-        selectedDepartmentId={selectedDepartmentId}
+        selectedEmployeeIds={selectedEmployeeIds}
+        selectedEmployeesMeta={selectedEmployeesMeta}
         title={t("shifts.monthly.title")}
+        workspaceId={hook.wsId}
       />
 
       <div className="bg-white dark:bg-slate-900 rounded-[28px] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
@@ -369,6 +337,18 @@ export function MonthlyRosterGrid({ hook }: MonthlyRosterGridProps) {
             </div>
             <p className="text-xs text-slate-400 dark:text-slate-500 max-w-xs mx-auto">
               {t("shifts.monthly.empty_state_desc")}
+            </p>
+          </div>
+        ) : selectedEmployeeIds.length === 0 ? (
+          <div className="p-12 text-center flex flex-col items-center justify-center gap-4">
+            <div className="w-12 h-12 rounded-full bg-slate-50 dark:bg-slate-850 flex items-center justify-center border border-dashed border-slate-200 dark:border-slate-800 animate-pulse text-slate-350 dark:text-slate-650">
+              <User className="w-6 h-6 text-slate-450 dark:text-slate-500" />
+            </div>
+            <div className="text-xs font-bold uppercase tracking-widest text-slate-700 dark:text-slate-300">
+              {t("shifts.empty_state.title")}
+            </div>
+            <p className="text-xs text-slate-450 dark:text-slate-500 max-w-xs mx-auto">
+              {t("shifts.empty_state.desc")}
             </p>
           </div>
         ) : filteredSchedules.length === 0 ? (
@@ -424,24 +404,19 @@ export function MonthlyRosterGrid({ hook }: MonthlyRosterGridProps) {
 }
 
 interface RosterToolbarProps {
-  allDepartmentsLabel: string;
   copyLabel: string;
-  departments: Department[] | undefined;
-  filterDepartmentLabel: string;
   isCopying: boolean;
   monthHeaderLabel: string;
-  noDepartmentLabel: string;
   onCopyMonth: () => void;
-  onDepartmentChange: (val: string) => void;
   onNavigateMonth: (dir: "prev" | "next") => void;
-  onSearchChange: (val: string) => void;
+  onSelectedEmployeesChange: (ids: string[]) => void;
   searchPlaceholder: string;
-  searchTerm: string;
-  selectedDepartmentId: string;
+  selectedEmployeeIds: string[];
+  selectedEmployeesMeta: Employee[];
   title: string;
+  workspaceId: string;
 }
 
-// eslint-disable-next-line max-lines-per-function
 const RosterToolbar = memo(function RosterToolbar({
   copyLabel,
   isCopying,
@@ -449,16 +424,14 @@ const RosterToolbar = memo(function RosterToolbar({
   onCopyMonth,
   onNavigateMonth,
   title,
-  searchTerm,
-  onSearchChange,
-  selectedDepartmentId,
-  onDepartmentChange,
-  departments,
   searchPlaceholder,
-  filterDepartmentLabel,
-  allDepartmentsLabel,
-  noDepartmentLabel,
+  workspaceId,
+  selectedEmployeeIds,
+  onSelectedEmployeesChange,
+  selectedEmployeesMeta,
 }: RosterToolbarProps) {
+  const { t } = useTranslation();
+
   return (
     <div className="flex flex-col gap-4 bg-white dark:bg-slate-900 p-5 rounded-[28px] border border-slate-100 dark:border-slate-800 shadow-sm">
       {/* Row 1: Header, Navigation & Copy Action */}
@@ -475,6 +448,7 @@ const RosterToolbar = memo(function RosterToolbar({
             <button
               className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors border border-slate-100 dark:border-slate-800"
               onClick={() => { onNavigateMonth("prev"); }}
+              type="button"
             >
               <ChevronLeft size={16} />
             </button>
@@ -484,6 +458,7 @@ const RosterToolbar = memo(function RosterToolbar({
             <button
               className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors border border-slate-100 dark:border-slate-800"
               onClick={() => { onNavigateMonth("next"); }}
+              type="button"
             >
               <ChevronRight size={16} />
             </button>
@@ -493,6 +468,7 @@ const RosterToolbar = memo(function RosterToolbar({
             className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold uppercase tracking-wider border border-slate-200 dark:border-slate-800 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-colors text-slate-600 dark:text-slate-300 disabled:opacity-50"
             disabled={isCopying}
             onClick={onCopyMonth}
+            type="button"
           >
             {isCopying ? <Loader2 className="animate-spin" size={12} /> : <Copy size={12} />}
             <span>{copyLabel}</span>
@@ -503,70 +479,51 @@ const RosterToolbar = memo(function RosterToolbar({
       {/* Separator line */}
       <div className="h-px bg-slate-100 dark:bg-slate-800 w-full" />
 
-      {/* Row 2: Search Input & Department Dropdown filter */}
-      <div className="flex flex-col sm:flex-row gap-3 w-full">
-        {/* Search Bar */}
-        <div className="relative flex-1">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" size={16} />
-          <input
-            className="w-full pl-10 pr-9 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800 rounded-xl text-xs font-medium placeholder-slate-400 dark:placeholder-slate-500 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all"
-            onChange={(e) => { onSearchChange(e.target.value); }}
-            placeholder={searchPlaceholder}
-            type="text"
-            value={searchTerm}
-          />
-          {!!searchTerm && (
-            <button
-              className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-400 dark:text-slate-500 transition-colors"
-              onClick={() => { onSearchChange(""); }}
-            >
-              <X size={14} />
-            </button>
-          )}
-        </div>
+      {/* Row 2: Multi-select Search & Checklist */}
+      <div className="flex flex-col gap-3.5 w-full animate-in fade-in duration-200">
+        {/* Multi-select search bar */}
+        <EmployeeSearch
+          clearOnEscape
+          hideChips
+          multiple
+          onChange={(val) => {
+            const ids = Array.isArray(val) ? val : (val ? [val] : []);
+            onSelectedEmployeesChange(ids);
+          }}
+          placeholder={searchPlaceholder}
+          value={selectedEmployeeIds}
+          workspaceId={workspaceId}
+        />
 
-        {/* Department Filter */}
-        <div className="sm:w-64">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className="flex items-center justify-between w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-350 hover:bg-slate-100/50 dark:hover:bg-slate-900/50 focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all uppercase tracking-wider">
-                <div className="flex items-center gap-2 truncate">
-                  <Building2 className="text-slate-400 dark:text-slate-500 shrink-0" size={15} />
-                  <span className="truncate">
-                    {selectedDepartmentId === "all"
-                      ? allDepartmentsLabel
-                      : selectedDepartmentId === "none"
-                        ? noDepartmentLabel
-                        : departments?.find((d) => d.id === selectedDepartmentId)?.name ?? allDepartmentsLabel}
-                  </span>
-                </div>
-                <ChevronDown className="text-slate-400 shrink-0 ml-1" size={14} />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 dark:text-slate-500">
-                {filterDepartmentLabel}
-              </DropdownMenuLabel>
-              <DropdownMenuRadioGroup onValueChange={onDepartmentChange} value={selectedDepartmentId}>
-                <DropdownMenuRadioItem className="text-xs" value="all">
-                  {allDepartmentsLabel}
-                </DropdownMenuRadioItem>
-                <DropdownMenuRadioItem className="text-xs" value="none">
-                  {noDepartmentLabel}
-                </DropdownMenuRadioItem>
-                {departments?.map((dept) => (
-                  <DropdownMenuRadioItem className="text-xs" key={dept.id} value={dept.id}>
-                    {dept.name}
-                  </DropdownMenuRadioItem>
-                ))}
-              </DropdownMenuRadioGroup>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+        {/* Selected Checklist (Stick) */}
+        {selectedEmployeesMeta.length > 0 && (
+          <div className="flex flex-wrap gap-2.5 p-3.5 bg-slate-50 dark:bg-slate-950/40 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 animate-in fade-in slide-in-from-top-2 duration-300">
+            <div className="w-full text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">
+              {t("shifts.monthly.selected_employees", "Nhân sự đang chọn ({{count}})", { count: selectedEmployeesMeta.length })}
+            </div>
+            {selectedEmployeesMeta.map((emp) => (
+              <label
+                className="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-250/60 dark:border-slate-800 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 shadow-sm hover:border-primary-500/50 cursor-pointer select-none transition-all"
+                key={emp.id}
+              >
+                <input
+                  checked={selectedEmployeeIds.includes(emp.id)}
+                  className="rounded border-slate-350 dark:border-slate-700 text-primary-600 focus:ring-primary-500 cursor-pointer h-3.5 w-3.5"
+                  onChange={() => {
+                    onSelectedEmployeesChange(selectedEmployeeIds.filter((id) => id !== emp.id));
+                  }}
+                  type="checkbox"
+                />
+                <span>{emp.full_name}</span>
+              </label>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
 });
+
 RosterToolbar.displayName = "RosterToolbar";
 
 interface RosterActionBarProps {

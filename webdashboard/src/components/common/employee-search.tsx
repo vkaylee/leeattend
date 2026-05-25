@@ -11,14 +11,13 @@ import { Combobox } from '../ui/combobox';
 interface EmployeeSearchProps {
   className?: string;
   clearOnEscape?: boolean;
- 
   'data-testid'?: string;
+  hideChips?: boolean;
   id?: string;
   keyboardShortcut?: string | string[];
   multiple?: boolean;
   onChange: (value: string | string[]) => void;
   onSelectEmployee?: (employee: Employee) => void;
-
   placeholder?: string;
   value?: string | string[];
   workspaceId: string;
@@ -123,6 +122,7 @@ export function EmployeeSearch({
   id,
   'data-testid': testId,
   multiple = false,
+  hideChips = false,
   keyboardShortcut,
   clearOnEscape,
   onSelectEmployee,
@@ -190,7 +190,7 @@ export function EmployeeSearch({
         placeholder={placeholder ?? t('common.search')}
         value={multiple ? '' : (Array.isArray(value) ? '' : (value ?? ''))}
       />
-      {multiple ? (
+      {multiple && !hideChips ? (
         <SelectedEmployeeChips
           onRemove={(idToRemove) => {
             if (Array.isArray(value)) onChange(value.filter(item => item !== idToRemove));

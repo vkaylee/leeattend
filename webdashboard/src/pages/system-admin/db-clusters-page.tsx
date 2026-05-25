@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Trash2, Database, Power, PowerOff, Activity } from "lucide-react";
+import { Plus, Trash2, Database, Power, PowerOff } from "lucide-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -18,6 +18,7 @@ import {
   type SystemDbCluster,
 } from "@/lib/api/system";
 
+// eslint-disable-next-line max-lines-per-function -- Page component needs to hold form and state
 export default function DbClustersPage() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -141,7 +142,7 @@ export default function DbClustersPage() {
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-12 text-center shadow-sm">
           <Database className="w-12 h-12 text-slate-300 dark:text-slate-700 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-slate-900 dark:text-white mb-2">No Database Clusters</h3>
-          <p className="text-slate-500 mb-6">You haven't configured any database clusters yet.</p>
+          <p className="text-slate-500 mb-6">You have not configured any database clusters yet.</p>
           <Button onClick={() => { setIsModalOpen(true); }}>
             <Plus className="w-4 h-4 mr-2" />
             Add Your First Cluster
@@ -217,11 +218,12 @@ export default function DbClustersPage() {
         <form onSubmit={handleCreate}>
           <div className="grid gap-5 py-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-300" htmlFor="clusterName">
                 Cluster Name <span className="text-red-500">*</span>
               </label>
               <input
                 className="flex h-10 w-full rounded-md border border-slate-300 dark:border-slate-700 bg-transparent px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 dark:text-white"
+                id="clusterName"
                 onChange={(e) => { setFormData({ ...formData, name: e.target.value }); }}
                 placeholder="e.g. US East Primary"
                 required
@@ -230,11 +232,12 @@ export default function DbClustersPage() {
             </div>
             
             <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-300" htmlFor="adminDbUrl">
                 Admin Database URL <span className="text-red-500">*</span>
               </label>
               <input
                 className="flex h-10 w-full rounded-md border border-slate-300 dark:border-slate-700 bg-transparent px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 dark:text-white"
+                id="adminDbUrl"
                 onChange={(e) => { setFormData({ ...formData, admin_database_url: e.target.value }); }}
                 placeholder="postgres://admin:pass@host:5432/postgres"
                 required
@@ -245,38 +248,41 @@ export default function DbClustersPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300" htmlFor="region">
                   Region
                 </label>
                 <input
                   className="flex h-10 w-full rounded-md border border-slate-300 dark:border-slate-700 bg-transparent px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 dark:text-white"
+                  id="region"
                   onChange={(e) => { setFormData({ ...formData, region: e.target.value }); }}
                   placeholder="us-east-1"
                   value={formData.region}
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300" htmlFor="maxTenants">
                   Max Tenants <span className="text-red-500">*</span>
                 </label>
                 <input
                   className="flex h-10 w-full rounded-md border border-slate-300 dark:border-slate-700 bg-transparent px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 dark:text-white"
+                  id="maxTenants"
                   min="1"
                   onChange={(e) => { setFormData({ ...formData, max_tenants: parseInt(e.target.value, 10) }); }}
-                  type="number"
                   required
+                  type="number"
                   value={formData.max_tenants}
                 />
               </div>
             </div>
 
             <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-800/50 p-4 rounded-lg border border-slate-200 dark:border-slate-700">
-              <label className="text-sm font-medium text-slate-700 dark:text-slate-300 cursor-pointer select-none">
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-300 cursor-pointer select-none" htmlFor="autoProvision">
                 Enable for Auto-provisioning
               </label>
               <input
                 checked={formData.is_active}
                 className="h-5 w-5 rounded border-slate-300 text-primary-600 focus:ring-primary-600 bg-white"
+                id="autoProvision"
                 onChange={(e) => { setFormData({ ...formData, is_active: e.target.checked }); }}
                 type="checkbox"
               />
