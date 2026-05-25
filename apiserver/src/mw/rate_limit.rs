@@ -218,18 +218,15 @@ fn resolve_identity(req: &Request<Body>, jwt_secret: &str) -> String {
     let ip = req
         .extensions()
         .get::<ConnectInfo<SocketAddr>>()
-        .map_or_else(
-            || {
-                req.headers()
-                    .get("x-forwarded-for")
-                    .and_then(|v| v.to_str().ok())
-                    .and_then(|s| s.split(',').next())
-                    .unwrap_or("unknown")
-                    .trim()
-                    .to_string()
-            },
-            |ci| ci.0.ip().to_string(),
-        );
+        .map(|ci| ci.0.ip().to_string())
+        .or_else(|| {
+            req.headers()
+                .get("x-forwarded-for")
+                .and_then(|v| v.to_str().ok())
+                .and_then(|s| s.split(',').next())
+                .map(|s| s.trim().to_string())
+        })
+        .unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
 
     format!("ip:{ip}")
 }

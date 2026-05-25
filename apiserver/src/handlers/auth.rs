@@ -141,6 +141,8 @@ pub async fn register(
     validate_email(&req.email)?;
     validate_password(&req.password)?;
 
+    tracing::info!(email = %crate::utils::masking::mask_email(&req.email), "User attempting to register");
+
     // 2. Check if email exists
     let existing_user = state.core.user_repo.get_user_by_email(&req.email).await?;
 
@@ -222,12 +224,18 @@ pub async fn login(
     State(state): State<Arc<AppState>>,
     Json(req): Json<LoginRequest>,
 ) -> AppResult<impl IntoResponse> {
+    let masked_email = crate::utils::masking::mask_email(&req.email);
+    tracing::info!(email = %masked_email, "User attempting to login");
+
     let user = state
         .core
         .user_repo
         .get_user_by_email(&req.email)
         .await?
-        .ok_or_else(|| AppError::Auth("Invalid email or password".to_string()))?;
+        .ok_or_else(|| {
+            tracing::warn!(email = %masked_email, "Login failed: User not found");
+            AppError::Auth("Invalid email or password".to_string())
+        })?;
 
     let password = req.password.clone();
     let hash = user.password_hash.clone();
@@ -237,8 +245,11 @@ pub async fn login(
             .map_err(|e| AppError::Internal(format!("Failed to spawn blocking task: {e}")))?;
 
     if !is_valid {
+        tracing::warn!(user_id = %user.id, "Login failed: Invalid password");
         return Err(AppError::Auth("Invalid email or password".to_string()));
     }
+
+    tracing::info!(user_id = %user.id, "User logged in successfully");
 
     // Convert to UserResponse for the client
     let user_response = UserResponse {
