@@ -181,11 +181,9 @@ impl TenantManager for SupavisorTenantManager {
 
         if let Ok(res) = response_get {
             if res.status().is_success() {
-                tracing::debug!(
-                    "Supavisor tenant '{}' already exists, skipping dynamic registration",
-                    tenant_id
+                tracing::info!(
+                    "Supavisor tenant '{tenant_id}' already exists. Proceeding to update it to apply the latest config..."
                 );
-                return Ok(());
             }
         }
 

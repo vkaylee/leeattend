@@ -74,7 +74,10 @@ impl DieselPools {
         Ok(SessionConn(conn))
     }
 
-    pub fn connect(config: &DbPoolConfig, tenant_manager: std::sync::Arc<dyn crate::supavisor::TenantManager>) -> Result<Self, AppError> {
+    pub fn connect(
+        config: &DbPoolConfig,
+        tenant_manager: std::sync::Arc<dyn crate::supavisor::TenantManager>,
+    ) -> Result<Self, AppError> {
         tracing::info!(
             api_max = config.api_max_conn,
             worker_max = config.worker_max_conn,

@@ -21,7 +21,11 @@ pub struct SupavisorTenantPoolManager {
 }
 
 impl SupavisorTenantPoolManager {
-    pub fn new(base_url: String, max_size: usize, tenant_api: std::sync::Arc<dyn crate::supavisor::TenantManager>) -> Self {
+    pub fn new(
+        base_url: String,
+        max_size: usize,
+        tenant_api: std::sync::Arc<dyn crate::supavisor::TenantManager>,
+    ) -> Self {
         Self {
             base_url,
             max_size,
@@ -29,7 +33,6 @@ impl SupavisorTenantPoolManager {
             tenant_api,
         }
     }
-
 
     pub fn get_tenant_url_with_credentials(
         &self,
@@ -74,7 +77,7 @@ impl SupavisorTenantPoolManager {
                     let new_user = format!("{actual_prefix}.{tenant_uuid_str}");
                     let replace_start = plen;
                     let replace_end = plen + auth.len();
-                    
+
                     let new_auth = match pass_to_use {
                         Some(p) => format!("{new_user}:{p}"),
                         None => new_user,
@@ -85,7 +88,7 @@ impl SupavisorTenantPoolManager {
                     let new_user = override_user.to_string();
                     let replace_start = plen;
                     let replace_end = plen + auth.len();
-                    
+
                     let new_auth = match pass_to_use {
                         Some(p) => format!("{new_user}:{p}"),
                         None => new_user,
@@ -105,7 +108,7 @@ impl SupavisorTenantPoolManager {
             let before_slash = &without_query[..slash_idx];
             result_url = format!("{before_slash}/{db_name}{query}");
         }
-        
+
         Ok(result_url)
     }
 }
@@ -148,47 +151,55 @@ impl SupavisorTenantPoolManager {
         if db_user.is_empty() {
             let primary_url = self.base_url.clone();
             let ws_id = *workspace_id;
-            
-            let fetched_user: Result<Option<(String, String, String)>, String> = tokio::task::spawn_blocking(move || {
-                use diesel::prelude::*;
-                use diesel::sql_types::{Nullable, Text, Uuid as UuidSql};
-                
-                #[derive(QueryableByName)]
-                struct WsRow {
-                    #[diesel(sql_type = Nullable<Text>)]
-                    custom_db_url_encrypted: Option<String>,
-                }
-                
-                let mut conn = PgConnection::establish(&primary_url)
-                    .map_err(|e| e.to_string())?;
-                    
-                let rows = diesel::sql_query("SELECT custom_db_url_encrypted FROM workspaces WHERE id = $1")
+
+            let fetched_user: Result<Option<(String, String, String)>, String> =
+                tokio::task::spawn_blocking(move || {
+                    use diesel::prelude::*;
+                    use diesel::sql_types::{Nullable, Text, Uuid as UuidSql};
+
+                    #[derive(QueryableByName)]
+                    struct WsRow {
+                        #[diesel(sql_type = Nullable<Text>)]
+                        custom_db_url_encrypted: Option<String>,
+                    }
+
+                    let mut conn =
+                        PgConnection::establish(&primary_url).map_err(|e| e.to_string())?;
+
+                    let rows = diesel::sql_query(
+                        "SELECT custom_db_url_encrypted FROM workspaces WHERE id = $1",
+                    )
                     .bind::<UuidSql, _>(ws_id)
                     .load::<WsRow>(&mut conn)
                     .map_err(|e| e.to_string())?;
-                    
-                if let Some(row) = rows.into_iter().next() {
-                    if let Some(encrypted) = row.custom_db_url_encrypted {
-                        // Decrypt the URL
-                        let crypto_service = std::env::var("ENCRYPTION_KEYS_JSON")
-                            .ok()
-                            .and_then(|keys| crate::crypto::CryptoService::from_json(&keys).ok());
-                        
-                        let decrypted = if let Some(crypto) = crypto_service {
-                            crypto.decrypt(&encrypted).unwrap_or(encrypted)
-                        } else {
-                            encrypted
-                        };
-                        
-                        // Extract db_user and pass using our existing parser
-                        if let Some((user, pass, _, _, db)) = crate::supavisor::parse_postgres_url(&decrypted) {
-                            return Ok(Some((user, pass, db)));
+
+                    if let Some(row) = rows.into_iter().next() {
+                        if let Some(encrypted) = row.custom_db_url_encrypted {
+                            // Decrypt the URL
+                            let crypto_service =
+                                std::env::var("ENCRYPTION_KEYS_JSON").ok().and_then(|keys| {
+                                    crate::crypto::CryptoService::from_json(&keys).ok()
+                                });
+
+                            let decrypted = if let Some(crypto) = crypto_service {
+                                crypto.decrypt(&encrypted).unwrap_or(encrypted)
+                            } else {
+                                encrypted
+                            };
+
+                            // Extract db_user and pass using our existing parser
+                            if let Some((user, pass, _, _, db)) =
+                                crate::supavisor::parse_postgres_url(&decrypted)
+                            {
+                                return Ok(Some((user, pass, db)));
+                            }
                         }
                     }
-                }
-                Ok(None)
-            }).await.map_err(|e| e.to_string())?;
-            
+                    Ok(None)
+                })
+                .await
+                .map_err(|e| e.to_string())?;
+
             if let Ok(Some((u, p, d))) = fetched_user {
                 db_user = u;
                 db_password = p;
@@ -200,7 +211,12 @@ impl SupavisorTenantPoolManager {
             }
         }
 
-        let tenant_url = self.get_tenant_url_with_credentials(workspace_id, &db_user, &db_password, db_name_opt.as_deref())?;
+        let tenant_url = self.get_tenant_url_with_credentials(
+            workspace_id,
+            &db_user,
+            &db_password,
+            db_name_opt.as_deref(),
+        )?;
         let manager = AsyncDieselConnectionManager::<AsyncPgConnection>::new(tenant_url);
         let pool = Pool::builder(manager)
             .max_size(self.max_size)
@@ -377,7 +393,7 @@ mod tests {
                 let before_slash = &without_query[..slash_idx];
                 result_url = format!("{before_slash}/{db_name}{query}");
             }
-            
+
             Ok(result_url)
         }
     }
@@ -387,21 +403,24 @@ mod tests {
         let manager = MockTenantManager::new("postgres://admin:pass@localhost:5432/leeattend");
         let ws_id = Uuid::parse_str("123e4567-e89b-12d3-a456-426614174000").unwrap();
 
-        let url = manager.get_tenant_url_with_credentials(&ws_id, "tenant_user", "tenant_password", None).unwrap();
-        
+        let url = manager
+            .get_tenant_url_with_credentials(&ws_id, "tenant_user", "tenant_password", None)
+            .unwrap();
+
         assert_eq!(url, "postgres://tenant_user:tenant_password@localhost:5432/tenant_123e4567e89b12d3a456426614174000");
     }
 
     #[test]
     fn test_get_tenant_url_supavisor_mode() {
         // Pool URL có tên user (có thể chứa .tenant_id)
-        let manager = MockTenantManager::new(
-            "postgres://admin.tenant_019...:pass@supavisor:6543/leeattend",
-        );
+        let manager =
+            MockTenantManager::new("postgres://admin.tenant_019...:pass@supavisor:6543/leeattend");
         let ws_id = Uuid::parse_str("123e4567-e89b-12d3-a456-426614174000").unwrap();
 
-        let url = manager.get_tenant_url_with_credentials(&ws_id, "", "", None).unwrap();
-        
+        let url = manager
+            .get_tenant_url_with_credentials(&ws_id, "", "", None)
+            .unwrap();
+
         assert_eq!(url, "postgres://admin.tenant_123e4567e89b12d3a456426614174000@supavisor:6543/tenant_123e4567e89b12d3a456426614174000");
     }
 
@@ -409,20 +428,28 @@ mod tests {
     fn test_get_tenant_url_direct_mode_no_override() {
         let ws_id = Uuid::parse_str("019e615b-51dc-7163-8936-82f42318cf84").unwrap();
         let manager = MockTenantManager::new("postgres://admin:admin@db:5432/postgres");
-        
-        let url = manager.get_tenant_url_with_credentials(&ws_id, "my_user", "my_pass", None).unwrap();
-        
-        assert_eq!(url, "postgres://my_user:my_pass@db:5432/tenant_019e615b51dc7163893682f42318cf84");
+
+        let url = manager
+            .get_tenant_url_with_credentials(&ws_id, "my_user", "my_pass", None)
+            .unwrap();
+
+        assert_eq!(
+            url,
+            "postgres://my_user:my_pass@db:5432/tenant_019e615b51dc7163893682f42318cf84"
+        );
     }
 
     #[test]
     fn test_get_tenant_url_with_override_db_name() {
         let ws_id = Uuid::parse_str("019e615b-51dc-7163-8936-82f42318cf84").unwrap();
-        let manager = MockTenantManager::new("postgres://admin.leeattend:pass@supavisor:6543/leeattend");
-        
+        let manager =
+            MockTenantManager::new("postgres://admin.leeattend:pass@supavisor:6543/leeattend");
+
         // This is the BYOD scenario where override_db_name is set to the actual database name (e.g. custom_db_name)
-        let url = manager.get_tenant_url_with_credentials(&ws_id, "", "", Some("custom_db_name")).unwrap();
-        
+        let url = manager
+            .get_tenant_url_with_credentials(&ws_id, "", "", Some("custom_db_name"))
+            .unwrap();
+
         assert_eq!(url, "postgres://admin.tenant_019e615b51dc7163893682f42318cf84@supavisor:6543/custom_db_name");
     }
 }

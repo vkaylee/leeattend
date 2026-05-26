@@ -127,16 +127,9 @@ pub fn build_tenant_payload(
     // usually do not have permission to read.
     tenant_map.insert("require_user".to_string(), json!(true));
 
-    // Determine pool_password from API Server's DATABASE_POOLER_TX_URL or DATABASE_URL
-    let client_password = std::env::var("DATABASE_POOLER_TX_URL")
-        .ok()
-        .filter(|url| !url.is_empty())
-        .or_else(|| std::env::var("DATABASE_POOLER_SESS_URL").ok())
-        .or_else(|| std::env::var("DATABASE_URL").ok())
-        .and_then(|url| parse_postgres_url(&url))
-        .map(|(_, pass, _, _, _)| pass)
-        .filter(|p| !p.is_empty())
-        .unwrap_or_else(|| db_password.clone());
+    // The client pool password should be the same as the downstream database password,
+    // otherwise the API server will fail to authenticate when trying to connect to the pool.
+    let client_password = db_password.clone();
 
     tenant_map.insert(
         "users".to_string(),
@@ -147,7 +140,7 @@ pub fn build_tenant_payload(
                 "pool_password": &client_password,
                 "pool_size": pool_size,
                 "mode_type": &mode_type,
-                "is_manager": true
+                "is_manager": false
             }
         ]),
     );

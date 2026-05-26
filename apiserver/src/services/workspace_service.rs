@@ -150,7 +150,7 @@ impl WorkspaceService {
             let crypto_service = std::env::var("ENCRYPTION_KEYS_JSON")
                 .ok()
                 .and_then(|keys| crate::crypto::CryptoService::from_json(&keys).ok());
-                
+
             if let Some(crypto) = crypto_service {
                 crypto.encrypt(&new_db_url).unwrap_or(new_db_url)
             } else {
