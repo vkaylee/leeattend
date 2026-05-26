@@ -91,7 +91,7 @@ def lifecycle_up(mode: str = "all") -> bool:
     project_name = os.environ.get("COMPOSE_PROJECT_NAME", "leeattend-test")
 
     containers_to_check = []
-    if mode == "web":
+    if mode in ("web", "unit-web", "lint-web", "e2e-web"):
         containers_to_check.append(f"{project_name}_bun_init_1")
         timeout = 120
     elif mode == "infra-pooler":
