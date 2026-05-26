@@ -89,16 +89,17 @@ export function EmergencyContactsSection({
                   </div>
                 </div>
               </div>
-              <button
-                className="p-3 bg-white dark:bg-slate-900 text-slate-300 dark:text-slate-600 hover:text-rose-600 dark:text-rose-300 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all opacity-0 group-hover:opacity-100 active:scale-90"
+              <Button
+                className="p-3 bg-white dark:bg-slate-900 text-slate-300 dark:text-slate-600 hover:text-rose-600 dark:text-rose-300 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all opacity-0 group-hover:opacity-100 active:scale-90 h-auto w-auto"
                 disabled={isDeleting}
                 onClick={() => {
                   void handleDeleteContact(contact.id);
                 }}
-                type="button"
+                size="icon"
+                variant="ghost"
               >
                 <Trash2 size={18} />
-              </button>
+              </Button>
             </div>
           ))}
         </div>

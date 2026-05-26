@@ -1,22 +1,24 @@
-import { useState, useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import {
-    BarChart,
     Bar,
-    XAxis,
-    YAxis,
+    BarChart,
     CartesianGrid,
-    PieChart,
-    Pie,
     Cell,
+    Legend,
+    Pie,
+    PieChart,
     ResponsiveContainer,
     Tooltip,
-    Legend,
+    XAxis,
+    YAxis,
 } from "recharts";
 
+import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { useTurnoverAnalytics } from "@/hooks/use-dashboard";
+import { cn } from "@/lib/utils";
 
 type TabKey = "tenure" | "source" | "department";
 
@@ -131,16 +133,20 @@ function ChartTabs({
     return (
         <div className="flex bg-slate-100 dark:bg-slate-800/50 p-1 rounded-2xl w-fit mb-6 border border-slate-200/50 dark:border-slate-700/50">
             {tabs.map((tab) => (
-                <button
-                    className={`px-5 py-2 rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${activeTab === tab.key
-                            ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800"
-                            : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
-                        }`}
+                <Button
+                    className={cn(
+                        "px-5 py-2 rounded-xl text-xs font-bold uppercase tracking-widest transition-all h-auto shadow-none border border-transparent",
+                        activeTab === tab.key
+                            ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-900"
+                            : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-transparent"
+                    )}
                     key={tab.key}
                     onClick={() => { setActiveTab(tab.key); }}
+                    type="button"
+                    variant="ghost"
                 >
                     {t(tab.labelKey)}
-                </button>
+                </Button>
             ))}
         </div>
     );

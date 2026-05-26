@@ -1,7 +1,10 @@
 import { render, screen, fireEvent, act } from "@testing-library/react";
+
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
+import Button from "@/components/ui/button";
 import * as hooks from "@/hooks/use-ess";
+
 import MyAttendancePage from "../my-attendance-page";
 
 // Mock the hooks
@@ -14,9 +17,9 @@ vi.mock("@/hooks/use-ess", () => ({
 vi.mock("../components/attendance-header", () => ({
   AttendanceHeader: ({ handleNextMonth, handlePreviousMonth, handleMonthYearChange }: any) => (
     <div data-testid="attendance-header">
-      <button data-testid="prev-month" onClick={handlePreviousMonth}>Prev</button>
-      <button data-testid="next-month" onClick={handleNextMonth}>Next</button>
-      <button data-testid="change-month" onClick={() => handleMonthYearChange(5, 2026)}>Change Month</button>
+      <Button data-testid="prev-month" onClick={handlePreviousMonth}>Prev</Button>
+      <Button data-testid="next-month" onClick={handleNextMonth}>Next</Button>
+      <Button data-testid="change-month" onClick={() => handleMonthYearChange(5, 2026)}>Change Month</Button>
     </div>
   ),
 }));
@@ -25,9 +28,9 @@ vi.mock("../components/attendance-table", () => ({
   AttendanceTable: ({ entries, setSelectedSummary, setClaimOpen }: any) => (
     <div data-testid="attendance-table">
       {entries.map((e: any) => (
-        <div key={e.id} data-testid={`entry-${e.id}`}>
+        <div data-testid={`entry-${e.id}`} key={e.id}>
           {e.status}
-          <button
+          <Button
             data-testid={`claim-btn-${e.id}`}
             onClick={() => {
               setSelectedSummary({ date: e.date, total_overtime_minutes: 60 });
@@ -35,7 +38,7 @@ vi.mock("../components/attendance-table", () => ({
             }}
           >
             Claim
-          </button>
+          </Button>
         </div>
       ))}
     </div>
@@ -47,7 +50,7 @@ vi.mock("@/components/ess/claim-ot-dialog", () => ({
     open ? (
       <div data-testid="claim-dialog">
         Claiming OT for {summary?.date}
-        <button data-testid="close-claim" onClick={() => onOpenChange(false)}>Close</button>
+        <Button data-testid="close-claim" onClick={() => onOpenChange(false)}>Close</Button>
       </div>
     ) : null
   ),

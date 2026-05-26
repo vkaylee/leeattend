@@ -4,8 +4,6 @@ import { vi, describe, it, expect, beforeEach } from "vitest";
 
 import { ShiftsContent } from "../content";
 import { ShiftsModals } from "../modals";
-import { ShiftsTabs } from "../tabs";
-import { ShiftsHeader } from "../header";
 
 vi.mock("@/components/shifts/monthly-roster-grid", () => ({ MonthlyRosterGrid: () => <div data-testid="monthly-roster" /> }));
 vi.mock("@/components/shifts/weekly-roster-grid", () => ({ WeeklyRosterGrid: (props: any) => {
@@ -28,9 +26,9 @@ vi.mock("@/components/shifts/shift-list", () => ({ ShiftList: () => <div data-te
 vi.mock("@/components/shifts/priority-legend", () => ({ PriorityLegend: () => <div data-testid="priority-legend" /> }));
 vi.mock("@/components/shifts/assignment-history", () => ({ AssignmentHistory: () => <div data-testid="assignment-history" /> }));
 
-vi.mock("@/components/shifts/create-shift-modal", () => ({ CreateShiftModal: (props: any) => <div data-testid="create-modal" onClick={props.onClose} /> }));
-vi.mock("@/components/shifts/shift-picker-modal", () => ({ ShiftPickerModal: (props: any) => <div data-testid="picker-modal" onClick={props.onClose} /> }));
-vi.mock("@/components/shifts/edit-shift-modal", () => ({ EditShiftModal: (props: any) => <div data-testid="edit-modal" onClick={props.onClose} /> }));
+vi.mock("@/components/shifts/create-shift-modal", () => ({ CreateShiftModal: (props: any) => <button data-testid="create-modal" onClick={props.onClose} /> }));
+vi.mock("@/components/shifts/shift-picker-modal", () => ({ ShiftPickerModal: (props: any) => <button data-testid="picker-modal" onClick={props.onClose} /> }));
+vi.mock("@/components/shifts/edit-shift-modal", () => ({ EditShiftModal: (props: any) => <button data-testid="edit-modal" onClick={props.onClose} /> }));
 
 describe("Shifts Components Unit Tests", () => {
   const mockHook: any = {

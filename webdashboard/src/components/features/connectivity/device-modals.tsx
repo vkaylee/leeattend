@@ -2,7 +2,7 @@ import { Power, AlertTriangle } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
-import { Button } from "@/components/ui/button";
+import Button from "@/components/ui/button";
 import Modal from "@/components/ui/modal";
 import { Typography } from "@/components/ui/typography";
 import { Device } from "@/lib/api";

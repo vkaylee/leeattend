@@ -3,6 +3,7 @@ import { Plus, ShieldCheck } from "lucide-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import Button from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
 import { useConfirm } from "@/hooks/use-confirm";
@@ -68,7 +69,15 @@ export function LeavePolicyManager({ wsId }: LeavePolicyManagerProps) {
   return (
     <div className="space-y-6">
       <div className="flex justify-end px-1">
-         <button className="flex items-center gap-2 rounded-xl bg-primary-600 px-6 py-2.5 text-[10px] font-bold text-white uppercase tracking-widest hover:bg-primary-700 transition-all shadow-lg shadow-primary-100" data-testid="add-policy-btn" onClick={() => { setIsCreating(true); }}><Plus size={14} /> Create Policy</button>
+         <Button
+           className="shadow-primary-100 text-[10px]"
+           data-testid="add-policy-btn"
+           onClick={() => { setIsCreating(true); }}
+           size="sm"
+           variant="primary"
+         >
+           <Plus size={14} /> Create Policy
+         </Button>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">

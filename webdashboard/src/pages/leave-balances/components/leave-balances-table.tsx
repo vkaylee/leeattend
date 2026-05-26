@@ -1,9 +1,9 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
 
+import { TableSkeleton } from "@/components/common/table-skeleton";
 import { WorkspaceLeaveBalance } from "@/lib/api/types";
 
-import { TableSkeleton } from "@/components/common/table-skeleton";
 import { DesktopBalanceRow } from "./desktop-balance-row";
 import { MobileBalanceCard } from "./mobile-balance-card";
 

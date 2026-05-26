@@ -5,6 +5,7 @@ import React from "react";
 
 import type { LeaveImportJob } from "@/lib/api/leaves";
 
+import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { downloadLeaveImportErrors } from "@/lib/api";
 import { cn } from "@/lib/utils";
@@ -75,16 +76,18 @@ function PartialSuccessDetails({ info, importJob, t, wsId }: { info: ErrorInfo |
           .replace("{{errors}}", String(info?.error_count ?? 0))}
       </Typography>
       {Boolean(info?.error_file_path) && Boolean(wsId) ? (
-        <button
-          className="inline-flex items-center gap-2 px-5 py-2.5 bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-amber-200 dark:hover:bg-amber-800/50 transition-all border border-amber-200 dark:border-amber-800 active:scale-95"
+        <Button
+          className="border-amber-200 bg-amber-100 text-[10px] text-amber-700 hover:bg-amber-200 dark:border-amber-800 dark:bg-amber-900/50 dark:text-amber-300 dark:hover:bg-amber-800/50"
           onClick={() => {
             if (wsId) {
               void downloadLeaveImportErrors(wsId, importJob.id).catch(() => { /* empty */ });
             }
           }}
+          size="sm"
+          variant="outline"
         >
           <Download size={14} /> {t("leave_import.download_errors", "Tải file lỗi")}
-        </button>
+        </Button>
       ) : null}
     </div>
   );
@@ -140,18 +143,22 @@ export function LeaveImportProgressView({ importJob, isProcessing, isFinished, w
       <div className="pt-3 flex gap-4 border-t border-slate-200 dark:border-slate-800">
         {isFinished ? (
           <>
-            <button
-              className="flex-1 px-6 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-800 transition-all active:scale-95"
+            <Button
+              className="flex-1 h-auto py-3 px-6 text-[10px]"
               onClick={() => { setImportJob(null); }}
+              size="sm"
+              variant="outline"
             >
               {t("leave_import.upload_another", "Upload file khác")}
-            </button>
-            <button
-              className="flex-1 px-10 py-3 bg-slate-800 dark:bg-slate-700 text-white rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-primary-700 transition-all shadow-lg active:scale-95"
+            </Button>
+            <Button
+              className="flex-1 h-auto py-3 px-10 text-[10px] bg-slate-800 dark:bg-slate-700"
               onClick={onClose}
+              size="sm"
+              variant="secondary"
             >
               {t("common.close", "Đóng").toUpperCase()}
-            </button>
+            </Button>
           </>
         ) : null}
       </div>

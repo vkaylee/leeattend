@@ -3,6 +3,7 @@ import { X, Clock, AlertCircle } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { useSubmitOtClaim } from "@/hooks/use-ess";
 import { AttendanceDailySummary } from "@/lib/api/types";
@@ -84,20 +85,21 @@ function OtClaimForm({
       )}
 
       <div className="flex justify-end gap-3 pt-2">
-        <button
-          className="px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+        <Button
+          className="h-auto w-auto px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors border-none shadow-none"
           onClick={onClose}
-          type="button"
+          variant="ghost"
         >
           {t("common.cancel")}
-        </button>
-        <button
+        </Button>
+        <Button
           className="px-6 py-2 rounded-xl bg-primary-600 text-white text-xs font-bold uppercase tracking-wider shadow-lg shadow-primary-600/30 hover:bg-primary-700 hover:shadow-xl hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:pointer-events-none"
-          disabled={isSubmitting}
+          loading={isSubmitting}
           type="submit"
+          variant="primary"
         >
           {isSubmitting ? t("common.saving") : t("common.submit")}
-        </button>
+        </Button>
       </div>
     </form>
   );
@@ -168,13 +170,15 @@ export function ClaimOtDialog({ open, onOpenChange, summary }: ClaimOtDialogProp
             </Dialog.Description>
           </div>
           
-          <button 
-            className="absolute right-4 top-4 rounded-full p-2 opacity-70 transition-opacity hover:opacity-100 hover:bg-slate-100 dark:hover:bg-slate-700"
+          <Button 
+            className="absolute right-4 top-4 rounded-full opacity-70 transition-opacity hover:opacity-100 hover:bg-slate-100 dark:hover:bg-slate-700 h-auto w-auto p-2 border-none shadow-none"
             onClick={() => { onOpenChange(false); }}
+            size="icon"
+            variant="ghost"
           >
             <X className="h-4 w-4" />
             <span className="sr-only">{t("ess.ot.close")}</span>
-          </button>
+          </Button>
 
           <OtClaimForm
             error={error}
@@ -193,3 +197,4 @@ export function ClaimOtDialog({ open, onOpenChange, summary }: ClaimOtDialogProp
     </Dialog.Root>
   );
 }
+

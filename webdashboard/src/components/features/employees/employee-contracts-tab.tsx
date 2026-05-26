@@ -1,10 +1,11 @@
-import { Plus, FileText, Pencil, Trash2 } from "lucide-react";
+import { FileText, Pencil, Plus, Trash2 } from "lucide-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import type { EmployeeContract, ContractType, ContractStatus } from "@/lib/api";
+import type { ContractStatus, ContractType, EmployeeContract } from "@/lib/api";
 
 import PermissionGate from "@/components/common/permission-gate";
+import Button from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useEmployeeContracts } from "@/pages/employees/hooks/use-employee-contracts";
 
@@ -60,15 +61,17 @@ export default function EmployeeContractsTab({ wsId, employeeId, formatDate }: E
           <FileText className="text-primary-500" size={14} /> {t("employees.details.contracts.title").toUpperCase()}
         </span>
         <PermissionGate permission="employees:update">
-          <button 
-            className="flex items-center gap-1.5 text-[10px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest hover:bg-primary-50 dark:hover:bg-primary-900/50 py-1.5 px-3 rounded-full transition-colors"
+          <Button 
+            className="flex items-center gap-1.5 text-[10px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest hover:bg-primary-50 dark:hover:bg-primary-900/50 py-1.5 px-3 rounded-full transition-colors h-auto shadow-none border-none"
             onClick={() => {
               setEditingContract(null);
               setIsModalOpen(true);
             }}
+            type="button"
+            variant="ghost"
           >
             <Plus size={14} /> {t("employees.details.contracts.sign_contract").toUpperCase()}
-          </button>
+          </Button>
         </PermissionGate>
       </div>
 
@@ -95,18 +98,21 @@ export default function EmployeeContractsTab({ wsId, employeeId, formatDate }: E
                       {!!contract.contract_number && <div className="text-[10px] font-mono text-slate-500 dark:text-slate-400">{t("employees.details.contracts.contract_number").replace("{{number}}", contract.contract_number)}</div>}
                     </div>
                     <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity relative z-20">
-                      <button 
-                          className="p-2 text-slate-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/30 rounded-xl transition-colors"
+                      <Button 
+                          className="p-2 text-slate-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/30 rounded-xl transition-colors h-auto w-auto shadow-none"
                           onClick={() => {
                             setEditingContract(contract);
                             setIsModalOpen(true);
                           }}
+                          size="icon"
+                          type="button"
+                          variant="ghost"
                       >
                         <Pencil size={14} />
-                      </button>
-                      <button className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-xl transition-colors" onClick={() => { deleteContract.mutate(contract.id); }}>
+                      </Button>
+                      <Button className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-xl transition-colors h-auto w-auto shadow-none" onClick={() => { deleteContract.mutate(contract.id); }} size="icon" type="button" variant="ghost">
                         <Trash2 size={14} />
-                      </button>
+                      </Button>
                     </div>
                   </div>
                   

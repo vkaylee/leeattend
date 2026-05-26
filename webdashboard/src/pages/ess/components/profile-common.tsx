@@ -3,6 +3,7 @@ import React from "react";
 
 import { TFunction } from "i18next";
 
+import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
 
@@ -98,16 +99,18 @@ export function TabButton({
   onClick: () => void;
 }) {
   return (
-    <button
+    <Button
       className={cn(
-        "flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all",
+        "flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all border-none shadow-none h-auto w-auto",
         active
           ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800"
           : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
       )}
       onClick={onClick}
+      variant="ghost"
     >
       {icon} {label}
-    </button>
+    </Button>
   );
 }
+

@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, act } from "@testing-library/react";
+
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
 import { PatternModals } from "../modals";
@@ -8,7 +9,7 @@ vi.mock("@/components/ui/modal", () => ({
   default: ({ isOpen, onClose, children, title }: any) => (
     isOpen ? (
       <div data-testid="modal">
-        <h2>{title}</h2>
+        <div className="text-lg font-semibold" data-testid="modal-title">{title}</div>
         {children}
         <button data-testid="close-modal" onClick={onClose}>Close</button>
       </div>
@@ -29,7 +30,7 @@ vi.mock("@/components/ui/combobox", () => ({
 
 vi.mock("@/components/common/employee-search", () => ({
   EmployeeSearch: ({ onChange }: any) => (
-    <input data-testid="employee-search" onChange={(e) => onChange(["emp-1"])} />
+    <input data-testid="employee-search" onChange={() => onChange(["emp-1"])} />
   ),
 }));
 

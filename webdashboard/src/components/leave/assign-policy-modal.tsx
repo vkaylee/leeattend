@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 
 import { format } from "date-fns";
 
+import Button from "@/components/ui/button";
 import Modal from "@/components/ui/modal";
 
 import { 
@@ -87,8 +88,25 @@ export function AssignPolicyModal({ isOpen, onClose, wsId }: AssignPolicyModalPr
         </div>
 
         <div className="pt-4 flex gap-4">
-          <button className="flex-1 px-8 py-4 bg-white dark:bg-slate-900 border border-primary-200 dark:border-primary-800/50 rounded-2xl font-bold text-xs uppercase tracking-widest text-primary-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all" onClick={onClose} type="button">{t("common.cancel")}</button>
-          <button className="flex-1 bg-primary-600 text-white rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-200 active:scale-95 disabled:opacity-50" data-testid="submit-assign-policy-btn" disabled={assignMutation.isPending} type="submit">{assignMutation.isPending ? t("common.processing").toUpperCase() : t("leave_requests.policy.assign_now_btn").toUpperCase()}</button>
+          <Button
+            className="flex-1 h-auto py-4 px-8 border-primary-200 text-primary-400 dark:border-primary-800/50"
+            onClick={onClose}
+            size="md"
+            type="button"
+            variant="outline"
+          >
+            {t("common.cancel")}
+          </Button>
+          <Button
+            className="flex-1 shadow-primary-200"
+            data-testid="submit-assign-policy-btn"
+            disabled={assignMutation.isPending}
+            size="md"
+            type="submit"
+            variant="primary"
+          >
+            {assignMutation.isPending ? t("common.processing").toUpperCase() : t("leave_requests.policy.assign_now_btn").toUpperCase()}
+          </Button>
         </div>
       </form>
     </Modal>

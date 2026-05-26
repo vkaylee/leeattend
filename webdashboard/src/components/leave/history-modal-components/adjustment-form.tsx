@@ -1,6 +1,7 @@
 import { Plus, Minus, Calendar, MessageSquare, Loader2 } from "lucide-react";
 import React from "react";
 
+import Button from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 interface AdjustmentFormState {
@@ -44,8 +45,22 @@ export function AdjustmentForm({
         <div className="space-y-3">
           <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("leave_balances.history.action_label")}</label>
           <div className="grid grid-cols-2 gap-3 p-1.5 bg-slate-100 dark:bg-slate-700/50 rounded-2xl border border-slate-200 dark:border-slate-700/50 shadow-inner">
-            <button className={cn("flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-bold uppercase tracking-widest transition-all", adjustForm.type === "add" ? "bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-300 shadow-sm border border-slate-100 dark:border-slate-800" : "text-slate-500 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 dark:text-slate-600")} onClick={() => { setAdjustForm({ ...adjustForm, type: "add" }); }} type="button"><Plus size={14} /> {t("leave_balances.history.add")}</button>
-            <button className={cn("flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-bold uppercase tracking-widest transition-all", adjustForm.type === "deduct" ? "bg-white dark:bg-slate-900 text-rose-600 dark:text-rose-300 shadow-sm border border-slate-100 dark:border-slate-800" : "text-slate-500 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 dark:text-slate-600")} onClick={() => { setAdjustForm({ ...adjustForm, type: "deduct" }); }} type="button"><Minus size={14} /> {t("leave_balances.history.deduct")}</button>
+            <Button
+              className={cn("flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-bold uppercase tracking-widest transition-all h-auto", adjustForm.type === "add" ? "bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-300 shadow-sm border border-slate-100 dark:border-slate-800" : "text-slate-500 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 dark:text-slate-600")}
+              onClick={() => { setAdjustForm({ ...adjustForm, type: "add" }); }}
+              type="button"
+              variant="ghost"
+            >
+              <Plus size={14} /> {t("leave_balances.history.add")}
+            </Button>
+            <Button
+              className={cn("flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-bold uppercase tracking-widest transition-all h-auto", adjustForm.type === "deduct" ? "bg-white dark:bg-slate-900 text-rose-600 dark:text-rose-300 shadow-sm border border-slate-100 dark:border-slate-800" : "text-slate-500 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 dark:text-slate-600")}
+              onClick={() => { setAdjustForm({ ...adjustForm, type: "deduct" }); }}
+              type="button"
+              variant="ghost"
+            >
+              <Minus size={14} /> {t("leave_balances.history.deduct")}
+            </Button>
           </div>
         </div>
         <div className="space-y-3">
@@ -80,10 +95,24 @@ export function AdjustmentForm({
       </div>
 
       <div className="flex gap-4 pt-4 border-t border-slate-50 dark:border-slate-800">
-        <button className="flex-1 px-8 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl font-bold text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all" onClick={onCancel} type="button">{t("common.cancel")}</button>
-        <button className="flex-1 bg-primary-600 text-white rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-slate-200 dark:shadow-black/30 active:scale-95 disabled:opacity-50 flex items-center justify-center gap-3" disabled={isPending} type="submit">
+        <Button
+          className="flex-1 h-auto py-4 px-8"
+          onClick={onCancel}
+          size="md"
+          type="button"
+          variant="outline"
+        >
+          {t("common.cancel")}
+        </Button>
+        <Button
+          className="flex-1 shadow-slate-200 dark:shadow-black/30"
+          disabled={isPending}
+          size="md"
+          type="submit"
+          variant="primary"
+        >
           {isPending ? <Loader2 className="animate-spin w-5 h-5" /> : <Shield size={18} />} {t("leave_balances.history.confirm_btn")}
-        </button>
+        </Button>
       </div>
     </form>
   );

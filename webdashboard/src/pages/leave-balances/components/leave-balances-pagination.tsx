@@ -2,7 +2,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
-import { cn } from "@/lib/utils";
+import Button from "@/components/ui/button";
 
 interface LeaveBalancesPaginationProps {
   limit: number;
@@ -30,13 +30,14 @@ export const LeaveBalancesPagination: React.FC<LeaveBalancesPaginationProps> = (
       </div>
 
       <div className="flex items-center gap-2">
-        <button
-          className="p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        <Button
+          className="h-8 w-8 p-0 rounded-xl"
           disabled={page === 1}
           onClick={() => { onPageChange(Math.max(1, page - 1)); }}
+          variant="outline"
         >
           <ChevronLeft className="w-4 h-4 text-slate-600 dark:text-slate-300" />
-        </button>
+        </Button>
 
         <div className="flex items-center gap-1">
           {Array.from({ length: Math.min(5, totalPages) }, (_, index) => {
@@ -47,30 +48,28 @@ export const LeaveBalancesPagination: React.FC<LeaveBalancesPaginationProps> = (
             }
 
             return (
-              <button
-                className={cn(
-                  "w-8 h-8 flex items-center justify-center rounded-xl text-xs font-bold transition-all",
-                  page === p
-                    ? "bg-primary-600 text-white shadow-md shadow-primary-100"
-                    : "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
-                )}
+              <Button
+                className="h-8 w-8 rounded-xl text-xs"
                 key={p}
                 onClick={() => { onPageChange(p); }}
+                variant={page === p ? "primary" : "outline"}
               >
                 {p}
-              </button>
+              </Button>
             );
           })}
         </div>
 
-        <button
-          className="p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        <Button
+          className="h-8 w-8 p-0 rounded-xl"
           disabled={page === totalPages}
           onClick={() => { onPageChange(Math.min(totalPages, page + 1)); }}
+          variant="outline"
         >
           <ChevronRight className="w-4 h-4 text-slate-600 dark:text-slate-300" />
-        </button>
+        </Button>
       </div>
     </div>
   );
 };
+

@@ -2,6 +2,7 @@ import { Eye, History } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
+import Button from "@/components/ui/button";
 import { WorkspaceLeaveBalance } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 
@@ -72,21 +73,24 @@ export const MobileBalanceCard: React.FC<MobileBalanceCardProps> = ({
       </div>
 
       <div className="flex items-center gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
-        <button
-          className="flex-1 flex items-center justify-center gap-2 px-4 py-3.5 bg-primary-600 hover:bg-primary-700 text-white font-bold uppercase tracking-wider text-xs rounded-xl transition-all active:scale-95 shadow-lg shadow-primary-200 min-h-[44px]"
-          onClick={() => { onViewDetails(); }}
+        <Button
+          className="flex-1 min-h-[44px] h-auto py-3.5 px-4 rounded-xl gap-2 font-bold uppercase tracking-wider text-xs shadow-lg shadow-primary-200"
+          onClick={onViewDetails}
+          variant="primary"
         >
           <Eye className="h-5 w-5" />
           <span>{t("leave_balances.view_details")}</span>
-        </button>
-        <button
-          className="p-3.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:bg-slate-600 text-slate-600 dark:text-slate-300 rounded-xl transition-all active:scale-95 min-w-[44px] min-h-[44px] flex-shrink-0"
-          onClick={() => { onViewHistory(); }}
+        </Button>
+        <Button
+          className="p-3.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 rounded-xl min-w-[44px] min-h-[44px] h-auto flex-shrink-0 flex items-center justify-center border-none shadow-none"
+          onClick={onViewHistory}
           title={t("leave_balances.table.history_tooltip")}
+          variant="ghost"
         >
           <History className="h-5 w-5" />
-        </button>
+        </Button>
       </div>
     </div>
   );
 };
+

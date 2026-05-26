@@ -3,6 +3,7 @@ import { Building2, Check, ListFilter, X } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
+import Button from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 import type { Employee, Department } from "../../../lib/api/types";
@@ -47,9 +48,9 @@ export const DepartmentFilterHeader = ({
   return (
     <Popover.Root>
       <Popover.Trigger asChild>
-        <button
+        <Button
           className={cn(
-            "relative inline-flex items-center justify-center w-5 h-5 rounded transition-colors",
+            "relative h-5 w-5 rounded transition-colors p-0 border-none shadow-none hover:bg-transparent",
             filterDeptIds.length > 0
               ? "text-primary-600 dark:text-primary-400"
               : "text-slate-400 dark:text-slate-500 opacity-60 hover:opacity-100 hover:text-primary-600"
@@ -57,7 +58,7 @@ export const DepartmentFilterHeader = ({
           data-testid="dept-filter-btn"
           onClick={(e) => { e.stopPropagation(); }}
           title={t("employees.filter_department", "Filter by department")}
-          type="button"
+          variant="ghost"
         >
           <ListFilter size={12} />
           {filterDeptIds.length > 0 && (
@@ -65,7 +66,7 @@ export const DepartmentFilterHeader = ({
               {filterDeptIds.length}
             </span>
           )}
-        </button>
+        </Button>
       </Popover.Trigger>
       <Popover.Portal>
         <Popover.Content
@@ -81,31 +82,31 @@ export const DepartmentFilterHeader = ({
           </div>
           <div className="max-h-60 overflow-y-auto custom-scrollbar">
             {filterDeptIds.length > 0 && (
-              <button
-                className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-[11px] font-bold uppercase tracking-wide text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors mb-1"
+              <Button
+                className="h-auto w-full px-3 py-2 flex items-center gap-3 rounded-xl text-[11px] font-bold uppercase tracking-wide text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors mb-1 border-none shadow-none justify-start"
                 onClick={() => { setFilterDeptIds([]); }}
-                type="button"
+                variant="ghost"
               >
                 <X className="shrink-0" size={12} />
                 {t("employees.clear_filter", "Xóa bộ lọc")}
-              </button>
+              </Button>
             )}
 
             {departments && departments.length > 0 ? (
               departments.map(d => {
                 const isChecked = filterDeptIds.includes(d.id);
                 return (
-                  <button
+                  <Button
                     className={cn(
-                      "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[11px] font-bold uppercase tracking-wide transition-colors",
+                      "h-auto w-full px-3 py-2.5 flex items-center gap-3 rounded-xl text-[11px] font-bold uppercase tracking-wide transition-colors border-none shadow-none justify-start",
                       isChecked
-                        ? "bg-primary-50 dark:bg-primary-950 text-primary-600 dark:text-primary-400"
+                        ? "bg-primary-50 dark:bg-primary-950 text-primary-600 dark:text-primary-400 hover:bg-primary-100 dark:hover:bg-primary-900"
                         : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
                     )}
                     data-testid={`dept-filter-option-${d.id}`}
                     key={d.id}
                     onClick={() => { toggleDeptFilter(d.id); }}
-                    type="button"
+                    variant="ghost"
                   >
                     <div className={cn("w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors",
                       isChecked
@@ -116,7 +117,7 @@ export const DepartmentFilterHeader = ({
                     </div>
                     <Building2 className="opacity-50 shrink-0" size={12} />
                     <span className="truncate">{d.name}</span>
-                  </button>
+                  </Button>
                 );
               })
             ) : (
@@ -130,3 +131,4 @@ export const DepartmentFilterHeader = ({
     </Popover.Root>
   );
 };
+

@@ -1,17 +1,18 @@
-import { ShieldAlert, Building2, Users } from "lucide-react";
+import { Building2, ShieldAlert, Users } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import {
-    BarChart,
     Bar,
+    BarChart,
+    CartesianGrid,
+    ResponsiveContainer,
+    Tooltip,
     XAxis,
     YAxis,
-    CartesianGrid,
-    Tooltip,
-    ResponsiveContainer,
 } from "recharts";
 
+import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { useUnexcusedAbsences } from "@/hooks/use-dashboard";
 import { cn } from "@/lib/utils";
@@ -169,6 +170,15 @@ export default function UnexcusedAbsencesChart() {
     );
 }
 
+interface ChartHeaderProps {
+    groupBy: GroupBy;
+    groupByOptions: { icon: typeof Building2; key: GroupBy; label: string }[];
+    preset: RangePreset;
+    presets: { key: RangePreset; label: string }[];
+    setGroupBy: (g: GroupBy) => void;
+    setPreset: (p: RangePreset) => void;
+}
+
 function ChartHeader({
     presets,
     preset,
@@ -176,14 +186,7 @@ function ChartHeader({
     groupByOptions,
     groupBy,
     setGroupBy,
-}: {
-    groupBy: GroupBy;
-    groupByOptions: { icon: typeof Building2; key: GroupBy; label: string }[];
-    preset: RangePreset;
-    presets: { key: RangePreset; label: string }[];
-    setGroupBy: (g: GroupBy) => void;
-    setPreset: (p: RangePreset) => void;
-}) {
+}: ChartHeaderProps) {
     const { t } = useTranslation();
     return (
         <div className="flex items-center justify-between mb-8">
@@ -206,37 +209,41 @@ function ChartHeader({
                     {groupByOptions.map((g) => {
                         const Icon = g.icon;
                         return (
-                            <button
+                            <Button
                                 className={cn(
-                                    "px-3 py-1.5 rounded-[10px] text-[9px] font-bold uppercase tracking-widest transition-all flex items-center gap-1.5",
+                                    "px-3 py-1.5 rounded-[10px] text-[9px] font-bold uppercase tracking-widest transition-all flex items-center gap-1.5 h-auto shadow-none border border-transparent",
                                     groupBy === g.key
-                                        ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800"
-                                        : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                                        ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-900"
+                                        : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-transparent"
                                 )}
                                 key={g.key}
                                 onClick={() => { setGroupBy(g.key); }}
+                                type="button"
+                                variant="ghost"
                             >
                                 <Icon size={12} />
                                 {g.label}
-                            </button>
+                            </Button>
                         );
                     })}
                 </div>
 
                 <div className="flex bg-slate-100 dark:bg-slate-700/50 p-1 rounded-[14px] border border-slate-200 dark:border-slate-700/50 shadow-inner">
                     {presets.map((p) => (
-                        <button
+                        <Button
                             className={cn(
-                                "px-5 py-1.5 rounded-[10px] text-[9px] font-bold uppercase tracking-widest transition-all",
+                                "px-5 py-1.5 rounded-[10px] text-[9px] font-bold uppercase tracking-widest transition-all h-auto shadow-none border border-transparent",
                                 preset === p.key
-                                    ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800"
-                                    : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                                    ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border-slate-100 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-900"
+                                    : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-transparent"
                             )}
                             key={p.key}
                             onClick={() => { setPreset(p.key); }}
+                            type="button"
+                            variant="ghost"
                         >
                             {p.label}
-                        </button>
+                        </Button>
                     ))}
                 </div>
             </div>

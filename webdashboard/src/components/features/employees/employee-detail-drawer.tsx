@@ -1,21 +1,22 @@
 import { useQuery } from "@tanstack/react-query";
 import {
-    Trash2,
     Building2,
     Calendar,
+    Pencil,
+    Trash2,
+    User,
     UserPlus,
     X,
-    Pencil,
-    User,
 } from "lucide-react";
-import React, { useState, useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import type { Employee, Department, WorkspaceMember } from "@/lib/api";
+import type { Department, Employee, WorkspaceMember } from "@/lib/api";
 
 import PermissionGate from "@/components/common/permission-gate";
 import WorkingConditionConfig from "@/components/employees/working-condition-config";
 import EmployeeSalaryConfig from "@/components/payroll/employee-salary-config";
+import Button from "@/components/ui/button";
 import Sheet from "@/components/ui/sheet";
 import { Typography } from "@/components/ui/typography";
 import { fetchWorkspaceMembers } from "@/lib/api";
@@ -77,7 +78,7 @@ function DrawerHeader({
                         </div>
                     </div>
                 </div>
-                <button className="p-3 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-[1.25rem] transition-all shadow-md active:scale-90 border border-slate-100 dark:border-slate-800 text-slate-300 dark:text-slate-600 hover:text-rose-600 dark:text-rose-300" onClick={onClose}><X size={24} /></button>
+                <Button className="p-3 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-[1.25rem] transition-all shadow-md active:scale-90 border border-slate-100 dark:border-slate-800 text-slate-300 dark:text-slate-600 hover:text-rose-600 dark:text-rose-300 h-auto w-auto shadow-none" onClick={onClose} size="icon" type="button" variant="ghost"><X size={24} /></Button>
             </div>
 
             <div className="flex overflow-x-auto scrollbar-hide bg-white dark:bg-slate-900/50 p-1.5 rounded-[22px] border border-slate-200 dark:border-slate-700/50 shadow-inner w-full max-w-full relative">
@@ -88,7 +89,7 @@ function DrawerHeader({
                     { id: "salary", label: t("employees.details.salary_benefits") },
                     { id: "policies", label: t("employees.details.special_policies") }
                 ].map(tab => (
-                    <button className={cn("px-5 py-2.5 shrink-0 whitespace-nowrap rounded-[18px] text-[10px] font-bold uppercase tracking-widest transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500", activeDetailTab === tab.id ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 border border-transparent")} data-testid={`employees-tab-${tab.id}`} key={tab.id} onClick={() => { setActiveDetailTab(tab.id as DetailTabType); }}>{tab.label.toUpperCase()}</button>
+                    <Button className={cn("px-5 py-2.5 shrink-0 whitespace-nowrap rounded-[18px] text-[10px] font-bold uppercase tracking-widest transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 h-auto shadow-none border border-transparent", activeDetailTab === tab.id ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-900" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-transparent")} data-testid={`employees-tab-${tab.id}`} key={tab.id} onClick={() => { setActiveDetailTab(tab.id as DetailTabType); }} type="button" variant="ghost">{tab.label.toUpperCase()}</Button>
                 ))}
             </div>
         </div>
@@ -124,13 +125,13 @@ function ProfileTab({
         <div className="space-y-10">
             <div className="grid grid-cols-2 gap-6">
                 <PermissionGate permission="employees:update">
-                    <button className="flex items-center justify-center gap-3 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-bold rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600 transition-all text-xs uppercase tracking-widest shadow-sm active:scale-95" data-testid="employees-btn-edit" onClick={() => { onEdit(employee); }}><Pencil size={18} /> {t("employees.details.edit_profile").toUpperCase()}</button>
+                    <Button className="flex items-center justify-center gap-3 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-bold rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600 transition-all text-xs uppercase tracking-widest shadow-sm active:scale-95 h-auto" data-testid="employees-btn-edit" onClick={() => { onEdit(employee); }} type="button" variant="outline"><Pencil size={18} /> {t("employees.details.edit_profile").toUpperCase()}</Button>
                 </PermissionGate>
                 <PermissionGate permission="employees:update">
                     {employee.is_active ? (
-                        <button className="flex items-center justify-center gap-3 py-4 bg-rose-50 dark:bg-rose-950 text-rose-600 dark:text-rose-300 font-bold rounded-2xl hover:bg-rose-100 dark:bg-rose-900 transition-all text-xs uppercase tracking-widest active:scale-95 shadow-sm shadow-rose-900/5" data-testid="employees-btn-terminate" onClick={() => { onTerminate(employee); }}><Trash2 size={18} /> {t("employees.details.terminate").toUpperCase()}</button>
+                        <Button className="flex items-center justify-center gap-3 py-4 bg-rose-50 dark:bg-rose-950 text-rose-600 dark:text-rose-300 font-bold rounded-2xl hover:bg-rose-100 dark:bg-rose-900 transition-all text-xs uppercase tracking-widest active:scale-95 shadow-sm shadow-rose-900/5 h-auto" data-testid="employees-btn-terminate" onClick={() => { onTerminate(employee); }} type="button" variant="destructive"><Trash2 size={18} /> {t("employees.details.terminate").toUpperCase()}</Button>
                     ) : (
-                        <button className="flex items-center justify-center gap-3 py-4 bg-primary-600 text-white font-bold rounded-2xl hover:bg-primary-700 transition-all text-xs uppercase tracking-widest shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95" data-testid="employees-btn-rehire" onClick={() => { onRehire(employee); }}><UserPlus size={18} /> {t("employees.details.rehire").toUpperCase()}</button>
+                        <Button className="flex items-center justify-center gap-3 py-4 bg-primary-600 text-white font-bold rounded-2xl hover:bg-primary-700 transition-all text-xs uppercase tracking-widest shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95 h-auto" data-testid="employees-btn-rehire" onClick={() => { onRehire(employee); }} type="button" variant="primary"><UserPlus size={18} /> {t("employees.details.rehire").toUpperCase()}</Button>
                     )}
                 </PermissionGate>
             </div>
@@ -139,7 +140,7 @@ function ProfileTab({
                 <div className="flex justify-between items-center px-2">
                     <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.3em] flex items-center gap-2 opacity-70"><Building2 className="text-primary-500" size={14} /> {t("employees.details.current_dept").toUpperCase()}</span>
                     <PermissionGate permission="employees:update">
-                        <button className="text-[10px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest hover:underline active:scale-90" onClick={() => { onTransfer(deptHistory?.[0]?.department_id ?? ""); }}>{t("employees.details.transfer").toUpperCase()}</button>
+                        <Button className="text-[10px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest hover:underline active:scale-90 h-auto shadow-none border-none p-0" onClick={() => { onTransfer(deptHistory?.[0]?.department_id ?? ""); }} type="button" variant="ghost">{t("employees.details.transfer").toUpperCase()}</Button>
                     </PermissionGate>
                 </div>
                 <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 p-8 rounded-[2.5rem] group hover:bg-white dark:hover:bg-slate-900 hover:shadow-xl hover:shadow-primary-100/10 transition-all shadow-inner relative overflow-hidden">

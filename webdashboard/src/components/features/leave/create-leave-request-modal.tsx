@@ -71,9 +71,9 @@ function LeaveDurationSelector({
           { value: "second_half" as LeaveDurationType, label: t("leave_requests.duration.second_half"), icon: <Moon size={12} /> },
           { value: "custom_hours" as LeaveDurationType, label: t("leave_requests.duration.custom_hours"), icon: <Timer size={12} /> },
         ]).map(opt => (
-          <button
+          <Button
             className={cn(
-              "flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-[9px] font-bold uppercase tracking-wider transition-all",
+              "flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-[9px] font-bold uppercase tracking-wider transition-all border-none shadow-none h-auto w-auto",
               durationType === opt.value
                 ? "bg-white dark:bg-slate-900 text-primary-700 dark:text-primary-300 shadow-sm border border-primary-100 dark:border-primary-800/50"
                 : "text-primary-400 hover:text-primary-600 dark:text-primary-500 dark:hover:text-primary-300"
@@ -85,10 +85,10 @@ function LeaveDurationSelector({
                 setEndDate(startDate);
               }
             }}
-            type="button"
+            variant="ghost"
           >
             {opt.icon} {opt.label}
-          </button>
+          </Button>
         ))}
       </div>
       {durationType !== "full_day" && durationType !== "custom_hours" && (

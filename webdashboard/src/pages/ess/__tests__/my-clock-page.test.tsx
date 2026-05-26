@@ -1,11 +1,14 @@
-import { render, screen, fireEvent, act } from "@testing-library/react";
+import * as reactQuery from "@tanstack/react-query";
+import { render, screen, fireEvent, act, waitFor } from "@testing-library/react";
+
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
-import MyClockPage from "../my-clock-page";
+import Button from "@/components/ui/button";
+import * as toastHook from "@/components/ui/toast";
 import * as essHooks from "@/hooks/use-ess";
 import * as api from "@/lib/api";
-import * as toastHook from "@/components/ui/toast";
-import * as reactQuery from "@tanstack/react-query";
+
+import MyClockPage from "../my-clock-page";
 
 // Mock hooks and libs
 vi.mock("@/hooks/use-ess", () => ({
@@ -33,7 +36,7 @@ vi.mock("@tanstack/react-query", () => ({
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
-    t: (key: string, defaultString?: string) => defaultString || key,
+    t: (key: string, defaultString?: string) => defaultString ?? key,
   }),
 }));
 
@@ -48,8 +51,8 @@ vi.mock("../components/my-clock-skeleton", () => ({
 vi.mock("@/components/time-tracking/punch-card", () => ({
   PunchCard: ({ onPunch, onRequestAdjustment }: any) => (
     <div data-testid="punch-card">
-      <button data-testid="punch-btn" onClick={onPunch}>Punch</button>
-      <button data-testid="adjust-btn" onClick={onRequestAdjustment}>Adjust</button>
+      <Button data-testid="punch-btn" onClick={onPunch}>Punch</Button>
+      <Button data-testid="adjust-btn" onClick={onRequestAdjustment}>Adjust</Button>
     </div>
   )
 }));
@@ -58,8 +61,8 @@ vi.mock("@/components/time-tracking/adjustment-request-modal", () => ({
   AdjustmentRequestModal: ({ isOpen, onClose, onSubmit }: any) => (
     isOpen ? (
       <div data-testid="adjustment-modal">
-        <button data-testid="close-modal" onClick={onClose}>Close</button>
-        <button data-testid="submit-modal" onClick={() => onSubmit({ date: "2026-05-01", punchIn: "08:00", punchOut: "17:00", reason: "Forgot" })}>Submit</button>
+        <Button data-testid="close-modal" onClick={onClose}>Close</Button>
+        <Button data-testid="submit-modal" onClick={() => onSubmit({ date: "2026-05-01", punchIn: "08:00", punchOut: "17:00", reason: "Forgot" })}>Submit</Button>
       </div>
     ) : null
   )
@@ -112,11 +115,11 @@ describe("MyClockPage", () => {
     
     expect(screen.getByTestId("punch-card")).toBeInTheDocument();
     
-    await act(async () => {
+    act(() => {
       fireEvent.click(screen.getByTestId("punch-btn"));
     });
 
-    expect(mockPunch).toHaveBeenCalled();
+    await waitFor(() => expect(mockPunch).toHaveBeenCalled());
     expect(mockToast.success).toHaveBeenCalledWith("Chấm công thành công");
   });
 
@@ -133,11 +136,11 @@ describe("MyClockPage", () => {
 
     render(<MyClockPage />);
     
-    await act(async () => {
+    act(() => {
       fireEvent.click(screen.getByTestId("punch-btn"));
     });
 
-    expect(mockToast.error).toHaveBeenCalledWith("Network Error");
+    await waitFor(() => expect(mockToast.error).toHaveBeenCalledWith("Network Error"));
   });
 
   it("handles adjustment request successfully", async () => {
@@ -158,16 +161,18 @@ describe("MyClockPage", () => {
 
     expect(screen.getByTestId("adjustment-modal")).toBeInTheDocument();
 
-    await act(async () => {
+    act(() => {
       fireEvent.click(screen.getByTestId("submit-modal"));
     });
 
-    expect(mockSubmit).toHaveBeenCalledWith("ws-123", {
-      employee_id: "emp-1",
-      reason: "Forgot",
-      requested_punch_in_time: "2026-05-01T08:00Z",
-      requested_punch_out_time: "2026-05-01T17:00Z",
-      time_entry_id: undefined,
+    await waitFor(() => {
+      expect(mockSubmit).toHaveBeenCalledWith("ws-123", {
+        employee_id: "emp-1",
+        reason: "Forgot",
+        requested_punch_in_time: "2026-05-01T08:00Z",
+        requested_punch_out_time: "2026-05-01T17:00Z",
+        time_entry_id: undefined,
+      });
     });
     expect(mockToast.success).toHaveBeenCalledWith("ess.clock.adjustment_requested");
 
@@ -179,7 +184,7 @@ describe("MyClockPage", () => {
   });
 
   it("handles adjustment request error", async () => {
-    vi.mocked(api.submitAttendanceAdjustment).mockRejectedValue({ response: { data: { error: "Invalid time" } } } as any);
+    vi.mocked(api.submitAttendanceAdjustment).mockRejectedValue({ response: { data: { error: "Invalid time" } } });
     vi.mocked(essHooks.useMyProfile).mockReturnValue({ 
       isLoading: false, 
       employee: { id: "emp-1" } 
@@ -192,10 +197,10 @@ describe("MyClockPage", () => {
       fireEvent.click(screen.getByTestId("adjust-btn"));
     });
 
-    await act(async () => {
+    act(() => {
       fireEvent.click(screen.getByTestId("submit-modal"));
     });
 
-    expect(mockToast.error).toHaveBeenCalledWith("Invalid time");
+    await waitFor(() => expect(mockToast.error).toHaveBeenCalledWith("Invalid time"));
   });
 });

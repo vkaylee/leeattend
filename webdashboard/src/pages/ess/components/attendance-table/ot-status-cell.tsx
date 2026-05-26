@@ -1,6 +1,7 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
 
+import Button from "@/components/ui/button";
 import { AttendanceDailySummary } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 
@@ -30,16 +31,16 @@ export function OtStatusCell({
         {t("ess.attendance.system_ot_suffix", { minutes: summary.system_detected_ot_minutes })}
       </span>
       {isPending ? (
-        <button
-          className="text-[10px] font-bold uppercase tracking-wider bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-300 px-2 py-1 rounded-lg hover:bg-amber-200 transition-colors"
+        <Button
+          className="h-auto w-auto text-[10px] font-bold uppercase tracking-wider bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-300 px-2 py-1 rounded-lg hover:bg-amber-200 transition-colors border-none shadow-none"
           onClick={() => {
             setSelectedSummary(summary);
             setClaimOpen(true);
           }}
-          type="button"
+          variant="ghost"
         >
           {t("ess.attendance.claim_btn")}
-        </button>
+        </Button>
       ) : (
         <span
           className={cn(
@@ -59,3 +60,4 @@ export function OtStatusCell({
     </div>
   );
 }
+

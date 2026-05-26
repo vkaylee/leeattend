@@ -3,6 +3,7 @@ import type { TFunction, i18n as I18nType } from "i18next";
 import { Upload, FileText, Loader2, AlertCircle, Download } from "lucide-react";
 import React from "react";
 
+import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { downloadLeaveImportTemplate } from "@/lib/api";
 import { cn } from "@/lib/utils";
@@ -79,12 +80,14 @@ function FileDropZone({ file, setFile, t }: { file: File | null; setFile: (file:
           <Typography className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest" variant="p">
             {(file.size / 1024).toFixed(1)} KB — {t("leave_import.ready", "SẴN SÀNG UPLOAD")}
           </Typography>
-          <button
-            className="mt-5 text-[10px] font-bold text-rose-600 dark:text-rose-400 uppercase tracking-widest hover:text-rose-700 dark:hover:text-rose-300 transition-all bg-white dark:bg-slate-900 px-5 py-2 rounded-lg border border-rose-200 dark:border-rose-800 shadow-sm hover:shadow-md active:scale-90"
+          <Button
+            className="mt-5 text-[10px] px-5 py-2 h-auto rounded-lg shadow-sm border-rose-200 text-rose-600 hover:text-rose-700 dark:border-rose-800 dark:text-rose-400 dark:hover:text-rose-300"
             onClick={(e) => { e.stopPropagation(); setFile(null); }}
+            size="sm"
+            variant="outline"
           >
             {t("leave_import.select_another", "Chọn file khác")}
-          </button>
+          </Button>
         </div>
       ) : (
         <div className="text-center group-hover:scale-105 transition-transform duration-500">
@@ -110,8 +113,8 @@ export function LeaveImportUploadView({ file, setFile, wsId, i18n, t, uploading,
       <RequirementsPanel t={t} />
 
       {/* Download Template Button */}
-      <button
-        className="w-full flex items-center justify-center gap-3 px-6 py-3.5 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/50 rounded-2xl text-emerald-700 dark:text-emerald-300 font-bold text-[10px] uppercase tracking-widest hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition-all active:scale-[0.98] group disabled:opacity-50"
+      <Button
+        className="w-full h-auto py-3.5 border-emerald-200 bg-emerald-50 text-[10px] text-emerald-700 hover:bg-emerald-100 dark:border-emerald-800/50 dark:bg-emerald-950/30 dark:text-emerald-300 dark:hover:bg-emerald-900/30 group"
         disabled={downloadingTemplate || !wsId}
         onClick={async () => {
           if (!wsId) return;
@@ -122,33 +125,39 @@ export function LeaveImportUploadView({ file, setFile, wsId, i18n, t, uploading,
             setDownloadingTemplate(false);
           }
         }}
+        size="md"
+        variant="outline"
       >
         {downloadingTemplate ? <Loader2 className="animate-spin" size={16} /> : <Download className="group-hover:animate-bounce" size={16} />}
         {t("leave_import.download_template", "Tải file mẫu Excel")}
-      </button>
+      </Button>
 
       {/* File Drop Zone */}
       <FileDropZone file={file} setFile={setFile} t={t} />
 
       {/* Footer buttons */}
       <div className="flex gap-4 pt-3 border-t border-slate-200 dark:border-slate-800">
-        <button
-          className="flex-1 px-6 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-800 transition-all active:scale-95"
+        <Button
+          className="flex-1 h-auto py-3 px-6 text-[10px]"
           onClick={onClose}
+          size="sm"
+          variant="outline"
         >
           {t("common.cancel", "Hủy")}
-        </button>
-        <button
-          className="flex-[1.5] py-3 bg-primary-600 text-white rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-primary-700 transition-all shadow-lg shadow-primary-200/50 dark:shadow-primary-900/30 active:scale-95 disabled:opacity-50 flex items-center justify-center gap-3"
+        </Button>
+        <Button
+          className="flex-[1.5] h-auto py-3 text-[10px]"
           disabled={!file || uploading}
           onClick={() => { void handleUpload(); }}
+          size="sm"
+          variant="primary"
         >
           {uploading ? (
             <><Loader2 className="animate-spin" size={18} /> {t("leave_import.uploading", "ĐANG UPLOAD...")}</>
           ) : (
             t("leave_import.start_import", "BẮT ĐẦU IMPORT").toUpperCase()
           )}
-        </button>
+        </Button>
       </div>
     </div>
   );

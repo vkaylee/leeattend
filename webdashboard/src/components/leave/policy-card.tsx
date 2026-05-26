@@ -1,6 +1,7 @@
 import { Clock, Milestone, Pencil, Trash2 } from "lucide-react";
 import React from "react";
 
+import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { LeavePolicy } from "@/lib/api/types";
 
@@ -21,20 +22,24 @@ export function PolicyCard({ policy, typeName, bonusCount, onEdit, onDelete }: P
             {typeName}
           </span>
           <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            <button 
-              className="p-2 text-slate-400 dark:text-slate-500 hover:text-primary-600 dark:text-primary-400 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-800" 
+            <Button 
+              className="h-9 w-9 p-2 text-slate-400 dark:text-slate-500 hover:text-primary-600 dark:text-primary-400 bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800" 
               data-testid="edit-policy-btn" 
               onClick={() => { onEdit(policy); }}
+              size="icon"
+              variant="outline"
             >
               <Pencil size={16} />
-            </button>
-            <button 
-              className="p-2 text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:text-rose-300 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-800" 
+            </Button>
+            <Button 
+              className="h-9 w-9 p-2 text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:text-rose-300 bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800" 
               data-testid="delete-policy-btn" 
               onClick={() => { onDelete(policy.id); }}
+              size="icon"
+              variant="outline"
             >
               <Trash2 size={16} />
-            </button>
+            </Button>
           </div>
         </div>
         <Typography className="mt-5 text-lg font-bold text-slate-800 dark:text-slate-100 tracking-tight leading-none uppercase" variant="h3">{policy.name}</Typography>

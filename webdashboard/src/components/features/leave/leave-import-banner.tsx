@@ -5,6 +5,7 @@ import React from "react";
 
 import type { LeaveImportJob } from "@/lib/api/leaves";
 
+import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { downloadLeaveImportErrors } from "@/lib/api";
 import { cn } from "@/lib/utils";
@@ -74,12 +75,13 @@ function PartialSuccessState({ importJob, wsId, t }: { importJob: LeaveImportJob
           .replace('{{errors}}', String(errorCount))}
       </Typography>
       {info?.error_file_path ? (
-        <button
-          className="ml-2 flex items-center gap-1.5 text-xs font-bold text-amber-600 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-200 underline underline-offset-2"
+        <Button
+          className="ml-2 flex items-center gap-1.5 text-xs font-bold text-amber-600 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-200 underline underline-offset-2 border-none shadow-none h-auto w-auto p-0 hover:bg-transparent"
           onClick={() => { void downloadLeaveImportErrors(wsId, importJob.id).catch(() => { /* empty */ }); }}
+          variant="ghost"
         >
           <Download size={14} /> {t("leave_requests.download_errors", "Tải file lỗi")}
-        </button>
+        </Button>
       ) : null}
     </>
   );
@@ -128,9 +130,14 @@ export function LeaveImportBanner({ importJob, importBannerDismissed, setImportB
         <FailedState importJob={importJob} t={t} />
       </div>
       {showCloseButton ? (
-        <button className="text-primary-400 hover:text-primary-600 transition-colors flex-shrink-0" onClick={() => { setImportBannerDismissed(true); }}>
+        <Button 
+          className="text-primary-400 hover:text-primary-600 transition-colors flex-shrink-0 border-none shadow-none h-auto w-auto p-0 hover:bg-transparent" 
+          onClick={() => { setImportBannerDismissed(true); }}
+          size="icon"
+          variant="ghost"
+        >
           <X size={18} />
-        </button>
+        </Button>
       ) : null}
     </div>
   );

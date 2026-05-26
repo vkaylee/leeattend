@@ -2,7 +2,7 @@ import { Plus, Share2 } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
-import { Button } from "@/components/ui/button";
+import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { AuthorizedAgent } from "@/lib/api";
 import { cn } from "@/lib/utils";

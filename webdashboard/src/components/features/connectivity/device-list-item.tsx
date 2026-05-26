@@ -3,7 +3,7 @@ import { Activity } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { Button } from "@/components/ui/button";
+import Button from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { useDeviceInfo, devicesKeys } from "@/hooks/use-devices";
 import { Device, DeviceInfo, DeviceStatus } from "@/lib/api";

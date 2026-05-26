@@ -6,6 +6,7 @@ import React from "react";
 import type { fetchWorkspaceLeaveRequests } from "@/lib/api";
 import type { Employee, LeaveType } from "@/lib/api/types";
 
+import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
 
@@ -106,8 +107,24 @@ function ActionsCell({
     <td className="px-10 py-6 text-right">
       {status === "pending" && (
         <div className="flex justify-end gap-3 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-2 group-hover:translate-x-0">
-          <button className="p-3 bg-white dark:bg-slate-900 text-emerald-400 hover:text-emerald-600 dark:text-emerald-300 rounded-xl shadow-md border border-primary-100 dark:border-primary-800/50 transition-all active:scale-90" onClick={() => { onApprove(id, "approved"); }} title={t("common.approve")}><CheckCircle2 size={20} /></button>
-          <button className="p-3 bg-white dark:bg-slate-900 text-rose-400 hover:text-rose-600 dark:text-rose-300 rounded-xl shadow-md border border-primary-100 dark:border-primary-800/50 transition-all active:scale-90" onClick={() => { onApprove(id, "rejected"); }} title={t("common.reject")}><XCircle size={20} /></button>
+          <Button
+            className="border-primary-100 bg-white text-emerald-400 hover:text-emerald-600 dark:border-primary-800/50 dark:bg-slate-900 dark:text-emerald-300 h-11 w-11 p-3"
+            onClick={() => { onApprove(id, "approved"); }}
+            size="icon"
+            title={t("common.approve")}
+            variant="outline"
+          >
+            <CheckCircle2 size={20} />
+          </Button>
+          <Button
+            className="border-primary-100 bg-white text-rose-400 hover:text-rose-600 dark:border-primary-800/50 dark:bg-slate-900 dark:text-rose-300 h-11 w-11 p-3"
+            onClick={() => { onApprove(id, "rejected"); }}
+            size="icon"
+            title={t("common.reject")}
+            variant="outline"
+          >
+            <XCircle size={20} />
+          </Button>
         </div>
       )}
     </td>

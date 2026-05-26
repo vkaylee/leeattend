@@ -1,6 +1,7 @@
 import { ChevronDown } from "lucide-react";
-import { useState, useRef, useEffect, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 
+import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
 
@@ -43,12 +44,13 @@ export default function CollapsibleSection({
 
     return (
         <section className={cn("group/section", className)}>
-            <button
+            <Button
                 aria-controls={`section-${id}`}
                 aria-expanded={!isCollapsed}
-                className="flex items-center justify-between w-full px-4 py-3 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                className="flex items-center justify-between w-full h-auto px-4 py-3 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors shadow-none text-left normal-case tracking-normal font-normal"
                 onClick={() => onToggle?.(id)}
                 type="button"
+                variant="ghost"
             >
                 <Typography className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]" variant="h2">
                     {title}
@@ -60,7 +62,7 @@ export default function CollapsibleSection({
                     )}
                     size={16}
                 />
-            </button>
+            </Button>
 
             <div
                 className="transition-[height] duration-300 ease-in-out"

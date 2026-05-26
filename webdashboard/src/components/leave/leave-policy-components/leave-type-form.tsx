@@ -1,6 +1,7 @@
 import { Wallet, AlertTriangle } from "lucide-react";
 import React, { useState } from "react";
 
+import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
 
@@ -101,28 +102,34 @@ export function LeaveTypeForm({
         </div>
 
         <div className="flex items-center justify-between pt-6 border-t border-slate-50 dark:border-slate-800">
-          <button
-            className="flex items-center gap-2 text-[10px] font-bold text-slate-400 dark:text-slate-500 hover:text-primary-600 transition-colors uppercase tracking-widest"
+          <Button
+            className="flex items-center gap-2 text-[10px] text-slate-400 dark:text-slate-500 hover:text-primary-600"
             onClick={onBackToTemplates}
+            size="sm"
             type="button"
+            variant="ghost"
           >
             ← Change Template
-          </button>
+          </Button>
           <div className="flex gap-3">
-            <button
-              className="px-6 py-3 text-[10px] font-bold text-slate-400 dark:text-slate-500 hover:text-slate-600 transition-colors uppercase tracking-widest"
+            <Button
+              className="px-6 py-3 text-[10px] text-slate-400 dark:text-slate-500 hover:text-slate-600"
               onClick={onCancel}
+              size="sm"
               type="button"
+              variant="ghost"
             >
               Cancel
-            </button>
-            <button
-              className="rounded-2xl bg-primary-600 px-8 py-3.5 text-[10px] font-bold text-white uppercase tracking-[0.2em] shadow-lg shadow-primary-500/20 hover:bg-primary-700 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50"
+            </Button>
+            <Button
+              className="shadow-primary-500/20 text-[10px] tracking-[0.2em] py-3.5 px-8"
               disabled={isSaving}
+              size="sm"
               type="submit"
+              variant="primary"
             >
               {isSaving ? "Creating..." : "Confirm & Create"}
-            </button>
+            </Button>
           </div>
         </div>
       </form>

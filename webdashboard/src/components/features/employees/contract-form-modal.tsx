@@ -15,6 +15,7 @@ import type { CreateContractRequest, EmployeeContract } from "@/lib/api";
 
 import Button from "@/components/ui/button";
 import FormField from "@/components/ui/form-field";
+import { cn } from "@/lib/utils";
 import Modal from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { fetchEmploymentPhases, fetchEmployee } from "@/lib/api/employees";
@@ -281,29 +282,32 @@ export default function ContractFormModal({
               { label: "2 Năm", years: 2 },
               { label: "3 Năm", years: 3 },
             ].map((option) => (
-              <button
-                className="px-2.5 py-1.5 text-[11px] font-medium bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-300"
+              <Button
+                className="px-2.5 py-1.5 text-[11px] font-medium bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-300 h-auto shadow-none border-none normal-case tracking-normal hover:text-slate-800"
                 key={option.label}
                 onClick={() => { applyDuration(option.months, option.years); }}
                 type="button"
+                variant="ghost"
               >
                 {option.label}
-              </button>
+              </Button>
             ))}
-            <button
-              className={`px-2.5 py-1.5 text-[11px] font-medium rounded-lg transition-colors ${
+            <Button
+              className={cn(
+                "px-2.5 py-1.5 text-[11px] font-medium rounded-lg transition-colors h-auto shadow-none border-none normal-case tracking-normal hover:text-slate-800",
                 isIndefinite 
-                  ? "bg-primary-100 text-primary-700 dark:bg-primary-900/40 dark:text-primary-400 ring-1 ring-primary-500/50" 
+                  ? "bg-primary-100 text-primary-700 dark:bg-primary-900/40 dark:text-primary-400 ring-1 ring-primary-500/50 hover:bg-primary-100 hover:text-primary-700" 
                   : "bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-300"
-              }`}
+              )}
               onClick={() => {
                 setValue("contract_type", "indefinite", { shouldValidate: true });
                 setValue("end_date", "", { shouldValidate: true });
               }}
               type="button"
+              variant="ghost"
             >
               Lâu dài
-            </button>
+            </Button>
           </div>
 
           {!editingContract && (

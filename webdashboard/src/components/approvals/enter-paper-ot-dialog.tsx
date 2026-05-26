@@ -8,6 +8,7 @@ import { useTranslation } from "react-i18next";
 import { format } from "date-fns";
 
 import { EmployeeSearch } from "@/components/common/employee-search";
+import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { useEnterPaperOt } from "@/hooks/use-attendance";
 import { getCurrentWorkspaceId } from "@/lib/api/helpers";
@@ -123,20 +124,23 @@ function PhotoPlaceholder({ t }: { t: TFunction }) {
 function FormActions({ t, isSubmitting, onCancel }: { isSubmitting: boolean; onCancel: () => void; t: TFunction }) {
   return (
     <div className="flex justify-end gap-3 pt-2">
-      <button
-        className="px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
+      <Button
+        className="h-auto px-4 py-2 rounded-xl text-xs text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 shadow-none"
         onClick={onCancel}
         type="button"
+        variant="ghost"
       >
         {t("common.cancel") || "Cancel"}
-      </button>
-      <button
-        className="px-6 py-2 rounded-xl bg-primary-600 text-white text-xs font-bold uppercase tracking-wider shadow-lg hover:bg-primary-700 disabled:opacity-50"
+      </Button>
+      <Button
+        className="h-auto px-6 py-2 rounded-xl text-xs font-bold uppercase tracking-wider shadow-lg"
         disabled={isSubmitting}
+        loading={isSubmitting}
         type="submit"
+        variant="primary"
       >
         {isSubmitting ? (t("common.saving") || "Saving...") : (t("common.submit") || "Submit")}
-      </button>
+      </Button>
     </div>
   );
 }
@@ -251,9 +255,13 @@ export function EnterPaperOtDialog({ open, onOpenChange, onSuccess }: Props) {
             {t("approvals.paper_ot.description") || "Enter overtime claim from signed paper form"}
           </Dialog.Description>
 
-          <button className="absolute right-4 top-4 p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700" onClick={() => { onOpenChange(false); }}>
-            <X className="h-4 w-4" />
-          </button>
+          <Button
+            className="absolute right-4 top-4 h-auto w-auto p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 shadow-none"
+            icon={<X className="h-4 w-4" />}
+            onClick={() => { onOpenChange(false); }}
+            size="icon"
+            variant="ghost"
+          />
 
           <EnterPaperOtForm
             date={date}
@@ -276,3 +284,4 @@ export function EnterPaperOtDialog({ open, onOpenChange, onSuccess }: Props) {
     </Dialog.Root>
   );
 }
+

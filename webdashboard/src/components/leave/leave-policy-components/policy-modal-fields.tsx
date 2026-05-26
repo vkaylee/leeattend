@@ -1,6 +1,7 @@
 import { LayoutGrid, Clock, Milestone, Plus, Trash2 } from "lucide-react";
 import React from "react";
 
+import Button from "@/components/ui/button";
 import { Combobox } from "@/components/ui/combobox";
 import { Typography } from "@/components/ui/typography";
 import { SeniorityBonus } from "@/lib/api/types";
@@ -109,7 +110,15 @@ export function SeniorityBonusSection({
           <div className="h-8 w-8 rounded-xl bg-blue-50 dark:bg-blue-950 flex items-center justify-center text-blue-600 shrink-0"><Milestone size={16} /></div>
           <Typography className="text-sm font-black text-slate-800 dark:text-slate-100 uppercase tracking-tighter" variant="h4">Service Bonuses</Typography>
         </div>
-        <button className="flex items-center gap-2 rounded-xl bg-primary-600 px-4 py-2 text-[10px] font-bold text-white uppercase tracking-widest hover:bg-primary-700 transition-all shadow-lg shadow-primary-100" onClick={addBonusMilestone} type="button"><Plus size={12} /> Add Row</button>
+        <Button
+          className="shadow-primary-100 text-[10px]"
+          onClick={addBonusMilestone}
+          size="sm"
+          type="button"
+          variant="primary"
+        >
+          <Plus size={12} /> Add Row
+        </Button>
       </div>
       
       {seniorityBonus.length === 0 ? (
@@ -124,7 +133,15 @@ export function SeniorityBonusSection({
               <FormRow label="Bonus Amount">
                 <div className="flex gap-2 w-full">
                   <input className="flex-1 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-2.5 text-sm font-bold font-mono text-center text-primary-600 dark:text-primary-400 h-11 focus:ring-4 focus:ring-primary-500/5 transition-all outline-none" onChange={(e) => { updateBonusMilestone(index, "extra_days", parseFloat(e.target.value)); }} step="0.5" type="number" value={bonus.extra_days} />
-                  <button className="px-3 text-slate-300 dark:text-slate-600 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-xl transition-all h-11 flex items-center justify-center border border-slate-200 dark:border-slate-700 hover:border-rose-200 dark:hover:border-rose-800 bg-white dark:bg-slate-900 shadow-sm" onClick={() => { removeBonusMilestone(index); }} type="button"><Trash2 size={16} /></button>
+                  <Button
+                    className="h-11 px-3 text-slate-300 hover:text-rose-600 dark:text-slate-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 border-slate-200 hover:border-rose-200 dark:border-slate-700 dark:hover:border-rose-800"
+                    onClick={() => { removeBonusMilestone(index); }}
+                    size="icon"
+                    type="button"
+                    variant="outline"
+                  >
+                    <Trash2 size={16} />
+                  </Button>
                 </div>
               </FormRow>
             </div>

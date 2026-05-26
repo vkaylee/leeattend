@@ -1,6 +1,8 @@
 import { CheckCircle, XCircle } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
+import Button from "@/components/ui/button";
+
 interface OtSummary {
   claimed_ot_minutes: number;
   date: string;
@@ -78,26 +80,28 @@ export function OtApprovalsTable({
               </td>
               <td className="px-8 py-6 text-right">
                 <div className="flex items-center justify-end gap-2">
-                  <button
-                    className="p-2 rounded-full hover:bg-emerald-50 dark:bg-emerald-950 text-slate-400 dark:text-slate-500 hover:text-emerald-600 dark:text-emerald-300 transition-all disabled:opacity-50"
+                  <Button
+                    className="h-auto w-auto p-2 rounded-full hover:bg-emerald-50 dark:bg-emerald-950 text-slate-400 dark:text-slate-500 hover:text-emerald-600 dark:text-emerald-300 transition-all disabled:opacity-50 shadow-none"
                     disabled={isProcessing}
+                    icon={<CheckCircle className="w-5 h-5" />}
                     onClick={() => {
                       void handleApprove(summary, true);
                     }}
+                    size="icon"
                     title={t("ot_approvals.actions.approve")}
-                  >
-                    <CheckCircle className="w-5 h-5" />
-                  </button>
-                  <button
-                    className="p-2 rounded-full hover:bg-rose-50 dark:bg-rose-950 text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:text-rose-300 transition-all disabled:opacity-50"
+                    variant="ghost"
+                  />
+                  <Button
+                    className="h-auto w-auto p-2 rounded-full hover:bg-rose-50 dark:bg-rose-950 text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:text-rose-300 transition-all disabled:opacity-50 shadow-none"
                     disabled={isProcessing}
+                    icon={<XCircle className="w-5 h-5" />}
                     onClick={() => {
                       void handleApprove(summary, false);
                     }}
+                    size="icon"
                     title={t("ot_approvals.actions.reject")}
-                  >
-                    <XCircle className="w-5 h-5" />
-                  </button>
+                    variant="ghost"
+                  />
                 </div>
               </td>
             </tr>
@@ -123,3 +127,4 @@ function SourceBadge({ enteredVia }: { enteredVia?: string }) {
     </span>
   );
 }
+

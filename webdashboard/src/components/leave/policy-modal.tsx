@@ -1,5 +1,6 @@
 import React from "react";
 
+import Button from "@/components/ui/button";
 import Modal from "@/components/ui/modal";
 import { LeavePolicy } from "@/lib/api/types";
 
@@ -45,10 +46,25 @@ export function PolicyModal({ isOpen, onClose, leaveTypes, policy, onSave, isSav
         </div>
         
         <div className="flex justify-end gap-4 pt-6 border-t border-slate-100 dark:border-slate-800 mt-6">
-          <button className="px-8 py-3 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] hover:text-slate-600 dark:hover:text-slate-300 transition-colors" onClick={onClose} type="button">Cancel</button>
-          <button className="rounded-2xl bg-primary-600 px-10 py-4 text-xs font-black text-white uppercase tracking-[0.2em] shadow-lg shadow-primary-500/20 hover:bg-primary-700 active:scale-95 transition-all" data-testid="save-policy-btn" disabled={isSaving} type="submit">
+          <Button
+            className="px-8 py-3 text-xs text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 tracking-[0.2em]"
+            onClick={onClose}
+            size="md"
+            type="button"
+            variant="ghost"
+          >
+            Cancel
+          </Button>
+          <Button
+            className="shadow-primary-500/20 px-10 py-4 text-xs font-black tracking-[0.2em]"
+            data-testid="save-policy-btn"
+            disabled={isSaving}
+            size="md"
+            type="submit"
+            variant="primary"
+          >
             {isSaving ? "Saving..." : (policy ? "Update Policy" : "Create Policy")}
-          </button>
+          </Button>
         </div>
       </form>
     </Modal>

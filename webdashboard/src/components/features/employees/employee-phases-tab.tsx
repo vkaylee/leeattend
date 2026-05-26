@@ -1,14 +1,27 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-/* eslint-disable complexity, max-lines-per-function */
-import { Plus, Milestone, CheckCircle2, XCircle, Pencil, AlertTriangle  } from "lucide-react";
-import React, { useState, useMemo } from "react";
+/* eslint-disable complexity */
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Milestone,
+  Pencil,
+  Plus,
+  XCircle,
+} from "lucide-react";
+import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import PermissionGate from "@/components/common/permission-gate";
+import Button from "@/components/ui/button";
 import Modal from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
-import { fetchEmployeePhases, fetchEmploymentPhases, assignEmployeePhase, updateEmployeePhaseStatus } from "@/lib/api/employees";
+import {
+  assignEmployeePhase,
+  fetchEmployeePhases,
+  fetchEmploymentPhases,
+  updateEmployeePhaseStatus,
+} from "@/lib/api/employees";
 import { EmployeePhase } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 import { useEmployeeContracts } from "@/pages/employees/hooks/use-employee-contracts";
@@ -140,12 +153,14 @@ export default function EmployeePhasesTab({ wsId, employeeId, formatDate }: Prop
           </Typography>
         </div>
         <PermissionGate permission="employment_phases:manage">
-          <button 
-            className="flex items-center gap-2 bg-primary-50 dark:bg-primary-950/50 text-primary-600 dark:text-primary-400 px-4 py-2 rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-primary-100 dark:hover:bg-primary-900 transition-all border border-primary-100 dark:border-primary-800 active:scale-95"
+          <Button 
+            className="flex items-center gap-2 bg-primary-50 dark:bg-primary-950/50 text-primary-600 dark:text-primary-400 px-4 py-2 rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-primary-100 dark:hover:bg-primary-900 transition-all border border-primary-100 dark:border-primary-800 active:scale-95 h-auto shadow-none"
             onClick={() => { setIsAssignModalOpen(true); }}
+            type="button"
+            variant="ghost"
           >
             <Plus size={14} /> Thêm Cột mốc
-          </button>
+          </Button>
         </PermissionGate>
       </div>
 
@@ -193,13 +208,16 @@ export default function EmployeePhasesTab({ wsId, employeeId, formatDate }: Prop
                       </div>
                       
                       <PermissionGate permission="employment_phases:manage">
-                        <button 
-                          className="p-2 text-slate-300 dark:text-slate-600 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-all"
+                        <Button 
+                          className="p-2 text-slate-300 dark:text-slate-600 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-all h-auto w-auto shadow-none"
                           onClick={() => { openStatusModal(phase); }}
+                          size="icon"
                           title="Cập nhật trạng thái"
+                          type="button"
+                          variant="ghost"
                         >
                           <Pencil size={14} />
-                        </button>
+                        </Button>
                       </PermissionGate>
                     </div>
 
@@ -295,8 +313,8 @@ export default function EmployeePhasesTab({ wsId, employeeId, formatDate }: Prop
           )}
 
           <div className="flex gap-4 pt-4 border-t border-slate-50 dark:border-slate-800">
-            <button className="flex-1 px-6 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-800 transition-all active:scale-95" onClick={() => { setIsAssignModalOpen(false); }} type="button">Hủy</button>
-            <button className="flex-[1.5] bg-primary-600 text-white rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95 disabled:opacity-50" disabled={assignMutation.isPending} type="submit">{assignMutation.isPending ? "Đang lưu..." : "Thêm Cột mốc"}</button>
+            <Button className="flex-1 px-6 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-800 transition-all active:scale-95 h-auto shadow-none" onClick={() => { setIsAssignModalOpen(false); }} type="button" variant="outline">Hủy</Button>
+            <Button className="flex-[1.5] bg-primary-600 text-white rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95 disabled:opacity-50 h-auto" disabled={assignMutation.isPending} type="submit" variant="primary">{assignMutation.isPending ? "Đang lưu..." : "Thêm Cột mốc"}</Button>
           </div>
         </form>
       </Modal>
@@ -306,20 +324,22 @@ export default function EmployeePhasesTab({ wsId, employeeId, formatDate }: Prop
           <div className="space-y-3">
             <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1 block">Trạng thái mới</span>
             <div className="flex gap-4">
-              <button 
-                className={cn("flex-1 py-3 px-4 rounded-xl font-bold text-xs uppercase tracking-widest border transition-all flex items-center justify-center gap-2", statusData.status === "completed" ? "bg-emerald-50 text-emerald-600 border-emerald-200" : "bg-white text-slate-400 border-slate-200 hover:border-emerald-200")}
+              <Button 
+                className={cn("flex-1 py-3 px-4 rounded-xl font-bold text-xs uppercase tracking-widest border transition-all flex items-center justify-center gap-2 h-auto shadow-none border-transparent", statusData.status === "completed" ? "bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-50" : "bg-white text-slate-400 border-slate-200 hover:border-emerald-200 hover:bg-slate-50")}
                 onClick={() => { setStatusData({...statusData, status: "completed"}); }}
                 type="button"
+                variant="ghost"
               >
                 <CheckCircle2 size={16} /> Completed
-              </button>
-              <button 
-                className={cn("flex-1 py-3 px-4 rounded-xl font-bold text-xs uppercase tracking-widest border transition-all flex items-center justify-center gap-2", statusData.status === "terminated" ? "bg-rose-50 text-rose-600 border-rose-200" : "bg-white text-slate-400 border-slate-200 hover:border-rose-200")}
+              </Button>
+              <Button 
+                className={cn("flex-1 py-3 px-4 rounded-xl font-bold text-xs uppercase tracking-widest border transition-all flex items-center justify-center gap-2 h-auto shadow-none border-transparent", statusData.status === "terminated" ? "bg-rose-50 text-rose-600 border-rose-200 hover:bg-rose-50" : "bg-white text-slate-400 border-slate-200 hover:border-rose-200 hover:bg-slate-50")}
                 onClick={() => { setStatusData({...statusData, status: "terminated"}); }}
                 type="button"
+                variant="ghost"
               >
                 <XCircle size={16} /> Terminated
-              </button>
+              </Button>
             </div>
           </div>
 
@@ -335,8 +355,8 @@ export default function EmployeePhasesTab({ wsId, employeeId, formatDate }: Prop
           </div>
 
           <div className="flex gap-4 pt-4 border-t border-slate-50 dark:border-slate-800">
-            <button className="flex-1 px-6 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-800 transition-all active:scale-95" onClick={() => { setIsStatusModalOpen(false); }} type="button">Hủy</button>
-            <button className="flex-[1.5] bg-primary-600 text-white rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95 disabled:opacity-50" disabled={statusMutation.isPending} type="submit">{statusMutation.isPending ? "Đang lưu..." : "Cập nhật"}</button>
+            <Button className="flex-1 px-6 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-800 transition-all active:scale-95 h-auto shadow-none" onClick={() => { setIsStatusModalOpen(false); }} type="button" variant="outline">Hủy</Button>
+            <Button className="flex-[1.5] bg-primary-600 text-white rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95 disabled:opacity-50 h-auto" disabled={statusMutation.isPending} type="submit" variant="primary">{statusMutation.isPending ? "Đang lưu..." : "Cập nhật"}</Button>
           </div>
         </form>
       </Modal>

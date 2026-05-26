@@ -2,6 +2,7 @@ import { Eye, History } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
+import Button from "@/components/ui/button";
 import { WorkspaceLeaveBalance } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 
@@ -76,20 +77,24 @@ export const DesktopBalanceRow: React.FC<DesktopBalanceRowProps> = ({
 
       <td className="px-6 py-6 text-right" onClick={(e) => { e.stopPropagation(); }}>
         <div className="flex items-center justify-end gap-2 opacity-60 group-hover:opacity-100 transition-all">
-          <button
-            className="p-2.5 bg-primary-50 dark:bg-primary-950 text-primary-600 dark:text-primary-400 hover:bg-primary-100 dark:bg-primary-900 rounded-xl border border-primary-200 dark:border-primary-800 transition-all active:scale-90 min-w-[44px] min-h-[44px]"
+          <Button
+            className="h-11 w-11 p-2.5 border-primary-200 text-primary-600 hover:bg-primary-100 dark:border-primary-800 dark:bg-primary-950 dark:text-primary-400 dark:hover:bg-primary-900"
             onClick={() => { onViewDetails(); }}
+            size="icon"
             title={t("leave_balances.view_details")}
+            variant="outline"
           >
             <Eye className="h-5 w-5" />
-          </button>
-          <button
-            className="p-2.5 bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl border border-slate-200 dark:border-slate-700 transition-all active:scale-90 min-w-[44px] min-h-[44px]"
+          </Button>
+          <Button
+            className="h-11 w-11 p-2.5 border-slate-200 text-slate-500 dark:border-slate-700 dark:text-slate-400"
             onClick={() => { onViewHistory(); }}
+            size="icon"
             title={t("leave_balances.table.history_tooltip")}
+            variant="outline"
           >
             <History className="h-5 w-5" />
-          </button>
+          </Button>
         </div>
       </td>
     </tr>

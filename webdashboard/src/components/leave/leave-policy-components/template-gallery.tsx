@@ -1,6 +1,7 @@
 import { Search, ChevronRight } from "lucide-react";
 import React, { useState, useMemo } from "react";
 
+import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
 
@@ -72,19 +73,21 @@ export function TemplateGallery({ onSelectTemplate, onSkip }: TemplateGalleryPro
               value={search}
             />
           </div>
-          <button
-            className="text-[10px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest hover:underline whitespace-nowrap"
+          <Button
+            className="text-[10px] text-primary-600 dark:text-primary-400 whitespace-nowrap hover:underline"
             onClick={onSkip}
+            size="sm"
+            variant="ghost"
           >
             Skip to manual
-          </button>
+          </Button>
         </div>
 
         <div className="flex flex-wrap gap-2 mt-4 pb-2">
           {categories.map((cat) => (
-            <button
+            <Button
               className={cn(
-                "px-4 py-1.5 rounded-xl text-[9px] font-bold uppercase tracking-widest whitespace-nowrap transition-all",
+                "px-4 py-1.5 rounded-xl text-[9px] font-bold uppercase tracking-widest whitespace-nowrap transition-all h-auto",
                 activeCategory === cat.id
                   ? "bg-primary-600 text-white shadow-lg shadow-primary-500/20"
                   : "bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-100 dark:border-slate-700"
@@ -93,9 +96,10 @@ export function TemplateGallery({ onSelectTemplate, onSkip }: TemplateGalleryPro
               onClick={() => {
                 setActiveCategory(cat.id);
               }}
+              variant="ghost"
             >
               {cat.name}
-            </button>
+            </Button>
           ))}
         </div>
       </div>
@@ -107,12 +111,13 @@ export function TemplateGallery({ onSelectTemplate, onSkip }: TemplateGalleryPro
             {filteredTemplates.map((template: LeaveTemplate) => {
               const Icon = template.icon;
               return (
-                <button
-                  className="group relative flex items-start gap-3 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900/50 hover:border-primary-200 dark:hover:border-primary-800 hover:bg-primary-50/30 dark:hover:bg-primary-950/10 transition-all text-left"
+                <Button
+                  className="group relative flex items-start justify-start gap-3 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900/50 hover:border-primary-200 dark:hover:border-primary-800 hover:bg-primary-50/30 dark:hover:bg-primary-950/10 transition-all text-left h-auto w-full normal-case tracking-normal font-normal"
                   key={template.id}
                   onClick={() => {
                     onSelectTemplate(template);
                   }}
+                  variant="ghost"
                 >
                   <div
                     className={cn(
@@ -151,7 +156,7 @@ export function TemplateGallery({ onSelectTemplate, onSkip }: TemplateGalleryPro
                     className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 dark:text-slate-700 group-hover:text-primary-400 transition-all group-hover:translate-x-1"
                     size={16}
                   />
-                </button>
+                </Button>
               );
             })}
           </div>

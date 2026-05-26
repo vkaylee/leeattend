@@ -1,13 +1,14 @@
 import {
     BarChart3,
-    LineChart,
     LayoutGrid,
+    LineChart,
     Plus,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import type { DashboardView } from "@/hooks/use-dashboard-layout";
 
+import Button from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 interface DashboardViewTabsProps {
@@ -43,21 +44,23 @@ export default function DashboardViewTabs({
                 const isActive = activeView === tab.id;
                 const Icon = tab.icon;
                 return (
-                    <button
+                    <Button
                         aria-selected={isActive}
                         className={cn(
-                            "flex items-center gap-2 px-5 sm:px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all whitespace-nowrap",
+                            "flex items-center gap-2 px-5 sm:px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all whitespace-nowrap h-auto shadow-none border border-transparent",
                             isActive
-                                ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800"
-                                : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                                ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border-slate-100 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-900"
+                                : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-transparent"
                         )}
                         key={tab.id}
                         onClick={() => { onViewChange(tab.id); }}
                         role="tab"
+                        type="button"
+                        variant="ghost"
                     >
                         <Icon size={14} />
                         <span className="hidden sm:inline">{t(tab.labelKey)}</span>
-                    </button>
+                    </Button>
                 );
             })}
         </div>

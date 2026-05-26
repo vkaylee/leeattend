@@ -2,8 +2,8 @@ import { render, screen } from "@testing-library/react";
 
 import { vi, describe, it, expect, beforeEach } from "vitest";
 
-import SettingsLayout from "../settings-layout";
 import * as hooks from "../hooks/use-settings-nav";
+import SettingsLayout from "../settings-layout";
 
 vi.mock("@tanstack/react-router", () => ({
   Link: ({ children, to, className }: any) => <a className={className} href={to}>{children}</a>,

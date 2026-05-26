@@ -1,6 +1,7 @@
 import { Wallet, AlertTriangle, Pencil, Plus, Trash2, Sparkles } from "lucide-react";
 import React, { useState } from "react";
 
+import Button from "@/components/ui/button";
 import EmptyState from "@/components/ui/empty-state";
 import Modal from "@/components/ui/modal";
 import { Typography } from "@/components/ui/typography";
@@ -49,14 +50,16 @@ export function LeaveTypeManager({ wsId }: LeaveTypeManagerProps) {
         <Typography className="text-xs font-medium text-slate-500 dark:text-slate-400 max-w-md italic" variant="p">
           Define the categories of leave available in your organization (e.g., Annual Leave, Sick Leave).
         </Typography>
-        <button
-          className="flex items-center gap-2 rounded-xl bg-primary-600 px-6 py-2.5 text-[10px] font-bold text-white uppercase tracking-widest hover:bg-primary-700 transition-all shadow-lg shadow-primary-100"
+        <Button
+          className="shadow-primary-100 text-[10px]"
           onClick={() => {
             setIsAddingType(true);
           }}
+          size="sm"
+          variant="primary"
         >
           <Plus size={14} /> Add Leave Type
-        </button>
+        </Button>
       </div>
 
       {leaveTypes.length > 0 ? (
@@ -79,22 +82,26 @@ export function LeaveTypeManager({ wsId }: LeaveTypeManagerProps) {
                     {type.is_paid ? <Wallet size={20} /> : <AlertTriangle size={20} />}
                   </div>
                   <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button
-                      className="p-2 text-slate-400 dark:text-slate-500 hover:text-primary-600 dark:text-primary-400 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-800"
+                    <Button
+                      className="h-9 w-9 p-2 text-slate-400 dark:text-slate-500 hover:text-primary-600 dark:text-primary-400 bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800"
                       onClick={() => {
                         setEditingType(type);
                       }}
+                      size="icon"
+                      variant="outline"
                     >
                       <Pencil size={16} />
-                    </button>
-                    <button
-                      className="p-2 text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:text-rose-300 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-800"
+                    </Button>
+                    <Button
+                      className="h-9 w-9 p-2 text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:text-rose-300 bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800"
                       onClick={() => {
                         setDeletingType(type);
                       }}
+                      size="icon"
+                      variant="outline"
                     >
                       <Trash2 size={16} />
-                    </button>
+                    </Button>
                   </div>
                 </div>
                 <Typography className="mt-5 text-lg font-bold text-slate-800 dark:text-slate-100 tracking-tight leading-none uppercase" variant="h3">
@@ -122,15 +129,17 @@ export function LeaveTypeManager({ wsId }: LeaveTypeManagerProps) {
       ) : (
         <EmptyState
           action={
-            <button
-              className="flex items-center gap-2 rounded-xl bg-primary-600 px-8 py-3 text-[10px] font-bold text-white uppercase tracking-widest hover:bg-primary-700 transition-all shadow-lg shadow-primary-200 dark:shadow-none"
+            <Button
+              className="shadow-primary-200 dark:shadow-none text-[10px]"
               onClick={() => {
                 setIsAddingType(true);
               }}
+              size="md"
+              variant="primary"
             >
               <Plus size={16} />
               Get Started
-            </button>
+            </Button>
           }
           description="Your workspace is fresh and clean. Start by creating leave types manually or use our professional templates."
           icon={<Sparkles className="text-primary-400" size={40} />}
@@ -172,23 +181,25 @@ export function LeaveTypeManager({ wsId }: LeaveTypeManagerProps) {
           <div className="p-8">
             <Typography className="text-sm" variant="p">Are you sure you want to delete &quot;{deletingType.name}&quot;?</Typography>
             <div className="mt-8 flex justify-end gap-3">
-              <button
-                className="px-6 py-2 text-xs font-bold text-slate-400 dark:text-slate-500"
+              <Button
+                className="px-6 py-2 text-xs text-slate-400 dark:text-slate-500 hover:bg-transparent"
                 onClick={() => {
                   setDeletingType(null);
                 }}
+                variant="ghost"
               >
                 Cancel
-              </button>
-              <button
-                className="rounded-xl bg-rose-600 px-6 py-2.5 text-[10px] font-bold text-white uppercase disabled:opacity-50"
+              </Button>
+              <Button
+                className="text-[10px] px-6 py-2.5 h-auto rounded-xl"
                 disabled={isDeleting}
                 onClick={() => {
                   triggerDelete(deletingType.id);
                 }}
+                variant="destructive"
               >
                 Delete
-              </button>
+              </Button>
             </div>
           </div>
         </Modal>
@@ -363,20 +374,24 @@ function EditLeaveTypeModal({ leaveType, onClose, onSave, isSaving }: EditLeaveT
         </div>
 
         <div className="flex justify-end gap-3 pt-6 border-t border-slate-50 dark:border-slate-800">
-          <button
-            className="px-6 py-3 text-[10px] font-bold text-slate-400 dark:text-slate-500 hover:text-slate-600 transition-colors uppercase tracking-widest"
+          <Button
+            className="px-6 py-3 text-[10px] text-slate-400 dark:text-slate-500 hover:text-slate-600"
             onClick={onClose}
+            size="sm"
             type="button"
+            variant="ghost"
           >
             Cancel
-          </button>
-          <button
-            className="rounded-2xl bg-primary-600 px-10 py-3.5 text-[10px] font-bold text-white uppercase tracking-[0.2em] shadow-lg shadow-primary-500/20 hover:bg-primary-700 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50"
+          </Button>
+          <Button
+            className="shadow-primary-500/20 text-[10px] tracking-[0.2em] py-3.5 px-10"
             disabled={isSaving}
+            size="sm"
             type="submit"
+            variant="primary"
           >
             {isSaving ? "Saving..." : "Save Policy"}
-          </button>
+          </Button>
         </div>
       </form>
     </Modal>

@@ -2,6 +2,7 @@ import { PlayCircle } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
+import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 
 interface LeaveBalancesHeaderProps {
@@ -28,17 +29,19 @@ export const LeaveBalancesHeader: React.FC<LeaveBalancesHeaderProps> = ({
           {t("leave_balances.subtitle")}
         </Typography>
       </div>
-      <button
-        className="bg-primary-600 hover:bg-primary-700 text-white font-bold px-6 md:px-8 py-3.5 md:py-3 rounded-2xl flex items-center justify-center gap-3 shadow-xl shadow-primary-100 transition-all active:scale-95 text-xs uppercase tracking-widest disabled:opacity-50 min-h-[44px] w-full md:w-auto"
+      <Button
+        className="w-full md:w-auto shadow-primary-100 h-auto py-3.5 md:py-3 px-6 md:px-8"
         disabled={isPending || selectedYear !== currentYear}
         onClick={onRunAccrual}
+        size="md"
         title={selectedYear !== currentYear ? t("leave_balances.accrual_current_year_only") : undefined}
+        variant="primary"
       >
         <PlayCircle size={18} /> 
         <span className="whitespace-nowrap">
           {isPending ? t("common.processing").toUpperCase() : t("leave_balances.run_accrual").toUpperCase()}
         </span>
-      </button>
+      </Button>
     </div>
   );
 };

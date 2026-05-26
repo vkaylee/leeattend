@@ -1,8 +1,9 @@
-import { Users, Cpu, Settings2 } from "lucide-react";
+import { Cpu, Settings2, Users } from "lucide-react";
 
 import { type TFunction } from "i18next";
 
 import DashboardViewTabs from "@/components/features/dashboard/dashboard-view-tabs";
+import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { type DashboardView } from "@/hooks/use-dashboard-layout";
 import { cn } from "@/lib/utils";
@@ -25,30 +26,36 @@ export function DashboardHeader({ t, showSystemTab, setShowSystemTab, activeView
           <Typography className="text-slate-500 dark:text-slate-400 text-lg font-bold uppercase tracking-[0.25em] opacity-60" variant="p">{t("dashboard.welcome")}</Typography>
         </div>
         <div className="flex bg-slate-100 dark:bg-slate-700/50 p-1.5 rounded-[22px] w-fit border border-slate-200 dark:border-slate-700/50 shadow-inner">
-          <button
-            className={cn("flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all", !showSystemTab ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200")}
+          <Button
+            className={cn("flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all h-auto shadow-none border border-transparent", !showSystemTab ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border-slate-100 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-900" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-transparent")}
             onClick={() => { setShowSystemTab(false); }}
+            type="button"
+            variant="ghost"
           >
             <Users size={14} /> {t("dashboard.tabs.hr")}
-          </button>
-          <button
-            className={cn("flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all", showSystemTab ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200")}
+          </Button>
+          <Button
+            className={cn("flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all h-auto shadow-none border border-transparent", showSystemTab ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border-slate-100 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-900" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-transparent")}
             onClick={() => { setShowSystemTab(true); }}
+            type="button"
+            variant="ghost"
           >
             <Cpu size={14} /> {t("dashboard.tabs.system")}
-          </button>
+          </Button>
         </div>
       </div>
       {!showSystemTab ? (
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <DashboardViewTabs activeView={activeView} onViewChange={setActiveView} />
-          <button
-            className="flex items-center gap-2 px-5 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 hover:border-primary-200 dark:hover:border-primary-700 transition-all shadow-sm"
+          <Button
+            className="flex items-center gap-2 px-5 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 hover:border-primary-200 dark:hover:border-primary-700 transition-all shadow-sm h-auto"
             onClick={() => { setCustomizeOpen(true); }}
+            type="button"
+            variant="outline"
           >
             <Settings2 size={14} />
             <span className="hidden sm:inline">{t("dashboard.customize.btn")}</span>
-          </button>
+          </Button>
         </div>
       ) : null}
     </header>

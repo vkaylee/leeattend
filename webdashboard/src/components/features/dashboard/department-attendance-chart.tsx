@@ -3,16 +3,17 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import {
-    BarChart,
     Bar,
+    BarChart,
+    CartesianGrid,
+    Legend,
+    ResponsiveContainer,
+    Tooltip,
     XAxis,
     YAxis,
-    CartesianGrid,
-    Tooltip,
-    ResponsiveContainer,
-    Legend,
 } from "recharts";
 
+import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { useDepartmentAttendance } from "@/hooks/use-dashboard";
 import { cn } from "@/lib/utils";
@@ -136,28 +137,32 @@ export default function DepartmentAttendanceChart() {
                 </div>
 
                 <div className="flex bg-slate-100 dark:bg-slate-700/50 p-1 rounded-[14px] border border-slate-200 dark:border-slate-700/50 shadow-inner">
-                    <button
+                    <Button
                         className={cn(
-                            "px-5 py-1.5 rounded-[10px] text-[9px] font-bold uppercase tracking-widest transition-all",
+                            "px-5 py-1.5 rounded-[10px] text-[9px] font-bold uppercase tracking-widest transition-all h-auto shadow-none border border-transparent",
                             range === "today"
-                                ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800"
-                                : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                                ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border-slate-100 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-900"
+                                : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-transparent"
                         )}
                         onClick={() => { setRange("today"); }}
+                        type="button"
+                        variant="ghost"
                     >
                         {t("dashboard.hr.today")}
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                         className={cn(
-                            "px-5 py-1.5 rounded-[10px] text-[9px] font-bold uppercase tracking-widest transition-all",
+                            "px-5 py-1.5 rounded-[10px] text-[9px] font-bold uppercase tracking-widest transition-all h-auto shadow-none border border-transparent",
                             range === "week"
-                                ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800"
-                                : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                                ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border-slate-100 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-900"
+                                : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-transparent"
                         )}
                         onClick={() => { setRange("week"); }}
+                        type="button"
+                        variant="ghost"
                     >
                         {t("dashboard.hr.this_week")}
-                    </button>
+                    </Button>
                 </div>
             </div>
 

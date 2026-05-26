@@ -3,6 +3,7 @@ import { Activity, Info } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
+import Button from "@/components/ui/button";
 import { AttendanceEntry } from "@/lib/api/types";
 
 interface MetadataPopoverProps {
@@ -16,12 +17,13 @@ export function MetadataPopover({ entry }: MetadataPopoverProps) {
   return (
     <Popover.Root>
       <Popover.Trigger asChild>
-        <button
-          className="p-2.5 bg-white dark:bg-slate-900 text-slate-300 dark:text-slate-600 hover:text-primary-600 dark:text-primary-400 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90 opacity-0 group-hover:opacity-100"
-          type="button"
+        <Button
+          className="p-2.5 bg-white dark:bg-slate-900 text-slate-300 dark:text-slate-600 hover:text-primary-600 dark:text-primary-400 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90 opacity-0 group-hover:opacity-100 h-auto w-auto"
+          size="icon"
+          variant="ghost"
         >
           <Info size={18} />
-        </button>
+        </Button>
       </Popover.Trigger>
       <Popover.Portal>
         <Popover.Content
@@ -51,3 +53,4 @@ export function MetadataPopover({ entry }: MetadataPopoverProps) {
     </Popover.Root>
   );
 }
+

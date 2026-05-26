@@ -2,6 +2,7 @@ import { X } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
+import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { WorkspaceLeaveBalance } from "@/lib/api";
 
@@ -25,13 +26,15 @@ export function LeaveBalanceHeader({ balance, onClose }: { balance: WorkspaceLea
             </div>
           </div>
         </div>
-        <button
+        <Button
           aria-label={t("common.close")}
-          className="p-2.5 text-slate-500 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 dark:text-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-all active:scale-90 flex-shrink-0 min-w-[44px] min-h-[44px]"
+          className="h-11 w-11 p-2.5 text-slate-500 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
           onClick={onClose}
+          size="icon"
+          variant="ghost"
         >
           <X size={24} />
-        </button>
+        </Button>
       </div>
     </div>
   );

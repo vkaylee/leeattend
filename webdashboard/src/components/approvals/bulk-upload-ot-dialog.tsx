@@ -1,11 +1,14 @@
+/* eslint-disable complexity */
 import * as Dialog from "@radix-ui/react-dialog";
 import { X, Upload, Download, FileText, AlertCircle, CheckCircle2, XCircle } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { useBulkUploadPaperOt } from "@/hooks/use-attendance";
 import { useConfirm } from "@/hooks/use-confirm";
+import { cn } from "@/lib/utils";
 
 interface Props {
   onOpenChange: (open: boolean) => void;
@@ -35,6 +38,37 @@ interface FileUploadZoneProps {
   t: (key: string, options?: Record<string, unknown>) => string;
 }
 
+interface UploadSummaryProps {
+  t: (key: string, options?: Record<string, unknown>) => string;
+  uploadResult: UploadResult;
+}
+
+interface ErrorDetailsTableProps {
+  onDownloadErrorReport: () => void;
+  t: (key: string, options?: Record<string, unknown>) => string;
+  uploadResult: UploadResult;
+}
+
+interface SuccessMessageProps {
+  count: number;
+  t: (key: string, options?: Record<string, unknown>) => string;
+}
+
+interface BulkUploadDialogContentProps {
+  error: string | null;
+  handleClose: () => void;
+  handleFileChange: (file: File | null) => void;
+  handleUpload: () => void;
+  isDragOver: boolean;
+  isUploading: boolean;
+  onDownloadErrorReport: () => void;
+  selectedFile: File | null;
+  setIsDragOver: (over: boolean) => void;
+  setSelectedFile: (file: File | null) => void;
+  t: (key: string, options?: Record<string, unknown>) => string;
+  uploadResult: UploadResult | null;
+}
+
 function FileUploadZone({
   isDragOver,
   onDragLeave,
@@ -54,15 +88,16 @@ function FileUploadZone({
           <Typography className="text-xs text-slate-500 dark:text-slate-400" variant="p">
             {(selectedFile.size / 1024).toFixed(2)} KB
           </Typography>
-          <button
-            className="text-xs text-rose-600 dark:text-rose-300 hover:underline"
+          <Button
+            className="h-auto p-0 text-xs text-rose-600 dark:text-rose-300 hover:underline hover:bg-transparent dark:hover:bg-transparent shadow-none"
             onClick={(e) => {
               e.stopPropagation();
               setSelectedFile(null);
             }}
+            variant="ghost"
           >
             {t("common.remove")}
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -103,11 +138,6 @@ function FileUploadZone({
   );
 }
 
-interface UploadSummaryProps {
-  t: (key: string, options?: Record<string, unknown>) => string;
-  uploadResult: UploadResult;
-}
-
 function UploadSummary({ t, uploadResult }: UploadSummaryProps) {
   return (
     <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-4 space-y-2">
@@ -140,12 +170,6 @@ function UploadSummary({ t, uploadResult }: UploadSummaryProps) {
   );
 }
 
-interface ErrorDetailsTableProps {
-  onDownloadErrorReport: () => void;
-  t: (key: string, options?: Record<string, unknown>) => string;
-  uploadResult: UploadResult;
-}
-
 function ErrorDetailsTable({ onDownloadErrorReport, t, uploadResult }: ErrorDetailsTableProps) {
   if (uploadResult.errors.length === 0) return null;
 
@@ -155,13 +179,14 @@ function ErrorDetailsTable({ onDownloadErrorReport, t, uploadResult }: ErrorDeta
         <Typography className="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wide" variant="h3">
           {t("approvals.bulk_upload.error_details")}
         </Typography>
-        <button
-          className="px-4 py-2 rounded-xl bg-rose-100 dark:bg-rose-900 hover:bg-rose-200 text-rose-700 dark:text-rose-300 text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2"
+        <Button
+          className="h-auto px-4 py-2 rounded-xl bg-rose-100 dark:bg-rose-900 hover:bg-rose-200 text-rose-700 dark:text-rose-300 text-xs font-bold uppercase tracking-wider flex items-center"
+          icon={<Download className="w-3 h-3" />}
           onClick={onDownloadErrorReport}
+          variant="outline"
         >
-          <Download className="w-3 h-3" />
           {t("approvals.bulk_upload.download_errors")}
-        </button>
+        </Button>
       </div>
 
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden max-h-64 overflow-y-auto">
@@ -236,11 +261,6 @@ function downloadErrorReport(uploadResult: UploadResult) {
   window.URL.revokeObjectURL(url);
 }
 
-interface SuccessMessageProps {
-  count: number;
-  t: (key: string, options?: Record<string, unknown>) => string;
-}
-
 function SuccessMessage({ count, t }: SuccessMessageProps) {
   return (
     <div className="flex items-center gap-3 bg-emerald-50 dark:bg-emerald-950 border border-emerald-200 dark:border-emerald-800 rounded-xl p-4">
@@ -309,21 +329,6 @@ function useBulkUploadForm(onSuccess?: () => void) {
   };
 }
 
-interface BulkUploadDialogContentProps {
-  error: string | null;
-  handleClose: () => void;
-  handleFileChange: (file: File | null) => void;
-  handleUpload: () => void;
-  isDragOver: boolean;
-  isUploading: boolean;
-  onDownloadErrorReport: () => void;
-  selectedFile: File | null;
-  setIsDragOver: (over: boolean) => void;
-  setSelectedFile: (file: File | null) => void;
-  t: (key: string, options?: Record<string, unknown>) => string;
-  uploadResult: UploadResult | null;
-}
-
 function BulkUploadDialogContent({
   error,
   handleClose,
@@ -347,15 +352,23 @@ function BulkUploadDialogContent({
       <Dialog.Description className="text-sm text-slate-500 dark:text-slate-400 mt-1">
         {t("approvals.bulk_upload.description")}
       </Dialog.Description>
-      <button className="absolute right-4 top-4 p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700" onClick={handleClose}>
-        <X className="h-4 w-4" />
-      </button>
+      <Button
+        className="absolute right-4 top-4 h-auto w-auto p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 shadow-none"
+        icon={<X className="h-4 w-4" />}
+        onClick={handleClose}
+        size="icon"
+        variant="ghost"
+      />
       <div className="mt-6 space-y-5">
         <div className="flex justify-center">
-          <button className="px-6 py-3 rounded-xl bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-200 text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2" onClick={downloadTemplate}>
-            <Download className="w-4 h-4" />
+          <Button
+            className="h-auto px-6 py-3 rounded-xl bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 text-xs font-bold uppercase tracking-wider"
+            icon={<Download className="w-4 h-4" />}
+            onClick={downloadTemplate}
+            variant="ghost"
+          >
             {t("approvals.bulk_upload.download_template")}
-          </button>
+          </Button>
         </div>
         {!uploadResult && (
           <FileUploadZone
@@ -371,9 +384,16 @@ function BulkUploadDialogContent({
         )}
         {!!selectedFile && !uploadResult && (
           <div className="flex justify-center">
-            <button className="px-8 py-3 rounded-xl bg-primary-600 text-white text-xs font-bold uppercase tracking-wider shadow-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2" disabled={isUploading} onClick={handleUpload}>
-              {isUploading ? (<><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />{t("common.uploading")}</>) : (<><Upload className="w-4 h-4" />{t("approvals.bulk_upload.upload")}</>)}
-            </button>
+            <Button
+              className="h-auto px-8 py-3 rounded-xl"
+              disabled={isUploading}
+              icon={!isUploading && <Upload className="w-4 h-4" />}
+              loading={isUploading}
+              onClick={handleUpload}
+              variant="primary"
+            >
+              {isUploading ? t("common.uploading") : t("approvals.bulk_upload.upload")}
+            </Button>
           </div>
         )}
         {!!error && (
@@ -390,9 +410,18 @@ function BulkUploadDialogContent({
           </div>
         )}
         <div className="flex justify-end gap-3 pt-2">
-          <button className={`px-6 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${uploadResult ? "bg-primary-600 text-white shadow-lg hover:bg-primary-700" : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"}`} onClick={handleClose}>
+          <Button
+            className={cn(
+              "h-auto px-6 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all",
+              uploadResult
+                ? "bg-primary-600 text-white shadow-lg hover:bg-primary-700"
+                : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
+            )}
+            onClick={handleClose}
+            variant={uploadResult ? "primary" : "ghost"}
+          >
             {uploadResult ? t("common.close") : t("common.cancel")}
-          </button>
+          </Button>
         </div>
       </div>
     </Dialog.Content>
@@ -440,3 +469,4 @@ export function BulkUploadOtDialog({ open, onOpenChange, onSuccess }: Props) {
     </Dialog.Root>
   );
 }
+
