@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 
 import type { DailyAttendanceReport, AttendanceAdjustmentRequest, Shift } from "@/lib/api";
 
+import Button from "@/components/ui/button";
 import Sheet from "@/components/ui/sheet";
 import { useDebug } from "@/context/debug-context";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
@@ -40,24 +41,26 @@ function EmployeeDailyDrawerHeader({ viewMode, setViewMode, isLoading, reportDat
     return (
         <>
             <div className="flex bg-slate-100 dark:bg-slate-800 rounded-lg p-1 border border-slate-200 dark:border-slate-700">
-                <button
-                    className={`px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-md transition-all ${viewMode === "daily"
-                        ? "bg-white dark:bg-slate-700 text-primary-600 dark:text-primary-400 shadow-sm"
+                <Button
+                    className={`px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-md transition-all h-auto ${viewMode === "daily"
+                        ? "bg-white dark:bg-slate-700 text-primary-600 dark:text-primary-400 shadow-sm hover:bg-white dark:hover:bg-slate-700"
                         : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
                         }`}
                     onClick={() => { setViewMode("daily"); }}
+                    variant="ghost"
                 >
                     {t("reports.tabs.daily")}
-                </button>
-                <button
-                    className={`px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-md transition-all ${viewMode === "raw"
-                        ? "bg-white dark:bg-slate-700 text-primary-600 dark:text-primary-400 shadow-sm"
+                </Button>
+                <Button
+                    className={`px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-md transition-all h-auto ${viewMode === "raw"
+                        ? "bg-white dark:bg-slate-700 text-primary-600 dark:text-primary-400 shadow-sm hover:bg-white dark:hover:bg-slate-700"
                         : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
                         }`}
                     onClick={() => { setViewMode("raw"); }}
+                    variant="ghost"
                 >
                     <span className="flex items-center gap-1.5"><CalendarCheck size={12} /> {t("reports.view_raw_logs")}</span>
-                </button>
+                </Button>
             </div>
             {viewMode === "daily" && !isLoading && reportData.length > 0 ? (
                 <>

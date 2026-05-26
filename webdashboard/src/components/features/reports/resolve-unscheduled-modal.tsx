@@ -1,7 +1,8 @@
-import { AlertTriangle, RefreshCw, CalendarCheck } from "lucide-react";
+import { AlertTriangle, CalendarCheck } from "lucide-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import Button from "@/components/ui/button";
 import Modal from "@/components/ui/modal";
 import { Typography } from "@/components/ui/typography";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
@@ -94,25 +95,24 @@ export default function ResolveUnscheduledModal({
 
                 {/* Buttons */}
                 <div className="flex gap-4 border-t border-slate-100 dark:border-slate-800 pt-4">
-                    <button
-                        className="flex-1 px-6 py-3.5 rounded-2xl font-bold text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all active:scale-95"
+                    <Button
+                        className="flex-1 h-auto py-3.5 rounded-2xl text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"
                         disabled={isPending}
                         onClick={onClose}
+                        variant="ghost"
                     >
                         {t("common.cancel")}
-                    </button>
-                    <button
-                        className="flex-[1.5] bg-amber-600 hover:bg-amber-700 text-white font-bold px-6 py-3.5 rounded-2xl flex items-center justify-center gap-3 transition-all active:scale-95 disabled:opacity-50 shadow-xl text-xs uppercase tracking-widest"
+                    </Button>
+                    <Button
+                        className="flex-[1.5] bg-amber-600 hover:bg-amber-700 shadow-xl h-auto py-3.5 rounded-2xl flex items-center justify-center gap-3"
                         disabled={isPending || !selectedShiftId}
+                        icon={<CalendarCheck size={18} />}
+                        loading={isPending}
                         onClick={() => { onSubmit(selectedShiftId); }}
+                        variant="primary"
                     >
-                        {isPending ? (
-                            <RefreshCw className="w-4 h-4 animate-spin" />
-                        ) : (
-                            <CalendarCheck size={18} />
-                        )}
                         {t("reports.unscheduled.submit")}
-                    </button>
+                    </Button>
                 </div>
             </div>
         </Modal>

@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { EmployeeSearch } from '@/components/common/employee-search';
 import InfiniteScrollSentinel from '@/components/common/infinite-scroll-sentinel';
 import { TableSkeleton } from '@/components/common/table-skeleton';
+import Button from '@/components/ui/button';
 import { Typography } from "@/components/ui/typography";
 import { StagingLog } from '@/lib/api/attendance';
 
@@ -94,34 +95,39 @@ function StagingLogRow({
                 value=""
                 workspaceId={wsId}
               />
-              <button
-                className="p-2 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 dark:text-slate-600 transition-colors"
+              <Button
+                className="p-2 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 transition-colors h-9 w-9"
                 onClick={() => { setAssigningLogId(null); }}
+                size="icon"
+                variant="ghost"
               >
                 ✕
-              </button>
+              </Button>
             </div>
           ) : (
             <>
-              <button
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-primary-50 dark:bg-primary-950 text-primary-600 dark:text-primary-400 rounded-lg text-[9px] font-bold uppercase tracking-widest hover:bg-primary-100 dark:bg-primary-900 transition-all"
+              <Button
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-primary-50 dark:bg-primary-950 text-primary-600 dark:text-primary-400 rounded-lg text-[9px] font-bold uppercase tracking-widest hover:bg-primary-100 dark:bg-primary-900 transition-all h-auto"
                 onClick={() => { setAssigningLogId(log.id); }}
+                variant="ghost"
               >
                 <Link2 size={12} /> {t("attendance_logs.assign")}
-              </button>
-              <button
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-300 rounded-lg text-[9px] font-bold uppercase tracking-widest hover:bg-emerald-100 dark:bg-emerald-900 transition-all"
+              </Button>
+              <Button
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-300 rounded-lg text-[9px] font-bold uppercase tracking-widest hover:bg-emerald-100 dark:bg-emerald-900 transition-all h-auto"
                 onClick={() => { onCreateEmployee(log.raw_user_id); }}
+                variant="ghost"
               >
                 <UserPlus size={12} /> {t("attendance_logs.create_employee")}
-              </button>
-              <button
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 dark:bg-rose-950 text-rose-600 dark:text-rose-300 rounded-lg text-[9px] font-bold uppercase tracking-widest hover:bg-rose-100 dark:bg-rose-900 transition-all disabled:opacity-50"
+              </Button>
+              <Button
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 dark:bg-rose-950 text-rose-600 dark:text-rose-300 rounded-lg text-[9px] font-bold uppercase tracking-widest hover:bg-rose-100 dark:bg-rose-900 transition-all disabled:opacity-50 h-auto"
                 disabled={isDismissing}
                 onClick={() => { onDismiss(log.id); }}
+                variant="ghost"
               >
                 <Trash2 size={12} /> {t("common.delete")}
-              </button>
+              </Button>
             </>
           )}
         </div>

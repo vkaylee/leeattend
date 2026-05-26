@@ -2,6 +2,7 @@ import { Check, RefreshCw } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
+import Button from "@/components/ui/button";
 import Modal from "@/components/ui/modal";
 import { Typography } from "@/components/ui/typography";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
@@ -48,25 +49,24 @@ export default function ConfirmReprocessModal({
                     </Typography>
                 </div>
                 <div className="flex gap-6 border-t border-slate-50 dark:border-slate-800 pt-2">
-                    <button
-                        className="flex-1 px-8 py-4 rounded-2xl font-bold text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all active:scale-95"
+                    <Button
+                        className="flex-1 h-auto py-4 rounded-2xl text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"
                         disabled={isPending}
                         onClick={onClose}
+                        variant="ghost"
                     >
                         {t("common.cancel")}
-                    </button>
-                    <button
-                        className="flex-[1.5] bg-slate-900 hover:bg-primary-700 text-white font-bold px-8 py-4 rounded-2xl flex items-center justify-center gap-4 transition-all active:scale-95 disabled:opacity-50 shadow-2xl shadow-slate-400 dark:shadow-black/40 text-xs uppercase tracking-widest"
+                    </Button>
+                    <Button
+                        className="flex-[1.5] h-auto py-4 rounded-2xl flex items-center justify-center gap-4 shadow-2xl shadow-slate-400 dark:shadow-black/40"
                         disabled={isPending}
+                        icon={<Check size={20} />}
+                        loading={isPending}
                         onClick={onConfirm}
+                        variant="secondary"
                     >
-                        {isPending ? (
-                            <RefreshCw className="w-5 h-5 animate-spin" />
-                        ) : (
-                            <Check size={20} />
-                        )}{" "}
-                        {t("reports.reprocess.confirm").toUpperCase()}
-                    </button>
+                        {t("reports.reprocess.confirm")}
+                    </Button>
                 </div>
             </div>
         </Modal>
