@@ -18,7 +18,9 @@ async fn test_concurrent_registration_platform_admin_assignment() {
         crate::test_query_scalar_i64!(&pool.api, "SELECT count(*) AS count FROM users");
     assert_eq!(user_count, 0, "DB should start empty");
 
-    let repo = Arc::new(apiserver::repositories::diesel_user_repository::DieselUserRepository::new(pool.clone()));
+    let repo = Arc::new(
+        apiserver::repositories::diesel_user_repository::DieselUserRepository::new(pool.clone()),
+    );
 
     let num_tasks = 10;
     let mut join_handles = vec![];
@@ -57,8 +59,14 @@ async fn test_concurrent_registration_platform_admin_assignment() {
         }
     }
 
-    assert_eq!(success_count, num_tasks, "All users should be created successfully");
-    assert_eq!(admin_assignments, 1, "Exactly one task should report being the first user");
+    assert_eq!(
+        success_count, num_tasks,
+        "All users should be created successfully"
+    );
+    assert_eq!(
+        admin_assignments, 1,
+        "Exactly one task should report being the first user"
+    );
 
     // Verify total system role assignments: only 1 platform_admin exists
     let total_admins: i64 = crate::test_query_scalar_i64!(

@@ -21,8 +21,8 @@ use crate::models::{
 };
 use crate::repositories::employee::*;
 use crate::schema::{
-    employee_documents, employee_emergency_contacts, employee_profiles, employees,
-    recruitment_sources, attendance_staging_logs,
+    attendance_staging_logs, employee_documents, employee_emergency_contacts, employee_profiles,
+    employees, recruitment_sources,
 };
 use diesel::sql_types::{Date, Uuid as UuidType};
 
@@ -510,7 +510,10 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
         employee: &Employee,
         recruitment_source_id: Option<Uuid>,
     ) -> Result<(), AppError> {
-        let mut conn = self.diesel_pools.tenant_transaction_conn(auth_token).await?;
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
 
         let mut new_entity: EmployeeEntity = employee.clone().into();
         // The recruitment_source_id belongs on the employee entity in this schema

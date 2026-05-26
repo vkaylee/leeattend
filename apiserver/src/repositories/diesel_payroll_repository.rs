@@ -143,16 +143,18 @@ impl PayrollRepository for DieselPayrollRepository {
                         .await?;
 
                     if !req.tiers.is_empty() {
-                        let tier_entities: Vec<_> = req.tiers.iter().map(|tier| {
-                            crate::models::diesel::payroll::IncentiveTierEntity {
+                        let tier_entities: Vec<_> = req
+                            .tiers
+                            .iter()
+                            .map(|tier| crate::models::diesel::payroll::IncentiveTierEntity {
                                 id: crate::utils::id::new_id(),
                                 policy_id,
                                 priority: tier.priority,
                                 rule_config: serde_json::to_value(&tier.rule_config)
                                     .unwrap_or_default(),
                                 payout_amount: tier.payout_amount.to_f64().unwrap_or_default(),
-                            }
-                        }).collect();
+                            })
+                            .collect();
 
                         diesel::insert_into(payroll_incentive_tiers::table)
                             .values(&tier_entities)
@@ -1002,13 +1004,18 @@ impl PayrollRepository for DieselPayrollRepository {
                     &args.applied_base_salary.to_string(),
                 )
                 .unwrap_or_default(),
-                applied_std_days: bigdecimal::BigDecimal::from_str(&args.applied_std_days.to_string())
-                    .unwrap_or_default(),
-                actual_work_days: bigdecimal::BigDecimal::from_str(&args.actual_work_days.to_string())
-                    .unwrap_or_default(),
+                applied_std_days: bigdecimal::BigDecimal::from_str(
+                    &args.applied_std_days.to_string(),
+                )
+                .unwrap_or_default(),
+                actual_work_days: bigdecimal::BigDecimal::from_str(
+                    &args.actual_work_days.to_string(),
+                )
+                .unwrap_or_default(),
                 paid_work_days: bigdecimal::BigDecimal::from_str(&args.paid_work_days.to_string())
                     .unwrap_or_default(),
-                amount: bigdecimal::BigDecimal::from_str(&args.amount.to_string()).unwrap_or_default(),
+                amount: bigdecimal::BigDecimal::from_str(&args.amount.to_string())
+                    .unwrap_or_default(),
                 created_at: Some(Utc::now()),
                 applied_hours_per_day: bigdecimal::BigDecimal::from_str(
                     &args.hours_per_day.to_string(),

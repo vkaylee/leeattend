@@ -3,6 +3,7 @@ import { Upload, FileText, Loader2, CheckCircle2, AlertCircle } from "lucide-rea
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import Button from "@/components/ui/button";
 import Modal from "@/components/ui/modal";
 import { Typography } from "@/components/ui/typography";
 import { uploadAttendance, fetchLatestImportJob, fetchImportJobStatus, getCurrentWorkspaceId } from "@/lib/api";
@@ -158,7 +159,7 @@ function FileUploadZone({ file, setFile, t }: { file: File | null; setFile: (fil
           <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-900 rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-lg shadow-emerald-200/50 dark:shadow-emerald-900/30 rotate-3 group-hover:rotate-0 transition-transform"><FileText className="text-emerald-600 dark:text-emerald-300" size={28} /></div>
           <Typography className="font-bold text-slate-800 dark:text-slate-200 mb-1 text-lg tracking-tight uppercase" variant="p">{file.name}</Typography>
           <Typography className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest" variant="p">{(file.size / 1024).toFixed(1)} KB — READY TO START</Typography>
-          <button className="mt-5 text-[10px] font-bold text-rose-600 dark:text-rose-400 uppercase tracking-widest hover:text-rose-700 dark:hover:text-rose-300 transition-all bg-white dark:bg-slate-900 px-5 py-2 rounded-lg border border-rose-200 dark:border-rose-800 shadow-sm hover:shadow-md active:scale-90" onClick={(e) => { e.stopPropagation(); setFile(null); }}>{t("attendance_import.select_another_file")}</button>
+          <Button className="mt-5 border-rose-200 dark:border-rose-800 text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-950 shadow-sm hover:shadow-md" onClick={(e) => { e.stopPropagation(); setFile(null); }} size="sm" variant="outline">{t("attendance_import.select_another_file")}</Button>
         </div>
       ) : (
         <div className="text-center group-hover:scale-105 transition-transform duration-500">
@@ -174,10 +175,10 @@ function FileUploadZone({ file, setFile, t }: { file: File | null; setFile: (fil
 function ImportActions({ onClose, file, uploading, handleUpload, t }: { onClose: () => void; file: File | null; uploading: boolean; handleUpload: () => void; t: (key: string) => string }) {
   return (
     <div className="flex gap-4 pt-3 border-t border-slate-200 dark:border-slate-800">
-      <button className="flex-1 px-6 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-800 transition-all active:scale-95" onClick={onClose}>{t("common.cancel")}</button>
-      <button className="flex-[1.5] py-3 bg-primary-600 text-white rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-primary-700 transition-all shadow-lg shadow-primary-200/50 dark:shadow-primary-900/30 active:scale-95 disabled:opacity-50 flex items-center justify-center gap-3" disabled={!file || uploading} onClick={handleUpload}>
-        {uploading ? <><Loader2 className="animate-spin" size={18} /> {t("attendance_import.status.uploading").toUpperCase()}</> : t("attendance_import.start_import").toUpperCase()}
-      </button>
+      <Button className="flex-1" onClick={onClose} size="lg" variant="outline">{t("common.cancel")}</Button>
+      <Button className="flex-[1.5]" disabled={!file || uploading} loading={uploading} onClick={handleUpload} size="lg" variant="primary">
+        {uploading ? t("attendance_import.status.uploading").toUpperCase() : t("attendance_import.start_import").toUpperCase()}
+      </Button>
     </div>
   );
 }
@@ -241,8 +242,8 @@ export default function AttendanceImportDialog({
           <ImportProgress jobStatus={jobStatus} t={t} />
           {isFinished ? (
             <div className="pt-3 flex justify-end border-t border-slate-200 dark:border-slate-800">
-              <button 
-                className="px-10 py-3 bg-slate-800 dark:bg-slate-700 text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-lg active:scale-95" 
+              <Button 
+                className="px-10" 
                 onClick={() => { 
                   onClose(); 
                   setTimeout(() => {
@@ -251,9 +252,11 @@ export default function AttendanceImportDialog({
                     void queryClient.invalidateQueries(); 
                   }, 300);
                 }}
+                size="lg"
+                variant="secondary"
               >
                 {t("common.close").toUpperCase()}
-              </button>
+              </Button>
             </div>
           ) : null}
         </>

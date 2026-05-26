@@ -7,6 +7,7 @@ import {
 import React from "react";
 import { useTranslation } from "react-i18next";
 
+import { ErrorBoundary } from "@/components/common/error-boundary";
 import { Typography } from "@/components/ui/typography";
 import { ROUTES } from "@/lib/routes";
 
@@ -107,7 +108,9 @@ export default function SettingsLayout() {
       {/* Content Area */}
       <main className="flex-1 min-w-0">
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm p-8 lg:p-10 min-h-full">
-          <Outlet />
+          <ErrorBoundary key={location.pathname}>
+            <Outlet />
+          </ErrorBoundary>
         </div>
       </main>
     </div>

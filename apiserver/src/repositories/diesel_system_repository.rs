@@ -53,6 +53,29 @@ impl SystemRepository for DieselSystemRepository {
 
         Ok(())
     }
+
+    async fn execute_tenant_partition_queries_batch(
+        &self,
+        tenant_id: uuid::Uuid,
+        queries: &[String],
+    ) -> Result<(), AppError> {
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&tenant_id)
+                .await
+                .map_err(|e| AppError::Internal(format!("db conn error: {e}")))?,
+        );
+
+        for query in queries {
+            diesel::sql_query(query)
+                .execute(&mut *conn)
+                .await
+                .map_err(|e| AppError::Internal(format!("failed to execute query: {e}")))?;
+        }
+
+        Ok(())
+    }
 }
 
 #[cfg(test)]

@@ -10,4 +10,9 @@ pub trait SystemRepository: Send + Sync {
         tenant_id: uuid::Uuid,
         query: &str,
     ) -> Result<(), AppError>;
+    async fn execute_tenant_partition_queries_batch(
+        &self,
+        tenant_id: uuid::Uuid,
+        queries: &[String],
+    ) -> Result<(), AppError>;
 }

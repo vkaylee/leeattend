@@ -26,6 +26,7 @@ impl NightlyHousekeepingHandler {
 
         for workspace in workspaces {
             let tenant_id = workspace.id;
+            let mut queries = Vec::new();
 
             // Ensure partitions for current month + next 3 months
             let mut target_date = NaiveDate::from_ymd_opt(ref_date.year(), ref_date.month(), 1)
@@ -44,23 +45,8 @@ impl NightlyHousekeepingHandler {
                 let audit_table = format!("audit_logs_y{year:04}m{month:02}");
                 let staging_table = format!("attendance_staging_logs_y{year:04}m{month:02}");
 
-                let query1 = format!("CREATE TABLE IF NOT EXISTS {audit_table} PARTITION OF audit_logs FOR VALUES FROM ('{from_date_str}') TO ('{to_date_str}')");
-                let query2 = format!("CREATE TABLE IF NOT EXISTS {staging_table} PARTITION OF attendance_staging_logs FOR VALUES FROM ('{from_date_str}') TO ('{to_date_str}')");
-
-                if let Err(e) = deps
-                    .system_repo
-                    .execute_tenant_partition_query(tenant_id, &query1)
-                    .await
-                {
-                    error!(error = %e, tenant_id = %tenant_id, year, month, "Failed to create audit_logs partition");
-                }
-                if let Err(e) = deps
-                    .system_repo
-                    .execute_tenant_partition_query(tenant_id, &query2)
-                    .await
-                {
-                    error!(error = %e, tenant_id = %tenant_id, year, month, "Failed to create staging_logs partition");
-                }
+                queries.push(format!("CREATE TABLE IF NOT EXISTS {audit_table} PARTITION OF audit_logs FOR VALUES FROM ('{from_date_str}') TO ('{to_date_str}')"));
+                queries.push(format!("CREATE TABLE IF NOT EXISTS {staging_table} PARTITION OF attendance_staging_logs FOR VALUES FROM ('{from_date_str}') TO ('{to_date_str}')"));
 
                 target_date = NaiveDate::from_ymd_opt(next_year, next_month, 1)
                     .ok_or("Invalid next target date")?;
@@ -78,23 +64,16 @@ impl NightlyHousekeepingHandler {
                 let staging_table =
                     format!("attendance_staging_logs_y{drop_year:04}m{drop_month:02}");
 
-                let query1 = format!("DROP TABLE IF EXISTS {audit_table}");
-                let query2 = format!("DROP TABLE IF EXISTS {staging_table}");
+                queries.push(format!("DROP TABLE IF EXISTS {audit_table}"));
+                queries.push(format!("DROP TABLE IF EXISTS {staging_table}"));
+            }
 
-                if let Err(e) = deps
-                    .system_repo
-                    .execute_tenant_partition_query(tenant_id, &query1)
-                    .await
-                {
-                    error!(error = %e, tenant_id = %tenant_id, drop_year, drop_month, "Failed to drop old audit_logs partition");
-                }
-                if let Err(e) = deps
-                    .system_repo
-                    .execute_tenant_partition_query(tenant_id, &query2)
-                    .await
-                {
-                    error!(error = %e, tenant_id = %tenant_id, drop_year, drop_month, "Failed to drop old staging_logs partition");
-                }
+            if let Err(e) = deps
+                .system_repo
+                .execute_tenant_partition_queries_batch(tenant_id, &queries)
+                .await
+            {
+                error!(error = %e, tenant_id = %tenant_id, "Failed to execute batch partition queries for workspace");
             }
         }
 
@@ -162,7 +141,7 @@ mod tests {
 
         builder
             .system_repo
-            .expect_execute_tenant_partition_query()
+            .expect_execute_tenant_partition_queries_batch()
             .returning(|_, _| Box::pin(async { Ok(()) }));
         let deps = builder.build();
 

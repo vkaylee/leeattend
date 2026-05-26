@@ -117,7 +117,11 @@ async fn test_net_pay_formula_with_zero_deductions() {
             ),
 
             roster_provider: std::sync::Arc::new(
-                apiserver::services::payroll_service::DirectRosterDataProvider(std::sync::Arc::new(apiserver::repositories::DieselRosterRepository::new(diesel_pools.clone()))),
+                apiserver::services::payroll_service::DirectRosterDataProvider(
+                    std::sync::Arc::new(apiserver::repositories::DieselRosterRepository::new(
+                        diesel_pools.clone(),
+                    )),
+                ),
             ),
         })
     }

@@ -654,11 +654,7 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
         Ok(result)
     }
 
-    async fn get_leave_type_name(
-        &self,
-        id: Uuid,
-        workspace_id: Uuid,
-    ) -> Result<String, AppError> {
+    async fn get_leave_type_name(&self, id: Uuid, workspace_id: Uuid) -> Result<String, AppError> {
         let mut conn = crate::diesel_pool::TransactionConn(
             self.diesel_pools
                 .tenants_tx

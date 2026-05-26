@@ -70,58 +70,59 @@ impl UserRepository for DieselUserRepository {
             preferred_language: user.preferred_language.clone(),
         };
 
-        let is_first = conn.transaction::<bool, AppError, _>(|conn| {
-            Box::pin(async move {
-                // Lock row or rely on serializability if we wanted perfect safety.
-                // Using an advisory transaction lock ensures that concurrent registrations
-                // on an empty database are serialized, preventing multiple users from
-                // simultaneously reading `count == 0` and becoming platform_admin.
-                diesel::sql_query("SELECT pg_advisory_xact_lock(1337)")
-                    .execute(&mut *conn)
-                    .await
-                    .map_err(|e| AppError::Internal(format!("db lock: {e}")))?;
-
-                let count = users::table
-                    .count()
-                    .get_result::<i64>(&mut *conn)
-                    .await
-                    .map_err(|e| AppError::Internal(format!("db: {e}")))?;
-
-                let is_first = count == 0;
-
-                diesel::insert_into(users::table)
-                    .values(&entity)
-                    .execute(&mut *conn)
-                    .await
-                    .map_err(|e| AppError::Internal(format!("db: {e}")))?;
-
-                if is_first {
-                    let role_id_opt: Option<Uuid> = system_roles::table
-                        .filter(system_roles::name.eq("platform_admin"))
-                        .select(system_roles::id)
-                        .first::<Uuid>(&mut *conn)
+        let is_first = conn
+            .transaction::<bool, AppError, _>(|conn| {
+                Box::pin(async move {
+                    // Lock row or rely on serializability if we wanted perfect safety.
+                    // Using an advisory transaction lock ensures that concurrent registrations
+                    // on an empty database are serialized, preventing multiple users from
+                    // simultaneously reading `count == 0` and becoming platform_admin.
+                    diesel::sql_query("SELECT pg_advisory_xact_lock(1337)")
+                        .execute(&mut *conn)
                         .await
-                        .optional()
+                        .map_err(|e| AppError::Internal(format!("db lock: {e}")))?;
+
+                    let count = users::table
+                        .count()
+                        .get_result::<i64>(&mut *conn)
+                        .await
                         .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
-                    if let Some(role_id) = role_id_opt {
-                        diesel::insert_into(user_system_roles::table)
-                            .values((
-                                user_system_roles::user_id.eq(entity.id),
-                                user_system_roles::role_id.eq(role_id),
-                            ))
-                            .execute(&mut *conn)
-                            .await
-                            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
-                    } else {
-                        return Err(AppError::Internal("platform_admin role not found".into()));
-                    }
-                }
+                    let is_first = count == 0;
 
-                Ok(is_first)
+                    diesel::insert_into(users::table)
+                        .values(&entity)
+                        .execute(&mut *conn)
+                        .await
+                        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+                    if is_first {
+                        let role_id_opt: Option<Uuid> = system_roles::table
+                            .filter(system_roles::name.eq("platform_admin"))
+                            .select(system_roles::id)
+                            .first::<Uuid>(&mut *conn)
+                            .await
+                            .optional()
+                            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+                        if let Some(role_id) = role_id_opt {
+                            diesel::insert_into(user_system_roles::table)
+                                .values((
+                                    user_system_roles::user_id.eq(entity.id),
+                                    user_system_roles::role_id.eq(role_id),
+                                ))
+                                .execute(&mut *conn)
+                                .await
+                                .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+                        } else {
+                            return Err(AppError::Internal("platform_admin role not found".into()));
+                        }
+                    }
+
+                    Ok(is_first)
+                })
             })
-        })
-        .await?;
+            .await?;
 
         Ok(is_first)
     }

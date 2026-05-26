@@ -245,21 +245,36 @@ mod tests {
                 is_master: true,
                 ..Default::default()
             },
-        ).unwrap();
-        let users = payload_master.get("tenant").unwrap()["users"].as_array().unwrap();
-        assert_eq!(users[0]["is_manager"], true, "is_master=true must be manager");
+        )
+        .unwrap();
+        let users = payload_master.get("tenant").unwrap()["users"]
+            .as_array()
+            .unwrap();
+        assert_eq!(
+            users[0]["is_manager"], true,
+            "is_master=true must be manager"
+        );
 
         // Case 2: BYOD connection (host differs from DATABASE_URL)
-        std::env::set_var("DATABASE_URL", "postgres://admin:pass@internal-cluster:5432/db");
+        std::env::set_var(
+            "DATABASE_URL",
+            "postgres://admin:pass@internal-cluster:5432/db",
+        );
         let (_, payload_byod) = build_tenant_payload(
             "postgres://my_user:my_secret@external-host:5433/db",
             TenantPayloadOptions {
                 is_master: false,
                 ..Default::default()
             },
-        ).unwrap();
-        let users = payload_byod.get("tenant").unwrap()["users"].as_array().unwrap();
-        assert_eq!(users[0]["is_manager"], false, "External BYOD must NOT be manager");
+        )
+        .unwrap();
+        let users = payload_byod.get("tenant").unwrap()["users"]
+            .as_array()
+            .unwrap();
+        assert_eq!(
+            users[0]["is_manager"], false,
+            "External BYOD must NOT be manager"
+        );
 
         // Case 3: Internal cluster connection (host matches DATABASE_URL)
         let (_, payload_cluster) = build_tenant_payload(
@@ -268,9 +283,15 @@ mod tests {
                 is_master: false,
                 ..Default::default()
             },
-        ).unwrap();
-        let users = payload_cluster.get("tenant").unwrap()["users"].as_array().unwrap();
-        assert_eq!(users[0]["is_manager"], true, "Internal cluster tenant must be manager");
+        )
+        .unwrap();
+        let users = payload_cluster.get("tenant").unwrap()["users"]
+            .as_array()
+            .unwrap();
+        assert_eq!(
+            users[0]["is_manager"], true,
+            "Internal cluster tenant must be manager"
+        );
 
         std::env::remove_var("DATABASE_URL");
     }

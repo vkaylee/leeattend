@@ -71,11 +71,11 @@ pub trait HolidayRepository: Send + Sync {
         requests: &[crate::models::LeaveRequest],
         rosters: &[crate::models::ShiftRoster],
         logs: &[(
-            Uuid, // employee_id
-            Uuid, // leave_type_id
+            Uuid,                  // employee_id
+            Uuid,                  // leave_type_id
             rust_decimal::Decimal, // amount
-            chrono::NaiveDate, // date
-            String, // notes
+            chrono::NaiveDate,     // date
+            String,                // notes
         )],
     ) -> Result<(), AppError>;
 }

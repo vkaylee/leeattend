@@ -8,6 +8,7 @@ import type { ThemeMode } from "@/hooks/use-dark-mode";
 import Button from "@/components/ui/button";
 import { Combobox } from "@/components/ui/combobox";
 import { LABEL_BASE } from "@/components/ui/form-field";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
 import { useDarkModeContext } from "@/context/use-dark-mode-context";
@@ -31,8 +32,9 @@ export default function GeneralSettings() {
 
   if (isLoadingWs) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+      <div className="space-y-6">
+        <Skeleton className="h-[200px] w-full rounded-[2.5rem]" />
+        <Skeleton className="h-[400px] w-full rounded-[2.5rem]" />
       </div>
     );
   }

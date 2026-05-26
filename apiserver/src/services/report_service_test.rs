@@ -1020,13 +1020,7 @@ mod tests {
             _auth_token: &crate::diesel_pool::TenantAuthToken,
             _requests: &[crate::models::LeaveRequest],
             _rosters: &[crate::models::ShiftRoster],
-            _logs: &[(
-                Uuid,
-                Uuid,
-                rust_decimal::Decimal,
-                chrono::NaiveDate,
-                String,
-            )],
+            _logs: &[(Uuid, Uuid, rust_decimal::Decimal, chrono::NaiveDate, String)],
         ) -> Result<(), AppError> {
             Ok(())
         }
@@ -1950,13 +1944,7 @@ mod tests {
             _auth_token: &crate::diesel_pool::TenantAuthToken,
             _requests: &[crate::models::LeaveRequest],
             _rosters: &[crate::models::ShiftRoster],
-            _logs: &[(
-                Uuid,
-                Uuid,
-                rust_decimal::Decimal,
-                chrono::NaiveDate,
-                String,
-            )],
+            _logs: &[(Uuid, Uuid, rust_decimal::Decimal, chrono::NaiveDate, String)],
         ) -> Result<(), AppError> {
             Ok(())
         }

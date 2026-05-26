@@ -171,7 +171,11 @@ pub async fn register(
     };
 
     // 4. Create User and auto-assign platform_admin atomically
-    let is_first = state.core.user_repo.create_user_with_admin_check(&user).await?;
+    let is_first = state
+        .core
+        .user_repo
+        .create_user_with_admin_check(&user)
+        .await?;
 
     if is_first {
         tracing::info!(

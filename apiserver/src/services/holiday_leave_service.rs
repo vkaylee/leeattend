@@ -35,7 +35,9 @@ impl HolidayLeaveService {
         leave_request_repo: Arc<dyn LeaveRequestRepository>,
         roster_repo: Arc<dyn RosterRepository>,
         holiday_repo: Arc<dyn crate::repositories::holiday_repository::HolidayRepository>,
-        leave_policy_repo: Arc<dyn crate::repositories::leave_policy_repository::LeavePolicyRepository>,
+        leave_policy_repo: Arc<
+            dyn crate::repositories::leave_policy_repository::LeavePolicyRepository,
+        >,
     ) -> Self {
         Self {
             employee_repo,
@@ -71,21 +73,25 @@ impl HolidayLeaveService {
             Some(id) => id,
             None => {
                 // Fallback: find first is_paid=true leave type in workspace
-                self.leave_policy_repo.find_default_paid_leave_type(workspace_id)
+                self.leave_policy_repo
+                    .find_default_paid_leave_type(workspace_id)
                     .await?
-                    .ok_or_else(|| crate::errors::AppError::NotFound(
-                        "No paid leave type found to deduct for unpaid holiday".to_string()
-                    ))?
+                    .ok_or_else(|| {
+                        crate::errors::AppError::NotFound(
+                            "No paid leave type found to deduct for unpaid holiday".to_string(),
+                        )
+                    })?
             }
         };
 
         // Get leave type name for audit trail
-        let leave_type_name = self.leave_policy_repo
+        let leave_type_name = self
+            .leave_policy_repo
             .get_leave_type_name(leave_type_id, workspace_id)
             .await?;
 
         let auth_token = crate::diesel_pool::TenantAuthToken::system_override(workspace_id);
-        
+
         // Get all active employees in workspace
         let employees = self
             .employee_repo

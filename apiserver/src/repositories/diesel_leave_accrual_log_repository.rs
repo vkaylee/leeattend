@@ -6,9 +6,9 @@ use crate::models::diesel::leave::LeaveAccrualLogEntity;
 use crate::models::LeaveAccrualLog;
 use crate::schema::*;
 use async_trait::async_trait;
-use chrono::{DateTime, NaiveDate, Utc, Datelike};
+use chrono::{DateTime, Datelike, NaiveDate, Utc};
 use diesel::prelude::*;
-use diesel_async::{RunQueryDsl, AsyncConnection};
+use diesel_async::{AsyncConnection, RunQueryDsl};
 use rust_decimal::Decimal;
 use std::str::FromStr;
 use uuid::Uuid;
@@ -338,7 +338,10 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
         amount: f64,
         force: bool,
     ) -> Result<Option<LeaveAccrualLog>, AppError> {
-        let mut conn = self.diesel_pools.tenant_transaction_conn(auth_token).await?;
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
 
         use rust_decimal::prelude::FromPrimitive;
         let decimal_amount = rust_decimal::Decimal::from_f64(amount).unwrap_or(Decimal::ZERO);
@@ -360,11 +363,14 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
                     .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
                 if let Some((log_id, old_amount_bd)) = row {
-                    let old_amount = Decimal::from_str(&old_amount_bd.to_string()).unwrap_or(Decimal::ZERO);
+                    let old_amount =
+                        Decimal::from_str(&old_amount_bd.to_string()).unwrap_or(Decimal::ZERO);
                     if force && old_amount != decimal_amount {
                         let diff = decimal_amount - old_amount;
-                        let diff_bd = bigdecimal::BigDecimal::from_str(&diff.to_string())
-                            .map_err(|e| AppError::Internal(format!("BigDecimal conversion failed: {e}")))?;
+                        let diff_bd =
+                            bigdecimal::BigDecimal::from_str(&diff.to_string()).map_err(|e| {
+                                AppError::Internal(format!("BigDecimal conversion failed: {e}"))
+                            })?;
 
                         let entity = diesel::update(leave_accrual_logs::table)
                             .filter(leave_accrual_logs::id.eq(log_id))
@@ -374,7 +380,7 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
                                 leave_accrual_logs::notes.eq(diesel::dsl::sql::<
                                     diesel::sql_types::Nullable<diesel::sql_types::Text>,
                                 >(
-                                    "COALESCE(notes, '') || ' (Re-calculated)'"
+                                    "COALESCE(notes, '') || ' (Re-calculated)'",
                                 )),
                             ))
                             .get_result::<LeaveAccrualLogEntity>(&mut *conn)
@@ -386,7 +392,8 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
                             .filter(leave_balances::year.eq(year))
                             .filter(leave_balances::leave_type_id.eq(leave_type_id))
                             .set((
-                                leave_balances::accrued_amount.eq(leave_balances::accrued_amount + diff_bd),
+                                leave_balances::accrued_amount
+                                    .eq(leave_balances::accrued_amount + diff_bd),
                                 leave_balances::updated_at.eq(diesel::dsl::now),
                             ))
                             .execute(&mut *conn)
@@ -437,7 +444,8 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
                             ))
                             .do_update()
                             .set((
-                                leave_balances::accrued_amount.eq(leave_balances::accrued_amount + amount_bd),
+                                leave_balances::accrued_amount
+                                    .eq(leave_balances::accrued_amount + amount_bd),
                                 leave_balances::updated_at.eq(diesel::dsl::now),
                             ))
                             .execute(&mut *conn)

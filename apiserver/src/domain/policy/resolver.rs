@@ -285,7 +285,10 @@ impl PolicyResolver {
         rules
     }
 
-    pub fn apply_shift_overrides(mut rules: PolicyRules, overrides: &ShiftPolicyOverrides) -> PolicyRules {
+    pub fn apply_shift_overrides(
+        mut rules: PolicyRules,
+        overrides: &ShiftPolicyOverrides,
+    ) -> PolicyRules {
         if let Some(gp) = overrides.grace_period_minutes {
             if gp > 0 {
                 rules.grace_period_minutes = gp;

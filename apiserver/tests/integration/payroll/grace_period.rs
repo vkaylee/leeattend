@@ -150,7 +150,11 @@ async fn test_grace_period_zero_shift_uses_policy_default() {
             ),
 
             roster_provider: std::sync::Arc::new(
-                apiserver::services::payroll_service::DirectRosterDataProvider(std::sync::Arc::new(apiserver::repositories::DieselRosterRepository::new(diesel_pools.clone()))),
+                apiserver::services::payroll_service::DirectRosterDataProvider(
+                    std::sync::Arc::new(apiserver::repositories::DieselRosterRepository::new(
+                        diesel_pools.clone(),
+                    )),
+                ),
             ),
         })
     }
@@ -301,7 +305,11 @@ async fn test_grace_period_nonzero_shift_overrides() {
             ),
 
             roster_provider: std::sync::Arc::new(
-                apiserver::services::payroll_service::DirectRosterDataProvider(std::sync::Arc::new(apiserver::repositories::DieselRosterRepository::new(diesel_pools.clone()))),
+                apiserver::services::payroll_service::DirectRosterDataProvider(
+                    std::sync::Arc::new(apiserver::repositories::DieselRosterRepository::new(
+                        diesel_pools.clone(),
+                    )),
+                ),
             ),
         })
     }

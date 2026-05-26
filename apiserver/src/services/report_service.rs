@@ -82,7 +82,7 @@ impl ReportService {
     ///
     /// Consolidates the identical logic previously duplicated in
     /// `get_daily_attendance_report` and `get_workspace_attendance_summary`.
-    fn calculate_day_units(&self, args: CalculateDayUnitsArgs<'_, '_>) -> (i32, i32) {
+    fn calculate_day_units(args: CalculateDayUnitsArgs<'_, '_>) -> (i32, i32) {
         // Day-off or no shift assigned → 0 work hours.
         // Without shift boundaries the calculator would treat all punch time
         // as "standard" minutes, inflating the report for roster day-offs.
@@ -339,8 +339,8 @@ impl ReportService {
                 };
                 let rules = PolicyResolver::apply_shift_overrides(base_rules, &overrides);
 
-                let (std_work_units, ot_work_units) = self
-                    .calculate_day_units(CalculateDayUnitsArgs {
+                let (std_work_units, ot_work_units) =
+                    Self::calculate_day_units(CalculateDayUnitsArgs {
                         day_entries,
                         daily: &daily,
                         date,
@@ -622,19 +622,17 @@ impl ReportService {
                     is_break_overtime: false,
                 };
                 let rules = PolicyResolver::apply_shift_overrides(base_rules, &overrides);
-
-                let (std_units, ot_units) = self
-                    .calculate_day_units(CalculateDayUnitsArgs {
-                        day_entries,
-                        daily,
-                        date,
-                        tz,
-                        employee_id: emp_sched.employee_id,
-                        workspace_id: workspace.id,
-                        rules,
-                        work_unit_minutes: emp_attendance_rules.work_unit_minutes,
-                        rounding_policy: &emp_attendance_rules.rounding_policy,
-                    });
+                let (std_units, ot_units) = Self::calculate_day_units(CalculateDayUnitsArgs {
+                    day_entries,
+                    daily,
+                    date,
+                    tz,
+                    employee_id: emp_sched.employee_id,
+                    workspace_id: workspace.id,
+                    rules,
+                    work_unit_minutes: emp_attendance_rules.work_unit_minutes,
+                    rounding_policy: &emp_attendance_rules.rounding_policy,
+                });
 
                 employee_total_std += std_units;
                 employee_total_ot += ot_units;

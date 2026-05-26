@@ -8,7 +8,6 @@ import {
   ShieldCheck,
   ShieldAlert,
   Power,
-  Loader2,
   Cpu,
   Timer,
   Calendar
@@ -16,6 +15,7 @@ import {
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { useAuthorizedAgents } from "@/hooks/use-agents";
 import { AuthorizedAgent } from "@/lib/api";
@@ -66,7 +66,7 @@ function AgentEditModalHeader({ t, onClose }: { onClose: () => void; t: TFunctio
           <Typography className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest mt-1 opacity-70" variant="p">{t("common.agents.edit_modal.subtitle")}</Typography>
         </div>
       </div>
-      <button className="p-3 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-all shadow-md border border-slate-100 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:text-rose-300 active:scale-90" onClick={onClose}><X size={20} /></button>
+      <Button className="hover:text-rose-600 dark:hover:text-rose-300" icon={<X size={20} />} onClick={onClose} size="icon" variant="outline" />
     </div>
   );
 }
@@ -166,15 +166,15 @@ function AgentEditModalSections({
       </div>
 
       <div className="grid grid-cols-2 gap-6 pt-2">
-        <button className={cn("flex flex-col items-center gap-3 p-6 rounded-[2rem] border-2 transition-all font-bold text-[10px] uppercase tracking-widest active:scale-95 shadow-inner", isTrusted ? "bg-emerald-50 dark:bg-emerald-950 border-emerald-100 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 shadow-emerald-900/5" : "bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 text-slate-400 dark:text-slate-500")} onClick={() => { setIsTrusted(!isTrusted); }} type="button">
+        <Button className={cn("h-auto flex-col gap-3 p-6 rounded-[2rem] border-2 shadow-inner", isTrusted ? "bg-emerald-50 dark:bg-emerald-950 border-emerald-100 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 shadow-emerald-900/5 hover:bg-emerald-100 dark:hover:bg-emerald-900" : "bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 text-slate-400 dark:text-slate-500")} onClick={() => { setIsTrusted(!isTrusted); }} type="button" variant="outline">
           {isTrusted ? <ShieldCheck size={24} /> : <ShieldAlert size={24} />}
           {isTrusted ? t("common.agents.status.trusted") : t("common.agents.status.pending")}
-        </button>
+        </Button>
 
-        <button className={cn("flex flex-col items-center gap-3 p-6 rounded-[2rem] border-2 transition-all font-bold text-[10px] uppercase tracking-widest active:scale-95 shadow-inner", isActive ? "bg-primary-50 dark:bg-primary-950 border-primary-100 dark:border-primary-800 text-primary-700 dark:text-primary-300 shadow-primary-900/5" : "bg-rose-50 dark:bg-rose-950 border-rose-100 dark:border-rose-800 text-rose-700 dark:text-rose-300 shadow-rose-900/5")} onClick={() => { setIsActive(!isActive); }} type="button">
+        <Button className={cn("h-auto flex-col gap-3 p-6 rounded-[2rem] border-2 shadow-inner", isActive ? "bg-primary-50 dark:bg-primary-950 border-primary-100 dark:border-primary-800 text-primary-700 dark:text-primary-300 shadow-primary-900/5 hover:bg-primary-100 dark:hover:bg-primary-900" : "bg-rose-50 dark:bg-rose-950 border-rose-100 dark:border-rose-800 text-rose-700 dark:text-rose-300 shadow-rose-900/5 hover:bg-rose-100 dark:hover:bg-rose-900")} onClick={() => { setIsActive(!isActive); }} type="button" variant="outline">
           <Power size={24} />
           {isActive ? t("common.status_active") : t("common.status_inactive")}
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -191,11 +191,10 @@ function AgentEditModalActions({
 }) {
   return (
     <div className="flex gap-4 pt-4 border-t border-slate-50 dark:border-slate-800">
-      <button className="flex-1 px-8 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl font-bold text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all active:scale-95" onClick={onClose} type="button">{t("common.cancel").toUpperCase()}</button>
-      <button className="flex-1 bg-primary-600 text-white px-8 py-4 rounded-2xl font-bold uppercase tracking-widest text-xs hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95 disabled:opacity-50 flex items-center justify-center gap-3" disabled={isUpdating} type="submit">
-        {isUpdating ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
+      <Button className="flex-1" onClick={onClose} size="lg" type="button" variant="outline">{t("common.cancel").toUpperCase()}</Button>
+      <Button className="flex-1" disabled={isUpdating} icon={<Save size={18} />} loading={isUpdating} size="lg" type="submit" variant="primary">
         {isUpdating ? t("common.saving").toUpperCase() : t("common.save_changes").toUpperCase()}
-      </button>
+      </Button>
     </div>
   );
 }

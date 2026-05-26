@@ -77,7 +77,7 @@ describe("PatternModals", () => {
   });
 
   it("renders CreatePatternModal when open", () => {
-    render(<PatternModals hook={{ ...mockHook, isCreateModalOpen: true }} />);
+    render(<PatternModals hook={{ ...mockHook, isCreateModalOpen: true } as any} />);
     expect(screen.getByText("patterns.modal.create_title")).toBeInTheDocument();
     
     // Test pattern type selector
@@ -105,7 +105,7 @@ describe("PatternModals", () => {
   });
 
   it("renders CreatePatternModal as rotation type", () => {
-    render(<PatternModals hook={{ ...mockHook, isCreateModalOpen: true, patternType: "rotation", cycleLengthDays: 5 }} />);
+    render(<PatternModals hook={{ ...mockHook, isCreateModalOpen: true, patternType: "rotation", cycleLengthDays: 5 } as any} />);
     
     // Cycle length input should be present
     const cycleInput = screen.getByDisplayValue("5");
@@ -121,7 +121,7 @@ describe("PatternModals", () => {
       isCreateModalOpen: true,
       weeklyGrid: [["shift-1"], [], [], [], [], [], []],
     };
-    render(<PatternModals hook={hookWithShifts} />);
+    render(<PatternModals hook={hookWithShifts as any} />);
     
     // Remove shift
     const removeBtns = screen.getAllByRole("button", { name: /Remove Morning Shift/i });
@@ -137,7 +137,7 @@ describe("PatternModals", () => {
   });
 
   it("renders BulkAssignModal when open", () => {
-    render(<PatternModals hook={{ ...mockHook, isBulkModalOpen: true, selectedPatternId: "pattern-1", selectedEmployeeIds: ["emp-1"] }} />);
+    render(<PatternModals hook={{ ...mockHook, isBulkModalOpen: true, selectedPatternId: "pattern-1", selectedEmployeeIds: ["emp-1"] } as any} />);
     expect(screen.getByText("patterns.bulk_assign_btn")).toBeInTheDocument();
 
     // Select pattern
@@ -169,7 +169,7 @@ describe("PatternModals", () => {
       patterns: [{ id: "pattern-2", name: "Rotation 4x4", pattern_type: "rotation" as const, cycle_length_days: 8 }],
       assignAnchorDate: "2026-05-01",
     };
-    render(<PatternModals hook={rotationPatternHook} />);
+    render(<PatternModals hook={rotationPatternHook as any} />);
     
     // Anchor date should be visible
     expect(screen.getByText("PATTERNS.FORM.ANCHOR_DATE_LABEL")).toBeInTheDocument();

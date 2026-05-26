@@ -65,7 +65,8 @@ impl super::EmployeeContractRepository for DieselEmployeeContractRepository {
                                 }
                             );
 
-                            let overlap_ids: Vec<Uuid> = overlaps.into_iter().map(|(o_id, _)| o_id).collect();
+                            let overlap_ids: Vec<Uuid> =
+                                overlaps.into_iter().map(|(o_id, _)| o_id).collect();
 
                             diesel::sql_query(
                                 r#"
@@ -78,11 +79,13 @@ impl super::EmployeeContractRepository for DieselEmployeeContractRepository {
                                         ELSE notes || E'\n---\n' || $2 
                                     END
                                 WHERE id = ANY($3)
-                                "#
+                                "#,
                             )
                             .bind::<diesel::sql_types::Date, _>(new_end_date)
                             .bind::<diesel::sql_types::Text, _>(auto_close_note)
-                            .bind::<diesel::sql_types::Array<diesel::sql_types::Uuid>, _>(overlap_ids)
+                            .bind::<diesel::sql_types::Array<diesel::sql_types::Uuid>, _>(
+                                overlap_ids,
+                            )
                             .execute(conn)
                             .await?;
                         } else {

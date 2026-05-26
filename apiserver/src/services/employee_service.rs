@@ -140,11 +140,7 @@ impl EmployeeService {
 
         // Use repository to create employee and set recruitment source transactionally
         self.repo
-            .create_employee_transactional(
-                auth_token,
-                &employee,
-                req.recruitment_source_id,
-            )
+            .create_employee_transactional(auth_token, &employee, req.recruitment_source_id)
             .await?;
 
         // Claim staged logs asynchronously (best-effort, non-fatal if fails)
@@ -1034,7 +1030,10 @@ mod tests {
         async fn create_user(&self, _user: &crate::models::User) -> Result<(), AppError> {
             unimplemented!()
         }
-        async fn create_user_with_admin_check(&self, _user: &crate::models::User) -> Result<bool, AppError> {
+        async fn create_user_with_admin_check(
+            &self,
+            _user: &crate::models::User,
+        ) -> Result<bool, AppError> {
             unimplemented!()
         }
         async fn get_user_count(&self) -> Result<i64, AppError> {

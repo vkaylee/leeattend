@@ -22,6 +22,7 @@ const SIZE_STYLES = {
   sm: "h-[var(--ui-height-sm)] px-4 text-[10px] rounded-xl gap-2",
   md: "h-[var(--ui-height-md)] px-8 text-xs rounded-2xl gap-3",
   lg: "h-[var(--ui-height-lg)] px-10 text-xs rounded-2xl gap-4",
+  icon: "h-[var(--ui-height-md)] w-[var(--ui-height-md)] rounded-xl gap-0 p-0",
 } as const;
 
 // ── Component ──────────────────────────────────────────────────────
@@ -31,7 +32,7 @@ export type ButtonSize = keyof typeof SIZE_STYLES;
 
 export interface ButtonProps
   extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "children"> {
-  children: React.ReactNode;
+  children?: React.ReactNode;
   icon?: React.ReactNode;
   loading?: boolean;
   size?: ButtonSize;

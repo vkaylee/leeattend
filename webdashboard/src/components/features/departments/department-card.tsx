@@ -5,6 +5,7 @@ import React from "react";
 
 import type { Department, Employee, WorkingPattern } from "@/lib/api";
 
+import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { useConfirm } from "@/hooks/use-confirm";
 
@@ -34,9 +35,9 @@ export function DepartmentCard({ dept, employees, patterns, onEdit, onConfig, de
     <>
       <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-10 rounded-[2.5rem] shadow-sm hover:shadow-2xl hover:shadow-primary-100/10 hover:scale-[1.02] transition-all group relative overflow-hidden flex flex-col">
         <div className="absolute top-0 right-0 p-8 flex gap-3 translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500">
-          <button className="p-3 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-emerald-600 dark:text-emerald-300 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90" onClick={() => { onConfig(dept); }} title={t("payroll.settings.title")}><Calculator size={18} /></button>
-          <button className="p-3 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90" onClick={() => { onEdit(dept); }} title={t("common.edit")}><Pencil size={18} /></button>
-          <button className="p-3 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:text-rose-300 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90" onClick={() => { void handleDelete(); }} title={t("common.delete")}><Trash2 size={18} /></button>
+          <Button className="hover:text-emerald-600 dark:hover:text-emerald-300" icon={<Calculator size={18} />} onClick={() => { onConfig(dept); }} size="icon" title={t("payroll.settings.title")} variant="outline" />
+          <Button className="hover:text-primary-600 dark:hover:text-primary-400" icon={<Pencil size={18} />} onClick={() => { onEdit(dept); }} size="icon" title={t("common.edit")} variant="outline" />
+          <Button className="hover:text-rose-600 dark:hover:text-rose-300" icon={<Trash2 size={18} />} onClick={() => { void handleDelete(); }} size="icon" title={t("common.delete")} variant="outline" />
         </div>
 
         <div className="bg-primary-50 dark:bg-primary-950 w-16 h-16 rounded-[1.5rem] flex items-center justify-center text-primary-600 dark:text-primary-400 mb-8 shadow-inner border border-primary-100 dark:border-primary-800/50 group-hover:scale-110 group-hover:rotate-3 transition-all duration-500">

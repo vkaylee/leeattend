@@ -3,11 +3,11 @@
 use crate::common::app::spawn_app_with_factory;
 use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
-use apiserver::models::{Payslip, CreatePayslipSegmentArgs};
+use apiserver::models::{CreatePayslipSegmentArgs, Payslip};
+use apiserver::repositories::payroll_repository::PayrollRepository;
 use chrono::{NaiveDate, Utc};
 use rust_decimal::Decimal;
 use uuid::Uuid;
-use apiserver::repositories::payroll_repository::PayrollRepository;
 
 #[tokio::test]
 async fn test_persist_calculated_payslip_data_transaction_rollback() {
@@ -15,13 +15,12 @@ async fn test_persist_calculated_payslip_data_transaction_rollback() {
         spawn_app_with_factory().await;
     let ws_id = factory.workspace().create_with_owner(user_id).await;
 
-    let emp_id = factory
-        .employee()
-        .with_workspace(ws_id)
-        .create()
-        .await;
+    let emp_id = factory.employee().with_workspace(ws_id).create().await;
 
-    let payroll_repo = apiserver::repositories::diesel_payroll_repository::DieselPayrollRepository::new(factory.diesel_pools.clone());
+    let payroll_repo =
+        apiserver::repositories::diesel_payroll_repository::DieselPayrollRepository::new(
+            factory.diesel_pools.clone(),
+        );
     let payslip_id = Uuid::new_v4();
 
     let payslip = Payslip {
@@ -75,18 +74,23 @@ async fn test_persist_calculated_payslip_data_transaction_rollback() {
     let incentives = vec![];
     let rules = vec![];
 
-    let result = payroll_repo.persist_calculated_payslip_data(
-        ws_id,
-        &payslip,
-        &segments,
-        &incentives,
-        &rules
-    ).await;
+    let result = payroll_repo
+        .persist_calculated_payslip_data(ws_id, &payslip, &segments, &incentives, &rules)
+        .await;
 
     // Must return an error due to FK violation
-    assert!(result.is_err(), "Expected transaction to fail due to FK violation");
+    assert!(
+        result.is_err(),
+        "Expected transaction to fail due to FK violation"
+    );
 
     // Check that the payslip was rolled back (does not exist in DB)
-    let fetched_payslips = payroll_repo.get_payslips_by_employee(ws_id, emp_id).await.unwrap();
-    assert!(fetched_payslips.is_empty(), "Payslip should have been rolled back, but it exists!");
+    let fetched_payslips = payroll_repo
+        .get_payslips_by_employee(ws_id, emp_id)
+        .await
+        .unwrap();
+    assert!(
+        fetched_payslips.is_empty(),
+        "Payslip should have been rolled back, but it exists!"
+    );
 }

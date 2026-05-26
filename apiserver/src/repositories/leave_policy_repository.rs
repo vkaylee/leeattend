@@ -33,11 +33,7 @@ pub trait LeavePolicyRepository: Send + Sync {
         &self,
         workspace_id: Uuid,
     ) -> Result<Option<Uuid>, AppError>;
-    async fn get_leave_type_name(
-        &self,
-        id: Uuid,
-        workspace_id: Uuid,
-    ) -> Result<String, AppError>;
+    async fn get_leave_type_name(&self, id: Uuid, workspace_id: Uuid) -> Result<String, AppError>;
 
     async fn create_policy_definition(
         &self,

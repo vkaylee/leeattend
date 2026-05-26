@@ -261,11 +261,11 @@ impl HolidayRepository for DieselHolidayRepository {
         requests: &[crate::models::LeaveRequest],
         rosters: &[crate::models::ShiftRoster],
         logs: &[(
-            Uuid, // employee_id
-            Uuid, // leave_type_id
+            Uuid,                  // employee_id
+            Uuid,                  // leave_type_id
             rust_decimal::Decimal, // amount
-            chrono::NaiveDate, // date
-            String, // notes
+            chrono::NaiveDate,     // date
+            String,                // notes
         )],
     ) -> Result<(), AppError> {
         let workspace_id = auth_token.workspace_id();
@@ -281,26 +281,27 @@ impl HolidayRepository for DieselHolidayRepository {
             Box::pin(async move {
                 // 1. Bulk insert leave requests
                 if !requests.is_empty() {
-                    let lr_entities: Vec<crate::models::diesel::leave::LeaveRequestEntity> = requests
-                        .iter()
-                        .map(|r| crate::models::diesel::leave::LeaveRequestEntity {
-                            id: r.id,
-                            employee_id: r.employee_id,
-                            leave_type_id: r.leave_type_id,
-                            start_date: r.start_date,
-                            end_date: r.end_date,
-                            reason: r.reason.clone(),
-                            status: r.status,
-                            duration_type: r.duration_type.to_string(),
-                            start_time: r.start_time,
-                            end_time: r.end_time,
-                            requested_by_user_id: r.requested_by_user_id,
-                            approved_by_user_id: r.approved_by_user_id,
-                            created_at: Some(r.created_at),
-                            updated_at: Some(r.updated_at),
-                        })
-                        .collect();
-                        
+                    let lr_entities: Vec<crate::models::diesel::leave::LeaveRequestEntity> =
+                        requests
+                            .iter()
+                            .map(|r| crate::models::diesel::leave::LeaveRequestEntity {
+                                id: r.id,
+                                employee_id: r.employee_id,
+                                leave_type_id: r.leave_type_id,
+                                start_date: r.start_date,
+                                end_date: r.end_date,
+                                reason: r.reason.clone(),
+                                status: r.status,
+                                duration_type: r.duration_type.to_string(),
+                                start_time: r.start_time,
+                                end_time: r.end_time,
+                                requested_by_user_id: r.requested_by_user_id,
+                                approved_by_user_id: r.approved_by_user_id,
+                                created_at: Some(r.created_at),
+                                updated_at: Some(r.updated_at),
+                            })
+                            .collect();
+
                     diesel::insert_into(crate::schema::leave_requests::table)
                         .values(&lr_entities)
                         .execute(&mut *conn)
@@ -309,19 +310,20 @@ impl HolidayRepository for DieselHolidayRepository {
 
                 // 2. Bulk insert/upsert rosters
                 if !rosters.is_empty() {
-                    let roster_entities: Vec<crate::models::diesel::roster::ShiftRosterEntity> = rosters
-                        .iter()
-                        .map(|r| crate::models::diesel::roster::ShiftRosterEntity {
-                            id: r.id,
-                            employee_id: r.employee_id,
-                            shift_id: r.shift_id,
-                            date: r.date,
-                            status: Some(r.status.clone()),
-                            notes: r.notes.clone(),
-                            created_at: Some(r.created_at),
-                            updated_at: Some(r.updated_at),
-                        })
-                        .collect();
+                    let roster_entities: Vec<crate::models::diesel::roster::ShiftRosterEntity> =
+                        rosters
+                            .iter()
+                            .map(|r| crate::models::diesel::roster::ShiftRosterEntity {
+                                id: r.id,
+                                employee_id: r.employee_id,
+                                shift_id: r.shift_id,
+                                date: r.date,
+                                status: Some(r.status.clone()),
+                                notes: r.notes.clone(),
+                                created_at: Some(r.created_at),
+                                updated_at: Some(r.updated_at),
+                            })
+                            .collect();
 
                     diesel::insert_into(crate::schema::shift_rosters::table)
                         .values(&roster_entities)
@@ -331,8 +333,10 @@ impl HolidayRepository for DieselHolidayRepository {
                         ))
                         .do_update()
                         .set((
-                            crate::schema::shift_rosters::status.eq(excluded(crate::schema::shift_rosters::status)),
-                            crate::schema::shift_rosters::notes.eq(excluded(crate::schema::shift_rosters::notes)),
+                            crate::schema::shift_rosters::status
+                                .eq(excluded(crate::schema::shift_rosters::status)),
+                            crate::schema::shift_rosters::notes
+                                .eq(excluded(crate::schema::shift_rosters::notes)),
                             crate::schema::shift_rosters::updated_at.eq(diesel::dsl::now),
                         ))
                         .execute(&mut *conn)
@@ -389,4 +393,3 @@ impl HolidayRepository for DieselHolidayRepository {
         .await
     }
 }
-
