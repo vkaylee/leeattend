@@ -26,7 +26,7 @@ mod tests {
         assert_eq!(users[0]["db_user"], "my_user");
         assert_eq!(users[0]["db_password"], "my_secret");
         assert!(users[0].get("pool_password").is_some());
-        assert_eq!(users[0]["is_manager"], false);
+        assert_eq!(users[0]["is_manager"], true); // is_master = true grants manager
     }
 
     #[test]
@@ -227,6 +227,52 @@ mod tests {
             tenant["db_database"], "custom_byod_db",
             "CRITICAL BYOD REQUIREMENT: db_database must be the actual database in the URL, not the tenant_id"
         );
+
+        let users = tenant["users"].as_array().expect("missing users array");
+        assert_eq!(
+            users[0]["is_manager"], false,
+            "BYOD connection must NOT be granted manager privileges"
+        );
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn test_build_tenant_payload_dynamic_manager_assignment() {
+        // Case 1: is_master = true should always grant manager
+        let (_, payload_master) = build_tenant_payload(
+            "postgres://my_user:my_secret@my_db_host:5433/db",
+            TenantPayloadOptions {
+                is_master: true,
+                ..Default::default()
+            },
+        ).unwrap();
+        let users = payload_master.get("tenant").unwrap()["users"].as_array().unwrap();
+        assert_eq!(users[0]["is_manager"], true, "is_master=true must be manager");
+
+        // Case 2: BYOD connection (host differs from DATABASE_URL)
+        std::env::set_var("DATABASE_URL", "postgres://admin:pass@internal-cluster:5432/db");
+        let (_, payload_byod) = build_tenant_payload(
+            "postgres://my_user:my_secret@external-host:5433/db",
+            TenantPayloadOptions {
+                is_master: false,
+                ..Default::default()
+            },
+        ).unwrap();
+        let users = payload_byod.get("tenant").unwrap()["users"].as_array().unwrap();
+        assert_eq!(users[0]["is_manager"], false, "External BYOD must NOT be manager");
+
+        // Case 3: Internal cluster connection (host matches DATABASE_URL)
+        let (_, payload_cluster) = build_tenant_payload(
+            "postgres://my_user:my_secret@internal-cluster:5432/tenant_123",
+            TenantPayloadOptions {
+                is_master: false,
+                ..Default::default()
+            },
+        ).unwrap();
+        let users = payload_cluster.get("tenant").unwrap()["users"].as_array().unwrap();
+        assert_eq!(users[0]["is_manager"], true, "Internal cluster tenant must be manager");
+
+        std::env::remove_var("DATABASE_URL");
     }
 
     #[test]
@@ -273,7 +319,7 @@ mod tests {
         assert_eq!(users[0]["pool_size"], 50);
         assert_eq!(users[0]["mode_type"], "session");
         assert!(users[0].get("pool_password").is_some());
-        assert_eq!(users[0]["is_manager"], false);
+        assert_eq!(users[0]["is_manager"], true);
 
         std::env::remove_var("SUPAVISOR_POOL_SIZE");
         std::env::remove_var("SUPAVISOR_MODE_TYPE");

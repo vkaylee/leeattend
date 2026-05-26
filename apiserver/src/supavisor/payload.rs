@@ -121,7 +121,7 @@ pub fn build_tenant_payload(
     tenant_map.insert("enforce_ssl".to_string(), json!(enforce_ssl));
     tenant_map.insert("default_pool_size".to_string(), json!(pool_size));
 
-    // BYOD architecture: We explicitely push all user credentials to Supavisor via the API.
+    // BYOD architecture: We explicitly push all user credentials to Supavisor via the API.
     // We strictly disable `auth_query` and force `require_user = true`. This prevents Supavisor
     // from querying the upstream database's `pg_authid` table, which external BYOD users
     // usually do not have permission to read.
@@ -130,6 +130,17 @@ pub fn build_tenant_payload(
     // The client pool password should be the same as the downstream database password,
     // otherwise the API server will fail to authenticate when trying to connect to the pool.
     let client_password = db_password.clone();
+
+    // Determine if this is a BYOD connection. If the host differs from the master DATABASE_URL,
+    // we consider it BYOD and revoke `is_manager` privileges to ensure security isolation.
+    let system_db_url = std::env::var("DATABASE_URL").unwrap_or_default();
+    let is_byod = if let Some((_, _, sys_host, _, _)) = parse_postgres_url(&system_db_url) {
+        db_host != sys_host
+    } else {
+        true
+    };
+
+    let is_manager = opts.is_master || !is_byod;
 
     tenant_map.insert(
         "users".to_string(),
@@ -140,7 +151,7 @@ pub fn build_tenant_payload(
                 "pool_password": &client_password,
                 "pool_size": pool_size,
                 "mode_type": &mode_type,
-                "is_manager": false
+                "is_manager": is_manager
             }
         ]),
     );
