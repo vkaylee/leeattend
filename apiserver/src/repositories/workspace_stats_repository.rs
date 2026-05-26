@@ -61,13 +61,11 @@ impl DieselWorkspaceStatsRepository {
             return "UTC".to_string();
         };
 
-        #[allow(clippy::disallowed_methods)]
         diesel::sql_query("SELECT timezone::text FROM workspaces WHERE id = $1")
             .bind::<diesel::sql_types::Uuid, _>(workspace_id)
             .get_result::<TzRow>(&mut *conn)
             .await
-            .map(|r| r.timezone)
-            .unwrap_or_else(|_| "UTC".to_string())
+            .map_or_else(|_| "UTC".to_string(), |r| r.timezone)
     }
 }
 

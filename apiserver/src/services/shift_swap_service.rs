@@ -126,7 +126,7 @@ impl ShiftSwapService {
                             if dur <= 0 {
                                 dur += 24 * 60;
                             } // overnight shift
-                            dur - s.break_duration_minutes as i64
+                            dur - i64::from(s.break_duration_minutes)
                         };
                         let std_hours = ps.hours_per_day;
                         let max_total_minutes =
@@ -394,7 +394,7 @@ impl ShiftSwapService {
             )
             .await?;
 
-        if target_emp.map(|e| !e.is_active).unwrap_or(true) {
+        if target_emp.is_none_or(|e| !e.is_active) {
             return Err(AppError::Validation("Invalid request".into()));
         }
 

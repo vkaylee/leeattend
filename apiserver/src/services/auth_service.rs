@@ -36,11 +36,10 @@ impl AuthService {
 
     // --- Pure functions (no pool needed) — kept as associated functions ---
 
-    #[allow(clippy::expect_used)]
     pub fn generate_token(user_id: Uuid, secret: &str, duration_mins: i64) -> AppResult<String> {
         let expiration = Utc::now()
             .checked_add_signed(Duration::minutes(duration_mins))
-            .expect("valid timestamp")
+            .ok_or_else(|| AppError::Auth("Overflow calculating expiration timestamp".to_string()))?
             .timestamp();
 
         let claims = Claims {

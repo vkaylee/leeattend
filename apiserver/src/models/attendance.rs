@@ -235,7 +235,6 @@ mod tests {
     use serde_json::json;
 
     #[test]
-    #[allow(clippy::float_cmp)]
     fn test_attendance_summary_backward_compatibility() {
         // Old payload missing the multi-unit fields
         let old_json = json!({
@@ -252,9 +251,9 @@ mod tests {
         // Ensure defaults are applied correctly
         assert_eq!(summary.total_std_units, 160);
         assert!(matches!(summary.unit_type, TimekeepingUnit::DAY));
-        assert_eq!(summary.unit_coefficient_hours, 0.0);
-        assert_eq!(summary.computed_std_hours, 0.0);
-        assert_eq!(summary.computed_ot_hours, 0.0);
+        assert!((summary.unit_coefficient_hours - 0.0).abs() < f64::EPSILON);
+        assert!((summary.computed_std_hours - 0.0).abs() < f64::EPSILON);
+        assert!((summary.computed_ot_hours - 0.0).abs() < f64::EPSILON);
     }
 
     #[test]

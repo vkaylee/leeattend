@@ -126,7 +126,8 @@ impl TimeTrackingService {
                 let grace_minutes = shift.early_punch_in_grace_period_minutes as u32;
 
                 let shift_start = today.and_time(start_time);
-                let earliest_punch = shift_start - chrono::Duration::minutes(grace_minutes as i64);
+                let earliest_punch =
+                    shift_start - chrono::Duration::minutes(i64::from(grace_minutes));
 
                 let rules =
                     crate::domain::policy::resolver::PolicyResolver::resolve_attendance_rules(
@@ -147,7 +148,7 @@ impl TimeTrackingService {
         }
 
         let raw_data = serde_json::json!({
-            "punch": (!is_in) as i32,
+            "punch": i32::from(!is_in),
             "status": 1, // 1 = Normal
             "note": note,
             "source": "direct_punch"

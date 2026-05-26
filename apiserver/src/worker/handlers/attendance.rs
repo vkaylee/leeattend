@@ -233,21 +233,19 @@ impl AttendanceHandler {
             let entries = args
                 .entries_map
                 .get(&emp_sched.employee_id)
-                .map(std::vec::Vec::as_slice)
-                .unwrap_or(&[]);
+                .map_or_else(Default::default, std::vec::Vec::as_slice);
             let mut total_std_units = 0i32;
             let mut total_ot_units = 0i32;
 
             // Get this employee's conditions once
             let emp_conditions = conditions_map
                 .get(&emp_sched.employee_id)
-                .map(std::vec::Vec::as_slice)
-                .unwrap_or(&[]);
+                .map_or_else(Default::default, std::vec::Vec::as_slice);
 
             let emp_attendance_rules = attendance_rules_map
                 .get(&emp_sched.employee_id)
                 .cloned()
-                .unwrap_or(crate::models::AttendanceRules {
+                .unwrap_or_else(|| crate::models::AttendanceRules {
                     work_unit_minutes: 30,
                     rounding_policy: "floor".to_string(),
                     early_arrival_strategy: crate::models::EarlyArrivalStrategy::Block,
@@ -262,8 +260,7 @@ impl AttendanceHandler {
 
                 let day_entries = entries_by_date
                     .get(&date)
-                    .map(std::vec::Vec::as_slice)
-                    .unwrap_or(&[]);
+                    .map_or_else(Default::default, std::vec::Vec::as_slice);
 
                 let actual_punch_in = day_entries
                     .first()
@@ -343,11 +340,11 @@ impl AttendanceHandler {
                 total_ot_units,
                 total_leave_days: leave_data.get(&emp_sched.employee_id).copied().unwrap_or(0),
                 unit_type: crate::models::enums::TimekeepingUnit::DAY,
-                unit_coefficient_hours: emp_attendance_rules.work_unit_minutes as f64 / 60.0,
-                computed_std_hours: total_std_units as f64
-                    * (emp_attendance_rules.work_unit_minutes as f64 / 60.0),
-                computed_ot_hours: total_ot_units as f64
-                    * (emp_attendance_rules.work_unit_minutes as f64 / 60.0),
+                unit_coefficient_hours: f64::from(emp_attendance_rules.work_unit_minutes) / 60.0,
+                computed_std_hours: f64::from(total_std_units)
+                    * (f64::from(emp_attendance_rules.work_unit_minutes) / 60.0),
+                computed_ot_hours: f64::from(total_ot_units)
+                    * (f64::from(emp_attendance_rules.work_unit_minutes) / 60.0),
             });
         }
 
@@ -384,19 +381,17 @@ impl AttendanceHandler {
             let entries = args
                 .entries_map
                 .get(&emp_sched.employee_id)
-                .map(std::vec::Vec::as_slice)
-                .unwrap_or(&[]);
+                .map_or_else(Default::default, std::vec::Vec::as_slice);
 
             // Get this employee's conditions once
             let emp_conditions = conditions_map
                 .get(&emp_sched.employee_id)
-                .map(std::vec::Vec::as_slice)
-                .unwrap_or(&[]);
+                .map_or_else(Default::default, std::vec::Vec::as_slice);
 
             let emp_attendance_rules = attendance_rules_map
                 .get(&emp_sched.employee_id)
                 .cloned()
-                .unwrap_or(crate::models::AttendanceRules {
+                .unwrap_or_else(|| crate::models::AttendanceRules {
                     work_unit_minutes: 30,
                     rounding_policy: "floor".to_string(),
                     early_arrival_strategy: crate::models::EarlyArrivalStrategy::Block,
@@ -411,8 +406,7 @@ impl AttendanceHandler {
 
                 let day_entries = entries_by_date
                     .get(&date)
-                    .map(std::vec::Vec::as_slice)
-                    .unwrap_or(&[]);
+                    .map_or_else(Default::default, std::vec::Vec::as_slice);
 
                 let actual_punch_in = day_entries
                     .first()
@@ -544,11 +538,12 @@ impl AttendanceHandler {
                     ot_work_units,
                     ot_claim_status: None,
                     unit_type: crate::models::enums::TimekeepingUnit::DAY,
-                    unit_coefficient_hours: emp_attendance_rules.work_unit_minutes as f64 / 60.0,
-                    computed_std_hours: std_work_units as f64
-                        * (emp_attendance_rules.work_unit_minutes as f64 / 60.0),
-                    computed_ot_hours: ot_work_units as f64
-                        * (emp_attendance_rules.work_unit_minutes as f64 / 60.0),
+                    unit_coefficient_hours: f64::from(emp_attendance_rules.work_unit_minutes)
+                        / 60.0,
+                    computed_std_hours: f64::from(std_work_units)
+                        * (f64::from(emp_attendance_rules.work_unit_minutes) / 60.0),
+                    computed_ot_hours: f64::from(ot_work_units)
+                        * (f64::from(emp_attendance_rules.work_unit_minutes) / 60.0),
                     status,
                     is_holiday: false,
                     is_unscheduled: status
@@ -564,7 +559,6 @@ impl AttendanceHandler {
 }
 
 #[cfg(test)]
-#[allow(clippy::needless_collect)]
 mod tests {
     use super::*;
     use crate::models::DailyAttendanceReport;
@@ -643,12 +637,9 @@ mod tests {
         ];
 
         let target_date = NaiveDate::from_ymd_opt(2026, 1, 1).unwrap();
-        let filtered: Vec<_> = entries_dates
-            .iter()
-            .filter(|d| **d == target_date)
-            .collect();
+        let filtered_count = entries_dates.iter().filter(|d| **d == target_date).count();
 
-        assert_eq!(filtered.len(), 2);
+        assert_eq!(filtered_count, 2);
     }
 
     #[test]
@@ -880,16 +871,16 @@ mod tests {
         // Filter approach (old) — for each target date, scan all entries
         for day in 1..=5 {
             let target = NaiveDate::from_ymd_opt(2026, 1, day).unwrap();
-            let filtered: Vec<_> = entries
+            let filtered_count = entries
                 .iter()
                 .filter(|e| e.punch_in_time.with_timezone(&tz).date_naive() == target)
-                .collect();
+                .count();
 
             let grouped = entries_by_date
                 .get(&target)
                 .map(std::vec::Vec::len)
                 .unwrap_or(0);
-            assert_eq!(filtered.len(), grouped, "Mismatch on day {day}");
+            assert_eq!(filtered_count, grouped, "Mismatch on day {day}");
         }
     }
 

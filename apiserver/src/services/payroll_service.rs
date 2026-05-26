@@ -354,7 +354,7 @@ impl PayrollService {
                 ctx.employee_id,
                 ctx.workspace.id,
                 seg_start,
-                &Default::default(),
+                &crate::domain::policy::resolver::ShiftPolicyOverrides::default(),
             )
             .await;
 

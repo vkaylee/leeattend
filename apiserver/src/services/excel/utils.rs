@@ -16,7 +16,7 @@ pub struct DayCell {
 /// Convert work units to hours: units × work_unit_minutes / 60
 #[inline]
 pub fn units_to_hours(units: i32, work_unit_minutes: i32) -> f64 {
-    (units as f64 * work_unit_minutes as f64) / 60.0
+    (f64::from(units) * f64::from(work_unit_minutes)) / 60.0
 }
 
 /// Ceil-round minutes to work units, then convert to hours: ⌈diff / wum⌉ × wum / 60

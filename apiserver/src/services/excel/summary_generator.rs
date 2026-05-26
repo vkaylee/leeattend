@@ -45,13 +45,13 @@ pub fn generate(
         worksheet.write_number_with_format(
             row,
             1,
-            summary.total_std_units as f64,
+            f64::from(summary.total_std_units),
             &number_format,
         )?;
         worksheet.write_number_with_format(
             row,
             2,
-            summary.total_ot_units as f64,
+            f64::from(summary.total_ot_units),
             &number_format,
         )?;
         worksheet.write_number_with_format(

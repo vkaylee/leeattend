@@ -151,7 +151,7 @@ impl ShiftService {
             )
             .await
         {
-            Ok(_) => Ok(()),
+            Ok(()) => Ok(()),
             Err(AppError::Diesel(diesel::result::Error::DatabaseError(
                 diesel::result::DatabaseErrorKind::UniqueViolation,
                 info,

@@ -38,7 +38,6 @@ mod tests {
     macro_rules! setup_redis_or_skip {
         () => {{
             let Some(pool) = get_test_redis().await else {
-                println!("SKIPPED: Redis not available (5s timeout)");
                 return;
             };
             pool
@@ -195,8 +194,8 @@ mod tests {
     async fn test_update_job_metadata_preserves_existing_ttl() {
         // Test: When updating metadata with existing TTL, preserve that TTL
         let pool = setup_redis_or_skip!();
-        let _test_ns = Uuid::new_v4().to_string();
-        let queue = JobQueue::with_namespace(pool.clone(), &_test_ns);
+        let test_ns = Uuid::new_v4().to_string();
+        let queue = JobQueue::with_namespace(pool.clone(), &test_ns);
         let job_id = Uuid::new_v4();
         let workspace_id = Uuid::new_v4();
 
@@ -279,8 +278,8 @@ mod tests {
     async fn test_update_job_metadata_applies_default_ttl_when_missing() {
         // Test: When updating metadata without TTL (new key), apply default 24h TTL
         let pool = setup_redis_or_skip!();
-        let _test_ns = Uuid::new_v4().to_string();
-        let queue = JobQueue::with_namespace(pool.clone(), &_test_ns);
+        let test_ns = Uuid::new_v4().to_string();
+        let queue = JobQueue::with_namespace(pool.clone(), &test_ns);
         let job_id = Uuid::new_v4();
         let workspace_id = Uuid::new_v4();
 
@@ -332,8 +331,8 @@ mod tests {
     async fn test_multiple_updates_preserve_ttl() {
         // Test: Multiple updates should preserve and not reset TTL
         let pool = setup_redis_or_skip!();
-        let _test_ns = Uuid::new_v4().to_string();
-        let queue = JobQueue::with_namespace(pool.clone(), &_test_ns);
+        let test_ns = Uuid::new_v4().to_string();
+        let queue = JobQueue::with_namespace(pool.clone(), &test_ns);
         let job_id = Uuid::new_v4();
         let workspace_id = Uuid::new_v4();
 
@@ -414,8 +413,8 @@ mod tests {
     async fn test_update_job_status_preserves_ttl() {
         // Test: update_job_status (which calls update_job_metadata) preserves TTL
         let pool = setup_redis_or_skip!();
-        let _test_ns = Uuid::new_v4().to_string();
-        let queue = JobQueue::with_namespace(pool.clone(), &_test_ns);
+        let test_ns = Uuid::new_v4().to_string();
+        let queue = JobQueue::with_namespace(pool.clone(), &test_ns);
         let job_id = Uuid::new_v4();
         let workspace_id = Uuid::new_v4();
 
@@ -612,8 +611,8 @@ mod tests {
         // Test: dequeue_job should return None on timeout without blocking conn()
         // This is an integration test that proves BLPOP uses the dedicated connection.
         let pool = setup_redis_or_skip!();
-        let _test_ns = Uuid::new_v4().to_string();
-        let queue = JobQueue::with_namespace(pool.clone(), &_test_ns);
+        let test_ns = Uuid::new_v4().to_string();
+        let queue = JobQueue::with_namespace(pool.clone(), &test_ns);
 
         // Ensure the queue is empty (use a very short timeout)
         let result = queue
@@ -704,12 +703,12 @@ mod tests {
         // This simulates the real-world scenario where 6 workers run concurrently,
         // some storing results while the main loop dequeues new jobs.
         let pool = setup_redis_or_skip!();
-        let _test_ns = Uuid::new_v4().to_string();
-        let queue = JobQueue::with_namespace(pool.clone(), &_test_ns);
+        let test_ns = Uuid::new_v4().to_string();
+        let queue = JobQueue::with_namespace(pool.clone(), &test_ns);
         let job_id = Uuid::new_v4();
 
         // Start dequeue on a separate task (will wait 2 seconds on empty queue)
-        let queue_for_dequeue = JobQueue::with_namespace(pool.clone(), &_test_ns);
+        let queue_for_dequeue = JobQueue::with_namespace(pool.clone(), &test_ns);
         let dequeue_handle = tokio::spawn(async move {
             let _ = queue_for_dequeue.dequeue_job(2.0).await;
         });
@@ -751,8 +750,8 @@ mod tests {
     #[tokio::test]
     async fn test_enqueue_routes_high_priority_to_high_queue() {
         let pool = setup_redis_or_skip!();
-        let _test_ns = Uuid::new_v4().to_string();
-        let queue = JobQueue::with_namespace(pool.clone(), &_test_ns);
+        let test_ns = Uuid::new_v4().to_string();
+        let queue = JobQueue::with_namespace(pool.clone(), &test_ns);
         let mut conn = pool.conn();
 
         // Clean up before test
@@ -809,8 +808,8 @@ mod tests {
     #[tokio::test]
     async fn test_enqueue_routes_low_priority_to_low_queue() {
         let pool = setup_redis_or_skip!();
-        let _test_ns = Uuid::new_v4().to_string();
-        let queue = JobQueue::with_namespace(pool.clone(), &_test_ns);
+        let test_ns = Uuid::new_v4().to_string();
+        let queue = JobQueue::with_namespace(pool.clone(), &test_ns);
         let mut conn = pool.conn();
 
         // Clean up before test
@@ -864,8 +863,8 @@ mod tests {
     #[tokio::test]
     async fn test_dequeue_serves_high_priority_first() {
         let pool = setup_redis_or_skip!();
-        let _test_ns = Uuid::new_v4().to_string();
-        let queue = JobQueue::with_namespace(pool.clone(), &_test_ns);
+        let test_ns = Uuid::new_v4().to_string();
+        let queue = JobQueue::with_namespace(pool.clone(), &test_ns);
         let mut conn = pool.conn();
 
         // Clean up before test
@@ -957,8 +956,8 @@ mod tests {
     #[tokio::test]
     async fn test_queue_length_sums_both_queues() {
         let pool = setup_redis_or_skip!();
-        let _test_ns = Uuid::new_v4().to_string();
-        let queue = JobQueue::with_namespace(pool.clone(), &_test_ns);
+        let test_ns = Uuid::new_v4().to_string();
+        let queue = JobQueue::with_namespace(pool.clone(), &test_ns);
         let mut conn = pool.conn();
 
         // Clean up before test
@@ -1034,8 +1033,8 @@ mod tests {
     #[tokio::test]
     async fn test_normal_priority_goes_to_high_queue() {
         let pool = setup_redis_or_skip!();
-        let _test_ns = Uuid::new_v4().to_string();
-        let queue = JobQueue::with_namespace(pool.clone(), &_test_ns);
+        let test_ns = Uuid::new_v4().to_string();
+        let queue = JobQueue::with_namespace(pool.clone(), &test_ns);
         let mut conn = pool.conn();
 
         // Clean up before test

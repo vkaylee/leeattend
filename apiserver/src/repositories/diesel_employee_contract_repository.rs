@@ -69,7 +69,7 @@ impl super::EmployeeContractRepository for DieselEmployeeContractRepository {
                                 overlaps.into_iter().map(|(o_id, _)| o_id).collect();
 
                             diesel::sql_query(
-                                r#"
+                                r"
                                 UPDATE employee_contracts 
                                 SET end_date = $1, 
                                     status = 'expired', 
@@ -79,7 +79,7 @@ impl super::EmployeeContractRepository for DieselEmployeeContractRepository {
                                         ELSE notes || E'\n---\n' || $2 
                                     END
                                 WHERE id = ANY($3)
-                                "#,
+                                ",
                             )
                             .bind::<diesel::sql_types::Date, _>(new_end_date)
                             .bind::<diesel::sql_types::Text, _>(auto_close_note)
@@ -285,7 +285,7 @@ impl super::EmployeeContractRepository for DieselEmployeeContractRepository {
         );
 
         let target_date =
-            chrono::Utc::now().naive_utc().date() + chrono::Duration::days(days_ahead as i64);
+            chrono::Utc::now().naive_utc().date() + chrono::Duration::days(i64::from(days_ahead));
 
         let contracts = employee_contracts
             .filter(workspace_id.eq(auth_token.workspace_id()))

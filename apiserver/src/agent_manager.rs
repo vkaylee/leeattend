@@ -172,11 +172,13 @@ impl AgentManager {
     }
 
     pub async fn add_agent(&self, agent_id: String, tx: mpsc::UnboundedSender<Message>) {
-        let mut agents = self.inner.agents.write().await;
-        agents.insert(agent_id.clone(), tx);
+        self.inner.agents.write().await.insert(agent_id.clone(), tx);
 
-        let mut last_seen = self.inner.agent_last_seen.write().await;
-        last_seen.insert(agent_id, Utc::now());
+        self.inner
+            .agent_last_seen
+            .write()
+            .await
+            .insert(agent_id, Utc::now());
     }
 
     pub async fn remove_agent(&self, agent_id: &str) {
@@ -222,9 +224,6 @@ impl AgentManager {
         // 1. Fetch presence from Redis if available
         let redis_presence = self.fetch_redis_presence(&agent_ids).await;
 
-        // 2. Combine DB data with Redis presence
-        let active_local_agents = self.inner.agents.read().await;
-
         for db_agent in db_agents {
             let agent_id = db_agent.id;
 
@@ -232,7 +231,8 @@ impl AgentManager {
             let presence_ts = redis_presence.get(&agent_id).copied();
 
             // is_online is true if Redis key exists (within 60s TTL) OR locally connected
-            let is_online = presence_ts.is_some() || active_local_agents.contains_key(&agent_id);
+            let is_online =
+                presence_ts.is_some() || self.inner.agents.read().await.contains_key(&agent_id);
 
             // Use Redis timestamp if available, else DB's last_seen_at
             let last_seen = presence_ts.unwrap_or(db_agent.last_seen_at);
@@ -325,8 +325,11 @@ impl AgentManager {
             Ok(Err(_)) => Err("Response channel closed".to_string()),
             Err(_) => {
                 // Cleanup on timeout
-                let mut registry = self.inner.command_registry.write().await;
-                registry.remove(&command_id);
+                self.inner
+                    .command_registry
+                    .write()
+                    .await
+                    .remove(&command_id);
                 Err("Command timed out".to_string())
             }
         }
@@ -390,12 +393,13 @@ mod tests {
 
         // Test add
         manager.add_agent(agent_id.clone(), tx).await;
-        {
-            let agents = manager.inner.agents.read().await;
-            assert!(agents.contains_key(&agent_id));
-            let last_seen = manager.inner.agent_last_seen.read().await;
-            assert!(last_seen.contains_key(&agent_id));
-        }
+        assert!(manager.inner.agents.read().await.contains_key(&agent_id));
+        assert!(manager
+            .inner
+            .agent_last_seen
+            .read()
+            .await
+            .contains_key(&agent_id));
 
         // Test heartbeat
         manager.record_heartbeat(agent_id.clone()).await;
@@ -440,10 +444,7 @@ mod tests {
 
         // Test remove
         manager.remove_agent(&agent_id).await;
-        {
-            let agents = manager.inner.agents.read().await;
-            assert!(!agents.contains_key(&agent_id));
-        }
+        assert!(!manager.inner.agents.read().await.contains_key(&agent_id));
 
         // Test offline status
         let statuses = manager.get_all_agents_status(db_agents).await;

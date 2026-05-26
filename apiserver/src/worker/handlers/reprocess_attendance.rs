@@ -42,8 +42,10 @@ impl ReprocessAttendanceHandler {
             .workspace_repo
             .get_workspace_by_id(job.workspace_id)
             .await
-            .map(|w| w.map(|w| w.timezone).unwrap_or_else(|| "UTC".to_string()))
-            .unwrap_or_else(|_| "UTC".to_string());
+            .map_or_else(
+                |_| "UTC".to_string(),
+                |w| w.map_or_else(|| "UTC".to_string(), |w| w.timezone),
+            );
 
         let tz: Tz = tz_str.parse().unwrap_or(chrono_tz::UTC);
 
@@ -73,7 +75,7 @@ impl ReprocessAttendanceHandler {
                 .reprocess_daily_attendance(job.workspace_id, payload.employee_id, current_date, tz)
                 .await
             {
-                Ok(_) => success_count += 1,
+                Ok(()) => success_count += 1,
                 Err(e) => {
                     warn!(
                         employee_id = %payload.employee_id,

@@ -65,33 +65,24 @@ impl ImportStrategy for LeaveImportStrategy {
     ) -> Result<Self::RowData, crate::errors::AppError> {
         let emp_id = row_data
             .get("employee_code")
-            .map(|s| s.trim())
-            .unwrap_or("")
+            .map_or("", |s| s.trim())
             .to_string();
         let leave_code = row_data
             .get("leave_type_code")
-            .map(|s| s.trim())
-            .unwrap_or("")
+            .map_or("", |s| s.trim())
             .to_string();
         let start_str = row_data
             .get("start_date")
-            .map(|s| s.trim())
-            .unwrap_or("")
+            .map_or("", |s| s.trim())
             .to_string();
         let end_str = row_data
             .get("end_date")
-            .map(|s| s.trim())
-            .unwrap_or("")
+            .map_or("", |s| s.trim())
             .to_string();
-        let reason = row_data
-            .get("reason")
-            .map(|s| s.trim())
-            .unwrap_or("")
-            .to_string();
+        let reason = row_data.get("reason").map_or("", |s| s.trim()).to_string();
         let duration_str = row_data
             .get("duration_type")
-            .map(|s| s.trim())
-            .unwrap_or("")
+            .map_or("", |s| s.trim())
             .to_string();
 
         if emp_id.is_empty() {
@@ -144,7 +135,7 @@ impl ImportStrategy for LeaveImportStrategy {
     ) -> Result<(), crate::errors::AppError> {
         let options = crate::models::EmployeeFilterOptions {
             page: 1,
-            limit: 100000,
+            limit: 100_000,
             ..Default::default()
         };
         let (emps, _) = deps
@@ -354,7 +345,7 @@ impl LeaveImportService {
         }
 
         // Example rows
-        let first_code = leave_types.first().map(|(c, _)| c.as_str()).unwrap_or("AL");
+        let first_code = leave_types.first().map_or("AL", |(c, _)| c.as_str());
         let examples = [
             [
                 "NV001",

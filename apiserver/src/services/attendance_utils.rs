@@ -99,6 +99,7 @@ impl AttendanceStatus {
 // ---------------------------------------------------------------------------
 
 /// Input for status determination — extracted from schedule/entries/holidays.
+#[allow(clippy::struct_excessive_bools)]
 pub struct DailyStatusInput {
     /// Whether the employee punched in on this day.
     pub has_punch_in: bool,
@@ -172,12 +173,10 @@ pub fn determine_daily_status(input: &DailyStatusInput) -> AttendanceStatus {
 pub fn extract_punch_status(raw_data: Option<&serde_json::Value>) -> (i32, i32) {
     let punch = raw_data
         .and_then(|d| d["punch"].as_i64())
-        .map(|v| v as i32)
-        .unwrap_or(-1);
+        .map_or(-1, |v| v as i32);
     let status = raw_data
         .and_then(|d| d["status"].as_i64())
-        .map(|v| v as i32)
-        .unwrap_or(-1);
+        .map_or(-1, |v| v as i32);
     (punch, status)
 }
 
@@ -191,17 +190,14 @@ pub fn extract_punch_status(raw_data: Option<&serde_json::Value>) -> (i32, i32) 
 ///
 /// Delegates to [`crate::utils::tz::start_of_day_utc`] / [`crate::utils::tz::end_of_day_utc`]
 /// for proper DST gap handling (shifts forward by 1 hour instead of panicking).
-#[allow(clippy::expect_used)]
 pub fn date_range_to_utc(
     tz: Tz,
     start_date: NaiveDate,
     end_date: NaiveDate,
-) -> (DateTime<Utc>, DateTime<Utc>) {
-    let start_dt =
-        crate::utils::tz::start_of_day_utc(&tz, start_date).expect("valid start-of-day conversion");
-    let end_dt =
-        crate::utils::tz::end_of_day_utc(&tz, end_date).expect("valid end-of-day conversion");
-    (start_dt, end_dt)
+) -> Result<(DateTime<Utc>, DateTime<Utc>), String> {
+    let start_dt = crate::utils::tz::start_of_day_utc(&tz, start_date)?;
+    let end_dt = crate::utils::tz::end_of_day_utc(&tz, end_date)?;
+    Ok((start_dt, end_dt))
 }
 
 /// Checked variant of [`date_range_to_utc`] — returns `None` on invalid dates.
@@ -246,16 +242,15 @@ pub async fn build_leave_date_set(
         end_date: NaiveDate,
     }
 
-    #[allow(clippy::disallowed_methods)]
     let leave_rows: Vec<LeaveRow> = diesel::sql_query(
-        r#"SELECT lr.employee_id, lr.start_date, lr.end_date
+        r"SELECT lr.employee_id, lr.start_date, lr.end_date
            FROM leave_requests lr
            JOIN employees e ON lr.employee_id = e.id
            WHERE e.workspace_id = $1
              AND lr.employee_id = ANY($2)
              AND lr.status IN ('approved', 'pre_approved')
              AND lr.start_date <= $4
-             AND lr.end_date >= $3"#,
+             AND lr.end_date >= $3",
     )
     .bind::<diesel::sql_types::Uuid, _>(workspace_id)
     .bind::<diesel::sql_types::Array<diesel::sql_types::Uuid>, _>(emp_ids.to_vec())
@@ -534,7 +529,7 @@ mod tests {
         let start = NaiveDate::from_ymd_opt(2026, 3, 1).expect("valid date");
         let end = NaiveDate::from_ymd_opt(2026, 3, 3).expect("valid date");
 
-        let (start_dt, end_dt) = date_range_to_utc(tz, start, end);
+        let (start_dt, end_dt) = date_range_to_utc(tz, start, end).expect("valid range");
 
         // Asia/Ho_Chi_Minh = UTC+7
         // 2026-03-01 00:00:00 +7 = 2026-02-28 17:00:00 UTC
@@ -563,7 +558,7 @@ mod tests {
         let tz: Tz = "UTC".parse().expect("valid tz");
         let date = NaiveDate::from_ymd_opt(2026, 6, 15).expect("valid date");
 
-        let (start_dt, end_dt) = date_range_to_utc(tz, date, date);
+        let (start_dt, end_dt) = date_range_to_utc(tz, date, date).expect("valid range");
 
         assert_eq!(start_dt.date_naive(), date);
         assert_eq!(
@@ -754,7 +749,7 @@ mod tests {
         let tz: Tz = "UTC".parse().expect("valid tz");
         let start = NaiveDate::from_ymd_opt(2026, 3, 1).expect("valid");
         let end = NaiveDate::from_ymd_opt(2026, 3, 31).expect("valid");
-        let (s, e) = date_range_to_utc(tz, start, end);
+        let (s, e) = date_range_to_utc(tz, start, end).expect("valid range");
         assert_eq!(s.date_naive(), start);
         assert!(e > s);
     }
@@ -764,7 +759,7 @@ mod tests {
         let tz: Tz = "Asia/Ho_Chi_Minh".parse().expect("valid tz"); // UTC+7
         let start = NaiveDate::from_ymd_opt(2026, 1, 1).expect("valid");
         let end = NaiveDate::from_ymd_opt(2026, 1, 31).expect("valid");
-        let (s, _e) = date_range_to_utc(tz, start, end);
+        let (s, _e) = date_range_to_utc(tz, start, end).expect("valid range");
         // Midnight VN time = 17:00 previous day UTC
         assert_eq!(s.hour(), 17); // 00:00 VN = 17:00 UTC (prev day)
     }
@@ -773,7 +768,7 @@ mod tests {
     fn test_date_range_to_utc_single_day() {
         let tz: Tz = "UTC".parse().expect("valid tz");
         let date = NaiveDate::from_ymd_opt(2026, 6, 15).expect("valid");
-        let (s, e) = date_range_to_utc(tz, date, date);
+        let (s, e) = date_range_to_utc(tz, date, date).expect("valid range");
         assert_eq!(s.date_naive(), date);
         assert_eq!(e.date_naive(), date);
         assert!(e > s);

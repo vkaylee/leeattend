@@ -1,4 +1,3 @@
-#![allow(unused_variables)]
 use axum::{
     extract::{Path, State},
     http::StatusCode,
@@ -19,7 +18,7 @@ pub async fn get_salary_components(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> AppResult<Json<Vec<SalaryComponentDefinition>>> {
-    let workspace_id = ctx.workspace_id;
+    let _workspace_id = ctx.workspace_id;
 
     let components = state
         .payroll
@@ -35,7 +34,7 @@ pub async fn create_salary_component(
     ctx: MemberContext,
     Json(req): Json<CreateSalaryComponentRequest>,
 ) -> AppResult<(StatusCode, Json<SalaryComponentDefinition>)> {
-    let workspace_id = ctx.workspace_id;
+    let _workspace_id = ctx.workspace_id;
 
     let component = state
         .payroll
@@ -61,7 +60,7 @@ pub async fn get_employee_salary_components(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> AppResult<Json<Vec<serde_json::Value>>> {
-    let workspace_id = ctx.workspace_id;
+    let _workspace_id = ctx.workspace_id;
 
     // Note: This returns latest components for effective_date = now
     let now = chrono::Utc::now().date_naive();

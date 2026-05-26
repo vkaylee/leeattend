@@ -1,4 +1,3 @@
-#![allow(unused_variables)]
 use axum::{
     extract::{Path, Query, State},
     response::Json,
@@ -25,7 +24,7 @@ pub async fn get_attendance_trend(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> AppResult<Json<Vec<AttendanceTrendPoint>>> {
-    let workspace_id = ctx.workspace_id;
+    let _workspace_id = ctx.workspace_id;
 
     let result = state
         .reports
@@ -45,7 +44,7 @@ pub async fn get_department_attendance(
     ctx: MemberContext,
     Query(params): Query<DeptAttendanceQuery>,
 ) -> AppResult<Json<Vec<DepartmentAttendancePoint>>> {
-    let workspace_id = ctx.workspace_id;
+    let _workspace_id = ctx.workspace_id;
 
     let range = params.range.unwrap_or_else(|| "today".to_string());
     let result = state
@@ -119,7 +118,8 @@ pub async fn get_unexcused_absences(
 
     // 3. Batch-fetch time entries (using shared date_range_to_utc)
     let emp_ids: Vec<Uuid> = schedules.iter().map(|s| s.employee_id).collect();
-    let (start_dt, end_dt) = attendance_utils::date_range_to_utc(tz, start_date, end_date);
+    let (start_dt, end_dt) = attendance_utils::date_range_to_utc(tz, start_date, end_date)
+        .map_err(|e| AppError::Validation(format!("Invalid date range: {e}")))?;
 
     let entries_map = state
         .attendance
@@ -180,7 +180,7 @@ pub async fn get_unexcused_absences(
         let (dept_id, dept_name) = dept_map
             .get(&emp_sched.employee_id)
             .cloned()
-            .unwrap_or((None, "Unassigned".to_string()));
+            .unwrap_or_else(|| (None, "Unassigned".to_string()));
 
         let mut unexcused = 0i64;
         let mut total_absent = 0i64;
@@ -298,7 +298,7 @@ pub async fn get_overtime_trend(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> AppResult<Json<Vec<OvertimeTrendPoint>>> {
-    let workspace_id = ctx.workspace_id;
+    let _workspace_id = ctx.workspace_id;
 
     let result = state
         .reports
@@ -312,7 +312,7 @@ pub async fn get_workspace_stats(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> AppResult<Json<WorkspaceStats>> {
-    let workspace_id = ctx.workspace_id;
+    let _workspace_id = ctx.workspace_id;
 
     let result = state
         .reports
@@ -328,7 +328,7 @@ pub async fn get_peak_times(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> AppResult<Json<Vec<PeakTimeSlot>>> {
-    let workspace_id = ctx.workspace_id;
+    let _workspace_id = ctx.workspace_id;
 
     let result = state
         .reports
@@ -344,7 +344,7 @@ pub async fn get_leave_types_breakdown(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> AppResult<Json<Vec<LeaveTypeBreakdown>>> {
-    let workspace_id = ctx.workspace_id;
+    let _workspace_id = ctx.workspace_id;
 
     let result = state
         .reports
@@ -360,7 +360,7 @@ pub async fn get_lateness_by_day(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> AppResult<Json<Vec<LatenessByDay>>> {
-    let workspace_id = ctx.workspace_id;
+    let _workspace_id = ctx.workspace_id;
 
     let result = state
         .reports

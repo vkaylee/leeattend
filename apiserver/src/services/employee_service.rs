@@ -1,4 +1,3 @@
-#![allow(unused_variables)]
 use std::sync::Arc;
 
 use chrono::Utc;
@@ -41,7 +40,7 @@ impl EmployeeService {
         employee_id: Uuid,
         auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<Vec<WorkingCondition>, AppError> {
-        let workspace_id = auth_token.workspace_id();
+        let _workspace_id = auth_token.workspace_id();
         let emp = self
             .repo
             .get_employee_by_id(employee_id, auth_token)
@@ -58,7 +57,7 @@ impl EmployeeService {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         req: CreateWorkingConditionRequest,
     ) -> Result<WorkingCondition, AppError> {
-        let workspace_id = auth_token.workspace_id();
+        let _workspace_id = auth_token.workspace_id();
         let emp = self
             .repo
             .get_employee_by_id(employee_id, auth_token)
@@ -89,7 +88,7 @@ impl EmployeeService {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         condition_id: Uuid,
     ) -> Result<(), AppError> {
-        let workspace_id = auth_token.workspace_id();
+        let _workspace_id = auth_token.workspace_id();
         let emp = self
             .repo
             .get_employee_by_id(employee_id, auth_token)
@@ -166,7 +165,7 @@ impl EmployeeService {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         req: RehireEmployeeRequest,
     ) -> Result<Employee, AppError> {
-        let workspace_id = auth_token.workspace_id();
+        let _workspace_id = auth_token.workspace_id();
         let employee = self
             .repo
             .get_employee_by_id(employee_id, auth_token)
@@ -197,7 +196,7 @@ impl EmployeeService {
         id: Uuid,
         auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<Employee, AppError> {
-        let workspace_id = auth_token.workspace_id();
+        let _workspace_id = auth_token.workspace_id();
         self.repo
             .get_employee_by_id(id, auth_token)
             .await?
@@ -210,7 +209,7 @@ impl EmployeeService {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         options: crate::models::EmployeeFilterOptions,
     ) -> Result<(Vec<Employee>, i64), AppError> {
-        let workspace_id = auth_token.workspace_id();
+        let _workspace_id = auth_token.workspace_id();
         self.repo.get_all_employees(auth_token, options).await
     }
 
@@ -296,7 +295,7 @@ impl EmployeeService {
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<Vec<crate::models::RecruitmentSource>, AppError> {
-        let workspace_id = auth_token.workspace_id();
+        let _workspace_id = auth_token.workspace_id();
         self.repo.get_recruitment_sources(auth_token).await
     }
 
@@ -307,7 +306,7 @@ impl EmployeeService {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         req: crate::models::UpdateRecruitmentSourceRequest,
     ) -> Result<crate::models::RecruitmentSource, AppError> {
-        let workspace_id = auth_token.workspace_id();
+        let _workspace_id = auth_token.workspace_id();
         self.repo
             .update_recruitment_source(id, auth_token, &req)
             .await?
@@ -320,7 +319,7 @@ impl EmployeeService {
         id: Uuid,
         auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<(), AppError> {
-        let workspace_id = auth_token.workspace_id();
+        let _workspace_id = auth_token.workspace_id();
         let rows = self.repo.delete_recruitment_source(id, auth_token).await?;
         if rows == 0 {
             return Err(AppError::NotFound("Recruitment source not found".into()));
@@ -333,7 +332,7 @@ impl EmployeeService {
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<Vec<crate::models::RecruitmentSourceBreakdown>, AppError> {
-        let workspace_id = auth_token.workspace_id();
+        let _workspace_id = auth_token.workspace_id();
         self.repo.get_recruitment_source_breakdown(auth_token).await
     }
 
@@ -343,7 +342,7 @@ impl EmployeeService {
         id: Uuid,
         auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<(), AppError> {
-        let workspace_id = auth_token.workspace_id();
+        let _workspace_id = auth_token.workspace_id();
         let rows_affected = self.repo.delete_employee(id, auth_token).await?;
 
         if rows_affected == 0 {
@@ -359,7 +358,7 @@ impl EmployeeService {
         employee_id: Uuid,
         auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<Vec<crate::models::EmployeeDepartmentHistory>, AppError> {
-        let workspace_id = auth_token.workspace_id();
+        let _workspace_id = auth_token.workspace_id();
         let _ = self
             .repo
             .get_employee_by_id(employee_id, auth_token)
@@ -378,7 +377,7 @@ impl EmployeeService {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         req: crate::models::TransferEmployeeRequest,
     ) -> Result<crate::models::EmployeeDepartmentHistory, AppError> {
-        let workspace_id = auth_token.workspace_id();
+        let _workspace_id = auth_token.workspace_id();
         let _ = self
             .repo
             .get_employee_by_id(employee_id, auth_token)
@@ -403,7 +402,7 @@ impl EmployeeService {
         start_date: chrono::NaiveDate,
         end_date: chrono::NaiveDate,
     ) -> Result<crate::models::TurnoverAnalytics, AppError> {
-        let workspace_id = auth_token.workspace_id();
+        let _workspace_id = auth_token.workspace_id();
         self.repo
             .get_turnover_analytics(auth_token, start_date, end_date)
             .await

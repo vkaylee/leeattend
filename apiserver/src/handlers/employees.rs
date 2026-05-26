@@ -1,4 +1,3 @@
-#![allow(unused_variables)]
 use crate::domain::permissions::Permission;
 use crate::errors::{AppError, AppResult};
 use crate::handlers::common::{self, MemberContext};
@@ -21,7 +20,7 @@ pub async fn get_working_conditions(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> AppResult<Json<Vec<WorkingCondition>>> {
-    let workspace_id = ctx.workspace_id;
+    let _workspace_id = ctx.workspace_id;
 
     let conditions = state
         .employees
@@ -69,7 +68,7 @@ pub async fn get_employees(
     ctx: MemberContext,
     Query(query): Query<PaginationParams>,
 ) -> AppResult<Json<PaginatedResponse<Employee>>> {
-    let workspace_id = ctx.workspace_id;
+    let _workspace_id = ctx.workspace_id;
 
     let page = query.page.unwrap_or(1).max(1);
     let limit = query.limit.unwrap_or(50).clamp(1, 100);
@@ -112,7 +111,7 @@ pub async fn get_employee(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> AppResult<Json<Employee>> {
-    let workspace_id = ctx.workspace_id;
+    let _workspace_id = ctx.workspace_id;
 
     let employee = state
         .employees
@@ -161,7 +160,7 @@ pub async fn delete_employee(
 ) -> AppResult<StatusCode> {
     let target_dept_id = common::current_department_id(&state, &ctx.auth_token, id).await;
     ctx.require_scoped_permission(Permission::EmployeesDelete, target_dept_id)?;
-    let workspace_id = ctx.workspace_id;
+    let _workspace_id = ctx.workspace_id;
     state
         .employees
         .service

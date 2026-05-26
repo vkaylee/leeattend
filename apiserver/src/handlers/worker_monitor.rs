@@ -1,4 +1,3 @@
-#![allow(unused_variables)]
 //! Worker Monitoring API Handlers
 //!
 //! Provides real-time monitoring endpoints for distributed worker system.
@@ -38,7 +37,7 @@ const STALE_THRESHOLD_SECS: i64 = 60;
 const SSE_INTERVAL_SECS: u64 = 2;
 
 /// Worker status enum
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum WorkerStatus {
     Idle,

@@ -1,4 +1,3 @@
-#![allow(unused_variables)]
 pub mod agents;
 pub mod assignment_rules;
 pub mod attendance;

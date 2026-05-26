@@ -28,10 +28,10 @@ pub fn generate(
     let cell_fmt = Format::new().set_align(FormatAlign::Center);
     let ot_fmt = Format::new()
         .set_align(FormatAlign::Center)
-        .set_background_color(Color::RGB(0xFFF9C4)); // light yellow
+        .set_background_color(Color::RGB(0x00FF_F9C4)); // light yellow
     let holiday_fmt = Format::new()
         .set_align(FormatAlign::Center)
-        .set_background_color(Color::RGB(0xC8E6C9)); // light green for holidays
+        .set_background_color(Color::RGB(0x00C8_E6C9)); // light green for holidays
 
     // Title (row 0) and subtitle (row 1)
     worksheet.write_string_with_format(
@@ -111,7 +111,7 @@ pub fn generate(
                         let pin_time = pin_local.time();
                         if pin_time > sched {
                             let diff_minutes = (pin_time - sched).num_minutes();
-                            ceil_units_to_hours(diff_minutes, work_unit_minutes as i64)
+                            ceil_units_to_hours(diff_minutes, i64::from(work_unit_minutes))
                         } else {
                             0.0
                         }
@@ -126,7 +126,7 @@ pub fn generate(
                         let pout_time = pout_local.time();
                         if pout_time < sched {
                             let diff_minutes = (sched - pout_time).num_minutes();
-                            ceil_units_to_hours(diff_minutes, work_unit_minutes as i64)
+                            ceil_units_to_hours(diff_minutes, i64::from(work_unit_minutes))
                         } else {
                             0.0
                         }

@@ -110,7 +110,7 @@ impl LeaveBalanceRepository for DieselLeaveBalanceRepository {
         let search_term = format!("%{}%", search.unwrap_or_default());
 
         // Count
-        let count_sql = r#"
+        let count_sql = r"
             SELECT COUNT(*)
             FROM employees e
             CROSS JOIN leave_types lt
@@ -135,7 +135,7 @@ impl LeaveBalanceRepository for DieselLeaveBalanceRepository {
                     )
                 )
               )
-        "#;
+        ";
 
         let total: i64 = diesel::sql_query(count_sql)
             .bind::<diesel::sql_types::Uuid, _>(workspace_id)
@@ -147,7 +147,7 @@ impl LeaveBalanceRepository for DieselLeaveBalanceRepository {
             .count;
 
         // Data
-        let sql = r#"
+        let sql = r"
             WITH leave_usage AS (
                 SELECT
                     lr.employee_id,
@@ -220,7 +220,7 @@ impl LeaveBalanceRepository for DieselLeaveBalanceRepository {
               AND (lb.employee_id IS NOT NULL OR bp.emp_id IS NOT NULL)
             ORDER BY e.full_name ASC, lt.name ASC
             LIMIT $4 OFFSET $5
-        "#;
+        ";
 
         let data = diesel::sql_query(sql)
             .bind::<diesel::sql_types::Uuid, _>(workspace_id)

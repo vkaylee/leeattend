@@ -39,7 +39,7 @@ impl MergeHandler {
         deps: &crate::worker::WorkerDeps,
     ) -> Result<(), String> {
         match Self::handle_inner(queue, publisher, job, deps).await {
-            Ok(_) => Ok(()),
+            Ok(()) => Ok(()),
             Err(e) => Err(e.to_string()),
         }
     }
@@ -91,20 +91,19 @@ impl MergeHandler {
         let excel_msgs = ExcelReportMessages::for_lang(&workspace_lang);
 
         // 4. Get date range
-        let date_range = meta
-            .date_range
-            .as_ref()
-            .map(|dr| (dr.start, dr.end))
-            .unwrap_or_else(|| {
+        let date_range = meta.date_range.as_ref().map_or_else(
+            || {
                 // Fallback: try to get from merge payload
-                job.merge_payload()
-                    .map(|p| (p.date_range.start, p.date_range.end))
-                    .unwrap_or_else(|| {
-                        #[allow(clippy::expect_used)]
-                        let d = chrono::NaiveDate::from_ymd_opt(2000, 1, 1).expect("valid date");
+                job.merge_payload().map_or_else(
+                    || {
+                        let d = chrono::NaiveDate::from_ymd_opt(2000, 1, 1).unwrap_or_default();
                         (d, d)
-                    })
-            });
+                    },
+                    |p| (p.date_range.start, p.date_range.end),
+                )
+            },
+            |dr| (dr.start, dr.end),
+        );
 
         // 5. Merge results and generate Excel
         let (excel_data, file_name, total_records) = match meta.report_type {
@@ -118,8 +117,7 @@ impl MergeHandler {
             Some(ReportType::Detail) => {
                 let work_unit_minutes = job
                     .merge_payload()
-                    .map(|p| p.config.work_unit_minutes)
-                    .unwrap_or(30);
+                    .map_or(30, |p| p.config.work_unit_minutes);
                 Self::merge_detail_results(
                     &batch_results,
                     &workspace_name,

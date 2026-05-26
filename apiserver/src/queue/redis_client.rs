@@ -198,7 +198,6 @@ mod tests {
             tokio::time::timeout(Duration::from_secs(2), RedisPool::new(&redis_url)).await;
 
         let Ok(Ok(pool)) = pool_result else {
-            println!("SKIPPED: Real Redis not available for health_check test");
             return;
         };
 

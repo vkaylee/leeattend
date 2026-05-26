@@ -150,28 +150,28 @@ impl PairingService {
                     end_m += 1440;
                 }
 
-                let mut bs_m = s
+                let mut break_start_mins = s
                     .break_start
                     .map(|t: chrono::NaiveTime| t.hour() * 60 + t.minute());
-                let mut be_m = s
+                let mut break_end_mins = s
                     .break_end
                     .map(|t: chrono::NaiveTime| t.hour() * 60 + t.minute());
 
                 // Handle break overnight transition if needed
-                if let (Some(bs), Some(be)) = (bs_m, be_m) {
+                if let (Some(bs), Some(be)) = (break_start_mins, break_end_mins) {
                     if bs < start_m {
-                        bs_m = Some(bs + 1440);
+                        break_start_mins = Some(bs + 1440);
                     }
                     if be < bs {
-                        be_m = Some(be + 1440);
+                        break_end_mins = Some(be + 1440);
                     }
                 }
 
                 shift_config = Some(PairingShiftConfig {
                     start_minutes: start_m as i32,
                     end_minutes: end_m as i32,
-                    break_start_minutes: bs_m.map(|m| m as i32),
-                    break_end_minutes: be_m.map(|m| m as i32),
+                    break_start_minutes: break_start_mins.map(|m| m as i32),
+                    break_end_minutes: break_end_mins.map(|m| m as i32),
                 });
             }
         }
@@ -182,11 +182,12 @@ impl PairingService {
 
         let (window_start_utc, window_end_utc) = if let Some(s) = &shift_config {
             const LOG_SEARCH_BUFFER_MINUTES: i64 = 360;
-            let start_mins = s.start_minutes as i64 - LOG_SEARCH_BUFFER_MINUTES;
+            let start_mins = i64::from(s.start_minutes) - LOG_SEARCH_BUFFER_MINUTES;
             // End of local day OR shift end (whichever is later) to handle:
             //   - Normal shifts: capture all overtime until midnight
             //   - Overnight shifts: capture logs past midnight (e.g. 22:00-06:00)
-            let end_mins = std::cmp::max(1440, s.end_minutes as i64 + LOG_SEARCH_BUFFER_MINUTES);
+            let end_mins =
+                std::cmp::max(1440, i64::from(s.end_minutes) + LOG_SEARCH_BUFFER_MINUTES);
 
             let s_utc = (start_of_day_local + Duration::minutes(start_mins)).with_timezone(&Utc);
             let e_utc = (start_of_day_local + Duration::minutes(end_mins)).with_timezone(&Utc);
@@ -264,7 +265,7 @@ impl PairingService {
         let mut new_entries = Vec::new();
         for session in sessions {
             let start_dt_local = crate::utils::tz::local_to_tz(&tz, date, 0, 0, 0)?
-                + Duration::minutes(session.start_minutes as i64);
+                + Duration::minutes(i64::from(session.start_minutes));
             let start_dt_utc = start_dt_local.with_timezone(&Utc);
 
             if start_dt_local.date_naive() != date {
@@ -273,7 +274,7 @@ impl PairingService {
 
             let end_dt_utc = if let Some(m) = session.end_minutes {
                 let end_dt_local = crate::utils::tz::local_to_tz(&tz, date, 0, 0, 0)?
-                    + Duration::minutes(m as i64);
+                    + Duration::minutes(i64::from(m));
                 Some(end_dt_local.with_timezone(&Utc))
             } else {
                 None
@@ -281,7 +282,10 @@ impl PairingService {
 
             let duration = end_dt_utc.map(|end| (end - start_dt_utc).num_minutes() as i32);
 
-            let mut final_metadata = session.metadata.clone().unwrap_or(serde_json::json!({}));
+            let mut final_metadata = session
+                .metadata
+                .clone()
+                .unwrap_or_else(|| serde_json::json!({}));
             if let serde_json::Value::Object(ref mut map) = final_metadata {
                 map.insert("schedule_traces".to_string(), serde_json::json!(traces));
             }

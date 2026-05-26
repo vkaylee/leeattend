@@ -1,4 +1,3 @@
-#![allow(unused_variables)]
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
@@ -29,7 +28,7 @@ pub async fn get_attendance_logs(
     ctx: MemberContext,
     Query(query): Query<AttendanceLogQuery>,
 ) -> AppResult<Json<serde_json::Value>> {
-    let workspace_id = ctx.workspace_id;
+    let _workspace_id = ctx.workspace_id;
 
     let limit = query.limit.unwrap_or(20).clamp(1, 100);
     let page = query.page.unwrap_or(1).max(1);

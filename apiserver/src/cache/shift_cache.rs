@@ -158,8 +158,10 @@ mod tests {
             early_punch_in_grace_period_minutes: Some(5),
         };
 
-        let shifts = vec![shift1.clone(), shift2.clone()];
-        let map: HashMap<Uuid, CachedShift> = shifts.into_iter().map(|s| (s.id, s)).collect();
+        let map: HashMap<Uuid, CachedShift> = vec![shift1.clone(), shift2.clone()]
+            .into_iter()
+            .map(|s| (s.id, s))
+            .collect();
 
         assert_eq!(map.len(), 2);
         assert!(map.contains_key(&shift1.id));

@@ -1,4 +1,3 @@
-#![allow(unused_variables)]
 use axum::{
     extract::{Path, State},
     Json,
@@ -105,7 +104,7 @@ pub async fn create_payroll_rule_tier(
             payload.min_amount,
             payload.max_amount,
             payload.rate,
-            payload.fixed_amount.unwrap_or(Decimal::new(0, 0)),
+            payload.fixed_amount.unwrap_or(Decimal::ZERO),
         )
         .await?;
 

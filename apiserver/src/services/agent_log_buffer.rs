@@ -49,9 +49,9 @@ impl AgentLogEntry {
     pub fn new(args: AgentLogEntryArgs) -> Self {
         Self {
             workspace_id: args.workspace_id,
-            employee_id_number: Self::sanitize_string(args.employee_id_number),
-            punch_time_raw: Self::sanitize_string(args.punch_time_raw),
-            device_id: args.device_id.map(Self::sanitize_string),
+            employee_id_number: Self::sanitize_string(&args.employee_id_number),
+            punch_time_raw: Self::sanitize_string(&args.punch_time_raw),
+            device_id: args.device_id.as_deref().map(Self::sanitize_string),
             raw_data: args.raw_data.map(Self::sanitize_json_value),
             timezone: args.timezone,
             date_fmt: args.date_fmt,
@@ -59,7 +59,7 @@ impl AgentLogEntry {
         }
     }
 
-    fn sanitize_string(s: String) -> String {
+    fn sanitize_string(s: &str) -> String {
         s.replace('\0', "").trim().to_string()
     }
 
@@ -333,8 +333,8 @@ mod tests {
 
         buffer.send(entry.clone()).await.unwrap();
 
-        let received = receiver.recv().await.unwrap();
-        assert_eq!(received.employee_id_number, "EMP001");
+        let log_received = receiver.recv().await.unwrap();
+        assert_eq!(log_received.employee_id_number, "EMP001");
     }
 
     #[tokio::test]
@@ -480,8 +480,8 @@ mod tests {
         buffer.send(entry.clone()).await.unwrap();
         // Buffer is full now (capacity=1)
 
-        let received = receiver.recv().await.unwrap();
-        assert_eq!(received.employee_id_number, "EMP001");
+        let log_received = receiver.recv().await.unwrap();
+        assert_eq!(log_received.employee_id_number, "EMP001");
     }
 
     #[test]

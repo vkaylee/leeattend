@@ -58,12 +58,12 @@ impl EmployeeImportHandler {
             )
             .await
             .map_err(|e| format!("DB error: {e}"))?
-            .ok_or("Job not found".to_string())?;
+            .ok_or_else(|| "Job not found".to_string())?;
 
         let file_path = import_job
             .file_path
             .as_ref()
-            .ok_or("No file path provided".to_string())?;
+            .ok_or_else(|| "No file path provided".to_string())?;
 
         let file_bytes = tokio::fs::read(file_path)
             .await
@@ -204,7 +204,7 @@ impl EmployeeImportChunkHandler {
             )
             .await
             .map_err(|e| format!("DB error: {e}"))?
-            .ok_or("Job not found".to_string())?;
+            .ok_or_else(|| "Job not found".to_string())?;
 
         let file_bytes = tokio::fs::read(&payload.file_path)
             .await
@@ -258,8 +258,8 @@ impl EmployeeImportChunkHandler {
         let total_chunks: i64 = cache
             .get_json(&format!("import_total_chunks:{}", payload.import_job_id))
             .await
-            .unwrap_or(Some("0".to_string()))
-            .unwrap_or("0".to_string())
+            .unwrap_or_else(|_| Some("0".to_string()))
+            .unwrap_or_else(|| "0".to_string())
             .parse()
             .unwrap_or(0);
 

@@ -1,4 +1,3 @@
-#![allow(unused_variables)]
 use axum::{
     extract::{Path, State},
     Json,
@@ -38,7 +37,7 @@ pub async fn get_default_attendance_rules(
     ctx: MemberContext,
     Path(_ws_id): Path<Uuid>,
 ) -> AppResult<Json<AttendanceRules>> {
-    let workspace_id = ctx.workspace_id;
+    let _workspace_id = ctx.workspace_id;
 
     let rules = state
         .attendance
@@ -62,7 +61,7 @@ pub async fn list_default_attendance_policy_versions(
     ctx: MemberContext,
     Path(_ws_id): Path<Uuid>,
 ) -> AppResult<Json<Vec<AttendancePolicyVersionResponse>>> {
-    let workspace_id = ctx.workspace_id;
+    let _workspace_id = ctx.workspace_id;
 
     let versions = state
         .attendance

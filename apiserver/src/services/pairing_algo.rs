@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PairingShiftConfig {
     // All times in minutes from midnight (00:00) of the shift start day.
     // Values can be > 1440 (24h) for overnight shifts.
@@ -10,7 +10,7 @@ pub struct PairingShiftConfig {
     pub break_end_minutes: Option<i32>,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PairedSession {
     // Minutes from midnight of the analysis date.
     // Can be > 1440 (representing next day).
@@ -22,7 +22,7 @@ pub struct PairedSession {
     pub metadata: Option<serde_json::Value>,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LogEvent {
     pub id: uuid::Uuid,
     pub minutes: i32,
@@ -132,8 +132,7 @@ impl ShiftAwareStrategy {
             .and_then(|l| l.raw_data.as_ref())
             .and_then(|r| r.get("entry_type"))
             .and_then(|e| e.as_str())
-            .map(std::string::ToString::to_string)
-            .unwrap_or_else(|| "work".to_string());
+            .map_or_else(|| "work".to_string(), std::string::ToString::to_string);
 
         let final_note = if end.is_none() {
             match combined_note {
@@ -213,8 +212,7 @@ impl ShiftAwareStrategy {
             .as_ref()
             .and_then(|r| r.get("entry_type"))
             .and_then(|e| e.as_str())
-            .map(std::string::ToString::to_string)
-            .unwrap_or_else(|| "work".to_string());
+            .map_or_else(|| "work".to_string(), std::string::ToString::to_string);
 
         let final_note = if end.is_none() {
             match combined_note {

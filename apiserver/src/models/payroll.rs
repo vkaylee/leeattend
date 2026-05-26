@@ -274,7 +274,6 @@ pub struct SalaryComponentWithDefinition {
 }
 
 #[cfg(test)]
-#[allow(clippy::float_cmp)]
 mod tests {
     use super::*;
     use rust_decimal::Decimal;
@@ -300,7 +299,7 @@ mod tests {
             "effective_date": "2026-01-01"
         }"#;
         let req: AssignSalaryComponentRequest = serde_json::from_str(json).unwrap();
-        assert_eq!(req.amount, Decimal::new(500050, 2));
+        assert_eq!(req.amount, Decimal::new(500_050, 2));
         assert_eq!(
             req.effective_date,
             NaiveDate::from_ymd_opt(2026, 1, 1).unwrap()
@@ -377,7 +376,7 @@ mod tests {
 
     #[test]
     fn test_update_payroll_settings_empty() {
-        let json = r#"{}"#;
+        let json = r"{}";
         let req: UpdatePayrollSettingsRequest = serde_json::from_str(json).unwrap();
         assert!(req.std_working_day_mode.is_none());
         assert!(req.fixed_std_days.is_none());
@@ -413,7 +412,7 @@ mod tests {
         let req: CreateIncentiveTierRequest = serde_json::from_str(json).unwrap();
         assert_eq!(req.priority, 1);
         assert_eq!(req.rule_config["max_late_early_count"], 3);
-        assert_eq!(req.payout_amount, 500.0);
+        assert!((req.payout_amount - 500.0).abs() < f64::EPSILON);
     }
 
     #[test]
@@ -430,7 +429,7 @@ mod tests {
         }"#;
         let req: CreatePayrollIncentivePolicyRequest = serde_json::from_str(json).unwrap();
         assert_eq!(req.name, "Attendance Bonus");
-        assert_eq!(req.base_amount, 1000.0);
+        assert!((req.base_amount - 1000.0).abs() < f64::EPSILON);
         assert_eq!(req.tiers.len(), 2);
     }
 

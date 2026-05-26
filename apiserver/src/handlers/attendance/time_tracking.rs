@@ -1,4 +1,3 @@
-#![allow(unused_variables)]
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
@@ -86,7 +85,7 @@ pub async fn update_time_entry(
     ctx: MemberContext,
     Json(req): Json<UpdateTimeEntryRequest>,
 ) -> AppResult<Json<TimeEntry>> {
-    let workspace_id = ctx.workspace_id;
+    let _workspace_id = ctx.workspace_id;
 
     let entry = state
         .attendance

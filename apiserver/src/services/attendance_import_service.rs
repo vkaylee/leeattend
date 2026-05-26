@@ -64,20 +64,17 @@ impl ImportStrategy for EmployeeImportStrategy {
     ) -> Result<Self::RowData, AppError> {
         let raw_id = row_data
             .get("employee_code")
-            .map(std::string::String::as_str)
-            .unwrap_or("")
+            .map_or("", std::string::String::as_str)
             .trim();
         let id_number = crate::utils::normalize_employee_id(raw_id);
         let full_name = row_data
             .get("full_name")
-            .map(std::string::String::as_str)
-            .unwrap_or("")
+            .map_or("", std::string::String::as_str)
             .trim()
             .to_string();
         let hire_date_raw = row_data
             .get("hire_date")
-            .map(std::string::String::as_str)
-            .unwrap_or("")
+            .map_or("", std::string::String::as_str)
             .trim();
 
         if id_number.is_empty() || full_name.is_empty() {
@@ -361,14 +358,12 @@ impl ImportStrategy for PunchImportStrategy {
     ) -> Result<Self::RowData, AppError> {
         let raw_id = row_data
             .get("employee_code")
-            .map(std::string::String::as_str)
-            .unwrap_or("")
+            .map_or("", std::string::String::as_str)
             .trim();
         let emp_id_number = crate::utils::normalize_employee_id(raw_id);
         let emp_dt_str = row_data
             .get("punch_time")
-            .map(std::string::String::as_str)
-            .unwrap_or("")
+            .map_or("", std::string::String::as_str)
             .trim();
 
         if emp_id_number.is_empty() || emp_dt_str.is_empty() {

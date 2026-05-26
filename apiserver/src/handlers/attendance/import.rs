@@ -1,4 +1,3 @@
-#![allow(unused_variables)]
 use axum::{
     extract::{Multipart, Path, State},
     response::Json,
@@ -222,7 +221,7 @@ pub async fn get_latest_import_job(
     ctx: MemberContext,
     axum::extract::Query(query): axum::extract::Query<ImportJobQuery>,
 ) -> AppResult<Json<Option<AttendanceImportJob>>> {
-    let workspace_id = ctx.workspace_id;
+    let _workspace_id = ctx.workspace_id;
 
     let mut job_opt = state
         .attendance
@@ -254,7 +253,7 @@ pub async fn get_import_job_status(
     ctx: MemberContext,
     Path((_, job_id)): Path<(Uuid, Uuid)>,
 ) -> AppResult<Json<AttendanceImportJob>> {
-    let workspace_id = ctx.workspace_id;
+    let _workspace_id = ctx.workspace_id;
 
     let mut job = state
         .attendance

@@ -1,19 +1,11 @@
-#![allow(
-    clippy::needless_continue,
-    clippy::clone_on_ref_ptr,
-    clippy::manual_let_else,
-    clippy::single_match_else,
-    clippy::ignored_unit_patterns,
-    missing_docs,
-    // ── TECH_DEBT: Enterprise-grade lint groups (2026-05-03) ──
-    clippy::style,
-    clippy::correctness
-)]
+//! HRM Attendance API Server entry point.
+
 use apiserver::diesel_pool::{DbPoolConfig, DieselPools};
 use apiserver::openapi::ApiDoc;
 use apiserver::queue::RedisPool;
 use apiserver::{create_app, AppState};
 use mimalloc::MiMalloc;
+use std::io::Write;
 use tokio::time::timeout;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use utoipa::OpenApi;
@@ -30,10 +22,10 @@ impl Drop for PortFileGuard {
     fn drop(&mut self) {
         if let Err(e) = std::fs::remove_file(&self.filename) {
             if e.kind() != std::io::ErrorKind::NotFound {
-                eprintln!("Failed to remove {} file on shutdown: {}", self.filename, e);
+                tracing::error!("Failed to remove {} file on shutdown: {}", self.filename, e);
             }
         } else {
-            eprintln!("{} file cleaned up successfully.", self.filename);
+            tracing::info!("{} file cleaned up successfully.", self.filename);
         }
     }
 }
@@ -43,7 +35,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Check for openapi generation flag before everything else
     if std::env::args().any(|arg| arg == "gen-openapi") {
         let openapi_json = ApiDoc::openapi().to_pretty_json()?;
-        println!("{openapi_json}");
+        let mut stdout = std::io::stdout();
+        let _ = stdout.write_all(openapi_json.as_bytes());
+        let _ = stdout.write_all(b"\n");
         return Ok(());
     }
 
@@ -71,7 +65,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tenant_manager.init_tenant().await;
 
     // 3. Connect pools (API/worker/tenant all go through Supavisor)
-    let diesel_pools = DieselPools::connect(&db_config, tenant_manager.clone())?;
+    let diesel_pools = DieselPools::connect(&db_config, std::sync::Arc::clone(&tenant_manager))?;
 
     // 4. Register existing workspace tenants with Supavisor, then run pending migrations
     register_workspace_tenants_and_migrate(&db_config, &diesel_pools, &*tenant_manager).await;
@@ -94,7 +88,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let (state, workers) = AppState::build(diesel_pools, redis_pool, tenant_manager).await?;
 
-    let app = create_app(state.clone());
+    let app = create_app(std::sync::Arc::clone(&state));
 
     let host = std::env::var("API_HOST").unwrap_or_else(|_| "0.0.0.0".to_string());
     let host = host.trim().to_string();
@@ -120,7 +114,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
                 Err(e) if e.kind() == std::io::ErrorKind::AddrInUse => {
                     tracing::warn!("Port {} is in use, trying next port", port);
-                    continue;
                 }
                 Err(e) => return Err(format!("Failed to bind to {addr_str}: {e}").into()),
             }
@@ -167,14 +160,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 async fn init_redis() -> Option<RedisPool> {
-    let url = match std::env::var("REDIS_URL") {
-        Ok(u) => u,
-        Err(_) => {
-            tracing::info!(
-                "REDIS_URL not set, distributed processing and presence tracking disabled"
-            );
-            return None;
-        }
+    let Ok(url) = std::env::var("REDIS_URL") else {
+        tracing::info!("REDIS_URL not set, distributed processing and presence tracking disabled");
+        return None;
     };
 
     tracing::info!("Connecting to Redis at {}", url);
@@ -274,12 +262,11 @@ async fn register_workspace_tenants_and_migrate(
         let db_name = format!("tenant_{}", ws_id.to_string().replace('-', ""));
 
         let tenant_url = if let Some(encrypted) = custom_db_url_encrypted {
-            let decrypted = if let Some(crypto) = &crypto_service {
+            if let Some(crypto) = &crypto_service {
                 crypto.decrypt(&encrypted).unwrap_or(encrypted)
             } else {
                 encrypted
-            };
-            decrypted
+            }
         } else {
             tracing::warn!(
                 "Workspace {} missing custom_db_url_encrypted! Skipping registration.",
@@ -319,7 +306,7 @@ async fn register_workspace_tenants_and_migrate(
     {
         Ok(Err(e)) => tracing::error!("Tenant migration failed: {e}"),
         Err(e) => tracing::error!("Tenant migration task panicked: {e}"),
-        Ok(Ok(_)) => {}
+        Ok(Ok(())) => {}
     }
 }
 
@@ -346,7 +333,7 @@ async fn shutdown_signal() {
     let terminate = std::future::pending::<()>();
 
     tokio::select! {
-        _ = ctrl_c => {},
-        _ = terminate => {},
+        () = ctrl_c => {},
+        () = terminate => {},
     }
 }

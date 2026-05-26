@@ -515,7 +515,7 @@ impl UserRepository for DieselUserRepository {
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?,
         );
 
-        let target_date = chrono::Utc::now() - chrono::Duration::days(since_days as i64);
+        let target_date = chrono::Utc::now() - chrono::Duration::days(i64::from(since_days));
 
         use crate::schema::notifications;
 

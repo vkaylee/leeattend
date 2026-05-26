@@ -1,4 +1,3 @@
-#![allow(unused_variables)]
 //! System-level authentication context.
 //!
 //! `SystemContext` is an Axum extractor for endpoints that require **platform-level**
@@ -104,12 +103,12 @@ impl SystemContext {
         use diesel_async::RunQueryDsl;
 
         let rows: Vec<RoleRow> = diesel::sql_query(
-            r#"
+            r"
             SELECT sr.name
               FROM user_system_roles usr
               JOIN system_roles sr ON sr.id = usr.role_id
              WHERE usr.user_id = $1
-            "#,
+            ",
         )
         .bind::<diesel::sql_types::Uuid, _>(user_id)
         .load(&mut *conn)

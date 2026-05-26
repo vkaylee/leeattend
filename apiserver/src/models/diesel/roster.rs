@@ -8,6 +8,7 @@ use uuid::Uuid;
 
 #[derive(Debug, Queryable, Selectable, Insertable, AsChangeset, Serialize, Deserialize, Clone)]
 #[diesel(table_name = shifts)]
+#[allow(clippy::struct_excessive_bools)]
 pub struct ShiftEntity {
     pub id: Uuid,
     pub workspace_id: Uuid,

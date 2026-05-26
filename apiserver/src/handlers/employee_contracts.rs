@@ -1,4 +1,3 @@
-#![allow(unused_variables)]
 use std::sync::Arc;
 
 use axum::{
@@ -63,7 +62,7 @@ pub async fn list_employee_contracts(
     ctx: MemberContext,
     Path((_ws_id, employee_id)): Path<(Uuid, Uuid)>,
 ) -> AppResult<Json<Vec<EmployeeContract>>> {
-    let workspace_id = ctx.workspace_id;
+    let _workspace_id = ctx.workspace_id;
 
     let contracts = state
         .employees
@@ -92,7 +91,7 @@ pub async fn get_contract(
     ctx: MemberContext,
     Path((_ws_id, _employee_id, contract_id)): Path<(Uuid, Uuid, Uuid)>,
 ) -> AppResult<Json<EmployeeContract>> {
-    let workspace_id = ctx.workspace_id;
+    let _workspace_id = ctx.workspace_id;
 
     let contract = state
         .employees
@@ -207,7 +206,7 @@ pub async fn update_contract(
 pub async fn delete_contract(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
-    Path((_ws_id, _employee_id, contract_id)): Path<(Uuid, Uuid, Uuid)>,
+    Path((_ws_id, employee_id, contract_id)): Path<(Uuid, Uuid, Uuid)>,
 ) -> AppResult<StatusCode> {
     let workspace_id = ctx.workspace_id;
 
@@ -217,8 +216,6 @@ pub async fn delete_contract(
         .delete_contract(&ctx.auth_token, contract_id)
         .await?;
 
-    // Since we don't return the contract, we use the employee_id from path
-    let employee_id = _employee_id;
     dispatch_sync_hire_date(&state, workspace_id, employee_id, contract_id).await;
 
     Ok(StatusCode::NO_CONTENT)

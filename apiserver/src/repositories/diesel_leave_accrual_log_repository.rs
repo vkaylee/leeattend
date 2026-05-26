@@ -129,7 +129,7 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
 
         query = query.filter(
             diesel::dsl::sql::<diesel::sql_types::Bool>("EXTRACT(YEAR FROM accrual_date) = ")
-                .bind::<diesel::sql_types::Double, _>(year as f64),
+                .bind::<diesel::sql_types::Double, _>(f64::from(year)),
         );
 
         let entities = query

@@ -76,7 +76,7 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
             .await?;
 
         let row: Option<SinglePolicyRow> = diesel::sql_query(
-            r#"
+            r"
             WITH dept_history AS (
                 SELECT department_id
                 FROM employee_department_history
@@ -137,7 +137,7 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
               AND (apv.valid_to IS NULL OR apv.valid_to >= $3)
             ORDER BY apv.valid_from DESC
             LIMIT 1
-            "#
+            "
         )
         .bind::<UuidType, _>(workspace_id)
         .bind::<UuidType, _>(employee_id)
@@ -181,7 +181,7 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
             .await?;
 
         let rows: Vec<BatchPolicyRow> = diesel::sql_query(
-            r#"
+            r"
             WITH inputs AS (
                 SELECT unnest($2::uuid[]) AS employee_id
             ),
@@ -265,7 +265,7 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
                 ORDER BY v.valid_from DESC
                 LIMIT 1
             ) apv ON true
-            "#,
+            ",
         )
         .bind::<UuidType, _>(workspace_id)
         .bind::<Array<UuidType>, _>(employee_ids.to_vec())

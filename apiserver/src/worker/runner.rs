@@ -28,7 +28,7 @@ const HEARTBEAT_INTERVAL_SECS: u64 = 5;
 const HEARTBEAT_TTL_SECS: i64 = 15;
 
 /// Worker status for heartbeat
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum WorkerStatus {
     Idle,
@@ -142,12 +142,12 @@ impl JobWorker {
     /// Create a new JobWorker.
     pub fn new(
         redis: RedisPool,
-        diesel: crate::diesel_pool::DieselPools,
+        diesel: &crate::diesel_pool::DieselPools,
         config: WorkerConfig,
         coordinator: Arc<ReportCoordinator>,
         roster_cache: Option<Arc<RosterCache>>,
     ) -> Self {
-        let deps = Arc::new(super::WorkerDeps::new(&diesel));
+        let deps = Arc::new(super::WorkerDeps::new(diesel));
         let redis_cache: Arc<dyn crate::repositories::CacheRepository> =
             Arc::new(crate::cache::RedisCache::new(redis.clone()));
         let cache = Arc::new(CacheManager::new(
@@ -227,7 +227,7 @@ impl JobWorker {
 
             // Poll for job (with cancellation check)
             let job_result = tokio::select! {
-                _ = cancel_token.cancelled() => {
+                () = cancel_token.cancelled() => {
                     drop(permit);
                     info!("Worker cancelled during poll");
                     break;
@@ -335,7 +335,7 @@ impl JobWorker {
 
         loop {
             tokio::select! {
-                _ = cancel_token.cancelled() => {
+                () = cancel_token.cancelled() => {
                     break;
                 }
                 _ = interval.tick() => {

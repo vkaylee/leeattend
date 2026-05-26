@@ -102,10 +102,10 @@ impl From<PayrollRuleTierEntity> for PayrollRuleTier {
             id: entity.id,
             rule_definition_id: entity.rule_definition_id,
             tier_order: entity.tier_order,
-            min_amount: bd_to_dec(entity.min_amount),
-            max_amount: entity.max_amount.map(bd_to_dec),
-            rate: bd_to_dec(entity.rate),
-            fixed_amount: bd_to_dec(entity.fixed_amount),
+            min_amount: bd_to_dec(&entity.min_amount),
+            max_amount: entity.max_amount.as_ref().map(bd_to_dec),
+            rate: bd_to_dec(&entity.rate),
+            fixed_amount: bd_to_dec(&entity.fixed_amount),
             created_at: entity.created_at,
         }
     }

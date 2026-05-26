@@ -115,7 +115,7 @@ impl HolidayLeaveService {
         // 2. Batch fetch balances
         let (workspace_balances, _) = self
             .leave_balance_repo
-            .get_workspace_balances(&auth_token, year, 100000, 0, None)
+            .get_workspace_balances(&auth_token, year, 100_000, 0, None)
             .await?;
 
         let mut balance_map = std::collections::HashMap::new();

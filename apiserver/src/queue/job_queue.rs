@@ -18,20 +18,20 @@ use uuid::Uuid;
 use crate::queue::{Job, JobMetadata, JobPriority, RedisPool};
 
 /// High-priority queue key (reports, merge, accrual).
-pub(crate) const QUEUE_HIGH: &str = "worker:jobs:high";
+pub const QUEUE_HIGH: &str = "worker:jobs:high";
 /// Low-priority queue key (log ingestion, background tasks).
-pub(crate) const QUEUE_LOW: &str = "worker:jobs:low";
-pub(crate) const META_PREFIX: &str = "report:meta:";
-pub(crate) const RESULTS_PREFIX: &str = "report:results:";
-pub(crate) const COUNTER_PREFIX: &str = "report:counter:";
-pub(crate) const MERGE_FLAG_PREFIX: &str = "report:merge_triggered:";
-pub(crate) const DLQ_KEY: &str = "report:dlq";
-pub(crate) const JOB_TTL_SECS: i64 = 86400; // 24 hours
+pub const QUEUE_LOW: &str = "worker:jobs:low";
+pub const META_PREFIX: &str = "report:meta:";
+pub const RESULTS_PREFIX: &str = "report:results:";
+pub const COUNTER_PREFIX: &str = "report:counter:";
+pub const MERGE_FLAG_PREFIX: &str = "report:merge_triggered:";
+pub const DLQ_KEY: &str = "report:dlq";
+pub const JOB_TTL_SECS: i64 = 86_400; // 24 hours
 
 // Global daily stats keys
 const STATS_COMPLETED_PREFIX: &str = "stats:completed:";
 const STATS_FAILED_PREFIX: &str = "stats:failed:";
-const STATS_TTL_SECS: i64 = 604800; // 7 days retention
+const STATS_TTL_SECS: i64 = 604_800; // 7 days retention
 
 /// Queue for worker job processing.
 /// Uses Redis LIST for FIFO job distribution and HASH for result storage.

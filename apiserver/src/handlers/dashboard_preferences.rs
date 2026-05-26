@@ -1,4 +1,3 @@
-#![allow(unused_variables)]
 use axum::{extract::State, response::Json};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -113,7 +112,7 @@ pub async fn update_dashboard_preferences(
     ctx: MemberContext,
     Json(body): Json<UpdateDashboardPreferences>,
 ) -> AppResult<Json<DashboardPreferences>> {
-    let workspace_id = ctx.workspace_id;
+    let _workspace_id = ctx.workspace_id;
     let user_id = ctx.user_id;
 
     let result = state

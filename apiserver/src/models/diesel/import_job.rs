@@ -69,7 +69,6 @@ pub struct ImportJobEntity {
     pub target_type: String,
 }
 
-#[allow(clippy::match_same_arms)]
 impl From<ImportJobEntity> for AttendanceImportJob {
     fn from(entity: ImportJobEntity) -> Self {
         let status = entity.status;

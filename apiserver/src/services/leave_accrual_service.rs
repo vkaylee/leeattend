@@ -95,7 +95,7 @@ impl LeaveAccrualService {
 
     /// Calculate how many days can be carried over to the next year
     pub fn calculate_carry_over_amount(remaining_days: f64, carry_over_limit: i32) -> f64 {
-        let limit = carry_over_limit as f64;
+        let limit = f64::from(carry_over_limit);
         if remaining_days > limit {
             limit
         } else if remaining_days < 0.0 {
@@ -657,9 +657,11 @@ impl LeaveAccrualService {
             } else {
                 NaiveDate::from_ymd_opt(accrual_date.year(), accrual_date.month(), 1)
             };
-            check_month
-                .and_then(|m| qualifying_days_map.get(&m).copied())
-                .unwrap_or(0) as f64
+            f64::from(
+                check_month
+                    .and_then(|m| qualifying_days_map.get(&m).copied())
+                    .unwrap_or(0),
+            )
         } else {
             DEFAULT_QUALIFYING_DAYS_BYPASS
         }
@@ -701,7 +703,6 @@ impl LeaveAccrualService {
 use crate::utils::chrono_helpers::local_to_utc;
 
 #[cfg(test)]
-#[allow(clippy::float_cmp)]
 mod tests {
     use super::*;
     use crate::models::{AccrualFrequency, LeavePolicyConfig, SeniorityBonus};
@@ -755,37 +756,34 @@ mod tests {
         };
 
         // 0 months service, enough work days
-        assert_eq!(
-            LeaveAccrualService::calculate_accrual_amount(&config, 0, 15.0),
-            1.0
+        assert!(
+            (LeaveAccrualService::calculate_accrual_amount(&config, 0, 15.0) - 1.0).abs()
+                < f64::EPSILON
         );
 
         // 0 months service, NOT enough work days
-        assert_eq!(
-            LeaveAccrualService::calculate_accrual_amount(&config, 0, 10.0),
-            0.0
+        assert!(
+            (LeaveAccrualService::calculate_accrual_amount(&config, 0, 10.0) - 0.0).abs()
+                < f64::EPSILON
         );
 
         // 12 months service milestone
-        assert_eq!(
-            LeaveAccrualService::calculate_accrual_amount(&config, 12, 15.0),
-            1.5
+        assert!(
+            (LeaveAccrualService::calculate_accrual_amount(&config, 12, 15.0) - 1.5).abs()
+                < f64::EPSILON
         );
     }
 
     #[test]
     fn test_carry_over_limit_logic() {
-        assert_eq!(
-            LeaveAccrualService::calculate_carry_over_amount(10.0, 5),
-            5.0
+        assert!(
+            (LeaveAccrualService::calculate_carry_over_amount(10.0, 5) - 5.0).abs() < f64::EPSILON
         );
-        assert_eq!(
-            LeaveAccrualService::calculate_carry_over_amount(3.0, 5),
-            3.0
+        assert!(
+            (LeaveAccrualService::calculate_carry_over_amount(3.0, 5) - 3.0).abs() < f64::EPSILON
         );
-        assert_eq!(
-            LeaveAccrualService::calculate_carry_over_amount(0.0, 5),
-            0.0
+        assert!(
+            (LeaveAccrualService::calculate_carry_over_amount(0.0, 5) - 0.0).abs() < f64::EPSILON
         );
     }
 
@@ -1036,25 +1034,22 @@ mod tests {
 
     #[test]
     fn test_carry_over_negative_remaining() {
-        assert_eq!(
-            LeaveAccrualService::calculate_carry_over_amount(-5.0, 10),
-            0.0
+        assert!(
+            (LeaveAccrualService::calculate_carry_over_amount(-5.0, 10) - 0.0).abs() < f64::EPSILON
         );
     }
 
     #[test]
     fn test_carry_over_zero_limit() {
-        assert_eq!(
-            LeaveAccrualService::calculate_carry_over_amount(10.0, 0),
-            0.0
+        assert!(
+            (LeaveAccrualService::calculate_carry_over_amount(10.0, 0) - 0.0).abs() < f64::EPSILON
         );
     }
 
     #[test]
     fn test_carry_over_exact_limit() {
-        assert_eq!(
-            LeaveAccrualService::calculate_carry_over_amount(5.0, 5),
-            5.0
+        assert!(
+            (LeaveAccrualService::calculate_carry_over_amount(5.0, 5) - 5.0).abs() < f64::EPSILON
         );
     }
 
@@ -1087,9 +1082,9 @@ mod tests {
         };
 
         // No threshold → work_days_in_period doesn't matter
-        assert_eq!(
-            LeaveAccrualService::calculate_accrual_amount(&config, 0, 0.0),
-            1.5
+        assert!(
+            (LeaveAccrualService::calculate_accrual_amount(&config, 0, 0.0) - 1.5).abs()
+                < f64::EPSILON
         );
     }
 
@@ -1120,21 +1115,21 @@ mod tests {
         };
 
         // 36 months > all milestones → highest (24 months → 1.0 bonus)
-        assert_eq!(
-            LeaveAccrualService::calculate_accrual_amount(&config, 36, 20.0),
-            2.0 // 1.0 base + 1.0 bonus
+        assert!(
+            (LeaveAccrualService::calculate_accrual_amount(&config, 36, 20.0) - 2.0).abs()
+                < f64::EPSILON
         );
 
         // 18 months → 12 months milestone (0.5 bonus)
-        assert_eq!(
-            LeaveAccrualService::calculate_accrual_amount(&config, 18, 20.0),
-            1.5
+        assert!(
+            (LeaveAccrualService::calculate_accrual_amount(&config, 18, 20.0) - 1.5).abs()
+                < f64::EPSILON
         );
 
         // 3 months → no milestone
-        assert_eq!(
-            LeaveAccrualService::calculate_accrual_amount(&config, 3, 20.0),
-            1.0
+        assert!(
+            (LeaveAccrualService::calculate_accrual_amount(&config, 3, 20.0) - 1.0).abs()
+                < f64::EPSILON
         );
     }
 

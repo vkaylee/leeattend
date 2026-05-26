@@ -1,4 +1,3 @@
-#![allow(unused_variables)]
 //! WebSocket endpoint for streaming report data.
 //!
 //! Connects clients to Redis Pub/Sub for real-time report chunk delivery.
@@ -242,7 +241,7 @@ async fn handle_report_socket(socket: WebSocket, job_id: Uuid, redis: crate::que
                 }
 
                 // Timeout after 10 minutes
-                _ = tokio::time::sleep(timeout_duration) => {
+                () = tokio::time::sleep(timeout_duration) => {
                     warn!(job_id = %job_id_clone, "WebSocket timeout");
                     let timeout_msg = serde_json::json!({
                         "type": "ERROR",

@@ -56,7 +56,7 @@ impl AttendanceCalculator {
             let mut effective_ot_start = punch_in.clone();
             if rules.grace_period_minutes > 0 {
                 let grace_threshold =
-                    start.clone() - Duration::minutes(rules.grace_period_minutes as i64);
+                    start.clone() - Duration::minutes(i64::from(rules.grace_period_minutes));
 
                 match rules.early_arrival_strategy {
                     EarlyArrivalStrategy::Block | EarlyArrivalStrategy::Allow => {
@@ -85,7 +85,7 @@ impl AttendanceCalculator {
                     .signed_duration_since(standard_out.clone())
                     .num_minutes();
                 if missing_minutes > 0
-                    && missing_minutes <= rules.authorized_early_leave_minutes as i64
+                    && missing_minutes <= i64::from(rules.authorized_early_leave_minutes)
                 {
                     standard_out = end.clone();
                 }
@@ -163,9 +163,9 @@ impl AttendanceCalculator {
         let size = if unit_size <= 1 {
             1.0
         } else {
-            unit_size as f64
+            f64::from(unit_size)
         };
-        let mins = minutes as f64;
+        let mins = f64::from(minutes);
 
         match policy {
             "floor" => (mins / size).floor() as i32,

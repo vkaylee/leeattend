@@ -450,9 +450,10 @@ impl From<String> for RuleAppliesTo {
     }
 }
 
-/// Determines whether a workspace role has global (workspace-wide) or
-/// department-scoped visibility. Used to replace the hardcoded name check
-/// for 'owner', 'admin', 'hr_manager', 'shift_manager' in MemberContext.
+/// Determines whether a workspace role has global or department-scoped visibility.
+///
+/// Used to replace the hardcoded name check for 'owner', 'admin', 'hr_manager',
+/// 'shift_manager' in MemberContext.
 #[derive(
     Debug,
     Serialize,

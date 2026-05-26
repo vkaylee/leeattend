@@ -159,7 +159,7 @@ pub struct LeaveAccrualLogEntity {
 
 use std::str::FromStr;
 
-fn bd_to_dec(bd: BigDecimal) -> rust_decimal::Decimal {
+fn bd_to_dec(bd: &BigDecimal) -> rust_decimal::Decimal {
     rust_decimal::Decimal::from_str(&bd.to_string()).unwrap_or_default()
 }
 
@@ -206,7 +206,7 @@ impl From<LeaveBalanceEntity> for LeaveBalance {
             leave_type_id: entity.leave_type_id,
             year: entity.year,
             entitlement: entity.entitlement,
-            accrued_amount: bd_to_dec(entity.accrued_amount),
+            accrued_amount: bd_to_dec(&entity.accrued_amount),
             carried_over: entity.carried_over,
             created_at: entity.created_at.unwrap_or_else(Utc::now),
             updated_at: entity.updated_at.unwrap_or_else(Utc::now),
@@ -252,7 +252,7 @@ impl From<LeaveAccrualLogEntity> for LeaveAccrualLog {
             employee_id: entity.employee_id,
             policy_assignment_id: entity.policy_assignment_id,
             accrual_date: entity.accrual_date,
-            amount: bd_to_dec(entity.amount),
+            amount: bd_to_dec(&entity.amount),
             leave_type_id: entity.leave_type_id,
             notes: entity.notes,
             created_at: entity.created_at.unwrap_or_else(Utc::now),

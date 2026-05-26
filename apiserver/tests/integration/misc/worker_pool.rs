@@ -59,13 +59,7 @@ async fn test_worker_uses_only_one_connection_per_job() {
         max_retries: 0,
         job_timeout_secs: 5,
     };
-    let worker = JobWorker::new(
-        redis_pool.clone(),
-        diesel_pools.clone(),
-        config,
-        coordinator,
-        None,
-    );
+    let worker = JobWorker::new(redis_pool.clone(), &diesel_pools, config, coordinator, None);
 
     let workspace_id = Uuid::new_v4();
     let user_id = Uuid::new_v4();

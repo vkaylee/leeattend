@@ -107,6 +107,7 @@ fn normalize_header(h: &str) -> String {
 }
 
 /// Extract rows and map them using normalized headers.
+///
 /// Returns a list of (line_number, mapped_row).
 /// The mapped_row uses the EXACT expected_headers strings as keys, but matched flexibly.
 /// Only scans the FIRST sheet.

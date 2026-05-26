@@ -19,7 +19,7 @@ impl OvertimeEngine {
         is_holiday: bool,
     ) -> Vec<OvertimeSegment> {
         let weekday = date.weekday();
-        let day_mask = 1 << (weekday.num_days_from_monday() as i32);
+        let day_mask = 1_i32 << weekday.num_days_from_monday();
 
         let active_rules: Vec<&OvertimeRule> = rules
             .iter()
@@ -54,20 +54,20 @@ impl OvertimeEngine {
             let start = sorted_points[i];
             let end = sorted_points[i + 1];
 
-            let mid_secs =
-                (start.num_seconds_from_midnight() + end.num_seconds_from_midnight()) / 2;
+            let mid_secs = u32::midpoint(
+                start.num_seconds_from_midnight(),
+                end.num_seconds_from_midnight(),
+            );
             let mid_time =
                 NaiveTime::from_num_seconds_from_midnight_opt(mid_secs, 0).unwrap_or_default();
 
             let best_rule = active_rules
                 .iter()
                 .filter(|r| {
-                    let r_start = r
-                        .time_start
-                        .unwrap_or(NaiveTime::from_hms_opt(0, 0, 0).unwrap_or_default());
+                    let r_start = r.time_start.unwrap_or(NaiveTime::MIN);
                     let r_end = r
                         .time_end
-                        .unwrap_or(NaiveTime::from_hms_opt(23, 59, 59).unwrap_or_default());
+                        .unwrap_or_else(|| NaiveTime::from_hms_opt(23, 59, 59).unwrap_or_default());
 
                     if r_start <= r_end {
                         mid_time >= r_start && mid_time < r_end
@@ -126,8 +126,8 @@ impl OvertimeEngine {
                 let inter_end = NaiveTime::min(*ot_end, segment.end);
 
                 if inter_end > inter_start {
-                    let duration_mins = (inter_end.num_seconds_from_midnight() as i32
-                        - inter_start.num_seconds_from_midnight() as i32)
+                    let duration_mins = (inter_end.num_seconds_from_midnight()
+                        - inter_start.num_seconds_from_midnight())
                         / 60;
                     let duration_hours = Decimal::from(duration_mins) / Decimal::from(60);
                     total_pay += duration_hours * hourly_rate * segment.multiplier;
@@ -140,12 +140,12 @@ impl OvertimeEngine {
 
     /// Splits a DateTime interval into daily NaiveTime segments for calculation
     pub fn split_interval_by_day<T: TimeZone>(
-        start: DateTime<T>,
-        end: DateTime<T>,
+        start: &DateTime<T>,
+        end: &DateTime<T>,
         tz: &Tz,
     ) -> Vec<(NaiveDate, Vec<(NaiveTime, NaiveTime)>)> {
         let mut result = Vec::new();
-        if start >= end {
+        if *start >= *end {
             return result;
         }
 
@@ -315,7 +315,7 @@ mod tests {
             .single()
             .expect("valid date");
 
-        let days = OvertimeEngine::split_interval_by_day(start, end, &UTC);
+        let days = OvertimeEngine::split_interval_by_day(&start, &end, &UTC);
 
         assert_eq!(days.len(), 2);
         assert_eq!(
@@ -537,7 +537,7 @@ mod tests {
             .with_ymd_and_hms(2026, 1, 26, 10, 0, 0)
             .single()
             .unwrap();
-        let days = OvertimeEngine::split_interval_by_day(start, start, &UTC);
+        let days = OvertimeEngine::split_interval_by_day(&start, &start, &UTC);
         assert!(days.is_empty(), "start == end should yield empty result");
     }
 
@@ -553,7 +553,7 @@ mod tests {
             .with_ymd_and_hms(2026, 1, 26, 10, 0, 0)
             .single()
             .unwrap();
-        let days = OvertimeEngine::split_interval_by_day(start, end, &UTC);
+        let days = OvertimeEngine::split_interval_by_day(&start, &end, &UTC);
         assert!(days.is_empty(), "start > end should yield empty result");
     }
 
@@ -569,7 +569,7 @@ mod tests {
             .with_ymd_and_hms(2026, 1, 26, 15, 0, 0)
             .single()
             .unwrap();
-        let days = OvertimeEngine::split_interval_by_day(start, end, &UTC);
+        let days = OvertimeEngine::split_interval_by_day(&start, &end, &UTC);
         assert_eq!(days.len(), 1);
         assert_eq!(days[0].1.len(), 1);
         assert_eq!(days[0].1[0].0, NaiveTime::from_hms_opt(10, 0, 0).unwrap());
@@ -585,7 +585,7 @@ mod tests {
             .single()
             .unwrap();
         let end = UTC.with_ymd_and_hms(2026, 1, 27, 4, 0, 0).single().unwrap();
-        let days = OvertimeEngine::split_interval_by_day(start, end, &UTC);
+        let days = OvertimeEngine::split_interval_by_day(&start, &end, &UTC);
         assert_eq!(days.len(), 3);
         // Day 1: Jan 25, 20:00 → 23:59:59
         assert_eq!(days[0].0, NaiveDate::from_ymd_opt(2026, 1, 25).unwrap());

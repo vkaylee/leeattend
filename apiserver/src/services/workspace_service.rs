@@ -95,7 +95,6 @@ impl WorkspaceService {
                     crate::errors::AppError::Internal(format!("Failed to connect to admin DB: {e}"))
                 })?;
 
-            #[allow(clippy::disallowed_methods)]
             diesel::sql_query(create_db_sql)
                 .execute(&mut conn)
                 .await

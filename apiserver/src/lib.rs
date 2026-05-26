@@ -1,11 +1,20 @@
 // Allow .unwrap() and .expect() in test code — only production code is denied
-#![cfg_attr(test, allow(clippy::unwrap_used, clippy::expect_used, clippy::panic))]
+#![cfg_attr(
+    test,
+    allow(
+        clippy::unwrap_used,
+        clippy::expect_used,
+        clippy::panic,
+        clippy::disallowed_types,
+        clippy::ref_option_ref,
+        clippy::disallowed_macros,
+        clippy::unimplemented,
+        clippy::map_unwrap_or
+    )
+)]
 #![recursion_limit = "512"]
 #![allow(
     missing_docs,
-    clippy::needless_raw_string_hashes,
-    clippy::needless_raw_strings,
-    clippy::ignored_unit_patterns,
     clippy::cast_possible_truncation,
     clippy::must_use_candidate,
     clippy::missing_const_for_fn,
@@ -16,37 +25,11 @@
     clippy::cast_possible_wrap,
     clippy::cast_sign_loss,
     clippy::cast_precision_loss,
-    clippy::similar_names,
     clippy::doc_markdown,
-    clippy::struct_excessive_bools,
-    clippy::unreadable_literal,
-    clippy::implicit_hasher,
-    clippy::trivially_copy_pass_by_ref,
-    clippy::let_underscore_untyped,
-    clippy::default_trait_access,
-    clippy::semicolon_if_nothing_returned,
-    clippy::enum_glob_use,
     clippy::wildcard_imports,
     clippy::struct_field_names,
     clippy::option_if_let_else,
-    clippy::map_unwrap_or,
-    clippy::derive_partial_eq_without_eq,
-    clippy::significant_drop_tightening,
-    clippy::future_not_send,
-    clippy::manual_clamp,
-    clippy::or_fun_call,
-    clippy::used_underscore_binding,
-    clippy::cast_lossless,
-    clippy::needless_pass_by_value,
-    clippy::format_push_string,
-    clippy::items_after_statements,
-    clippy::ref_option,
-    clippy::assigning_clones,
-    clippy::fn_params_excessive_bools,
-    clippy::too_long_first_doc_paragraph,
-    clippy::manual_midpoint,
-    clippy::needless_for_each,
-    clippy::redundant_pub_crate
+    clippy::items_after_statements
 )]
 #![warn(clippy::too_many_lines)]
 #![deny(clippy::clone_on_ref_ptr)]

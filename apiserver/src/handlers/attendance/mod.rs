@@ -1,4 +1,3 @@
-#![allow(unused_variables)]
 pub mod adjustments;
 pub mod import;
 pub mod logs;

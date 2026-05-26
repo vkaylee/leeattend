@@ -1,5 +1,3 @@
-#![cfg(test)]
-
 use crate::worker::WorkerDeps;
 use std::sync::Arc;
 

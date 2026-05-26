@@ -28,7 +28,7 @@ impl HousekeepingScheduler {
 
             loop {
                 tokio::select! {
-                    _ = cancel_token.cancelled() => break,
+                    () = cancel_token.cancelled() => break,
                     _ = tick.tick() => {
                         let today = chrono::Utc::now().date_naive();
                         let lock_key = format!("lock:housekeeping:{today}");

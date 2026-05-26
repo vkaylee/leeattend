@@ -39,14 +39,14 @@ mod tests {
 
     #[test]
     fn test_deserialize_missing_field() {
-        let json = r#"{}"#;
+        let json = r"{}";
         let result: TestStruct = serde_json::from_str(json).unwrap();
         assert_eq!(result.value, None);
     }
 
     #[test]
     fn test_all_three_states_differ() {
-        let missing: TestStruct = serde_json::from_str(r#"{}"#).unwrap();
+        let missing: TestStruct = serde_json::from_str(r"{}").unwrap();
         let null: TestStruct = serde_json::from_str(r#"{"value": null}"#).unwrap();
         let present: TestStruct = serde_json::from_str(r#"{"value": "x"}"#).unwrap();
 
@@ -77,7 +77,7 @@ mod tests {
 
     #[test]
     fn test_deserialize_numeric_missing() {
-        let json = r#"{}"#;
+        let json = r"{}";
         let result: TestNumeric = serde_json::from_str(json).unwrap();
         assert_eq!(result.count, None);
     }

@@ -121,11 +121,11 @@ impl PayrollEvaluator {
                     .unwrap_or(0.0);
 
                 let ctx_val = match metric {
-                    "total_work_units" => ctx.total_work_units as f64,
+                    "total_work_units" => f64::from(ctx.total_work_units),
                     "total_leave_days" => ctx.total_leave_days,
                     "unpaid_leave_days" => ctx.unpaid_leave_days,
                     "sick_leave_days" => ctx.sick_leave_days,
-                    "late_early_count" => ctx.late_early_count as f64,
+                    "late_early_count" => f64::from(ctx.late_early_count),
                     "kpi_score" => ctx.kpi_score,
                     _ => continue, // Ignore unknown metrics
                 };
@@ -167,7 +167,7 @@ mod tests {
             id: p_id,
             workspace_id: ws_id,
             name: "Diligence".into(),
-            base_amount: 300000.0,
+            base_amount: 300_000.0,
             payout_type: "fixed".into(),
             is_active: true,
             created_at: chrono::Utc::now(),
@@ -183,7 +183,7 @@ mod tests {
                 rule_config: serde_json::json!({
                     "max_late_early_count": 0
                 }),
-                payout_amount: 150000.0, // Actual
+                payout_amount: 150_000.0, // Actual
             },
             IncentiveTier {
                 id: t2_id,
@@ -206,8 +206,8 @@ mod tests {
             kpi_score: 0.0,
         };
         let res1 = PayrollEvaluator::evaluate_policy(&policy, &tiers, &ctx1).unwrap();
-        assert_eq!(res1.amount, Decimal::from(150000));
-        assert_eq!(res1.standard_amount, Decimal::from(300000)); // Base
+        assert_eq!(res1.amount, Decimal::from(150_000));
+        assert_eq!(res1.standard_amount, Decimal::from(300_000)); // Base
 
         // Case 2: Late (1 late) -> Tier 2 (50k)
         let ctx2 = IncentiveContext {
@@ -220,7 +220,7 @@ mod tests {
         };
         let res2 = PayrollEvaluator::evaluate_policy(&policy, &tiers, &ctx2).unwrap();
         assert_eq!(res2.amount, Decimal::from(50000));
-        assert_eq!(res2.standard_amount, Decimal::from(300000));
+        assert_eq!(res2.standard_amount, Decimal::from(300_000));
 
         // Case 3: Too Late (3 late) -> 0
         let ctx3 = IncentiveContext {
@@ -233,7 +233,7 @@ mod tests {
         };
         let res3 = PayrollEvaluator::evaluate_policy(&policy, &tiers, &ctx3).unwrap();
         assert_eq!(res3.amount, Decimal::ZERO);
-        assert_eq!(res3.standard_amount, Decimal::from(300000));
+        assert_eq!(res3.standard_amount, Decimal::from(300_000));
     }
 
     /// WF7: Demonstrate that excluding holidays from late_early_count
@@ -249,7 +249,7 @@ mod tests {
             id: p_id,
             workspace_id: ws_id,
             name: "Diligence".into(),
-            base_amount: 300000.0,
+            base_amount: 300_000.0,
             payout_type: "fixed".into(),
             is_active: true,
             created_at: chrono::Utc::now(),
@@ -265,7 +265,7 @@ mod tests {
                 rule_config: serde_json::json!({
                     "max_late_early_count": 0
                 }),
-                payout_amount: 150000.0,
+                payout_amount: 150_000.0,
             },
             IncentiveTier {
                 id: Uuid::new_v4(),
@@ -309,14 +309,14 @@ mod tests {
             PayrollEvaluator::evaluate_policy(&policy, &tiers, &ctx_with_exclusion).unwrap();
         assert_eq!(
             result_new.amount,
-            Decimal::from(150000),
+            Decimal::from(150_000),
             "With exclusion: Tier 1 (150k)"
         );
 
         // The difference is 100k — excluding holidays from late count matters!
         assert_eq!(
             result_new.amount - result_old.amount,
-            Decimal::from(100000),
+            Decimal::from(100_000),
             "Holiday exclusion saves employee 100k in incentive"
         );
     }

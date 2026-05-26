@@ -1,4 +1,3 @@
-#![allow(unused_variables)]
 use crate::{
     domain::permissions::Permission,
     errors::{AppError, AppResult},

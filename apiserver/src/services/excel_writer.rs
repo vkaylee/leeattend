@@ -73,7 +73,6 @@ impl ExcelWriter {
 }
 
 #[cfg(test)]
-#[allow(clippy::float_cmp)]
 mod tests {
     use super::*;
     use crate::services::excel::utils::{
@@ -109,32 +108,32 @@ mod tests {
 
     #[test]
     fn test_units_to_hours_basic() {
-        assert_eq!(units_to_hours(16, 30), 8.0);
+        assert!((units_to_hours(16, 30) - 8.0).abs() < f64::EPSILON);
     }
 
     #[test]
     fn test_units_to_hours_zero_units() {
-        assert_eq!(units_to_hours(0, 30), 0.0);
+        assert!((units_to_hours(0, 30) - 0.0).abs() < f64::EPSILON);
     }
 
     #[test]
     fn test_units_to_hours_15min_unit() {
-        assert_eq!(units_to_hours(32, 15), 8.0);
+        assert!((units_to_hours(32, 15) - 8.0).abs() < f64::EPSILON);
     }
 
     #[test]
     fn test_ceil_units_to_hours_exact() {
-        assert_eq!(ceil_units_to_hours(480, 30), 8.0);
+        assert!((ceil_units_to_hours(480, 30) - 8.0).abs() < f64::EPSILON);
     }
 
     #[test]
     fn test_ceil_units_to_hours_rounds_up() {
-        assert_eq!(ceil_units_to_hours(475, 30), 8.0);
+        assert!((ceil_units_to_hours(475, 30) - 8.0).abs() < f64::EPSILON);
     }
 
     #[test]
     fn test_ceil_units_to_hours_zero() {
-        assert_eq!(ceil_units_to_hours(0, 30), 0.0);
+        assert!((ceil_units_to_hours(0, 30) - 0.0).abs() < f64::EPSILON);
     }
 
     #[test]
@@ -395,6 +394,6 @@ mod tests {
 
     #[test]
     fn test_std_hours_from_work_units() {
-        assert_eq!(units_to_hours(16, 30), 8.0);
+        assert!((units_to_hours(16, 30) - 8.0).abs() < f64::EPSILON);
     }
 }

@@ -1,4 +1,3 @@
-#![allow(unused_variables)]
 //! System DB Cluster Management endpoints.
 //!
 //! All routes here require `SystemContext` with `PlatformAdmin` role.

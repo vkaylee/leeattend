@@ -22,6 +22,7 @@ pub struct AssignShiftRequest {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[allow(clippy::struct_excessive_bools)]
 pub struct Shift {
     pub id: Uuid,
     pub workspace_id: Uuid,
@@ -69,6 +70,7 @@ pub struct CreateShiftRequest {
 }
 
 #[derive(Debug, Deserialize)]
+#[allow(clippy::struct_excessive_bools)]
 pub struct UpdateShiftRequest {
     pub name: String,
     #[serde(default)]

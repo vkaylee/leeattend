@@ -1,4 +1,3 @@
-#![allow(unused_variables)]
 //! Report Export API Handlers
 //!
 //! Async API endpoints for distributed report job management:
@@ -388,7 +387,6 @@ pub async fn cancel_job(
 }
 
 #[cfg(test)]
-#[allow(clippy::float_cmp)]
 mod tests {
     use super::*;
 
@@ -411,6 +409,6 @@ mod tests {
         assert_eq!(api_progress.total_batches, 100);
         assert_eq!(api_progress.completed_batches, 50);
         assert_eq!(api_progress.failed_batches, 2);
-        assert_eq!(api_progress.percentage, 50.0);
+        assert!((api_progress.percentage - 50.0).abs() < f32::EPSILON);
     }
 }

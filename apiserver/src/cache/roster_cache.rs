@@ -501,7 +501,7 @@ impl RosterCache {
         // Determine leader vs follower while holding the mutex only briefly.
         let (is_leader, mut rx) = {
             let mut map = self.inflight.lock().await;
-            if let Some(sender) = map.get(&workspace_id) {
+            let res = if let Some(sender) = map.get(&workspace_id) {
                 // Follower: subscribe to the leader's result.
                 (false, Some(sender.subscribe()))
             } else {
@@ -509,7 +509,9 @@ impl RosterCache {
                 let (tx, rx) = watch::channel(None);
                 map.insert(workspace_id, Arc::new(tx));
                 (true, Some(rx))
-            }
+            };
+            drop(map);
+            res
         };
 
         if is_leader {
@@ -911,10 +913,9 @@ mod tests {
             map.insert(ws_id, Arc::new(tx));
         }
 
-        // 2. Simulate Follower finding entry
+        // 2. Simulate Follower entering
         {
             let map = inflight.lock().expect("mutex poisoned");
-            assert!(map.contains_key(&ws_id));
             let _sender = Arc::clone(map.get(&ws_id).expect("should exist"));
             // Follower subscribes...
         }
@@ -926,13 +927,10 @@ mod tests {
         }
 
         // 4. Verify Map is Empty
-        {
-            let map = inflight.lock().expect("mutex poisoned");
-            assert!(
-                map.is_empty(),
-                "Inflight map should be empty after leader exit"
-            );
-        }
+        assert!(
+            inflight.lock().expect("mutex poisoned").is_empty(),
+            "Inflight map should be empty after leader exit"
+        );
     }
 
     /// Timeout fires cleanly when leader never publishes (simulates the

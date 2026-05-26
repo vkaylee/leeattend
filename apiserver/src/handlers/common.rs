@@ -668,7 +668,7 @@ mod tests {
             .uri("/api/system/roles")
             .body(())
             .unwrap();
-        let (mut parts, _) = req.into_parts();
+        let (mut parts, ()) = req.into_parts();
 
         let ctx = ApiContext::from_request_parts(&mut parts, &())
             .await
@@ -687,7 +687,7 @@ mod tests {
             .header("X-Workspace-Id", ws_id.to_string())
             .body(())
             .unwrap();
-        let (mut parts, _) = req.into_parts();
+        let (mut parts, ()) = req.into_parts();
 
         let ctx = ApiContext::from_request_parts(&mut parts, &())
             .await
@@ -705,7 +705,7 @@ mod tests {
         use axum::http::Request;
 
         let req = Request::builder().uri("/api/workspaces").body(()).unwrap();
-        let (mut parts, _) = req.into_parts();
+        let (mut parts, ()) = req.into_parts();
 
         let res = ApiContext::from_request_parts(&mut parts, &()).await;
         assert!(res.is_err());

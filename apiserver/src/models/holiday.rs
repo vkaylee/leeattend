@@ -60,7 +60,7 @@ pub struct UpdateHolidayRequest {
 
 /// Workspace-level strategy for calculating OT when a shift crosses midnight
 /// into a holiday (or vice versa).
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
 pub enum HolidayOvernightStrategy {
     /// Split the shift at 00:00 — hours on each side get their respective rate.
     /// Most legally compliant (Vietnam, Korea, Japan).
@@ -218,7 +218,7 @@ mod tests {
 
     #[test]
     fn test_update_holiday_request_all_none() {
-        let json = r#"{}"#;
+        let json = r"{}";
         let req: UpdateHolidayRequest = serde_json::from_str(json).unwrap();
         assert!(req.name.is_none());
         assert!(req.date.is_none());

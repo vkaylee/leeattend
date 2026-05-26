@@ -1,3 +1,4 @@
+#![allow(clippy::needless_for_each)]
 use crate::models::*;
 use utoipa::OpenApi;
 
@@ -42,7 +43,6 @@ mod tests {
         let json = openapi
             .to_json()
             .expect("Failed to serialize OpenAPI to JSON");
-        println!("Generated JSON: {json}");
 
         // Basic sanity checks
         assert!(json.contains("\"openapi\":") || json.contains("\"openapi\" :"));

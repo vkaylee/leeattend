@@ -1,10 +1,9 @@
-#![allow(unused_variables)]
 use axum::{
     extract::{Query, State},
     response::Json,
 };
 use chrono::NaiveDate;
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -15,7 +14,7 @@ use crate::AppState;
 pub async fn get_attendance_report(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
-    Query(params): Query<HashMap<String, String>>,
+    Query(params): Query<BTreeMap<String, String>>,
 ) -> AppResult<Json<serde_json::Value>> {
     let workspace_id = ctx.workspace_id;
 
@@ -27,8 +26,7 @@ pub async fn get_attendance_report(
         .ok_or_else(|| AppError::Validation("Missing end_date".to_string()))?;
     let report_type = params
         .get("type")
-        .map(std::string::String::as_str)
-        .unwrap_or("summary");
+        .map_or("summary", std::string::String::as_str);
 
     let page = params.get("page").and_then(|s| s.parse::<i64>().ok());
     let limit = params.get("limit").and_then(|s| s.parse::<i64>().ok());

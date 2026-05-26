@@ -1,4 +1,3 @@
-#![allow(unused_variables)]
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
@@ -99,7 +98,7 @@ pub async fn get_shift_swap_stats(
 ) -> AppResult<Json<crate::repositories::shift_swap_repository::SwapStats>> {
     ctx.require_permission(Permission::ShiftSwapsManage)?;
 
-    let stats = state
+    let swap_stats = state
         .shifts
         .swap_repo
         .get_workspace_swap_stats(&ctx.auth_token)
@@ -111,5 +110,5 @@ pub async fn get_shift_swap_stats(
             ))
         })?;
 
-    Ok(Json(stats))
+    Ok(Json(swap_stats))
 }

@@ -161,9 +161,9 @@ impl DepartmentRepository for DieselDepartmentRepository {
             .select((
                 departments::all_columns,
                 diesel::dsl::sql::<diesel::sql_types::BigInt>(
-                    r#"COALESCE((SELECT COUNT(DISTINCT e.id) FROM employees e
+                    r"COALESCE((SELECT COUNT(DISTINCT e.id) FROM employees e
                  JOIN (SELECT DISTINCT ON (employee_id) employee_id, department_id FROM employee_department_history ORDER BY employee_id, effective_date DESC) edh ON e.id = edh.employee_id
-                 WHERE edh.department_id = departments.id AND e.is_active = true AND e.workspace_id = departments.workspace_id), 0)"#,
+                 WHERE edh.department_id = departments.id AND e.is_active = true AND e.workspace_id = departments.workspace_id), 0)",
                 ),
             ))
             .first::<(DieselDepartment, i64)>(&mut *conn)
@@ -203,9 +203,9 @@ impl DepartmentRepository for DieselDepartmentRepository {
             .select((
                 departments::all_columns,
                 diesel::dsl::sql::<diesel::sql_types::BigInt>(
-                    r#"COALESCE((SELECT COUNT(DISTINCT e.id) FROM employees e
+                    r"COALESCE((SELECT COUNT(DISTINCT e.id) FROM employees e
                  JOIN (SELECT DISTINCT ON (employee_id) employee_id, department_id FROM employee_department_history ORDER BY employee_id, effective_date DESC) edh ON e.id = edh.employee_id
-                 WHERE edh.department_id = departments.id AND e.is_active = true AND e.workspace_id = departments.workspace_id), 0)"#,
+                 WHERE edh.department_id = departments.id AND e.is_active = true AND e.workspace_id = departments.workspace_id), 0)",
                 ),
             ))
             .first::<(DieselDepartment, i64)>(&mut *conn)
@@ -375,9 +375,9 @@ impl DepartmentRepository for DieselDepartmentRepository {
             .select((
                 departments::all_columns,
                 diesel::dsl::sql::<diesel::sql_types::BigInt>(
-                    r#"COALESCE((SELECT COUNT(DISTINCT e.id) FROM employees e
+                    r"COALESCE((SELECT COUNT(DISTINCT e.id) FROM employees e
                  JOIN (SELECT DISTINCT ON (employee_id) employee_id, department_id FROM employee_department_history ORDER BY employee_id, effective_date DESC) edh ON e.id = edh.employee_id
-                 WHERE edh.department_id = departments.id AND e.is_active = true AND e.workspace_id = departments.workspace_id), 0)"#,
+                 WHERE edh.department_id = departments.id AND e.is_active = true AND e.workspace_id = departments.workspace_id), 0)",
                 ),
             ))
             .first::<(DieselDepartment, i64)>(&mut *conn)
@@ -437,9 +437,9 @@ impl DepartmentRepository for DieselDepartmentRepository {
             .select((
                 departments::all_columns,
                 diesel::dsl::sql::<diesel::sql_types::BigInt>(
-                    r#"COALESCE((SELECT COUNT(DISTINCT e.id) FROM employees e
+                    r"COALESCE((SELECT COUNT(DISTINCT e.id) FROM employees e
                  JOIN (SELECT DISTINCT ON (employee_id) employee_id, department_id FROM employee_department_history ORDER BY employee_id, effective_date DESC) edh ON e.id = edh.employee_id
-                 WHERE edh.department_id = departments.id AND e.is_active = true AND e.workspace_id = departments.workspace_id), 0)"#,
+                 WHERE edh.department_id = departments.id AND e.is_active = true AND e.workspace_id = departments.workspace_id), 0)",
                 ),
             ))
             .order(departments::name)

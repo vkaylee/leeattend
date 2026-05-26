@@ -26,6 +26,7 @@ pub struct AttendanceLogService {
     log_buffer: Arc<AgentLogBuffer>,
 }
 
+#[derive(Debug, Clone, Copy)]
 pub struct AttendanceLogServiceConfig {
     pub buffer_capacity: usize,
     pub batch_size: usize,

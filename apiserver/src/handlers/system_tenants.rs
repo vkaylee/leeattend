@@ -1,4 +1,3 @@
-#![allow(unused_variables)]
 //! System-level Tenant Management endpoints.
 //!
 //! All routes here require `SystemContext` with `PlatformAdmin` role.
@@ -93,13 +92,13 @@ fn map_tenants_to_workspaces(
 /// GET /system/tenants
 /// Retrieves the list of all tenants registered in Supavisor.
 pub async fn list_tenants(
-    State(_state): State<Arc<AppState>>,
+    State(state): State<Arc<AppState>>,
     ctx: SystemContext,
     _api_ctx: ApiContext,
 ) -> AppResult<Json<serde_json::Value>> {
     ctx.require_role(SystemRoleType::PlatformAdmin)?;
 
-    let mut conn = _state
+    let mut conn = state
         .infra
         .diesel
         .api
@@ -119,11 +118,13 @@ pub async fn list_tenants(
     let workspaces: Vec<(Uuid, String)> = diesel::sql_query("SELECT id, name FROM workspaces")
         .load::<WsRow>(&mut *conn)
         .await
-        .map(|rows| rows.into_iter().map(|r| (r.id, r.name)).collect())
-        .unwrap_or_else(|e| {
-            tracing::warn!("Failed to query workspaces for tenant mapping: {e}");
-            vec![]
-        });
+        .map_or_else(
+            |e| {
+                tracing::warn!("Failed to query workspaces for tenant mapping: {e}");
+                vec![]
+            },
+            |rows| rows.into_iter().map(|r| (r.id, r.name)).collect(),
+        );
 
     // 2. Query Supavisor schema directly to list tenants
     // If the schema doesn't exist (e.g. pooler not enabled), return empty array
@@ -140,11 +141,11 @@ pub async fn list_tenants(
     }
 
     let tenants_result = diesel::sql_query(
-        r#"
+        r"
         SELECT external_id, default_pool_size, inserted_at, updated_at
         FROM _supavisor.tenants
         ORDER BY inserted_at DESC
-        "#,
+        ",
     )
     .load::<TenantRow>(&mut *conn)
     .await;
@@ -249,10 +250,10 @@ pub async fn create_tenant(
         .map_err(|e| AppError::Internal(e.to_string()))?;
 
     diesel::sql_query(
-        r#"
+        r"
         INSERT INTO system_audit_logs (id, actor_id, action, details, created_at)
         VALUES ($1, $2, 'tenant.create', $3, NOW())
-        "#,
+        ",
     )
     .bind::<diesel::sql_types::Uuid, _>(crate::utils::id::new_id())
     .bind::<diesel::sql_types::Uuid, _>(ctx.user_id)
@@ -291,10 +292,10 @@ pub async fn delete_tenant_handler(
     });
 
     diesel::sql_query(
-        r#"
+        r"
         INSERT INTO system_audit_logs (id, actor_id, action, details, created_at)
         VALUES ($1, $2, 'tenant.delete', $3, NOW())
-        "#,
+        ",
     )
     .bind::<diesel::sql_types::Uuid, _>(crate::utils::id::new_id())
     .bind::<diesel::sql_types::Uuid, _>(ctx.user_id)
@@ -379,10 +380,10 @@ pub async fn update_tenant_database(
         .map_err(|e| AppError::Internal(e.to_string()))?;
 
     diesel::sql_query(
-        r#"
+        r"
         INSERT INTO system_audit_logs (id, actor_id, action, details, created_at)
         VALUES ($1, $2, 'tenant.update_db', $3, NOW())
-        "#,
+        ",
     )
     .bind::<diesel::sql_types::Uuid, _>(crate::utils::id::new_id())
     .bind::<diesel::sql_types::Uuid, _>(ctx.user_id)
@@ -475,11 +476,13 @@ pub async fn list_stale_tenants(
     let workspace_ids: Vec<Uuid> = diesel::sql_query("SELECT id FROM workspaces")
         .load::<WsRow>(&mut *conn)
         .await
-        .map(|rows| rows.into_iter().map(|r| r.id).collect())
-        .unwrap_or_else(|e| {
-            tracing::warn!("Failed to query workspaces for stale tenant check: {e}");
-            vec![]
-        });
+        .map_or_else(
+            |e| {
+                tracing::warn!("Failed to query workspaces for stale tenant check: {e}");
+                vec![]
+            },
+            |rows| rows.into_iter().map(|r| r.id).collect(),
+        );
 
     let active_tenant_ids: std::collections::HashSet<String> = workspace_ids
         .iter()
@@ -500,11 +503,11 @@ pub async fn list_stale_tenants(
     }
 
     let tenants_result = diesel::sql_query(
-        r#"
+        r"
         SELECT external_id, default_pool_size, inserted_at, updated_at
         FROM _supavisor.tenants
         ORDER BY inserted_at DESC
-        "#,
+        ",
     )
     .load::<TenantRow>(&mut *conn)
     .await;
@@ -600,7 +603,7 @@ mod tests {
             database_url: "postgres://admin:secret@host/db".to_string(),
             pool_size: Some(10),
         };
-        let debug_output = format!("{:?}", req);
+        let debug_output = format!("{req:?}");
         assert!(
             debug_output.contains("REDACTED"),
             "Debug output must redact database_url: {debug_output}"
@@ -618,7 +621,7 @@ mod tests {
             database_url: "postgres://admin@host/db".to_string(),
             pool_size: None,
         };
-        let debug_output = format!("{:?}", req);
+        let debug_output = format!("{req:?}");
         assert!(debug_output.contains("REDACTED"));
     }
 
@@ -696,7 +699,7 @@ mod tests {
         registered_tenants
             .iter()
             .filter(|t| t.starts_with("tenant_") && !active_tenant_ids.contains(**t))
-            .map(|t| t.to_string())
+            .map(|&t| t.to_string())
             .collect()
     }
 
@@ -832,7 +835,7 @@ mod tests {
     fn test_map_tenants_to_workspaces_mapped_and_unmapped() {
         let ws_id = Uuid::parse_str("6e913c39-24f3-45b5-877d-e307c3e10c88").unwrap();
         let ws_name = "ELITE HOUSEHOLD".to_string();
-        let workspaces = vec![(ws_id, ws_name.clone())];
+        let workspaces = vec![(ws_id, ws_name)];
 
         let now = chrono::Utc::now().naive_utc();
         let tenants = vec![

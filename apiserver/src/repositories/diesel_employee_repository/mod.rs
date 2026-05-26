@@ -37,7 +37,7 @@ impl DieselEmployeeRepository {
     }
 }
 
-pub const EMPLOYEE_SELECT_QUERY: &str = r#"
+pub const EMPLOYEE_SELECT_QUERY: &str = r"
     SELECT
         e.id, e.workspace_id, e.user_id, e.full_name, e.employee_id_number,
         e.original_hire_date, e.hire_date, e.termination_date,
@@ -50,16 +50,16 @@ pub const EMPLOYEE_SELECT_QUERY: &str = r#"
         ORDER BY employee_id, effective_date DESC
     ) edh_cur ON e.id = edh_cur.employee_id
     LEFT JOIN departments d_cur ON edh_cur.department_id = d_cur.id
-"#;
+";
 
-pub const EMPLOYEE_DEPT_JOIN: &str = r#"
+pub const EMPLOYEE_DEPT_JOIN: &str = r"
     LEFT JOIN (
         SELECT DISTINCT ON (employee_id) employee_id, department_id
         FROM employee_department_history
         ORDER BY employee_id, effective_date DESC
     ) edh_sort ON e.id = edh_sort.employee_id
     LEFT JOIN departments d_sort ON edh_sort.department_id = d_sort.id AND d_sort.workspace_id = e.workspace_id
-"#;
+";
 
 struct EmployeeSearchSql {
     pub where_clause: String,
@@ -69,11 +69,11 @@ struct EmployeeSearchSql {
 }
 
 fn build_employee_search_sql(
-    search_query: &Option<String>,
+    search_query: Option<&str>,
     sort_by: Option<&str>,
     sort_dir: Option<&str>,
 ) -> EmployeeSearchSql {
-    let has_search = search_query.as_ref().is_some_and(|q| !q.trim().is_empty());
+    let has_search = search_query.is_some_and(|q| !q.trim().is_empty());
 
     let mut where_clause = "WHERE e.workspace_id = $1".to_string();
     if has_search {

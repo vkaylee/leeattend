@@ -1,4 +1,3 @@
-#![allow(unused_variables)]
 use axum::{extract::State, response::Json};
 use chrono::Utc;
 use std::sync::Arc;
@@ -60,26 +59,20 @@ pub async fn update_payroll_settings(
     let mode = req.std_working_day_mode.unwrap_or_else(|| {
         current
             .as_ref()
-            .map(|s| s.std_working_day_mode.clone())
-            .unwrap_or("fixed".to_string())
+            .map_or_else(|| "fixed".to_string(), |s| s.std_working_day_mode.clone())
     });
     let fixed_days = req.fixed_std_days.unwrap_or_else(|| {
         current
             .as_ref()
-            .map(|s| s.fixed_std_days)
-            .unwrap_or(rust_decimal::Decimal::from(26))
+            .map_or_else(|| rust_decimal::Decimal::from(26), |s| s.fixed_std_days)
     });
-    let days_per_week = req.working_days_per_week.unwrap_or_else(|| {
-        current
-            .as_ref()
-            .map(|s| s.working_days_per_week)
-            .unwrap_or(6)
-    });
+    let days_per_week = req
+        .working_days_per_week
+        .unwrap_or_else(|| current.as_ref().map_or(6, |s| s.working_days_per_week));
     let hours_per_day = req.hours_per_day.unwrap_or_else(|| {
         current
             .as_ref()
-            .map(|s| s.hours_per_day)
-            .unwrap_or(rust_decimal::Decimal::from(8))
+            .map_or_else(|| rust_decimal::Decimal::from(8), |s| s.hours_per_day)
     });
     // max_ot fields: Option<Option<Decimal>>
     // None = not provided (keep current), Some(None) = explicitly set to null (no limit), Some(Some(v)) = set value

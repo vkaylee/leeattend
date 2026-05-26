@@ -220,7 +220,7 @@ impl ReportCoordinator {
         );
 
         // 8. Calculate estimated time
-        let estimated_seconds = (total_batches as u64) * ESTIMATED_SECONDS_PER_BATCH;
+        let estimated_seconds = u64::from(total_batches) * ESTIMATED_SECONDS_PER_BATCH;
 
         Ok(CreateJobResponse {
             job_id: parent_job_id,
@@ -363,10 +363,12 @@ impl ReportCoordinator {
                     // It's a report job, trigger merge
                     tracing::info!(parent_job_id = %parent_job_id, "Triggering merge job");
 
-                    #[allow(clippy::expect_used)]
-                    let date_range = meta.date_range.clone().unwrap_or(DateRange {
-                        start: NaiveDate::from_ymd_opt(2000, 1, 1).expect("2000-01-01 is valid"),
-                        end: NaiveDate::from_ymd_opt(2000, 1, 1).expect("2000-01-01 is valid"),
+                    let date_range = meta.date_range.clone().unwrap_or_else(|| {
+                        let default_date = NaiveDate::from_ymd_opt(2000, 1, 1).unwrap_or_default();
+                        DateRange {
+                            start: default_date,
+                            end: default_date,
+                        }
                     });
 
                     let merge_job = Job::with_priority(

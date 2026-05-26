@@ -24,25 +24,25 @@ pub fn generate(
     let header_fmt = ExcelFormatUtils::header_format();
     let time_fmt = Format::new().set_align(FormatAlign::Center);
     let status_present = Format::new()
-        .set_font_color(Color::RGB(0x2E7D32))
+        .set_font_color(Color::RGB(0x002E_7D32))
         .set_align(FormatAlign::Center);
     let status_late = Format::new()
-        .set_font_color(Color::RGB(0xF57C00))
+        .set_font_color(Color::RGB(0x00F5_7C00))
         .set_align(FormatAlign::Center);
     let status_absent = Format::new()
-        .set_font_color(Color::RGB(0xD32F2F))
+        .set_font_color(Color::RGB(0x00D3_2F2F))
         .set_align(FormatAlign::Center);
     let status_off = Format::new()
-        .set_font_color(Color::RGB(0x757575))
+        .set_font_color(Color::RGB(0x0075_7575))
         .set_align(FormatAlign::Center);
     let status_holiday = Format::new()
-        .set_font_color(Color::RGB(0x1B5E20))
+        .set_font_color(Color::RGB(0x001B_5E20))
         .set_align(FormatAlign::Center)
-        .set_background_color(Color::RGB(0xC8E6C9)); // light green
+        .set_background_color(Color::RGB(0x00C8_E6C9)); // light green
     let status_holiday_work = Format::new()
-        .set_font_color(Color::RGB(0xE65100))
+        .set_font_color(Color::RGB(0x00E6_5100))
         .set_align(FormatAlign::Center)
-        .set_background_color(Color::RGB(0xFFE0B2)); // light orange
+        .set_background_color(Color::RGB(0x00FF_E0B2)); // light orange
 
     worksheet.write_string_with_format(
         0,
@@ -89,8 +89,8 @@ pub fn generate(
             format_datetime(report.actual_punch_out, tz),
             &time_fmt,
         )?;
-        worksheet.write_number(row, 7, report.std_work_units as f64)?;
-        worksheet.write_number(row, 8, report.ot_work_units as f64)?;
+        worksheet.write_number(row, 7, f64::from(report.std_work_units))?;
+        worksheet.write_number(row, 8, f64::from(report.ot_work_units))?;
         worksheet.write_string(row, 9, report.ot_claim_status.as_deref().unwrap_or("-"))?;
 
         let status_fmt = match report.status.as_str() {

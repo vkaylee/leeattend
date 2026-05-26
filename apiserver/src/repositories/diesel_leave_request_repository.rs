@@ -431,7 +431,7 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
                 diesel::dsl::sql::<diesel::sql_types::Bool>(
                     "EXTRACT(YEAR FROM leave_requests.start_date) = ",
                 )
-                .bind::<diesel::sql_types::Double, _>(year as f64),
+                .bind::<diesel::sql_types::Double, _>(f64::from(year)),
             )
             .into_boxed();
 

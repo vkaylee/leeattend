@@ -161,7 +161,7 @@ impl RosterRepository for DieselRosterRepository {
                     if let Some(sid) = effective_shift_id {
                         if let Some(shift) = roster_data.shifts.get(sid) {
                             sched.shift_name = Some(shift.name.clone());
-                            sched.shift_symbol = shift.report_symbol.clone();
+                            sched.shift_symbol.clone_from(&shift.report_symbol);
                             sched.start_time = Some(shift.start_time);
                             sched.end_time = Some(shift.end_time);
                             sched.break_duration_minutes = Some(shift.break_duration_minutes);
@@ -209,7 +209,7 @@ impl RosterRepository for DieselRosterRepository {
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?,
         );
 
-        let history = diesel::sql_query(r#"
+        let history = diesel::sql_query(r"
             SELECT
                 id,
                 employee_id,
@@ -298,7 +298,7 @@ impl RosterRepository for DieselRosterRepository {
             ) as history
             ORDER BY created_at DESC
             LIMIT $2
-            "#
+            "
         )
         .bind::<diesel::sql_types::Uuid, _>(workspace_id)
         .bind::<diesel::sql_types::BigInt, _>(limit)

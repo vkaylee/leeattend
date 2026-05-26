@@ -246,48 +246,190 @@ mod tests {
             "leave_requests",
             "employee_id from workspace-validated report context",
         ),
+        // Employee search/filter count query (dynamic where_clause contains workspace_id filter)
+        (
+            "core.rs",
+            "employees",
+            "where_clause is constructed dynamically with workspace_id filter",
+        ),
     ];
 
     /// Extract SQL string literals from Rust source code.
     /// Handles both `r#"..."#` raw strings and `"..."` regular strings.
-    #[allow(clippy::needless_range_loop)]
-    fn extract_sql_strings(content: &str) -> Vec<(usize, String)> {
-        let mut results = Vec::new();
-        let lines: Vec<&str> = content.lines().collect();
-
-        // Strategy: find lines containing SQL keywords and gather
-        // the surrounding multi-line string content.
+    fn strip_comments(content: &str) -> String {
+        let mut res = String::new();
+        let chars: Vec<char> = content.chars().collect();
         let mut i = 0;
-        while i < lines.len() {
-            let line = lines[i];
+        let mut in_line_comment = false;
+        let mut in_block_comment = false;
+        let mut in_string = false;
+        let mut in_raw_string = false;
 
-            // Detect start of raw string with SQL
-            if line.contains("r#\"") || line.contains("r#\"") {
-                // Gather the full raw string
-                let start_line = i;
-                let mut sql_block = String::new();
-                let mut found_end = false;
-
-                for j in i..lines.len() {
-                    sql_block.push_str(lines[j]);
-                    sql_block.push('\n');
-                    if lines[j].contains("\"#") && j > i {
-                        found_end = true;
-                        i = j;
-                        break;
-                    }
-                    // Single-line raw string
-                    if lines[j].contains("r#\"") && lines[j].contains("\"#") {
-                        found_end = true;
-                        i = j;
-                        break;
-                    }
+        while i < chars.len() {
+            if in_line_comment {
+                if chars[i] == '\n' {
+                    in_line_comment = false;
+                    res.push('\n');
                 }
-
-                if found_end && has_sql_keyword(&sql_block) {
-                    results.push((start_line + 1, sql_block));
+                i += 1;
+                continue;
+            }
+            if in_block_comment {
+                if chars[i] == '\n' {
+                    res.push('\n');
+                } else if chars[i] == '*' && i + 1 < chars.len() && chars[i + 1] == '/' {
+                    in_block_comment = false;
+                    i += 2;
+                    continue;
+                }
+                i += 1;
+                continue;
+            }
+            if !in_string && !in_raw_string {
+                if chars[i] == '/' && i + 1 < chars.len() && chars[i + 1] == '/' {
+                    in_line_comment = true;
+                    i += 2;
+                    continue;
+                }
+                if chars[i] == '/' && i + 1 < chars.len() && chars[i + 1] == '*' {
+                    in_block_comment = true;
+                    i += 2;
+                    continue;
                 }
             }
+
+            if in_raw_string {
+                if chars[i] == '"' && i + 1 < chars.len() && chars[i + 1] == '#' {
+                    in_raw_string = false;
+                    res.push('"');
+                    res.push('#');
+                    i += 2;
+                    continue;
+                }
+            } else if in_string {
+                if chars[i] == '\\' && i + 1 < chars.len() {
+                    res.push(chars[i]);
+                    res.push(chars[i + 1]);
+                    i += 2;
+                    continue;
+                }
+                if chars[i] == '"' {
+                    in_string = false;
+                }
+            } else {
+                if i + 2 < chars.len()
+                    && chars[i] == 'r'
+                    && chars[i + 1] == '#'
+                    && chars[i + 2] == '"'
+                {
+                    in_raw_string = true;
+                } else if chars[i] == '"' {
+                    in_string = true;
+                }
+            }
+
+            res.push(chars[i]);
+            i += 1;
+        }
+        res
+    }
+
+    /// Extract SQL string literals from Rust source code.
+    /// Handles both `r#"..."#` raw strings and `"..."` regular strings.
+    fn extract_sql_strings(content: &str) -> Vec<(usize, String)> {
+        let stripped = strip_comments(content);
+        let mut results = Vec::new();
+        let chars: Vec<char> = stripped.chars().collect();
+        let mut i = 0;
+        let mut line_no = 1;
+
+        while i < chars.len() {
+            if chars[i] == '\n' {
+                line_no += 1;
+                i += 1;
+                continue;
+            }
+
+            // Check for raw string: r#"" ... ""#
+            if i + 2 < chars.len() && chars[i] == 'r' && chars[i + 1] == '#' && chars[i + 2] == '"'
+            {
+                let start_line = line_no;
+                let mut s = String::new();
+                i += 3;
+                let mut found = false;
+                while i < chars.len() {
+                    if chars[i] == '\n' {
+                        line_no += 1;
+                    }
+                    if chars[i] == '"' && i + 1 < chars.len() && chars[i + 1] == '#' {
+                        found = true;
+                        i += 2;
+                        break;
+                    }
+                    s.push(chars[i]);
+                    i += 1;
+                }
+                if found && has_sql_keyword(&s) {
+                    results.push((start_line, s));
+                }
+                continue;
+            }
+
+            // Check for raw string: r" ... "
+            if i + 1 < chars.len() && chars[i] == 'r' && chars[i + 1] == '"' {
+                let start_line = line_no;
+                let mut s = String::new();
+                i += 2;
+                let mut found = false;
+                while i < chars.len() {
+                    if chars[i] == '\n' {
+                        line_no += 1;
+                    }
+                    if chars[i] == '"' {
+                        found = true;
+                        i += 1;
+                        break;
+                    }
+                    s.push(chars[i]);
+                    i += 1;
+                }
+                if found && has_sql_keyword(&s) {
+                    results.push((start_line, s));
+                }
+                continue;
+            }
+
+            // Check for regular string: " ... "
+            if chars[i] == '"' {
+                let start_line = line_no;
+                let mut s = String::new();
+                i += 1;
+                let mut found = false;
+                let mut escaped = false;
+                while i < chars.len() {
+                    if chars[i] == '\n' {
+                        line_no += 1;
+                    }
+                    if escaped {
+                        s.push(chars[i]);
+                        escaped = false;
+                    } else if chars[i] == '\\' {
+                        escaped = true;
+                    } else if chars[i] == '"' {
+                        found = true;
+                        i += 1;
+                        break;
+                    } else {
+                        s.push(chars[i]);
+                    }
+                    i += 1;
+                }
+                if found && has_sql_keyword(&s) {
+                    results.push((start_line, s));
+                }
+                continue;
+            }
+
             i += 1;
         }
         results

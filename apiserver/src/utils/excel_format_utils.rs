@@ -8,21 +8,21 @@ impl ExcelFormatUtils {
         Format::new()
             .set_bold()
             .set_font_size(14)
-            .set_font_color(Color::RGB(0x1F4E79))
+            .set_font_color(Color::RGB(0x001F_4E79))
     }
 
     pub fn subtitle_format() -> Format {
         Format::new()
             .set_italic()
-            .set_font_color(Color::RGB(0x5B5B5B))
+            .set_font_color(Color::RGB(0x005B_5B5B))
     }
 
     pub fn header_format() -> Format {
         Format::new()
             .set_bold()
             .set_align(FormatAlign::Center)
-            .set_background_color(Color::RGB(0x4472C4))
-            .set_font_color(Color::RGB(0xFFFFFF))
+            .set_background_color(Color::RGB(0x0044_72C4))
+            .set_font_color(Color::RGB(0x00FF_FFFF))
     }
 
     pub fn number_format() -> Format {
@@ -32,32 +32,32 @@ impl ExcelFormatUtils {
     pub fn error_header_format() -> Format {
         Format::new()
             .set_bold()
-            .set_background_color(Color::RGB(0xFCE4D6))
-            .set_font_color(Color::RGB(0xC00000))
+            .set_background_color(Color::RGB(0x00FC_E4D6))
+            .set_font_color(Color::RGB(0x00C0_0000))
     }
 
     pub fn error_row_format() -> Format {
-        Format::new().set_background_color(Color::RGB(0xFDEDEC))
+        Format::new().set_background_color(Color::RGB(0x00FD_EDEC))
     }
 
     pub fn error_message_format() -> Format {
         Format::new()
-            .set_font_color(Color::RGB(0xD32F2F))
+            .set_font_color(Color::RGB(0x00D3_2F2F))
             .set_bold()
     }
 
     pub fn example_row_format() -> Format {
         Format::new()
             .set_italic()
-            .set_font_color(Color::RGB(0x5B5B5B))
+            .set_font_color(Color::RGB(0x005B_5B5B))
     }
 
     pub fn ref_header_format() -> Format {
         Format::new()
             .set_bold()
             .set_align(FormatAlign::Center)
-            .set_background_color(Color::RGB(0x2E7D32))
-            .set_font_color(Color::RGB(0xFFFFFF))
+            .set_background_color(Color::RGB(0x002E_7D32))
+            .set_font_color(Color::RGB(0x00FF_FFFF))
     }
 }
 

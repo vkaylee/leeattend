@@ -1,4 +1,3 @@
-#![allow(unused_variables)]
 use crate::domain::permissions::Permission;
 use crate::errors::AppResult;
 use crate::handlers::common::MemberContext;
@@ -19,7 +18,7 @@ pub async fn get_recruitment_sources(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> AppResult<Json<Vec<RecruitmentSource>>> {
-    let workspace_id = ctx.workspace_id;
+    let _workspace_id = ctx.workspace_id;
 
     let sources = state
         .employees
@@ -77,7 +76,7 @@ pub async fn get_recruitment_source_breakdown(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> AppResult<Json<Vec<RecruitmentSourceBreakdown>>> {
-    let workspace_id = ctx.workspace_id;
+    let _workspace_id = ctx.workspace_id;
 
     let breakdown = state
         .employees
@@ -93,7 +92,7 @@ pub async fn get_turnover_analytics(
     ctx: MemberContext,
     axum::extract::Query(params): axum::extract::Query<TurnoverQueryParams>,
 ) -> AppResult<Json<crate::models::TurnoverAnalytics>> {
-    let workspace_id = ctx.workspace_id;
+    let _workspace_id = ctx.workspace_id;
 
     let today = chrono::Utc::now().date_naive();
     let start = params

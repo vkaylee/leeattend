@@ -40,7 +40,7 @@ impl SupavisorTenantPoolManager {
         override_user: &str,
         override_password: &str,
         override_db_name: Option<&str>,
-    ) -> Result<String, AppError> {
+    ) -> String {
         let tenant_uuid_str = format!("tenant_{}", workspace_id.to_string().replace('-', ""));
         let db_name = match override_db_name {
             Some(name) if !name.is_empty() => name.to_string(),
@@ -70,7 +70,7 @@ impl SupavisorTenantPoolManager {
                 if user.contains('.') {
                     // Supavisor mode: username needs .tenant suffix
                     let actual_prefix = if override_user.is_empty() {
-                        user.split_once('.').map(|(p, _)| p).unwrap_or(user)
+                        user.split_once('.').map_or(user, |(p, _)| p)
                     } else {
                         override_user
                     };
@@ -109,7 +109,7 @@ impl SupavisorTenantPoolManager {
             result_url = format!("{before_slash}/{db_name}{query}");
         }
 
-        Ok(result_url)
+        result_url
     }
 }
 
@@ -121,12 +121,6 @@ impl SupavisorTenantPoolManager {
             if let Some(pool) = pools.get(workspace_id) {
                 return Ok(pool.clone());
             }
-        }
-
-        // Slow path
-        let mut pools = self.pools.write().await;
-        if let Some(pool) = pools.get(workspace_id) {
-            return Ok(pool.clone());
         }
 
         let db_name = format!("tenant_{}", workspace_id.to_string().replace('-', ""));
@@ -216,7 +210,7 @@ impl SupavisorTenantPoolManager {
             &db_user,
             &db_password,
             db_name_opt.as_deref(),
-        )?;
+        );
         let manager = AsyncDieselConnectionManager::<AsyncPgConnection>::new(tenant_url);
         let pool = Pool::builder(manager)
             .max_size(self.max_size)
@@ -226,8 +220,16 @@ impl SupavisorTenantPoolManager {
             .build()
             .map_err(|e| AppError::Internal(format!("Failed to create tenant pool: {e}")))?;
 
-        pools.insert(*workspace_id, pool.clone());
-        Ok(pool)
+        // Acquire write lock to insert the new pool
+        let mut pools = self.pools.write().await;
+        let res = if let Some(existing) = pools.get(workspace_id) {
+            Ok(existing.clone())
+        } else {
+            pools.insert(*workspace_id, pool.clone());
+            Ok(pool)
+        };
+        drop(pools);
+        res
     }
 }
 
@@ -307,7 +309,6 @@ impl TenantAuthToken {
 }
 #[cfg(test)]
 mod tests {
-    use super::*;
     use uuid::Uuid;
 
     // Helper mock to test URL parsing isolated from the real struct
@@ -329,7 +330,7 @@ mod tests {
             override_user: &str,
             override_password: &str,
             override_db_name: Option<&str>,
-        ) -> Result<String, AppError> {
+        ) -> String {
             let tenant_uuid_str = format!("tenant_{}", workspace_id.to_string().replace('-', ""));
             let db_name = match override_db_name {
                 Some(name) if !name.is_empty() => name.to_string(),
@@ -353,7 +354,7 @@ mod tests {
                     if user.contains('.') {
                         // Supavisor mode: username needs .tenant suffix
                         let actual_prefix = if override_user.is_empty() {
-                            user.split_once('.').map(|(p, _)| p).unwrap_or(user)
+                            user.split_once('.').map_or(user, |(p, _)| p)
                         } else {
                             override_user
                         };
@@ -394,7 +395,7 @@ mod tests {
                 result_url = format!("{before_slash}/{db_name}{query}");
             }
 
-            Ok(result_url)
+            result_url
         }
     }
 
@@ -403,9 +404,8 @@ mod tests {
         let manager = MockTenantManager::new("postgres://admin:pass@localhost:5432/leeattend");
         let ws_id = Uuid::parse_str("123e4567-e89b-12d3-a456-426614174000").unwrap();
 
-        let url = manager
-            .get_tenant_url_with_credentials(&ws_id, "tenant_user", "tenant_password", None)
-            .unwrap();
+        let url =
+            manager.get_tenant_url_with_credentials(&ws_id, "tenant_user", "tenant_password", None);
 
         assert_eq!(url, "postgres://tenant_user:tenant_password@localhost:5432/tenant_123e4567e89b12d3a456426614174000");
     }
@@ -417,9 +417,7 @@ mod tests {
             MockTenantManager::new("postgres://admin.tenant_019...:pass@supavisor:6543/leeattend");
         let ws_id = Uuid::parse_str("123e4567-e89b-12d3-a456-426614174000").unwrap();
 
-        let url = manager
-            .get_tenant_url_with_credentials(&ws_id, "", "", None)
-            .unwrap();
+        let url = manager.get_tenant_url_with_credentials(&ws_id, "", "", None);
 
         assert_eq!(url, "postgres://admin.tenant_123e4567e89b12d3a456426614174000@supavisor:6543/tenant_123e4567e89b12d3a456426614174000");
     }
@@ -429,9 +427,7 @@ mod tests {
         let ws_id = Uuid::parse_str("019e615b-51dc-7163-8936-82f42318cf84").unwrap();
         let manager = MockTenantManager::new("postgres://admin:admin@db:5432/postgres");
 
-        let url = manager
-            .get_tenant_url_with_credentials(&ws_id, "my_user", "my_pass", None)
-            .unwrap();
+        let url = manager.get_tenant_url_with_credentials(&ws_id, "my_user", "my_pass", None);
 
         assert_eq!(
             url,
@@ -446,9 +442,7 @@ mod tests {
             MockTenantManager::new("postgres://admin.leeattend:pass@supavisor:6543/leeattend");
 
         // This is the BYOD scenario where override_db_name is set to the actual database name (e.g. custom_db_name)
-        let url = manager
-            .get_tenant_url_with_credentials(&ws_id, "", "", Some("custom_db_name"))
-            .unwrap();
+        let url = manager.get_tenant_url_with_credentials(&ws_id, "", "", Some("custom_db_name"));
 
         assert_eq!(url, "postgres://admin.tenant_019e615b51dc7163893682f42318cf84@supavisor:6543/custom_db_name");
     }

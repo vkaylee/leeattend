@@ -1,4 +1,3 @@
-#![allow(unused_variables)]
 //! System-level administration endpoints.
 //!
 //! All routes here require `SystemContext` with `PlatformAdmin` role.
@@ -79,11 +78,11 @@ pub async fn list_system_roles(
     use diesel_async::RunQueryDsl;
 
     let rows: Vec<RoleRow> = diesel::sql_query(
-        r#"
+        r"
         SELECT id, name, description
           FROM system_roles
          ORDER BY name
-        "#,
+        ",
     )
     .load(&mut *conn)
     .await
@@ -103,12 +102,12 @@ pub async fn list_system_roles(
 
     let role_ids: Vec<Uuid> = rows.iter().map(|r| r.id).collect();
     let assignees_rows: Vec<AssigneeRow> = diesel::sql_query(
-        r#"
+        r"
         SELECT role_id, user_id, assigned_by, assigned_at
           FROM user_system_roles
          WHERE role_id = ANY($1)
          ORDER BY assigned_at
-        "#,
+        ",
     )
     .bind::<diesel::sql_types::Array<diesel::sql_types::Uuid>, _>(role_ids)
     .load(&mut *conn)
@@ -174,13 +173,13 @@ pub async fn get_user_system_roles(
     use diesel_async::RunQueryDsl;
 
     let roles: Vec<RoleNameRow> = diesel::sql_query(
-        r#"
+        r"
         SELECT sr.name
           FROM user_system_roles usr
           JOIN system_roles sr ON sr.id = usr.role_id
          WHERE usr.user_id = $1
          ORDER BY sr.name
-        "#,
+        ",
     )
     .bind::<diesel::sql_types::Uuid, _>(user_id)
     .load(&mut *conn)
@@ -234,11 +233,11 @@ pub async fn assign_system_role(
 
     // Upsert — idempotent assign
     diesel::sql_query(
-        r#"
+        r"
         INSERT INTO user_system_roles (user_id, role_id, assigned_by)
              VALUES ($1, $2, $3)
         ON CONFLICT (user_id, role_id) DO NOTHING
-        "#,
+        ",
     )
     .bind::<diesel::sql_types::Uuid, _>(user_id)
     .bind::<diesel::sql_types::Uuid, _>(role_id)
@@ -297,12 +296,12 @@ pub async fn revoke_system_role(
         }
 
         let count_row: CountRow = diesel::sql_query(
-            r#"
+            r"
             SELECT COUNT(*) as count
               FROM user_system_roles usr
               JOIN system_roles sr ON sr.id = usr.role_id
              WHERE sr.name = 'platform_admin'
-            "#,
+            ",
         )
         .get_result(&mut *conn)
         .await
@@ -316,11 +315,11 @@ pub async fn revoke_system_role(
     }
 
     let res = diesel::sql_query(
-        r#"
+        r"
         DELETE FROM user_system_roles
          WHERE user_id = $1
            AND role_id = (SELECT id FROM system_roles WHERE name = $2)
-        "#,
+        ",
     )
     .bind::<diesel::sql_types::Uuid, _>(user_id)
     .bind::<diesel::sql_types::Text, _>(role_name)

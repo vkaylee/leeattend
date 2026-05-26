@@ -288,8 +288,7 @@ impl ReportService {
             // Get entries from HashMap (O(1) lookup instead of DB query)
             let entries = entries_map
                 .get(&emp_sched.employee_id)
-                .map(std::vec::Vec::as_slice)
-                .unwrap_or(&[]);
+                .map_or_else(Default::default, std::vec::Vec::as_slice);
             // Pre-group entries by date for O(1) per-date lookup
             let entries_by_date =
                 crate::services::attendance_utils::group_entries_by_date(entries, tz);
@@ -300,8 +299,7 @@ impl ReportService {
                 // O(1) lookup instead of O(entries) filter per day
                 let day_entries = entries_by_date
                     .get(&date)
-                    .map(std::vec::Vec::as_slice)
-                    .unwrap_or(&[]);
+                    .map_or_else(Default::default, std::vec::Vec::as_slice);
 
                 let actual_punch_in = day_entries
                     .first()
@@ -313,7 +311,7 @@ impl ReportService {
                 let emp_attendance_rules = attendance_rules_map
                     .get(&emp_sched.employee_id)
                     .cloned()
-                    .unwrap_or(crate::models::AttendanceRules {
+                    .unwrap_or_else(|| crate::models::AttendanceRules {
                         work_unit_minutes: 30,
                         rounding_policy: "floor".to_string(),
                         early_arrival_strategy: crate::models::EarlyArrivalStrategy::Block,
@@ -321,8 +319,7 @@ impl ReportService {
 
                 let emp_working_conditions = working_conditions_map
                     .get(&emp_sched.employee_id)
-                    .map(std::vec::Vec::as_slice)
-                    .unwrap_or(&[]);
+                    .map_or_else(Default::default, std::vec::Vec::as_slice);
 
                 let base_rules = PolicyResolver::build_rules_from_conditions(
                     emp_working_conditions,
@@ -363,7 +360,7 @@ impl ReportService {
                         punch_in_time: actual_punch_in.map(|p| p.time()),
                         scheduled_start: daily.start_time,
                         is_holiday: is_hol,
-                        is_holiday_paid: holiday_entry.map(|h| h.is_paid).unwrap_or(true),
+                        is_holiday_paid: holiday_entry.is_none_or(|h| h.is_paid),
                         has_shift: daily.shift_id.is_some(),
                         is_on_leave,
                     },
@@ -414,11 +411,12 @@ impl ReportService {
                     ot_work_units,
                     ot_claim_status: ot_status_map.get(&(emp_sched.employee_id, date)).cloned(),
                     unit_type: crate::models::enums::TimekeepingUnit::DAY,
-                    unit_coefficient_hours: emp_attendance_rules.work_unit_minutes as f64 / 60.0,
-                    computed_std_hours: std_work_units as f64
-                        * (emp_attendance_rules.work_unit_minutes as f64 / 60.0),
-                    computed_ot_hours: ot_work_units as f64
-                        * (emp_attendance_rules.work_unit_minutes as f64 / 60.0),
+                    unit_coefficient_hours: f64::from(emp_attendance_rules.work_unit_minutes)
+                        / 60.0,
+                    computed_std_hours: f64::from(std_work_units)
+                        * (f64::from(emp_attendance_rules.work_unit_minutes) / 60.0),
+                    computed_ot_hours: f64::from(ot_work_units)
+                        * (f64::from(emp_attendance_rules.work_unit_minutes) / 60.0),
                     status,
                     is_holiday: is_hol,
                     is_unscheduled: status
@@ -575,13 +573,12 @@ impl ReportService {
         for emp_sched in schedules {
             let entries = entries_map
                 .get(&emp_sched.employee_id)
-                .map(std::vec::Vec::as_slice)
-                .unwrap_or(&[]);
+                .map_or_else(Default::default, std::vec::Vec::as_slice);
 
             let emp_attendance_rules = attendance_rules_map
                 .get(&emp_sched.employee_id)
                 .cloned()
-                .unwrap_or(crate::models::AttendanceRules {
+                .unwrap_or_else(|| crate::models::AttendanceRules {
                     work_unit_minutes: 30,
                     rounding_policy: "floor".to_string(),
                     early_arrival_strategy: crate::models::EarlyArrivalStrategy::Block,
@@ -600,13 +597,11 @@ impl ReportService {
                 // O(1) lookup instead of O(entries) filter per day
                 let day_entries = entries_by_date
                     .get(&date)
-                    .map(std::vec::Vec::as_slice)
-                    .unwrap_or(&[]);
+                    .map_or_else(Default::default, std::vec::Vec::as_slice);
 
                 let emp_working_conditions = working_conditions_map
                     .get(&emp_sched.employee_id)
-                    .map(std::vec::Vec::as_slice)
-                    .unwrap_or(&[]);
+                    .map_or_else(Default::default, std::vec::Vec::as_slice);
 
                 let base_rules = PolicyResolver::build_rules_from_conditions(
                     emp_working_conditions,
@@ -654,7 +649,7 @@ impl ReportService {
             .map(|emp| {
                 let (std, ot, work_unit_minutes) =
                     employee_totals.get(&emp.id).copied().unwrap_or((0, 0, 30));
-                let coeff = work_unit_minutes as f64 / 60.0;
+                let coeff = f64::from(work_unit_minutes) / 60.0;
                 AttendanceSummary {
                     employee_id: emp.id,
                     employee_name: emp.full_name.clone(),
@@ -664,8 +659,8 @@ impl ReportService {
                     total_leave_days: leave_data.get(&emp.id).copied().unwrap_or(0),
                     unit_type: crate::models::enums::TimekeepingUnit::DAY,
                     unit_coefficient_hours: coeff,
-                    computed_std_hours: std as f64 * coeff,
-                    computed_ot_hours: ot as f64 * coeff,
+                    computed_std_hours: f64::from(std) * coeff,
+                    computed_ot_hours: f64::from(ot) * coeff,
                 }
             })
             .collect();
@@ -685,16 +680,16 @@ impl ReportService {
                         .cmp(&(a.total_std_units + a.total_ot_units))
                 }),
                 AttendanceReportSort::LeaveDaysAsc => {
-                    results.sort_by(|a, b| a.total_leave_days.cmp(&b.total_leave_days))
+                    results.sort_by(|a, b| a.total_leave_days.cmp(&b.total_leave_days));
                 }
                 AttendanceReportSort::LeaveDaysDesc => {
-                    results.sort_by(|a, b| b.total_leave_days.cmp(&a.total_leave_days))
+                    results.sort_by(|a, b| b.total_leave_days.cmp(&a.total_leave_days));
                 }
                 AttendanceReportSort::OtHoursAsc => {
-                    results.sort_by(|a, b| a.total_ot_units.cmp(&b.total_ot_units))
+                    results.sort_by(|a, b| a.total_ot_units.cmp(&b.total_ot_units));
                 }
                 AttendanceReportSort::OtHoursDesc => {
-                    results.sort_by(|a, b| b.total_ot_units.cmp(&a.total_ot_units))
+                    results.sort_by(|a, b| b.total_ot_units.cmp(&a.total_ot_units));
                 }
                 AttendanceReportSort::TotalHoursAsc => results.sort_by(|a, b| {
                     (a.total_std_units + a.total_ot_units)

@@ -1,4 +1,3 @@
-#![allow(unused_variables)]
 use axum::{
     extract::{
         ws::{Message, WebSocket, WebSocketUpgrade},
@@ -103,7 +102,7 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                                             };
                                         if let Some(msg_id) = v["msg_id"].as_str() {
                                             let (status, message) = match result {
-                                                Ok(_) => ("success", None),
+                                                Ok(()) => ("success", None),
                                                 Err(e) => ("error", Some(e)),
                                             };
                                             let ack = serde_json::json!({
@@ -263,7 +262,7 @@ pub async fn get_agents(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> AppResult<Json<Vec<AgentStatus>>> {
-    let workspace_id = ctx.workspace_id;
+    let _workspace_id = ctx.workspace_id;
 
     // 1. Fetch workspace-scoped authorized agents from DB
     let db_agents = state
@@ -294,8 +293,7 @@ pub async fn get_agents(
         let is_online = agents_status
             .iter()
             .find(|a| a.agent_id == d.agent_id)
-            .map(|a| a.is_online)
-            .unwrap_or(false);
+            .is_some_and(|a| a.is_online);
 
         devices_by_agent
             .entry(d.agent_id.clone())
@@ -379,7 +377,7 @@ pub async fn get_devices(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> AppResult<Json<Vec<Device>>> {
-    let workspace_id = ctx.workspace_id;
+    let _workspace_id = ctx.workspace_id;
 
     let devices = state
         .agents
@@ -518,7 +516,7 @@ pub async fn get_authorized_agents(
     ctx: MemberContext,
     Query(params): Query<GetAgentsQueryParams>,
 ) -> AppResult<Json<Vec<AuthorizedAgent>>> {
-    let workspace_id = ctx.workspace_id;
+    let _workspace_id = ctx.workspace_id;
 
     let include_inactive = params.include_inactive.unwrap_or(false);
     let agents = state
@@ -535,7 +533,7 @@ pub async fn create_authorized_agent(
     ctx: MemberContext,
     Json(req): Json<CreateAuthorizedAgentRequest>,
 ) -> AppResult<impl IntoResponse> {
-    let workspace_id = ctx.workspace_id;
+    let _workspace_id = ctx.workspace_id;
 
     state
         .agents
@@ -563,7 +561,7 @@ pub async fn update_agent_trust(
     ctx: MemberContext,
     Json(req): Json<TrustAgentRequest>,
 ) -> AppResult<impl IntoResponse> {
-    let workspace_id = ctx.workspace_id;
+    let _workspace_id = ctx.workspace_id;
 
     let rows_affected = state
         .agents
@@ -586,7 +584,7 @@ pub async fn get_authorized_agent_by_id(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> AppResult<Json<AuthorizedAgent>> {
-    let workspace_id = ctx.workspace_id;
+    let _workspace_id = ctx.workspace_id;
 
     let agent = state
         .agents
@@ -661,7 +659,7 @@ pub async fn update_authorized_agent(
     use diesel_async::RunQueryDsl;
 
     diesel::sql_query(
-        r#"
+        r"
         UPDATE authorized_agents
         SET name = $1,
             token = $2,
@@ -671,7 +669,7 @@ pub async fn update_authorized_agent(
             success_cooldown_secs = $6,
             retention_days = $7
         WHERE id = $8 AND workspace_id = $9
-        "#,
+        ",
     )
     .bind::<diesel::sql_types::Text, _>(&current_agent.name)
     .bind::<diesel::sql_types::Text, _>(&current_agent.token)
@@ -705,7 +703,7 @@ pub async fn get_device_info_on_demand(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> AppResult<Json<serde_json::Value>> {
-    let workspace_id = ctx.workspace_id;
+    let _workspace_id = ctx.workspace_id;
 
     let device = state
         .agents
@@ -729,7 +727,7 @@ pub async fn delete_authorized_agent(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> AppResult<impl IntoResponse> {
-    let workspace_id = ctx.workspace_id;
+    let _workspace_id = ctx.workspace_id;
 
     let rows_affected = state
         .agents

@@ -445,7 +445,7 @@ impl AppState {
 
                 let worker = JobWorker::new(
                     redis.clone(),
-                    diesel_pools.clone(),
+                    &diesel_pools,
                     worker_config,
                     Arc::clone(&coordinator),
                     roster_cache.clone(),

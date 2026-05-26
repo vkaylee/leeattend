@@ -243,7 +243,6 @@ pub struct LeavePolicyAssignmentDetail {
 }
 
 #[cfg(test)]
-#[allow(clippy::float_cmp)]
 mod tests {
     use super::*;
 
@@ -258,7 +257,7 @@ mod tests {
 
     #[test]
     fn test_leave_type_config_serde_with_defaults() {
-        let json = r#"{}"#;
+        let json = r"{}";
         let config: LeaveTypeConfig = serde_json::from_str(json).unwrap();
         assert!(!config.requires_document);
         assert!(!config.allow_negative_balance);
@@ -277,7 +276,7 @@ mod tests {
         let config: LeaveTypeConfig = serde_json::from_str(json).unwrap();
         assert!(config.requires_document);
         assert!(config.allow_negative_balance);
-        assert_eq!(config.negative_balance_limit, Some(5.0));
+        assert!((config.negative_balance_limit.unwrap() - 5.0).abs() < f64::EPSILON);
         assert!(config.approval_required);
     }
 
@@ -293,7 +292,10 @@ mod tests {
         let back: LeaveTypeConfig = serde_json::from_str(&json).unwrap();
         assert_eq!(back.requires_document, config.requires_document);
         assert_eq!(back.allow_negative_balance, config.allow_negative_balance);
-        assert_eq!(back.negative_balance_limit, config.negative_balance_limit);
+        assert!(
+            (back.negative_balance_limit.unwrap() - config.negative_balance_limit.unwrap()).abs()
+                < f64::EPSILON
+        );
     }
 
     #[test]
@@ -308,10 +310,10 @@ mod tests {
             "min_work_days_threshold": 22.0
         }"#;
         let config: LeavePolicyConfig = serde_json::from_str(json).unwrap();
-        assert_eq!(config.accrual_amount, 1.5);
+        assert!((config.accrual_amount - 1.5).abs() < f64::EPSILON);
         assert_eq!(config.accrual_timing, "start_of_period");
         assert_eq!(config.carry_over_limit, Some(10));
-        assert_eq!(config.max_balance, Some(30.0));
+        assert!((config.max_balance.unwrap() - 30.0).abs() < f64::EPSILON);
         assert_eq!(config.reset_month, Some(1));
         assert!(config.seniority_bonus.is_empty()); // default empty vec
     }
@@ -330,7 +332,7 @@ mod tests {
         let config: LeavePolicyConfig = serde_json::from_str(json).unwrap();
         assert_eq!(config.seniority_bonus.len(), 2);
         assert_eq!(config.seniority_bonus[0].months, 12);
-        assert_eq!(config.seniority_bonus[0].bonus_amount, 1.0);
+        assert!((config.seniority_bonus[0].bonus_amount - 1.0).abs() < f64::EPSILON);
     }
 
     #[test]
@@ -377,13 +379,13 @@ mod tests {
             "transaction_date": "2026-03-15"
         }"#;
         let req: AdjustBalanceRequest = serde_json::from_str(json).unwrap();
-        assert_eq!(req.amount, -2.0);
+        assert!((req.amount - -2.0).abs() < f64::EPSILON);
         assert_eq!(req.reason, "Correction");
     }
 
     #[test]
     fn test_update_leave_balance_request_empty() {
-        let json = r#"{}"#;
+        let json = r"{}";
         let req: UpdateLeaveBalanceRequest = serde_json::from_str(json).unwrap();
         assert!(req.entitlement.is_none());
         assert!(req.carried_over.is_none());
@@ -405,7 +407,7 @@ mod tests {
         let json = serde_json::to_string(&balance).unwrap();
         let back: EmployeeLeaveBalance = serde_json::from_str(&json).unwrap();
         assert_eq!(back.leave_type_code, "AL");
-        assert_eq!(back.remaining, 5.0);
+        assert!((back.remaining - 5.0).abs() < f64::EPSILON);
     }
 
     #[test]
@@ -426,7 +428,7 @@ mod tests {
 
     #[test]
     fn test_update_leave_policy_request_all_none() {
-        let json = r#"{}"#;
+        let json = r"{}";
         let req: UpdateLeavePolicyRequest = serde_json::from_str(json).unwrap();
         assert!(req.name.is_none());
         assert!(req.description.is_none());

@@ -315,14 +315,12 @@ impl StagingLogRepository for DieselStagingLogRepository {
                     .raw_data
                     .as_ref()
                     .and_then(|d| d["punch"].as_i64())
-                    .map(|v| v as i32)
-                    .unwrap_or(-1);
+                    .map_or(-1, |v| v as i32);
                 let status = staged
                     .raw_data
                     .as_ref()
                     .and_then(|d| d["status"].as_i64())
-                    .map(|v| v as i32)
-                    .unwrap_or(-1);
+                    .map_or(-1, |v| v as i32);
 
                 let raw_log = RawAttendanceLog {
                     id: crate::utils::id::new_id(),

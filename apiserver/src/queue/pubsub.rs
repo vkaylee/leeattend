@@ -214,7 +214,7 @@ impl ReportPublisher {
             .query_async(&mut conn)
             .await?;
 
-        Ok(result.first().map(|(_, count)| *count).unwrap_or(0))
+        Ok(result.first().map_or(0, |(_, count)| *count))
     }
 }
 

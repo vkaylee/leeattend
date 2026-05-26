@@ -45,6 +45,7 @@ pub struct CalculateDeductionsArgs<'a> {
     pub segment_snapshots: &'a [SegmentSnapshot],
 }
 
+#[derive(Debug, Clone, Copy)]
 pub struct AssemblePayslipArgs {
     pub workspace_id: Uuid,
     pub employee_id: Uuid,

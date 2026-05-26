@@ -330,7 +330,7 @@ impl PolicyResolver {
             date,
         )
         .await
-        .unwrap_or(PolicyRules {
+        .unwrap_or_else(|_| PolicyRules {
             grace_period_minutes: overrides.grace_period_minutes.unwrap_or(0),
             authorized_early_leave_minutes: 0,
             is_early_leave_paid: false,

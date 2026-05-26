@@ -365,7 +365,7 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
         }
 
         let work_days: Vec<DateRow> = diesel::sql_query(
-            r#"
+            r"
             SELECT DISTINCT(te.punch_in_time AT TIME ZONE $2)::date as date
             FROM time_entries te
             JOIN employees e ON te.employee_id = e.id
@@ -374,7 +374,7 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
               AND te.punch_in_time >= $3
               AND te.punch_in_time <= $4
               AND te.entry_type = 'work'
-            "#,
+            ",
         )
         .bind::<diesel::sql_types::Uuid, _>(employee_id)
         .bind::<diesel::sql_types::Text, _>(tz.to_string())

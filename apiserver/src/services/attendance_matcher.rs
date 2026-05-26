@@ -201,7 +201,7 @@ impl AttendanceMatcher {
                                             args.seg_units_per_day.to_i32().unwrap_or(0);
                                     }
                                     let multiplier =
-                                        holiday.ot_multiplier.unwrap_or(Decimal::from(3));
+                                        holiday.ot_multiplier.unwrap_or_else(|| Decimal::from(3));
                                     if multiplier > Decimal::ONE {
                                         let worked_fraction =
                                             Decimal::from(std_u) / args.seg_units_per_day;
@@ -255,8 +255,8 @@ impl AttendanceMatcher {
                                             let ot_end = std::cmp::min(punch_out, start);
                                             let daily_splits =
                                                 OvertimeEngine::split_interval_by_day(
-                                                    punch_in,
-                                                    ot_end,
+                                                    &punch_in,
+                                                    &ot_end,
                                                     &args.ctx.tz,
                                                 );
                                             for (date, intervals) in daily_splits {
@@ -273,8 +273,8 @@ impl AttendanceMatcher {
                                             };
                                             let daily_splits =
                                                 OvertimeEngine::split_interval_by_day(
-                                                    ot_start,
-                                                    ot_end_for_pay,
+                                                    &ot_start,
+                                                    &ot_end_for_pay,
                                                     &args.ctx.tz,
                                                 );
                                             for (date, intervals) in daily_splits {
@@ -298,7 +298,7 @@ impl AttendanceMatcher {
                                             / Decimal::from(60))
                                             * hourly_rate
                                             * Decimal::from_f64(DEFAULT_OT_MULTIPLIER)
-                                                .unwrap_or(Decimal::new(15, 1));
+                                                .unwrap_or_else(|| Decimal::new(15, 1));
                                     }
                                 }
 
@@ -306,9 +306,9 @@ impl AttendanceMatcher {
                                 if !args.ctx.holidays_map.contains_key(&current_date) {
                                     let is_late = punch_in
                                         > start
-                                            + chrono::Duration::minutes(
-                                                rules.grace_period_minutes as i64,
-                                            );
+                                            + chrono::Duration::minutes(i64::from(
+                                                rules.grace_period_minutes,
+                                            ));
                                     let is_early = punch_out < end;
                                     if is_late || is_early {
                                         late_early_count += 1;

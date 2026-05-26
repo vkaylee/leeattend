@@ -1,11 +1,10 @@
-#![allow(unused_variables)]
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
     response::{IntoResponse, Json},
 };
 use chrono::NaiveDate;
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -141,9 +140,9 @@ pub async fn assign_shift(
 pub async fn get_workspace_schedules(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
-    Query(params): Query<HashMap<String, String>>,
+    Query(params): Query<BTreeMap<String, String>>,
 ) -> AppResult<Json<Vec<EmployeeSchedule>>> {
-    let workspace_id = ctx.workspace_id;
+    let _workspace_id = ctx.workspace_id;
 
     let start_date = params
         .get("start_date")
@@ -174,7 +173,7 @@ pub async fn get_assignment_history(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> AppResult<Json<Vec<AssignmentHistory>>> {
-    let workspace_id = ctx.workspace_id;
+    let _workspace_id = ctx.workspace_id;
 
     let history = state
         .shifts
@@ -192,7 +191,7 @@ pub async fn get_employee_rosters(
     State(state): State<Arc<AppState>>,
     Path((_, employee_id)): Path<(Uuid, Uuid)>,
     ctx: MemberContext,
-    Query(params): Query<std::collections::HashMap<String, String>>,
+    Query(params): Query<BTreeMap<String, String>>,
 ) -> AppResult<Json<Vec<ShiftRoster>>> {
     let start_date = params
         .get("start_date")

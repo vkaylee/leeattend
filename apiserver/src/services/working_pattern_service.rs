@@ -12,8 +12,8 @@ fn times_overlap(s1: NaiveTime, e1: NaiveTime, s2: NaiveTime, e2: NaiveTime) -> 
     // Compare as seconds-from-midnight.
     // Overnight shifts (e.g., 22:00–06:00) are expanded to a wider range.
     let to_range = |s: NaiveTime, e: NaiveTime| -> (i64, i64) {
-        let sm = s.num_seconds_from_midnight() as i64;
-        let em = e.num_seconds_from_midnight() as i64;
+        let sm = i64::from(s.num_seconds_from_midnight());
+        let em = i64::from(e.num_seconds_from_midnight());
         if em > sm {
             (sm, em)
         } else {

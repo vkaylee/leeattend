@@ -1,4 +1,3 @@
-#![allow(unused_variables)]
 use axum::{
     extract::{Path, State},
     http::{HeaderMap, StatusCode},
@@ -353,7 +352,7 @@ mod tests {
     #[test]
     fn test_update_role_request_all_optional() {
         // Empty object is valid — all fields optional.
-        let json = r#"{}"#;
+        let json = r"{}";
         let req: UpdateWorkspaceRoleRequest = serde_json::from_str(json).unwrap();
         assert!(req.name.is_none());
         assert!(req.description.is_none());
@@ -514,7 +513,7 @@ mod tests {
         // If the field is Option<T> with default this passes; for non-Option with default
         // serde_json rejects null. We document the actual behavior here.
         if let Ok(req) = result {
-            assert_eq!(req.scope_type, RoleScopeType::Scoped)
+            assert_eq!(req.scope_type, RoleScopeType::Scoped);
         } else {
             // serde_json rejects null for non-Option<RoleScopeType>. This is also correct
             // behavior — the client should send the key absent, not null.

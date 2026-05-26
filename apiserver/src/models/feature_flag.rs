@@ -69,7 +69,7 @@ mod tests {
 
     #[test]
     fn test_update_request_empty() {
-        let json = r#"{}"#;
+        let json = r"{}";
         let req: UpdateFeatureFlagRequest = serde_json::from_str(json).unwrap();
         assert!(req.enabled.is_none());
         assert!(req.description.is_none());

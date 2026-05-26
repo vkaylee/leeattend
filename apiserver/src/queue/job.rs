@@ -497,7 +497,6 @@ impl JobMetadata {
 }
 
 #[cfg(test)]
-#[allow(clippy::float_cmp)]
 mod tests {
     use super::*;
 
@@ -542,15 +541,15 @@ mod tests {
         );
 
         assert!(!meta.is_complete());
-        assert_eq!(meta.progress_percent(), 0.0);
+        assert!((meta.progress_percent() - 0.0).abs() < f32::EPSILON);
 
         meta.completed_batches = 5;
-        assert_eq!(meta.progress_percent(), 50.0);
+        assert!((meta.progress_percent() - 50.0).abs() < f32::EPSILON);
 
         meta.completed_batches = 8;
         meta.failed_batches = 2;
         assert!(meta.is_complete());
-        assert_eq!(meta.progress_percent(), 100.0);
+        assert!((meta.progress_percent() - 100.0).abs() < f32::EPSILON);
     }
 
     #[test]
@@ -832,7 +831,7 @@ mod tests {
             Some(ReportType::Summary),
         );
 
-        assert_eq!(meta.progress_percent(), 100.0);
+        assert!((meta.progress_percent() - 100.0).abs() < f32::EPSILON);
         assert!(meta.is_complete()); // 0 + 0 >= 0
     }
 
@@ -897,7 +896,7 @@ mod tests {
     /// Default priority is Normal.
     #[test]
     fn test_job_priority_default() {
-        let priority: JobPriority = Default::default();
+        let priority = JobPriority::default();
         assert_eq!(priority, JobPriority::Normal);
     }
 

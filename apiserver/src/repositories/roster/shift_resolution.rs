@@ -22,9 +22,9 @@ use uuid::Uuid;
 /// This is a **pure function** — no DB access — making it cheap to call in a
 /// tight loop and easy to unit-test.
 #[allow(clippy::too_many_lines)]
-pub fn resolve_effective_shift_from_data(
+pub fn resolve_effective_shift_from_data<S: ::std::hash::BuildHasher>(
     roster_data: &RosterData,
-    roster_map: &HashMap<(Uuid, NaiveDate), Option<Uuid>>,
+    roster_map: &HashMap<(Uuid, NaiveDate), Option<Uuid>, S>,
     employee_id: Uuid,
     employee_id_number: &str,
     employee_tags: Option<&Vec<String>>,

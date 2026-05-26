@@ -153,7 +153,6 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
         Ok(results.into_iter().map(Into::into).collect())
     }
 
-    #[allow(clippy::mut_mut)]
     async fn clear_workspace_data(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
@@ -1037,7 +1036,6 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
         Ok(result)
     }
 
-    #[allow(clippy::mut_mut)]
     async fn set_role_permissions(
         &self,
         role_id: Uuid,

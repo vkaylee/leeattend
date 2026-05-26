@@ -142,7 +142,7 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
         );
 
         let search_sql = build_employee_search_sql(
-            &options.search_query,
+            options.search_query.as_deref(),
             options.sort_by.as_deref(),
             options.sort_dir.as_deref(),
         );
@@ -403,7 +403,7 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
             department_name: String,
         }
 
-        let query = r#"
+        let query = r"
             SELECT e.id AS employee_id,
                    edh.department_id AS department_id,
                    COALESCE(d.name, 'Unassigned') AS department_name
@@ -417,7 +417,7 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
             ) edh ON TRUE
             LEFT JOIN departments d ON d.id = edh.department_id
             WHERE e.is_active = TRUE AND e.workspace_id = $1
-        "#;
+        ";
 
         let rows: Vec<DeptRow> = diesel::sql_query(query)
             .bind::<diesel::sql_types::Uuid, _>(workspace_id)
