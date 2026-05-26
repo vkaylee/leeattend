@@ -1,6 +1,7 @@
 import { RefreshCw, CheckCircle } from "lucide-react";
 import React from "react";
 
+import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { AttendanceAdjustmentRequest } from "@/lib/api";
 
@@ -67,25 +68,23 @@ export function ActionButtons({
 }) {
   return (
     <div className="flex gap-4 border-t border-slate-100 dark:border-slate-800 pt-4">
-      <button
-        className="flex-1 px-6 py-3.5 rounded-2xl font-bold text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all active:scale-95"
+      <Button
+        className="flex-1 h-auto py-3.5 px-6 rounded-2xl font-bold text-xs uppercase tracking-widest"
         disabled={isPending}
         onClick={onClose}
+        variant="ghost"
       >
         {t("common.cancel")}
-      </button>
-      <button
-        className="flex-[1.5] bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-3.5 rounded-2xl flex items-center justify-center gap-3 transition-all active:scale-95 disabled:opacity-50 shadow-xl text-xs uppercase tracking-widest"
+      </Button>
+      <Button
+        className="flex-[1.5] h-auto py-3.5 px-6 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl shadow-xl text-xs uppercase tracking-widest"
         disabled={isPending || !canSubmit}
+        icon={isPending ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CheckCircle size={18} />}
         onClick={onSubmit}
+        variant="primary"
       >
-        {isPending ? (
-          <RefreshCw className="w-4 h-4 animate-spin" />
-        ) : (
-          <CheckCircle size={18} />
-        )}
         {isEdit ? t("reports.confirm.approve") : t("reports.confirm.submit")}
-      </button>
+      </Button>
     </div>
   );
 }

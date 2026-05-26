@@ -5,6 +5,7 @@ import { Download, Loader2, CheckCircle2, AlertCircle, FileSpreadsheet } from "l
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
+import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 
 import { useReportStream } from "../../../hooks/use-report-stream";
@@ -155,82 +156,90 @@ function ExportActionsPanel({ phase, onClose, handleStartExport, handleDownload,
     <div className="flex gap-3 pt-2">
       {phase === "idle" && (
         <>
-          <button
-            className="flex-1 px-6 py-3 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors font-medium"
+          <Button
+            className="flex-1 h-auto py-3 px-6 font-medium"
             data-testid="report-export-cancel-button"
             onClick={onClose}
+            variant="outline"
           >
             {t("common.cancel")}
-          </button>
-          <button
-            className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-primary-600 text-white rounded-xl hover:bg-primary-700 transition-colors font-medium"
+          </Button>
+          <Button
+            className="flex-1 h-auto py-3 px-6 font-medium"
             data-testid="report-export-start-button"
+            icon={<Download size={18} />}
             onClick={handleStartExport}
+            variant="primary"
           >
-            <Download size={18} />
             {t("report_export.start_export")}
-          </button>
+          </Button>
         </>
       )}
 
       {(phase === "starting" || phase === "polling") && (
-        <button
-          className="flex-1 px-6 py-3 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors font-medium"
+        <Button
+          className="flex-1 h-auto py-3 px-6 font-medium"
           data-testid="report-export-background-button"
           onClick={onClose}
+          variant="outline"
         >
           {t("report_export.run_background")}
-        </button>
+        </Button>
       )}
 
       {phase === "completed" && (
         <>
-          <button
-            className="flex-1 px-6 py-3 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors font-medium"
+          <Button
+            className="flex-1 h-auto py-3 px-6 font-medium"
             data-testid="report-export-close-button"
             onClick={onClose}
+            variant="outline"
           >
             {t("common.close")}
-          </button>
-          <button
-            className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors font-medium"
+          </Button>
+          <Button
+            className="flex-1 h-auto py-3 px-6 bg-emerald-600 hover:bg-emerald-700 text-white font-medium"
             data-testid="report-export-download-button"
+            icon={<Download size={18} />}
             onClick={handleDownload}
+            variant="primary"
           >
-            <Download size={18} />
             {t("report_export.download_button")}
-          </button>
+          </Button>
         </>
       )}
 
       {phase === "failed" && (
         <>
-          <button
-            className="flex-1 px-6 py-3 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors font-medium"
+          <Button
+            className="flex-1 h-auto py-3 px-6 font-medium"
             data-testid="report-export-close-button"
             onClick={onClose}
+            variant="outline"
           >
             {t("common.close")}
-          </button>
-          <button
-            className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-primary-600 text-white rounded-xl hover:bg-primary-700 transition-colors font-medium"
+          </Button>
+          <Button
+            className="flex-1 h-auto py-3 px-6 font-medium"
             data-testid="report-export-retry-button"
             onClick={handleStartExport}
+            variant="primary"
           >
             {t("common.retry")}
-          </button>
+          </Button>
         </>
       )}
 
       {phase === "downloading" && (
-        <button
-          className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-slate-300 text-slate-500 dark:text-slate-400 rounded-xl cursor-not-allowed font-medium"
+        <Button
+          className="flex-1 h-auto py-3 px-6 bg-slate-300 text-slate-500 dark:text-slate-400 font-medium"
           data-testid="report-export-downloading-button"
           disabled
+          loading
+          variant="ghost"
         >
-          <Loader2 className="animate-spin" size={18} />
           {t("report_export.status.downloading")}
-        </button>
+        </Button>
       )}
     </div>
   );

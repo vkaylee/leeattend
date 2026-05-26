@@ -1,6 +1,7 @@
 import { AlertTriangle } from "lucide-react";
 import React from "react";
 
+import Button from "@/components/ui/button";
 import { DailyAttendanceReport } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
@@ -40,16 +41,17 @@ export function ReportStatusBadge({ status, row, t, onResolveUnscheduled }: Repo
 
   if (status === "unscheduled") {
     return (
-      <button
+      <Button
         className={cn(
-          "inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide border shadow-sm cursor-pointer hover:bg-amber-100 dark:hover:bg-amber-900 hover:border-amber-300 dark:hover:border-amber-700 transition-colors active:scale-95",
+          "inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide border shadow-sm hover:bg-amber-100 dark:hover:bg-amber-900 hover:border-amber-300 dark:hover:border-amber-700 transition-colors h-auto",
           styles.unscheduled
         )}
         onClick={(e) => { e.stopPropagation(); onResolveUnscheduled?.(row); }}
         title={t("reports.status.unscheduled_tooltip")}
+        variant="ghost"
       >
         <AlertTriangle size={10} /> {labels.unscheduled}
-      </button>
+      </Button>
     );
   }
 
