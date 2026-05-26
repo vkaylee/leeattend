@@ -285,7 +285,6 @@ export default tseslint.config(
       'src/pages/payroll/components/payroll-header.tsx',
       'src/pages/profile/components/personalization-tab.tsx',
       'src/pages/profile/components/profile-header.tsx',
-      'src/pages/reports/components/reports-header.tsx',
       'src/pages/settings/components/audit-logs/audit-log-pagination.tsx',
       'src/pages/settings/components/holidays/holiday-form.tsx',
       'src/pages/settings/components/holidays/holiday-header.tsx',

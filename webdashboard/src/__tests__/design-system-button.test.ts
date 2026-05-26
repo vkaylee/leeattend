@@ -135,7 +135,6 @@ const LEGACY_VIOLATIONS = new Set([
   "pages/payroll/components/payroll-header.tsx",
   "pages/profile/components/personalization-tab.tsx",
   "pages/profile/components/profile-header.tsx",
-  "pages/reports/components/reports-header.tsx",
   "pages/settings/components/audit-logs/audit-log-pagination.tsx",
   "pages/settings/components/holidays/holiday-form.tsx",
   "pages/settings/components/holidays/holiday-header.tsx",

@@ -3,6 +3,7 @@ import { CalendarCheck, Download } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
+import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 
 interface ReportsHeaderProps {
@@ -32,14 +33,15 @@ export function ReportsHeader({ dateRange, onExportClick }: ReportsHeaderProps) 
         >
           <CalendarCheck size={18} /> {t("reports.view_raw_logs").toUpperCase()}
         </Link>
-        <button
-          className="flex items-center gap-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 px-8 py-3 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all font-bold text-xs uppercase tracking-widest shadow-xl active:scale-95"
+        <Button
+          className="flex items-center gap-3 h-auto py-3 px-8 rounded-2xl font-bold text-xs uppercase tracking-widest"
           data-testid="export-report-btn"
+          icon={<Download size={18} />}
           onClick={onExportClick}
-          type="button"
+          variant="outline"
         >
-          <Download size={18} /> {t("reports.export_excel").toUpperCase()}
-        </button>
+          {t("reports.export_excel").toUpperCase()}
+        </Button>
       </div>
     </div>
   );
