@@ -486,11 +486,13 @@ export function MonthlyRosterGrid({ hook }: MonthlyRosterGridProps) {
             </button>
           </div>
         ) : isMonthLoading || isEmployeesLoading || !employees ? (
-          <div className="p-12 flex flex-col items-center justify-center gap-3">
-            <Loader2 className="animate-spin text-primary-600" size={32} />
-            <span className="text-xs text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest animate-pulse">
-              {t("common.loading")}...
-            </span>
+          <div className="p-4 w-full">
+            <div className="h-10 bg-slate-100 dark:bg-slate-800 rounded-xl mb-4 animate-pulse" />
+            <div className="space-y-2">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div className="h-12 bg-slate-50 dark:bg-slate-800/50 rounded-xl animate-pulse" key={`skel-${i}`} />
+              ))}
+            </div>
           </div>
         ) : employees.length === 0 ? (
           <div className="p-12 text-center flex flex-col items-center justify-center gap-4">

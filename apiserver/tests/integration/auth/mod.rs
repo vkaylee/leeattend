@@ -1,5 +1,6 @@
 //! Auth domain integration tests
 
+pub mod concurrent_registration;
 pub mod first_admin;
 pub mod last_admin_guard;
 pub mod me_system_roles;

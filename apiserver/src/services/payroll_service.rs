@@ -551,49 +551,37 @@ impl PayrollService {
         rule_results: Vec<crate::services::payroll_rule_evaluator::RuleEvaluationResult>,
     ) -> Result<Payslip, AppError> {
         let workspace_id = payslip.workspace_id;
-        let created_payslip = self.payroll_repo.create_payslip(&payslip).await?;
 
-        for snap in segment_snapshots {
-            self.payroll_repo
-                .create_payslip_segment(
-                    workspace_id,
-                    created_payslip.id,
-                    &crate::models::CreatePayslipSegmentArgs {
-                        start_date: snap.seg_start,
-                        end_date: snap.seg_end,
-                        department_id: snap.department_id,
-                        applied_base_salary: snap.total_base,
-                        applied_std_days: snap.std_working_days,
-                        hours_per_day: snap.hours_per_day,
-                        actual_work_days: snap.actual_worked_days,
-                        paid_work_days: snap.paid_days,
-                        amount: snap.amount,
-                        std_days_source: Some(snap.source),
-                    },
-                )
-                .await?;
-        }
+        let segments_args: Vec<crate::models::CreatePayslipSegmentArgs> = segment_snapshots
+            .into_iter()
+            .map(|snap| crate::models::CreatePayslipSegmentArgs {
+                start_date: snap.seg_start,
+                end_date: snap.seg_end,
+                department_id: snap.department_id,
+                applied_base_salary: snap.total_base,
+                applied_std_days: snap.std_working_days,
+                hours_per_day: snap.hours_per_day,
+                actual_work_days: snap.actual_worked_days,
+                paid_work_days: snap.paid_days,
+                amount: snap.amount,
+                std_days_source: Some(snap.source),
+            })
+            .collect();
 
-        for res in incentive_results {
-            let _ = self
-                .payroll_repo
-                .create_payslip_incentive(workspace_id, created_payslip.id, &res)
-                .await;
-        }
+        let rules_args: Vec<(String, Decimal)> = rule_results
+            .into_iter()
+            .map(|r| (r.rule_code, r.amount))
+            .collect();
 
-        for rule in rule_results {
-            let _ = self
-                .payroll_repo
-                .create_payslip_rule_evaluation(
-                    workspace_id,
-                    created_payslip.id,
-                    rule.rule_code,
-                    rule.amount,
-                )
-                .await;
-        }
-
-        Ok(created_payslip)
+        self.payroll_repo
+            .persist_calculated_payslip_data(
+                workspace_id,
+                &payslip,
+                &segments_args,
+                &incentive_results,
+                &rules_args,
+            )
+            .await
     }
 
     #[tracing::instrument(skip_all)]

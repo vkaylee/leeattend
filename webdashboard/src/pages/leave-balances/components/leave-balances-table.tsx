@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 
 import { WorkspaceLeaveBalance } from "@/lib/api/types";
 
+import { TableSkeleton } from "@/components/common/table-skeleton";
 import { DesktopBalanceRow } from "./desktop-balance-row";
 import { MobileBalanceCard } from "./mobile-balance-card";
 
@@ -37,7 +38,7 @@ export const LeaveBalancesTable: React.FC<LeaveBalancesTableProps> = ({
           </thead>
           <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
             {isLoading && !balances.length ? (
-              <tr><td className="px-6 py-20 text-center text-slate-500 dark:text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50 animate-pulse" colSpan={5}>{t("common.loading")}</td></tr>
+              <TableSkeleton rows={5} variant="primary" />
             ) : balances.length === 0 ? (
               <tr><td className="px-6 py-32 text-center text-slate-500 dark:text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50" colSpan={5}>{t("attendance_logs.messages.no_data")}</td></tr>
             ) : balances.map((balance, index) => (
@@ -62,7 +63,11 @@ export const LeaveBalancesTable: React.FC<LeaveBalancesTableProps> = ({
       {/* Tablet/Mobile Card View (<1024px) */}
       <div className="lg:hidden divide-y divide-slate-100 dark:divide-slate-800">
         {isLoading && !balances.length ? (
-          <div className="px-5 py-20 text-center text-slate-500 dark:text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50 animate-pulse">{t("common.loading")}</div>
+          <div className="p-5 space-y-4">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div className="h-28 bg-slate-100 dark:bg-slate-800 rounded-[24px] animate-pulse" key={`mob-skel-${i}`} />
+            ))}
+          </div>
         ) : balances.length === 0 ? (
           <div className="px-5 py-32 text-center text-slate-500 dark:text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50">{t("attendance_logs.messages.no_data")}</div>
         ) : balances.map((balance, index) => (

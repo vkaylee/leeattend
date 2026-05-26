@@ -11,6 +11,7 @@ use uuid::Uuid;
 #[async_trait]
 pub trait UserRepository: Send + Sync {
     async fn create_user(&self, user: &User) -> Result<(), AppError>;
+    async fn create_user_with_admin_check(&self, user: &User) -> Result<bool, AppError>;
     async fn get_user_count(&self) -> Result<i64, AppError>;
     async fn assign_platform_admin(&self, user_id: Uuid) -> Result<(), AppError>;
     async fn get_user_by_email(&self, email: &str) -> Result<Option<User>, AppError>;

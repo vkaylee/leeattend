@@ -16,4 +16,5 @@ mod salary_bases_repo;
 mod salary_components;
 mod settings;
 mod traceability;
+mod transaction;
 mod v2;

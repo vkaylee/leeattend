@@ -6,7 +6,7 @@ use crate::repositories::user_repository::UserRepository;
 use crate::schema::{system_roles, user_system_roles, users, workspace_members};
 use async_trait::async_trait;
 use diesel::prelude::*;
-use diesel_async::RunQueryDsl;
+use diesel_async::{AsyncConnection, RunQueryDsl};
 use uuid::Uuid;
 
 pub struct DieselUserRepository {
@@ -48,6 +48,82 @@ impl UserRepository for DieselUserRepository {
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(())
+    }
+
+    async fn create_user_with_admin_check(&self, user: &User) -> Result<bool, AppError> {
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .api
+                .get()
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
+
+        let entity = UserEntity {
+            id: user.id,
+            email: user.email.clone(),
+            password_hash: user.password_hash.clone(),
+            created_at: Some(user.created_at),
+            full_name: user.full_name.clone(),
+            avatar_url: user.avatar_url.clone(),
+            bio: user.bio.clone(),
+            preferred_language: user.preferred_language.clone(),
+        };
+
+        let is_first = conn.transaction::<bool, AppError, _>(|conn| {
+            Box::pin(async move {
+                // Lock row or rely on serializability if we wanted perfect safety.
+                // Using an advisory transaction lock ensures that concurrent registrations
+                // on an empty database are serialized, preventing multiple users from
+                // simultaneously reading `count == 0` and becoming platform_admin.
+                diesel::sql_query("SELECT pg_advisory_xact_lock(1337)")
+                    .execute(&mut *conn)
+                    .await
+                    .map_err(|e| AppError::Internal(format!("db lock: {e}")))?;
+
+                let count = users::table
+                    .count()
+                    .get_result::<i64>(&mut *conn)
+                    .await
+                    .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+                let is_first = count == 0;
+
+                diesel::insert_into(users::table)
+                    .values(&entity)
+                    .execute(&mut *conn)
+                    .await
+                    .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+                if is_first {
+                    let role_id_opt: Option<Uuid> = system_roles::table
+                        .filter(system_roles::name.eq("platform_admin"))
+                        .select(system_roles::id)
+                        .first::<Uuid>(&mut *conn)
+                        .await
+                        .optional()
+                        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+                    if let Some(role_id) = role_id_opt {
+                        diesel::insert_into(user_system_roles::table)
+                            .values((
+                                user_system_roles::user_id.eq(entity.id),
+                                user_system_roles::role_id.eq(role_id),
+                            ))
+                            .execute(&mut *conn)
+                            .await
+                            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+                    } else {
+                        return Err(AppError::Internal("platform_admin role not found".into()));
+                    }
+                }
+
+                Ok(is_first)
+            })
+        })
+        .await?;
+
+        Ok(is_first)
     }
 
     async fn get_user_count(&self) -> Result<i64, AppError> {

@@ -942,6 +942,141 @@ impl PayrollRepository for DieselPayrollRepository {
         Ok(entities.into_iter().map(Into::into).collect())
     }
 
+    async fn persist_calculated_payslip_data(
+        &self,
+        workspace_id: Uuid,
+        payslip: &Payslip,
+        segments: &[crate::models::CreatePayslipSegmentArgs],
+        incentives: &[IncentiveEvaluationResult],
+        rule_evaluations: &[(String, Decimal)],
+    ) -> Result<Payslip, AppError> {
+        use std::str::FromStr;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&workspace_id)
+                .await?,
+        );
+
+        let payslip_entity = PayslipEntity {
+            id: payslip.id,
+            employee_id: payslip.employee_id,
+            period_start: payslip.period_start,
+            period_end: payslip.period_end,
+            base_pay_amount: bigdecimal::BigDecimal::from_str(&payslip.base_pay_amount.to_string())
+                .unwrap_or_default(),
+            overtime_pay_amount: bigdecimal::BigDecimal::from_str(
+                &payslip.overtime_pay_amount.to_string(),
+            )
+            .unwrap_or_default(),
+            deductions_amount: bigdecimal::BigDecimal::from_str(
+                &payslip.deductions_amount.to_string(),
+            )
+            .unwrap_or_default(),
+            net_pay_amount: bigdecimal::BigDecimal::from_str(&payslip.net_pay_amount.to_string())
+                .unwrap_or_default(),
+            status: payslip.status.clone(),
+            created_at: Some(payslip.created_at),
+            updated_at: Some(payslip.updated_at),
+            standard_units: payslip.standard_units,
+            overtime_units: payslip.overtime_units,
+            holiday_work_premium_amount: bigdecimal::BigDecimal::from_str(
+                &payslip.holiday_work_premium_amount.to_string(),
+            )
+            .unwrap_or_default(),
+            workspace_id: payslip.workspace_id,
+        };
+
+        let segments_entities: Vec<PayslipSegmentEntity> = segments
+            .iter()
+            .map(|args| PayslipSegmentEntity {
+                id: Uuid::new_v4(),
+                payslip_id: payslip.id,
+                start_date: args.start_date,
+                end_date: args.end_date,
+                department_id: args.department_id,
+                applied_base_salary: bigdecimal::BigDecimal::from_str(
+                    &args.applied_base_salary.to_string(),
+                )
+                .unwrap_or_default(),
+                applied_std_days: bigdecimal::BigDecimal::from_str(&args.applied_std_days.to_string())
+                    .unwrap_or_default(),
+                actual_work_days: bigdecimal::BigDecimal::from_str(&args.actual_work_days.to_string())
+                    .unwrap_or_default(),
+                paid_work_days: bigdecimal::BigDecimal::from_str(&args.paid_work_days.to_string())
+                    .unwrap_or_default(),
+                amount: bigdecimal::BigDecimal::from_str(&args.amount.to_string()).unwrap_or_default(),
+                created_at: Some(Utc::now()),
+                applied_hours_per_day: bigdecimal::BigDecimal::from_str(
+                    &args.hours_per_day.to_string(),
+                )
+                .unwrap_or_default(),
+                std_days_source: args.std_days_source.clone(),
+            })
+            .collect();
+
+        let incentives_entities: Vec<PayslipIncentiveEntity> = incentives
+            .iter()
+            .map(|result| PayslipIncentiveEntity {
+                id: Uuid::new_v4(),
+                payslip_id: payslip.id,
+                policy_name: result.policy_name.clone(),
+                amount: result.amount.to_f64().unwrap_or_default(),
+                tier_id: result.tier_id,
+                standard_amount: result.standard_amount.to_f64().unwrap_or_default(),
+                created_at: Utc::now(),
+            })
+            .collect();
+
+        let rules_entities: Vec<PayslipRuleEvaluationEntity> = rule_evaluations
+            .iter()
+            .map(|(rule_code, amount)| PayslipRuleEvaluationEntity {
+                id: Uuid::new_v4(),
+                payslip_id: payslip.id,
+                rule_code: rule_code.clone(),
+                amount: bigdecimal::BigDecimal::from_str(&amount.to_string()).unwrap_or_default(),
+                created_at: Utc::now(),
+            })
+            .collect();
+
+        let result = conn
+            .transaction::<_, diesel::result::Error, _>(|conn| {
+                Box::pin(async move {
+                    let created_payslip = diesel::insert_into(payslips::table)
+                        .values(&payslip_entity)
+                        .get_result::<PayslipEntity>(&mut *conn)
+                        .await?;
+
+                    if !segments_entities.is_empty() {
+                        diesel::insert_into(payslip_segments::table)
+                            .values(&segments_entities)
+                            .execute(&mut *conn)
+                            .await?;
+                    }
+
+                    if !incentives_entities.is_empty() {
+                        diesel::insert_into(payslip_incentives::table)
+                            .values(&incentives_entities)
+                            .execute(&mut *conn)
+                            .await?;
+                    }
+
+                    if !rules_entities.is_empty() {
+                        diesel::insert_into(payslip_rule_evaluations::table)
+                            .values(&rules_entities)
+                            .execute(&mut *conn)
+                            .await?;
+                    }
+
+                    Ok(created_payslip)
+                })
+            })
+            .await
+            .map_err(|e| AppError::Internal(format!("db transaction error: {e}")))?;
+
+        Ok(result.into())
+    }
+
     async fn get_resolved_rule_assignments(
         &self,
         workspace_id: Uuid,

@@ -373,6 +373,16 @@ mod tests {
         ) -> Result<Vec<crate::models::PayslipSegment>, AppError> {
             Ok(vec![])
         }
+        async fn persist_calculated_payslip_data(
+            &self,
+            _w: Uuid,
+            _p: &crate::models::Payslip,
+            _s: &[crate::models::CreatePayslipSegmentArgs],
+            _i: &[crate::models::IncentiveEvaluationResult],
+            _r: &[(String, Decimal)],
+        ) -> Result<crate::models::Payslip, AppError> {
+            unimplemented!()
+        }
         async fn get_department_payroll_config_at(
             &self,
             _ws: Uuid,

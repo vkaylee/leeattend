@@ -170,14 +170,10 @@ pub async fn register(
         password_hash,
     };
 
-    state.core.user_repo.create_user(&user).await?;
+    // 4. Create User and auto-assign platform_admin atomically
+    let is_first = state.core.user_repo.create_user_with_admin_check(&user).await?;
 
-    // 4b. Auto-assign platform_admin to the very first user registered
-    let user_count = state.core.user_repo.get_user_count().await?;
-
-    if user_count == 1 {
-        state.core.user_repo.assign_platform_admin(user.id).await?;
-
+    if is_first {
         tracing::info!(
             user_id = %user.id,
             "First user registered — auto-assigned platform_admin role"

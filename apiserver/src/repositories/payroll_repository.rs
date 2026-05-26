@@ -175,6 +175,15 @@ pub trait PayrollRepository: Send + Sync {
         payslip_id: Uuid,
     ) -> Result<Vec<PayslipSegment>, AppError>;
 
+    async fn persist_calculated_payslip_data(
+        &self,
+        workspace_id: Uuid,
+        payslip: &Payslip,
+        segments: &[crate::models::CreatePayslipSegmentArgs],
+        incentives: &[IncentiveEvaluationResult],
+        rule_evaluations: &[(String, Decimal)],
+    ) -> Result<Payslip, AppError>;
+
     async fn get_resolved_rule_assignments(
         &self,
         workspace_id: Uuid,

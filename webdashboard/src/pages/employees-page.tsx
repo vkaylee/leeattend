@@ -16,14 +16,6 @@ export default function EmployeesPage() {
     ConfirmationDialog,
   } = page;
 
-  if (isLoading) {
-    return (
-      <div className="flex h-full items-center justify-center py-32">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary-600 border-t-transparent shadow-xl"></div>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-10 pb-20 animate-in fade-in duration-700">
       <EmployeesPageHeader
@@ -47,7 +39,7 @@ export default function EmployeesPage() {
         hasNextPage={page.hasNextPage}
         isFetching={page.isFetching}
         isFetchingNextPage={page.isFetchingNextPage}
-        isLoading={false}
+        isLoading={isLoading}
         isPlaceholderData={page.isPlaceholderData}
         searchInputRef={page.searchInputRef}
         searchTerm={page.searchTerm}
