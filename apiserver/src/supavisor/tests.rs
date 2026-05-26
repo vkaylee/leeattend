@@ -26,9 +26,8 @@ mod tests {
         assert_eq!(users[0]["db_user"], "my_user");
         assert_eq!(users[0]["db_password"], "my_secret");
         assert!(users[0].get("pool_password").is_some());
-        assert_eq!(users[0]["is_manager"], true);
+        assert_eq!(users[0]["is_manager"], false);
     }
-
 
     #[test]
     fn test_build_tenant_payload_enforce_ssl_from_env() {
@@ -79,7 +78,7 @@ mod tests {
         assert_eq!(users[0]["db_password"], "physical_pass");
         assert_eq!(users[0]["pool_password"], "physical_pass");
 
-        // 2. With DATABASE_URL set, pool_password should fallback to DATABASE_URL password
+        // 2. With DATABASE_URL set, pool_password is STILL the physical_pass (BYOD alignment rule)
         std::env::set_var(
             "DATABASE_URL",
             "postgres://postgres.leeattend:master_pass@supavisor:6543/leeattend",
@@ -94,9 +93,9 @@ mod tests {
         .unwrap();
         let users2 = payload2.get("tenant").unwrap()["users"].as_array().unwrap();
         assert_eq!(users2[0]["db_password"], "physical_pass");
-        assert_eq!(users2[0]["pool_password"], "master_pass");
+        assert_eq!(users2[0]["pool_password"], "physical_pass");
 
-        // 3. With DATABASE_POOLER_TX_URL set, pool_password should be the pooler master password
+        // 3. With DATABASE_POOLER_TX_URL set, pool_password is STILL the physical_pass
         std::env::set_var(
             "DATABASE_POOLER_TX_URL",
             "postgres://postgres.leeattend:pooler_pass@supavisor:6543/leeattend",
@@ -111,7 +110,7 @@ mod tests {
         .unwrap();
         let users3 = payload3.get("tenant").unwrap()["users"].as_array().unwrap();
         assert_eq!(users3[0]["db_password"], "physical_pass");
-        assert_eq!(users3[0]["pool_password"], "pooler_pass");
+        assert_eq!(users3[0]["pool_password"], "physical_pass");
 
         std::env::remove_var("DATABASE_URL");
         std::env::remove_var("DATABASE_POOLER_URL");
@@ -195,9 +194,39 @@ mod tests {
             users[0]["pool_size"], 99,
             "Explicit pool_size option should override env"
         );
+        assert_eq!(
+            tenant["db_database"], "dynamic_db",
+            "db_database must be extracted from URL, not set to tenant_id"
+        );
 
         std::env::remove_var("SUPAVISOR_TENANT_ID");
         std::env::remove_var("SUPAVISOR_POOL_SIZE");
+    }
+
+    #[test]
+    fn test_build_tenant_payload_byod_preserves_db_name() {
+        let url = "postgres://byod_user:byod_pass@remote_host:5432/custom_byod_db";
+
+        let (tenant_id, payload) = build_tenant_payload(
+            url,
+            TenantPayloadOptions {
+                tenant_id: Some("tenant_019e615b51dc7163893682f42318cf84".to_string()),
+                pool_size: None,
+                is_master: false,
+            },
+        )
+        .expect("Should build payload");
+
+        assert_eq!(
+            tenant_id, "tenant_019e615b51dc7163893682f42318cf84",
+            "Tenant ID must be the explicit one provided"
+        );
+
+        let tenant = payload.get("tenant").expect("missing tenant key");
+        assert_eq!(
+            tenant["db_database"], "custom_byod_db",
+            "CRITICAL BYOD REQUIREMENT: db_database must be the actual database in the URL, not the tenant_id"
+        );
     }
 
     #[test]
@@ -244,7 +273,7 @@ mod tests {
         assert_eq!(users[0]["pool_size"], 50);
         assert_eq!(users[0]["mode_type"], "session");
         assert!(users[0].get("pool_password").is_some());
-        assert_eq!(users[0]["is_manager"], true);
+        assert_eq!(users[0]["is_manager"], false);
 
         std::env::remove_var("SUPAVISOR_POOL_SIZE");
         std::env::remove_var("SUPAVISOR_MODE_TYPE");
@@ -415,6 +444,7 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_build_tenant_payload_tenant_id_nil_uuid_db_name() {
         let url = "postgres://admin:secret@db_system:5432/tenant_00000000000000000000000000000000";
         let (tenant_id, _) = build_tenant_payload(
@@ -429,6 +459,7 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_build_tenant_payload_tenant_id_max_uuid_db_name() {
         let url = "postgres://admin:secret@db_system:5432/tenant_ffffffffffffffffffffffffffffffff";
         let (tenant_id, _) = build_tenant_payload(
