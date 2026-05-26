@@ -61,4 +61,21 @@ pub trait HolidayRepository: Send + Sync {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         date: NaiveDate,
     ) -> Result<Option<Holiday>, AppError>;
+
+    /// Executes a bulk insertion of leave requests, shift rosters, and leave accrual logs
+    /// inside a single database transaction to process holiday deductions.
+    #[allow(clippy::type_complexity)]
+    async fn apply_holiday_leave_deductions(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        requests: &[crate::models::LeaveRequest],
+        rosters: &[crate::models::ShiftRoster],
+        logs: &[(
+            Uuid, // employee_id
+            Uuid, // leave_type_id
+            rust_decimal::Decimal, // amount
+            chrono::NaiveDate, // date
+            String, // notes
+        )],
+    ) -> Result<(), AppError>;
 }

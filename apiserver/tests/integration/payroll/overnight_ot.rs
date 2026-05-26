@@ -149,9 +149,7 @@ async fn test_overnight_ot_payroll_calculation() {
             ),
 
             roster_provider: std::sync::Arc::new(
-                apiserver::services::payroll_service::DirectRosterDataProvider(
-                    diesel_pools.clone(),
-                ),
+                apiserver::services::payroll_service::DirectRosterDataProvider(std::sync::Arc::new(apiserver::repositories::DieselRosterRepository::new(diesel_pools.clone()))),
             ),
         })
     }

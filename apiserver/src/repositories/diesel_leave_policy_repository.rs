@@ -627,6 +627,57 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
             })
             .collect())
     }
+
+    async fn find_default_paid_leave_type(
+        &self,
+        workspace_id: Uuid,
+    ) -> Result<Option<Uuid>, AppError> {
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&workspace_id)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
+
+        let result = leave_types::table
+            .filter(leave_types::workspace_id.eq(workspace_id))
+            .filter(leave_types::is_paid.eq(true))
+            .filter(leave_types::deleted_at.is_null())
+            .order(leave_types::name.asc())
+            .select(leave_types::id)
+            .first::<Uuid>(&mut *conn)
+            .await
+            .optional()
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        Ok(result)
+    }
+
+    async fn get_leave_type_name(
+        &self,
+        id: Uuid,
+        workspace_id: Uuid,
+    ) -> Result<String, AppError> {
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&workspace_id)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
+
+        let result = leave_types::table
+            .filter(leave_types::id.eq(id))
+            .filter(leave_types::workspace_id.eq(workspace_id))
+            .select(leave_types::name)
+            .first::<String>(&mut *conn)
+            .await
+            .optional()
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        Ok(result.unwrap_or_else(|| "Leave".to_string()))
+    }
 }
 
 #[cfg(test)]

@@ -70,4 +70,9 @@ pub trait RosterRepository: Send + Sync {
         employee_id: Uuid,
         date: NaiveDate,
     ) -> Result<(), AppError>;
+
+    async fn get_raw_roster_data(
+        &self,
+        workspace_id: Uuid,
+    ) -> Result<std::sync::Arc<crate::cache::RosterData>, AppError>;
 }

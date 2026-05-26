@@ -1,7 +1,8 @@
 use async_trait::async_trait;
-use chrono::{NaiveDate, Utc};
+use chrono::{Datelike, NaiveDate, Utc};
 use diesel::prelude::*;
-use diesel_async::RunQueryDsl;
+use diesel::upsert::excluded;
+use diesel_async::{AsyncConnection, RunQueryDsl};
 use std::collections::HashMap;
 use uuid::Uuid;
 
@@ -22,6 +23,7 @@ impl DieselHolidayRepository {
     }
 }
 
+#[allow(clippy::too_many_lines)]
 #[async_trait]
 impl HolidayRepository for DieselHolidayRepository {
     async fn list(
@@ -252,4 +254,139 @@ impl HolidayRepository for DieselHolidayRepository {
 
         Ok(entity.map(Into::into))
     }
+
+    async fn apply_holiday_leave_deductions(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        requests: &[crate::models::LeaveRequest],
+        rosters: &[crate::models::ShiftRoster],
+        logs: &[(
+            Uuid, // employee_id
+            Uuid, // leave_type_id
+            rust_decimal::Decimal, // amount
+            chrono::NaiveDate, // date
+            String, // notes
+        )],
+    ) -> Result<(), AppError> {
+        let workspace_id = auth_token.workspace_id();
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
+
+        use bigdecimal::BigDecimal;
+        use std::str::FromStr;
+
+        conn.transaction(|conn| {
+            Box::pin(async move {
+                // 1. Bulk insert leave requests
+                if !requests.is_empty() {
+                    let lr_entities: Vec<crate::models::diesel::leave::LeaveRequestEntity> = requests
+                        .iter()
+                        .map(|r| crate::models::diesel::leave::LeaveRequestEntity {
+                            id: r.id,
+                            employee_id: r.employee_id,
+                            leave_type_id: r.leave_type_id,
+                            start_date: r.start_date,
+                            end_date: r.end_date,
+                            reason: r.reason.clone(),
+                            status: r.status,
+                            duration_type: r.duration_type.to_string(),
+                            start_time: r.start_time,
+                            end_time: r.end_time,
+                            requested_by_user_id: r.requested_by_user_id,
+                            approved_by_user_id: r.approved_by_user_id,
+                            created_at: Some(r.created_at),
+                            updated_at: Some(r.updated_at),
+                        })
+                        .collect();
+                        
+                    diesel::insert_into(crate::schema::leave_requests::table)
+                        .values(&lr_entities)
+                        .execute(&mut *conn)
+                        .await?;
+                }
+
+                // 2. Bulk insert/upsert rosters
+                if !rosters.is_empty() {
+                    let roster_entities: Vec<crate::models::diesel::roster::ShiftRosterEntity> = rosters
+                        .iter()
+                        .map(|r| crate::models::diesel::roster::ShiftRosterEntity {
+                            id: r.id,
+                            employee_id: r.employee_id,
+                            shift_id: r.shift_id,
+                            date: r.date,
+                            status: Some(r.status.clone()),
+                            notes: r.notes.clone(),
+                            created_at: Some(r.created_at),
+                            updated_at: Some(r.updated_at),
+                        })
+                        .collect();
+
+                    diesel::insert_into(crate::schema::shift_rosters::table)
+                        .values(&roster_entities)
+                        .on_conflict((
+                            crate::schema::shift_rosters::employee_id,
+                            crate::schema::shift_rosters::date,
+                        ))
+                        .do_update()
+                        .set((
+                            crate::schema::shift_rosters::status.eq(excluded(crate::schema::shift_rosters::status)),
+                            crate::schema::shift_rosters::notes.eq(excluded(crate::schema::shift_rosters::notes)),
+                            crate::schema::shift_rosters::updated_at.eq(diesel::dsl::now),
+                        ))
+                        .execute(&mut *conn)
+                        .await?;
+                }
+
+                // 3. Insert accrual logs and update balances
+                for (emp_id, leave_type_id, amount, date, notes) in logs {
+                    let amount_bd = BigDecimal::from_str(&amount.to_string()).unwrap_or_default();
+                    let year = date.year();
+
+                    // Log adjustment
+                    diesel::insert_into(crate::schema::leave_accrual_logs::table)
+                        .values((
+                            crate::schema::leave_accrual_logs::workspace_id.eq(workspace_id),
+                            crate::schema::leave_accrual_logs::employee_id.eq(emp_id),
+                            crate::schema::leave_accrual_logs::accrual_date.eq(date),
+                            crate::schema::leave_accrual_logs::amount.eq(&amount_bd),
+                            crate::schema::leave_accrual_logs::leave_type_id.eq(leave_type_id),
+                            crate::schema::leave_accrual_logs::notes.eq(notes),
+                        ))
+                        .execute(&mut *conn)
+                        .await?;
+
+                    // Update balance
+                    diesel::insert_into(crate::schema::leave_balances::table)
+                        .values((
+                            crate::schema::leave_balances::id.eq(Uuid::new_v4()),
+                            crate::schema::leave_balances::employee_id.eq(emp_id),
+                            crate::schema::leave_balances::leave_type_id.eq(leave_type_id),
+                            crate::schema::leave_balances::year.eq(year),
+                            crate::schema::leave_balances::entitlement.eq(0),
+                            crate::schema::leave_balances::accrued_amount.eq(&amount_bd),
+                            crate::schema::leave_balances::carried_over.eq(0),
+                        ))
+                        .on_conflict((
+                            crate::schema::leave_balances::employee_id,
+                            crate::schema::leave_balances::leave_type_id,
+                            crate::schema::leave_balances::year,
+                        ))
+                        .do_update()
+                        .set((
+                            crate::schema::leave_balances::accrued_amount
+                                .eq(crate::schema::leave_balances::accrued_amount + &amount_bd),
+                            crate::schema::leave_balances::updated_at.eq(diesel::dsl::now),
+                        ))
+                        .execute(&mut *conn)
+                        .await?;
+                }
+
+                Ok::<_, AppError>(())
+            })
+        })
+        .await
+    }
 }
+

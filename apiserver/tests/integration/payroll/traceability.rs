@@ -110,9 +110,7 @@ async fn test_payroll_std_days_source_traceability() {
             ),
 
             roster_provider: std::sync::Arc::new(
-                apiserver::services::payroll_service::DirectRosterDataProvider(
-                    diesel_pools.clone(),
-                ),
+                apiserver::services::payroll_service::DirectRosterDataProvider(std::sync::Arc::new(apiserver::repositories::DieselRosterRepository::new(diesel_pools.clone()))),
             ),
         })
     }
@@ -191,9 +189,7 @@ async fn test_payroll_std_days_source_traceability() {
             ),
 
             roster_provider: std::sync::Arc::new(
-                apiserver::services::payroll_service::DirectRosterDataProvider(
-                    diesel_pools.clone(),
-                ),
+                apiserver::services::payroll_service::DirectRosterDataProvider(std::sync::Arc::new(apiserver::repositories::DieselRosterRepository::new(diesel_pools.clone()))),
             ),
         })
     }
@@ -267,9 +263,7 @@ async fn test_payroll_std_days_source_traceability() {
             ),
 
             roster_provider: std::sync::Arc::new(
-                apiserver::services::payroll_service::DirectRosterDataProvider(
-                    diesel_pools.clone(),
-                ),
+                apiserver::services::payroll_service::DirectRosterDataProvider(std::sync::Arc::new(apiserver::repositories::DieselRosterRepository::new(diesel_pools.clone()))),
             ),
         })
     }
@@ -344,9 +338,7 @@ async fn test_payroll_std_days_source_traceability() {
             ),
 
             roster_provider: std::sync::Arc::new(
-                apiserver::services::payroll_service::DirectRosterDataProvider(
-                    diesel_pools.clone(),
-                ),
+                apiserver::services::payroll_service::DirectRosterDataProvider(std::sync::Arc::new(apiserver::repositories::DieselRosterRepository::new(diesel_pools.clone()))),
             ),
         })
     }

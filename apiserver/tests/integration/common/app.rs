@@ -358,9 +358,7 @@ pub async fn spawn_app() -> (String, TestDatabase) {
             ),
 
             roster_provider: std::sync::Arc::new(
-                apiserver::services::payroll_service::DirectRosterDataProvider(
-                    diesel_pools.clone(),
-                ),
+                apiserver::services::payroll_service::DirectRosterDataProvider(roster_repo.clone()),
             ),
         },
     ));
@@ -427,7 +425,8 @@ pub async fn spawn_app() -> (String, TestDatabase) {
             leave_balance_repo.clone(),
             leave_request_repo.clone(),
             roster_repo.clone(),
-            diesel_pools.clone(),
+            holiday_repo.clone(),
+            leave_policy_repo.clone(),
         ),
     );
     let leave_accrual_service = Arc::new(
@@ -890,9 +889,7 @@ pub async fn spawn_app_with_factory_extended(
             ),
 
             roster_provider: std::sync::Arc::new(
-                apiserver::services::payroll_service::DirectRosterDataProvider(
-                    diesel_pools.clone(),
-                ),
+                apiserver::services::payroll_service::DirectRosterDataProvider(roster_repo.clone()),
             ),
         },
     ));
@@ -959,7 +956,8 @@ pub async fn spawn_app_with_factory_extended(
             leave_balance_repo.clone(),
             leave_request_repo.clone(),
             roster_repo.clone(),
-            diesel_pools.clone(),
+            holiday_repo.clone(),
+            leave_policy_repo.clone(),
         ),
     );
     let leave_accrual_service = Arc::new(
@@ -1471,9 +1469,7 @@ pub async fn setup_app_tower_internal_extended(
             ),
 
             roster_provider: std::sync::Arc::new(
-                apiserver::services::payroll_service::DirectRosterDataProvider(
-                    diesel_pools.clone(),
-                ),
+                apiserver::services::payroll_service::DirectRosterDataProvider(roster_repo.clone()),
             ),
         },
     ));
@@ -1540,7 +1536,8 @@ pub async fn setup_app_tower_internal_extended(
             leave_balance_repo.clone(),
             leave_request_repo.clone(),
             roster_repo.clone(),
-            diesel_pools.clone(),
+            holiday_repo.clone(),
+            leave_policy_repo.clone(),
         ),
     );
     let leave_accrual_service = Arc::new(

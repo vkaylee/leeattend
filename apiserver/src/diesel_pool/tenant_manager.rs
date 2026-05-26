@@ -61,10 +61,10 @@ impl SupavisorTenantPoolManager {
                     None => (auth, None),
                 };
 
-                let pass_to_use = if !override_password.is_empty() {
-                    Some(override_password)
-                } else {
+                let pass_to_use = if override_password.is_empty() {
                     existing_password
+                } else {
+                    Some(override_password)
                 };
 
                 if user.contains('.') {

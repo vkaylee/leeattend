@@ -107,6 +107,7 @@ impl DieselPools {
             .build()
             .map_err(|e| AppError::Internal(format!("Failed to create Worker Diesel pool: {e}")))?;
 
+        #[allow(clippy::clone_on_ref_ptr)]
         let tenant_tx_manager = Arc::new(SupavisorTenantPoolManager::new(
             api_tx_url.to_string(),
             config.tenant_max_conn as usize,

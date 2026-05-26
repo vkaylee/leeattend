@@ -87,6 +87,13 @@ pub trait EmployeeCoreRepository: Send + Sync {
 
     async fn create_employee(&self, employee: &Employee) -> Result<(), AppError>;
 
+    async fn create_employee_transactional(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        employee: &Employee,
+        recruitment_source_id: Option<Uuid>,
+    ) -> Result<(), AppError>;
+
     async fn create_employee_skip_duplicates(&self, employee: &Employee) -> Result<bool, AppError>;
 
     async fn rehire_employee(
@@ -373,6 +380,13 @@ pub trait EmployeeRepository: Send + Sync {
     ) -> Result<Option<Employee>, AppError>;
 
     async fn create_employee(&self, employee: &Employee) -> Result<(), AppError>;
+
+    async fn create_employee_transactional(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        employee: &Employee,
+        recruitment_source_id: Option<Uuid>,
+    ) -> Result<(), AppError>;
 
     async fn create_employee_skip_duplicates(&self, employee: &Employee) -> Result<bool, AppError>;
 

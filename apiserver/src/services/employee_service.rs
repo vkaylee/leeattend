@@ -138,24 +138,23 @@ impl EmployeeService {
             department_name: None,
         };
 
-        // Use repository directly to create employee
-        self.repo.create_employee(&employee).await?;
+        // Use repository to create employee and set recruitment source transactionally
+        self.repo
+            .create_employee_transactional(
+                auth_token,
+                &employee,
+                req.recruitment_source_id,
+            )
+            .await?;
 
-        // Set recruitment source if provided
-        if let Some(source_id) = req.recruitment_source_id {
-            self.repo
-                .set_employee_recruitment_source(auth_token, employee.id, Some(source_id))
-                .await?;
-        }
-
-        // Claim staged logs directly for the new employee
+        // Claim staged logs asynchronously (best-effort, non-fatal if fails)
         if let Err(e) = self
             .staging_repo
             .claim_staged_logs(workspace_id, &employee.employee_id_number, employee.id)
             .await
         {
             tracing::warn!(
-                "Failed to claim staged logs for new employee {}: {}",
+                "Failed to claim staged logs for newly created employee {}: {}",
                 employee.id,
                 e
             );

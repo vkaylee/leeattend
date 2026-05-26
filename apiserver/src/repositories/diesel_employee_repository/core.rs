@@ -22,7 +22,7 @@ use crate::models::{
 use crate::repositories::employee::*;
 use crate::schema::{
     employee_documents, employee_emergency_contacts, employee_profiles, employees,
-    recruitment_sources,
+    recruitment_sources, attendance_staging_logs,
 };
 use diesel::sql_types::{Date, Uuid as UuidType};
 
@@ -502,6 +502,32 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(())
+    }
+
+    async fn create_employee_transactional(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        employee: &Employee,
+        recruitment_source_id: Option<Uuid>,
+    ) -> Result<(), AppError> {
+        let mut conn = self.diesel_pools.tenant_transaction_conn(auth_token).await?;
+
+        let mut new_entity: EmployeeEntity = employee.clone().into();
+        // The recruitment_source_id belongs on the employee entity in this schema
+        new_entity.recruitment_source_id = recruitment_source_id;
+
+        conn.transaction(|conn| {
+            Box::pin(async move {
+                diesel::insert_into(crate::schema::employees::table)
+                    .values(&new_entity)
+                    .execute(&mut *conn)
+                    .await
+                    .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+                Ok(())
+            })
+        })
+        .await
     }
 
     async fn create_employee_skip_duplicates(&self, employee: &Employee) -> Result<bool, AppError> {

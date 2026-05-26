@@ -32,6 +32,7 @@ impl DieselPayrollRepository {
     }
 }
 
+#[allow(clippy::too_many_lines)]
 #[async_trait]
 impl PayrollRepository for DieselPayrollRepository {
     async fn get_active_incentive_policies(

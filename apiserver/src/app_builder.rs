@@ -264,21 +264,22 @@ impl AppState {
             diesel_pools.clone(),
         ));
 
+        let leave_policy_repo: Arc<
+            dyn crate::repositories::leave_policy_repository::LeavePolicyRepository,
+        > = Arc::new(crate::repositories::DieselLeavePolicyRepository::new(
+            diesel_pools.clone(),
+        ));
+
         let holiday_leave_service = Arc::new(
             crate::services::holiday_leave_service::HolidayLeaveService::new(
                 Arc::clone(&employee_repo),
                 Arc::clone(&leave_balance_repo),
                 Arc::clone(&leave_request_repo),
                 Arc::clone(&roster_repo),
-                diesel_pools.clone(),
+                Arc::clone(&holiday_repo),
+                Arc::clone(&leave_policy_repo),
             ),
         );
-
-        let leave_policy_repo: Arc<
-            dyn crate::repositories::leave_policy_repository::LeavePolicyRepository,
-        > = Arc::new(crate::repositories::DieselLeavePolicyRepository::new(
-            diesel_pools.clone(),
-        ));
 
         let leave_accrual_service = Arc::new(
             crate::services::leave_accrual_service::LeaveAccrualService::new(
@@ -328,7 +329,7 @@ impl AppState {
 
         let roster_provider: Arc<dyn crate::services::payroll_service::RosterDataProvider> =
             Arc::new(crate::services::payroll_service::DirectRosterDataProvider(
-                diesel_pools.clone(),
+                Arc::clone(&roster_repo),
             ));
 
         let payroll_service = Arc::new(crate::services::payroll_service::PayrollService::new(

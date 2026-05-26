@@ -72,9 +72,9 @@ pub trait RosterDataProvider: Send + Sync {
     ) -> Result<Arc<crate::cache::RosterData>, crate::errors::AppError>;
 }
 
-/// Concrete `RosterDataProvider` that calls `build_roster_data` directly.
+/// Concrete `RosterDataProvider` that calls `RosterRepository::get_raw_roster_data`.
 /// Used in production (`app_builder`) and in integration tests.
-pub struct DirectRosterDataProvider(pub crate::diesel_pool::DieselPools);
+pub struct DirectRosterDataProvider(pub Arc<dyn RosterRepository>);
 
 #[async_trait::async_trait]
 impl RosterDataProvider for DirectRosterDataProvider {
@@ -82,9 +82,7 @@ impl RosterDataProvider for DirectRosterDataProvider {
         &self,
         workspace_id: Uuid,
     ) -> Result<Arc<crate::cache::RosterData>, crate::errors::AppError> {
-        crate::cache::build_roster_data(&self.0, workspace_id)
-            .await
-            .map_err(crate::errors::AppError::Internal)
+        self.0.get_raw_roster_data(workspace_id).await
     }
 }
 

@@ -29,6 +29,15 @@ pub trait LeavePolicyRepository: Send + Sync {
         policy_config: crate::models::LeaveTypeConfig,
     ) -> Result<crate::models::LeaveType, AppError>;
     async fn delete_leave_type(&self, id: Uuid, workspace_id: Uuid) -> Result<u64, AppError>;
+    async fn find_default_paid_leave_type(
+        &self,
+        workspace_id: Uuid,
+    ) -> Result<Option<Uuid>, AppError>;
+    async fn get_leave_type_name(
+        &self,
+        id: Uuid,
+        workspace_id: Uuid,
+    ) -> Result<String, AppError>;
 
     async fn create_policy_definition(
         &self,

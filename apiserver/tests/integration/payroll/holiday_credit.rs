@@ -124,9 +124,7 @@ async fn test_payroll_credits_paid_holiday() {
             ),
 
             roster_provider: std::sync::Arc::new(
-                apiserver::services::payroll_service::DirectRosterDataProvider(
-                    diesel_pools.clone(),
-                ),
+                apiserver::services::payroll_service::DirectRosterDataProvider(std::sync::Arc::new(apiserver::repositories::DieselRosterRepository::new(diesel_pools.clone()))),
             ),
         })
     }

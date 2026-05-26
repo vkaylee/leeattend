@@ -216,6 +216,21 @@ impl EmployeeRepository for DieselEmployeeRepository {
         EmployeeCoreRepository::create_employee(self, employee).await
     }
 
+    async fn create_employee_transactional(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        employee: &Employee,
+        recruitment_source_id: Option<Uuid>,
+    ) -> Result<(), AppError> {
+        EmployeeCoreRepository::create_employee_transactional(
+            self,
+            auth_token,
+            employee,
+            recruitment_source_id,
+        )
+        .await
+    }
+
     async fn create_employee_skip_duplicates(&self, employee: &Employee) -> Result<bool, AppError> {
         EmployeeCoreRepository::create_employee_skip_duplicates(self, employee).await
     }

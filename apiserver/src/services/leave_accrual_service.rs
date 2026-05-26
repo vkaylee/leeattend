@@ -674,71 +674,24 @@ impl LeaveAccrualService {
         force: bool,
         all_logs: &mut Vec<LeaveAccrualLog>,
     ) -> Result<(), AppError> {
-        use rust_decimal::prelude::FromPrimitive;
-        let decimal_amount = rust_decimal::Decimal::from_f64(amount).ok_or_else(|| {
-            tracing::error!(amount, "Invalid f64 for leave accrual Decimal conversion");
-            AppError::Internal(format!("Cannot convert {amount} to Decimal"))
-        })?;
+        let auth_token = crate::diesel_pool::TenantAuthToken::system_override(ctx.workspace_id);
 
-        let existing = self
+        let result = self
             .accrual_log_repo
-            .find_by_employee_date_type(
+            .persist_accrual(
+                &auth_token,
+                ctx.workspace_id,
                 ctx.employee_id,
+                ctx.assignment_id,
                 ctx.leave_type_id,
                 accrual_date,
-                ctx.workspace_id,
+                amount,
+                force,
             )
             .await?;
 
-        if let Some(old_log) = existing {
-            // If force is true and amount has changed, re-calculate
-            if force && old_log.amount != decimal_amount {
-                let diff = decimal_amount - old_log.amount;
-
-                let updated_log = self
-                    .accrual_log_repo
-                    .update_accrual_amount(old_log.id, ctx.workspace_id, decimal_amount)
-                    .await?;
-
-                self.accrual_log_repo
-                    .adjust_balance_accrual(
-                        ctx.workspace_id,
-                        ctx.employee_id,
-                        accrual_date.year(),
-                        ctx.leave_type_id,
-                        diff,
-                    )
-                    .await?;
-
-                all_logs.push(updated_log);
-            }
-        } else {
-            // No log exists, perform insertion
-            let log = self
-                .accrual_log_repo
-                .insert_accrual_log(
-                    ctx.workspace_id,
-                    ctx.employee_id,
-                    Some(ctx.assignment_id),
-                    accrual_date,
-                    decimal_amount,
-                    ctx.leave_type_id,
-                )
-                .await?;
-
-            if let Some(l) = log {
-                self.accrual_log_repo
-                    .upsert_balance_accrual(
-                        ctx.workspace_id,
-                        ctx.employee_id,
-                        accrual_date.year(),
-                        ctx.leave_type_id,
-                        decimal_amount,
-                    )
-                    .await?;
-
-                all_logs.push(l);
-            }
+        if let Some(log) = result {
+            all_logs.push(log);
         }
 
         Ok(())

@@ -11,6 +11,7 @@ use crate::models::LeaveAccrualLog;
 // Trait: LeaveAccrualLogRepository — DIP abstraction for accrual log persistence
 // ---------------------------------------------------------------------------
 #[cfg_attr(test, mockall::automock)]
+#[allow(clippy::too_many_arguments)]
 #[async_trait]
 pub trait LeaveAccrualLogRepository: Send + Sync {
     /// Find an existing accrual log for a specific employee/leave-type/date.
@@ -74,6 +75,19 @@ pub trait LeaveAccrualLogRepository: Send + Sync {
         leave_type_id: Uuid,
         diff: Decimal,
     ) -> Result<(), AppError>;
+
+    /// Atomically find, update/insert log and adjust the balance
+    async fn persist_accrual(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        workspace_id: Uuid,
+        employee_id: Uuid,
+        assignment_id: Uuid,
+        leave_type_id: Uuid,
+        accrual_date: NaiveDate,
+        amount: f64,
+        force: bool,
+    ) -> Result<Option<LeaveAccrualLog>, AppError>;
 }
 
 /// Minimal view of an existing accrual log (only the fields the orchestrator needs).

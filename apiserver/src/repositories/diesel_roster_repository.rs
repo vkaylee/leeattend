@@ -747,6 +747,15 @@ impl RosterRepository for DieselRosterRepository {
 
         Ok(())
     }
+
+    async fn get_raw_roster_data(
+        &self,
+        workspace_id: Uuid,
+    ) -> Result<std::sync::Arc<crate::cache::RosterData>, AppError> {
+        crate::cache::build_roster_data(&self.diesel_pools, workspace_id)
+            .await
+            .map_err(|e| AppError::Internal(format!("db build: {e}")))
+    }
 }
 
 #[cfg(test)]

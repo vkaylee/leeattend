@@ -11,7 +11,7 @@ use apiserver::repositories::payroll_repository::PayrollRepository;
 
 #[tokio::test]
 async fn test_persist_calculated_payslip_data_transaction_rollback() {
-    let (_, _, user_id, factory, _): (String, Uuid, Uuid, TestFactory, TestDatabase) =
+    let (_, _, user_id, factory, _test_db): (String, Uuid, Uuid, TestFactory, TestDatabase) =
         spawn_app_with_factory().await;
     let ws_id = factory.workspace().create_with_owner(user_id).await;
 
