@@ -212,9 +212,10 @@ export function MonthlyRosterGrid({ hook }: MonthlyRosterGridProps) {
   const selectedEmployeesMeta = useMemo(() => {
     const list = [...selectedEmployees];
     if (employees) {
+      const empMap = new Map(employees.map(e => [e.id, e]));
       selectedEmployeeIds.forEach(id => {
         if (!list.some(e => e.id === id)) {
-          const emp = employees.find(e => e.id === id);
+          const emp = empMap.get(id);
           if (emp) list.push(emp);
         }
       });

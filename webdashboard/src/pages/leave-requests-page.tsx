@@ -1,5 +1,5 @@
 import { CheckCircle2, XCircle, Clock, Plus, Upload } from "lucide-react";
-import React from "react";
+import React, { useMemo } from "react";
 
 import { CreateLeaveRequestModal } from "@/components/features/leave/create-leave-request-modal";
 import { LeaveImportBanner } from "@/components/features/leave/leave-import-banner";
@@ -28,6 +28,11 @@ export default function LeaveRequestsPage() {
     handleImportComplete,
     t
   } = useLeaveRequests(wsId);
+
+  const employeeMap = useMemo(
+    () => new Map(employees.map(e => [e.id, e])),
+    [employees]
+  );
 
   if (!wsId) return <div className="p-12 text-center text-primary-400 font-bold italic uppercase tracking-widest text-xs opacity-50">{t("common.select_workspace")}</div>;
 
@@ -85,7 +90,7 @@ export default function LeaveRequestsPage() {
     >
       {requests.map((request) => (
         <LeaveRequestRow
-          emp={employees.find(e => e.id === request.employee_id)}
+          emp={employeeMap.get(request.employee_id)}
           formatDate={formatDate}
           key={request.id}
           leaveTypes={leaveTypes}

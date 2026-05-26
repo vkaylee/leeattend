@@ -203,23 +203,16 @@ impl LeaveImportChunkHandler {
             .map_err(|e| format!("Could not read file: {e}"))?;
 
         let workspace_repo = Arc::clone(&deps.workspace_repo);
-        let workspace_tz = match workspace_repo
+        let (workspace_tz, msgs) = match workspace_repo
             .get_workspace_by_id(import_job.workspace_id)
             .await
         {
-            Ok(Some(ws)) => ws.timezone.parse::<Tz>().unwrap_or(Tz::UTC),
-            _ => Tz::UTC,
+            Ok(Some(ws)) => (
+                ws.timezone.parse::<Tz>().unwrap_or(Tz::UTC),
+                LeaveImportMessages::for_lang(&ws.default_language),
+            ),
+            _ => (Tz::UTC, LeaveImportMessages::for_lang("vi")),
         };
-
-        let lang = match workspace_repo
-            .get_workspace_by_id(import_job.workspace_id)
-            .await
-        {
-            Ok(Some(ws)) => ws.default_language,
-            _ => "vi".to_string(),
-        };
-
-        let msgs = LeaveImportMessages::for_lang(&lang);
 
         let employee_repo = Arc::clone(&deps.employee_repo);
         let leave_balance_repo = Arc::clone(&deps.leave_balance_repo);

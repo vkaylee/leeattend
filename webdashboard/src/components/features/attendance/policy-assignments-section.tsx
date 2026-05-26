@@ -134,7 +134,9 @@ export function PolicyAssignmentsSection({ wsId }: { wsId: string }) {
   const [validFrom, setValidFrom] = useState(() => new Date().toISOString().split("T")[0]);
 
   const filteredAssignments = useMemo(() => assignments.filter(a => activeFilter === "ALL" || a.target_type === activeFilter), [assignments, activeFilter]);
-  const getTargetName = useCallback((type: string, id: string) => type === "GROUP" ? departments.find(d => d.id === id)?.name ?? "Unknown Department" : employees.find((e: Employee) => e.id === id)?.full_name ?? "Unknown Employee", [departments, employees]);
+  const deptMap = useMemo(() => new Map(departments.map(d => [d.id, d.name])), [departments]);
+  const empMap = useMemo(() => new Map(employees.map((e: Employee) => [e.id, e.full_name])), [employees]);
+  const getTargetName = useCallback((type: string, id: string) => type === "GROUP" ? deptMap.get(id) ?? "Unknown Department" : empMap.get(id) ?? "Unknown Employee", [deptMap, empMap]);
   const workUnitLabel = useCallback((v: number) => t(`common.workspace_settings.work_unit_options.${v}min`, { defaultValue: `${v} min` }), [t]);
   const roundingLabel = useCallback((v: string) => t(`common.workspace_settings.rounding_options.${v}`, { defaultValue: v }), [t]);
 

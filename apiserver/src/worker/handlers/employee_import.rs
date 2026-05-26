@@ -211,20 +211,15 @@ impl EmployeeImportChunkHandler {
             .map_err(|e| format!("Could not read file: {e}"))?;
 
         let workspace_repo = Arc::clone(&deps.workspace_repo);
-        let workspace_tz = match workspace_repo
+        let (workspace_tz, msgs) = match workspace_repo
             .get_workspace_by_id(import_job.workspace_id)
             .await
         {
-            Ok(Some(ws)) => ws.timezone.parse::<Tz>().unwrap_or(Tz::UTC),
-            _ => Tz::UTC,
-        };
-
-        let msgs = match workspace_repo
-            .get_workspace_by_id(import_job.workspace_id)
-            .await
-        {
-            Ok(Some(ws)) => AttendanceImportMessages::for_lang(&ws.default_language),
-            _ => AttendanceImportMessages::for_lang("vi"),
+            Ok(Some(ws)) => (
+                ws.timezone.parse::<Tz>().unwrap_or(Tz::UTC),
+                AttendanceImportMessages::for_lang(&ws.default_language),
+            ),
+            _ => (Tz::UTC, AttendanceImportMessages::for_lang("vi")),
         };
 
         let strategy = EmployeeImportStrategy {
