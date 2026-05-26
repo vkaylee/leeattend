@@ -22,7 +22,7 @@ mod tests {
         let manager = SupavisorTenantPoolManager::new(base_url.to_string(), 5, std::sync::Arc::new(DummyTenantManager));
 
         let workspace_id = Uuid::parse_str("123e4567-e89b-12d3-a456-426614174000").unwrap();
-        let result = manager.get_tenant_url_with_user(&workspace_id, "").unwrap();
+        let result = manager.get_tenant_url_with_credentials(&workspace_id, "", "", None).unwrap();
 
         assert_eq!(
             result,
@@ -37,7 +37,7 @@ mod tests {
         let manager = SupavisorTenantPoolManager::new(base_url.to_string(), 5, std::sync::Arc::new(DummyTenantManager));
 
         let workspace_id = Uuid::parse_str("123e4567-e89b-12d3-a456-426614174000").unwrap();
-        let result = manager.get_tenant_url_with_user(&workspace_id, "").unwrap();
+        let result = manager.get_tenant_url_with_credentials(&workspace_id, "", "", None).unwrap();
 
         assert_eq!(
             result,
@@ -70,7 +70,7 @@ mod tests {
         let manager = SupavisorTenantPoolManager::new(base_url.to_string(), 5, std::sync::Arc::new(DummyTenantManager));
         let ws = Uuid::parse_str("019e40ee-1192-7492-bc29-85dad4675f34").unwrap();
 
-        let url = manager.get_tenant_url_with_user(&ws, "").unwrap();
+        let url = manager.get_tenant_url_with_credentials(&ws, "", "", None).unwrap();
         let expected = expected_tenant_name(&ws);
 
         let parsed = reqwest::Url::parse(&url).unwrap();
@@ -97,7 +97,7 @@ mod tests {
         let manager = SupavisorTenantPoolManager::new(base_url.to_string(), 5, std::sync::Arc::new(DummyTenantManager));
         let ws = Uuid::parse_str("00000000-0000-0000-0000-000000000000").unwrap();
 
-        let url = manager.get_tenant_url_with_user(&ws, "").unwrap();
+        let url = manager.get_tenant_url_with_credentials(&ws, "", "", None).unwrap();
         let expected = "tenant_00000000000000000000000000000000";
         let parsed = reqwest::Url::parse(&url).unwrap();
         let tenant_in_user = parsed.username().split('.').nth(1).unwrap();
@@ -117,7 +117,7 @@ mod tests {
         let manager = SupavisorTenantPoolManager::new(base_url.to_string(), 5, std::sync::Arc::new(DummyTenantManager));
         let ws = Uuid::parse_str("ffffffff-ffff-ffff-ffff-ffffffffffff").unwrap();
 
-        let url = manager.get_tenant_url_with_user(&ws, "").unwrap();
+        let url = manager.get_tenant_url_with_credentials(&ws, "", "", None).unwrap();
         // All 'f' chars, no hyphens
         assert!(
             url.contains("tenant_ffffffffffffffffffffffffffffffff"),
@@ -137,7 +137,7 @@ mod tests {
         // Test several random UUIDs — none should produce hyphens in the tenant part
         for _ in 0..10 {
             let ws = Uuid::new_v4();
-            let url = manager.get_tenant_url_with_user(&ws, "").unwrap();
+            let url = manager.get_tenant_url_with_credentials(&ws, "", "", None).unwrap();
             let parsed = reqwest::Url::parse(&url).unwrap();
             let username = parsed.username();
             let tenant_name = username.split('.').nth(1).unwrap();
@@ -168,7 +168,7 @@ mod tests {
         let manager = SupavisorTenantPoolManager::new(base_url.to_string(), 5, std::sync::Arc::new(DummyTenantManager));
 
         let ws = Uuid::parse_str("a1b2c3d4-e5f6-7890-abcd-ef1234567890").unwrap();
-        let url = manager.get_tenant_url_with_user(&ws, "").unwrap();
+        let url = manager.get_tenant_url_with_credentials(&ws, "", "", None).unwrap();
 
         // Expected: all hyphens removed from the UUID
         let expected_name = "tenant_a1b2c3d4e5f67890abcdef1234567890";
@@ -185,7 +185,7 @@ mod tests {
         let base_url = "postgres://user:pass@localhost:5432/postgres";
         let manager = SupavisorTenantPoolManager::new(base_url.to_string(), 5, std::sync::Arc::new(DummyTenantManager));
         let ws = Uuid::parse_str("123e4567-e89b-12d3-a456-426614174000").unwrap();
-        let url = manager.get_tenant_url_with_user(&ws, "").unwrap();
+        let url = manager.get_tenant_url_with_credentials(&ws, "", "", None).unwrap();
 
         let expected_path = "/tenant_123e4567e89b12d3a456426614174000";
         let parsed = reqwest::Url::parse(&url).unwrap();
@@ -217,7 +217,7 @@ mod tests {
 
         for (uuid_str, expected_path) in &cases {
             let ws = Uuid::parse_str(uuid_str).unwrap();
-            let url = manager.get_tenant_url_with_user(&ws, "").unwrap();
+            let url = manager.get_tenant_url_with_credentials(&ws, "", "", None).unwrap();
             let parsed = reqwest::Url::parse(&url).unwrap();
             assert_eq!(
                 parsed.path(),
@@ -246,7 +246,7 @@ mod tests {
 
         // Supavisor mode
         let url = SupavisorTenantPoolManager::new(supavisor_base.to_string(), 5, std::sync::Arc::new(DummyTenantManager))
-            .get_tenant_url_with_user(&ws, "")
+            .get_tenant_url_with_credentials(&ws, "", "", None)
             .unwrap();
         let parsed = reqwest::Url::parse(&url).unwrap();
         let tenant_in_user = parsed.username().split('.').nth(1).unwrap();
@@ -255,7 +255,7 @@ mod tests {
 
         // Direct mode: path only
         let url2 = SupavisorTenantPoolManager::new(direct_base.to_string(), 5, std::sync::Arc::new(DummyTenantManager))
-            .get_tenant_url_with_user(&ws, "")
+            .get_tenant_url_with_credentials(&ws, "", "", None)
             .unwrap();
         let parsed2 = reqwest::Url::parse(&url2).unwrap();
         assert_eq!(parsed2.path().trim_start_matches('/'), expected);
@@ -442,7 +442,7 @@ mod tests {
             std::sync::Arc::new(DummyTenantManager)
         );
         let id = Uuid::parse_str("019e5512-4556-7b33-9e9b-84fb5a82c6d4").unwrap();
-        let tenant_url = manager.get_tenant_url_with_user(&id, "").unwrap();
+        let tenant_url = manager.get_tenant_url_with_credentials(&id, "", "", None).unwrap();
 
         // Expected: same password with unencoded #, but db_name changed
         assert_eq!(
@@ -460,7 +460,7 @@ mod tests {
             std::sync::Arc::new(DummyTenantManager)
         );
         let id = Uuid::parse_str("019e5512-4556-7b33-9e9b-84fb5a82c6d4").unwrap();
-        let tenant_url = manager.get_tenant_url_with_user(&id, "").unwrap();
+        let tenant_url = manager.get_tenant_url_with_credentials(&id, "", "", None).unwrap();
 
         // Expected: user updated, password intact, db_name updated, query intact
         assert_eq!(
@@ -476,14 +476,14 @@ mod tests {
         let ws = Uuid::parse_str("123e4567-e89b-12d3-a456-426614174000").unwrap();
         
         // With empty override user, it falls back to the prefix in base_url (admin)
-        let url_empty = manager.get_tenant_url_with_user(&ws, "").unwrap();
+        let url_empty = manager.get_tenant_url_with_credentials(&ws, "", "", None).unwrap();
         assert_eq!(
             url_empty,
             "postgres://admin.tenant_123e4567e89b12d3a456426614174000:pass@supavisor:5452/tenant_123e4567e89b12d3a456426614174000"
         );
 
         // With explicit override user, it replaces the prefix completely
-        let url_override = manager.get_tenant_url_with_user(&ws, "custom_tenant_user").unwrap();
+        let url_override = manager.get_tenant_url_with_credentials(&ws, "custom_tenant_user", "", None).unwrap();
         assert_eq!(
             url_override,
             "postgres://custom_tenant_user.tenant_123e4567e89b12d3a456426614174000:pass@supavisor:5452/tenant_123e4567e89b12d3a456426614174000"
@@ -497,17 +497,30 @@ mod tests {
         let ws = Uuid::parse_str("123e4567-e89b-12d3-a456-426614174000").unwrap();
         
         // With empty override user, direct connection remains unchanged for username
-        let url_empty = manager.get_tenant_url_with_user(&ws, "").unwrap();
+        let url_empty = manager.get_tenant_url_with_credentials(&ws, "", "", None).unwrap();
         assert_eq!(
             url_empty,
             "postgres://user:pass@localhost:5432/tenant_123e4567e89b12d3a456426614174000"
         );
 
         // With explicit override user, direct connection updates username entirely (no tenant suffix)
-        let url_override = manager.get_tenant_url_with_user(&ws, "new_direct_user").unwrap();
+        let url_override = manager.get_tenant_url_with_credentials(&ws, "new_direct_user", "", None).unwrap();
         assert_eq!(
             url_override,
             "postgres://new_direct_user:pass@localhost:5432/tenant_123e4567e89b12d3a456426614174000"
+        );
+    }
+
+    #[test]
+    fn test_get_tenant_url_with_override_db_name_in_production_manager() {
+        let base_url = "postgres://admin.leeattend:pass@supavisor:5452/leeattend";
+        let manager = SupavisorTenantPoolManager::new(base_url.to_string(), 5, std::sync::Arc::new(DummyTenantManager));
+        let ws = Uuid::parse_str("123e4567-e89b-12d3-a456-426614174000").unwrap();
+        
+        let url = manager.get_tenant_url_with_credentials(&ws, "", "", Some("custom_tenant_db")).unwrap();
+        assert_eq!(
+            url,
+            "postgres://admin.tenant_123e4567e89b12d3a456426614174000:pass@supavisor:5452/custom_tenant_db"
         );
     }
 }

@@ -143,10 +143,25 @@ impl WorkspaceService {
                 .await?;
         }
 
-        // 5. Create workspace with owner using repository
+        // 5. Encrypt the final database URL so ALL workspaces are treated as BYOD in the database
+        let final_encrypted_url = if let Some(encrypted) = custom_db_url_encrypted {
+            encrypted
+        } else {
+            let crypto_service = std::env::var("ENCRYPTION_KEYS_JSON")
+                .ok()
+                .and_then(|keys| crate::crypto::CryptoService::from_json(&keys).ok());
+                
+            if let Some(crypto) = crypto_service {
+                crypto.encrypt(&new_db_url).unwrap_or(new_db_url)
+            } else {
+                new_db_url
+            }
+        };
+
+        // 6. Create workspace with owner using repository
         let ws = self
             .workspace_repo
-            .create_workspace_with_owner(id, name, owner_id, custom_db_url_encrypted)
+            .create_workspace_with_owner(id, name, owner_id, Some(final_encrypted_url))
             .await?;
 
         Ok(ws)

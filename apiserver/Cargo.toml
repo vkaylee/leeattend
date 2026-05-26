@@ -73,3 +73,4 @@ path = "tests/integration/main.rs"
 [[test]]
 name = "e2e"
 path = "tests/e2e/main.rs"
+
