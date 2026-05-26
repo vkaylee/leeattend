@@ -2,6 +2,7 @@ import { Plus } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
+import Button from "@/components/ui/button";
 import { Device, DeviceStatus } from "@/lib/api";
 
 import DeviceListItem from "./device-list-item";
@@ -56,16 +57,17 @@ export function AgentDeviceList({
       )}
 
       {!!onAddDevice && (
-        <button
-          className="group relative flex items-center justify-center p-6 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-[1.5rem] text-slate-400 dark:text-slate-500 hover:text-primary-600 dark:hover:text-primary-400 hover:border-primary-300 hover:bg-primary-50 dark:bg-primary-950/30 transition-all gap-4"
+        <Button
+          className="group relative flex items-center justify-center p-6 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-[1.5rem] text-slate-400 dark:text-slate-500 hover:text-primary-600 dark:hover:text-primary-400 hover:border-primary-300 hover:bg-primary-50 dark:bg-primary-950/30 transition-all gap-4 h-auto"
           data-testid={`add-device-btn-${agentId}`}
           onClick={() => { onAddDevice(agentId); }}
+          variant="ghost"
         >
           <div className="w-10 h-10 rounded-xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
             <Plus size={20} />
           </div>
           <span className="text-xs font-black uppercase tracking-widest">{t("devices.add_btn")}</span>
-        </button>
+        </Button>
       )}
     </div>
   );

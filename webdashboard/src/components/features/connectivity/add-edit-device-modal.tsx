@@ -2,6 +2,7 @@ import { Cpu, Save, Plus } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
+import Button from "@/components/ui/button";
 import Modal from "@/components/ui/modal";
 import { AuthorizedAgent, Device } from "@/lib/api";
 
@@ -68,22 +69,24 @@ export function AddEditDeviceModal({
         <ConnectionSection getValue={getValue} handleChange={handleChange} t={t} />
 
         <div className="flex gap-4 pt-6">
-          <button
-            className="flex-1 px-8 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl font-bold text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all active:scale-95"
+          <Button
+            className="flex-1 h-auto py-4 px-8 rounded-2xl font-bold text-xs uppercase tracking-widest"
             data-testid="device-form-cancel"
             onClick={onClose}
             type="button"
+            variant="outline"
           >
             {t("devices.form.cancel")}
-          </button>
-          <button
-            className="flex-1 bg-primary-600 text-white px-8 py-4 rounded-2xl font-bold uppercase tracking-widest text-xs hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95 flex items-center justify-center gap-3"
+          </Button>
+          <Button
+            className="flex-1 h-auto py-4 px-8 rounded-2xl font-bold uppercase tracking-widest text-xs"
             data-testid="device-form-submit"
+            icon={editingDevice ? <Save size={18} /> : <Plus size={18} />}
             type="submit"
+            variant="primary"
           >
-            {editingDevice ? <Save size={18} /> : <Plus size={18} />}
             {editingDevice ? t("devices.form.update_device") : t("devices.form.save_device")}
-          </button>
+          </Button>
         </div>
       </form>
     </Modal>

@@ -2,6 +2,7 @@ import { Plus } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
+import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 
 interface AddAgentFormProps {
@@ -40,8 +41,23 @@ export function AddAgentForm({
         </div>
       </div>
       <div className="mt-10 flex justify-end gap-4">
-        <button className="px-8 py-4 rounded-2xl font-bold text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all" data-testid="agent-form-cancel" onClick={onCancel} type="button">{t("common.cancel")}</button>
-        <button className="bg-primary-600 text-white px-12 py-4 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95" data-testid="agent-form-submit" type="submit">{t("agents.save_btn")}</button>
+        <Button
+          className="px-8 py-4 rounded-2xl font-bold text-xs uppercase tracking-widest h-auto"
+          data-testid="agent-form-cancel"
+          onClick={onCancel}
+          type="button"
+          variant="ghost"
+        >
+          {t("common.cancel")}
+        </Button>
+        <Button
+          className="px-12 py-4 rounded-2xl font-bold text-xs uppercase tracking-widest h-auto"
+          data-testid="agent-form-submit"
+          type="submit"
+          variant="primary"
+        >
+          {t("agents.save_btn")}
+        </Button>
       </div>
     </form>
   );

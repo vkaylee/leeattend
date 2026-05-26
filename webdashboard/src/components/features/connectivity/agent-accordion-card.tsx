@@ -10,6 +10,7 @@ import {
 import React from "react";
 import { useTranslation } from "react-i18next";
 
+import Button from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { useConfirm } from "@/hooks/use-confirm";
 import { AuthorizedAgent, Device, DeviceStatus } from "@/lib/api";
@@ -123,24 +124,35 @@ function AgentHeader({
         onKeyDown={e => { e.stopPropagation(); }}
         role="none"
       >
-        <button className="p-3 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90" data-testid={`agent-edit-${agent.id}`} onClick={() => { onEdit(agent); }}>
+        <Button
+          className="p-3 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 h-auto"
+          data-testid={`agent-edit-${agent.id}`}
+          onClick={() => { onEdit(agent); }}
+          variant="ghost"
+        >
           <Pencil size={18} />
-        </button>
-        <button
+        </Button>
+        <Button
           className={cn(
-            "px-4 py-2 rounded-xl text-[9px] font-bold uppercase tracking-widest border shadow-sm transition-all active:scale-95",
+            "px-4 py-2 rounded-xl text-[9px] font-bold uppercase tracking-widest border shadow-sm h-auto",
             agent.is_trusted
               ? "text-rose-600 dark:text-rose-300 hover:bg-rose-50 dark:bg-rose-950 border-rose-100 dark:border-rose-800 bg-white dark:bg-slate-900"
-              : "bg-emerald-600 text-white border-transparent hover:bg-emerald-700"
+              : "bg-emerald-600 text-white border-transparent hover:bg-emerald-700 hover:text-white"
           )}
           data-testid={`agent-trust-toggle-${agent.id}`}
           onClick={onToggleTrust}
+          variant="ghost"
         >
           {agent.is_trusted ? t("common.revoke") : t("common.approve")}
-        </button>
-        <button className="p-3 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:text-rose-300 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90" data-testid={`agent-delete-${agent.id}`} onClick={onDelete}>
+        </Button>
+        <Button
+          className="p-3 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:text-rose-300 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 h-auto"
+          data-testid={`agent-delete-${agent.id}`}
+          onClick={onDelete}
+          variant="ghost"
+        >
           <Trash2 size={18} />
-        </button>
+        </Button>
       </div>
     </div>
   );

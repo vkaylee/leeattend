@@ -2,6 +2,7 @@ import { Plus, Share2 } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
+import { Button } from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { AuthorizedAgent } from "@/lib/api";
 import { cn } from "@/lib/utils";
@@ -44,43 +45,49 @@ export function ConnectivityHeader({
       <div className="flex items-center gap-3">
         {agents.length > 0 && (
           <>
-            <button
-              className="px-4 py-2 text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 transition-colors"
+            <Button
+              className="h-auto px-4 py-2 text-xs text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-transparent dark:hover:bg-transparent shadow-none"
               data-testid="expand-all-btn"
               onClick={onExpandAll}
+              variant="ghost"
             >
               {t("common.expand_all")}
-            </button>
-            <button
-              className="px-4 py-2 text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 transition-colors"
+            </Button>
+            <Button
+              className="h-auto px-4 py-2 text-xs text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-transparent dark:hover:bg-transparent shadow-none"
               data-testid="collapse-all-btn"
               onClick={onCollapseAll}
+              variant="ghost"
             >
               {t("common.collapse_all")}
-            </button>
+            </Button>
             <div className="w-px h-6 bg-slate-200 dark:bg-slate-600" />
           </>
         )}
-        <button
+        <Button
           className={cn(
-            "flex items-center gap-2 px-6 py-3 rounded-2xl font-bold text-[10px] uppercase tracking-widest transition-all border shadow-sm active:scale-95",
+            "h-auto px-6 py-3 rounded-2xl font-bold text-[10px] uppercase tracking-widest border shadow-sm",
             includeInactive
-              ? "bg-slate-900 text-white border-transparent"
-              : "bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
+              ? "bg-slate-900 text-white border-transparent hover:bg-slate-800"
+              : "bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-600 dark:hover:text-slate-300"
           )}
           data-testid="toggle-inactive-btn"
           onClick={onToggleInactive}
+          variant={includeInactive ? "secondary" : "outline"}
         >
           {includeInactive ? t("common.status_inactive") : t("common.status_active")}
-        </button>
-        <button
-          className="flex items-center gap-3 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 px-6 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest hover:border-primary-200 dark:hover:border-primary-800 transition-all border border-slate-200 dark:border-slate-700 active:scale-95"
+        </Button>
+        <Button
+          className="h-auto bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 px-6 py-3 rounded-2xl hover:border-primary-200 dark:hover:border-primary-800 border border-slate-200 dark:border-slate-700"
           data-testid="add-agent-btn"
+          icon={<Plus size={18} />}
           onClick={onAddAgent}
+          variant="outline"
         >
-          <Plus size={18} /> {t("agents.add_btn")}
-        </button>
+          {t("agents.add_btn")}
+        </Button>
       </div>
     </div>
   );
 }
+

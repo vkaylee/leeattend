@@ -3,6 +3,7 @@ import { Activity } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { useDeviceInfo, devicesKeys } from "@/hooks/use-devices";
 import { Device, DeviceInfo, DeviceStatus } from "@/lib/api";
@@ -44,19 +45,20 @@ function DeviceBottomBar({ device, displayInfo, isToggling, onToggle }: DeviceBo
           <span className="italic">{t("devices.info.loading")}</span>
         )}
       </div>
-      <button
+      <Button
         className={cn(
-          "px-4 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all border",
+          "h-auto px-4 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest border",
           device.is_enabled
             ? "text-rose-500 border-rose-100 dark:border-rose-900/50 hover:bg-rose-500 hover:text-white"
-            : "bg-emerald-600 text-white border-transparent hover:bg-emerald-700"
+            : "bg-emerald-600 text-white border-transparent hover:bg-emerald-700 shadow-none"
         )}
         data-testid={`device-toggle-${device.id}`}
         disabled={isToggling}
         onClick={onToggle}
+        variant={device.is_enabled ? "outline" : "primary"}
       >
         {device.is_enabled ? t("devices.info.disable_btn") : t("devices.info.enable_btn")}
-      </button>
+      </Button>
     </div>
   );
 }

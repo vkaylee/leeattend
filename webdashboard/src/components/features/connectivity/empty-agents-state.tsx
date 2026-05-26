@@ -2,6 +2,7 @@ import { Server } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
+import { Button } from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 
 interface EmptyAgentsStateProps {
@@ -22,13 +23,15 @@ export function EmptyAgentsState({ onAddAgent }: EmptyAgentsStateProps) {
       <Typography className="text-slate-400 dark:text-slate-500 text-xs max-w-md mb-8" variant="p">
         {t("connectivity.empty_guide")}
       </Typography>
-      <button
-        className="px-10 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl font-bold text-[10px] uppercase tracking-[0.2em] text-slate-600 dark:text-slate-300 hover:border-primary-200 dark:border-primary-800 hover:text-primary-600 dark:text-primary-400 transition-all shadow-sm active:scale-95"
+      <Button
+        className="h-auto px-10 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl text-[10px] uppercase tracking-[0.2em] text-slate-600 dark:text-slate-300 hover:border-primary-200 dark:border-primary-800 hover:text-primary-600 dark:text-primary-400"
         data-testid="empty-add-agent-btn"
         onClick={onAddAgent}
+        variant="outline"
       >
         {t("agents.add_btn")}
-      </button>
+      </Button>
     </div>
   );
 }
+

@@ -2,6 +2,7 @@ import { Cpu, Globe, MoreVertical, RefreshCw, Pencil, Trash2 } from "lucide-reac
 import React from "react";
 import { useTranslation } from "react-i18next";
 
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -64,9 +65,13 @@ export function DeviceTopBar({
         </span>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="p-2 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors" data-testid={`device-menu-${device.id}`}>
-              <MoreVertical size={16} />
-            </button>
+            <Button
+              className="h-auto w-auto p-2 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shadow-none"
+              data-testid={`device-menu-${device.id}`}
+              icon={<MoreVertical size={16} />}
+              size="icon"
+              variant="ghost"
+            />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-52 p-2 rounded-xl shadow-2xl">
             <DropdownMenuItem className="gap-3 p-3 rounded-lg font-bold text-xs uppercase" data-testid={`device-refresh-${device.id}`} disabled={isRefreshing} onSelect={handleRefresh}>
@@ -87,3 +92,4 @@ export function DeviceTopBar({
     </div>
   );
 }
+
