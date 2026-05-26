@@ -37,8 +37,8 @@ pub struct CalculateDayUnitsArgs<'a, 'b> {
     pub tz: Tz,
     pub employee_id: Uuid,
     pub workspace_id: Uuid,
-    pub early_arrival_strategy: crate::models::EarlyArrivalStrategy,
     pub work_unit_minutes: i32,
+    pub rules: crate::models::PolicyRules,
     pub rounding_policy: &'a str,
 }
 
@@ -82,7 +82,7 @@ impl ReportService {
     ///
     /// Consolidates the identical logic previously duplicated in
     /// `get_daily_attendance_report` and `get_workspace_attendance_summary`.
-    async fn calculate_day_units(&self, args: CalculateDayUnitsArgs<'_, '_>) -> (i32, i32) {
+    fn calculate_day_units(&self, args: CalculateDayUnitsArgs<'_, '_>) -> (i32, i32) {
         // Day-off or no shift assigned → 0 work hours.
         // Without shift boundaries the calculator would treat all punch time
         // as "standard" minutes, inflating the report for roster day-offs.
@@ -116,22 +116,6 @@ impl ReportService {
                 .end_time
                 .and_then(|t| args.tz.from_local_datetime(&args.date.and_time(t)).single());
 
-            let rules = PolicyResolver::resolve_with_shift_overrides(
-                &*self.policy_repo,
-                &*self.employee_repo,
-                args.employee_id,
-                args.workspace_id,
-                args.date,
-                &ShiftPolicyOverrides {
-                    grace_period_minutes: args.daily.early_punch_in_grace_period_minutes,
-                    is_break_auto_deduct: args.daily.is_break_auto_deduct,
-                    allow_early_ot: args.daily.allow_early_ot,
-                    early_arrival_strategy: args.early_arrival_strategy,
-                    is_break_overtime: false,
-                },
-            )
-            .await;
-
             // Handle shift boundaries (with overnight shift support)
             let (shift_start, shift_end) =
                 if let (Some(start), Some(mut end)) = (shift_start_dt, shift_end_dt) {
@@ -153,7 +137,7 @@ impl ReportService {
                     actual_break_minutes,
                     work_unit: args.work_unit_minutes,
                     rounding_policy: args.rounding_policy.to_string(),
-                    rules,
+                    rules: args.rules,
                     ot_ceiling: None,
                 },
             )
@@ -287,6 +271,16 @@ impl ReportService {
         )
         .await?;
 
+        // 5e. BATCH fetch working conditions
+        let working_conditions_map = PolicyResolver::resolve_attendance_rules_batch(
+            &*self.employee_repo,
+            &emp_ids,
+            args.workspace_id,
+            args.start_date,
+            args.end_date,
+        )
+        .await?;
+
         // 6. Calculate reports (same logic as before)
         let mut reports = Vec::new();
 
@@ -325,6 +319,26 @@ impl ReportService {
                         early_arrival_strategy: crate::models::EarlyArrivalStrategy::Block,
                     });
 
+                let emp_working_conditions = working_conditions_map
+                    .get(&emp_sched.employee_id)
+                    .map(std::vec::Vec::as_slice)
+                    .unwrap_or(&[]);
+
+                let base_rules = PolicyResolver::build_rules_from_conditions(
+                    emp_working_conditions,
+                    date,
+                    emp_attendance_rules.early_arrival_strategy,
+                );
+
+                let overrides = ShiftPolicyOverrides {
+                    grace_period_minutes: daily.early_punch_in_grace_period_minutes,
+                    is_break_auto_deduct: daily.is_break_auto_deduct,
+                    allow_early_ot: daily.allow_early_ot,
+                    early_arrival_strategy: emp_attendance_rules.early_arrival_strategy,
+                    is_break_overtime: false,
+                };
+                let rules = PolicyResolver::apply_shift_overrides(base_rules, &overrides);
+
                 let (std_work_units, ot_work_units) = self
                     .calculate_day_units(CalculateDayUnitsArgs {
                         day_entries,
@@ -333,11 +347,10 @@ impl ReportService {
                         tz,
                         employee_id: emp_sched.employee_id,
                         workspace_id: workspace.id,
-                        early_arrival_strategy: emp_attendance_rules.early_arrival_strategy,
+                        rules,
                         work_unit_minutes: emp_attendance_rules.work_unit_minutes,
                         rounding_policy: &emp_attendance_rules.rounding_policy,
-                    })
-                    .await;
+                    });
 
                 // --- STATUS DETERMINATION (using shared attendance_utils) ---
                 let holiday_entry = holidays_map.get(&date);
@@ -546,6 +559,16 @@ impl ReportService {
         )
         .await?;
 
+        // 6c. BATCH fetch working conditions
+        let working_conditions_map = PolicyResolver::resolve_attendance_rules_batch(
+            &*self.employee_repo,
+            &emp_ids,
+            workspace.id,
+            args.start_date,
+            args.end_date,
+        )
+        .await?;
+
         // 7. Calculate work units per employee using the SAME logic as daily report
         let mut employee_totals: HashMap<Uuid, (i32, i32, i32)> = HashMap::new();
 
@@ -580,6 +603,26 @@ impl ReportService {
                     .map(std::vec::Vec::as_slice)
                     .unwrap_or(&[]);
 
+                let emp_working_conditions = working_conditions_map
+                    .get(&emp_sched.employee_id)
+                    .map(std::vec::Vec::as_slice)
+                    .unwrap_or(&[]);
+
+                let base_rules = PolicyResolver::build_rules_from_conditions(
+                    emp_working_conditions,
+                    date,
+                    emp_attendance_rules.early_arrival_strategy,
+                );
+
+                let overrides = ShiftPolicyOverrides {
+                    grace_period_minutes: daily.early_punch_in_grace_period_minutes,
+                    is_break_auto_deduct: daily.is_break_auto_deduct,
+                    allow_early_ot: daily.allow_early_ot,
+                    early_arrival_strategy: emp_attendance_rules.early_arrival_strategy,
+                    is_break_overtime: false,
+                };
+                let rules = PolicyResolver::apply_shift_overrides(base_rules, &overrides);
+
                 let (std_units, ot_units) = self
                     .calculate_day_units(CalculateDayUnitsArgs {
                         day_entries,
@@ -588,11 +631,10 @@ impl ReportService {
                         tz,
                         employee_id: emp_sched.employee_id,
                         workspace_id: workspace.id,
-                        early_arrival_strategy: emp_attendance_rules.early_arrival_strategy,
+                        rules,
                         work_unit_minutes: emp_attendance_rules.work_unit_minutes,
                         rounding_policy: &emp_attendance_rules.rounding_policy,
-                    })
-                    .await;
+                    });
 
                 employee_total_std += std_units;
                 employee_total_ot += ot_units;

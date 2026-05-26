@@ -90,7 +90,7 @@ pub struct RosterDeptHistory {
 ///
 /// Data is fetched WITHOUT date bounds; the existing resolution loop
 /// in `get_workspace_schedules` already filters by date.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct RosterData {
     /// shift_id -> shift details
     pub shifts: HashMap<Uuid, RosterShift>,

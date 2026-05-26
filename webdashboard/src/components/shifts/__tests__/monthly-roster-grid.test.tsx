@@ -281,12 +281,12 @@ describe("MonthlyRosterGrid Filtering", () => {
 
   it("displays loading state when isMonthLoading or isEmployeesLoading is true", () => {
     const hook1 = createMockHook({ isMonthLoading: true });
-    const { rerender } = render(<MonthlyRosterGrid hook={hook1} />);
-    expect(screen.getByText("common.loading...")).toBeInTheDocument();
+    const { container: container1 } = render(<MonthlyRosterGrid hook={hook1} />);
+    expect(container1.querySelectorAll('.animate-pulse').length).toBeGreaterThan(0);
 
     const hook2 = createMockHook({ isEmployeesLoading: true });
-    rerender(<MonthlyRosterGrid hook={hook2} />);
-    expect(screen.getByText("common.loading...")).toBeInTheDocument();
+    const { container: container2 } = render(<MonthlyRosterGrid hook={hook2} />);
+    expect(container2.querySelectorAll('.animate-pulse').length).toBeGreaterThan(0);
   });
 
   it("displays error state with retry button when queries fail", async () => {

@@ -520,6 +520,15 @@ mod tests {
             Ok(())
         }
 
+        async fn create_employee_transactional(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _employee: &Employee,
+            _recruitment_source_id: Option<Uuid>,
+        ) -> Result<(), AppError> {
+            Ok(())
+        }
+
         async fn create_employee_skip_duplicates(
             &self,
             _employee: &Employee,
@@ -1023,6 +1032,9 @@ mod tests {
     #[async_trait::async_trait]
     impl crate::repositories::user_repository::UserRepository for NopUserRepo {
         async fn create_user(&self, _user: &crate::models::User) -> Result<(), AppError> {
+            unimplemented!()
+        }
+        async fn create_user_with_admin_check(&self, _user: &crate::models::User) -> Result<bool, AppError> {
             unimplemented!()
         }
         async fn get_user_count(&self) -> Result<i64, AppError> {

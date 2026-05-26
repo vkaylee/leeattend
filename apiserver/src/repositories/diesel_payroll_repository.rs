@@ -142,18 +142,20 @@ impl PayrollRepository for DieselPayrollRepository {
                         .execute(&mut *conn)
                         .await?;
 
-                    for tier in &req.tiers {
-                        let tier_id = crate::utils::id::new_id();
-                        let tier_entity = crate::models::diesel::payroll::IncentiveTierEntity {
-                            id: tier_id,
-                            policy_id,
-                            priority: tier.priority,
-                            rule_config: serde_json::to_value(&tier.rule_config)
-                                .unwrap_or_default(),
-                            payout_amount: tier.payout_amount.to_f64().unwrap_or_default(),
-                        };
+                    if !req.tiers.is_empty() {
+                        let tier_entities: Vec<_> = req.tiers.iter().map(|tier| {
+                            crate::models::diesel::payroll::IncentiveTierEntity {
+                                id: crate::utils::id::new_id(),
+                                policy_id,
+                                priority: tier.priority,
+                                rule_config: serde_json::to_value(&tier.rule_config)
+                                    .unwrap_or_default(),
+                                payout_amount: tier.payout_amount.to_f64().unwrap_or_default(),
+                            }
+                        }).collect();
+
                         diesel::insert_into(payroll_incentive_tiers::table)
-                            .values(&tier_entity)
+                            .values(&tier_entities)
                             .execute(&mut *conn)
                             .await?;
                     }

@@ -4,6 +4,30 @@ import { DailyAttendanceReport, AttendanceAdjustmentRequest } from "@/lib/api";
 
 import { DailyReportTableRow } from "./daily-report-table-row";
 
+function SkeletonRow({ hideEmployeeName, isDebugMode }: { hideEmployeeName: boolean; isDebugMode: boolean }) {
+  return (
+    <tr className="animate-pulse border-b border-slate-50 dark:border-slate-800/50">
+      <td className="px-4 py-4"><div className="h-4 w-20 bg-slate-200 dark:bg-slate-800 rounded"></div></td>
+      {!hideEmployeeName ? (
+        <td className="px-4 py-4">
+          <div className="space-y-2">
+            <div className="h-4 w-24 bg-slate-200 dark:bg-slate-800 rounded"></div>
+            <div className="h-3 w-16 bg-slate-200 dark:bg-slate-800 rounded"></div>
+          </div>
+        </td>
+      ) : null}
+      <td className="px-4 py-4"><div className="h-4 w-16 bg-slate-200 dark:bg-slate-800 rounded"></div></td>
+      <td className="px-4 py-4"><div className="h-4 w-12 bg-slate-200 dark:bg-slate-800 rounded mx-auto"></div></td>
+      <td className="px-4 py-4"><div className="h-4 w-12 bg-slate-200 dark:bg-slate-800 rounded mx-auto"></div></td>
+      <td className="px-4 py-4"><div className="h-4 w-10 bg-slate-200 dark:bg-slate-800 rounded ml-auto"></div></td>
+      <td className="px-4 py-4"><div className="h-4 w-10 bg-slate-200 dark:bg-slate-800 rounded ml-auto"></div></td>
+      <td className="px-4 py-4"><div className="h-6 w-16 bg-slate-200 dark:bg-slate-800 rounded-full mx-auto"></div></td>
+      {isDebugMode ? <td className="px-4 py-4"><div className="h-4 w-8 bg-slate-200 dark:bg-slate-800 rounded mx-auto"></div></td> : null}
+      <td className="px-4 py-4"><div className="h-6 w-6 bg-slate-200 dark:bg-slate-800 rounded ml-auto"></div></td>
+    </tr>
+  );
+}
+
 export interface DailyReportTableProps {
   adjustmentMap: Record<string, AttendanceAdjustmentRequest>;
   confirmingRow: string | null;
@@ -76,11 +100,11 @@ export default function DailyReportTable({
         <TableHeader hideEmployeeName={hideEmployeeName} isDebugMode={isDebugMode} t={t} />
         <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
           {isLoading ? (
-            <tr>
-              <td className="px-10 py-20 text-center text-slate-500 dark:text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50 animate-pulse" colSpan={colSpan}>
-                {t("common.loading")}
-              </td>
-            </tr>
+            <>
+              {Array.from({ length: 5 }).map((_, i) => (
+                <SkeletonRow hideEmployeeName={hideEmployeeName} isDebugMode={isDebugMode} key={`skeleton-${i}`} />
+              ))}
+            </>
           ) : data.length === 0 ? (
             <tr>
               <td className="px-10 py-32 text-center text-slate-500 dark:text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50" colSpan={colSpan}>

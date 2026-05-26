@@ -3,6 +3,9 @@ import { createRouter } from "@tanstack/react-router";
 
 import { routeTree } from "./route-tree.gen";
 
+import { GlobalPageSkeleton } from "./components/common/global-page-skeleton";
+import { RouteErrorFallback } from "./components/common/route-error-fallback";
+
 export function createAppRouter(queryClient: QueryClient) {
   return createRouter({
     routeTree,
@@ -10,6 +13,8 @@ export function createAppRouter(queryClient: QueryClient) {
     defaultPreload: "intent",
     defaultPreloadStaleTime: 0,
     scrollRestoration: true,
+    defaultPendingComponent: GlobalPageSkeleton,
+    defaultErrorComponent: RouteErrorFallback,
   });
 }
 

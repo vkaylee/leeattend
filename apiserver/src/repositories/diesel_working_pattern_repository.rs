@@ -70,13 +70,20 @@ impl WorkingPatternRepositoryTrait for DieselWorkingPatternRepository {
                         .get_result::<WorkingPatternEntity>(&mut *conn)
                         .await?;
 
-                    for (schedule_day, shift_id) in details {
-                        diesel::insert_into(working_pattern_details::table)
-                            .values((
+                    let detail_records: Vec<_> = details
+                        .into_iter()
+                        .map(|(schedule_day, shift_id)| {
+                            (
                                 working_pattern_details::pattern_id.eq(pattern_entity.id),
                                 working_pattern_details::schedule_day.eq(schedule_day),
                                 working_pattern_details::shift_id.eq(shift_id),
-                            ))
+                            )
+                        })
+                        .collect();
+
+                    if !detail_records.is_empty() {
+                        diesel::insert_into(working_pattern_details::table)
+                            .values(&detail_records)
                             .execute(&mut *conn)
                             .await?;
                     }
@@ -140,13 +147,20 @@ impl WorkingPatternRepositoryTrait for DieselWorkingPatternRepository {
                     .execute(&mut *conn)
                     .await?;
 
-                    for (schedule_day, shift_id) in details {
-                        diesel::insert_into(working_pattern_details::table)
-                            .values((
+                    let detail_records: Vec<_> = details
+                        .into_iter()
+                        .map(|(schedule_day, shift_id)| {
+                            (
                                 working_pattern_details::pattern_id.eq(pattern_id),
                                 working_pattern_details::schedule_day.eq(schedule_day),
                                 working_pattern_details::shift_id.eq(shift_id),
-                            ))
+                            )
+                        })
+                        .collect();
+
+                    if !detail_records.is_empty() {
+                        diesel::insert_into(working_pattern_details::table)
+                            .values(&detail_records)
                             .execute(&mut *conn)
                             .await?;
                     }
@@ -300,16 +314,23 @@ impl WorkingPatternRepositoryTrait for DieselWorkingPatternRepository {
             });
         }
 
-        for &employee_id in employee_ids {
-            diesel::insert_into(employee_working_patterns::table)
-                .values((
+        let assignment_records: Vec<_> = employee_ids
+            .iter()
+            .map(|&employee_id| {
+                (
                     employee_working_patterns::workspace_id.eq(workspace_id),
                     employee_working_patterns::employee_id.eq(employee_id),
                     employee_working_patterns::pattern_id.eq(pattern_id),
                     employee_working_patterns::start_date.eq(start_date),
                     employee_working_patterns::end_date.eq(end_date),
                     employee_working_patterns::anchor_date.eq(anchor_date),
-                ))
+                )
+            })
+            .collect();
+
+        if !assignment_records.is_empty() {
+            diesel::insert_into(employee_working_patterns::table)
+                .values(&assignment_records)
                 .execute(&mut *conn)
                 .await
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?;

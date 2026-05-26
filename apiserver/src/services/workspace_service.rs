@@ -479,6 +479,9 @@ mod tests {
         async fn create_user(&self, _u: &crate::models::User) -> Result<(), AppError> {
             unimplemented!()
         }
+        async fn create_user_with_admin_check(&self, _u: &crate::models::User) -> Result<bool, AppError> {
+            unimplemented!()
+        }
         async fn get_user_count(&self) -> Result<i64, AppError> {
             Ok(1)
         }

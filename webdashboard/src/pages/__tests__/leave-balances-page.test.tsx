@@ -218,10 +218,9 @@ describe("LeaveBalancesPage", () => {
     });
 
     it("shows loading state when data is pending", () => {
- 
         vi.mocked(api.fetchWorkspaceLeaveBalances).mockReturnValue(new Promise(() => { /* empty */ }));
-        renderPage();
-        expect(screen.getAllByText("common.loading").length).toBeGreaterThan(0);
+        const { container } = renderPage();
+        expect(container.querySelectorAll('.animate-pulse').length).toBeGreaterThan(0);
     });
 
     it("disables accrual button when viewing past or future years", async () => {

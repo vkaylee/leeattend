@@ -28,6 +28,21 @@ pub struct DummyLeavePolicyRepository;
 
 #[async_trait::async_trait]
 impl LeavePolicyRepository for DummyLeavePolicyRepository {
+    async fn find_default_paid_leave_type(
+        &self,
+        _workspace_id: uuid::Uuid,
+    ) -> Result<Option<uuid::Uuid>, crate::errors::AppError> {
+        Ok(None)
+    }
+
+    async fn get_leave_type_name(
+        &self,
+        _id: uuid::Uuid,
+        _workspace_id: uuid::Uuid,
+    ) -> Result<String, crate::errors::AppError> {
+        Ok("Leave".to_string())
+    }
+
     async fn get_leave_types(
         &self,
         _workspace_id: uuid::Uuid,

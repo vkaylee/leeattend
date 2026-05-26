@@ -89,10 +89,10 @@ pub async fn list_system_roles(
     .await
     .map_err(|e| AppError::Internal(e.to_string()))?;
 
-    let mut result = Vec::with_capacity(rows.len());
-
     #[derive(diesel::QueryableByName)]
     struct AssigneeRow {
+        #[diesel(sql_type = diesel::sql_types::Uuid)]
+        role_id: Uuid,
         #[diesel(sql_type = diesel::sql_types::Uuid)]
         user_id: Uuid,
         #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Uuid>)]
@@ -101,21 +101,31 @@ pub async fn list_system_roles(
         assigned_at: DateTime<Utc>,
     }
 
-    for row in rows {
-        let assignees_rows: Vec<AssigneeRow> = diesel::sql_query(
-            r#"
-            SELECT user_id, assigned_by, assigned_at
-              FROM user_system_roles
-             WHERE role_id = $1
-             ORDER BY assigned_at
-            "#,
-        )
-        .bind::<diesel::sql_types::Uuid, _>(row.id)
-        .load(&mut *conn)
-        .await
-        .map_err(|e| AppError::Internal(e.to_string()))?;
+    let role_ids: Vec<Uuid> = rows.iter().map(|r| r.id).collect();
+    let assignees_rows: Vec<AssigneeRow> = diesel::sql_query(
+        r#"
+        SELECT role_id, user_id, assigned_by, assigned_at
+          FROM user_system_roles
+         WHERE role_id = ANY($1)
+         ORDER BY assigned_at
+        "#,
+    )
+    .bind::<diesel::sql_types::Array<diesel::sql_types::Uuid>, _>(role_ids)
+    .load(&mut *conn)
+    .await
+    .map_err(|e| AppError::Internal(e.to_string()))?;
 
-        let assignees = assignees_rows
+    let mut assignees_map: std::collections::HashMap<Uuid, Vec<AssigneeRow>> =
+        std::collections::HashMap::new();
+    for a in assignees_rows {
+        assignees_map.entry(a.role_id).or_default().push(a);
+    }
+
+    let mut result = Vec::with_capacity(rows.len());
+    for row in rows {
+        let assignees = assignees_map
+            .remove(&row.id)
+            .unwrap_or_default()
             .into_iter()
             .map(|a| SystemRoleAssignment {
                 user_id: a.user_id,

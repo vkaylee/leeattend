@@ -230,6 +230,15 @@ mod tests {
             Ok(vec![])
         }
 
+        async fn create_employee_transactional(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _employee: &crate::models::Employee,
+            _recruitment_source_id: Option<Uuid>,
+        ) -> Result<(), AppError> {
+            Ok(())
+        }
+
         async fn get_employee_ids_by_numbers(
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,
@@ -469,7 +478,7 @@ mod tests {
             _s: NaiveDate,
             _en: NaiveDate,
         ) -> Result<std::collections::HashMap<Uuid, Vec<WorkingCondition>>, AppError> {
-            unimplemented!()
+            Ok(std::collections::HashMap::new())
         }
         async fn get_employee_profile(
             &self,
@@ -643,6 +652,13 @@ mod tests {
             crate::errors::AppError,
         > {
             Ok(std::collections::HashMap::new())
+        }
+
+        async fn get_raw_roster_data(
+            &self,
+            _workspace_id: Uuid,
+        ) -> Result<std::sync::Arc<crate::cache::RosterData>, AppError> {
+            Ok(std::sync::Arc::new(crate::cache::RosterData::default()))
         }
 
         async fn get_workspace_schedules(
@@ -999,6 +1015,22 @@ mod tests {
     struct DummyHolidayRepo;
     #[async_trait]
     impl crate::repositories::holiday_repository::HolidayRepository for DummyHolidayRepo {
+        async fn apply_holiday_leave_deductions(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _requests: &[crate::models::LeaveRequest],
+            _rosters: &[crate::models::ShiftRoster],
+            _logs: &[(
+                Uuid,
+                Uuid,
+                rust_decimal::Decimal,
+                chrono::NaiveDate,
+                String,
+            )],
+        ) -> Result<(), AppError> {
+            Ok(())
+        }
+
         async fn list(
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,
@@ -1097,6 +1129,15 @@ mod tests {
             _auth_token: &crate::diesel_pool::TenantAuthToken,
         ) -> Result<Vec<crate::models::Employee>, crate::errors::AppError> {
             Ok(vec![])
+        }
+
+        async fn create_employee_transactional(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _employee: &crate::models::Employee,
+            _recruitment_source_id: Option<Uuid>,
+        ) -> Result<(), AppError> {
+            Ok(())
         }
 
         async fn get_employee_ids_by_numbers(
@@ -1345,7 +1386,7 @@ mod tests {
             _s: NaiveDate,
             _en: NaiveDate,
         ) -> Result<std::collections::HashMap<Uuid, Vec<WorkingCondition>>, AppError> {
-            unimplemented!()
+            Ok(std::collections::HashMap::new())
         }
         async fn get_employee_profile(
             &self,
@@ -1411,6 +1452,13 @@ mod tests {
             crate::errors::AppError,
         > {
             Ok(std::collections::HashMap::new())
+        }
+
+        async fn get_raw_roster_data(
+            &self,
+            _workspace_id: Uuid,
+        ) -> Result<std::sync::Arc<crate::cache::RosterData>, AppError> {
+            Ok(std::sync::Arc::new(crate::cache::RosterData::default()))
         }
 
         async fn get_workspace_schedules(
@@ -1897,6 +1945,22 @@ mod tests {
     struct EmptyHolidayRepo;
     #[async_trait]
     impl crate::repositories::holiday_repository::HolidayRepository for EmptyHolidayRepo {
+        async fn apply_holiday_leave_deductions(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _requests: &[crate::models::LeaveRequest],
+            _rosters: &[crate::models::ShiftRoster],
+            _logs: &[(
+                Uuid,
+                Uuid,
+                rust_decimal::Decimal,
+                chrono::NaiveDate,
+                String,
+            )],
+        ) -> Result<(), AppError> {
+            Ok(())
+        }
+
         async fn list(
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,

@@ -285,6 +285,23 @@ impl PolicyResolver {
         rules
     }
 
+    pub fn apply_shift_overrides(mut rules: PolicyRules, overrides: &ShiftPolicyOverrides) -> PolicyRules {
+        if let Some(gp) = overrides.grace_period_minutes {
+            if gp > 0 {
+                rules.grace_period_minutes = gp;
+            }
+        }
+        if let Some(bad) = overrides.is_break_auto_deduct {
+            rules.is_break_auto_deduct = bad;
+        }
+        if let Some(aeo) = overrides.allow_early_ot {
+            rules.allow_early_ot = aeo;
+        }
+        rules.is_break_overtime = overrides.is_break_overtime;
+
+        rules
+    }
+
     /// Resolve attendance rules and apply shift-specific overrides in one call.
     ///
     /// This consolidates the repeated pattern of:
@@ -293,7 +310,7 @@ impl PolicyResolver {
     /// 3. Override `grace_period_minutes`, `is_break_auto_deduct`, `allow_early_ot`
     ///    from schedule-level fields
     ///
-    /// Used by: `report_service`, `payroll_service`, `attendance_summary_service`
+    /// Used by: `payroll_service`, `attendance_summary_service`
     pub async fn resolve_with_shift_overrides(
         policy_repo: &dyn AttendancePolicyRepository,
         employee_repo: &dyn crate::repositories::employee::EmployeeRepository,
@@ -302,7 +319,7 @@ impl PolicyResolver {
         date: NaiveDate,
         overrides: &ShiftPolicyOverrides,
     ) -> PolicyRules {
-        let mut rules = Self::resolve_attendance_rules(
+        let rules = Self::resolve_attendance_rules(
             policy_repo,
             employee_repo,
             employee_id,
@@ -320,21 +337,7 @@ impl PolicyResolver {
             allow_early_ot: overrides.allow_early_ot.unwrap_or(false),
         });
 
-        // Apply shift-specific overrides (shift config takes precedence)
-        if let Some(gp) = overrides.grace_period_minutes {
-            if gp > 0 {
-                rules.grace_period_minutes = gp;
-            }
-        }
-        if let Some(bad) = overrides.is_break_auto_deduct {
-            rules.is_break_auto_deduct = bad;
-        }
-        if let Some(aeo) = overrides.allow_early_ot {
-            rules.allow_early_ot = aeo;
-        }
-        rules.is_break_overtime = overrides.is_break_overtime;
-
-        rules
+        Self::apply_shift_overrides(rules, overrides)
     }
 }
 

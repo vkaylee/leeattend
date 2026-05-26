@@ -686,6 +686,15 @@ mod tests {
             Ok(vec![])
         }
 
+        async fn create_employee_transactional(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _employee: &Employee,
+            _recruitment_source_id: Option<Uuid>,
+        ) -> Result<(), AppError> {
+            Ok(())
+        }
+
         async fn get_employee_ids_by_numbers(
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,
@@ -898,7 +907,7 @@ mod tests {
             _en: NaiveDate,
         ) -> Result<std::collections::HashMap<Uuid, Vec<crate::models::WorkingCondition>>, AppError>
         {
-            unimplemented!()
+            Ok(std::collections::HashMap::new())
         }
         async fn get_employee_profile(
             &self,
@@ -999,6 +1008,13 @@ mod tests {
             Ok(std::collections::HashMap::new())
         }
 
+        async fn get_raw_roster_data(
+            &self,
+            _workspace_id: Uuid,
+        ) -> Result<std::sync::Arc<crate::cache::RosterData>, AppError> {
+            Ok(std::sync::Arc::new(crate::cache::RosterData::default()))
+        }
+
         async fn upsert_roster(
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,
@@ -1072,6 +1088,20 @@ mod tests {
             _t: Option<Uuid>,
         ) -> Result<Vec<LeaveHistoryLogItem>, AppError> {
             Ok(vec![])
+        }
+
+        async fn persist_accrual(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _workspace_id: Uuid,
+            _employee_id: Uuid,
+            _assignment_id: Uuid,
+            _leave_type_id: Uuid,
+            _accrual_date: NaiveDate,
+            _amount: f64,
+            _force: bool,
+        ) -> Result<Option<crate::models::LeaveAccrualLog>, AppError> {
+            Ok(None)
         }
         // Unused
         async fn find_by_employee_date_type(

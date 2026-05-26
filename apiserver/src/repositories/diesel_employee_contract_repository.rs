@@ -65,24 +65,26 @@ impl super::EmployeeContractRepository for DieselEmployeeContractRepository {
                                 }
                             );
 
-                            for (overlap_id, current_notes) in overlaps {
-                                let new_notes = match current_notes {
-                                    Some(ref n) if !n.is_empty() => {
-                                        format!("{n}\n---\n{auto_close_note}")
-                                    }
-                                    _ => auto_close_note.clone(),
-                                };
+                            let overlap_ids: Vec<Uuid> = overlaps.into_iter().map(|(o_id, _)| o_id).collect();
 
-                                diesel::update(employee_contracts.filter(id.eq(overlap_id)))
-                                    .set((
-                                        end_date.eq(new_end_date),
-                                        status.eq(ContractStatus::Expired),
-                                        notes.eq(new_notes),
-                                        updated_at.eq(chrono::Utc::now()),
-                                    ))
-                                    .execute(conn)
-                                    .await?;
-                            }
+                            diesel::sql_query(
+                                r#"
+                                UPDATE employee_contracts 
+                                SET end_date = $1, 
+                                    status = 'expired', 
+                                    updated_at = NOW(),
+                                    notes = CASE 
+                                        WHEN notes IS NULL OR notes = '' THEN $2 
+                                        ELSE notes || E'\n---\n' || $2 
+                                    END
+                                WHERE id = ANY($3)
+                                "#
+                            )
+                            .bind::<diesel::sql_types::Date, _>(new_end_date)
+                            .bind::<diesel::sql_types::Text, _>(auto_close_note)
+                            .bind::<diesel::sql_types::Array<diesel::sql_types::Uuid>, _>(overlap_ids)
+                            .execute(conn)
+                            .await?;
                         } else {
                             // If we shouldn't auto close, rollback transaction and return a specific custom error later
                             // by returning a diesel error that we will map to AppError

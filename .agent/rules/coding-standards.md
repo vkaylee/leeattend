@@ -32,6 +32,7 @@ If you see a bug, typo, or poor pattern nearby while working on a file, FIX IT I
 ## 7. Performance & Resource Optimization
 - **Performance Budget:** JS bundle `< 200KB` gzipped. Core Web Vitals: LCP < 2.5s. Zero memory leaks for SPAs.
 - **Scalability:** ZERO N+1 Queries allowed. ALL public APIs MUST implement Rate Limiting.
+- **Pure Domain Logic (N+1 Prevention):** To strictly prevent N+1 queries at the architectural level, do NOT pass Database Connections (`PgConnection`, `TenantAuthToken`) or Repositories into pure Business/Domain logic functions (e.g., calculation engines). Force data to be batch-fetched beforehand and passed in as memory structures.
 
 ## 8. Escalation Protocol
 - **The Rule:** If an error (e.g., Infra, DevOps) persists after **2 failed self-correction attempts**, STOP IMMEDIATELY. Generate an Incident Report and ask for human intervention. Do not endlessly retry.

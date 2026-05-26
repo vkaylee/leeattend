@@ -364,3 +364,92 @@ describe("fetchStaleTenants API client", () => {
     expect(typeof systemApi.fetchStaleTenants).toBe("function");
   });
 });
+
+describe("TenantsPage — Tenant Management", () => {
+  let queryClient: QueryClient;
+  const mockConfirm = vi.fn();
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+
+    vi.mocked(systemApi.fetchSystemTenants).mockResolvedValue(MOCK_TENANTS);
+    vi.mocked(systemApi.createSystemTenant).mockResolvedValue(undefined);
+    vi.mocked(systemApi.updateTenantDatabase).mockResolvedValue(undefined);
+    vi.mocked(systemApi.fetchSystemTenantStats).mockResolvedValue({
+      connection: { host: "localhost", port: 5432, masked_db_url: "postgres://masked" },
+      config: { users: [{ db_user: "user", pool_size: 10 }] }
+    } as any);
+
+    (useConfirm as Mock).mockReturnValue({
+      confirm: mockConfirm,
+      ConfirmationDialog: () => <div data-testid="confirmation-dialog"></div>,
+    });
+  });
+
+  const renderPage = () =>
+    render(
+      <QueryClientProvider client={queryClient}>
+        <ToastProvider>
+          <TenantsPage />
+        </ToastProvider>
+      </QueryClientProvider>
+    );
+
+  it("opens create modal and submits", async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    const addBtn = await screen.findByText("system_admin.tenants.add_btn");
+    await user.click(addBtn);
+
+    const dbNameInput = await screen.findByPlaceholderText("system_admin.tenants.modal.db_name_placeholder");
+    await user.type(dbNameInput, "new_db");
+
+    const submitBtn = screen.getByText("system_admin.tenants.modal.submit_btn");
+    await user.click(submitBtn);
+
+    await waitFor(() => {
+      expect(systemApi.createSystemTenant).toHaveBeenCalledWith({
+        db_name: "new_db",
+        create_db: true,
+        pool_size: 15
+      });
+    });
+  });
+
+  it("opens stats modal", async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    const statsBtns = await screen.findAllByTitle("View Connection & Stats");
+    await user.click(statsBtns[0]);
+
+    await waitFor(() => {
+      expect(systemApi.fetchSystemTenantStats).toHaveBeenCalledWith(MOCK_TENANTS[0].id);
+      expect(screen.getByText("postgres://masked")).toBeInTheDocument();
+    });
+  });
+
+  it("opens update db modal and submits", async () => {
+    const user = userEvent.setup();
+    mockConfirm.mockResolvedValueOnce(true);
+    renderPage();
+
+    const manageDbBtns = await screen.findAllByTitle("Manage Database");
+    await user.click(manageDbBtns[0]);
+
+    const urlInput = await screen.findByPlaceholderText("postgres://user:password@host:5432/db");
+    await user.type(urlInput, "postgres://new");
+
+    const updateBtn = screen.getByText("Update Database");
+    await user.click(updateBtn);
+
+    await waitFor(() => {
+      expect(systemApi.updateTenantDatabase).toHaveBeenCalledWith(MOCK_TENANTS[0].id, "postgres://new");
+    });
+  });
+});
+
