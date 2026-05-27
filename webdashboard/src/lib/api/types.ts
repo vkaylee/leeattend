@@ -776,6 +776,44 @@ export interface LeaveHistoryItem {
   transaction_type: "accrual" | "usage" | "adjustment" | "carry_over";
 }
 
+// --- Assignment (Secondment) Models ---
+
+export enum AssignmentStatus {
+  Scheduled = "scheduled",
+  Active = "active",
+  Completed = "completed",
+  Cancelled = "cancelled",
+}
+
+export interface EmployeeAssignment {
+  id: string;
+  employee_id: string;
+  workspace_id: string;
+  home_location_id: string | null;
+  host_location_id: string | null;
+  start_date: string;
+  end_date: string | null;
+  reason: string | null;
+  status: AssignmentStatus;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateEmployeeAssignmentRequest {
+  start_date: string;
+  end_date?: string | null;
+  host_location_id?: string | null;
+  reason?: string | null;
+}
+
+export interface UpdateEmployeeAssignmentRequest {
+  start_date?: string;
+  end_date?: string | null;
+  host_location_id?: string | null;
+  reason?: string | null;
+  status?: AssignmentStatus;
+}
+
 // --- Employee Self-Service (ESS) Types ---
 
 export interface EmployeeProfile {

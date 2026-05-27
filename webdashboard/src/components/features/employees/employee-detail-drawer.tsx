@@ -24,10 +24,11 @@ import { cn } from "@/lib/utils";
 
 import EmployeeContractsTab from "./employee-contracts-tab";
 import EmployeePhasesTab from "./employee-phases-tab";
+import EmployeeAssignmentsTab from "./employee-assignments-tab";
 
 
-type DetailTabType = "profile" | "contracts" | "phases" | "salary" | "policies";
-const TAB_ORDER: DetailTabType[] = ["profile", "contracts", "phases", "salary", "policies"];
+type DetailTabType = "profile" | "contracts" | "phases" | "assignments" | "salary" | "policies";
+const TAB_ORDER: DetailTabType[] = ["profile", "contracts", "phases", "assignments", "salary", "policies"];
 const SCROLL_STEP = 80;
 
 interface DeptHistoryEntry {
@@ -86,6 +87,7 @@ function DrawerHeader({
                     { id: "profile", label: t("common.profile") },
                     { id: "contracts", label: "Hợp đồng" },
                     { id: "phases", label: "Hành trình" },
+                    { id: "assignments", label: "Phái cử" },
                     { id: "salary", label: t("employees.details.salary_benefits") },
                     { id: "policies", label: t("employees.details.special_policies") }
                 ].map(tab => (
@@ -284,6 +286,14 @@ export default function EmployeeDetailDrawer({
 
                 {activeDetailTab === "phases" && (
                     <EmployeePhasesTab
+                        employeeId={employee.id}
+                        formatDate={formatDate}
+                        wsId={wsId}
+                    />
+                )}
+
+                {activeDetailTab === "assignments" && (
+                    <EmployeeAssignmentsTab
                         employeeId={employee.id}
                         formatDate={formatDate}
                         wsId={wsId}
