@@ -121,13 +121,16 @@ mod core;
 mod ess;
 mod payroll;
 mod recruitment;
-mod working_condition;
+pub mod working_condition;
 
 pub use core::*;
 pub use ess::*;
 pub use payroll::*;
 pub use recruitment::*;
 pub use working_condition::*;
+
+pub mod assignments;
+pub use assignments::*;
 
 #[async_trait]
 #[async_trait]
@@ -560,6 +563,50 @@ impl EmployeeRepository for DieselEmployeeRepository {
         doc: &crate::models::EmployeeDocument,
     ) -> Result<(), AppError> {
         EmployeeSelfServiceRepository::create_employee_document(self, doc).await
+    }
+
+    async fn list_employee_assignments(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        employee_id: Uuid,
+    ) -> Result<Vec<crate::models::employee_assignment::EmployeeAssignment>, AppError> {
+        EmployeeAssignmentRepository::list_employee_assignments(self, auth_token, employee_id).await
+    }
+
+    async fn get_employee_assignment(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        employee_id: Uuid,
+        assignment_id: Uuid,
+    ) -> Result<Option<crate::models::employee_assignment::EmployeeAssignment>, AppError> {
+        EmployeeAssignmentRepository::get_employee_assignment(self, auth_token, employee_id, assignment_id).await
+    }
+
+    async fn create_employee_assignment(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        assignment: &crate::models::employee_assignment::NewEmployeeAssignment,
+    ) -> Result<crate::models::employee_assignment::EmployeeAssignment, AppError> {
+        EmployeeAssignmentRepository::create_employee_assignment(self, auth_token, assignment).await
+    }
+
+    async fn update_employee_assignment(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        employee_id: Uuid,
+        assignment_id: Uuid,
+        req: &crate::models::employee_assignment::UpdateEmployeeAssignmentRequest,
+    ) -> Result<crate::models::employee_assignment::EmployeeAssignment, AppError> {
+        EmployeeAssignmentRepository::update_employee_assignment(self, auth_token, employee_id, assignment_id, req).await
+    }
+
+    async fn delete_employee_assignment(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        employee_id: Uuid,
+        assignment_id: Uuid,
+    ) -> Result<u64, AppError> {
+        EmployeeAssignmentRepository::delete_employee_assignment(self, auth_token, employee_id, assignment_id).await
     }
 }
 

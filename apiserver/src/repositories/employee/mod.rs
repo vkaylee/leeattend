@@ -613,4 +613,38 @@ pub trait EmployeeRepository: Send + Sync {
         &self,
         doc: &crate::models::EmployeeDocument,
     ) -> Result<(), AppError>;
+
+    async fn list_employee_assignments(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        employee_id: Uuid,
+    ) -> Result<Vec<crate::models::employee_assignment::EmployeeAssignment>, AppError>;
+
+    async fn get_employee_assignment(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        employee_id: Uuid,
+        assignment_id: Uuid,
+    ) -> Result<Option<crate::models::employee_assignment::EmployeeAssignment>, AppError>;
+
+    async fn create_employee_assignment(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        assignment: &crate::models::employee_assignment::NewEmployeeAssignment,
+    ) -> Result<crate::models::employee_assignment::EmployeeAssignment, AppError>;
+
+    async fn update_employee_assignment(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        employee_id: Uuid,
+        assignment_id: Uuid,
+        req: &crate::models::employee_assignment::UpdateEmployeeAssignmentRequest,
+    ) -> Result<crate::models::employee_assignment::EmployeeAssignment, AppError>;
+
+    async fn delete_employee_assignment(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        employee_id: Uuid,
+        assignment_id: Uuid,
+    ) -> Result<u64, AppError>;
 }

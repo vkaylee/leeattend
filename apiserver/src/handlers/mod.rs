@@ -42,6 +42,8 @@ pub mod overtime;
 pub use overtime::*;
 pub mod dashboard_preferences;
 pub mod employee_contracts;
+pub mod employee_assignments;
+pub use employee_assignments::*;
 pub mod feature_flags;
 pub mod holidays;
 pub mod leave_types;

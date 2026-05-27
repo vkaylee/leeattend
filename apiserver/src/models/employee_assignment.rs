@@ -55,7 +55,7 @@ impl FromSql<AssignmentStatus, Pg> for AssignmentStatusEnum {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Queryable, Selectable, Identifiable)]
+#[derive(Debug, Clone, Serialize, Deserialize, Queryable, Selectable, Identifiable, utoipa::ToSchema)]
 #[diesel(table_name = employee_assignments)]
 pub struct EmployeeAssignment {
     pub id: Uuid,
@@ -83,4 +83,20 @@ pub struct NewEmployeeAssignment {
     pub end_date: Option<NaiveDate>,
     pub reason: Option<String>,
     pub status: AssignmentStatusEnum,
+}
+
+#[derive(Debug, Clone, Deserialize, utoipa::ToSchema)]
+pub struct CreateEmployeeAssignmentRequest {
+    pub host_location_id: Uuid,
+    pub start_date: NaiveDate,
+    pub end_date: Option<NaiveDate>,
+    pub reason: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize, utoipa::ToSchema, AsChangeset)]
+#[diesel(table_name = employee_assignments)]
+pub struct UpdateEmployeeAssignmentRequest {
+    pub end_date: Option<Option<NaiveDate>>,
+    pub status: Option<AssignmentStatusEnum>,
+    pub reason: Option<Option<String>>,
 }
