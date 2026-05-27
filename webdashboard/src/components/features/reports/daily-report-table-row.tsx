@@ -5,7 +5,7 @@ import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { DailyAttendanceReport, AttendanceAdjustmentRequest } from "@/lib/api";
 import { cn } from "@/lib/utils";
-import { formatHours } from "@/lib/utils/attendance";
+import { formatHours, getUnitTypeI18nKey, buildWorkUnitsTooltip } from "@/lib/utils/attendance";
 
 import { ReportOtStatusBadge } from "./report-ot-status-badge";
 import { ReportStatusBadge } from "./report-status-badge";
@@ -80,14 +80,17 @@ function OtCell({
     return <span className="text-slate-200 dark:text-slate-700 font-bold">—</span>;
   }
 
+  const unitLabel = t(getUnitTypeI18nKey(row.unit_type));
+  const otTooltip = buildWorkUnitsTooltip(row.ot_work_units, unitLabel, row.unit_coefficient_hours, row.computed_ot_hours);
+
   return (
     <div className="flex flex-col items-end gap-1">
       <div
         className="cursor-help"
-        title={`Đã chấm: ${formatHours(row.computed_ot_hours)} Giờ (Hệ số: ${row.unit_coefficient_hours}h/${row.unit_type})`}
+        title={otTooltip}
       >
         <span className="font-mono font-bold text-orange-600 dark:text-orange-400 text-base tracking-tighter leading-none">
-          {row.ot_work_units} <span className="text-[10px] uppercase opacity-70 ml-0.5">{row.unit_type}</span>
+          {formatHours(row.computed_ot_hours)}<span className="text-[10px] opacity-70 ml-0.5">h</span>
         </span>
       </div>
       <ReportOtStatusBadge status={row.ot_claim_status} t={t} />
@@ -220,9 +223,9 @@ export function DailyReportTableRow({
         <td className="px-4 py-2.5 text-right">
           <div 
             className="font-mono font-bold text-primary-600 dark:text-primary-400 text-base tracking-tighter leading-none cursor-help"
-            title={`Đã chấm: ${formatHours(row.computed_std_hours)} Giờ (Hệ số: ${row.unit_coefficient_hours}h/${row.unit_type})`}
+            title={buildWorkUnitsTooltip(row.std_work_units, t(getUnitTypeI18nKey(row.unit_type)), row.unit_coefficient_hours, row.computed_std_hours)}
           >
-            {row.std_work_units} <span className="text-[10px] uppercase opacity-70 ml-0.5">{row.unit_type}</span>
+            {formatHours(row.computed_std_hours)}<span className="text-[10px] opacity-70 ml-0.5">h</span>
           </div>
         </td>
         <td className="px-4 py-2.5 text-right"><OtCell onApproveOt={onApproveOt} row={row} t={t} /></td>

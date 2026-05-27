@@ -70,11 +70,11 @@ export function BankDetailsSection({
         ))}
       </div>
       <div className="pt-8 border-t border-slate-50 dark:border-slate-800 flex justify-end">
-        <Button
-          disabled={isUpdating}
+        <Button disabled={isUpdating}
           icon={<Save size={18} />}
           loading={isUpdating}
           type="submit"
+          variant="primary"
         >
           {isUpdating ? t("common.saving").toUpperCase() : t("common.save").toUpperCase()}
         </Button>

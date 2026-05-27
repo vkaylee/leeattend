@@ -444,11 +444,11 @@ export function MonthlyRosterGrid({ hook }: MonthlyRosterGridProps) {
       <div className="bg-white dark:bg-slate-900 rounded-[28px] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden relative group/grid">
         {/* Scroll Left Button */}
         {showLeftArrow ? (
-          <Button
-            className="absolute left-4 top-1/2 -translate-y-1/2 z-30 p-3 rounded-full bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border border-slate-250/60 dark:border-slate-800 shadow-premium-lg hover:bg-primary-50 dark:hover:bg-primary-950/40 text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 hover:scale-105 active:scale-95 transition-all cursor-pointer opacity-0 group-hover/grid:opacity-100 focus:opacity-100"
+          <Button className="absolute left-4 top-1/2 -translate-y-1/2 z-30 p-3 rounded-full bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border border-slate-250/60 dark:border-slate-800 shadow-premium-lg hover:bg-primary-50 dark:hover:bg-primary-950/40 text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 hover:scale-105 active:scale-95 transition-all cursor-pointer opacity-0 group-hover/grid:opacity-100 focus:opacity-100"
             onClick={() => { scrollGrid("left"); }}
             title={t("common.previous")}
             type="button"
+            variant="ghost"
           >
             <ChevronLeft size={16} />
           </Button>
@@ -456,11 +456,11 @@ export function MonthlyRosterGrid({ hook }: MonthlyRosterGridProps) {
 
         {/* Scroll Right Button */}
         {showRightArrow ? (
-          <Button
-            className="absolute right-4 top-1/2 -translate-y-1/2 z-30 p-3 rounded-full bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border border-slate-250/60 dark:border-slate-800 shadow-premium-lg hover:bg-primary-50 dark:hover:bg-primary-950/40 text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 hover:scale-105 active:scale-95 transition-all cursor-pointer opacity-0 group-hover/grid:opacity-100 focus:opacity-100"
+          <Button className="absolute right-4 top-1/2 -translate-y-1/2 z-30 p-3 rounded-full bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border border-slate-250/60 dark:border-slate-800 shadow-premium-lg hover:bg-primary-50 dark:hover:bg-primary-950/40 text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 hover:scale-105 active:scale-95 transition-all cursor-pointer opacity-0 group-hover/grid:opacity-100 focus:opacity-100"
             onClick={() => { scrollGrid("right"); }}
             title={t("common.next")}
             type="button"
+            variant="ghost"
           >
             <ChevronRight size={16} />
           </Button>
@@ -477,12 +477,12 @@ export function MonthlyRosterGrid({ hook }: MonthlyRosterGridProps) {
             <Typography className="text-xs text-slate-450 dark:text-slate-500 max-w-xs mx-auto" variant="p">
               {t("shifts.monthly.failed_to_load")}
             </Typography>
-            <Button
-              className="mt-2 px-4 py-2 text-xs font-semibold text-white bg-primary-600 hover:bg-primary-700 active:scale-95 rounded-xl transition-all shadow-sm shadow-primary-500/10 cursor-pointer"
+            <Button className="mt-2 px-4 py-2 text-xs font-semibold text-white bg-primary-600 hover:bg-primary-700 active:scale-95 rounded-xl transition-all shadow-sm shadow-primary-500/10 cursor-pointer"
               onClick={() => {
                 void refetchMonthSchedules();
                 void refetchEmployees();
               }}
+              variant="ghost"
             >
               {t("common.retry")}
             </Button>
@@ -599,30 +599,30 @@ const RosterToolbar = memo(function RosterToolbar({
 
         <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto">
           <div className="flex items-center gap-1">
-            <Button
-              className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors border border-slate-100 dark:border-slate-800"
+            <Button className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors border border-slate-100 dark:border-slate-800"
               onClick={() => { onNavigateMonth("prev"); }}
               type="button"
+              variant="ghost"
             >
               <ChevronLeft size={16} />
             </Button>
             <span className="min-w-[140px] text-center font-bold text-xs uppercase tracking-widest text-slate-700 dark:text-slate-200">
               {monthHeaderLabel}
             </span>
-            <Button
-              className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors border border-slate-100 dark:border-slate-800"
+            <Button className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors border border-slate-100 dark:border-slate-800"
               onClick={() => { onNavigateMonth("next"); }}
               type="button"
+              variant="ghost"
             >
               <ChevronRight size={16} />
             </Button>
           </div>
 
-          <Button
-            className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold uppercase tracking-wider border border-slate-200 dark:border-slate-800 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-colors text-slate-600 dark:text-slate-300 disabled:opacity-50"
+          <Button className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold uppercase tracking-wider border border-slate-200 dark:border-slate-800 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-colors text-slate-600 dark:text-slate-300 disabled:opacity-50"
             disabled={isCopying}
             onClick={onCopyMonth}
             type="button"
+            variant="ghost"
           >
             {isCopying ? <Loader2 className="animate-spin" size={12} /> : <Copy size={12} />}
             <span>{copyLabel}</span>
@@ -722,26 +722,26 @@ const RosterActionBar = memo(function RosterActionBar({
       </div>
 
       <div className="flex items-center gap-2.5">
-        <Button
-          className="px-4 py-2 bg-white text-primary-700 hover:bg-white/90 active:scale-95 rounded-xl text-[10px] font-extrabold uppercase tracking-widest transition-all disabled:opacity-50 cursor-pointer shadow-sm"
+        <Button className="px-4 py-2 bg-white text-primary-700 hover:bg-white/90 active:scale-95 rounded-xl text-[10px] font-extrabold uppercase tracking-widest transition-all disabled:opacity-50 cursor-pointer shadow-sm"
           disabled={isMutating}
           onClick={onAssignSelected}
+          variant="ghost"
         >
           {assignLabel}
         </Button>
 
-        <Button
-          className="p-2 border border-white/20 hover:bg-white/10 text-white rounded-xl transition-all active:scale-90 disabled:opacity-50 cursor-pointer"
+        <Button className="p-2 border border-white/20 hover:bg-white/10 text-white rounded-xl transition-all active:scale-90 disabled:opacity-50 cursor-pointer"
           disabled={isMutating}
           onClick={onClearOverrides}
           title={clearLabel}
+          variant="ghost"
         >
           <Trash2 size={14} />
         </Button>
 
-        <Button
-          className="px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all cursor-pointer"
+        <Button className="px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all cursor-pointer"
           onClick={onCancel}
+          variant="ghost"
         >
           {cancelLabel}
         </Button>
@@ -943,10 +943,10 @@ const RosterCell = memo(function RosterCell({
         ) : null}
 
         {hasTraces && traces ? (
-          <Button 
-            className="absolute top-0.5 right-0.5 opacity-0 hover:opacity-100 group-hover:opacity-60 transition-opacity bg-transparent border-none p-0 cursor-default"
+          <Button className="absolute top-0.5 right-0.5 opacity-0 hover:opacity-100 group-hover:opacity-60 transition-opacity bg-transparent border-none p-0 cursor-default" 
             onClick={handleTraceClick}
             type="button"
+            variant="ghost"
           >
             <ScheduleTracePopover 
               source={source ?? "none"} 

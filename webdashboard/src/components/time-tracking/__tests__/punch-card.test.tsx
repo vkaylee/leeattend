@@ -37,7 +37,7 @@ vi.mock("@/hooks/use-datetime", () => ({
 // Mock the HoldToPunchButton since we test it separately and we just want to test if it calls the right props here
 vi.mock("../hold-to-punch-button", () => ({
   HoldToPunchButton: ({ onPunch, isPunching, label }: { isPunching: boolean; label: string; onPunch: () => void; }) => (
-    <Button disabled={isPunching} onClick={onPunch}>
+    <Button disabled={isPunching} onClick={onPunch} variant="ghost">
       {label}
     </Button>
   ),

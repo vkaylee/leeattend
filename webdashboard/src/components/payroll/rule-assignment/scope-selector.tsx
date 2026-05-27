@@ -55,8 +55,7 @@ export function ScopeSelector({
           const colors = SCOPE_COLORS[scope];
           const isActive = assigneeType === scope;
           return (
-            <Button
-              className={cn(
+            <Button className={cn(
                 "flex flex-col items-center gap-2.5 p-5 rounded-2xl border-2 transition-all active:scale-[0.97]",
                 isActive
                   ? `${colors.bg} ${colors.border} shadow-lg`
@@ -68,6 +67,7 @@ export function ScopeSelector({
                 setAssigneeId("");
               }}
               type="button"
+              variant="ghost"
             >
               <Icon
                 className={

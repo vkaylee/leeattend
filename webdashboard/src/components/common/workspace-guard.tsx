@@ -48,9 +48,9 @@ export default function WorkspaceGuard() {
       <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-800">
         <div className="text-center p-8 bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-slate-100 dark:border-slate-800 max-w-sm">
           <Typography className="text-red-500 font-bold mb-4" variant="p">{t("common.system_connection_error")}</Typography>
-          <Button
-            className="px-6 py-2 bg-primary-600 text-white rounded-xl font-bold"
+          <Button className="px-6 py-2 bg-primary-600 text-white rounded-xl font-bold"
             onClick={() => { window.location.reload(); }}
+            variant="ghost"
           >
             {t("common.retry")}
           </Button>

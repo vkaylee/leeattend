@@ -53,17 +53,17 @@ export function AssignRoleModal({
         </div>
         
         <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
-          <Button
-            className="px-5 py-2.5 text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
+          <Button className="px-5 py-2.5 text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
             onClick={onClose}
             type="button"
+            variant="ghost"
           >
             {t("common.cancel")}
           </Button>
-          <Button
-            className="px-5 py-2.5 text-sm font-bold text-white bg-primary-600 hover:bg-primary-700 rounded-xl transition-all disabled:opacity-50 shadow-md shadow-primary-200 dark:shadow-none"
+          <Button className="px-5 py-2.5 text-sm font-bold text-white bg-primary-600 hover:bg-primary-700 rounded-xl transition-all disabled:opacity-50 shadow-md shadow-primary-200 dark:shadow-none"
             disabled={isAssigning || !userIdInput.trim()}
             type="submit"
+            variant="primary"
           >
             {isAssigning ? t("system_roles.modal.assigning") : t("system_roles.modal.submit_btn")}
           </Button>

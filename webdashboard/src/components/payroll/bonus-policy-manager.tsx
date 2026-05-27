@@ -106,9 +106,9 @@ function BonusTierInput({
               value={tier.payout_amount}
             />
           </div>
-          <Button 
-            className="w-10 h-10 rounded-xl text-slate-300 dark:text-slate-600 hover:text-rose-500 hover:bg-rose-50 dark:bg-rose-950 transition-all flex items-center justify-center mt-4"
+          <Button className="w-10 h-10 rounded-xl text-slate-300 dark:text-slate-600 hover:text-rose-500 hover:bg-rose-50 dark:bg-rose-950 transition-all flex items-center justify-center mt-4" 
             onClick={() => { handleRemoveTier(index); }}
+            variant="ghost"
           >
             <Trash2 size={18} />
           </Button>
@@ -118,7 +118,7 @@ function BonusTierInput({
       <div className="space-y-4 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl">
         <div className="flex items-center justify-between">
           <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Conditions (AND)</span>
-          <Button className="text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900 px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-widest flex items-center gap-1" onClick={() => { addTierRule(index); }}>
+          <Button className="text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900 px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-widest flex items-center gap-1" onClick={() => { addTierRule(index); }} variant="primary">
             <Plus size={10} /> Add Rule
           </Button>
         </div>
@@ -147,9 +147,9 @@ function BonusTierInput({
                 type="number"
                 value={rule.value}
               />
-              <Button 
-                className="p-2 text-slate-400 hover:text-rose-500 rounded-lg transition-colors"
+              <Button className="p-2 text-slate-400 hover:text-rose-500 rounded-lg transition-colors" 
                 onClick={() => { removeTierRule(index, ruleIdx); }}
+                variant="ghost"
               >
                 <Trash2 size={14} />
               </Button>
@@ -248,7 +248,7 @@ function BonusPolicyForm({
       <div className="space-y-6">
         <div className="flex items-center justify-between px-1">
           <Typography className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em]" variant="h3">{t("payroll.incentives.tiers_config", { defaultValue: "EVALUATION TIERS" })}</Typography>
-          <Button className="text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:text-primary-300 font-bold text-[10px] uppercase tracking-widest flex items-center gap-1.5" onClick={handleAddTier}><Plus size={14} /> {t("common.add")}</Button>
+          <Button className="text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:text-primary-300 font-bold text-[10px] uppercase tracking-widest flex items-center gap-1.5" onClick={handleAddTier} variant="ghost"><Plus size={14} /> {t("common.add")}</Button>
         </div>
 
         <div className="space-y-4">
@@ -268,16 +268,16 @@ function BonusPolicyForm({
       </div>
 
       <div className="flex justify-end gap-4 pt-4">
-        <Button 
-          className="bg-transparent hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 px-8 py-4 rounded-2xl font-bold text-xs uppercase tracking-[0.2em] transition-all"
+        <Button className="bg-transparent hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 px-8 py-4 rounded-2xl font-bold text-xs uppercase tracking-[0.2em] transition-all" 
           onClick={onCancel}
+          variant="ghost"
         >
           {t("common.cancel")}
         </Button>
-        <Button 
-          className="bg-slate-900 hover:bg-primary-700 text-white px-10 py-4 rounded-2xl font-bold text-xs uppercase tracking-[0.2em] shadow-2xl active:scale-95 transition-all flex items-center gap-3 disabled:opacity-50"
+        <Button className="bg-slate-900 hover:bg-primary-700 text-white px-10 py-4 rounded-2xl font-bold text-xs uppercase tracking-[0.2em] shadow-2xl active:scale-95 transition-all flex items-center gap-3 disabled:opacity-50" 
           disabled={isPending}
           onClick={handleSave}
+          variant="ghost"
         >
           {isPending ? <Plus className="animate-spin" size={18} /> : <Save size={18} />}
           {t("common.save_settings")}
@@ -364,17 +364,17 @@ function BonusPolicyCard({
         </div>
 
         <div className="flex flex-col gap-2">
-          <Button 
-            className="p-3 rounded-2xl text-slate-400 dark:text-slate-500 hover:text-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/50 transition-all active:scale-90 flex items-center justify-center"
+          <Button className="p-3 rounded-2xl text-slate-400 dark:text-slate-500 hover:text-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/50 transition-all active:scale-90 flex items-center justify-center" 
             onClick={() => { onClone(policy.id); }}
             title="Clone Policy"
+            variant="ghost"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><rect height="13" rx="2" ry="2" width="13" x="9" y="9"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
           </Button>
-          <Button 
-            className="p-3 rounded-2xl text-slate-400 dark:text-slate-500 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950 transition-all active:scale-90 flex items-center justify-center"
+          <Button className="p-3 rounded-2xl text-slate-400 dark:text-slate-500 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950 transition-all active:scale-90 flex items-center justify-center" 
             onClick={() => { onDelete(policy.id); }}
             title="Delete Policy"
+            variant="ghost"
           >
             <Trash2 size={20} />
           </Button>
@@ -436,12 +436,12 @@ export default function BonusPolicyManager({ wsId }: BonusPolicyManagerProps) {
           </Typography>
           <Typography className="text-sm text-slate-500 dark:text-slate-400 font-medium mt-1 uppercase tracking-widest text-[10px] opacity-70" variant="p">Manage Diligence, Performance and Safety bonuses</Typography>
         </div>
-        <Button 
-          className={cn(
+        <Button className={cn(
             "flex items-center gap-2 px-6 py-3 rounded-2xl font-bold text-[10px] uppercase tracking-widest transition-all shadow-lg active:scale-95",
             isCreating ? "bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400" : "bg-primary-600 text-white hover:bg-primary-700"
-          )}
+          )} 
           onClick={() => { setIsCreating(!isCreating); }}
+          variant="ghost"
         >
           {isCreating ? t("common.cancel") : <><Plus size={16} /> {t("payroll.incentives.add_btn", { defaultValue: "NEW POLICY" })}</>}
         </Button>

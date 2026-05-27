@@ -19,8 +19,7 @@ export function ShiftsTabs({ activeTab, setActiveTab, viewMode, setViewMode }: S
   return (
     <div className="flex flex-wrap items-center justify-between gap-3">
       <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-700/50 p-1.5 rounded-[22px] w-fit border border-slate-200 dark:border-slate-700/50">
-        <Button
-          className={`flex items-center gap-2 px-6 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all ${
+        <Button className={`flex items-center gap-2 px-6 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all ${
             activeTab === "weekly-roster"
               ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800"
               : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
@@ -29,11 +28,11 @@ export function ShiftsTabs({ activeTab, setActiveTab, viewMode, setViewMode }: S
             setActiveTab("weekly-roster");
           }}
           type="button"
+          variant="ghost"
         >
           <LayoutGrid size={14} /> {t("shifts.tabs.weekly_roster")}
         </Button>
-        <Button
-          className={`flex items-center gap-2 px-6 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all ${
+        <Button className={`flex items-center gap-2 px-6 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all ${
             activeTab === "assignments"
               ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800"
               : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
@@ -42,11 +41,11 @@ export function ShiftsTabs({ activeTab, setActiveTab, viewMode, setViewMode }: S
             setActiveTab("assignments");
           }}
           type="button"
+          variant="ghost"
         >
           <Zap size={14} /> {t("shifts.tabs.fixed_assignments", "Patterns & Rules")}
         </Button>
-        <Button
-          className={`flex items-center gap-2 px-6 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all ${
+        <Button className={`flex items-center gap-2 px-6 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all ${
             activeTab === "directory"
               ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800"
               : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
@@ -55,6 +54,7 @@ export function ShiftsTabs({ activeTab, setActiveTab, viewMode, setViewMode }: S
             setActiveTab("directory");
           }}
           type="button"
+          variant="ghost"
         >
           <List size={14} /> {t("shifts.tabs.directory")}
         </Button>
@@ -62,26 +62,26 @@ export function ShiftsTabs({ activeTab, setActiveTab, viewMode, setViewMode }: S
 
       {activeTab === "weekly-roster" && !!viewMode && !!setViewMode && (
         <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-700/50 p-1.5 rounded-[22px] border border-slate-200 dark:border-slate-700/50">
-          <Button
-            className={`flex items-center gap-1.5 px-4 py-2 rounded-[18px] text-[10px] font-bold uppercase tracking-wider transition-all ${
+          <Button className={`flex items-center gap-1.5 px-4 py-2 rounded-[18px] text-[10px] font-bold uppercase tracking-wider transition-all ${
               viewMode === "week"
                 ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800"
                 : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
             }`}
             onClick={() => { setViewMode("week"); }}
             type="button"
+            variant="ghost"
           >
             <LayoutGrid size={12} />
             <span>{t("shifts.monthly.view_week", "Tuần")}</span>
           </Button>
-          <Button
-            className={`flex items-center gap-1.5 px-4 py-2 rounded-[18px] text-[10px] font-bold uppercase tracking-wider transition-all ${
+          <Button className={`flex items-center gap-1.5 px-4 py-2 rounded-[18px] text-[10px] font-bold uppercase tracking-wider transition-all ${
               viewMode === "month"
                 ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800"
                 : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
             }`}
             onClick={() => { setViewMode("month"); }}
             type="button"
+            variant="ghost"
           >
             <CalendarDays size={12} />
             <span>{t("shifts.monthly.view_month", "Tháng")}</span>

@@ -1434,6 +1434,12 @@
       "ot_hours": "Overtime Hours",
       "total_units": "Total Units"
     },
+    "timekeeping_unit": {
+      "day": "Day",
+      "shift": "Shift",
+      "hour": "Hour",
+      "minute": "Minute"
+    },
     "messages": {
       "generating": "Generating report...",
       "no_data": "No data found for this period."

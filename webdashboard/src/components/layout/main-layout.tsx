@@ -53,9 +53,9 @@ function WorkspaceSwitcherModal({ isOpen, onClose }: { isOpen: boolean; onClose:
         <Typography className="text-sm text-slate-500 dark:text-slate-400 font-medium px-1" variant="p">{t("common.select_workspace_desc")}</Typography>
         <WorkspaceSwitcher />
         <div className="pt-6 border-t border-slate-50 dark:border-slate-800 flex justify-end">
-          <Button
-            className="px-8 py-3 bg-slate-100 dark:bg-slate-800 text-foreground/70 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
+          <Button className="px-8 py-3 bg-slate-100 dark:bg-slate-800 text-foreground/70 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
             onClick={onClose}
+            variant="ghost"
           >
             {t("common.close")}
           </Button>

@@ -18,8 +18,7 @@ export function AttendanceLogsTabs({ activeTab, setActiveTab, stagingCount }: At
 
   return (
     <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm p-1 flex items-center gap-1 w-fit">
-      <Button
-        className={cn(
+      <Button className={cn(
           "px-6 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all flex items-center gap-2",
           activeTab === "recorded"
             ? "bg-primary-50 dark:bg-primary-950 text-primary-600 dark:text-primary-400 shadow-sm border border-primary-100 dark:border-primary-800"
@@ -27,12 +26,12 @@ export function AttendanceLogsTabs({ activeTab, setActiveTab, stagingCount }: At
         )}
         onClick={() => { setActiveTab("recorded"); }}
         type="button"
+        variant="ghost"
       >
         <Clock size={14} />
         {t("attendance_logs.tabs.recorded")}
       </Button>
-      <Button
-        className={cn(
+      <Button className={cn(
           "px-6 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all flex items-center gap-2",
           activeTab === "unknown"
             ? "bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-300 shadow-sm border border-amber-100 dark:border-amber-800"
@@ -40,6 +39,7 @@ export function AttendanceLogsTabs({ activeTab, setActiveTab, stagingCount }: At
         )}
         onClick={() => { setActiveTab("unknown"); }}
         type="button"
+        variant="ghost"
       >
         <AlertTriangle size={14} />
         {t("attendance_logs.tabs.unknown")}

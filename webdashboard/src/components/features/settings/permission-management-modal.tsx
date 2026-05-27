@@ -56,11 +56,11 @@ function AssignPermissionForm({
                     {!!searchTerm && filteredAvailable.length > 0 && (
                         <div className="max-h-48 overflow-y-auto rounded-2xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-lg">
                             {filteredAvailable.map((p) => (
-                                <Button
-                                    className={`w-full text-left px-6 py-3 text-sm font-mono hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors ${newPermission === p ? "bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-400 font-bold" : "text-slate-600 dark:text-slate-300"}`}
+                                <Button className={`w-full text-left px-6 py-3 text-sm font-mono hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors ${newPermission === p ? "bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-400 font-bold" : "text-slate-600 dark:text-slate-300"}`}
                                     key={p}
                                     onClick={() => { setNewPermission(p); setSearchTerm(p); }}
                                     type="button"
+                                    variant="ghost"
                                 >
                                     {p}
                                 </Button>
@@ -81,10 +81,10 @@ function AssignPermissionForm({
                     />
                 </div>
                 <div className="pt-2">
-                    <Button
-                        className="w-full bg-slate-900 text-white py-5 rounded-2xl font-bold text-xs uppercase tracking-[0.2em] hover:bg-amber-700 transition-all shadow-2xl shadow-slate-400 dark:shadow-black/40 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
+                    <Button className="w-full bg-slate-900 text-white py-5 rounded-2xl font-bold text-xs uppercase tracking-[0.2em] hover:bg-amber-700 transition-all shadow-2xl shadow-slate-400 dark:shadow-black/40 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
                         disabled={!newPermission || !expiresAt}
                         type="submit"
+                        variant="primary"
                     >
                         {t("members.permissions.grant_btn", { defaultValue: "Grant Permission" }).toUpperCase()}
                     </Button>
@@ -125,7 +125,7 @@ function ActivePermissionsList({
                             <Clock className="text-amber-400" size={12} /> <span>{t("members.roles.expires_at", { defaultValue: "Expires" }).toUpperCase()}: {formatDateTime(perm.expires_at)}</span>
                         </div>
                     </div>
-                    <Button className="p-3 bg-white dark:bg-slate-900 text-slate-300 dark:text-slate-600 hover:text-rose-600 dark:text-rose-300 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0 active:scale-90 flex-shrink-0 ml-4" onClick={() => { handleRevoke(perm.id); }}><Trash2 size={18} /></Button>
+                    <Button className="p-3 bg-white dark:bg-slate-900 text-slate-300 dark:text-slate-600 hover:text-rose-600 dark:text-rose-300 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0 active:scale-90 flex-shrink-0 ml-4" onClick={() => { handleRevoke(perm.id); }} variant="ghost"><Trash2 size={18} /></Button>
                 </div>
             ))}
         </div>

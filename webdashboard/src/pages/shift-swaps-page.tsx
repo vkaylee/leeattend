@@ -119,11 +119,11 @@ function ShiftSwapsContent({ t, wsId }: { t: TFunction; wsId: string }) {
       }
       emptyMessage={t("shift_swaps.messages.no_data")}
       headerActions={
-        <Button
-          icon={<Plus size={18} />}
+        <Button icon={<Plus size={18} />}
           onClick={() => {
             setShowCreateForm(!showCreateForm);
           }}
+          variant="primary"
         >
           {t("shift_swaps.create_btn")}
         </Button>

@@ -45,16 +45,16 @@ export const PayrollHeader: React.FC<PayrollHeaderProps> = ({
 
       <div className="flex items-center gap-4 bg-white dark:bg-slate-900 p-2 rounded-[2rem] border border-slate-200 dark:border-slate-700 shadow-sm">
         <div className="flex items-center bg-slate-100 dark:bg-slate-700/50 rounded-2xl p-1 shadow-inner border border-slate-200 dark:border-slate-700/50">
-          <Button 
-            className="w-10 h-10 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 hover:bg-white dark:hover:bg-slate-900 hover:shadow-sm rounded-xl transition-all" 
-            onClick={() => { onChangeMonth(-1); }}
+          <Button className="w-10 h-10 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 hover:bg-white dark:hover:bg-slate-900 hover:shadow-sm rounded-xl transition-all" 
+            onClick={() => { onChangeMonth(-1); }} 
+            variant="ghost"
           >
             <ArrowLeft size={18} />
           </Button>
           
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button className="px-6 flex flex-col items-center min-w-[160px] cursor-pointer hover:bg-white dark:hover:bg-slate-900 hover:shadow-sm rounded-xl transition-all py-1.5 group outline-none border border-transparent hover:border-slate-100 dark:border-slate-800">
+              <Button className="px-6 flex flex-col items-center min-w-[160px] cursor-pointer hover:bg-white dark:hover:bg-slate-900 hover:shadow-sm rounded-xl transition-all py-1.5 group outline-none border border-transparent hover:border-slate-100 dark:border-slate-800" variant="ghost">
                 <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest leading-none mb-1 group-hover:text-primary-500 dark:group-hover:text-primary-400 transition-colors">
                   {t("payroll.table.period")}
                 </span>
@@ -75,9 +75,9 @@ export const PayrollHeader: React.FC<PayrollHeaderProps> = ({
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <Button 
-            className="w-10 h-10 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 hover:bg-white dark:hover:bg-slate-900 hover:shadow-sm rounded-xl transition-all" 
-            onClick={() => { onChangeMonth(1); }}
+          <Button className="w-10 h-10 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 hover:bg-white dark:hover:bg-slate-900 hover:shadow-sm rounded-xl transition-all" 
+            onClick={() => { onChangeMonth(1); }} 
+            variant="ghost"
           >
             <ArrowRight size={18} />
           </Button>
@@ -85,16 +85,16 @@ export const PayrollHeader: React.FC<PayrollHeaderProps> = ({
 
         <div className="h-10 w-px bg-slate-100 dark:bg-slate-700" />
 
-        <Button 
-          className={cn(
+        <Button className={cn(
             "flex items-center gap-3 px-8 py-3 rounded-2xl font-bold text-[10px] uppercase tracking-widest transition-all shadow-lg active:scale-95",
             selectedCount > 0 
               ? "bg-primary-600 text-white shadow-primary-100 hover:bg-primary-700" 
               : "bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 shadow-none cursor-not-allowed"
-          )}
+          )} 
           data-testid="calculate-batch-btn"
           disabled={selectedCount === 0}
           onClick={() => { onOpenBatchCalc(); }}
+          variant="ghost"
         >
           <Calculator size={18} />
           {t("payroll.calculate_btn")} {selectedCount > 0 && (

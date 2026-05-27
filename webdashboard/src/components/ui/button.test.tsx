@@ -9,24 +9,24 @@ describe("Button Component", () => {
   // ── Rendering ───────────────────────────────────────────────────
 
   it("renders children text", () => {
-    render(<Button>Click Me</Button>);
+    render(<Button variant="ghost">Click Me</Button>);
     expect(screen.getByRole("button", { name: /click me/i })).toBeInTheDocument();
   });
 
   it("defaults to type='button'", () => {
-    render(<Button>Save</Button>);
+    render(<Button variant="primary">Save</Button>);
     expect(screen.getByRole("button")).toHaveAttribute("type", "button");
   });
 
   it("supports type='submit'", () => {
-    render(<Button type="submit">Submit</Button>);
+    render(<Button type="submit" variant="primary">Submit</Button>);
     expect(screen.getByRole("button")).toHaveAttribute("type", "submit");
   });
 
   // ── Variants ────────────────────────────────────────────────────
 
   it("applies primary variant classes by default", () => {
-    render(<Button>Primary</Button>);
+    render(<Button variant="ghost">Primary</Button>);
     const button = screen.getByRole("button");
     expect(button.className).toContain("bg-primary-600");
   });
@@ -60,17 +60,17 @@ describe("Button Component", () => {
   // ── Sizes ───────────────────────────────────────────────────────
 
   it("applies md size by default", () => {
-    render(<Button>Medium</Button>);
+    render(<Button variant="ghost">Medium</Button>);
     expect(screen.getByRole("button").className).toContain("px-8");
   });
 
   it("applies sm size", () => {
-    render(<Button size="sm">Small</Button>);
+    render(<Button size="sm" variant="ghost">Small</Button>);
     expect(screen.getByRole("button").className).toContain("px-4");
   });
 
   it("applies lg size", () => {
-    render(<Button size="lg">Large</Button>);
+    render(<Button size="lg" variant="ghost">Large</Button>);
     expect(screen.getByRole("button").className).toContain("px-10");
   });
 
@@ -78,7 +78,7 @@ describe("Button Component", () => {
 
   it("renders icon alongside children", () => {
     render(
-      <Button icon={<span data-testid="icon">★</span>}>With Icon</Button>,
+      <Button icon={<span data-testid="icon">★</span>} variant="ghost">With Icon</Button>,
     );
     expect(screen.getByTestId("icon")).toBeInTheDocument();
     expect(screen.getByText("With Icon")).toBeInTheDocument();
@@ -88,7 +88,7 @@ describe("Button Component", () => {
 
   it("disables button and shows spinner when loading", () => {
     render(
-      <Button icon={<span data-testid="icon">★</span>} loading>
+      <Button icon={<span data-testid="icon">★</span>} loading variant="ghost">
         Loading
       </Button>,
     );
@@ -101,12 +101,12 @@ describe("Button Component", () => {
   // ── Disabled state ──────────────────────────────────────────────
 
   it("is disabled when disabled prop is true", () => {
-    render(<Button disabled>Disabled</Button>);
+    render(<Button disabled variant="ghost">Disabled</Button>);
     expect(screen.getByRole("button")).toBeDisabled();
   });
 
   it("is disabled when loading even without explicit disabled", () => {
-    render(<Button loading>Saving</Button>);
+    render(<Button loading variant="ghost">Saving</Button>);
     expect(screen.getByRole("button")).toBeDisabled();
   });
 
@@ -114,7 +114,7 @@ describe("Button Component", () => {
 
   it("calls onClick handler when clicked", () => {
     const handler = vi.fn();
-    render(<Button onClick={handler}>Click</Button>);
+    render(<Button onClick={handler} variant="ghost">Click</Button>);
     fireEvent.click(screen.getByRole("button"));
     expect(handler).toHaveBeenCalledTimes(1);
   });
@@ -122,7 +122,7 @@ describe("Button Component", () => {
   it("does not call onClick when disabled", () => {
     const handler = vi.fn();
     render(
-      <Button disabled onClick={handler}>
+      <Button disabled onClick={handler} variant="ghost">
         Click
       </Button>,
     );
@@ -133,7 +133,7 @@ describe("Button Component", () => {
   // ── Custom className ────────────────────────────────────────────
 
   it("merges custom className", () => {
-    render(<Button className="my-custom">Custom</Button>);
+    render(<Button className="my-custom" variant="ghost">Custom</Button>);
     expect(screen.getByRole("button").className).toContain("my-custom");
   });
 
@@ -141,7 +141,7 @@ describe("Button Component", () => {
 
   it("passes through data-testid and aria attributes", () => {
     render(
-      <Button aria-label="Save changes" data-testid="my-btn">
+      <Button aria-label="Save changes" data-testid="my-btn" variant="primary">
         Save
       </Button>,
     );

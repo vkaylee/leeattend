@@ -27,7 +27,7 @@ export function AdjustmentsHeader({ onDownloadTemplate, onImportClick }: Adjustm
         <Button icon={<FileDown size={18} />} onClick={onDownloadTemplate} variant="outline">
           {t("attendance_confirm.excel_template").toUpperCase()}
         </Button>
-        <Button icon={<Upload size={18} />} onClick={onImportClick}>
+        <Button icon={<Upload size={18} />} onClick={onImportClick} variant="ghost">
           {t("attendance_confirm.import_excel").toUpperCase()}
         </Button>
       </div>

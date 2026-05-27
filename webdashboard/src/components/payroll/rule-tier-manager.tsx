@@ -76,7 +76,7 @@ export default function RuleTierManager({ wsId, ruleId, onClose: _onClose }: Pro
                 <div className="flex items-center gap-4">
                   {tier.rate !== undefined && tier.rate > 0 && <span className="text-xs font-bold text-primary-600 bg-primary-50 px-2 py-1 rounded-md">{tier.rate}%</span>}
                   {tier.fixed_amount !== undefined && tier.fixed_amount > 0 && <span className="text-xs font-bold text-rose-600 bg-rose-50 px-2 py-1 rounded-md">-{tier.fixed_amount.toLocaleString()} ₫</span>}
-                  <Button className="text-slate-400 hover:text-rose-500 transition-colors"><Trash2 size={16} /></Button>
+                  <Button className="text-slate-400 hover:text-rose-500 transition-colors" variant="ghost"><Trash2 size={16} /></Button>
                 </div>
               </div>
             ))}
@@ -99,7 +99,7 @@ export default function RuleTierManager({ wsId, ruleId, onClose: _onClose }: Pro
                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t("payroll.rule_tiers.fields.fixed_deduction")}</label>
                 <input className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold" onChange={e => { setNewTier({...newTier, fixed_amount: e.target.value ? parseFloat(e.target.value) : 0}); }} type="number" value={newTier.fixed_amount ?? ""} />
               </div>
-              <Button className="bg-primary-600 text-white p-2.5 rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50" disabled={createMutation.isPending} type="submit">
+              <Button className="bg-primary-600 text-white p-2.5 rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50" disabled={createMutation.isPending} type="submit" variant="primary">
                 <Plus size={16} />
               </Button>
             </form>

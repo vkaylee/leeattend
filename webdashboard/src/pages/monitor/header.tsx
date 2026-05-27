@@ -37,11 +37,11 @@ export function MonitorHeader({
         </div>
       </div>
 
-      <Button
-        className="flex items-center gap-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 px-6 py-3 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-all font-bold text-xs uppercase tracking-widest shadow-lg dark:shadow-black/20 active:scale-95 disabled:opacity-50"
+      <Button className="flex items-center gap-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 px-6 py-3 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-all font-bold text-xs uppercase tracking-widest shadow-lg dark:shadow-black/20 active:scale-95 disabled:opacity-50"
         disabled={isFetching}
         onClick={onRefresh}
         type="button"
+        variant="ghost"
       >
         <RefreshCw className={cn(isFetching && "animate-spin")} size={16} />
         {t("common.refresh")}

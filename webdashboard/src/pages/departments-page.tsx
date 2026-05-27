@@ -36,7 +36,7 @@ export default function DepartmentsPage() {
     <div className="space-y-10 animate-in fade-in duration-700 pb-20">
       <PageHeader
         actions={
-          <Button data-testid="add-dept-btn" icon={<Plus size={18} />} onClick={() => { setEditingDept(null); setIsModalOpen(true); }}>{t("departments.add_btn").toUpperCase()}</Button>
+          <Button data-testid="add-dept-btn" icon={<Plus size={18} />} onClick={() => { setEditingDept(null); setIsModalOpen(true); }} variant="ghost">{t("departments.add_btn").toUpperCase()}</Button>
         }
         data-testid="departments-title"
         icon={<Building2 size={24} />}

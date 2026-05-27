@@ -35,7 +35,7 @@ export function AttendanceLogsHeader({ dateRange, setIsImportDialogOpen }: Atten
           {t("attendance_logs.export_btn")}
         </Button>
         <PermissionGate permission="attendance_staging:manage">
-          <Button icon={<Upload size={14} />} onClick={() => { setIsImportDialogOpen(true); }} size="sm">
+          <Button icon={<Upload size={14} />} onClick={() => { setIsImportDialogOpen(true); }} size="sm" variant="ghost">
             {t("attendance_logs.import_btn")}
           </Button>
         </PermissionGate>

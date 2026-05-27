@@ -42,13 +42,13 @@ function ApprovalListTabs({ activeTab, onTabChange, tabs }: { activeTab: string;
         }
 
         return (
-          <Button
-            className={cn(
+          <Button className={cn(
               "flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all",
               activeClasses
             )}
             key={tab.id}
             onClick={() => { onTabChange(tab.id); }}
+            variant="ghost"
           >
             {tab.icon} {tab.label}
           </Button>

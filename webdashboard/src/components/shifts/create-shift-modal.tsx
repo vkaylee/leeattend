@@ -138,10 +138,10 @@ function BreakConfigPanel({
         <Typography className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest" variant="h4">{t("shifts.modal.break_config")}</Typography>
         <div className="flex items-center gap-2">
           <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">{t("shifts.types.fixed")}</span>
-          <Button
-            className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${isFixedBreak ? 'bg-primary-600' : 'bg-slate-200 dark:bg-slate-600'}`}
+          <Button className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${isFixedBreak ? 'bg-primary-600' : 'bg-slate-200 dark:bg-slate-600'}`}
             onClick={() => { setIsFixedBreak(!isFixedBreak); }}
             type="button"
+            variant="ghost"
           >
             <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white dark:bg-slate-900 transition-transform ${isFixedBreak ? 'translate-x-5' : 'translate-x-1'}`} />
           </Button>
@@ -260,16 +260,16 @@ export function CreateShiftModal({
         </div>
 
         <div className="flex gap-3">
-          <Button
-            className="flex-1 px-6 py-4 rounded-2xl font-bold text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all"
+          <Button className="flex-1 px-6 py-4 rounded-2xl font-bold text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all"
             onClick={onClose}
+            variant="ghost"
           >
             {t("common.cancel")}
           </Button>
-          <Button
-            className="flex-1 bg-primary-600 hover:bg-primary-700 text-white font-bold px-6 py-4 rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-primary-100 transition-all active:scale-95 disabled:opacity-50 text-xs uppercase tracking-widest"
+          <Button className="flex-1 bg-primary-600 hover:bg-primary-700 text-white font-bold px-6 py-4 rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-primary-100 transition-all active:scale-95 disabled:opacity-50 text-xs uppercase tracking-widest"
             disabled={isLoading}
             onClick={onCreateShift}
+            variant="primary"
           >
             <Save className="w-4 h-4" /> {t("shifts.modal.save_shift_btn")}
           </Button>

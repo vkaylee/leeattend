@@ -31,36 +31,36 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
       </div>
 
       <div className="flex bg-slate-100 dark:bg-slate-700/50 p-1.5 rounded-[22px] w-fit border border-slate-200 dark:border-slate-700/50 shadow-inner">
-        <Button 
-          className={cn(
+        <Button className={cn(
             "flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all", 
             activeTab === 'profile' 
               ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800" 
               : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
           )} 
-          onClick={() => { setActiveTab("profile"); }}
+          onClick={() => { setActiveTab("profile"); }} 
+          variant="ghost"
         >
           <UserCircle size={14} /> {t("common.profile")}
         </Button>
-        <Button 
-          className={cn(
+        <Button className={cn(
             "flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all", 
             activeTab === 'personalization' 
               ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800" 
               : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
           )} 
-          onClick={() => { setActiveTab("personalization"); }}
+          onClick={() => { setActiveTab("personalization"); }} 
+          variant="ghost"
         >
           <Palette size={14} /> {t("profile.personalization.title")}
         </Button>
-        <Button 
-          className={cn(
+        <Button className={cn(
             "flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all", 
             activeTab === 'security' 
               ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800" 
               : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
           )} 
-          onClick={() => { setActiveTab("security"); }}
+          onClick={() => { setActiveTab("security"); }} 
+          variant="ghost"
         >
           <ShieldCheck size={14} /> {t("profile.security.title")}
         </Button>

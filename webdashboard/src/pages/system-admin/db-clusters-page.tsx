@@ -126,7 +126,7 @@ export default function DbClustersPage() {
           title="Database Clusters"
         />
         <div className="flex items-center gap-3">
-          <Button onClick={() => { setIsModalOpen(true); }}>
+          <Button onClick={() => { setIsModalOpen(true); }} variant="primary">
             <Plus className="w-4 h-4 mr-2" />
             Add Cluster
           </Button>
@@ -144,7 +144,7 @@ export default function DbClustersPage() {
           <Database className="w-12 h-12 text-slate-300 dark:text-slate-700 mx-auto mb-4" />
           <Typography className="text-lg font-medium text-slate-900 dark:text-white mb-2" variant="h3">No Database Clusters</Typography>
           <Typography className="text-slate-500 mb-6" variant="p">You have not configured any database clusters yet.</Typography>
-          <Button onClick={() => { setIsModalOpen(true); }}>
+          <Button onClick={() => { setIsModalOpen(true); }} variant="primary">
             <Plus className="w-4 h-4 mr-2" />
             Add Your First Cluster
           </Button>

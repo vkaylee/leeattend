@@ -36,7 +36,7 @@ export interface ButtonProps
   icon?: React.ReactNode;
   loading?: boolean;
   size?: ButtonSize;
-  variant?: ButtonVariant;
+  variant: ButtonVariant;
 }
 
  
@@ -44,7 +44,7 @@ const Button = memo(
  
   forwardRef<HTMLButtonElement, ButtonProps>(function Button(
     {
-      variant = "primary",
+      variant,
       size = "md",
       icon,
       loading = false,

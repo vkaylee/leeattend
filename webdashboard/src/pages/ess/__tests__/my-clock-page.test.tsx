@@ -52,8 +52,8 @@ vi.mock("../components/my-clock-skeleton", () => ({
 vi.mock("@/components/time-tracking/punch-card", () => ({
   PunchCard: ({ onPunch, onRequestAdjustment }: any) => (
     <div data-testid="punch-card">
-      <Button data-testid="punch-btn" onClick={onPunch}>Punch</Button>
-      <Button data-testid="adjust-btn" onClick={onRequestAdjustment}>Adjust</Button>
+      <Button data-testid="punch-btn" onClick={onPunch} variant="ghost">Punch</Button>
+      <Button data-testid="adjust-btn" onClick={onRequestAdjustment} variant="ghost">Adjust</Button>
     </div>
   )
 }));
@@ -62,8 +62,8 @@ vi.mock("@/components/time-tracking/adjustment-request-modal", () => ({
   AdjustmentRequestModal: ({ isOpen, onClose, onSubmit }: any) => (
     isOpen ? (
       <div data-testid="adjustment-modal">
-        <Button data-testid="close-modal" onClick={onClose}>Close</Button>
-        <Button data-testid="submit-modal" onClick={() => onSubmit({ date: "2026-05-01", punchIn: "08:00", punchOut: "17:00", reason: "Forgot" })}>Submit</Button>
+        <Button data-testid="close-modal" onClick={onClose} variant="ghost">Close</Button>
+        <Button data-testid="submit-modal" onClick={() => onSubmit({ date: "2026-05-01", punchIn: "08:00", punchOut: "17:00", reason: "Forgot" })} variant="ghost">Submit</Button>
       </div>
     ) : null
   )

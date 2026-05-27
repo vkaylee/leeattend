@@ -19,12 +19,12 @@ export function ShiftSwapGuide({
 }: ShiftSwapGuideProps) {
   return (
     <div className="bg-gradient-to-br from-blue-50 to-sky-50 dark:from-blue-950/30 dark:to-sky-950/30 border border-blue-100 dark:border-blue-800/50 rounded-[2rem] overflow-hidden shadow-sm">
-      <Button
-        className="flex items-center justify-between w-full px-8 py-5 group"
+      <Button className="flex items-center justify-between w-full px-8 py-5 group"
         onClick={() => {
           setShowGuide(!showGuide);
         }}
         type="button"
+        variant="ghost"
       >
         <div className="flex items-center gap-3">
           <div className="p-2 bg-blue-100 dark:bg-blue-900/50 rounded-xl">

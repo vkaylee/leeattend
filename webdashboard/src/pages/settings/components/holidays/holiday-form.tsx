@@ -234,16 +234,16 @@ export function HolidayForm({ editingHoliday, formActions, formState, leaveTypes
                 <HolidayWorkPolicySection formActions={formActions} formState={formState} />
 
                 <div className="flex gap-2 justify-end">
-                    <Button
-                        className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-sm font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"
+                    <Button className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-sm font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"
                         onClick={formActions.resetForm}
                         type="button"
+                        variant="ghost"
                     >
                         {t("common.cancel")}
                     </Button>
-                    <Button
-                        className="px-4 py-2 bg-primary-600 text-white rounded-xl font-bold text-sm hover:bg-primary-700 transition-colors"
+                    <Button className="px-4 py-2 bg-primary-600 text-white rounded-xl font-bold text-sm hover:bg-primary-700 transition-colors"
                         type="submit"
+                        variant="primary"
                     >
                         {editingHoliday ? t("common.update") : t("common.create")}
                     </Button>

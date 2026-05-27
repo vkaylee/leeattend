@@ -45,7 +45,7 @@ export default function AssignmentRulesPage() {
             {t("rules.subtitle")}
           </Typography>
         </div>
-        <Button icon={<Plus size={18} />} onClick={openCreateModal}>
+        <Button icon={<Plus size={18} />} onClick={openCreateModal} variant="primary">
           {t("rules.create_btn").toUpperCase()}
         </Button>
       </div>

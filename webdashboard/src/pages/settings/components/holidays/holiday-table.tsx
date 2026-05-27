@@ -82,15 +82,15 @@ function HolidayTableRow({ h, leaveTypes, onDelete, onEdit }: { h: Holiday; leav
             </td>
             <td className="px-4 py-3">
                 <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Button
-                        className="p-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-primary-600 hover:bg-primary-50 transition-colors"
+                    <Button className="p-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-primary-600 hover:bg-primary-50 transition-colors"
                         onClick={() => { onEdit(h); }}
+                        variant="ghost"
                     >
                         <Pencil size={14} />
                     </Button>
-                    <Button
-                        className="p-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                    <Button className="p-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition-colors"
                         onClick={() => { onDelete(h.id); }}
+                        variant="ghost"
                     >
                         <Trash2 size={14} />
                     </Button>

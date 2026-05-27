@@ -107,7 +107,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
           </div>
 
           <div className="pt-8 border-t border-slate-50 dark:border-slate-800 flex justify-end">
-            <Button icon={<Save size={18} />} loading={isUpdating} size="lg" type="submit">
+            <Button icon={<Save size={18} />} loading={isUpdating} size="lg" type="submit" variant="primary">
               {isUpdating ? t("common.loading").toUpperCase() : t("common.save").toUpperCase()}
             </Button>
           </div>

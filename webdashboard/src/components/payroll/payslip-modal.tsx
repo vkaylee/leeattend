@@ -54,15 +54,15 @@ export default function PayslipModal({
               </div>
             </div>
             <div className='flex items-center gap-3'>
-              <Button
-                className='flex items-center gap-2 px-6 py-2.5 bg-slate-900 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-slate-800 transition-all shadow-lg active:scale-95'
+              <Button className='flex items-center gap-2 px-6 py-2.5 bg-slate-900 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-slate-800 transition-all shadow-lg active:scale-95'
                 data-testid="payslip-print-btn"
                 onClick={handlePrint}
+                variant="ghost"
               >
                 <Printer size={14} /> Print Payslip
               </Button>
               <Dialog.Close asChild>
-                <Button className='w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:text-rose-300 transition-all' data-testid="payslip-close-btn">
+                <Button className='w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:text-rose-300 transition-all' data-testid="payslip-close-btn" variant="ghost">
                   <X size={20} />
                 </Button>
               </Dialog.Close>

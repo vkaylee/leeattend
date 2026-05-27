@@ -47,7 +47,7 @@ const TestComponent = ({ onResult }: { onResult: (res: boolean) => void }) => {
 
   return (
     <div>
-      <Button onClick={handleAction}>Trigger Confirm</Button>
+      <Button onClick={handleAction} variant="primary">Trigger Confirm</Button>
       <ConfirmationDialog />
     </div>
   );

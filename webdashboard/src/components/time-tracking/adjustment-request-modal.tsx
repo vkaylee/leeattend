@@ -163,17 +163,17 @@ export function AdjustmentRequestModal({
         <AdjustmentFormFields formData={formData} setFormData={setFormData} t={t} />
 
         <div className="pt-6 grid grid-cols-2 gap-5">
-          <Button
-            className="px-8 py-4 border border-slate-100 dark:border-slate-800 rounded-2xl font-bold text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all"
+          <Button className="px-8 py-4 border border-slate-100 dark:border-slate-800 rounded-2xl font-bold text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all"
             onClick={onClose}
             type="button"
+            variant="ghost"
           >
             {t("common.cancel")}
           </Button>
-          <Button
-            className="px-8 py-4 bg-slate-900 text-white rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-slate-200 dark:shadow-black/30 active:scale-95 disabled:opacity-50"
+          <Button className="px-8 py-4 bg-slate-900 text-white rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-slate-200 dark:shadow-black/30 active:scale-95 disabled:opacity-50"
             disabled={isSubmitting}
             type="submit"
+            variant="primary"
           >
             {isSubmitting ? t("common.sending").toUpperCase() : t("common.submit_request")}
           </Button>

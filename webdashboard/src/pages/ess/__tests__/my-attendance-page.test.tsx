@@ -19,9 +19,9 @@ vi.mock("@/hooks/use-ess", () => ({
 vi.mock("../components/attendance-header", () => ({
   AttendanceHeader: ({ handleNextMonth, handlePreviousMonth, handleMonthYearChange }: any) => (
     <div data-testid="attendance-header">
-      <Button data-testid="prev-month" onClick={handlePreviousMonth}>Prev</Button>
-      <Button data-testid="next-month" onClick={handleNextMonth}>Next</Button>
-      <Button data-testid="change-month" onClick={() => handleMonthYearChange(5, 2026)}>Change Month</Button>
+      <Button data-testid="prev-month" onClick={handlePreviousMonth} variant="ghost">Prev</Button>
+      <Button data-testid="next-month" onClick={handleNextMonth} variant="ghost">Next</Button>
+      <Button data-testid="change-month" onClick={() => handleMonthYearChange(5, 2026)} variant="ghost">Change Month</Button>
     </div>
   ),
 }));
@@ -32,12 +32,12 @@ vi.mock("../components/attendance-table", () => ({
       {entries.map((e: any) => (
         <div data-testid={`entry-${e.id}`} key={e.id}>
           {e.status}
-          <Button
-            data-testid={`claim-btn-${e.id}`}
+          <Button data-testid={`claim-btn-${e.id}`}
             onClick={() => {
               setSelectedSummary({ date: e.date, total_overtime_minutes: 60 });
               setClaimOpen(true);
             }}
+            variant="ghost"
           >
             Claim
           </Button>
@@ -52,7 +52,7 @@ vi.mock("@/components/ess/claim-ot-dialog", () => ({
     open ? (
       <div data-testid="claim-dialog">
         Claiming OT for {summary?.date}
-        <Button data-testid="close-claim" onClick={() => onOpenChange(false)}>Close</Button>
+        <Button data-testid="close-claim" onClick={() => onOpenChange(false)} variant="ghost">Close</Button>
       </div>
     ) : null
   ),

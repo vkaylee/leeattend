@@ -102,10 +102,10 @@ export function PayrollSummaryTableRow({
   return (
     <tr className={cn("group transition-all hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer", isSelected ? "bg-primary-50 dark:bg-primary-950/30" : "")} onClick={() => { onViewDetail(emp); }}>
       <td className="px-10 py-6" onClick={(e) => { e.stopPropagation(); }}>
-        <Button 
-          className={cn("w-6 h-6 rounded-xl border-2 flex items-center justify-center transition-all", isSelected ? "bg-primary-600 border-primary-600 text-white shadow-lg shadow-primary-100" : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 group-hover:border-primary-300")}
-          data-testid={`select-employee-${emp.id}`} 
-          onClick={() => { onToggleSelect(emp.id); }}
+        <Button className={cn("w-6 h-6 rounded-xl border-2 flex items-center justify-center transition-all", isSelected ? "bg-primary-600 border-primary-600 text-white shadow-lg shadow-primary-100" : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 group-hover:border-primary-300")} 
+          data-testid={`select-employee-${emp.id}`}
+          onClick={() => { onToggleSelect(emp.id); }} 
+          variant="ghost"
         >
           {isSelected ? <Check size={14} strokeWidth={4} /> : null}
         </Button>

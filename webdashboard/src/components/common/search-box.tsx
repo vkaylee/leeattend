@@ -45,9 +45,9 @@ export default function SearchBox({
                 value={value}
             />
             {!!value && (
-                <Button
-                    className="absolute right-4 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all active:scale-90"
+                <Button className="absolute right-4 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all active:scale-90"
                     onClick={() => { onChange(""); }}
+                    variant="ghost"
                 >
                     <X size={16} />
                 </Button>

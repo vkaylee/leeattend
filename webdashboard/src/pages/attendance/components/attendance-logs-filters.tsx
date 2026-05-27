@@ -27,14 +27,14 @@ function DateFilterButtons({ filterMode, handleFilterModeChange, specificMonth, 
   return (
     <div className="flex items-center bg-slate-100 dark:bg-slate-700/50 rounded-2xl p-1 shadow-inner border border-slate-200 dark:border-slate-700/50">
       {(["this_month", "last_month"] as const).map((mode) => (
-        <Button className={cn("px-5 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all", filterMode === mode ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200")} key={mode} onClick={() => { handleFilterModeChange(mode); }} type="button">{t(`common.filters.${mode}`)}</Button>
+        <Button className={cn("px-5 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all", filterMode === mode ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200")} key={mode} onClick={() => { handleFilterModeChange(mode); }} type="button" variant="ghost">{t(`common.filters.${mode}`)}</Button>
       ))}
       <div className="h-6 w-px bg-slate-200 dark:bg-slate-600 mx-1" />
       <div className="relative group">
-        <Button className={cn("flex items-center gap-2 px-5 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all", filterMode === "specific_month" ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200")} type="button"><CalendarRange size={14} /> {filterMode === "specific_month" ? `T${specificMonth.month}/${specificMonth.year}` : t("common.filters.specific_month")}</Button>
+        <Button className={cn("flex items-center gap-2 px-5 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all", filterMode === "specific_month" ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200")} type="button" variant="ghost"><CalendarRange size={14} /> {filterMode === "specific_month" ? `T${specificMonth.month}/${specificMonth.year}` : t("common.filters.specific_month")}</Button>
         <div className="absolute left-0 top-full mt-2 z-[100] hidden group-hover:block animate-in zoom-in-95 duration-200 origin-top-left"><MonthYearPicker month={specificMonth.month} onChange={handleSpecificMonthChange} year={specificMonth.year} /></div>
       </div>
-      <Button className={cn("px-5 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all", filterMode === "custom" ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200")} onClick={() => { handleFilterModeChange("custom"); }} type="button">{t("common.filters.custom")}</Button>
+      <Button className={cn("px-5 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all", filterMode === "custom" ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200")} onClick={() => { handleFilterModeChange("custom"); }} type="button" variant="ghost">{t("common.filters.custom")}</Button>
     </div>
   );
 }
@@ -65,7 +65,7 @@ export function AttendanceLogsFilters(props: AttendanceLogsFiltersProps) {
         <DateFilterButtons filterMode={filterMode} handleFilterModeChange={handleFilterModeChange} handleSpecificMonthChange={handleSpecificMonthChange} specificMonth={specificMonth} />
         <div className="flex-1 max-w-md flex items-center gap-3 px-2">
           <div className="flex-1"><EmployeeSearch clearOnEscape data-testid="employee-search" keyboardShortcut={["/", "Enter"]} onChange={(value) => { setEmployeeId((Array.isArray(value) ? value[0] : value) || "all"); }} placeholder={employeeId === "all" ? t("common.all_employees") : undefined} value={employeeId === "all" ? "" : employeeId} workspaceId={wsId ?? ""} /></div>
-          {employeeId !== "all" && (<Button className="p-2.5 bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 rounded-xl transition-all" onClick={() => { setEmployeeId("all"); }} type="button"><Users size={18} /></Button>)}
+          {employeeId !== "all" && (<Button className="p-2.5 bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 rounded-xl transition-all" onClick={() => { setEmployeeId("all"); }} type="button" variant="ghost"><Users size={18} /></Button>)}
         </div>
       </div>
       {filterMode === "custom" && <CustomRangeFilter dateRange={dateRange} setDateRange={setDateRange} />}

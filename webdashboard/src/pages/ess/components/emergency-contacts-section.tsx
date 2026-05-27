@@ -44,11 +44,11 @@ export function EmergencyContactsSection({
             </Typography>
           </div>
         </div>
-        <Button
-          icon={<Plus size={18} />}
+        <Button icon={<Plus size={18} />}
           onClick={() => {
             setIsContactModalOpen(true);
           }}
+          variant="ghost"
         >
           {t("ess.add_contact").toUpperCase()}
         </Button>

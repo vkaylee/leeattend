@@ -84,9 +84,9 @@ export function PunchCard({
         />
       )}
 
-      <Button
-        className="mt-8 text-primary-600 dark:text-primary-400 text-[10px] font-bold uppercase tracking-widest hover:text-primary-800 transition-colors py-2"
+      <Button className="mt-8 text-primary-600 dark:text-primary-400 text-[10px] font-bold uppercase tracking-widest hover:text-primary-800 transition-colors py-2"
         onClick={onRequestAdjustment}
+        variant="ghost"
       >
         {t("time_tracking.forgot_punch")}
       </Button>

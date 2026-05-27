@@ -57,15 +57,15 @@ export default function LeaveRequestsPage() {
       emptyMessage={t("leave_requests.messages.no_requests")}
       headerActions={
         <>
-          <Button
-            className="bg-emerald-600 hover:bg-emerald-700 shadow-emerald-100 dark:shadow-black/30 text-[10px] px-5 py-3"
+          <Button className="bg-emerald-600 hover:bg-emerald-700 shadow-emerald-100 dark:shadow-black/30 text-[10px] px-5 py-3"
             disabled={importJob?.status === "processing"}
             onClick={() => { setIsImportModalOpen(true); }}
+            variant="ghost"
           >
             <Upload size={16} />
             {t("leave_requests.upload_btn", "Upload Excel")}
           </Button>
-          <Button onClick={() => { setIsModalOpen(true); }}>
+          <Button onClick={() => { setIsModalOpen(true); }} variant="ghost">
             <Plus size={18} /> {t("leave_requests.create_btn").toUpperCase()}
           </Button>
         </>

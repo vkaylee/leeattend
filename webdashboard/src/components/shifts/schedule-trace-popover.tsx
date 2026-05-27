@@ -64,9 +64,9 @@ function OverriddenRulesSection({ overriddenRules, showOverridden, setShowOverri
 
   return (
     <div className="space-y-2 pt-2 border-t border-slate-50 dark:border-slate-800">
-      <Button 
-        className="flex items-center justify-between w-full group"
+      <Button className="flex items-center justify-between w-full group" 
         onClick={() => { setShowOverridden(!showOverridden); }}
+        variant="ghost"
       >
         <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 group-hover:text-slate-600 dark:hover:text-slate-300 dark:text-slate-600 transition-colors">
           {t("shifts.traceability.show_overridden")} ({overriddenRules.length})
@@ -112,9 +112,9 @@ export const ScheduleTracePopover: React.FC<ScheduleTracePopoverProps> = ({ trac
   return (
     <Popover.Root>
       <Popover.Trigger asChild>
-        <Button 
-          className="p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 transition-colors"
+        <Button className="p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 transition-colors" 
           onClick={(e: React.MouseEvent) => { e.stopPropagation(); }}
+          variant="ghost"
         >
           <Info size={14} />
         </Button>

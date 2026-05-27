@@ -319,12 +319,12 @@ export default function WorkingPatternsEditorPage() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="flex items-center gap-4">
-          <Button
-            className="p-3 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-850 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-2xl shadow-sm text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 active:scale-95 transition-all"
+          <Button className="p-3 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-850 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-2xl shadow-sm text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 active:scale-95 transition-all"
             onClick={() => {
               void navigate({ to: "/working-patterns" });
             }}
             type="button"
+            variant="ghost"
           >
             <ArrowLeft size={18} />
           </Button>
@@ -400,8 +400,7 @@ export default function WorkingPatternsEditorPage() {
             <div className="space-y-4">
               <label className={LABEL_BASE}>{t("patterns.form.pattern_type").toUpperCase()}</label>
               <div className="flex bg-slate-50 dark:bg-slate-800 p-1.5 rounded-2xl border border-slate-100 dark:border-slate-700/50">
-                <Button
-                  className={cn(
+                <Button className={cn(
                     "flex-1 flex items-center justify-center gap-2.5 py-3 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all",
                     patternType === "weekly"
                       ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100/50 dark:border-slate-850"
@@ -409,12 +408,12 @@ export default function WorkingPatternsEditorPage() {
                   )}
                   onClick={() => { handlePatternTypeChange("weekly"); }}
                   type="button"
+                  variant="ghost"
                 >
                   <CalendarDays size={14} />
                   {t("patterns.form.pattern_type_weekly") || "Weekly"}
                 </Button>
-                <Button
-                  className={cn(
+                <Button className={cn(
                     "flex-1 flex items-center justify-center gap-2.5 py-3 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all",
                     patternType === "rotation"
                       ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100/50 dark:border-slate-850"
@@ -422,6 +421,7 @@ export default function WorkingPatternsEditorPage() {
                   )}
                   onClick={() => { handlePatternTypeChange("rotation"); }}
                   type="button"
+                  variant="ghost"
                 >
                   <RefreshCw size={14} />
                   {t("patterns.form.pattern_type_rotation") || "Rotation"}
@@ -475,8 +475,7 @@ export default function WorkingPatternsEditorPage() {
             <div className="flex flex-wrap items-center gap-4">
               {patternType === "rotation" && (
                 <div className="flex bg-slate-50 dark:bg-slate-800 p-1.5 rounded-2xl border border-slate-100 dark:border-slate-700/50 shadow-inner">
-                  <Button
-                    className={cn(
+                  <Button className={cn(
                       "px-4 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all",
                       activeViewMode === "design"
                         ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100/50 dark:border-slate-700"
@@ -486,11 +485,11 @@ export default function WorkingPatternsEditorPage() {
                       setActiveViewMode("design");
                     }}
                     type="button"
+                    variant="ghost"
                   >
                     {t("patterns.form.view_mode_design") || "Design"}
                   </Button>
-                  <Button
-                    className={cn(
+                  <Button className={cn(
                       "px-4 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all",
                       activeViewMode === "preview"
                         ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100/50 dark:border-slate-700"
@@ -500,6 +499,7 @@ export default function WorkingPatternsEditorPage() {
                       setActiveViewMode("preview");
                     }}
                     type="button"
+                    variant="ghost"
                   >
                     {t("patterns.form.view_mode_preview") || "Preview"}
                   </Button>
@@ -557,8 +557,7 @@ export default function WorkingPatternsEditorPage() {
                     {t("patterns.form.preview_month")}
                   </label>
                   <div className="flex items-center justify-end gap-3 h-10">
-                    <Button
-                      className="p-2 border border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 active:scale-95 transition-all"
+                    <Button className="p-2 border border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 active:scale-95 transition-all"
                       onClick={() => {
                         if (previewMonth === 0) {
                           setPreviewMonth(11);
@@ -568,6 +567,7 @@ export default function WorkingPatternsEditorPage() {
                         }
                       }}
                       type="button"
+                      variant="ghost"
                     >
                       <ArrowLeft size={16} />
                     </Button>
@@ -577,8 +577,7 @@ export default function WorkingPatternsEditorPage() {
                         year: "numeric",
                       })}
                     </span>
-                    <Button
-                      className="p-2 border border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 active:scale-95 transition-all rotate-180"
+                    <Button className="p-2 border border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 active:scale-95 transition-all rotate-180"
                       onClick={() => {
                         if (previewMonth === 11) {
                           setPreviewMonth(0);
@@ -588,6 +587,7 @@ export default function WorkingPatternsEditorPage() {
                         }
                       }}
                       type="button"
+                      variant="ghost"
                     >
                       <ArrowLeft size={16} />
                     </Button>
@@ -775,13 +775,13 @@ export default function WorkingPatternsEditorPage() {
                                 <span className="text-[10px] font-bold text-primary-700 dark:text-primary-300 uppercase tracking-tight">
                                   {shiftName.toUpperCase()}
                                 </span>
-                                <Button
-                                  aria-label={`Remove ${shiftName}`}
+                                <Button aria-label={`Remove ${shiftName}`}
                                   className="p-0.5 rounded-md text-primary-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/50 transition-colors flex-shrink-0 ml-1"
                                   onClick={() => {
                                     removeShiftFromDay(index, shiftId);
                                   }}
                                   type="button"
+                                  variant="destructive"
                                 >
                                   <X size={12} />
                                 </Button>
@@ -856,13 +856,13 @@ export default function WorkingPatternsEditorPage() {
                                       {shiftName.toUpperCase()}
                                     </span>
                                   </div>
-                                  <Button
-                                    aria-label={`Remove ${shiftName}`}
+                                  <Button aria-label={`Remove ${shiftName}`}
                                     className="p-0.5 rounded-md text-primary-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/50 transition-colors flex-shrink-0 ml-1"
                                     onClick={() => {
                                       removeShiftFromDay(index, shiftId);
                                     }}
                                     type="button"
+                                    variant="destructive"
                                   >
                                     <X size={12} />
                                   </Button>

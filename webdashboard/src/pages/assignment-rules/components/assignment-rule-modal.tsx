@@ -71,12 +71,12 @@ export const AssignmentRuleModal: React.FC<AssignmentRuleModalProps> = ({
           <Button className="flex-1" onClick={onClose} size="lg" variant="ghost">
             {t("common.cancel")}
           </Button>
-          <Button 
-            className="flex-1" 
+          <Button className="flex-1" 
             icon={<Save className="w-4 h-4" />} 
             loading={isPending} 
             onClick={() => { onSubmit(); }} 
-            size="lg"
+            size="lg" 
+            variant="primary"
           >
             {editingRule ? t("common.save_changes") : t("common.create")}
           </Button>

@@ -215,7 +215,7 @@ export default function TenantsPage() {
             <SearchX className="w-4 h-4 mr-2" />
             {t("system_admin.tenants.check_stale_btn")}
           </Button>
-          <Button onClick={() => { setIsModalOpen(true); }}>
+          <Button onClick={() => { setIsModalOpen(true); }} variant="ghost">
             <Plus className="w-4 h-4 mr-2" />
             {t("system_admin.tenants.add_btn")}
           </Button>

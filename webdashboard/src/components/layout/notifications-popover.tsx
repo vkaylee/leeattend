@@ -40,7 +40,7 @@ export function NotificationsPopover() {
   return (
     <Popover onOpenChange={setIsOpen} open={isOpen}>
       <PopoverTrigger asChild>
-        <Button className="p-3 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-white dark:hover:bg-slate-800 rounded-[1.25rem] transition-all relative group border border-transparent hover:border-slate-100 dark:hover:border-slate-700 hover:shadow-xl hover:shadow-primary-900/5 outline-none">
+        <Button className="p-3 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-white dark:hover:bg-slate-800 rounded-[1.25rem] transition-all relative group border border-transparent hover:border-slate-100 dark:hover:border-slate-700 hover:shadow-xl hover:shadow-primary-900/5 outline-none" variant="ghost">
           {unreadCount > 0 && (
             <div className="absolute top-2 right-2 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 border-2 border-white dark:border-slate-900 shadow-sm group-hover:scale-110 transition-transform">
               <span className="text-[9px] font-bold text-white leading-none">
@@ -59,9 +59,9 @@ export function NotificationsPopover() {
             {t('common.notifications', { defaultValue: 'Thông báo' })}
           </Typography>
           {unreadCount > 0 && (
-            <Button 
-              className="text-xs font-medium text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 flex items-center gap-1 transition-colors"
+            <Button className="text-xs font-medium text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 flex items-center gap-1 transition-colors" 
               onClick={markAllAsRead}
+              variant="ghost"
             >
               <Check size={14} />
               Đánh dấu đã đọc
@@ -85,16 +85,16 @@ export function NotificationsPopover() {
           ) : (
             <div className="flex flex-col">
               {notifications.slice(0, 5).map((notification) => (
-                <Button 
-                  className={cn(
+                <Button className={cn(
                     "flex gap-3 p-4 border-b border-slate-100 dark:border-slate-800/50 transition-colors cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 relative group text-left w-full",
                     !notification.is_read ? "bg-primary-50/30 dark:bg-primary-900/10" : ""
-                  )}
+                  )} 
                   key={notification.id}
                   onClick={() => {
                     void markAsRead(notification.id);
                     // Could add routing logic if notification.link exists
                   }}
+                  variant="ghost"
                 >
                   {!notification.is_read && (
                     <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary-500 rounded-r-full"></div>

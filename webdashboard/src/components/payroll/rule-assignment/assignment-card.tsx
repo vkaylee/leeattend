@@ -126,25 +126,25 @@ export function AssignmentCard({
 
       {deletingId === a.id ? (
         <div className="flex items-center gap-2 animate-in fade-in duration-200">
-          <Button
-            className="px-3 py-1.5 bg-rose-600 text-white rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-rose-700 transition-all disabled:opacity-50"
+          <Button className="px-3 py-1.5 bg-rose-600 text-white rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-rose-700 transition-all disabled:opacity-50"
             disabled={isDeleting}
             onClick={() => { handleDelete(a.id); }}
+            variant="destructive"
           >
             {isDeleting ? "…" : t("common.confirm", "Confirm")}
           </Button>
-          <Button
-            className="px-3 py-1.5 bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-slate-300 dark:hover:bg-slate-600 transition-all"
+          <Button className="px-3 py-1.5 bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-slate-300 dark:hover:bg-slate-600 transition-all"
             onClick={() => { setDeletingId(null); }}
+            variant="ghost"
           >
             {t("common.cancel", "Cancel")}
           </Button>
         </div>
       ) : (
-        <Button
-          aria-label={t("payroll.delete_assignment", "Delete assignment")}
+        <Button aria-label={t("payroll.delete_assignment", "Delete assignment")}
           className="p-2.5 text-slate-300 dark:text-slate-600 hover:text-rose-500 dark:hover:text-rose-400 rounded-xl hover:bg-white dark:hover:bg-slate-900 transition-all opacity-0 group-hover:opacity-100 active:scale-90 shadow-none hover:shadow-md border border-transparent hover:border-slate-100 dark:hover:border-slate-800"
           onClick={() => { setDeletingId(a.id); }}
+          variant="ghost"
         >
           <Trash2 size={16} />
         </Button>

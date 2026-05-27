@@ -31,7 +31,7 @@ export function TableHead({ isPageSelected, onSelectPage, t }: PayrollSummaryHea
     <thead className="bg-slate-50 dark:bg-slate-800/50 sticky top-0 backdrop-blur-md z-10 border-b border-slate-100 dark:border-slate-800">
       <tr>
         <th className="px-10 py-5 w-16">
-          <Button className={cn("w-6 h-6 rounded-xl border-2 flex items-center justify-center transition-all", isPageSelected ? "bg-primary-600 border-primary-600 text-white shadow-lg shadow-primary-100" : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:border-primary-300")} onClick={onSelectPage}>
+          <Button className={cn("w-6 h-6 rounded-xl border-2 flex items-center justify-center transition-all", isPageSelected ? "bg-primary-600 border-primary-600 text-white shadow-lg shadow-primary-100" : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:border-primary-300")} onClick={onSelectPage} variant="ghost">
             {isPageSelected ? <Check size={14} strokeWidth={4} /> : null}
           </Button>
         </th>

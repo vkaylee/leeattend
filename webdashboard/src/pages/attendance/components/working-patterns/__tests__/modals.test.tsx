@@ -14,7 +14,7 @@ vi.mock("@/components/ui/modal", () => ({
       <div data-testid="modal">
         <div className="text-lg font-semibold" data-testid="modal-title">{title}</div>
         {children}
-        <Button data-testid="close-modal" onClick={onClose}>Close</Button>
+        <Button data-testid="close-modal" onClick={onClose} variant="ghost">Close</Button>
       </div>
     ) : null
   ),

@@ -36,16 +36,16 @@ export function NewVersionBanner({ onRefresh, onDismiss }: NewVersionBannerProps
             <span>A new version is available</span>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            <Button
-              className="rounded-lg bg-white/20 px-4 py-1.5 text-sm font-medium hover:bg-white/30 transition-colors"
+            <Button className="rounded-lg bg-white/20 px-4 py-1.5 text-sm font-medium hover:bg-white/30 transition-colors"
               onClick={handleRefresh}
+              variant="ghost"
             >
               Refresh
             </Button>
-            <Button
-              aria-label="Dismiss"
+            <Button aria-label="Dismiss"
               className="rounded-lg p-1.5 hover:bg-white/20 transition-colors"
               onClick={handleDismiss}
+              variant="ghost"
             >
               <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                 <path d="M18 6L6 18M6 6l12 12" />

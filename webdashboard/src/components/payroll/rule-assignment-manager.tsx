@@ -58,9 +58,9 @@ export default function RuleAssignmentManager({
             </Typography>
           </div>
         </div>
-        <Button
-          className="flex items-center gap-2 bg-teal-600 hover:bg-teal-700 text-white px-5 py-2.5 rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all shadow-lg shadow-teal-100 dark:shadow-black/30 active:scale-95"
+        <Button className="flex items-center gap-2 bg-teal-600 hover:bg-teal-700 text-white px-5 py-2.5 rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all shadow-lg shadow-teal-100 dark:shadow-black/30 active:scale-95"
           onClick={() => { setIsModalOpen(true); }}
+          variant="ghost"
         >
           <Plus size={14} /> {t("common.assign", "Assign")}
         </Button>

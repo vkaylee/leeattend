@@ -29,11 +29,11 @@ export function PatternHeader({
           >
             {t("patterns.bulk_assign_btn").toUpperCase()}
           </Button>
-          <Button
-            icon={<Plus size={18} />}
+          <Button icon={<Plus size={18} />}
             onClick={() => {
               onCreateClick();
             }}
+            variant="primary"
           >
             {t("patterns.create_btn").toUpperCase()}
           </Button>

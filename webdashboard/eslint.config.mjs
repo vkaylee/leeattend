@@ -66,6 +66,7 @@ export default tseslint.config(
 
       '@typescript-eslint/no-unused-vars': 'off',
       'unused-imports/no-unused-imports': 'error',
+      'import-x/no-named-as-default-member': 'error',
       'unused-imports/no-unused-vars': [
         'error',
         {

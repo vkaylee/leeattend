@@ -26,8 +26,7 @@ export function LeaveSettingsTabs({ activeTab, onTabChange }: LeaveSettingsTabsP
       {tabs.map((tab) => {
         const Icon = tab.icon;
         return (
-          <Button
-            className={cn(
+          <Button className={cn(
               "flex items-center gap-3 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all duration-300",
               activeTab === tab.id
                 ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800"
@@ -36,6 +35,7 @@ export function LeaveSettingsTabs({ activeTab, onTabChange }: LeaveSettingsTabsP
             data-testid={`leave-tab-${tab.id}`}
             key={tab.id}
             onClick={() => { onTabChange(tab.id); }}
+            variant="ghost"
           >
             <Icon className="w-4 h-4" />
             {tab.label}

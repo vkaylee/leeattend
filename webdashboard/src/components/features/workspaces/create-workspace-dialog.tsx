@@ -83,10 +83,10 @@ export default function CreateWorkspaceDialog({
         </div>
 
         <div className="pt-2">
-          <Button
-            className="w-full flex items-center justify-center gap-3 bg-slate-900 text-white py-4 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-slate-200 dark:shadow-black/30 active:scale-95 disabled:opacity-50"
+          <Button className="w-full flex items-center justify-center gap-3 bg-slate-900 text-white py-4 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-slate-200 dark:shadow-black/30 active:scale-95 disabled:opacity-50"
             disabled={isSubmitting || !name.trim() || !databaseUrl.trim()}
             type="submit"
+            variant="primary"
           >
             {isSubmitting ? (
               <Loader2 className="animate-spin" size={18} />

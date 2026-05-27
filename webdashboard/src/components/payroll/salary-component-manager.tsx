@@ -42,7 +42,7 @@ export default function SalaryComponentManager({ wsId }: Props) {
             <Typography className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-1.5 opacity-70" variant="p">{t("payroll.components.subtitle")}</Typography>
           </div>
         </div>
-        <Button className="flex items-center gap-3 bg-primary-600 text-white px-8 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95" onClick={() => { setIsModalOpen(true); }}><Plus size={18} /> {t("common.add").toUpperCase()}</Button>
+        <Button className="flex items-center gap-3 bg-primary-600 text-white px-8 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95" onClick={() => { setIsModalOpen(true); }} variant="ghost"><Plus size={18} /> {t("common.add").toUpperCase()}</Button>
       </div>
 
       <div className="divide-y divide-slate-50 dark:divide-slate-800 px-2">
@@ -65,7 +65,7 @@ export default function SalaryComponentManager({ wsId }: Props) {
               </div>
               
               <div className="flex items-center gap-10">
-                <Button className="p-2.5 bg-white dark:bg-slate-900 text-slate-300 dark:text-slate-600 hover:text-rose-600 dark:text-rose-300 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all opacity-0 group-hover:opacity-100 active:scale-90"><Trash2 size={18} /></Button>
+                <Button className="p-2.5 bg-white dark:bg-slate-900 text-slate-300 dark:text-slate-600 hover:text-rose-600 dark:text-rose-300 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all opacity-0 group-hover:opacity-100 active:scale-90" variant="ghost"><Trash2 size={18} /></Button>
               </div>
             </div>
           ))
@@ -117,8 +117,8 @@ export default function SalaryComponentManager({ wsId }: Props) {
           </div>
 
           <div className="flex gap-6 pt-4 border-t border-slate-50 dark:border-slate-800">
-            <Button className="flex-1 px-8 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-800 transition-all active:scale-95" onClick={() => { setIsModalOpen(false); }} type="button">{t("common.cancel").toUpperCase()}</Button>
-            <Button className="flex-[1.5] bg-primary-600 text-white rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95 disabled:opacity-50" disabled={createMutation.isPending} type="submit">{createMutation.isPending ? t("common.saving").toUpperCase() : t("common.save").toUpperCase()}</Button>
+            <Button className="flex-1 px-8 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-800 transition-all active:scale-95" onClick={() => { setIsModalOpen(false); }} type="button" variant="primary">{t("common.cancel").toUpperCase()}</Button>
+            <Button className="flex-[1.5] bg-primary-600 text-white rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95 disabled:opacity-50" disabled={createMutation.isPending} type="submit" variant="primary">{createMutation.isPending ? t("common.saving").toUpperCase() : t("common.save").toUpperCase()}</Button>
           </div>
         </form>
       </Modal>

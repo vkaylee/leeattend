@@ -1434,6 +1434,12 @@
       "ot_hours": "Giờ tăng ca",
       "total_units": "Tổng đơn vị"
     },
+    "timekeeping_unit": {
+      "day": "Công",
+      "shift": "Ca",
+      "hour": "Giờ",
+      "minute": "Phút"
+    },
     "messages": {
       "generating": "Đang tạo báo cáo...",
       "no_data": "Không có dữ liệu trong khoảng thời gian này."

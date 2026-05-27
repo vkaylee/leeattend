@@ -26,9 +26,9 @@ export const HierarchyLegend: React.FC<HierarchyLegendProps> = ({ steps, title, 
 
   return (
     <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2rem] overflow-hidden transition-all duration-500 shadow-2xl shadow-primary-900/5">
-      <Button 
-        className="w-full px-8 py-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800 transition-all bg-slate-50 dark:bg-slate-800/30"
+      <Button className="w-full px-8 py-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800 transition-all bg-slate-50 dark:bg-slate-800/30" 
         onClick={() => { setIsOpen(!isOpen); }}
+        variant="ghost"
       >
         <div className="flex items-center gap-4">
           <div className="w-10 h-10 rounded-xl bg-primary-50 dark:bg-primary-950 text-primary-600 dark:text-primary-400 flex items-center justify-center border border-primary-100 dark:border-primary-800 shadow-inner">

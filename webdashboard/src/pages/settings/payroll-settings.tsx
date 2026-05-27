@@ -93,8 +93,7 @@ export default function PayrollSettings() {
         <div className="w-full lg:w-64 shrink-0">
           <nav className="flex lg:flex-col gap-1.5 overflow-x-auto lg:overflow-visible pb-4 lg:pb-0 hide-scrollbar -mx-4 px-4 lg:mx-0 lg:px-0">
             {navItems.map((item) => (
-              <Button
-                className={cn(
+              <Button className={cn(
                   "flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all text-left whitespace-nowrap lg:whitespace-normal shrink-0 lg:shrink",
                   activeTab === item.id
                     ? "bg-slate-100 dark:bg-slate-800/80 text-primary-600 dark:text-primary-400"
@@ -103,6 +102,7 @@ export default function PayrollSettings() {
                 data-testid={item.testId}
                 key={item.id}
                 onClick={() => { setActiveTab(item.id); }}
+                variant="ghost"
               >
                 <item.icon className={cn("shrink-0", activeTab === item.id ? "text-primary-600 dark:text-primary-400" : "text-slate-400")} size={18} />
                 <span>{item.label}</span>

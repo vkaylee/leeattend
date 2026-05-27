@@ -73,19 +73,19 @@ export function AdjustmentsTableRow({
       <td className="px-10 py-6 text-right">
         {request.status === "pending" && activeTab === "pending" && (
           <div className="flex items-center justify-end gap-3 opacity-0 group-hover:opacity-100 transition-all duration-300">
-            <Button
-              className="p-3 bg-emerald-600 text-white hover:bg-emerald-700 rounded-xl shadow-lg shadow-emerald-100 transition-all active:scale-90"
+            <Button className="p-3 bg-emerald-600 text-white hover:bg-emerald-700 rounded-xl shadow-lg shadow-emerald-100 transition-all active:scale-90"
               onClick={() => { onApprove(request.id, "approved"); }}
               title={t("common.approve")}
               type="button"
+              variant="ghost"
             >
               <Check size={18} />
             </Button>
-            <Button
-              className="p-3 bg-white dark:bg-slate-900 text-rose-600 dark:text-rose-300 hover:bg-rose-50 dark:bg-rose-950 rounded-xl shadow-md border border-rose-100 dark:border-rose-800 transition-all active:scale-90"
+            <Button className="p-3 bg-white dark:bg-slate-900 text-rose-600 dark:text-rose-300 hover:bg-rose-50 dark:bg-rose-950 rounded-xl shadow-md border border-rose-100 dark:border-rose-800 transition-all active:scale-90"
               onClick={() => { onApprove(request.id, "rejected"); }}
               title={t("common.reject")}
               type="button"
+              variant="ghost"
             >
               <X size={18} />
             </Button>

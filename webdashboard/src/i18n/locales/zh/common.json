@@ -1422,6 +1422,12 @@
       "std_hours": "标准工时",
       "ot_hours": "加班工时"
     },
+    "timekeeping_unit": {
+      "day": "工",
+      "shift": "班",
+      "hour": "时",
+      "minute": "分"
+    },
     "messages": {
       "generating": "正在生成报告...",
       "no_data": "该期间内未找到数据。"

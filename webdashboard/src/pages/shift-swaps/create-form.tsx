@@ -105,11 +105,11 @@ export function ShiftSwapCreateForm({
         >
           {t("common.cancel")}
         </Button>
-        <Button
-          disabled={isPending || !requesterId || !targetId || !swapDate}
+        <Button disabled={isPending || !requesterId || !targetId || !swapDate}
           onClick={() => {
             handleCreate();
           }}
+          variant="primary"
         >
           {t("common.save")}
         </Button>

@@ -134,6 +134,7 @@ function SidebarSection({
           className="flex w-full items-center justify-between px-4 py-3 min-h-[44px] text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-[0.25em] hover:text-primary-600 dark:hover:text-primary-400 transition-colors group"
           data-testid={item.testId}
           onClick={() => { toggleSection(item.section); }}
+          variant="ghost"
         >
           <div className="flex items-center gap-2">
             <item.sectionIcon className="h-3 w-3 opacity-50 group-hover:opacity-100" />
@@ -311,6 +312,7 @@ export default function Sidebar({ isOpen, onClose, openSections, toggleSection, 
             workspace?.logo_url && !isCollapsed ? "absolute right-4 top-4" : ""
           )} 
           onClick={onClose}
+          variant="ghost"
         >
           <X className="h-5 w-5" />
         </Button>

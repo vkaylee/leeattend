@@ -39,9 +39,9 @@ export const PersonalizationTab: React.FC = () => {
           </div>
         </div>
         {isOverridden ? (
-          <Button 
-            className="flex items-center gap-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 transition-all bg-slate-50 dark:bg-slate-800 px-6 py-2.5 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm active:scale-95" 
-            onClick={() => { setUserTheme(null); }}
+          <Button className="flex items-center gap-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 transition-all bg-slate-50 dark:bg-slate-800 px-6 py-2.5 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm active:scale-95" 
+            onClick={() => { setUserTheme(null); }} 
+            variant="ghost"
           >
             <Undo2 size={14} /> {t("profile.personalization.use_workspace_default").toUpperCase()}
           </Button>
@@ -53,8 +53,7 @@ export const PersonalizationTab: React.FC = () => {
           <label className={LABEL_BASE}>{t("common.workspace_settings.primary_color")}</label>
           <div className="flex flex-wrap gap-5 items-center">
             {colorPresets.map((preset) => (
-              <Button 
-                className={cn(
+              <Button className={cn(
                   "w-14 h-14 rounded-2xl transition-all border-4 flex items-center justify-center shadow-lg group active:scale-90", 
                   primaryColor === preset.color 
                     ? 'border-slate-900 scale-110' 
@@ -63,7 +62,8 @@ export const PersonalizationTab: React.FC = () => {
                 key={preset.color} 
                 onClick={() => { setUserTheme(preset.color); }} 
                 style={{ backgroundColor: preset.color }} 
-                title={preset.name}
+                title={preset.name} 
+                variant="ghost"
               >
                 {primaryColor === preset.color && (
                   <div className="w-3 h-3 bg-white dark:bg-slate-900 rounded-full shadow-2xl animate-in zoom-in duration-300" />

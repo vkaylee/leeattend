@@ -90,8 +90,7 @@ export default function RoleFormModal({ isOpen, onClose, editingRole }: RoleForm
           <div aria-labelledby="role-color-label" className="flex flex-wrap gap-3" role="radiogroup">
             { }
             {AVAILABLE_COLORS.map(c => (
-              <Button
-                className={cn(
+              <Button className={cn(
                   "w-8 h-8 rounded-full flex items-center justify-center transition-all",
                   c.class,
                   color === c.id ? "ring-4 ring-offset-2 ring-primary-500/30 dark:ring-offset-slate-900 scale-110" : "hover:scale-110"
@@ -100,6 +99,7 @@ export default function RoleFormModal({ isOpen, onClose, editingRole }: RoleForm
                 onClick={() => { setColor(c.id); }}
                 title={c.label}
                 type="button"
+                variant="ghost"
               />
             ))}
           </div>
@@ -109,7 +109,7 @@ export default function RoleFormModal({ isOpen, onClose, editingRole }: RoleForm
           <Button onClick={onClose} type="button" variant="ghost">
             Cancel
           </Button>
-          <Button loading={isSaving} type="submit">
+          <Button loading={isSaving} type="submit" variant="primary">
             {editingRole ? "Save Changes" : "Create Role"}
           </Button>
         </div>

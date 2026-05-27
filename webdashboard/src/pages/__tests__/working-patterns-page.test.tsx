@@ -40,15 +40,15 @@ vi.mock("@/components/common/employee-search", () => ({
     const handler = onSelect || onChange || (() => { /* empty */ });
     return (
       <div data-testid="employee-search-mock">
-        <Button 
-          onClick={() => {
+        <Button onClick={() => {
             if (multiple) {
               handler(["emp-1", "emp-2"]);
             } else {
               handler("emp-1");
             }
-          }}
+          }} 
           type="button"
+          variant="ghost"
         >
           Select Employees Mock
         </Button>

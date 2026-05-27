@@ -34,10 +34,10 @@ export function LeaveAssignmentsTab({
             {t("settings.leave.tabs.assignments_desc")}
           </Typography>
         </div>
-        <Button
-          className="flex items-center gap-2 rounded-xl bg-primary-600 px-6 py-2.5 text-[10px] font-bold text-white uppercase tracking-widest hover:bg-primary-700 shadow-lg shadow-primary-100"
+        <Button className="flex items-center gap-2 rounded-xl bg-primary-600 px-6 py-2.5 text-[10px] font-bold text-white uppercase tracking-widest hover:bg-primary-700 shadow-lg shadow-primary-100"
           data-testid="assign-policy-btn"
           onClick={() => { onAssignClick(); }}
+          variant="ghost"
         >
           <UserPlus className="w-4 h-4" />
           {t("settings.leave.actions.assign")}

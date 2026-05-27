@@ -11,15 +11,15 @@ vi.mock("@/components/shifts/monthly-roster-grid", () => ({ MonthlyRosterGrid: (
 vi.mock("@/components/shifts/weekly-roster-grid", () => ({ WeeklyRosterGrid: (props: any) => {
   return (
     <div data-testid="weekly-roster">
-      <Button data-testid="btn-assign-all" onClick={props.onAssignAllWeek}>Assign All</Button>
-      <Button data-testid="btn-clear" onClick={props.onClearSelection}>Clear</Button>
-      <Button data-testid="btn-clear-week" onClick={props.onClearWeek}>Clear Week</Button>
-      <Button data-testid="btn-copy" onClick={props.onCopyPreviousWeek}>Copy Week</Button>
-      <Button data-testid="btn-delete" onClick={() => props.onDeleteRoster("2026-01-01")}>Delete</Button>
-      <Button data-testid="btn-nav" onClick={() => props.onNavigateWeek("next")}>Nav</Button>
-      <Button data-testid="btn-open-picker" onClick={() => props.onOpenShiftPicker(["2026-01-01"])}>Picker</Button>
-      <Button data-testid="btn-toggle" onClick={() => props.onToggleDaySelection("2026-01-01")}>Toggle</Button>
-      <Button data-testid="btn-toggle-existing" onClick={() => props.onToggleDaySelection("2026-01-02")}>Toggle Ex</Button>
+      <Button data-testid="btn-assign-all" onClick={props.onAssignAllWeek} variant="destructive">Assign All</Button>
+      <Button data-testid="btn-clear" onClick={props.onClearSelection} variant="destructive">Clear</Button>
+      <Button data-testid="btn-clear-week" onClick={props.onClearWeek} variant="destructive">Clear Week</Button>
+      <Button data-testid="btn-copy" onClick={props.onCopyPreviousWeek} variant="destructive">Copy Week</Button>
+      <Button data-testid="btn-delete" onClick={() => props.onDeleteRoster("2026-01-01")} variant="destructive">Delete</Button>
+      <Button data-testid="btn-nav" onClick={() => props.onNavigateWeek("next")} variant="ghost">Nav</Button>
+      <Button data-testid="btn-open-picker" onClick={() => props.onOpenShiftPicker(["2026-01-01"])} variant="ghost">Picker</Button>
+      <Button data-testid="btn-toggle" onClick={() => props.onToggleDaySelection("2026-01-01")} variant="ghost">Toggle</Button>
+      <Button data-testid="btn-toggle-existing" onClick={() => props.onToggleDaySelection("2026-01-02")} variant="ghost">Toggle Ex</Button>
     </div>
   );
 }}));
@@ -28,9 +28,9 @@ vi.mock("@/components/shifts/shift-list", () => ({ ShiftList: () => <div data-te
 vi.mock("@/components/shifts/priority-legend", () => ({ PriorityLegend: () => <div data-testid="priority-legend" /> }));
 vi.mock("@/components/shifts/assignment-history", () => ({ AssignmentHistory: () => <div data-testid="assignment-history" /> }));
 
-vi.mock("@/components/shifts/create-shift-modal", () => ({ CreateShiftModal: (props: any) => <Button data-testid="create-modal" onClick={props.onClose}>Close</Button> }));
-vi.mock("@/components/shifts/shift-picker-modal", () => ({ ShiftPickerModal: (props: any) => <Button data-testid="picker-modal" onClick={props.onClose}>Close</Button> }));
-vi.mock("@/components/shifts/edit-shift-modal", () => ({ EditShiftModal: (props: any) => <Button data-testid="edit-modal" onClick={props.onClose}>Close</Button> }));
+vi.mock("@/components/shifts/create-shift-modal", () => ({ CreateShiftModal: (props: any) => <Button data-testid="create-modal" onClick={props.onClose} variant="primary">Close</Button> }));
+vi.mock("@/components/shifts/shift-picker-modal", () => ({ ShiftPickerModal: (props: any) => <Button data-testid="picker-modal" onClick={props.onClose} variant="ghost">Close</Button> }));
+vi.mock("@/components/shifts/edit-shift-modal", () => ({ EditShiftModal: (props: any) => <Button data-testid="edit-modal" onClick={props.onClose} variant="ghost">Close</Button> }));
 
 describe("Shifts Components Unit Tests", () => {
   const mockHook = {

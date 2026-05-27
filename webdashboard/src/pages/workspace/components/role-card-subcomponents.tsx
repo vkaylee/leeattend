@@ -78,10 +78,10 @@ export const RoleCardActions = ({
   return (
     <PermissionGate permission="members:roles:manage">
       <div className="relative">
-        <Button
-          className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-colors"
+        <Button className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-colors"
           onClick={() => { setActiveMenu(activeMenu === role.id ? null : role.id); }}
           type="button"
+          variant="ghost"
         >
           <MoreVertical size={20} />
         </Button>
@@ -89,10 +89,10 @@ export const RoleCardActions = ({
         {activeMenu === role.id && (
           <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-900 rounded-2xl shadow-xl shadow-slate-200/50 dark:shadow-black/40 border border-slate-100 dark:border-slate-800 py-2 z-10 animate-in fade-in zoom-in-95 duration-200">
             {!role.is_system && (
-              <Button
-                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+              <Button className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
                 onClick={() => { onEdit(role); }}
                 type="button"
+                variant="ghost"
               >
                 <Edit2 size={16} /> {t("rolesPage.editRole", { defaultValue: "Edit Role" })}
               </Button>
@@ -106,10 +106,10 @@ export const RoleCardActions = ({
             {!role.is_system && (
               <>
                 <div className="h-px bg-slate-100 dark:bg-slate-800 my-1"></div>
-                <Button
-                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors"
+                <Button className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors"
                   onClick={() => { onDelete(role.id); }}
                   type="button"
+                  variant="destructive"
                 >
                   <Trash2 size={16} /> {t("rolesPage.deleteRole", { defaultValue: "Delete Role" })}
                 </Button>

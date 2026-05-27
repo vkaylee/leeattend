@@ -45,14 +45,14 @@ function PatternSelector({
       </label>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {patterns?.map(pattern => (
-          <Button
-            className={`p-5 rounded-[28px] border-2 text-left transition-all relative overflow-hidden group ${
+          <Button className={`p-5 rounded-[28px] border-2 text-left transition-all relative overflow-hidden group ${
               selectedPatternId === pattern.id
                 ? 'border-primary-600 bg-primary-50 dark:bg-primary-950/50'
                 : 'border-slate-100 dark:border-slate-800 hover:border-slate-200 dark:hover:border-slate-700 bg-slate-50 dark:bg-slate-800/30'
             }`}
             key={pattern.id}
             onClick={() => { setSelectedPatternId(pattern.id); }}
+            variant="ghost"
           >
             <div className={`font-bold text-sm uppercase tracking-tight ${selectedPatternId === pattern.id ? 'text-primary-700 dark:text-primary-300' : 'text-slate-700 dark:text-slate-200'}`}>
               {pattern.name}
@@ -123,13 +123,13 @@ export function PatternAssignmentForm({
               <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest flex items-center gap-2">
                 <Calendar size={12} /> {t("common.end_date")}
               </label>
-              <Button
-                className={`text-[9px] font-bold px-3 py-1 rounded-full border transition-all uppercase tracking-tighter ${
+              <Button className={`text-[9px] font-bold px-3 py-1 rounded-full border transition-all uppercase tracking-tighter ${
                   isForever
                     ? 'bg-primary-600 text-white border-primary-600'
                     : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700'
                 }`}
                 onClick={() => { setIsForever(!isForever); }}
+                variant="ghost"
               >
                 {isForever ? t("common.indefinite").toUpperCase() : t("common.definite").toUpperCase()}
               </Button>
@@ -147,10 +147,10 @@ export function PatternAssignmentForm({
             />
           </div>
         </div>
-        <Button
-          className="w-full bg-slate-900 text-white font-bold py-5 rounded-[28px] flex items-center justify-center gap-3 hover:bg-primary-700 transition-all active:scale-[0.98] disabled:opacity-50 shadow-2xl shadow-slate-200 dark:shadow-black/40 uppercase tracking-widest text-xs"
+        <Button className="w-full bg-slate-900 text-white font-bold py-5 rounded-[28px] flex items-center justify-center gap-3 hover:bg-primary-700 transition-all active:scale-[0.98] disabled:opacity-50 shadow-2xl shadow-slate-200 dark:shadow-black/40 uppercase tracking-widest text-xs"
           disabled={isLoading}
           onClick={onAssign}
+          variant="ghost"
         >
           <Save size={18} /> {t("shifts.assign_btn")}
         </Button>

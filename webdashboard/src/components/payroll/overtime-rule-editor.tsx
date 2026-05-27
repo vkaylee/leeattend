@@ -126,13 +126,13 @@ function OvertimeRuleForm({
       <div className='flex flex-wrap items-center justify-between gap-4'>
         <div className='flex items-center gap-1.5'>
           {weekdays.map(d => (
-            <Button
-              className={cn(
+            <Button className={cn(
                 'w-7 h-7 rounded-lg text-[10px] font-bold transition-all',
                 (days & d.bit) ? 'bg-primary-600 text-white shadow-sm' : 'bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
               )}
               key={d.bit}
               onClick={() => { toggleDay(d.bit); }}
+              variant="ghost"
             >
               {d.label}
             </Button>
@@ -150,8 +150,7 @@ function OvertimeRuleForm({
             <span className='text-xs font-bold text-slate-500 dark:text-slate-400 group-hover:text-slate-700 dark:hover:text-slate-200 transition-colors'>Holiday Only</span>
           </label>
           
-          <Button
-            className='bg-primary-600 text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-primary-700 transition-all shadow-sm'
+          <Button className='bg-primary-600 text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-primary-700 transition-all shadow-sm'
             disabled={isPending}
             onClick={() => { 
               onSubmit({
@@ -163,6 +162,7 @@ function OvertimeRuleForm({
                 is_holiday: isHoliday
               }); 
             }}
+            variant="ghost"
           >
             {t('common.save')}
           </Button>
@@ -191,9 +191,9 @@ export default function OvertimeRuleEditor({ wsId, policyId, rules }: OvertimeRu
     <div className='mt-6 space-y-4 border-t border-slate-100 dark:border-slate-800 pt-6'>
       <div className='flex items-center justify-between'>
         <Typography className='text-sm font-bold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400' variant="h4">{t('payroll.rules')}</Typography>
-        <Button
-          className='flex items-center gap-1.5 text-xs font-bold text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:text-primary-300 transition-colors'
+        <Button className='flex items-center gap-1.5 text-xs font-bold text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:text-primary-300 transition-colors'
           onClick={() => { setIsAdding(!isAdding); }}
+          variant="ghost"
         >
           <Plus size={14} />
           {t('payroll.add_rule')}

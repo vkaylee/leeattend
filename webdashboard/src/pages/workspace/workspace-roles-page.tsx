@@ -35,10 +35,10 @@ export default function WorkspaceRolesPage() {
           title={t("rolesPage.title", { defaultValue: "Role Management" })}
         />
         <PermissionGate permission="members:roles:manage">
-          <Button
-            className="flex items-center gap-2 bg-primary-600 hover:bg-primary-700 text-white px-5 py-2.5 rounded-2xl font-bold text-sm transition-all shadow-lg shadow-primary-200 dark:shadow-primary-900/20 hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0"
+          <Button className="flex items-center gap-2 bg-primary-600 hover:bg-primary-700 text-white px-5 py-2.5 rounded-2xl font-bold text-sm transition-all shadow-lg shadow-primary-200 dark:shadow-primary-900/20 hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0"
             onClick={handleCreate}
             type="button"
+            variant="primary"
           >
             <Plus size={18} />
             {t("rolesPage.createRole", { defaultValue: "Create Role" })}

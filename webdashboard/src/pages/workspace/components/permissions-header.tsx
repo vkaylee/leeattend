@@ -53,7 +53,7 @@ export function PermissionsHeader({
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button className="flex items-center gap-2 px-4 py-2.5 rounded-2xl font-bold text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-sm">
+            <Button className="flex items-center gap-2 px-4 py-2.5 rounded-2xl font-bold text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-sm" variant="ghost">
               <SlidersHorizontal className="text-slate-500" size={16} />
               {t("common.columns", { defaultValue: "Columns" })}
             </Button>
@@ -85,8 +85,7 @@ export function PermissionsHeader({
         </DropdownMenu>
 
         <PermissionGate permission="members:roles:manage">
-          <Button
-            className={cn(
+          <Button className={cn(
               "flex items-center gap-2 px-5 py-2.5 rounded-2xl font-bold text-sm transition-all",
               hasChanges
                 ? "bg-primary-600 hover:bg-primary-700 text-white shadow-lg shadow-primary-200 dark:shadow-primary-900/20 hover:-translate-y-0.5"
@@ -95,6 +94,7 @@ export function PermissionsHeader({
             disabled={!hasChanges || isSaving}
             onClick={onSave}
             type="button"
+            variant="ghost"
           >
             {isSaving ? (
               <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />

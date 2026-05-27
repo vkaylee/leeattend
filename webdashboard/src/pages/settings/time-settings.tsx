@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Clock, Plus } from "lucide-react";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, ButtonHTMLAttributes } from "react";
 import { useTranslation } from "react-i18next";
 
 import { TFunction } from "i18next";
@@ -381,19 +381,19 @@ function TabContent({
   );
 }
 
-interface ButtonProps {
+interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   children: React.ReactNode;
   className?: string;
   icon?: React.ReactNode;
   loading?: boolean;
-  onClick: () => void;
   size?: "lg" | "sm";
-  variant?: "outline" | "secondary";
+  variant?: "outline" | "secondary" | "primary" | "ghost";
 }
 
-function Button({ children, className, icon, loading, onClick, size, variant }: ButtonProps) {
+function Button({ children, className, icon, loading, onClick, size, variant, ...props }: ButtonProps) {
   return (
-    <Button
+    <button
+      {...props}
       className={cn(
         "flex items-center gap-2 px-6 py-3.5 rounded-2xl font-bold transition-all active:scale-95 disabled:opacity-50",
         variant === "outline"
@@ -402,14 +402,12 @@ function Button({ children, className, icon, loading, onClick, size, variant }: 
         size === "lg" ? "px-8 py-4 text-sm" : "text-xs",
         className
       )}
-      disabled={loading}
-      onClick={() => {
-        onClick();
-      }}
-      type="button"
+      disabled={loading === true || props.disabled === true}
+      onClick={onClick}
+      type={props.type ?? "button"}
     >
       {loading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : icon}
       {children}
-    </Button>
+    </button>
   );
 }

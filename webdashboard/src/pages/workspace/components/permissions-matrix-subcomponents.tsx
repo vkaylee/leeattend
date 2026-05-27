@@ -38,24 +38,24 @@ interface ScrollButtonsProps {
 
 export const ScrollButtons = ({ canScrollLeft, canScrollRight, scrollBy }: ScrollButtonsProps) => (
   <div className="sticky top-[30vh] z-30 h-0 w-full pointer-events-none">
-    <Button
-      className={cn(
+    <Button className={cn(
         "absolute left-[265px] top-0 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-lg text-slate-700 dark:text-slate-300 rounded-full p-2.5 transition-all hover:scale-110 pointer-events-auto",
         canScrollLeft ? "opacity-0 group-hover/table:opacity-100" : "opacity-0 pointer-events-none"
       )}
       onClick={() => { scrollBy(-300); }}
       type="button"
+      variant="ghost"
     >
       <ChevronLeft size={20} />
     </Button>
 
-    <Button
-      className={cn(
+    <Button className={cn(
         "absolute right-4 top-0 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-lg text-slate-700 dark:text-slate-300 rounded-full p-2.5 transition-all hover:scale-110 pointer-events-auto",
         canScrollRight ? "opacity-0 group-hover/table:opacity-100" : "opacity-0 pointer-events-none"
       )}
       onClick={() => { scrollBy(300); }}
       type="button"
+      variant="ghost"
     >
       <ChevronRight size={20} />
     </Button>

@@ -78,11 +78,11 @@ export default function RehireEmployeeModal({
             <Button onClick={onClose} size="lg" type="button" variant="outline">
               {t("common.cancel").toUpperCase()}
             </Button>
-            <Button
-              data-testid="confirm-rehire-btn"
+            <Button data-testid="confirm-rehire-btn"
               loading={rehireMutation.isPending}
               size="lg"
               type="submit"
+              variant="primary"
             >
               {rehireMutation.isPending
                 ? t("employees.rehire.processing").toUpperCase()

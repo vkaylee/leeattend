@@ -99,12 +99,12 @@ function GeneralSettingsContent({ workspace }: { workspace: Workspace }) {
             <Typography className="text-slate-500 dark:text-slate-400 mt-1 font-medium" variant="p">{t("common.workspace_settings.description")}</Typography>
           </div>
         </div>
-        <Button data-testid="save-workspace-config-btn" icon={<Save size={18} />} loading={updateWsMutation.isPending} onClick={handleSaveConfig}>{t("common.workspace_settings.save_config").toUpperCase()}</Button>
+        <Button data-testid="save-workspace-config-btn" icon={<Save size={18} />} loading={updateWsMutation.isPending} onClick={handleSaveConfig} variant="ghost">{t("common.workspace_settings.save_config").toUpperCase()}</Button>
       </div>
 
       <div className="flex bg-slate-100 dark:bg-slate-700/50 p-1.5 rounded-[22px] w-fit border border-slate-200 dark:border-slate-700/50 shadow-inner">
-        <Button className={cn("flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all", activeTab === 'localization' ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700")} data-testid="tab-localization" onClick={() => { setActiveTab("localization"); }}><Globe size={14} /> {t("common.settings.tabs.localization")}</Button>
-        <Button className={cn("flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all", activeTab === 'appearance' ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700")} data-testid="tab-appearance" onClick={() => { setActiveTab("appearance"); }}><Palette size={14} /> {t("common.settings.tabs.appearance")}</Button>
+        <Button className={cn("flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all", activeTab === 'localization' ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700")} data-testid="tab-localization" onClick={() => { setActiveTab("localization"); }} variant="ghost"><Globe size={14} /> {t("common.settings.tabs.localization")}</Button>
+        <Button className={cn("flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all", activeTab === 'appearance' ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700")} data-testid="tab-appearance" onClick={() => { setActiveTab("appearance"); }} variant="ghost"><Palette size={14} /> {t("common.settings.tabs.appearance")}</Button>
       </div>
 
       <div className="animate-in slide-in-from-bottom-4 duration-500">
@@ -193,35 +193,35 @@ function GeneralSettingsContent({ workspace }: { workspace: Workspace }) {
                       style={{ backgroundImage: `url(${logoUrl})` }}
                     />
                     <div className="absolute inset-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3 rounded-2xl">
-                      <Button 
-                        className="p-3 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl shadow-sm hover:text-primary-600 hover:border-primary-100 border border-slate-200 dark:border-slate-700 transition-colors"
+                      <Button className="p-3 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl shadow-sm hover:text-primary-600 hover:border-primary-100 border border-slate-200 dark:border-slate-700 transition-colors" 
                         data-testid="edit-logo-btn"
                         onClick={() => {
                           const url = prompt(t("common.workspace_settings.enter_logo_url", { defaultValue: "Enter image URL:" }), logoUrl);
                           if (url !== null) setLogoUrl(url);
                         }}
                         title={t("common.edit", { defaultValue: "Edit" })}
+                        variant="ghost"
                       >
                         <ImagePlus size={18} />
                       </Button>
-                      <Button 
-                        className="p-3 bg-white dark:bg-slate-800 text-rose-500 rounded-xl shadow-sm hover:bg-rose-50 border border-slate-200 dark:border-slate-700 hover:border-rose-100 transition-colors"
+                      <Button className="p-3 bg-white dark:bg-slate-800 text-rose-500 rounded-xl shadow-sm hover:bg-rose-50 border border-slate-200 dark:border-slate-700 hover:border-rose-100 transition-colors" 
                         data-testid="delete-logo-btn"
                         onClick={() => { setLogoUrl(""); }}
                         title={t("common.delete", { defaultValue: "Delete" })}
+                        variant="ghost"
                       >
                         <Trash2 size={18} />
                       </Button>
                     </div>
                   </div>
                 ) : (
-                  <Button 
-                    className="w-full h-40 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700 hover:border-primary-400 dark:hover:border-primary-500 bg-slate-50 dark:bg-slate-800/30 hover:bg-primary-50/50 dark:hover:bg-primary-900/10 transition-all flex flex-col items-center justify-center gap-3 group"
+                  <Button className="w-full h-40 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700 hover:border-primary-400 dark:hover:border-primary-500 bg-slate-50 dark:bg-slate-800/30 hover:bg-primary-50/50 dark:hover:bg-primary-900/10 transition-all flex flex-col items-center justify-center gap-3 group" 
                     data-testid="upload-logo-btn"
                     onClick={() => {
                       const url = prompt(t("common.workspace_settings.enter_logo_url", { defaultValue: "Enter image URL:" }));
                       if (url) setLogoUrl(url);
                     }}
+                    variant="ghost"
                   >
                     <div className="w-12 h-12 rounded-full bg-white dark:bg-slate-800 shadow-sm flex items-center justify-center text-slate-400 group-hover:text-primary-500 group-hover:scale-110 transition-all">
                       <UploadCloud size={24} />
@@ -246,7 +246,7 @@ function GeneralSettingsContent({ workspace }: { workspace: Workspace }) {
                     { name: t("common.colors.emerald"), color: '#10b981' }, { name: t("common.colors.blue"), color: '#2563eb' },
                     { name: t("common.colors.emerald"), color: '#059669' }, { name: t("common.colors.amber"), color: '#d97706' }, { name: t("common.colors.rose"), color: '#e11d48' }, { name: t("common.colors.slate"), color: '#475569' },
                   ].map((preset) => (
-                    <Button className={cn("w-14 h-14 rounded-2xl transition-all border-4 flex items-center justify-center shadow-lg group active:scale-90", themePrimaryColor === preset.color ? 'border-slate-900 scale-110' : 'border-white hover:scale-105 hover:border-slate-100 dark:border-slate-800')} key={preset.color} onClick={() => { setThemePrimaryColor(preset.color); }} style={{ backgroundColor: preset.color }} title={preset.name}>
+                    <Button className={cn("w-14 h-14 rounded-2xl transition-all border-4 flex items-center justify-center shadow-lg group active:scale-90", themePrimaryColor === preset.color ? 'border-slate-900 scale-110' : 'border-white hover:scale-105 hover:border-slate-100 dark:border-slate-800')} key={preset.color} onClick={() => { setThemePrimaryColor(preset.color); }} style={{ backgroundColor: preset.color }} title={preset.name} variant="ghost">
                       {themePrimaryColor === preset.color && <div className="w-3 h-3 bg-white dark:bg-slate-900 rounded-full shadow-2xl animate-in zoom-in duration-300" />}
                     </Button>
                   ))}
@@ -285,8 +285,7 @@ function DarkModeSelector() {
       <label className={LABEL_BASE}>{t('common.theme.mode', 'Dark Mode')}</label>
       <div className="grid grid-cols-3 gap-4" data-testid="dark-mode-selector">
         {options.map((opt) => (
-          <Button
-            className={cn(
+          <Button className={cn(
               "flex flex-col items-center gap-3 p-6 rounded-2xl border-2 transition-all active:scale-95",
               mode === opt.value
                 ? "border-primary-500 bg-primary-50 dark:bg-primary-950 text-primary-600 dark:text-primary-400 shadow-lg shadow-primary-100 dark:shadow-black/30"
@@ -295,6 +294,7 @@ function DarkModeSelector() {
             data-testid={`dark-mode-option-${opt.value}`}
             key={opt.value}
             onClick={() => { setMode(opt.value); }}
+            variant="ghost"
           >
             {opt.icon}
             <span className="text-xs font-bold uppercase tracking-widest">{opt.label}</span>

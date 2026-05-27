@@ -63,10 +63,10 @@ export function SystemRoleCard({ isRevoking, onAssign, onRevoke, role }: SystemR
           </div>
         </div>
         
-        <Button
-          className="p-2 text-blue-600 bg-blue-50 hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:hover:bg-blue-500/20 rounded-xl transition-colors"
+        <Button className="p-2 text-blue-600 bg-blue-50 hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:hover:bg-blue-500/20 rounded-xl transition-colors"
           onClick={() => { onAssign(role.name); }}
           title={t("system_roles.assign_to_user")}
+          variant="ghost"
         >
           <Plus size={20} />
         </Button>
@@ -92,11 +92,11 @@ export function SystemRoleCard({ isRevoking, onAssign, onRevoke, role }: SystemR
                     {t("system_roles.assigned_date", { date: new Date(assignee.assigned_at).toLocaleDateString() })}
                   </span>
                 </div>
-                <Button
-                  className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg transition-colors disabled:opacity-50"
+                <Button className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg transition-colors disabled:opacity-50"
                   disabled={isRevoking}
                   onClick={() => { onRevoke(assignee.user_id, role.name); }}
                   title={t("system_roles.revoke_role")}
+                  variant="ghost"
                 >
                   <Trash2 size={16} />
                 </Button>

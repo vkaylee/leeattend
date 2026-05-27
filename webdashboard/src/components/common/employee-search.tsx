@@ -66,10 +66,10 @@ function SelectedEmployeeChips({ onRemove, selectedIds, selectedMeta }: Selected
             key={id}
           >
             <span>{meta?.full_name ?? id}</span>
-            <Button
-              className='hover:text-rose-500 transition-colors'
+            <Button className='hover:text-rose-500 transition-colors'
               onClick={() => { onRemove(id); }}
               type='button'
+              variant="destructive"
             >
               <X size={14} />
             </Button>

@@ -30,10 +30,10 @@ export default function MembersPage() {
         </div>
 
         <PermissionGate permission="members:invite">
-          <Button
-            data-testid="invite-member-trigger"
+          <Button data-testid="invite-member-trigger"
             icon={<UserPlus size={18} />}
             onClick={() => { setIsInviteOpen(true); }}
+            variant="ghost"
           >
             {t("members.invite.title").toUpperCase()}
           </Button>

@@ -38,13 +38,13 @@ export const EmployeesPageHeader = ({
             </Button>
           </PermissionGate>
           <PermissionGate permission="employees:create">
-            <Button
-              data-testid="add-employee-btn"
+            <Button data-testid="add-employee-btn"
               icon={<UserPlus size={18} />}
               onClick={() => {
                 setEditingEmployee(null);
                 setIsModalOpen(true);
               }}
+              variant="ghost"
             >
               {t("employees.add_btn").toUpperCase()}
             </Button>
