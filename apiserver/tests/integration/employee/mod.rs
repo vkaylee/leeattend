@@ -12,3 +12,4 @@ mod repository_direct;
 mod transfer_and_history;
 mod worker_handler;
 mod working_conditions;
+mod assignment;
