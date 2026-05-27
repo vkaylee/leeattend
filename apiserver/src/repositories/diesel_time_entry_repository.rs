@@ -415,7 +415,7 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
             .filter(time_entries::punch_in_time.le(to))
             .order((
                 time_entries::employee_id.asc(),
-                time_entries::punch_in_time.desc(),
+                time_entries::punch_in_time.asc(),
             ))
             .load(&mut *conn)
             .await

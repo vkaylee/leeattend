@@ -16,6 +16,7 @@ pub mod leave_accrual_service;
 pub mod leave_import_service;
 pub mod leave_service;
 pub mod pairing_algo;
+pub mod pairing_context;
 pub mod pairing_service;
 pub mod payroll_evaluator;
 pub mod payroll_rule_evaluator;

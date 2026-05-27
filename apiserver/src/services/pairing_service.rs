@@ -14,7 +14,7 @@ use crate::models::RawAttendanceLog;
 use crate::repositories::roster::RosterRepository;
 use crate::repositories::AttendancePolicyRepository;
 use crate::repositories::TimeEntryRepository;
-use crate::services::pairing_algo::{self, PairingShiftConfig};
+use crate::services::pairing_algo;
 
 pub struct PairingService {
     time_entry_repo: Arc<dyn TimeEntryRepository>,
@@ -131,74 +131,27 @@ impl PairingService {
             )
             .await?;
 
-        let mut shift_config = None;
+        let context = crate::services::pairing_context::PairingContext::new(date, tz);
+
+        let mut shift = None;
         if let Some(shift_id) = shift_id_opt {
-            let shift = self
+            shift = self
                 .shift_repo
                 .get_shift_by_id(
                     &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
                     shift_id,
                 )
                 .await?;
-
-            if let Some(s) = shift {
-                let start_m = s.start_time.hour() * 60 + s.start_time.minute();
-                let mut end_m = s.end_time.hour() * 60 + s.end_time.minute();
-
-                // Handle Overnight: if end < start, it's next day
-                if s.end_time < s.start_time {
-                    end_m += 1440;
-                }
-
-                let mut break_start_mins = s
-                    .break_start
-                    .map(|t: chrono::NaiveTime| t.hour() * 60 + t.minute());
-                let mut break_end_mins = s
-                    .break_end
-                    .map(|t: chrono::NaiveTime| t.hour() * 60 + t.minute());
-
-                // Handle break overnight transition if needed
-                if let (Some(bs), Some(be)) = (break_start_mins, break_end_mins) {
-                    if bs < start_m {
-                        break_start_mins = Some(bs + 1440);
-                    }
-                    if be < bs {
-                        break_end_mins = Some(be + 1440);
-                    }
-                }
-
-                shift_config = Some(PairingShiftConfig {
-                    start_minutes: start_m as i32,
-                    end_minutes: end_m as i32,
-                    break_start_minutes: break_start_mins.map(|m| m as i32),
-                    break_end_minutes: break_end_mins.map(|m| m as i32),
-                });
-            }
         }
+
+        let shift_config = context.build_shift_config(shift.as_ref());
 
         // 2. Fetch raw logs
         let start_of_day_local = crate::utils::tz::local_to_tz(&tz, date, 0, 0, 0)?;
         let start_of_day_utc = start_of_day_local.with_timezone(&Utc);
-
-        let (window_start_utc, window_end_utc) = if let Some(s) = &shift_config {
-            const LOG_SEARCH_BUFFER_MINUTES: i64 = 360;
-            let start_mins = i64::from(s.start_minutes) - LOG_SEARCH_BUFFER_MINUTES;
-            // End of local day OR shift end (whichever is later) to handle:
-            //   - Normal shifts: capture all overtime until midnight
-            //   - Overnight shifts: capture logs past midnight (e.g. 22:00-06:00)
-            let end_mins =
-                std::cmp::max(1440, i64::from(s.end_minutes) + LOG_SEARCH_BUFFER_MINUTES);
-
-            let s_utc = (start_of_day_local + Duration::minutes(start_mins)).with_timezone(&Utc);
-            let e_utc = (start_of_day_local + Duration::minutes(end_mins)).with_timezone(&Utc);
-            (s_utc, e_utc)
-        } else {
-            let s_utc = start_of_day_local.with_timezone(&Utc);
-            let e_utc = s_utc + Duration::hours(24);
-            (s_utc, e_utc)
-        };
-
         let next_day_utc = (start_of_day_local + Duration::days(1)).with_timezone(&Utc);
+
+        let (window_start_utc, window_end_utc) = context.calculate_fetch_window(shift_config.as_ref())?;
 
         let logs = self
             .raw_log_repo
@@ -211,28 +164,7 @@ impl PairingService {
             .await?;
 
         // 3. Filter and Linearize Logs
-        let mut filtered_log_events = Vec::new();
-        if !logs.is_empty() {
-            let mut last_minute: Option<i64> = None;
-
-            for log in logs {
-                let current_minute = log.punch_time.timestamp() / 60;
-                if last_minute == Some(current_minute) {
-                    continue;
-                }
-
-                let log_local = log.punch_time.with_timezone(&tz);
-                let duration_since_start = log_local.signed_duration_since(start_of_day_local);
-
-                filtered_log_events.push(pairing_algo::LogEvent {
-                    id: log.id,
-                    minutes: duration_since_start.num_minutes() as i32,
-                    raw_data: log.raw_data,
-                });
-
-                last_minute = Some(current_minute);
-            }
-        }
+        let filtered_log_events = context.build_log_events(&logs)?;
 
         if filtered_log_events.is_empty() {
             self.clear_auto_entries(employee_id, workspace_id, start_of_day_utc, next_day_utc)
@@ -262,50 +194,13 @@ impl PairingService {
         let sessions = strategy.pair(&filtered_log_events, shift_config.as_ref());
 
         // 5. Update Database
-        let mut new_entries = Vec::new();
-        for session in sessions {
-            let start_dt_local = crate::utils::tz::local_to_tz(&tz, date, 0, 0, 0)?
-                + Duration::minutes(i64::from(session.start_minutes));
-            let start_dt_utc = start_dt_local.with_timezone(&Utc);
-
-            if start_dt_local.date_naive() != date {
-                continue;
-            }
-
-            let end_dt_utc = if let Some(m) = session.end_minutes {
-                let end_dt_local = crate::utils::tz::local_to_tz(&tz, date, 0, 0, 0)?
-                    + Duration::minutes(i64::from(m));
-                Some(end_dt_local.with_timezone(&Utc))
-            } else {
-                None
-            };
-
-            let duration = end_dt_utc.map(|end| (end - start_dt_utc).num_minutes() as i32);
-
-            let mut final_metadata = session
-                .metadata
-                .clone()
-                .unwrap_or_else(|| serde_json::json!({}));
-            if let serde_json::Value::Object(ref mut map) = final_metadata {
-                map.insert("schedule_traces".to_string(), serde_json::json!(traces));
-            }
-
-            new_entries.push(crate::models::TimeEntry {
-                id: crate::utils::id::new_id(),
-                workspace_id,
-                employee_id,
-                shift_id: shift_id_opt,
-                punch_in_time: start_dt_utc,
-                punch_out_time: end_dt_utc,
-                duration_minutes: duration,
-                is_break_overtime: session.is_break_overtime,
-                entry_type: session.entry_type,
-                note: session.note,
-                generation_metadata: Some(final_metadata),
-                created_at: Utc::now(),
-                updated_at: Utc::now(),
-            });
-        }
+        let new_entries = context.build_time_entries(
+            workspace_id,
+            employee_id,
+            shift_id_opt,
+            sessions,
+            serde_json::json!(traces),
+        )?;
 
         self.time_entry_repo
             .replace_time_entries(

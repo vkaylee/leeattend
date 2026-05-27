@@ -294,6 +294,9 @@ pub fn group_entries_by_date(
         let date = entry.punch_in_time.with_timezone(&tz).date_naive();
         result.entry(date).or_default().push(entry);
     }
+    for entries in result.values_mut() {
+        entries.sort_by_key(|e| e.punch_in_time);
+    }
     result
 }
 
@@ -790,5 +793,61 @@ mod tests {
         assert!(result.is_some());
         let (s, e) = result.unwrap();
         assert!(e > s);
+    }
+
+    #[test]
+    fn test_group_entries_by_date_sorting() {
+        use crate::models::TimeEntry;
+        use uuid::Uuid;
+
+        let tz: Tz = "Asia/Ho_Chi_Minh".parse().expect("valid tz");
+        
+        let t1 = "2026-05-20T00:08:27Z".parse::<DateTime<Utc>>().unwrap(); // Local 07:08
+        let t2 = "2026-05-20T14:31:36Z".parse::<DateTime<Utc>>().unwrap(); // Local 21:31
+        let t3 = "2026-05-21T01:00:00Z".parse::<DateTime<Utc>>().unwrap(); // Local 08:00
+        
+        let entry1 = TimeEntry {
+            id: Uuid::new_v4(),
+            workspace_id: Uuid::new_v4(),
+            employee_id: Uuid::new_v4(),
+            shift_id: None,
+            punch_in_time: t1,
+            punch_out_time: None,
+            entry_type: "work".to_string(),
+            duration_minutes: None,
+            note: None,
+            is_break_overtime: false,
+            generation_metadata: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        };
+        
+        let mut entry2 = entry1.clone();
+        entry2.punch_in_time = t2;
+        entry2.id = Uuid::new_v4();
+        
+        let mut entry3 = entry1.clone();
+        entry3.punch_in_time = t3;
+        entry3.id = Uuid::new_v4();
+
+        // Pass out of order
+        let entries = vec![entry2.clone(), entry3.clone(), entry1.clone()];
+        
+        let grouped = super::group_entries_by_date(&entries, tz);
+        
+        assert_eq!(grouped.len(), 2);
+        
+        let day1 = NaiveDate::from_ymd_opt(2026, 5, 20).unwrap();
+        let day2 = NaiveDate::from_ymd_opt(2026, 5, 21).unwrap();
+        
+        let group1 = grouped.get(&day1).expect("day 1 should exist");
+        assert_eq!(group1.len(), 2);
+        // Should be sorted by punch_in_time ASC
+        assert_eq!(group1[0].punch_in_time, t1);
+        assert_eq!(group1[1].punch_in_time, t2);
+        
+        let group2 = grouped.get(&day2).expect("day 2 should exist");
+        assert_eq!(group2.len(), 1);
+        assert_eq!(group2[0].punch_in_time, t3);
     }
 }
