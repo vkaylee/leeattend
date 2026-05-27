@@ -810,6 +810,57 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
         Ok(crate::utils::tz::parse_workspace_tz(&row.timezone))
     }
 
+    async fn get_employee_timezone_at_date(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        employee_id: Uuid,
+        tentative_date: chrono::NaiveDate,
+    ) -> Result<chrono_tz::Tz, AppError> {
+        let workspace_id = auth_token.workspace_id();
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&workspace_id)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
+
+        #[derive(Debug, diesel::QueryableByName)]
+        struct TzRow {
+            #[diesel(sql_type = diesel::sql_types::Text)]
+            timezone: String,
+        }
+
+        let query = r#"
+            SELECT COALESCE(
+                (SELECT host_wl.timezone
+                 FROM employee_assignments ea
+                 JOIN work_locations host_wl ON host_wl.id = ea.host_location_id
+                 WHERE ea.employee_id = e.id AND ea.status = 'active'
+                   AND ea.start_date <= $3
+                   AND (ea.end_date IS NULL OR ea.end_date >= $3)
+                 ORDER BY ea.created_at DESC LIMIT 1),
+                primary_wl.timezone
+            ) as timezone
+            FROM employees e
+            JOIN work_locations primary_wl ON primary_wl.id = e.primary_location_id
+            WHERE e.id = $1 AND e.workspace_id = $2
+        "#;
+
+        let row: TzRow = diesel::sql_query(query)
+            .bind::<diesel::sql_types::Uuid, _>(employee_id)
+            .bind::<diesel::sql_types::Uuid, _>(workspace_id)
+            .bind::<diesel::sql_types::Date, _>(tentative_date)
+            .get_result(&mut *conn)
+            .await
+            .map_err(|e| match e {
+                diesel::result::Error::NotFound => AppError::NotFound("Employee not found".into()),
+                _ => AppError::Internal(format!("db: {e}")),
+            })?;
+
+        Ok(crate::utils::tz::parse_workspace_tz(&row.timezone))
+    }
+
     async fn get_headquarters_location_id(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,

@@ -76,11 +76,22 @@ impl PairingService {
             return Ok(());
         }
 
-        // 2. Fetch Employee Timezone Fallback
+        // 2. Fetch Timezone (Two-step resolution)
         let auth_token = crate::diesel_pool::TenantAuthToken::system_override(log.workspace_id);
-        let tz: Tz = self
+        
+        // Step 2a: Get fallback timezone to determine tentative date
+        let fallback_tz: Tz = self
             .employee_repo
             .get_employee_timezone_fallback(&auth_token, log.employee_id)
+            .await?;
+            
+        let tentative_local_dt = log.punch_time.with_timezone(&fallback_tz);
+        let tentative_date = tentative_local_dt.date_naive();
+        
+        // Step 2b: Get exact timezone considering secondment assignments for that date
+        let tz: Tz = self
+            .employee_repo
+            .get_employee_timezone_at_date(&auth_token, log.employee_id, tentative_date)
             .await?;
 
         // 3. Determine Local Date

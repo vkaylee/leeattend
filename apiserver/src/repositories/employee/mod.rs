@@ -145,6 +145,13 @@ pub trait EmployeeCoreRepository: Send + Sync {
         employee_id: Uuid,
     ) -> Result<chrono_tz::Tz, AppError>;
 
+    async fn get_employee_timezone_at_date(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        employee_id: Uuid,
+        tentative_date: chrono::NaiveDate,
+    ) -> Result<chrono_tz::Tz, AppError>;
+
     async fn get_headquarters_location_id(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
@@ -448,6 +455,13 @@ pub trait EmployeeRepository: Send + Sync {
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id: Uuid,
+    ) -> Result<chrono_tz::Tz, AppError>;
+
+    async fn get_employee_timezone_at_date(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        employee_id: Uuid,
+        tentative_date: chrono::NaiveDate,
     ) -> Result<chrono_tz::Tz, AppError>;
 
     async fn get_headquarters_location_id(

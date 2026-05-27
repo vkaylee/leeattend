@@ -6,6 +6,10 @@ pub mod sql_types {
     pub struct AdjustmentStatusType;
 
     #[derive(diesel::query_builder::QueryId, Clone, diesel::sql_types::SqlType)]
+    #[diesel(postgres_type(name = "assignment_status"))]
+    pub struct AssignmentStatus;
+
+    #[derive(diesel::query_builder::QueryId, Clone, diesel::sql_types::SqlType)]
     #[diesel(postgres_type(name = "contract_status_enum"))]
     pub struct ContractStatusEnum;
 
@@ -452,6 +456,25 @@ diesel::table! {
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
         anchor_date -> Nullable<Date>,
+    }
+}
+
+diesel::table! {
+    use diesel::sql_types::*;
+    use super::sql_types::AssignmentStatus;
+
+    employee_assignments (id) {
+        id -> Uuid,
+        workspace_id -> Uuid,
+        employee_id -> Uuid,
+        home_location_id -> Uuid,
+        host_location_id -> Uuid,
+        start_date -> Date,
+        end_date -> Nullable<Date>,
+        reason -> Nullable<Text>,
+        status -> AssignmentStatus,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
     }
 }
 
@@ -1295,6 +1318,8 @@ diesel::joinable!(workspace_members -> workspace_roles (role_id));
 diesel::joinable!(workspace_members -> workspaces (workspace_id));
 diesel::joinable!(workspace_role_permissions -> workspace_roles (role_id));
 diesel::joinable!(employees -> work_locations (primary_location_id));
+diesel::joinable!(employee_assignments -> employees (employee_id));
+diesel::joinable!(employee_assignments -> work_locations (home_location_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
     audit_logs,
@@ -1321,6 +1346,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     employee_phases,
     employee_profiles,
     employee_salary_components,
+    employee_assignments,
     employee_shifts,
     employee_working_patterns,
     employees,

@@ -139,6 +139,9 @@ mod tests {
         emp_repo
             .expect_get_employee_timezone_fallback()
             .returning(|_, _| Box::pin(async { Ok(chrono_tz::UTC) }));
+        emp_repo
+            .expect_get_employee_timezone_at_date()
+            .returning(|_, _, _| Box::pin(async { Ok(chrono_tz::UTC) }));
 
         // Mock Raw log repo to succeed on insert
         let mut raw_log_repo =

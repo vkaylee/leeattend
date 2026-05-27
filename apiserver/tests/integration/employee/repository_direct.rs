@@ -631,3 +631,121 @@ async fn test_get_employee_timezone_fallback() {
         .unwrap();
     assert_eq!(tz2.name(), "UTC");
 }
+
+#[tokio::test]
+async fn test_get_employee_timezone_at_date() {
+    let (test_db, factory) = setup_db().await;
+
+    let user_id = factory.user().create().await;
+    let ws_id = factory.workspace().create_with_owner(user_id).await;
+    let repo = DieselEmployeeRepository::new(test_db.diesel_pools.clone());
+    let mut tenant_conn = test_db.diesel_pools.tenants_tx.get_connection(&ws_id).await.unwrap();
+
+    use apiserver::schema::{employees, work_locations, employee_assignments};
+    use apiserver::schema::sql_types::AssignmentStatus;
+    use diesel::prelude::*;
+    use diesel_async::RunQueryDsl;
+
+    #[derive(Insertable)]
+    #[diesel(table_name = work_locations)]
+    struct NewLoc {
+        id: Uuid,
+        workspace_id: Uuid,
+        name: String,
+        timezone: Option<String>,
+        is_headquarters: bool,
+    }
+
+    let tokyo_loc_id = Uuid::new_v4();
+    diesel::insert_into(work_locations::table)
+        .values(&NewLoc {
+            id: tokyo_loc_id,
+            workspace_id: ws_id,
+            name: "Tokyo Branch".to_string(),
+            timezone: Some("Asia/Tokyo".to_string()),
+            is_headquarters: false,
+        })
+        .execute(&mut *tenant_conn)
+        .await
+        .unwrap();
+
+    let emp_id = factory.employee().with_workspace(ws_id).create().await;
+    let hq_id: Uuid = crate::test_query_scalar_uuid!(
+        &test_db.diesel_pools.api,
+        "SELECT primary_location_id AS id FROM employees WHERE id = $1",
+        diesel::sql_types::Uuid, emp_id
+    );
+
+    // Default primary location is HQ (UTC)
+    let default_tz = repo
+        .get_employee_timezone_at_date(
+            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
+            emp_id,
+            NaiveDate::from_ymd_opt(2026, 6, 1).unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(default_tz.name(), "Asia/Ho_Chi_Minh");
+
+    // Add active assignment to Tokyo for June 2026
+    #[derive(Insertable)]
+    #[diesel(table_name = employee_assignments)]
+    struct NewAssig {
+        id: Uuid,
+        workspace_id: Uuid,
+        employee_id: Uuid,
+        home_location_id: Uuid,
+        host_location_id: Uuid,
+        start_date: NaiveDate,
+        end_date: Option<NaiveDate>,
+        status: apiserver::models::employee_assignment::AssignmentStatusEnum,
+    }
+
+    diesel::insert_into(employee_assignments::table)
+        .values(&NewAssig {
+            id: Uuid::new_v4(),
+            workspace_id: ws_id,
+            employee_id: emp_id,
+            home_location_id: hq_id,
+            host_location_id: tokyo_loc_id,
+            start_date: NaiveDate::from_ymd_opt(2026, 6, 1).unwrap(),
+            end_date: Some(NaiveDate::from_ymd_opt(2026, 6, 30).unwrap()),
+            status: apiserver::models::employee_assignment::AssignmentStatusEnum::Active,
+        })
+        .execute(&mut *tenant_conn)
+        .await
+        .unwrap();
+
+    // Test during assignment -> Asia/Tokyo
+    let tz_during = repo
+        .get_employee_timezone_at_date(
+            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
+            emp_id,
+            NaiveDate::from_ymd_opt(2026, 6, 15).unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(tz_during.name(), "Asia/Tokyo");
+
+    // Test before assignment -> UTC
+    let tz_before = repo
+        .get_employee_timezone_at_date(
+            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
+            emp_id,
+            NaiveDate::from_ymd_opt(2026, 5, 31).unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(tz_before.name(), "Asia/Ho_Chi_Minh");
+
+    // Test after assignment -> UTC
+    let tz_after = repo
+        .get_employee_timezone_at_date(
+            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
+            emp_id,
+            NaiveDate::from_ymd_opt(2026, 7, 1).unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(tz_after.name(), "Asia/Ho_Chi_Minh");
+}

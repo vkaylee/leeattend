@@ -39,12 +39,6 @@ impl ReprocessAttendanceHandler {
         );
 
         let auth_token = crate::diesel_pool::TenantAuthToken::system_override(job.workspace_id);
-        let tz: Tz = deps
-            .employee_repo
-            .get_employee_timezone_fallback(&auth_token, payload.employee_id)
-            .await
-            .unwrap_or(chrono_tz::UTC);
-
         // Initialize pairing service from shared deps
         let pairing_service = crate::services::pairing_service::PairingService::new(
             crate::services::pairing_service::PairingServiceArgs {
@@ -67,6 +61,12 @@ impl ReprocessAttendanceHandler {
         let mut error_count = 0;
 
         while current_date <= end_date {
+            let tz: Tz = deps
+                .employee_repo
+                .get_employee_timezone_at_date(&auth_token, payload.employee_id, current_date)
+                .await
+                .unwrap_or(chrono_tz::UTC);
+
             match pairing_service
                 .reprocess_daily_attendance(job.workspace_id, payload.employee_id, current_date, tz)
                 .await
@@ -171,6 +171,9 @@ mod tests {
         emp_repo
             .expect_get_employee_timezone_fallback()
             .returning(|_, _| Box::pin(async { Ok(chrono_tz::UTC) }));
+        emp_repo
+            .expect_get_employee_timezone_at_date()
+            .returning(|_, _, _| Box::pin(async { Ok(chrono_tz::UTC) }));
         builder.employee_repo = emp_repo;
         builder.roster_repo = roster_repo;
 

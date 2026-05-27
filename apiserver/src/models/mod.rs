@@ -13,6 +13,7 @@ pub mod contract;
 pub mod department;
 pub mod diesel;
 pub mod employee;
+pub mod employee_assignment;
 pub mod employment_phase;
 pub mod enums;
 pub mod ess;
