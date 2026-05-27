@@ -326,6 +326,27 @@ impl AppState {
         > = Arc::new(crate::repositories::DieselSalaryBaseRepository::new(
             diesel_pools.clone(),
         ));
+        
+        let workspace_config_repo: Arc<dyn crate::repositories::workspace_config_repository::WorkspaceConfigRepository> =
+            Arc::new(crate::repositories::diesel_workspace_config_repository::DieselWorkspaceConfigRepository::new(diesel_pools.clone()));
+            
+        let approval_workflow_repo: Arc<dyn crate::repositories::approval_workflow_repository::ApprovalWorkflowRepository> =
+            Arc::new(crate::repositories::diesel_approval_workflow_repository::DieselApprovalWorkflowRepository::new(diesel_pools.clone()));
+
+        let overtime_request_repo: Arc<dyn crate::repositories::overtime_request_repository::OvertimeRequestRepository> =
+            Arc::new(crate::repositories::diesel_overtime_request_repository::DieselOvertimeRequestRepository::new(diesel_pools.clone()));
+
+        let workspace_config_service = Arc::new(crate::services::WorkspaceConfigService::new(
+            workspace_config_repo.clone(),
+        ));
+        
+        let approval_workflow_service = Arc::new(crate::services::ApprovalWorkflowService::new(
+            approval_workflow_repo.clone(),
+        ));
+        
+        let overtime_request_service = Arc::new(crate::services::OvertimeRequestService::new(
+            overtime_request_repo.clone(),
+        ));
 
         let roster_provider: Arc<dyn crate::services::payroll_service::RosterDataProvider> =
             Arc::new(crate::services::payroll_service::DirectRosterDataProvider(
@@ -512,6 +533,8 @@ impl AppState {
                 feature_flag_repo: feature_flag_repo.clone(),
                 overtime_policy_repo,
                 salary_base_repo,
+                overtime_request_repo,
+                overtime_request_service,
             },
             reports: crate::ReportState {
                 service: report_service,
@@ -526,6 +549,10 @@ impl AppState {
                 user_repo: user_repo_core,
                 session_repo: session_repo_core,
                 jwt_secret,
+                workspace_config_repo,
+                approval_workflow_repo,
+                workspace_config_service,
+                approval_workflow_service,
             },
             agents: crate::AgentState {
                 manager: agent_manager,

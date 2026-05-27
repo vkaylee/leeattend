@@ -7,7 +7,7 @@
 
 > [!CAUTION]
 > **Tránh PTY Hang.** AI LUÔN LUÔN phải tuân thủ các quy tắc sau khi thực thi lệnh:
-> 1. **Dành riêng cho tool `run_command`:** Bạn BẮT BUỘC phải thêm chuỗi ` > run.log 2>&1 </dev/null` trực tiếp vào tham số `CommandLine` khi chạy **BẤT KỲ LỆNH NÀO** (kể cả những lệnh đơn giản như `ls`, `grep`, hay các lệnh nặng như `cargo`, `docker`, `test`). Nếu không làm vậy, terminal của AI SẼ bị treo. Ví dụ: `CommandLine: "ls -la > run.log 2>&1 </dev/null"`.
+> 1. **Dành riêng cho tool `run_command`:** Bạn BẮT BUỘC phải thêm chuỗi ` > logs/run_{command_slug}.log 2>&1 </dev/null` trực tiếp vào tham số `CommandLine` khi chạy **BẤT KỲ LỆNH NÀO**. `{command_slug}` là tên viết tắt dạng snake_case của lệnh (ví dụ: `cargo_check`, `npm_dev`, `ls`, `docker_up`). Nếu không làm vậy, terminal của AI SẼ bị treo. Luôn thêm `mkdir -p logs &&` phía trước để đảm bảo thư mục tồn tại. Ví dụ: `CommandLine: "mkdir -p logs && ls -la > logs/run_ls.log 2>&1 </dev/null"`.
 > 2. **TUYỆT ĐỐI KHÔNG** sử dụng lệnh có chứa chuỗi nhiều dòng (multiline strings) trực tiếp trong terminal (như `echo "..." > file`, `git commit -m "dòng 1\ndòng 2"` hoặc `python -c "..."`). Lệnh này sẽ làm treo PTY ngay lập tức do lỗi parsing của shell. 
 >    - **Đặc biệt lưu ý:** KHÔNG dùng lệnh `echo` hay `cat` trong bash để tạo/sửa file đa dòng.
 >    - Bạn BẮT BUỘC phải dùng NATIVE TOOL (như `write_to_file` hoặc `multi_replace_file_content`) của AI để tạo file (ví dụ `scratch/commit_msg.txt`), rồi mới chạy lệnh `git commit -F scratch/commit_msg.txt`.

@@ -105,6 +105,13 @@ const getOperationsGroup = (t: TFunction): SettingItem[] => [
     path: ROUTES.SETTINGS.HOLIDAYS,
     permissions: ["holidays:manage"],
   },
+  {
+    description: t("settings.categories.overtime_desc", { defaultValue: "Manage overtime quotas and approvals" }),
+    icon: <Clock className="w-4 h-4" />,
+    label: t("settings.categories.overtime", { defaultValue: "Overtime" }),
+    path: ROUTES.SETTINGS.OVERTIME,
+    permissions: ["workspace:settings:read", "approval_workflows:read"],
+  },
 ];
 
 const getSystemGroup = (t: TFunction): SettingItem[] => [

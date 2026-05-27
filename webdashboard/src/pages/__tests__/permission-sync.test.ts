@@ -15,6 +15,10 @@ import { permissionGroups } from "../../lib/permission-groups";
  * Canonical list of ALL backend permission strings.
  * Source of truth: apiserver/src/domain/permissions.rs → Permission::all_permission_strings()
  *
+ * // IMPORTANT: This count must match exactly the number of permissions in 
+ * // apiserver/src/domain/permissions.rs `test_total_permission_count_is_97`
+ * const EXPECTED_BACKEND_PERMISSION_COUNT = 97;
+ *
  * ⚠️  When adding a new Permission variant in Rust, you MUST also add it here
  *     AND in the permissionGroups of WorkspacePermissionsPage.tsx.
  */
@@ -32,6 +36,8 @@ const BACKEND_PERMISSION_STRINGS: ReadonlySet<string> = new Set([
     "attendance:adjustments:submit", "attendance:adjustments:approve", "attendance:reprocess", "attendance:staging:manage",
     // Overtime
     "overtime:claim", "overtime:approve", "overtime:policies:manage", "overtime:paper:upload",
+    "overtime:request:create", "overtime:request:read", "overtime:approve:workflow", "overtime:quota:read",
+    "approval_workflows:read", "approval_workflows:manage",
     // Leave
     "leave:requests:read", "leave:requests:submit", "leave:requests:approve", "leave:balances:read", "leave:balances:adjust",
     "leave:types:manage", "leave:policies:manage", "leave:accrual:run",
@@ -51,6 +57,8 @@ const BACKEND_PERMISSION_STRINGS: ReadonlySet<string> = new Set([
     "agents:read", "agents:manage", "devices:read", "devices:manage",
     // Recruitment
     "recruitment:read", "recruitment:manage",
+    // Employment Phases
+    "employment_phases:read", "employment_phases:manage",
     // Feature Flags
     "feature_flags:read", "feature_flags:manage",
     // Security & Audit (Premium)
@@ -79,13 +87,13 @@ describe("Permission Sync: Backend ↔ Frontend", () => {
 
     // ─── Count Verification ────────────────────────────────────
 
-    it("backend defines exactly 89 permissions", () => {
-        expect(BACKEND_PERMISSION_STRINGS.size).toBe(89);
+    it("backend defines exactly 97 permissions", () => {
+        expect(BACKEND_PERMISSION_STRINGS.size).toBe(97);
     });
 
-    it("UI permissionGroups defines exactly 89 permissions", () => {
+    it("UI permissionGroups defines exactly 97 permissions", () => {
         const uiIds = extractUiPermissionIds();
-        expect(uiIds.length).toBe(89);
+        expect(uiIds.length).toBe(97);
     });
 
     it("backend count matches UI count", () => {

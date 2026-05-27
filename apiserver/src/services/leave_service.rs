@@ -678,6 +678,59 @@ mod tests {
     }
     #[async_trait]
     impl crate::repositories::EmployeeRepository for MockEmployeeRepo {
+        async fn get_employee_timezone_at_date(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _employee_id: Uuid,
+            _tentative_date: chrono::NaiveDate,
+        ) -> Result<chrono_tz::Tz, AppError> {
+            Ok(chrono_tz::UTC)
+        }
+
+        async fn list_employee_assignments(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _employee_id: Uuid,
+        ) -> Result<Vec<crate::models::employee_assignment::EmployeeAssignment>, AppError> {
+            Ok(vec![])
+        }
+
+        async fn get_employee_assignment(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _employee_id: Uuid,
+            _assignment_id: Uuid,
+        ) -> Result<Option<crate::models::employee_assignment::EmployeeAssignment>, AppError> {
+            Ok(None)
+        }
+
+        async fn create_employee_assignment(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _assignment: &crate::models::employee_assignment::NewEmployeeAssignment,
+        ) -> Result<crate::models::employee_assignment::EmployeeAssignment, AppError> {
+            unimplemented!()
+        }
+
+        async fn update_employee_assignment(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _employee_id: Uuid,
+            _assignment_id: Uuid,
+            _req: &crate::models::employee_assignment::UpdateEmployeeAssignmentRequest,
+        ) -> Result<crate::models::employee_assignment::EmployeeAssignment, AppError> {
+            unimplemented!()
+        }
+
+        async fn delete_employee_assignment(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _employee_id: Uuid,
+            _assignment_id: Uuid,
+        ) -> Result<u64, AppError> {
+            Ok(0)
+        }
+
         async fn get_employee_timezone_fallback(
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,

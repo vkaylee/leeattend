@@ -53,6 +53,7 @@ export const ROUTES = {
   ESS_PROFILE: "/ess/profile",
   ESS_ATTENDANCE: "/ess/attendance",
   ESS_CLOCK: "/ess/clock",
+  ESS_OT: "/ess/ot",
 
   // Workspace Settings (Unified Control Panel)
   SETTINGS: {
@@ -71,5 +72,6 @@ export const ROUTES = {
     AUDIT_LOGS: "/workspace/settings/audit-logs",
     BILLING: "/workspace/settings/billing",
     DANGER: "/workspace/settings/danger",
+    OVERTIME: "/workspace/settings/overtime",
   },
 } as const;

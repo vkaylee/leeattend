@@ -47,6 +47,8 @@ export const permissionGroups: PermissionGroup[] = [
       { id: "workspace:delete", name: "Delete Workspace", desc: "Permanently delete workspace" },
       { id: "workspace:settings:read", name: "View Settings", desc: "Access workspace configuration" },
       { id: "workspace:settings:write", name: "Edit Settings", desc: "Modify workspace configuration" },
+      { id: "approval_workflows:read", name: "View Approval Workflows", desc: "See configured workflows" },
+      { id: "approval_workflows:manage", name: "Manage Approval Workflows", desc: "Create and edit approval flows" },
     ]
   },
   {
@@ -110,6 +112,10 @@ export const permissionGroups: PermissionGroup[] = [
       { id: "overtime:approve", name: "Approve OT", desc: "Review and approve OT claims" },
       { id: "overtime:policies:manage", name: "Manage OT Policies", desc: "Create and edit OT rules" },
       { id: "overtime:paper:upload", name: "Upload OT Paper", desc: "Attach OT documentation" },
+      { id: "overtime:request:create", name: "Create OT Request", desc: "Plan pre-overtime requests" },
+      { id: "overtime:request:read", name: "View OT Requests", desc: "See overtime requests" },
+      { id: "overtime:approve:workflow", name: "Workflow Approve OT", desc: "Approve OT in workflow" },
+      { id: "overtime:quota:read", name: "View OT Quotas", desc: "See overtime quota balances" },
     ]
   },
   {
@@ -224,6 +230,15 @@ export const permissionGroups: PermissionGroup[] = [
     permissions: [
       { id: "recruitment:read", name: "View Recruitment", desc: "Access recruitment pipeline" },
       { id: "recruitment:manage", name: "Manage Recruitment", desc: "Create and manage job postings" },
+    ]
+  },
+  {
+    id: "employment_phases",
+    name: "Employment Phases",
+    icon: FileText,
+    permissions: [
+      { id: "employment_phases:read", name: "View Employment Phases", desc: "See employee phases" },
+      { id: "employment_phases:manage", name: "Manage Employment Phases", desc: "Configure phases and probation" },
     ]
   },
   {

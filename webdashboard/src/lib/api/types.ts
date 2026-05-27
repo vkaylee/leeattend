@@ -1170,3 +1170,152 @@ export interface EmployeePhase {
   workspace_id: string;
 }
  
+
+// --- Workspace Config (EAV) ---
+export interface WorkspaceConfigEntry {
+  id: string;
+  workspace_id: string;
+  scope_type: "workspace" | "department" | "employee";
+  scope_id: string | null;
+  config_key: string;
+  value_int?: number | null;
+  value_decimal?: number | null;
+  value_text?: string | null;
+  value_bool?: boolean | null;
+  value_json?: Record<string, unknown> | null;
+  effective_from: string;
+  effective_to?: string | null;
+  created_by?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateConfigEntryRequest {
+  scope_type: "workspace" | "department" | "employee";
+  scope_id?: string | null;
+  config_key: string;
+  value_int?: number | null;
+  value_decimal?: number | null;
+  value_text?: string | null;
+  value_bool?: boolean | null;
+  value_json?: Record<string, unknown> | null;
+  effective_from: string;
+  effective_to?: string | null;
+}
+
+// --- Approval Workflows ---
+export type ApproverType = "department_manager" | "role" | "permission" | "specific_user";
+
+export interface ApprovalWorkflowStep {
+  id: string;
+  workflow_id: string;
+  step_order: number;
+  step_name: string;
+  approver_type: ApproverType;
+  approver_config: Record<string, unknown>;
+  action_required: "approve" | "review" | "acknowledge";
+  can_skip: boolean;
+  created_at: string;
+}
+
+export interface ApprovalWorkflow {
+  id: string;
+  workspace_id: string;
+  entity_type: string;
+  name: string;
+  description?: string | null;
+  total_steps: number;
+  is_active: boolean;
+  created_by?: string | null;
+  created_at: string;
+  updated_at: string;
+  steps?: ApprovalWorkflowStep[];
+}
+
+export interface CreateWorkflowRequest {
+  entity_type: string;
+  name: string;
+  description?: string | null;
+  is_active: boolean;
+  steps: {
+    step_order: number;
+    step_name: string;
+    approver_type: ApproverType;
+    approver_config: Record<string, unknown>;
+    action_required: "approve" | "review" | "acknowledge";
+    can_skip: boolean;
+  }[];
+}
+
+export interface ApprovalActionLog {
+  id: string;
+  workspace_id: string;
+  entity_type: string;
+  entity_id: string;
+  step_order: number;
+  step_name?: string | null;
+  acted_by_user_id: string;
+  action: "approved" | "rejected" | "skipped" | "returned";
+  note?: string | null;
+  acted_at: string;
+}
+
+export interface ProcessApprovalRequest {
+  entity_type: string;
+  entity_id: string;
+  action: "approved" | "rejected" | "skipped" | "returned";
+  note?: string | null;
+}
+
+// --- Overtime Requests ---
+export type OtRequestStatus = "draft" | "pending_approval" | "approved" | "partially_accepted" | "active" | "completed" | "cancelled" | "rejected";
+export type ConsentStatus = "pending" | "accepted" | "declined";
+
+export interface OvertimeRequestEmployee {
+  id: string;
+  overtime_request_id: string;
+  employee_id: string;
+  consent_status: ConsentStatus;
+  consent_at?: string | null;
+  decline_reason?: string | null;
+  actual_ot_minutes?: number | null;
+  matched_summary_id?: string | null;
+  created_at: string;
+  // Included from join
+  employee_name?: string;
+}
+
+export interface OvertimeRequest {
+  id: string;
+  workspace_id: string;
+  requested_by_user_id: string;
+  department_id?: string | null;
+  planned_date: string;
+  planned_start_time?: string | null;
+  planned_end_time?: string | null;
+  planned_minutes: number;
+  reason: string;
+  status: OtRequestStatus;
+  workflow_id?: string | null;
+  current_step: number;
+  quota_warning?: Record<string, unknown> | null;
+  reconciled_at?: string | null;
+  reconciled_by?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface OvertimeRequestDetail extends OvertimeRequest {
+  employees: OvertimeRequestEmployee[];
+  approval_logs: ApprovalActionLog[];
+}
+
+export interface CreateOvertimeRequestPayload {
+  department_id?: string | null;
+  planned_date: string;
+  planned_start_time?: string | null;
+  planned_end_time?: string | null;
+  planned_minutes: number;
+  reason: string;
+  employee_ids: string[];
+}

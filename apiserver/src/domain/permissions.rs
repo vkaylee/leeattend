@@ -49,6 +49,14 @@ pub enum Permission {
     OvertimeApprove,
     OvertimePoliciesManage,
     OvertimePaperUpload,
+    OvertimeRequestCreate,
+    OvertimeRequestRead,
+    OvertimeApproveWorkflow,
+    OvertimeQuotaRead,
+
+    // ── Approval Workflows ──────────────────────────────
+    ApprovalWorkflowsRead,
+    ApprovalWorkflowsManage,
 
     // ── Leave ──────────────────────────────────────────
     LeaveRequestsRead,
@@ -184,6 +192,12 @@ impl Permission {
             "overtime:approve" => Some(Self::OvertimeApprove),
             "overtime:policies:manage" => Some(Self::OvertimePoliciesManage),
             "overtime:paper:upload" => Some(Self::OvertimePaperUpload),
+            "overtime:request:create" => Some(Self::OvertimeRequestCreate),
+            "overtime:request:read" => Some(Self::OvertimeRequestRead),
+            "overtime:approve:workflow" => Some(Self::OvertimeApproveWorkflow),
+            "overtime:quota:read" => Some(Self::OvertimeQuotaRead),
+            "approval_workflows:read" => Some(Self::ApprovalWorkflowsRead),
+            "approval_workflows:manage" => Some(Self::ApprovalWorkflowsManage),
             "leave:requests:read" => Some(Self::LeaveRequestsRead),
             "leave:requests:submit" => Some(Self::LeaveRequestsSubmit),
             "leave:requests:approve" => Some(Self::LeaveRequestsApprove),
@@ -282,6 +296,12 @@ impl Permission {
             Self::OvertimeApprove => "overtime:approve",
             Self::OvertimePoliciesManage => "overtime:policies:manage",
             Self::OvertimePaperUpload => "overtime:paper:upload",
+            Self::OvertimeRequestCreate => "overtime:request:create",
+            Self::OvertimeRequestRead => "overtime:request:read",
+            Self::OvertimeApproveWorkflow => "overtime:approve:workflow",
+            Self::OvertimeQuotaRead => "overtime:quota:read",
+            Self::ApprovalWorkflowsRead => "approval_workflows:read",
+            Self::ApprovalWorkflowsManage => "approval_workflows:manage",
             Self::LeaveRequestsRead => "leave:requests:read",
             Self::LeaveRequestsSubmit => "leave:requests:submit",
             Self::LeaveRequestsApprove => "leave:requests:approve",
@@ -379,6 +399,12 @@ impl Permission {
             "overtime:approve",
             "overtime:policies:manage",
             "overtime:paper:upload",
+            "overtime:request:create",
+            "overtime:request:read",
+            "overtime:approve:workflow",
+            "overtime:quota:read",
+            "approval_workflows:read",
+            "approval_workflows:manage",
             "leave:requests:read",
             "leave:requests:submit",
             "leave:requests:approve",
@@ -449,15 +475,15 @@ mod tests {
     use super::*;
     use std::collections::HashSet;
 
-    /// Lock the total permission count at 91.
+    /// Lock the total permission count at 97.
     /// If you add a new Permission variant, update this number,
     /// `all_permission_strings()`, AND the frontend PermissionSync.test.ts.
     #[test]
-    fn test_total_permission_count_is_91() {
+    fn test_total_permission_count_is_97() {
         let all = Permission::all_permission_strings();
         assert_eq!(
             all.len(),
-            91,
+            97,
             "Permission count changed! Update this test, the UI permissionGroups, AND PermissionSync.test.ts. Current count: {}",
             all.len()
         );
@@ -533,6 +559,12 @@ mod tests {
             Permission::OvertimeApprove,
             Permission::OvertimePoliciesManage,
             Permission::OvertimePaperUpload,
+            Permission::OvertimeRequestCreate,
+            Permission::OvertimeRequestRead,
+            Permission::OvertimeApproveWorkflow,
+            Permission::OvertimeQuotaRead,
+            Permission::ApprovalWorkflowsRead,
+            Permission::ApprovalWorkflowsManage,
             Permission::LeaveRequestsRead,
             Permission::LeaveRequestsSubmit,
             Permission::LeaveRequestsApprove,
@@ -598,8 +630,8 @@ mod tests {
 
         assert_eq!(
             all_variants.len(),
-            91,
-            "Variant list in test is stale — expected 91, got {}",
+            97,
+            "Variant list in test is stale — expected 97, got {}",
             all_variants.len()
         );
 

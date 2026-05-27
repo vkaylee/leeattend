@@ -157,4 +157,35 @@ pub fn router() -> Router<Arc<AppState>> {
             "/workspaces/:ws_id/salary-bases/:base_id/members/:component_id",
             delete(handlers::salary_bases::unassign_component_from_base),
         )
+        // Workspace Configs (EAV)
+        .route(
+            "/workspaces/:ws_id/configs",
+            get(handlers::workspace_config::list_configs)
+                .put(handlers::workspace_config::upsert_config),
+        )
+        .route(
+            "/workspaces/:ws_id/configs/:key",
+            get(handlers::workspace_config::get_config)
+                .delete(handlers::workspace_config::delete_config),
+        )
+        // Approval Workflows
+        .route(
+            "/workspaces/:ws_id/approval-workflows",
+            get(handlers::approval_workflow::list_workflows)
+                .post(handlers::approval_workflow::create_workflow),
+        )
+        .route(
+            "/workspaces/:ws_id/approval-workflows/:id",
+            get(handlers::approval_workflow::get_workflow)
+                .put(handlers::approval_workflow::update_workflow)
+                .delete(handlers::approval_workflow::delete_workflow),
+        )
+        .route(
+            "/workspaces/:ws_id/approval-workflows/approve",
+            post(handlers::approval_workflow::process_approval),
+        )
+        .route(
+            "/workspaces/:ws_id/approval-workflows/history/:type/:id",
+            get(handlers::approval_workflow::get_approval_history),
+        )
 }

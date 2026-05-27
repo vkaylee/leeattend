@@ -18,3 +18,5 @@ export * from "./system";
 export * from "./shifts";
 export * from "./notifications";
 export * from "./contracts";
+export * from "./workspace-config";
+export * from "./approval-workflows";

@@ -21,7 +21,7 @@ trigger: always_on
 3. **Structured Errors:** Use domain-specific error types (`AppError`). NEVER throw generic `Error` or `unwrap()` blindly.
 4. **Boy Scout Rule:** If you see a typo, bad pattern, or visible bug nearby, FIX IT IMMEDIATELY. Never say "it's out of scope".
 5. **PTY Safety & File Creation (CRITICAL):** 
-   - 🛑 **When using the `run_command` tool:** You MUST ALWAYS append ` > run.log 2>&1 </dev/null` directly inside the `CommandLine` argument for **ALL execution commands** without exception (even simple commands like `ls`, `grep`, `cat`, as well as `cargo`, `docker`, `npm`, `test`). Failure to do so WILL hang the system. Example: `CommandLine: "ls -la > run.log 2>&1 </dev/null"`.
+   - 🛑 **When using the `run_command` tool:** You MUST ALWAYS append ` > logs/run_{command_slug}.log 2>&1 </dev/null` directly inside the `CommandLine` argument for **ALL execution commands** without exception. `{command_slug}` is a short snake_case name derived from the command (e.g., `cargo_check`, `npm_dev`, `ls`, `docker_up`). Failure to do so WILL hang the system. Example: `CommandLine: "mkdir -p logs && ls -la > logs/run_ls.log 2>&1 </dev/null"`. Always prefix with `mkdir -p logs &&` to ensure the directory exists.
    - NEVER use multiline strings directly in terminal commands (such as `echo "..." > file`, `git commit -m "..."`, or `python -c`).
    - NEVER use `echo` or `cat` in shell/bash to create/edit files with multiline content.
    - You MUST use your NATIVE TOOL (such as `write_to_file`) to create files (e.g., `scratch/commit_msg.txt` or `script.py`), then use shell commands to execute them (e.g., `git commit -F scratch/commit_msg.txt`). Deliberately passing multiline strings through bash/shell will break the PTY parser and cause system hangs.

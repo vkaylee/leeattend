@@ -339,6 +339,23 @@ pub async fn spawn_app() -> (String, TestDatabase) {
     > = Arc::new(apiserver::repositories::DieselDepartmentRepository::new(
         diesel_pools.clone(),
     ));
+
+    let workspace_config_repo: Arc<dyn apiserver::repositories::workspace_config_repository::WorkspaceConfigRepository> =
+        Arc::new(apiserver::repositories::diesel_workspace_config_repository::DieselWorkspaceConfigRepository::new(diesel_pools.clone()));
+    let approval_workflow_repo: Arc<dyn apiserver::repositories::approval_workflow_repository::ApprovalWorkflowRepository> =
+        Arc::new(apiserver::repositories::diesel_approval_workflow_repository::DieselApprovalWorkflowRepository::new(diesel_pools.clone()));
+    let overtime_request_repo: Arc<dyn apiserver::repositories::overtime_request_repository::OvertimeRequestRepository> =
+        Arc::new(apiserver::repositories::diesel_overtime_request_repository::DieselOvertimeRequestRepository::new(diesel_pools.clone()));
+    let workspace_config_service = Arc::new(apiserver::services::WorkspaceConfigService::new(
+        workspace_config_repo.clone(),
+    ));
+    let approval_workflow_service = Arc::new(apiserver::services::ApprovalWorkflowService::new(
+        approval_workflow_repo.clone(),
+    ));
+    let overtime_request_service = Arc::new(apiserver::services::OvertimeRequestService::new(
+        overtime_request_repo.clone(),
+    ));
+
     let payroll_service = Arc::new(apiserver::services::payroll_service::PayrollService::new(
         apiserver::services::payroll_service::PayrollServiceArgs {
             payroll_repo: payroll_repo.clone(),
@@ -562,6 +579,8 @@ pub async fn spawn_app() -> (String, TestDatabase) {
             salary_base_repo: std::sync::Arc::new(
                 apiserver::repositories::DieselSalaryBaseRepository::new(diesel_pools.clone()),
             ),
+            overtime_request_repo: overtime_request_repo.clone(),
+            overtime_request_service: overtime_request_service.clone(),
         },
         reports: apiserver::ReportState {
             service: report_service,
@@ -589,6 +608,10 @@ pub async fn spawn_app() -> (String, TestDatabase) {
             user_repo: user_repo.clone(),
             session_repo: session_repo.clone(),
             jwt_secret: "test_secret_tower".to_string(),
+            workspace_config_repo: workspace_config_repo.clone(),
+            workspace_config_service: workspace_config_service.clone(),
+            approval_workflow_repo: approval_workflow_repo.clone(),
+            approval_workflow_service: approval_workflow_service.clone(),
         },
         agents: apiserver::AgentState {
             manager: agent_manager,
@@ -870,6 +893,23 @@ pub async fn spawn_app_with_factory_extended(
     > = Arc::new(apiserver::repositories::DieselDepartmentRepository::new(
         diesel_pools.clone(),
     ));
+
+    let workspace_config_repo: Arc<dyn apiserver::repositories::workspace_config_repository::WorkspaceConfigRepository> =
+        Arc::new(apiserver::repositories::diesel_workspace_config_repository::DieselWorkspaceConfigRepository::new(diesel_pools.clone()));
+    let approval_workflow_repo: Arc<dyn apiserver::repositories::approval_workflow_repository::ApprovalWorkflowRepository> =
+        Arc::new(apiserver::repositories::diesel_approval_workflow_repository::DieselApprovalWorkflowRepository::new(diesel_pools.clone()));
+    let overtime_request_repo: Arc<dyn apiserver::repositories::overtime_request_repository::OvertimeRequestRepository> =
+        Arc::new(apiserver::repositories::diesel_overtime_request_repository::DieselOvertimeRequestRepository::new(diesel_pools.clone()));
+    let workspace_config_service = Arc::new(apiserver::services::WorkspaceConfigService::new(
+        workspace_config_repo.clone(),
+    ));
+    let approval_workflow_service = Arc::new(apiserver::services::ApprovalWorkflowService::new(
+        approval_workflow_repo.clone(),
+    ));
+    let overtime_request_service = Arc::new(apiserver::services::OvertimeRequestService::new(
+        overtime_request_repo.clone(),
+    ));
+
     let payroll_service = Arc::new(apiserver::services::payroll_service::PayrollService::new(
         apiserver::services::payroll_service::PayrollServiceArgs {
             payroll_repo: payroll_repo.clone(),
@@ -1093,6 +1133,8 @@ pub async fn spawn_app_with_factory_extended(
             salary_base_repo: std::sync::Arc::new(
                 apiserver::repositories::DieselSalaryBaseRepository::new(diesel_pools.clone()),
             ),
+            overtime_request_repo: overtime_request_repo.clone(),
+            overtime_request_service: overtime_request_service.clone(),
         },
         reports: apiserver::ReportState {
             service: report_service,
@@ -1120,6 +1162,10 @@ pub async fn spawn_app_with_factory_extended(
             user_repo: user_repo.clone(),
             session_repo: session_repo.clone(),
             jwt_secret: "test_secret_tower".to_string(),
+            workspace_config_repo: workspace_config_repo.clone(),
+            workspace_config_service: workspace_config_service.clone(),
+            approval_workflow_repo: approval_workflow_repo.clone(),
+            approval_workflow_service: approval_workflow_service.clone(),
         },
         agents: apiserver::AgentState {
             manager: agent_manager,
@@ -1450,6 +1496,23 @@ pub async fn setup_app_tower_internal_extended(
     > = Arc::new(apiserver::repositories::DieselDepartmentRepository::new(
         diesel_pools.clone(),
     ));
+
+    let workspace_config_repo: Arc<dyn apiserver::repositories::workspace_config_repository::WorkspaceConfigRepository> =
+        Arc::new(apiserver::repositories::diesel_workspace_config_repository::DieselWorkspaceConfigRepository::new(diesel_pools.clone()));
+    let approval_workflow_repo: Arc<dyn apiserver::repositories::approval_workflow_repository::ApprovalWorkflowRepository> =
+        Arc::new(apiserver::repositories::diesel_approval_workflow_repository::DieselApprovalWorkflowRepository::new(diesel_pools.clone()));
+    let overtime_request_repo: Arc<dyn apiserver::repositories::overtime_request_repository::OvertimeRequestRepository> =
+        Arc::new(apiserver::repositories::diesel_overtime_request_repository::DieselOvertimeRequestRepository::new(diesel_pools.clone()));
+    let workspace_config_service = Arc::new(apiserver::services::WorkspaceConfigService::new(
+        workspace_config_repo.clone(),
+    ));
+    let approval_workflow_service = Arc::new(apiserver::services::ApprovalWorkflowService::new(
+        approval_workflow_repo.clone(),
+    ));
+    let overtime_request_service = Arc::new(apiserver::services::OvertimeRequestService::new(
+        overtime_request_repo.clone(),
+    ));
+
     let payroll_service = Arc::new(apiserver::services::payroll_service::PayrollService::new(
         apiserver::services::payroll_service::PayrollServiceArgs {
             payroll_repo: payroll_repo.clone(),
@@ -1677,6 +1740,8 @@ pub async fn setup_app_tower_internal_extended(
             salary_base_repo: std::sync::Arc::new(
                 apiserver::repositories::DieselSalaryBaseRepository::new(diesel_pools.clone()),
             ),
+            overtime_request_repo: overtime_request_repo.clone(),
+            overtime_request_service: overtime_request_service.clone(),
         },
         reports: apiserver::ReportState {
             service: report_service,
@@ -1704,6 +1769,10 @@ pub async fn setup_app_tower_internal_extended(
             user_repo,
             session_repo,
             jwt_secret: "test_secret_tower".to_string(),
+            workspace_config_repo: workspace_config_repo.clone(),
+            workspace_config_service: workspace_config_service.clone(),
+            approval_workflow_repo: approval_workflow_repo.clone(),
+            approval_workflow_service: approval_workflow_service.clone(),
         },
         agents: apiserver::AgentState {
             manager: agent_manager,

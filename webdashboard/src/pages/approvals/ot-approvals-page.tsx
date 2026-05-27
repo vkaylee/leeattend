@@ -13,13 +13,17 @@ import { useApproveOt, useAttendanceSummaries } from "@/hooks/use-attendance";
 import { OtApprovalsFilters, SourceFilter } from "./components/ot-approvals-filters";
 import { OtApprovalsHeader } from "./components/ot-approvals-header";
 import { OtApprovalsTable } from "./components/ot-approvals-table";
+import { PreOtApprovalsTab } from "./components/pre-ot-approvals-tab";
+import { useWorkspace } from "@/hooks/use-workspace";
 
 export default function OtApprovalsPage() {
   const toast = useToast();
+  const { workspace } = useWorkspace();
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [paperOtDialogOpen, setPaperOtDialogOpen] = useState(false);
   const [bulkUploadDialogOpen, setBulkUploadDialogOpen] = useState(false);
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>("all");
+  const [activeTab, setActiveTab] = useState<"pre" | "post">("pre");
 
   const startDate = format(startOfMonth(currentMonth), "yyyy-MM-dd");
   const endDate = format(endOfMonth(currentMonth), "yyyy-MM-dd");
@@ -95,18 +99,47 @@ export default function OtApprovalsPage() {
         open={bulkUploadDialogOpen}
       />
 
-      <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[3rem] overflow-hidden shadow-sm animate-in slide-in-from-bottom-8 duration-700">
-        {isLoading ? (
-          <LoadingState />
-        ) : pendingSummaries.length === 0 ? (
-          <EmptyState />
-        ) : (
-          <OtApprovalsTable
-            handleApprove={handleApprove}
-            isProcessing={isProcessing}
-            pendingSummaries={pendingSummaries}
-          />
-        )}
+      <div className="flex gap-4 border-b border-slate-100 dark:border-slate-800 pb-6 mb-8 overflow-x-auto custom-scrollbar">
+        <button
+          className={`px-6 py-3 rounded-2xl font-bold text-sm tracking-tight transition-all duration-300 whitespace-nowrap ${
+            activeTab === "pre"
+              ? "bg-slate-800 dark:bg-slate-100 text-white dark:text-slate-900 shadow-md scale-105"
+              : "text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-800 dark:hover:text-slate-200"
+          }`}
+          onClick={() => setActiveTab("pre")}
+        >
+          {t("ot_approvals.tabs.pre_ot", { defaultValue: "Pre-OT Approvals (Requests)" })}
+        </button>
+        <button
+          className={`px-6 py-3 rounded-2xl font-bold text-sm tracking-tight transition-all duration-300 whitespace-nowrap ${
+            activeTab === "post"
+              ? "bg-slate-800 dark:bg-slate-100 text-white dark:text-slate-900 shadow-md scale-105"
+              : "text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-800 dark:hover:text-slate-200"
+          }`}
+          onClick={() => setActiveTab("post")}
+        >
+          {t("ot_approvals.tabs.post_ot", { defaultValue: "Post-OT Approvals (Actuals)" })}
+        </button>
+      </div>
+
+      <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[3rem] overflow-hidden shadow-sm animate-in slide-in-from-bottom-8 duration-700 min-h-[400px]">
+        {activeTab === "pre" && workspace ? (
+          <PreOtApprovalsTab wsId={workspace.id} />
+        ) : activeTab === "post" ? (
+          <>
+            {isLoading ? (
+              <LoadingState />
+            ) : pendingSummaries.length === 0 ? (
+              <EmptyState />
+            ) : (
+              <OtApprovalsTable
+                handleApprove={handleApprove}
+                isProcessing={isProcessing}
+                pendingSummaries={pendingSummaries}
+              />
+            )}
+          </>
+        ) : null}
       </div>
     </div>
   );

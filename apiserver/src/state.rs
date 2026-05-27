@@ -106,6 +106,8 @@ pub struct PayrollState {
     pub overtime_policy_repo: Arc<dyn OvertimePolicyRepositoryTrait>,
     pub salary_base_repo:
         Arc<dyn crate::repositories::salary_base_repository::SalaryBaseRepository>,
+    pub overtime_request_repo: Arc<dyn crate::repositories::overtime_request_repository::OvertimeRequestRepository>,
+    pub overtime_request_service: Arc<crate::services::OvertimeRequestService>,
 }
 
 /// Reports & async coordination
@@ -124,6 +126,12 @@ pub struct CoreState {
     pub user_repo: Arc<dyn UserRepository>,
     pub session_repo: Arc<dyn crate::repositories::session_repository::SessionRepository>,
     pub jwt_secret: String,
+    
+    pub workspace_config_repo: Arc<dyn crate::repositories::workspace_config_repository::WorkspaceConfigRepository>,
+    pub approval_workflow_repo: Arc<dyn crate::repositories::approval_workflow_repository::ApprovalWorkflowRepository>,
+    
+    pub workspace_config_service: Arc<crate::services::WorkspaceConfigService>,
+    pub approval_workflow_service: Arc<crate::services::ApprovalWorkflowService>,
 }
 
 /// AI agent management

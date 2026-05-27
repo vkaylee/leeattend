@@ -272,6 +272,99 @@ pub enum OtStatus {
     Rejected,
 }
 
+#[derive(
+    Debug,
+    Serialize,
+    Deserialize,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    strum_macros::Display,
+    strum_macros::EnumString,
+    ToSchema,
+    diesel::expression::AsExpression,
+    diesel::deserialize::FromSqlRow,
+)]
+#[diesel(sql_type = crate::schema::sql_types::OtRequestStatusType)]
+#[serde(rename_all = "snake_case")]
+#[strum(serialize_all = "snake_case")]
+pub enum OtRequestStatus {
+    Draft,
+    PendingApproval,
+    Approved,
+    PartiallyAccepted,
+    Active,
+    Completed,
+    Cancelled,
+    Rejected,
+}
+
+#[derive(
+    Debug,
+    Serialize,
+    Deserialize,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    strum_macros::Display,
+    strum_macros::EnumString,
+    ToSchema,
+    Default,
+)]
+#[serde(rename_all = "snake_case")]
+#[strum(serialize_all = "snake_case")]
+pub enum ConsentStatus {
+    #[default]
+    Pending,
+    Accepted,
+    Declined,
+}
+
+#[derive(
+    Debug,
+    Serialize,
+    Deserialize,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    strum_macros::Display,
+    strum_macros::EnumString,
+    ToSchema,
+)]
+#[serde(rename_all = "snake_case")]
+#[strum(serialize_all = "snake_case")]
+pub enum ApproverType {
+    DepartmentManager,
+    Role,
+    Permission,
+    SpecificUser,
+}
+
+#[derive(
+    Debug,
+    Serialize,
+    Deserialize,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    strum_macros::Display,
+    strum_macros::EnumString,
+    ToSchema,
+    Default,
+)]
+#[serde(rename_all = "snake_case")]
+#[strum(serialize_all = "snake_case")]
+pub enum ScopeType {
+    #[default]
+    Workspace,
+    Department,
+    Employee,
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone, Copy)]
 #[serde(rename_all = "snake_case")]
 pub enum AttendanceReportSort {
@@ -447,6 +540,24 @@ impl From<String> for PayrollRuleCategory {
 impl From<String> for RuleAppliesTo {
     fn from(s: String) -> Self {
         std::str::FromStr::from_str(&s).unwrap_or(RuleAppliesTo::Employee)
+    }
+}
+
+impl From<String> for ApproverType {
+    fn from(s: String) -> Self {
+        std::str::FromStr::from_str(&s).unwrap_or(ApproverType::DepartmentManager)
+    }
+}
+
+impl From<String> for ConsentStatus {
+    fn from(s: String) -> Self {
+        std::str::FromStr::from_str(&s).unwrap_or(ConsentStatus::Pending)
+    }
+}
+
+impl From<String> for ScopeType {
+    fn from(s: String) -> Self {
+        std::str::FromStr::from_str(&s).unwrap_or(ScopeType::Workspace)
     }
 }
 

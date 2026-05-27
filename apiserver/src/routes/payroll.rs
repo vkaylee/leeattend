@@ -75,4 +75,22 @@ pub fn router() -> Router<Arc<AppState>> {
             "/workspaces/:ws_id/overtime/policies/assign",
             post(handlers::assign_policy),
         )
+        // Overtime Requests
+        .route(
+            "/workspaces/:ws_id/overtime/requests",
+            get(handlers::overtime_request::list_ot_requests)
+                .post(handlers::overtime_request::create_ot_request),
+        )
+        .route(
+            "/workspaces/:ws_id/overtime/requests/:id",
+            get(handlers::overtime_request::get_ot_request),
+        )
+        .route(
+            "/workspaces/:ws_id/overtime/requests/:id/submit",
+            post(handlers::overtime_request::submit_for_approval),
+        )
+        .route(
+            "/workspaces/:ws_id/overtime/requests/:id/consent/:emp_id",
+            post(handlers::overtime_request::employee_consent),
+        )
 }
