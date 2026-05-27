@@ -1,4 +1,4 @@
-import { apiClient } from './client';
+import { client } from './client';
 import { 
   ApproverType, 
   ApprovalWorkflowStep, 
@@ -32,35 +32,64 @@ export interface UpdateWorkflowRequest {
 
 export const approvalWorkflowsApi = {
   listWorkflows: async (workspaceId: string, entityType?: string): Promise<ApprovalWorkflow[]> => {
-    const params = new URLSearchParams();
-    if (entityType) params.append('entity_type', entityType);
-    
-    const response = await apiClient.get(`/workspaces/${workspaceId}/approval-workflows?${params.toString()}`);
-    return response.data;
+    const { data: resData } = await client.GET("/workspaces/{ws_id}/approval-workflows", {
+      params: {
+        path: { ws_id: workspaceId },
+        query: entityType ? { entity_type: entityType } : undefined
+      } as any
+    });
+    if (!resData) throw new Error("No response data");
+    return resData as ApprovalWorkflow[];
   },
 
   getWorkflow: async (workspaceId: string, id: string): Promise<ApprovalWorkflow> => {
-    const response = await apiClient.get(`/workspaces/${workspaceId}/approval-workflows/${id}`);
-    return response.data;
+    const { data: resData } = await client.GET("/workspaces/{ws_id}/approval-workflows/{id}", {
+      params: {
+        path: { ws_id: workspaceId, id }
+      }
+    });
+    if (!resData) throw new Error("No response data");
+    return resData as ApprovalWorkflow;
   },
 
   createWorkflow: async (workspaceId: string, payload: CreateWorkflowRequest): Promise<ApprovalWorkflow> => {
-    const response = await apiClient.post(`/workspaces/${workspaceId}/approval-workflows`, payload);
-    return response.data;
+    const { data: resData } = await client.POST("/workspaces/{ws_id}/approval-workflows", {
+      params: {
+        path: { ws_id: workspaceId }
+      },
+      body: payload
+    });
+    if (!resData) throw new Error("No response data");
+    return resData as ApprovalWorkflow;
   },
 
   updateWorkflow: async (workspaceId: string, id: string, payload: UpdateWorkflowRequest): Promise<ApprovalWorkflow> => {
-    const response = await apiClient.put(`/workspaces/${workspaceId}/approval-workflows/${id}`, payload);
-    return response.data;
+    const { data: resData } = await client.PUT("/workspaces/{ws_id}/approval-workflows/{id}", {
+      params: {
+        path: { ws_id: workspaceId, id }
+      },
+      body: payload as any
+    });
+    if (!resData) throw new Error("No response data");
+    return resData as ApprovalWorkflow;
   },
 
   deleteWorkflow: async (workspaceId: string, id: string): Promise<void> => {
-    await apiClient.delete(`/workspaces/${workspaceId}/approval-workflows/${id}`);
+    await client.DELETE("/workspaces/{ws_id}/approval-workflows/{id}", {
+      params: {
+        path: { ws_id: workspaceId, id }
+      }
+    });
   },
 
   getApprovalHistory: async (workspaceId: string, entityType: string, entityId: string): Promise<ApprovalActionLog[]> => {
-    const response = await apiClient.get(`/workspaces/${workspaceId}/approval-workflows/history/${entityType}/${entityId}`);
-    return response.data;
+    const { data: resData } = await client.GET("/workspaces/{ws_id}/approval-workflows/history/{type}/{id}", {
+      params: {
+        path: { ws_id: workspaceId, type: entityType, id: entityId }
+      }
+    });
+    if (!resData) throw new Error("No response data");
+    return resData as ApprovalActionLog[];
   },
 
   processApproval: async (workspaceId: string, payload: {
@@ -69,6 +98,11 @@ export const approvalWorkflowsApi = {
     action: string;
     note?: string;
   }): Promise<void> => {
-    await apiClient.post(`/workspaces/${workspaceId}/approval-workflows/approve`, payload);
+    await client.POST("/workspaces/{ws_id}/approval-workflows/approve", {
+      params: {
+        path: { ws_id: workspaceId }
+      },
+      body: payload
+    });
   }
 };

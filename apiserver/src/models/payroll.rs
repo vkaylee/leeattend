@@ -27,7 +27,7 @@ pub struct CreatePayslipSegmentArgs {
     pub std_days_source: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct PayslipSegment {
     pub id: Uuid,
     pub payslip_id: Uuid,
@@ -64,7 +64,7 @@ pub struct Payslip {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct PayrollIncentivePolicy {
     pub id: Uuid,
     pub workspace_id: Uuid,
@@ -77,7 +77,7 @@ pub struct PayrollIncentivePolicy {
     pub effective_to: Option<chrono::NaiveDate>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct IncentiveTier {
     pub id: Uuid,
     pub policy_id: Uuid,
@@ -86,7 +86,7 @@ pub struct IncentiveTier {
     pub payout_amount: f64,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct IncentiveEvaluationResult {
     pub policy_name: String,
     pub amount: rust_decimal::Decimal,
@@ -94,7 +94,7 @@ pub struct IncentiveEvaluationResult {
     pub tier_id: Option<Uuid>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct PayslipRuleEvaluation {
     pub id: Uuid,
     pub payslip_id: Uuid,
@@ -107,7 +107,7 @@ fn default_rule_config() -> serde_json::Value {
     serde_json::json!({})
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct CreateIncentiveTierRequest {
     pub priority: i32,
     #[serde(default = "default_rule_config")]
@@ -127,7 +127,7 @@ pub struct PayrollIncentiveAssignment {
     pub created_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct CreatePayrollIncentivePolicyRequest {
     pub name: String,
     pub base_amount: f64,
@@ -136,7 +136,7 @@ pub struct CreatePayrollIncentivePolicyRequest {
     pub tiers: Vec<CreateIncentiveTierRequest>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct PayrollIncentivePolicyResponse {
     #[serde(flatten)]
     pub policy: PayrollIncentivePolicy,
@@ -153,14 +153,14 @@ pub struct PayslipResponse {
     pub salary_components: Vec<SalaryComponentWithDefinition>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, utoipa::ToSchema)]
 pub struct BatchCalculatePayrollRequest {
     pub employee_ids: Vec<Uuid>,
     pub year: i32,
     pub month: u32,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, utoipa::ToSchema)]
 pub struct BatchCalculateResult {
     pub employee_id: Uuid,
     pub status: String, // "success" or "error"
@@ -168,12 +168,12 @@ pub struct BatchCalculateResult {
     pub error_message: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, utoipa::ToSchema)]
 pub struct BatchCalculatePayrollResponse {
     pub results: Vec<BatchCalculateResult>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct PayrollSettings {
     pub workspace_id: Uuid,
     pub std_working_day_mode: String,
@@ -187,7 +187,7 @@ pub struct PayrollSettings {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct DepartmentPayrollConfig {
     pub id: Uuid,
     pub department_id: Uuid,
@@ -197,7 +197,7 @@ pub struct DepartmentPayrollConfig {
     pub created_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct EmployeePayrollConfig {
     pub id: Uuid,
     pub employee_id: Uuid,
@@ -207,7 +207,7 @@ pub struct EmployeePayrollConfig {
     pub created_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct SalaryComponentDefinition {
     pub id: Uuid,
     pub workspace_id: Uuid,
@@ -217,7 +217,7 @@ pub struct SalaryComponentDefinition {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct EmployeeSalaryComponent {
     pub id: Uuid,
     pub employee_id: Uuid,
@@ -228,7 +228,7 @@ pub struct EmployeeSalaryComponent {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, utoipa::ToSchema)]
 pub struct UpdatePayrollSettingsRequest {
     pub std_working_day_mode: Option<String>,
     pub fixed_std_days: Option<rust_decimal::Decimal>,
@@ -239,35 +239,35 @@ pub struct UpdatePayrollSettingsRequest {
     pub effective_date: Option<NaiveDate>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, utoipa::ToSchema)]
 pub struct SetDepartmentPayrollConfigRequest {
     pub std_working_days: rust_decimal::Decimal,
     pub hours_per_day: rust_decimal::Decimal,
     pub effective_date: NaiveDate,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, utoipa::ToSchema)]
 pub struct SetEmployeePayrollConfigRequest {
     pub std_working_days: rust_decimal::Decimal,
     pub hours_per_day: rust_decimal::Decimal,
     pub effective_date: NaiveDate,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, utoipa::ToSchema)]
 pub struct CreateSalaryComponentRequest {
     pub name: String,
     pub code: String,
     pub base_group_ids: Option<Vec<Uuid>>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, utoipa::ToSchema)]
 pub struct AssignSalaryComponentRequest {
     pub component_definition_id: Uuid,
     pub amount: rust_decimal::Decimal,
     pub effective_date: NaiveDate,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct SalaryComponentWithDefinition {
     pub component: EmployeeSalaryComponent,
     pub definition: SalaryComponentDefinition,

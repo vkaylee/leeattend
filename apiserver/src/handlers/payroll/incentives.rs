@@ -14,6 +14,17 @@ use crate::models::{
 };
 use crate::AppState;
 
+/// GET /workspaces/{ws_id}/payroll/incentive-policies
+#[utoipa::path(
+    get,
+    path = "/workspaces/{ws_id}/payroll/incentive-policies",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID")
+    ),
+    responses(
+        (status = 200, description = "Workspace payroll incentive policies list", body = [PayrollIncentivePolicyResponse])
+    )
+)]
 pub async fn get_incentive_policies(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -38,6 +49,18 @@ pub async fn get_incentive_policies(
     Ok(Json(response))
 }
 
+/// POST /workspaces/{ws_id}/payroll/incentive-policies
+#[utoipa::path(
+    post,
+    path = "/workspaces/{ws_id}/payroll/incentive-policies",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID")
+    ),
+    request_body = CreatePayrollIncentivePolicyRequest,
+    responses(
+        (status = 201, description = "Created incentive policy", body = PayrollIncentivePolicy)
+    )
+)]
 pub async fn create_incentive_policy(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -51,11 +74,24 @@ pub async fn create_incentive_policy(
     Ok((StatusCode::CREATED, Json(policy)))
 }
 
+/// DELETE /workspaces/{ws_id}/payroll/incentive-policies/{policy_id}
+#[utoipa::path(
+    delete,
+    path = "/workspaces/{ws_id}/payroll/incentive-policies/{policy_id}",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        ("policy_id" = Uuid, Path, description = "Policy ID")
+    ),
+    responses(
+        (status = 204, description = "Deleted incentive policy")
+    )
+)]
 pub async fn delete_incentive_policy(
     State(state): State<Arc<AppState>>,
-    Path((_, policy_id)): Path<(Uuid, Uuid)>,
+    Path(params): Path<(Uuid, Uuid)>,
     ctx: MemberContext,
 ) -> AppResult<StatusCode> {
+    let (_, policy_id) = params;
     state
         .payroll
         .repo
@@ -64,11 +100,24 @@ pub async fn delete_incentive_policy(
     Ok(StatusCode::NO_CONTENT)
 }
 
+/// POST /workspaces/{ws_id}/payroll/incentive-policies/{policy_id}/clone
+#[utoipa::path(
+    post,
+    path = "/workspaces/{ws_id}/payroll/incentive-policies/{policy_id}/clone",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        ("policy_id" = Uuid, Path, description = "Policy ID")
+    ),
+    responses(
+        (status = 201, description = "Cloned incentive policy", body = PayrollIncentivePolicy)
+    )
+)]
 pub async fn clone_incentive_policy(
     State(state): State<Arc<AppState>>,
-    Path((_, policy_id)): Path<(Uuid, Uuid)>,
+    Path(params): Path<(Uuid, Uuid)>,
     ctx: MemberContext,
 ) -> AppResult<(StatusCode, Json<PayrollIncentivePolicy>)> {
+    let (_, policy_id) = params;
     let policy = state
         .payroll
         .repo

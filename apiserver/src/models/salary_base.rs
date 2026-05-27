@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct SalaryBaseGroup {
     pub id: Uuid,
     pub workspace_id: Option<Uuid>,
@@ -14,7 +14,7 @@ pub struct SalaryBaseGroup {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct SalaryBaseGroupMember {
     pub component_definition_id: Uuid,
     pub base_group_id: Uuid,

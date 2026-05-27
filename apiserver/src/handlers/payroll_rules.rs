@@ -18,7 +18,7 @@ use crate::{
     AppState,
 };
 
-#[derive(Deserialize)]
+#[derive(Deserialize, utoipa::ToSchema)]
 pub struct CreatePayrollRuleDefinitionRequest {
     pub name: String,
     pub description: Option<String>,
@@ -31,7 +31,7 @@ pub struct CreatePayrollRuleDefinitionRequest {
     pub display_order: Option<i32>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, utoipa::ToSchema)]
 pub struct CreatePayrollRuleTierRequest {
     pub tier_order: i32,
     pub min_amount: Decimal,
@@ -40,7 +40,7 @@ pub struct CreatePayrollRuleTierRequest {
     pub fixed_amount: Option<Decimal>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, utoipa::ToSchema)]
 pub struct AssignPayrollRuleRequest {
     pub assignee_type: AssigneeType,
     pub assignee_id: Option<Uuid>,
@@ -49,6 +49,18 @@ pub struct AssignPayrollRuleRequest {
     pub override_config: Option<serde_json::Value>,
 }
 
+/// POST /workspaces/{ws_id}/payroll-rules
+#[utoipa::path(
+    post,
+    path = "/workspaces/{ws_id}/payroll-rules",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID")
+    ),
+    request_body = CreatePayrollRuleDefinitionRequest,
+    responses(
+        (status = 200, description = "Created payroll rule definition", body = PayrollRuleDefinition)
+    )
+)]
 pub async fn create_payroll_rule_definition(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -76,6 +88,17 @@ pub async fn create_payroll_rule_definition(
     Ok(Json(def))
 }
 
+/// GET /workspaces/{ws_id}/payroll-rules
+#[utoipa::path(
+    get,
+    path = "/workspaces/{ws_id}/payroll-rules",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID")
+    ),
+    responses(
+        (status = 200, description = "Payroll rule definitions list", body = [PayrollRuleDefinition])
+    )
+)]
 pub async fn get_payroll_rule_definitions(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -88,12 +111,26 @@ pub async fn get_payroll_rule_definitions(
     Ok(Json(defs))
 }
 
+/// POST /workspaces/{ws_id}/payroll-rules/{rule_id}/tiers
+#[utoipa::path(
+    post,
+    path = "/workspaces/{ws_id}/payroll-rules/{rule_id}/tiers",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        ("rule_id" = Uuid, Path, description = "Rule Definition ID")
+    ),
+    request_body = CreatePayrollRuleTierRequest,
+    responses(
+        (status = 200, description = "Created payroll rule tier", body = PayrollRuleTier)
+    )
+)]
 pub async fn create_payroll_rule_tier(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
-    Path((_ws_id, rule_id)): Path<(Uuid, Uuid)>,
+    Path(params): Path<(Uuid, Uuid)>,
     Json(payload): Json<CreatePayrollRuleTierRequest>,
 ) -> Result<Json<PayrollRuleTier>, AppError> {
+    let (_ws_id, rule_id) = params;
     let tier = state
         .payroll
         .rule_repo
@@ -111,11 +148,24 @@ pub async fn create_payroll_rule_tier(
     Ok(Json(tier))
 }
 
+/// GET /workspaces/{ws_id}/payroll-rules/{rule_id}/tiers
+#[utoipa::path(
+    get,
+    path = "/workspaces/{ws_id}/payroll-rules/{rule_id}/tiers",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        ("rule_id" = Uuid, Path, description = "Rule Definition ID")
+    ),
+    responses(
+        (status = 200, description = "Payroll rule tiers list", body = [PayrollRuleTier])
+    )
+)]
 pub async fn get_payroll_rule_tiers(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
-    Path((_ws_id, rule_id)): Path<(Uuid, Uuid)>,
+    Path(params): Path<(Uuid, Uuid)>,
 ) -> Result<Json<Vec<PayrollRuleTier>>, AppError> {
+    let (_ws_id, rule_id) = params;
     let tiers = state
         .payroll
         .rule_repo
@@ -124,12 +174,26 @@ pub async fn get_payroll_rule_tiers(
     Ok(Json(tiers))
 }
 
+/// POST /workspaces/{ws_id}/payroll-rules/{rule_id}/assignments
+#[utoipa::path(
+    post,
+    path = "/workspaces/{ws_id}/payroll-rules/{rule_id}/assignments",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        ("rule_id" = Uuid, Path, description = "Rule Definition ID")
+    ),
+    request_body = AssignPayrollRuleRequest,
+    responses(
+        (status = 200, description = "Assigned payroll rule", body = PayrollRuleAssignment)
+    )
+)]
 pub async fn assign_payroll_rule(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
-    Path((_ws_id, rule_id)): Path<(Uuid, Uuid)>,
+    Path(params): Path<(Uuid, Uuid)>,
     Json(payload): Json<AssignPayrollRuleRequest>,
 ) -> Result<Json<PayrollRuleAssignment>, AppError> {
+    let (_ws_id, rule_id) = params;
     let assignment = state
         .payroll
         .rule_repo
@@ -149,11 +213,24 @@ pub async fn assign_payroll_rule(
     Ok(Json(assignment))
 }
 
+/// GET /workspaces/{ws_id}/payroll-rules/{rule_id}/assignments
+#[utoipa::path(
+    get,
+    path = "/workspaces/{ws_id}/payroll-rules/{rule_id}/assignments",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        ("rule_id" = Uuid, Path, description = "Rule Definition ID")
+    ),
+    responses(
+        (status = 200, description = "Payroll rule assignments list", body = [PayrollRuleAssignment])
+    )
+)]
 pub async fn get_payroll_rule_assignments(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
-    Path((_ws_id, rule_id)): Path<(Uuid, Uuid)>,
+    Path(params): Path<(Uuid, Uuid)>,
 ) -> Result<Json<Vec<PayrollRuleAssignment>>, AppError> {
+    let (_ws_id, rule_id) = params;
     let assignments = state
         .payroll
         .rule_repo
@@ -162,11 +239,25 @@ pub async fn get_payroll_rule_assignments(
     Ok(Json(assignments))
 }
 
+/// DELETE /workspaces/{ws_id}/payroll-rules/{rule_id}/assignments/{assignment_id}
+#[utoipa::path(
+    delete,
+    path = "/workspaces/{ws_id}/payroll-rules/{rule_id}/assignments/{assignment_id}",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        ("rule_id" = Uuid, Path, description = "Rule Definition ID"),
+        ("assignment_id" = Uuid, Path, description = "Assignment ID")
+    ),
+    responses(
+        (status = 200, description = "Deleted payroll rule assignment")
+    )
+)]
 pub async fn delete_payroll_rule_assignment(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
-    Path((_ws_id, rule_id, assignment_id)): Path<(Uuid, Uuid, Uuid)>,
+    Path(params): Path<(Uuid, Uuid, Uuid)>,
 ) -> Result<Json<()>, AppError> {
+    let (_ws_id, rule_id, assignment_id) = params;
     state
         .payroll
         .rule_repo
@@ -175,11 +266,25 @@ pub async fn delete_payroll_rule_assignment(
     Ok(Json(()))
 }
 
+/// DELETE /workspaces/{ws_id}/payroll-rules/{rule_id}/tiers/{tier_id}
+#[utoipa::path(
+    delete,
+    path = "/workspaces/{ws_id}/payroll-rules/{rule_id}/tiers/{tier_id}",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        ("rule_id" = Uuid, Path, description = "Rule Definition ID"),
+        ("tier_id" = Uuid, Path, description = "Tier ID")
+    ),
+    responses(
+        (status = 200, description = "Deleted payroll rule tier")
+    )
+)]
 pub async fn delete_payroll_rule_tier(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
-    Path((_ws_id, rule_id, tier_id)): Path<(Uuid, Uuid, Uuid)>,
+    Path(params): Path<(Uuid, Uuid, Uuid)>,
 ) -> Result<Json<()>, AppError> {
+    let (_ws_id, rule_id, tier_id) = params;
     state
         .payroll
         .rule_repo

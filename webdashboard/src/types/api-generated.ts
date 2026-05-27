@@ -1200,6 +1200,147 @@ export interface paths {
         patch: operations["update_workspace"];
         trace?: never;
     };
+    "/workspaces/{ws_id}/approval-workflows": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /workspaces/{ws_id}/approval-workflows */
+        get: operations["list_workflows"];
+        put?: never;
+        /** POST /workspaces/{ws_id}/approval-workflows */
+        post: operations["create_workflow"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{ws_id}/approval-workflows/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** POST /workspaces/{ws_id}/approval-workflows/approve */
+        post: operations["process_approval"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{ws_id}/approval-workflows/history/{type}/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /workspaces/{ws_id}/approval-workflows/history/{type}/{id} */
+        get: operations["get_approval_history"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{ws_id}/approval-workflows/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /workspaces/{ws_id}/approval-workflows/{id} */
+        get: operations["get_workflow"];
+        /** PUT /workspaces/{ws_id}/approval-workflows/{id} */
+        put: operations["update_workflow"];
+        post?: never;
+        /** DELETE /workspaces/{ws_id}/approval-workflows/{id} */
+        delete: operations["delete_workflow"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{ws_id}/departments/{id}/payroll-config": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /workspaces/{ws_id}/departments/{id}/payroll-config */
+        get: operations["get_department_payroll_configs"];
+        put?: never;
+        /** POST /workspaces/{ws_id}/departments/{id}/payroll-config */
+        post: operations["set_department_payroll_config"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{ws_id}/employees/{employee_id}/calculate-payroll": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** POST /workspaces/{ws_id}/employees/{employee_id}/calculate-payroll */
+        post: operations["calculate_payroll"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{ws_id}/employees/{employee_id}/payslips": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /workspaces/{ws_id}/employees/{employee_id}/payslips */
+        get: operations["get_employee_payslips"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{ws_id}/employees/{employee_id}/salary-components": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /workspaces/{ws_id}/employees/{employee_id}/salary-components */
+        get: operations["get_employee_salary_components"];
+        put?: never;
+        /** POST /workspaces/{ws_id}/employees/{employee_id}/salary-components */
+        post: operations["assign_employee_salary_component"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/workspaces/{ws_id}/employees/{id}/leave/adjust": {
         parameters: {
             query?: never;
@@ -1248,6 +1389,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/workspaces/{ws_id}/employees/{id}/payroll-config": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /workspaces/{ws_id}/employees/{id}/payroll-config */
+        get: operations["get_employee_payroll_configs"];
+        put?: never;
+        /** POST /workspaces/{ws_id}/employees/{id}/payroll-config */
+        post: operations["set_employee_payroll_config"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/workspaces/{ws_id}/jobs/{job_id}/status": {
         parameters: {
             query?: never;
@@ -1255,7 +1414,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_job_status"];
+        get: operations["get_leave_job_status"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1616,6 +1775,341 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/workspaces/{ws_id}/payroll-rules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /workspaces/{ws_id}/payroll-rules */
+        get: operations["get_payroll_rule_definitions"];
+        put?: never;
+        /** POST /workspaces/{ws_id}/payroll-rules */
+        post: operations["create_payroll_rule_definition"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{ws_id}/payroll-rules/{rule_id}/assignments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /workspaces/{ws_id}/payroll-rules/{rule_id}/assignments */
+        get: operations["get_payroll_rule_assignments"];
+        put?: never;
+        /** POST /workspaces/{ws_id}/payroll-rules/{rule_id}/assignments */
+        post: operations["assign_payroll_rule"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{ws_id}/payroll-rules/{rule_id}/assignments/{assignment_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** DELETE /workspaces/{ws_id}/payroll-rules/{rule_id}/assignments/{assignment_id} */
+        delete: operations["delete_payroll_rule_assignment"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{ws_id}/payroll-rules/{rule_id}/tiers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /workspaces/{ws_id}/payroll-rules/{rule_id}/tiers */
+        get: operations["get_payroll_rule_tiers"];
+        put?: never;
+        /** POST /workspaces/{ws_id}/payroll-rules/{rule_id}/tiers */
+        post: operations["create_payroll_rule_tier"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{ws_id}/payroll-rules/{rule_id}/tiers/{tier_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** DELETE /workspaces/{ws_id}/payroll-rules/{rule_id}/tiers/{tier_id} */
+        delete: operations["delete_payroll_rule_tier"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{ws_id}/payroll-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /workspaces/{ws_id}/payroll-settings */
+        get: operations["get_payroll_settings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** PATCH /workspaces/{ws_id}/payroll-settings */
+        patch: operations["update_payroll_settings"];
+        trace?: never;
+    };
+    "/workspaces/{ws_id}/payroll-settings/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /workspaces/{ws_id}/payroll-settings/history */
+        get: operations["get_payroll_settings_history"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{ws_id}/payroll/calculate-batch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** POST /workspaces/{ws_id}/payroll/calculate-batch */
+        post: operations["calculate_batch_payroll"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{ws_id}/payroll/incentive-policies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /workspaces/{ws_id}/payroll/incentive-policies */
+        get: operations["get_incentive_policies"];
+        put?: never;
+        /** POST /workspaces/{ws_id}/payroll/incentive-policies */
+        post: operations["create_incentive_policy"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{ws_id}/payroll/incentive-policies/{policy_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** DELETE /workspaces/{ws_id}/payroll/incentive-policies/{policy_id} */
+        delete: operations["delete_incentive_policy"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{ws_id}/payroll/incentive-policies/{policy_id}/clone": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** POST /workspaces/{ws_id}/payroll/incentive-policies/{policy_id}/clone */
+        post: operations["clone_incentive_policy"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{ws_id}/payroll/payslips": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /workspaces/{ws_id}/payroll/payslips */
+        get: operations["get_workspace_payslips"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{ws_id}/reports/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST /api/workspaces/:ws_id/reports/export
+         * @description Create an async export job for attendance reports.
+         *     Returns 202 Accepted with job_id and status_url for polling.
+         */
+        post: operations["create_export_job"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{ws_id}/reports/jobs/{job_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /workspaces/{ws_id}/reports/jobs/{job_id} */
+        get: operations["get_report_export_job_status"];
+        put?: never;
+        post?: never;
+        /** DELETE /workspaces/{ws_id}/reports/jobs/{job_id} */
+        delete: operations["cancel_job"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{ws_id}/reports/jobs/{job_id}/download": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /workspaces/{ws_id}/reports/jobs/{job_id}/download */
+        get: operations["download_report"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{ws_id}/salary-bases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /workspaces/{ws_id}/salary-bases */
+        get: operations["get_salary_bases"];
+        put?: never;
+        /** POST /workspaces/{ws_id}/salary-bases */
+        post: operations["create_salary_base"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{ws_id}/salary-bases/{base_id}/members": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** POST /workspaces/{ws_id}/salary-bases/{base_id}/members */
+        post: operations["assign_component_to_base"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{ws_id}/salary-bases/{base_id}/members/{component_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** DELETE /workspaces/{ws_id}/salary-bases/{base_id}/members/{component_id} */
+        delete: operations["unassign_component_from_base"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{ws_id}/salary-components": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /workspaces/{ws_id}/salary-components */
+        get: operations["get_salary_components"];
+        put?: never;
+        /** POST /workspaces/{ws_id}/salary-components */
+        post: operations["create_salary_component"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1645,6 +2139,42 @@ export interface components {
             /** Format: date-time */
             last_seen: string;
         };
+        ApprovalActionLog: {
+            /** Format: date-time */
+            acted_at: string;
+            /** Format: uuid */
+            acted_by_user_id: string;
+            action: string;
+            /** Format: uuid */
+            entity_id: string;
+            entity_type: string;
+            /** Format: uuid */
+            id: string;
+            note?: string | null;
+            step_name?: string | null;
+            /** Format: int32 */
+            step_order: number;
+            /** Format: uuid */
+            workspace_id: string;
+        };
+        ApprovalWorkflow: {
+            /** Format: date-time */
+            created_at: string;
+            /** Format: uuid */
+            created_by?: string | null;
+            description?: string | null;
+            entity_type: string;
+            /** Format: uuid */
+            id: string;
+            is_active: boolean;
+            name: string;
+            /** Format: int32 */
+            total_steps: number;
+            /** Format: date-time */
+            updated_at: string;
+            /** Format: uuid */
+            workspace_id: string;
+        };
         ApproveLeaveRequest: {
             status: components["schemas"]["LeaveStatus"];
         };
@@ -1662,6 +2192,10 @@ export interface components {
             /** Format: uuid */
             policy_id: string;
         };
+        AssignMemberRequest: {
+            /** Format: uuid */
+            component_definition_id: string;
+        };
         AssignPatternRequest: {
             /** Format: date */
             anchor_date?: string | null;
@@ -1672,6 +2206,16 @@ export interface components {
             /** Format: date */
             start_date: string;
         };
+        AssignPayrollRuleRequest: {
+            /** Format: uuid */
+            assignee_id?: string | null;
+            assignee_type: components["schemas"]["AssigneeType"];
+            /** Format: date */
+            effective_from: string;
+            /** Format: date */
+            effective_to?: string | null;
+            override_config?: unknown;
+        };
         AssignPolicyRequest: {
             /** Format: uuid */
             assignee_id?: string | null;
@@ -1680,6 +2224,13 @@ export interface components {
             effective_from: string;
             /** Format: uuid */
             policy_id: string;
+        };
+        AssignSalaryComponentRequest: {
+            amount: string;
+            /** Format: uuid */
+            component_definition_id: string;
+            /** Format: date */
+            effective_date: string;
         };
         AssignShiftRequest: {
             /** Format: uuid */
@@ -1691,6 +2242,8 @@ export interface components {
             /** Format: date */
             start_date: string;
         };
+        /** @enum {string} */
+        AssigneeType: "workspace" | "department" | "employee";
         AssignmentHistory: {
             assignment_type: components["schemas"]["AssignmentHistoryType"];
             /** Format: date-time */
@@ -1744,6 +2297,23 @@ export interface components {
             /** Format: uuid */
             workspace_id: string;
         };
+        BatchCalculatePayrollRequest: {
+            employee_ids: string[];
+            /** Format: int32 */
+            month: number;
+            /** Format: int32 */
+            year: number;
+        };
+        BatchCalculatePayrollResponse: {
+            results: components["schemas"]["BatchCalculateResult"][];
+        };
+        BatchCalculateResult: {
+            /** Format: uuid */
+            employee_id: string;
+            error_message?: string | null;
+            payslip?: null | components["schemas"]["Payslip"];
+            status: string;
+        };
         BulkAssignPatternRequest: {
             /** Format: date */
             anchor_date?: string | null;
@@ -1782,6 +2352,11 @@ export interface components {
         ContractStatus: "draft" | "active" | "expired" | "terminated";
         /** @enum {string} */
         ContractType: "probation" | "training" | "fixed_term" | "indefinite";
+        CreateBaseRequest: {
+            description?: string | null;
+            name: string;
+            slug: string;
+        };
         CreateContractRequest: {
             /** Format: uuid */
             assign_phase_id?: string | null;
@@ -1866,6 +2441,13 @@ export interface components {
             /** Format: int32 */
             work_threshold_percent?: number | null;
         };
+        CreateIncentiveTierRequest: {
+            /** Format: double */
+            payout_amount: number;
+            /** Format: int32 */
+            priority: number;
+            rule_config?: unknown;
+        };
         CreateLeavePolicyRequest: {
             description?: string | null;
             /** Format: uuid */
@@ -1891,6 +2473,35 @@ export interface components {
             planned_start_time?: string | null;
             reason: string;
         };
+        CreatePayrollIncentivePolicyRequest: {
+            /** Format: double */
+            base_amount: number;
+            /** Format: date */
+            effective_from: string;
+            name: string;
+            payout_type: string;
+            tiers: components["schemas"]["CreateIncentiveTierRequest"][];
+        };
+        CreatePayrollRuleDefinitionRequest: {
+            applies_to: components["schemas"]["RuleAppliesTo"];
+            calculation_method: components["schemas"]["PayrollCalculationMethod"];
+            category: components["schemas"]["PayrollRuleCategory"];
+            code: string;
+            description?: string | null;
+            /** Format: int32 */
+            display_order?: number | null;
+            is_mandatory?: boolean | null;
+            name: string;
+            rule_config: unknown;
+        };
+        CreatePayrollRuleTierRequest: {
+            fixed_amount?: string | null;
+            max_amount?: string | null;
+            min_amount: string;
+            rate: string;
+            /** Format: int32 */
+            tier_order: number;
+        };
         CreatePolicyRequest: {
             description?: string | null;
             name: string;
@@ -1913,6 +2524,11 @@ export interface components {
             priority: number;
             time_end?: string | null;
             time_start?: string | null;
+        };
+        CreateSalaryComponentRequest: {
+            base_group_ids?: string[] | null;
+            code: string;
+            name: string;
         };
         CreateShiftRequest: {
             allow_early_ot?: boolean;
@@ -1937,6 +2553,13 @@ export interface components {
             swap_date: string;
             /** Format: uuid */
             target_id: string;
+        };
+        CreateWorkflowRequest: {
+            description?: string | null;
+            entity_type: string;
+            is_active: boolean;
+            name: string;
+            steps: components["schemas"]["WorkflowStepRequest"][];
         };
         CreateWorkingConditionRequest: {
             /** Format: date */
@@ -1990,6 +2613,18 @@ export interface components {
             on_leave: number;
             /** Format: int64 */
             on_time: number;
+        };
+        DepartmentPayrollConfig: {
+            /** Format: date-time */
+            created_at: string;
+            /** Format: uuid */
+            department_id: string;
+            /** Format: date */
+            effective_date: string;
+            hours_per_day: string;
+            /** Format: uuid */
+            id: string;
+            std_working_days: string;
         };
         Device: {
             agent_id: string;
@@ -2179,6 +2814,18 @@ export interface components {
             /** Format: int32 */
             used: number;
         };
+        EmployeePayrollConfig: {
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date */
+            effective_date: string;
+            /** Format: uuid */
+            employee_id: string;
+            hours_per_day: string;
+            /** Format: uuid */
+            id: string;
+            std_working_days: string;
+        };
         EmployeeProfile: {
             address?: string | null;
             bank_account_number?: string | null;
@@ -2195,6 +2842,21 @@ export interface components {
             id: string;
             national_id?: string | null;
             phone?: string | null;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        EmployeeSalaryComponent: {
+            amount: string;
+            /** Format: uuid */
+            component_definition_id: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date */
+            effective_date: string;
+            /** Format: uuid */
+            employee_id: string;
+            /** Format: uuid */
+            id: string;
             /** Format: date-time */
             updated_at: string;
         };
@@ -2250,6 +2912,42 @@ export interface components {
         EssPunchRequest: {
             note?: string | null;
         };
+        /** @description Response for job creation (202 Accepted). */
+        ExportJobResponse: {
+            /** Format: int64 */
+            estimated_seconds: number;
+            /** Format: uuid */
+            job_id: string;
+            status: string;
+            status_url: string;
+            /** Format: int32 */
+            total_batches: number;
+        };
+        /** @description Request body for creating an async export job. */
+        ExportReportRequest: {
+            /** @description Optional filter for specific employee IDs */
+            employee_ids?: string[] | null;
+            /**
+             * Format: date
+             * @description End date for the report period
+             */
+            end_date: string;
+            /** @description Output format (default: "xlsx") */
+            format?: string;
+            /** @description Report type: "summary" or "detail" */
+            report_type: string;
+            /**
+             * Format: date
+             * @description Start date for the report period
+             */
+            start_date: string;
+        };
+        FullPayslipResponse: components["schemas"]["Payslip"] & {
+            incentives: components["schemas"]["IncentiveEvaluationResult"][];
+            rule_evaluations: components["schemas"]["PayslipRuleEvaluation"][];
+            salary_components: components["schemas"]["SalaryComponentWithDefinition"][];
+            segments: components["schemas"]["PayslipSegmentResponse"][];
+        };
         GenericResponse: {
             message: string;
         };
@@ -2304,14 +3002,43 @@ export interface components {
         };
         /** @enum {string} */
         ImportJobStatus: "pending" | "processing" | "completed" | "failed";
-        /**
-         * @description GET /workspaces/:ws_id/jobs/:job_id/status
-         *     Poll the status of a background job.
-         */
+        IncentiveEvaluationResult: {
+            amount: string;
+            policy_name: string;
+            standard_amount: string;
+            /** Format: uuid */
+            tier_id?: string | null;
+        };
+        IncentiveTier: {
+            /** Format: uuid */
+            id: string;
+            /** Format: double */
+            payout_amount: number;
+            /** Format: uuid */
+            policy_id: string;
+            /** Format: int32 */
+            priority: number;
+            rule_config: unknown;
+        };
+        /** @description Progress details for a job. */
+        JobProgress: {
+            /** Format: int32 */
+            completed_batches: number;
+            /** Format: int32 */
+            failed_batches: number;
+            /** Format: float */
+            percentage: number;
+            /** Format: int32 */
+            total_batches: number;
+        };
+        /** @description Response for job status polling. */
         JobStatusResponse: {
             completed_at?: string | null;
-            error_message?: string | null;
+            created_at: string;
+            error?: string | null;
+            /** Format: uuid */
             job_id: string;
+            progress: components["schemas"]["JobProgress"];
             status: string;
         };
         LatenessByDay: {
@@ -2593,6 +3320,100 @@ export interface components {
             page: number;
             total: number;
         };
+        /** @enum {string} */
+        PayrollCalculationMethod: "percentage" | "fixed" | "tiered";
+        PayrollIncentivePolicy: {
+            /** Format: double */
+            base_amount: number;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date */
+            effective_from: string;
+            /** Format: date */
+            effective_to?: string | null;
+            /** Format: uuid */
+            id: string;
+            is_active: boolean;
+            name: string;
+            payout_type: string;
+            /** Format: uuid */
+            workspace_id: string;
+        };
+        PayrollIncentivePolicyResponse: components["schemas"]["PayrollIncentivePolicy"] & {
+            tiers: components["schemas"]["IncentiveTier"][];
+        };
+        PayrollRuleAssignment: {
+            /** Format: uuid */
+            assignee_id?: string | null;
+            assignee_type: components["schemas"]["AssigneeType"];
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date */
+            effective_from: string;
+            /** Format: date */
+            effective_to?: string | null;
+            /** Format: uuid */
+            id: string;
+            override_config?: unknown;
+            /** Format: uuid */
+            rule_definition_id: string;
+            /** Format: uuid */
+            workspace_id: string;
+        };
+        /** @enum {string} */
+        PayrollRuleCategory: "statutory_deduction" | "allowance" | "bonus" | "deduction";
+        PayrollRuleDefinition: {
+            applies_to: components["schemas"]["RuleAppliesTo"];
+            calculation_method: components["schemas"]["PayrollCalculationMethod"];
+            category: components["schemas"]["PayrollRuleCategory"];
+            code: string;
+            /** Format: date-time */
+            created_at: string;
+            description?: string | null;
+            /** Format: int32 */
+            display_order: number;
+            /** Format: uuid */
+            id: string;
+            is_active: boolean;
+            is_mandatory: boolean;
+            name: string;
+            rule_config: unknown;
+            /** Format: date-time */
+            updated_at: string;
+            /** Format: uuid */
+            workspace_id: string;
+        };
+        PayrollRuleTier: {
+            /** Format: date-time */
+            created_at: string;
+            fixed_amount: string;
+            /** Format: uuid */
+            id: string;
+            max_amount?: string | null;
+            min_amount: string;
+            rate: string;
+            /** Format: uuid */
+            rule_definition_id: string;
+            /** Format: int32 */
+            tier_order: number;
+        };
+        PayrollSettings: {
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date */
+            effective_date: string;
+            fixed_std_days: string;
+            hours_per_day: string;
+            max_ot_hours_per_day?: string | null;
+            max_ot_hours_per_month?: string | null;
+            std_working_day_mode: string;
+            /** Format: date-time */
+            updated_at: string;
+            /** Format: int32 */
+            working_days_per_week: number;
+            /** Format: uuid */
+            workspace_id: string;
+        };
         Payslip: {
             base_pay_amount: string;
             /** Format: date-time */
@@ -2620,12 +3441,52 @@ export interface components {
             /** Format: uuid */
             workspace_id: string;
         };
+        PayslipRuleEvaluation: {
+            amount: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            payslip_id: string;
+            rule_code: string;
+        };
+        PayslipSegment: {
+            actual_work_days: string;
+            amount: string;
+            applied_base_salary: string;
+            applied_hours_per_day: string;
+            applied_std_days: string;
+            /** Format: uuid */
+            department_id?: string | null;
+            /** Format: date */
+            end_date: string;
+            /** Format: uuid */
+            id: string;
+            paid_work_days: string;
+            /** Format: uuid */
+            payslip_id: string;
+            reason?: string | null;
+            /** Format: date */
+            start_date: string;
+            std_days_source?: string | null;
+        };
+        PayslipSegmentResponse: components["schemas"]["PayslipSegment"] & {
+            reason: string;
+        };
         PeakTimeSlot: {
             /** Format: int64 */
             check_in: number;
             /** Format: int64 */
             check_out: number;
             time_slot: string;
+        };
+        ProcessApprovalRequest: {
+            action: string;
+            /** Format: uuid */
+            entity_id: string;
+            entity_type: string;
+            note?: string | null;
         };
         PunchInRequest: {
             /** Format: uuid */
@@ -2667,6 +3528,50 @@ export interface components {
             /** Format: uuid */
             shift_id?: string | null;
         };
+        /** @enum {string} */
+        RuleAppliesTo: "employee" | "employer";
+        SalaryBaseGroup: {
+            /** Format: date-time */
+            created_at: string;
+            description?: string | null;
+            /** Format: uuid */
+            id: string;
+            is_system: boolean;
+            name: string;
+            slug: string;
+            /** Format: date-time */
+            updated_at: string;
+            /** Format: uuid */
+            workspace_id?: string | null;
+        };
+        SalaryBaseGroupMember: {
+            /** Format: uuid */
+            base_group_id: string;
+            /** Format: uuid */
+            component_definition_id: string;
+            /** Format: date-time */
+            created_at: string;
+        };
+        SalaryBasesResponse: {
+            groups: components["schemas"]["SalaryBaseGroup"][];
+            members: components["schemas"]["SalaryBaseGroupMember"][];
+        };
+        SalaryComponentDefinition: {
+            code: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: uuid */
+            id: string;
+            name: string;
+            /** Format: date-time */
+            updated_at: string;
+            /** Format: uuid */
+            workspace_id: string;
+        };
+        SalaryComponentWithDefinition: {
+            component: components["schemas"]["EmployeeSalaryComponent"];
+            definition: components["schemas"]["SalaryComponentDefinition"];
+        };
         ScheduleTrace: {
             /** Format: int32 */
             priority: number;
@@ -2681,6 +3586,18 @@ export interface components {
             bonus_amount: number;
             /** Format: int32 */
             months: number;
+        };
+        SetDepartmentPayrollConfigRequest: {
+            /** Format: date */
+            effective_date: string;
+            hours_per_day: string;
+            std_working_days: string;
+        };
+        SetEmployeePayrollConfigRequest: {
+            /** Format: date */
+            effective_date: string;
+            hours_per_day: string;
+            std_working_days: string;
         };
         Shift: {
             allow_early_ot: boolean;
@@ -2954,6 +3871,17 @@ export interface components {
         UpdateLeaveTypeConfigRequest: {
             policy_config: components["schemas"]["LeaveTypeConfig"];
         };
+        UpdatePayrollSettingsRequest: {
+            /** Format: date */
+            effective_date?: string | null;
+            fixed_std_days?: string | null;
+            hours_per_day?: string | null;
+            max_ot_hours_per_day?: string | null;
+            max_ot_hours_per_month?: string | null;
+            std_working_day_mode?: string | null;
+            /** Format: int32 */
+            working_days_per_week?: number | null;
+        };
         UpdateShiftRequest: {
             allow_early_ot?: boolean;
             /** Format: int32 */
@@ -3024,6 +3952,15 @@ export interface components {
             id: string;
             preferred_language?: string | null;
             system_roles?: string[];
+        };
+        WorkflowStepRequest: {
+            action_required: string;
+            approver_config: unknown;
+            approver_type: string;
+            can_skip: boolean;
+            step_name: string;
+            /** Format: int32 */
+            step_order: number;
         };
         WorkingCondition: {
             /** Format: uuid */
@@ -5693,6 +6630,348 @@ export interface operations {
             };
         };
     };
+    list_workflows: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Approval workflows list */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApprovalWorkflow"][];
+                };
+            };
+        };
+    };
+    create_workflow: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateWorkflowRequest"];
+            };
+        };
+        responses: {
+            /** @description Created approval workflow */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApprovalWorkflow"];
+                };
+            };
+        };
+    };
+    process_approval: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProcessApprovalRequest"];
+            };
+        };
+        responses: {
+            /** @description Processed approval step */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_approval_history: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Entity Type */
+                type: string;
+                /** @description Entity ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Approval history action logs list */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApprovalActionLog"][];
+                };
+            };
+        };
+    };
+    get_workflow: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Workflow ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Approval workflow details */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApprovalWorkflow"];
+                };
+            };
+        };
+    };
+    update_workflow: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Workflow ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateWorkflowRequest"];
+            };
+        };
+        responses: {
+            /** @description Updated approval workflow */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApprovalWorkflow"];
+                };
+            };
+        };
+    };
+    delete_workflow: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Workflow ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted approval workflow */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_department_payroll_configs: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Department ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Department payroll configs history list */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DepartmentPayrollConfig"][];
+                };
+            };
+        };
+    };
+    set_department_payroll_config: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Department ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetDepartmentPayrollConfigRequest"];
+            };
+        };
+        responses: {
+            /** @description Set department payroll config */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DepartmentPayrollConfig"];
+                };
+            };
+        };
+    };
+    calculate_payroll: {
+        parameters: {
+            query: {
+                /** @description Year */
+                year: number;
+                /** @description Month */
+                month: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Employee ID */
+                employee_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Calculated monthly payslip details */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FullPayslipResponse"];
+                };
+            };
+        };
+    };
+    get_employee_payslips: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Employee ID */
+                employee_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Employee payslips list */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FullPayslipResponse"][];
+                };
+            };
+        };
+    };
+    get_employee_salary_components: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Employee ID */
+                employee_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Employee salary components list */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown[];
+                };
+            };
+        };
+    };
+    assign_employee_salary_component: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Employee ID */
+                employee_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AssignSalaryComponentRequest"];
+            };
+        };
+        responses: {
+            /** @description Assigned salary component to employee */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployeeSalaryComponent"];
+                };
+            };
+        };
+    };
     adjust_leave_balance: {
         parameters: {
             query?: never;
@@ -5772,7 +7051,61 @@ export interface operations {
             };
         };
     };
-    get_job_status: {
+    get_employee_payroll_configs: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Employee ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Employee payroll configs history list */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployeePayrollConfig"][];
+                };
+            };
+        };
+    };
+    set_employee_payroll_config: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Employee ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetEmployeePayrollConfigRequest"];
+            };
+        };
+        responses: {
+            /** @description Set employee payroll config */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployeePayrollConfig"];
+                };
+            };
+        };
+    };
+    get_leave_job_status: {
         parameters: {
             query?: never;
             header?: never;
@@ -6435,6 +7768,704 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    get_payroll_rule_definitions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Payroll rule definitions list */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayrollRuleDefinition"][];
+                };
+            };
+        };
+    };
+    create_payroll_rule_definition: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreatePayrollRuleDefinitionRequest"];
+            };
+        };
+        responses: {
+            /** @description Created payroll rule definition */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayrollRuleDefinition"];
+                };
+            };
+        };
+    };
+    get_payroll_rule_assignments: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Rule Definition ID */
+                rule_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Payroll rule assignments list */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayrollRuleAssignment"][];
+                };
+            };
+        };
+    };
+    assign_payroll_rule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Rule Definition ID */
+                rule_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AssignPayrollRuleRequest"];
+            };
+        };
+        responses: {
+            /** @description Assigned payroll rule */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayrollRuleAssignment"];
+                };
+            };
+        };
+    };
+    delete_payroll_rule_assignment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Rule Definition ID */
+                rule_id: string;
+                /** @description Assignment ID */
+                assignment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted payroll rule assignment */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_payroll_rule_tiers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Rule Definition ID */
+                rule_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Payroll rule tiers list */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayrollRuleTier"][];
+                };
+            };
+        };
+    };
+    create_payroll_rule_tier: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Rule Definition ID */
+                rule_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreatePayrollRuleTierRequest"];
+            };
+        };
+        responses: {
+            /** @description Created payroll rule tier */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayrollRuleTier"];
+                };
+            };
+        };
+    };
+    delete_payroll_rule_tier: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Rule Definition ID */
+                rule_id: string;
+                /** @description Tier ID */
+                tier_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted payroll rule tier */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_payroll_settings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Payroll settings */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayrollSettings"];
+                };
+            };
+        };
+    };
+    update_payroll_settings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdatePayrollSettingsRequest"];
+            };
+        };
+        responses: {
+            /** @description Updated payroll settings */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayrollSettings"];
+                };
+            };
+        };
+    };
+    get_payroll_settings_history: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Payroll settings history list */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayrollSettings"][];
+                };
+            };
+        };
+    };
+    calculate_batch_payroll: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BatchCalculatePayrollRequest"];
+            };
+        };
+        responses: {
+            /** @description Calculated batch payroll */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BatchCalculatePayrollResponse"];
+                };
+            };
+        };
+    };
+    get_incentive_policies: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Workspace payroll incentive policies list */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayrollIncentivePolicyResponse"][];
+                };
+            };
+        };
+    };
+    create_incentive_policy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreatePayrollIncentivePolicyRequest"];
+            };
+        };
+        responses: {
+            /** @description Created incentive policy */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayrollIncentivePolicy"];
+                };
+            };
+        };
+    };
+    delete_incentive_policy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Policy ID */
+                policy_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted incentive policy */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    clone_incentive_policy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Policy ID */
+                policy_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Cloned incentive policy */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayrollIncentivePolicy"];
+                };
+            };
+        };
+    };
+    get_workspace_payslips: {
+        parameters: {
+            query: {
+                /** @description Year */
+                year: number;
+                /** @description Month */
+                month: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Workspace payslips list */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Payslip"][];
+                };
+            };
+        };
+    };
+    create_export_job: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExportReportRequest"];
+            };
+        };
+        responses: {
+            /** @description Export job created successfully */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExportJobResponse"];
+                };
+            };
+        };
+    };
+    get_report_export_job_status: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Job ID */
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Job status information */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobStatusResponse"];
+                };
+            };
+        };
+    };
+    cancel_job: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Job ID */
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Job cancelled successfully */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    download_report: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Job ID */
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Downloaded report file */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Job is still processing */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Job failed */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_salary_bases: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Salary bases response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SalaryBasesResponse"];
+                };
+            };
+        };
+    };
+    create_salary_base: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateBaseRequest"];
+            };
+        };
+        responses: {
+            /** @description Created salary base group */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SalaryBaseGroup"];
+                };
+            };
+        };
+    };
+    assign_component_to_base: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Salary Base Group ID */
+                base_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AssignMemberRequest"];
+            };
+        };
+        responses: {
+            /** @description Assigned component to salary base group */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    unassign_component_from_base: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Salary Base Group ID */
+                base_id: string;
+                /** @description Component Definition ID */
+                component_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Unassigned component from salary base group */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_salary_components: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Workspace salary components list */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SalaryComponentDefinition"][];
+                };
+            };
+        };
+    };
+    create_salary_component: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateSalaryComponentRequest"];
+            };
+        };
+        responses: {
+            /** @description Created salary component */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SalaryComponentDefinition"];
+                };
             };
         };
     };

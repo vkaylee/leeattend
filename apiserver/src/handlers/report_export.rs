@@ -32,7 +32,7 @@ use crate::AppState;
 // ============================================================================
 
 /// Request body for creating an async export job.
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, utoipa::ToSchema)]
 pub struct ExportReportRequest {
     /// Report type: "summary" or "detail"
     pub report_type: String,
@@ -53,7 +53,7 @@ fn default_format() -> String {
 }
 
 /// Response for job creation (202 Accepted).
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, utoipa::ToSchema)]
 pub struct ExportJobResponse {
     pub job_id: Uuid,
     pub status: String,
@@ -63,7 +63,7 @@ pub struct ExportJobResponse {
 }
 
 /// Response for job status polling.
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, utoipa::ToSchema)]
 pub struct JobStatusResponse {
     pub job_id: Uuid,
     pub status: String,
@@ -76,7 +76,7 @@ pub struct JobStatusResponse {
 }
 
 /// Progress details for a job.
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, utoipa::ToSchema)]
 pub struct JobProgress {
     pub total_batches: u32,
     pub completed_batches: u32,
@@ -138,6 +138,17 @@ fn get_coordinator(state: &AppState) -> AppResult<&ReportCoordinator> {
 ///
 /// Create an async export job for attendance reports.
 /// Returns 202 Accepted with job_id and status_url for polling.
+#[utoipa::path(
+    post,
+    path = "/workspaces/{ws_id}/reports/export",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID")
+    ),
+    request_body = ExportReportRequest,
+    responses(
+        (status = 202, description = "Export job created successfully", body = ExportJobResponse)
+    )
+)]
 pub async fn create_export_job(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -218,14 +229,25 @@ pub async fn create_export_job(
     ))
 }
 
-/// GET /api/workspaces/:ws_id/reports/jobs/:job_id
-///
-/// Poll job status. Returns current progress and status.
+/// GET /workspaces/{ws_id}/reports/jobs/{job_id}
+#[utoipa::path(
+    get,
+    path = "/workspaces/{ws_id}/reports/jobs/{job_id}",
+    operation_id = "get_report_export_job_status",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        ("job_id" = Uuid, Path, description = "Job ID")
+    ),
+    responses(
+        (status = 200, description = "Job status information", body = JobStatusResponse)
+    )
+)]
 pub async fn get_job_status(
     State(state): State<Arc<AppState>>,
-    Path((_, job_id)): Path<(Uuid, Uuid)>,
+    Path(params): Path<(Uuid, Uuid)>,
     ctx: MemberContext,
 ) -> AppResult<Json<JobStatusResponse>> {
+    let (_, job_id) = params;
     // RBAC: Require Admin or Owner
     ctx.require_permission(Permission::ReportsExport)?;
 
@@ -261,15 +283,26 @@ pub async fn get_job_status(
     }))
 }
 
-/// GET /api/workspaces/:ws_id/reports/jobs/:job_id/download
-///
-/// Download completed report. Serves Excel file directly from Redis.
-/// Returns 202 if job not yet complete, 410 if failed.
+/// GET /workspaces/{ws_id}/reports/jobs/{job_id}/download
+#[utoipa::path(
+    get,
+    path = "/workspaces/{ws_id}/reports/jobs/{job_id}/download",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        ("job_id" = Uuid, Path, description = "Job ID")
+    ),
+    responses(
+        (status = 200, description = "Downloaded report file"),
+        (status = 202, description = "Job is still processing"),
+        (status = 410, description = "Job failed")
+    )
+)]
 pub async fn download_report(
     State(state): State<Arc<AppState>>,
-    Path((_, job_id)): Path<(Uuid, Uuid)>,
+    Path(params): Path<(Uuid, Uuid)>,
     ctx: MemberContext,
 ) -> AppResult<impl IntoResponse> {
+    let (_, job_id) = params;
     // RBAC: Require Admin or Owner
     ctx.require_permission(Permission::ReportsExport)?;
 
@@ -340,16 +373,24 @@ pub async fn download_report(
     }
 }
 
-/// DELETE /api/workspaces/:ws_id/reports/jobs/:job_id
-///
-/// Cancel a pending or processing job.
-/// Returns 204 No Content on success.
-/// Returns 404 if job not found, 409 if already completed.
+/// DELETE /workspaces/{ws_id}/reports/jobs/{job_id}
+#[utoipa::path(
+    delete,
+    path = "/workspaces/{ws_id}/reports/jobs/{job_id}",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        ("job_id" = Uuid, Path, description = "Job ID")
+    ),
+    responses(
+        (status = 204, description = "Job cancelled successfully")
+    )
+)]
 pub async fn cancel_job(
     State(state): State<Arc<AppState>>,
-    Path((_, job_id)): Path<(Uuid, Uuid)>,
+    Path(params): Path<(Uuid, Uuid)>,
     ctx: MemberContext,
 ) -> AppResult<StatusCode> {
+    let (_, job_id) = params;
     // RBAC: Require Admin or Owner
     ctx.require_permission(Permission::ReportsExport)?;
 

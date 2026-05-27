@@ -6,7 +6,7 @@ use crate::models::enums::{
     AssigneeType, PayrollCalculationMethod, PayrollRuleCategory, RuleAppliesTo,
 };
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct PayrollRuleDefinition {
     pub id: Uuid,
     pub workspace_id: Uuid,
@@ -24,7 +24,7 @@ pub struct PayrollRuleDefinition {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct PayrollRuleTier {
     pub id: Uuid,
     pub rule_definition_id: Uuid,
@@ -36,7 +36,7 @@ pub struct PayrollRuleTier {
     pub created_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct PayrollRuleAssignment {
     pub id: Uuid,
     pub workspace_id: Uuid,

@@ -14,6 +14,17 @@ use crate::models::{
 };
 use crate::AppState;
 
+/// GET /workspaces/{ws_id}/salary-components
+#[utoipa::path(
+    get,
+    path = "/workspaces/{ws_id}/salary-components",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID")
+    ),
+    responses(
+        (status = 200, description = "Workspace salary components list", body = [SalaryComponentDefinition])
+    )
+)]
 pub async fn get_salary_components(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -29,6 +40,18 @@ pub async fn get_salary_components(
     Ok(Json(components))
 }
 
+/// POST /workspaces/{ws_id}/salary-components
+#[utoipa::path(
+    post,
+    path = "/workspaces/{ws_id}/salary-components",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID")
+    ),
+    request_body = CreateSalaryComponentRequest,
+    responses(
+        (status = 201, description = "Created salary component", body = SalaryComponentDefinition)
+    )
+)]
 pub async fn create_salary_component(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -55,11 +78,24 @@ pub async fn create_salary_component(
     Ok((StatusCode::CREATED, Json(component)))
 }
 
+/// GET /workspaces/{ws_id}/employees/{employee_id}/salary-components
+#[utoipa::path(
+    get,
+    path = "/workspaces/{ws_id}/employees/{employee_id}/salary-components",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        ("employee_id" = Uuid, Path, description = "Employee ID")
+    ),
+    responses(
+        (status = 200, description = "Employee salary components list", body = [Value])
+    )
+)]
 pub async fn get_employee_salary_components(
-    Path((_, employee_id)): Path<(Uuid, Uuid)>,
+    Path(params): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> AppResult<Json<Vec<serde_json::Value>>> {
+    let (_, employee_id) = params;
     let _workspace_id = ctx.workspace_id;
 
     // Note: This returns latest components for effective_date = now
@@ -89,12 +125,26 @@ pub async fn get_employee_salary_components(
     Ok(Json(response))
 }
 
+/// POST /workspaces/{ws_id}/employees/{employee_id}/salary-components
+#[utoipa::path(
+    post,
+    path = "/workspaces/{ws_id}/employees/{employee_id}/salary-components",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        ("employee_id" = Uuid, Path, description = "Employee ID")
+    ),
+    request_body = AssignSalaryComponentRequest,
+    responses(
+        (status = 201, description = "Assigned salary component to employee", body = EmployeeSalaryComponent)
+    )
+)]
 pub async fn assign_employee_salary_component(
-    Path((_, employee_id)): Path<(Uuid, Uuid)>,
+    Path(params): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
     Json(req): Json<AssignSalaryComponentRequest>,
 ) -> AppResult<(StatusCode, Json<EmployeeSalaryComponent>)> {
+    let (_, employee_id) = params;
     let workspace_id = ctx.workspace_id;
 
     let component = state

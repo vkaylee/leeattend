@@ -7,6 +7,17 @@ use crate::handlers::common::MemberContext;
 use crate::models::{PayrollSettings, UpdatePayrollSettingsRequest};
 use crate::AppState;
 
+/// GET /workspaces/{ws_id}/payroll-settings
+#[utoipa::path(
+    get,
+    path = "/workspaces/{ws_id}/payroll-settings",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID")
+    ),
+    responses(
+        (status = 200, description = "Payroll settings", body = PayrollSettings)
+    )
+)]
 pub async fn get_payroll_settings(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -23,6 +34,17 @@ pub async fn get_payroll_settings(
     Ok(Json(settings))
 }
 
+/// GET /workspaces/{ws_id}/payroll-settings/history
+#[utoipa::path(
+    get,
+    path = "/workspaces/{ws_id}/payroll-settings/history",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID")
+    ),
+    responses(
+        (status = 200, description = "Payroll settings history list", body = [PayrollSettings])
+    )
+)]
 pub async fn get_payroll_settings_history(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -38,6 +60,18 @@ pub async fn get_payroll_settings_history(
     Ok(Json(history))
 }
 
+/// PATCH /workspaces/{ws_id}/payroll-settings
+#[utoipa::path(
+    patch,
+    path = "/workspaces/{ws_id}/payroll-settings",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID")
+    ),
+    request_body = UpdatePayrollSettingsRequest,
+    responses(
+        (status = 200, description = "Updated payroll settings", body = PayrollSettings)
+    )
+)]
 pub async fn update_payroll_settings(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,

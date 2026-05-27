@@ -558,6 +558,7 @@ pub struct JobStatusResponse {
 #[utoipa::path(
     get,
     path = "/workspaces/{ws_id}/jobs/{job_id}/status",
+    operation_id = "get_leave_job_status",
     responses(
         (status = 200, description = "Get background job status", body = JobStatusResponse)
     ),

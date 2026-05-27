@@ -22,14 +22,14 @@ pub struct PayrollQuery {
     pub month: u32,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, utoipa::ToSchema)]
 pub struct PayslipSegmentResponse {
     #[serde(flatten)]
     pub segment: PayslipSegment,
     pub reason: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, utoipa::ToSchema)]
 pub struct FullPayslipResponse {
     #[serde(flatten)]
     pub payslip: Payslip,
@@ -39,6 +39,18 @@ pub struct FullPayslipResponse {
     pub salary_components: Vec<SalaryComponentWithDefinition>,
 }
 
+/// POST /workspaces/{ws_id}/payroll/calculate-batch
+#[utoipa::path(
+    post,
+    path = "/workspaces/{ws_id}/payroll/calculate-batch",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID")
+    ),
+    request_body = BatchCalculatePayrollRequest,
+    responses(
+        (status = 200, description = "Calculated batch payroll", body = BatchCalculatePayrollResponse)
+    )
+)]
 pub async fn calculate_batch_payroll(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -53,6 +65,19 @@ pub async fn calculate_batch_payroll(
     Ok(Json(response))
 }
 
+/// GET /workspaces/{ws_id}/payroll/payslips
+#[utoipa::path(
+    get,
+    path = "/workspaces/{ws_id}/payroll/payslips",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        ("year" = i32, Query, description = "Year"),
+        ("month" = u32, Query, description = "Month")
+    ),
+    responses(
+        (status = 200, description = "Workspace payslips list", body = [Payslip])
+    )
+)]
 pub async fn get_workspace_payslips(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -81,8 +106,22 @@ pub async fn get_workspace_payslips(
     Ok(Json(payslips))
 }
 
+/// POST /workspaces/{ws_id}/employees/{employee_id}/calculate-payroll
+#[utoipa::path(
+    post,
+    path = "/workspaces/{ws_id}/employees/{employee_id}/calculate-payroll",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        ("employee_id" = Uuid, Path, description = "Employee ID"),
+        ("year" = i32, Query, description = "Year"),
+        ("month" = u32, Query, description = "Month")
+    ),
+    responses(
+        (status = 200, description = "Calculated monthly payslip details", body = FullPayslipResponse)
+    )
+)]
 pub async fn calculate_payroll(
-    Path((_, employee_id)): Path<(Uuid, Uuid)>,
+    Path(params): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
     crate::utils::debug::DebugContext {
@@ -90,6 +129,7 @@ pub async fn calculate_payroll(
     }: crate::utils::debug::DebugContext,
     Query(query): Query<PayrollQuery>,
 ) -> AppResult<Json<FullPayslipResponse>> {
+    let (_, employee_id) = params;
     ctx.require_permission(Permission::PayrollCalculate)?;
     let payslip = state
         .payroll
@@ -151,11 +191,24 @@ pub async fn calculate_payroll(
     Ok(Json(response))
 }
 
+/// GET /workspaces/{ws_id}/employees/{employee_id}/payslips
+#[utoipa::path(
+    get,
+    path = "/workspaces/{ws_id}/employees/{employee_id}/payslips",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        ("employee_id" = Uuid, Path, description = "Employee ID")
+    ),
+    responses(
+        (status = 200, description = "Employee payslips list", body = [FullPayslipResponse])
+    )
+)]
 pub async fn get_employee_payslips(
-    Path((_, employee_id)): Path<(Uuid, Uuid)>,
+    Path(params): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> AppResult<Json<Vec<FullPayslipResponse>>> {
+    let (_, employee_id) = params;
     ctx.require_permission(Permission::PayrollRead)?;
     let payslips = state
         .payroll
