@@ -18,6 +18,7 @@ import { useTranslation } from "react-i18next";
 
 import type { WorkingCondition } from "@/lib/api/types";
 
+import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { useConfirm } from "@/hooks/use-confirm";
 import { useWorkingConditions } from "@/hooks/use-employees";
@@ -100,8 +101,8 @@ function WorkingConditionForm({
         <div className="space-y-3">
           <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("employees.policies.is_paid")}</label>
           <div className="flex gap-4 p-1 bg-slate-100 dark:bg-slate-800/50 rounded-2xl">
-            <button className={cn("flex-1 py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all", isPaid ? "bg-white dark:bg-slate-700 text-emerald-600 shadow-sm" : "text-slate-400")} onClick={() => { setIsPaid(true); }} type="button">{t("common.yes")}</button>
-            <button className={cn("flex-1 py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all", !isPaid ? "bg-white dark:bg-slate-700 text-rose-600 shadow-sm" : "text-slate-400")} onClick={() => { setIsPaid(false); }} type="button">{t("common.no")}</button>
+            <Button className={cn("flex-1 py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all", isPaid ? "bg-white dark:bg-slate-700 text-emerald-600 shadow-sm" : "text-slate-400")} onClick={() => { setIsPaid(true); }} type="button">{t("common.yes")}</Button>
+            <Button className={cn("flex-1 py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all", !isPaid ? "bg-white dark:bg-slate-700 text-rose-600 shadow-sm" : "text-slate-400")} onClick={() => { setIsPaid(false); }} type="button">{t("common.no")}</Button>
           </div>
         </div>
       </div>
@@ -118,10 +119,10 @@ function WorkingConditionForm({
       </div>
 
       <div className="flex justify-end gap-4">
-        <button className="px-8 py-4 rounded-2xl font-bold text-[10px] uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all" onClick={onCancel} type="button">{t("common.cancel")}</button>
-        <button className="flex items-center gap-3 bg-primary-600 text-white px-10 py-4 rounded-2xl font-bold text-[10px] uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95 disabled:opacity-50" disabled={isSubmitting} onClick={() => { createMutation.mutate({ type, start_date: startDate, end_date: endDate === "" ? null : endDate, is_paid: isPaid }); }}>
+        <Button className="px-8 py-4 rounded-2xl font-bold text-[10px] uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all" onClick={onCancel} type="button">{t("common.cancel")}</Button>
+        <Button className="flex items-center gap-3 bg-primary-600 text-white px-10 py-4 rounded-2xl font-bold text-[10px] uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95 disabled:opacity-50" disabled={isSubmitting} onClick={() => { createMutation.mutate({ type, start_date: startDate, end_date: endDate === "" ? null : endDate, is_paid: isPaid }); }}>
           <CheckCircle2 size={16} /> {t("common.save").toUpperCase()}
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -138,7 +139,7 @@ function WorkingConditionHeader({ isAdding, setIsAdding, t }: { isAdding: boolea
         </div>
       </div>
       {!isAdding && (
-        <button className="flex items-center justify-center gap-2 bg-primary-600 text-white px-6 py-2.5 rounded-2xl font-bold text-[10px] uppercase tracking-widest hover:bg-primary-700 transition-all shadow-lg shadow-primary-100 active:scale-95" onClick={() => { setIsAdding(true); }}><Plus size={14} /> {t("common.add_new").toUpperCase()}</button>
+        <Button className="flex items-center justify-center gap-2 bg-primary-600 text-white px-6 py-2.5 rounded-2xl font-bold text-[10px] uppercase tracking-widest hover:bg-primary-700 transition-all shadow-lg shadow-primary-100 active:scale-95" onClick={() => { setIsAdding(true); }}><Plus size={14} /> {t("common.add_new").toUpperCase()}</Button>
       )}
     </div>
   );
@@ -257,7 +258,7 @@ export default function WorkingConditionConfig({ employeeId }: Props) {
                     </div>
                   </div>
                 </div>
-                <button className="p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 hover:bg-rose-600 hover:text-white transition-all shadow-sm opacity-0 group-hover:opacity-100 -translate-y-2 group-hover:translate-y-0" onClick={() => handleDelete(cond.id)}><Trash2 size={20} /></button>
+                <Button className="p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 hover:bg-rose-600 hover:text-white transition-all shadow-sm opacity-0 group-hover:opacity-100 -translate-y-2 group-hover:translate-y-0" onClick={() => handleDelete(cond.id)}><Trash2 size={20} /></Button>
               </div>
               <div className="absolute top-0 right-0 w-24 h-24 bg-slate-50 dark:bg-slate-800/50 -rotate-45 translate-x-12 -translate-y-12 opacity-50 transition-all group-hover:bg-primary-50 dark:group-hover:bg-primary-950/20" />
             </div>

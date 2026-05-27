@@ -393,7 +393,7 @@ interface ButtonProps {
 
 function Button({ children, className, icon, loading, onClick, size, variant }: ButtonProps) {
   return (
-    <button
+    <Button
       className={cn(
         "flex items-center gap-2 px-6 py-3.5 rounded-2xl font-bold transition-all active:scale-95 disabled:opacity-50",
         variant === "outline"
@@ -410,6 +410,6 @@ function Button({ children, className, icon, loading, onClick, size, variant }: 
     >
       {loading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : icon}
       {children}
-    </button>
+    </Button>
   );
 }

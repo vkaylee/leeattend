@@ -2,6 +2,7 @@ import { AlertTriangle, Clock } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
+import Button from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 import type { TabType } from "../hooks/use-attendance-logs-page";
@@ -17,7 +18,7 @@ export function AttendanceLogsTabs({ activeTab, setActiveTab, stagingCount }: At
 
   return (
     <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm p-1 flex items-center gap-1 w-fit">
-      <button
+      <Button
         className={cn(
           "px-6 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all flex items-center gap-2",
           activeTab === "recorded"
@@ -29,8 +30,8 @@ export function AttendanceLogsTabs({ activeTab, setActiveTab, stagingCount }: At
       >
         <Clock size={14} />
         {t("attendance_logs.tabs.recorded")}
-      </button>
-      <button
+      </Button>
+      <Button
         className={cn(
           "px-6 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all flex items-center gap-2",
           activeTab === "unknown"
@@ -47,7 +48,7 @@ export function AttendanceLogsTabs({ activeTab, setActiveTab, stagingCount }: At
             {stagingCount}
           </span>
         )}
-      </button>
+      </Button>
     </div>
   );
 }

@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import { formatDistanceToNow } from "date-fns";
 import { vi, enUS } from "date-fns/locale";
 
+import Button from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Typography } from "@/components/ui/typography";
 import { useNotifications } from "@/hooks/use-notifications";
@@ -39,7 +40,7 @@ export function NotificationsPopover() {
   return (
     <Popover onOpenChange={setIsOpen} open={isOpen}>
       <PopoverTrigger asChild>
-        <button className="p-3 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-white dark:hover:bg-slate-800 rounded-[1.25rem] transition-all relative group border border-transparent hover:border-slate-100 dark:hover:border-slate-700 hover:shadow-xl hover:shadow-primary-900/5 outline-none">
+        <Button className="p-3 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-white dark:hover:bg-slate-800 rounded-[1.25rem] transition-all relative group border border-transparent hover:border-slate-100 dark:hover:border-slate-700 hover:shadow-xl hover:shadow-primary-900/5 outline-none">
           {unreadCount > 0 && (
             <div className="absolute top-2 right-2 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 border-2 border-white dark:border-slate-900 shadow-sm group-hover:scale-110 transition-transform">
               <span className="text-[9px] font-bold text-white leading-none">
@@ -48,7 +49,7 @@ export function NotificationsPopover() {
             </div>
           )}
           <Bell size={20} strokeWidth={2.5} />
-        </button>
+        </Button>
       </PopoverTrigger>
       
       <PopoverContent align="end" className="w-80 p-0 overflow-hidden shadow-2xl border-slate-100 dark:border-slate-800 rounded-2xl" sideOffset={8}>
@@ -58,13 +59,13 @@ export function NotificationsPopover() {
             {t('common.notifications', { defaultValue: 'Thông báo' })}
           </Typography>
           {unreadCount > 0 && (
-            <button 
+            <Button 
               className="text-xs font-medium text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 flex items-center gap-1 transition-colors"
               onClick={markAllAsRead}
             >
               <Check size={14} />
               Đánh dấu đã đọc
-            </button>
+            </Button>
           )}
         </div>
 
@@ -84,7 +85,7 @@ export function NotificationsPopover() {
           ) : (
             <div className="flex flex-col">
               {notifications.slice(0, 5).map((notification) => (
-                <button 
+                <Button 
                   className={cn(
                     "flex gap-3 p-4 border-b border-slate-100 dark:border-slate-800/50 transition-colors cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 relative group text-left w-full",
                     !notification.is_read ? "bg-primary-50/30 dark:bg-primary-900/10" : ""
@@ -117,7 +118,7 @@ export function NotificationsPopover() {
                       {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true, locale: currentLocale })}
                     </Typography>
                   </div>
-                </button>
+                </Button>
               ))}
             </div>
           )}

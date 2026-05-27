@@ -2,6 +2,7 @@ import { Building, Globe, Users } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
+import Button from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const SCOPE_ICONS = {
@@ -54,7 +55,7 @@ export function ScopeSelector({
           const colors = SCOPE_COLORS[scope];
           const isActive = assigneeType === scope;
           return (
-            <button
+            <Button
               className={cn(
                 "flex flex-col items-center gap-2.5 p-5 rounded-2xl border-2 transition-all active:scale-[0.97]",
                 isActive
@@ -84,7 +85,7 @@ export function ScopeSelector({
               >
                 {t(`payroll.scope_${scope}`, scope)}
               </span>
-            </button>
+            </Button>
           );
         })}
       </div>

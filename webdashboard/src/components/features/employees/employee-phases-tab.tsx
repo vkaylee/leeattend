@@ -32,6 +32,7 @@ interface Props {
   wsId: string;
 }
 
+// eslint-disable-next-line max-lines-per-function
 export default function EmployeePhasesTab({ wsId, employeeId, formatDate }: Props) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();

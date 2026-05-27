@@ -55,7 +55,7 @@ function PatternTypeSelector({
       <div className="flex-1 space-y-4">
         <label className={LABEL_BASE}>{t("patterns.form.pattern_type").toUpperCase()}</label>
         <div className="flex bg-slate-50 dark:bg-slate-800 p-1.5 rounded-2xl border border-slate-100 dark:border-slate-700/50">
-          <button
+          <Button
             className={cn(
               "flex-1 flex items-center justify-center gap-2.5 py-3 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all",
               patternType === "weekly"
@@ -69,8 +69,8 @@ function PatternTypeSelector({
           >
             <CalendarDays size={14} />
             {t("patterns.form.pattern_type_weekly") || "Weekly"}
-          </button>
-          <button
+          </Button>
+          <Button
             className={cn(
               "flex-1 flex items-center justify-center gap-2.5 py-3 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all",
               patternType === "rotation"
@@ -84,7 +84,7 @@ function PatternTypeSelector({
           >
             <RefreshCw size={14} />
             {t("patterns.form.pattern_type_rotation") || "Rotation"}
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -206,7 +206,7 @@ function DayRow({ day, dayShifts, index, removeShiftFromDay, shifts, addShiftToD
             <div className="flex items-center gap-1.5 px-3 py-1.5 bg-primary-50 dark:bg-primary-950 border border-primary-200 dark:border-primary-800 rounded-xl shadow-sm animate-in zoom-in-95 duration-300" key={shiftId}>
               <Clock className="text-primary-500 dark:text-primary-400 flex-shrink-0" size={10} />
               <span className="text-[10px] font-bold text-primary-700 dark:text-primary-300 uppercase tracking-tight">{shiftName.toUpperCase()}</span>
-              <button aria-label={`Remove ${shiftName}`} className="p-0.5 rounded-md text-primary-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/50 transition-colors flex-shrink-0 ml-0.5" onClick={() => { removeShiftFromDay(index, shiftId); }} type="button"><X size={12} /></button>
+              <Button aria-label={`Remove ${shiftName}`} className="p-0.5 rounded-md text-primary-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/50 transition-colors flex-shrink-0 ml-0.5" onClick={() => { removeShiftFromDay(index, shiftId); }} type="button"><X size={12} /></Button>
             </div>
           );
         })}
@@ -246,7 +246,7 @@ function BulkAssignModal({ hook }: PatternModalsProps) {
             <label className={LABEL_BASE}>{t("patterns.form.select_pattern_label").toUpperCase()}</label>
             <div className="grid grid-cols-1 gap-3 max-h-80 overflow-y-auto pr-2 scrollbar-hide">
               {patterns.map((p) => (
-                <button className={cn("flex items-center justify-between p-5 rounded-2xl border transition-all text-left group", selectedPatternId === p.id ? "bg-white dark:bg-slate-900 border-primary-600 shadow-xl shadow-primary-100 dark:shadow-black/30 ring-2 ring-primary-600/10" : "bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-900 hover:border-primary-200 dark:border-primary-800")} key={p.id} onClick={() => { setSelectedPatternId(p.id); }} type="button">
+                <Button className={cn("flex items-center justify-between p-5 rounded-2xl border transition-all text-left group", selectedPatternId === p.id ? "bg-white dark:bg-slate-900 border-primary-600 shadow-xl shadow-primary-100 dark:shadow-black/30 ring-2 ring-primary-600/10" : "bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-900 hover:border-primary-200 dark:border-primary-800")} key={p.id} onClick={() => { setSelectedPatternId(p.id); }} type="button">
                   <div className="flex items-center gap-4">
                     <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center transition-colors", selectedPatternId === p.id ? "bg-primary-600 text-white" : "bg-white dark:bg-slate-900 text-slate-300 dark:text-slate-600 border border-slate-100 dark:border-slate-800 group-hover:text-primary-500 dark:group-hover:text-primary-400")}><CalendarDays size={20} /></div>
                     <div>
@@ -259,7 +259,7 @@ function BulkAssignModal({ hook }: PatternModalsProps) {
                     </div>
                   </div>
                   {selectedPatternId === p.id && <Check className="text-primary-600 dark:text-primary-400" size={18} />}
-                </button>
+                </Button>
               ))}
             </div>
           </div>

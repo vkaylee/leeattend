@@ -3,6 +3,7 @@ import React from "react";
 
 import { TFunction } from "i18next";
 
+import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 
 interface ShiftSwapGuideProps {
@@ -18,7 +19,7 @@ export function ShiftSwapGuide({
 }: ShiftSwapGuideProps) {
   return (
     <div className="bg-gradient-to-br from-blue-50 to-sky-50 dark:from-blue-950/30 dark:to-sky-950/30 border border-blue-100 dark:border-blue-800/50 rounded-[2rem] overflow-hidden shadow-sm">
-      <button
+      <Button
         className="flex items-center justify-between w-full px-8 py-5 group"
         onClick={() => {
           setShowGuide(!showGuide);
@@ -38,7 +39,7 @@ export function ShiftSwapGuide({
         ) : (
           <ChevronRight className="text-blue-400" size={16} />
         )}
-      </button>
+      </Button>
 
       {showGuide ? (
         <div className="px-8 pb-8 animate-in slide-in-from-top-4 duration-300">

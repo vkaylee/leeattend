@@ -53,7 +53,7 @@ describe("GeneralSettings Page", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(api.getCurrentWorkspaceId).mockReturnValue(wsId);
-    vi.mocked(api.fetchWorkspace).mockResolvedValue(mockWorkspace as any);
+    vi.mocked(api.fetchWorkspace).mockResolvedValue(mockWorkspace as unknown as api.Workspace);
   });
 
   it("renders loader initially and then content", async () => {
@@ -95,7 +95,7 @@ describe("GeneralSettings Page", () => {
   });
 
   it("calls updateMutation on save", async () => {
-    vi.mocked(api.updateWorkspace).mockResolvedValue(mockWorkspace as any);
+    vi.mocked(api.updateWorkspace).mockResolvedValue(mockWorkspace as unknown as api.Workspace);
 
     render(
       <QueryClientProvider client={queryClient}>

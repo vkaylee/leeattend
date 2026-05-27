@@ -156,13 +156,13 @@ function OnboardingHeader({ onLogout, t }: OnboardingHeaderProps) {
     <>
       {/* Top Right Actions */}
       <div className="absolute top-6 right-6 z-40">
-        <button
+        <Button
           className="flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold tracking-widest uppercase text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-all duration-300"
           onClick={onLogout}
         >
           {t("common.logout")}
           <LogOut size={14} />
-        </button>
+        </Button>
       </div>
 
       {/* Background Blobs */}

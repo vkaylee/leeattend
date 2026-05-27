@@ -2,6 +2,9 @@ import { render, screen, fireEvent, act } from "@testing-library/react";
 
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
+import Button from "@/components/ui/button";
+
+import { useWorkingPatterns } from "../../../hooks/use-working-patterns";
 import { PatternModals } from "../modals";
 
 // Mock child components
@@ -11,7 +14,7 @@ vi.mock("@/components/ui/modal", () => ({
       <div data-testid="modal">
         <div className="text-lg font-semibold" data-testid="modal-title">{title}</div>
         {children}
-        <button data-testid="close-modal" onClick={onClose}>Close</button>
+        <Button data-testid="close-modal" onClick={onClose}>Close</Button>
       </div>
     ) : null
   ),
@@ -78,7 +81,7 @@ describe("PatternModals", () => {
   });
 
   it("renders CreatePatternModal when open", () => {
-    render(<PatternModals hook={{ ...mockHook, isCreateModalOpen: true } as any} />);
+    render(<PatternModals hook={{ ...mockHook, isCreateModalOpen: true } as unknown as ReturnType<typeof useWorkingPatterns>} />);
     expect(screen.getByText("patterns.modal.create_title")).toBeInTheDocument();
     
     // Test pattern type selector
@@ -106,7 +109,7 @@ describe("PatternModals", () => {
   });
 
   it("renders CreatePatternModal as rotation type", () => {
-    render(<PatternModals hook={{ ...mockHook, isCreateModalOpen: true, patternType: "rotation", cycleLengthDays: 5 } as any} />);
+    render(<PatternModals hook={{ ...mockHook, isCreateModalOpen: true, patternType: "rotation", cycleLengthDays: 5 } as unknown as ReturnType<typeof useWorkingPatterns>} />);
     
     // Cycle length input should be present
     const cycleInput = screen.getByDisplayValue("5");
@@ -122,7 +125,7 @@ describe("PatternModals", () => {
       isCreateModalOpen: true,
       weeklyGrid: [["shift-1"], [], [], [], [], [], []],
     };
-    render(<PatternModals hook={hookWithShifts as any} />);
+    render(<PatternModals hook={hookWithShifts as unknown as ReturnType<typeof useWorkingPatterns>} />);
     
     // Remove shift
     const removeBtns = screen.getAllByRole("button", { name: /Remove Morning Shift/i });
@@ -138,7 +141,7 @@ describe("PatternModals", () => {
   });
 
   it("renders BulkAssignModal when open", () => {
-    render(<PatternModals hook={{ ...mockHook, isBulkModalOpen: true, selectedPatternId: "pattern-1", selectedEmployeeIds: ["emp-1"] } as any} />);
+    render(<PatternModals hook={{ ...mockHook, isBulkModalOpen: true, selectedPatternId: "pattern-1", selectedEmployeeIds: ["emp-1"] } as unknown as ReturnType<typeof useWorkingPatterns>} />);
     expect(screen.getByText("patterns.bulk_assign_btn")).toBeInTheDocument();
 
     // Select pattern
@@ -170,7 +173,7 @@ describe("PatternModals", () => {
       patterns: [{ id: "pattern-2", name: "Rotation 4x4", pattern_type: "rotation" as const, cycle_length_days: 8 }],
       assignAnchorDate: "2026-05-01",
     };
-    render(<PatternModals hook={rotationPatternHook as any} />);
+    render(<PatternModals hook={rotationPatternHook as unknown as ReturnType<typeof useWorkingPatterns>} />);
     
     // Anchor date should be visible
     expect(screen.getByText("PATTERNS.FORM.ANCHOR_DATE_LABEL")).toBeInTheDocument();

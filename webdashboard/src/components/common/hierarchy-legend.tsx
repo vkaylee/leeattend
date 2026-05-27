@@ -2,6 +2,7 @@ import { ChevronDown, HelpCircle } from 'lucide-react';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { cn } from '@/lib/utils';
 
@@ -25,7 +26,7 @@ export const HierarchyLegend: React.FC<HierarchyLegendProps> = ({ steps, title, 
 
   return (
     <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2rem] overflow-hidden transition-all duration-500 shadow-2xl shadow-primary-900/5">
-      <button 
+      <Button 
         className="w-full px-8 py-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800 transition-all bg-slate-50 dark:bg-slate-800/30"
         onClick={() => { setIsOpen(!isOpen); }}
       >
@@ -43,7 +44,7 @@ export const HierarchyLegend: React.FC<HierarchyLegendProps> = ({ steps, title, 
             <ChevronDown size={16} />
           </div>
         </div>
-      </button>
+      </Button>
 
       {isOpen ? (
         <div className="px-8 pb-10 pt-6 animate-in slide-in-from-top-4 duration-500">

@@ -319,7 +319,7 @@ export default function WorkingPatternsEditorPage() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="flex items-center gap-4">
-          <button
+          <Button
             className="p-3 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-850 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-2xl shadow-sm text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 active:scale-95 transition-all"
             onClick={() => {
               void navigate({ to: "/working-patterns" });
@@ -327,7 +327,7 @@ export default function WorkingPatternsEditorPage() {
             type="button"
           >
             <ArrowLeft size={18} />
-          </button>
+          </Button>
           <div>
             <Typography className="text-3xl font-extrabold text-slate-700 dark:text-slate-100 tracking-tight uppercase" variant="h1">
               {isEditMode ? t("patterns.form.editor_title_edit") : t("patterns.form.editor_title_new")}
@@ -400,7 +400,7 @@ export default function WorkingPatternsEditorPage() {
             <div className="space-y-4">
               <label className={LABEL_BASE}>{t("patterns.form.pattern_type").toUpperCase()}</label>
               <div className="flex bg-slate-50 dark:bg-slate-800 p-1.5 rounded-2xl border border-slate-100 dark:border-slate-700/50">
-                <button
+                <Button
                   className={cn(
                     "flex-1 flex items-center justify-center gap-2.5 py-3 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all",
                     patternType === "weekly"
@@ -412,8 +412,8 @@ export default function WorkingPatternsEditorPage() {
                 >
                   <CalendarDays size={14} />
                   {t("patterns.form.pattern_type_weekly") || "Weekly"}
-                </button>
-                <button
+                </Button>
+                <Button
                   className={cn(
                     "flex-1 flex items-center justify-center gap-2.5 py-3 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all",
                     patternType === "rotation"
@@ -425,7 +425,7 @@ export default function WorkingPatternsEditorPage() {
                 >
                   <RefreshCw size={14} />
                   {t("patterns.form.pattern_type_rotation") || "Rotation"}
-                </button>
+                </Button>
               </div>
             </div>
 
@@ -475,7 +475,7 @@ export default function WorkingPatternsEditorPage() {
             <div className="flex flex-wrap items-center gap-4">
               {patternType === "rotation" && (
                 <div className="flex bg-slate-50 dark:bg-slate-800 p-1.5 rounded-2xl border border-slate-100 dark:border-slate-700/50 shadow-inner">
-                  <button
+                  <Button
                     className={cn(
                       "px-4 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all",
                       activeViewMode === "design"
@@ -488,8 +488,8 @@ export default function WorkingPatternsEditorPage() {
                     type="button"
                   >
                     {t("patterns.form.view_mode_design") || "Design"}
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     className={cn(
                       "px-4 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all",
                       activeViewMode === "preview"
@@ -502,7 +502,7 @@ export default function WorkingPatternsEditorPage() {
                     type="button"
                   >
                     {t("patterns.form.view_mode_preview") || "Preview"}
-                  </button>
+                  </Button>
                 </div>
               )}
 
@@ -557,7 +557,7 @@ export default function WorkingPatternsEditorPage() {
                     {t("patterns.form.preview_month")}
                   </label>
                   <div className="flex items-center justify-end gap-3 h-10">
-                    <button
+                    <Button
                       className="p-2 border border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 active:scale-95 transition-all"
                       onClick={() => {
                         if (previewMonth === 0) {
@@ -570,14 +570,14 @@ export default function WorkingPatternsEditorPage() {
                       type="button"
                     >
                       <ArrowLeft size={16} />
-                    </button>
+                    </Button>
                     <span className="text-sm font-extrabold text-slate-700 dark:text-slate-200 uppercase tracking-tight min-w-[8rem] text-center">
                       {new Date(previewYear, previewMonth).toLocaleString(i18n.language || "vi", {
                         month: "long",
                         year: "numeric",
                       })}
                     </span>
-                    <button
+                    <Button
                       className="p-2 border border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 active:scale-95 transition-all rotate-180"
                       onClick={() => {
                         if (previewMonth === 11) {
@@ -590,7 +590,7 @@ export default function WorkingPatternsEditorPage() {
                       type="button"
                     >
                       <ArrowLeft size={16} />
-                    </button>
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -775,7 +775,7 @@ export default function WorkingPatternsEditorPage() {
                                 <span className="text-[10px] font-bold text-primary-700 dark:text-primary-300 uppercase tracking-tight">
                                   {shiftName.toUpperCase()}
                                 </span>
-                                <button
+                                <Button
                                   aria-label={`Remove ${shiftName}`}
                                   className="p-0.5 rounded-md text-primary-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/50 transition-colors flex-shrink-0 ml-1"
                                   onClick={() => {
@@ -784,7 +784,7 @@ export default function WorkingPatternsEditorPage() {
                                   type="button"
                                 >
                                   <X size={12} />
-                                </button>
+                                </Button>
                               </div>
                             );
                           })}
@@ -856,7 +856,7 @@ export default function WorkingPatternsEditorPage() {
                                       {shiftName.toUpperCase()}
                                     </span>
                                   </div>
-                                  <button
+                                  <Button
                                     aria-label={`Remove ${shiftName}`}
                                     className="p-0.5 rounded-md text-primary-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/50 transition-colors flex-shrink-0 ml-1"
                                     onClick={() => {
@@ -865,7 +865,7 @@ export default function WorkingPatternsEditorPage() {
                                     type="button"
                                   >
                                     <X size={12} />
-                                  </button>
+                                  </Button>
                                 </div>
                               );
                             })

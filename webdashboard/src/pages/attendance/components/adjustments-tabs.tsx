@@ -2,6 +2,7 @@ import { CheckCircle, Clock, XCircle } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
+import Button from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 import type { TabType } from "../hooks/use-attendance-adjustments-page";
@@ -16,7 +17,7 @@ export function AdjustmentsTabs({ activeTab, setActiveTab }: AdjustmentsTabsProp
 
   return (
     <div className="flex bg-slate-100 dark:bg-slate-700/50 p-1.5 rounded-[22px] w-fit border border-slate-200 dark:border-slate-700/50 shadow-inner">
-      <button
+      <Button
         className={cn(
           "flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all",
           activeTab === "pending"
@@ -27,8 +28,8 @@ export function AdjustmentsTabs({ activeTab, setActiveTab }: AdjustmentsTabsProp
         type="button"
       >
         <Clock size={14} /> {t("common.status_pending")}
-      </button>
-      <button
+      </Button>
+      <Button
         className={cn(
           "flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all",
           activeTab === "approved"
@@ -39,8 +40,8 @@ export function AdjustmentsTabs({ activeTab, setActiveTab }: AdjustmentsTabsProp
         type="button"
       >
         <CheckCircle size={14} /> {t("common.status_approved")}
-      </button>
-      <button
+      </Button>
+      <Button
         className={cn(
           "flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all",
           activeTab === "rejected"
@@ -51,7 +52,7 @@ export function AdjustmentsTabs({ activeTab, setActiveTab }: AdjustmentsTabsProp
         type="button"
       >
         <XCircle size={14} /> {t("common.status_rejected")}
-      </button>
+      </Button>
     </div>
   );
 }

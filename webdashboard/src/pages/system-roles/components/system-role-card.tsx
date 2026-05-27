@@ -2,6 +2,7 @@ import { Plus, Shield, ShieldAlert, ShieldCheck, ShieldHalf, Trash2, Users } fro
 import React from "react";
 import { useTranslation } from "react-i18next";
 
+import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 
 interface Assignee {
@@ -62,13 +63,13 @@ export function SystemRoleCard({ isRevoking, onAssign, onRevoke, role }: SystemR
           </div>
         </div>
         
-        <button
+        <Button
           className="p-2 text-blue-600 bg-blue-50 hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:hover:bg-blue-500/20 rounded-xl transition-colors"
           onClick={() => { onAssign(role.name); }}
           title={t("system_roles.assign_to_user")}
         >
           <Plus size={20} />
-        </button>
+        </Button>
       </div>
 
       <Typography className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-6 flex-1" variant="p">
@@ -91,14 +92,14 @@ export function SystemRoleCard({ isRevoking, onAssign, onRevoke, role }: SystemR
                     {t("system_roles.assigned_date", { date: new Date(assignee.assigned_at).toLocaleDateString() })}
                   </span>
                 </div>
-                <button
+                <Button
                   className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg transition-colors disabled:opacity-50"
                   disabled={isRevoking}
                   onClick={() => { onRevoke(assignee.user_id, role.name); }}
                   title={t("system_roles.revoke_role")}
                 >
                   <Trash2 size={16} />
-                </button>
+                </Button>
               </div>
             ))}
           </div>

@@ -4,6 +4,7 @@ import { Plus, Calendar, History, Save, Calculator, AlertCircle, CheckCircle2 } 
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { ConfigRecord } from "@/lib/api/types";
@@ -87,8 +88,8 @@ function TemporalConfigAddForm({
       </div>
 
       <div className="flex justify-end gap-4">
-        <button className="px-8 py-4 rounded-2xl font-bold text-[10px] uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all" onClick={() => { setIsAdding(false); }}>{t("common.cancel")}</button>
-        <button className="flex items-center gap-3 bg-primary-600 text-white px-10 py-4 rounded-2xl font-bold text-[10px] uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95" onClick={handleSave}><Save size={16} /> {t("common.save").toUpperCase()}</button>
+        <Button className="px-8 py-4 rounded-2xl font-bold text-[10px] uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all" onClick={() => { setIsAdding(false); }}>{t("common.cancel")}</Button>
+        <Button className="flex items-center gap-3 bg-primary-600 text-white px-10 py-4 rounded-2xl font-bold text-[10px] uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95" onClick={handleSave}><Save size={16} /> {t("common.save").toUpperCase()}</Button>
       </div>
     </div>
   );
@@ -219,7 +220,7 @@ function TemporalConfigHeader({ title, t, isAdding, setIsAdding }: { isAdding: b
         </div>
       </div>
       {!isAdding && (
-        <button className="flex items-center justify-center gap-2 bg-primary-600 text-white px-6 py-2.5 rounded-2xl font-bold text-[10px] uppercase tracking-widest hover:bg-primary-700 transition-all shadow-lg shadow-primary-100 active:scale-95" onClick={() => { setIsAdding(true); }}><Plus size={14} /> {t("common.add_new").toUpperCase()}</button>
+        <Button className="flex items-center justify-center gap-2 bg-primary-600 text-white px-6 py-2.5 rounded-2xl font-bold text-[10px] uppercase tracking-widest hover:bg-primary-700 transition-all shadow-lg shadow-primary-100 active:scale-95" onClick={() => { setIsAdding(true); }}><Plus size={14} /> {t("common.add_new").toUpperCase()}</Button>
       )}
     </div>
   );

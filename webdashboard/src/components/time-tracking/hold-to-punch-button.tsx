@@ -1,6 +1,8 @@
 import { Loader2 } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
 
+import Button from "@/components/ui/button";
+
 interface HoldToPunchButtonProps {
   isActive?: boolean;
   isPunching: boolean;
@@ -56,16 +58,16 @@ export function HoldToPunchButton({ onPunch, isPunching, label, isActive }: Hold
   }, [isPunching]);
 
   return (
-    <button
+    <Button
       className={`relative w-full overflow-hidden py-6 rounded-[1.5rem] font-bold uppercase tracking-widest text-xs transition-all shadow-2xl z-10 disabled:opacity-50 select-none ${
         isActive 
           ? 'bg-rose-600 text-white shadow-rose-200 dark:shadow-rose-900/20 hover:bg-rose-700' 
           : 'bg-primary-600 text-white shadow-primary-200 dark:shadow-primary-900/20 hover:bg-primary-700'
       }`}
       disabled={isPunching}
-      onContextMenu={(e) => { e.preventDefault(); }} // Prevent context menu on long press on mobile
+      onContextMenu={(e: React.MouseEvent) => { e.preventDefault(); }} // Prevent context menu on long press on mobile
       onPointerCancel={endHold}
-      onPointerDown={(e) => {
+      onPointerDown={(e: React.PointerEvent) => {
         // Only left click or touch
         if (e.button !== 0 && e.pointerType === "mouse") return;
         const target = e.target as HTMLElement;
@@ -77,7 +79,7 @@ export function HoldToPunchButton({ onPunch, isPunching, label, isActive }: Hold
         startHold();
       }}
       onPointerLeave={endHold}
-      onPointerUp={(e) => {
+      onPointerUp={(e: React.PointerEvent) => {
         const target = e.target as HTMLElement;
         try {
           target.releasePointerCapture(e.pointerId);
@@ -102,6 +104,6 @@ export function HoldToPunchButton({ onPunch, isPunching, label, isActive }: Hold
           label
         )}
       </div>
-    </button>
+    </Button>
   );
 }

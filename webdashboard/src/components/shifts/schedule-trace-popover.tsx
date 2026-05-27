@@ -5,6 +5,7 @@ import { Info, CheckCircle2, AlertCircle, Shield, ChevronDown, ChevronRight } fr
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 
 import { ScheduleTrace } from '../../lib/api/types';
@@ -63,7 +64,7 @@ function OverriddenRulesSection({ overriddenRules, showOverridden, setShowOverri
 
   return (
     <div className="space-y-2 pt-2 border-t border-slate-50 dark:border-slate-800">
-      <button 
+      <Button 
         className="flex items-center justify-between w-full group"
         onClick={() => { setShowOverridden(!showOverridden); }}
       >
@@ -71,7 +72,7 @@ function OverriddenRulesSection({ overriddenRules, showOverridden, setShowOverri
           {t("shifts.traceability.show_overridden")} ({overriddenRules.length})
         </span>
         {showOverridden ? <ChevronDown className="text-slate-500 dark:text-slate-400" size={14} /> : <ChevronRight className="text-slate-500 dark:text-slate-400" size={14} />}
-      </button>
+      </Button>
 
       {showOverridden ? (
         <div className="space-y-2 animate-in slide-in-from-top-1 duration-200">
@@ -111,17 +112,17 @@ export const ScheduleTracePopover: React.FC<ScheduleTracePopoverProps> = ({ trac
   return (
     <Popover.Root>
       <Popover.Trigger asChild>
-        <button 
+        <Button 
           className="p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 transition-colors"
-          onClick={(e) => { e.stopPropagation(); }}
+          onClick={(e: React.MouseEvent) => { e.stopPropagation(); }}
         >
           <Info size={14} />
-        </button>
+        </Button>
       </Popover.Trigger>
       <Popover.Portal>
         <Popover.Content 
           className="z-50 w-80 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-800 p-4 animate-in fade-in zoom-in-95 duration-200"
-          onClick={(e) => { e.stopPropagation(); }}
+          onClick={(e: React.MouseEvent) => { e.stopPropagation(); }}
           sideOffset={5}
         >
           <div className="flex flex-col gap-4">

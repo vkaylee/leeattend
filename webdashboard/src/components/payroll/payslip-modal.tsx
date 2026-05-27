@@ -3,6 +3,7 @@ import { X, Printer } from 'lucide-react';
 import React, { useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { useDateTimeFormatter } from '@/hooks/use-datetime';
 import { Employee, Payslip, Workspace } from '@/lib/api/types';
@@ -53,17 +54,17 @@ export default function PayslipModal({
               </div>
             </div>
             <div className='flex items-center gap-3'>
-              <button
+              <Button
                 className='flex items-center gap-2 px-6 py-2.5 bg-slate-900 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-slate-800 transition-all shadow-lg active:scale-95'
                 data-testid="payslip-print-btn"
                 onClick={handlePrint}
               >
                 <Printer size={14} /> Print Payslip
-              </button>
+              </Button>
               <Dialog.Close asChild>
-                <button className='w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:text-rose-300 transition-all' data-testid="payslip-close-btn">
+                <Button className='w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:text-rose-300 transition-all' data-testid="payslip-close-btn">
                   <X size={20} />
-                </button>
+                </Button>
               </Dialog.Close>
             </div>
           </div>

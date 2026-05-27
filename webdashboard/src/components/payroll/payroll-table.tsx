@@ -17,6 +17,7 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { ErrorBoundary } from "@/components/common/error-boundary";
+import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { useMyPermissions } from "@/hooks/use-permissions";
@@ -97,7 +98,7 @@ function SegmentCard({ segment, index, canReadSensitive }: { segment: PayrollSeg
                   <span className="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tighter">{segment.applied_std_days} Days</span>
                   {segment.std_days_source ? (
                     <Popover.Root>
-                      <Popover.Trigger asChild><button className="p-1.5 rounded-lg bg-white dark:bg-slate-900 shadow-sm border border-slate-100 dark:border-slate-800 text-slate-300 dark:text-slate-600 hover:text-primary-600 dark:text-primary-400 transition-all"><Info size={12} /></button></Popover.Trigger>
+                      <Popover.Trigger asChild><Button className="p-1.5 rounded-lg bg-white dark:bg-slate-900 shadow-sm border border-slate-100 dark:border-slate-800 text-slate-300 dark:text-slate-600 hover:text-primary-600 dark:text-primary-400 transition-all"><Info size={12} /></Button></Popover.Trigger>
                       <Popover.Portal><Popover.Content align="center" className="z-50 w-80 bg-transparent animate-in zoom-in-95 duration-300 origin-bottom" side="top" sideOffset={12}><PayrollPriorityLegend activeSource={segment.std_days_source} /></Popover.Content></Popover.Portal>
                     </Popover.Root>
                   ) : null}
@@ -171,9 +172,9 @@ function PayslipCardHeader({ slip, isExpanded, setExpandedId, t, formatMonthYear
         </div>
       </div>
 
-      <button 
+      <Button 
         className="hidden md:flex items-center gap-2 px-4 py-2 bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-xl border border-slate-100 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-900 hover:text-primary-600 dark:text-primary-400 hover:border-primary-200 dark:border-primary-800 hover:shadow-md transition-all active:scale-95 group/btn" 
-        onClick={(e) => { 
+        onClick={(e: React.MouseEvent) => { 
           e.stopPropagation(); 
           setSelectedPayslip(slip); 
           setIsModalOpen(true); 
@@ -181,7 +182,7 @@ function PayslipCardHeader({ slip, isExpanded, setExpandedId, t, formatMonthYear
       >
         <FileText className="text-slate-300 dark:text-slate-600 group-hover/btn:text-primary-500 transition-colors" size={14} />
         <span className="text-[9px] font-bold uppercase tracking-widest">Official Payslip</span>
-      </button>
+      </Button>
       <div className="flex items-center gap-10 pr-2">
         <div className="text-right">
           <Typography className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest leading-none mb-1.5 opacity-60" variant="p">{t("common.payroll.table.net_pay")}</Typography>
@@ -217,7 +218,7 @@ function PayslipCardBody({ slip, slipAdjustments, onResolveAdjustments, canReadS
               <Typography className="text-[10px] text-amber-700 dark:text-amber-300 font-bold uppercase tracking-widest opacity-70 mt-0.5" variant="p">{t("payroll.traceability.recalc_needed")}</Typography>
             </div>
           </div>
-          <button className="px-6 py-2.5 bg-amber-50 dark:bg-amber-950 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-amber-600 transition-all shadow-lg shadow-amber-200 active:scale-95" onClick={onResolveAdjustments}>{t("payroll.traceability.view_adjustments")}</button>
+          <Button className="px-6 py-2.5 bg-amber-50 dark:bg-amber-950 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-amber-600 transition-all shadow-lg shadow-amber-200 active:scale-95" onClick={onResolveAdjustments}>{t("payroll.traceability.view_adjustments")}</Button>
         </div>
       )}
 

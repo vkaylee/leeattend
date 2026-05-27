@@ -2,6 +2,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Terminal, User, Calendar, X, RefreshCcw, Power, Database, Trash2, UserPlus, UserMinus } from "lucide-react";
 import React, { useState, useEffect } from "react";
 
+import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 
 import { useToast } from "../../components/ui/toast";
@@ -51,12 +52,12 @@ function DebugIdentityTab({ debugUsers, temporaryId, setTemporaryId, setImperson
             type="text"
             value={temporaryId}
           />
-          <button
+          <Button
             className="bg-blue-600 hover:bg-blue-50 dark:bg-blue-950 px-3 py-1.5 rounded text-[10px] font-bold"
             onClick={() => { setImpersonateId(temporaryId); }}
           >
             Apply
-          </button>
+          </Button>
         </div>
       </div>
     </div>
@@ -84,12 +85,12 @@ function DebugTimeTab({ temporaryDate, setTemporaryDate, setMockDate }: DebugTim
             type="date"
             value={temporaryDate}
           />
-          <button
+          <Button
             className="bg-teal-600 hover:bg-teal-50 dark:bg-teal-950 px-3 py-1.5 rounded text-[10px] font-bold"
             onClick={() => { setMockDate(temporaryDate); }}
           >
             Apply
-          </button>
+          </Button>
         </div>
         <Typography className="text-[9px] text-slate-500 dark:text-slate-400 italic mt-2" variant="p">
           Note: Mock date affects payroll segments and policy resolution.
@@ -108,7 +109,7 @@ function DebugDatabaseTab({ isWiping, handleClearDatabase }: DebugDatabaseTabPro
   return (
     <div className="space-y-3 animate-in fade-in duration-300">
       <div className="grid grid-cols-3 gap-2">
-        <button
+        <Button
           className="flex flex-col items-center gap-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 p-2 rounded transition-colors group"
           disabled={isWiping}
           onClick={() => handleClearDatabase("attendance")}
@@ -116,8 +117,8 @@ function DebugDatabaseTab({ isWiping, handleClearDatabase }: DebugDatabaseTabPro
         >
           <Trash2 className="text-slate-500 dark:text-slate-400 group-hover:text-amber-400" size={12} />
           <span className="text-[8px] font-bold uppercase">Logs</span>
-        </button>
-        <button
+        </Button>
+        <Button
           className="flex flex-col items-center gap-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 p-2 rounded transition-colors group"
           disabled={isWiping}
           onClick={() => handleClearDatabase("payroll")}
@@ -125,8 +126,8 @@ function DebugDatabaseTab({ isWiping, handleClearDatabase }: DebugDatabaseTabPro
         >
           <Trash2 className="text-slate-500 dark:text-slate-400 group-hover:text-amber-400" size={12} />
           <span className="text-[8px] font-bold uppercase">Payroll</span>
-        </button>
-        <button
+        </Button>
+        <Button
           className="flex flex-col items-center gap-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 p-2 rounded transition-colors group"
           disabled={isWiping}
           onClick={() => handleClearDatabase("rosters")}
@@ -134,11 +135,11 @@ function DebugDatabaseTab({ isWiping, handleClearDatabase }: DebugDatabaseTabPro
         >
           <Trash2 className="text-slate-500 dark:text-slate-400 group-hover:text-amber-400" size={12} />
           <span className="text-[8px] font-bold uppercase">Rosters</span>
-        </button>
+        </Button>
       </div>
 
       <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800">
-        <button
+        <Button
           className="flex flex-col items-center gap-1 bg-red-900/10 hover:bg-red-900/30 border border-red-900/30 p-2 rounded transition-colors group"
           disabled={isWiping}
           onClick={() => handleClearDatabase("employees")}
@@ -146,8 +147,8 @@ function DebugDatabaseTab({ isWiping, handleClearDatabase }: DebugDatabaseTabPro
         >
           <UserMinus className="text-red-400" size={14} />
           <span className="text-[9px] font-bold uppercase text-red-200">Wipe Staff</span>
-        </button>
-        <button
+        </Button>
+        <Button
           className="flex flex-col items-center gap-1 bg-red-900/20 hover:bg-red-900/40 border border-red-900/50 p-2 rounded transition-colors group"
           disabled={isWiping}
           onClick={() => handleClearDatabase("full_reset")}
@@ -155,18 +156,18 @@ function DebugDatabaseTab({ isWiping, handleClearDatabase }: DebugDatabaseTabPro
         >
           <Trash2 className="text-red-400" size={14} />
           <span className="text-[9px] font-bold uppercase text-red-200">Factory Reset</span>
-        </button>
+        </Button>
       </div>
       
       <div className="pt-2 border-t border-slate-800">
-        <button
+        <Button
           className="w-full flex items-center justify-center gap-2 bg-green-900/20 hover:bg-green-900/40 border border-green-900/50 p-2 rounded text-[10px] font-bold text-green-200 transition-colors"
           disabled={isWiping}
           onClick={() => handleClearDatabase("seed")}
           title="Create default departments, shifts, and employees"
         >
           <UserPlus size={14} /> Quick Seed Demo Team
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -180,30 +181,30 @@ interface DebugToolbarTabsProps {
 function DebugToolbarTabs({ activeTab, setActiveTab }: DebugToolbarTabsProps) {
   return (
     <div className="flex border-b border-slate-800 mt-2">
-      <button 
+      <Button 
         className={`flex-1 py-2 text-[10px] font-bold uppercase tracking-tight flex items-center justify-center gap-1.5 transition-colors ${
           activeTab === "identity" ? "bg-slate-800 text-blue-400 border-b-2 border-blue-400" : "text-slate-500 dark:text-slate-400 hover:text-slate-300 dark:text-slate-600"
         }`}
         onClick={() => { setActiveTab("identity"); }}
       >
         <User size={12} /> Identity
-      </button>
-      <button 
+      </Button>
+      <Button 
         className={`flex-1 py-2 text-[10px] font-bold uppercase tracking-tight flex items-center justify-center gap-1.5 transition-colors ${
           activeTab === "time" ? "bg-slate-800 text-teal-400 border-b-2 border-teal-400" : "text-slate-500 dark:text-slate-400 hover:text-slate-300 dark:text-slate-600"
         }`}
         onClick={() => { setActiveTab("time"); }}
       >
         <Calendar size={12} /> Time
-      </button>
-      <button 
+      </Button>
+      <Button 
         className={`flex-1 py-2 text-[10px] font-bold uppercase tracking-tight flex items-center justify-center gap-1.5 transition-colors ${
           activeTab === "database" ? "bg-slate-800 text-red-400 border-b-2 border-red-400" : "text-slate-500 dark:text-slate-400 hover:text-slate-300 dark:text-slate-600"
         }`}
         onClick={() => { setActiveTab("database"); }}
       >
         <Database size={12} /> Database
-      </button>
+      </Button>
     </div>
   );
 }
@@ -222,9 +223,9 @@ function DebugToolbarHeader({ isEnabled, setIsEnabled, setIsOpen }: DebugToolbar
           <Terminal className="text-blue-400" size={16} />
           <span className="text-xs font-bold tracking-wider uppercase">Debug Suite v2.0</span>
         </div>
-        <button className="hover:text-slate-500 dark:text-slate-400" onClick={() => { setIsOpen(false); }}>
+        <Button className="hover:text-slate-500 dark:text-slate-400" onClick={() => { setIsOpen(false); }}>
           <X size={16} />
-        </button>
+        </Button>
       </div>
 
       <div className="px-4 pt-4">
@@ -233,7 +234,7 @@ function DebugToolbarHeader({ isEnabled, setIsEnabled, setIsOpen }: DebugToolbar
             <Power className={isEnabled ? "text-green-400" : "text-slate-500 dark:text-slate-400"} size={14} />
             <span className="text-xs font-medium">Global Debug Mode</span>
           </div>
-          <button
+          <Button
             className={`w-10 h-5 rounded-full relative transition-colors ${
               isEnabled ? "bg-green-600" : "bg-slate-600"
             }`}
@@ -242,7 +243,7 @@ function DebugToolbarHeader({ isEnabled, setIsEnabled, setIsOpen }: DebugToolbar
             <div className={`absolute top-1 w-3 h-3 bg-white dark:bg-slate-900 rounded-full transition-all ${
               isEnabled ? "left-6" : "left-1"
             }`} />
-          </button>
+          </Button>
         </div>
       </div>
     </>
@@ -259,7 +260,7 @@ interface DebugToolbarFooterProps {
 function DebugToolbarFooter({ isEnabled, reset, setTemporaryId, setTemporaryDate }: DebugToolbarFooterProps) {
   return (
     <div className="p-3 bg-slate-950 border-t border-slate-800 flex justify-between gap-2">
-      <button
+      <Button
         className="flex-1 flex items-center justify-center gap-1.5 bg-slate-800 hover:bg-slate-700 py-2 rounded text-[10px] font-bold text-slate-300 dark:text-slate-600"
         onClick={() => {
           reset();
@@ -269,14 +270,14 @@ function DebugToolbarFooter({ isEnabled, reset, setTemporaryId, setTemporaryDate
         }}
       >
         <RefreshCcw size={12} /> Clear Settings
-      </button>
+      </Button>
       {isEnabled ? (
-        <button
+        <Button
           className="flex-1 flex items-center justify-center gap-1.5 bg-blue-600 hover:bg-blue-50 dark:bg-blue-950 py-2 rounded text-[10px] font-bold"
           onClick={() => { window.location.reload(); }}
         >
           Reload UI
-        </button>
+        </Button>
       ) : null}
     </div>
   );
@@ -344,13 +345,13 @@ export const DebugToolbar: React.FC = () => {
 
   if (!isOpen) {
     return (
-      <button
+      <Button
         className="fixed bottom-4 right-4 bg-slate-900 text-white p-3 rounded-full shadow-2xl z-[9999] hover:bg-slate-800 transition-colors border border-slate-700"
         onClick={() => { setIsOpen(true); }}
         title="Open Debug Tools"
       >
         <Terminal className={isEnabled ? "text-green-400" : "text-white"} size={20} />
-      </button>
+      </Button>
     );
   }
 

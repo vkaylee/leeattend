@@ -3,6 +3,7 @@ import React from "react";
 
 import { TFunction } from "i18next";
 
+import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { PayrollRuleAssignment, Department } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
@@ -125,28 +126,28 @@ export function AssignmentCard({
 
       {deletingId === a.id ? (
         <div className="flex items-center gap-2 animate-in fade-in duration-200">
-          <button
+          <Button
             className="px-3 py-1.5 bg-rose-600 text-white rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-rose-700 transition-all disabled:opacity-50"
             disabled={isDeleting}
             onClick={() => { handleDelete(a.id); }}
           >
             {isDeleting ? "…" : t("common.confirm", "Confirm")}
-          </button>
-          <button
+          </Button>
+          <Button
             className="px-3 py-1.5 bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-slate-300 dark:hover:bg-slate-600 transition-all"
             onClick={() => { setDeletingId(null); }}
           >
             {t("common.cancel", "Cancel")}
-          </button>
+          </Button>
         </div>
       ) : (
-        <button
+        <Button
           aria-label={t("payroll.delete_assignment", "Delete assignment")}
           className="p-2.5 text-slate-300 dark:text-slate-600 hover:text-rose-500 dark:hover:text-rose-400 rounded-xl hover:bg-white dark:hover:bg-slate-900 transition-all opacity-0 group-hover:opacity-100 active:scale-90 shadow-none hover:shadow-md border border-transparent hover:border-slate-100 dark:hover:border-slate-800"
           onClick={() => { setDeletingId(a.id); }}
         >
           <Trash2 size={16} />
-        </button>
+        </Button>
       )}
     </div>
   );

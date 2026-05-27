@@ -1,6 +1,7 @@
 import { Info } from "lucide-react";
 import React from "react";
 
+import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 
 interface SelectionBannerProps {
@@ -34,12 +35,12 @@ export function SelectionBanner({
          </Typography>
       </div>
       {!isAllFilteredSelected && filteredCount > pageSize && (
-        <button 
+        <Button 
           className="text-xs font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest hover:underline decoration-2 underline-offset-4"
           onClick={selectAllFiltered}
         >
           {t("payroll.selection.select_all_filtered", { count: filteredCount, defaultValue: `Select all ${filteredCount} employees` })}
-        </button>
+        </Button>
       )}
     </div>
   );

@@ -10,6 +10,7 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { MonthYearPicker } from "@/components/common/month-year-picker";
+import Button from "@/components/ui/button";
 import Modal from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
@@ -89,7 +90,7 @@ function BatchCalculationResults({
       </div>
 
       <div className="pt-4 border-t border-slate-50 dark:border-slate-800">
-        <button className="w-full py-4 bg-slate-900 text-white rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-slate-200 dark:shadow-black/30 active:scale-95" onClick={resetAndClose}>{t("common.close")}</button>
+        <Button className="w-full py-4 bg-slate-900 text-white rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-slate-200 dark:shadow-black/30 active:scale-95" onClick={resetAndClose}>{t("common.close")}</Button>
       </div>
     </div>
   );
@@ -163,14 +164,14 @@ export default function BatchCalculationModal({
             </div>
 
             <div className="pt-4 grid grid-cols-2 gap-5">
-              <button className="px-8 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl font-bold text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all" onClick={onClose} type="button">{t("common.cancel")}</button>
-              <button 
+              <Button className="px-8 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl font-bold text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all" onClick={onClose} type="button">{t("common.cancel")}</Button>
+              <Button 
                 className="px-8 py-4 bg-slate-900 text-white rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-slate-200 dark:shadow-black/30 active:scale-95"
                 data-testid="batch-calc-submit-btn" 
                 onClick={handleCalculate}
               >
                 {t("payroll.modal.submit")}
-              </button>
+              </Button>
             </div>
           </div>
         )}

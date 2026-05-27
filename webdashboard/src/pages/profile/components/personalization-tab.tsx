@@ -2,6 +2,7 @@ import { Palette, Undo2 } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
+import Button from "@/components/ui/button";
 import { LABEL_BASE } from "@/components/ui/form-field";
 import { Typography } from "@/components/ui/typography";
 import { useTheme } from "@/hooks/use-theme";
@@ -38,12 +39,12 @@ export const PersonalizationTab: React.FC = () => {
           </div>
         </div>
         {isOverridden ? (
-          <button 
+          <Button 
             className="flex items-center gap-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 transition-all bg-slate-50 dark:bg-slate-800 px-6 py-2.5 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm active:scale-95" 
             onClick={() => { setUserTheme(null); }}
           >
             <Undo2 size={14} /> {t("profile.personalization.use_workspace_default").toUpperCase()}
-          </button>
+          </Button>
         ) : null}
       </div>
 
@@ -52,7 +53,7 @@ export const PersonalizationTab: React.FC = () => {
           <label className={LABEL_BASE}>{t("common.workspace_settings.primary_color")}</label>
           <div className="flex flex-wrap gap-5 items-center">
             {colorPresets.map((preset) => (
-              <button 
+              <Button 
                 className={cn(
                   "w-14 h-14 rounded-2xl transition-all border-4 flex items-center justify-center shadow-lg group active:scale-90", 
                   primaryColor === preset.color 
@@ -67,7 +68,7 @@ export const PersonalizationTab: React.FC = () => {
                 {primaryColor === preset.color && (
                   <div className="w-3 h-3 bg-white dark:bg-slate-900 rounded-full shadow-2xl animate-in zoom-in duration-300" />
                 )}
-              </button>
+              </Button>
             ))}
             <div className="h-12 w-px bg-slate-100 dark:bg-slate-700 mx-2" />
             <div className="flex items-center gap-4 bg-slate-50 dark:bg-slate-800 p-2.5 rounded-[1.5rem] border border-slate-100 dark:border-slate-800 shadow-inner group">

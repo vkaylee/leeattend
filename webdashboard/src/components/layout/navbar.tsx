@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 
 import type { ThemeMode } from "@/hooks/use-dark-mode";
 
+import Button from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { LanguageSwitcher } from "@/components/ui/language-switcher";
 import { Typography } from "@/components/ui/typography";
@@ -45,16 +46,16 @@ export default function Navbar({ currentWorkspaceName, onOpenSidebar, isCollapse
   return (
     <header className="h-20 border-b border-slate-100 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl flex items-center justify-between px-6 lg:px-10 gap-6 flex-shrink-0 z-30 sticky top-0 shadow-2xl shadow-slate-900/5 dark:shadow-black/20">
       <div className="flex items-center gap-6">
-        <button className="lg:hidden p-3 bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl active:scale-90 transition-all border border-slate-100 dark:border-slate-700 shadow-sm" onClick={onOpenSidebar}><Menu size={20} /></button>
+        <Button className="lg:hidden p-3 bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl active:scale-90 transition-all border border-slate-100 dark:border-slate-700 shadow-sm" onClick={onOpenSidebar}><Menu size={20} /></Button>
 
         {/* Desktop Collapse Toggle */}
-        <button
+        <Button
           className="hidden lg:flex p-3 bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-primary-50 dark:hover:bg-primary-950 hover:text-primary-600 dark:hover:text-primary-400 rounded-xl active:scale-90 transition-all border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-md hover:border-primary-100 dark:hover:border-primary-800"
           onClick={onToggleCollapsed}
           title={isCollapsed ? t("common.expand_sidebar") : t("common.collapse_sidebar")}
         >
           {isCollapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
-        </button>
+        </Button>
 
         {/* Premium Breadcrumbs */}
         <nav className="flex items-center gap-3">
@@ -97,7 +98,7 @@ function ThemeToggle() {
   return (
     <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700 shadow-inner" data-testid="theme-toggle">
       {options.map((opt) => (
-        <button
+        <Button
           className={cn(
             "p-2 rounded-lg transition-all flex items-center justify-center gap-1.5 min-w-[44px] min-h-[44px]",
             mode === opt.value
@@ -110,7 +111,7 @@ function ThemeToggle() {
           title={opt.label}
         >
           {opt.icon}
-        </button>
+        </Button>
       ))}
     </div>
   );

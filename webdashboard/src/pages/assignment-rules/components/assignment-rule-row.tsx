@@ -2,6 +2,7 @@ import { Pencil, Trash2 } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
+import Button from "@/components/ui/button";
 import StatusBadge from "@/components/ui/status-badge";
 import { AssignmentRule } from "@/lib/api";
 
@@ -48,20 +49,20 @@ export const AssignmentRuleRow: React.FC<AssignmentRuleRowProps> = ({
       </td>
       <td className="px-10 py-6 text-right">
         <div className="flex justify-end gap-3 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-2 group-hover:translate-x-0">
-          <button 
+          <Button 
             className="p-3 bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 rounded-xl shadow-md dark:shadow-black/20 border border-slate-100 dark:border-slate-700 transition-all active:scale-90" 
             onClick={() => { onEdit(rule); }} 
             title={t("common.edit")}
           >
             <Pencil size={18} />
-          </button>
-          <button 
+          </Button>
+          <Button 
             className="p-3 bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded-xl shadow-md dark:shadow-black/20 border border-slate-100 dark:border-slate-700 transition-all active:scale-90" 
             onClick={() => { onDelete(rule.id); }} 
             title={t("common.delete")}
           >
             <Trash2 size={18} />
-          </button>
+          </Button>
         </div>
       </td>
     </tr>

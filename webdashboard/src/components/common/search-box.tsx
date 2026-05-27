@@ -1,6 +1,7 @@
 import { Search, X } from "lucide-react";
 import React from "react";
 
+import Button from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 interface SearchBoxProps {
@@ -44,12 +45,12 @@ export default function SearchBox({
                 value={value}
             />
             {!!value && (
-                <button
+                <Button
                     className="absolute right-4 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all active:scale-90"
                     onClick={() => { onChange(""); }}
                 >
                     <X size={16} />
-                </button>
+                </Button>
               )}
         </div>
     );

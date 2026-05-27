@@ -3,6 +3,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 
 import PermissionGate from "@/components/common/permission-gate";
+import Button from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -52,10 +53,10 @@ export function PermissionsHeader({
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="flex items-center gap-2 px-4 py-2.5 rounded-2xl font-bold text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-sm">
+            <Button className="flex items-center gap-2 px-4 py-2.5 rounded-2xl font-bold text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-sm">
               <SlidersHorizontal className="text-slate-500" size={16} />
               {t("common.columns", { defaultValue: "Columns" })}
-            </button>
+            </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel>
@@ -84,7 +85,7 @@ export function PermissionsHeader({
         </DropdownMenu>
 
         <PermissionGate permission="members:roles:manage">
-          <button
+          <Button
             className={cn(
               "flex items-center gap-2 px-5 py-2.5 rounded-2xl font-bold text-sm transition-all",
               hasChanges
@@ -101,7 +102,7 @@ export function PermissionsHeader({
               <Save size={18} />
             )}
             {t("permissions.saveMatrix", { defaultValue: "Save Matrix" })}
-          </button>
+          </Button>
         </PermissionGate>
       </div>
     </div>

@@ -18,6 +18,7 @@ import { format, isToday as isDateToday } from "date-fns";
 import { vi, enUS, zhCN, type Locale } from "date-fns/locale";
 
 import { EmployeeSearch } from "@/components/common/employee-search";
+import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { EffectiveSchedule, Employee, EmployeeSchedule, Shift } from "@/lib/api/types";
 import { useShifts } from "@/pages/shifts/hooks/use-shifts";
@@ -443,26 +444,26 @@ export function MonthlyRosterGrid({ hook }: MonthlyRosterGridProps) {
       <div className="bg-white dark:bg-slate-900 rounded-[28px] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden relative group/grid">
         {/* Scroll Left Button */}
         {showLeftArrow ? (
-          <button
+          <Button
             className="absolute left-4 top-1/2 -translate-y-1/2 z-30 p-3 rounded-full bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border border-slate-250/60 dark:border-slate-800 shadow-premium-lg hover:bg-primary-50 dark:hover:bg-primary-950/40 text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 hover:scale-105 active:scale-95 transition-all cursor-pointer opacity-0 group-hover/grid:opacity-100 focus:opacity-100"
             onClick={() => { scrollGrid("left"); }}
             title={t("common.previous")}
             type="button"
           >
             <ChevronLeft size={16} />
-          </button>
+          </Button>
         ) : null}
 
         {/* Scroll Right Button */}
         {showRightArrow ? (
-          <button
+          <Button
             className="absolute right-4 top-1/2 -translate-y-1/2 z-30 p-3 rounded-full bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border border-slate-250/60 dark:border-slate-800 shadow-premium-lg hover:bg-primary-50 dark:hover:bg-primary-950/40 text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 hover:scale-105 active:scale-95 transition-all cursor-pointer opacity-0 group-hover/grid:opacity-100 focus:opacity-100"
             onClick={() => { scrollGrid("right"); }}
             title={t("common.next")}
             type="button"
           >
             <ChevronRight size={16} />
-          </button>
+          </Button>
         ) : null}
 
         {isMonthError || isEmployeesError ? (
@@ -476,7 +477,7 @@ export function MonthlyRosterGrid({ hook }: MonthlyRosterGridProps) {
             <Typography className="text-xs text-slate-450 dark:text-slate-500 max-w-xs mx-auto" variant="p">
               {t("shifts.monthly.failed_to_load")}
             </Typography>
-            <button
+            <Button
               className="mt-2 px-4 py-2 text-xs font-semibold text-white bg-primary-600 hover:bg-primary-700 active:scale-95 rounded-xl transition-all shadow-sm shadow-primary-500/10 cursor-pointer"
               onClick={() => {
                 void refetchMonthSchedules();
@@ -484,7 +485,7 @@ export function MonthlyRosterGrid({ hook }: MonthlyRosterGridProps) {
               }}
             >
               {t("common.retry")}
-            </button>
+            </Button>
           </div>
         ) : isMonthLoading || isEmployeesLoading || !employees ? (
           <div className="p-4 w-full">
@@ -598,26 +599,26 @@ const RosterToolbar = memo(function RosterToolbar({
 
         <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto">
           <div className="flex items-center gap-1">
-            <button
+            <Button
               className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors border border-slate-100 dark:border-slate-800"
               onClick={() => { onNavigateMonth("prev"); }}
               type="button"
             >
               <ChevronLeft size={16} />
-            </button>
+            </Button>
             <span className="min-w-[140px] text-center font-bold text-xs uppercase tracking-widest text-slate-700 dark:text-slate-200">
               {monthHeaderLabel}
             </span>
-            <button
+            <Button
               className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors border border-slate-100 dark:border-slate-800"
               onClick={() => { onNavigateMonth("next"); }}
               type="button"
             >
               <ChevronRight size={16} />
-            </button>
+            </Button>
           </div>
 
-          <button
+          <Button
             className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold uppercase tracking-wider border border-slate-200 dark:border-slate-800 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-colors text-slate-600 dark:text-slate-300 disabled:opacity-50"
             disabled={isCopying}
             onClick={onCopyMonth}
@@ -625,7 +626,7 @@ const RosterToolbar = memo(function RosterToolbar({
           >
             {isCopying ? <Loader2 className="animate-spin" size={12} /> : <Copy size={12} />}
             <span>{copyLabel}</span>
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -721,29 +722,29 @@ const RosterActionBar = memo(function RosterActionBar({
       </div>
 
       <div className="flex items-center gap-2.5">
-        <button
+        <Button
           className="px-4 py-2 bg-white text-primary-700 hover:bg-white/90 active:scale-95 rounded-xl text-[10px] font-extrabold uppercase tracking-widest transition-all disabled:opacity-50 cursor-pointer shadow-sm"
           disabled={isMutating}
           onClick={onAssignSelected}
         >
           {assignLabel}
-        </button>
+        </Button>
 
-        <button
+        <Button
           className="p-2 border border-white/20 hover:bg-white/10 text-white rounded-xl transition-all active:scale-90 disabled:opacity-50 cursor-pointer"
           disabled={isMutating}
           onClick={onClearOverrides}
           title={clearLabel}
         >
           <Trash2 size={14} />
-        </button>
+        </Button>
 
-        <button
+        <Button
           className="px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all cursor-pointer"
           onClick={onCancel}
         >
           {cancelLabel}
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -942,7 +943,7 @@ const RosterCell = memo(function RosterCell({
         ) : null}
 
         {hasTraces && traces ? (
-          <button 
+          <Button 
             className="absolute top-0.5 right-0.5 opacity-0 hover:opacity-100 group-hover:opacity-60 transition-opacity bg-transparent border-none p-0 cursor-default"
             onClick={handleTraceClick}
             type="button"
@@ -951,7 +952,7 @@ const RosterCell = memo(function RosterCell({
               source={source ?? "none"} 
               traces={traces} 
             />
-          </button>
+          </Button>
         ) : null}
       </div>
     </td>

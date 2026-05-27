@@ -2,6 +2,8 @@ import { render, screen, fireEvent } from "@testing-library/react";
 
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
+import { WorkingPattern, WorkingPatternDetail, Shift } from "@/lib/api/types";
+
 import { PatternCard } from "../pattern-card";
 
 vi.mock("react-i18next", () => ({
@@ -17,7 +19,7 @@ describe("PatternCard", () => {
     description: "Standard 9-5",
     is_active: true,
     pattern_type: "weekly",
-  } as any;
+  } as unknown as WorkingPattern;
 
   const mockRotationPattern = {
     id: "pattern-2",
@@ -26,16 +28,16 @@ describe("PatternCard", () => {
     is_active: false,
     pattern_type: "rotation",
     cycle_length_days: 8,
-  } as any;
+  } as unknown as WorkingPattern;
 
   const mockDetails = [
     { schedule_day: 0, shift_id: "shift-1" },
     { schedule_day: 1, shift_id: "shift-1" },
-  ] as any;
+  ] as unknown as WorkingPatternDetail[];
 
   const mockShifts = [
     { id: "shift-1", name: "Morning Shift" }
-  ] as any;
+  ] as unknown as Shift[];
 
   const mockOnDelete = vi.fn();
   const mockOnEdit = vi.fn();

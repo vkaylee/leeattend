@@ -1,6 +1,7 @@
 import { Clock } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
+import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { TimeEntry } from "@/lib/api";
@@ -83,12 +84,12 @@ export function PunchCard({
         />
       )}
 
-      <button
+      <Button
         className="mt-8 text-primary-600 dark:text-primary-400 text-[10px] font-bold uppercase tracking-widest hover:text-primary-800 transition-colors py-2"
         onClick={onRequestAdjustment}
       >
         {t("time_tracking.forgot_punch")}
-      </button>
+      </Button>
     </div>
   );
 }

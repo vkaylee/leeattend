@@ -3,6 +3,7 @@ import React from "react";
 
 import { TFunction } from "i18next";
 
+import Button from "@/components/ui/button";
 import Modal from "@/components/ui/modal";
 import { Typography } from "@/components/ui/typography";
 
@@ -66,15 +67,15 @@ export function ReprocessModal({
           </div>
         ) : (
           <div className="flex gap-4 border-t border-slate-100 dark:border-slate-800 pt-4">
-            <button
+            <Button
               className="flex-1 px-6 py-3.5 rounded-2xl font-bold text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all active:scale-95"
               disabled={isPending}
               onClick={onClose}
               type="button"
             >
               {t("common.cancel")}
-            </button>
-            <button
+            </Button>
+            <Button
               className="flex-[1.5] bg-orange-600 hover:bg-orange-700 text-white font-bold px-6 py-3.5 rounded-2xl flex items-center justify-center gap-3 transition-all active:scale-95 disabled:opacity-50 shadow-xl text-xs uppercase tracking-widest"
               disabled={isPending || !reprocessStart || !reprocessEnd}
               onClick={onSubmit}
@@ -82,7 +83,7 @@ export function ReprocessModal({
             >
               {isPending ? <RefreshCw className="w-4 h-4 animate-spin" /> : <RefreshCw size={18} />}
               {(t("reports.reprocess.confirm") || "CONFIRM").toUpperCase()}
-            </button>
+            </Button>
           </div>
         )}
       </div>

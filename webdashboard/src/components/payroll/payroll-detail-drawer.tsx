@@ -9,6 +9,7 @@ import {
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { useMyPermissions } from "@/hooks/use-permissions";
 import { useWorkspace } from "@/hooks/use-workspace";
@@ -53,9 +54,9 @@ function PayrollDetailHeader({ employee }: { employee: Employee; }) {
         </div>
       </div>
       <Dialog.Close asChild>
-        <button className="w-12 h-12 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 flex items-center justify-center text-slate-300 dark:text-slate-600 hover:text-rose-600 dark:text-rose-300 hover:border-rose-100 dark:border-rose-800 hover:shadow-md transition-all active:scale-90">
+        <Button className="w-12 h-12 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 flex items-center justify-center text-slate-300 dark:text-slate-600 hover:text-rose-600 dark:text-rose-300 hover:border-rose-100 dark:border-rose-800 hover:shadow-md transition-all active:scale-90">
           <X size={24} />
-        </button>
+        </Button>
       </Dialog.Close>
     </header>
   );
@@ -120,7 +121,7 @@ export default function PayrollDetailDrawer({
           {/* Premium Tab Switcher */}
           <nav className="px-10 py-6 bg-white dark:bg-slate-900 border-b border-slate-50 dark:border-slate-800">
             <div className="flex bg-slate-100 dark:bg-slate-700/50 p-1.5 rounded-[22px] w-fit border border-slate-200 dark:border-slate-700/50 shadow-inner">
-              <button
+              <Button
                 className={cn(
                   "flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all",
                   activeTab === "history" ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700"
@@ -128,8 +129,8 @@ export default function PayrollDetailDrawer({
                 onClick={() => { setActiveTab("history"); }}
               >
                 <History size={14} /> {t("payroll.history_title")}
-              </button>
-              <button
+              </Button>
+              <Button
                 className={cn(
                   "flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all",
                   activeTab === "config" ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700"
@@ -137,7 +138,7 @@ export default function PayrollDetailDrawer({
                 onClick={() => { setActiveTab("config"); }}
               >
                 <Settings2 size={14} /> {t("common.payroll.employee_config.tab_title")}
-              </button>
+              </Button>
             </div>
           </nav>
 

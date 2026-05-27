@@ -2,6 +2,7 @@ import { Plus, LayoutDashboard, Loader2, AlertCircle, Database } from "lucide-re
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import Button from "@/components/ui/button";
 import Modal from "@/components/ui/modal";
 import { Typography } from "@/components/ui/typography";
 import { useWorkspaces } from "@/hooks/use-workspace";
@@ -82,7 +83,7 @@ export default function CreateWorkspaceDialog({
         </div>
 
         <div className="pt-2">
-          <button
+          <Button
             className="w-full flex items-center justify-center gap-3 bg-slate-900 text-white py-4 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-slate-200 dark:shadow-black/30 active:scale-95 disabled:opacity-50"
             disabled={isSubmitting || !name.trim() || !databaseUrl.trim()}
             type="submit"
@@ -93,7 +94,7 @@ export default function CreateWorkspaceDialog({
               <Plus size={18} />
             )}
             {t("common.create_workspace").toUpperCase()}
-          </button>
+          </Button>
         </div>
       </form>
     </Modal>

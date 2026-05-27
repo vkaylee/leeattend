@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 
 import { format } from "date-fns";
 
+import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
 
@@ -33,14 +34,14 @@ export function LeaveAssignmentsTab({
             {t("settings.leave.tabs.assignments_desc")}
           </Typography>
         </div>
-        <button
+        <Button
           className="flex items-center gap-2 rounded-xl bg-primary-600 px-6 py-2.5 text-[10px] font-bold text-white uppercase tracking-widest hover:bg-primary-700 shadow-lg shadow-primary-100"
           data-testid="assign-policy-btn"
           onClick={() => { onAssignClick(); }}
         >
           <UserPlus className="w-4 h-4" />
           {t("settings.leave.actions.assign")}
-        </button>
+        </Button>
       </div>
 
       <div className="bg-amber-50 dark:bg-amber-950 border border-amber-100 dark:border-amber-800 p-8 rounded-[2.5rem] flex items-start gap-6">

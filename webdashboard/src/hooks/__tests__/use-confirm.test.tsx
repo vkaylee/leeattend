@@ -4,6 +4,8 @@ import React from "react";
 
 import { describe, it, expect, vi } from "vitest";
 
+import Button from "@/components/ui/button";
+
 import { useConfirm } from "../use-confirm";
 
 // Mock react-i18next
@@ -45,7 +47,7 @@ const TestComponent = ({ onResult }: { onResult: (res: boolean) => void }) => {
 
   return (
     <div>
-      <button onClick={handleAction}>Trigger Confirm</button>
+      <Button onClick={handleAction}>Trigger Confirm</Button>
       <ConfirmationDialog />
     </div>
   );

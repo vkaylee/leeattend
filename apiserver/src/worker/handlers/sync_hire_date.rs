@@ -1,4 +1,3 @@
-#![allow(clippy::all)]
 use tracing::{error, info, warn};
 
 use crate::queue::Job;

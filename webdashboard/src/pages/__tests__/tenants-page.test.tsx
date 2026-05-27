@@ -379,9 +379,9 @@ describe("TenantsPage — Tenant Management", () => {
     vi.mocked(systemApi.createSystemTenant).mockResolvedValue(undefined);
     vi.mocked(systemApi.updateTenantDatabase).mockResolvedValue(undefined);
     vi.mocked(systemApi.fetchSystemTenantStats).mockResolvedValue({
-      connection: { host: "localhost", port: 5432, masked_db_url: "postgres://masked" },
+      connection: { host: "localhost", port: "5432", masked_db_url: "postgres://masked" },
       config: { users: [{ db_user: "user", pool_size: 10 }] }
-    } as any);
+    });
 
     (useConfirm as Mock).mockReturnValue({
       confirm: mockConfirm,

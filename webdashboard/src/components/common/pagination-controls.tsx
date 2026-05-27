@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-r
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
+import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
 
@@ -27,20 +28,20 @@ interface MobilePaginationProps {
 function MobilePagination({ currentPage, totalPages, onPageChange, t }: MobilePaginationProps) {
   return (
       <div className="flex justify-between flex-1 sm:hidden">
-        <button
+        <Button
           className="relative inline-flex items-center px-4 py-2 text-xs font-bold uppercase tracking-widest text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-all shadow-sm dark:shadow-black/10 active:scale-95"
           disabled={currentPage === 1}
           onClick={() => { onPageChange(currentPage - 1); }}
         >
           {t('common.pagination.prev')}
-        </button>
-        <button
+        </Button>
+        <Button
           className="relative ml-3 inline-flex items-center px-4 py-2 text-xs font-bold uppercase tracking-widest text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-all shadow-sm active:scale-95"
           disabled={currentPage === totalPages}
           onClick={() => { onPageChange(currentPage + 1); }}
         >
           {t('common.pagination.next')}
-        </button>
+        </Button>
       </div>
   );
 }
@@ -97,26 +98,26 @@ function DesktopPagination({
         </div>
         <div>
           <nav aria-label={t("common.pagination.page")} className="relative z-0 inline-flex gap-1">
-            <button
+            <Button
               className="relative inline-flex items-center w-9 h-9 justify-center text-sm font-medium text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl hover:text-primary-600 dark:text-primary-400 hover:border-primary-200 dark:border-primary-800 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-all shadow-sm active:scale-95"
               disabled={currentPage === 1}
               onClick={() => { onPageChange(1); }}
             >
               <span className="sr-only">{t("common.pagination.first")}</span>
               <ChevronsLeft className="w-4 h-4" />
-            </button>
-            <button
+            </Button>
+            <Button
               className="relative inline-flex items-center w-9 h-9 justify-center text-sm font-medium text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl hover:text-primary-600 dark:text-primary-400 hover:border-primary-200 dark:border-primary-800 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-all shadow-sm active:scale-95"
               disabled={currentPage === 1}
               onClick={() => { onPageChange(currentPage - 1); }}
             >
               <span className="sr-only">{t("common.pagination.prev")}</span>
               <ChevronLeft className="w-4 h-4" />
-            </button>
+            </Button>
             
             <div className="flex items-center gap-1 mx-1">
               {getPageNumbers().map((page: number) => (
-                <button
+                <Button
                   className={cn(
                     "relative inline-flex items-center w-9 h-9 justify-center text-[10px] font-bold rounded-xl transition-all shadow-sm active:scale-95 cursor-pointer border",
                     currentPage === page
@@ -127,26 +128,26 @@ function DesktopPagination({
                   onClick={() => { onPageChange(page); }}
                 >
                   {page}
-                </button>
+                </Button>
               ))}
             </div>
 
-            <button
+            <Button
               className="relative inline-flex items-center w-9 h-9 justify-center text-sm font-medium text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl hover:text-primary-600 dark:text-primary-400 hover:border-primary-200 dark:border-primary-800 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-all shadow-sm active:scale-95"
               disabled={currentPage === totalPages}
               onClick={() => { onPageChange(currentPage + 1); }}
             >
               <span className="sr-only">{t("common.pagination.next")}</span>
               <ChevronRight className="w-4 h-4" />
-            </button>
-            <button
+            </Button>
+            <Button
               className="relative inline-flex items-center w-9 h-9 justify-center text-sm font-medium text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl hover:text-primary-600 dark:text-primary-400 hover:border-primary-200 dark:border-primary-800 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-all shadow-sm active:scale-95"
               disabled={currentPage === totalPages}
               onClick={() => { onPageChange(totalPages); }}
             >
               <span className="sr-only">{t("common.pagination.last")}</span>
               <ChevronsRight className="w-4 h-4" />
-            </button>
+            </Button>
           </nav>
         </div>
       </div>

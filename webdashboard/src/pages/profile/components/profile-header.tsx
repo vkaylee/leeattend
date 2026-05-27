@@ -2,6 +2,7 @@ import { Palette, ShieldCheck, UserCircle } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
+import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
 
@@ -30,7 +31,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
       </div>
 
       <div className="flex bg-slate-100 dark:bg-slate-700/50 p-1.5 rounded-[22px] w-fit border border-slate-200 dark:border-slate-700/50 shadow-inner">
-        <button 
+        <Button 
           className={cn(
             "flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all", 
             activeTab === 'profile' 
@@ -40,8 +41,8 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           onClick={() => { setActiveTab("profile"); }}
         >
           <UserCircle size={14} /> {t("common.profile")}
-        </button>
-        <button 
+        </Button>
+        <Button 
           className={cn(
             "flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all", 
             activeTab === 'personalization' 
@@ -51,8 +52,8 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           onClick={() => { setActiveTab("personalization"); }}
         >
           <Palette size={14} /> {t("profile.personalization.title")}
-        </button>
-        <button 
+        </Button>
+        <Button 
           className={cn(
             "flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all", 
             activeTab === 'security' 
@@ -62,7 +63,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           onClick={() => { setActiveTab("security"); }}
         >
           <ShieldCheck size={14} /> {t("profile.security.title")}
-        </button>
+        </Button>
       </div>
     </div>
   );

@@ -2,6 +2,7 @@ import { Navigate, Outlet } from "@tanstack/react-router";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { useWorkspaces } from "@/hooks/use-workspace";
 import { getCurrentWorkspaceId, setCurrentWorkspaceId } from "@/lib/api";
@@ -47,12 +48,12 @@ export default function WorkspaceGuard() {
       <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-800">
         <div className="text-center p-8 bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-slate-100 dark:border-slate-800 max-w-sm">
           <Typography className="text-red-500 font-bold mb-4" variant="p">{t("common.system_connection_error")}</Typography>
-          <button
+          <Button
             className="px-6 py-2 bg-primary-600 text-white rounded-xl font-bold"
             onClick={() => { window.location.reload(); }}
           >
             {t("common.retry")}
-          </button>
+          </Button>
         </div>
       </div>
     );

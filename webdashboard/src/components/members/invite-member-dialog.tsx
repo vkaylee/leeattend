@@ -2,6 +2,7 @@ import { Mail, UserPlus, Loader2, AlertCircle } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { useWorkspaceMembers, useWorkspaceRoles } from "@/hooks/use-workspace";
 
@@ -65,10 +66,10 @@ export default function InviteMemberDialog({
         </div>
 
         <div className="pt-2">
-          <button className="w-full flex items-center justify-center gap-3 bg-slate-900 text-white py-4 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-slate-200 dark:shadow-black/30 active:scale-95 disabled:opacity-50" data-testid="submit-invite-member-btn" disabled={isAdding} type="submit">
+          <Button className="w-full flex items-center justify-center gap-3 bg-slate-900 text-white py-4 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-slate-200 dark:shadow-black/30 active:scale-95 disabled:opacity-50" data-testid="submit-invite-member-btn" disabled={isAdding} type="submit">
             {isAdding ? <Loader2 className="animate-spin" size={18} /> : <UserPlus size={18} />}
             {t("members.invite.submit_btn").toUpperCase()}
-          </button>
+          </Button>
         </div>
       </form>
     </Modal>

@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 
 import type { Holiday, LeaveType } from "@/lib/api/types";
 
+import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 
 interface HolidayTableProps {
@@ -81,18 +82,18 @@ function HolidayTableRow({ h, leaveTypes, onDelete, onEdit }: { h: Holiday; leav
             </td>
             <td className="px-4 py-3">
                 <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button
+                    <Button
                         className="p-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-primary-600 hover:bg-primary-50 transition-colors"
                         onClick={() => { onEdit(h); }}
                     >
                         <Pencil size={14} />
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                         className="p-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition-colors"
                         onClick={() => { onDelete(h.id); }}
                     >
                         <Trash2 size={14} />
-                    </button>
+                    </Button>
                 </div>
             </td>
         </tr>

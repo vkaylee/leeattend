@@ -1,5 +1,6 @@
 import React, { Component } from "react";
 
+import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 
 interface ErrorBoundaryProps {
@@ -59,12 +60,12 @@ export class ErrorBoundary extends Component<
             {this.state.error?.message ?? "An unexpected error occurred"}
           </Typography>
         </div>
-        <button
+        <Button
           className="flex items-center gap-2 px-4 py-2 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-xl border border-slate-100 dark:border-slate-800 transition-all text-xs font-semibold active:scale-95"
           onClick={this.handleRetry}
         >
           Try again
-        </button>
+        </Button>
       </div>
     );
   }
@@ -87,18 +88,18 @@ export class ErrorBoundary extends Component<
             {this.state.error?.message ?? "An unexpected error occurred"}
           </Typography>
           <div className="flex justify-center gap-3">
-            <button
+            <Button
               className="px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors"
               onClick={this.handleRetry}
             >
               Try again
-            </button>
-            <button
+            </Button>
+            <Button
               className="px-4 py-2 text-sm font-medium rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
               onClick={this.handleHardReload}
             >
               Reload page
-            </button>
+            </Button>
           </div>
           {this.state.error && import.meta.env.DEV ? (
             <pre className="mt-4 p-4 text-left text-xs bg-slate-100 dark:bg-slate-900 rounded-lg overflow-auto max-h-[200px] text-red-600 dark:text-red-400">

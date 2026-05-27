@@ -5,6 +5,8 @@ import React from "react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
+import Button from "@/components/ui/button";
+
 import * as api from "../../lib/api";
 import { WorkingPattern, Shift } from "../../lib/api/types";
 import WorkingPatternsPage from "../working-patterns-page";
@@ -38,7 +40,7 @@ vi.mock("@/components/common/employee-search", () => ({
     const handler = onSelect || onChange || (() => { /* empty */ });
     return (
       <div data-testid="employee-search-mock">
-        <button 
+        <Button 
           onClick={() => {
             if (multiple) {
               handler(["emp-1", "emp-2"]);
@@ -49,7 +51,7 @@ vi.mock("@/components/common/employee-search", () => ({
           type="button"
         >
           Select Employees Mock
-        </button>
+        </Button>
         {multiple && Array.isArray(value) && value.includes("emp-1") ? <span>Selected: John Doe</span> : null}
       </div>
     );

@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 
+import Button from "@/components/ui/button";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { TimeEntry } from "@/lib/api";
 import { cn } from "@/lib/utils";
@@ -62,12 +63,12 @@ export function TimeEntryRow({
       </td>
       {showAdjustButton ? (
         <td className="px-8 py-5 text-right">
-          <button
+          <Button
             className="text-primary-600 dark:text-primary-400 bg-white dark:bg-slate-900 shadow-sm border border-slate-100 dark:border-slate-800 hover:bg-primary-50 dark:bg-primary-950 px-4 py-1.5 rounded-xl transition-all font-bold text-[10px] uppercase tracking-widest active:scale-90 opacity-0 group-hover:opacity-100"
             onClick={() => onAdjust?.(entry)}
           >
             {t("common.adjust")}
-          </button>
+          </Button>
         </td>
       ) : null}
     </tr>

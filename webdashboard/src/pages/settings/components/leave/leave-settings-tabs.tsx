@@ -2,6 +2,7 @@ import { CalendarDays, ShieldCheck, UserPlus } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
+import Button from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 import type { TabType } from "../../hooks/use-leave-settings";
@@ -25,7 +26,7 @@ export function LeaveSettingsTabs({ activeTab, onTabChange }: LeaveSettingsTabsP
       {tabs.map((tab) => {
         const Icon = tab.icon;
         return (
-          <button
+          <Button
             className={cn(
               "flex items-center gap-3 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all duration-300",
               activeTab === tab.id
@@ -38,7 +39,7 @@ export function LeaveSettingsTabs({ activeTab, onTabChange }: LeaveSettingsTabsP
           >
             <Icon className="w-4 h-4" />
             {tab.label}
-          </button>
+          </Button>
         );
       })}
     </div>

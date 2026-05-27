@@ -2,6 +2,7 @@ import { Shield, Plus, Trash2, Clock, UserCheck } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import Button from "@/components/ui/button";
 import { Combobox } from "@/components/ui/combobox";
 import Modal from "@/components/ui/modal";
 import { Typography } from "@/components/ui/typography";
@@ -43,7 +44,7 @@ function ExtraRolesList({
                 <Clock className="text-primary-400" size={12} /> <span>{t("members.roles.expires_at").toUpperCase()}: {formatDateTime(extraRole.expires_at)}</span>
               </div>
             </div>
-            <button className="p-3 bg-white dark:bg-slate-900 text-slate-300 dark:text-slate-600 hover:text-rose-600 dark:text-rose-300 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0 active:scale-90" onClick={() => { handleRevoke(extraRole.id); }} type="button"><Trash2 size={18} /></button>
+            <Button className="p-3 bg-white dark:bg-slate-900 text-slate-300 dark:text-slate-600 hover:text-rose-600 dark:text-rose-300 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0 active:scale-90" onClick={() => { handleRevoke(extraRole.id); }} type="button"><Trash2 size={18} /></Button>
           </div>
         ))}
 
@@ -121,7 +122,7 @@ function AssignExtraRoleForm({
           <input className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-6 py-4 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-bold text-sm tracking-tight shadow-sm" id="expires-at-input" onChange={(e) => { setExpiresAt(e.target.value); }} required type="datetime-local" value={expiresAt} />
         </div>
         <div className="md:col-span-2 pt-2">
-          <button className="w-full bg-slate-900 text-white py-5 rounded-2xl font-bold text-xs uppercase tracking-[0.2em] hover:bg-primary-700 transition-all shadow-2xl shadow-slate-400 dark:shadow-black/40 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed" disabled={!newRoleId} type="submit">{t("members.roles.assign_btn").toUpperCase()}</button>
+          <Button className="w-full bg-slate-900 text-white py-5 rounded-2xl font-bold text-xs uppercase tracking-[0.2em] hover:bg-primary-700 transition-all shadow-2xl shadow-slate-400 dark:shadow-black/40 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed" disabled={!newRoleId} type="submit">{t("members.roles.assign_btn").toUpperCase()}</Button>
         </div>
       </form>
     </div>

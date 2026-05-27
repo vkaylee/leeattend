@@ -9,6 +9,7 @@ import {
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import Button from "@/components/ui/button";
 import { useToast } from '@/components/ui/toast';
 import { Typography } from "@/components/ui/typography";
 import { fetchOvertimePolicies, createOvertimePolicy, fetchOvertimePolicy } from '@/lib/api/payroll';
@@ -90,14 +91,14 @@ function OvertimePolicyForm({
         </div>
       </div>
       <div className='flex justify-end gap-3 mt-6'>
-        <button className='px-6 py-2 rounded-xl text-sm font-bold text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all' onClick={onCancel}>Cancel</button>
-        <button
+        <Button className='px-6 py-2 rounded-xl text-sm font-bold text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all' onClick={onCancel}>Cancel</Button>
+        <Button
           className='flex items-center gap-2 bg-primary-600 text-white px-8 py-2 rounded-xl text-sm font-bold hover:bg-primary-700 transition-all disabled:opacity-50'
           disabled={!name || isPending}
           onClick={() => { onSave({ name, description }); }}
         >
           {t('common.save')}
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -140,20 +141,20 @@ export default function OvertimePolicyManager({ wsId }: OvertimePolicyManagerPro
           <Typography className='text-sm text-slate-500 dark:text-slate-400 mt-1' variant="p">{t('payroll.overtime_policies_desc')}</Typography>
         </div>
         <div className='flex items-center gap-3'>
-          <button
+          <Button
             className='flex items-center gap-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 px-4 py-2 rounded-xl text-sm font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-all active:scale-95'
             onClick={() => { setIsAssignModalOpen(true); }}
           >
             <Calendar size={16} />
             {t('payroll.assign_policy')}
-          </button>
-          <button
+          </Button>
+          <Button
             className='flex items-center gap-2 bg-primary-600 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-primary-700 transition-all shadow-lg shadow-primary-100 active:scale-95'
             onClick={() => { setIsCreating(!isCreating); }}
           >
             <Plus size={16} />
             {t('common.create')}
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -175,7 +176,7 @@ export default function OvertimePolicyManager({ wsId }: OvertimePolicyManagerPro
           <div className='flex flex-col items-center justify-center py-12 bg-slate-50 dark:bg-slate-800 rounded-[2.5rem] border-2 border-dashed border-slate-200 dark:border-slate-700'>
              <AlertCircle className='text-slate-300 dark:text-slate-600 mb-4' size={48} />
              <Typography className='text-slate-500 dark:text-slate-400 font-medium' variant="p">{t('payroll.no_overtime_policies')}</Typography>
-             <button className='mt-4 text-primary-600 dark:text-primary-400 font-bold hover:underline' onClick={() => { setIsCreating(true); }}>{t('payroll.create_first_policy')}</button>
+             <Button className='mt-4 text-primary-600 dark:text-primary-400 font-bold hover:underline' onClick={() => { setIsCreating(true); }}>{t('payroll.create_first_policy')}</Button>
           </div>
         ) : null}
       </div>

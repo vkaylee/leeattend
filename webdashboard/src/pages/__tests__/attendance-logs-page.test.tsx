@@ -22,10 +22,8 @@ vi.mock("@tanstack/react-router", () => ({
     if (search && typeof search === 'object') {
       const params = new URLSearchParams();
       Object.entries(search).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          const stringValue = (value && typeof value === "object") ? JSON.stringify(value) : String(value as any);
-          params.append(key, stringValue);
-        }
+        const stringValue = (value && typeof value === "object") ? JSON.stringify(value) : String(value);
+        params.append(key, stringValue);
       });
       const qs = params.toString();
       if (qs) href += `?${qs}`;

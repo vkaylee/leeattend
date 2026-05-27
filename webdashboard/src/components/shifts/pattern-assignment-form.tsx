@@ -2,6 +2,7 @@ import { CalendarRange, Calendar, Save } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
+import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { Employee } from "@/lib/api";
 
@@ -44,7 +45,7 @@ function PatternSelector({
       </label>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {patterns?.map(pattern => (
-          <button
+          <Button
             className={`p-5 rounded-[28px] border-2 text-left transition-all relative overflow-hidden group ${
               selectedPatternId === pattern.id
                 ? 'border-primary-600 bg-primary-50 dark:bg-primary-950/50'
@@ -62,7 +63,7 @@ function PatternSelector({
             {selectedPatternId === pattern.id && (
               <div className="absolute top-4 right-4 w-3 h-3 bg-primary-600 rounded-full animate-pulse" />
             )}
-          </button>
+          </Button>
         ))}
       </div>
     </div>
@@ -122,7 +123,7 @@ export function PatternAssignmentForm({
               <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest flex items-center gap-2">
                 <Calendar size={12} /> {t("common.end_date")}
               </label>
-              <button
+              <Button
                 className={`text-[9px] font-bold px-3 py-1 rounded-full border transition-all uppercase tracking-tighter ${
                   isForever
                     ? 'bg-primary-600 text-white border-primary-600'
@@ -131,7 +132,7 @@ export function PatternAssignmentForm({
                 onClick={() => { setIsForever(!isForever); }}
               >
                 {isForever ? t("common.indefinite").toUpperCase() : t("common.definite").toUpperCase()}
-              </button>
+              </Button>
             </div>
             <input
               className={`w-full border rounded-2xl px-5 py-4 font-bold transition-all outline-none ${
@@ -146,13 +147,13 @@ export function PatternAssignmentForm({
             />
           </div>
         </div>
-        <button
+        <Button
           className="w-full bg-slate-900 text-white font-bold py-5 rounded-[28px] flex items-center justify-center gap-3 hover:bg-primary-700 transition-all active:scale-[0.98] disabled:opacity-50 shadow-2xl shadow-slate-200 dark:shadow-black/40 uppercase tracking-widest text-xs"
           disabled={isLoading}
           onClick={onAssign}
         >
           <Save size={18} /> {t("shifts.assign_btn")}
-        </button>
+        </Button>
       </div>
     </div>
   );

@@ -35,6 +35,7 @@ import {
 import React from "react";
 import { useTranslation } from "react-i18next";
 
+import Button from "@/components/ui/button";
 import { useMyPermissions } from "@/hooks/use-permissions";
 import { useProfile } from "@/hooks/use-profile";
 import { useWorkspace } from "@/hooks/use-workspace";
@@ -129,7 +130,7 @@ function SidebarSection({
   return (
     <div className="space-y-2">
       {!isCollapsed && (
-        <button
+        <Button
           className="flex w-full items-center justify-between px-4 py-3 min-h-[44px] text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-[0.25em] hover:text-primary-600 dark:hover:text-primary-400 transition-colors group"
           data-testid={item.testId}
           onClick={() => { toggleSection(item.section); }}
@@ -139,7 +140,7 @@ function SidebarSection({
             <span>{item.label}</span>
           </div>
           {openSections[item.section] ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
-        </button>
+        </Button>
       )}
       {(openSections[item.section] ?? isCollapsed) ? (
         <div className="space-y-1">
@@ -304,7 +305,7 @@ export default function Sidebar({ isOpen, onClose, openSections, toggleSection, 
           </div>
         ) : null}
 
-        <button 
+        <Button 
           className={cn(
             "lg:hidden p-3 min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 bg-slate-50 dark:bg-slate-800 rounded-xl transition-colors",
             workspace?.logo_url && !isCollapsed ? "absolute right-4 top-4" : ""
@@ -312,7 +313,7 @@ export default function Sidebar({ isOpen, onClose, openSections, toggleSection, 
           onClick={onClose}
         >
           <X className="h-5 w-5" />
-        </button>
+        </Button>
       </div>
       <div className="flex-1 overflow-y-auto custom-scrollbar px-4 py-6 space-y-8">
         {filteredMenuItems.map((item: MenuItem) => (

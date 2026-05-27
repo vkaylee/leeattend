@@ -2,6 +2,7 @@ import { Building2, User, ShieldCheck, Clock, Calendar } from 'lucide-react';
 import React from 'react';
 
 import { EmployeeSearch } from '@/components/common/employee-search';
+import Button from "@/components/ui/button";
 import { Combobox } from '@/components/ui/combobox';
 import { Department } from '@/lib/api/types';
 import { cn } from '@/lib/utils';
@@ -26,7 +27,7 @@ export function AssigneeTypeSelector({
           { id: 'department', label: t('common.department'), icon: <Building2 size={12}/> },
           { id: 'workspace', label: t('common.global'), icon: <ShieldCheck size={12}/> }
         ].map(opt => (
-          <button
+          <Button
             className={cn(
               'flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-bold transition-all',
               selectedType === opt.id ? 'bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm' : 'text-slate-500 dark:text-slate-400'
@@ -40,7 +41,7 @@ export function AssigneeTypeSelector({
             type='button'
           >
             {opt.icon} {opt.label}
-          </button>
+          </Button>
         ))}
       </div>
     </div>

@@ -3,6 +3,8 @@ import { User, X } from 'lucide-react';
 import React, { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import Button from "@/components/ui/button";
+
 import { useDebounce } from '../../hooks/use-debounce';
 import { searchEmployees } from '../../lib/api';
 import { Employee } from '../../lib/api/types';
@@ -64,13 +66,13 @@ function SelectedEmployeeChips({ onRemove, selectedIds, selectedMeta }: Selected
             key={id}
           >
             <span>{meta?.full_name ?? id}</span>
-            <button
+            <Button
               className='hover:text-rose-500 transition-colors'
               onClick={() => { onRemove(id); }}
               type='button'
             >
               <X size={14} />
-            </button>
+            </Button>
           </div>
         );
       })}

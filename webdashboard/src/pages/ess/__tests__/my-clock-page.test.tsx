@@ -3,6 +3,7 @@ import { render, screen, fireEvent, act, waitFor } from "@testing-library/react"
 
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
+import { createMockEmployee, createMockUseMyClockReturn, createMockUseMyProfile } from "@/__tests__/factories/test-factories";
 import Button from "@/components/ui/button";
 import * as toastHook from "@/components/ui/toast";
 import * as essHooks from "@/hooks/use-ess";
@@ -76,22 +77,22 @@ describe("MyClockPage", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(toastHook.useToast).mockReturnValue(mockToast as any);
+    vi.mocked(toastHook.useToast).mockReturnValue(mockToast as unknown as toastHook.ToastContextType);
     vi.mocked(api.getCurrentWorkspaceId).mockReturnValue("ws-123");
-    vi.mocked(reactQuery.useQuery).mockReturnValue({ data: { timezone: "UTC" } } as any);
+    vi.mocked(reactQuery.useQuery).mockReturnValue({ data: { timezone: "UTC" } } as unknown as ReturnType<typeof reactQuery.useQuery>);
   });
 
   it("renders loading state", () => {
-    vi.mocked(essHooks.useMyProfile).mockReturnValue({ isLoading: true } as any);
-    vi.mocked(essHooks.useMyClock).mockReturnValue({ isLoading: false } as any);
+    vi.mocked(essHooks.useMyProfile).mockReturnValue(createMockUseMyProfile({ isLoading: true }));
+    vi.mocked(essHooks.useMyClock).mockReturnValue(createMockUseMyClockReturn({ isLoading: false }));
 
     render(<MyClockPage />);
     expect(screen.getByTestId("my-clock-skeleton")).toBeInTheDocument();
   });
 
   it("renders empty state without profile", () => {
-    vi.mocked(essHooks.useMyProfile).mockReturnValue({ isLoading: false, employee: null } as any);
-    vi.mocked(essHooks.useMyClock).mockReturnValue({ isLoading: false } as any);
+    vi.mocked(essHooks.useMyProfile).mockReturnValue(createMockUseMyProfile({ isLoading: false, employee: undefined }));
+    vi.mocked(essHooks.useMyClock).mockReturnValue(createMockUseMyClockReturn({ isLoading: false }));
 
     render(<MyClockPage />);
     expect(screen.getByText("common.no_profile")).toBeInTheDocument();
@@ -99,17 +100,17 @@ describe("MyClockPage", () => {
 
   it("renders content and handles punch successfully", async () => {
     const mockPunch = vi.fn().mockResolvedValue(true);
-    vi.mocked(essHooks.useMyProfile).mockReturnValue({ 
+    vi.mocked(essHooks.useMyProfile).mockReturnValue(createMockUseMyProfile({ 
       isLoading: false, 
-      employee: { id: "emp-1", full_name: "John Doe" } 
-    } as any);
-    vi.mocked(essHooks.useMyClock).mockReturnValue({ 
+      employee: createMockEmployee({ id: "emp-1", full_name: "John Doe" }) 
+    }));
+    vi.mocked(essHooks.useMyClock).mockReturnValue(createMockUseMyClockReturn({ 
       isLoading: false,
       punch: mockPunch,
-      activeEntry: null,
+      activeEntry: undefined,
       entries: [],
       isPunching: false,
-    } as any);
+    }));
 
     render(<MyClockPage />);
     
@@ -119,20 +120,20 @@ describe("MyClockPage", () => {
       fireEvent.click(screen.getByTestId("punch-btn"));
     });
 
-    await waitFor(() => expect(mockPunch).toHaveBeenCalled());
+    await waitFor(() => { expect(mockPunch).toHaveBeenCalled(); });
     expect(mockToast.success).toHaveBeenCalledWith("Chấm công thành công");
   });
 
   it("handles punch error", async () => {
     const mockPunch = vi.fn().mockRejectedValue(new Error("Network Error"));
-    vi.mocked(essHooks.useMyProfile).mockReturnValue({ 
+    vi.mocked(essHooks.useMyProfile).mockReturnValue(createMockUseMyProfile({ 
       isLoading: false, 
-      employee: { id: "emp-1", full_name: "John Doe" } 
-    } as any);
-    vi.mocked(essHooks.useMyClock).mockReturnValue({ 
+      employee: createMockEmployee({ id: "emp-1", full_name: "John Doe" }) 
+    }));
+    vi.mocked(essHooks.useMyClock).mockReturnValue(createMockUseMyClockReturn({ 
       isLoading: false,
       punch: mockPunch,
-    } as any);
+    }));
 
     render(<MyClockPage />);
     
@@ -140,18 +141,18 @@ describe("MyClockPage", () => {
       fireEvent.click(screen.getByTestId("punch-btn"));
     });
 
-    await waitFor(() => expect(mockToast.error).toHaveBeenCalledWith("Network Error"));
+    await waitFor(() => { expect(mockToast.error).toHaveBeenCalledWith("Network Error"); });
   });
 
   it("handles adjustment request successfully", async () => {
-    const mockSubmit = vi.mocked(api.submitAttendanceAdjustment).mockResolvedValue({} as any);
-    vi.mocked(essHooks.useMyProfile).mockReturnValue({ 
+    const mockSubmit = vi.mocked(api.submitAttendanceAdjustment).mockResolvedValue(undefined);
+    vi.mocked(essHooks.useMyProfile).mockReturnValue(createMockUseMyProfile({ 
       isLoading: false, 
-      employee: { id: "emp-1", full_name: "John Doe" } 
-    } as any);
-    vi.mocked(essHooks.useMyClock).mockReturnValue({ 
+      employee: createMockEmployee({ id: "emp-1", full_name: "John Doe" }) 
+    }));
+    vi.mocked(essHooks.useMyClock).mockReturnValue(createMockUseMyClockReturn({ 
       isLoading: false,
-    } as any);
+    }));
 
     render(<MyClockPage />);
     
@@ -185,11 +186,11 @@ describe("MyClockPage", () => {
 
   it("handles adjustment request error", async () => {
     vi.mocked(api.submitAttendanceAdjustment).mockRejectedValue({ response: { data: { error: "Invalid time" } } });
-    vi.mocked(essHooks.useMyProfile).mockReturnValue({ 
+    vi.mocked(essHooks.useMyProfile).mockReturnValue(createMockUseMyProfile({ 
       isLoading: false, 
-      employee: { id: "emp-1" } 
-    } as any);
-    vi.mocked(essHooks.useMyClock).mockReturnValue({ isLoading: false } as any);
+      employee: createMockEmployee({ id: "emp-1" }) 
+    }));
+    vi.mocked(essHooks.useMyClock).mockReturnValue(createMockUseMyClockReturn({ isLoading: false }));
 
     render(<MyClockPage />);
     
@@ -201,6 +202,6 @@ describe("MyClockPage", () => {
       fireEvent.click(screen.getByTestId("submit-modal"));
     });
 
-    await waitFor(() => expect(mockToast.error).toHaveBeenCalledWith("Invalid time"));
+    await waitFor(() => { expect(mockToast.error).toHaveBeenCalledWith("Invalid time"); });
   });
 });

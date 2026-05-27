@@ -2,6 +2,8 @@ import { LayoutGrid, List, Zap, CalendarDays } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
+import Button from "@/components/ui/button";
+
 import { TabType, ViewMode } from "./hooks/use-shifts-types";
 
 interface ShiftsTabsProps {
@@ -17,7 +19,7 @@ export function ShiftsTabs({ activeTab, setActiveTab, viewMode, setViewMode }: S
   return (
     <div className="flex flex-wrap items-center justify-between gap-3">
       <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-700/50 p-1.5 rounded-[22px] w-fit border border-slate-200 dark:border-slate-700/50">
-        <button
+        <Button
           className={`flex items-center gap-2 px-6 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all ${
             activeTab === "weekly-roster"
               ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800"
@@ -29,8 +31,8 @@ export function ShiftsTabs({ activeTab, setActiveTab, viewMode, setViewMode }: S
           type="button"
         >
           <LayoutGrid size={14} /> {t("shifts.tabs.weekly_roster")}
-        </button>
-        <button
+        </Button>
+        <Button
           className={`flex items-center gap-2 px-6 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all ${
             activeTab === "assignments"
               ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800"
@@ -42,8 +44,8 @@ export function ShiftsTabs({ activeTab, setActiveTab, viewMode, setViewMode }: S
           type="button"
         >
           <Zap size={14} /> {t("shifts.tabs.fixed_assignments", "Patterns & Rules")}
-        </button>
-        <button
+        </Button>
+        <Button
           className={`flex items-center gap-2 px-6 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all ${
             activeTab === "directory"
               ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800"
@@ -55,12 +57,12 @@ export function ShiftsTabs({ activeTab, setActiveTab, viewMode, setViewMode }: S
           type="button"
         >
           <List size={14} /> {t("shifts.tabs.directory")}
-        </button>
+        </Button>
       </div>
 
       {activeTab === "weekly-roster" && !!viewMode && !!setViewMode && (
         <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-700/50 p-1.5 rounded-[22px] border border-slate-200 dark:border-slate-700/50">
-          <button
+          <Button
             className={`flex items-center gap-1.5 px-4 py-2 rounded-[18px] text-[10px] font-bold uppercase tracking-wider transition-all ${
               viewMode === "week"
                 ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800"
@@ -71,8 +73,8 @@ export function ShiftsTabs({ activeTab, setActiveTab, viewMode, setViewMode }: S
           >
             <LayoutGrid size={12} />
             <span>{t("shifts.monthly.view_week", "Tuần")}</span>
-          </button>
-          <button
+          </Button>
+          <Button
             className={`flex items-center gap-1.5 px-4 py-2 rounded-[18px] text-[10px] font-bold uppercase tracking-wider transition-all ${
               viewMode === "month"
                 ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800"
@@ -83,7 +85,7 @@ export function ShiftsTabs({ activeTab, setActiveTab, viewMode, setViewMode }: S
           >
             <CalendarDays size={12} />
             <span>{t("shifts.monthly.view_month", "Tháng")}</span>
-          </button>
+          </Button>
         </div>
       )}
     </div>

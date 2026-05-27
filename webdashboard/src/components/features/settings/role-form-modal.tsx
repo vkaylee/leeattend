@@ -90,7 +90,7 @@ export default function RoleFormModal({ isOpen, onClose, editingRole }: RoleForm
           <div aria-labelledby="role-color-label" className="flex flex-wrap gap-3" role="radiogroup">
             { }
             {AVAILABLE_COLORS.map(c => (
-              <button
+              <Button
                 className={cn(
                   "w-8 h-8 rounded-full flex items-center justify-center transition-all",
                   c.class,

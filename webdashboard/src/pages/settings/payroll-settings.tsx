@@ -8,6 +8,7 @@ import PayrollRulesManager from "@/components/payroll/payroll-rules-manager";
 import PayrollSettingsSection from "@/components/payroll/payroll-settings-section";
 import SalaryBaseGroupManager from "@/components/payroll/salary-base-group-manager";
 import SalaryComponentManager from "@/components/payroll/salary-component-manager";
+import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { getCurrentWorkspaceId } from "@/lib/api";
 import { cn } from "@/lib/utils";
@@ -92,7 +93,7 @@ export default function PayrollSettings() {
         <div className="w-full lg:w-64 shrink-0">
           <nav className="flex lg:flex-col gap-1.5 overflow-x-auto lg:overflow-visible pb-4 lg:pb-0 hide-scrollbar -mx-4 px-4 lg:mx-0 lg:px-0">
             {navItems.map((item) => (
-              <button
+              <Button
                 className={cn(
                   "flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all text-left whitespace-nowrap lg:whitespace-normal shrink-0 lg:shrink",
                   activeTab === item.id
@@ -105,7 +106,7 @@ export default function PayrollSettings() {
               >
                 <item.icon className={cn("shrink-0", activeTab === item.id ? "text-primary-600 dark:text-primary-400" : "text-slate-400")} size={18} />
                 <span>{item.label}</span>
-              </button>
+              </Button>
             ))}
           </nav>
         </div>

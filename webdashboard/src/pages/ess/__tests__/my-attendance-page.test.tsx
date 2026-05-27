@@ -2,8 +2,10 @@ import { render, screen, fireEvent, act } from "@testing-library/react";
 
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
+import { createMockUseMyAttendance, createMockUseMyAttendanceSummaries } from "@/__tests__/factories/test-factories";
 import Button from "@/components/ui/button";
 import * as hooks from "@/hooks/use-ess";
+import { AttendanceEntry, AttendanceDailySummary } from "@/lib/api/types";
 
 import MyAttendancePage from "../my-attendance-page";
 
@@ -68,38 +70,34 @@ describe("MyAttendancePage", () => {
   });
 
   it("renders loading state", () => {
-    vi.mocked(hooks.useMyAttendance).mockReturnValue({
+    vi.mocked(hooks.useMyAttendance).mockReturnValue(createMockUseMyAttendance({
       entries: [],
       isLoading: true,
       error: null,
-      mutate: vi.fn(),
-    } as any);
+    }));
 
-    vi.mocked(hooks.useMyAttendanceSummaries).mockReturnValue({
+    vi.mocked(hooks.useMyAttendanceSummaries).mockReturnValue(createMockUseMyAttendanceSummaries({
       summaries: [],
       isLoading: false,
       error: null,
-      mutate: vi.fn(),
-    } as any);
+    }));
 
     render(<MyAttendancePage />);
     expect(screen.getByText("common.loading")).toBeInTheDocument();
   });
 
   it("renders empty state", () => {
-    vi.mocked(hooks.useMyAttendance).mockReturnValue({
+    vi.mocked(hooks.useMyAttendance).mockReturnValue(createMockUseMyAttendance({
       entries: [],
       isLoading: false,
       error: null,
-      mutate: vi.fn(),
-    } as any);
+    }));
 
-    vi.mocked(hooks.useMyAttendanceSummaries).mockReturnValue({
+    vi.mocked(hooks.useMyAttendanceSummaries).mockReturnValue(createMockUseMyAttendanceSummaries({
       summaries: [],
       isLoading: false,
       error: null,
-      mutate: vi.fn(),
-    } as any);
+    }));
 
     render(<MyAttendancePage />);
     expect(screen.getByText("ess.attendance.no_data")).toBeInTheDocument();
@@ -108,19 +106,17 @@ describe("MyAttendancePage", () => {
   it("renders entries and handles claim dialog", () => {
     const mockEntries = [{ id: "1", date: "2026-05-01", status: "present" }];
     
-    vi.mocked(hooks.useMyAttendance).mockReturnValue({
-      entries: mockEntries,
+    vi.mocked(hooks.useMyAttendance).mockReturnValue(createMockUseMyAttendance({
+      entries: mockEntries as unknown as AttendanceEntry[],
       isLoading: false,
       error: null,
-      mutate: vi.fn(),
-    } as any);
+    }));
 
-    vi.mocked(hooks.useMyAttendanceSummaries).mockReturnValue({
-      summaries: [{ date: "2026-05-01", total_overtime_minutes: 60 }],
+    vi.mocked(hooks.useMyAttendanceSummaries).mockReturnValue(createMockUseMyAttendanceSummaries({
+      summaries: [{ date: "2026-05-01", total_overtime_minutes: 60 } as unknown as AttendanceDailySummary],
       isLoading: false,
       error: null,
-      mutate: vi.fn(),
-    } as any);
+    }));
 
     render(<MyAttendancePage />);
     
@@ -145,19 +141,17 @@ describe("MyAttendancePage", () => {
   });
 
   it("handles month navigation", () => {
-    vi.mocked(hooks.useMyAttendance).mockReturnValue({
+    vi.mocked(hooks.useMyAttendance).mockReturnValue(createMockUseMyAttendance({
       entries: [],
       isLoading: false,
       error: null,
-      mutate: vi.fn(),
-    } as any);
+    }));
 
-    vi.mocked(hooks.useMyAttendanceSummaries).mockReturnValue({
+    vi.mocked(hooks.useMyAttendanceSummaries).mockReturnValue(createMockUseMyAttendanceSummaries({
       summaries: [],
       isLoading: false,
       error: null,
-      mutate: vi.fn(),
-    } as any);
+    }));
 
     render(<MyAttendancePage />);
 

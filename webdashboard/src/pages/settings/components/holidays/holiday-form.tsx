@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 
 import type { Holiday, LeaveType } from "@/lib/api/types";
 
+import Button from "@/components/ui/button";
 import { Combobox } from "@/components/ui/combobox";
 import { Typography } from "@/components/ui/typography";
 
@@ -233,19 +234,19 @@ export function HolidayForm({ editingHoliday, formActions, formState, leaveTypes
                 <HolidayWorkPolicySection formActions={formActions} formState={formState} />
 
                 <div className="flex gap-2 justify-end">
-                    <button
+                    <Button
                         className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-sm font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"
                         onClick={formActions.resetForm}
                         type="button"
                     >
                         {t("common.cancel")}
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                         className="px-4 py-2 bg-primary-600 text-white rounded-xl font-bold text-sm hover:bg-primary-700 transition-colors"
                         type="submit"
                     >
                         {editingHoliday ? t("common.update") : t("common.create")}
-                    </button>
+                    </Button>
                 </div>
             </form>
         </div>

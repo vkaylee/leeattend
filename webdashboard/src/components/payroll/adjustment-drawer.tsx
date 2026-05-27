@@ -3,6 +3,7 @@ import { ArrowRight, MessageSquare, Calendar, CheckCircle2 } from "lucide-react"
 import React from "react";
 import { useTranslation } from "react-i18next";
 
+import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { fetchWorkspaceAttendanceAdjustments, approveAttendanceAdjustment, getCurrentWorkspaceId } from "@/lib/api";
@@ -101,8 +102,8 @@ export default function AdjustmentDrawer({
               )}
 
               <div className="grid grid-cols-2 gap-4">
-                <button className="py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest text-rose-600 dark:text-rose-300 bg-rose-50 dark:bg-rose-950 border border-rose-100 dark:border-rose-800 hover:bg-rose-100 dark:bg-rose-900 transition-all active:scale-95 shadow-sm" data-testid="reject-adjustment-btn" disabled={resolveMutation.isPending} onClick={() => { resolveMutation.mutate({ id: adj.id, status: "rejected" }); }}>Reject</button>
-                <button className="py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest text-emerald-600 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950 border border-emerald-100 dark:border-emerald-800 hover:bg-emerald-100 dark:bg-emerald-900 transition-all active:scale-95 shadow-sm" data-testid="approve-adjustment-btn" disabled={resolveMutation.isPending} onClick={() => { resolveMutation.mutate({ id: adj.id, status: "approved" }); }}>Approve</button>
+                <Button className="py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest text-rose-600 dark:text-rose-300 bg-rose-50 dark:bg-rose-950 border border-rose-100 dark:border-rose-800 hover:bg-rose-100 dark:bg-rose-900 transition-all active:scale-95 shadow-sm" data-testid="reject-adjustment-btn" disabled={resolveMutation.isPending} onClick={() => { resolveMutation.mutate({ id: adj.id, status: "rejected" }); }}>Reject</Button>
+                <Button className="py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest text-emerald-600 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950 border border-emerald-100 dark:border-emerald-800 hover:bg-emerald-100 dark:bg-emerald-900 transition-all active:scale-95 shadow-sm" data-testid="approve-adjustment-btn" disabled={resolveMutation.isPending} onClick={() => { resolveMutation.mutate({ id: adj.id, status: "approved" }); }}>Approve</Button>
               </div>
             </div>
           ))

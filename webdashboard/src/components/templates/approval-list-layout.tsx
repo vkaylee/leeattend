@@ -2,6 +2,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 
 import { ErrorBoundary } from "@/components/common/error-boundary";
+import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
 
@@ -41,7 +42,7 @@ function ApprovalListTabs({ activeTab, onTabChange, tabs }: { activeTab: string;
         }
 
         return (
-          <button
+          <Button
             className={cn(
               "flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all",
               activeClasses
@@ -50,7 +51,7 @@ function ApprovalListTabs({ activeTab, onTabChange, tabs }: { activeTab: string;
             onClick={() => { onTabChange(tab.id); }}
           >
             {tab.icon} {tab.label}
-          </button>
+          </Button>
         );
       })}
     </div>

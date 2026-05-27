@@ -3,6 +3,7 @@ import { CalendarRange, Plus } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
+import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { ROUTES } from "@/lib/routes";
 
@@ -36,7 +37,7 @@ export function ShiftsHeader({ onCreateClick }: ShiftsHeaderProps) {
             {t("patterns.manage_btn")}
           </span>
         </Link>
-        <button
+        <Button
           className="bg-primary-600 hover:bg-primary-700 text-white font-bold px-6 py-2.5 rounded-2xl flex items-center gap-2 shadow-lg shadow-primary-100 transition-all"
           onClick={() => {
             onCreateClick();
@@ -47,7 +48,7 @@ export function ShiftsHeader({ onCreateClick }: ShiftsHeaderProps) {
           <span className="text-xs uppercase tracking-widest">
             {t("shifts.create_btn")}
           </span>
-        </button>
+        </Button>
       </div>
     </div>
   );

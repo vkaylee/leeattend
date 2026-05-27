@@ -3,6 +3,7 @@ import React from "react";
 
 import { TFunction } from "i18next";
 
+import Button from "@/components/ui/button";
 import StatusBadge from "@/components/ui/status-badge";
 import { Typography } from "@/components/ui/typography";
 
@@ -96,7 +97,7 @@ export function ShiftSwapListItem({
       <td className="px-10 py-6 text-right">
         {swap.status === "pending_admin" && (
           <div className="flex items-center justify-end gap-3 opacity-0 group-hover:opacity-100 transition-all duration-300">
-            <button
+            <Button
               className="p-3 bg-emerald-600 text-white hover:bg-emerald-700 rounded-xl shadow-lg shadow-emerald-100 transition-all active:scale-90"
               onClick={() => {
                 onApprove(swap.id);
@@ -105,8 +106,8 @@ export function ShiftSwapListItem({
               type="button"
             >
               <Check size={18} />
-            </button>
-            <button
+            </Button>
+            <Button
               className="p-3 bg-white dark:bg-slate-900 text-rose-600 dark:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-950 rounded-xl shadow-md border border-rose-100 dark:border-rose-800 transition-all active:scale-90"
               onClick={() => {
                 onReject(swap.id);
@@ -115,7 +116,7 @@ export function ShiftSwapListItem({
               type="button"
             >
               <X size={18} />
-            </button>
+            </Button>
           </div>
         )}
       </td>

@@ -45,6 +45,7 @@ interface AgentHeaderProps {
   onToggleTrust: () => void;
 }
 
+// eslint-disable-next-line max-lines-per-function
 function AgentHeader({
   agent,
   deviceCount,

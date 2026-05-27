@@ -5,6 +5,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { TimeEntry } from "@/lib/api";
 
+import Button from "@/components/ui/button";
+
 import { PunchCard } from "../punch-card";
 
 const mockTranslation = {
@@ -35,9 +37,9 @@ vi.mock("@/hooks/use-datetime", () => ({
 // Mock the HoldToPunchButton since we test it separately and we just want to test if it calls the right props here
 vi.mock("../hold-to-punch-button", () => ({
   HoldToPunchButton: ({ onPunch, isPunching, label }: { isPunching: boolean; label: string; onPunch: () => void; }) => (
-    <button disabled={isPunching} onClick={onPunch}>
+    <Button disabled={isPunching} onClick={onPunch}>
       {label}
-    </button>
+    </Button>
   ),
 }));
 
