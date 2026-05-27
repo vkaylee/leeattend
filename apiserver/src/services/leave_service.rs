@@ -678,6 +678,21 @@ mod tests {
     }
     #[async_trait]
     impl crate::repositories::EmployeeRepository for MockEmployeeRepo {
+        async fn get_employee_timezone_fallback(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _employee_id: Uuid,
+        ) -> Result<chrono_tz::Tz, AppError> {
+            Ok(chrono_tz::UTC)
+        }
+
+        async fn get_headquarters_location_id(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+        ) -> Result<Option<Uuid>, AppError> {
+            Ok(None)
+        }
+
         async fn get_employees_by_ids(
             &self,
             _ids: &[uuid::Uuid],
@@ -1216,6 +1231,7 @@ mod tests {
             department_name: None,
             created_at: Utc::now(),
             updated_at: Utc::now(),
+            primary_location_id: uuid::Uuid::new_v4(),
         }
     }
 

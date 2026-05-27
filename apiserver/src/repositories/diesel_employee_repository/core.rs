@@ -469,6 +469,7 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
             hire_date: req.hire_date,
             termination_date: req.termination_date.map(Some),
             updated_at: Some(chrono::Utc::now()),
+            primary_location_id: req.primary_location_id,
         };
 
         let result: Option<EmployeeEntity> = diesel::update(employees::table)
@@ -768,4 +769,70 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
     }
 
     // --- ESS (Employee Self Service) ---
+
+    async fn get_employee_timezone_fallback(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        employee_id: Uuid,
+    ) -> Result<chrono_tz::Tz, AppError> {
+        let workspace_id = auth_token.workspace_id();
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&workspace_id)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
+
+        #[derive(Debug, diesel::QueryableByName)]
+        struct TzRow {
+            #[diesel(sql_type = diesel::sql_types::Text)]
+            timezone: String,
+        }
+
+        let query = r#"
+            SELECT wl.timezone as timezone
+            FROM employees e
+            JOIN work_locations wl ON wl.id = e.primary_location_id
+            WHERE e.id = $1 AND e.workspace_id = $2
+        "#;
+
+        let row: TzRow = diesel::sql_query(query)
+            .bind::<diesel::sql_types::Uuid, _>(employee_id)
+            .bind::<diesel::sql_types::Uuid, _>(workspace_id)
+            .get_result(&mut *conn)
+            .await
+            .map_err(|e| match e {
+                diesel::result::Error::NotFound => AppError::NotFound("Employee not found".into()),
+                _ => AppError::Internal(format!("db: {e}")),
+            })?;
+
+        Ok(crate::utils::tz::parse_workspace_tz(&row.timezone))
+    }
+
+    async fn get_headquarters_location_id(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+    ) -> Result<Option<Uuid>, AppError> {
+        let workspace_id = auth_token.workspace_id();
+        use crate::schema::work_locations;
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&workspace_id)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
+
+        let hq_id: Option<Uuid> = work_locations::table
+            .filter(work_locations::workspace_id.eq(workspace_id))
+            .filter(work_locations::is_headquarters.eq(true))
+            .select(work_locations::id)
+            .first(&mut *conn)
+            .await
+            .optional()
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        Ok(hq_id)
+    }
 }

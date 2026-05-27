@@ -14,7 +14,8 @@ use crate::models::{
 };
 use crate::repositories::attendance_adjustment_repository::AttendanceAdjustmentRepository;
 use crate::repositories::import_job_repository::ImportJobRepository;
-use crate::repositories::{EmployeeRepository, TimeEntryRepository};
+use crate::repositories::employee::EmployeeRepository;
+use crate::repositories::TimeEntryRepository;
 use crate::services::attendance_adjustment_service::AttendanceAdjustmentService;
 use crate::services::import_messages::{fmt_msg, AttendanceImportMessages};
 use std::collections::HashMap;
@@ -218,6 +219,11 @@ impl ImportStrategy for EmployeeImportStrategy {
             }
         }
 
+        let hq_id = match EmployeeRepository::get_headquarters_location_id(&*self.employee_repo, &auth_token).await {
+            Ok(Some(id)) => id,
+            _ => return Err(AppError::Internal("Workspace headquarters location not found".into())),
+        };
+
         let mut new_emps = Vec::new();
         let mut unique_emp_ids = std::collections::HashSet::new();
         for row in rows {
@@ -238,6 +244,7 @@ impl ImportStrategy for EmployeeImportStrategy {
                     created_at: Utc::now(),
                     updated_at: Utc::now(),
                     department_name: None,
+                    primary_location_id: hq_id,
                 });
                 self.emp_cache.insert(key.clone(), emp_id);
                 self.newly_added_emps.insert(key);

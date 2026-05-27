@@ -40,6 +40,8 @@ pub struct EmployeeRow {
     pub updated_at: chrono::DateTime<chrono::Utc>,
     #[diesel(sql_type = Nullable<Text>)]
     pub department_name: Option<String>,
+    #[diesel(sql_type = UuidType)]
+    pub primary_location_id: Uuid,
 }
 
 impl From<EmployeeRow> for Employee {
@@ -58,6 +60,7 @@ impl From<EmployeeRow> for Employee {
             created_at: row.created_at,
             updated_at: row.updated_at,
             department_name: row.department_name,
+            primary_location_id: row.primary_location_id,
         }
     }
 }
@@ -78,6 +81,7 @@ pub struct EmployeeEntity {
     pub hire_date: NaiveDate,
     pub termination_date: Option<NaiveDate>,
     pub original_hire_date: NaiveDate,
+    pub primary_location_id: Uuid,
 }
 
 impl From<Employee> for EmployeeEntity {
@@ -96,6 +100,7 @@ impl From<Employee> for EmployeeEntity {
             hire_date: val.hire_date,
             termination_date: val.termination_date,
             original_hire_date: val.original_hire_date,
+            primary_location_id: val.primary_location_id,
         }
     }
 }
@@ -116,6 +121,7 @@ impl From<EmployeeEntity> for Employee {
             created_at: val.created_at.unwrap_or_else(Utc::now),
             updated_at: val.updated_at.unwrap_or_else(Utc::now),
             department_name: None,
+            primary_location_id: val.primary_location_id,
         }
     }
 }
@@ -131,6 +137,7 @@ pub struct UpdateDieselEmployee {
     pub hire_date: Option<NaiveDate>,
     pub termination_date: Option<Option<NaiveDate>>,
     pub updated_at: Option<DateTime<Utc>>,
+    pub primary_location_id: Option<Uuid>,
 }
 
 use crate::models::{RecruitmentSource, RecruitmentSourceType};

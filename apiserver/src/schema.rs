@@ -472,6 +472,7 @@ diesel::table! {
         hire_date -> Date,
         termination_date -> Nullable<Date>,
         original_hire_date -> Date,
+        primary_location_id -> Uuid,
     }
 }
 
@@ -1201,6 +1202,23 @@ diesel::table! {
     }
 }
 
+diesel::table! {
+    work_locations (id) {
+        id -> Uuid,
+        workspace_id -> Uuid,
+        #[max_length = 255]
+        name -> Varchar,
+        address -> Nullable<Text>,
+        #[max_length = 50]
+        timezone -> Varchar,
+        is_headquarters -> Bool,
+        #[max_length = 20]
+        status -> Varchar,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
 diesel::joinable!(assignment_rules -> working_patterns (pattern_id));
 diesel::joinable!(attendance_adjustment_requests -> employees (employee_id));
 diesel::joinable!(attendance_adjustment_requests -> time_entries (time_entry_id));
@@ -1276,6 +1294,7 @@ diesel::joinable!(workspace_members -> users (user_id));
 diesel::joinable!(workspace_members -> workspace_roles (role_id));
 diesel::joinable!(workspace_members -> workspaces (workspace_id));
 diesel::joinable!(workspace_role_permissions -> workspace_roles (role_id));
+diesel::joinable!(employees -> work_locations (primary_location_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
     audit_logs,
@@ -1353,5 +1372,15 @@ diesel::allow_tables_to_appear_in_same_query!(
     workspace_members,
     workspace_role_permissions,
     workspace_roles,
+    workspaces,
+);
+
+diesel::allow_tables_to_appear_in_same_query!(
+    work_locations,
+    employees,
+);
+
+diesel::allow_tables_to_appear_in_same_query!(
+    work_locations,
     workspaces,
 );

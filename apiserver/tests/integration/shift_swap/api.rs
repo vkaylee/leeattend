@@ -577,15 +577,29 @@ async fn test_same_shift_swap_rejected() {
     let s = setup().await;
     let client = reqwest::Client::new();
 
-    // Create employee C with the SAME shift as employee A (Morning) via direct SQL
+    let hq_loc_id = {
+        let mut conn = s._db.diesel_pools.tenants_tx.get_connection(&s.workspace_id).await.unwrap();
+        use apiserver::schema::work_locations::dsl::*;
+        use diesel::prelude::*;
+        use diesel_async::RunQueryDsl;
+        work_locations
+            .filter(workspace_id.eq(s.workspace_id))
+            .filter(is_headquarters.eq(true))
+            .select(id)
+            .first::<uuid::Uuid>(&mut *conn)
+            .await
+            .unwrap()
+    };
+
     let emp_c = Uuid::new_v4();
     crate::test_execute!(
         &s._db.diesel_pools.api,
-        "INSERT INTO employees (id, workspace_id, full_name, employee_id_number, is_active, original_hire_date, hire_date, created_at, updated_at) VALUES ($1, $2, $3, $4, true, CURRENT_DATE, CURRENT_DATE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
+        "INSERT INTO employees (id, workspace_id, full_name, employee_id_number, is_active, original_hire_date, hire_date, primary_location_id, created_at, updated_at) VALUES ($1, $2, $3, $4, true, CURRENT_DATE, CURRENT_DATE, $5, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
         diesel::sql_types::Uuid, emp_c,
         diesel::sql_types::Uuid, s.workspace_id,
         diesel::sql_types::Text, "Employee C",
-        diesel::sql_types::Text, "EMP-C"
+        diesel::sql_types::Text, "EMP-C",
+        diesel::sql_types::Uuid, hq_loc_id
     );
 
     // Assign Employee C → Morning shift (same as A)

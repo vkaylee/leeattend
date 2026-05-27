@@ -135,6 +135,7 @@ impl EmployeeService {
             created_at: Utc::now(),
             updated_at: Utc::now(),
             department_name: None,
+            primary_location_id: req.primary_location_id,
         };
 
         // Use repository to create employee and set recruitment source transactionally
@@ -441,6 +442,7 @@ mod tests {
             created_at: Utc::now(),
             updated_at: Utc::now(),
             department_name: None,
+            primary_location_id: Uuid::new_v4(),
         }
     }
 
@@ -503,6 +505,21 @@ mod tests {
 
     #[async_trait]
     impl EmployeeRepository for MockEmployeeRepo {
+        async fn get_employee_timezone_fallback(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _employee_id: Uuid,
+        ) -> Result<chrono_tz::Tz, AppError> {
+            Ok(chrono_tz::UTC)
+        }
+
+        async fn get_headquarters_location_id(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+        ) -> Result<Option<Uuid>, AppError> {
+            Ok(None)
+        }
+
         async fn get_employees_by_ids(
             &self,
             _ids: &[uuid::Uuid],
@@ -1738,6 +1755,7 @@ mod tests {
             is_active: None,
             max_concurrent_workers: None,
             recruitment_source_id: None,
+            primary_location_id: None,
         };
         let result = svc
             .update_employee(
@@ -1767,6 +1785,7 @@ mod tests {
             is_active: None,
             max_concurrent_workers: None,
             recruitment_source_id: None, // No source ID, no id_number update
+            primary_location_id: None,
         };
         let result = svc
             .update_employee(

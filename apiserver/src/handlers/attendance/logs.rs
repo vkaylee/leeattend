@@ -129,17 +129,11 @@ pub async fn force_reprocess_attendance(
         )));
     }
 
-    let workspace = state
-        .core
-        .workspace_repo
-        .get_workspace_by_id(ctx.workspace_id)
-        .await?
-        .ok_or_else(|| AppError::NotFound("Workspace not found".to_string()))?;
-
-    let tz: chrono_tz::Tz = workspace
-        .timezone
-        .parse()
-        .map_err(|_e| AppError::from("Invalid timezone configuration"))?;
+    let tz: chrono_tz::Tz = state
+        .employees
+        .repo
+        .get_employee_timezone_fallback(&ctx.auth_token, employee_id)
+        .await?;
 
     let mut curr_date = query.start_date;
     while curr_date <= query.end_date {

@@ -22,6 +22,21 @@ async fn test_create_employee_id_normalization() {
     let ws_id: Uuid = factory.workspace().create_with_owner(user_id).await;
     let token = factory.auth().create_token(user_id);
 
+    let pool = factory.diesel_pools.clone();
+    let hq_loc_id = {
+        let mut conn = pool.tenants_tx.get_connection(&ws_id).await.unwrap();
+        use apiserver::schema::work_locations::dsl::*;
+        use diesel::prelude::*;
+        use diesel_async::RunQueryDsl;
+        work_locations
+            .filter(workspace_id.eq(ws_id))
+            .filter(is_headquarters.eq(true))
+            .select(id)
+            .first::<uuid::Uuid>(&mut *conn)
+            .await
+            .unwrap()
+    };
+
     // Create employee with leading zeros "00123"
     let req_body = CreateEmployeeRequest {
         user_id: None,
@@ -30,6 +45,7 @@ async fn test_create_employee_id_normalization() {
         hire_date: chrono::Utc::now().date_naive(),
         tags: None,
         recruitment_source_id: None,
+        primary_location_id: hq_loc_id,
     };
 
     let response = app
@@ -85,6 +101,21 @@ async fn test_update_employee_id_normalization() {
         .create()
         .await;
 
+    let pool = factory.diesel_pools.clone();
+    let hq_loc_id = {
+        let mut conn = pool.tenants_tx.get_connection(&ws_id).await.unwrap();
+        use apiserver::schema::work_locations::dsl::*;
+        use diesel::prelude::*;
+        use diesel_async::RunQueryDsl;
+        work_locations
+            .filter(workspace_id.eq(ws_id))
+            .filter(is_headquarters.eq(true))
+            .select(id)
+            .first::<uuid::Uuid>(&mut *conn)
+            .await
+            .unwrap()
+    };
+
     // Update employee ID to "00200"
     let req_body = UpdateEmployeeRequest {
         user_id: None,
@@ -96,6 +127,7 @@ async fn test_update_employee_id_normalization() {
         is_active: None,
         max_concurrent_workers: None,
         recruitment_source_id: None,
+        primary_location_id: Some(hq_loc_id),
     };
 
     let response = app
@@ -151,6 +183,21 @@ async fn test_employee_id_uniqueness_on_normalized_values() {
         .create()
         .await;
 
+    let pool = factory.diesel_pools.clone();
+    let hq_loc_id = {
+        let mut conn = pool.tenants_tx.get_connection(&ws_id).await.unwrap();
+        use apiserver::schema::work_locations::dsl::*;
+        use diesel::prelude::*;
+        use diesel_async::RunQueryDsl;
+        work_locations
+            .filter(workspace_id.eq(ws_id))
+            .filter(is_headquarters.eq(true))
+            .select(id)
+            .first::<uuid::Uuid>(&mut *conn)
+            .await
+            .unwrap()
+    };
+
     // Try to create second employee with "00555" (should conflict after normalization)
     let req_body = CreateEmployeeRequest {
         user_id: None,
@@ -159,6 +206,7 @@ async fn test_employee_id_uniqueness_on_normalized_values() {
         hire_date: chrono::Utc::now().date_naive(),
         tags: None,
         recruitment_source_id: None,
+        primary_location_id: hq_loc_id,
     };
 
     let response = app

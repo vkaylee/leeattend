@@ -534,3 +534,100 @@ async fn test_recruitment_source_breakdown_direct() {
     assert_eq!(breakdown[0].source_name, "Top Recruiting");
     assert_eq!(breakdown[0].count, 1);
 }
+
+// ── Timezone Fallback ───────────────────────────────────────────────
+
+#[tokio::test]
+async fn test_get_employee_timezone_fallback() {
+    let (test_db, factory) = setup_db().await;
+
+    let user_id = factory.user().create().await;
+    // Create workspace (creates HQ location by default)
+    let ws_id = factory.workspace().create_with_owner(user_id).await;
+    
+    let repo = DieselEmployeeRepository::new(test_db.diesel_pools.clone());
+
+    // 1. Employee with custom location and explicit timezone
+    use apiserver::schema::work_locations;
+    use diesel::prelude::*;
+    use diesel_async::RunQueryDsl;
+
+    #[derive(Insertable)]
+    #[diesel(table_name = work_locations)]
+    struct NewLoc {
+        id: Uuid,
+        workspace_id: Uuid,
+        name: String,
+        timezone: Option<String>,
+        is_headquarters: bool,
+    }
+
+    let mut tenant_conn = test_db.diesel_pools.tenants_tx.get_connection(&ws_id).await.unwrap();
+    let custom_loc_id = Uuid::new_v4();
+    
+    diesel::insert_into(work_locations::table)
+        .values(&NewLoc {
+            id: custom_loc_id,
+            workspace_id: ws_id,
+            name: "Tokyo Branch".to_string(),
+            timezone: Some("Asia/Tokyo".to_string()),
+            is_headquarters: false,
+        })
+        .execute(&mut *tenant_conn)
+        .await
+        .unwrap();
+
+    let emp_id = factory
+        .employee()
+        .with_workspace(ws_id)
+        .create()
+        .await;
+
+    // Update employee to use custom location
+    use apiserver::schema::employees;
+    diesel::update(employees::table.find(emp_id))
+        .set(employees::primary_location_id.eq(custom_loc_id))
+        .execute(&mut *tenant_conn)
+        .await
+        .unwrap();
+
+    // Test: returns Asia/Tokyo
+    let tz = repo
+        .get_employee_timezone_fallback(
+            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
+            emp_id,
+        )
+        .await
+        .unwrap();
+    assert_eq!(tz.name(), "Asia/Tokyo");
+
+    // 2. Employee with location that relies on default timezone
+    let default_tz_loc_id = Uuid::new_v4();
+    diesel::insert_into(work_locations::table)
+        .values(&NewLoc {
+            id: default_tz_loc_id,
+            workspace_id: ws_id,
+            name: "Unknown Branch".to_string(),
+            timezone: None, // Triggers PostgreSQL DEFAULT 'UTC'
+            is_headquarters: false,
+        })
+        .execute(&mut *tenant_conn)
+        .await
+        .unwrap();
+
+    diesel::update(employees::table.find(emp_id))
+        .set(employees::primary_location_id.eq(default_tz_loc_id))
+        .execute(&mut *tenant_conn)
+        .await
+        .unwrap();
+
+    // Test: returns 'UTC' because the location's timezone defaults to 'UTC'
+    let tz2 = repo
+        .get_employee_timezone_fallback(
+            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
+            emp_id,
+        )
+        .await
+        .unwrap();
+    assert_eq!(tz2.name(), "UTC");
+}

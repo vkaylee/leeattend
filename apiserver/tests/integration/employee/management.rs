@@ -18,11 +18,27 @@ async fn test_employee_crud_lifecycle_smoke() {
     let user_id: Uuid = factory.user().create().await;
     let ws_id: Uuid = factory.workspace().create_with_owner(user_id).await;
 
+    let pool = factory.diesel_pools.clone();
+    let hq_loc_id = {
+        let mut conn = pool.tenants_tx.get_connection(&ws_id).await.unwrap();
+        use apiserver::schema::work_locations::dsl::*;
+        use diesel::prelude::*;
+        use diesel_async::RunQueryDsl;
+        work_locations
+            .filter(workspace_id.eq(ws_id))
+            .filter(is_headquarters.eq(true))
+            .select(id)
+            .first::<uuid::Uuid>(&mut *conn)
+            .await
+            .unwrap()
+    };
+
     // 1. Create Employee
     let create_req = serde_json::json!({
         "full_name": "Test Employee",
         "employee_id_number": "EMP001",
-        "hire_date": "2026-01-01"
+        "hire_date": "2026-01-01",
+        "primary_location_id": hq_loc_id
     });
 
     let response = app

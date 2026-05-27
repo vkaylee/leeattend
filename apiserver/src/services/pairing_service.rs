@@ -76,14 +76,12 @@ impl PairingService {
             return Ok(());
         }
 
-        // 2. Fetch Workspace Config
-        let workspace = self
-            .workspace_repo
-            .get_workspace_by_id(log.workspace_id)
-            .await?
-            .ok_or_else(|| AppError::NotFound("Workspace not found".into()))?;
-        let timezone_str = workspace.timezone;
-        let tz: Tz = crate::utils::tz::parse_workspace_tz(&timezone_str);
+        // 2. Fetch Employee Timezone Fallback
+        let auth_token = crate::diesel_pool::TenantAuthToken::system_override(log.workspace_id);
+        let tz: Tz = self
+            .employee_repo
+            .get_employee_timezone_fallback(&auth_token, log.employee_id)
+            .await?;
 
         // 3. Determine Local Date
         let local_dt = log.punch_time.with_timezone(&tz);

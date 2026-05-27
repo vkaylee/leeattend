@@ -216,7 +216,7 @@ impl WorkspaceBuilder {
         &self.diesel_pools.api,
         "INSERT INTO workspaces (name, timezone) VALUES ($1, $2) RETURNING id",
         diesel::sql_types::Text, self.name,
-        diesel::sql_types::Text, self.timezone
+        diesel::sql_types::Text, self.timezone.clone()
     );
 
             // Seed default leave types for tests
@@ -246,6 +246,15 @@ impl WorkspaceBuilder {
         "INSERT INTO attendance_policy_versions (policy_id, rules, valid_from) VALUES ($1, $2, '2000-01-01 00:00:00Z')",
         diesel::sql_types::Uuid, policy_id,
         diesel::sql_types::Jsonb, rules_json
+    );
+
+            // Seed default work location
+            crate::test_execute!(
+        &self.diesel_pools.api,
+        "INSERT INTO work_locations (id, workspace_id, name, timezone, is_headquarters, status) VALUES ($1, $2, 'Headquarters', $3, true, 'active')",
+        diesel::sql_types::Uuid, Uuid::new_v4(),
+        diesel::sql_types::Uuid, ws_id,
+        diesel::sql_types::Text, self.timezone.clone()
     );
 
             ws_id
@@ -370,15 +379,23 @@ impl EmployeeBuilder {
     pub async fn create(self) -> Uuid {
         tokio::time::timeout(std::time::Duration::from_secs(5), async {
             let normalized_id = apiserver::utils::normalize_employee_id(&self.employee_id_number);
+            let workspace_id = self.workspace_id.expect("Workspace ID is required for Employee");
+            let location_id: Uuid = crate::test_query_scalar_uuid!(
+                &self.diesel_pools.api,
+                "SELECT id FROM work_locations WHERE workspace_id = $1 AND is_headquarters = true LIMIT 1",
+                diesel::sql_types::Uuid, workspace_id
+            );
+
             crate::test_query_scalar_uuid!(
                 &self.diesel_pools.api,
-                "INSERT INTO employees (workspace_id, user_id, full_name, employee_id_number, hire_date, original_hire_date) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id",
-                diesel::sql_types::Uuid, self.workspace_id.expect("Workspace ID is required for Employee"),
+                "INSERT INTO employees (workspace_id, user_id, full_name, employee_id_number, hire_date, original_hire_date, primary_location_id) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id",
+                diesel::sql_types::Uuid, workspace_id,
                 diesel::sql_types::Nullable<diesel::sql_types::Uuid>, self.user_id,
                 diesel::sql_types::Text, self.full_name,
                 diesel::sql_types::Text, normalized_id,
                 diesel::sql_types::Date, self.hire_date,
-                diesel::sql_types::Date, self.hire_date
+                diesel::sql_types::Date, self.hire_date,
+                diesel::sql_types::Uuid, location_id
             )
         }).await.expect("Employee creation timed out")
     }

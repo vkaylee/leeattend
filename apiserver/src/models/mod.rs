@@ -31,7 +31,7 @@ pub mod shift_swap;
 pub mod system_db_cluster;
 pub mod time_tracking;
 pub mod workspace;
-
+pub mod work_location;
 // Re-export everything to maintain backward compatibility with all consumers
 pub use agent::*;
 pub use attendance::*;
@@ -57,3 +57,4 @@ pub use shift::*;
 pub use shift_swap::*;
 pub use time_tracking::*;
 pub use workspace::*;
+pub use work_location::*;

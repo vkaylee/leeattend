@@ -131,6 +131,7 @@ pub struct Employee {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub department_name: Option<String>,
+    pub primary_location_id: Uuid,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -238,6 +239,7 @@ pub struct CreateEmployeeRequest {
     pub hire_date: NaiveDate,
     pub tags: Option<Vec<String>>,
     pub recruitment_source_id: Option<Uuid>,
+    pub primary_location_id: Uuid,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -247,6 +249,7 @@ pub struct UpdateEmployeeRequest {
     pub employee_id_number: Option<SanitizedEmployeeId>,
     pub hire_date: Option<NaiveDate>,
     pub termination_date: Option<NaiveDate>,
+    pub primary_location_id: Option<Uuid>,
     pub tags: Option<Vec<String>>,
     pub is_active: Option<bool>,
     pub max_concurrent_workers: Option<i32>,

@@ -38,16 +38,12 @@ impl ReprocessAttendanceHandler {
             "Starting bulk attendance reprocess"
         );
 
-        let tz_str: String = deps
-            .workspace_repo
-            .get_workspace_by_id(job.workspace_id)
+        let auth_token = crate::diesel_pool::TenantAuthToken::system_override(job.workspace_id);
+        let tz: Tz = deps
+            .employee_repo
+            .get_employee_timezone_fallback(&auth_token, payload.employee_id)
             .await
-            .map_or_else(
-                |_| "UTC".to_string(),
-                |w| w.map_or_else(|| "UTC".to_string(), |w| w.timezone),
-            );
-
-        let tz: Tz = tz_str.parse().unwrap_or(chrono_tz::UTC);
+            .unwrap_or(chrono_tz::UTC);
 
         // Initialize pairing service from shared deps
         let pairing_service = crate::services::pairing_service::PairingService::new(
@@ -170,6 +166,12 @@ mod tests {
         builder.workspace_repo = workspace_repo;
         builder.time_entry_repo = time_entry_repo;
         builder.daily_summary_repo = daily_summary_repo;
+        
+        let mut emp_repo = crate::repositories::employee::MockEmployeeRepository::new();
+        emp_repo
+            .expect_get_employee_timezone_fallback()
+            .returning(|_, _| Box::pin(async { Ok(chrono_tz::UTC) }));
+        builder.employee_repo = emp_repo;
         builder.roster_repo = roster_repo;
 
         let mut raw_log_repo =

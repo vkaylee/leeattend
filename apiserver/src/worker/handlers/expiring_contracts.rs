@@ -243,6 +243,7 @@ mod tests {
                     created_at: chrono::Utc::now(),
                     updated_at: chrono::Utc::now(),
                     department_name: None,
+                    primary_location_id: uuid::Uuid::new_v4(),
                 }))
             })
         });

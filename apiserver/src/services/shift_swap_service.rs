@@ -649,6 +649,7 @@ mod tests {
             created_at: Utc::now(),
             updated_at: Utc::now(),
             department_name: None,
+            primary_location_id: uuid::Uuid::new_v4(),
         }
     }
 

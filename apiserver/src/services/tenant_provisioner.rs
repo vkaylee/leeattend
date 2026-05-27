@@ -55,6 +55,19 @@ impl TenantProvisionerTrait for TenantMigrator {
                 .run_pending_migrations(TENANT_MIGRATIONS)
                 .map_err(|e| AppError::Internal(format!("Failed to run tenant migrations: {e}")))?;
 
+            // Ensure Headquarters location exists
+            let insert_hq_sql = format!(
+                "INSERT INTO work_locations (id, workspace_id, name, timezone, is_headquarters) 
+                 VALUES ('11111111-1111-1111-1111-111111111111'::uuid, '{}', 'Headquarters', 'UTC', true) 
+                 ON CONFLICT (id) DO NOTHING",
+                ws_id
+            );
+            
+            use diesel::RunQueryDsl;
+            diesel::sql_query(insert_hq_sql)
+                .execute(&mut sync_conn)
+                .map_err(|e| AppError::Internal(format!("Failed to seed Headquarters location: {e}")))?;
+
             Ok::<(), AppError>(())
         })
         .await

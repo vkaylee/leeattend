@@ -131,9 +131,14 @@ mod tests {
                     created_at: chrono::Utc::now(),
                     updated_at: chrono::Utc::now(),
                     department_name: None,
+                    primary_location_id: uuid::Uuid::new_v4(),
                 };
                 Box::pin(async move { Ok(Some(emp)) })
             });
+            
+        emp_repo
+            .expect_get_employee_timezone_fallback()
+            .returning(|_, _| Box::pin(async { Ok(chrono_tz::UTC) }));
 
         // Mock Raw log repo to succeed on insert
         let mut raw_log_repo =

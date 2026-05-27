@@ -42,7 +42,7 @@ pub const EMPLOYEE_SELECT_QUERY: &str = r"
         e.id, e.workspace_id, e.user_id, e.full_name, e.employee_id_number,
         e.original_hire_date, e.hire_date, e.termination_date,
         e.tags, e.is_active, e.created_at, e.updated_at,
-        d_cur.name as department_name
+        d_cur.name as department_name, e.primary_location_id
     FROM employees e
     LEFT JOIN (
         SELECT DISTINCT ON (employee_id) employee_id, department_id
@@ -292,6 +292,21 @@ impl EmployeeRepository for DieselEmployeeRepository {
         user_id: Uuid,
     ) -> Result<Option<Uuid>, AppError> {
         EmployeeCoreRepository::get_employee_id_by_user_id(self, auth_token, user_id).await
+    }
+
+    async fn get_employee_timezone_fallback(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        employee_id: Uuid,
+    ) -> Result<chrono_tz::Tz, AppError> {
+        EmployeeCoreRepository::get_employee_timezone_fallback(self, auth_token, employee_id).await
+    }
+
+    async fn get_headquarters_location_id(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+    ) -> Result<Option<Uuid>, AppError> {
+        EmployeeCoreRepository::get_headquarters_location_id(self, auth_token).await
     }
 
     async fn get_working_conditions(
