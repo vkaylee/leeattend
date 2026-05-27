@@ -11,7 +11,7 @@ pub struct TimeEntryLogFilter {
     pub offset: i64,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct TimeEntry {
     pub id: Uuid,
     pub employee_id: Uuid,
@@ -47,7 +47,7 @@ pub struct TimeEntryWithEmployee {
     pub employee_id_number: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct PunchInRequest {
     pub employee_id: Uuid,
     pub entry_type: Option<String>,
@@ -55,7 +55,7 @@ pub struct PunchInRequest {
     pub note: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct PunchOutRequest {
     pub note: Option<String>,
 }

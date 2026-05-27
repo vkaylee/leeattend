@@ -87,7 +87,7 @@ export async function fetchMyAttendance(
   const query = searchParams.toString();
   const url = `${API_BASE_URL}/ess/attendance${query ? `?${query}` : ""}`;
 
-  const { data: resData } = await apiClient.get<TimeEntry[]>(`/${url}`);
+  const { data: resData } = await apiClient.get<TimeEntry[]>(url);
     return resData;
 }
 
@@ -103,7 +103,7 @@ export async function fetchMyTimeEntries(
   const query = searchParams.toString();
   const url = `${API_BASE_URL}/ess/time-entries${query ? `?${query}` : ""}`;
 
-  const { data: resData } = await apiClient.get<TimeEntry[]>(`/${url}`);
+  const { data: resData } = await apiClient.get<TimeEntry[]>(url);
     return resData;
 }
 

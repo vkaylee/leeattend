@@ -7,6 +7,11 @@ use utoipa::OpenApi;
     paths(
         crate::handlers::get_devices,
         crate::handlers::get_agents,
+        crate::handlers::attendance::time_tracking::punch_in,
+        crate::handlers::attendance::time_tracking::punch_out,
+        crate::handlers::attendance::time_tracking::get_time_history,
+        crate::handlers::attendance::logs::get_attendance_logs,
+        crate::handlers::attendance::logs::get_raw_attendance_logs,
     ),
     components(
         schemas(
@@ -14,6 +19,9 @@ use utoipa::OpenApi;
             CreateDeviceRequest,
             UpdateDeviceRequest,
             AuthorizedAgent,
+            TimeEntry,
+            PunchInRequest,
+            PunchOutRequest,
             AgentStatus,
             DeviceStatus,
             GenericResponse,

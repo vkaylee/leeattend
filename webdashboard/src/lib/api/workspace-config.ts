@@ -46,7 +46,7 @@ export const workspaceConfigApi = {
     const params = new URLSearchParams();
     if (prefix) params.append('prefix', prefix);
     
-    const response = await apiClient.get(`/api/workspaces/${workspaceId}/configs?${params.toString()}`);
+    const response = await apiClient.get(`/workspaces/${workspaceId}/configs?${params.toString()}`);
     return response.data;
   },
 
@@ -54,16 +54,16 @@ export const workspaceConfigApi = {
     const params = new URLSearchParams();
     if (date) params.append('date', date);
     
-    const response = await apiClient.get(`/api/workspaces/${workspaceId}/configs/${key}?${params.toString()}`);
+    const response = await apiClient.get(`/workspaces/${workspaceId}/configs/${key}?${params.toString()}`);
     return response.data;
   },
 
   upsertConfig: async (workspaceId: string, payload: CreateConfigEntryRequest): Promise<WorkspaceConfigEntry> => {
-    const response = await apiClient.put(`/api/workspaces/${workspaceId}/configs`, payload);
+    const response = await apiClient.put(`/workspaces/${workspaceId}/configs`, payload);
     return response.data;
   },
 
   deleteConfig: async (workspaceId: string, id: string): Promise<void> => {
-    await apiClient.delete(`/api/workspaces/${workspaceId}/configs/${id}`);
+    await apiClient.delete(`/workspaces/${workspaceId}/configs/${id}`);
   },
 };

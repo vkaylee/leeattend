@@ -27,7 +27,7 @@ export async function fetchWorkspaceLeaveRequests(
   const url = status
     ? `${API_BASE_URL}/workspaces/${wsId}/leave/requests?status=${status}`
     : `${API_BASE_URL}/workspaces/${wsId}/leave/requests`;
-  const { data: resData } = await apiClient.get<LeaveRequest[]>(`/${url}`);
+  const { data: resData } = await apiClient.get<LeaveRequest[]>(url);
     return resData;
 }
 
@@ -76,7 +76,7 @@ export async function fetchLeaveHistory(
   const url = leaveTypeId
     ? `${API_BASE_URL}/workspaces/${wsId}/employees/${employeeId}/leave/history?leave_type_id=${leaveTypeId}`
     : `${API_BASE_URL}/workspaces/${wsId}/employees/${employeeId}/leave/history`;
-  const { data: resData } = await apiClient.get<LeaveHistoryItem[]>(`/${url}`);
+  const { data: resData } = await apiClient.get<LeaveHistoryItem[]>(url);
     return resData;
 }
 

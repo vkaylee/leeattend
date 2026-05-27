@@ -36,6 +36,86 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/workspaces/{workspace_id}/attendance/logs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_attendance_logs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{workspace_id}/attendance/raw-logs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_raw_attendance_logs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{workspace_id}/time/history/{employee_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_time_history"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{workspace_id}/time/punch-in": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["punch_in"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{workspace_id}/time/punch-out/{employee_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["punch_out"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -124,6 +204,40 @@ export interface components {
         LeaveTransactionType: "accrual" | "usage" | "adjustment" | "carry_over";
         /** @enum {string} */
         LogSource: "device" | "import" | "manual";
+        PunchInRequest: {
+            /** Format: uuid */
+            employee_id: string;
+            entry_type?: string | null;
+            is_break_overtime?: boolean | null;
+            note?: string | null;
+        };
+        PunchOutRequest: {
+            note?: string | null;
+        };
+        TimeEntry: {
+            /** Format: date-time */
+            created_at: string;
+            /** Format: int32 */
+            duration_minutes?: number | null;
+            /** Format: uuid */
+            employee_id: string;
+            entry_type: string;
+            generation_metadata?: unknown;
+            /** Format: uuid */
+            id: string;
+            is_break_overtime: boolean;
+            note?: string | null;
+            /** Format: date-time */
+            punch_in_time: string;
+            /** Format: date-time */
+            punch_out_time?: string | null;
+            /** Format: uuid */
+            shift_id?: string | null;
+            /** Format: date-time */
+            updated_at: string;
+            /** Format: uuid */
+            workspace_id: string;
+        };
         UpdateDeviceRequest: {
             brand?: string | null;
             ip?: string | null;
@@ -198,6 +312,148 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Device"][];
+                };
+            };
+        };
+    };
+    get_attendance_logs: {
+        parameters: {
+            query?: {
+                employee_id?: string | null;
+                from?: string | null;
+                to?: string | null;
+                page?: number | null;
+                limit?: number | null;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Logs fetched */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    get_raw_attendance_logs: {
+        parameters: {
+            query?: {
+                employee_id?: string | null;
+                from?: string | null;
+                to?: string | null;
+                page?: number | null;
+                limit?: number | null;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Raw logs fetched */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    get_time_history: {
+        parameters: {
+            query: {
+                start: string;
+                end: string;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+                /** @description Employee ID */
+                employee_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description History fetched */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimeEntry"][];
+                };
+            };
+        };
+    };
+    punch_in: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PunchInRequest"];
+            };
+        };
+        responses: {
+            /** @description Punch in successful */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimeEntry"];
+                };
+            };
+        };
+    };
+    punch_out: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+                /** @description Employee ID */
+                employee_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PunchOutRequest"];
+            };
+        };
+        responses: {
+            /** @description Punch out successful */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimeEntry"];
                 };
             };
         };

@@ -14,14 +14,20 @@ import {
   CreateReportExportResponse,
   WorkerMonitorStats, AttendanceDailySummary 
 } from "./types";
-import { apiClient } from "./client";
+import { apiClient, client } from "./client";
 
 export async function punchIn(
   wsId: string,
   data: { employee_id: string; entry_type?: string; note?: string },
 ): Promise<TimeEntry> {
-  const { data: resData } = await apiClient.post<TimeEntry>(`/workspaces/${wsId}/time/punch-in`, data);
-    return resData;
+  const { data: resData } = await client.POST("/workspaces/{workspace_id}/time/punch-in", {
+    params: {
+      path: { workspace_id: wsId },
+    },
+    body: data,
+  });
+  if (!resData) throw new Error("No response data");
+  return resData as TimeEntry;
 }
 
 export async function punchOut(
@@ -29,8 +35,14 @@ export async function punchOut(
   employeeId: string,
   data: { note?: string },
 ): Promise<TimeEntry> {
-  const { data: resData } = await apiClient.post<TimeEntry>(`/workspaces/${wsId}/time/punch-out/${employeeId}`, data);
-    return resData;
+  const { data: resData } = await client.POST("/workspaces/{workspace_id}/time/punch-out/{employee_id}", {
+    params: {
+      path: { workspace_id: wsId, employee_id: employeeId },
+    },
+    body: data,
+  });
+  if (!resData) throw new Error("No response data");
+  return resData as TimeEntry;
 }
 
 export async function fetchTimeHistory(
@@ -39,8 +51,14 @@ export async function fetchTimeHistory(
   start: string,
   end: string,
 ): Promise<TimeEntry[]> {
-  const { data: resData } = await apiClient.get<TimeEntry[]>(`/workspaces/${wsId}/time/history/${employeeId}?start=${start}&end=${end}`);
-    return resData;
+  const { data: resData } = await client.GET("/workspaces/{workspace_id}/time/history/{employee_id}", {
+    params: {
+      path: { workspace_id: wsId, employee_id: employeeId },
+      query: { start, end },
+    },
+  });
+  if (!resData) throw new Error("No response data");
+  return resData as TimeEntry[];
 }
 
 export async function updateTimeEntry(
@@ -78,7 +96,7 @@ export async function fetchWorkspaceAttendanceAdjustments(
   const url = status
     ? `${API_BASE_URL}/workspaces/${wsId}/attendance/adjustments?status=${status}`
     : `${API_BASE_URL}/workspaces/${wsId}/attendance/adjustments`;
-  const { data: resData } = await apiClient.get<AttendanceAdjustmentRequest[]>(`/${url}`);
+  const { data: resData } = await apiClient.get<AttendanceAdjustmentRequest[]>(url);
     return resData;
 }
 
@@ -104,20 +122,23 @@ export async function fetchAttendanceLogs(params: {
   page?: number;
   limit?: number;
 }): Promise<{ data: TimeEntry[]; total: number; page: number; limit: number }> {
-  const searchParams = new URLSearchParams();
-  if (params.employee_id) searchParams.append("employee_id", params.employee_id);
-  if (params.from) searchParams.append("from", params.from);
-  if (params.to) searchParams.append("to", params.to);
-  if (params.page) searchParams.append("page", params.page.toString());
-  if (params.limit) searchParams.append("limit", params.limit.toString());
-
   const wsId = getCurrentWorkspaceId();
-  const url = wsId
-    ? `${API_BASE_URL}/workspaces/${wsId}/attendance/logs?${searchParams.toString()}`
-    : `${API_BASE_URL}/attendance/logs?${searchParams.toString()}`;
+  if (!wsId) throw new Error("Workspace not selected");
 
-  const { data: resData } = await apiClient.get<{ data: TimeEntry[]; total: number; page: number; limit: number }>(`/${url}`);
-    return resData;
+  const { data: resData } = await client.GET("/workspaces/{workspace_id}/attendance/logs", {
+    params: {
+      path: { workspace_id: wsId },
+      query: {
+        employee_id: params.employee_id || undefined,
+        from: params.from || undefined,
+        to: params.to || undefined,
+        page: params.page || undefined,
+        limit: params.limit || undefined,
+      },
+    },
+  });
+  if (!resData) throw new Error("No response data");
+  return resData as { data: TimeEntry[]; total: number; page: number; limit: number };
 }
 
 export async function fetchRawAttendanceLogs(params: {
@@ -127,20 +148,23 @@ export async function fetchRawAttendanceLogs(params: {
   page?: number;
   limit?: number;
 }): Promise<{ data: RawAttendanceLog[]; total: number; page: number; limit: number }> {
-  const searchParams = new URLSearchParams();
-  if (params.employee_id) searchParams.append("employee_id", params.employee_id);
-  if (params.from) searchParams.append("from", params.from);
-  if (params.to) searchParams.append("to", params.to);
-  if (params.page) searchParams.append("page", params.page.toString());
-  if (params.limit) searchParams.append("limit", params.limit.toString());
-
   const wsId = getCurrentWorkspaceId();
   if (!wsId) throw new Error("Workspace not selected");
 
-  const url = `${API_BASE_URL}/workspaces/${wsId}/attendance/raw-logs?${searchParams.toString()}`;
-
-  const { data: resData } = await apiClient.get<{ data: RawAttendanceLog[]; total: number; page: number; limit: number }>(`/${url}`);
-    return resData;
+  const { data: resData } = await client.GET("/workspaces/{workspace_id}/attendance/raw-logs", {
+    params: {
+      path: { workspace_id: wsId },
+      query: {
+        employee_id: params.employee_id || undefined,
+        from: params.from || undefined,
+        to: params.to || undefined,
+        page: params.page || undefined,
+        limit: params.limit || undefined,
+      },
+    },
+  });
+  if (!resData) throw new Error("No response data");
+  return resData as { data: RawAttendanceLog[]; total: number; page: number; limit: number };
 }
 
 export interface FetchAttendanceReportParams {
@@ -222,7 +246,7 @@ export async function fetchLatestImportJob(
   const url = targetType
     ? `${API_BASE_URL}/workspaces/${wsId}/attendance/import-jobs/latest?target_type=${targetType}`
     : `${API_BASE_URL}/workspaces/${wsId}/attendance/import-jobs/latest`;
-  const { data: resData } = await apiClient.get<AttendanceImportJob | null>(`/${url}`);
+  const { data: resData } = await apiClient.get<AttendanceImportJob | null>(url);
     return resData;
 }
 

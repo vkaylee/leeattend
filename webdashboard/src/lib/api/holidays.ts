@@ -10,7 +10,7 @@ export async function fetchHolidays(
     const url = year
         ? `${API_BASE_URL}/workspaces/${wsId}/holidays?year=${year.toString()}`
         : `${API_BASE_URL}/workspaces/${wsId}/holidays`;
-    const { data: resData } = await apiClient.get<Holiday[]>(`/${url}`);
+    const { data: resData } = await apiClient.get<Holiday[]>(url);
     return resData;
 }
 

@@ -14,7 +14,7 @@ use crate::handlers::common::MemberContext;
 
 use crate::AppState;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, utoipa::IntoParams)]
 pub struct AttendanceLogQuery {
     pub employee_id: Option<Uuid>,
     pub from: Option<DateTime<Utc>>,
@@ -23,6 +23,17 @@ pub struct AttendanceLogQuery {
     pub limit: Option<i64>,
 }
 
+#[utoipa::path(
+    get,
+    path = "/workspaces/{workspace_id}/attendance/logs",
+    responses(
+        (status = 200, description = "Logs fetched", body = serde_json::Value)
+    ),
+    params(
+        ("workspace_id" = Uuid, Path, description = "Workspace ID"),
+        AttendanceLogQuery
+    )
+)]
 pub async fn get_attendance_logs(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -63,6 +74,17 @@ pub async fn get_attendance_logs(
     })))
 }
 
+#[utoipa::path(
+    get,
+    path = "/workspaces/{workspace_id}/attendance/raw-logs",
+    responses(
+        (status = 200, description = "Raw logs fetched", body = serde_json::Value)
+    ),
+    params(
+        ("workspace_id" = Uuid, Path, description = "Workspace ID"),
+        AttendanceLogQuery
+    )
+)]
 pub async fn get_raw_attendance_logs(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,

@@ -69,26 +69,26 @@ export interface QuotaSummary {
 export const overtimeRequestsApi = {
   listRequests: async (workspaceId: string, params?: any): Promise<OvertimeRequest[]> => {
     const searchParams = new URLSearchParams(params);
-    const response = await apiClient.get(`/api/workspaces/${workspaceId}/overtime/requests?${searchParams.toString()}`);
+    const response = await apiClient.get(`/workspaces/${workspaceId}/overtime/requests?${searchParams.toString()}`);
     return response.data.items || response.data; // Handle paginated or unpaginated response
   },
 
   getRequest: async (workspaceId: string, id: string): Promise<OvertimeRequestDetail> => {
-    const response = await apiClient.get(`/api/workspaces/${workspaceId}/overtime/requests/${id}`);
+    const response = await apiClient.get(`/workspaces/${workspaceId}/overtime/requests/${id}`);
     return response.data;
   },
 
   createRequest: async (workspaceId: string, payload: CreateOvertimeRequestPayload): Promise<OvertimeRequest> => {
-    const response = await apiClient.post(`/api/workspaces/${workspaceId}/overtime/requests`, payload);
+    const response = await apiClient.post(`/workspaces/${workspaceId}/overtime/requests`, payload);
     return response.data;
   },
 
   submitRequest: async (workspaceId: string, id: string): Promise<void> => {
-    await apiClient.post(`/api/workspaces/${workspaceId}/overtime/requests/${id}/submit`);
+    await apiClient.post(`/workspaces/${workspaceId}/overtime/requests/${id}/submit`);
   },
 
   cancelRequest: async (workspaceId: string, id: string): Promise<void> => {
-    await apiClient.post(`/api/workspaces/${workspaceId}/overtime/requests/${id}/cancel`);
+    await apiClient.post(`/workspaces/${workspaceId}/overtime/requests/${id}/cancel`);
   },
 
   employeeConsent: async (workspaceId: string, id: string, payload: {
@@ -96,21 +96,21 @@ export const overtimeRequestsApi = {
     status: ConsentStatus;
     decline_reason?: string;
   }): Promise<void> => {
-    await apiClient.post(`/api/workspaces/${workspaceId}/overtime/requests/${id}/consent`, payload);
+    await apiClient.post(`/workspaces/${workspaceId}/overtime/requests/${id}/consent`, payload);
   },
 
   getMyAssignments: async (employeeId: string): Promise<OvertimeRequest[]> => {
-    const response = await apiClient.get(`/api/employees/${employeeId}/overtime/assignments`);
+    const response = await apiClient.get(`/employees/${employeeId}/overtime/assignments`);
     return response.data;
   },
 
   getWorkspaceQuotaSummary: async (workspaceId: string, month: string): Promise<QuotaSummary[]> => {
-    const response = await apiClient.get(`/api/workspaces/${workspaceId}/overtime/quota/summary?month=${month}`);
+    const response = await apiClient.get(`/workspaces/${workspaceId}/overtime/quota/summary?month=${month}`);
     return response.data;
   },
 
   getEmployeeQuota: async (workspaceId: string, employeeId: string, date: string): Promise<QuotaSummary> => {
-    const response = await apiClient.get(`/api/workspaces/${workspaceId}/overtime/quota/${employeeId}?date=${date}`);
+    const response = await apiClient.get(`/workspaces/${workspaceId}/overtime/quota/${employeeId}?date=${date}`);
     return response.data;
   }
 };

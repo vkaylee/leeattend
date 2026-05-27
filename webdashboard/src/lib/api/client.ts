@@ -1,3 +1,5 @@
+import createClient from "openapi-fetch";
+import type { paths } from "@/types/api-generated";
 import { ApiError, AppErrorResponse } from "./errors";
 import { apiFetch } from "./helpers";
 
@@ -66,3 +68,39 @@ export const apiClient = {
     return handleResponse<T>(res);
   }
 };
+
+/**
+ * A type-safe OpenAPI fetch client.
+ * Calls standard `apiFetch` under the hood to preserve headers and token refresh logic.
+ * Propagates `ApiError` on non-2xx status codes.
+ */
+export const client = createClient<paths>({
+  fetch: async (url: string | URL | Request, init?: RequestInit) => {
+    const res = await apiFetch(url.toString(), init as any);
+    
+    if (!res.ok) {
+      let errorBody: AppErrorResponse | undefined;
+      let errorText = "";
+      
+      try {
+        const clonedRes = res.clone();
+        errorText = await clonedRes.text();
+        if (errorText) {
+          errorBody = JSON.parse(errorText) as AppErrorResponse;
+        }
+      } catch {
+        // Ignore parsing errors
+      }
+
+      throw new ApiError(
+        res.status,
+        res.statusText,
+        errorBody?.error_code,
+        errorBody || (errorText ? { message: errorText } : undefined)
+      );
+    }
+    
+    return res;
+  }
+});
+

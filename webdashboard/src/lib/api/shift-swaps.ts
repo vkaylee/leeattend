@@ -30,7 +30,7 @@ export async function fetchShiftSwaps(
 ): Promise<ShiftSwapRequest[]> {
     let url = `${API_BASE_URL}/workspaces/${wsId}/shift-swaps`;
     if (status) url += `?status=${status}`;
-    const { data: resData } = await apiClient.get<ShiftSwapRequest[]>(`/${url}`);
+    const { data: resData } = await apiClient.get<ShiftSwapRequest[]>(url);
     return resData;
 }
 
