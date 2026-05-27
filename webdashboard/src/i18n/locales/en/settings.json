@@ -243,8 +243,9 @@
     "empty_guide": "Install an Agent on your local network to connect attendance devices. Download the installer from the documentation."
   },
   "settings": {
-    "title": "Settings Hub",
     "categories": {
+      "overtime": "Overtime",
+      "overtime_desc": "Overtime settings",
       "general": "General",
       "organization": "Organization",
       "people": "People",
@@ -261,6 +262,17 @@
       "billing_desc": "Manage billing and subscriptions.",
       "leave_desc": "Configure leave types, accrual policies, and assignments."
     },
+    "overtime": {
+      "delete_config_desc": "Delete?",
+      "delete_workflow_desc": "Delete?",
+      "quotas_desc": "Quotas",
+      "tabs": {
+        "quotas": "Quotas",
+        "workflows": "Workflows"
+      },
+      "workflows_desc": "Workflows"
+    },
+    "title": "Settings Hub",
     "navigation": "Navigation",
     "admin_only": "Administrators only",
     "leave": {

@@ -494,28 +494,32 @@
     }
   },
   "ot_approvals": {
-    "title": "Duyệt tăng ca (OT)",
-    "subtitle": "Xem xét và phê duyệt các yêu cầu tăng ca",
-    "empty_state": {
-      "title": "Đã hoàn thành hết!",
-      "description": "Không có yêu cầu tăng ca nào đang chờ trong giai đoạn này."
-    },
-    "table": {
-      "date": "Ngày",
-      "employee": "Nhân viên",
-      "source": "Nguồn",
-      "system": "Hệ thống",
-      "claimed": "Yêu cầu",
-      "reason": "Lý do",
-      "actions": "Hành động"
-    },
+    "subtitle": "Manage overtime approvals",
+    "title": "OT Approvals",
     "actions": {
-      "approve": "Duyệt",
-      "reject": "Từ chối"
+      "approve": "Approve",
+      "reject": "Reject"
     },
     "badges": {
-      "paper": "Đơn giấy",
-      "self": "Cá nhân"
+      "paper": "Paper",
+      "self": "Self"
+    },
+    "empty_state": {
+      "description": "No pending OT requests",
+      "title": "All caught up!"
+    },
+    "table": {
+      "actions": "Actions",
+      "claimed": "Claimed",
+      "date": "Date",
+      "employee": "Employee",
+      "reason": "Reason",
+      "source": "Source",
+      "system": "System"
+    },
+    "tabs": {
+      "post_ot": "Post-OT",
+      "pre_ot": "Pre-OT"
     }
   },
   "attendance": {

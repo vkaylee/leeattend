@@ -494,28 +494,32 @@
     }
   },
   "ot_approvals": {
-    "title": "加班审批",
-    "subtitle": "审查并批准加班申请",
-    "empty_state": {
-      "title": "全部处理完成！",
-      "description": "此期间没有待处理的加班请求。"
-    },
-    "table": {
-      "date": "日期",
-      "employee": "员工",
-      "source": "来源",
-      "system": "系统",
-      "claimed": "申请",
-      "reason": "原因",
-      "actions": "操作"
-    },
+    "subtitle": "Manage overtime approvals",
+    "title": "OT Approvals",
     "actions": {
-      "approve": "通过",
-      "reject": "拒绝"
+      "approve": "Approve",
+      "reject": "Reject"
     },
     "badges": {
-      "paper": "纸质",
-      "self": "自助"
+      "paper": "Paper",
+      "self": "Self"
+    },
+    "empty_state": {
+      "description": "No pending OT requests",
+      "title": "All caught up!"
+    },
+    "table": {
+      "actions": "Actions",
+      "claimed": "Claimed",
+      "date": "Date",
+      "employee": "Employee",
+      "reason": "Reason",
+      "source": "Source",
+      "system": "System"
+    },
+    "tabs": {
+      "post_ot": "Post-OT",
+      "pre_ot": "Pre-OT"
     }
   },
   "attendance": {

@@ -494,21 +494,8 @@
     }
   },
   "ot_approvals": {
+    "subtitle": "Manage overtime approvals",
     "title": "OT Approvals",
-    "subtitle": "Review and approve overtime claims",
-    "empty_state": {
-      "title": "All Caught Up!",
-      "description": "No pending overtime requests for this period."
-    },
-    "table": {
-      "date": "Date",
-      "employee": "Employee",
-      "source": "Source",
-      "system": "System",
-      "claimed": "Claimed",
-      "reason": "Reason",
-      "actions": "Actions"
-    },
     "actions": {
       "approve": "Approve",
       "reject": "Reject"
@@ -516,6 +503,23 @@
     "badges": {
       "paper": "Paper",
       "self": "Self"
+    },
+    "empty_state": {
+      "description": "No pending OT requests",
+      "title": "All caught up!"
+    },
+    "table": {
+      "actions": "Actions",
+      "claimed": "Claimed",
+      "date": "Date",
+      "employee": "Employee",
+      "reason": "Reason",
+      "source": "Source",
+      "system": "System"
+    },
+    "tabs": {
+      "post_ot": "Post-OT",
+      "pre_ot": "Pre-OT"
     }
   },
   "attendance": {

@@ -83,7 +83,7 @@ pub async fn get_employee_assignment(
 pub async fn create_employee_assignment(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
-    Path((ws_id, employee_id)): Path<(Uuid, Uuid)>,
+    Path((_ws_id, employee_id)): Path<(Uuid, Uuid)>,
     Json(payload): Json<CreateEmployeeAssignmentRequest>,
 ) -> Result<Json<EmployeeAssignment>, AppError> {
     let repo = &state.employees.repo;
@@ -105,7 +105,7 @@ pub async fn create_employee_assignment(
 
     let new_assignment = NewEmployeeAssignment {
         id: Uuid::new_v4(),
-        workspace_id: ws_id,
+        workspace_id: ctx.workspace_id,
         employee_id,
         home_location_id,
         host_location_id: payload.host_location_id,

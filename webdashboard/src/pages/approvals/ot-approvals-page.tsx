@@ -18,6 +18,7 @@ import { useWorkspace } from "@/hooks/use-workspace";
 
 export default function OtApprovalsPage() {
   const toast = useToast();
+  const { t } = useTranslation();
   const { workspace } = useWorkspace();
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [paperOtDialogOpen, setPaperOtDialogOpen] = useState(false);

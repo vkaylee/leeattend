@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 
 import { format } from "date-fns";
 
+import { CreateOtRequestDialog } from "@/components/approvals/create-ot-request-dialog";
 import { MonthYearPicker } from "@/components/common/month-year-picker";
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
@@ -49,6 +50,8 @@ export function OtApprovalsHeader({
         >
           {t("approvals.paper_ot.btn_enter") || "Enter Paper Form"}
         </Button>
+
+        <CreateOtRequestDialog />
 
         <Button
           className="h-auto px-6 py-3 rounded-[1.5rem] bg-blue-50 dark:bg-blue-950 text-white text-xs font-bold uppercase tracking-wider shadow-lg hover:bg-blue-600 flex items-center"

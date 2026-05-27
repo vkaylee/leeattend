@@ -3,14 +3,14 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 
 import { Typography } from "@/components/ui/typography";
-import { useEmployeeConsentOvertime, useCancelOvertimeRequest } from "@/hooks/use-overtime-requests";
+import { useEmployeeConsent, useCancelOvertimeRequest } from "@/hooks/use-overtime-requests";
 import { useToast } from "@/components/ui/toast";
 
 export function MyOtAssignmentsList({ assignments, isLoading, wsId }: { assignments: any[]; isLoading: boolean; wsId: string }) {
   const { t } = useTranslation();
   const toast = useToast();
-  const { mutate: consent, isPending: isConsenting } = useEmployeeConsentOvertime(wsId);
-  const { mutate: cancel, isPending: isCanceling } = useCancelOvertimeRequest(wsId);
+  const { mutate: consent, isPending: isConsenting } = useEmployeeConsent();
+  const { mutate: cancel, isPending: isCanceling } = useCancelOvertimeRequest();
 
   const handleConsent = (id: string, employeeId: string, status: "accepted" | "declined") => {
     consent(

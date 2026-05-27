@@ -12,8 +12,10 @@ const UNIT_TYPE_I18N_MAP: Record<UnitType, string> = {
  * Maps API enum unit_type (DAY/SHIFT/HOUR/MINUTE) to i18n translation key.
  * Falls back to the raw value if not found.
  */
-export const getUnitTypeI18nKey = (unitType: string): string =>
-  UNIT_TYPE_I18N_MAP[unitType as UnitType] || unitType;
+export const getUnitTypeI18nKey = (unitType?: string): string => {
+  if (!unitType) return '';
+  return UNIT_TYPE_I18N_MAP[unitType as UnitType] || unitType;
+};
 
 /**
  * Build a tooltip string showing the detailed unit-to-hours conversion.

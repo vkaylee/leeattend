@@ -1185,7 +1185,11 @@
     "delete_confirm": "Xác nhận xóa",
     "present": "Hiện tại",
     "notifications": "Thông báo",
-    "load_more": "Tải thêm"
+    "load_more": "Tải thêm",
+    "submitting": "Submitting...",
+    "key": "Key",
+    "scope": "Scope",
+    "value": "Value"
   },
   "dashboard": {
     "title": "Bảng điều khiển",

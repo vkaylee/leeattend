@@ -1185,7 +1185,11 @@
     "delete_confirm": "Confirm Delete",
     "present": "Present",
     "notifications": "Notifications",
-    "load_more": "Load More"
+    "load_more": "Load More",
+    "submitting": "Submitting...",
+    "key": "Key",
+    "scope": "Scope",
+    "value": "Value"
   },
   "dashboard": {
     "title": "Dashboard",

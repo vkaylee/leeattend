@@ -26,7 +26,7 @@ describe("Button Component", () => {
   // ── Variants ────────────────────────────────────────────────────
 
   it("applies primary variant classes by default", () => {
-    render(<Button variant="ghost">Primary</Button>);
+    render(<Button>Primary</Button>);
     const button = screen.getByRole("button");
     expect(button.className).toContain("bg-primary-600");
   });

@@ -2,6 +2,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import React from "react";
 
 import userEvent from "@testing-library/user-event";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import { ToastProvider } from "../../components/ui/toast";
@@ -75,11 +76,15 @@ describe("OtApprovalsPage", () => {
     } as unknown as ReturnType<typeof attendanceHooks.useAttendanceSummaries>);
   });
 
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+
   const renderPage = () =>
     render(
-      <ToastProvider>
-        <OtApprovalsPage />
-      </ToastProvider>
+      <QueryClientProvider client={queryClient}>
+        <ToastProvider>
+          <OtApprovalsPage />
+        </ToastProvider>
+      </QueryClientProvider>
     );
 
   it("renders page title and subtitle", () => {
@@ -88,8 +93,11 @@ describe("OtApprovalsPage", () => {
     expect(screen.getByText("Manage overtime")).toBeInTheDocument();
   });
 
-  it("renders pending summaries in table", () => {
+  it("renders pending summaries in table", async () => {
+    const user = userEvent.setup();
     renderPage();
+    await user.click(screen.getByText("ot_approvals.tabs.post_ot"));
+
     expect(screen.getByText("EMP-001")).toBeInTheDocument();
     expect(screen.getAllByText("120m").length).toBeGreaterThan(0);
     expect(screen.getByText('"Project deadline"')).toBeInTheDocument();
@@ -101,6 +109,7 @@ describe("OtApprovalsPage", () => {
   it("calls approveOt and refetch when approve button is clicked", async () => {
     const user = userEvent.setup();
     renderPage();
+    await user.click(screen.getByText("ot_approvals.tabs.post_ot"));
     
     const approveButtons = screen.getAllByTitle("ot_approvals.actions.approve");
     await user.click(approveButtons[0]);
@@ -120,6 +129,7 @@ describe("OtApprovalsPage", () => {
   it("calls approveOt with 0 minutes when reject button is clicked", async () => {
     const user = userEvent.setup();
     renderPage();
+    await user.click(screen.getByText("ot_approvals.tabs.post_ot"));
     
     const rejectButtons = screen.getAllByTitle("ot_approvals.actions.reject");
     await user.click(rejectButtons[0]);
@@ -139,6 +149,7 @@ describe("OtApprovalsPage", () => {
   it("filters by source when filter buttons are clicked", async () => {
     const user = userEvent.setup();
     renderPage();
+    await user.click(screen.getByText("ot_approvals.tabs.post_ot"));
     
     // Initially both should be visible
     expect(screen.getByText("EMP-001")).toBeInTheDocument();
@@ -153,14 +164,16 @@ describe("OtApprovalsPage", () => {
     expect(screen.getByText("EMP-002")).toBeInTheDocument();
   });
   
-  it("shows empty state when no pending summaries", () => {
+  it("shows empty state when no pending summaries", async () => {
     vi.mocked(attendanceHooks.useAttendanceSummaries).mockReturnValue({
       summaries: [],
       isLoading: false,
       refetch: refetchMock,
     } as unknown as ReturnType<typeof attendanceHooks.useAttendanceSummaries>);
     
+    const user = userEvent.setup();
     renderPage();
+    await user.click(screen.getByText("ot_approvals.tabs.post_ot"));
     expect(screen.getByText("No pending OT")).toBeInTheDocument();
   });
 });

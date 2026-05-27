@@ -243,75 +243,87 @@
     "empty_guide": "在您的本地网络上安装代理以连接考勤设备。从文档中下载安装程序。"
   },
   "settings": {
-    "title": "设置中心",
     "categories": {
-      "general": "常规",
-      "organization": "组织",
-      "people": "人员",
-      "time": "时间与考勤",
-      "payroll": "薪资",
-      "connectivity": "连接性",
-      "general_desc": "品牌塑造和基本工作空间选项。",
-      "organization_desc": "管理公司详细信息和品牌。",
-      "people_desc": "管理员工、部门和角色。",
-      "time_desc": "配置班次、排班和考勤规则。",
-      "payroll_desc": "管理标准工作日和公式。",
-      "connectivity_desc": "管理设备连接和网络。",
-      "leave": "休假管理",
-      "billing_desc": "管理账单和订阅。",
-      "leave_desc": "配置休假类型、累积政策和分配。"
+      "overtime": "Overtime",
+      "overtime_desc": "Overtime settings",
+      "general": "General",
+      "organization": "Organization",
+      "people": "People",
+      "time": "Time & Attendance",
+      "payroll": "Payroll",
+      "connectivity": "Connectivity",
+      "general_desc": "Branding and basic workspace options.",
+      "organization_desc": "Manage company details and branding.",
+      "people_desc": "Manage employees, departments and roles.",
+      "time_desc": "Configure shifts, rosters and attendance rules.",
+      "payroll_desc": "Manage standard work days and formulas.",
+      "connectivity_desc": "Manage device connections and network.",
+      "leave": "Leave Management",
+      "billing_desc": "Manage billing and subscriptions.",
+      "leave_desc": "Configure leave types, accrual policies, and assignments."
     },
-    "navigation": "导航",
-    "admin_only": "仅限管理员",
-    "leave": {
-      "title": "请假设置",
-      "desc": "为您的工作区配置请假类型和累积策略。",
+    "overtime": {
+      "delete_config_desc": "Delete?",
+      "delete_workflow_desc": "Delete?",
+      "quotas_desc": "Quotas",
       "tabs": {
-        "types": "请假类型",
-        "policies": "累积策略",
-        "types_desc": "定义可用的请假类型及其规则",
-        "policies_desc": "设置请假如何随时间累积",
-        "assignments": "政策分配",
-        "assignments_desc": "向员工或部门分配政策"
+        "quotas": "Quotas",
+        "workflows": "Workflows"
+      },
+      "workflows_desc": "Workflows"
+    },
+    "title": "Settings Hub",
+    "navigation": "Navigation",
+    "admin_only": "Administrators only",
+    "leave": {
+      "title": "Leave Settings",
+      "desc": "Configure leave types and accrual policies for your workspace.",
+      "tabs": {
+        "types": "Leave Types",
+        "policies": "Accrual Policies",
+        "types_desc": "Define available leave types and their rules",
+        "policies_desc": "Set up how leave is earned over time",
+        "assignments": "Policy Assignments",
+        "assignments_desc": "Assign policies to employees or departments"
       },
       "messages": {
-        "update_success": "请假类型更新成功",
-        "update_error": "更新请假类型失败",
-        "create_success": "策略创建成功",
-        "delete_success": "策略删除成功",
-        "assignment_note": "政策分配定义了每个人的休假计算方式。更改将在下次计划的应计运行期间应用，或者可以通过“通用设置”中的“应计运行”工具强制执行。",
-        "loading": "正在加载分配...",
-        "no_assignments": "未找到政策分配"
+        "update_success": "Leave type updated successfully",
+        "update_error": "Failed to update leave type",
+        "create_success": "Policy created successfully",
+        "delete_success": "Policy deleted successfully",
+        "assignment_note": "Policy assignments define how leave is calculated for each person. Changes will be applied during the next scheduled accrual run or can be forced via the \"Accrual Run\" tool in General Settings.",
+        "loading": "Loading assignments...",
+        "no_assignments": "No policy assignments found"
       },
       "fields": {
-        "approval": "审批",
-        "document": "文档",
-        "days_per_period": "天 / 周期"
+        "approval": "Approval",
+        "document": "Document",
+        "days_per_period": "days / period"
       },
       "types": {
-        "paid": "带薪假",
-        "unpaid": "无薪假"
+        "paid": "Paid Leave",
+        "unpaid": "Unpaid Leave"
       },
       "actions": {
-        "assign": "分配政策"
+        "assign": "Assign Policy"
       },
       "table": {
-        "policy": "政策",
-        "type": "类型",
-        "assignee": "受托人",
-        "effective_date": "生效日期",
-        "created_at": "创建于"
+        "policy": "Policy",
+        "type": "Type",
+        "assignee": "Assignee",
+        "effective_date": "Effective Date",
+        "created_at": "Created At"
       }
     },
     "layout": {
-      "access": "访问",
-      "control_panel": "控制面板",
-      "operations": "操作",
-      "security_system": "安全与系统",
-      "workspace": "工作区"
+      "access": "Access",
+      "control_panel": "Control Panel",
+      "operations": "Operations",
+      "security_system": "Security & System",
+      "workspace": "Workspace"
     },
     "tabs": {
-      "members": "成员"
+      "members": "Members"
     }
   }
 }

@@ -11,15 +11,11 @@ export function PreOtApprovalsTab({ wsId }: { wsId: string }) {
   const { t } = useTranslation();
   const toast = useToast();
   // Fetch pending requests specifically for Pre-OT approval
-  // We can filter on the client or rely on backend. For now we use the general fetch with status filter.
-  const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useOvertimeRequests(wsId, 20);
-  const { mutate: processApproval, isPending: isProcessing } = useProcessApproval(wsId);
+  const { data: allRequests, isLoading } = useOvertimeRequests({ limit: 20 });
+  const { mutate: processApproval, isPending: isProcessing } = useProcessApproval();
 
-  // Extract all items from infinite query pages
-  const allRequests = data?.pages.flatMap((page) => page.data) || [];
-  
   // Filter for pending status
-  const pendingRequests = allRequests.filter(req => req.status === "pending" || req.status === "in_progress");
+  const pendingRequests = (allRequests || []).filter(req => req.status === "pending_approval" || req.status === "draft");
 
   const handleAction = (id: string, action: "approve" | "reject") => {
     processApproval(
@@ -131,17 +127,7 @@ export function PreOtApprovalsTab({ wsId }: { wsId: string }) {
         </div>
       ))}
 
-      {hasNextPage && (
-        <div className="flex justify-center mt-6">
-          <button
-            className="px-4 py-2 text-sm font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-xl transition-colors"
-            onClick={() => fetchNextPage()}
-            disabled={isFetchingNextPage}
-          >
-            {isFetchingNextPage ? "Loading..." : "Load More"}
-          </button>
-        </div>
-      )}
+
     </div>
   );
 }

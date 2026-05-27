@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { approvalWorkflowsApi, CreateWorkflowRequest, UpdateWorkflowRequest } from '@/lib/api/approval-workflows';
-import { useAuth } from '@/hooks/use-auth';
+import { useWorkspace } from '@/hooks/use-workspace';
 
 export const approvalWorkflowKeys = {
   all: ['approval-workflows'] as const,
@@ -13,32 +13,32 @@ export const approvalWorkflowKeys = {
 };
 
 export const useApprovalWorkflows = (entityType?: string) => {
-  const { currentWorkspace } = useAuth();
+  const { workspace } = useWorkspace();
   
   return useQuery({
-    queryKey: approvalWorkflowKeys.list(currentWorkspace?.id || '', entityType),
-    queryFn: () => approvalWorkflowsApi.listWorkflows(currentWorkspace!.id, entityType),
-    enabled: !!currentWorkspace?.id,
+    queryKey: approvalWorkflowKeys.list(workspace?.id || '', entityType),
+    queryFn: () => approvalWorkflowsApi.listWorkflows(workspace!.id, entityType),
+    enabled: !!workspace?.id,
   });
 };
 
 export const useApprovalWorkflow = (id: string) => {
-  const { currentWorkspace } = useAuth();
+  const { workspace } = useWorkspace();
   
   return useQuery({
-    queryKey: approvalWorkflowKeys.detail(currentWorkspace?.id || '', id),
-    queryFn: () => approvalWorkflowsApi.getWorkflow(currentWorkspace!.id, id),
-    enabled: !!currentWorkspace?.id && !!id,
+    queryKey: approvalWorkflowKeys.detail(workspace?.id || '', id),
+    queryFn: () => approvalWorkflowsApi.getWorkflow(workspace!.id, id),
+    enabled: !!workspace?.id && !!id,
   });
 };
 
 export const useCreateApprovalWorkflow = () => {
   const queryClient = useQueryClient();
-  const { currentWorkspace } = useAuth();
+  const { workspace } = useWorkspace();
 
   return useMutation({
     mutationFn: (payload: CreateWorkflowRequest) => 
-      approvalWorkflowsApi.createWorkflow(currentWorkspace!.id, payload),
+      approvalWorkflowsApi.createWorkflow(workspace!.id, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: approvalWorkflowKeys.all });
     },
@@ -47,11 +47,11 @@ export const useCreateApprovalWorkflow = () => {
 
 export const useUpdateApprovalWorkflow = (id: string) => {
   const queryClient = useQueryClient();
-  const { currentWorkspace } = useAuth();
+  const { workspace } = useWorkspace();
 
   return useMutation({
     mutationFn: (payload: UpdateWorkflowRequest) => 
-      approvalWorkflowsApi.updateWorkflow(currentWorkspace!.id, id, payload),
+      approvalWorkflowsApi.updateWorkflow(workspace!.id, id, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: approvalWorkflowKeys.all });
     },
@@ -60,11 +60,11 @@ export const useUpdateApprovalWorkflow = (id: string) => {
 
 export const useDeleteApprovalWorkflow = () => {
   const queryClient = useQueryClient();
-  const { currentWorkspace } = useAuth();
+  const { workspace } = useWorkspace();
 
   return useMutation({
     mutationFn: (id: string) => 
-      approvalWorkflowsApi.deleteWorkflow(currentWorkspace!.id, id),
+      approvalWorkflowsApi.deleteWorkflow(workspace!.id, id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: approvalWorkflowKeys.all });
     },
@@ -72,24 +72,24 @@ export const useDeleteApprovalWorkflow = () => {
 };
 
 export const useApprovalHistory = (entityType: string, entityId: string) => {
-  const { currentWorkspace } = useAuth();
+  const { workspace } = useWorkspace();
   
   return useQuery({
-    queryKey: approvalWorkflowKeys.history(currentWorkspace?.id || '', entityType, entityId),
-    queryFn: () => approvalWorkflowsApi.getApprovalHistory(currentWorkspace!.id, entityType, entityId),
-    enabled: !!currentWorkspace?.id && !!entityType && !!entityId,
+    queryKey: approvalWorkflowKeys.history(workspace?.id || '', entityType, entityId),
+    queryFn: () => approvalWorkflowsApi.getApprovalHistory(workspace!.id, entityType, entityId),
+    enabled: !!workspace?.id && !!entityType && !!entityId,
   });
 };
 
 export const useProcessApproval = () => {
   const queryClient = useQueryClient();
-  const { currentWorkspace } = useAuth();
+  const { workspace } = useWorkspace();
 
   return useMutation({
     mutationFn: (payload: { entity_type: string; entity_id: string; action: string; note?: string }) => 
-      approvalWorkflowsApi.processApproval(currentWorkspace!.id, payload),
+      approvalWorkflowsApi.processApproval(workspace!.id, payload),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: approvalWorkflowKeys.history(currentWorkspace!.id, variables.entity_type, variables.entity_id) });
+      queryClient.invalidateQueries({ queryKey: approvalWorkflowKeys.history(workspace!.id, variables.entity_type, variables.entity_id) });
       // We'll let the specific entity (like overtime requests) invalidate its own detail
     },
   });

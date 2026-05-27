@@ -1,5 +1,25 @@
 {
   "ess": {
+    "ot": {
+      "no_assignments": "No assignments",
+      "no_assignments_desc": "No overtime assignments.",
+      "no_quota": "No quota",
+      "quota_subtitle": "OT Quota",
+      "quota_title": "OT Quota",
+      "request": "Request OT",
+      "request_success": "Success",
+      "request_title": "Request OT",
+      "subtitle": "Manage OT",
+      "title": "Overtime",
+      "claim_title": "Claim Overtime",
+      "claim_desc": "Submit your overtime claim for approval",
+      "claimed_minutes": "Minutes to Claim",
+      "reason_placeholder": "Why did you work overtime?",
+      "error_zero_minutes": "Minutes must be greater than 0",
+      "error_exceeds_system": "Cannot claim more than system detected OT",
+      "system_detected": "System Detected",
+      "close": "Close"
+    },
     "my_profile": "My Profile",
     "no_employee_linked": "No employee linked",
     "contact_hr": "Please contact HR to link your account with an employee profile.",
@@ -71,16 +91,6 @@
       "active_status": "Active",
       "system_ot_suffix": "(System OT)",
       "claim_btn": "Claim OT"
-    },
-    "ot": {
-      "claim_title": "Claim Overtime",
-      "claim_desc": "Submit your overtime claim for approval",
-      "claimed_minutes": "Minutes to Claim",
-      "reason_placeholder": "Why did you work overtime?",
-      "error_zero_minutes": "Minutes must be greater than 0",
-      "error_exceeds_system": "Cannot claim more than system detected OT",
-      "system_detected": "System Detected",
-      "close": "Close"
     }
   },
   "members": {

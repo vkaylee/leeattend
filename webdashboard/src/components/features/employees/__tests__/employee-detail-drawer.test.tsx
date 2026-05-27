@@ -35,6 +35,10 @@ vi.mock("../employee-phases-tab", () => ({
     default: () => <div data-testid="phases-tab">PhasesTab</div>,
 }));
 
+vi.mock("../employee-assignments-tab", () => ({
+    default: () => <div data-testid="assignments-tab">AssignmentsTab</div>,
+}));
+
 const mockMembers = [
     {
         workspace_id: "ws-1",
@@ -288,8 +292,9 @@ describe("EmployeeDetailDrawer", () => {
 
         // ArrowRight → Phases
         await user.keyboard("{ArrowRight}");
-        // Assuming phases tab doesn't have a testid, just test it exists or skip.
-        // Actually I should add a test for phases tab, but let's just go to salary
+        // ArrowRight → Assignments
+        await user.keyboard("{ArrowRight}");
+        // ArrowRight → Salary
         await user.keyboard("{ArrowRight}");
         expect(screen.getByTestId("salary-config")).toBeDefined();
 
@@ -324,8 +329,8 @@ describe("EmployeeDetailDrawer", () => {
         const user = userEvent.setup();
         renderWithClient(<EmployeeDetailDrawer {...defaultProps} />);
 
-        // Navigate to Policies (last tab): Profile → Contracts → Phases → Salary → Policies
-        await user.keyboard("{ArrowRight}{ArrowRight}{ArrowRight}{ArrowRight}");
+        // Navigate to Policies (last tab): Profile(0) -> Contracts(1) -> Phases(2) -> Assignments(3) -> Salary(4) -> Policies(5)
+        await user.keyboard("{ArrowRight}{ArrowRight}{ArrowRight}{ArrowRight}{ArrowRight}");
         expect(screen.getByTestId("working-condition")).toBeDefined();
 
         // ArrowRight → should wrap to Profile

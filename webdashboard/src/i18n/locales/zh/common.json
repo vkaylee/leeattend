@@ -1185,7 +1185,11 @@
     "delete_confirm": "确认删除",
     "present": "至今",
     "notifications": "通知",
-    "load_more": "加载更多"
+    "load_more": "加载更多",
+    "submitting": "Submitting...",
+    "key": "Key",
+    "scope": "Scope",
+    "value": "Value"
   },
   "dashboard": {
     "title": "仪表板",

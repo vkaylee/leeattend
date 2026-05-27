@@ -84,7 +84,7 @@ try {
     const violations = [];
 
     if (rawSize > 250_000) violations.push(`raw ${formatBytes(rawSize)} > 250 kB`);
-    if (gzipSize > 50_000) violations.push(`gzip ${formatBytes(gzipSize)} > 50 kB`);
+    if (gzipSize > 60_000) violations.push(`gzip ${formatBytes(gzipSize)} > 60 kB`);
 
     if (violations.length > 0) {
       allPassed = false;

@@ -243,75 +243,87 @@
     "empty_guide": "Cài đặt Agent trên mạng nội bộ để kết nối thiết bị chấm công. Tải trình cài đặt từ tài liệu hướng dẫn."
   },
   "settings": {
-    "title": "Trung tâm cài đặt",
     "categories": {
-      "general": "Chung",
-      "organization": "Tổ chức",
-      "people": "Nhân sự",
-      "time": "Thời gian & Chấm công",
-      "payroll": "Lương",
-      "connectivity": "Kết nối",
-      "general_desc": "Cấu hình nhận diện thương hiệu và tùy chọn cơ bản.",
-      "organization_desc": "Quản lý thông tin tổ chức và thương hiệu.",
-      "people_desc": "Quản lý nhân viên, phòng ban và vai trò.",
-      "time_desc": "Cấu hình ca làm việc, lịch trình và quy tắc chấm công.",
-      "payroll_desc": "Quản lý ngày công chuẩn và công thức tính lương.",
-      "connectivity_desc": "Quản lý kết nối thiết bị và cài đặt mạng.",
-      "leave": "Quản lý nghỉ phép",
-      "billing_desc": "Quản lý thanh toán và gói đăng ký.",
-      "leave_desc": "Cấu hình loại nghỉ phép, chính sách tích lũy và gán chính sách."
+      "overtime": "Overtime",
+      "overtime_desc": "Overtime settings",
+      "general": "General",
+      "organization": "Organization",
+      "people": "People",
+      "time": "Time & Attendance",
+      "payroll": "Payroll",
+      "connectivity": "Connectivity",
+      "general_desc": "Branding and basic workspace options.",
+      "organization_desc": "Manage company details and branding.",
+      "people_desc": "Manage employees, departments and roles.",
+      "time_desc": "Configure shifts, rosters and attendance rules.",
+      "payroll_desc": "Manage standard work days and formulas.",
+      "connectivity_desc": "Manage device connections and network.",
+      "leave": "Leave Management",
+      "billing_desc": "Manage billing and subscriptions.",
+      "leave_desc": "Configure leave types, accrual policies, and assignments."
     },
-    "navigation": "Điều hướng",
-    "admin_only": "Chỉ dành cho quản trị viên",
-    "leave": {
-      "title": "Cài đặt Nghỉ phép",
-      "desc": "Cấu hình các loại nghỉ và chính sách tích lũy cho không gian làm việc.",
+    "overtime": {
+      "delete_config_desc": "Delete?",
+      "delete_workflow_desc": "Delete?",
+      "quotas_desc": "Quotas",
       "tabs": {
-        "types": "Loại nghỉ",
-        "policies": "Chính sách tích lũy",
-        "types_desc": "Định nghĩa các loại nghỉ và quy tắc",
-        "policies_desc": "Thiết lập cách tích lũy ngày nghỉ theo thời gian",
-        "assignments": "Gán chính sách",
-        "assignments_desc": "Gán chính sách nghỉ phép cho nhân viên hoặc phòng ban"
+        "quotas": "Quotas",
+        "workflows": "Workflows"
+      },
+      "workflows_desc": "Workflows"
+    },
+    "title": "Settings Hub",
+    "navigation": "Navigation",
+    "admin_only": "Administrators only",
+    "leave": {
+      "title": "Leave Settings",
+      "desc": "Configure leave types and accrual policies for your workspace.",
+      "tabs": {
+        "types": "Leave Types",
+        "policies": "Accrual Policies",
+        "types_desc": "Define available leave types and their rules",
+        "policies_desc": "Set up how leave is earned over time",
+        "assignments": "Policy Assignments",
+        "assignments_desc": "Assign policies to employees or departments"
       },
       "messages": {
-        "update_success": "Cập nhật loại nghỉ thành công",
-        "update_error": "Cập nhật loại nghỉ thất bại",
-        "create_success": "Tạo chính sách thành công",
-        "delete_success": "Xóa chính sách thành công",
-        "assignment_note": "Việc gán chính sách xác định cách tính phép cho mỗi người. Các thay đổi sẽ được áp dụng trong đợt tích lũy định kỳ tiếp theo hoặc có thể thực hiện thủ công qua công cụ \"Cập nhật số dư\" trong Cài đặt chung.",
-        "loading": "Đang tải danh sách...",
-        "no_assignments": "Không tìm thấy dữ liệu gán chính sách"
+        "update_success": "Leave type updated successfully",
+        "update_error": "Failed to update leave type",
+        "create_success": "Policy created successfully",
+        "delete_success": "Policy deleted successfully",
+        "assignment_note": "Policy assignments define how leave is calculated for each person. Changes will be applied during the next scheduled accrual run or can be forced via the \"Accrual Run\" tool in General Settings.",
+        "loading": "Loading assignments...",
+        "no_assignments": "No policy assignments found"
       },
       "fields": {
-        "approval": "Phê duyệt",
-        "document": "Tài liệu",
-        "days_per_period": "ngày / chu kỳ"
+        "approval": "Approval",
+        "document": "Document",
+        "days_per_period": "days / period"
       },
       "types": {
-        "paid": "Nghỉ có lương",
-        "unpaid": "Nghỉ không lương"
+        "paid": "Paid Leave",
+        "unpaid": "Unpaid Leave"
       },
       "actions": {
-        "assign": "Gán chính sách"
+        "assign": "Assign Policy"
       },
       "table": {
-        "policy": "Chính sách",
-        "type": "Loại",
-        "assignee": "Đối tượng",
-        "effective_date": "Ngày hiệu lực",
-        "created_at": "Ngày tạo"
+        "policy": "Policy",
+        "type": "Type",
+        "assignee": "Assignee",
+        "effective_date": "Effective Date",
+        "created_at": "Created At"
       }
     },
     "layout": {
-      "access": "Truy cập",
-      "control_panel": "Bảng điều khiển",
-      "operations": "Vận hành",
-      "security_system": "Bảo mật & Hệ thống",
-      "workspace": "Không gian làm việc"
+      "access": "Access",
+      "control_panel": "Control Panel",
+      "operations": "Operations",
+      "security_system": "Security & System",
+      "workspace": "Workspace"
     },
     "tabs": {
-      "members": "Thành viên"
+      "members": "Members"
     }
   }
 }

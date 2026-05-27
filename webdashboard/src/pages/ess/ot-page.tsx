@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { Typography } from "@/components/ui/typography";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { useProfile } from "@/hooks/use-profile";
-import { useMyOvertimeAssignments, useEmployeeQuota } from "@/hooks/use-overtime-requests";
+import { useMyOtAssignments, useEmployeeQuota } from "@/hooks/use-overtime-requests";
 
 import { CreateOtRequestModal } from "./components/create-ot-request-modal";
 import { OtQuotaWidget } from "./components/ot-quota-widget";
@@ -20,8 +20,8 @@ export default function EssOtPage() {
 
   const [createModalOpen, setCreateModalOpen] = useState(false);
 
-  const { data: assignments, isLoading: loadingAssignments } = useMyOvertimeAssignments(employeeId);
-  const { data: quota, isLoading: loadingQuota } = useEmployeeQuota(wsId, employeeId);
+  const { data: assignments, isLoading: loadingAssignments } = useMyOtAssignments(employeeId);
+  const { data: quota, isLoading: loadingQuota } = useEmployeeQuota(employeeId || "", new Date().toISOString().split('T')[0]);
 
   if (!wsId || !employeeId) return null;
 

@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { workspaceConfigApi, CreateConfigEntryRequest } from '@/lib/api/workspace-config';
-import { useAuth } from '@/hooks/use-auth';
+import { useWorkspace } from '@/hooks/use-workspace';
 
 export const workspaceConfigKeys = {
   all: ['workspace-configs'] as const,
@@ -11,32 +11,32 @@ export const workspaceConfigKeys = {
 };
 
 export const useWorkspaceConfigs = (prefix?: string) => {
-  const { currentWorkspace } = useAuth();
+  const { workspace } = useWorkspace();
   
   return useQuery({
-    queryKey: workspaceConfigKeys.list(currentWorkspace?.id || '', prefix),
-    queryFn: () => workspaceConfigApi.listConfigs(currentWorkspace!.id, prefix),
-    enabled: !!currentWorkspace?.id,
+    queryKey: workspaceConfigKeys.list(workspace?.id || '', prefix),
+    queryFn: () => workspaceConfigApi.listConfigs(workspace!.id, prefix),
+    enabled: !!workspace?.id,
   });
 };
 
 export const useWorkspaceConfig = (key: string, date?: string) => {
-  const { currentWorkspace } = useAuth();
+  const { workspace } = useWorkspace();
   
   return useQuery({
-    queryKey: workspaceConfigKeys.detail(currentWorkspace?.id || '', key, date),
-    queryFn: () => workspaceConfigApi.getConfig(currentWorkspace!.id, key, date),
-    enabled: !!currentWorkspace?.id && !!key,
+    queryKey: workspaceConfigKeys.detail(workspace?.id || '', key, date),
+    queryFn: () => workspaceConfigApi.getConfig(workspace!.id, key, date),
+    enabled: !!workspace?.id && !!key,
   });
 };
 
 export const useUpsertWorkspaceConfig = () => {
   const queryClient = useQueryClient();
-  const { currentWorkspace } = useAuth();
+  const { workspace } = useWorkspace();
 
   return useMutation({
     mutationFn: (payload: CreateConfigEntryRequest) => 
-      workspaceConfigApi.upsertConfig(currentWorkspace!.id, payload),
+      workspaceConfigApi.upsertConfig(workspace!.id, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: workspaceConfigKeys.all });
     },
@@ -45,11 +45,11 @@ export const useUpsertWorkspaceConfig = () => {
 
 export const useDeleteWorkspaceConfig = () => {
   const queryClient = useQueryClient();
-  const { currentWorkspace } = useAuth();
+  const { workspace } = useWorkspace();
 
   return useMutation({
     mutationFn: (id: string) => 
-      workspaceConfigApi.deleteConfig(currentWorkspace!.id, id),
+      workspaceConfigApi.deleteConfig(workspace!.id, id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: workspaceConfigKeys.all });
     },

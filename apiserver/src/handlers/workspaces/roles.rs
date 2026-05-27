@@ -582,8 +582,8 @@ mod tests {
     }
 
     #[test]
-    fn test_update_permissions_all_91_known_permissions() {
-        // The system has exactly 91 defined permissions. A role may be granted all of them.
+    fn test_update_permissions_all_97_known_permissions() {
+        // The system has exactly 97 defined permissions. A role may be granted all of them.
         // Verify that the request struct can hold the full set without truncation.
         use crate::domain::permissions::Permission;
         let all_perms: Vec<String> = Permission::all_permission_strings()
@@ -595,8 +595,8 @@ mod tests {
         let req: UpdateRolePermissionsRequest = serde_json::from_str(&json).unwrap();
         assert_eq!(
             req.permissions.len(),
-            91,
-            "All 91 permissions must be accepted"
+            97,
+            "All 97 permissions must be accepted"
         );
     }
 
