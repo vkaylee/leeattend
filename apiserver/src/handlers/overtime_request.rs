@@ -15,7 +15,7 @@ use std::sync::Arc;
 use uuid::Uuid;
 use chrono::{NaiveDate, NaiveTime};
 
-#[derive(Deserialize)]
+#[derive(Deserialize, utoipa::ToSchema)]
 pub struct CreateOvertimeRequestPayload {
     pub department_id: Option<Uuid>,
     pub planned_date: NaiveDate,
@@ -26,12 +26,23 @@ pub struct CreateOvertimeRequestPayload {
     pub employees: Vec<Uuid>,
 }
 
-#[derive(serde::Serialize)]
+#[derive(serde::Serialize, utoipa::ToSchema)]
 pub struct OvertimeRequestDetail {
     pub request: OvertimeRequest,
     pub employees: Vec<OvertimeRequestEmployee>,
 }
 
+#[utoipa::path(
+    post,
+    path = "/workspaces/{ws_id}/overtime/requests",
+    request_body = CreateOvertimeRequestPayload,
+    responses(
+        (status = 200, description = "Overtime request created", body = OvertimeRequest)
+    ),
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID")
+    )
+)]
 pub async fn create_ot_request(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -83,6 +94,16 @@ pub async fn create_ot_request(
     Ok(Json(created))
 }
 
+#[utoipa::path(
+    get,
+    path = "/workspaces/{ws_id}/overtime/requests",
+    responses(
+        (status = 200, description = "List overtime requests", body = [OvertimeRequest])
+    ),
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID")
+    )
+)]
 pub async fn list_ot_requests(
     State(_state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -93,11 +114,23 @@ pub async fn list_ot_requests(
     Ok(Json(vec![]))
 }
 
+#[utoipa::path(
+    get,
+    path = "/workspaces/{ws_id}/overtime/requests/{id}",
+    responses(
+        (status = 200, description = "Overtime request details", body = OvertimeRequestDetail)
+    ),
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        ("id" = Uuid, Path, description = "Request ID")
+    )
+)]
 pub async fn get_ot_request(
     State(state): State<Arc<AppState>>,
-    Path((_, id)): Path<(Uuid, Uuid)>,
+    Path(params): Path<(Uuid, Uuid)>,
     ctx: MemberContext,
 ) -> AppResult<Json<OvertimeRequestDetail>> {
+    let (_, id) = params;
     ctx.require_permission(Permission::OvertimeRequestRead)?;
     
     let request = state
@@ -116,11 +149,23 @@ pub async fn get_ot_request(
     Ok(Json(OvertimeRequestDetail { request, employees }))
 }
 
+#[utoipa::path(
+    post,
+    path = "/workspaces/{ws_id}/overtime/requests/{id}/submit",
+    responses(
+        (status = 200, description = "Overtime request submitted for approval")
+    ),
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        ("id" = Uuid, Path, description = "Request ID")
+    )
+)]
 pub async fn submit_for_approval(
     State(state): State<Arc<AppState>>,
-    Path((_, id)): Path<(Uuid, Uuid)>,
+    Path(params): Path<(Uuid, Uuid)>,
     ctx: MemberContext,
 ) -> AppResult<StatusCode> {
+    let (_, id) = params;
     ctx.require_permission(Permission::OvertimeRequestCreate)?;
     
     state
@@ -132,18 +177,32 @@ pub async fn submit_for_approval(
     Ok(StatusCode::OK)
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, utoipa::ToSchema)]
 pub struct EmployeeConsentRequest {
     pub status: String,
     pub decline_reason: Option<String>,
 }
 
+#[utoipa::path(
+    post,
+    path = "/workspaces/{ws_id}/overtime/requests/{id}/consent/{emp_id}",
+    request_body = EmployeeConsentRequest,
+    responses(
+        (status = 200, description = "Employee consent status updated")
+    ),
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        ("id" = Uuid, Path, description = "Request ID"),
+        ("emp_id" = Uuid, Path, description = "Employee ID")
+    )
+)]
 pub async fn employee_consent(
     State(state): State<Arc<AppState>>,
-    Path((_, id, emp_id)): Path<(Uuid, Uuid, Uuid)>,
+    Path(params): Path<(Uuid, Uuid, Uuid)>,
     ctx: MemberContext,
     Json(req): Json<EmployeeConsentRequest>,
 ) -> AppResult<StatusCode> {
+    let (_, id, emp_id) = params;
     state
         .payroll
         .overtime_request_service

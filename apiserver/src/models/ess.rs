@@ -4,7 +4,7 @@ use uuid::Uuid;
 
 use crate::models::employee::Employee;
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct EmployeeProfile {
     pub id: Uuid,
     pub employee_id: Uuid,
@@ -20,7 +20,7 @@ pub struct EmployeeProfile {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct CreateEmployeeProfileRequest {
     pub phone: Option<String>,
     pub address: Option<String>,
@@ -32,7 +32,7 @@ pub struct CreateEmployeeProfileRequest {
     pub bank_branch: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct UpdateEmployeeProfileRequest {
     pub phone: Option<String>,
     pub address: Option<String>,
@@ -44,7 +44,7 @@ pub struct UpdateEmployeeProfileRequest {
     pub bank_branch: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct EmployeeEmergencyContact {
     pub id: Uuid,
     pub employee_id: Uuid,
@@ -55,7 +55,7 @@ pub struct EmployeeEmergencyContact {
     pub created_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct CreateEmergencyContactRequest {
     pub contact_name: String,
     pub relationship: String,
@@ -63,7 +63,7 @@ pub struct CreateEmergencyContactRequest {
     pub is_primary: Option<bool>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct EmployeeDocument {
     pub id: Uuid,
     pub employee_id: Uuid,
@@ -79,13 +79,13 @@ pub struct EmployeeDocument {
     pub created_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct UploadDocumentRequest {
     pub document_type: String,
     pub expires_at: Option<NaiveDate>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct MyProfileResponse {
     pub employee: Employee,
     pub profile: Option<EmployeeProfile>,

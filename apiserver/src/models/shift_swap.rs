@@ -6,7 +6,7 @@ use uuid::Uuid;
 // Status enum
 // ---------------------------------------------------------------------------
 
-#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, utoipa::ToSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum ShiftSwapStatus {
     PendingTarget,
@@ -20,7 +20,7 @@ pub enum ShiftSwapStatus {
 // Database row model
 // ---------------------------------------------------------------------------
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct ShiftSwapRequest {
     pub id: Uuid,
     pub workspace_id: Uuid,
@@ -41,7 +41,7 @@ pub struct ShiftSwapRequest {
 // Enriched response with joined employee/shift names
 // ---------------------------------------------------------------------------
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct ShiftSwapRequestWithNames {
     pub id: Uuid,
     pub workspace_id: Uuid,
@@ -67,7 +67,7 @@ pub struct ShiftSwapRequestWithNames {
 // API request types
 // ---------------------------------------------------------------------------
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, utoipa::ToSchema)]
 pub struct CreateShiftSwapRequest {
     pub requester_id: Uuid,
     pub target_id: Uuid,
@@ -75,7 +75,7 @@ pub struct CreateShiftSwapRequest {
     pub reason: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, utoipa::ToSchema)]
 pub struct ApproveShiftSwapRequest {
     pub status: ShiftSwapStatus, // approved or rejected
 }
@@ -85,7 +85,7 @@ pub struct ApproveShiftSwapRequest {
 // ---------------------------------------------------------------------------
 
 /// Employee creates a swap request (requester_id comes from EmployeeContext)
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, utoipa::ToSchema)]
 pub struct EssCreateShiftSwapRequest {
     pub target_id: Uuid,
     pub swap_date: NaiveDate,
@@ -93,7 +93,7 @@ pub struct EssCreateShiftSwapRequest {
 }
 
 /// Target employee responds to a swap request
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, utoipa::ToSchema)]
 pub struct RespondShiftSwapRequest {
     pub accept: bool,
 }

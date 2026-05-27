@@ -1,81 +1,62 @@
 import { API_BASE_URL } from "./config";
 import { apiFetch, setAccessToken, setRefreshToken, setCurrentUserId, clearAuthSession } from "./helpers";
 import { AuthResponse, RegisterRequest, ChangePasswordRequest, User } from "./types";
+import { client } from "./client";
 
 export async function login(username: string, password: string): Promise<AuthResponse> {
-  const response = await apiFetch(`${API_BASE_URL}/auth/login`, {
-    method: "POST",
-    body: JSON.stringify({ email: username, password }),
+  const { data } = await client.POST("/auth/login", {
+    body: { email: username, password },
   });
-  if (!response.ok) {
-    let errorMessage = "Login failed";
-    try {
-      const errorData = (await response.json()) as { error?: { message?: string } };
-      if (errorData.error?.message) {
-        errorMessage = errorData.error.message;
-      }
-    } catch {
-      // Ignore JSON parse errors and use default message
-    }
-    throw new Error(errorMessage);
-  }
-  const data = (await response.json()) as AuthResponse;
+  if (!data) throw new Error("Login failed");
   setAccessToken(data.access_token);
   setRefreshToken(data.refresh_token);
   setCurrentUserId(data.user.id);
-  return data;
+  return data as any;
 }
 
 export async function logout(): Promise<void> {
-  await apiFetch(`${API_BASE_URL}/auth/logout`, { method: "POST" });
+  await client.POST("/auth/logout", {
+    body: { refresh_token: "" },
+  });
   clearAuthSession();
 }
 
 export async function register(data: RegisterRequest): Promise<AuthResponse> {
-  const response = await apiFetch(`${API_BASE_URL}/auth/register`, {
-    method: "POST",
-    body: JSON.stringify(data),
+  const { data: resData } = await client.POST("/auth/register", {
+    body: data,
   });
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(error || "Registration failed");
-  }
-  return response.json() as Promise<AuthResponse>;
+  if (!resData) throw new Error("Registration failed");
+  return resData as any;
 }
 
 export async function changePassword(
   data: ChangePasswordRequest,
 ): Promise<string> {
-  const response = await apiFetch(`${API_BASE_URL}/auth/change-password`, {
-    method: "POST",
-    body: JSON.stringify(data),
+  const { data: resData, error } = await client.POST("/auth/change-password", {
+    body: data,
   });
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(error || "Failed to change password");
-  }
-  return response.text();
+  if (error) throw new Error("Failed to change password");
+  return "Password changed successfully";
 }
 
 export async function fetchMe(): Promise<User> {
-  const response = await apiFetch(`${API_BASE_URL}/me`);
-  if (!response.ok) throw new Error("Failed to fetch profile");
-  return response.json() as Promise<User>;
+  const { data } = await client.GET("/me");
+  if (!data) throw new Error("Failed to fetch profile");
+  return data as any;
 }
 
 export async function updateMe(data: Partial<User>): Promise<User> {
-  const response = await apiFetch(`${API_BASE_URL}/me`, {
-    method: "PATCH",
-    body: JSON.stringify(data),
+  const { data: resData } = await client.PATCH("/me", {
+    body: data as any,
   });
-  if (!response.ok) throw new Error("Failed to update profile");
-  return response.json() as Promise<User>;
+  if (!resData) throw new Error("Failed to update profile");
+  return resData as any;
 }
 
 export async function fetchUsers(): Promise<User[]> {
-  const response = await apiFetch(`${API_BASE_URL}/users`);
-  if (!response.ok) throw new Error("Failed to fetch users");
-  return response.json() as Promise<User[]>;
+  const { data } = await client.GET("/users");
+  if (!data) throw new Error("Failed to fetch users");
+  return data as any[];
 }
 
 export async function fetchDevSuperUser(): Promise<{
@@ -94,7 +75,7 @@ export async function fetchMyPermissions(): Promise<{
   roles: string[];
   managed_department_ids: string[] | null;
 }> {
-  const response = await apiFetch(`${API_BASE_URL}/me/permissions`);
-  if (!response.ok) throw new Error("Failed to fetch my permissions");
-  return response.json() as Promise<{ permissions: string[]; roles: string[]; managed_department_ids: string[] | null; }>;
+  const { data } = await client.GET("/me/permissions");
+  if (!data) throw new Error("Failed to fetch my permissions");
+  return data as any;
 }

@@ -112,6 +112,7 @@ export default function EmployeeAssignmentFormModal({
             ...data,
             end_date: payloadDate,
             host_location_id: payloadLocationId,
+            status: data.status as any,
           },
         });
         toast.success("Đã cập nhật phái cử thành công");

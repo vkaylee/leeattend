@@ -5,7 +5,7 @@ use uuid::Uuid;
 
 use crate::models::enums::{EarlyArrivalStrategy, RoleScopeType};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, utoipa::ToSchema)]
 #[allow(clippy::struct_excessive_bools)]
 pub struct PolicyRules {
     pub grace_period_minutes: i32,
@@ -17,7 +17,7 @@ pub struct PolicyRules {
     pub allow_early_ot: bool,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, utoipa::ToSchema)]
 pub struct WorkingCondition {
     pub id: Uuid,
     pub employee_id: Uuid,
@@ -28,7 +28,7 @@ pub struct WorkingCondition {
     pub end_date: Option<NaiveDate>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct CreateWorkingConditionRequest {
     pub type_: String,
     pub minute_allowance: i32,
@@ -37,7 +37,7 @@ pub struct CreateWorkingConditionRequest {
     pub end_date: Option<NaiveDate>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct Workspace {
     pub id: Uuid,
     pub name: String,
@@ -55,13 +55,13 @@ pub struct Workspace {
     pub custom_db_url_encrypted: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct CreateWorkspaceRequest {
     pub name: String,
     pub database_url: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct UpdateWorkspaceRequest {
     pub name: Option<String>,
     pub date_format: Option<String>,
@@ -75,20 +75,20 @@ pub struct UpdateWorkspaceRequest {
     pub default_holiday_ot_multiplier: Option<Decimal>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct WorkspaceMember {
     pub workspace_id: Uuid,
     pub user_id: Uuid,
     pub role_id: Uuid,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct AddMemberRequest {
     pub email: String,
     pub role_id: Uuid,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct MemberExtraRole {
     pub id: Uuid,
     pub workspace_id: Uuid,
@@ -98,13 +98,13 @@ pub struct MemberExtraRole {
     pub expires_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct AssignRoleRequest {
     pub role_id: Uuid,
     pub expires_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct WorkspaceMemberDetail {
     pub workspace_id: Uuid,
     pub user_id: Uuid,
@@ -114,14 +114,14 @@ pub struct WorkspaceMemberDetail {
     pub avatar_url: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct WorkspaceMemberDetailResponse {
     #[serde(flatten)]
     pub detail: WorkspaceMemberDetail,
     pub extra_role_ids: Vec<Uuid>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct MemberExtraPermission {
     pub id: Uuid,
     pub workspace_id: Uuid,
@@ -132,13 +132,13 @@ pub struct MemberExtraPermission {
     pub assigned_by: Option<Uuid>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct AssignPermissionRequest {
     pub permission: String,
     pub expires_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct WorkspaceRole {
     pub id: Uuid,
     pub workspace_id: Option<Uuid>,
@@ -151,7 +151,7 @@ pub struct WorkspaceRole {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct WorkspaceRolePermission {
     pub role_id: Uuid,
     pub permission_name: String,

@@ -15,11 +15,31 @@ use axum::{
 use std::sync::Arc;
 use uuid::Uuid;
 
+#[derive(serde::Serialize, utoipa::ToSchema)]
+pub struct PaginatedEmployees {
+    pub data: Vec<Employee>,
+    pub total: usize,
+    pub page: i64,
+    pub limit: i64,
+}
+
+#[utoipa::path(
+    get,
+    path = "/workspaces/{workspace_id}/employees/{id}/conditions",
+    responses(
+        (status = 200, description = "Successfully retrieved working conditions", body = [WorkingCondition])
+    ),
+    params(
+        ("workspace_id" = Uuid, Path, description = "Workspace ID"),
+        ("id" = Uuid, Path, description = "Employee ID"),
+    )
+)]
 pub async fn get_working_conditions(
-    Path((_, id)): Path<(Uuid, Uuid)>,
+    Path(params): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> AppResult<Json<Vec<WorkingCondition>>> {
+    let (_workspace_id, id) = params;
     let _workspace_id = ctx.workspace_id;
 
     let conditions = state
@@ -30,12 +50,25 @@ pub async fn get_working_conditions(
     Ok(Json(conditions))
 }
 
+#[utoipa::path(
+    post,
+    path = "/workspaces/{workspace_id}/employees/{id}/conditions",
+    request_body = CreateWorkingConditionRequest,
+    responses(
+        (status = 201, description = "Successfully created working condition", body = WorkingCondition)
+    ),
+    params(
+        ("workspace_id" = Uuid, Path, description = "Workspace ID"),
+        ("id" = Uuid, Path, description = "Employee ID"),
+    )
+)]
 pub async fn create_working_condition(
-    Path((_, id)): Path<(Uuid, Uuid)>,
+    Path(params): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
     Json(req): Json<CreateWorkingConditionRequest>,
 ) -> AppResult<impl IntoResponse> {
+    let (_workspace_id, id) = params;
     let target_dept_id = common::current_department_id(&state, &ctx.auth_token, id).await;
     ctx.require_scoped_permission(Permission::EmployeesUpdate, target_dept_id)?;
     let cond = state
@@ -46,11 +79,24 @@ pub async fn create_working_condition(
     Ok((StatusCode::CREATED, Json(cond)))
 }
 
+#[utoipa::path(
+    delete,
+    path = "/workspaces/{workspace_id}/employees/{id}/conditions/{cond_id}",
+    responses(
+        (status = 204, description = "Successfully deleted working condition")
+    ),
+    params(
+        ("workspace_id" = Uuid, Path, description = "Workspace ID"),
+        ("id" = Uuid, Path, description = "Employee ID"),
+        ("cond_id" = Uuid, Path, description = "Working Condition ID"),
+    )
+)]
 pub async fn delete_working_condition(
-    Path((_, id, cond_id)): Path<(Uuid, Uuid, Uuid)>,
+    Path(params): Path<(Uuid, Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> AppResult<StatusCode> {
+    let (_workspace_id, id, cond_id) = params;
     let target_dept_id = common::current_department_id(&state, &ctx.auth_token, id).await;
     ctx.require_scoped_permission(Permission::EmployeesUpdate, target_dept_id)?;
     state
@@ -63,6 +109,17 @@ pub async fn delete_working_condition(
 
 // --- Employee Management Handlers ---
 
+#[utoipa::path(
+    get,
+    path = "/workspaces/{workspace_id}/employees",
+    responses(
+        (status = 200, description = "Successfully retrieved employees list", body = PaginatedEmployees)
+    ),
+    params(
+        ("workspace_id" = Uuid, Path, description = "Workspace ID"),
+        PaginationParams
+    )
+)]
 pub async fn get_employees(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -106,11 +163,23 @@ pub async fn get_employees(
     }))
 }
 
+#[utoipa::path(
+    get,
+    path = "/workspaces/{workspace_id}/employees/{id}",
+    responses(
+        (status = 200, description = "Successfully retrieved employee details", body = Employee)
+    ),
+    params(
+        ("workspace_id" = Uuid, Path, description = "Workspace ID"),
+        ("id" = Uuid, Path, description = "Employee ID"),
+    )
+)]
 pub async fn get_employee(
-    Path((_, id)): Path<(Uuid, Uuid)>,
+    Path(params): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> AppResult<Json<Employee>> {
+    let (_workspace_id, id) = params;
     let _workspace_id = ctx.workspace_id;
 
     let employee = state
@@ -122,6 +191,17 @@ pub async fn get_employee(
     Ok(Json(employee))
 }
 
+#[utoipa::path(
+    post,
+    path = "/workspaces/{workspace_id}/employees",
+    request_body = CreateEmployeeRequest,
+    responses(
+        (status = 201, description = "Successfully created employee", body = Employee)
+    ),
+    params(
+        ("workspace_id" = Uuid, Path, description = "Workspace ID"),
+    )
+)]
 pub async fn create_employee(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -137,12 +217,25 @@ pub async fn create_employee(
     Ok((StatusCode::CREATED, Json(employee)))
 }
 
+#[utoipa::path(
+    put,
+    path = "/workspaces/{workspace_id}/employees/{id}",
+    request_body = UpdateEmployeeRequest,
+    responses(
+        (status = 200, description = "Successfully updated employee details", body = Employee)
+    ),
+    params(
+        ("workspace_id" = Uuid, Path, description = "Workspace ID"),
+        ("id" = Uuid, Path, description = "Employee ID"),
+    )
+)]
 pub async fn update_employee(
-    Path((_, id)): Path<(Uuid, Uuid)>,
+    Path(params): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
     Json(req): Json<UpdateEmployeeRequest>,
 ) -> AppResult<Json<Employee>> {
+    let (_workspace_id, id) = params;
     let target_dept_id = common::current_department_id(&state, &ctx.auth_token, id).await;
     ctx.require_scoped_permission(Permission::EmployeesUpdate, target_dept_id)?;
     let employee = state
@@ -153,11 +246,23 @@ pub async fn update_employee(
     Ok(Json(employee))
 }
 
+#[utoipa::path(
+    delete,
+    path = "/workspaces/{workspace_id}/employees/{id}",
+    responses(
+        (status = 204, description = "Successfully deleted employee")
+    ),
+    params(
+        ("workspace_id" = Uuid, Path, description = "Workspace ID"),
+        ("id" = Uuid, Path, description = "Employee ID"),
+    )
+)]
 pub async fn delete_employee(
-    Path((_, id)): Path<(Uuid, Uuid)>,
+    Path(params): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> AppResult<StatusCode> {
+    let (_workspace_id, id) = params;
     let target_dept_id = common::current_department_id(&state, &ctx.auth_token, id).await;
     ctx.require_scoped_permission(Permission::EmployeesDelete, target_dept_id)?;
     let _workspace_id = ctx.workspace_id;
@@ -170,12 +275,25 @@ pub async fn delete_employee(
     Ok(StatusCode::NO_CONTENT)
 }
 
+#[utoipa::path(
+    post,
+    path = "/workspaces/{workspace_id}/employees/{id}/rehire",
+    request_body = RehireEmployeeRequest,
+    responses(
+        (status = 200, description = "Successfully rehired employee", body = Employee)
+    ),
+    params(
+        ("workspace_id" = Uuid, Path, description = "Workspace ID"),
+        ("id" = Uuid, Path, description = "Employee ID"),
+    )
+)]
 pub async fn rehire_employee(
-    Path((_, id)): Path<(Uuid, Uuid)>,
+    Path(params): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
     Json(req): Json<RehireEmployeeRequest>,
 ) -> AppResult<Json<Employee>> {
+    let (_workspace_id, id) = params;
     let target_dept_id = common::current_department_id(&state, &ctx.auth_token, id).await;
     ctx.require_scoped_permission(Permission::EmployeesRehire, target_dept_id)?;
     let employee = state
@@ -186,11 +304,23 @@ pub async fn rehire_employee(
     Ok(Json(employee))
 }
 
+#[utoipa::path(
+    get,
+    path = "/workspaces/{workspace_id}/employees/{id}/departments",
+    responses(
+        (status = 200, description = "Successfully retrieved employee department history", body = [EmployeeDepartmentHistory])
+    ),
+    params(
+        ("workspace_id" = Uuid, Path, description = "Workspace ID"),
+        ("id" = Uuid, Path, description = "Employee ID"),
+    )
+)]
 pub async fn get_employee_department_history(
-    Path((_, id)): Path<(Uuid, Uuid)>,
+    Path(params): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> AppResult<Json<Vec<EmployeeDepartmentHistory>>> {
+    let (_workspace_id, id) = params;
     let history = state
         .employees
         .service
@@ -199,12 +329,25 @@ pub async fn get_employee_department_history(
     Ok(Json(history))
 }
 
+#[utoipa::path(
+    post,
+    path = "/workspaces/{workspace_id}/employees/{id}/departments",
+    request_body = TransferEmployeeRequest,
+    responses(
+        (status = 200, description = "Successfully transferred employee to department", body = EmployeeDepartmentHistory)
+    ),
+    params(
+        ("workspace_id" = Uuid, Path, description = "Workspace ID"),
+        ("id" = Uuid, Path, description = "Employee ID"),
+    )
+)]
 pub async fn transfer_employee(
-    Path((_, id)): Path<(Uuid, Uuid)>,
+    Path(params): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
     Json(req): Json<TransferEmployeeRequest>,
 ) -> AppResult<Json<EmployeeDepartmentHistory>> {
+    let (_workspace_id, id) = params;
     let target_dept_id = common::current_department_id(&state, &ctx.auth_token, id).await;
     ctx.require_scoped_permission(Permission::DepartmentsTransfer, target_dept_id)?;
     let history = state

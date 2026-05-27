@@ -10,8 +10,8 @@ import { UpsertConfigModal } from "./upsert-config-modal";
 
 export function OvertimeQuotasTab({ wsId }: { wsId: string }) {
   const { t } = useTranslation();
-  const { data: configs, isLoading } = useWorkspaceConfigs(wsId);
-  const { mutate: deleteConfig, isPending: isDeleting } = useDeleteWorkspaceConfig(wsId);
+  const { data: configs, isLoading } = useWorkspaceConfigs();
+  const { mutate: deleteConfig, isPending: isDeleting } = useDeleteWorkspaceConfig();
   const { confirm } = useConfirm();
 
   const [upsertModalOpen, setUpsertModalOpen] = useState(false);
@@ -33,10 +33,10 @@ export function OvertimeQuotasTab({ wsId }: { wsId: string }) {
   const handleDelete = async (id: string) => {
     const isConfirmed = await confirm({
       title: t("common.delete_confirm"),
-      description: t("settings.overtime.delete_config_desc", { defaultValue: "Are you sure you want to delete this config? This action cannot be undone." }),
-      confirmText: t("common.delete"),
-      cancelText: t("common.cancel"),
-      variant: "destructive"
+      message: t("settings.overtime.delete_config_desc", { defaultValue: "Are you sure you want to delete this config? This action cannot be undone." }),
+      confirmLabel: t("common.delete"),
+      cancelLabel: t("common.cancel"),
+      variant: "danger"
     });
 
     if (isConfirmed) {

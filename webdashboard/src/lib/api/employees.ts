@@ -1,15 +1,37 @@
-import { apiClient } from "./client";
-import { Employee, EmploymentPeriod, EmployeeDepartmentHistory, WorkingCondition, PaginatedResponse, EmploymentPhaseDefinition, EmployeePhase } from "./types";
+import { client, apiClient } from "./client";
+import type {
+  Employee,
+  EmploymentPeriod,
+  EmployeeDepartmentHistory,
+  WorkingCondition,
+  PaginatedResponse,
+  EmploymentPhaseDefinition,
+  EmployeePhase
+} from "./types";
+
+export type {
+  Employee,
+  EmploymentPeriod,
+  EmployeeDepartmentHistory,
+  WorkingCondition,
+  PaginatedResponse,
+  EmploymentPhaseDefinition,
+  EmployeePhase
+};
 
 export async function fetchEmployees(
   wsId: string,
   page = 1,
   limit = 50
 ): Promise<PaginatedResponse<Employee>> {
-  const { data } = await apiClient.get<PaginatedResponse<Employee>>(
-    `/workspaces/${wsId}/employees?page=${page.toString()}&limit=${limit.toString()}`
-  );
-  return data;
+  const { data } = await client.GET("/workspaces/{workspace_id}/employees", {
+    params: {
+      path: { workspace_id: wsId },
+      query: { page, limit },
+    },
+  });
+  if (!data) throw new Error("No response data");
+  return data as unknown as PaginatedResponse<Employee>;
 }
 
 // --- Employment Phases API ---
@@ -49,8 +71,13 @@ export async function updateEmployeePhaseStatus(
 }
 
 export async function fetchWorkingConditions(wsId: string, employeeId: string): Promise<WorkingCondition[]> {
-  const { data } = await apiClient.get<WorkingCondition[]>(`/workspaces/${wsId}/employees/${employeeId}/conditions`);
-  return data;
+  const { data } = await client.GET("/workspaces/{workspace_id}/employees/{id}/conditions", {
+    params: {
+      path: { workspace_id: wsId, id: employeeId },
+    },
+  });
+  if (!data) throw new Error("No response data");
+  return data as unknown as WorkingCondition[];
 }
 
 export async function createWorkingCondition(
@@ -58,12 +85,22 @@ export async function createWorkingCondition(
   employeeId: string,
   condition: Partial<WorkingCondition>
 ): Promise<WorkingCondition> {
-  const { data } = await apiClient.post<WorkingCondition>(`/workspaces/${wsId}/employees/${employeeId}/conditions`, condition);
-  return data;
+  const { data } = await client.POST("/workspaces/{workspace_id}/employees/{id}/conditions", {
+    params: {
+      path: { workspace_id: wsId, id: employeeId },
+    },
+    body: condition as any,
+  });
+  if (!data) throw new Error("No response data");
+  return data as unknown as WorkingCondition;
 }
 
 export async function deleteWorkingCondition(wsId: string, employeeId: string, conditionId: string): Promise<void> {
-  await apiClient.delete(`/workspaces/${wsId}/employees/${employeeId}/conditions/${conditionId}`);
+  await client.DELETE("/workspaces/{workspace_id}/employees/{id}/conditions/{cond_id}", {
+    params: {
+      path: { workspace_id: wsId, id: employeeId, cond_id: conditionId },
+    },
+  });
 }
 
 export interface SearchEmployeesParams {
@@ -88,29 +125,32 @@ export async function searchEmployees(
     sortDir,
     departmentIds,
   } = params;
-  const queryParams = new URLSearchParams();
-  if (query) {
-    queryParams.append("q", query);
-  }
-  queryParams.append("page", page.toString());
-  queryParams.append("limit", limit.toString());
-  if (sortBy) {
-    queryParams.append("sort_by", sortBy);
-  }
-  if (sortDir) {
-    queryParams.append("sort_dir", sortDir);
-  }
-  if (departmentIds && departmentIds.length > 0) {
-    queryParams.append("department_id", departmentIds.join(","));
-  }
-  
-  const { data } = await apiClient.get<PaginatedResponse<Employee>>(`/workspaces/${wsId}/employees?${queryParams.toString()}`);
-  return data;
+
+  const { data } = await client.GET("/workspaces/{workspace_id}/employees", {
+    params: {
+      path: { workspace_id: wsId },
+      query: {
+        page,
+        limit,
+        q: query || undefined,
+        sort_by: sortBy || undefined,
+        sort_dir: sortDir || undefined,
+        department_id: (departmentIds && departmentIds.length > 0) ? departmentIds.join(",") : undefined,
+      },
+    },
+  });
+  if (!data) throw new Error("No response data");
+  return data as unknown as PaginatedResponse<Employee>;
 }
 
 export async function fetchEmployee(wsId: string, id: string): Promise<Employee> {
-  const { data } = await apiClient.get<Employee>(`/workspaces/${wsId}/employees/${id}`);
-  return data;
+  const { data } = await client.GET("/workspaces/{workspace_id}/employees/{id}", {
+    params: {
+      path: { workspace_id: wsId, id },
+    },
+  });
+  if (!data) throw new Error("No response data");
+  return data as unknown as Employee;
 }
 
 export async function fetchEmploymentHistory(
@@ -126,16 +166,28 @@ export async function rehireEmployee(
   id: string,
   data: { hire_date: string }
 ): Promise<Employee> {
-  const { data: result } = await apiClient.post<Employee>(`/workspaces/${wsId}/employees/${id}/rehire`, data);
-  return result;
+  const { data: result } = await client.POST("/workspaces/{workspace_id}/employees/{id}/rehire", {
+    params: {
+      path: { workspace_id: wsId, id },
+    },
+    body: data,
+  });
+  if (!result) throw new Error("No response data");
+  return result as unknown as Employee;
 }
 
 export async function createEmployee(
   wsId: string,
   employee: Partial<Employee>,
 ): Promise<Employee> {
-  const { data } = await apiClient.post<Employee>(`/workspaces/${wsId}/employees`, employee);
-  return data;
+  const { data } = await client.POST("/workspaces/{workspace_id}/employees", {
+    params: {
+      path: { workspace_id: wsId },
+    },
+    body: employee as any,
+  });
+  if (!data) throw new Error("No response data");
+  return data as unknown as Employee;
 }
 
 export async function updateEmployee(
@@ -143,12 +195,22 @@ export async function updateEmployee(
   id: string,
   employee: Partial<Employee>,
 ): Promise<Employee> {
-  const { data } = await apiClient.put<Employee>(`/workspaces/${wsId}/employees/${id}`, employee);
-  return data;
+  const { data } = await client.PUT("/workspaces/{workspace_id}/employees/{id}", {
+    params: {
+      path: { workspace_id: wsId, id },
+    },
+    body: employee as any,
+  });
+  if (!data) throw new Error("No response data");
+  return data as unknown as Employee;
 }
 
 export async function deleteEmployee(wsId: string, id: string): Promise<void> {
-  await apiClient.delete(`/workspaces/${wsId}/employees/${id}`);
+  await client.DELETE("/workspaces/{workspace_id}/employees/{id}", {
+    params: {
+      path: { workspace_id: wsId, id },
+    },
+  });
 }
 
 export async function transferEmployee(
@@ -156,11 +218,22 @@ export async function transferEmployee(
   employeeId: string,
   data: { department_id: string; effective_date: string; notes?: string }
 ): Promise<EmployeeDepartmentHistory> {
-  const { data: result } = await apiClient.post<EmployeeDepartmentHistory>(`/workspaces/${wsId}/employees/${employeeId}/departments`, data);
-  return result;
+  const { data: result } = await client.POST("/workspaces/{workspace_id}/employees/{id}/departments", {
+    params: {
+      path: { workspace_id: wsId, id: employeeId },
+    },
+    body: data,
+  });
+  if (!result) throw new Error("No response data");
+  return result as unknown as EmployeeDepartmentHistory;
 }
 
 export async function fetchEmployeeDepartmentHistory(wsId: string, employeeId: string): Promise<EmployeeDepartmentHistory[]> {
-  const { data } = await apiClient.get<EmployeeDepartmentHistory[]>(`/workspaces/${wsId}/employees/${employeeId}/departments`);
-  return data;
+  const { data } = await client.GET("/workspaces/{workspace_id}/employees/{id}/departments", {
+    params: {
+      path: { workspace_id: wsId, id: employeeId },
+    },
+  });
+  if (!data) throw new Error("No response data");
+  return data as unknown as EmployeeDepartmentHistory[];
 }

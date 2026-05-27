@@ -7,7 +7,7 @@ use crate::errors::AppError;
 use crate::models::Holiday;
 
 /// Result of processing holiday leave deductions for employees.
-#[derive(Debug, Clone, serde::Serialize)]
+#[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
 pub enum HolidayLeaveResult {
     /// Holiday is paid — no deduction needed.
     Paid,

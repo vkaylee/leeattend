@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 
 import { Typography } from "@/components/ui/typography";
 import { useMyOtAssignments, useEmployeeQuota } from "@/hooks/use-overtime-requests";
-import { useProfile } from "@/hooks/use-profile";
+import { useMyProfile } from "@/hooks/use-ess";
 import { useWorkspace } from "@/hooks/use-workspace";
 
 import { CreateOtRequestModal } from "./components/create-ot-request-modal";
@@ -14,9 +14,9 @@ import { OtQuotaWidget } from "./components/ot-quota-widget";
 export default function EssOtPage() {
   const { t } = useTranslation();
   const { workspace: ws } = useWorkspace();
-  const { profile } = useProfile();
+  const { employee } = useMyProfile();
   const wsId = ws?.id;
-  const employeeId = profile?.employee_id;
+  const employeeId = employee?.id;
 
   const [createModalOpen, setCreateModalOpen] = useState(false);
 

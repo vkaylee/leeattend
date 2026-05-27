@@ -44,7 +44,7 @@ pub struct PayslipSegment {
     pub std_days_source: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct Payslip {
     pub id: Uuid,
     pub employee_id: Uuid,

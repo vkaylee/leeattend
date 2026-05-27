@@ -6,7 +6,7 @@ use crate::models::enums::{
     AccrualFrequency, LeaveDurationType, LeaveStatus, LeaveTransactionType,
 };
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct LeaveRequest {
     pub id: Uuid,
     pub employee_id: Uuid,
@@ -34,7 +34,7 @@ pub struct LeaveRequestWithType {
     pub is_paid: bool,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, utoipa::ToSchema)]
 pub struct SubmitLeaveRequest {
     pub employee_id: Uuid,
     pub leave_type_id: Uuid,
@@ -49,12 +49,12 @@ pub struct SubmitLeaveRequest {
     pub end_time: Option<NaiveTime>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, utoipa::ToSchema)]
 pub struct ApproveLeaveRequest {
     pub status: LeaveStatus,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct LeaveBalance {
     pub id: Uuid,
     pub employee_id: Uuid,
@@ -67,7 +67,7 @@ pub struct LeaveBalance {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct EmployeeLeaveBalance {
     pub leave_type_id: Uuid,
     pub leave_type_code: String,
@@ -80,7 +80,7 @@ pub struct EmployeeLeaveBalance {
     pub remaining: f64,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct WorkspaceLeaveBalance {
     pub employee_id: Uuid,
     pub employee_name: String,
@@ -97,19 +97,19 @@ pub struct WorkspaceLeaveBalance {
     pub assignment_type: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, utoipa::ToSchema)]
 pub struct UpdateLeaveBalanceRequest {
     pub entitlement: Option<i32>,
     pub carried_over: Option<i32>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default, utoipa::ToSchema)]
 pub struct SeniorityBonus {
     pub months: i32,
     pub bonus_amount: f64,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default, utoipa::ToSchema)]
 pub struct LeaveTypeConfig {
     #[serde(default)]
     pub requires_document: bool,
@@ -121,7 +121,7 @@ pub struct LeaveTypeConfig {
     pub approval_required: bool,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct LeaveType {
     pub id: Uuid,
     pub workspace_id: Uuid,
@@ -132,7 +132,7 @@ pub struct LeaveType {
     pub created_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default, utoipa::ToSchema)]
 pub struct LeavePolicyConfig {
     pub frequency: AccrualFrequency,
     pub accrual_amount: f64,
@@ -145,7 +145,7 @@ pub struct LeavePolicyConfig {
     pub min_work_days_threshold: Option<f64>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct LeavePolicyDefinition {
     pub id: Uuid,
     pub workspace_id: Uuid,
@@ -157,7 +157,7 @@ pub struct LeavePolicyDefinition {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct LeavePolicyAssignment {
     pub id: Uuid,
     pub workspace_id: Uuid,
@@ -169,7 +169,7 @@ pub struct LeavePolicyAssignment {
     pub created_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct LeaveAccrualLog {
     pub id: Uuid,
     pub workspace_id: Uuid,
@@ -182,7 +182,7 @@ pub struct LeaveAccrualLog {
     pub created_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct CreateLeavePolicyRequest {
     pub name: String,
     pub description: Option<String>,
@@ -190,7 +190,7 @@ pub struct CreateLeavePolicyRequest {
     pub rule_config: LeavePolicyConfig,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct UpdateLeavePolicyRequest {
     pub name: Option<String>,
     pub description: Option<String>,
@@ -198,7 +198,7 @@ pub struct UpdateLeavePolicyRequest {
     pub rule_config: Option<LeavePolicyConfig>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct AssignLeavePolicyRequest {
     pub assignee_type: String,
     #[serde(default)]
@@ -209,7 +209,7 @@ pub struct AssignLeavePolicyRequest {
     pub effective_to: Option<NaiveDate>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct LeaveHistoryItem {
     pub id: Uuid,
     pub date: NaiveDate,
@@ -220,7 +220,7 @@ pub struct LeaveHistoryItem {
     pub created_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, utoipa::ToSchema)]
 pub struct AdjustBalanceRequest {
     pub leave_type_id: Uuid,
     pub amount: f64, // Positive to add, Negative to deduct
@@ -228,7 +228,7 @@ pub struct AdjustBalanceRequest {
     pub transaction_date: NaiveDate,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct LeavePolicyAssignmentDetail {
     pub id: Uuid,
     pub workspace_id: Uuid,

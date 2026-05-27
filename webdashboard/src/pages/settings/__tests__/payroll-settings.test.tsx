@@ -32,7 +32,7 @@ describe("PayrollSettings Page", () => {
   });
 
   it("renders empty state if no workspace", () => {
-    vi.mocked(api.getCurrentWorkspaceId).mockReturnValue(undefined);
+    vi.mocked(api.getCurrentWorkspaceId).mockReturnValue(null);
     render(<PayrollSettings />);
     expect(screen.getByText("common.select_workspace")).toBeDefined();
   });

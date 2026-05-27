@@ -73,10 +73,10 @@ export function PreOtApprovalsTab({ wsId }: { wsId: string }) {
                 Pending Approval
               </span>
               <Typography className="font-bold text-lg text-slate-800 dark:text-slate-100">
-                {req.employee_names ? req.employee_names.join(", ") : "Employees"}
+                {(req as any).employee_names ? (req as any).employee_names.join(", ") : "Employees"}
               </Typography>
             </div>
-
+ 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl">
               <div>
                 <span className="block text-[10px] font-bold text-slate-500 uppercase">Date</span>
@@ -118,7 +118,7 @@ export function PreOtApprovalsTab({ wsId }: { wsId: string }) {
                 Reject
               </button>
             </div>
-            {!!req.approval_workflow_id && (
+            {!!req.workflow_id && (
               <span className="text-[10px] text-slate-400 font-medium flex items-center gap-1">
                 Workflow Configured <ArrowRight className="w-3 h-3" />
               </span>

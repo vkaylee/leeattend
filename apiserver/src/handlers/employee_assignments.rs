@@ -24,15 +24,16 @@ use crate::{
         ("employee_id" = Uuid, Path, description = "Employee ID")
     ),
     responses(
-        (status = 200, description = "List of assignments", body = Vec<EmployeeAssignment>)
+        (status = 200, description = "List of assignments", body = [EmployeeAssignment])
     ),
     security(("bearer_auth" = []))
 )]
 pub async fn list_employee_assignments(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
-    Path((_ws_id, employee_id)): Path<(Uuid, Uuid)>,
+    Path(params): Path<(Uuid, Uuid)>,
 ) -> Result<Json<Vec<EmployeeAssignment>>, AppError> {
+    let (_ws_id, employee_id) = params;
     let repo = &state.employees.repo;
     let assignments = repo.list_employee_assignments(&ctx.auth_token, employee_id).await?;
     Ok(Json(assignments))
@@ -56,8 +57,9 @@ pub async fn list_employee_assignments(
 pub async fn get_employee_assignment(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
-    Path((_ws_id, employee_id, assignment_id)): Path<(Uuid, Uuid, Uuid)>,
+    Path(params): Path<(Uuid, Uuid, Uuid)>,
 ) -> Result<Json<EmployeeAssignment>, AppError> {
+    let (_ws_id, employee_id, assignment_id) = params;
     let repo = &state.employees.repo;
     let assignment = repo
         .get_employee_assignment(&ctx.auth_token, employee_id, assignment_id)
@@ -83,9 +85,10 @@ pub async fn get_employee_assignment(
 pub async fn create_employee_assignment(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
-    Path((_ws_id, employee_id)): Path<(Uuid, Uuid)>,
+    Path(params): Path<(Uuid, Uuid)>,
     Json(payload): Json<CreateEmployeeAssignmentRequest>,
 ) -> Result<Json<EmployeeAssignment>, AppError> {
+    let (_ws_id, employee_id) = params;
     let repo = &state.employees.repo;
 
     // Ensure the employee exists and fetch their current primary_location_id.
@@ -137,9 +140,10 @@ pub async fn create_employee_assignment(
 pub async fn update_employee_assignment(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
-    Path((_ws_id, employee_id, assignment_id)): Path<(Uuid, Uuid, Uuid)>,
+    Path(params): Path<(Uuid, Uuid, Uuid)>,
     Json(payload): Json<UpdateEmployeeAssignmentRequest>,
 ) -> Result<Json<EmployeeAssignment>, AppError> {
+    let (_ws_id, employee_id, assignment_id) = params;
     let repo = &state.employees.repo;
     
     // Ensure it exists
@@ -170,8 +174,9 @@ pub async fn update_employee_assignment(
 pub async fn delete_employee_assignment(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
-    Path((_ws_id, employee_id, assignment_id)): Path<(Uuid, Uuid, Uuid)>,
+    Path(params): Path<(Uuid, Uuid, Uuid)>,
 ) -> Result<Json<()>, AppError> {
+    let (_ws_id, employee_id, assignment_id) = params;
     let repo = &state.employees.repo;
     
     let deleted_count = repo

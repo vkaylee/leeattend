@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 /// Represents a holiday entry in the workspace calendar.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, utoipa::ToSchema)]
 pub struct Holiday {
     pub id: Uuid,
     pub workspace_id: Uuid,
@@ -27,7 +27,7 @@ pub struct Holiday {
 }
 
 /// Request payload for creating a new holiday.
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, utoipa::ToSchema)]
 pub struct CreateHolidayRequest {
     pub name: String,
     pub date: NaiveDate,
@@ -45,7 +45,7 @@ pub struct CreateHolidayRequest {
 }
 
 /// Request payload for updating an existing holiday.
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, utoipa::ToSchema)]
 pub struct UpdateHolidayRequest {
     pub name: Option<String>,
     pub date: Option<NaiveDate>,

@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct User {
     pub id: Uuid,
     pub email: String,
@@ -30,7 +30,7 @@ impl std::fmt::Debug for User {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct LoginRequest {
     pub email: String,
     pub password: String,
@@ -45,7 +45,7 @@ impl std::fmt::Debug for LoginRequest {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct RegisterRequest {
     pub email: String,
     pub password: String,
@@ -62,7 +62,7 @@ impl std::fmt::Debug for RegisterRequest {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct UserResponse {
     pub id: Uuid,
     pub email: String,
@@ -75,19 +75,19 @@ pub struct UserResponse {
     pub system_roles: Vec<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct AuthResponse {
     pub access_token: String,
     pub refresh_token: String,
     pub user: UserResponse,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct RefreshRequest {
     pub refresh_token: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct UpdateUserRequest {
     pub full_name: Option<String>,
     pub avatar_url: Option<String>,
@@ -95,7 +95,7 @@ pub struct UpdateUserRequest {
     pub preferred_language: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct ChangePasswordRequest {
     pub old_password: String,
     pub new_password: String,

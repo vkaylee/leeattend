@@ -239,6 +239,7 @@ pub struct AssignmentHistoryTypeSql;
     Eq,
     diesel::expression::AsExpression,
     diesel::deserialize::FromSqlRow,
+    utoipa::ToSchema,
 )]
 #[diesel(sql_type = AssignmentHistoryTypeSql)]
 #[serde(rename_all = "snake_case")]
@@ -261,6 +262,7 @@ pub enum AssignmentHistoryType {
     strum_macros::Display,
     diesel::expression::AsExpression,
     diesel::deserialize::FromSqlRow,
+    ToSchema,
 )]
 #[diesel(sql_type = crate::schema::sql_types::OtStatusType)]
 #[serde(rename_all = "snake_case")]
@@ -380,7 +382,7 @@ pub enum AttendanceReportSort {
     TotalHoursDesc,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default, utoipa::ToSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum AccrualFrequency {
     #[default]

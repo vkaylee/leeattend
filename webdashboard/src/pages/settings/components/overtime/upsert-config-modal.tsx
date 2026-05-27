@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
-import { Modal } from "@/components/common/modal";
+import Modal from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { useUpsertWorkspaceConfig } from "@/hooks/use-workspace-config";
 
@@ -33,7 +33,7 @@ export function UpsertConfigModal({
 }) {
   const { t } = useTranslation();
   const toast = useToast();
-  const { mutateAsync: upsertConfig, isPending } = useUpsertWorkspaceConfig(wsId);
+  const { mutateAsync: upsertConfig, isPending } = useUpsertWorkspaceConfig();
 
   const form = useForm<ConfigFormValues>({
     resolver: zodResolver(configSchema),

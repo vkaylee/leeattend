@@ -11,13 +11,20 @@ use crate::errors::{AppError, AppResult};
 use crate::handlers::EmployeeContext;
 use crate::models::{
     CreateEmergencyContactRequest, EmployeeDocument, EmployeeEmergencyContact, EmployeeProfile,
-    MyProfileResponse, TimeEntry, UpdateEmployeeProfileRequest,
+    MyProfileResponse, TimeEntry, UpdateEmployeeProfileRequest, Payslip, LeaveRequest,
 };
 use crate::AppState;
 
 // --- Profile Endpoints ---
 
 /// Get the current employee's complete profile
+#[utoipa::path(
+    get,
+    path = "/ess/profile",
+    responses(
+        (status = 200, description = "Get current employee profile details", body = MyProfileResponse)
+    )
+)]
 pub async fn get_my_profile(
     State(state): State<Arc<AppState>>,
     employee: EmployeeContext,
@@ -61,6 +68,14 @@ pub async fn get_my_profile(
 }
 
 /// Update the current employee's profile
+#[utoipa::path(
+    put,
+    path = "/ess/profile",
+    request_body = UpdateEmployeeProfileRequest,
+    responses(
+        (status = 200, description = "Update current employee profile", body = EmployeeProfile)
+    )
+)]
 pub async fn update_my_profile(
     State(state): State<Arc<AppState>>,
     employee: EmployeeContext,
@@ -83,6 +98,13 @@ pub async fn update_my_profile(
 // --- Emergency Contacts Endpoints ---
 
 /// Get all emergency contacts for the current employee
+#[utoipa::path(
+    get,
+    path = "/ess/emergency-contacts",
+    responses(
+        (status = 200, description = "Get employee emergency contacts list", body = Vec<EmployeeEmergencyContact>)
+    )
+)]
 pub async fn get_my_emergency_contacts(
     State(state): State<Arc<AppState>>,
     employee: EmployeeContext,
@@ -100,6 +122,14 @@ pub async fn get_my_emergency_contacts(
 }
 
 /// Add a new emergency contact
+#[utoipa::path(
+    post,
+    path = "/ess/emergency-contacts",
+    request_body = CreateEmergencyContactRequest,
+    responses(
+        (status = 201, description = "Added emergency contact successfully", body = EmployeeEmergencyContact)
+    )
+)]
 pub async fn add_emergency_contact(
     State(state): State<Arc<AppState>>,
     employee: EmployeeContext,
@@ -119,6 +149,16 @@ pub async fn add_emergency_contact(
 }
 
 /// Delete an emergency contact
+#[utoipa::path(
+    delete,
+    path = "/ess/emergency-contacts/{contact_id}",
+    responses(
+        (status = 204, description = "Deleted emergency contact successfully")
+    ),
+    params(
+        ("contact_id" = Uuid, Path, description = "Emergency Contact ID")
+    )
+)]
 pub async fn delete_emergency_contact(
     State(state): State<Arc<AppState>>,
     employee: EmployeeContext,
@@ -145,6 +185,13 @@ pub async fn delete_emergency_contact(
 // --- Documents Endpoints ---
 
 /// Get all documents for the current employee
+#[utoipa::path(
+    get,
+    path = "/ess/documents",
+    responses(
+        (status = 200, description = "Get employee documents list", body = Vec<EmployeeDocument>)
+    )
+)]
 pub async fn get_my_documents(
     State(state): State<Arc<AppState>>,
     employee: EmployeeContext,
@@ -164,6 +211,13 @@ pub async fn get_my_documents(
 // --- Payslips Endpoints ---
 
 /// Get all payslips for the current employee
+#[utoipa::path(
+    get,
+    path = "/ess/payslips",
+    responses(
+        (status = 200, description = "Get employee payslips list", body = Vec<Payslip>)
+    )
+)]
 pub async fn get_my_payslips(
     State(state): State<Arc<AppState>>,
     employee: EmployeeContext,
@@ -186,6 +240,17 @@ pub struct AttendanceQuery {
 }
 
 /// Get attendance history for the current employee
+#[utoipa::path(
+    get,
+    path = "/ess/attendance",
+    responses(
+        (status = 200, description = "Get employee attendance logs", body = Vec<TimeEntry>)
+    ),
+    params(
+        ("start_date" = Option<NaiveDate>, Query, description = "Start Date (YYYY-MM-DD)"),
+        ("end_date" = Option<NaiveDate>, Query, description = "End Date (YYYY-MM-DD)")
+    )
+)]
 pub async fn get_my_attendance(
     State(state): State<Arc<AppState>>,
     employee: EmployeeContext,
@@ -223,11 +288,19 @@ pub async fn get_my_attendance(
 
 // --- Time Clock Endpoints ---
 
-#[derive(serde::Deserialize)]
+#[derive(serde::Deserialize, utoipa::ToSchema)]
 pub struct EssPunchRequest {
     pub note: Option<String>,
 }
 
+#[utoipa::path(
+    post,
+    path = "/ess/punch",
+    request_body = EssPunchRequest,
+    responses(
+        (status = 201, description = "Successfully punched in/out", body = TimeEntry)
+    )
+)]
 pub async fn ess_punch(
     State(state): State<Arc<AppState>>,
     employee: EmployeeContext,
@@ -253,6 +326,17 @@ pub struct EssTimeEntriesQuery {
     pub end_date: Option<chrono::DateTime<chrono::Utc>>,
 }
 
+#[utoipa::path(
+    get,
+    path = "/ess/time-entries",
+    responses(
+        (status = 200, description = "Get employee time entries", body = Vec<TimeEntry>)
+    ),
+    params(
+        ("start_date" = Option<DateTime<Utc>>, Query, description = "Start datetime"),
+        ("end_date" = Option<DateTime<Utc>>, Query, description = "End datetime")
+    )
+)]
 pub async fn get_my_time_entries(
     State(state): State<Arc<AppState>>,
     employee: EmployeeContext,
@@ -275,7 +359,7 @@ pub async fn get_my_time_entries(
 // --- Leave Endpoints ---
 
 /// ESS Leave Balance Response
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug, serde::Serialize, utoipa::ToSchema)]
 pub struct EssLeaveBalance {
     pub leave_type: String,
     pub entitlement: i32,
@@ -286,6 +370,13 @@ pub struct EssLeaveBalance {
 }
 
 /// Get leave balances for the current employee
+#[utoipa::path(
+    get,
+    path = "/ess/leave/balances",
+    responses(
+        (status = 200, description = "Get employee leave balances", body = Vec<EssLeaveBalance>)
+    )
+)]
 pub async fn get_my_leave_balances(
     State(state): State<Arc<AppState>>,
     employee: EmployeeContext,
@@ -318,6 +409,13 @@ pub async fn get_my_leave_balances(
 }
 
 /// Get leave requests for the current employee (ESS version - avoids name conflict)
+#[utoipa::path(
+    get,
+    path = "/ess/leave/requests",
+    responses(
+        (status = 200, description = "Get employee leave requests", body = Vec<LeaveRequest>)
+    )
+)]
 pub async fn ess_get_my_leave_requests(
     State(state): State<Arc<AppState>>,
     employee: EmployeeContext,
@@ -341,6 +439,13 @@ use crate::models::shift_swap::{
 };
 
 /// GET /ess/shift-swaps — list swap requests where I am requester or target
+#[utoipa::path(
+    get,
+    path = "/ess/shift-swaps",
+    responses(
+        (status = 200, description = "Get employee shift swap requests", body = Vec<ShiftSwapRequestWithNames>)
+    )
+)]
 pub async fn ess_get_my_shift_swaps(
     State(state): State<Arc<AppState>>,
     employee: EmployeeContext,
@@ -355,6 +460,14 @@ pub async fn ess_get_my_shift_swaps(
 }
 
 /// POST /ess/shift-swaps — employee creates a swap request (status: pending_target)
+#[utoipa::path(
+    post,
+    path = "/ess/shift-swaps",
+    request_body = EssCreateShiftSwapRequest,
+    responses(
+        (status = 201, description = "Successfully created shift swap request", body = ShiftSwapRequest)
+    )
+)]
 pub async fn ess_create_shift_swap(
     State(state): State<Arc<AppState>>,
     employee: EmployeeContext,
@@ -375,6 +488,17 @@ pub async fn ess_create_shift_swap(
 }
 
 /// PUT /ess/shift-swaps/:id/respond — target employee accepts or rejects
+#[utoipa::path(
+    put,
+    path = "/ess/shift-swaps/{id}/respond",
+    request_body = RespondShiftSwapRequest,
+    responses(
+        (status = 200, description = "Successfully responded to shift swap request")
+    ),
+    params(
+        ("id" = Uuid, Path, description = "Shift Swap Request ID")
+    )
+)]
 pub async fn ess_respond_to_swap(
     State(state): State<Arc<AppState>>,
     employee: EmployeeContext,
@@ -391,6 +515,16 @@ pub async fn ess_respond_to_swap(
 }
 
 /// DELETE /ess/shift-swaps/:id — requester cancels their swap request
+#[utoipa::path(
+    delete,
+    path = "/ess/shift-swaps/{id}",
+    responses(
+        (status = 204, description = "Successfully cancelled shift swap request")
+    ),
+    params(
+        ("id" = Uuid, Path, description = "Shift Swap Request ID")
+    )
+)]
 pub async fn ess_cancel_swap(
     State(state): State<Arc<AppState>>,
     employee: EmployeeContext,

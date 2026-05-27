@@ -28,7 +28,7 @@ pub struct EmployeePaginationArgs<'a> {
 
 // ── Recruitment Source Models ───────────────────────────────────────
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct RecruitmentSource {
     pub id: Uuid,
     pub workspace_id: Uuid,
@@ -46,7 +46,7 @@ pub struct RecruitmentSource {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct CreateRecruitmentSourceRequest {
     pub source_type: RecruitmentSourceType,
     pub name: String,
@@ -58,7 +58,7 @@ pub struct CreateRecruitmentSourceRequest {
     pub notes: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct UpdateRecruitmentSourceRequest {
     pub name: Option<String>,
     pub referrer_employee_id: Option<Uuid>,
@@ -72,7 +72,7 @@ pub struct UpdateRecruitmentSourceRequest {
 }
 
 /// Dashboard chart data point for recruitment source breakdown
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct RecruitmentSourceBreakdown {
     pub source_type: String,
     pub source_name: String,
@@ -82,14 +82,14 @@ pub struct RecruitmentSourceBreakdown {
 // ── Turnover Analytics Models ──────────────────────────────────────
 
 /// Tenure distribution bucket for terminated employees
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct TurnoverTenureBucket {
     pub bucket: String,
     pub count: i64,
 }
 
 /// Turnover breakdown by recruitment source
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct TurnoverBySource {
     pub source_type: String,
     pub source_name: String,
@@ -97,14 +97,14 @@ pub struct TurnoverBySource {
 }
 
 /// Turnover breakdown by department
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct TurnoverByDepartment {
     pub department_name: String,
     pub count: i64,
 }
 
 /// Combined turnover analytics response
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct TurnoverAnalytics {
     pub tenure_distribution: Vec<TurnoverTenureBucket>,
     pub by_source: Vec<TurnoverBySource>,
@@ -116,7 +116,7 @@ pub struct TurnoverAnalytics {
 
 // ── Employment / Employee Models ───────────────────────────────────
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct Employee {
     pub id: Uuid,
     pub workspace_id: Uuid,
@@ -134,14 +134,14 @@ pub struct Employee {
     pub primary_location_id: Uuid,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct AssignmentRuleConditions {
     pub department_id: Option<Uuid>,
     pub employee_id_numbers: Option<Vec<String>>,
     pub tags: Option<Vec<String>>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct AssignmentRule {
     pub id: Uuid,
     pub workspace_id: Uuid,
@@ -154,7 +154,7 @@ pub struct AssignmentRule {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct CreateAssignmentRuleRequest {
     pub pattern_id: Uuid,
     pub name: String,
@@ -162,7 +162,7 @@ pub struct CreateAssignmentRuleRequest {
     pub conditions: AssignmentRuleConditions,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct UpdateAssignmentRuleRequest {
     pub pattern_id: Option<Uuid>,
     pub name: Option<String>,
@@ -172,12 +172,13 @@ pub struct UpdateAssignmentRuleRequest {
     pub max_concurrent_workers: Option<i32>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct RehireEmployeeRequest {
     pub hire_date: NaiveDate,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, utoipa::ToSchema)]
+#[schema(as = String)]
 pub struct SanitizedEmployeeId(String);
 
 impl SanitizedEmployeeId {
@@ -231,7 +232,7 @@ impl From<&str> for SanitizedEmployeeId {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct CreateEmployeeRequest {
     pub user_id: Option<Uuid>,
     pub full_name: String,
@@ -242,7 +243,7 @@ pub struct CreateEmployeeRequest {
     pub primary_location_id: Uuid,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct UpdateEmployeeRequest {
     pub user_id: Option<Uuid>,
     pub full_name: Option<String>,

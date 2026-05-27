@@ -1,29 +1,42 @@
-import { API_BASE_URL } from "./config";
-import { apiFetch } from "./helpers";
 import { Workspace, WorkspaceMember, MemberRolesResponse, MemberExtraRole, MemberExtraPermission, WorkspaceRole } from "./types";
-import { apiClient } from "./client";
+import { apiClient, client } from "./client";
 
 export async function fetchWorkspaces(): Promise<Workspace[]> {
-  const { data: resData } = await apiClient.get<Workspace[]>(`/workspaces`);
-    return resData;
+  const { data: resData } = await client.GET("/workspaces");
+  if (!resData) throw new Error("No response data");
+  return resData as any[];
 }
 
 export async function createWorkspace(data: { name: string; database_url?: string }): Promise<Workspace> {
-  const { data: resData } = await apiClient.post<Workspace>(`/workspaces`, data);
-    return resData;
+  const { data: resData } = await client.POST("/workspaces", {
+    body: data as any,
+  });
+  if (!resData) throw new Error("No response data");
+  return resData as any;
 }
 
 export async function fetchWorkspace(wsId: string): Promise<Workspace> {
-  const { data: resData } = await apiClient.get<Workspace>(`/workspaces/${wsId}`);
-    return resData;
+  const { data: resData } = await client.GET("/workspaces/{ws_id}", {
+    params: {
+      path: { ws_id: wsId },
+    },
+  });
+  if (!resData) throw new Error("No response data");
+  return resData as any;
 }
 
 export async function updateWorkspace(
   wsId: string,
   data: Partial<Workspace>,
 ): Promise<Workspace> {
-  const { data: resData } = await apiClient.patch<Workspace>(`/workspaces/${wsId}`, data);
-    return resData;
+  const { data: resData } = await client.PATCH("/workspaces/{ws_id}", {
+    params: {
+      path: { ws_id: wsId },
+    },
+    body: data as any,
+  });
+  if (!resData) throw new Error("No response data");
+  return resData as any;
 }
 
 export async function fetchWorkspaceMembers(

@@ -2,7 +2,7 @@ use crate::{
     domain::permissions::Permission,
     errors::AppResult,
     handlers::common::MemberContext,
-    models::{ConfigValue, WorkspaceConfigEntry},
+    models::{ConfigValue, ResolvedConfig, WorkspaceConfigEntry},
     AppState,
 };
 use axum::{
@@ -15,7 +15,7 @@ use serde::Deserialize;
 use std::sync::Arc;
 use uuid::Uuid;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, utoipa::ToSchema)]
 pub struct UpsertConfigRequest {
     pub scope_type: String,
     pub scope_id: Option<Uuid>,
@@ -25,6 +25,17 @@ pub struct UpsertConfigRequest {
     pub effective_to: Option<NaiveDate>,
 }
 
+#[utoipa::path(
+    get,
+    path = "/workspaces/{workspace_id}/configs",
+    responses(
+        (status = 200, description = "List config entries", body = Vec<WorkspaceConfigEntry>)
+    ),
+    params(
+        ("workspace_id" = Uuid, Path, description = "Workspace ID"),
+        ("prefix" = Option<String>, Query, description = "Filter keys by prefix")
+    )
+)]
 pub async fn list_configs(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -40,11 +51,24 @@ pub async fn list_configs(
     Ok(Json(configs))
 }
 
+#[utoipa::path(
+    get,
+    path = "/workspaces/{workspace_id}/configs/{key}",
+    responses(
+        (status = 200, description = "Get config entry", body = ResolvedConfig)
+    ),
+    params(
+        ("workspace_id" = Uuid, Path, description = "Workspace ID"),
+        ("key" = String, Path, description = "Config Key"),
+        ("date" = Option<String>, Query, description = "Effective date")
+    )
+)]
 pub async fn get_config(
     State(state): State<Arc<AppState>>,
-    Path((_, key)): Path<(Uuid, String)>,
+    Path(params): Path<(Uuid, String)>,
     ctx: MemberContext,
 ) -> AppResult<Json<crate::models::ResolvedConfig>> {
+    let (_workspace_id, key) = params;
     let _date = chrono::Utc::now().naive_utc().date();
     let _entry = state
         .core
@@ -62,6 +86,17 @@ pub async fn get_config(
     Ok(Json(resolved))
 }
 
+#[utoipa::path(
+    put,
+    path = "/workspaces/{workspace_id}/configs",
+    request_body = UpsertConfigRequest,
+    responses(
+        (status = 200, description = "Upsert config entry", body = WorkspaceConfigEntry)
+    ),
+    params(
+        ("workspace_id" = Uuid, Path, description = "Workspace ID")
+    )
+)]
 pub async fn upsert_config(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -104,11 +139,23 @@ pub async fn upsert_config(
     Ok(Json(created))
 }
 
+#[utoipa::path(
+    delete,
+    path = "/workspaces/{workspace_id}/configs/{id}",
+    responses(
+        (status = 200, description = "Delete config entry")
+    ),
+    params(
+        ("workspace_id" = Uuid, Path, description = "Workspace ID"),
+        ("id" = Uuid, Path, description = "Config ID")
+    )
+)]
 pub async fn delete_config(
     State(state): State<Arc<AppState>>,
-    Path((_, id)): Path<(Uuid, Uuid)>,
+    Path(params): Path<(Uuid, Uuid)>,
     ctx: MemberContext,
 ) -> AppResult<StatusCode> {
+    let (_workspace_id, id) = params;
     ctx.require_permission(Permission::WorkspaceSettingsWrite)?;
     
     state

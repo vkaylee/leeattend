@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
-import { Modal } from "@/components/common/modal";
+import Modal from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { useCreateApprovalWorkflow, useUpdateApprovalWorkflow } from "@/hooks/use-approval-workflows";
 
@@ -42,8 +42,8 @@ export function UpsertWorkflowModal({
 }) {
   const { t } = useTranslation();
   const toast = useToast();
-  const { mutateAsync: createWorkflow, isPending: isCreating } = useCreateApprovalWorkflow(wsId);
-  const { mutateAsync: updateWorkflow, isPending: isUpdating } = useUpdateApprovalWorkflow(wsId, workflow?.id || "");
+  const { mutateAsync: createWorkflow, isPending: isCreating } = useCreateApprovalWorkflow();
+  const { mutateAsync: updateWorkflow, isPending: isUpdating } = useUpdateApprovalWorkflow(workflow?.id || "");
 
   const form = useForm<WorkflowFormValues>({
     resolver: zodResolver(workflowSchema),
@@ -131,7 +131,7 @@ export function UpsertWorkflowModal({
   const isPending = isCreating || isUpdating;
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="xl" title={workflow ? "Edit Workflow" : "New Workflow"}>
+    <Modal isOpen={isOpen} onClose={onClose} maxWidth="xl" title={workflow ? "Edit Workflow" : "New Workflow"}>
       <form className="space-y-8" onSubmit={form.handleSubmit(onSubmit)}>
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1">

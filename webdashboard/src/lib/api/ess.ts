@@ -4,8 +4,7 @@
  */
 
 import { claimOt, fetchAttendanceSummaries } from "./attendance";
-import { API_BASE_URL } from "./config";
-import { apiFetch, getCurrentWorkspaceId } from "./helpers";
+import { getCurrentWorkspaceId } from "./helpers";
 import {
   MyProfileResponse,
   EmployeeProfile,
@@ -18,20 +17,24 @@ import {
   UpdateProfileRequest,
   CreateEmergencyContactRequest, AttendanceDailySummary 
 } from "./types";
-import { apiClient } from "./client";
+import { client } from "./client";
 
 // --- Profile ---
 
 export async function fetchMyProfile(): Promise<MyProfileResponse> {
-  const { data: resData } = await apiClient.get<MyProfileResponse>(`/ess/profile`);
-    return resData;
+  const { data: resData } = await client.GET("/ess/profile");
+  if (!resData) throw new Error("No response data");
+  return resData as any;
 }
 
 export async function updateMyProfile(
   data: UpdateProfileRequest
 ): Promise<EmployeeProfile> {
-  const { data: resData } = await apiClient.put<EmployeeProfile>(`/ess/profile`, data);
-    return resData;
+  const { data: resData } = await client.PUT("/ess/profile", {
+    body: data as any,
+  });
+  if (!resData) throw new Error("No response data");
+  return resData as any;
 }
 
 // --- Emergency Contacts ---
@@ -39,26 +42,35 @@ export async function updateMyProfile(
 export async function fetchMyEmergencyContacts(): Promise<
   EmployeeEmergencyContact[]
 > {
-  const { data: resData } = await apiClient.get<EmployeeEmergencyContact[]>(`/ess/emergency-contacts`);
-    return resData;
+  const { data: resData } = await client.GET("/ess/emergency-contacts");
+  if (!resData) throw new Error("No response data");
+  return resData as any[];
 }
 
 export async function addEmergencyContact(
   data: CreateEmergencyContactRequest
 ): Promise<EmployeeEmergencyContact> {
-  const { data: resData } = await apiClient.post<EmployeeEmergencyContact>(`/ess/emergency-contacts`, data);
-    return resData;
+  const { data: resData } = await client.POST("/ess/emergency-contacts", {
+    body: data as any,
+  });
+  if (!resData) throw new Error("No response data");
+  return resData as any;
 }
 
 export async function deleteEmergencyContact(contactId: string): Promise<void> {
-  await apiClient.delete(`/ess/emergency-contacts/${contactId}`);
+  await client.DELETE("/ess/emergency-contacts/{contact_id}", {
+    params: {
+      path: { contact_id: contactId },
+    },
+  });
 }
 
 // --- Documents ---
 
 export async function fetchMyDocuments(): Promise<EmployeeDocument[]> {
-  const { data: resData } = await apiClient.get<EmployeeDocument[]>(`/ess/documents`);
-    return resData;
+  const { data: resData } = await client.GET("/ess/documents");
+  if (!resData) throw new Error("No response data");
+  return resData as any[];
 }
 
 // Document upload will be implemented in Phase 4
@@ -66,8 +78,9 @@ export async function fetchMyDocuments(): Promise<EmployeeDocument[]> {
 // --- Payslips ---
 
 export async function fetchMyPayslips(): Promise<Payslip[]> {
-  const { data: resData } = await apiClient.get<Payslip[]>(`/ess/payslips`);
-    return resData;
+  const { data: resData } = await client.GET("/ess/payslips");
+  if (!resData) throw new Error("No response data");
+  return resData as any[];
 }
 
 // --- Attendance ---
@@ -80,15 +93,16 @@ export interface AttendanceParams {
 export async function fetchMyAttendance(
   params?: AttendanceParams
 ): Promise<TimeEntry[]> {
-  const searchParams = new URLSearchParams();
-  if (params?.start_date) searchParams.set("start_date", params.start_date);
-  if (params?.end_date) searchParams.set("end_date", params.end_date);
-
-  const query = searchParams.toString();
-  const url = `${API_BASE_URL}/ess/attendance${query ? `?${query}` : ""}`;
-
-  const { data: resData } = await apiClient.get<TimeEntry[]>(url);
-    return resData;
+  const { data: resData } = await client.GET("/ess/attendance", {
+    params: {
+      query: {
+        start_date: params?.start_date,
+        end_date: params?.end_date,
+      },
+    },
+  });
+  if (!resData) throw new Error("No response data");
+  return resData as any[];
 }
 
 // --- Time Clock ---
@@ -96,34 +110,40 @@ export async function fetchMyAttendance(
 export async function fetchMyTimeEntries(
   params?: { start_date?: string; end_date?: string }
 ): Promise<TimeEntry[]> {
-  const searchParams = new URLSearchParams();
-  if (params?.start_date) searchParams.set("start_date", params.start_date);
-  if (params?.end_date) searchParams.set("end_date", params.end_date);
-
-  const query = searchParams.toString();
-  const url = `${API_BASE_URL}/ess/time-entries${query ? `?${query}` : ""}`;
-
-  const { data: resData } = await apiClient.get<TimeEntry[]>(url);
-    return resData;
+  const { data: resData } = await client.GET("/ess/time-entries", {
+    params: {
+      query: {
+        start_date: params?.start_date,
+        end_date: params?.end_date,
+      },
+    },
+  });
+  if (!resData) throw new Error("No response data");
+  return resData as any[];
 }
 
 export async function punchMySelf(
   data?: { note?: string }
 ): Promise<TimeEntry> {
-  const { data: resData } = await apiClient.post<TimeEntry>(`/ess/punch`, data ?? {});
-    return resData;
+  const { data: resData } = await client.POST("/ess/punch", {
+    body: data || {},
+  });
+  if (!resData) throw new Error("No response data");
+  return resData as any;
 }
 
 // --- Leave ---
 
 export async function fetchEssLeaveBalances(): Promise<EmployeeLeaveBalance[]> {
-  const { data: resData } = await apiClient.get<EmployeeLeaveBalance[]>(`/ess/leave/balances`);
-    return resData;
+  const { data: resData } = await client.GET("/ess/leave/balances");
+  if (!resData) throw new Error("No response data");
+  return resData as any[];
 }
 
 export async function fetchEssLeaveRequests(): Promise<LeaveRequest[]> {
-  const { data: resData } = await apiClient.get<LeaveRequest[]>(`/ess/leave/requests`);
-    return resData;
+  const { data: resData } = await client.GET("/ess/leave/requests");
+  if (!resData) throw new Error("No response data");
+  return resData as any[];
 }
 
 // --- OT Claim (ESS Wrapper) ---

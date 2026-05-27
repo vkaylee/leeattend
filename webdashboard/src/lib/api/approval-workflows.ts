@@ -1,30 +1,19 @@
 import { apiClient } from './client';
+import { 
+  ApproverType, 
+  ApprovalWorkflowStep, 
+  ApprovalWorkflow, 
+  CreateWorkflowRequest, 
+  ApprovalActionLog 
+} from './types';
 
-export type ApproverType = 'department_manager' | 'role' | 'permission' | 'specific_user';
-
-export interface ApprovalWorkflowStep {
-  action_required: string;
-  approver_config: any;
-  approver_type: ApproverType;
-  can_skip: boolean;
-  id: string;
-  step_name: string;
-  step_order: number;
-  workflow_id: string;
-}
-
-export interface ApprovalWorkflow {
-  created_at: string;
-  description?: string;
-  entity_type: string;
-  id: string;
-  is_active: boolean;
-  name: string;
-  steps?: ApprovalWorkflowStep[];
-  total_steps: number;
-  updated_at: string;
-  workspace_id: string;
-}
+export type {
+  ApproverType,
+  ApprovalWorkflowStep,
+  ApprovalWorkflow,
+  CreateWorkflowRequest,
+  ApprovalActionLog
+};
 
 export interface WorkflowStepRequest {
   action_required: string;
@@ -35,32 +24,10 @@ export interface WorkflowStepRequest {
   step_order: number;
 }
 
-export interface CreateWorkflowRequest {
-  description?: string;
-  entity_type: string;
-  is_active: boolean;
-  name: string;
-  steps: WorkflowStepRequest[];
-  total_steps: number;
-}
-
 export interface UpdateWorkflowRequest {
   description?: string;
   is_active?: boolean;
   name?: string;
-}
-
-export interface ApprovalActionLog {
-  acted_at: string;
-  acted_by_user_id: string;
-  action: string;
-  entity_id: string;
-  entity_type: string;
-  id: string;
-  note?: string;
-  step_name?: string;
-  step_order: number;
-  workspace_id: string;
 }
 
 export const approvalWorkflowsApi = {

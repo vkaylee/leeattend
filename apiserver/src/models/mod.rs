@@ -45,6 +45,7 @@ pub use common::*;
 pub use contract::*;
 pub use department::*;
 pub use employee::*;
+pub use employee_assignment::*;
 pub use employment_phase::*;
 pub use enums::*;
 pub use ess::*;

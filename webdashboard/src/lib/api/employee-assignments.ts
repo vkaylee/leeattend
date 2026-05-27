@@ -1,20 +1,27 @@
-import { API_BASE_URL } from "./config";
-import { apiFetch } from "./helpers";
+import { client } from "./client";
 import type {
   CreateEmployeeAssignmentRequest,
   EmployeeAssignment,
   UpdateEmployeeAssignmentRequest,
 } from "./types";
 
+export type {
+  CreateEmployeeAssignmentRequest,
+  EmployeeAssignment,
+  UpdateEmployeeAssignmentRequest,
+};
+
 export const fetchEmployeeAssignments = async (
   workspaceId: string,
   employeeId: string,
 ): Promise<EmployeeAssignment[]> => {
-  const response = await apiFetch(
-    `${API_BASE_URL}/workspaces/${workspaceId}/employees/${employeeId}/assignments`,
-  );
-  if (!response.ok) throw new Error("Failed to fetch employee assignments");
-  return response.json() as Promise<EmployeeAssignment[]>;
+  const { data } = await client.GET("/v1/workspaces/{ws_id}/employees/{employee_id}/assignments", {
+    params: {
+      path: { ws_id: workspaceId, employee_id: employeeId },
+    },
+  });
+  if (!data) throw new Error("Failed to fetch employee assignments");
+  return data as unknown as EmployeeAssignment[];
 };
 
 export const createEmployeeAssignment = async (
@@ -22,18 +29,14 @@ export const createEmployeeAssignment = async (
   employeeId: string,
   data: CreateEmployeeAssignmentRequest,
 ): Promise<EmployeeAssignment> => {
-  const response = await apiFetch(
-    `${API_BASE_URL}/workspaces/${workspaceId}/employees/${employeeId}/assignments`,
-    {
-      method: "POST",
-      body: JSON.stringify(data),
+  const { data: result } = await client.POST("/v1/workspaces/{ws_id}/employees/{employee_id}/assignments", {
+    params: {
+      path: { ws_id: workspaceId, employee_id: employeeId },
     },
-  );
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(error || "Failed to create employee assignment");
-  }
-  return response.json() as Promise<EmployeeAssignment>;
+    body: data as any,
+  });
+  if (!result) throw new Error("Failed to create employee assignment");
+  return result as unknown as EmployeeAssignment;
 };
 
 export const updateEmployeeAssignment = async (
@@ -42,18 +45,14 @@ export const updateEmployeeAssignment = async (
   assignmentId: string,
   data: UpdateEmployeeAssignmentRequest,
 ): Promise<EmployeeAssignment> => {
-  const response = await apiFetch(
-    `${API_BASE_URL}/workspaces/${workspaceId}/employees/${employeeId}/assignments/${assignmentId}`,
-    {
-      method: "PATCH",
-      body: JSON.stringify(data),
+  const { data: result } = await client.PATCH("/v1/workspaces/{ws_id}/employees/{employee_id}/assignments/{assignment_id}", {
+    params: {
+      path: { ws_id: workspaceId, employee_id: employeeId, assignment_id: assignmentId },
     },
-  );
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(error || "Failed to update employee assignment");
-  }
-  return response.json() as Promise<EmployeeAssignment>;
+    body: data as any,
+  });
+  if (!result) throw new Error("Failed to update employee assignment");
+  return result as unknown as EmployeeAssignment;
 };
 
 export const deleteEmployeeAssignment = async (
@@ -61,11 +60,9 @@ export const deleteEmployeeAssignment = async (
   employeeId: string,
   assignmentId: string,
 ): Promise<void> => {
-  const response = await apiFetch(
-    `${API_BASE_URL}/workspaces/${workspaceId}/employees/${employeeId}/assignments/${assignmentId}`,
-    {
-      method: "DELETE",
+  await client.DELETE("/v1/workspaces/{ws_id}/employees/{employee_id}/assignments/{assignment_id}", {
+    params: {
+      path: { ws_id: workspaceId, employee_id: employeeId, assignment_id: assignmentId },
     },
-  );
-  if (!response.ok) throw new Error("Failed to delete employee assignment");
+  });
 };

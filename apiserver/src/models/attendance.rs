@@ -58,7 +58,7 @@ pub struct AttendanceSummary {
     pub computed_ot_hours: f64,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct ScheduleTrace {
     pub rule_id: Option<Uuid>,
     pub rule_name: String,

@@ -1,14 +1,27 @@
-import { apiClient } from "./client";
-import { Shift, EmployeeSchedule, AssignmentHistory, ShiftRoster } from "./types";
+import { client } from "./client";
+import type { Shift, EmployeeSchedule, AssignmentHistory, ShiftRoster } from "./types";
+
+export type { Shift, EmployeeSchedule, AssignmentHistory, ShiftRoster };
 
 export async function fetchShifts(wsId: string): Promise<Shift[]> {
-  const { data } = await apiClient.get<Shift[]>(`/workspaces/${wsId}/shifts`);
-  return data;
+  const { data } = await client.GET("/workspaces/{workspace_id}/shifts", {
+    params: {
+      path: { workspace_id: wsId },
+    },
+  });
+  if (!data) throw new Error("No response data");
+  return data as unknown as Shift[];
 }
 
 export async function createShift(wsId: string, data: Partial<Shift>): Promise<Shift> {
-  const { data: result } = await apiClient.post<Shift>(`/workspaces/${wsId}/shifts`, data);
-  return result;
+  const { data: result } = await client.POST("/workspaces/{workspace_id}/shifts", {
+    params: {
+      path: { workspace_id: wsId },
+    },
+    body: data as any,
+  });
+  if (!result) throw new Error("No response data");
+  return result as unknown as Shift;
 }
 
 export async function updateShift(
@@ -16,26 +29,47 @@ export async function updateShift(
   shiftId: string, 
   data: Partial<Shift> & { is_correction?: boolean, effective_date?: string }
 ): Promise<Shift> {
-  const { data: result } = await apiClient.put<Shift>(`/workspaces/${wsId}/shifts/${shiftId}`, data);
-  return result;
+  const { data: result } = await client.PUT("/workspaces/{workspace_id}/shifts/{shift_id}", {
+    params: {
+      path: { workspace_id: wsId, shift_id: shiftId },
+    },
+    body: data as any,
+  });
+  if (!result) throw new Error("No response data");
+  return result as unknown as Shift;
 }
 
 export async function assignShift(
   wsId: string,
   data: { employee_id: string; shift_id: string; start_date: string; end_date?: string | null }
 ): Promise<void> {
-  await apiClient.post(`/workspaces/${wsId}/shifts/assign`, data);
+  await client.POST("/workspaces/{workspace_id}/shifts/assign", {
+    params: {
+      path: { workspace_id: wsId },
+    },
+    body: data as any,
+  });
 }
 
 export const fetchWorkspaceSchedules = async (wsId: string, startDate: string, endDate: string): Promise<EmployeeSchedule[]> => {
-  const params = new URLSearchParams({ start_date: startDate, end_date: endDate });
-  const { data } = await apiClient.get<EmployeeSchedule[]>(`/workspaces/${wsId}/schedules?${params}`);
-  return data;
+  const { data } = await client.GET("/workspaces/{workspace_id}/schedules", {
+    params: {
+      path: { workspace_id: wsId },
+      query: { start_date: startDate, end_date: endDate },
+    },
+  });
+  if (!data) throw new Error("No response data");
+  return data as unknown as EmployeeSchedule[];
 };
 
 export const fetchAssignmentHistory = async (wsId: string): Promise<AssignmentHistory[]> => {
-  const { data } = await apiClient.get<AssignmentHistory[]>(`/workspaces/${wsId}/assignment-history`);
-  return data;
+  const { data } = await client.GET("/workspaces/{workspace_id}/assignment-history", {
+    params: {
+      path: { workspace_id: wsId },
+    },
+  });
+  if (!data) throw new Error("No response data");
+  return data as unknown as AssignmentHistory[];
 };
 
 export const fetchEmployeeRosters = async (
@@ -44,24 +78,43 @@ export const fetchEmployeeRosters = async (
   startDate?: string, 
   endDate?: string
 ): Promise<ShiftRoster[]> => {
-  const params = new URLSearchParams();
-  if (startDate) params.append("start_date", startDate);
-  if (endDate) params.append("end_date", endDate);
-  
-  const query = params.toString() ? `?${params.toString()}` : "";
-  const { data } = await apiClient.get<ShiftRoster[]>(`/workspaces/${wsId}/employees/${employeeId}/rosters${query}`);
-  return data;
+  const { data } = await client.GET("/workspaces/{workspace_id}/employees/{id}/rosters", {
+    params: {
+      path: { workspace_id: wsId, id: employeeId },
+      query: {
+        start_date: startDate || undefined,
+        end_date: endDate || undefined,
+      },
+    },
+  });
+  if (!data) throw new Error("No response data");
+  return data as unknown as ShiftRoster[];
 }
 
 export async function upsertRoster(wsId: string, employeeId: string, data: Partial<ShiftRoster>): Promise<ShiftRoster> {
-  const { data: result } = await apiClient.post<ShiftRoster>(`/workspaces/${wsId}/employees/${employeeId}/rosters`, data);
-  return result;
+  const { data: result } = await client.POST("/workspaces/{workspace_id}/employees/{id}/rosters", {
+    params: {
+      path: { workspace_id: wsId, id: employeeId },
+    },
+    body: data as any,
+  });
+  if (!result) throw new Error("No response data");
+  return result as unknown as ShiftRoster;
 }
 
 export async function bulkUpsertRoster(wsId: string, employeeId: string, items: Partial<ShiftRoster>[]): Promise<void> {
-  await apiClient.post(`/workspaces/${wsId}/employees/${employeeId}/rosters/bulk`, { items });
+  await client.POST("/workspaces/{workspace_id}/employees/{id}/rosters/bulk", {
+    params: {
+      path: { workspace_id: wsId, id: employeeId },
+    },
+    body: { items: items as any[] },
+  });
 }
 
 export async function deleteRoster(wsId: string, employeeId: string, date: string): Promise<void> {
-  await apiClient.delete(`/workspaces/${wsId}/employees/${employeeId}/rosters/${date}`);
+  await client.DELETE("/workspaces/{workspace_id}/employees/{id}/rosters/{date}", {
+    params: {
+      path: { workspace_id: wsId, id: employeeId, date },
+    },
+  });
 }

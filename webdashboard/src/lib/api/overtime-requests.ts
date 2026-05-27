@@ -1,5 +1,5 @@
-import { ApprovalActionLog } from './approval-workflows';
-import { apiClient } from './client';
+import { client } from './client';
+import { ApprovalActionLog } from './types';
 
 export type OtRequestStatus = 
   | 'draft' 
@@ -68,27 +68,51 @@ export interface QuotaSummary {
 
 export const overtimeRequestsApi = {
   listRequests: async (workspaceId: string, params?: any): Promise<OvertimeRequest[]> => {
-    const searchParams = new URLSearchParams(params);
-    const response = await apiClient.get(`/workspaces/${workspaceId}/overtime/requests?${searchParams.toString()}`);
-    return response.data.items || response.data; // Handle paginated or unpaginated response
+    const { data } = await client.GET("/workspaces/{ws_id}/overtime/requests", {
+      params: {
+        path: { ws_id: workspaceId },
+        query: params,
+      },
+    });
+    if (!data) throw new Error("No response data");
+    return data as unknown as OvertimeRequest[];
   },
 
   getRequest: async (workspaceId: string, id: string): Promise<OvertimeRequestDetail> => {
-    const response = await apiClient.get(`/workspaces/${workspaceId}/overtime/requests/${id}`);
-    return response.data;
+    const { data } = await client.GET("/workspaces/{ws_id}/overtime/requests/{id}", {
+      params: {
+        path: { ws_id: workspaceId, id },
+      },
+    });
+    if (!data) throw new Error("No response data");
+    return data as unknown as OvertimeRequestDetail;
   },
 
   createRequest: async (workspaceId: string, payload: CreateOvertimeRequestPayload): Promise<OvertimeRequest> => {
-    const response = await apiClient.post(`/workspaces/${workspaceId}/overtime/requests`, payload);
-    return response.data;
+    const { data } = await client.POST("/workspaces/{ws_id}/overtime/requests", {
+      params: {
+        path: { ws_id: workspaceId },
+      },
+      body: payload as any,
+    });
+    if (!data) throw new Error("No response data");
+    return data as unknown as OvertimeRequest;
   },
 
   submitRequest: async (workspaceId: string, id: string): Promise<void> => {
-    await apiClient.post(`/workspaces/${workspaceId}/overtime/requests/${id}/submit`);
+    await client.POST("/workspaces/{ws_id}/overtime/requests/{id}/submit", {
+      params: {
+        path: { ws_id: workspaceId, id },
+      },
+    });
   },
 
   cancelRequest: async (workspaceId: string, id: string): Promise<void> => {
-    await apiClient.post(`/workspaces/${workspaceId}/overtime/requests/${id}/cancel`);
+    await client.POST("/workspaces/{ws_id}/overtime/requests/{id}/cancel" as any, {
+      params: {
+        path: { ws_id: workspaceId, id } as any,
+      },
+    });
   },
 
   employeeConsent: async (workspaceId: string, id: string, payload: {
@@ -96,21 +120,46 @@ export const overtimeRequestsApi = {
     status: ConsentStatus;
     decline_reason?: string;
   }): Promise<void> => {
-    await apiClient.post(`/workspaces/${workspaceId}/overtime/requests/${id}/consent`, payload);
+    await client.POST("/workspaces/{ws_id}/overtime/requests/{id}/consent/{emp_id}", {
+      params: {
+        path: { ws_id: workspaceId, id, emp_id: payload.employee_id },
+      },
+      body: {
+        status: payload.status,
+        decline_reason: payload.decline_reason,
+      } as any,
+    });
   },
 
   getMyAssignments: async (employeeId: string): Promise<OvertimeRequest[]> => {
-    const response = await apiClient.get(`/employees/${employeeId}/overtime/assignments`);
-    return response.data;
+    const { data } = await client.GET("/employees/{employeeId}/overtime/assignments" as any, {
+      params: {
+        path: { employeeId } as any,
+      },
+    });
+    if (!data) throw new Error("No response data");
+    return data as unknown as OvertimeRequest[];
   },
 
   getWorkspaceQuotaSummary: async (workspaceId: string, month: string): Promise<QuotaSummary[]> => {
-    const response = await apiClient.get(`/workspaces/${workspaceId}/overtime/quota/summary?month=${month}`);
-    return response.data;
+    const { data } = await client.GET("/workspaces/{ws_id}/overtime/quota/summary" as any, {
+      params: {
+        path: { ws_id: workspaceId } as any,
+        query: { month } as any,
+      },
+    });
+    if (!data) throw new Error("No response data");
+    return data as unknown as QuotaSummary[];
   },
 
   getEmployeeQuota: async (workspaceId: string, employeeId: string, date: string): Promise<QuotaSummary> => {
-    const response = await apiClient.get(`/workspaces/${workspaceId}/overtime/quota/${employeeId}?date=${date}`);
-    return response.data;
+    const { data } = await client.GET("/workspaces/{ws_id}/overtime/quota/{employeeId}" as any, {
+      params: {
+        path: { ws_id: workspaceId, employeeId } as any,
+        query: { date } as any,
+      },
+    });
+    if (!data) throw new Error("No response data");
+    return data as unknown as QuotaSummary;
   }
 };

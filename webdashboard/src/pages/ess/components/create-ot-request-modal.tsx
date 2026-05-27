@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
-import { Modal } from "@/components/common/modal";
+import Modal from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { useCreateOvertimeRequest } from "@/hooks/use-overtime-requests";
 
@@ -32,7 +32,7 @@ export function CreateOtRequestModal({
 }) {
   const { t } = useTranslation();
   const toast = useToast();
-  const { mutateAsync: createRequest, isPending } = useCreateOvertimeRequest(wsId);
+  const { mutateAsync: createRequest, isPending } = useCreateOvertimeRequest();
 
   const form = useForm<OtRequestFormValues>({
     resolver: zodResolver(otRequestSchema),
@@ -53,7 +53,7 @@ export function CreateOtRequestModal({
         planned_end_time: data.planned_end_time,
         planned_minutes: data.planned_minutes,
         reason: data.reason,
-        employee_ids: [employeeId],
+        employees: [employeeId],
       });
       toast.success(t("ess.ot.request_success", { defaultValue: "Overtime request created successfully" }));
       onClose();

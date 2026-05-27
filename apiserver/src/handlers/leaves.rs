@@ -15,13 +15,32 @@ use crate::models::{
     enums::ImportTargetType, AdjustBalanceRequest, ApproveLeaveRequest, AssignLeavePolicyRequest,
     CreateLeavePolicyRequest, EmployeeLeaveBalance, LeaveHistoryItem, LeavePolicyAssignment,
     LeavePolicyDefinition, LeaveRequest, LeaveStatus, PaginatedResponse, PaginationParams,
-    SubmitLeaveRequest, UpdateLeavePolicyRequest, WorkspaceLeaveBalance,
+    SubmitLeaveRequest, UpdateLeavePolicyRequest, WorkspaceLeaveBalance, LeavePolicyAssignmentDetail,
 };
 
 use crate::{AppState, UserId};
 
 // --- Leave Handlers ---
 
+#[derive(serde::Serialize, utoipa::ToSchema)]
+pub struct PaginatedWorkspaceLeaveBalances {
+    pub data: Vec<WorkspaceLeaveBalance>,
+    pub total: usize,
+    pub page: i64,
+    pub limit: i64,
+}
+
+#[utoipa::path(
+    post,
+    path = "/workspaces/{ws_id}/leave/submit",
+    request_body = SubmitLeaveRequest,
+    responses(
+        (status = 201, description = "Leave request submitted", body = LeaveRequest)
+    ),
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID")
+    )
+)]
 pub async fn submit_leave_request(
     State(state): State<Arc<AppState>>,
     UserId(user_id): UserId,
@@ -57,13 +76,26 @@ pub async fn submit_leave_request(
     Ok((StatusCode::CREATED, Json(request)))
 }
 
+#[utoipa::path(
+    post,
+    path = "/workspaces/{ws_id}/leave/requests/{id}/approve",
+    request_body = ApproveLeaveRequest,
+    responses(
+        (status = 200, description = "Leave request approved")
+    ),
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        ("id" = Uuid, Path, description = "Leave request ID")
+    )
+)]
 pub async fn approve_leave_request(
-    Path((_, id)): Path<(Uuid, Uuid)>,
+    Path(params): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     UserId(user_id): UserId,
     ctx: MemberContext,
     Json(req): Json<ApproveLeaveRequest>,
 ) -> AppResult<StatusCode> {
+    let (_, id) = params;
     let target_dept_id = state
         .leaves
         .request_repo
@@ -87,6 +119,16 @@ pub async fn approve_leave_request(
     Ok(StatusCode::OK)
 }
 
+#[utoipa::path(
+    get,
+    path = "/employees/{id}/leave/requests",
+    responses(
+        (status = 200, description = "List of leave requests", body = [LeaveRequest])
+    ),
+    params(
+        ("id" = Uuid, Path, description = "Employee ID")
+    )
+)]
 pub async fn get_my_leave_requests(
     Path(id): Path<Uuid>,
     UserId(_user_id): UserId,
@@ -101,6 +143,17 @@ pub async fn get_my_leave_requests(
     Ok(Json(requests))
 }
 
+#[utoipa::path(
+    get,
+    path = "/workspaces/{ws_id}/leave/balances",
+    responses(
+        (status = 200, description = "Workspace leave balances", body = PaginatedWorkspaceLeaveBalances)
+    ),
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        PaginationParams
+    )
+)]
 pub async fn get_workspace_leave_balances(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -117,11 +170,23 @@ pub async fn get_workspace_leave_balances(
     Ok(Json(balances))
 }
 
+#[utoipa::path(
+    get,
+    path = "/workspaces/{ws_id}/employees/{id}/leave/balances",
+    responses(
+        (status = 200, description = "Employee leave balances", body = [EmployeeLeaveBalance])
+    ),
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        ("id" = Uuid, Path, description = "Employee ID")
+    )
+)]
 pub async fn get_employee_leave_balances(
-    Path((_, emp_id)): Path<(Uuid, Uuid)>,
+    Path(params): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> AppResult<Json<Vec<EmployeeLeaveBalance>>> {
+    let (_, emp_id) = params;
     let year = Utc::now().year();
     let balances = state
         .leaves
@@ -132,11 +197,22 @@ pub async fn get_employee_leave_balances(
     Ok(Json(balances))
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, utoipa::IntoParams)]
 pub struct LeaveStatusQuery {
     pub status: Option<LeaveStatus>,
 }
 
+#[utoipa::path(
+    get,
+    path = "/workspaces/{ws_id}/leave/requests",
+    responses(
+        (status = 200, description = "Workspace leave requests", body = [LeaveRequest])
+    ),
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        LeaveStatusQuery
+    )
+)]
 pub async fn get_workspace_leave_requests(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -163,17 +239,30 @@ pub async fn get_workspace_leave_requests(
     Ok(Json(requests))
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, utoipa::IntoParams)]
 pub struct LeaveHistoryQuery {
     pub leave_type_id: Option<Uuid>,
 }
 
+#[utoipa::path(
+    get,
+    path = "/workspaces/{ws_id}/employees/{id}/leave/history",
+    responses(
+        (status = 200, description = "Employee leave history", body = [LeaveHistoryItem])
+    ),
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        ("id" = Uuid, Path, description = "Employee ID"),
+        LeaveHistoryQuery
+    )
+)]
 pub async fn get_employee_leave_history(
-    Path((_, emp_id)): Path<(Uuid, Uuid)>,
+    Path(params): Path<(Uuid, Uuid)>,
     Query(query): Query<LeaveHistoryQuery>,
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> AppResult<Json<Vec<LeaveHistoryItem>>> {
+    let (_, emp_id) = params;
     // Allow admins to see anyone's history; non-admins can only access via employee self-service
     ctx.require_permission(Permission::LeaveBalancesRead)?;
     let year = Utc::now().year();
@@ -186,12 +275,25 @@ pub async fn get_employee_leave_history(
     Ok(Json(history))
 }
 
+#[utoipa::path(
+    post,
+    path = "/workspaces/{ws_id}/employees/{id}/leave/adjust",
+    request_body = AdjustBalanceRequest,
+    responses(
+        (status = 200, description = "Leave balance adjusted")
+    ),
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        ("id" = Uuid, Path, description = "Employee ID")
+    )
+)]
 pub async fn adjust_leave_balance(
-    Path((_, emp_id)): Path<(Uuid, Uuid)>,
+    Path(params): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
     Json(req): Json<AdjustBalanceRequest>,
 ) -> AppResult<StatusCode> {
+    let (_, emp_id) = params;
     ctx.require_permission(Permission::LeaveBalancesAdjust)?;
     state
         .leaves
@@ -202,6 +304,17 @@ pub async fn adjust_leave_balance(
     Ok(StatusCode::OK)
 }
 
+#[utoipa::path(
+    post,
+    path = "/workspaces/{ws_id}/leave/policies",
+    request_body = CreateLeavePolicyRequest,
+    responses(
+        (status = 201, description = "Leave policy created", body = LeavePolicyDefinition)
+    ),
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID")
+    )
+)]
 pub async fn create_leave_policy(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -224,12 +337,25 @@ pub async fn create_leave_policy(
     Ok((StatusCode::CREATED, Json(policy)))
 }
 
+#[utoipa::path(
+    patch,
+    path = "/workspaces/{ws_id}/leave/policies/{policy_id}",
+    request_body = UpdateLeavePolicyRequest,
+    responses(
+        (status = 200, description = "Leave policy updated", body = LeavePolicyDefinition)
+    ),
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        ("policy_id" = Uuid, Path, description = "Policy ID")
+    )
+)]
 pub async fn update_leave_policy(
     State(state): State<Arc<AppState>>,
-    Path((_, policy_id)): Path<(Uuid, Uuid)>,
+    Path(params): Path<(Uuid, Uuid)>,
     ctx: MemberContext,
     Json(req): Json<UpdateLeavePolicyRequest>,
 ) -> AppResult<Json<LeavePolicyDefinition>> {
+    let (_, policy_id) = params;
     ctx.require_permission(Permission::LeavePoliciesManage)?;
 
     let policy = state
@@ -248,11 +374,23 @@ pub async fn update_leave_policy(
     Ok(Json(policy))
 }
 
+#[utoipa::path(
+    delete,
+    path = "/workspaces/{ws_id}/leave/policies/{policy_id}",
+    responses(
+        (status = 204, description = "Leave policy deleted")
+    ),
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        ("policy_id" = Uuid, Path, description = "Policy ID")
+    )
+)]
 pub async fn delete_leave_policy(
     State(state): State<Arc<AppState>>,
-    Path((_, policy_id)): Path<(Uuid, Uuid)>,
+    Path(params): Path<(Uuid, Uuid)>,
     ctx: MemberContext,
 ) -> AppResult<StatusCode> {
+    let (_, policy_id) = params;
     ctx.require_permission(Permission::LeavePoliciesManage)?;
 
     let rows = state
@@ -268,6 +406,16 @@ pub async fn delete_leave_policy(
     }
 }
 
+#[utoipa::path(
+    get,
+    path = "/workspaces/{ws_id}/leave/policies",
+    responses(
+        (status = 200, description = "Workspace leave policies", body = [LeavePolicyDefinition])
+    ),
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID")
+    )
+)]
 pub async fn get_leave_policies(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -280,6 +428,17 @@ pub async fn get_leave_policies(
     Ok(Json(policies))
 }
 
+#[utoipa::path(
+    post,
+    path = "/workspaces/{ws_id}/leave/policies/assign",
+    request_body = AssignLeavePolicyRequest,
+    responses(
+        (status = 201, description = "Leave policy assigned", body = LeavePolicyAssignment)
+    ),
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID")
+    )
+)]
 pub async fn assign_leave_policy(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -306,18 +465,29 @@ pub async fn assign_leave_policy(
     Ok((StatusCode::CREATED, Json(saved)))
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, utoipa::ToSchema)]
 pub struct TriggerAccrualRequest {
     pub date: String,
 }
 
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug, serde::Serialize, utoipa::ToSchema)]
 pub struct AccrualJobResponse {
     pub job_id: String,
     pub status: String,
     pub message: String,
 }
 
+#[utoipa::path(
+    post,
+    path = "/workspaces/{ws_id}/leave/accrual/run",
+    request_body = TriggerAccrualRequest,
+    responses(
+        (status = 202, description = "Accrual run triggered", body = AccrualJobResponse)
+    ),
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID")
+    )
+)]
 pub async fn trigger_accrual_run(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -377,7 +547,7 @@ pub async fn trigger_accrual_run(
 
 /// GET /workspaces/:ws_id/jobs/:job_id/status
 /// Poll the status of a background job.
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug, serde::Serialize, utoipa::ToSchema)]
 pub struct JobStatusResponse {
     pub job_id: String,
     pub status: String,
@@ -385,11 +555,23 @@ pub struct JobStatusResponse {
     pub error_message: Option<String>,
 }
 
+#[utoipa::path(
+    get,
+    path = "/workspaces/{ws_id}/jobs/{job_id}/status",
+    responses(
+        (status = 200, description = "Get background job status", body = JobStatusResponse)
+    ),
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        ("job_id" = Uuid, Path, description = "Job ID")
+    )
+)]
 pub async fn get_job_status(
-    Path((_, job_id)): Path<(Uuid, Uuid)>,
+    Path(params): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     _ctx: MemberContext,
 ) -> AppResult<Json<JobStatusResponse>> {
+    let (_, job_id) = params;
     let redis = state
         .infra
         .redis
@@ -417,6 +599,16 @@ pub async fn get_job_status(
     }
 }
 
+#[utoipa::path(
+    get,
+    path = "/workspaces/{ws_id}/leave/policies/assignments",
+    responses(
+        (status = 200, description = "Workspace leave policy assignments", body = [LeavePolicyAssignmentDetail])
+    ),
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID")
+    )
+)]
 pub async fn get_leave_policy_assignments(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -436,6 +628,16 @@ pub async fn get_leave_policy_assignments(
 
 /// POST /workspaces/:ws_id/leave/upload-excel
 /// Upload an Excel file for bulk leave request import.
+#[utoipa::path(
+    post,
+    path = "/workspaces/{ws_id}/leave/upload-excel",
+    responses(
+        (status = 200, description = "Leave Excel uploaded", body = serde_json::Value)
+    ),
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID")
+    )
+)]
 pub async fn upload_leave_excel(
     State(state): State<Arc<AppState>>,
     UserId(user_id): UserId,
@@ -549,6 +751,16 @@ pub async fn upload_leave_excel(
 
 /// GET /workspaces/:ws_id/leave/import/latest
 /// Get the latest leave import job for the workspace (for page resume).
+#[utoipa::path(
+    get,
+    path = "/workspaces/{ws_id}/leave/import/latest",
+    responses(
+        (status = 200, description = "Latest leave import job", body = serde_json::Value)
+    ),
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID")
+    )
+)]
 pub async fn get_latest_leave_import(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -584,11 +796,23 @@ pub async fn get_latest_leave_import(
 
 /// GET /workspaces/:ws_id/leave/import/:job_id/errors
 /// Download the error Excel file for a completed import job.
+#[utoipa::path(
+    get,
+    path = "/workspaces/{ws_id}/leave/import/{job_id}/errors",
+    responses(
+        (status = 200, description = "Download leave import errors file", body = [u8])
+    ),
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        ("job_id" = Uuid, Path, description = "Job ID")
+    )
+)]
 pub async fn download_leave_import_errors(
-    Path((_, job_id)): Path<(Uuid, Uuid)>,
+    Path(params): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> AppResult<axum::response::Response> {
+    let (_, job_id) = params;
     ctx.require_permission(Permission::LeaveRequestsSubmit)?;
 
     use crate::repositories::import_job_repository::ImportJobRepository;
@@ -631,13 +855,24 @@ pub async fn download_leave_import_errors(
         .map_err(|e| AppError::TemplateError(format!("Failed to build response: {e}")))
 }
 
-#[derive(serde::Deserialize)]
+#[derive(serde::Deserialize, utoipa::IntoParams)]
 pub struct DownloadTemplateQuery {
     pub lang: Option<String>,
 }
 
 /// GET /workspaces/:ws_id/leave/upload-template
 /// Download a dynamic template Excel with leave type codes for this workspace.
+#[utoipa::path(
+    get,
+    path = "/workspaces/{ws_id}/leave/upload-template",
+    responses(
+        (status = 200, description = "Download leave import template", body = [u8])
+    ),
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        DownloadTemplateQuery
+    )
+)]
 pub async fn download_leave_import_template(
     State(state): State<Arc<AppState>>,
     axum::extract::Query(query): axum::extract::Query<DownloadTemplateQuery>,

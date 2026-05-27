@@ -11,7 +11,7 @@ interface Toast {
   type: ToastType;
 }
 
-interface ToastContextType {
+export interface ToastContextType {
   error: (message: string, title?: string) => void;
   info: (message: string, title?: string) => void;
   show: (message: string, type?: ToastType, title?: string) => void;

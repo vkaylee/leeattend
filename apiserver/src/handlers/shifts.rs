@@ -4,7 +4,6 @@ use axum::{
     response::{IntoResponse, Json},
 };
 use chrono::NaiveDate;
-use std::collections::BTreeMap;
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -17,11 +16,19 @@ use crate::models::{
 };
 use crate::AppState;
 
+#[derive(serde::Deserialize, utoipa::IntoParams)]
+pub struct WorkspaceSchedulesQuery {
+    pub start_date: String,
+    pub end_date: String,
+}
+
+#[derive(serde::Deserialize, utoipa::IntoParams)]
+pub struct EmployeeRostersQuery {
+    pub start_date: Option<String>,
+    pub end_date: Option<String>,
+}
+
 /// Reprocess attendance for a single (employee, date) after a roster change.
-///
-/// Fetches the workspace timezone from DB and delegates to `PairingService`.
-/// Errors are logged but not propagated — the roster mutation itself already
-/// succeeded, so we don't want to roll it back.
 async fn reprocess_after_roster_change(
     state: &AppState,
     workspace_id: Uuid,
@@ -55,6 +62,16 @@ async fn reprocess_after_roster_change(
 
 // --- Shift Handlers ---
 
+#[utoipa::path(
+    get,
+    path = "/workspaces/{workspace_id}/shifts",
+    responses(
+        (status = 200, description = "List of shifts", body = [Shift])
+    ),
+    params(
+        ("workspace_id" = Uuid, Path, description = "Workspace ID")
+    )
+)]
 pub async fn get_shifts(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -70,6 +87,17 @@ pub async fn get_shifts(
     Ok(Json(shifts))
 }
 
+#[utoipa::path(
+    post,
+    path = "/workspaces/{workspace_id}/shifts",
+    request_body = CreateShiftRequest,
+    responses(
+        (status = 201, description = "Shift created", body = Shift)
+    ),
+    params(
+        ("workspace_id" = Uuid, Path, description = "Workspace ID")
+    )
+)]
 pub async fn create_shift(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -91,12 +119,25 @@ pub async fn create_shift(
     Ok((StatusCode::CREATED, Json(shift)))
 }
 
+#[utoipa::path(
+    put,
+    path = "/workspaces/{workspace_id}/shifts/{shift_id}",
+    request_body = UpdateShiftRequest,
+    responses(
+        (status = 200, description = "Shift updated", body = Shift)
+    ),
+    params(
+        ("workspace_id" = Uuid, Path, description = "Workspace ID"),
+        ("shift_id" = Uuid, Path, description = "Shift ID")
+    )
+)]
 pub async fn update_shift(
     State(state): State<Arc<AppState>>,
-    Path((_, shift_id)): Path<(Uuid, Uuid)>,
+    Path(params): Path<(Uuid, Uuid)>,
     ctx: MemberContext,
     Json(req): Json<UpdateShiftRequest>,
 ) -> AppResult<Json<Shift>> {
+    let (_workspace_id, shift_id) = params;
     ctx.require_permission(Permission::ShiftsUpdate)?;
     let shift = state
         .shifts
@@ -111,6 +152,17 @@ pub async fn update_shift(
     Ok(Json(shift))
 }
 
+#[utoipa::path(
+    post,
+    path = "/workspaces/{workspace_id}/shifts/assign",
+    request_body = AssignShiftRequest,
+    responses(
+        (status = 200, description = "Shift assigned successfully")
+    ),
+    params(
+        ("workspace_id" = Uuid, Path, description = "Workspace ID")
+    )
+)]
 pub async fn assign_shift(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -137,22 +189,29 @@ pub async fn assign_shift(
 
 // --- Roster Handlers ---
 
+#[utoipa::path(
+    get,
+    path = "/workspaces/{workspace_id}/schedules",
+    responses(
+        (status = 200, description = "Workspace schedules", body = [EmployeeSchedule])
+    ),
+    params(
+        ("workspace_id" = Uuid, Path, description = "Workspace ID"),
+        WorkspaceSchedulesQuery
+    )
+)]
 pub async fn get_workspace_schedules(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
-    Query(params): Query<BTreeMap<String, String>>,
+    Query(query): Query<WorkspaceSchedulesQuery>,
 ) -> AppResult<Json<Vec<EmployeeSchedule>>> {
     let _workspace_id = ctx.workspace_id;
 
-    let start_date = params
-        .get("start_date")
-        .and_then(|d| NaiveDate::parse_from_str(d, "%Y-%m-%d").ok())
-        .ok_or_else(|| AppError::Validation("Missing or invalid start_date".to_string()))?;
+    let start_date = NaiveDate::parse_from_str(&query.start_date, "%Y-%m-%d")
+        .map_err(|_| AppError::Validation("Invalid start_date format".to_string()))?;
 
-    let end_date = params
-        .get("end_date")
-        .and_then(|d| NaiveDate::parse_from_str(d, "%Y-%m-%d").ok())
-        .ok_or_else(|| AppError::Validation("Missing or invalid end_date".to_string()))?;
+    let end_date = NaiveDate::parse_from_str(&query.end_date, "%Y-%m-%d")
+        .map_err(|_| AppError::Validation("Invalid end_date format".to_string()))?;
 
     let schedules = state
         .shifts
@@ -169,6 +228,16 @@ pub async fn get_workspace_schedules(
     Ok(Json(schedules))
 }
 
+#[utoipa::path(
+    get,
+    path = "/workspaces/{workspace_id}/assignment-history",
+    responses(
+        (status = 200, description = "Assignment history", body = [AssignmentHistory])
+    ),
+    params(
+        ("workspace_id" = Uuid, Path, description = "Workspace ID")
+    )
+)]
 pub async fn get_assignment_history(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -187,19 +256,32 @@ pub async fn get_assignment_history(
     Ok(Json(history))
 }
 
+#[utoipa::path(
+    get,
+    path = "/workspaces/{workspace_id}/employees/{id}/rosters",
+    responses(
+        (status = 200, description = "Employee rosters", body = [ShiftRoster])
+    ),
+    params(
+        ("workspace_id" = Uuid, Path, description = "Workspace ID"),
+        ("id" = Uuid, Path, description = "Employee ID"),
+        EmployeeRostersQuery
+    )
+)]
 pub async fn get_employee_rosters(
     State(state): State<Arc<AppState>>,
-    Path((_, employee_id)): Path<(Uuid, Uuid)>,
+    Path(params): Path<(Uuid, Uuid)>,
     ctx: MemberContext,
-    Query(params): Query<BTreeMap<String, String>>,
+    Query(query): Query<EmployeeRostersQuery>,
 ) -> AppResult<Json<Vec<ShiftRoster>>> {
-    let start_date = params
-        .get("start_date")
+    let (_workspace_id, employee_id) = params;
+    let start_date = query.start_date
+        .as_deref()
         .and_then(|s| NaiveDate::parse_from_str(s, "%Y-%m-%d").ok())
         .unwrap_or_else(|| chrono::Utc::now().date_naive());
 
-    let end_date = params
-        .get("end_date")
+    let end_date = query.end_date
+        .as_deref()
         .and_then(|s| NaiveDate::parse_from_str(s, "%Y-%m-%d").ok())
         .unwrap_or_else(|| start_date + chrono::Duration::days(30));
 
@@ -212,12 +294,25 @@ pub async fn get_employee_rosters(
     Ok(Json(rosters))
 }
 
+#[utoipa::path(
+    post,
+    path = "/workspaces/{workspace_id}/employees/{id}/rosters",
+    request_body = CreateRosterRequest,
+    responses(
+        (status = 200, description = "Roster created/updated", body = ShiftRoster)
+    ),
+    params(
+        ("workspace_id" = Uuid, Path, description = "Workspace ID"),
+        ("id" = Uuid, Path, description = "Employee ID")
+    )
+)]
 pub async fn upsert_roster(
     State(state): State<Arc<AppState>>,
-    Path((_, employee_id)): Path<(Uuid, Uuid)>,
+    Path(params): Path<(Uuid, Uuid)>,
     ctx: MemberContext,
     Json(req): Json<CreateRosterRequest>,
 ) -> AppResult<Json<ShiftRoster>> {
+    let (_workspace_id, employee_id) = params;
     ctx.require_permission(Permission::RostersManage)?;
     let roster = ShiftRoster {
         id: crate::utils::id::new_id(),
@@ -245,12 +340,25 @@ pub async fn upsert_roster(
     Ok(Json(saved))
 }
 
+#[utoipa::path(
+    post,
+    path = "/workspaces/{workspace_id}/employees/{id}/rosters/bulk",
+    request_body = BulkRosterRequest,
+    responses(
+        (status = 200, description = "Bulk rosters created/updated")
+    ),
+    params(
+        ("workspace_id" = Uuid, Path, description = "Workspace ID"),
+        ("id" = Uuid, Path, description = "Employee ID")
+    )
+)]
 pub async fn bulk_upsert_roster(
     State(state): State<Arc<AppState>>,
-    Path((_, employee_id)): Path<(Uuid, Uuid)>,
+    Path(params): Path<(Uuid, Uuid)>,
     ctx: MemberContext,
     Json(req): Json<BulkRosterRequest>,
 ) -> AppResult<StatusCode> {
+    let (_workspace_id, employee_id) = params;
     ctx.require_permission(Permission::RostersManage)?;
     let dates: Vec<NaiveDate> = req.items.iter().map(|i| i.date).collect();
     state
@@ -270,11 +378,24 @@ pub async fn bulk_upsert_roster(
     Ok(StatusCode::OK)
 }
 
+#[utoipa::path(
+    delete,
+    path = "/workspaces/{workspace_id}/employees/{id}/rosters/{date}",
+    responses(
+        (status = 204, description = "Roster deleted")
+    ),
+    params(
+        ("workspace_id" = Uuid, Path, description = "Workspace ID"),
+        ("id" = Uuid, Path, description = "Employee ID"),
+        ("date" = NaiveDate, Path, description = "Roster Date")
+    )
+)]
 pub async fn delete_roster(
     State(state): State<Arc<AppState>>,
-    Path((_, employee_id, date)): Path<(Uuid, Uuid, NaiveDate)>,
+    Path(params): Path<(Uuid, Uuid, NaiveDate)>,
     ctx: MemberContext,
 ) -> AppResult<StatusCode> {
+    let (_workspace_id, employee_id, date) = params;
     ctx.require_permission(Permission::RostersManage)?;
     state
         .shifts

@@ -1,5 +1,3 @@
-//! Holiday CRUD handlers for workspace holiday calendar management.
-
 use axum::{
     extract::{Path, Query, State},
     response::Json,
@@ -16,12 +14,22 @@ use crate::repositories::holiday_repository::HolidayLeaveResult;
 
 use crate::AppState;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, utoipa::IntoParams)]
 pub struct ListHolidaysQuery {
     pub year: Option<i32>,
 }
 
-/// GET /workspaces/:ws_id/holidays
+#[utoipa::path(
+    get,
+    path = "/workspaces/{workspace_id}/holidays",
+    responses(
+        (status = 200, description = "List of holidays", body = [Holiday])
+    ),
+    params(
+        ("workspace_id" = Uuid, Path, description = "Workspace ID"),
+        ListHolidaysQuery
+    )
+)]
 pub async fn list_holidays(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -36,12 +44,23 @@ pub async fn list_holidays(
     Ok(Json(holidays))
 }
 
-/// GET /workspaces/:ws_id/holidays/:id
+#[utoipa::path(
+    get,
+    path = "/workspaces/{workspace_id}/holidays/{id}",
+    responses(
+        (status = 200, description = "Holiday details", body = Holiday)
+    ),
+    params(
+        ("workspace_id" = Uuid, Path, description = "Workspace ID"),
+        ("id" = Uuid, Path, description = "Holiday ID")
+    )
+)]
 pub async fn get_holiday(
     State(state): State<Arc<AppState>>,
-    Path((_, id)): Path<(Uuid, Uuid)>,
+    Path(params): Path<(Uuid, Uuid)>,
     ctx: MemberContext,
 ) -> AppResult<Json<Holiday>> {
+    let (_ws_id, id) = params;
     let holiday = state
         .leaves
         .holiday_repo
@@ -52,7 +71,17 @@ pub async fn get_holiday(
     Ok(Json(holiday))
 }
 
-/// POST /workspaces/:ws_id/holidays
+#[utoipa::path(
+    post,
+    path = "/workspaces/{workspace_id}/holidays",
+    request_body = CreateHolidayRequest,
+    responses(
+        (status = 201, description = "Holiday created", body = Holiday)
+    ),
+    params(
+        ("workspace_id" = Uuid, Path, description = "Workspace ID")
+    )
+)]
 pub async fn create_holiday(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -76,13 +105,25 @@ pub async fn create_holiday(
     Ok((axum::http::StatusCode::CREATED, Json(holiday)))
 }
 
-/// PUT /workspaces/:ws_id/holidays/:id
+#[utoipa::path(
+    put,
+    path = "/workspaces/{workspace_id}/holidays/{id}",
+    request_body = UpdateHolidayRequest,
+    responses(
+        (status = 200, description = "Holiday updated", body = Holiday)
+    ),
+    params(
+        ("workspace_id" = Uuid, Path, description = "Workspace ID"),
+        ("id" = Uuid, Path, description = "Holiday ID")
+    )
+)]
 pub async fn update_holiday(
     State(state): State<Arc<AppState>>,
-    Path((_, id)): Path<(Uuid, Uuid)>,
+    Path(params): Path<(Uuid, Uuid)>,
     ctx: MemberContext,
     Json(req): Json<UpdateHolidayRequest>,
 ) -> AppResult<Json<Holiday>> {
+    let (_ws_id, id) = params;
     ctx.require_permission(Permission::HolidaysManage)?;
 
     let holiday = state
@@ -95,12 +136,23 @@ pub async fn update_holiday(
     Ok(Json(holiday))
 }
 
-/// DELETE /workspaces/:ws_id/holidays/:id
+#[utoipa::path(
+    delete,
+    path = "/workspaces/{workspace_id}/holidays/{id}",
+    responses(
+        (status = 204, description = "Holiday deleted")
+    ),
+    params(
+        ("workspace_id" = Uuid, Path, description = "Workspace ID"),
+        ("id" = Uuid, Path, description = "Holiday ID")
+    )
+)]
 pub async fn delete_holiday(
     State(state): State<Arc<AppState>>,
-    Path((_, id)): Path<(Uuid, Uuid)>,
+    Path(params): Path<(Uuid, Uuid)>,
     ctx: MemberContext,
 ) -> AppResult<axum::http::StatusCode> {
+    let (_ws_id, id) = params;
     ctx.require_permission(Permission::HolidaysManage)?;
 
     let deleted = state
@@ -116,13 +168,23 @@ pub async fn delete_holiday(
     }
 }
 
-/// POST /workspaces/:ws_id/holidays/:id/process-leave
-/// Triggers automatic leave deduction for employees on an unpaid holiday.
+#[utoipa::path(
+    post,
+    path = "/workspaces/{workspace_id}/holidays/{id}/process-leave",
+    responses(
+        (status = 200, description = "Holiday leave processed", body = [HolidayLeaveResult])
+    ),
+    params(
+        ("workspace_id" = Uuid, Path, description = "Workspace ID"),
+        ("id" = Uuid, Path, description = "Holiday ID")
+    )
+)]
 pub async fn process_holiday_leave(
     State(state): State<Arc<AppState>>,
-    Path((_, id)): Path<(Uuid, Uuid)>,
+    Path(params): Path<(Uuid, Uuid)>,
     ctx: MemberContext,
 ) -> AppResult<Json<Vec<HolidayLeaveResult>>> {
+    let (_ws_id, id) = params;
     ctx.require_permission(Permission::HolidaysManage)?;
 
     let holiday = state

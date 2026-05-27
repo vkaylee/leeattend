@@ -1,4 +1,6 @@
-import { apiClient } from './client';
+import { client } from './client';
+import { WorkspaceConfigEntry, CreateConfigEntryRequest } from './types';
+export type { WorkspaceConfigEntry, CreateConfigEntryRequest };
 
 export type ScopeType = 'workspace' | 'department' | 'employee';
 
@@ -10,60 +12,49 @@ export interface ConfigValue {
   Text?: string;
 }
 
-export interface WorkspaceConfigEntry {
-  config_key: string;
-  created_at: string;
-  created_by?: string;
-  effective_from: string;
-  effective_to?: string;
-  id: string;
-  scope_id?: string;
-  scope_type: ScopeType;
-  updated_at: string;
-  value_bool?: boolean;
-  value_decimal?: number;
-  value_int?: number;
-  value_json?: any;
-  value_text?: string;
-  workspace_id: string;
-}
-
-export interface CreateConfigEntryRequest {
-  config_key: string;
-  effective_from: string;
-  effective_to?: string;
-  scope_id?: string;
-  scope_type: ScopeType;
-  value: ConfigValue;
-}
-
 export interface UpdateConfigEntryRequest {
   effective_to?: string;
 }
 
 export const workspaceConfigApi = {
   listConfigs: async (workspaceId: string, prefix?: string): Promise<WorkspaceConfigEntry[]> => {
-    const params = new URLSearchParams();
-    if (prefix) params.append('prefix', prefix);
-    
-    const response = await apiClient.get(`/workspaces/${workspaceId}/configs?${params.toString()}`);
-    return response.data;
+    const { data: resData } = await client.GET("/workspaces/{workspace_id}/configs", {
+      params: {
+        path: { workspace_id: workspaceId },
+        query: prefix ? { prefix } : undefined,
+      },
+    });
+    if (!resData) throw new Error("No response data");
+    return resData as any[];
   },
 
   getConfig: async (workspaceId: string, key: string, date?: string): Promise<WorkspaceConfigEntry | null> => {
-    const params = new URLSearchParams();
-    if (date) params.append('date', date);
-    
-    const response = await apiClient.get(`/workspaces/${workspaceId}/configs/${key}?${params.toString()}`);
-    return response.data;
+    const { data: resData } = await client.GET("/workspaces/{workspace_id}/configs/{key}", {
+      params: {
+        path: { workspace_id: workspaceId, key },
+        query: date ? { date } : undefined,
+      },
+    });
+    return (resData as any) || null;
   },
 
   upsertConfig: async (workspaceId: string, payload: CreateConfigEntryRequest): Promise<WorkspaceConfigEntry> => {
-    const response = await apiClient.put(`/workspaces/${workspaceId}/configs`, payload);
-    return response.data;
+    const { data: resData } = await client.PUT("/workspaces/{workspace_id}/configs", {
+      params: {
+        path: { workspace_id: workspaceId },
+      },
+      body: payload as any,
+    });
+    if (!resData) throw new Error("No response data");
+    return resData as any;
   },
 
   deleteConfig: async (workspaceId: string, id: string): Promise<void> => {
-    await apiClient.delete(`/workspaces/${workspaceId}/configs/${id}`);
+    await client.DELETE("/workspaces/{workspace_id}/configs/{id}", {
+      params: {
+        path: { workspace_id: workspaceId, id },
+      },
+    });
   },
 };
+

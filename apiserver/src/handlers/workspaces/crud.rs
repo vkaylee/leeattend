@@ -20,6 +20,13 @@ use crate::models::{
 
 use crate::{AppState, UserId};
 
+#[utoipa::path(
+    get,
+    path = "/dashboard/attendance-trend",
+    responses(
+        (status = 200, description = "Get attendance trend analysis data", body = Vec<AttendanceTrendPoint>)
+    )
+)]
 pub async fn get_attendance_trend(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -39,6 +46,16 @@ pub struct DeptAttendanceQuery {
     pub range: Option<String>,
 }
 
+#[utoipa::path(
+    get,
+    path = "/dashboard/department-attendance",
+    responses(
+        (status = 200, description = "Get department-scoped attendance analytics", body = Vec<DepartmentAttendancePoint>)
+    ),
+    params(
+        ("range" = Option<String>, Query, description = "Analytics date range (e.g. today, week, month)")
+    )
+)]
 pub async fn get_department_attendance(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -63,6 +80,18 @@ pub struct UnexcusedAbsencesQuery {
 }
 
 #[allow(clippy::too_many_lines)]
+#[utoipa::path(
+    get,
+    path = "/dashboard/unexcused-absences",
+    responses(
+        (status = 200, description = "Get unexcused absences list/stats", body = Vec<UnexcusedAbsencesPoint>)
+    ),
+    params(
+        ("start_date" = Option<String>, Query, description = "Start Date (YYYY-MM-DD)"),
+        ("end_date" = Option<String>, Query, description = "End Date (YYYY-MM-DD)"),
+        ("group_by" = Option<String>, Query, description = "Group results by employee or department")
+    )
+)]
 pub async fn get_unexcused_absences(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -294,6 +323,13 @@ pub async fn get_unexcused_absences(
     }
 }
 
+#[utoipa::path(
+    get,
+    path = "/dashboard/overtime-trend",
+    responses(
+        (status = 200, description = "Get overtime trend analysis data", body = Vec<OvertimeTrendPoint>)
+    )
+)]
 pub async fn get_overtime_trend(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -308,6 +344,13 @@ pub async fn get_overtime_trend(
     Ok(Json(result))
 }
 
+#[utoipa::path(
+    get,
+    path = "/dashboard/workspace-stats",
+    responses(
+        (status = 200, description = "Get workspace key metrics and status summary", body = WorkspaceStats)
+    )
+)]
 pub async fn get_workspace_stats(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -324,6 +367,13 @@ pub async fn get_workspace_stats(
 
 // ── Peak Check-in/Check-out Times ──────────────────────────────────
 
+#[utoipa::path(
+    get,
+    path = "/dashboard/peak-times",
+    responses(
+        (status = 200, description = "Get peak check-in and check-out times slots", body = Vec<PeakTimeSlot>)
+    )
+)]
 pub async fn get_peak_times(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -340,6 +390,13 @@ pub async fn get_peak_times(
 
 // ── Leave Types Breakdown ──────────────────────────────────────────
 
+#[utoipa::path(
+    get,
+    path = "/dashboard/leave-types",
+    responses(
+        (status = 200, description = "Get leave requests breakdown by leave type", body = Vec<LeaveTypeBreakdown>)
+    )
+)]
 pub async fn get_leave_types_breakdown(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -356,6 +413,13 @@ pub async fn get_leave_types_breakdown(
 
 // ── Lateness by Day of Week ────────────────────────────────────────
 
+#[utoipa::path(
+    get,
+    path = "/dashboard/lateness-by-day",
+    responses(
+        (status = 200, description = "Get lateness breakdown by day of week", body = Vec<LatenessByDay>)
+    )
+)]
 pub async fn get_lateness_by_day(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -370,6 +434,13 @@ pub async fn get_lateness_by_day(
     Ok(Json(result))
 }
 
+#[utoipa::path(
+    get,
+    path = "/workspaces",
+    responses(
+        (status = 200, description = "List all workspaces the user is member of", body = Vec<Workspace>)
+    )
+)]
 pub async fn get_workspaces(
     State(state): State<Arc<AppState>>,
     UserId(user_id): UserId,
@@ -383,6 +454,16 @@ pub async fn get_workspaces(
     Ok(Json(workspaces))
 }
 
+#[utoipa::path(
+    get,
+    path = "/workspaces/{ws_id}",
+    responses(
+        (status = 200, description = "Get workspace details by ID", body = Workspace)
+    ),
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID")
+    )
+)]
 pub async fn get_workspace_by_id(
     State(state): State<Arc<AppState>>,
     Path(ws_id): Path<Uuid>,
@@ -401,6 +482,14 @@ pub async fn get_workspace_by_id(
 /// POST /workspaces
 /// Creates a new workspace.
 /// Requires: SystemRole::PlatformAdmin — prevents arbitrary users from creating workspaces.
+#[utoipa::path(
+    post,
+    path = "/workspaces",
+    request_body = CreateWorkspaceRequest,
+    responses(
+        (status = 201, description = "Workspace created successfully", body = Workspace)
+    )
+)]
 pub async fn create_workspace(
     State(state): State<Arc<AppState>>,
     ctx: SystemContext,
@@ -440,6 +529,17 @@ pub async fn create_workspace(
     Ok(Json(ws))
 }
 
+#[utoipa::path(
+    patch,
+    path = "/workspaces/{ws_id}",
+    request_body = UpdateWorkspaceRequest,
+    responses(
+        (status = 200, description = "Workspace updated successfully", body = Workspace)
+    ),
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID")
+    )
+)]
 pub async fn update_workspace(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,

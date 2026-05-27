@@ -1,8 +1,9 @@
 use chrono::{DateTime, NaiveDate, NaiveTime, Utc};
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 use uuid::Uuid;
 
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default, ToSchema)]
 pub struct OvertimePolicy {
     pub id: Uuid,
     pub workspace_id: Uuid,
@@ -12,7 +13,7 @@ pub struct OvertimePolicy {
     pub updated_at: Option<DateTime<Utc>>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
 pub struct OvertimeRule {
     pub id: Uuid,
     pub policy_id: Uuid,
@@ -26,7 +27,7 @@ pub struct OvertimeRule {
     pub updated_at: Option<DateTime<Utc>>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
 pub struct OvertimePolicyAssignment {
     pub id: Uuid,
     pub workspace_id: Uuid,

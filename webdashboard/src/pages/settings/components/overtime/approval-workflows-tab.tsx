@@ -10,8 +10,8 @@ import { UpsertWorkflowModal } from "./upsert-workflow-modal";
 
 export function ApprovalWorkflowsTab({ wsId }: { wsId: string }) {
   const { t } = useTranslation();
-  const { data: workflows, isLoading } = useApprovalWorkflows(wsId);
-  const { mutate: deleteWorkflow, isPending: isDeleting } = useDeleteApprovalWorkflow(wsId);
+  const { data: workflows, isLoading } = useApprovalWorkflows("ot_request");
+  const { mutate: deleteWorkflow, isPending: isDeleting } = useDeleteApprovalWorkflow();
   const { confirm } = useConfirm();
 
   const [upsertModalOpen, setUpsertModalOpen] = useState(false);
@@ -30,10 +30,10 @@ export function ApprovalWorkflowsTab({ wsId }: { wsId: string }) {
   const handleDelete = async (id: string) => {
     const isConfirmed = await confirm({
       title: t("common.delete_confirm"),
-      description: t("settings.overtime.delete_workflow_desc", { defaultValue: "Are you sure you want to delete this approval workflow? Pending requests may be affected." }),
-      confirmText: t("common.delete"),
-      cancelText: t("common.cancel"),
-      variant: "destructive"
+      message: t("settings.overtime.delete_workflow_desc", { defaultValue: "Are you sure you want to delete this approval workflow? Pending requests may be affected." }),
+      confirmLabel: t("common.delete"),
+      cancelLabel: t("common.cancel"),
+      variant: "danger"
     });
 
     if (isConfirmed) {

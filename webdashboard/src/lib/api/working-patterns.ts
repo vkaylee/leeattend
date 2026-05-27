@@ -1,5 +1,5 @@
-import { apiClient } from "./client";
-import { 
+import { client } from "./client";
+import type { 
   AssignPatternRequest,
   BulkAssignPatternRequest,
   BulkAssignResponse,
@@ -10,14 +10,36 @@ import {
   WorkingPatternDetail, 
 } from "./types";
 
+export type {
+  AssignPatternRequest,
+  BulkAssignPatternRequest,
+  BulkAssignResponse,
+  CreateWorkingPatternRequest,
+  EmployeeWorkingPattern,
+  UpdateWorkingPatternRequest,
+  WorkingPattern, 
+  WorkingPatternDetail, 
+};
+
 export async function fetchWorkingPatterns(wsId: string): Promise<WorkingPattern[]> {
-  const { data } = await apiClient.get<WorkingPattern[]>(`/workspaces/${wsId}/working-patterns`);
-  return data;
+  const { data } = await client.GET("/workspaces/{workspace_id}/working-patterns", {
+    params: {
+      path: { workspace_id: wsId },
+    },
+  });
+  if (!data) throw new Error("No response data");
+  return data as unknown as WorkingPattern[];
 }
 
 export async function createWorkingPattern(wsId: string, data: CreateWorkingPatternRequest): Promise<WorkingPattern> {
-  const { data: result } = await apiClient.post<WorkingPattern>(`/workspaces/${wsId}/working-patterns`, data);
-  return result;
+  const { data: result } = await client.POST("/workspaces/{workspace_id}/working-patterns", {
+    params: {
+      path: { workspace_id: wsId },
+    },
+    body: data as any,
+  });
+  if (!result) throw new Error("No response data");
+  return result as unknown as WorkingPattern;
 }
 
 export async function updateWorkingPattern(
@@ -25,13 +47,24 @@ export async function updateWorkingPattern(
   patternId: string,
   data: UpdateWorkingPatternRequest
 ): Promise<WorkingPattern> {
-  const { data: result } = await apiClient.put<WorkingPattern>(`/workspaces/${wsId}/working-patterns/${patternId}`, data);
-  return result;
+  const { data: result } = await client.PUT("/workspaces/{workspace_id}/working-patterns/{pattern_id}", {
+    params: {
+      path: { workspace_id: wsId, pattern_id: patternId },
+    },
+    body: data as any,
+  });
+  if (!result) throw new Error("No response data");
+  return result as unknown as WorkingPattern;
 }
 
 export async function fetchPatternDetails(wsId: string, patternId: string): Promise<WorkingPatternDetail[]> {
-  const { data } = await apiClient.get<WorkingPatternDetail[]>(`/workspaces/${wsId}/working-patterns/${patternId}`);
-  return data;
+  const { data } = await client.GET("/workspaces/{workspace_id}/working-patterns/{pattern_id}", {
+    params: {
+      path: { workspace_id: wsId, pattern_id: patternId },
+    },
+  });
+  if (!data) throw new Error("No response data");
+  return data as unknown as WorkingPatternDetail[];
 }
 
 export async function assignPattern(
@@ -39,26 +72,47 @@ export async function assignPattern(
   employeeId: string, 
   data: AssignPatternRequest
 ): Promise<EmployeeWorkingPattern> {
-  const { data: result } = await apiClient.post<EmployeeWorkingPattern>(`/workspaces/${wsId}/employees/${employeeId}/working-patterns`, data);
-  return result;
+  const { data: result } = await client.POST("/workspaces/{workspace_id}/employees/{id}/working-patterns", {
+    params: {
+      path: { workspace_id: wsId, id: employeeId },
+    },
+    body: data as any,
+  });
+  if (!result) throw new Error("No response data");
+  return result as unknown as EmployeeWorkingPattern;
 }
 
 export async function bulkAssignPattern(
   wsId: string,
   data: BulkAssignPatternRequest
 ): Promise<BulkAssignResponse> {
-  const { data: result } = await apiClient.post<BulkAssignResponse>(`/workspaces/${wsId}/working-patterns/bulk-assign`, data);
-  return result;
+  const { data: result } = await client.POST("/workspaces/{workspace_id}/working-patterns/bulk-assign", {
+    params: {
+      path: { workspace_id: wsId },
+    },
+    body: data as any,
+  });
+  if (!result) throw new Error("No response data");
+  return result as unknown as BulkAssignResponse;
 }
 
 export async function fetchEmployeePatternHistory(
   wsId: string, 
   employeeId: string
 ): Promise<EmployeeWorkingPattern[]> {
-  const { data } = await apiClient.get<EmployeeWorkingPattern[]>(`/workspaces/${wsId}/employees/${employeeId}/working-patterns`);
-  return data;
+  const { data } = await client.GET("/workspaces/{workspace_id}/employees/{id}/working-patterns", {
+    params: {
+      path: { workspace_id: wsId, id: employeeId },
+    },
+  });
+  if (!data) throw new Error("No response data");
+  return data as unknown as EmployeeWorkingPattern[];
 }
 
 export async function deleteWorkingPattern(wsId: string, patternId: string): Promise<void> {
-  await apiClient.delete(`/workspaces/${wsId}/working-patterns/${patternId}`);
+  await client.DELETE("/workspaces/{workspace_id}/working-patterns/{pattern_id}", {
+    params: {
+      path: { workspace_id: wsId, pattern_id: patternId },
+    },
+  });
 }

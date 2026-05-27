@@ -2,7 +2,7 @@ use chrono::{DateTime, NaiveDate, NaiveTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct EmployeeShift {
     pub id: Uuid,
     pub employee_id: Uuid,
@@ -13,7 +13,7 @@ pub struct EmployeeShift {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, utoipa::ToSchema)]
 pub struct AssignShiftRequest {
     pub employee_id: Uuid,
     pub shift_id: Uuid,
@@ -21,7 +21,7 @@ pub struct AssignShiftRequest {
     pub end_date: Option<NaiveDate>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 #[allow(clippy::struct_excessive_bools)]
 pub struct Shift {
     pub id: Uuid,
@@ -47,7 +47,7 @@ pub(super) fn default_true() -> bool {
     true
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, utoipa::ToSchema)]
 pub struct CreateShiftRequest {
     pub name: String,
     #[serde(default)]
@@ -69,7 +69,7 @@ pub struct CreateShiftRequest {
     pub allow_early_ot: bool,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, utoipa::ToSchema)]
 #[allow(clippy::struct_excessive_bools)]
 pub struct UpdateShiftRequest {
     pub name: String,
@@ -98,7 +98,7 @@ pub struct UpdateShiftRequest {
     pub effective_date: Option<NaiveDate>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct ShiftRoster {
     pub id: Uuid,
     pub employee_id: Uuid,
@@ -110,7 +110,7 @@ pub struct ShiftRoster {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, utoipa::ToSchema)]
 pub struct CreateRosterRequest {
     pub employee_id: Uuid,
     pub shift_id: Option<Uuid>,
@@ -118,14 +118,14 @@ pub struct CreateRosterRequest {
     pub notes: Option<String>,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, utoipa::ToSchema)]
 pub struct RosterItem {
     pub date: NaiveDate,
     pub shift_id: Option<Uuid>,
     pub notes: Option<String>,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, utoipa::ToSchema)]
 pub struct BulkRosterRequest {
     pub items: Vec<RosterItem>,
 }

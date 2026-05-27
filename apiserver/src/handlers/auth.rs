@@ -129,6 +129,14 @@ fn clear_auth_cookies() -> HeaderMap {
 
 // --- Auth Handlers ---
 
+#[utoipa::path(
+    post,
+    path = "/auth/register",
+    request_body = RegisterRequest,
+    responses(
+        (status = 200, description = "Successfully registered", body = AuthResponse)
+    )
+)]
 pub async fn register(
     State(state): State<Arc<AppState>>,
     Json(req): Json<RegisterRequest>,
@@ -213,6 +221,14 @@ pub async fn register(
     ))
 }
 
+#[utoipa::path(
+    post,
+    path = "/auth/login",
+    request_body = LoginRequest,
+    responses(
+        (status = 200, description = "Successfully logged in", body = AuthResponse)
+    )
+)]
 pub async fn login(
     State(state): State<Arc<AppState>>,
     Json(req): Json<LoginRequest>,
@@ -272,6 +288,14 @@ pub async fn login(
     ))
 }
 
+#[utoipa::path(
+    post,
+    path = "/auth/refresh",
+    request_body = RefreshRequest,
+    responses(
+        (status = 200, description = "Successfully refreshed session", body = AuthResponse)
+    )
+)]
 pub async fn refresh_token(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
@@ -308,6 +332,14 @@ pub async fn refresh_token(
     Ok((resp_headers, Json(auth_response)))
 }
 
+#[utoipa::path(
+    post,
+    path = "/auth/change-password",
+    request_body = ChangePasswordRequest,
+    responses(
+        (status = 200, description = "Successfully changed password")
+    )
+)]
 pub async fn change_password(
     State(state): State<Arc<AppState>>,
     UserId(user_id): UserId,
@@ -365,6 +397,14 @@ pub async fn change_password(
     ))
 }
 
+#[utoipa::path(
+    post,
+    path = "/auth/logout",
+    request_body = RefreshRequest,
+    responses(
+        (status = 200, description = "Successfully logged out")
+    )
+)]
 pub async fn logout(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
@@ -393,6 +433,13 @@ pub async fn logout(
     Ok((clear_auth_cookies(), StatusCode::OK))
 }
 
+#[utoipa::path(
+    get,
+    path = "/me",
+    responses(
+        (status = 200, description = "Get current user info", body = UserResponse)
+    )
+)]
 pub async fn get_me(
     State(state): State<Arc<AppState>>,
     UserId(user_id): UserId,
@@ -426,6 +473,13 @@ pub async fn get_me(
 
 /// GET /me/permissions
 /// Returns the calling user's effective permissions and roles for the current workspace.
+#[utoipa::path(
+    get,
+    path = "/me/permissions",
+    responses(
+        (status = 200, description = "Get calling user permissions and roles")
+    )
+)]
 pub async fn get_my_permissions(
     ctx: crate::handlers::common::MemberContext,
 ) -> AppResult<Json<serde_json::Value>> {
@@ -444,6 +498,14 @@ pub async fn get_my_permissions(
     })))
 }
 
+#[utoipa::path(
+    patch,
+    path = "/me",
+    request_body = UpdateUserRequest,
+    responses(
+        (status = 200, description = "Update user profile info", body = UserResponse)
+    )
+)]
 pub async fn update_me(
     State(state): State<Arc<AppState>>,
     UserId(user_id): UserId,
@@ -467,6 +529,13 @@ pub async fn update_me(
     }))
 }
 
+#[utoipa::path(
+    get,
+    path = "/users",
+    responses(
+        (status = 200, description = "Get all workspace users", body = Vec<UserResponse>)
+    )
+)]
 pub async fn get_users(
     State(state): State<Arc<AppState>>,
     ctx: crate::handlers::common::MemberContext,

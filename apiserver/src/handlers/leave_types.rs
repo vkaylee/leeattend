@@ -15,7 +15,7 @@ use crate::handlers::common::MemberContext;
 use crate::models::{LeaveType, LeaveTypeConfig};
 use crate::AppState;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, utoipa::ToSchema)]
 pub struct CreateLeaveTypeRequest {
     pub code: String,
     pub name: String,
@@ -23,11 +23,21 @@ pub struct CreateLeaveTypeRequest {
     pub policy_config: Option<LeaveTypeConfig>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, utoipa::ToSchema)]
 pub struct UpdateLeaveTypeConfigRequest {
     pub policy_config: LeaveTypeConfig,
 }
 
+#[utoipa::path(
+    get,
+    path = "/workspaces/{workspace_id}/leave/types",
+    responses(
+        (status = 200, description = "List of leave types", body = [LeaveType])
+    ),
+    params(
+        ("workspace_id" = Uuid, Path, description = "Workspace ID")
+    )
+)]
 pub async fn list_leave_types(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -42,6 +52,17 @@ pub async fn list_leave_types(
     Ok(Json(types))
 }
 
+#[utoipa::path(
+    post,
+    path = "/workspaces/{workspace_id}/leave/types",
+    request_body = CreateLeaveTypeRequest,
+    responses(
+        (status = 201, description = "Leave type created", body = LeaveType)
+    ),
+    params(
+        ("workspace_id" = Uuid, Path, description = "Workspace ID")
+    )
+)]
 pub async fn create_leave_type(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -59,12 +80,25 @@ pub async fn create_leave_type(
     Ok((StatusCode::CREATED, Json(lt)))
 }
 
+#[utoipa::path(
+    put,
+    path = "/workspaces/{workspace_id}/leave/types/{id}/config",
+    request_body = UpdateLeaveTypeConfigRequest,
+    responses(
+        (status = 200, description = "Leave type config updated", body = LeaveType)
+    ),
+    params(
+        ("workspace_id" = Uuid, Path, description = "Workspace ID"),
+        ("id" = Uuid, Path, description = "Leave Type ID")
+    )
+)]
 pub async fn update_leave_type_config(
     State(state): State<Arc<AppState>>,
-    Path((_, id)): Path<(Uuid, Uuid)>,
+    Path(params): Path<(Uuid, Uuid)>,
     ctx: MemberContext,
     Json(req): Json<UpdateLeaveTypeConfigRequest>,
 ) -> AppResult<Json<LeaveType>> {
+    let (_ws_id, id) = params;
     ctx.require_permission(Permission::LeaveTypesManage)?;
 
     let lt = state
@@ -76,11 +110,23 @@ pub async fn update_leave_type_config(
     Ok(Json(lt))
 }
 
+#[utoipa::path(
+    delete,
+    path = "/workspaces/{workspace_id}/leave/types/{id}",
+    responses(
+        (status = 204, description = "Leave type deleted")
+    ),
+    params(
+        ("workspace_id" = Uuid, Path, description = "Workspace ID"),
+        ("id" = Uuid, Path, description = "Leave Type ID")
+    )
+)]
 pub async fn delete_leave_type(
     State(state): State<Arc<AppState>>,
-    Path((_, id)): Path<(Uuid, Uuid)>,
+    Path(params): Path<(Uuid, Uuid)>,
     ctx: MemberContext,
 ) -> AppResult<StatusCode> {
+    let (_ws_id, id) = params;
     ctx.require_permission(Permission::LeaveTypesManage)?;
 
     let affected = state

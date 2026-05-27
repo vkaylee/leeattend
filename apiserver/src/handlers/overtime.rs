@@ -15,13 +15,13 @@ use serde::Deserialize;
 use std::sync::Arc;
 use uuid::Uuid;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, utoipa::ToSchema)]
 pub struct CreatePolicyRequest {
     pub name: String,
     pub description: Option<String>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, utoipa::ToSchema)]
 pub struct CreateRuleRequest {
     pub priority: i32,
     pub multiplier: rust_decimal::Decimal,
@@ -31,6 +31,16 @@ pub struct CreateRuleRequest {
     pub is_holiday: bool,
 }
 
+#[utoipa::path(
+    get,
+    path = "/workspaces/{ws_id}/overtime/policies",
+    responses(
+        (status = 200, description = "List overtime policies", body = [OvertimePolicy])
+    ),
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID")
+    )
+)]
 pub async fn list_policies(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -43,11 +53,23 @@ pub async fn list_policies(
     Ok(Json(policies))
 }
 
+#[utoipa::path(
+    get,
+    path = "/workspaces/{ws_id}/overtime/policies/{policy_id}",
+    responses(
+        (status = 200, description = "Overtime policy details with rules", body = [serde_json::Value])
+    ),
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        ("policy_id" = Uuid, Path, description = "Policy ID")
+    )
+)]
 pub async fn get_policy(
     State(state): State<Arc<AppState>>,
-    Path((_, policy_id)): Path<(Uuid, Uuid)>,
+    Path(params): Path<(Uuid, Uuid)>,
     ctx: MemberContext,
 ) -> AppResult<Json<(OvertimePolicy, Vec<OvertimeRule>)>> {
+    let (_, policy_id) = params;
     let result = state
         .payroll
         .overtime_policy_repo
@@ -57,6 +79,17 @@ pub async fn get_policy(
     Ok(Json(result))
 }
 
+#[utoipa::path(
+    post,
+    path = "/workspaces/{ws_id}/overtime/policies",
+    request_body = CreatePolicyRequest,
+    responses(
+        (status = 200, description = "Overtime policy created", body = OvertimePolicy)
+    ),
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID")
+    )
+)]
 pub async fn create_policy(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -71,12 +104,25 @@ pub async fn create_policy(
     Ok(Json(policy))
 }
 
+#[utoipa::path(
+    post,
+    path = "/workspaces/{ws_id}/overtime/policies/{policy_id}/rules",
+    request_body = CreateRuleRequest,
+    responses(
+        (status = 200, description = "Overtime rule added to policy", body = OvertimeRule)
+    ),
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        ("policy_id" = Uuid, Path, description = "Policy ID")
+    )
+)]
 pub async fn add_rule(
     State(state): State<Arc<AppState>>,
-    Path((_workspace_id, policy_id)): Path<(Uuid, Uuid)>,
+    Path(params): Path<(Uuid, Uuid)>,
     ctx: MemberContext,
     Json(req): Json<CreateRuleRequest>,
 ) -> AppResult<Json<OvertimeRule>> {
+    let (_workspace_id, policy_id) = params;
     ctx.require_permission(Permission::OvertimePoliciesManage)?;
     let rule = OvertimeRule {
         id: crate::utils::id::new_id(),
@@ -99,7 +145,7 @@ pub async fn add_rule(
     Ok(Json(created))
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, utoipa::ToSchema)]
 pub struct AssignPolicyRequest {
     pub assignee_type: String,
     pub assignee_id: Option<Uuid>,
@@ -107,6 +153,17 @@ pub struct AssignPolicyRequest {
     pub effective_from: NaiveDate,
 }
 
+#[utoipa::path(
+    post,
+    path = "/workspaces/{ws_id}/overtime/policies/assign",
+    request_body = AssignPolicyRequest,
+    responses(
+        (status = 200, description = "Overtime policy assigned")
+    ),
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID")
+    )
+)]
 pub async fn assign_policy(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,

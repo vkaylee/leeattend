@@ -80,7 +80,7 @@ pub struct EmployeeSearchQuery {
     pub q: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
+#[derive(Debug, Serialize, Deserialize, Clone, ToSchema, utoipa::IntoParams)]
 pub struct PaginationParams {
     pub page: Option<i64>,
     pub limit: Option<i64>,

@@ -11,8 +11,9 @@ use crate::domain::permissions::Permission;
 use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
 use crate::models::shift_swap::{
-    ApproveShiftSwapRequest, CreateShiftSwapRequest, ShiftSwapRequestWithNames, ShiftSwapStatus,
+    ApproveShiftSwapRequest, CreateShiftSwapRequest, ShiftSwapRequest, ShiftSwapRequestWithNames, ShiftSwapStatus,
 };
+use crate::repositories::shift_swap_repository::SwapStats;
 
 use crate::AppState;
 use crate::UserId;
@@ -21,6 +22,17 @@ use crate::UserId;
 // POST /workspaces/:ws_id/shift-swaps
 // ---------------------------------------------------------------------------
 
+#[utoipa::path(
+    post,
+    path = "/workspaces/{workspace_id}/shift-swaps",
+    request_body = CreateShiftSwapRequest,
+    responses(
+        (status = 201, description = "Shift swap request created", body = ShiftSwapRequest)
+    ),
+    params(
+        ("workspace_id" = Uuid, Path, description = "Workspace ID")
+    )
+)]
 pub async fn create_shift_swap(
     State(state): State<Arc<AppState>>,
     UserId(user_id): UserId,
@@ -45,11 +57,22 @@ pub async fn create_shift_swap(
 // GET /workspaces/:ws_id/shift-swaps?status=pending_admin
 // ---------------------------------------------------------------------------
 
-#[derive(Deserialize)]
+#[derive(Deserialize, utoipa::IntoParams)]
 pub struct ShiftSwapQuery {
     pub status: Option<ShiftSwapStatus>,
 }
 
+#[utoipa::path(
+    get,
+    path = "/workspaces/{workspace_id}/shift-swaps",
+    responses(
+        (status = 200, description = "List of shift swap requests", body = [ShiftSwapRequestWithNames])
+    ),
+    params(
+        ("workspace_id" = Uuid, Path, description = "Workspace ID"),
+        ShiftSwapQuery
+    )
+)]
 pub async fn list_shift_swaps(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -70,13 +93,26 @@ pub async fn list_shift_swaps(
 // PUT /workspaces/:ws_id/shift-swaps/:id/approve
 // ---------------------------------------------------------------------------
 
+#[utoipa::path(
+    put,
+    path = "/workspaces/{workspace_id}/shift-swaps/{id}/approve",
+    request_body = ApproveShiftSwapRequest,
+    responses(
+        (status = 200, description = "Shift swap request approved/rejected")
+    ),
+    params(
+        ("workspace_id" = Uuid, Path, description = "Workspace ID"),
+        ("id" = Uuid, Path, description = "Shift Swap Request ID")
+    )
+)]
 pub async fn approve_shift_swap(
-    Path((_, id)): Path<(Uuid, Uuid)>,
+    Path(params): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     UserId(user_id): UserId,
     ctx: MemberContext,
     Json(req): Json<ApproveShiftSwapRequest>,
 ) -> AppResult<StatusCode> {
+    let (_ws_id, id) = params;
     ctx.require_permission(Permission::ShiftSwapsApprove)?;
 
     state
@@ -92,6 +128,16 @@ pub async fn approve_shift_swap(
 // GET /workspaces/:ws_id/shift-swaps/stats
 // ---------------------------------------------------------------------------
 
+#[utoipa::path(
+    get,
+    path = "/workspaces/{workspace_id}/shift-swaps/stats",
+    responses(
+        (status = 200, description = "Workspace shift swap stats", body = SwapStats)
+    ),
+    params(
+        ("workspace_id" = Uuid, Path, description = "Workspace ID")
+    )
+)]
 pub async fn get_shift_swap_stats(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,

@@ -20,6 +20,251 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{ws_id}/employees/{employee_id}/contracts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lấy danh sách hợp đồng của một nhân viên */
+        get: operations["list_employee_contracts"];
+        put?: never;
+        /** Tạo mới một hợp đồng */
+        post: operations["create_contract"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{ws_id}/employees/{employee_id}/contracts/{contract_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lấy thông tin chi tiết của một hợp đồng */
+        get: operations["get_contract"];
+        put?: never;
+        post?: never;
+        /** Xóa một hợp đồng */
+        delete: operations["delete_contract"];
+        options?: never;
+        head?: never;
+        /** Cập nhật một hợp đồng */
+        patch: operations["update_contract"];
+        trace?: never;
+    };
+    "/auth/change-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["change_password"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["login"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["logout"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["refresh_token"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/register": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["register"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/dashboard/attendance-trend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_attendance_trend"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/dashboard/department-attendance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_department_attendance"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/dashboard/lateness-by-day": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_lateness_by_day"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/dashboard/leave-types": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_leave_types_breakdown"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/dashboard/overtime-trend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_overtime_trend"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/dashboard/peak-times": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_peak_times"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/dashboard/unexcused-absences": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_unexcused_absences"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/dashboard/workspace-stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_workspace_stats"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/devices": {
         parameters: {
             query?: never;
@@ -28,6 +273,365 @@ export interface paths {
             cookie?: never;
         };
         get: operations["get_devices"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/employees/{id}/leave/requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_my_leave_requests"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/ess/attendance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get attendance history for the current employee */
+        get: operations["get_my_attendance"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/ess/documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get all documents for the current employee */
+        get: operations["get_my_documents"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/ess/emergency-contacts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get all emergency contacts for the current employee */
+        get: operations["get_my_emergency_contacts"];
+        put?: never;
+        /** Add a new emergency contact */
+        post: operations["add_emergency_contact"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/ess/emergency-contacts/{contact_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete an emergency contact */
+        delete: operations["delete_emergency_contact"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/ess/leave/balances": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get leave balances for the current employee */
+        get: operations["get_my_leave_balances"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/ess/leave/requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get leave requests for the current employee (ESS version - avoids name conflict) */
+        get: operations["ess_get_my_leave_requests"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/ess/payslips": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get all payslips for the current employee */
+        get: operations["get_my_payslips"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/ess/profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get the current employee's complete profile */
+        get: operations["get_my_profile"];
+        /** Update the current employee's profile */
+        put: operations["update_my_profile"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/ess/punch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["ess_punch"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/ess/shift-swaps": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /ess/shift-swaps — list swap requests where I am requester or target */
+        get: operations["ess_get_my_shift_swaps"];
+        put?: never;
+        /** POST /ess/shift-swaps — employee creates a swap request (status: pending_target) */
+        post: operations["ess_create_shift_swap"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/ess/shift-swaps/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** DELETE /ess/shift-swaps/:id — requester cancels their swap request */
+        delete: operations["ess_cancel_swap"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/ess/shift-swaps/{id}/respond": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** PUT /ess/shift-swaps/:id/respond — target employee accepts or rejects */
+        put: operations["ess_respond_to_swap"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/ess/time-entries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_my_time_entries"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_me"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["update_me"];
+        trace?: never;
+    };
+    "/me/permissions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET /me/permissions
+         *     Returns the calling user's effective permissions and roles for the current workspace.
+         */
+        get: operations["get_my_permissions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_users"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/workspaces/{ws_id}/employees/{employee_id}/assignments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_employee_assignments"];
+        put?: never;
+        post: operations["create_employee_assignment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/workspaces/{ws_id}/employees/{employee_id}/assignments/{assignment_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_employee_assignment"];
+        put?: never;
+        post?: never;
+        delete: operations["delete_employee_assignment"];
+        options?: never;
+        head?: never;
+        patch: operations["update_employee_assignment"];
+        trace?: never;
+    };
+    "/workspaces": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_workspaces"];
+        put?: never;
+        /**
+         * POST /workspaces
+         *     Creates a new workspace.
+         *     Requires: SystemRole::PlatformAdmin — prevents arbitrary users from creating workspaces.
+         */
+        post: operations["create_workspace"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{workspace_id}/assignment-history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_assignment_history"];
         put?: never;
         post?: never;
         delete?: never;
@@ -61,6 +665,422 @@ export interface paths {
         };
         get: operations["get_raw_attendance_logs"];
         put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{workspace_id}/configs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_configs"];
+        put: operations["upsert_config"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{workspace_id}/configs/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["delete_config"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{workspace_id}/configs/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_config"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{workspace_id}/employees": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_employees"];
+        put?: never;
+        post: operations["create_employee"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{workspace_id}/employees/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_employee"];
+        put: operations["update_employee"];
+        post?: never;
+        delete: operations["delete_employee"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{workspace_id}/employees/{id}/conditions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_working_conditions"];
+        put?: never;
+        post: operations["create_working_condition"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{workspace_id}/employees/{id}/conditions/{cond_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["delete_working_condition"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{workspace_id}/employees/{id}/departments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_employee_department_history"];
+        put?: never;
+        post: operations["transfer_employee"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{workspace_id}/employees/{id}/rehire": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["rehire_employee"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{workspace_id}/employees/{id}/rosters": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_employee_rosters"];
+        put?: never;
+        post: operations["upsert_roster"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{workspace_id}/employees/{id}/rosters/bulk": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["bulk_upsert_roster"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{workspace_id}/employees/{id}/rosters/{date}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["delete_roster"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{workspace_id}/employees/{id}/working-patterns": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_employee_pattern_history"];
+        put?: never;
+        post: operations["assign_pattern"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{workspace_id}/holidays": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_holidays"];
+        put?: never;
+        post: operations["create_holiday"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{workspace_id}/holidays/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_holiday"];
+        put: operations["update_holiday"];
+        post?: never;
+        delete: operations["delete_holiday"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{workspace_id}/holidays/{id}/process-leave": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["process_holiday_leave"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{workspace_id}/leave/types": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_leave_types"];
+        put?: never;
+        post: operations["create_leave_type"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{workspace_id}/leave/types/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["delete_leave_type"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{workspace_id}/leave/types/{id}/config": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["update_leave_type_config"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{workspace_id}/schedules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_workspace_schedules"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{workspace_id}/shift-swaps": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_shift_swaps"];
+        put?: never;
+        post: operations["create_shift_swap"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{workspace_id}/shift-swaps/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_shift_swap_stats"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{workspace_id}/shift-swaps/{id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["approve_shift_swap"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{workspace_id}/shifts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_shifts"];
+        put?: never;
+        post: operations["create_shift"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{workspace_id}/shifts/assign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["assign_shift"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{workspace_id}/shifts/{shift_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["update_shift"];
         post?: never;
         delete?: never;
         options?: never;
@@ -116,10 +1136,506 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/workspaces/{workspace_id}/working-patterns": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_patterns"];
+        put?: never;
+        post: operations["create_pattern"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{workspace_id}/working-patterns/bulk-assign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["bulk_assign_pattern"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{workspace_id}/working-patterns/{pattern_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_pattern_details"];
+        put: operations["update_pattern"];
+        post?: never;
+        delete: operations["delete_pattern"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{ws_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_workspace_by_id"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["update_workspace"];
+        trace?: never;
+    };
+    "/workspaces/{ws_id}/employees/{id}/leave/adjust": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["adjust_leave_balance"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{ws_id}/employees/{id}/leave/balances": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_employee_leave_balances"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{ws_id}/employees/{id}/leave/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_employee_leave_history"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{ws_id}/jobs/{job_id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_job_status"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{ws_id}/leave/accrual/run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["trigger_accrual_run"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{ws_id}/leave/balances": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_workspace_leave_balances"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{ws_id}/leave/import/latest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET /workspaces/:ws_id/leave/import/latest
+         *     Get the latest leave import job for the workspace (for page resume).
+         */
+        get: operations["get_latest_leave_import"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{ws_id}/leave/import/{job_id}/errors": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET /workspaces/:ws_id/leave/import/:job_id/errors
+         *     Download the error Excel file for a completed import job.
+         */
+        get: operations["download_leave_import_errors"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{ws_id}/leave/policies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_leave_policies"];
+        put?: never;
+        post: operations["create_leave_policy"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{ws_id}/leave/policies/assign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["assign_leave_policy"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{ws_id}/leave/policies/assignments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_leave_policy_assignments"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{ws_id}/leave/policies/{policy_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["delete_leave_policy"];
+        options?: never;
+        head?: never;
+        patch: operations["update_leave_policy"];
+        trace?: never;
+    };
+    "/workspaces/{ws_id}/leave/requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_workspace_leave_requests"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{ws_id}/leave/requests/{id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["approve_leave_request"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{ws_id}/leave/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["submit_leave_request"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{ws_id}/leave/upload-excel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST /workspaces/:ws_id/leave/upload-excel
+         *     Upload an Excel file for bulk leave request import.
+         */
+        post: operations["upload_leave_excel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{ws_id}/leave/upload-template": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET /workspaces/:ws_id/leave/upload-template
+         *     Download a dynamic template Excel with leave type codes for this workspace.
+         */
+        get: operations["download_leave_import_template"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{ws_id}/overtime/policies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_policies"];
+        put?: never;
+        post: operations["create_policy"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{ws_id}/overtime/policies/assign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["assign_policy"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{ws_id}/overtime/policies/{policy_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_policy"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{ws_id}/overtime/policies/{policy_id}/rules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["add_rule"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{ws_id}/overtime/requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_ot_requests"];
+        put?: never;
+        post: operations["create_ot_request"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{ws_id}/overtime/requests/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_ot_request"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{ws_id}/overtime/requests/{id}/consent/{emp_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["employee_consent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{ws_id}/overtime/requests/{id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["submit_for_approval"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** @enum {string} */
+        AccrualFrequency: "monthly" | "quarterly" | "yearly";
+        AccrualJobResponse: {
+            job_id: string;
+            message: string;
+            status: string;
+        };
+        AdjustBalanceRequest: {
+            /** Format: double */
+            amount: number;
+            /** Format: uuid */
+            leave_type_id: string;
+            reason: string;
+            /** Format: date */
+            transaction_date: string;
+        };
         /** @enum {string} */
         AdjustmentStatus: "pending" | "approved" | "rejected";
         AgentStatus: {
@@ -128,6 +1644,85 @@ export interface components {
             is_online: boolean;
             /** Format: date-time */
             last_seen: string;
+        };
+        ApproveLeaveRequest: {
+            status: components["schemas"]["LeaveStatus"];
+        };
+        ApproveShiftSwapRequest: {
+            status: components["schemas"]["ShiftSwapStatus"];
+        };
+        AssignLeavePolicyRequest: {
+            /** Format: uuid */
+            assignee_id?: string | null;
+            assignee_type: string;
+            /** Format: date */
+            effective_from: string;
+            /** Format: date */
+            effective_to?: string | null;
+            /** Format: uuid */
+            policy_id: string;
+        };
+        AssignPatternRequest: {
+            /** Format: date */
+            anchor_date?: string | null;
+            /** Format: date */
+            end_date?: string | null;
+            /** Format: uuid */
+            pattern_id: string;
+            /** Format: date */
+            start_date: string;
+        };
+        AssignPolicyRequest: {
+            /** Format: uuid */
+            assignee_id?: string | null;
+            assignee_type: string;
+            /** Format: date */
+            effective_from: string;
+            /** Format: uuid */
+            policy_id: string;
+        };
+        AssignShiftRequest: {
+            /** Format: uuid */
+            employee_id: string;
+            /** Format: date */
+            end_date?: string | null;
+            /** Format: uuid */
+            shift_id: string;
+            /** Format: date */
+            start_date: string;
+        };
+        AssignmentHistory: {
+            assignment_type: components["schemas"]["AssignmentHistoryType"];
+            /** Format: date-time */
+            created_at: string;
+            date_range: string;
+            /** Format: uuid */
+            employee_id: string;
+            employee_name: string;
+            /** Format: uuid */
+            id: string;
+            shift_name?: string | null;
+        };
+        /** @enum {string} */
+        AssignmentHistoryType: "roster" | "pattern" | "department_pattern" | "fixed" | "department_fixed";
+        /** @enum {string} */
+        AssignmentStatusEnum: "active" | "completed" | "cancelled";
+        AttendanceTrendPoint: {
+            /** Format: int64 */
+            absent: number;
+            /** Format: date */
+            date: string;
+            /** Format: int64 */
+            late: number;
+            /** Format: int64 */
+            on_leave: number;
+            /** Format: int64 */
+            present: number;
+        };
+        AuthResponse: {
+            access_token: string;
+            refresh_token: string;
+            user: components["schemas"]["UserResponse"];
         };
         AuthorizedAgent: {
             /** Format: date-time */
@@ -149,6 +1744,68 @@ export interface components {
             /** Format: uuid */
             workspace_id: string;
         };
+        BulkAssignPatternRequest: {
+            /** Format: date */
+            anchor_date?: string | null;
+            employee_ids: string[];
+            /** Format: date */
+            end_date?: string | null;
+            /** Format: uuid */
+            pattern_id: string;
+            /** Format: date */
+            start_date: string;
+        };
+        BulkAssignResponse: {
+            failed_employees: string[];
+            success_count: number;
+        };
+        BulkRosterRequest: {
+            items: components["schemas"]["RosterItem"][];
+        };
+        ChangePasswordRequest: {
+            new_password: string;
+            old_password: string;
+        };
+        ConfigValue: {
+            /** Format: int32 */
+            Int: number;
+        } | {
+            Decimal: string;
+        } | {
+            Text: string;
+        } | {
+            Bool: boolean;
+        } | {
+            Json: unknown;
+        };
+        /** @enum {string} */
+        ContractStatus: "draft" | "active" | "expired" | "terminated";
+        /** @enum {string} */
+        ContractType: "probation" | "training" | "fixed_term" | "indefinite";
+        CreateContractRequest: {
+            /** Format: uuid */
+            assign_phase_id?: string | null;
+            auto_close_overlapping?: boolean | null;
+            contract_number?: string | null;
+            contract_type: components["schemas"]["ContractType"];
+            /** Format: uuid */
+            document_id?: string | null;
+            /** Format: uuid */
+            employee_id: string;
+            /** Format: date */
+            end_date?: string | null;
+            notes?: string | null;
+            /** Format: date */
+            start_date: string;
+        };
+        CreateDepartmentRequest: {
+            /** Format: uuid */
+            default_working_pattern_id?: string | null;
+            description?: string | null;
+            /** Format: uuid */
+            manager_id?: string | null;
+            name: string;
+        };
         CreateDeviceRequest: {
             agent_id: string;
             brand?: string | null;
@@ -162,6 +1819,177 @@ export interface components {
             timezone?: string | null;
             /** Format: uuid */
             workspace_id?: string | null;
+        };
+        CreateEmergencyContactRequest: {
+            contact_name: string;
+            is_primary?: boolean | null;
+            phone: string;
+            relationship: string;
+        };
+        CreateEmployeeAssignmentRequest: {
+            /** Format: date */
+            end_date?: string | null;
+            /** Format: uuid */
+            host_location_id: string;
+            reason?: string | null;
+            /** Format: date */
+            start_date: string;
+        };
+        CreateEmployeeRequest: {
+            employee_id_number: components["schemas"]["String"];
+            full_name: string;
+            /** Format: date */
+            hire_date: string;
+            /** Format: uuid */
+            primary_location_id: string;
+            /** Format: uuid */
+            recruitment_source_id?: string | null;
+            tags?: string[] | null;
+            /** Format: uuid */
+            user_id?: string | null;
+        };
+        /** @description Request payload for creating a new holiday. */
+        CreateHolidayRequest: {
+            /** Format: date */
+            date: string;
+            description?: string | null;
+            holiday_type?: string;
+            is_credit_on_work?: boolean;
+            is_paid?: boolean;
+            /**
+             * Format: uuid
+             * @description When is_paid=false, which leave type to auto-deduct.
+             */
+            leave_type_id?: string | null;
+            name: string;
+            ot_multiplier?: string | null;
+            /** Format: int32 */
+            work_threshold_percent?: number | null;
+        };
+        CreateLeavePolicyRequest: {
+            description?: string | null;
+            /** Format: uuid */
+            leave_type_id: string;
+            name: string;
+            rule_config: components["schemas"]["LeavePolicyConfig"];
+        };
+        CreateLeaveTypeRequest: {
+            code: string;
+            is_paid: boolean;
+            name: string;
+            policy_config?: null | components["schemas"]["LeaveTypeConfig"];
+        };
+        CreateOvertimeRequestPayload: {
+            /** Format: uuid */
+            department_id?: string | null;
+            employees: string[];
+            /** Format: date */
+            planned_date: string;
+            planned_end_time?: string | null;
+            /** Format: int32 */
+            planned_minutes: number;
+            planned_start_time?: string | null;
+            reason: string;
+        };
+        CreatePolicyRequest: {
+            description?: string | null;
+            name: string;
+        };
+        CreateRosterRequest: {
+            /** Format: date */
+            date: string;
+            /** Format: uuid */
+            employee_id: string;
+            notes?: string | null;
+            /** Format: uuid */
+            shift_id?: string | null;
+        };
+        CreateRuleRequest: {
+            /** Format: int32 */
+            days_of_week: number;
+            is_holiday: boolean;
+            multiplier: string;
+            /** Format: int32 */
+            priority: number;
+            time_end?: string | null;
+            time_start?: string | null;
+        };
+        CreateShiftRequest: {
+            allow_early_ot?: boolean;
+            /** Format: int32 */
+            break_duration_minutes: number;
+            break_end?: string | null;
+            break_is_overtime?: boolean;
+            break_start?: string | null;
+            /** Format: int32 */
+            early_punch_in_grace_period_minutes?: number;
+            end_time: string;
+            is_break_auto_deduct?: boolean;
+            name: string;
+            report_symbol?: string | null;
+            start_time: string;
+        };
+        CreateShiftSwapRequest: {
+            reason?: string | null;
+            /** Format: uuid */
+            requester_id: string;
+            /** Format: date */
+            swap_date: string;
+            /** Format: uuid */
+            target_id: string;
+        };
+        CreateWorkingConditionRequest: {
+            /** Format: date */
+            end_date?: string | null;
+            is_paid: boolean;
+            /** Format: int32 */
+            minute_allowance: number;
+            /** Format: date */
+            start_date: string;
+            type_: string;
+        };
+        CreateWorkingPatternRequest: {
+            /** Format: int32 */
+            cycle_length_days?: number | null;
+            description?: string | null;
+            details: components["schemas"]["WorkingPatternDetailRequest"][];
+            name: string;
+            pattern_type?: string | null;
+        };
+        CreateWorkspaceRequest: {
+            database_url?: string | null;
+            name: string;
+        };
+        Department: {
+            /** Format: int64 */
+            active_employee_count: number;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: uuid */
+            default_working_pattern_id?: string | null;
+            description?: string | null;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            manager_id?: string | null;
+            name: string;
+            /** Format: date-time */
+            updated_at: string;
+            /** Format: uuid */
+            workspace_id: string;
+        };
+        DepartmentAttendancePoint: {
+            /** Format: int64 */
+            absent: number;
+            /** Format: uuid */
+            department_id: string;
+            department_name: string;
+            /** Format: int64 */
+            late: number;
+            /** Format: int64 */
+            on_leave: number;
+            /** Format: int64 */
+            on_time: number;
         };
         Device: {
             agent_id: string;
@@ -193,17 +2021,612 @@ export interface components {
         };
         /** @enum {string} */
         EarlyArrivalStrategy: "allow" | "block" | "clamp";
+        EffectiveSchedule: {
+            allow_early_ot?: boolean | null;
+            /** Format: int32 */
+            break_duration_minutes?: number | null;
+            break_end?: string | null;
+            break_start?: string | null;
+            /** Format: date */
+            date: string;
+            /** Format: int32 */
+            early_punch_in_grace_period_minutes?: number | null;
+            end_time?: string | null;
+            holiday_name?: string | null;
+            is_break_auto_deduct?: boolean | null;
+            is_holiday?: boolean;
+            /** Format: uuid */
+            shift_id?: string | null;
+            shift_name?: string | null;
+            shift_symbol?: string | null;
+            source: string;
+            start_time?: string | null;
+            traces?: components["schemas"]["ScheduleTrace"][];
+        };
+        Employee: {
+            /** Format: date-time */
+            created_at: string;
+            department_name?: string | null;
+            employee_id_number: string;
+            full_name: string;
+            /** Format: date */
+            hire_date: string;
+            /** Format: uuid */
+            id: string;
+            is_active: boolean;
+            /** Format: date */
+            original_hire_date: string;
+            /** Format: uuid */
+            primary_location_id: string;
+            tags: string[];
+            /** Format: date */
+            termination_date?: string | null;
+            /** Format: date-time */
+            updated_at: string;
+            /** Format: uuid */
+            user_id?: string | null;
+            /** Format: uuid */
+            workspace_id: string;
+        };
+        EmployeeAssignment: {
+            /** Format: date-time */
+            created_at: string;
+            /** Format: uuid */
+            employee_id: string;
+            /** Format: date */
+            end_date?: string | null;
+            /** Format: uuid */
+            home_location_id: string;
+            /** Format: uuid */
+            host_location_id: string;
+            /** Format: uuid */
+            id: string;
+            reason?: string | null;
+            /** Format: date */
+            start_date: string;
+            status: components["schemas"]["AssignmentStatusEnum"];
+            /** Format: date-time */
+            updated_at: string;
+            /** Format: uuid */
+            workspace_id: string;
+        };
+        EmployeeConsentRequest: {
+            decline_reason?: string | null;
+            status: string;
+        };
+        EmployeeContract: {
+            contract_number?: string | null;
+            contract_type: components["schemas"]["ContractType"];
+            /** Format: date-time */
+            created_at: string;
+            /** Format: uuid */
+            document_id?: string | null;
+            /** Format: uuid */
+            employee_id: string;
+            /** Format: date */
+            end_date?: string | null;
+            /** Format: uuid */
+            id: string;
+            notes?: string | null;
+            /** Format: date */
+            start_date: string;
+            status: components["schemas"]["ContractStatus"];
+            /** Format: date-time */
+            updated_at: string;
+            /** Format: uuid */
+            workspace_id: string;
+        };
+        EmployeeDepartmentHistory: {
+            /** Format: date-time */
+            created_at: string;
+            /** Format: uuid */
+            department_id: string;
+            /** Format: date */
+            effective_date: string;
+            /** Format: uuid */
+            employee_id: string;
+            /** Format: uuid */
+            id: string;
+            notes?: string | null;
+        };
+        EmployeeDocument: {
+            /** Format: date-time */
+            created_at: string;
+            document_type: string;
+            /** Format: uuid */
+            employee_id: string;
+            /** Format: date */
+            expires_at?: string | null;
+            file_name: string;
+            file_path: string;
+            /** Format: int32 */
+            file_size: number;
+            /** Format: uuid */
+            id: string;
+            is_active: boolean;
+            mime_type: string;
+            /** Format: uuid */
+            uploaded_by?: string | null;
+            /** Format: uuid */
+            workspace_id: string;
+        };
+        EmployeeEmergencyContact: {
+            contact_name: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: uuid */
+            employee_id: string;
+            /** Format: uuid */
+            id: string;
+            is_primary: boolean;
+            phone: string;
+            relationship: string;
+        };
+        EmployeeLeaveBalance: {
+            /** Format: double */
+            accrued_amount: number;
+            /** Format: int32 */
+            carried_over: number;
+            /** Format: int32 */
+            entitlement: number;
+            is_paid: boolean;
+            leave_type_code: string;
+            /** Format: uuid */
+            leave_type_id: string;
+            leave_type_name: string;
+            /** Format: double */
+            remaining: number;
+            /** Format: int32 */
+            used: number;
+        };
+        EmployeeProfile: {
+            address?: string | null;
+            bank_account_number?: string | null;
+            bank_branch?: string | null;
+            bank_name?: string | null;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date */
+            date_of_birth?: string | null;
+            /** Format: uuid */
+            employee_id: string;
+            gender?: string | null;
+            /** Format: uuid */
+            id: string;
+            national_id?: string | null;
+            phone?: string | null;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        EmployeeSchedule: {
+            /** Format: uuid */
+            employee_id: string;
+            employee_id_number: string;
+            full_name: string;
+            schedules: components["schemas"]["EffectiveSchedule"][];
+        };
+        EmployeeWorkingPattern: {
+            /** Format: date */
+            anchor_date?: string | null;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: uuid */
+            employee_id: string;
+            /** Format: date */
+            end_date?: string | null;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            pattern_id: string;
+            /** Format: date */
+            start_date: string;
+            /** Format: date-time */
+            updated_at: string;
+            /** Format: uuid */
+            workspace_id: string;
+        };
+        /** @description Employee creates a swap request (requester_id comes from EmployeeContext) */
+        EssCreateShiftSwapRequest: {
+            reason?: string | null;
+            /** Format: date */
+            swap_date: string;
+            /** Format: uuid */
+            target_id: string;
+        };
+        /** @description ESS Leave Balance Response */
+        EssLeaveBalance: {
+            /** Format: double */
+            accrued_amount: number;
+            /** Format: int32 */
+            carried_over: number;
+            /** Format: int32 */
+            entitlement: number;
+            leave_type: string;
+            /** Format: double */
+            remaining: number;
+            /** Format: int64 */
+            used: number;
+        };
+        EssPunchRequest: {
+            note?: string | null;
+        };
         GenericResponse: {
             message: string;
         };
+        /** @description Represents a holiday entry in the workspace calendar. */
+        Holiday: {
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date */
+            date: string;
+            description?: string | null;
+            /** @description national | company | half_day */
+            holiday_type: string;
+            /** Format: uuid */
+            id: string;
+            /** @description Whether to credit holiday pay when employee works on this holiday. */
+            is_credit_on_work: boolean;
+            is_paid: boolean;
+            /**
+             * Format: uuid
+             * @description When is_paid=false, which leave type to auto-deduct from employee balance.
+             */
+            leave_type_id?: string | null;
+            name: string;
+            /** @description Per-holiday OT multiplier override. None = use workspace default. */
+            ot_multiplier?: string | null;
+            /** Format: date-time */
+            updated_at: string;
+            /**
+             * Format: int32
+             * @description Threshold % of shift worked to reverse leave deduction. NULL = default 50%.
+             */
+            work_threshold_percent?: number | null;
+            /** Format: uuid */
+            workspace_id: string;
+        };
+        /** @description Result of processing holiday leave deductions for employees. */
+        HolidayLeaveResult: "Paid" | {
+            /** @description Leave was auto-deducted from employee balance. */
+            LeaveDeducted: {
+                /** Format: uuid */
+                employee_id: string;
+                /** Format: uuid */
+                leave_request_id: string;
+                leave_type_name: string;
+            };
+        } | {
+            /** @description Employee has no remaining leave — unpaid day. */
+            Unpaid: {
+                /** Format: uuid */
+                employee_id: string;
+            };
+        };
         /** @enum {string} */
         ImportJobStatus: "pending" | "processing" | "completed" | "failed";
+        /**
+         * @description GET /workspaces/:ws_id/jobs/:job_id/status
+         *     Poll the status of a background job.
+         */
+        JobStatusResponse: {
+            completed_at?: string | null;
+            error_message?: string | null;
+            job_id: string;
+            status: string;
+        };
+        LatenessByDay: {
+            /** Format: double */
+            avg_late_minutes: number;
+            day: string;
+            /** Format: int64 */
+            late_count: number;
+        };
+        /** @enum {string} */
+        LeaveDurationType: "full_day" | "first_half" | "second_half" | "custom_hours";
+        LeaveHistoryItem: {
+            /** Format: double */
+            amount: number;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date */
+            date: string;
+            /** Format: uuid */
+            id: string;
+            reason?: string | null;
+            /** Format: uuid */
+            reference_id?: string | null;
+            transaction_type: components["schemas"]["LeaveTransactionType"];
+        };
+        LeavePolicyAssignment: {
+            /** Format: uuid */
+            assignee_id?: string | null;
+            assignee_type: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date */
+            effective_from: string;
+            /** Format: date */
+            effective_to?: string | null;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            policy_id: string;
+            /** Format: uuid */
+            workspace_id: string;
+        };
+        LeavePolicyAssignmentDetail: {
+            /** Format: uuid */
+            assignee_id?: string | null;
+            assignee_type: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date */
+            effective_from: string;
+            /** Format: date */
+            effective_to?: string | null;
+            /** Format: uuid */
+            id: string;
+            leave_type_name: string;
+            /** Format: uuid */
+            policy_id: string;
+            policy_name: string;
+            /** Format: uuid */
+            workspace_id: string;
+        };
+        LeavePolicyConfig: {
+            /** Format: double */
+            accrual_amount: number;
+            accrual_timing: string;
+            /** Format: int32 */
+            carry_over_limit?: number | null;
+            frequency: components["schemas"]["AccrualFrequency"];
+            /** Format: double */
+            max_balance?: number | null;
+            /** Format: double */
+            min_work_days_threshold?: number | null;
+            /** Format: int32 */
+            reset_month?: number | null;
+            seniority_bonus?: components["schemas"]["SeniorityBonus"][];
+        };
+        LeavePolicyDefinition: {
+            /** Format: date-time */
+            created_at: string;
+            description?: string | null;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            leave_type_id: string;
+            name: string;
+            rule_config: components["schemas"]["LeavePolicyConfig"];
+            /** Format: date-time */
+            updated_at: string;
+            /** Format: uuid */
+            workspace_id: string;
+        };
+        LeaveRequest: {
+            /** Format: uuid */
+            approved_by_user_id?: string | null;
+            /** Format: date-time */
+            created_at: string;
+            duration_type: components["schemas"]["LeaveDurationType"];
+            /** Format: uuid */
+            employee_id: string;
+            /** Format: date */
+            end_date: string;
+            end_time?: string | null;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            leave_type_id: string;
+            reason?: string | null;
+            /** Format: uuid */
+            requested_by_user_id?: string | null;
+            /** Format: date */
+            start_date: string;
+            start_time?: string | null;
+            status: components["schemas"]["LeaveStatus"];
+            /** Format: date-time */
+            updated_at: string;
+        };
         /** @enum {string} */
         LeaveStatus: "pending" | "approved" | "rejected" | "cancelled" | "pre_approved";
         /** @enum {string} */
         LeaveTransactionType: "accrual" | "usage" | "adjustment" | "carry_over";
+        LeaveType: {
+            code: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: uuid */
+            id: string;
+            is_paid: boolean;
+            name: string;
+            policy_config: components["schemas"]["LeaveTypeConfig"];
+            /** Format: uuid */
+            workspace_id: string;
+        };
+        LeaveTypeBreakdown: {
+            /** Format: int64 */
+            count: number;
+            leave_type: string;
+        };
+        LeaveTypeConfig: {
+            allow_negative_balance?: boolean;
+            approval_required?: boolean;
+            /** Format: double */
+            negative_balance_limit?: number | null;
+            requires_document?: boolean;
+        };
         /** @enum {string} */
         LogSource: "device" | "import" | "manual";
+        LoginRequest: {
+            email: string;
+            password: string;
+        };
+        MyProfileResponse: {
+            emergency_contacts: components["schemas"]["EmployeeEmergencyContact"][];
+            employee: components["schemas"]["Employee"];
+            profile?: null | components["schemas"]["EmployeeProfile"];
+        };
+        /** @enum {string} */
+        OtRequestStatus: "draft" | "pending_approval" | "approved" | "partially_accepted" | "active" | "completed" | "cancelled" | "rejected";
+        OvertimePolicy: {
+            /** Format: date-time */
+            created_at?: string | null;
+            description?: string | null;
+            /** Format: uuid */
+            id: string;
+            name: string;
+            /** Format: date-time */
+            updated_at?: string | null;
+            /** Format: uuid */
+            workspace_id: string;
+        };
+        OvertimePolicyAssignment: {
+            /** Format: uuid */
+            assignee_id?: string | null;
+            assignee_type: string;
+            /** Format: date-time */
+            created_at?: string | null;
+            /** Format: date */
+            effective_from: string;
+            /** Format: date */
+            effective_to?: string | null;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            policy_id: string;
+            /** Format: uuid */
+            workspace_id: string;
+        };
+        OvertimeRequest: {
+            /** Format: date-time */
+            created_at: string;
+            /** Format: int32 */
+            current_step: number;
+            /** Format: uuid */
+            department_id?: string | null;
+            /** Format: uuid */
+            id: string;
+            /** Format: date */
+            planned_date: string;
+            planned_end_time?: string | null;
+            /** Format: int32 */
+            planned_minutes: number;
+            planned_start_time?: string | null;
+            quota_warning?: unknown;
+            reason: string;
+            /** Format: date-time */
+            reconciled_at?: string | null;
+            /** Format: uuid */
+            reconciled_by?: string | null;
+            /** Format: uuid */
+            requested_by_user_id: string;
+            status: components["schemas"]["OtRequestStatus"];
+            /** Format: date-time */
+            updated_at: string;
+            /** Format: uuid */
+            workflow_id?: string | null;
+            /** Format: uuid */
+            workspace_id: string;
+        };
+        OvertimeRequestDetail: {
+            employees: components["schemas"]["OvertimeRequestEmployee"][];
+            request: components["schemas"]["OvertimeRequest"];
+        };
+        OvertimeRequestEmployee: {
+            /** Format: int32 */
+            actual_ot_minutes?: number | null;
+            /** Format: date-time */
+            consent_at?: string | null;
+            consent_status: string;
+            /** Format: date-time */
+            created_at: string;
+            decline_reason?: string | null;
+            /** Format: uuid */
+            employee_id: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            matched_summary_id?: string | null;
+            /** Format: uuid */
+            overtime_request_id: string;
+        };
+        OvertimeRule: {
+            /** Format: date-time */
+            created_at?: string | null;
+            /** Format: int32 */
+            days_of_week: number;
+            /** Format: uuid */
+            id: string;
+            is_holiday: boolean;
+            multiplier: string;
+            /** Format: uuid */
+            policy_id: string;
+            /** Format: int32 */
+            priority: number;
+            time_end?: string | null;
+            time_start?: string | null;
+            /** Format: date-time */
+            updated_at?: string | null;
+        };
+        OvertimeTrendPoint: {
+            /** Format: double */
+            approved_ot_hours: number;
+            /** Format: date */
+            date: string;
+            /** Format: double */
+            system_ot_hours: number;
+        };
+        PaginatedEmployees: {
+            data: components["schemas"]["Employee"][];
+            /** Format: int64 */
+            limit: number;
+            /** Format: int64 */
+            page: number;
+            total: number;
+        };
+        PaginatedWorkspaceLeaveBalances: {
+            data: components["schemas"]["WorkspaceLeaveBalance"][];
+            /** Format: int64 */
+            limit: number;
+            /** Format: int64 */
+            page: number;
+            total: number;
+        };
+        Payslip: {
+            base_pay_amount: string;
+            /** Format: date-time */
+            created_at: string;
+            deductions_amount: string;
+            /** Format: uuid */
+            employee_id: string;
+            /** @description Premium paid when employee works on a holiday (configurable per-holiday via ot_multiplier). */
+            holiday_work_premium_amount: string;
+            /** Format: uuid */
+            id: string;
+            net_pay_amount: string;
+            overtime_pay_amount: string;
+            /** Format: int32 */
+            overtime_units: number;
+            /** Format: date */
+            period_end: string;
+            /** Format: date */
+            period_start: string;
+            /** Format: int32 */
+            standard_units: number;
+            status: string;
+            /** Format: date-time */
+            updated_at: string;
+            /** Format: uuid */
+            workspace_id: string;
+        };
+        PeakTimeSlot: {
+            /** Format: int64 */
+            check_in: number;
+            /** Format: int64 */
+            check_out: number;
+            time_slot: string;
+        };
         PunchInRequest: {
             /** Format: uuid */
             employee_id: string;
@@ -213,6 +2636,183 @@ export interface components {
         };
         PunchOutRequest: {
             note?: string | null;
+        };
+        RefreshRequest: {
+            refresh_token: string;
+        };
+        RegisterRequest: {
+            email: string;
+            full_name: string;
+            password: string;
+        };
+        RehireEmployeeRequest: {
+            /** Format: date */
+            hire_date: string;
+        };
+        ResolvedConfig: {
+            key: string;
+            /** Format: uuid */
+            scope_id?: string | null;
+            scope_type: string;
+            value: components["schemas"]["ConfigValue"];
+        };
+        /** @description Target employee responds to a swap request */
+        RespondShiftSwapRequest: {
+            accept: boolean;
+        };
+        RosterItem: {
+            /** Format: date */
+            date: string;
+            notes?: string | null;
+            /** Format: uuid */
+            shift_id?: string | null;
+        };
+        ScheduleTrace: {
+            /** Format: int32 */
+            priority: number;
+            reason?: string | null;
+            /** Format: uuid */
+            rule_id?: string | null;
+            rule_name: string;
+            status: string;
+        };
+        SeniorityBonus: {
+            /** Format: double */
+            bonus_amount: number;
+            /** Format: int32 */
+            months: number;
+        };
+        Shift: {
+            allow_early_ot: boolean;
+            /** Format: int32 */
+            break_duration_minutes: number;
+            break_end?: string | null;
+            break_is_overtime: boolean;
+            break_start?: string | null;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: int32 */
+            early_punch_in_grace_period_minutes: number;
+            end_time: string;
+            /** Format: uuid */
+            id: string;
+            is_active: boolean;
+            is_break_auto_deduct: boolean;
+            name: string;
+            /** Format: uuid */
+            parent_shift_id?: string | null;
+            report_symbol?: string | null;
+            start_time: string;
+            /** Format: date-time */
+            updated_at: string;
+            /** Format: uuid */
+            workspace_id: string;
+        };
+        ShiftRoster: {
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date */
+            date: string;
+            /** Format: uuid */
+            employee_id: string;
+            /** Format: uuid */
+            id: string;
+            notes?: string | null;
+            /** Format: uuid */
+            shift_id?: string | null;
+            status: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        ShiftSwapRequest: {
+            /** Format: uuid */
+            approved_by_user_id?: string | null;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: uuid */
+            id: string;
+            reason?: string | null;
+            /** Format: uuid */
+            requested_by_user_id?: string | null;
+            /** Format: uuid */
+            requester_id: string;
+            /** Format: uuid */
+            requester_shift_id?: string | null;
+            status: components["schemas"]["ShiftSwapStatus"];
+            /** Format: date */
+            swap_date: string;
+            /** Format: uuid */
+            target_id: string;
+            /** Format: uuid */
+            target_shift_id?: string | null;
+            /** Format: date-time */
+            updated_at: string;
+            /** Format: uuid */
+            workspace_id: string;
+        };
+        ShiftSwapRequestWithNames: {
+            /** Format: uuid */
+            approved_by_user_id?: string | null;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: uuid */
+            id: string;
+            reason?: string | null;
+            /** Format: uuid */
+            requested_by_user_id?: string | null;
+            /** Format: uuid */
+            requester_id: string;
+            requester_name?: string | null;
+            /** Format: uuid */
+            requester_shift_id?: string | null;
+            requester_shift_name?: string | null;
+            status: components["schemas"]["ShiftSwapStatus"];
+            /** Format: date */
+            swap_date: string;
+            /** Format: uuid */
+            target_id: string;
+            target_name?: string | null;
+            /** Format: uuid */
+            target_shift_id?: string | null;
+            target_shift_name?: string | null;
+            /** Format: date-time */
+            updated_at: string;
+            /** Format: uuid */
+            workspace_id: string;
+        };
+        /** @enum {string} */
+        ShiftSwapStatus: "pending_target" | "pending_admin" | "approved" | "rejected" | "cancelled";
+        String: string;
+        SubmitLeaveRequest: {
+            duration_type?: components["schemas"]["LeaveDurationType"];
+            /** Format: uuid */
+            employee_id: string;
+            /** Format: date */
+            end_date: string;
+            end_time?: string | null;
+            /** Format: uuid */
+            leave_type_id: string;
+            reason?: string | null;
+            /** Format: date */
+            start_date: string;
+            start_time?: string | null;
+        };
+        /** @description Status counts for a workspace (for stats dashboard). */
+        SwapStats: {
+            /** Format: int64 */
+            approved: number;
+            /** Format: int64 */
+            approved_this_month: number;
+            /** Format: int64 */
+            cancelled: number;
+            /** Format: int64 */
+            pending_admin: number;
+            /** Format: int64 */
+            pending_target: number;
+            /** Format: int64 */
+            rejected: number;
+            /** Format: int64 */
+            rejected_this_month: number;
         };
         TimeEntry: {
             /** Format: date-time */
@@ -238,6 +2838,52 @@ export interface components {
             /** Format: uuid */
             workspace_id: string;
         };
+        TransferEmployeeRequest: {
+            /** Format: uuid */
+            department_id: string;
+            /** Format: date */
+            effective_date: string;
+            notes?: string | null;
+        };
+        TriggerAccrualRequest: {
+            date: string;
+        };
+        UnexcusedAbsencesPoint: {
+            /** Format: int64 */
+            consecutive_count: number;
+            /** Format: uuid */
+            department_id: string;
+            department_name: string;
+            /** Format: uuid */
+            employee_id?: string | null;
+            employee_name?: string | null;
+            /** Format: int64 */
+            total_absent_count: number;
+            /** Format: int64 */
+            total_leave_count: number;
+            /** Format: int64 */
+            unexcused_count: number;
+        };
+        UpdateContractRequest: {
+            contract_number?: string | null;
+            contract_type?: null | components["schemas"]["ContractType"];
+            /** Format: uuid */
+            document_id?: string | null;
+            /** Format: date */
+            end_date?: string | null;
+            notes?: string | null;
+            /** Format: date */
+            start_date?: string | null;
+            status?: null | components["schemas"]["ContractStatus"];
+        };
+        UpdateDepartmentRequest: {
+            /** Format: uuid */
+            default_working_pattern_id?: string | null;
+            description?: string | null;
+            /** Format: uuid */
+            manager_id?: string | null;
+            name?: string | null;
+        };
         UpdateDeviceRequest: {
             brand?: string | null;
             ip?: string | null;
@@ -247,6 +2893,247 @@ export interface components {
             /** Format: int32 */
             port?: number | null;
             timezone?: string | null;
+        };
+        UpdateEmployeeAssignmentRequest: {
+            /** Format: date */
+            end_date?: string | null;
+            reason?: string | null;
+            status?: null | components["schemas"]["AssignmentStatusEnum"];
+        };
+        UpdateEmployeeProfileRequest: {
+            address?: string | null;
+            bank_account_number?: string | null;
+            bank_branch?: string | null;
+            bank_name?: string | null;
+            /** Format: date */
+            date_of_birth?: string | null;
+            gender?: string | null;
+            national_id?: string | null;
+            phone?: string | null;
+        };
+        UpdateEmployeeRequest: {
+            employee_id_number?: null | components["schemas"]["String"];
+            full_name?: string | null;
+            /** Format: date */
+            hire_date?: string | null;
+            is_active?: boolean | null;
+            /** Format: int32 */
+            max_concurrent_workers?: number | null;
+            /** Format: uuid */
+            primary_location_id?: string | null;
+            /** Format: uuid */
+            recruitment_source_id?: string | null;
+            tags?: string[] | null;
+            /** Format: date */
+            termination_date?: string | null;
+            /** Format: uuid */
+            user_id?: string | null;
+        };
+        /** @description Request payload for updating an existing holiday. */
+        UpdateHolidayRequest: {
+            /** Format: date */
+            date?: string | null;
+            description?: string | null;
+            holiday_type?: string | null;
+            is_credit_on_work?: boolean | null;
+            is_paid?: boolean | null;
+            /** Format: uuid */
+            leave_type_id?: string | null;
+            name?: string | null;
+            ot_multiplier?: string | null;
+            /** Format: int32 */
+            work_threshold_percent?: number | null;
+        };
+        UpdateLeavePolicyRequest: {
+            description?: string | null;
+            /** Format: uuid */
+            leave_type_id?: string | null;
+            name?: string | null;
+            rule_config?: null | components["schemas"]["LeavePolicyConfig"];
+        };
+        UpdateLeaveTypeConfigRequest: {
+            policy_config: components["schemas"]["LeaveTypeConfig"];
+        };
+        UpdateShiftRequest: {
+            allow_early_ot?: boolean;
+            /** Format: int32 */
+            break_duration_minutes: number;
+            break_end?: string | null;
+            break_is_overtime?: boolean;
+            break_start?: string | null;
+            /** Format: int32 */
+            early_punch_in_grace_period_minutes?: number;
+            /**
+             * Format: date
+             * @description Effective date for the new version. If not provided, defaults to today.
+             */
+            effective_date?: string | null;
+            end_time: string;
+            is_break_auto_deduct?: boolean;
+            /**
+             * @description If true, update the current record (Correction).
+             *     If false (default), create a new version if time-related fields changed.
+             */
+            is_correction?: boolean;
+            name: string;
+            report_symbol?: string | null;
+            start_time: string;
+        };
+        UpdateUserRequest: {
+            avatar_url?: string | null;
+            bio?: string | null;
+            full_name?: string | null;
+            preferred_language?: string | null;
+        };
+        UpdateWorkspaceRequest: {
+            date_format?: string | null;
+            default_holiday_ot_multiplier?: string | null;
+            default_language?: string | null;
+            holiday_overnight_strategy?: string | null;
+            logo_url?: string | null;
+            name?: string | null;
+            tagline?: string | null;
+            theme_primary_color?: string | null;
+            time_format?: string | null;
+            timezone?: string | null;
+        };
+        UploadDocumentRequest: {
+            document_type: string;
+            /** Format: date */
+            expires_at?: string | null;
+        };
+        UpsertConfigRequest: {
+            config_key: string;
+            /** Format: date */
+            effective_from: string;
+            /** Format: date */
+            effective_to?: string | null;
+            /** Format: uuid */
+            scope_id?: string | null;
+            scope_type: string;
+            value: components["schemas"]["ConfigValue"];
+        };
+        UserResponse: {
+            avatar_url?: string | null;
+            bio?: string | null;
+            /** Format: date-time */
+            created_at: string;
+            email: string;
+            full_name?: string | null;
+            /** Format: uuid */
+            id: string;
+            preferred_language?: string | null;
+            system_roles?: string[];
+        };
+        WorkingCondition: {
+            /** Format: uuid */
+            employee_id: string;
+            /** Format: date */
+            end_date?: string | null;
+            /** Format: uuid */
+            id: string;
+            is_paid: boolean;
+            /** Format: int32 */
+            minute_allowance: number;
+            /** Format: date */
+            start_date: string;
+            type_: string;
+        };
+        WorkingPattern: {
+            /** Format: date-time */
+            created_at: string;
+            /** Format: int32 */
+            cycle_length_days?: number | null;
+            description?: string | null;
+            /** Format: uuid */
+            id: string;
+            is_active: boolean;
+            name: string;
+            pattern_type: string;
+            /** Format: date-time */
+            updated_at: string;
+            /** Format: uuid */
+            workspace_id: string;
+        };
+        WorkingPatternDetail: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            pattern_id: string;
+            /** Format: int32 */
+            schedule_day: number;
+            /** Format: uuid */
+            shift_id?: string | null;
+        };
+        WorkingPatternDetailRequest: {
+            /** Format: int32 */
+            schedule_day: number;
+            /** Format: uuid */
+            shift_id?: string | null;
+        };
+        Workspace: {
+            /** Format: date-time */
+            created_at: string;
+            date_format: string;
+            default_holiday_ot_multiplier: string;
+            default_language: string;
+            holiday_overnight_strategy: string;
+            /** Format: uuid */
+            id: string;
+            logo_url?: string | null;
+            name: string;
+            tagline?: string | null;
+            theme_primary_color: string;
+            time_format: string;
+            timezone: string;
+        };
+        WorkspaceConfigEntry: {
+            config_key: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: uuid */
+            created_by?: string | null;
+            /** Format: date */
+            effective_from: string;
+            /** Format: date */
+            effective_to?: string | null;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            scope_id?: string | null;
+            scope_type: string;
+            /** Format: date-time */
+            updated_at: string;
+            value_bool?: boolean | null;
+            value_decimal?: string | null;
+            /** Format: int32 */
+            value_int?: number | null;
+            value_json?: unknown;
+            value_text?: string | null;
+            /** Format: uuid */
+            workspace_id: string;
+        };
+        WorkspaceLeaveBalance: {
+            /** Format: double */
+            accrued_amount: number;
+            assignment_type?: string | null;
+            /** Format: int32 */
+            carried_over: number;
+            /** Format: uuid */
+            employee_id: string;
+            employee_name: string;
+            /** Format: int32 */
+            entitlement: number;
+            is_paid: boolean;
+            leave_type_code: string;
+            /** Format: uuid */
+            leave_type_id: string;
+            leave_type_name: string;
+            policy_name?: string | null;
+            /** Format: double */
+            remaining: number;
+            /** Format: int32 */
+            used: number;
         };
         WorkspaceStats: {
             /** Format: int64 */
@@ -296,6 +3183,429 @@ export interface operations {
             };
         };
     };
+    list_employee_contracts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Employee ID */
+                employee_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Danh sách hợp đồng */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployeeContract"][];
+                };
+            };
+        };
+    };
+    create_contract: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Employee ID */
+                employee_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateContractRequest"];
+            };
+        };
+        responses: {
+            /** @description Đã tạo hợp đồng */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployeeContract"];
+                };
+            };
+        };
+    };
+    get_contract: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Employee ID */
+                employee_id: string;
+                /** @description Contract ID */
+                contract_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Thông tin hợp đồng */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployeeContract"];
+                };
+            };
+        };
+    };
+    delete_contract: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Employee ID */
+                employee_id: string;
+                /** @description Contract ID */
+                contract_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Đã xóa hợp đồng */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    update_contract: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Employee ID */
+                employee_id: string;
+                /** @description Contract ID */
+                contract_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateContractRequest"];
+            };
+        };
+        responses: {
+            /** @description Đã cập nhật hợp đồng */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployeeContract"];
+                };
+            };
+        };
+    };
+    change_password: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangePasswordRequest"];
+            };
+        };
+        responses: {
+            /** @description Successfully changed password */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    login: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LoginRequest"];
+            };
+        };
+        responses: {
+            /** @description Successfully logged in */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthResponse"];
+                };
+            };
+        };
+    };
+    logout: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RefreshRequest"];
+            };
+        };
+        responses: {
+            /** @description Successfully logged out */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    refresh_token: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RefreshRequest"];
+            };
+        };
+        responses: {
+            /** @description Successfully refreshed session */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthResponse"];
+                };
+            };
+        };
+    };
+    register: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RegisterRequest"];
+            };
+        };
+        responses: {
+            /** @description Successfully registered */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthResponse"];
+                };
+            };
+        };
+    };
+    get_attendance_trend: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Get attendance trend analysis data */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttendanceTrendPoint"][];
+                };
+            };
+        };
+    };
+    get_department_attendance: {
+        parameters: {
+            query?: {
+                /** @description Analytics date range (e.g. today, week, month) */
+                range?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Get department-scoped attendance analytics */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DepartmentAttendancePoint"][];
+                };
+            };
+        };
+    };
+    get_lateness_by_day: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Get lateness breakdown by day of week */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LatenessByDay"][];
+                };
+            };
+        };
+    };
+    get_leave_types_breakdown: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Get leave requests breakdown by leave type */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaveTypeBreakdown"][];
+                };
+            };
+        };
+    };
+    get_overtime_trend: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Get overtime trend analysis data */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OvertimeTrendPoint"][];
+                };
+            };
+        };
+    };
+    get_peak_times: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Get peak check-in and check-out times slots */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PeakTimeSlot"][];
+                };
+            };
+        };
+    };
+    get_unexcused_absences: {
+        parameters: {
+            query?: {
+                /** @description Start Date (YYYY-MM-DD) */
+                start_date?: string;
+                /** @description End Date (YYYY-MM-DD) */
+                end_date?: string;
+                /** @description Group results by employee or department */
+                group_by?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Get unexcused absences list/stats */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnexcusedAbsencesPoint"][];
+                };
+            };
+        };
+    };
+    get_workspace_stats: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Get workspace key metrics and status summary */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceStats"];
+                };
+            };
+        };
+    };
     get_devices: {
         parameters: {
             query?: never;
@@ -312,6 +3622,675 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Device"][];
+                };
+            };
+        };
+    };
+    get_my_leave_requests: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Employee ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of leave requests */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaveRequest"][];
+                };
+            };
+        };
+    };
+    get_my_attendance: {
+        parameters: {
+            query?: {
+                /** @description Start Date (YYYY-MM-DD) */
+                start_date?: string;
+                /** @description End Date (YYYY-MM-DD) */
+                end_date?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Get employee attendance logs */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimeEntry"][];
+                };
+            };
+        };
+    };
+    get_my_documents: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Get employee documents list */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployeeDocument"][];
+                };
+            };
+        };
+    };
+    get_my_emergency_contacts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Get employee emergency contacts list */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployeeEmergencyContact"][];
+                };
+            };
+        };
+    };
+    add_emergency_contact: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateEmergencyContactRequest"];
+            };
+        };
+        responses: {
+            /** @description Added emergency contact successfully */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployeeEmergencyContact"];
+                };
+            };
+        };
+    };
+    delete_emergency_contact: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Emergency Contact ID */
+                contact_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted emergency contact successfully */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_my_leave_balances: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Get employee leave balances */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EssLeaveBalance"][];
+                };
+            };
+        };
+    };
+    ess_get_my_leave_requests: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Get employee leave requests */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaveRequest"][];
+                };
+            };
+        };
+    };
+    get_my_payslips: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Get employee payslips list */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Payslip"][];
+                };
+            };
+        };
+    };
+    get_my_profile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Get current employee profile details */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MyProfileResponse"];
+                };
+            };
+        };
+    };
+    update_my_profile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateEmployeeProfileRequest"];
+            };
+        };
+        responses: {
+            /** @description Update current employee profile */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployeeProfile"];
+                };
+            };
+        };
+    };
+    ess_punch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EssPunchRequest"];
+            };
+        };
+        responses: {
+            /** @description Successfully punched in/out */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimeEntry"];
+                };
+            };
+        };
+    };
+    ess_get_my_shift_swaps: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Get employee shift swap requests */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShiftSwapRequestWithNames"][];
+                };
+            };
+        };
+    };
+    ess_create_shift_swap: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EssCreateShiftSwapRequest"];
+            };
+        };
+        responses: {
+            /** @description Successfully created shift swap request */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShiftSwapRequest"];
+                };
+            };
+        };
+    };
+    ess_cancel_swap: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Shift Swap Request ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successfully cancelled shift swap request */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ess_respond_to_swap: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Shift Swap Request ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RespondShiftSwapRequest"];
+            };
+        };
+        responses: {
+            /** @description Successfully responded to shift swap request */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_my_time_entries: {
+        parameters: {
+            query?: {
+                /** @description Start datetime */
+                start_date?: string;
+                /** @description End datetime */
+                end_date?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Get employee time entries */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimeEntry"][];
+                };
+            };
+        };
+    };
+    get_me: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Get current user info */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserResponse"];
+                };
+            };
+        };
+    };
+    update_me: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateUserRequest"];
+            };
+        };
+        responses: {
+            /** @description Update user profile info */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserResponse"];
+                };
+            };
+        };
+    };
+    get_my_permissions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Get calling user permissions and roles */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_users: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Get all workspace users */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserResponse"][];
+                };
+            };
+        };
+    };
+    list_employee_assignments: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Employee ID */
+                employee_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of assignments */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployeeAssignment"][];
+                };
+            };
+        };
+    };
+    create_employee_assignment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Employee ID */
+                employee_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateEmployeeAssignmentRequest"];
+            };
+        };
+        responses: {
+            /** @description Assignment created */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployeeAssignment"];
+                };
+            };
+        };
+    };
+    get_employee_assignment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Employee ID */
+                employee_id: string;
+                /** @description Assignment ID */
+                assignment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Employee assignment */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployeeAssignment"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    delete_employee_assignment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Employee ID */
+                employee_id: string;
+                /** @description Assignment ID */
+                assignment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Assignment deleted */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    update_employee_assignment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Employee ID */
+                employee_id: string;
+                /** @description Assignment ID */
+                assignment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateEmployeeAssignmentRequest"];
+            };
+        };
+        responses: {
+            /** @description Assignment updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployeeAssignment"];
+                };
+            };
+        };
+    };
+    get_workspaces: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List all workspaces the user is member of */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Workspace"][];
+                };
+            };
+        };
+    };
+    create_workspace: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateWorkspaceRequest"];
+            };
+        };
+        responses: {
+            /** @description Workspace created successfully */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Workspace"];
+                };
+            };
+        };
+    };
+    get_assignment_history: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Assignment history */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssignmentHistory"][];
                 };
             };
         };
@@ -370,6 +4349,1058 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+        };
+    };
+    list_configs: {
+        parameters: {
+            query?: {
+                /** @description Filter keys by prefix */
+                prefix?: string;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List config entries */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceConfigEntry"][];
+                };
+            };
+        };
+    };
+    upsert_config: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpsertConfigRequest"];
+            };
+        };
+        responses: {
+            /** @description Upsert config entry */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceConfigEntry"];
+                };
+            };
+        };
+    };
+    delete_config: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+                /** @description Config ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Delete config entry */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_config: {
+        parameters: {
+            query?: {
+                /** @description Effective date */
+                date?: string;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+                /** @description Config Key */
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Get config entry */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResolvedConfig"];
+                };
+            };
+        };
+    };
+    get_employees: {
+        parameters: {
+            query?: {
+                page?: number | null;
+                limit?: number | null;
+                q?: string | null;
+                year?: number | null;
+                sort_by?: string | null;
+                sort_dir?: string | null;
+                department_id?: string | null;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successfully retrieved employees list */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedEmployees"];
+                };
+            };
+        };
+    };
+    create_employee: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateEmployeeRequest"];
+            };
+        };
+        responses: {
+            /** @description Successfully created employee */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Employee"];
+                };
+            };
+        };
+    };
+    get_employee: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+                /** @description Employee ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successfully retrieved employee details */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Employee"];
+                };
+            };
+        };
+    };
+    update_employee: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+                /** @description Employee ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateEmployeeRequest"];
+            };
+        };
+        responses: {
+            /** @description Successfully updated employee details */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Employee"];
+                };
+            };
+        };
+    };
+    delete_employee: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+                /** @description Employee ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successfully deleted employee */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_working_conditions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+                /** @description Employee ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successfully retrieved working conditions */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkingCondition"][];
+                };
+            };
+        };
+    };
+    create_working_condition: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+                /** @description Employee ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateWorkingConditionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successfully created working condition */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkingCondition"];
+                };
+            };
+        };
+    };
+    delete_working_condition: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+                /** @description Employee ID */
+                id: string;
+                /** @description Working Condition ID */
+                cond_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successfully deleted working condition */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_employee_department_history: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+                /** @description Employee ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successfully retrieved employee department history */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployeeDepartmentHistory"][];
+                };
+            };
+        };
+    };
+    transfer_employee: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+                /** @description Employee ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransferEmployeeRequest"];
+            };
+        };
+        responses: {
+            /** @description Successfully transferred employee to department */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployeeDepartmentHistory"];
+                };
+            };
+        };
+    };
+    rehire_employee: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+                /** @description Employee ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RehireEmployeeRequest"];
+            };
+        };
+        responses: {
+            /** @description Successfully rehired employee */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Employee"];
+                };
+            };
+        };
+    };
+    get_employee_rosters: {
+        parameters: {
+            query?: {
+                start_date?: string | null;
+                end_date?: string | null;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+                /** @description Employee ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Employee rosters */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShiftRoster"][];
+                };
+            };
+        };
+    };
+    upsert_roster: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+                /** @description Employee ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateRosterRequest"];
+            };
+        };
+        responses: {
+            /** @description Roster created/updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShiftRoster"];
+                };
+            };
+        };
+    };
+    bulk_upsert_roster: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+                /** @description Employee ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BulkRosterRequest"];
+            };
+        };
+        responses: {
+            /** @description Bulk rosters created/updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    delete_roster: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+                /** @description Employee ID */
+                id: string;
+                /** @description Roster Date */
+                date: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Roster deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_employee_pattern_history: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+                /** @description Employee ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Employee working pattern history */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployeeWorkingPattern"][];
+                };
+            };
+        };
+    };
+    assign_pattern: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+                /** @description Employee ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AssignPatternRequest"];
+            };
+        };
+        responses: {
+            /** @description Pattern assigned to employee */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployeeWorkingPattern"];
+                };
+            };
+        };
+    };
+    list_holidays: {
+        parameters: {
+            query?: {
+                year?: number | null;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of holidays */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Holiday"][];
+                };
+            };
+        };
+    };
+    create_holiday: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateHolidayRequest"];
+            };
+        };
+        responses: {
+            /** @description Holiday created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Holiday"];
+                };
+            };
+        };
+    };
+    get_holiday: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+                /** @description Holiday ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Holiday details */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Holiday"];
+                };
+            };
+        };
+    };
+    update_holiday: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+                /** @description Holiday ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateHolidayRequest"];
+            };
+        };
+        responses: {
+            /** @description Holiday updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Holiday"];
+                };
+            };
+        };
+    };
+    delete_holiday: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+                /** @description Holiday ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Holiday deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    process_holiday_leave: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+                /** @description Holiday ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Holiday leave processed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HolidayLeaveResult"][];
+                };
+            };
+        };
+    };
+    list_leave_types: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of leave types */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaveType"][];
+                };
+            };
+        };
+    };
+    create_leave_type: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateLeaveTypeRequest"];
+            };
+        };
+        responses: {
+            /** @description Leave type created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaveType"];
+                };
+            };
+        };
+    };
+    delete_leave_type: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+                /** @description Leave Type ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Leave type deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    update_leave_type_config: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+                /** @description Leave Type ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateLeaveTypeConfigRequest"];
+            };
+        };
+        responses: {
+            /** @description Leave type config updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaveType"];
+                };
+            };
+        };
+    };
+    get_workspace_schedules: {
+        parameters: {
+            query: {
+                start_date: string;
+                end_date: string;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Workspace schedules */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployeeSchedule"][];
+                };
+            };
+        };
+    };
+    list_shift_swaps: {
+        parameters: {
+            query?: {
+                status?: null | components["schemas"]["ShiftSwapStatus"];
+            };
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of shift swap requests */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShiftSwapRequestWithNames"][];
+                };
+            };
+        };
+    };
+    create_shift_swap: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateShiftSwapRequest"];
+            };
+        };
+        responses: {
+            /** @description Shift swap request created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShiftSwapRequest"];
+                };
+            };
+        };
+    };
+    get_shift_swap_stats: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Workspace shift swap stats */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SwapStats"];
+                };
+            };
+        };
+    };
+    approve_shift_swap: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+                /** @description Shift Swap Request ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApproveShiftSwapRequest"];
+            };
+        };
+        responses: {
+            /** @description Shift swap request approved/rejected */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_shifts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of shifts */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Shift"][];
+                };
+            };
+        };
+    };
+    create_shift: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateShiftRequest"];
+            };
+        };
+        responses: {
+            /** @description Shift created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Shift"];
+                };
+            };
+        };
+    };
+    assign_shift: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AssignShiftRequest"];
+            };
+        };
+        responses: {
+            /** @description Shift assigned successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    update_shift: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+                /** @description Shift ID */
+                shift_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateShiftRequest"];
+            };
+        };
+        responses: {
+            /** @description Shift updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Shift"];
                 };
             };
         };
@@ -455,6 +5486,955 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["TimeEntry"];
                 };
+            };
+        };
+    };
+    list_patterns: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of working patterns */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkingPattern"][];
+                };
+            };
+        };
+    };
+    create_pattern: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateWorkingPatternRequest"];
+            };
+        };
+        responses: {
+            /** @description Working pattern created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkingPattern"];
+                };
+            };
+        };
+    };
+    bulk_assign_pattern: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BulkAssignPatternRequest"];
+            };
+        };
+        responses: {
+            /** @description Bulk pattern assignments completed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BulkAssignResponse"];
+                };
+            };
+        };
+    };
+    get_pattern_details: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+                /** @description Pattern ID */
+                pattern_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Working pattern details */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkingPatternDetail"][];
+                };
+            };
+        };
+    };
+    update_pattern: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+                /** @description Pattern ID */
+                pattern_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateWorkingPatternRequest"];
+            };
+        };
+        responses: {
+            /** @description Working pattern updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkingPattern"];
+                };
+            };
+        };
+    };
+    delete_pattern: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+                /** @description Pattern ID */
+                pattern_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Working pattern deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_workspace_by_id: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Get workspace details by ID */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Workspace"];
+                };
+            };
+        };
+    };
+    update_workspace: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateWorkspaceRequest"];
+            };
+        };
+        responses: {
+            /** @description Workspace updated successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Workspace"];
+                };
+            };
+        };
+    };
+    adjust_leave_balance: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Employee ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdjustBalanceRequest"];
+            };
+        };
+        responses: {
+            /** @description Leave balance adjusted */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_employee_leave_balances: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Employee ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Employee leave balances */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployeeLeaveBalance"][];
+                };
+            };
+        };
+    };
+    get_employee_leave_history: {
+        parameters: {
+            query?: {
+                leave_type_id?: string | null;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Employee ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Employee leave history */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaveHistoryItem"][];
+                };
+            };
+        };
+    };
+    get_job_status: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Job ID */
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Get background job status */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobStatusResponse"];
+                };
+            };
+        };
+    };
+    trigger_accrual_run: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TriggerAccrualRequest"];
+            };
+        };
+        responses: {
+            /** @description Accrual run triggered */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccrualJobResponse"];
+                };
+            };
+        };
+    };
+    get_workspace_leave_balances: {
+        parameters: {
+            query?: {
+                page?: number | null;
+                limit?: number | null;
+                q?: string | null;
+                year?: number | null;
+                sort_by?: string | null;
+                sort_dir?: string | null;
+                department_id?: string | null;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Workspace leave balances */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedWorkspaceLeaveBalances"];
+                };
+            };
+        };
+    };
+    get_latest_leave_import: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Latest leave import job */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    download_leave_import_errors: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Job ID */
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Download leave import errors file */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/octet-stream": number[];
+                };
+            };
+        };
+    };
+    get_leave_policies: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Workspace leave policies */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeavePolicyDefinition"][];
+                };
+            };
+        };
+    };
+    create_leave_policy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateLeavePolicyRequest"];
+            };
+        };
+        responses: {
+            /** @description Leave policy created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeavePolicyDefinition"];
+                };
+            };
+        };
+    };
+    assign_leave_policy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AssignLeavePolicyRequest"];
+            };
+        };
+        responses: {
+            /** @description Leave policy assigned */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeavePolicyAssignment"];
+                };
+            };
+        };
+    };
+    get_leave_policy_assignments: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Workspace leave policy assignments */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeavePolicyAssignmentDetail"][];
+                };
+            };
+        };
+    };
+    delete_leave_policy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Policy ID */
+                policy_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Leave policy deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    update_leave_policy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Policy ID */
+                policy_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateLeavePolicyRequest"];
+            };
+        };
+        responses: {
+            /** @description Leave policy updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeavePolicyDefinition"];
+                };
+            };
+        };
+    };
+    get_workspace_leave_requests: {
+        parameters: {
+            query?: {
+                status?: null | components["schemas"]["LeaveStatus"];
+            };
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Workspace leave requests */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaveRequest"][];
+                };
+            };
+        };
+    };
+    approve_leave_request: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Leave request ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApproveLeaveRequest"];
+            };
+        };
+        responses: {
+            /** @description Leave request approved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    submit_leave_request: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SubmitLeaveRequest"];
+            };
+        };
+        responses: {
+            /** @description Leave request submitted */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaveRequest"];
+                };
+            };
+        };
+    };
+    upload_leave_excel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Leave Excel uploaded */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    download_leave_import_template: {
+        parameters: {
+            query?: {
+                lang?: string | null;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Download leave import template */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/octet-stream": number[];
+                };
+            };
+        };
+    };
+    list_policies: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List overtime policies */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OvertimePolicy"][];
+                };
+            };
+        };
+    };
+    create_policy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreatePolicyRequest"];
+            };
+        };
+        responses: {
+            /** @description Overtime policy created */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OvertimePolicy"];
+                };
+            };
+        };
+    };
+    assign_policy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AssignPolicyRequest"];
+            };
+        };
+        responses: {
+            /** @description Overtime policy assigned */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_policy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Policy ID */
+                policy_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Overtime policy details with rules */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown[];
+                };
+            };
+        };
+    };
+    add_rule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Policy ID */
+                policy_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateRuleRequest"];
+            };
+        };
+        responses: {
+            /** @description Overtime rule added to policy */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OvertimeRule"];
+                };
+            };
+        };
+    };
+    list_ot_requests: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List overtime requests */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OvertimeRequest"][];
+                };
+            };
+        };
+    };
+    create_ot_request: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateOvertimeRequestPayload"];
+            };
+        };
+        responses: {
+            /** @description Overtime request created */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OvertimeRequest"];
+                };
+            };
+        };
+    };
+    get_ot_request: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Request ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Overtime request details */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OvertimeRequestDetail"];
+                };
+            };
+        };
+    };
+    employee_consent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Request ID */
+                id: string;
+                /** @description Employee ID */
+                emp_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EmployeeConsentRequest"];
+            };
+        };
+        responses: {
+            /** @description Employee consent status updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    submit_for_approval: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Request ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Overtime request submitted for approval */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

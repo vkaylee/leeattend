@@ -5,7 +5,7 @@ use uuid::Uuid;
 use crate::models::attendance::ScheduleTrace;
 use crate::models::enums::AssignmentHistoryType;
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct WorkingPattern {
     pub id: Uuid,
     pub workspace_id: Uuid,
@@ -18,7 +18,7 @@ pub struct WorkingPattern {
     pub cycle_length_days: Option<i32>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct WorkingPatternDetail {
     pub id: Uuid,
     pub pattern_id: Uuid,
@@ -26,7 +26,7 @@ pub struct WorkingPatternDetail {
     pub shift_id: Option<Uuid>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct EmployeeWorkingPattern {
     pub id: Uuid,
     pub workspace_id: Uuid,
@@ -39,13 +39,13 @@ pub struct EmployeeWorkingPattern {
     pub anchor_date: Option<NaiveDate>,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, utoipa::ToSchema)]
 pub struct WorkingPatternDetailRequest {
     pub schedule_day: i32,
     pub shift_id: Option<Uuid>,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, utoipa::ToSchema)]
 pub struct CreateWorkingPatternRequest {
     pub name: String,
     pub description: Option<String>,
@@ -54,7 +54,7 @@ pub struct CreateWorkingPatternRequest {
     pub details: Vec<WorkingPatternDetailRequest>,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, utoipa::ToSchema)]
 pub struct AssignPatternRequest {
     pub pattern_id: Uuid,
     pub start_date: NaiveDate,
@@ -62,7 +62,7 @@ pub struct AssignPatternRequest {
     pub anchor_date: Option<NaiveDate>,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, utoipa::ToSchema)]
 pub struct BulkAssignPatternRequest {
     pub employee_ids: Vec<Uuid>,
     pub pattern_id: Uuid,
@@ -71,13 +71,13 @@ pub struct BulkAssignPatternRequest {
     pub anchor_date: Option<NaiveDate>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, utoipa::ToSchema)]
 pub struct BulkAssignResponse {
     pub success_count: usize,
     pub failed_employees: Vec<Uuid>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct EffectiveSchedule {
     pub date: NaiveDate,
     pub shift_id: Option<Uuid>, // None means Day Off
@@ -100,7 +100,7 @@ pub struct EffectiveSchedule {
     pub holiday_name: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct EmployeeSchedule {
     pub employee_id: Uuid,
     pub employee_id_number: String,
@@ -108,7 +108,7 @@ pub struct EmployeeSchedule {
     pub schedules: Vec<EffectiveSchedule>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, diesel::QueryableByName)]
+#[derive(Debug, Serialize, Deserialize, Clone, diesel::QueryableByName, utoipa::ToSchema)]
 pub struct AssignmentHistory {
     #[diesel(sql_type = diesel::sql_types::Uuid)]
     pub id: Uuid,

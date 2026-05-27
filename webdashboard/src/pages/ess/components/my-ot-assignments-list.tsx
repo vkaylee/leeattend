@@ -14,7 +14,7 @@ export function MyOtAssignmentsList({ assignments, isLoading, wsId }: { assignme
 
   const handleConsent = (id: string, employeeId: string, status: "accepted" | "declined") => {
     consent(
-      { id, data: { employee_id: employeeId, status } },
+      { id, employee_id: employeeId, status },
       {
         onSuccess: () => {
           toast.success(status === "accepted" ? "Overtime accepted" : "Overtime declined");

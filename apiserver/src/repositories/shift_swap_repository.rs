@@ -56,7 +56,7 @@ pub trait ShiftSwapRepository: Send + Sync {
 }
 
 /// Status counts for a workspace (for stats dashboard).
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug, serde::Serialize, utoipa::ToSchema)]
 pub struct SwapStats {
     pub pending_target: i64,
     pub pending_admin: i64,

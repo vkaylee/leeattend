@@ -54,14 +54,15 @@ async fn dispatch_sync_hire_date(
         ("employee_id" = Uuid, Path, description = "Employee ID")
     ),
     responses(
-        (status = 200, description = "Danh sách hợp đồng")
+        (status = 200, description = "Danh sách hợp đồng", body = [EmployeeContract])
     )
 )]
 pub async fn list_employee_contracts(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
-    Path((_ws_id, employee_id)): Path<(Uuid, Uuid)>,
+    Path(params): Path<(Uuid, Uuid)>,
 ) -> AppResult<Json<Vec<EmployeeContract>>> {
+    let (_ws_id, employee_id) = params;
     let _workspace_id = ctx.workspace_id;
 
     let contracts = state
@@ -83,14 +84,15 @@ pub async fn list_employee_contracts(
         ("contract_id" = Uuid, Path, description = "Contract ID")
     ),
     responses(
-        (status = 200, description = "Thông tin hợp đồng")
+        (status = 200, description = "Thông tin hợp đồng", body = EmployeeContract)
     )
 )]
 pub async fn get_contract(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
-    Path((_ws_id, _employee_id, contract_id)): Path<(Uuid, Uuid, Uuid)>,
+    Path(params): Path<(Uuid, Uuid, Uuid)>,
 ) -> AppResult<Json<EmployeeContract>> {
+    let (_ws_id, _employee_id, contract_id) = params;
     let _workspace_id = ctx.workspace_id;
 
     let contract = state
@@ -113,15 +115,16 @@ pub async fn get_contract(
     ),
     request_body = CreateContractRequest,
     responses(
-        (status = 201, description = "Đã tạo hợp đồng")
+        (status = 201, description = "Đã tạo hợp đồng", body = EmployeeContract)
     )
 )]
 pub async fn create_contract(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
-    Path((_ws_id, _employee_id)): Path<(Uuid, Uuid)>,
+    Path(params): Path<(Uuid, Uuid)>,
     Json(payload): Json<CreateContractRequest>,
 ) -> AppResult<(StatusCode, Json<EmployeeContract>)> {
+    let (_ws_id, _employee_id) = params;
     let workspace_id = ctx.workspace_id;
 
     let contract = state
@@ -168,15 +171,16 @@ pub async fn create_contract(
     ),
     request_body = UpdateContractRequest,
     responses(
-        (status = 200, description = "Đã cập nhật hợp đồng")
+        (status = 200, description = "Đã cập nhật hợp đồng", body = EmployeeContract)
     )
 )]
 pub async fn update_contract(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
-    Path((_ws_id, _employee_id, contract_id)): Path<(Uuid, Uuid, Uuid)>,
+    Path(params): Path<(Uuid, Uuid, Uuid)>,
     Json(payload): Json<UpdateContractRequest>,
 ) -> AppResult<Json<EmployeeContract>> {
+    let (_ws_id, _employee_id, contract_id) = params;
     let workspace_id = ctx.workspace_id;
 
     let contract = state
@@ -206,8 +210,9 @@ pub async fn update_contract(
 pub async fn delete_contract(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
-    Path((_ws_id, employee_id, contract_id)): Path<(Uuid, Uuid, Uuid)>,
+    Path(params): Path<(Uuid, Uuid, Uuid)>,
 ) -> AppResult<StatusCode> {
+    let (_ws_id, employee_id, contract_id) = params;
     let workspace_id = ctx.workspace_id;
 
     state
