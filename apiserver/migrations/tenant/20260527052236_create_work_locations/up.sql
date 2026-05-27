@@ -12,15 +12,3 @@ CREATE TABLE work_locations (
 
 CREATE UNIQUE INDEX idx_work_locations_hq 
     ON work_locations(workspace_id) WHERE is_headquarters = true;
-
--- Add column allowing nulls first
-ALTER TABLE employees ADD COLUMN primary_location_id UUID REFERENCES work_locations(id);
-
--- Assign existing employees to their workspace's HQ
-UPDATE employees e
-SET primary_location_id = wl.id
-FROM work_locations wl
-WHERE e.workspace_id = wl.workspace_id AND wl.is_headquarters = true;
-
--- Enforce NOT NULL
-ALTER TABLE employees ALTER COLUMN primary_location_id SET NOT NULL;
