@@ -1,5 +1,4 @@
-import { API_BASE_URL } from "./config";
-import { apiFetch } from "./helpers";
+import { apiClient } from "./client";
 import { Employee, EmploymentPeriod, EmployeeDepartmentHistory, WorkingCondition, PaginatedResponse, EmploymentPhaseDefinition, EmployeePhase } from "./types";
 
 export async function fetchEmployees(
@@ -7,37 +6,27 @@ export async function fetchEmployees(
   page = 1,
   limit = 50
 ): Promise<PaginatedResponse<Employee>> {
-  const response = await apiFetch(
-    `${API_BASE_URL}/workspaces/${wsId}/employees?page=${page.toString()}&limit=${limit.toString()}`
+  const { data } = await apiClient.get<PaginatedResponse<Employee>>(
+    `/workspaces/${wsId}/employees?page=${page.toString()}&limit=${limit.toString()}`
   );
-  if (!response.ok) throw new Error("Failed to fetch employees");
-  return response.json() as Promise<PaginatedResponse<Employee>>;
+  return data;
 }
 
 // --- Employment Phases API ---
 
- 
 export async function fetchEmploymentPhases(wsId: string): Promise<EmploymentPhaseDefinition[]> {
-  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employment-phases`);
-  if (!response.ok) throw new Error("Failed to fetch employment phases");
-  return response.json() as Promise<EmploymentPhaseDefinition[]>;
+  const { data } = await apiClient.get<EmploymentPhaseDefinition[]>(`/workspaces/${wsId}/employment-phases`);
+  return data;
 }
 
- 
- 
 export async function createEmploymentPhase(wsId: string, data: Partial<EmploymentPhaseDefinition>): Promise<EmploymentPhaseDefinition> {
-  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employment-phases`, {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
-  if (!response.ok) throw new Error("Failed to create employment phase");
-  return response.json() as Promise<EmploymentPhaseDefinition>;
+  const { data: result } = await apiClient.post<EmploymentPhaseDefinition>(`/workspaces/${wsId}/employment-phases`, data);
+  return result;
 }
 
 export async function fetchEmployeePhases(wsId: string, employeeId: string): Promise<EmployeePhase[]> {
-  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${employeeId}/phases`);
-  if (!response.ok) throw new Error("Failed to fetch employee phases");
-  return response.json() as Promise<EmployeePhase[]>;
+  const { data } = await apiClient.get<EmployeePhase[]>(`/workspaces/${wsId}/employees/${employeeId}/phases`);
+  return data;
 }
 
 export async function assignEmployeePhase(
@@ -45,12 +34,8 @@ export async function assignEmployeePhase(
   employeeId: string,
   data: { phase_definition_id: string; start_date: string; end_date: string; override_config?: unknown }
 ): Promise<EmployeePhase> {
-  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${employeeId}/phases`, {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
-  if (!response.ok) throw new Error("Failed to assign phase");
-  return response.json() as Promise<EmployeePhase>;
+  const { data: result } = await apiClient.post<EmployeePhase>(`/workspaces/${wsId}/employees/${employeeId}/phases`, data);
+  return result;
 }
 
 export async function updateEmployeePhaseStatus(
@@ -59,18 +44,13 @@ export async function updateEmployeePhaseStatus(
   phaseId: string,
   data: { status: string; evaluation_notes?: string }
 ): Promise<EmployeePhase> {
-  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${employeeId}/phases/${phaseId}/status`, {
-    method: "PUT",
-    body: JSON.stringify(data),
-  });
-  if (!response.ok) throw new Error("Failed to update phase status");
-  return response.json() as Promise<EmployeePhase>;
+  const { data: result } = await apiClient.put<EmployeePhase>(`/workspaces/${wsId}/employees/${employeeId}/phases/${phaseId}/status`, data);
+  return result;
 }
 
 export async function fetchWorkingConditions(wsId: string, employeeId: string): Promise<WorkingCondition[]> {
-  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${employeeId}/conditions`);
-  if (!response.ok) throw new Error("Failed to fetch working conditions");
-  return response.json() as Promise<WorkingCondition[]>;
+  const { data } = await apiClient.get<WorkingCondition[]>(`/workspaces/${wsId}/employees/${employeeId}/conditions`);
+  return data;
 }
 
 export async function createWorkingCondition(
@@ -78,19 +58,12 @@ export async function createWorkingCondition(
   employeeId: string,
   condition: Partial<WorkingCondition>
 ): Promise<WorkingCondition> {
-  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${employeeId}/conditions`, {
-    method: "POST",
-    body: JSON.stringify(condition),
-  });
-  if (!response.ok) throw new Error("Failed to create working condition");
-  return response.json() as Promise<WorkingCondition>;
+  const { data } = await apiClient.post<WorkingCondition>(`/workspaces/${wsId}/employees/${employeeId}/conditions`, condition);
+  return data;
 }
 
 export async function deleteWorkingCondition(wsId: string, employeeId: string, conditionId: string): Promise<void> {
-  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${employeeId}/conditions/${conditionId}`, {
-    method: "DELETE",
-  });
-  if (!response.ok) throw new Error("Failed to delete working condition");
+  await apiClient.delete(`/workspaces/${wsId}/employees/${employeeId}/conditions/${conditionId}`);
 }
 
 export interface SearchEmployeesParams {
@@ -130,24 +103,22 @@ export async function searchEmployees(
   if (departmentIds && departmentIds.length > 0) {
     queryParams.append("department_id", departmentIds.join(","));
   }
-  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees?${queryParams.toString()}`);
-  if (!response.ok) throw new Error("Failed to search employees");
-  return response.json() as Promise<PaginatedResponse<Employee>>;
+  
+  const { data } = await apiClient.get<PaginatedResponse<Employee>>(`/workspaces/${wsId}/employees?${queryParams.toString()}`);
+  return data;
 }
 
 export async function fetchEmployee(wsId: string, id: string): Promise<Employee> {
-  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${id}`);
-  if (!response.ok) throw new Error("Failed to fetch employee");
-  return response.json() as Promise<Employee>;
+  const { data } = await apiClient.get<Employee>(`/workspaces/${wsId}/employees/${id}`);
+  return data;
 }
 
 export async function fetchEmploymentHistory(
   wsId: string,
   id: string
 ): Promise<EmploymentPeriod[]> {
-  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${id}/history`);
-  if (!response.ok) throw new Error("Failed to fetch employment history");
-  return response.json() as Promise<EmploymentPeriod[]>;
+  const { data } = await apiClient.get<EmploymentPeriod[]>(`/workspaces/${wsId}/employees/${id}/history`);
+  return data;
 }
 
 export async function rehireEmployee(
@@ -155,27 +126,16 @@ export async function rehireEmployee(
   id: string,
   data: { hire_date: string }
 ): Promise<Employee> {
-  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${id}/rehire`, {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(error || "Failed to re-hire employee");
-  }
-  return response.json() as Promise<Employee>;
+  const { data: result } = await apiClient.post<Employee>(`/workspaces/${wsId}/employees/${id}/rehire`, data);
+  return result;
 }
 
 export async function createEmployee(
   wsId: string,
   employee: Partial<Employee>,
 ): Promise<Employee> {
-  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees`, {
-    method: "POST",
-    body: JSON.stringify(employee),
-  });
-  if (!response.ok) throw new Error("Failed to create employee");
-  return response.json() as Promise<Employee>;
+  const { data } = await apiClient.post<Employee>(`/workspaces/${wsId}/employees`, employee);
+  return data;
 }
 
 export async function updateEmployee(
@@ -183,19 +143,12 @@ export async function updateEmployee(
   id: string,
   employee: Partial<Employee>,
 ): Promise<Employee> {
-  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${id}`, {
-    method: "PUT",
-    body: JSON.stringify(employee),
-  });
-  if (!response.ok) throw new Error("Failed to update employee");
-  return response.json() as Promise<Employee>;
+  const { data } = await apiClient.put<Employee>(`/workspaces/${wsId}/employees/${id}`, employee);
+  return data;
 }
 
 export async function deleteEmployee(wsId: string, id: string): Promise<void> {
-  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${id}`, {
-    method: "DELETE",
-  });
-  if (!response.ok) throw new Error("Failed to delete employee");
+  await apiClient.delete(`/workspaces/${wsId}/employees/${id}`);
 }
 
 export async function transferEmployee(
@@ -203,16 +156,11 @@ export async function transferEmployee(
   employeeId: string,
   data: { department_id: string; effective_date: string; notes?: string }
 ): Promise<EmployeeDepartmentHistory> {
-  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${employeeId}/departments`, {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
-  if (!response.ok) throw new Error("Failed to transfer employee");
-  return response.json() as Promise<EmployeeDepartmentHistory>;
+  const { data: result } = await apiClient.post<EmployeeDepartmentHistory>(`/workspaces/${wsId}/employees/${employeeId}/departments`, data);
+  return result;
 }
 
 export async function fetchEmployeeDepartmentHistory(wsId: string, employeeId: string): Promise<EmployeeDepartmentHistory[]> {
-  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${employeeId}/departments`);
-  if (!response.ok) throw new Error("Failed to fetch dept history");
-  return response.json() as Promise<EmployeeDepartmentHistory[]>;
+  const { data } = await apiClient.get<EmployeeDepartmentHistory[]>(`/workspaces/${wsId}/employees/${employeeId}/departments`);
+  return data;
 }

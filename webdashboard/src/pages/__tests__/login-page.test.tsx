@@ -8,9 +8,13 @@ import i18n from "../../i18n/config";
 import * as api from "../../lib/api";
 import LoginPage from "../login-page";
 
+const { mockNavigate } = vi.hoisted(() => {
+  return { mockNavigate: vi.fn() };
+});
+
 // Mock TanStack Router
 vi.mock("@tanstack/react-router", () => ({
-  useNavigate: () => vi.fn(),
+  useNavigate: () => mockNavigate,
   useLocation: () => ({ pathname: "/", search: "", hash: "", state: null }),
  
   Link: ({ to, children, ...props }: { to: string; children: React.ReactNode }) => <a href={to} {...props}>{children}</a>,
@@ -36,8 +40,6 @@ describe("LoginPage", () => {
   });
 
   afterEach(() => {
-    // Restore the original DEV value
-
     import.meta.env.DEV = originalDevelopment;
   });
 
@@ -45,7 +47,7 @@ describe("LoginPage", () => {
     return render(ui);
   };
 
-  it("renders login form and handles submission", async () => {
+  it("renders login form and handles successful submission", async () => {
     renderWithProviders(<LoginPage />);
 
     const emailInput = screen.getByTestId("login-email-input");
@@ -69,30 +71,36 @@ describe("LoginPage", () => {
 
     await waitFor(() => {
       expect(api.login).toHaveBeenCalledWith("admin@leeattend.com", "admin123");
+      expect(mockNavigate).toHaveBeenCalledWith({ to: "/", replace: true });
     });
- 
   });
 
+  it("displays error toast on invalid credentials", async () => {
+    renderWithProviders(<LoginPage />);
+
+    const emailInput = screen.getByTestId("login-email-input");
+    const passwordInput = screen.getByTestId("login-password-input");
+    const submitButton = screen.getByTestId("login-submit-btn");
+
+    const user = userEvent.setup();
+ 
+    vi.mocked(api.login).mockRejectedValue(new Error("Invalid email or password"));
+
+    await user.type(emailInput, "admin@leeattend.com");
+    await user.type(passwordInput, "wrongpassword");
+    await user.click(submitButton);
+
+    await waitFor(() => {
+      expect(api.login).toHaveBeenCalledWith("admin@leeattend.com", "wrongpassword");
+    });
+    
+    expect(await screen.findByRole("alert")).toHaveTextContent("Invalid email or password");
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
 
   it("redirects to home if user is already logged in", () => {
     vi.mocked(api.getCurrentUserId).mockReturnValue("user-123");
     
- 
-    // We need to spy on the navigate function returned by useNavigate mock
-    const mockNavigate = vi.fn();
-    // Override the mock for this test
-    vi.doMock("@tanstack/react-router", async () => {
-      const actual = await vi.importActual<Record<string, unknown>>("@tanstack/react-router");
- 
-      return {
-        ...actual,
-        useNavigate: () => mockNavigate,
-        useLocation: () => ({ pathname: "/", search: "", hash: "", state: null }),
-        Link: ({ to, children, ...props }: { to: string; children: React.ReactNode }) => <a href={to} {...props}>{children}</a>,
-      };
-    });
-
-    // We can just assert the mock in our global mock
     renderWithProviders(<LoginPage />);
     
     // The component returns null, so no form should be visible

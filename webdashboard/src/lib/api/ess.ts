@@ -18,30 +18,20 @@ import {
   UpdateProfileRequest,
   CreateEmergencyContactRequest, AttendanceDailySummary 
 } from "./types";
+import { apiClient } from "./client";
 
 // --- Profile ---
 
 export async function fetchMyProfile(): Promise<MyProfileResponse> {
-  const response = await apiFetch(`${API_BASE_URL}/ess/profile`);
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(error || "Failed to fetch profile");
-  }
-  return response.json() as Promise<MyProfileResponse>;
+  const { data: resData } = await apiClient.get<MyProfileResponse>(`/ess/profile`);
+    return resData;
 }
 
 export async function updateMyProfile(
   data: UpdateProfileRequest
 ): Promise<EmployeeProfile> {
-  const response = await apiFetch(`${API_BASE_URL}/ess/profile`, {
-    method: "PUT",
-    body: JSON.stringify(data),
-  });
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(error || "Failed to update profile");
-  }
-  return response.json() as Promise<EmployeeProfile>;
+  const { data: resData } = await apiClient.put<EmployeeProfile>(`/ess/profile`, data);
+    return resData;
 }
 
 // --- Emergency Contacts ---
@@ -49,41 +39,26 @@ export async function updateMyProfile(
 export async function fetchMyEmergencyContacts(): Promise<
   EmployeeEmergencyContact[]
 > {
-  const response = await apiFetch(`${API_BASE_URL}/ess/emergency-contacts`);
-  if (!response.ok) throw new Error("Failed to fetch emergency contacts");
-  return response.json() as Promise<EmployeeEmergencyContact[]>;
+  const { data: resData } = await apiClient.get<EmployeeEmergencyContact[]>(`/ess/emergency-contacts`);
+    return resData;
 }
 
 export async function addEmergencyContact(
   data: CreateEmergencyContactRequest
 ): Promise<EmployeeEmergencyContact> {
-  const response = await apiFetch(`${API_BASE_URL}/ess/emergency-contacts`, {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(error || "Failed to add emergency contact");
-  }
-  return response.json() as Promise<EmployeeEmergencyContact>;
+  const { data: resData } = await apiClient.post<EmployeeEmergencyContact>(`/ess/emergency-contacts`, data);
+    return resData;
 }
 
 export async function deleteEmergencyContact(contactId: string): Promise<void> {
-  const response = await apiFetch(
-    `${API_BASE_URL}/ess/emergency-contacts/${contactId}`,
-    {
-      method: "DELETE",
-    }
-  );
-  if (!response.ok) throw new Error("Failed to delete emergency contact");
+  await apiClient.delete(`/ess/emergency-contacts/${contactId}`);
 }
 
 // --- Documents ---
 
 export async function fetchMyDocuments(): Promise<EmployeeDocument[]> {
-  const response = await apiFetch(`${API_BASE_URL}/ess/documents`);
-  if (!response.ok) throw new Error("Failed to fetch documents");
-  return response.json() as Promise<EmployeeDocument[]>;
+  const { data: resData } = await apiClient.get<EmployeeDocument[]>(`/ess/documents`);
+    return resData;
 }
 
 // Document upload will be implemented in Phase 4
@@ -91,9 +66,8 @@ export async function fetchMyDocuments(): Promise<EmployeeDocument[]> {
 // --- Payslips ---
 
 export async function fetchMyPayslips(): Promise<Payslip[]> {
-  const response = await apiFetch(`${API_BASE_URL}/ess/payslips`);
-  if (!response.ok) throw new Error("Failed to fetch payslips");
-  return response.json() as Promise<Payslip[]>;
+  const { data: resData } = await apiClient.get<Payslip[]>(`/ess/payslips`);
+    return resData;
 }
 
 // --- Attendance ---
@@ -113,9 +87,8 @@ export async function fetchMyAttendance(
   const query = searchParams.toString();
   const url = `${API_BASE_URL}/ess/attendance${query ? `?${query}` : ""}`;
 
-  const response = await apiFetch(url);
-  if (!response.ok) throw new Error("Failed to fetch attendance");
-  return response.json() as Promise<TimeEntry[]>;
+  const { data: resData } = await apiClient.get<TimeEntry[]>(`/${url}`);
+    return resData;
 }
 
 // --- Time Clock ---
@@ -130,37 +103,27 @@ export async function fetchMyTimeEntries(
   const query = searchParams.toString();
   const url = `${API_BASE_URL}/ess/time-entries${query ? `?${query}` : ""}`;
 
-  const response = await apiFetch(url);
-  if (!response.ok) throw new Error("Failed to fetch time entries");
-  return response.json() as Promise<TimeEntry[]>;
+  const { data: resData } = await apiClient.get<TimeEntry[]>(`/${url}`);
+    return resData;
 }
 
 export async function punchMySelf(
   data?: { note?: string }
 ): Promise<TimeEntry> {
-  const response = await apiFetch(`${API_BASE_URL}/ess/punch`, {
-    method: "POST",
-    body: JSON.stringify(data ?? {}),
-  });
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(error || "Failed to punch");
-  }
-  return response.json() as Promise<TimeEntry>;
+  const { data: resData } = await apiClient.post<TimeEntry>(`/ess/punch`, data ?? {});
+    return resData;
 }
 
 // --- Leave ---
 
 export async function fetchEssLeaveBalances(): Promise<EmployeeLeaveBalance[]> {
-  const response = await apiFetch(`${API_BASE_URL}/ess/leave/balances`);
-  if (!response.ok) throw new Error("Failed to fetch leave balances");
-  return response.json() as Promise<EmployeeLeaveBalance[]>;
+  const { data: resData } = await apiClient.get<EmployeeLeaveBalance[]>(`/ess/leave/balances`);
+    return resData;
 }
 
 export async function fetchEssLeaveRequests(): Promise<LeaveRequest[]> {
-  const response = await apiFetch(`${API_BASE_URL}/ess/leave/requests`);
-  if (!response.ok) throw new Error("Failed to fetch leave requests");
-  return response.json() as Promise<LeaveRequest[]>;
+  const { data: resData } = await apiClient.get<LeaveRequest[]>(`/ess/leave/requests`);
+    return resData;
 }
 
 // --- OT Claim (ESS Wrapper) ---

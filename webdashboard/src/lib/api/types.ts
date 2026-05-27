@@ -786,31 +786,31 @@ export enum AssignmentStatus {
 }
 
 export interface EmployeeAssignment {
-  id: string;
+  created_at: string;
   employee_id: string;
-  workspace_id: string;
+  end_date: string | null;
   home_location_id: string | null;
   host_location_id: string | null;
-  start_date: string;
-  end_date: string | null;
+  id: string;
   reason: string | null;
+  start_date: string;
   status: AssignmentStatus;
-  created_at: string;
   updated_at: string;
+  workspace_id: string;
 }
 
 export interface CreateEmployeeAssignmentRequest {
-  start_date: string;
   end_date?: string | null;
   host_location_id?: string | null;
   reason?: string | null;
+  start_date: string;
 }
 
 export interface UpdateEmployeeAssignmentRequest {
-  start_date?: string;
   end_date?: string | null;
   host_location_id?: string | null;
   reason?: string | null;
+  start_date?: string;
   status?: AssignmentStatus;
 }
 
@@ -1173,70 +1173,70 @@ export interface EmployeePhase {
 
 // --- Workspace Config (EAV) ---
 export interface WorkspaceConfigEntry {
-  id: string;
-  workspace_id: string;
-  scope_type: "workspace" | "department" | "employee";
-  scope_id: string | null;
   config_key: string;
-  value_int?: number | null;
-  value_decimal?: number | null;
-  value_text?: string | null;
-  value_bool?: boolean | null;
-  value_json?: Record<string, unknown> | null;
+  created_at: string;
+  created_by?: string | null;
   effective_from: string;
   effective_to?: string | null;
-  created_by?: string | null;
-  created_at: string;
+  id: string;
+  scope_id: string | null;
+  scope_type: "workspace" | "department" | "employee";
   updated_at: string;
+  value_bool?: boolean | null;
+  value_decimal?: number | null;
+  value_int?: number | null;
+  value_json?: Record<string, unknown> | null;
+  value_text?: string | null;
+  workspace_id: string;
 }
 
 export interface CreateConfigEntryRequest {
-  scope_type: "workspace" | "department" | "employee";
-  scope_id?: string | null;
   config_key: string;
-  value_int?: number | null;
-  value_decimal?: number | null;
-  value_text?: string | null;
-  value_bool?: boolean | null;
-  value_json?: Record<string, unknown> | null;
   effective_from: string;
   effective_to?: string | null;
+  scope_id?: string | null;
+  scope_type: "workspace" | "department" | "employee";
+  value_bool?: boolean | null;
+  value_decimal?: number | null;
+  value_int?: number | null;
+  value_json?: Record<string, unknown> | null;
+  value_text?: string | null;
 }
 
 // --- Approval Workflows ---
 export type ApproverType = "department_manager" | "role" | "permission" | "specific_user";
 
 export interface ApprovalWorkflowStep {
-  id: string;
-  workflow_id: string;
-  step_order: number;
-  step_name: string;
-  approver_type: ApproverType;
-  approver_config: Record<string, unknown>;
   action_required: "approve" | "review" | "acknowledge";
+  approver_config: Record<string, unknown>;
+  approver_type: ApproverType;
   can_skip: boolean;
   created_at: string;
+  id: string;
+  step_name: string;
+  step_order: number;
+  workflow_id: string;
 }
 
 export interface ApprovalWorkflow {
-  id: string;
-  workspace_id: string;
-  entity_type: string;
-  name: string;
-  description?: string | null;
-  total_steps: number;
-  is_active: boolean;
-  created_by?: string | null;
   created_at: string;
-  updated_at: string;
+  created_by?: string | null;
+  description?: string | null;
+  entity_type: string;
+  id: string;
+  is_active: boolean;
+  name: string;
   steps?: ApprovalWorkflowStep[];
+  total_steps: number;
+  updated_at: string;
+  workspace_id: string;
 }
 
 export interface CreateWorkflowRequest {
-  entity_type: string;
-  name: string;
   description?: string | null;
+  entity_type: string;
   is_active: boolean;
+  name: string;
   steps: {
     step_order: number;
     step_name: string;
@@ -1248,22 +1248,22 @@ export interface CreateWorkflowRequest {
 }
 
 export interface ApprovalActionLog {
-  id: string;
-  workspace_id: string;
-  entity_type: string;
-  entity_id: string;
-  step_order: number;
-  step_name?: string | null;
+  acted_at: string;
   acted_by_user_id: string;
   action: "approved" | "rejected" | "skipped" | "returned";
+  entity_id: string;
+  entity_type: string;
+  id: string;
   note?: string | null;
-  acted_at: string;
+  step_name?: string | null;
+  step_order: number;
+  workspace_id: string;
 }
 
 export interface ProcessApprovalRequest {
-  entity_type: string;
-  entity_id: string;
   action: "approved" | "rejected" | "skipped" | "returned";
+  entity_id: string;
+  entity_type: string;
   note?: string | null;
 }
 
@@ -1272,50 +1272,50 @@ export type OtRequestStatus = "draft" | "pending_approval" | "approved" | "parti
 export type ConsentStatus = "pending" | "accepted" | "declined";
 
 export interface OvertimeRequestEmployee {
-  id: string;
-  overtime_request_id: string;
-  employee_id: string;
-  consent_status: ConsentStatus;
-  consent_at?: string | null;
-  decline_reason?: string | null;
   actual_ot_minutes?: number | null;
-  matched_summary_id?: string | null;
+  consent_at?: string | null;
+  consent_status: ConsentStatus;
   created_at: string;
+  decline_reason?: string | null;
+  employee_id: string;
   // Included from join
   employee_name?: string;
+  id: string;
+  matched_summary_id?: string | null;
+  overtime_request_id: string;
 }
 
 export interface OvertimeRequest {
-  id: string;
-  workspace_id: string;
-  requested_by_user_id: string;
+  created_at: string;
+  current_step: number;
   department_id?: string | null;
+  id: string;
   planned_date: string;
-  planned_start_time?: string | null;
   planned_end_time?: string | null;
   planned_minutes: number;
-  reason: string;
-  status: OtRequestStatus;
-  workflow_id?: string | null;
-  current_step: number;
+  planned_start_time?: string | null;
   quota_warning?: Record<string, unknown> | null;
+  reason: string;
   reconciled_at?: string | null;
   reconciled_by?: string | null;
-  created_at: string;
+  requested_by_user_id: string;
+  status: OtRequestStatus;
   updated_at: string;
+  workflow_id?: string | null;
+  workspace_id: string;
 }
 
 export interface OvertimeRequestDetail extends OvertimeRequest {
-  employees: OvertimeRequestEmployee[];
   approval_logs: ApprovalActionLog[];
+  employees: OvertimeRequestEmployee[];
 }
 
 export interface CreateOvertimeRequestPayload {
   department_id?: string | null;
+  employee_ids: string[];
   planned_date: string;
-  planned_start_time?: string | null;
   planned_end_time?: string | null;
   planned_minutes: number;
+  planned_start_time?: string | null;
   reason: string;
-  employee_ids: string[];
 }

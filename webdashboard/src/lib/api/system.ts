@@ -1,5 +1,6 @@
 import { API_BASE_URL } from "./config";
 import { apiFetch } from "./helpers";
+import { apiClient } from "./client";
 
 export interface SystemRoleAssignment {
   assigned_at: string;
@@ -20,37 +21,27 @@ export interface AssignSystemRoleRequest {
 }
 
 export async function fetchSystemRoles(): Promise<SystemRoleInfo[]> {
-  const response = await apiFetch(`${API_BASE_URL}/system/roles`);
-  if (!response.ok) throw new Error("Failed to fetch system roles");
-  return response.json() as Promise<SystemRoleInfo[]>;
+  const { data: resData } = await apiClient.get<SystemRoleInfo[]>(`/system/roles`);
+    return resData;
 }
 
 export async function fetchUserSystemRoles(userId: string): Promise<SystemRoleAssignment[]> {
-  const response = await apiFetch(`${API_BASE_URL}/system/users/${userId}/roles`);
-  if (!response.ok) throw new Error("Failed to fetch user system roles");
-  return response.json() as Promise<SystemRoleAssignment[]>;
+  const { data: resData } = await apiClient.get<SystemRoleAssignment[]>(`/system/users/${userId}/roles`);
+    return resData;
 }
 
 export async function assignSystemRole(userId: string, request: AssignSystemRoleRequest): Promise<void> {
-  const response = await apiFetch(`${API_BASE_URL}/system/users/${userId}/roles`, {
-    method: "POST",
-    body: JSON.stringify(request),
-  });
-  if (!response.ok) throw new Error("Failed to assign system role");
+  await apiClient.post(`/system/users/${userId}/roles`, request);
 }
 
 export async function revokeSystemRole(userId: string, roleName: string): Promise<void> {
-  const response = await apiFetch(`${API_BASE_URL}/system/users/${userId}/roles/${roleName}`, {
-    method: "DELETE",
-  });
-  if (!response.ok) throw new Error("Failed to revoke system role");
+  await apiClient.delete(`/system/users/${userId}/roles/${roleName}`);
 }
 
  
 export async function fetchSystemHealth(): Promise<Record<string, unknown>> {
-  const response = await apiFetch(`${API_BASE_URL}/system/health`);
-  if (!response.ok) throw new Error("Failed to fetch system health");
-  return response.json() as Promise<Record<string, unknown>>;
+  const { data: resData } = await apiClient.get<Record<string, unknown>>(`/system/health`);
+    return resData;
 }
 
 export interface SystemTenant {
@@ -67,33 +58,21 @@ export interface CreateTenantRequestPayload {
 }
 
 export async function fetchSystemTenants(): Promise<SystemTenant[]> {
-  const response = await apiFetch(`${API_BASE_URL}/system/tenants`);
-  if (!response.ok) throw new Error("Failed to fetch system tenants");
-  return response.json() as Promise<SystemTenant[]>;
+  const { data: resData } = await apiClient.get<SystemTenant[]>(`/system/tenants`);
+    return resData;
 }
 
 export async function fetchStaleTenants(): Promise<SystemTenant[]> {
-  const response = await apiFetch(`${API_BASE_URL}/system/tenants/stale`);
-  if (!response.ok) throw new Error("Failed to fetch stale tenants");
-  return response.json() as Promise<SystemTenant[]>;
+  const { data: resData } = await apiClient.get<SystemTenant[]>(`/system/tenants/stale`);
+    return resData;
 }
 
 export async function createSystemTenant(request: CreateTenantRequestPayload): Promise<void> {
-  const response = await apiFetch(`${API_BASE_URL}/system/tenants`, {
-    method: "POST",
-    body: JSON.stringify(request),
-  });
-  if (!response.ok) {
-    const errText = await response.text();
-    throw new Error(errText || "Failed to create system tenant");
-  }
+  await apiClient.post(`/system/tenants`, request);
 }
 
 export async function deleteSystemTenant(tenantId: string): Promise<void> {
-  const response = await apiFetch(`${API_BASE_URL}/system/tenants/${tenantId}`, {
-    method: "DELETE",
-  });
-  if (!response.ok) throw new Error("Failed to delete system tenant");
+  await apiClient.delete(`/system/tenants/${tenantId}`);
 }
 
 export interface TenantConfig {
@@ -119,20 +98,12 @@ export interface TenantConnectionStats {
 }
 
 export async function fetchSystemTenantStats(tenantId: string): Promise<TenantConnectionStats> {
-  const response = await apiFetch(`${API_BASE_URL}/system/tenants/${tenantId}/stats`);
-  if (!response.ok) throw new Error("Failed to fetch tenant stats");
-  return response.json() as Promise<TenantConnectionStats>;
+  const { data: resData } = await apiClient.get<TenantConnectionStats>(`/system/tenants/${tenantId}/stats`);
+    return resData;
 }
 
 export async function updateTenantDatabase(tenantId: string, customDbUrl: string): Promise<void> {
-  const response = await apiFetch(`${API_BASE_URL}/system/tenants/${tenantId}/database`, {
-    method: "PUT",
-    body: JSON.stringify({ custom_db_url: customDbUrl }),
-  });
-  if (!response.ok) {
-    const errText = await response.text();
-    throw new Error(errText || "Failed to update tenant database");
-  }
+  await apiClient.put(`/system/tenants/${tenantId}/database`, { custom_db_url: customDbUrl });
 }
 
 export interface SystemDbCluster {
@@ -156,38 +127,20 @@ export interface CreateDbClusterRequestPayload {
 }
 
 export async function fetchSystemDbClusters(): Promise<SystemDbCluster[]> {
-  const response = await apiFetch(`${API_BASE_URL}/system/db-clusters`);
-  if (!response.ok) throw new Error("Failed to fetch system DB clusters");
-  return response.json() as Promise<SystemDbCluster[]>;
+  const { data: resData } = await apiClient.get<SystemDbCluster[]>(`/system/db-clusters`);
+    return resData;
 }
 
 export async function createSystemDbCluster(request: CreateDbClusterRequestPayload): Promise<SystemDbCluster> {
-  const response = await apiFetch(`${API_BASE_URL}/system/db-clusters`, {
-    method: "POST",
-    body: JSON.stringify(request),
-  });
-  if (!response.ok) {
-    const errText = await response.text();
-    throw new Error(errText || "Failed to create DB cluster");
-  }
-  return response.json() as Promise<SystemDbCluster>;
+  const { data: resData } = await apiClient.post<SystemDbCluster>(`/system/db-clusters`, request);
+    return resData;
 }
 
 export async function deleteSystemDbCluster(id: string): Promise<void> {
-  const response = await apiFetch(`${API_BASE_URL}/system/db-clusters/${id}`, {
-    method: "DELETE",
-  });
-  if (!response.ok) throw new Error("Failed to delete DB cluster");
+  await apiClient.delete(`/system/db-clusters/${id}`);
 }
 
 export async function updateSystemDbClusterStatus(id: string, isActive: boolean): Promise<SystemDbCluster> {
-  const response = await apiFetch(`${API_BASE_URL}/system/db-clusters/${id}/status`, {
-    method: "PATCH",
-    body: JSON.stringify({ is_active: isActive }),
-  });
-  if (!response.ok) {
-    const errText = await response.text();
-    throw new Error(errText || "Failed to update DB cluster status");
-  }
-  return response.json() as Promise<SystemDbCluster>;
+  const { data: resData } = await apiClient.patch<SystemDbCluster>(`/system/db-clusters/${id}/status`, { is_active: isActive });
+    return resData;
 }

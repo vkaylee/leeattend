@@ -3,38 +3,38 @@ import { apiClient } from './client';
 export type ScopeType = 'workspace' | 'department' | 'employee';
 
 export interface ConfigValue {
-  Int?: number;
-  Decimal?: number;
-  Text?: string;
   Bool?: boolean;
+  Decimal?: number;
+  Int?: number;
   Json?: any;
+  Text?: string;
 }
 
 export interface WorkspaceConfigEntry {
-  id: string;
-  workspace_id: string;
-  scope_type: ScopeType;
-  scope_id?: string;
   config_key: string;
-  value_int?: number;
-  value_decimal?: number;
-  value_text?: string;
-  value_bool?: boolean;
-  value_json?: any;
+  created_at: string;
+  created_by?: string;
   effective_from: string;
   effective_to?: string;
-  created_by?: string;
-  created_at: string;
+  id: string;
+  scope_id?: string;
+  scope_type: ScopeType;
   updated_at: string;
+  value_bool?: boolean;
+  value_decimal?: number;
+  value_int?: number;
+  value_json?: any;
+  value_text?: string;
+  workspace_id: string;
 }
 
 export interface CreateConfigEntryRequest {
-  scope_type: ScopeType;
-  scope_id?: string;
   config_key: string;
-  value: ConfigValue;
   effective_from: string;
   effective_to?: string;
+  scope_id?: string;
+  scope_type: ScopeType;
+  value: ConfigValue;
 }
 
 export interface UpdateConfigEntryRequest {

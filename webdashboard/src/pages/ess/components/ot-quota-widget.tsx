@@ -1,4 +1,4 @@
-import { Loader2, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Loader2, AlertTriangle } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
@@ -61,7 +61,7 @@ export function OtQuotaWidget({ quota, isLoading }: { quota: any; isLoading: boo
             </div>
           </div>
 
-          {(quota.monthly_exceeded || quota.yearly_exceeded) && (
+          {!!(quota.monthly_exceeded || quota.yearly_exceeded) && (
             <div className="mt-4 p-4 bg-rose-50 dark:bg-rose-900/30 border border-rose-100 dark:border-rose-800 rounded-2xl flex items-start gap-3">
               <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
               <div className="space-y-1">

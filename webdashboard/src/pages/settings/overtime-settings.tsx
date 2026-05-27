@@ -41,7 +41,7 @@ export default function OvertimeSettings() {
                 ? "bg-slate-800 dark:bg-slate-100 text-white dark:text-slate-900 shadow-md scale-105"
                 : "text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-800 dark:hover:text-slate-200"
             }`}
-            onClick={() => setActiveTab("quotas")}
+            onClick={() => { setActiveTab("quotas"); }}
           >
             {t("settings.overtime.tabs.quotas", { defaultValue: "Quotas & EAV Configs" })}
           </button>
@@ -51,7 +51,7 @@ export default function OvertimeSettings() {
                 ? "bg-slate-800 dark:bg-slate-100 text-white dark:text-slate-900 shadow-md scale-105"
                 : "text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-800 dark:hover:text-slate-200"
             }`}
-            onClick={() => setActiveTab("workflows")}
+            onClick={() => { setActiveTab("workflows"); }}
           >
             {t("settings.overtime.tabs.workflows", { defaultValue: "Approval Workflows" })}
           </button>

@@ -33,6 +33,7 @@ pub mod workspace_service;
 pub mod workspace_config_service;
 pub mod approval_workflow_service;
 pub mod overtime_request_service;
+pub mod recruitment_service;
 
 pub use agent_service::AgentService;
 pub use attendance_calculator::AttendanceCalculator;
@@ -41,6 +42,7 @@ pub use attendance_log_service::AttendanceLogService;
 pub use employee_service::EmployeeService;
 pub use excel_writer::{ExcelWriter, EXCEL_CONTENT_TYPE};
 pub use leave_service::LeaveService;
+pub use recruitment_service::RecruitmentService;
 pub use report_coordinator::ReportCoordinator;
 pub use report_service::ReportService;
 pub use time_tracking_service::TimeTrackingService;

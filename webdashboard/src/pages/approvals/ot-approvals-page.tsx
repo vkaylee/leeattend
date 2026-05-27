@@ -9,12 +9,12 @@ import { EnterPaperOtDialog } from "@/components/approvals/enter-paper-ot-dialog
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
 import { useApproveOt, useAttendanceSummaries } from "@/hooks/use-attendance";
+import { useWorkspace } from "@/hooks/use-workspace";
 
 import { OtApprovalsFilters, SourceFilter } from "./components/ot-approvals-filters";
 import { OtApprovalsHeader } from "./components/ot-approvals-header";
 import { OtApprovalsTable } from "./components/ot-approvals-table";
 import { PreOtApprovalsTab } from "./components/pre-ot-approvals-tab";
-import { useWorkspace } from "@/hooks/use-workspace";
 
 export default function OtApprovalsPage() {
   const toast = useToast();
@@ -107,7 +107,7 @@ export default function OtApprovalsPage() {
               ? "bg-slate-800 dark:bg-slate-100 text-white dark:text-slate-900 shadow-md scale-105"
               : "text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-800 dark:hover:text-slate-200"
           }`}
-          onClick={() => setActiveTab("pre")}
+          onClick={() => { setActiveTab("pre"); }}
         >
           {t("ot_approvals.tabs.pre_ot", { defaultValue: "Pre-OT Approvals (Requests)" })}
         </button>
@@ -117,7 +117,7 @@ export default function OtApprovalsPage() {
               ? "bg-slate-800 dark:bg-slate-100 text-white dark:text-slate-900 shadow-md scale-105"
               : "text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-800 dark:hover:text-slate-200"
           }`}
-          onClick={() => setActiveTab("post")}
+          onClick={() => { setActiveTab("post"); }}
         >
           {t("ot_approvals.tabs.post_ot", { defaultValue: "Post-OT Approvals (Actuals)" })}
         </button>

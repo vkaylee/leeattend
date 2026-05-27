@@ -1,5 +1,6 @@
 import { API_BASE_URL } from "./config";
 import { apiFetch } from "./helpers";
+import { apiClient } from "./client";
 
 export type ShiftSwapStatus = "pending_target" | "pending_admin" | "approved" | "rejected" | "cancelled";
 
@@ -29,9 +30,8 @@ export async function fetchShiftSwaps(
 ): Promise<ShiftSwapRequest[]> {
     let url = `${API_BASE_URL}/workspaces/${wsId}/shift-swaps`;
     if (status) url += `?status=${status}`;
-    const response = await apiFetch(url);
-    if (!response.ok) throw new Error("Failed to fetch shift swaps");
-    return response.json() as Promise<ShiftSwapRequest[]>;
+    const { data: resData } = await apiClient.get<ShiftSwapRequest[]>(`/${url}`);
+    return resData;
 }
 
 export async function createShiftSwap(
@@ -43,15 +43,8 @@ export async function createShiftSwap(
         reason?: string;
     },
 ): Promise<ShiftSwapRequest> {
-    const response = await apiFetch(
-        `${API_BASE_URL}/workspaces/${wsId}/shift-swaps`,
-        {
-            method: "POST",
-            body: JSON.stringify(data),
-        },
-    );
-    if (!response.ok) throw new Error("Failed to create shift swap");
-    return response.json() as Promise<ShiftSwapRequest>;
+    const { data: resData } = await apiClient.post<ShiftSwapRequest>(`/workspaces/${wsId}/shift-swaps`, data);
+    return resData;
 }
 
 export async function approveShiftSwap(
@@ -59,14 +52,7 @@ export async function approveShiftSwap(
     swapId: string,
     data: { status: ShiftSwapStatus },
 ): Promise<void> {
-    const response = await apiFetch(
-        `${API_BASE_URL}/workspaces/${wsId}/shift-swaps/${swapId}/approve`,
-        {
-            method: "PUT",
-            body: JSON.stringify(data),
-        },
-    );
-    if (!response.ok) throw new Error("Failed to approve shift swap");
+    await apiClient.put(`/workspaces/${wsId}/shift-swaps/${swapId}/approve`, data);
 }
 
 export interface SwapStats {
@@ -82,9 +68,6 @@ export interface SwapStats {
 export async function fetchShiftSwapStats(
     wsId: string,
 ): Promise<SwapStats> {
-    const response = await apiFetch(
-        `${API_BASE_URL}/workspaces/${wsId}/shift-swaps/stats`,
-    );
-    if (!response.ok) throw new Error("Failed to fetch swap stats");
-    return response.json() as Promise<SwapStats>;
+    const { data: resData } = await apiClient.get<SwapStats>(`/workspaces/${wsId}/shift-swaps/stats`);
+    return resData;
 }

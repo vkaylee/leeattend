@@ -1,7 +1,8 @@
-import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
 import { Briefcase } from "lucide-react";
 import React, { useEffect } from "react";
 import { useForm, useWatch } from "react-hook-form";
+
+import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
 import { z } from "zod";
 
 import type { EmployeeAssignment } from "@/lib/api";
@@ -10,12 +11,10 @@ import Button from "@/components/ui/button";
 import FormField from "@/components/ui/form-field";
 import Modal from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
-import { Typography } from "@/components/ui/typography";
 import {
   useCreateEmployeeAssignment,
   useUpdateEmployeeAssignment,
 } from "@/hooks/use-employee-assignments";
-import { useWorkspace } from "@/hooks/use-workspace";
 
 const assignmentSchema = z
   .object({

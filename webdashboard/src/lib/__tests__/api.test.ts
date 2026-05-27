@@ -10,10 +10,10 @@ describe("api.ts comprehensive tests", () => {
 
  
   const mockSuccess = (data: unknown = {}) => {
- 
     vi.mocked(fetch).mockResolvedValue({
       ok: true,
       json: () => Promise.resolve(data),
+      text: () => Promise.resolve(data ? JSON.stringify(data) : ""),
     } as unknown as Response);
   };
 
@@ -186,8 +186,7 @@ describe("api.ts comprehensive tests", () => {
     });
 
     it("fetchLatestImportJob", async () => {
- 
-      vi.mocked(fetch).mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ id: "job-1" }) } as unknown as Response);
+      vi.mocked(fetch).mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ id: "job-1" }), text: () => Promise.resolve(JSON.stringify({ id: "job-1" })) } as unknown as Response);
       await api.fetchLatestImportJob("ws-1", "adjustment");
       expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/attendance/import-jobs/latest?target_type=adjustment"), expect.anything());
     });
@@ -453,8 +452,7 @@ describe("api.ts comprehensive tests", () => {
     });
 
     it("changePassword", async () => {
- 
-      vi.mocked(fetch).mockResolvedValue({ ok: true, text: () => Promise.resolve("OK") } as unknown as Response);
+      vi.mocked(fetch).mockResolvedValue({ ok: true, text: () => Promise.resolve("OK"), json: () => Promise.resolve({}) } as unknown as Response);
       await api.changePassword({ old_password: "o", new_password: "n" });
       expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/auth/change-password"), expect.objectContaining({ method: "POST" }));
     });

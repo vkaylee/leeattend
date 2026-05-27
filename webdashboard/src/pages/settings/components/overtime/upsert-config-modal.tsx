@@ -1,12 +1,12 @@
-import { zodResolver } from "@hookform/resolvers/zod";
 import React, { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
+
+import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
 import { Modal } from "@/components/common/modal";
 import { useToast } from "@/components/ui/toast";
-import { Typography } from "@/components/ui/typography";
 import { useUpsertWorkspaceConfig } from "@/hooks/use-workspace-config";
 
 const configSchema = z.object({
@@ -123,7 +123,7 @@ export function UpsertConfigModal({
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={config ? "Edit Configuration" : "New Configuration"}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form className="space-y-6" onSubmit={form.handleSubmit(onSubmit)}>
         <div className="space-y-4">
           <div>
             <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Key</label>
@@ -132,9 +132,7 @@ export function UpsertConfigModal({
               className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
               placeholder="e.g. overtime.max_hours_per_month"
             />
-            {form.formState.errors.config_key && (
-              <p className="text-rose-500 text-xs mt-1">{form.formState.errors.config_key.message}</p>
-            )}
+            {!!form.formState.errors.config_key && <p className="text-rose-500 text-xs mt-1">{form.formState.errors.config_key.message}</p>}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -199,24 +197,24 @@ export function UpsertConfigModal({
             <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Effective From</label>
             <input
               {...form.register("effective_from")}
-              type="date"
               className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+              type="date"
             />
           </div>
         </div>
 
         <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
           <button
-            type="button"
             className="px-5 py-2.5 rounded-xl font-bold text-sm text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
             onClick={onClose}
+            type="button"
           >
             {t("common.cancel")}
           </button>
           <button
-            type="submit"
-            disabled={isPending}
             className="px-5 py-2.5 rounded-xl font-bold text-sm bg-blue-600 hover:bg-blue-700 text-white shadow-sm transition-all disabled:opacity-50"
+            disabled={isPending}
+            type="submit"
           >
             {isPending ? t("common.saving") : t("common.save")}
           </button>

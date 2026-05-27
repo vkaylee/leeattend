@@ -1,5 +1,4 @@
-import { API_BASE_URL } from "./config";
-import { apiFetch } from "./helpers";
+import { apiClient } from "./client";
 import { 
   AssignPatternRequest,
   BulkAssignPatternRequest,
@@ -12,18 +11,13 @@ import {
 } from "./types";
 
 export async function fetchWorkingPatterns(wsId: string): Promise<WorkingPattern[]> {
-  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/working-patterns`);
-  if (!response.ok) throw new Error("Failed to fetch working patterns");
-  return response.json() as Promise<WorkingPattern[]>;
+  const { data } = await apiClient.get<WorkingPattern[]>(`/workspaces/${wsId}/working-patterns`);
+  return data;
 }
 
 export async function createWorkingPattern(wsId: string, data: CreateWorkingPatternRequest): Promise<WorkingPattern> {
-  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/working-patterns`, {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
-  if (!response.ok) throw new Error("Failed to create working pattern");
-  return response.json() as Promise<WorkingPattern>;
+  const { data: result } = await apiClient.post<WorkingPattern>(`/workspaces/${wsId}/working-patterns`, data);
+  return result;
 }
 
 export async function updateWorkingPattern(
@@ -31,18 +25,13 @@ export async function updateWorkingPattern(
   patternId: string,
   data: UpdateWorkingPatternRequest
 ): Promise<WorkingPattern> {
-  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/working-patterns/${patternId}`, {
-    method: "PUT",
-    body: JSON.stringify(data),
-  });
-  if (!response.ok) throw new Error("Failed to update working pattern");
-  return response.json() as Promise<WorkingPattern>;
+  const { data: result } = await apiClient.put<WorkingPattern>(`/workspaces/${wsId}/working-patterns/${patternId}`, data);
+  return result;
 }
 
 export async function fetchPatternDetails(wsId: string, patternId: string): Promise<WorkingPatternDetail[]> {
-  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/working-patterns/${patternId}`);
-  if (!response.ok) throw new Error("Failed to fetch pattern details");
-  return response.json() as Promise<WorkingPatternDetail[]>;
+  const { data } = await apiClient.get<WorkingPatternDetail[]>(`/workspaces/${wsId}/working-patterns/${patternId}`);
+  return data;
 }
 
 export async function assignPattern(
@@ -50,38 +39,26 @@ export async function assignPattern(
   employeeId: string, 
   data: AssignPatternRequest
 ): Promise<EmployeeWorkingPattern> {
-  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${employeeId}/working-patterns`, {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
-  if (!response.ok) throw new Error("Failed to assign pattern");
-  return response.json() as Promise<EmployeeWorkingPattern>;
+  const { data: result } = await apiClient.post<EmployeeWorkingPattern>(`/workspaces/${wsId}/employees/${employeeId}/working-patterns`, data);
+  return result;
 }
 
 export async function bulkAssignPattern(
   wsId: string,
   data: BulkAssignPatternRequest
 ): Promise<BulkAssignResponse> {
-  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/working-patterns/bulk-assign`, {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
-  if (!response.ok) throw new Error("Failed to bulk assign pattern");
-  return response.json() as Promise<BulkAssignResponse>;
+  const { data: result } = await apiClient.post<BulkAssignResponse>(`/workspaces/${wsId}/working-patterns/bulk-assign`, data);
+  return result;
 }
 
 export async function fetchEmployeePatternHistory(
   wsId: string, 
   employeeId: string
 ): Promise<EmployeeWorkingPattern[]> {
-  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${employeeId}/working-patterns`);
-  if (!response.ok) throw new Error("Failed to fetch pattern history");
-  return response.json() as Promise<EmployeeWorkingPattern[]>;
+  const { data } = await apiClient.get<EmployeeWorkingPattern[]>(`/workspaces/${wsId}/employees/${employeeId}/working-patterns`);
+  return data;
 }
 
 export async function deleteWorkingPattern(wsId: string, patternId: string): Promise<void> {
-  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/working-patterns/${patternId}`, {
-    method: "DELETE",
-  });
-  if (!response.ok) throw new Error("Failed to delete working pattern");
+  await apiClient.delete(`/workspaces/${wsId}/working-patterns/${patternId}`);
 }

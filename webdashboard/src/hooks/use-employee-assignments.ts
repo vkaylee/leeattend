@@ -1,16 +1,16 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+import type {
+  CreateEmployeeAssignmentRequest,
+  UpdateEmployeeAssignmentRequest,
+} from "@/lib/api/types";
+
 import {
   createEmployeeAssignment,
   deleteEmployeeAssignment,
   fetchEmployeeAssignments,
   updateEmployeeAssignment,
 } from "@/lib/api/employee-assignments";
-import type {
-  CreateEmployeeAssignmentRequest,
-  EmployeeAssignment,
-  UpdateEmployeeAssignmentRequest,
-} from "@/lib/api/types";
 
 export const employeeAssignmentKeys = {
   all: ["employee-assignments"] as const,

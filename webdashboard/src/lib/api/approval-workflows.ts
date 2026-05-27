@@ -3,64 +3,64 @@ import { apiClient } from './client';
 export type ApproverType = 'department_manager' | 'role' | 'permission' | 'specific_user';
 
 export interface ApprovalWorkflowStep {
-  id: string;
-  workflow_id: string;
-  step_order: number;
-  step_name: string;
-  approver_type: ApproverType;
-  approver_config: any;
   action_required: string;
+  approver_config: any;
+  approver_type: ApproverType;
   can_skip: boolean;
+  id: string;
+  step_name: string;
+  step_order: number;
+  workflow_id: string;
 }
 
 export interface ApprovalWorkflow {
-  id: string;
-  workspace_id: string;
-  entity_type: string;
-  name: string;
-  description?: string;
-  total_steps: number;
-  is_active: boolean;
   created_at: string;
-  updated_at: string;
+  description?: string;
+  entity_type: string;
+  id: string;
+  is_active: boolean;
+  name: string;
   steps?: ApprovalWorkflowStep[];
+  total_steps: number;
+  updated_at: string;
+  workspace_id: string;
 }
 
 export interface WorkflowStepRequest {
-  step_order: number;
-  step_name: string;
-  approver_type: ApproverType;
-  approver_config: any;
   action_required: string;
+  approver_config: any;
+  approver_type: ApproverType;
   can_skip: boolean;
+  step_name: string;
+  step_order: number;
 }
 
 export interface CreateWorkflowRequest {
-  entity_type: string;
-  name: string;
   description?: string;
+  entity_type: string;
   is_active: boolean;
-  total_steps: number;
+  name: string;
   steps: WorkflowStepRequest[];
+  total_steps: number;
 }
 
 export interface UpdateWorkflowRequest {
-  name?: string;
   description?: string;
   is_active?: boolean;
+  name?: string;
 }
 
 export interface ApprovalActionLog {
-  id: string;
-  workspace_id: string;
-  entity_type: string;
-  entity_id: string;
-  step_order: number;
-  step_name?: string;
+  acted_at: string;
   acted_by_user_id: string;
   action: string;
+  entity_id: string;
+  entity_type: string;
+  id: string;
   note?: string;
-  acted_at: string;
+  step_name?: string;
+  step_order: number;
+  workspace_id: string;
 }
 
 export const approvalWorkflowsApi = {

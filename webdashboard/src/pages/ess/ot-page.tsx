@@ -3,13 +3,13 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { Typography } from "@/components/ui/typography";
-import { useWorkspace } from "@/hooks/use-workspace";
-import { useProfile } from "@/hooks/use-profile";
 import { useMyOtAssignments, useEmployeeQuota } from "@/hooks/use-overtime-requests";
+import { useProfile } from "@/hooks/use-profile";
+import { useWorkspace } from "@/hooks/use-workspace";
 
 import { CreateOtRequestModal } from "./components/create-ot-request-modal";
-import { OtQuotaWidget } from "./components/ot-quota-widget";
 import { MyOtAssignmentsList } from "./components/my-ot-assignments-list";
+import { OtQuotaWidget } from "./components/ot-quota-widget";
 
 export default function EssOtPage() {
   const { t } = useTranslation();
@@ -44,7 +44,7 @@ export default function EssOtPage() {
           </div>
           <button
             className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-2xl font-bold text-sm tracking-tight transition-all shadow-sm"
-            onClick={() => setCreateModalOpen(true)}
+            onClick={() => { setCreateModalOpen(true); }}
           >
             <Plus className="w-4 h-4" />
             {t("ess.ot.request", { defaultValue: "Request OT" })}
@@ -57,16 +57,16 @@ export default function EssOtPage() {
           <MyOtAssignmentsList assignments={assignments || []} isLoading={loadingAssignments} wsId={wsId} />
         </div>
         <div className="space-y-8">
-          <OtQuotaWidget quota={quota} isLoading={loadingQuota} />
+          <OtQuotaWidget isLoading={loadingQuota} quota={quota} />
         </div>
       </div>
 
-      {createModalOpen && (
+      {!!createModalOpen && (
         <CreateOtRequestModal
-          isOpen={createModalOpen}
-          onClose={() => setCreateModalOpen(false)}
-          wsId={wsId}
           employeeId={employeeId}
+          isOpen={createModalOpen}
+          onClose={() => { setCreateModalOpen(false); }}
+          wsId={wsId}
         />
       )}
     </div>

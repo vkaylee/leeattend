@@ -1,4 +1,5 @@
 import { apiFetch } from "./helpers";
+import { apiClient } from "./client";
 
 export type NotificationType = "leave_approved" | "leave_rejected" | "attendance_missing" | "system" | "message" | "info" | "alert" | (string & {});
 
@@ -30,35 +31,19 @@ export async function fetchNotifications(
   const params = new URLSearchParams({ limit: limit.toString() });
   if (cursor) params.append("cursor", cursor);
 
-  const response = await apiFetch(`/v1/notifications?${params.toString()}`);
-  if (!response.ok) {
-    throw new Error("Failed to fetch notifications");
-  }
-  return response.json() as Promise<NotificationResponse>;
+  const { data: resData } = await apiClient.get<NotificationResponse>(`/v1/notifications?${params.toString()}`);
+    return resData;
 }
 
 export async function fetchUnreadCount(): Promise<UnreadCountResponse> {
-  const response = await apiFetch("/v1/notifications/unread-count");
-  if (!response.ok) {
-    throw new Error("Failed to fetch unread count");
-  }
-  return response.json() as Promise<UnreadCountResponse>;
+  const { data: resData } = await apiClient.get<UnreadCountResponse>(`/v1/notifications/unread-count`);
+    return resData;
 }
 
 export async function markNotificationAsRead(id: string): Promise<void> {
-  const response = await apiFetch(`/v1/notifications/${id}/read`, {
-    method: "PATCH",
-  });
-  if (!response.ok) {
-    throw new Error("Failed to mark notification as read");
-  }
+  await apiClient.patch(`/v1/notifications/${id}/read`, {});
 }
 
 export async function markAllNotificationsAsRead(): Promise<void> {
-  const response = await apiFetch("/v1/notifications/read-all", {
-    method: "POST",
-  });
-  if (!response.ok) {
-    throw new Error("Failed to mark all notifications as read");
-  }
+  await apiClient.post(`/v1/notifications/read-all`, {});
 }

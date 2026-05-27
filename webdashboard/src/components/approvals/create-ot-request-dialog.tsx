@@ -1,13 +1,14 @@
 import { Loader2, Clock, Plus, Users, AlertTriangle } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+
 import { format } from "date-fns";
 
 import Modal from "@/components/ui/modal";
-import { Typography } from "@/components/ui/typography";
 import { useToast } from "@/components/ui/toast";
-import { useCreateOvertimeRequest, useEmployeeQuota } from "@/hooks/use-overtime-requests";
+import { Typography } from "@/components/ui/typography";
 import { useAllEmployees } from "@/hooks/use-employees";
+import { useCreateOvertimeRequest, useEmployeeQuota } from "@/hooks/use-overtime-requests";
 import { useWorkspace } from "@/hooks/use-workspace";
 
 export function CreateOtRequestDialog({ onSuccess }: { onSuccess?: () => void }) {
@@ -90,19 +91,19 @@ export function CreateOtRequestDialog({ onSuccess }: { onSuccess?: () => void })
     <>
       <button 
         className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl font-bold text-sm shadow-sm transition-all duration-300 hover:shadow hover:-translate-y-0.5"
-        onClick={() => setOpen(true)}
+        onClick={() => { setOpen(true); }}
       >
         <Plus className="w-4 h-4" />
         <span>New Pre-OT Request</span>
       </button>
 
       <Modal
-        isOpen={open}
-        onClose={() => setOpen(false)}
-        title="Plan Overtime (Pre-OT)"
-        subtitle="Assign overtime to employees beforehand"
         icon={<Clock className="w-5 h-5" />}
+        isOpen={open}
         maxWidth="lg"
+        onClose={() => { setOpen(false); }}
+        subtitle="Assign overtime to employees beforehand"
+        title="Plan Overtime (Pre-OT)"
       >
         <div className="space-y-6">
           {/* Employee Selection */}
@@ -113,12 +114,12 @@ export function CreateOtRequestDialog({ onSuccess }: { onSuccess?: () => void })
             </label>
             <div className="max-h-40 overflow-y-auto border border-slate-200 dark:border-slate-700 rounded-xl p-2 bg-slate-50 dark:bg-slate-800/50 custom-scrollbar">
               {employees?.map((emp) => (
-                <label key={emp.id} className="flex items-center gap-3 p-2 hover:bg-white dark:hover:bg-slate-800 rounded-lg cursor-pointer transition-colors">
+                <label className="flex items-center gap-3 p-2 hover:bg-white dark:hover:bg-slate-800 rounded-lg cursor-pointer transition-colors" key={emp.id}>
                   <input
-                    type="checkbox"
-                    className="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-600 dark:border-slate-600 dark:bg-slate-900"
                     checked={selectedEmployees.includes(emp.id)}
-                    onChange={() => toggleEmployee(emp.id)}
+                    className="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-600 dark:border-slate-600 dark:bg-slate-900"
+                    onChange={() => { toggleEmployee(emp.id); }}
+                    type="checkbox"
                   />
                   <div className="flex flex-col">
                     <span className="text-sm font-bold text-slate-700 dark:text-slate-200">{emp.full_name}</span>
@@ -136,7 +137,7 @@ export function CreateOtRequestDialog({ onSuccess }: { onSuccess?: () => void })
           </div>
 
           {/* Quota Warning Banner */}
-          {selectedEmployees.length > 0 && quotaWarning && quotaWarning.monthly_limit !== null && (
+          {selectedEmployees.length > 0 && !!quotaWarning && quotaWarning.monthly_limit !== null && (
             <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4 flex items-start gap-3">
               <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
               <div>
@@ -155,28 +156,28 @@ export function CreateOtRequestDialog({ onSuccess }: { onSuccess?: () => void })
             <div className="space-y-1.5">
               <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Date</label>
               <input
-                type="date"
                 className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm font-medium focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-shadow"
+                onChange={(e) => { setPlannedDate(e.target.value); }}
+                type="date"
                 value={plannedDate}
-                onChange={(e) => setPlannedDate(e.target.value)}
               />
             </div>
             <div className="space-y-1.5">
               <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Start Time</label>
               <input
-                type="time"
                 className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm font-medium focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-shadow"
+                onChange={(e) => { setPlannedStartTime(e.target.value); }}
+                type="time"
                 value={plannedStartTime}
-                onChange={(e) => setPlannedStartTime(e.target.value)}
               />
             </div>
             <div className="space-y-1.5">
               <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">End Time</label>
               <input
-                type="time"
                 className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm font-medium focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-shadow"
+                onChange={(e) => { setPlannedEndTime(e.target.value); }}
+                type="time"
                 value={plannedEndTime}
-                onChange={(e) => setPlannedEndTime(e.target.value)}
               />
             </div>
           </div>
@@ -193,9 +194,9 @@ export function CreateOtRequestDialog({ onSuccess }: { onSuccess?: () => void })
             <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Business Reason</label>
             <textarea
               className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-shadow resize-none h-24 custom-scrollbar"
+              onChange={(e) => { setReason(e.target.value); }}
               placeholder="Why is this overtime necessary?"
               value={reason}
-              onChange={(e) => setReason(e.target.value)}
             />
           </div>
         </div>
@@ -203,15 +204,15 @@ export function CreateOtRequestDialog({ onSuccess }: { onSuccess?: () => void })
         <div className="px-6 py-5 bg-slate-50 dark:bg-slate-900/50 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3">
           <button
             className="px-5 py-2.5 text-sm font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-xl transition-colors"
-            onClick={() => setOpen(false)}
             disabled={isPending}
+            onClick={() => { setOpen(false); }}
           >
             Cancel
           </button>
           <button
             className="flex items-center justify-center min-w-[140px] px-5 py-2.5 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition-all shadow-sm hover:shadow"
-            onClick={handleCreate}
             disabled={isPending || selectedEmployees.length === 0}
+            onClick={handleCreate}
           >
             {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Submit Request"}
           </button>

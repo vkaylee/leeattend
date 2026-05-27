@@ -38,7 +38,7 @@ use crate::services::shift_swap_service::ShiftSwapService;
 use crate::services::workspace_service::WorkspaceService;
 use crate::services::{
     AgentService, AttendanceLogService, AttendanceSummaryService, EmployeeService,
-    ReportCoordinator, ReportService, TimeTrackingService,
+    RecruitmentService, ReportCoordinator, ReportService, TimeTrackingService,
 };
 
 pub use crate::queue::RedisPool;
@@ -48,6 +48,7 @@ pub use crate::queue::RedisPool;
 /// Employee management — service + repository
 pub struct EmployeeState {
     pub service: Arc<EmployeeService>,
+    pub recruitment_service: Arc<RecruitmentService>,
     pub repo: Arc<dyn EmployeeRepository>,
     pub contract_repo: Arc<DieselEmployeeContractRepository>,
     pub employment_phase_repo: Arc<crate::repositories::DieselEmploymentPhaseRepository>,

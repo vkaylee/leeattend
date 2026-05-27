@@ -505,9 +505,15 @@ pub async fn spawn_app() -> (String, TestDatabase) {
         apiserver::repositories::DieselAttendanceLogErrorRepository::new(diesel_pools.clone()),
     );
 
+    let recruitment_repo: Arc<dyn apiserver::repositories::employee::EmployeeRecruitmentRepository> = employee_repo.clone();
+    let recruitment_service = Arc::new(apiserver::services::RecruitmentService::new(
+        recruitment_repo,
+    ));
+
     let state = Arc::new(AppState {
         employees: apiserver::EmployeeState {
             service: employee_service,
+            recruitment_service: recruitment_service.clone(),
             repo: employee_repo.clone(),
             contract_repo: Arc::new(
                 apiserver::repositories::DieselEmployeeContractRepository::new(
@@ -1059,9 +1065,15 @@ pub async fn spawn_app_with_factory_extended(
         apiserver::repositories::DieselAttendanceLogErrorRepository::new(diesel_pools.clone()),
     );
 
+    let recruitment_repo: Arc<dyn apiserver::repositories::employee::EmployeeRecruitmentRepository> = employee_repo.clone();
+    let recruitment_service = Arc::new(apiserver::services::RecruitmentService::new(
+        recruitment_repo,
+    ));
+
     let state = Arc::new(AppState {
         employees: apiserver::EmployeeState {
             service: employee_service,
+            recruitment_service: recruitment_service.clone(),
             repo: employee_repo.clone(),
             contract_repo: Arc::new(
                 apiserver::repositories::DieselEmployeeContractRepository::new(
@@ -1662,9 +1674,15 @@ pub async fn setup_app_tower_internal_extended(
         apiserver::repositories::DieselAttendanceLogErrorRepository::new(diesel_pools.clone()),
     );
 
+    let recruitment_repo: Arc<dyn apiserver::repositories::employee::EmployeeRecruitmentRepository> = employee_repo.clone();
+    let recruitment_service = Arc::new(apiserver::services::RecruitmentService::new(
+        recruitment_repo,
+    ));
+
     let app_state = Arc::new(AppState {
         employees: apiserver::EmployeeState {
             service: employee_service,
+            recruitment_service: recruitment_service.clone(),
             repo: employee_repo.clone(),
             contract_repo: Arc::new(
                 apiserver::repositories::DieselEmployeeContractRepository::new(

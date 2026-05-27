@@ -1,11 +1,11 @@
-import { Loader2, CheckCircle, ArrowRight, Check, X } from "lucide-react";
+import { CheckCircle, ArrowRight, Check, X } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
-import { Typography } from "@/components/ui/typography";
-import { useOvertimeRequests } from "@/hooks/use-overtime-requests";
-import { useProcessApproval } from "@/hooks/use-approval-workflows";
 import { useToast } from "@/components/ui/toast";
+import { Typography } from "@/components/ui/typography";
+import { useProcessApproval } from "@/hooks/use-approval-workflows";
+import { useOvertimeRequests } from "@/hooks/use-overtime-requests";
 
 export function PreOtApprovalsTab({ wsId }: { wsId: string }) {
   const { t } = useTranslation();
@@ -66,7 +66,7 @@ export function PreOtApprovalsTab({ wsId }: { wsId: string }) {
   return (
     <div className="space-y-4 m-8">
       {pendingRequests.map((req) => (
-        <div key={req.id} className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 p-6 flex flex-col md:flex-row gap-6 justify-between shadow-sm hover:shadow-md transition-shadow">
+        <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 p-6 flex flex-col md:flex-row gap-6 justify-between shadow-sm hover:shadow-md transition-shadow" key={req.id}>
           <div className="space-y-3 flex-1">
             <div className="flex items-center gap-3">
               <span className="px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
@@ -103,22 +103,22 @@ export function PreOtApprovalsTab({ wsId }: { wsId: string }) {
             <div className="flex gap-2">
               <button
                 className="flex items-center gap-1.5 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 dark:bg-emerald-900/20 dark:hover:bg-emerald-900/40 px-4 py-2 rounded-xl font-bold text-xs transition-colors"
-                onClick={() => handleAction(req.id, "approve")}
                 disabled={isProcessing}
+                onClick={() => { handleAction(req.id, "approve"); }}
               >
                 <Check className="w-3.5 h-3.5" />
                 Approve
               </button>
               <button
                 className="flex items-center gap-1.5 bg-rose-50 text-rose-600 hover:bg-rose-100 dark:bg-rose-900/20 dark:hover:bg-rose-900/40 px-4 py-2 rounded-xl font-bold text-xs transition-colors"
-                onClick={() => handleAction(req.id, "reject")}
                 disabled={isProcessing}
+                onClick={() => { handleAction(req.id, "reject"); }}
               >
                 <X className="w-3.5 h-3.5" />
                 Reject
               </button>
             </div>
-            {req.approval_workflow_id && (
+            {!!req.approval_workflow_id && (
               <span className="text-[10px] text-slate-400 font-medium flex items-center gap-1">
                 Workflow Configured <ArrowRight className="w-3 h-3" />
               </span>

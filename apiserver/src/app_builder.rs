@@ -485,9 +485,20 @@ impl AppState {
         let session_repo_core = session_repo.clone();
         let user_repo_core = user_repo.clone();
 
+        // Create a separate reference for the recruitment repository trait
+        let recruitment_repo: Arc<dyn crate::repositories::employee::EmployeeRecruitmentRepository> = Arc::new(
+            crate::repositories::diesel_employee_repository::DieselEmployeeRepository::new(
+                diesel_pools.clone(),
+            ),
+        );
+        let recruitment_service = Arc::new(crate::services::RecruitmentService::new(
+            Arc::clone(&recruitment_repo),
+        ));
+
         let state = Arc::new(AppState {
             employees: crate::EmployeeState {
                 service: employee_service,
+                recruitment_service,
                 repo: employee_repo,
                 contract_repo,
                 employment_phase_repo,

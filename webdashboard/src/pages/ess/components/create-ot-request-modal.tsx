@@ -1,7 +1,8 @@
-import { zodResolver } from "@hookform/resolvers/zod";
 import React from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
+
+import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
 import { Modal } from "@/components/common/modal";
@@ -64,18 +65,16 @@ export function CreateOtRequestModal({
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={t("ess.ot.request_title", { defaultValue: "Request Overtime" })}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form className="space-y-6" onSubmit={form.handleSubmit(onSubmit)}>
         <div className="space-y-4">
           <div>
             <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Date</label>
             <input
               {...form.register("planned_date")}
-              type="date"
               className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+              type="date"
             />
-            {form.formState.errors.planned_date && (
-              <p className="text-rose-500 text-xs mt-1">{form.formState.errors.planned_date.message}</p>
-            )}
+            {!!form.formState.errors.planned_date && <p className="text-rose-500 text-xs mt-1">{form.formState.errors.planned_date.message}</p>}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -83,16 +82,16 @@ export function CreateOtRequestModal({
               <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Start Time</label>
               <input
                 {...form.register("planned_start_time")}
-                type="time"
                 className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                type="time"
               />
             </div>
             <div>
               <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">End Time</label>
               <input
                 {...form.register("planned_end_time")}
-                type="time"
                 className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                type="time"
               />
             </div>
           </div>
@@ -101,12 +100,10 @@ export function CreateOtRequestModal({
             <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Total Minutes</label>
             <input
               {...form.register("planned_minutes", { valueAsNumber: true })}
-              type="number"
               className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+              type="number"
             />
-            {form.formState.errors.planned_minutes && (
-              <p className="text-rose-500 text-xs mt-1">{form.formState.errors.planned_minutes.message}</p>
-            )}
+            {!!form.formState.errors.planned_minutes && <p className="text-rose-500 text-xs mt-1">{form.formState.errors.planned_minutes.message}</p>}
           </div>
 
           <div>
@@ -114,27 +111,25 @@ export function CreateOtRequestModal({
             <textarea
               {...form.register("reason")}
               className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
-              rows={3}
               placeholder="Why do you need to work overtime?"
+              rows={3}
             />
-            {form.formState.errors.reason && (
-              <p className="text-rose-500 text-xs mt-1">{form.formState.errors.reason.message}</p>
-            )}
+            {!!form.formState.errors.reason && <p className="text-rose-500 text-xs mt-1">{form.formState.errors.reason.message}</p>}
           </div>
         </div>
 
         <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
           <button
-            type="button"
             className="px-5 py-2.5 rounded-xl font-bold text-sm text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
             onClick={onClose}
+            type="button"
           >
             {t("common.cancel")}
           </button>
           <button
-            type="submit"
-            disabled={isPending}
             className="px-5 py-2.5 rounded-xl font-bold text-sm bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm transition-all disabled:opacity-50"
+            disabled={isPending}
+            type="submit"
           >
             {isPending ? t("common.submitting") : t("common.submit")}
           </button>

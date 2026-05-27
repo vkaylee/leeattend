@@ -1,6 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-/* eslint-disable max-lines-per-function, complexity, react-hooks/set-state-in-effect */
-import { useNavigate, useParams, useBlocker } from "@tanstack/react-router";
+import { useBlocker, useNavigate, useParams } from "@tanstack/react-router";
 import {
   CalendarDays,
   Clock,
@@ -10,272 +8,68 @@ import {
   Save,
   Trash2,
 } from "lucide-react";
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
 import { Combobox } from "@/components/ui/combobox";
 import ConfirmDialog from "@/components/ui/confirm-dialog";
 import FormField, { LABEL_BASE } from "@/components/ui/form-field";
-import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
-import {
-  createWorkingPattern,
-  fetchPatternDetails,
-  fetchShifts,
-  fetchWorkingPatterns,
-  getCurrentWorkspaceId,
-  updateWorkingPattern,
-} from "@/lib/api";
-import { CreateWorkingPatternRequest, UpdateWorkingPatternRequest, WorkingPatternDetailRequest } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
+import { useWorkingPatternForm } from "@/hooks/use-working-pattern-form";
+import { useCalendarPreview } from "@/hooks/use-calendar-preview";
 
 export default function WorkingPatternsEditorPage() {
   const { t, i18n } = useTranslation();
-  const navigate = useNavigate();
-  const toast = useToast();
-  const queryClient = useQueryClient();
-  const wsId = getCurrentWorkspaceId();
-
-  // Retrieve patternId from route params if in edit mode
   const { patternId } = useParams({ strict: false });
-  const isEditMode = !!patternId;
-
-  // Form State
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [patternType, setPatternType] = useState<"weekly" | "rotation">("weekly");
-  const [cycleLengthDays, setCycleLengthDays] = useState(6);
-  const [grid, setGrid] = useState<string[][]>(Array.from({ length: 7 }, () => []));
-  const [isInitialized, setIsInitialized] = useState(false);
-  const [isDirty, setIsDirty] = useState(false);
+  const navigate = useNavigate();
   const [isClearConfirmOpen, setIsClearConfirmOpen] = useState(false);
 
-  // Preview Mode State
-  const [activeViewMode, setActiveViewMode] = useState<"design" | "preview">("design");
-  const [previewAnchorDate, setPreviewAnchorDate] = useState<string>(
-    () => new Date().toISOString().split("T")[0]
-  );
-  const [previewYear, setPreviewYear] = useState<number>(() => new Date().getFullYear());
-  const [previewMonth, setPreviewMonth] = useState<number>(() => new Date().getMonth());
+  const {
+    wsId,
+    isEditMode,
+    isLoadingPatterns,
+    shifts,
+    name,
+    setName,
+    description,
+    setDescription,
+    patternType,
+    handlePatternTypeChange,
+    cycleLengthDays,
+    handleCycleLengthChange,
+    grid,
+    addShiftToDay,
+    removeShiftFromDay,
+    clearAllDays,
+    prefillStandard,
+    handleSubmit,
+    isDirty,
+    setIsDirty,
+    isSaving,
+  } = useWorkingPatternForm(patternId);
 
-  // Fetch queries
-  const { data: shifts = [] } = useQuery({
-    queryKey: ["shifts", wsId],
-    queryFn: () => fetchShifts(wsId ?? ""),
-    enabled: !!wsId,
-  });
+  const {
+    activeViewMode,
+    setActiveViewMode,
+    previewAnchorDate,
+    setPreviewAnchorDate,
+    previewYear,
+    previewMonth,
+    handlePreviousMonth,
+    handleNextMonth,
+    generateCalendarCells,
+  } = useCalendarPreview();
 
-  const { data: patterns = [], isLoading: isLoadingPatterns } = useQuery({
-    queryKey: ["working-patterns", wsId],
-    queryFn: () => fetchWorkingPatterns(wsId ?? ""),
-    enabled: !!wsId && isEditMode,
-  });
-
-  const { data: patternDetails = [], isLoading: isLoadingDetails } = useQuery({
-    queryKey: ["pattern-details", wsId, patternId],
-    queryFn: () => (patternId ? fetchPatternDetails(wsId ?? "", patternId) : Promise.resolve([])),
-    enabled: !!wsId && isEditMode,
-  });
-
-  const currentPattern = patterns.find((p) => p.id === patternId);
-
-  // Initialize form state when editing
-  useEffect(() => {
-    if (isEditMode && currentPattern && !isLoadingDetails && !isInitialized) {
-      setName(currentPattern.name);
-      setDescription(currentPattern.description ?? "");
-      setPatternType(currentPattern.pattern_type as "weekly" | "rotation");
-      const len = currentPattern.cycle_length_days ?? 7;
-      setCycleLengthDays(len);
-
-      const newGrid = Array.from({ length: len }, () => [] as string[]);
-      patternDetails.forEach((detail) => {
-        if (detail.shift_id && detail.schedule_day >= 0 && detail.schedule_day < len) {
-          newGrid[detail.schedule_day].push(detail.shift_id);
-        }
-      });
-      setGrid(newGrid);
-      setIsInitialized(true);
-      setIsDirty(false);
-    }
-  }, [isEditMode, currentPattern, isLoadingDetails, patternDetails, isInitialized]);
-
-  // Unsaved changes navigation guard (Internal router navigation)
   const blocker = useBlocker({
     shouldBlockFn: () => isDirty,
     withResolver: true,
   });
 
-  // Unsaved changes browser guard (Page refresh/tab close)
-  useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (isDirty) {
-        e.preventDefault();
-        // eslint-disable-next-line @typescript-eslint/no-deprecated
-        e.returnValue = "";
-      }
-    };
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => {
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-    };
-  }, [isDirty]);
-
-  // Resizing grid when type or cycle length changes
-  const handlePatternTypeChange = (type: "weekly" | "rotation") => {
-    setPatternType(type);
-    setIsDirty(true);
-    if (type === "weekly") {
-      setActiveViewMode("design");
-      setGrid((prev) => {
-        if (prev.length < 7) {
-          return [...prev, ...Array.from({ length: 7 - prev.length }, () => [] as string[])];
-        }
-        return prev.slice(0, 7);
-      });
-    } else {
-      setGrid((prev) => {
-        if (prev.length < cycleLengthDays) {
-          return [...prev, ...Array.from({ length: cycleLengthDays - prev.length }, () => [] as string[])];
-        }
-        return prev.slice(0, cycleLengthDays);
-      });
-    }
-  };
-
-  const handleCycleLengthChange = (len: number) => {
-    const validLen = Math.max(1, Math.min(366, len));
-    setCycleLengthDays(validLen);
-    setIsDirty(true);
-    setGrid((prev) => {
-      if (prev.length < validLen) {
-        return [...prev, ...Array.from({ length: validLen - prev.length }, () => [] as string[])];
-      }
-      return prev.slice(0, validLen);
-    });
-  };
-
-  // Grid actions
-  const addShiftToDay = (dayIndex: number, shiftId: string) => {
-    setIsDirty(true);
-    setGrid((prev) => {
-      const next = prev.map((shiftsArr, idx) => {
-        if (idx === dayIndex) {
-          return [...shiftsArr, shiftId];
-        }
-        return shiftsArr;
-      });
-      return next;
-    });
-  };
-
-  const removeShiftFromDay = (dayIndex: number, shiftId: string) => {
-    setIsDirty(true);
-    setGrid((prev) => {
-      const next = prev.map((shiftsArr, idx) => {
-        if (idx === dayIndex) {
-          return shiftsArr.filter((id) => id !== shiftId);
-        }
-        return shiftsArr;
-      });
-      return next;
-    });
-  };
-
-  const clearAllDays = () => {
-    setIsClearConfirmOpen(true);
-  };
-
   const handleConfirmClear = () => {
-    setIsDirty(true);
-    setGrid(Array.from({ length: grid.length }, () => []));
+    clearAllDays();
     setIsClearConfirmOpen(false);
-  };
-
-  const prefillStandard = () => {
-    setIsDirty(true);
-    // Prefill standard Mon-Fri with the first shift available
-    const firstShift = shifts[0]?.id;
-    if (!firstShift) {
-      toast.error(t("patterns.messages.no_shifts_available") || "No shifts available to prefill.");
-      return;
-    }
-    setGrid((prev) => {
-      return prev.map((dayArr, idx) => {
-        // idx: 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat
-        if (idx >= 1 && idx <= 5) {
-          return [firstShift];
-        }
-        return [];
-      });
-    });
-  };
-
-  // Mutations
-  const createMutation = useMutation({
-    mutationFn: (data: CreateWorkingPatternRequest) => createWorkingPattern(wsId ?? "", data),
-    onSuccess: () => {
-      toast.success(t("patterns.messages.create_success"));
-      void queryClient.invalidateQueries({ queryKey: ["working-patterns"] });
-      setIsDirty(false);
-      void navigate({ to: "/working-patterns" });
-    },
-    onError: () => {
-      toast.error(t("patterns.messages.create_error"));
-    },
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: (data: UpdateWorkingPatternRequest) => updateWorkingPattern(wsId ?? "", patternId ?? "", data),
-    onSuccess: () => {
-      toast.success(t("patterns.messages.update_success"));
-      void queryClient.invalidateQueries({ queryKey: ["working-patterns"] });
-      void queryClient.invalidateQueries({ queryKey: ["pattern-details", wsId ?? "", patternId ?? ""] });
-      setIsDirty(false);
-      void navigate({ to: "/working-patterns" });
-    },
-    onError: () => {
-      toast.error(t("patterns.messages.update_error"));
-    },
-  });
-
-  // eslint-disable-next-line @typescript-eslint/no-deprecated
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name.trim()) {
-      toast.error(t("patterns.validation_name_required"));
-      return;
-    }
-    if (patternType === "rotation" && (cycleLengthDays < 1 || cycleLengthDays > 366)) {
-      toast.error(t("patterns.validation_cycle_length_invalid"));
-      return;
-    }
-
-    // Build details payload
-    const details = grid.flatMap((shiftIds, scheduleDay) => {
-      if (shiftIds.length === 0) {
-        return [{ schedule_day: scheduleDay, shift_id: null as string | null }];
-      }
-      return shiftIds.map((shiftId) => ({
-        schedule_day: scheduleDay,
-        shift_id: shiftId,
-      }));
-    }) as WorkingPatternDetailRequest[];
-
-    const payload = {
-      name: name.trim(),
-      description: description.trim() || undefined,
-      pattern_type: patternType,
-      cycle_length_days: patternType === "rotation" ? cycleLengthDays : undefined,
-      details,
-    };
-
-    if (isEditMode) {
-      updateMutation.mutate(payload);
-    } else {
-      createMutation.mutate(payload);
-    }
   };
 
   if (!wsId) {
@@ -311,8 +105,6 @@ export default function WorkingPatternsEditorPage() {
   const gridRows = patternType === "weekly"
     ? daysOfWeekFull
     : Array.from({ length: cycleLengthDays }, (_, i) => t("patterns.form.day_index", { index: i + 1 }));
-
-  const isSaving = createMutation.isPending || updateMutation.isPending;
 
   return (
     <form className="max-w-7xl mx-auto space-y-10 pb-20 animate-in fade-in duration-500" onSubmit={handleSubmit}>
@@ -519,9 +311,9 @@ export default function WorkingPatternsEditorPage() {
                       {t("patterns.form.prefill_standard").toUpperCase()}
                     </Button>
                   )}
-                  <Button
-                    className="text-[9px] text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/20 border-rose-100 dark:border-rose-950 hover:bg-rose-100 dark:hover:bg-rose-900/35"
-                    onClick={clearAllDays}
+                    <Button
+                      className="text-[9px] text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/20 border-rose-100 dark:border-rose-950 hover:bg-rose-100 dark:hover:bg-rose-900/35"
+                      onClick={() => setIsClearConfirmOpen(true)}
                     size="sm"
                     type="button"
                     variant="outline"
@@ -558,14 +350,7 @@ export default function WorkingPatternsEditorPage() {
                   </label>
                   <div className="flex items-center justify-end gap-3 h-10">
                     <Button className="p-2 border border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 active:scale-95 transition-all"
-                      onClick={() => {
-                        if (previewMonth === 0) {
-                          setPreviewMonth(11);
-                          setPreviewYear((y) => y - 1);
-                        } else {
-                          setPreviewMonth((m) => m - 1);
-                        }
-                      }}
+                      onClick={handlePreviousMonth}
                       type="button"
                       variant="ghost"
                     >
@@ -578,14 +363,7 @@ export default function WorkingPatternsEditorPage() {
                       })}
                     </span>
                     <Button className="p-2 border border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 active:scale-95 transition-all rotate-180"
-                      onClick={() => {
-                        if (previewMonth === 11) {
-                          setPreviewMonth(0);
-                          setPreviewYear((y) => y + 1);
-                        } else {
-                          setPreviewMonth((m) => m + 1);
-                        }
-                      }}
+                      onClick={handleNextMonth}
                       type="button"
                       variant="ghost"
                     >
@@ -620,54 +398,9 @@ export default function WorkingPatternsEditorPage() {
                 {/* Calendar Cells */}
                 <div className="grid grid-cols-7 gap-2 flex-1 auto-rows-fr">
                   {(() => {
-                    const cells = [];
-                    const firstDay = new Date(previewYear, previewMonth, 1);
-                    const startOffset = firstDay.getDay();
-                    const totalDays = new Date(previewYear, previewMonth + 1, 0).getDate();
-
-                    const prevMonthTotalDays = new Date(previewYear, previewMonth, 0).getDate();
-                    for (let i = startOffset - 1; i >= 0; i--) {
-                      const dayVal = prevMonthTotalDays - i;
-                      cells.push({
-                        date: new Date(previewYear, previewMonth - 1, dayVal),
-                        isCurrentMonth: false,
-                      });
-                    }
-
-                    for (let i = 1; i <= totalDays; i++) {
-                      cells.push({
-                        date: new Date(previewYear, previewMonth, i),
-                        isCurrentMonth: true,
-                      });
-                    }
-
-                    const remainingCells = 42 - cells.length;
-                    for (let i = 1; i <= remainingCells; i++) {
-                      cells.push({
-                        date: new Date(previewYear, previewMonth + 1, i),
-                        isCurrentMonth: false,
-                      });
-                    }
-
-                    const [ay, am, ad] = previewAnchorDate.split("-").map(Number);
-                    const anchorMidnight = ay && am && ad ? new Date(ay, am - 1, ad).getTime() : 0;
-                    const todayStr = new Date().toISOString().split("T")[0];
-
-                    return cells.map(({ date, isCurrentMonth }, idx) => {
-                      const dateStr = date.toISOString().split("T")[0];
-                      const cellMidnight = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
-                      const isToday = dateStr === todayStr;
-                      const isAnchor = anchorMidnight > 0 && cellMidnight === anchorMidnight;
-
-                      // Resolving shifts using modulo
-                      let cycleIndex = -1;
-                      let dayShifts: string[] = [];
-                      if (cycleLengthDays > 0 && anchorMidnight > 0) {
-                        const diffTime = cellMidnight - anchorMidnight;
-                        const daysDiff = Math.round(diffTime / (1000 * 60 * 60 * 24));
-                        cycleIndex = ((daysDiff % cycleLengthDays) + cycleLengthDays) % cycleLengthDays;
-                        dayShifts = grid[cycleIndex] || [];
-                      }
+                    const cells = generateCalendarCells(cycleLengthDays, grid);
+                    
+                    return cells.map(({ date, isCurrentMonth, isToday, isAnchor, cycleIndex, dayShifts }, idx) => {
 
                       return (
                         <div

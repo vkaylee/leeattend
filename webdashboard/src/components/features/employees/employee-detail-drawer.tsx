@@ -22,9 +22,9 @@ import { Typography } from "@/components/ui/typography";
 import { fetchWorkspaceMembers } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
+import EmployeeAssignmentsTab from "./employee-assignments-tab";
 import EmployeeContractsTab from "./employee-contracts-tab";
 import EmployeePhasesTab from "./employee-phases-tab";
-import EmployeeAssignmentsTab from "./employee-assignments-tab";
 
 
 type DetailTabType = "profile" | "contracts" | "phases" | "assignments" | "salary" | "policies";

@@ -1,6 +1,7 @@
 import { API_BASE_URL } from "./config";
 import { apiFetch } from "./helpers";
 import { Holiday } from './types';
+import { apiClient } from "./client";
 
 export async function fetchHolidays(
     wsId: string,
@@ -9,24 +10,16 @@ export async function fetchHolidays(
     const url = year
         ? `${API_BASE_URL}/workspaces/${wsId}/holidays?year=${year.toString()}`
         : `${API_BASE_URL}/workspaces/${wsId}/holidays`;
-    const response = await apiFetch(url);
-    if (!response.ok) throw new Error('Failed to fetch holidays');
-    return response.json() as Promise<Holiday[]>;
+    const { data: resData } = await apiClient.get<Holiday[]>(`/${url}`);
+    return resData;
 }
 
 export async function createHoliday(
     wsId: string,
     data: Omit<Holiday, 'id' | 'workspace_id' | 'created_at' | 'updated_at'>,
 ): Promise<Holiday> {
-    const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/holidays`, {
-        method: 'POST',
-        body: JSON.stringify(data),
-    });
-    if (!response.ok) {
-        if (response.status === 409) throw new Error('A holiday already exists on this date');
-        throw new Error('Failed to create holiday');
-    }
-    return response.json() as Promise<Holiday>;
+    const { data: resData } = await apiClient.post<Holiday>(`/workspaces/${wsId}/holidays`, data);
+    return resData;
 }
 
 export async function updateHoliday(
@@ -34,20 +27,13 @@ export async function updateHoliday(
     holidayId: string,
     data: Partial<Holiday>,
 ): Promise<Holiday> {
-    const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/holidays/${holidayId}`, {
-        method: 'PATCH',
-        body: JSON.stringify(data),
-    });
-    if (!response.ok) throw new Error('Failed to update holiday');
-    return response.json() as Promise<Holiday>;
+    const { data: resData } = await apiClient.patch<Holiday>(`/workspaces/${wsId}/holidays/${holidayId}`, data);
+    return resData;
 }
 
 export async function deleteHoliday(
     wsId: string,
     holidayId: string,
 ): Promise<void> {
-    const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/holidays/${holidayId}`, {
-        method: 'DELETE',
-    });
-    if (!response.ok) throw new Error('Failed to delete holiday');
+    await apiClient.delete(`/workspaces/${wsId}/holidays/${holidayId}`);
 }

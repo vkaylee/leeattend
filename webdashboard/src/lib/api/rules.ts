@@ -1,5 +1,6 @@
 import { API_BASE_URL } from "./config";
 import { apiFetch } from "./helpers";
+import { apiClient } from "./client";
 
 export interface AssignmentRuleConditions {
   department_id?: string;
@@ -35,40 +36,20 @@ export interface UpdateAssignmentRuleRequest {
 }
 
 export async function fetchAssignmentRules(wsId: string): Promise<AssignmentRule[]> {
-  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/assignment-rules`);
-  if (!response.ok) {
-    throw new Error("Failed to fetch assignment rules");
-  }
-  return response.json() as Promise<AssignmentRule[]>;
+  const { data: resData } = await apiClient.get<AssignmentRule[]>(`/workspaces/${wsId}/assignment-rules`);
+    return resData;
 }
 
 export async function createAssignmentRule(wsId: string, data: CreateAssignmentRuleRequest): Promise<AssignmentRule> {
-  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/assignment-rules`, {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
-  if (!response.ok) {
-    throw new Error("Failed to create assignment rule");
-  }
-  return response.json() as Promise<AssignmentRule>;
+  const { data: resData } = await apiClient.post<AssignmentRule>(`/workspaces/${wsId}/assignment-rules`, data);
+    return resData;
 }
 
 export async function updateAssignmentRule(wsId: string, ruleId: string, data: UpdateAssignmentRuleRequest): Promise<AssignmentRule> {
-  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/assignment-rules/${ruleId}`, {
-    method: "PATCH",
-    body: JSON.stringify(data),
-  });
-  if (!response.ok) {
-    throw new Error("Failed to update assignment rule");
-  }
-  return response.json() as Promise<AssignmentRule>;
+  const { data: resData } = await apiClient.patch<AssignmentRule>(`/workspaces/${wsId}/assignment-rules/${ruleId}`, data);
+    return resData;
 }
 
 export async function deleteAssignmentRule(wsId: string, ruleId: string): Promise<void> {
-  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/assignment-rules/${ruleId}`, {
-    method: "DELETE",
-  });
-  if (!response.ok) {
-    throw new Error("Failed to delete assignment rule");
-  }
+  await apiClient.delete(`/workspaces/${wsId}/assignment-rules/${ruleId}`);
 }

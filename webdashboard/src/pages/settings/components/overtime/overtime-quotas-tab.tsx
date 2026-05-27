@@ -3,8 +3,8 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { Typography } from "@/components/ui/typography";
-import { useWorkspaceConfigs, useDeleteWorkspaceConfig } from "@/hooks/use-workspace-config";
 import { useConfirm } from "@/hooks/use-confirm";
+import { useWorkspaceConfigs, useDeleteWorkspaceConfig } from "@/hooks/use-workspace-config";
 
 import { UpsertConfigModal } from "./upsert-config-modal";
 
@@ -88,7 +88,7 @@ export function OvertimeQuotasTab({ wsId }: { wsId: string }) {
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-sm font-medium">
               {otConfigs.map((cfg) => (
-                <tr key={cfg.id} className="hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors">
+                <tr className="hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors" key={cfg.id}>
                   <td className="p-4">
                     <span className="font-mono text-xs bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-md">
                       {cfg.config_key}
@@ -96,7 +96,7 @@ export function OvertimeQuotasTab({ wsId }: { wsId: string }) {
                   </td>
                   <td className="p-4 capitalize">
                     {cfg.scope_type}
-                    {cfg.scope_id && <span className="ml-2 text-xs text-slate-400">({cfg.scope_id})</span>}
+                    {!!cfg.scope_id && <span className="ml-2 text-xs text-slate-400">({cfg.scope_id})</span>}
                   </td>
                   <td className="p-4">
                     {cfg.value_int !== null && cfg.value_int !== undefined ? cfg.value_int : ""}
@@ -110,7 +110,7 @@ export function OvertimeQuotasTab({ wsId }: { wsId: string }) {
                     <div className="flex justify-end gap-2">
                       <button
                         className="p-2 text-slate-400 hover:text-blue-600 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl transition-colors"
-                        onClick={() => handleEdit(cfg)}
+                        onClick={() => { handleEdit(cfg); }}
                       >
                         <Edit2 className="w-4 h-4" />
                       </button>
@@ -130,11 +130,11 @@ export function OvertimeQuotasTab({ wsId }: { wsId: string }) {
         </div>
       )}
 
-      {upsertModalOpen && (
+      {!!upsertModalOpen && (
         <UpsertConfigModal
           config={selectedConfig}
           isOpen={upsertModalOpen}
-          onClose={() => setUpsertModalOpen(false)}
+          onClose={() => { setUpsertModalOpen(false); }}
           wsId={wsId}
         />
       )}

@@ -1,5 +1,5 @@
-import { apiClient } from './client';
 import { ApprovalActionLog } from './approval-workflows';
+import { apiClient } from './client';
 
 export type OtRequestStatus = 
   | 'draft' 
@@ -14,34 +14,34 @@ export type OtRequestStatus =
 export type ConsentStatus = 'pending' | 'accepted' | 'declined';
 
 export interface OvertimeRequestEmployee {
-  id: string;
-  employee_id: string;
-  consent_status: ConsentStatus;
-  consent_at?: string;
-  decline_reason?: string;
   actual_ot_minutes?: number;
+  consent_at?: string;
+  consent_status: ConsentStatus;
+  decline_reason?: string;
+  employee_id: string;
+  employee_id_number?: string;
   // Included from joined tables
   full_name?: string;
-  employee_id_number?: string;
+  id: string;
 }
 
 export interface OvertimeRequest {
-  id: string;
-  workspace_id: string;
-  requested_by_user_id: string;
+  created_at: string;
+  current_step: number;
   department_id?: string;
+  employees?: OvertimeRequestEmployee[];
+  id: string;
   planned_date: string;
-  planned_start_time?: string;
   planned_end_time?: string;
   planned_minutes: number;
-  reason: string;
-  status: OtRequestStatus;
-  workflow_id?: string;
-  current_step: number;
+  planned_start_time?: string;
   quota_warning?: any;
-  created_at: string;
+  reason: string;
+  requested_by_user_id: string;
+  status: OtRequestStatus;
   updated_at: string;
-  employees?: OvertimeRequestEmployee[];
+  workflow_id?: string;
+  workspace_id: string;
 }
 
 export interface OvertimeRequestDetail extends OvertimeRequest {
@@ -50,12 +50,12 @@ export interface OvertimeRequestDetail extends OvertimeRequest {
 
 export interface CreateOvertimeRequestPayload {
   department_id?: string;
+  employees: string[];
   planned_date: string;
-  planned_start_time?: string;
   planned_end_time?: string;
   planned_minutes: number;
+  planned_start_time?: string;
   reason: string;
-  employees: string[];
 }
 
 export interface QuotaSummary {

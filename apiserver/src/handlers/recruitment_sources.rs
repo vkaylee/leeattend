@@ -22,7 +22,7 @@ pub async fn get_recruitment_sources(
 
     let sources = state
         .employees
-        .service
+        .recruitment_service
         .get_recruitment_sources(&ctx.auth_token)
         .await?;
     Ok(Json(sources))
@@ -36,7 +36,7 @@ pub async fn create_recruitment_source(
     ctx.require_permission(Permission::RecruitmentManage)?;
     let source = state
         .employees
-        .service
+        .recruitment_service
         .create_recruitment_source(&ctx.auth_token, req)
         .await?;
     Ok((StatusCode::CREATED, Json(source)))
@@ -51,7 +51,7 @@ pub async fn update_recruitment_source(
     ctx.require_permission(Permission::RecruitmentManage)?;
     let source = state
         .employees
-        .service
+        .recruitment_service
         .update_recruitment_source(id, &ctx.auth_token, req)
         .await?;
     Ok(Json(source))
@@ -65,7 +65,7 @@ pub async fn delete_recruitment_source(
     ctx.require_permission(Permission::RecruitmentManage)?;
     state
         .employees
-        .service
+        .recruitment_service
         .delete_recruitment_source(id, &ctx.auth_token)
         .await?;
     Ok(StatusCode::NO_CONTENT)
@@ -80,7 +80,7 @@ pub async fn get_recruitment_source_breakdown(
 
     let breakdown = state
         .employees
-        .service
+        .recruitment_service
         .get_recruitment_source_breakdown(&ctx.auth_token)
         .await?;
     Ok(Json(breakdown))
@@ -106,7 +106,7 @@ pub async fn get_turnover_analytics(
 
     let analytics = state
         .employees
-        .service
+        .recruitment_service
         .get_turnover_analytics(&ctx.auth_token, start, end)
         .await?;
     Ok(Json(analytics))

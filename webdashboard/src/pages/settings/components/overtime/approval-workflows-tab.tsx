@@ -74,7 +74,7 @@ export function ApprovalWorkflowsTab({ wsId }: { wsId: string }) {
       ) : (
         <div className="grid grid-cols-1 gap-4">
           {workflows.map((wf) => (
-            <div key={wf.id} className="bg-slate-50 dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 p-6 flex flex-col md:flex-row gap-6 justify-between items-start md:items-center">
+            <div className="bg-slate-50 dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 p-6 flex flex-col md:flex-row gap-6 justify-between items-start md:items-center" key={wf.id}>
               <div className="flex-1 space-y-3">
                 <div className="flex items-center gap-3">
                   <span className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-widest ${
@@ -91,14 +91,14 @@ export function ApprovalWorkflowsTab({ wsId }: { wsId: string }) {
                     {wf.entity_type}
                   </span>
                 </div>
-                {wf.description && (
+                {!!wf.description && (
                   <Typography className="text-sm text-slate-500 dark:text-slate-400">
                     {wf.description}
                   </Typography>
                 )}
                 
                 {/* Workflow Steps Preview */}
-                {wf.steps && wf.steps.length > 0 && (
+                {!!wf.steps && wf.steps.length > 0 && (
                   <div className="flex items-center gap-2 pt-2 overflow-x-auto custom-scrollbar pb-2">
                     {wf.steps.map((step, idx) => (
                       <React.Fragment key={step.id}>
@@ -122,7 +122,7 @@ export function ApprovalWorkflowsTab({ wsId }: { wsId: string }) {
               <div className="flex gap-2 shrink-0">
                 <button
                   className="p-2 text-slate-400 hover:text-blue-600 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl transition-colors"
-                  onClick={() => handleEdit(wf)}
+                  onClick={() => { handleEdit(wf); }}
                 >
                   <Edit2 className="w-4 h-4" />
                 </button>
@@ -139,10 +139,10 @@ export function ApprovalWorkflowsTab({ wsId }: { wsId: string }) {
         </div>
       )}
 
-      {upsertModalOpen && (
+      {!!upsertModalOpen && (
         <UpsertWorkflowModal
           isOpen={upsertModalOpen}
-          onClose={() => setUpsertModalOpen(false)}
+          onClose={() => { setUpsertModalOpen(false); }}
           workflow={selectedWorkflow}
           wsId={wsId}
         />

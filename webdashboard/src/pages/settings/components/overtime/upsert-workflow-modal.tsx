@@ -1,14 +1,14 @@
-import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus, Trash2 } from "lucide-react";
 import React, { useEffect } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { useTranslation } from "react-i18next";
+
+import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
 import { Modal } from "@/components/common/modal";
 import { useToast } from "@/components/ui/toast";
 import { useCreateApprovalWorkflow, useUpdateApprovalWorkflow } from "@/hooks/use-approval-workflows";
-import { ApproverType } from "@/lib/api/types";
 
 const workflowStepSchema = z.object({
   step_order: z.number().min(1),
@@ -106,7 +106,7 @@ export function UpsertWorkflowModal({
           return {
             step_order: s.step_order,
             step_name: s.step_name,
-            approver_type: s.approver_type as ApproverType,
+            approver_type: s.approver_type,
             approver_config: parsedConfig,
             action_required: s.action_required,
             can_skip: s.can_skip,
@@ -131,8 +131,8 @@ export function UpsertWorkflowModal({
   const isPending = isCreating || isUpdating;
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={workflow ? "Edit Workflow" : "New Workflow"} size="xl">
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+    <Modal isOpen={isOpen} onClose={onClose} size="xl" title={workflow ? "Edit Workflow" : "New Workflow"}>
+      <form className="space-y-8" onSubmit={form.handleSubmit(onSubmit)}>
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1">
             <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest">Name</label>
@@ -141,9 +141,7 @@ export function UpsertWorkflowModal({
               className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
               placeholder="e.g. Standard OT Approval"
             />
-            {form.formState.errors.name && (
-              <p className="text-rose-500 text-xs mt-1">{form.formState.errors.name.message}</p>
-            )}
+            {!!form.formState.errors.name && <p className="text-rose-500 text-xs mt-1">{form.formState.errors.name.message}</p>}
           </div>
           <div className="space-y-1">
             <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest">Entity Type</label>
@@ -168,24 +166,24 @@ export function UpsertWorkflowModal({
         </div>
 
         <div className="flex items-center gap-2">
-          <input type="checkbox" id="is_active" {...form.register("is_active")} className="w-4 h-4 text-blue-600 rounded border-slate-300" />
-          <label htmlFor="is_active" className="text-sm font-medium text-slate-700 dark:text-slate-300">Active Workflow</label>
+          <input id="is_active" type="checkbox" {...form.register("is_active")} className="w-4 h-4 text-blue-600 rounded border-slate-300" />
+          <label className="text-sm font-medium text-slate-700 dark:text-slate-300" htmlFor="is_active">Active Workflow</label>
         </div>
 
         <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
           <div className="flex justify-between items-center mb-4">
             <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">Approval Steps</h4>
             <button
-              type="button"
               className="flex items-center gap-1 text-xs font-bold text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-colors"
-              onClick={() => append({
+              onClick={() => { append({
                 step_order: fields.length + 1,
                 step_name: `Step ${fields.length + 1}`,
                 approver_type: "department_manager",
                 approver_config_str: "{}",
                 action_required: "approve",
                 can_skip: false,
-              })}
+              }); }}
+              type="button"
             >
               <Plus className="w-3 h-3" />
               Add Step
@@ -194,11 +192,11 @@ export function UpsertWorkflowModal({
 
           <div className="space-y-4">
             {fields.map((field, index) => (
-              <div key={field.id} className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 relative">
+              <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 relative" key={field.id}>
                 <button
-                  type="button"
-                  onClick={() => remove(index)}
                   className="absolute top-4 right-4 text-slate-400 hover:text-rose-500 transition-colors"
+                  onClick={() => { remove(index); }}
+                  type="button"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
@@ -243,8 +241,8 @@ export function UpsertWorkflowModal({
                     </select>
                   </div>
                   <div className="flex items-center gap-2 pt-6">
-                    <input type="checkbox" id={`skip-${index}`} {...form.register(`steps.${index}.can_skip` as const)} className="w-4 h-4" />
-                    <label htmlFor={`skip-${index}`} className="text-xs font-medium text-slate-600">Can Skip if Not Found</label>
+                    <input id={`skip-${index}`} type="checkbox" {...form.register(`steps.${index}.can_skip` as const)} className="w-4 h-4" />
+                    <label className="text-xs font-medium text-slate-600" htmlFor={`skip-${index}`}>Can Skip if Not Found</label>
                   </div>
                 </div>
                 
@@ -264,16 +262,16 @@ export function UpsertWorkflowModal({
 
         <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
           <button
-            type="button"
             className="px-5 py-2.5 rounded-xl font-bold text-sm text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
             onClick={onClose}
+            type="button"
           >
             {t("common.cancel")}
           </button>
           <button
-            type="submit"
-            disabled={isPending}
             className="px-5 py-2.5 rounded-xl font-bold text-sm bg-blue-600 hover:bg-blue-700 text-white shadow-sm transition-all disabled:opacity-50"
+            disabled={isPending}
+            type="submit"
           >
             {isPending ? t("common.saving") : t("common.save")}
           </button>
