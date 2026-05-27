@@ -11,26 +11,26 @@ pub trait OvertimeRequestRepository: Send + Sync {
         request: OvertimeRequest,
         employees: Vec<OvertimeRequestEmployee>,
     ) -> Result<OvertimeRequest, AppError>;
-    
+
     async fn update_request(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
         request: OvertimeRequest,
     ) -> Result<OvertimeRequest, AppError>;
-    
+
     async fn get_request(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
         workspace_id: Uuid,
         request_id: Uuid,
     ) -> Result<Option<OvertimeRequest>, AppError>;
-    
+
     async fn get_request_employees(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
         request_id: Uuid,
     ) -> Result<Vec<OvertimeRequestEmployee>, AppError>;
-    
+
     async fn update_employee_consent(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,

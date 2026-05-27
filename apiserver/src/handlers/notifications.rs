@@ -9,6 +9,20 @@ use axum::{
 use std::sync::Arc;
 use uuid::Uuid;
 
+#[utoipa::path(
+    get,
+    path = "/v1/notifications",
+    params(
+        ("limit" = Option<i64>, Query, description = "Number of notifications to return"),
+        ("cursor" = Option<DateTime<Utc>>, Query, description = "Pagination cursor")
+    ),
+    responses(
+        (status = 200, description = "List of notifications", body = NotificationResponse)
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 pub async fn get_notifications(
     State(state): State<Arc<AppState>>,
     UserId(user_id): UserId,
@@ -42,6 +56,16 @@ pub async fn get_notifications(
     }))
 }
 
+#[utoipa::path(
+    get,
+    path = "/v1/notifications/unread-count",
+    responses(
+        (status = 200, description = "Unread notification count", body = UnreadCountResponse)
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 pub async fn get_unread_count(
     State(state): State<Arc<AppState>>,
     UserId(user_id): UserId,
@@ -54,6 +78,19 @@ pub async fn get_unread_count(
     Ok(Json(UnreadCountResponse { count }))
 }
 
+#[utoipa::path(
+    patch,
+    path = "/v1/notifications/{id}/read",
+    params(
+        ("id" = Uuid, Path, description = "Notification ID")
+    ),
+    responses(
+        (status = 200, description = "Notification marked as read")
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 pub async fn mark_as_read(
     State(state): State<Arc<AppState>>,
     UserId(user_id): UserId,
@@ -67,6 +104,16 @@ pub async fn mark_as_read(
     Ok(Json(()))
 }
 
+#[utoipa::path(
+    post,
+    path = "/v1/notifications/read-all",
+    responses(
+        (status = 200, description = "All notifications marked as read")
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 pub async fn mark_all_as_read(
     State(state): State<Arc<AppState>>,
     UserId(user_id): UserId,

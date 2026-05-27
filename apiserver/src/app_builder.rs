@@ -326,10 +326,10 @@ impl AppState {
         > = Arc::new(crate::repositories::DieselSalaryBaseRepository::new(
             diesel_pools.clone(),
         ));
-        
+
         let workspace_config_repo: Arc<dyn crate::repositories::workspace_config_repository::WorkspaceConfigRepository> =
             Arc::new(crate::repositories::diesel_workspace_config_repository::DieselWorkspaceConfigRepository::new(diesel_pools.clone()));
-            
+
         let approval_workflow_repo: Arc<dyn crate::repositories::approval_workflow_repository::ApprovalWorkflowRepository> =
             Arc::new(crate::repositories::diesel_approval_workflow_repository::DieselApprovalWorkflowRepository::new(diesel_pools.clone()));
 
@@ -339,11 +339,11 @@ impl AppState {
         let workspace_config_service = Arc::new(crate::services::WorkspaceConfigService::new(
             workspace_config_repo.clone(),
         ));
-        
+
         let approval_workflow_service = Arc::new(crate::services::ApprovalWorkflowService::new(
             approval_workflow_repo.clone(),
         ));
-        
+
         let overtime_request_service = Arc::new(crate::services::OvertimeRequestService::new(
             overtime_request_repo.clone(),
         ));
@@ -486,14 +486,16 @@ impl AppState {
         let user_repo_core = user_repo.clone();
 
         // Create a separate reference for the recruitment repository trait
-        let recruitment_repo: Arc<dyn crate::repositories::employee::EmployeeRecruitmentRepository> = Arc::new(
+        let recruitment_repo: Arc<
+            dyn crate::repositories::employee::EmployeeRecruitmentRepository,
+        > = Arc::new(
             crate::repositories::diesel_employee_repository::DieselEmployeeRepository::new(
                 diesel_pools.clone(),
             ),
         );
-        let recruitment_service = Arc::new(crate::services::RecruitmentService::new(
-            Arc::clone(&recruitment_repo),
-        ));
+        let recruitment_service = Arc::new(crate::services::RecruitmentService::new(Arc::clone(
+            &recruitment_repo,
+        )));
 
         let state = Arc::new(AppState {
             employees: crate::EmployeeState {

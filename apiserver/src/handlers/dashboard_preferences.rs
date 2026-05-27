@@ -9,7 +9,7 @@ use crate::AppState;
 
 // ── Response / Request types ───────────────────────────────────────
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, utoipa::ToSchema)]
 pub struct DashboardPreferences {
     pub id: Uuid,
     pub user_id: Uuid,
@@ -20,7 +20,7 @@ pub struct DashboardPreferences {
     pub collapsed_sections: serde_json::Value,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, utoipa::ToSchema)]
 pub struct UpdateDashboardPreferences {
     pub active_view: Option<String>,
     pub visible_widgets: Option<serde_json::Value>,
@@ -75,6 +75,16 @@ fn default_collapsed_sections() -> serde_json::Value {
 /// GET /dashboard/preferences
 /// Returns the current user's dashboard preferences for their active workspace.
 /// If none exist, returns smart defaults without persisting.
+#[utoipa::path(
+    get,
+    path = "/v1/dashboard/preferences",
+    responses(
+        (status = 200, description = "Dashboard preferences", body = DashboardPreferences)
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 pub async fn get_dashboard_preferences(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -107,6 +117,17 @@ pub async fn get_dashboard_preferences(
 
 /// PUT /dashboard/preferences
 /// Creates or updates the current user's dashboard preferences (upsert).
+#[utoipa::path(
+    put,
+    path = "/v1/dashboard/preferences",
+    request_body = UpdateDashboardPreferences,
+    responses(
+        (status = 200, description = "Dashboard preferences updated", body = DashboardPreferences)
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 pub async fn update_dashboard_preferences(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,

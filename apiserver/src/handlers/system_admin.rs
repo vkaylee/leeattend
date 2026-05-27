@@ -50,6 +50,13 @@ pub struct AssignSystemRoleRequest {
 /// GET /system/roles
 /// List all system roles with their current assignees.
 /// Requires: PlatformAdmin
+#[utoipa::path(
+    get,
+    path = "/system/roles",
+    responses(
+        (status = 200, description = "List of system roles with assignees", body = [SystemRoleInfo])
+    )
+)]
 pub async fn list_system_roles(
     State(state): State<Arc<AppState>>,
     ctx: SystemContext,
@@ -145,9 +152,19 @@ pub async fn list_system_roles(
     Ok(Json(result))
 }
 
-/// GET /system/users/:user_id/roles
+/// GET /system/users/{user_id}/roles
 /// Get all system roles held by a specific user.
 /// Requires: PlatformAdmin
+#[utoipa::path(
+    get,
+    path = "/system/users/{user_id}/roles",
+    params(
+        ("user_id" = Uuid, Path, description = "User ID")
+    ),
+    responses(
+        (status = 200, description = "List of role names held by the user", body = [String])
+    )
+)]
 pub async fn get_user_system_roles(
     Path(user_id): Path<Uuid>,
     State(state): State<Arc<AppState>>,
@@ -189,9 +206,20 @@ pub async fn get_user_system_roles(
     Ok(Json(roles.into_iter().map(|r| r.name).collect()))
 }
 
-/// POST /system/users/:user_id/roles
+/// POST /system/users/{user_id}/roles
 /// Assign a system role to a user.
-/// Requires: PlatformAdmin (only platform admins can grant system roles)
+/// Requires: PlatformAdmin
+#[utoipa::path(
+    post,
+    path = "/system/users/{user_id}/roles",
+    params(
+        ("user_id" = Uuid, Path, description = "User ID")
+    ),
+    request_body = AssignSystemRoleRequest,
+    responses(
+        (status = 204, description = "System role assigned successfully")
+    )
+)]
 pub async fn assign_system_role(
     Path(user_id): Path<Uuid>,
     State(state): State<Arc<AppState>>,
@@ -259,15 +287,27 @@ pub async fn assign_system_role(
     Ok(StatusCode::NO_CONTENT)
 }
 
-/// DELETE /system/users/:user_id/roles/:role_name
+/// DELETE /system/users/{user_id}/roles/{role_name}
 /// Revoke a system role from a user.
 /// Requires: PlatformAdmin
+#[utoipa::path(
+    delete,
+    path = "/system/users/{user_id}/roles/{role_name}",
+    params(
+        ("user_id" = Uuid, Path, description = "User ID"),
+        ("role_name" = String, Path, description = "Role Name")
+    ),
+    responses(
+        (status = 204, description = "System role revoked successfully")
+    )
+)]
 pub async fn revoke_system_role(
-    Path((user_id, role_name)): Path<(Uuid, String)>,
+    Path(params): Path<(Uuid, String)>,
     State(state): State<Arc<AppState>>,
     ctx: SystemContext,
     _api_ctx: ApiContext,
 ) -> AppResult<StatusCode> {
+    let (user_id, role_name) = params;
     ctx.require_role(SystemRoleType::PlatformAdmin)?;
 
     let mut conn = state
@@ -348,6 +388,13 @@ pub async fn revoke_system_role(
 /// GET /system/health
 /// Simple system health endpoint.
 /// Requires: Support or PlatformAdmin (monitoring access)
+#[utoipa::path(
+    get,
+    path = "/system/health",
+    responses(
+        (status = 200, description = "System health check status", body = serde_json::Value)
+    )
+)]
 pub async fn system_health(
     ctx: SystemContext,
     _api_ctx: ApiContext,

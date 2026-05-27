@@ -1,27 +1,52 @@
 use crate::common::{app::spawn_app_with_factory, factory::TestFactory};
-use reqwest::StatusCode;
 use reqwest::Client;
+use reqwest::StatusCode;
 use uuid::Uuid;
 
 #[tokio::test]
 async fn test_overtime_request_full_flow() {
     let (app_addr, admin_ws_id, admin_user_id, factory, _db) = spawn_app_with_factory().await;
-    
+
     let manager_user_id = factory.user().create().await;
     let employee_user_id = factory.user().create().await;
-    
+
     // Assign roles to users
-    factory.add_member(admin_ws_id, manager_user_id, Uuid::parse_str("a0000000-0000-0000-0000-000000000005").unwrap()).await;
-    factory.add_member(admin_ws_id, employee_user_id, Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap()).await;
-    
-    let manager_emp_id = factory.employee().with_user(manager_user_id).with_workspace(admin_ws_id).create().await;
-    let employee_emp_id = factory.employee().with_user(employee_user_id).with_workspace(admin_ws_id).create().await;
+    factory
+        .add_member(
+            admin_ws_id,
+            manager_user_id,
+            Uuid::parse_str("a0000000-0000-0000-0000-000000000005").unwrap(),
+        )
+        .await;
+    factory
+        .add_member(
+            admin_ws_id,
+            employee_user_id,
+            Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap(),
+        )
+        .await;
+
+    let manager_emp_id = factory
+        .employee()
+        .with_user(manager_user_id)
+        .with_workspace(admin_ws_id)
+        .create()
+        .await;
+    let employee_emp_id = factory
+        .employee()
+        .with_user(employee_user_id)
+        .with_workspace(admin_ws_id)
+        .create()
+        .await;
 
     let mut manager_client = Client::builder()
         .default_headers({
             let mut headers = reqwest::header::HeaderMap::new();
             let token = factory.auth().create_token(manager_user_id);
-            headers.insert(reqwest::header::AUTHORIZATION, reqwest::header::HeaderValue::from_str(&format!("Bearer {}", token)).unwrap());
+            headers.insert(
+                reqwest::header::AUTHORIZATION,
+                reqwest::header::HeaderValue::from_str(&format!("Bearer {}", token)).unwrap(),
+            );
             headers
         })
         .build()
@@ -31,18 +56,21 @@ async fn test_overtime_request_full_flow() {
         .default_headers({
             let mut headers = reqwest::header::HeaderMap::new();
             let token = factory.auth().create_token(admin_user_id);
-            headers.insert(reqwest::header::AUTHORIZATION, reqwest::header::HeaderValue::from_str(&format!("Bearer {}", token)).unwrap());
+            headers.insert(
+                reqwest::header::AUTHORIZATION,
+                reqwest::header::HeaderValue::from_str(&format!("Bearer {}", token)).unwrap(),
+            );
             headers
         })
         .build()
         .unwrap();
 
     // 2. Setup EAV Configs (Quotas)
-    
+
     // Explicitly grant permissions for the test
     crate::test_execute!(
         &factory.diesel_pools.api,
-        "INSERT INTO workspace_role_permissions (role_id, permission_name) VALUES 
+        "INSERT INTO workspace_role_permissions (role_id, permission_name) VALUES
         ('a0000000-0000-0000-0000-000000000001', 'approval_workflows:manage'),
         ('a0000000-0000-0000-0000-000000000001', 'approval_workflows:read'),
         ('a0000000-0000-0000-0000-000000000005', 'overtime:request:create'),
@@ -129,6 +157,6 @@ async fn test_overtime_request_full_flow() {
         .unwrap();
 
     assert_eq!(res.status(), StatusCode::OK);
-    
+
     // Note: To fully test the flow, we'd extract the Request ID and simulate the manager approving it and the employee consenting to it.
 }

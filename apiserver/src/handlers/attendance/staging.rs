@@ -20,7 +20,7 @@ pub struct StagingLogsQuery {
     pub limit: Option<i64>,
 }
 
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug, serde::Serialize, utoipa::ToSchema)]
 pub struct StagingLogResponse {
     pub id: Uuid,
     pub workspace_id: Uuid,
@@ -47,7 +47,7 @@ impl From<StagingLog> for StagingLogResponse {
     }
 }
 
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug, serde::Serialize, utoipa::ToSchema)]
 pub struct StagingLogsResponse {
     pub data: Vec<StagingLogResponse>,
     pub total: i64,
@@ -57,6 +57,19 @@ pub struct StagingLogsResponse {
 
 /// GET /workspaces/:ws_id/attendance/staging-logs
 /// List pending staging logs (unknown users)
+#[utoipa::path(
+    get,
+    path = "/v1/workspaces/{ws_id}/attendance/staging-logs",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID")
+    ),
+    responses(
+        (status = 200, description = "List pending staging logs", body = StagingLogsResponse)
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 pub async fn get_staging_logs(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -89,7 +102,7 @@ pub async fn get_staging_logs(
     Ok(Json(response))
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, utoipa::ToSchema)]
 pub struct ResolveStagingLogRequest {
     pub employee_id: Uuid,
 }
@@ -97,12 +110,28 @@ pub struct ResolveStagingLogRequest {
 /// POST /workspaces/:ws_id/attendance/staging-logs/:id/resolve
 /// Manually assign a staging log to an employee.
 /// Uses FOR UPDATE NOWAIT to prevent double-resolve race conditions.
+#[utoipa::path(
+    post,
+    path = "/v1/workspaces/{ws_id}/attendance/staging-logs/{id}/resolve",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        ("id" = Uuid, Path, description = "Staging Log ID")
+    ),
+    request_body = ResolveStagingLogRequest,
+    responses(
+        (status = 200, description = "Log resolved successfully")
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 pub async fn resolve_staging_log(
-    Path((_, log_id)): Path<(Uuid, Uuid)>,
+    Path(__path_params): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
     Json(req): Json<ResolveStagingLogRequest>,
 ) -> AppResult<(StatusCode, &'static str)> {
+    let (_, log_id) = __path_params;
     ctx.require_permission(Permission::AttendanceStagingManage)?;
 
     let raw_log = state
@@ -126,11 +155,26 @@ pub async fn resolve_staging_log(
 
 /// DELETE /workspaces/:ws_id/attendance/staging-logs/:id
 /// Dismiss a staging log (mark as dismissed without processing)
+#[utoipa::path(
+    delete,
+    path = "/v1/workspaces/{ws_id}/attendance/staging-logs/{id}",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        ("id" = Uuid, Path, description = "Staging Log ID")
+    ),
+    responses(
+        (status = 204, description = "Log dismissed successfully")
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 pub async fn dismiss_staging_log(
-    Path((_, log_id)): Path<(Uuid, Uuid)>,
+    Path(__path_params): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> AppResult<StatusCode> {
+    let (_, log_id) = __path_params;
     ctx.require_permission(Permission::AttendanceStagingManage)?;
 
     let updated = state

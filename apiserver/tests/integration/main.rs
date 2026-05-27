@@ -33,6 +33,6 @@ pub mod feature_flags;
 pub mod misc;
 pub mod monitor;
 pub mod notifications;
+pub mod overtime;
 pub mod shift;
 pub mod system;
-pub mod overtime;

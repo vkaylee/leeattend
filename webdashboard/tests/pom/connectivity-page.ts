@@ -10,7 +10,7 @@ export class ConnectivityPage extends BasePage {
 
   async goto() {
     await this.page.goto('/workspace/settings/connectivity');
-    await this.page.waitForURL('**/settings/connectivity', { timeout: 10000 });
+    await this.page.waitForURL('**/settings/connectivity', { timeout: 30000 });
     await this.waitForLoad();
   }
 

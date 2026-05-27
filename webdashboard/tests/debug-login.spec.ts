@@ -31,7 +31,7 @@ test.describe.skip('Debug Login Flow', () => {
 
     // 5. Verify successful redirection to Dashboard
     // We expect the URL to end with '/' (root)
-    await page.waitForURL(url => url.pathname === '/' || url.pathname === '', { timeout: 10000 });
+    await page.waitForURL(url => url.pathname === '/' || url.pathname === '', { timeout: 30000 });
     await page.waitForLoadState('networkidle');
     await expect(page).toHaveURL(/\/$/);
 

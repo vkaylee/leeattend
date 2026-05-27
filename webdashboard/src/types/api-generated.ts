@@ -4,6 +4,23 @@
  */
 
 export interface paths {
+    "/agent/{agent_id}/command": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** POST /agent/{agent_id}/command */
+        post: operations["send_command"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/agents": {
         parameters: {
             query?: never;
@@ -131,6 +148,60 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["register"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/authorized-agents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /authorized-agents */
+        get: operations["get_authorized_agents"];
+        put?: never;
+        /** POST /authorized-agents */
+        post: operations["create_authorized_agent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/authorized-agents/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /authorized-agents/{id} */
+        get: operations["get_authorized_agent_by_id"];
+        put?: never;
+        post?: never;
+        /** DELETE /authorized-agents/{id} */
+        delete: operations["delete_authorized_agent"];
+        options?: never;
+        head?: never;
+        /** PATCH /authorized-agents/{id} */
+        patch: operations["update_authorized_agent"];
+        trace?: never;
+    };
+    "/authorized-agents/{id}/trust": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** PUT /authorized-agents/{id}/trust */
+        put: operations["update_agent_trust"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -273,6 +344,42 @@ export interface paths {
             cookie?: never;
         };
         get: operations["get_devices"];
+        put?: never;
+        /** POST /devices */
+        post: operations["create_device"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/devices/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** PUT /devices/{id} */
+        put: operations["update_device"];
+        post?: never;
+        /** DELETE /devices/{id} */
+        delete: operations["delete_device"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/devices/{id}/info": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /devices/{id}/info */
+        get: operations["get_device_info_on_demand"];
         put?: never;
         post?: never;
         delete?: never;
@@ -550,6 +657,285 @@ export interface paths {
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/monitor/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get combined monitor overview: stats + worker list in a single call.
+         * @description Route: GET /monitor/overview
+         *     Requires: PlatformAdmin or Support
+         */
+        get: operations["get_monitor_overview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/system/db-clusters": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET /system/db-clusters
+         *     List all system database clusters.
+         */
+        get: operations["list_db_clusters"];
+        put?: never;
+        /**
+         * POST /system/db-clusters
+         *     Create a new database cluster.
+         */
+        post: operations["create_db_cluster"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/system/db-clusters/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * DELETE /system/db-clusters/{id}
+         *     Delete a database cluster by ID.
+         */
+        delete: operations["delete_db_cluster"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/system/db-clusters/{id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * PATCH /system/db-clusters/{id}/status
+         *     Update the active status of a database cluster.
+         */
+        patch: operations["update_db_cluster_status"];
+        trace?: never;
+    };
+    "/system/health": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET /system/health
+         *     Simple system health endpoint.
+         *     Requires: Support or PlatformAdmin (monitoring access)
+         */
+        get: operations["system_health"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/system/roles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET /system/roles
+         *     List all system roles with their current assignees.
+         *     Requires: PlatformAdmin
+         */
+        get: operations["list_system_roles"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/system/tenants": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET /system/tenants
+         *     Retrieves the list of all tenants registered in Supavisor.
+         */
+        get: operations["list_tenants"];
+        put?: never;
+        /**
+         * POST /system/tenants
+         *     Creates a new tenant (and optionally a physical DB) and registers it in Supavisor.
+         */
+        post: operations["create_tenant"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/system/tenants/stale": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET /system/tenants/stale
+         *     Compares registered Supavisor tenants against active workspaces to
+         *     identify orphaned (stale) tenant configurations.
+         */
+        get: operations["list_stale_tenants"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/system/tenants/{tenant_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * DELETE /system/tenants/{tenant_id}
+         *     Removes a tenant from Supavisor connection pool.
+         */
+        delete: operations["delete_tenant_handler"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/system/tenants/{tenant_id}/database": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * PUT /system/tenants/{tenant_id}/database
+         *     Updates a tenant's database connection URL and registers it in Supavisor.
+         */
+        put: operations["update_tenant_database"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/system/tenants/{tenant_id}/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET /system/tenants/{tenant_id}/stats
+         *     Retrieves tenant configuration and stats from Supavisor API.
+         */
+        get: operations["get_tenant_stats"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/system/users/{user_id}/roles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET /system/users/{user_id}/roles
+         *     Get all system roles held by a specific user.
+         *     Requires: PlatformAdmin
+         */
+        get: operations["get_user_system_roles"];
+        put?: never;
+        /**
+         * POST /system/users/{user_id}/roles
+         *     Assign a system role to a user.
+         *     Requires: PlatformAdmin
+         */
+        post: operations["assign_system_role"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/system/users/{user_id}/roles/{role_name}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * DELETE /system/users/{user_id}/roles/{role_name}
+         *     Revoke a system role from a user.
+         *     Requires: PlatformAdmin
+         */
+        delete: operations["revoke_system_role"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1266,6 +1652,23 @@ export interface paths {
         post?: never;
         /** DELETE /workspaces/{ws_id}/approval-workflows/{id} */
         delete: operations["delete_workflow"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{ws_id}/audit-logs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /workspaces/{ws_id}/audit-logs */
+        get: operations["get_audit_logs"];
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -2242,6 +2645,9 @@ export interface components {
             /** Format: date */
             start_date: string;
         };
+        AssignSystemRoleRequest: {
+            role_name: components["schemas"]["SystemRoleType"];
+        };
         /** @enum {string} */
         AssigneeType: "workspace" | "department" | "employee";
         AssignmentHistory: {
@@ -2271,6 +2677,27 @@ export interface components {
             on_leave: number;
             /** Format: int64 */
             present: number;
+        };
+        AuditLog: {
+            action: string;
+            actor_email?: string | null;
+            /** Format: uuid */
+            actor_id?: string | null;
+            actor_name?: string | null;
+            actor_type?: string | null;
+            /** Format: date-time */
+            created_at: string;
+            details?: unknown;
+            /** Format: uuid */
+            id: string;
+            ip_address?: string | null;
+            /** Format: uuid */
+            target_resource_id?: string | null;
+            /** Format: uuid */
+            target_user_id?: string | null;
+            user_agent?: string | null;
+            /** Format: uuid */
+            workspace_id: string;
         };
         AuthResponse: {
             access_token: string;
@@ -2352,6 +2779,19 @@ export interface components {
         ContractStatus: "draft" | "active" | "expired" | "terminated";
         /** @enum {string} */
         ContractType: "probation" | "training" | "fixed_term" | "indefinite";
+        CreateAuthorizedAgentRequest: {
+            id: string;
+            /** Format: int32 */
+            max_concurrent_workers?: number | null;
+            name: string;
+            /** Format: int32 */
+            retention_days?: number | null;
+            /** Format: int32 */
+            success_cooldown_secs?: number | null;
+            token: string;
+            /** Format: uuid */
+            workspace_id?: string | null;
+        };
         CreateBaseRequest: {
             description?: string | null;
             name: string;
@@ -2372,6 +2812,14 @@ export interface components {
             notes?: string | null;
             /** Format: date */
             start_date: string;
+        };
+        CreateDbClusterRequest: {
+            admin_database_url: string;
+            is_active: boolean;
+            /** Format: int32 */
+            max_tenants: number;
+            name: string;
+            region: string;
         };
         CreateDepartmentRequest: {
             /** Format: uuid */
@@ -2554,6 +3002,17 @@ export interface components {
             /** Format: uuid */
             target_id: string;
         };
+        CreateTenantRequest: {
+            /**
+             * @description The database connection URL for this tenant (BYOD).
+             *     The database must already exist. The system will run migrations on it.
+             */
+            database_url: string;
+            /** Format: int32 */
+            pool_size?: number | null;
+            /** Format: uuid */
+            workspace_id: string;
+        };
         CreateWorkflowRequest: {
             description?: string | null;
             entity_type: string;
@@ -2582,6 +3041,13 @@ export interface components {
         CreateWorkspaceRequest: {
             database_url?: string | null;
             name: string;
+        };
+        /** @description Date range for report generation. */
+        DateRange: {
+            /** Format: date */
+            end: string;
+            /** Format: date */
+            start: string;
         };
         Department: {
             /** Format: int64 */
@@ -3020,6 +3486,58 @@ export interface components {
             priority: number;
             rule_config: unknown;
         };
+        /**
+         * @description Metadata for tracking overall job progress.
+         *     Stored in Redis with TTL for auto-cleanup.
+         */
+        JobMetadata: {
+            /**
+             * Format: date-time
+             * @description Completion timestamp (if completed)
+             */
+            completed_at?: string | null;
+            /**
+             * Format: int32
+             * @description Completed batch count
+             */
+            completed_batches: number;
+            /**
+             * Format: date-time
+             * @description Job creation timestamp
+             */
+            created_at: string;
+            date_range?: null | components["schemas"]["DateRange"];
+            /** @description Error message (if failed) */
+            error_message?: string | null;
+            /**
+             * Format: int32
+             * @description Failed batch count
+             */
+            failed_batches: number;
+            /**
+             * Format: uuid
+             * @description Unique job identifier (same as parent_job_id in Job)
+             */
+            job_id: string;
+            report_type?: null | components["schemas"]["ReportType"];
+            /**
+             * Format: uuid
+             * @description User who requested the report
+             */
+            requester_id: string;
+            /** @description Current status */
+            status: components["schemas"]["JobStatus"];
+            /**
+             * Format: int32
+             * @description Total number of batches
+             */
+            total_batches: number;
+            /**
+             * Format: uuid
+             * @description Workspace ID
+             */
+            workspace_id: string;
+        };
         /** @description Progress details for a job. */
         JobProgress: {
             /** Format: int32 */
@@ -3031,6 +3549,11 @@ export interface components {
             /** Format: int32 */
             total_batches: number;
         };
+        /**
+         * @description Status of a job in the processing pipeline.
+         * @enum {string}
+         */
+        JobStatus: "pending" | "processing" | "completed" | "failed";
         /** @description Response for job status polling. */
         JobStatusResponse: {
             completed_at?: string | null;
@@ -3189,6 +3712,27 @@ export interface components {
             email: string;
             password: string;
         };
+        /** @description Combined monitor overview response — stats + worker list in one call. */
+        MonitorOverviewResponse: {
+            /** Format: int64 */
+            active_workers: number;
+            /** Format: int64 */
+            completed_today: number;
+            /** Format: int64 */
+            failed_today: number;
+            /** Format: int64 */
+            idle_workers: number;
+            /** Format: int64 */
+            pending_high: number;
+            /** Format: int64 */
+            pending_low: number;
+            /** Format: int64 */
+            pending_tasks: number;
+            recent_jobs: components["schemas"]["JobMetadata"][];
+            /** Format: int64 */
+            total_workers: number;
+            workers: components["schemas"]["WorkerHeartbeat"][];
+        };
         MyProfileResponse: {
             emergency_contacts: components["schemas"]["EmployeeEmergencyContact"][];
             employee: components["schemas"]["Employee"];
@@ -3303,6 +3847,15 @@ export interface components {
             date: string;
             /** Format: double */
             system_ot_hours: number;
+        };
+        PaginatedAuditLogs: {
+            data: components["schemas"]["AuditLog"][];
+            /** Format: int64 */
+            limit: number;
+            /** Format: int64 */
+            page: number;
+            /** Format: int64 */
+            total: number;
         };
         PaginatedEmployees: {
             data: components["schemas"]["Employee"][];
@@ -3510,6 +4063,11 @@ export interface components {
             /** Format: date */
             hire_date: string;
         };
+        /**
+         * @description Report format type.
+         * @enum {string}
+         */
+        ReportType: "summary" | "detail";
         ResolvedConfig: {
             key: string;
             /** Format: uuid */
@@ -3731,6 +4289,46 @@ export interface components {
             /** Format: int64 */
             rejected_this_month: number;
         };
+        SystemDbCluster: {
+            /** Format: int32 */
+            active_tenants: number;
+            admin_database_url: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: uuid */
+            id: string;
+            is_active: boolean;
+            /** Format: int32 */
+            max_tenants: number;
+            name: string;
+            region: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        SystemRoleAssignment: {
+            /** Format: date-time */
+            assigned_at: string;
+            /** Format: uuid */
+            assigned_by?: string | null;
+            role_name: string;
+            /** Format: uuid */
+            user_id: string;
+        };
+        SystemRoleInfo: {
+            assignees: components["schemas"]["SystemRoleAssignment"][];
+            description: string;
+            /** Format: uuid */
+            id: string;
+            name: string;
+        };
+        /**
+         * @description Platform-level roles that govern cross-workspace, infrastructure, and billing operations.
+         *     These are entirely separate from `workspace_roles` which are tenant-scoped.
+         *
+         *     Stored in the `system_roles` table and resolved via `SystemContext` extractor.
+         * @enum {string}
+         */
+        SystemRoleType: "platform_admin" | "support" | "billing_admin";
         TimeEntry: {
             /** Format: date-time */
             created_at: string;
@@ -3765,6 +4363,9 @@ export interface components {
         TriggerAccrualRequest: {
             date: string;
         };
+        TrustAgentRequest: {
+            is_trusted: boolean;
+        };
         UnexcusedAbsencesPoint: {
             /** Format: int64 */
             consecutive_count: number;
@@ -3781,6 +4382,18 @@ export interface components {
             /** Format: int64 */
             unexcused_count: number;
         };
+        UpdateAuthorizedAgentRequest: {
+            is_active?: boolean | null;
+            is_trusted?: boolean | null;
+            /** Format: int32 */
+            max_concurrent_workers?: number | null;
+            name?: string | null;
+            /** Format: int32 */
+            retention_days?: number | null;
+            /** Format: int32 */
+            success_cooldown_secs?: number | null;
+            token?: string | null;
+        };
         UpdateContractRequest: {
             contract_number?: string | null;
             contract_type?: null | components["schemas"]["ContractType"];
@@ -3792,6 +4405,9 @@ export interface components {
             /** Format: date */
             start_date?: string | null;
             status?: null | components["schemas"]["ContractStatus"];
+        };
+        UpdateDbClusterStatusRequest: {
+            is_active: boolean;
         };
         UpdateDepartmentRequest: {
             /** Format: uuid */
@@ -3907,6 +4523,9 @@ export interface components {
             report_symbol?: string | null;
             start_time: string;
         };
+        UpdateTenantDbRequest: {
+            database_url: string;
+        };
         UpdateUserRequest: {
             avatar_url?: string | null;
             bio?: string | null;
@@ -3953,6 +4572,21 @@ export interface components {
             preferred_language?: string | null;
             system_roles?: string[];
         };
+        /** @description Worker heartbeat payload stored in Redis */
+        WorkerHeartbeat: {
+            current_task_type?: string | null;
+            host: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: date-time */
+            last_seen_at: string;
+            status: components["schemas"]["WorkerStatus"];
+        };
+        /**
+         * @description Worker status enum
+         * @enum {string}
+         */
+        WorkerStatus: "IDLE" | "PROCESSING";
         WorkflowStepRequest: {
             action_required: string;
             approver_config: unknown;
@@ -4100,6 +4734,31 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    send_command: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Agent ID */
+                agent_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": unknown;
+            };
+        };
+        responses: {
+            /** @description Command sent successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     get_agents: {
         parameters: {
             query?: never;
@@ -4373,6 +5032,149 @@ export interface operations {
             };
         };
     };
+    get_authorized_agents: {
+        parameters: {
+            query?: {
+                /** @description Include inactive agents */
+                include_inactive?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List all authorized agents */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthorizedAgent"][];
+                };
+            };
+        };
+    };
+    create_authorized_agent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateAuthorizedAgentRequest"];
+            };
+        };
+        responses: {
+            /** @description Authorized agent created successfully */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthorizedAgent"];
+                };
+            };
+        };
+    };
+    get_authorized_agent_by_id: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Agent ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Get authorized agent details */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthorizedAgent"];
+                };
+            };
+        };
+    };
+    delete_authorized_agent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Agent ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Agent deleted/deactivated successfully */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    update_authorized_agent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Agent ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateAuthorizedAgentRequest"];
+            };
+        };
+        responses: {
+            /** @description Agent updated successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthorizedAgent"];
+                };
+            };
+        };
+    };
+    update_agent_trust: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Agent ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TrustAgentRequest"];
+            };
+        };
+        responses: {
+            /** @description Agent trust updated successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     get_attendance_trend: {
         parameters: {
             query?: never;
@@ -4559,6 +5361,99 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Device"][];
+                };
+            };
+        };
+    };
+    create_device: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateDeviceRequest"];
+            };
+        };
+        responses: {
+            /** @description Device created successfully */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Device"];
+                };
+            };
+        };
+    };
+    update_device: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Device ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateDeviceRequest"];
+            };
+        };
+        responses: {
+            /** @description Device updated successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    delete_device: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Device ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Device deleted successfully */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_device_info_on_demand: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Device ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Get device details on demand */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
         };
@@ -4994,6 +5889,360 @@ export interface operations {
         responses: {
             /** @description Get calling user permissions and roles */
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_monitor_overview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Monitor overview statistics and active worker status */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MonitorOverviewResponse"];
+                };
+            };
+        };
+    };
+    list_db_clusters: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of all system database clusters */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SystemDbCluster"][];
+                };
+            };
+        };
+    };
+    create_db_cluster: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateDbClusterRequest"];
+            };
+        };
+        responses: {
+            /** @description Created database cluster successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SystemDbCluster"];
+                };
+            };
+        };
+    };
+    delete_db_cluster: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Database Cluster ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted database cluster successfully */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    update_db_cluster_status: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Database Cluster ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateDbClusterStatusRequest"];
+            };
+        };
+        responses: {
+            /** @description Updated database cluster status successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SystemDbCluster"];
+                };
+            };
+        };
+    };
+    system_health: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description System health check status */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    list_system_roles: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of system roles with assignees */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SystemRoleInfo"][];
+                };
+            };
+        };
+    };
+    list_tenants: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of registered tenants */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    create_tenant: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateTenantRequest"];
+            };
+        };
+        responses: {
+            /** @description Tenant created and registered successfully */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    list_stale_tenants: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of stale/orphaned tenants */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    delete_tenant_handler: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Tenant ID */
+                tenant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Tenant deleted successfully */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    update_tenant_database: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Tenant ID */
+                tenant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateTenantDbRequest"];
+            };
+        };
+        responses: {
+            /** @description Tenant database URL updated successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_tenant_stats: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Tenant ID */
+                tenant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Tenant configuration and statistics */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    get_user_system_roles: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description User ID */
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of role names held by the user */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string[];
+                };
+            };
+        };
+    };
+    assign_system_role: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description User ID */
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AssignSystemRoleRequest"];
+            };
+        };
+        responses: {
+            /** @description System role assigned successfully */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    revoke_system_role: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description User ID */
+                user_id: string;
+                /** @description Role Name */
+                role_name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description System role revoked successfully */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -6806,6 +8055,40 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    get_audit_logs: {
+        parameters: {
+            query?: {
+                /** @description Page number */
+                page?: number;
+                /** @description Items per page */
+                limit?: number;
+                /** @description Filter by action */
+                action?: string;
+                /** @description Filter by start date */
+                start_date?: string;
+                /** @description Filter by end date */
+                end_date?: string;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Paginated list of audit logs */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedAuditLogs"];
+                };
             };
         };
     };

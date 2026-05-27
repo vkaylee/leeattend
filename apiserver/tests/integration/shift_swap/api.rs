@@ -578,7 +578,13 @@ async fn test_same_shift_swap_rejected() {
     let client = reqwest::Client::new();
 
     let hq_loc_id = {
-        let mut conn = s._db.diesel_pools.tenants_tx.get_connection(&s.workspace_id).await.unwrap();
+        let mut conn = s
+            ._db
+            .diesel_pools
+            .tenants_tx
+            .get_connection(&s.workspace_id)
+            .await
+            .unwrap();
         use apiserver::schema::work_locations::dsl::*;
         use diesel::prelude::*;
         use diesel_async::RunQueryDsl;

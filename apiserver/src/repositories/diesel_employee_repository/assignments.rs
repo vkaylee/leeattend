@@ -54,7 +54,11 @@ impl EmployeeAssignmentRepository for DieselEmployeeRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id: Uuid,
     ) -> Result<Vec<EmployeeAssignment>, AppError> {
-        let mut conn = self.diesel_pools.tenants_tx.get_connection(&auth_token.workspace_id()).await?;
+        let mut conn = self
+            .diesel_pools
+            .tenants_tx
+            .get_connection(&auth_token.workspace_id())
+            .await?;
         let assignments = employee_assignments::table
             .filter(employee_assignments::workspace_id.eq(auth_token.workspace_id()))
             .filter(employee_assignments::employee_id.eq(employee_id))
@@ -70,7 +74,11 @@ impl EmployeeAssignmentRepository for DieselEmployeeRepository {
         employee_id: Uuid,
         assignment_id: Uuid,
     ) -> Result<Option<EmployeeAssignment>, AppError> {
-        let mut conn = self.diesel_pools.tenants_tx.get_connection(&auth_token.workspace_id()).await?;
+        let mut conn = self
+            .diesel_pools
+            .tenants_tx
+            .get_connection(&auth_token.workspace_id())
+            .await?;
         let assignment = employee_assignments::table
             .filter(employee_assignments::id.eq(assignment_id))
             .filter(employee_assignments::workspace_id.eq(auth_token.workspace_id()))
@@ -86,7 +94,11 @@ impl EmployeeAssignmentRepository for DieselEmployeeRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         assignment: &NewEmployeeAssignment,
     ) -> Result<EmployeeAssignment, AppError> {
-        let mut conn = self.diesel_pools.tenants_tx.get_connection(&auth_token.workspace_id()).await?;
+        let mut conn = self
+            .diesel_pools
+            .tenants_tx
+            .get_connection(&auth_token.workspace_id())
+            .await?;
         let created = diesel::insert_into(employee_assignments::table)
             .values(assignment)
             .get_result(&mut conn)
@@ -101,7 +113,11 @@ impl EmployeeAssignmentRepository for DieselEmployeeRepository {
         assignment_id: Uuid,
         req: &UpdateEmployeeAssignmentRequest,
     ) -> Result<EmployeeAssignment, AppError> {
-        let mut conn = self.diesel_pools.tenants_tx.get_connection(&auth_token.workspace_id()).await?;
+        let mut conn = self
+            .diesel_pools
+            .tenants_tx
+            .get_connection(&auth_token.workspace_id())
+            .await?;
         let updated = diesel::update(
             employee_assignments::table
                 .filter(employee_assignments::id.eq(assignment_id))
@@ -120,7 +136,11 @@ impl EmployeeAssignmentRepository for DieselEmployeeRepository {
         employee_id: Uuid,
         assignment_id: Uuid,
     ) -> Result<u64, AppError> {
-        let mut conn = self.diesel_pools.tenants_tx.get_connection(&auth_token.workspace_id()).await?;
+        let mut conn = self
+            .diesel_pools
+            .tenants_tx
+            .get_connection(&auth_token.workspace_id())
+            .await?;
         let deleted = diesel::delete(
             employee_assignments::table
                 .filter(employee_assignments::id.eq(assignment_id))

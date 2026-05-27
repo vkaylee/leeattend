@@ -6,11 +6,11 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::{
-    handlers::common::MemberContext,
     errors::AppError,
+    handlers::common::MemberContext,
     models::employee_assignment::{
-        CreateEmployeeAssignmentRequest, EmployeeAssignment, NewEmployeeAssignment,
-        UpdateEmployeeAssignmentRequest, AssignmentStatusEnum
+        AssignmentStatusEnum, CreateEmployeeAssignmentRequest, EmployeeAssignment,
+        NewEmployeeAssignment, UpdateEmployeeAssignmentRequest,
     },
     AppState,
 };
@@ -35,7 +35,9 @@ pub async fn list_employee_assignments(
 ) -> Result<Json<Vec<EmployeeAssignment>>, AppError> {
     let (_ws_id, employee_id) = params;
     let repo = &state.employees.repo;
-    let assignments = repo.list_employee_assignments(&ctx.auth_token, employee_id).await?;
+    let assignments = repo
+        .list_employee_assignments(&ctx.auth_token, employee_id)
+        .await?;
     Ok(Json(assignments))
 }
 
@@ -101,7 +103,9 @@ pub async fn create_employee_assignment(
 
     // Validate that home and host locations are not the same
     if home_location_id == payload.host_location_id {
-        return Err(AppError::Validation("Home location and host location cannot be the same".to_string()));
+        return Err(AppError::Validation(
+            "Home location and host location cannot be the same".to_string(),
+        ));
     }
 
     // Additional validations can be done here (e.g. checking overlapping active assignments)
@@ -118,7 +122,9 @@ pub async fn create_employee_assignment(
         status: AssignmentStatusEnum::Active,
     };
 
-    let created = repo.create_employee_assignment(&ctx.auth_token, &new_assignment).await?;
+    let created = repo
+        .create_employee_assignment(&ctx.auth_token, &new_assignment)
+        .await?;
     Ok(Json(created))
 }
 
@@ -145,7 +151,7 @@ pub async fn update_employee_assignment(
 ) -> Result<Json<EmployeeAssignment>, AppError> {
     let (_ws_id, employee_id, assignment_id) = params;
     let repo = &state.employees.repo;
-    
+
     // Ensure it exists
     repo.get_employee_assignment(&ctx.auth_token, employee_id, assignment_id)
         .await?
@@ -178,14 +184,16 @@ pub async fn delete_employee_assignment(
 ) -> Result<Json<()>, AppError> {
     let (_ws_id, employee_id, assignment_id) = params;
     let repo = &state.employees.repo;
-    
+
     let deleted_count = repo
         .delete_employee_assignment(&ctx.auth_token, employee_id, assignment_id)
         .await?;
-        
+
     if deleted_count == 0 {
-        return Err(AppError::NotFound("Employee assignment not found".to_string()));
+        return Err(AppError::NotFound(
+            "Employee assignment not found".to_string(),
+        ));
     }
-    
+
     Ok(Json(()))
 }

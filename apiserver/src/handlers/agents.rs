@@ -319,6 +319,18 @@ pub async fn get_agents(
     Ok(Json(agents_status))
 }
 
+/// POST /agent/{agent_id}/command
+#[utoipa::path(
+    post,
+    path = "/agent/{agent_id}/command",
+    params(
+        ("agent_id" = String, Path, description = "Agent ID")
+    ),
+    request_body = serde_json::Value,
+    responses(
+        (status = 200, description = "Command sent successfully")
+    )
+)]
 pub async fn send_command(
     Path(agent_id): Path<String>,
     State(state): State<Arc<AppState>>,
@@ -388,6 +400,15 @@ pub async fn get_devices(
     Ok(Json(devices))
 }
 
+/// POST /devices
+#[utoipa::path(
+    post,
+    path = "/devices",
+    request_body = CreateDeviceRequest,
+    responses(
+        (status = 201, description = "Device created successfully", body = Device)
+    )
+)]
 pub async fn create_device(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -423,6 +444,18 @@ pub async fn create_device(
     Ok((StatusCode::CREATED, Json(serde_json::json!({ "id": id }))))
 }
 
+/// PUT /devices/{id}
+#[utoipa::path(
+    put,
+    path = "/devices/{id}",
+    params(
+        ("id" = Uuid, Path, description = "Device ID")
+    ),
+    request_body = UpdateDeviceRequest,
+    responses(
+        (status = 200, description = "Device updated successfully")
+    )
+)]
 pub async fn update_device(
     Path(id): Path<Uuid>,
     State(state): State<Arc<AppState>>,
@@ -475,6 +508,17 @@ pub async fn update_device(
     Ok(StatusCode::OK)
 }
 
+/// DELETE /devices/{id}
+#[utoipa::path(
+    delete,
+    path = "/devices/{id}",
+    params(
+        ("id" = Uuid, Path, description = "Device ID")
+    ),
+    responses(
+        (status = 204, description = "Device deleted successfully")
+    )
+)]
 pub async fn delete_device(
     Path(id): Path<Uuid>,
     State(state): State<Arc<AppState>>,
@@ -511,6 +555,17 @@ pub struct GetAgentsQueryParams {
     pub include_inactive: Option<bool>,
 }
 
+/// GET /authorized-agents
+#[utoipa::path(
+    get,
+    path = "/authorized-agents",
+    params(
+        ("include_inactive" = Option<bool>, Query, description = "Include inactive agents")
+    ),
+    responses(
+        (status = 200, description = "List all authorized agents", body = [AuthorizedAgent])
+    )
+)]
 pub async fn get_authorized_agents(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -528,6 +583,15 @@ pub async fn get_authorized_agents(
     Ok(Json(agents))
 }
 
+/// POST /authorized-agents
+#[utoipa::path(
+    post,
+    path = "/authorized-agents",
+    request_body = CreateAuthorizedAgentRequest,
+    responses(
+        (status = 201, description = "Authorized agent created successfully", body = AuthorizedAgent)
+    )
+)]
 pub async fn create_authorized_agent(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -555,6 +619,18 @@ pub async fn create_authorized_agent(
     ))
 }
 
+/// PUT /authorized-agents/{id}/trust
+#[utoipa::path(
+    put,
+    path = "/authorized-agents/{id}/trust",
+    params(
+        ("id" = String, Path, description = "Agent ID")
+    ),
+    request_body = TrustAgentRequest,
+    responses(
+        (status = 200, description = "Agent trust updated successfully")
+    )
+)]
 pub async fn update_agent_trust(
     Path(id): Path<String>,
     State(state): State<Arc<AppState>>,
@@ -579,6 +655,17 @@ pub async fn update_agent_trust(
     }
 }
 
+/// GET /authorized-agents/{id}
+#[utoipa::path(
+    get,
+    path = "/authorized-agents/{id}",
+    params(
+        ("id" = String, Path, description = "Agent ID")
+    ),
+    responses(
+        (status = 200, description = "Get authorized agent details", body = AuthorizedAgent)
+    )
+)]
 pub async fn get_authorized_agent_by_id(
     Path(id): Path<String>,
     State(state): State<Arc<AppState>>,
@@ -596,6 +683,18 @@ pub async fn get_authorized_agent_by_id(
     Ok(Json(agent))
 }
 
+/// PATCH /authorized-agents/{id}
+#[utoipa::path(
+    patch,
+    path = "/authorized-agents/{id}",
+    params(
+        ("id" = String, Path, description = "Agent ID")
+    ),
+    request_body = UpdateAuthorizedAgentRequest,
+    responses(
+        (status = 200, description = "Agent updated successfully", body = AuthorizedAgent)
+    )
+)]
 pub async fn update_authorized_agent(
     Path(id): Path<String>,
     State(state): State<Arc<AppState>>,
@@ -698,6 +797,17 @@ pub async fn update_authorized_agent(
     Ok(Json(current_agent))
 }
 
+/// GET /devices/{id}/info
+#[utoipa::path(
+    get,
+    path = "/devices/{id}/info",
+    params(
+        ("id" = Uuid, Path, description = "Device ID")
+    ),
+    responses(
+        (status = 200, description = "Get device details on demand", body = serde_json::Value)
+    )
+)]
 pub async fn get_device_info_on_demand(
     Path(id): Path<Uuid>,
     State(state): State<Arc<AppState>>,
@@ -722,6 +832,17 @@ pub async fn get_device_info_on_demand(
     Ok(Json(info))
 }
 
+/// DELETE /authorized-agents/{id}
+#[utoipa::path(
+    delete,
+    path = "/authorized-agents/{id}",
+    params(
+        ("id" = String, Path, description = "Agent ID")
+    ),
+    responses(
+        (status = 204, description = "Agent deleted/deactivated successfully")
+    )
+)]
 pub async fn delete_authorized_agent(
     Path(id): Path<String>,
     State(state): State<Arc<AppState>>,

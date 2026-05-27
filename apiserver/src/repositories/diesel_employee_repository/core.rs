@@ -790,12 +790,12 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
             timezone: String,
         }
 
-        let query = r#"
+        let query = r"
             SELECT wl.timezone as timezone
             FROM employees e
             JOIN work_locations wl ON wl.id = e.primary_location_id
             WHERE e.id = $1 AND e.workspace_id = $2
-        "#;
+        ";
 
         let row: TzRow = diesel::sql_query(query)
             .bind::<diesel::sql_types::Uuid, _>(employee_id)
@@ -831,7 +831,7 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
             timezone: String,
         }
 
-        let query = r#"
+        let query = r"
             SELECT COALESCE(
                 (SELECT host_wl.timezone
                  FROM employee_assignments ea
@@ -845,7 +845,7 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
             FROM employees e
             JOIN work_locations primary_wl ON primary_wl.id = e.primary_location_id
             WHERE e.id = $1 AND e.workspace_id = $2
-        "#;
+        ";
 
         let row: TzRow = diesel::sql_query(query)
             .bind::<diesel::sql_types::Uuid, _>(employee_id)

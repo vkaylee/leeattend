@@ -1,5 +1,6 @@
 //! Employee domain integration tests
 
+mod assignment;
 mod bulk_import;
 mod contracts;
 mod department_name;
@@ -12,4 +13,3 @@ mod repository_direct;
 mod transfer_and_history;
 mod worker_handler;
 mod working_conditions;
-mod assignment;

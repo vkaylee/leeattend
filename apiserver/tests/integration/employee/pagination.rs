@@ -40,7 +40,7 @@ async fn test_employee_pagination_logic() {
 
         crate::test_execute!(
             &pool.api,
-            r"INSERT INTO employees (id, workspace_id, full_name, employee_id_number, is_active, original_hire_date, hire_date, primary_location_id, created_at, updated_at) 
+            r"INSERT INTO employees (id, workspace_id, full_name, employee_id_number, is_active, original_hire_date, hire_date, primary_location_id, created_at, updated_at)
              VALUES ($1, $2, $3, $4, true, CURRENT_DATE, CURRENT_DATE, $5, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
             diesel::sql_types::Uuid,
             employee_id,
@@ -130,7 +130,7 @@ async fn test_employee_search_limit() {
 
         crate::test_execute!(
             &pool.api,
-            r"INSERT INTO employees (id, workspace_id, full_name, employee_id_number, is_active, original_hire_date, hire_date, primary_location_id, created_at, updated_at) 
+            r"INSERT INTO employees (id, workspace_id, full_name, employee_id_number, is_active, original_hire_date, hire_date, primary_location_id, created_at, updated_at)
              VALUES ($1, $2, $3, $4, true, CURRENT_DATE, CURRENT_DATE, $5, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
             diesel::sql_types::Uuid,
             employee_id,

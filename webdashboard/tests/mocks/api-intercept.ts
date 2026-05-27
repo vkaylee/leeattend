@@ -176,6 +176,34 @@ export async function setupApiMocks(page: Page) {
       return fulfill({ status: "ok" });
     }
 
+    if (pathname === '/api/system/tenants') {
+      return fulfill([
+        {
+          id: "tenant-mock-1",
+          pool_size: 10,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }
+      ]);
+    }
+
+    if (pathname === '/api/system/roles') {
+      return fulfill([
+        {
+          id: "role-1",
+          name: "platform_admin",
+          description: "Full control over the system",
+          assignees: []
+        },
+        {
+          id: "role-2",
+          name: "support",
+          description: "Read-only access for support staff",
+          assignees: []
+        }
+      ]);
+    }
+
     if (/\/api\/v1\/notifications\/unread-count/.exec(pathname)) {
       return fulfill({ count: 0 });
     }
@@ -186,6 +214,48 @@ export async function setupApiMocks(page: Page) {
         notifications: [],
         unread_count: 0
       });
+    }
+
+    // ESS & Overtime Mocks
+    if (pathname === '/api/ess/profile') {
+      return fulfill({
+        employee: MOCK_EMPLOYEES[0],
+        emergency_contacts: []
+      });
+    }
+
+    if (pathname.includes('/overtime/assignments')) {
+      return fulfill([]);
+    }
+
+    if (pathname.includes('/overtime/quota')) {
+      return fulfill({
+        employee_id: "emp-mock-1",
+        monthly_limit: 1200,
+        monthly_used: 300,
+        yearly_limit: 12000,
+        yearly_used: 1500
+      });
+    }
+
+    if (pathname.includes('/overtime/requests')) {
+      if (method === 'GET') {
+        return fulfill([]);
+      }
+      if (method === 'POST') {
+        return fulfill({
+          id: "ot-req-new",
+          workspace_id: "ws-mock-123",
+          status: "draft",
+          planned_date: new Date().toISOString().split('T')[0],
+          planned_minutes: 120,
+          reason: "E2E Test Overtime Requirement",
+          requested_by_user_id: "user-mock-1",
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          employees: []
+        }, 201);
+      }
     }
 
     // 8. Authorized Agents (READ)

@@ -82,7 +82,10 @@ const customT = (
     return originalT(key, optionsOrFallbackValue, options);
   }
 
-  const ns = key.split('.')[0];
+  let ns = key.split('.')[0];
+  if (["system_admin", "audit_logs", "rolesPage"].includes(ns)) {
+    ns = "system_roles";
+  }
   if (!namespaces.includes(ns)) {
     return originalT(key, optionsOrFallbackValue, options);
   }

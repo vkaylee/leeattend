@@ -11,6 +11,20 @@ use crate::handlers::common::MemberContext;
 use crate::models::{enums::ImportTargetType, AttendanceImportJob};
 use crate::AppState;
 
+#[utoipa::path(
+    post,
+    path = "/v1/workspaces/{ws_id}/attendance/upload",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID")
+    ),
+    request_body(content = String, content_type = "multipart/form-data"),
+    responses(
+        (status = 200, description = "Attendance adjustment uploaded", body = serde_json::Value)
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 pub async fn upload_attendance_excel(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -66,6 +80,20 @@ pub async fn upload_attendance_excel(
     Ok(Json(serde_json::json!({ "job_id": job_id })))
 }
 
+#[utoipa::path(
+    post,
+    path = "/v1/workspaces/{ws_id}/attendance/logs/upload",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID")
+    ),
+    request_body(content = String, content_type = "multipart/form-data"),
+    responses(
+        (status = 200, description = "Attendance logs uploaded", body = serde_json::Value)
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 pub async fn upload_attendance_logs(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -116,6 +144,20 @@ pub async fn upload_attendance_logs(
     Ok(Json(serde_json::json!({ "job_id": job_id })))
 }
 
+#[utoipa::path(
+    post,
+    path = "/v1/workspaces/{ws_id}/employees/upload",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID")
+    ),
+    request_body(content = String, content_type = "multipart/form-data"),
+    responses(
+        (status = 200, description = "Employees uploaded", body = serde_json::Value)
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 pub async fn upload_employee_excel(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -216,6 +258,20 @@ pub struct ImportJobQuery {
     pub target_type: Option<ImportTargetType>,
 }
 
+#[utoipa::path(
+    get,
+    path = "/v1/workspaces/{ws_id}/attendance/import-jobs/latest",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        ("target_type" = Option<ImportTargetType>, Query, description = "Target type filter")
+    ),
+    responses(
+        (status = 200, description = "Latest import job", body = Option<AttendanceImportJob>)
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 pub async fn get_latest_import_job(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -248,11 +304,26 @@ pub async fn get_latest_import_job(
     Ok(Json(job_opt))
 }
 
+#[utoipa::path(
+    get,
+    path = "/v1/workspaces/{ws_id}/attendance/import-jobs/{id}",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        ("id" = Uuid, Path, description = "Job ID")
+    ),
+    responses(
+        (status = 200, description = "Import job status", body = AttendanceImportJob)
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 pub async fn get_import_job_status(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
-    Path((_, job_id)): Path<(Uuid, Uuid)>,
+    Path(__path_params): Path<(Uuid, Uuid)>,
 ) -> AppResult<Json<AttendanceImportJob>> {
+    let (_, job_id) = __path_params;
     let _workspace_id = ctx.workspace_id;
 
     let mut job = state
@@ -279,11 +350,26 @@ pub async fn get_import_job_status(
     Ok(Json(job))
 }
 
+#[utoipa::path(
+    get,
+    path = "/v1/workspaces/{ws_id}/attendance/import-jobs/{id}/error-file",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        ("id" = Uuid, Path, description = "Job ID")
+    ),
+    responses(
+        (status = 200, description = "Error file downloaded", body = Vec<u8>, content_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 pub async fn download_import_error_file(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
-    Path((_, job_id)): Path<(Uuid, Uuid)>,
+    Path(__path_params): Path<(Uuid, Uuid)>,
 ) -> AppResult<impl axum::response::IntoResponse> {
+    let (_, job_id) = __path_params;
     let workspace_id = ctx.workspace_id;
 
     let job = state

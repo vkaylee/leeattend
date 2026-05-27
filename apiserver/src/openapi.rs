@@ -16,7 +16,7 @@ use utoipa::OpenApi;
         crate::handlers::workspace_config::get_config,
         crate::handlers::workspace_config::upsert_config,
         crate::handlers::workspace_config::delete_config,
-        
+
         // Auth Paths
         crate::handlers::register,
         crate::handlers::login,
@@ -27,7 +27,7 @@ use utoipa::OpenApi;
         crate::handlers::get_my_permissions,
         crate::handlers::update_me,
         crate::handlers::get_users,
-        
+
         // ESS Paths
         crate::handlers::get_my_profile,
         crate::handlers::update_my_profile,
@@ -45,7 +45,7 @@ use utoipa::OpenApi;
         crate::handlers::ess_create_shift_swap,
         crate::handlers::ess_respond_to_swap,
         crate::handlers::ess_cancel_swap,
-        
+
         // Workspace Paths
         crate::handlers::get_attendance_trend,
         crate::handlers::get_department_attendance,
@@ -197,6 +197,151 @@ use utoipa::OpenApi;
         crate::handlers::payroll_rules::get_payroll_rule_assignments,
         crate::handlers::payroll_rules::delete_payroll_rule_assignment,
         crate::handlers::payroll_rules::delete_payroll_rule_tier,
+
+        // Phase 6: Platform Admin & Infrastructure
+        crate::handlers::system_admin::list_system_roles,
+        crate::handlers::system_admin::get_user_system_roles,
+        crate::handlers::system_admin::assign_system_role,
+        crate::handlers::system_admin::revoke_system_role,
+        crate::handlers::system_admin::system_health,
+        crate::handlers::system_db_clusters::list_db_clusters,
+        crate::handlers::system_db_clusters::create_db_cluster,
+        crate::handlers::system_db_clusters::delete_db_cluster,
+        crate::handlers::system_db_clusters::update_db_cluster_status,
+        crate::handlers::system_tenants::list_tenants,
+        crate::handlers::system_tenants::create_tenant,
+        crate::handlers::system_tenants::delete_tenant_handler,
+        crate::handlers::system_tenants::update_tenant_database,
+        crate::handlers::system_tenants::get_tenant_stats,
+        crate::handlers::system_tenants::list_stale_tenants,
+        crate::handlers::worker_monitor::get_monitor_overview,
+        crate::handlers::workspaces::audit::get_audit_logs,
+
+        // Agent Paths
+        crate::handlers::agents::send_command,
+        crate::handlers::agents::create_device,
+        crate::handlers::agents::update_device,
+        crate::handlers::agents::delete_device,
+        crate::handlers::agents::get_authorized_agents,
+        crate::handlers::agents::create_authorized_agent,
+        crate::handlers::agents::update_agent_trust,
+        crate::handlers::agents::get_authorized_agent_by_id,
+        crate::handlers::agents::update_authorized_agent,
+        crate::handlers::agents::get_device_info_on_demand,
+        crate::handlers::agents::delete_authorized_agent,
+        
+        // Notifications Paths
+        crate::handlers::notifications::get_notifications,
+        crate::handlers::notifications::get_unread_count,
+        crate::handlers::notifications::mark_as_read,
+        crate::handlers::notifications::mark_all_as_read,
+
+        // Workspace Members Paths
+        crate::handlers::workspaces::members::get_workspace_members,
+        crate::handlers::workspaces::members::add_workspace_member,
+        crate::handlers::workspaces::members::update_workspace_member_role,
+        crate::handlers::workspaces::members::remove_workspace_member,
+        
+        // Workspace Permissions Paths
+        crate::handlers::workspaces::permissions::get_member_extra_permissions,
+        crate::handlers::workspaces::permissions::assign_extra_permission,
+        crate::handlers::workspaces::permissions::revoke_extra_permission,
+        crate::handlers::workspaces::permissions::get_available_permissions,
+
+        // Workspace Roles Paths
+        crate::handlers::workspaces::roles::get_member_roles,
+        crate::handlers::workspaces::roles::assign_extra_role,
+        crate::handlers::workspaces::roles::revoke_extra_role,
+        crate::handlers::workspaces::roles::get_workspace_roles,
+        crate::handlers::workspaces::roles::create_workspace_role,
+        crate::handlers::workspaces::roles::update_workspace_role,
+        crate::handlers::workspaces::roles::delete_workspace_role,
+        crate::handlers::workspaces::roles::get_role_permissions,
+        crate::handlers::workspaces::roles::update_role_permissions,
+
+        // Departments Paths
+        crate::handlers::workspaces::departments::get_departments,
+        crate::handlers::workspaces::departments::create_department,
+        crate::handlers::workspaces::departments::update_department,
+        crate::handlers::workspaces::departments::delete_department,
+
+        // Feature Flags Paths
+        crate::handlers::feature_flags::list_feature_flags,
+        crate::handlers::feature_flags::create_feature_flag,
+        crate::handlers::feature_flags::get_feature_flag,
+        crate::handlers::feature_flags::check_feature_flag,
+        crate::handlers::feature_flags::update_feature_flag,
+        crate::handlers::feature_flags::upsert_feature_flag,
+        crate::handlers::feature_flags::delete_feature_flag,
+
+        // Dashboard Preferences Paths
+        crate::handlers::dashboard_preferences::get_dashboard_preferences,
+        crate::handlers::dashboard_preferences::update_dashboard_preferences,
+
+        // Employment Phases Paths
+        crate::handlers::employment_phases::create_employment_phase_definition,
+        crate::handlers::employment_phases::get_employment_phase_definitions,
+        crate::handlers::employment_phases::assign_employee_phase,
+        crate::handlers::employment_phases::update_employee_phase_status,
+        crate::handlers::employment_phases::get_employee_phases,
+
+        // Recruitment Sources Paths
+        crate::handlers::recruitment_sources::get_recruitment_sources,
+        crate::handlers::recruitment_sources::create_recruitment_source,
+        crate::handlers::recruitment_sources::update_recruitment_source,
+        crate::handlers::recruitment_sources::delete_recruitment_source,
+        crate::handlers::recruitment_sources::get_recruitment_source_breakdown,
+        crate::handlers::recruitment_sources::get_turnover_analytics,
+
+        // Assignment Rules Paths
+        crate::handlers::assignment_rules::get_assignment_rules,
+        crate::handlers::assignment_rules::create_assignment_rule,
+        crate::handlers::assignment_rules::update_assignment_rule,
+        crate::handlers::assignment_rules::delete_assignment_rule,
+
+        // Attendance Adjustments Paths
+        crate::handlers::attendance::adjustments::submit_attendance_adjustment,
+        crate::handlers::attendance::adjustments::approve_attendance_adjustment,
+        crate::handlers::attendance::adjustments::get_my_attendance_adjustments,
+        crate::handlers::attendance::adjustments::get_workspace_attendance_adjustments,
+
+        // Attendance Overtime Paths
+        crate::handlers::attendance::overtime::claim_ot,
+        crate::handlers::attendance::overtime::approve_ot,
+        crate::handlers::attendance::overtime::get_attendance_summaries,
+
+        // Attendance Logs Paths
+        crate::handlers::attendance::logs::force_reprocess_attendance,
+        crate::handlers::attendance::logs::force_reprocess_all_attendance,
+        crate::handlers::attendance::staging::get_staging_logs,
+        crate::handlers::attendance::staging::resolve_staging_log,
+        crate::handlers::attendance::staging::dismiss_staging_log,
+        crate::handlers::attendance::paper_forms::enter_paper_ot,
+        crate::handlers::attendance::paper_forms::bulk_upload_paper_ot,
+        crate::handlers::attendance::time_tracking::update_time_entry,
+        crate::handlers::attendance::time_tracking::delete_time_entry,
+        crate::handlers::attendance::reports::get_attendance_report,
+
+        // Attendance Policies Paths
+        crate::handlers::attendance::policies::get_default_attendance_rules,
+        crate::handlers::attendance::policies::list_default_attendance_policy_versions,
+        crate::handlers::attendance::policies::update_default_attendance_rules,
+
+        // Attendance Policy Assignments Paths
+        crate::handlers::attendance::policy_assignments::list_policy_assignments,
+        crate::handlers::attendance::policy_assignments::upsert_policy_assignment,
+        crate::handlers::attendance::policy_assignments::delete_policy_assignment,
+
+        // Attendance Imports Paths
+        crate::handlers::attendance::import::upload_attendance_excel,
+        crate::handlers::attendance::import::upload_attendance_logs,
+        crate::handlers::attendance::import::upload_employee_excel,
+        crate::handlers::attendance::import::get_latest_import_job,
+        crate::handlers::attendance::import::get_import_job_status,
+        crate::handlers::attendance::import::download_import_error_file,
+
+        // Jobs Paths
+        crate::handlers::jobs::get_generic_job_status,
     ),
     components(
         schemas(
@@ -221,7 +366,92 @@ use utoipa::OpenApi;
             ResolvedConfig,
             ConfigValue,
             crate::handlers::workspace_config::UpsertConfigRequest,
+
+            // Notifications Schemas
+            Notification,
+            NotificationCursorRequest,
+            NotificationResponse,
+            UnreadCountResponse,
+
+            // Workspace Members Schemas
+            crate::handlers::workspaces::members::UpdateMemberRoleRequest,
+            AddMemberRequest,
+            WorkspaceMemberDetail,
+            WorkspaceMemberDetailResponse,
             
+            // Workspace Permissions Schemas
+            MemberExtraPermission,
+            AssignPermissionRequest,
+
+            // Workspace Roles Schemas
+            crate::handlers::workspaces::roles::CreateWorkspaceRoleRequest,
+            crate::handlers::workspaces::roles::UpdateWorkspaceRoleRequest,
+            crate::handlers::workspaces::roles::UpdateRolePermissionsRequest,
+            WorkspaceRole,
+            AssignRoleRequest,
+            MemberExtraRole,
+
+            // Departments Schemas
+            Department,
+            CreateDepartmentRequest,
+            UpdateDepartmentRequest,
+
+            // Feature Flags Schemas
+            crate::models::feature_flag::FeatureFlag,
+            crate::models::feature_flag::CreateFeatureFlagRequest,
+            crate::models::feature_flag::UpdateFeatureFlagRequest,
+            crate::models::feature_flag::FeatureFlagCheckResponse,
+
+            // Dashboard Preferences Schemas
+            crate::handlers::dashboard_preferences::DashboardPreferences,
+            crate::handlers::dashboard_preferences::UpdateDashboardPreferences,
+
+            // Employment Phases Schemas
+            crate::models::employment_phase::EmploymentPhaseDefinition,
+            crate::models::employment_phase::EmployeePhase,
+            crate::handlers::employment_phases::CreateEmploymentPhaseDefinitionRequest,
+            crate::handlers::employment_phases::AssignEmployeePhaseRequest,
+            crate::handlers::employment_phases::UpdateEmployeePhaseStatusRequest,
+
+            // Recruitment Sources Schemas
+            crate::models::RecruitmentSource,
+            crate::models::CreateRecruitmentSourceRequest,
+            crate::models::UpdateRecruitmentSourceRequest,
+            crate::models::RecruitmentSourceBreakdown,
+            crate::models::TurnoverTenureBucket,
+            crate::models::TurnoverBySource,
+            crate::models::TurnoverByDepartment,
+            crate::models::TurnoverAnalytics,
+
+            // Assignment Rules Schemas
+            crate::models::AssignmentRule,
+            crate::models::CreateAssignmentRuleRequest,
+            crate::models::UpdateAssignmentRuleRequest,
+            crate::models::AssignmentRuleConditions,
+
+            // Attendance Schemas
+            crate::models::AttendanceAdjustmentRequest,
+            crate::models::CreateAttendanceAdjustmentRequest,
+            crate::models::ApproveAttendanceAdjustmentRequest,
+            crate::handlers::attendance::overtime::ClaimOtRequest,
+            crate::handlers::attendance::overtime::ApproveOtRequest,
+            crate::models::AttendanceDailySummary,
+            crate::models::AttendanceRules,
+            crate::handlers::attendance::policies::UpdateAttendanceRulesRequest,
+            crate::handlers::attendance::policies::AttendancePolicyVersionResponse,
+            crate::handlers::attendance::policy_assignments::PolicyAssignmentResponse,
+            crate::handlers::attendance::policy_assignments::UpsertPolicyAssignmentRequest,
+            crate::models::AttendanceImportJob,
+            crate::models::enums::ImportTargetType,
+            crate::models::enums::ImportJobStatus,
+            crate::handlers::attendance::paper_forms::EnterPaperOtRequest,
+            crate::models::BulkOtUploadResult,
+            crate::models::BulkOtEntryError,
+            crate::handlers::attendance::staging::StagingLogsResponse,
+            crate::handlers::attendance::staging::StagingLogResponse,
+            crate::handlers::attendance::staging::ResolveStagingLogRequest,
+            crate::models::UpdateTimeEntryRequest,
+
             // Auth Schemas
             RegisterRequest,
             LoginRequest,
@@ -230,7 +460,7 @@ use utoipa::OpenApi;
             UpdateUserRequest,
             UserResponse,
             AuthResponse,
-            
+
             // ESS Schemas
             MyProfileResponse,
             UpdateEmployeeProfileRequest,
@@ -241,7 +471,7 @@ use utoipa::OpenApi;
             UploadDocumentRequest,
             crate::handlers::ess::EssPunchRequest,
             crate::handlers::ess::EssLeaveBalance,
-            
+
             // Workspace / Dashboard Schemas
             AttendanceTrendPoint,
             DepartmentAttendancePoint,
@@ -383,6 +613,30 @@ use utoipa::OpenApi;
             crate::handlers::payroll_rules::CreatePayrollRuleDefinitionRequest,
             crate::handlers::payroll_rules::CreatePayrollRuleTierRequest,
             crate::handlers::payroll_rules::AssignPayrollRuleRequest,
+
+            // Phase 6: Platform Admin & Infrastructure Schemas
+            SystemDbCluster,
+            crate::handlers::system_db_clusters::CreateDbClusterRequest,
+            crate::handlers::system_db_clusters::UpdateDbClusterStatusRequest,
+            crate::handlers::system_tenants::CreateTenantRequest,
+            crate::handlers::system_tenants::UpdateTenantDbRequest,
+            crate::handlers::system_admin::SystemRoleAssignment,
+            crate::handlers::system_admin::SystemRoleInfo,
+            crate::handlers::system_admin::AssignSystemRoleRequest,
+            crate::handlers::worker_monitor::WorkerStatus,
+            crate::handlers::worker_monitor::WorkerHeartbeat,
+            crate::handlers::worker_monitor::MonitorOverviewResponse,
+            crate::queue::JobMetadata,
+            crate::queue::JobStatus,
+            crate::queue::ReportType,
+            crate::queue::DateRange,
+            crate::handlers::workspaces::audit::PaginatedAuditLogs,
+            crate::domain::audit::AuditLog,
+
+            // Agent Request Schemas
+            CreateAuthorizedAgentRequest,
+            TrustAgentRequest,
+            UpdateAuthorizedAgentRequest,
         )
     ),
     tags(
@@ -416,5 +670,105 @@ mod tests {
         assert!(json.contains("Device"));
         assert!(json.contains("AgentStatus"));
         assert!(json.contains("AuthorizedAgent"));
+    }
+
+    #[test]
+    fn test_all_handlers_documented() {
+        let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").unwrap_or_else(|_| ".".to_string());
+        
+        let openapi_file = format!("{}/src/openapi.rs", manifest_dir);
+        let openapi_content = std::fs::read_to_string(&openapi_file).expect("Failed to read openapi.rs");
+
+        let mut registered_handlers = std::collections::HashSet::new();
+        for line in openapi_content.lines() {
+            if let Some(start_idx) = line.find("crate::handlers::") {
+                let start = start_idx + "crate::handlers::".len();
+                let mut end = start;
+                while end < line.len() && (line.as_bytes()[end].is_ascii_alphanumeric() || line.as_bytes()[end] == b'_' || line.as_bytes()[end] == b':') {
+                    end += 1;
+                }
+                registered_handlers.insert(line[start..end].to_string());
+            }
+        }
+
+        let routes_dir = format!("{}/src/routes", manifest_dir);
+        let mut used_handlers = std::collections::HashSet::new();
+
+        fn visit_dirs(dir: &std::path::Path, used: &mut std::collections::HashSet<String>) {
+            if dir.is_dir() {
+                for entry in std::fs::read_dir(dir).unwrap() {
+                    let entry = entry.unwrap();
+                    let path = entry.path();
+                    if path.is_dir() {
+                        visit_dirs(&path, used);
+                    } else if path.extension().map_or(false, |ext| ext == "rs") {
+                        let content = std::fs::read_to_string(&path).unwrap();
+                        let methods = ["get(", "post(", "put(", "delete(", "patch("];
+                        for method in methods {
+                            let mut start_idx = 0;
+                            while let Some(idx) = content[start_idx..].find(method) {
+                                let absolute_idx = start_idx + idx;
+                                let start = absolute_idx + method.len();
+                                let mut end = start;
+                                while end < content.len() && (content.as_bytes()[end].is_ascii_alphanumeric() || content.as_bytes()[end] == b'_' || content.as_bytes()[end] == b':') {
+                                    end += 1;
+                                }
+                                let handler = &content[start..end];
+                                if !handler.is_empty() && !handler.contains("axum") {
+                                    let clean_handler = if handler.starts_with("crate::handlers::") {
+                                        &handler["crate::handlers::".len()..]
+                                    } else {
+                                        handler
+                                    };
+                                    used.insert(clean_handler.to_string());
+                                }
+                                start_idx = end;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if std::path::Path::new(&routes_dir).exists() {
+            visit_dirs(std::path::Path::new(&routes_dir), &mut used_handlers);
+        }
+
+        let mut missing_handlers = Vec::new();
+        let whitelist = [
+            // Internal/WS handlers that do not need openapi
+            "ws_handler",
+            "report_stream_ws",
+            "monitor_stream_sse",
+            "health_check", 
+        ];
+
+        for h in used_handlers {
+            if h == "get" || h == "post" || h == "put" || h == "delete" || h == "patch" || h == "any" {
+                continue;
+            }
+            if whitelist.iter().any(|&w| h.ends_with(w)) {
+                continue;
+            }
+            
+            let h_last = h.split("::").last().unwrap_or(&h);
+            let is_registered = registered_handlers.iter().any(|reg| {
+                let reg_last = reg.split("::").last().unwrap_or(reg);
+                reg_last == h_last
+            });
+            
+            if !is_registered {
+                missing_handlers.push(h);
+            }
+        }
+
+        if !missing_handlers.is_empty() {
+            missing_handlers.sort();
+            panic!(
+                "The following handlers are used in routes but missing from openapi.rs paths(...):\n{:#?}\n\n\
+                 Please add them to `apiserver/src/openapi.rs` to ensure the API contract is complete.",
+                missing_handlers
+            );
+        }
     }
 }

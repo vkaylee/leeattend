@@ -57,12 +57,11 @@ impl TenantProvisionerTrait for TenantMigrator {
 
             // Ensure Headquarters location exists
             let insert_hq_sql = format!(
-                "INSERT INTO work_locations (id, workspace_id, name, timezone, is_headquarters) 
-                 VALUES ('11111111-1111-1111-1111-111111111111'::uuid, '{}', 'Headquarters', 'UTC', true) 
-                 ON CONFLICT (id) DO NOTHING",
-                ws_id
+                "INSERT INTO work_locations (id, workspace_id, name, timezone, is_headquarters)
+                 VALUES ('11111111-1111-1111-1111-111111111111'::uuid, '{ws_id}', 'Headquarters', 'UTC', true)
+                 ON CONFLICT (id) DO NOTHING"
             );
-            
+
             use diesel::RunQueryDsl;
             diesel::sql_query(insert_hq_sql)
                 .execute(&mut sync_conn)

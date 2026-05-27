@@ -166,7 +166,7 @@ mod tests {
         builder.workspace_repo = workspace_repo;
         builder.time_entry_repo = time_entry_repo;
         builder.daily_summary_repo = daily_summary_repo;
-        
+
         let mut emp_repo = crate::repositories::employee::MockEmployeeRepository::new();
         emp_repo
             .expect_get_employee_timezone_fallback()

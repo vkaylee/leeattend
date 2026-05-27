@@ -11,7 +11,8 @@ use crate::domain::permissions::Permission;
 use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
 use crate::models::shift_swap::{
-    ApproveShiftSwapRequest, CreateShiftSwapRequest, ShiftSwapRequest, ShiftSwapRequestWithNames, ShiftSwapStatus,
+    ApproveShiftSwapRequest, CreateShiftSwapRequest, ShiftSwapRequest, ShiftSwapRequestWithNames,
+    ShiftSwapStatus,
 };
 use crate::repositories::shift_swap_repository::SwapStats;
 

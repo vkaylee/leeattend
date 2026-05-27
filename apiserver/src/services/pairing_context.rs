@@ -33,18 +33,18 @@ impl PairingContext {
 
         // Handle break overnight transition if needed
         if let (Some(bs), Some(be)) = (break_start_mins, break_end_mins) {
-            let mut final_bs = bs;
-            let mut final_be = be;
+            let mut break_start_val = bs;
+            let mut break_end_val = be;
 
-            if final_bs < start_m {
-                final_bs += 1440;
+            if break_start_val < start_m {
+                break_start_val += 1440;
             }
-            if final_be < final_bs {
-                final_be += 1440;
+            if break_end_val < break_start_val {
+                break_end_val += 1440;
             }
 
-            break_start_mins = Some(final_bs);
-            break_end_mins = Some(final_be);
+            break_start_mins = Some(break_start_val);
+            break_end_mins = Some(break_end_val);
         }
 
         Some(PairingShiftConfig {
@@ -79,10 +79,7 @@ impl PairingContext {
         Ok((window_start_utc, window_end_utc))
     }
 
-    pub fn build_log_events(
-        &self,
-        logs: &[RawAttendanceLog],
-    ) -> Result<Vec<LogEvent>, AppError> {
+    pub fn build_log_events(&self, logs: &[RawAttendanceLog]) -> Result<Vec<LogEvent>, AppError> {
         let mut filtered_log_events = Vec::new();
         if logs.is_empty() {
             return Ok(filtered_log_events);
@@ -118,7 +115,7 @@ impl PairingContext {
         employee_id: Uuid,
         shift_id_opt: Option<Uuid>,
         sessions: Vec<PairedSession>,
-        traces: serde_json::Value,
+        traces: &serde_json::Value,
     ) -> Result<Vec<TimeEntry>, AppError> {
         let mut new_entries = Vec::new();
         for session in sessions {
@@ -167,8 +164,7 @@ impl PairingContext {
         Ok(new_entries)
     }
 }
-    // injected tests
-
+// injected tests
 
 #[cfg(test)]
 mod tests {
@@ -180,7 +176,7 @@ mod tests {
     fn test_utc_timezone_offset_bug() {
         // Replicate the exact bug for Employee 1877
         let date = NaiveDate::from_ymd_opt(2026, 5, 20).unwrap();
-        
+
         // Bug scenario: Tz is UTC
         let tz_utc = chrono_tz::UTC;
         let context_utc = PairingContext::new(date, tz_utc);
@@ -207,8 +203,10 @@ mod tests {
         };
 
         let shift_config_utc = context_utc.build_shift_config(Some(&shift));
-        let (window_start_utc, _window_end_utc) = context_utc.calculate_fetch_window(shift_config_utc.as_ref()).unwrap();
-        
+        let (window_start_utc, _window_end_utc) = context_utc
+            .calculate_fetch_window(shift_config_utc.as_ref())
+            .unwrap();
+
         // window_start_utc should be 2026-05-20 01:30:00 UTC
         let expected_window_start = Utc.with_ymd_and_hms(2026, 5, 20, 1, 30, 0).unwrap();
         assert_eq!(window_start_utc, expected_window_start);
@@ -242,33 +240,35 @@ mod tests {
                 punch: 1,
                 status: 1,
                 created_at: Utc::now(),
-            }
+            },
         ];
 
         let log_events_utc = context_utc.build_log_events(&raw_logs).unwrap();
-        
+
         // Under UTC context, log1 is 00:08:27 from start of day, which is 8 minutes
         assert_eq!(log_events_utc[0].minutes, 8);
-        
+
         // Under UTC context, log2 is 14:31:36 from start of day, which is 871 minutes
         assert_eq!(log_events_utc[1].minutes, 871);
 
         // Now test correct timezone scenario (Asia/Ho_Chi_Minh)
         let tz_hcm = chrono_tz::Asia::Ho_Chi_Minh;
         let context_hcm = PairingContext::new(date, tz_hcm);
-        
+
         let shift_config_hcm = context_hcm.build_shift_config(Some(&shift));
-        let (window_start_hcm, _window_end_hcm) = context_hcm.calculate_fetch_window(shift_config_hcm.as_ref()).unwrap();
-        
+        let (window_start_hcm, _window_end_hcm) = context_hcm
+            .calculate_fetch_window(shift_config_hcm.as_ref())
+            .unwrap();
+
         // window_start_hcm should be 2026-05-19 18:30:00 UTC (01:30 HCM time)
         let expected_window_start_hcm = Utc.with_ymd_and_hms(2026, 5, 19, 18, 30, 0).unwrap();
         assert_eq!(window_start_hcm, expected_window_start_hcm);
 
         let log_events_hcm = context_hcm.build_log_events(&raw_logs).unwrap();
-        
+
         // Under HCM context, log1 is 07:08:27 from start of day, which is 428 minutes
         assert_eq!(log_events_hcm[0].minutes, 428);
-        
+
         // Under HCM context, log2 is 21:31:36 from start of day, which is 1291 minutes
         assert_eq!(log_events_hcm[1].minutes, 1291);
     }
@@ -314,7 +314,7 @@ mod tests {
         let context = PairingContext::new(date, tz);
 
         let (start_utc, end_utc) = context.calculate_fetch_window(None).unwrap();
-        
+
         // No shift means 00:00 to 24:00 HCM time
         let expected_start = Utc.with_ymd_and_hms(2026, 5, 19, 17, 0, 0).unwrap();
         let expected_end = Utc.with_ymd_and_hms(2026, 5, 20, 17, 0, 0).unwrap();
@@ -386,25 +386,41 @@ mod tests {
         let sessions = vec![session1, session2];
         let traces = serde_json::json!(["trace1"]);
 
-        let entries = context.build_time_entries(workspace_id, employee_id, None, sessions, traces).unwrap();
+        let entries = context
+            .build_time_entries(workspace_id, employee_id, None, sessions, &traces)
+            .unwrap();
 
         assert_eq!(entries.len(), 2);
-        
+
         let e1 = &entries[0];
         assert_eq!(e1.workspace_id, workspace_id);
         assert_eq!(e1.employee_id, employee_id);
         // 08:00 HCM is 01:00 UTC
-        assert_eq!(e1.punch_in_time, Utc.with_ymd_and_hms(2026, 5, 20, 1, 0, 0).unwrap());
+        assert_eq!(
+            e1.punch_in_time,
+            Utc.with_ymd_and_hms(2026, 5, 20, 1, 0, 0).unwrap()
+        );
         // 17:00 HCM is 10:00 UTC
-        assert_eq!(e1.punch_out_time, Some(Utc.with_ymd_and_hms(2026, 5, 20, 10, 0, 0).unwrap()));
+        assert_eq!(
+            e1.punch_out_time,
+            Some(Utc.with_ymd_and_hms(2026, 5, 20, 10, 0, 0).unwrap())
+        );
         assert_eq!(e1.duration_minutes, Some(540));
-        
+
         let meta1 = e1.generation_metadata.as_ref().unwrap();
-        assert_eq!(meta1.get("schedule_traces").unwrap().as_array().unwrap()[0].as_str().unwrap(), "trace1");
+        assert_eq!(
+            meta1.get("schedule_traces").unwrap().as_array().unwrap()[0]
+                .as_str()
+                .unwrap(),
+            "trace1"
+        );
 
         let e2 = &entries[1];
         // 18:00 HCM is 11:00 UTC
-        assert_eq!(e2.punch_in_time, Utc.with_ymd_and_hms(2026, 5, 20, 11, 0, 0).unwrap());
+        assert_eq!(
+            e2.punch_in_time,
+            Utc.with_ymd_and_hms(2026, 5, 20, 11, 0, 0).unwrap()
+        );
         assert_eq!(e2.punch_out_time, None);
         assert_eq!(e2.duration_minutes, None);
         assert_eq!(e2.note.as_deref(), Some("Missing Punch Out"));

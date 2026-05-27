@@ -26,7 +26,7 @@ import {
 
 // eslint-disable-next-line max-lines-per-function, complexity -- Page component needs to encompass form and table state
 export default function TenantsPage() {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["common", "system_roles"]);
   const queryClient = useQueryClient();
   const { ConfirmationDialog, confirm } = useConfirm();
   const toast = useToast();

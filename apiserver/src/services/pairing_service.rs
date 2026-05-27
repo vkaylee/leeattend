@@ -78,16 +78,16 @@ impl PairingService {
 
         // 2. Fetch Timezone (Two-step resolution)
         let auth_token = crate::diesel_pool::TenantAuthToken::system_override(log.workspace_id);
-        
+
         // Step 2a: Get fallback timezone to determine tentative date
         let fallback_tz: Tz = self
             .employee_repo
             .get_employee_timezone_fallback(&auth_token, log.employee_id)
             .await?;
-            
+
         let tentative_local_dt = log.punch_time.with_timezone(&fallback_tz);
         let tentative_date = tentative_local_dt.date_naive();
-        
+
         // Step 2b: Get exact timezone considering secondment assignments for that date
         let tz: Tz = self
             .employee_repo
@@ -142,16 +142,16 @@ impl PairingService {
 
         let context = crate::services::pairing_context::PairingContext::new(date, tz);
 
-        let mut shift = None;
-        if let Some(shift_id) = shift_id_opt {
-            shift = self
-                .shift_repo
+        let shift = if let Some(shift_id) = shift_id_opt {
+            self.shift_repo
                 .get_shift_by_id(
                     &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
                     shift_id,
                 )
-                .await?;
-        }
+                .await?
+        } else {
+            None
+        };
 
         let shift_config = context.build_shift_config(shift.as_ref());
 
@@ -160,7 +160,8 @@ impl PairingService {
         let start_of_day_utc = start_of_day_local.with_timezone(&Utc);
         let next_day_utc = (start_of_day_local + Duration::days(1)).with_timezone(&Utc);
 
-        let (window_start_utc, window_end_utc) = context.calculate_fetch_window(shift_config.as_ref())?;
+        let (window_start_utc, window_end_utc) =
+            context.calculate_fetch_window(shift_config.as_ref())?;
 
         let logs = self
             .raw_log_repo
@@ -208,7 +209,7 @@ impl PairingService {
             employee_id,
             shift_id_opt,
             sessions,
-            serde_json::json!(traces),
+            &serde_json::json!(traces),
         )?;
 
         self.time_entry_repo

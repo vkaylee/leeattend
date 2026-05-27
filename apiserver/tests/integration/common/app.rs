@@ -505,7 +505,9 @@ pub async fn spawn_app() -> (String, TestDatabase) {
         apiserver::repositories::DieselAttendanceLogErrorRepository::new(diesel_pools.clone()),
     );
 
-    let recruitment_repo: Arc<dyn apiserver::repositories::employee::EmployeeRecruitmentRepository> = employee_repo.clone();
+    let recruitment_repo: Arc<
+        dyn apiserver::repositories::employee::EmployeeRecruitmentRepository,
+    > = employee_repo.clone();
     let recruitment_service = Arc::new(apiserver::services::RecruitmentService::new(
         recruitment_repo,
     ));
@@ -1065,7 +1067,9 @@ pub async fn spawn_app_with_factory_extended(
         apiserver::repositories::DieselAttendanceLogErrorRepository::new(diesel_pools.clone()),
     );
 
-    let recruitment_repo: Arc<dyn apiserver::repositories::employee::EmployeeRecruitmentRepository> = employee_repo.clone();
+    let recruitment_repo: Arc<
+        dyn apiserver::repositories::employee::EmployeeRecruitmentRepository,
+    > = employee_repo.clone();
     let recruitment_service = Arc::new(apiserver::services::RecruitmentService::new(
         recruitment_repo,
     ));
@@ -1674,7 +1678,9 @@ pub async fn setup_app_tower_internal_extended(
         apiserver::repositories::DieselAttendanceLogErrorRepository::new(diesel_pools.clone()),
     );
 
-    let recruitment_repo: Arc<dyn apiserver::repositories::employee::EmployeeRecruitmentRepository> = employee_repo.clone();
+    let recruitment_repo: Arc<
+        dyn apiserver::repositories::employee::EmployeeRecruitmentRepository,
+    > = employee_repo.clone();
     let recruitment_service = Arc::new(apiserver::services::RecruitmentService::new(
         recruitment_repo,
     ));

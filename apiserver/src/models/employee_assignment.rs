@@ -1,14 +1,14 @@
 use crate::schema::employee_assignments;
-use chrono::{NaiveDate, DateTime, Utc};
+use chrono::{DateTime, NaiveDate, Utc};
 use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use diesel::serialize::{self, IsNull, Output, ToSql};
+use crate::schema::sql_types::AssignmentStatus;
 use diesel::deserialize::{self, FromSql};
 use diesel::pg::{Pg, PgValue};
+use diesel::serialize::{self, IsNull, Output, ToSql};
 use std::io::Write;
-use crate::schema::sql_types::AssignmentStatus;
 
 #[derive(
     Debug,
@@ -55,7 +55,9 @@ impl FromSql<AssignmentStatus, Pg> for AssignmentStatusEnum {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Queryable, Selectable, Identifiable, utoipa::ToSchema)]
+#[derive(
+    Debug, Clone, Serialize, Deserialize, Queryable, Selectable, Identifiable, utoipa::ToSchema,
+)]
 #[diesel(table_name = employee_assignments)]
 pub struct EmployeeAssignment {
     pub id: Uuid,

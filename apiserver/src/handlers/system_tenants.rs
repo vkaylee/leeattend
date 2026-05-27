@@ -91,6 +91,13 @@ fn map_tenants_to_workspaces(
 
 /// GET /system/tenants
 /// Retrieves the list of all tenants registered in Supavisor.
+#[utoipa::path(
+    get,
+    path = "/system/tenants",
+    responses(
+        (status = 200, description = "List of registered tenants", body = serde_json::Value)
+    )
+)]
 pub async fn list_tenants(
     State(state): State<Arc<AppState>>,
     ctx: SystemContext,
@@ -176,6 +183,14 @@ pub async fn list_tenants(
 
 /// POST /system/tenants
 /// Creates a new tenant (and optionally a physical DB) and registers it in Supavisor.
+#[utoipa::path(
+    post,
+    path = "/system/tenants",
+    request_body = CreateTenantRequest,
+    responses(
+        (status = 201, description = "Tenant created and registered successfully")
+    )
+)]
 pub async fn create_tenant(
     State(state): State<Arc<AppState>>,
     ctx: SystemContext,
@@ -265,8 +280,18 @@ pub async fn create_tenant(
     Ok(StatusCode::CREATED)
 }
 
-/// DELETE /system/tenants/:tenant_id
+/// DELETE /system/tenants/{tenant_id}
 /// Removes a tenant from Supavisor connection pool.
+#[utoipa::path(
+    delete,
+    path = "/system/tenants/{tenant_id}",
+    params(
+        ("tenant_id" = String, Path, description = "Tenant ID")
+    ),
+    responses(
+        (status = 204, description = "Tenant deleted successfully")
+    )
+)]
 pub async fn delete_tenant_handler(
     Path(tenant_id): Path<String>,
     State(state): State<Arc<AppState>>,
@@ -307,8 +332,19 @@ pub async fn delete_tenant_handler(
     Ok(StatusCode::NO_CONTENT)
 }
 
-/// PUT /system/tenants/:tenant_id/database
+/// PUT /system/tenants/{tenant_id}/database
 /// Updates a tenant's database connection URL and registers it in Supavisor.
+#[utoipa::path(
+    put,
+    path = "/system/tenants/{tenant_id}/database",
+    params(
+        ("tenant_id" = String, Path, description = "Tenant ID")
+    ),
+    request_body = UpdateTenantDbRequest,
+    responses(
+        (status = 200, description = "Tenant database URL updated successfully")
+    )
+)]
 pub async fn update_tenant_database(
     Path(tenant_id): Path<String>,
     State(state): State<Arc<AppState>>,
@@ -395,8 +431,18 @@ pub async fn update_tenant_database(
     Ok(StatusCode::OK)
 }
 
-/// GET /system/tenants/:tenant_id/stats
+/// GET /system/tenants/{tenant_id}/stats
 /// Retrieves tenant configuration and stats from Supavisor API.
+#[utoipa::path(
+    get,
+    path = "/system/tenants/{tenant_id}/stats",
+    params(
+        ("tenant_id" = String, Path, description = "Tenant ID")
+    ),
+    responses(
+        (status = 200, description = "Tenant configuration and statistics", body = serde_json::Value)
+    )
+)]
 pub async fn get_tenant_stats(
     Path(tenant_id): Path<String>,
     State(state): State<Arc<AppState>>,
@@ -451,6 +497,13 @@ pub async fn get_tenant_stats(
 /// GET /system/tenants/stale
 /// Compares registered Supavisor tenants against active workspaces to
 /// identify orphaned (stale) tenant configurations.
+#[utoipa::path(
+    get,
+    path = "/system/tenants/stale",
+    responses(
+        (status = 200, description = "List of stale/orphaned tenants", body = serde_json::Value)
+    )
+)]
 pub async fn list_stale_tenants(
     State(state): State<Arc<AppState>>,
     ctx: SystemContext,

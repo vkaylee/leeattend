@@ -25,20 +25,25 @@ impl OvertimeRequestRepository for DieselOvertimeRequestRepository {
         request: OvertimeRequest,
         employees: Vec<OvertimeRequestEmployee>,
     ) -> Result<OvertimeRequest, AppError> {
-        let mut conn = self.diesel_pools.tenant_transaction_conn(auth_token).await?;
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
 
         let req: OvertimeRequest = diesel::insert_into(overtime_requests::table)
             .values(&request)
             .get_result(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("Failed to create overtime request: {}", e)))?;
+            .map_err(|e| AppError::Internal(format!("Failed to create overtime request: {e}")))?;
 
         if !employees.is_empty() {
             diesel::insert_into(overtime_request_employees::table)
                 .values(&employees)
                 .execute(&mut *conn)
                 .await
-                .map_err(|e| AppError::Internal(format!("Failed to create overtime request employees: {}", e)))?;
+                .map_err(|e| {
+                    AppError::Internal(format!("Failed to create overtime request employees: {e}"))
+                })?;
         }
 
         Ok(req)
@@ -49,7 +54,10 @@ impl OvertimeRequestRepository for DieselOvertimeRequestRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         request: OvertimeRequest,
     ) -> Result<OvertimeRequest, AppError> {
-        let mut conn = self.diesel_pools.tenant_transaction_conn(auth_token).await?;
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
 
         let updated = diesel::update(
             overtime_requests::table
@@ -65,7 +73,7 @@ impl OvertimeRequestRepository for DieselOvertimeRequestRepository {
         ))
         .get_result(&mut *conn)
         .await
-        .map_err(|e| AppError::Internal(format!("Failed to update overtime request: {}", e)))?;
+        .map_err(|e| AppError::Internal(format!("Failed to update overtime request: {e}")))?;
 
         Ok(updated)
     }
@@ -76,7 +84,10 @@ impl OvertimeRequestRepository for DieselOvertimeRequestRepository {
         workspace_id: Uuid,
         request_id: Uuid,
     ) -> Result<Option<OvertimeRequest>, AppError> {
-        let mut conn = self.diesel_pools.tenant_transaction_conn(auth_token).await?;
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
 
         let req = overtime_requests::table
             .filter(overtime_requests::id.eq(request_id))
@@ -84,7 +95,7 @@ impl OvertimeRequestRepository for DieselOvertimeRequestRepository {
             .first::<OvertimeRequest>(&mut *conn)
             .await
             .optional()
-            .map_err(|e| AppError::Internal(format!("Failed to get overtime request: {}", e)))?;
+            .map_err(|e| AppError::Internal(format!("Failed to get overtime request: {e}")))?;
 
         Ok(req)
     }
@@ -94,14 +105,17 @@ impl OvertimeRequestRepository for DieselOvertimeRequestRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         request_id: Uuid,
     ) -> Result<Vec<OvertimeRequestEmployee>, AppError> {
-        let mut conn = self.diesel_pools.tenant_transaction_conn(auth_token).await?;
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
 
         let emps = overtime_request_employees::table
             .filter(overtime_request_employees::overtime_request_id.eq(request_id))
             .load::<OvertimeRequestEmployee>(&mut *conn)
             .await
             .map_err(|e| {
-                AppError::Internal(format!("Failed to get overtime request employees: {}", e))
+                AppError::Internal(format!("Failed to get overtime request employees: {e}"))
             })?;
 
         Ok(emps)
@@ -115,7 +129,10 @@ impl OvertimeRequestRepository for DieselOvertimeRequestRepository {
         consent_status: &str,
         reason: Option<String>,
     ) -> Result<OvertimeRequestEmployee, AppError> {
-        let mut conn = self.diesel_pools.tenant_transaction_conn(auth_token).await?;
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
 
         let updated = diesel::update(
             overtime_request_employees::table
@@ -129,9 +146,7 @@ impl OvertimeRequestRepository for DieselOvertimeRequestRepository {
         ))
         .get_result(&mut *conn)
         .await
-        .map_err(|e| {
-            AppError::Internal(format!("Failed to update employee consent: {}", e))
-        })?;
+        .map_err(|e| AppError::Internal(format!("Failed to update employee consent: {e}")))?;
 
         Ok(updated)
     }

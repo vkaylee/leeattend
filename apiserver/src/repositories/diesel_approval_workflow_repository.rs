@@ -24,15 +24,16 @@ impl ApprovalWorkflowRepository for DieselApprovalWorkflowRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         workflow: ApprovalWorkflow,
     ) -> Result<ApprovalWorkflow, AppError> {
-        let mut conn = self.diesel_pools.tenant_transaction_conn(auth_token).await?;
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
 
         let result = diesel::insert_into(approval_workflows::table)
             .values(&workflow)
             .get_result(&mut *conn)
             .await
-            .map_err(|e| {
-                AppError::Internal(format!("Failed to create approval workflow: {}", e))
-            })?;
+            .map_err(|e| AppError::Internal(format!("Failed to create approval workflow: {e}")))?;
 
         Ok(result)
     }
@@ -42,15 +43,16 @@ impl ApprovalWorkflowRepository for DieselApprovalWorkflowRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         steps: Vec<ApprovalWorkflowStep>,
     ) -> Result<Vec<ApprovalWorkflowStep>, AppError> {
-        let mut conn = self.diesel_pools.tenant_transaction_conn(auth_token).await?;
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
 
         let result = diesel::insert_into(approval_workflow_steps::table)
             .values(&steps)
             .get_results(&mut *conn)
             .await
-            .map_err(|e| {
-                AppError::Internal(format!("Failed to create workflow steps: {}", e))
-            })?;
+            .map_err(|e| AppError::Internal(format!("Failed to create workflow steps: {e}")))?;
 
         Ok(result)
     }
@@ -61,7 +63,10 @@ impl ApprovalWorkflowRepository for DieselApprovalWorkflowRepository {
         workspace_id: Uuid,
         entity_type: &str,
     ) -> Result<Option<ApprovalWorkflow>, AppError> {
-        let mut conn = self.diesel_pools.tenant_transaction_conn(auth_token).await?;
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
 
         let result = approval_workflows::table
             .filter(approval_workflows::workspace_id.eq(workspace_id))
@@ -70,9 +75,7 @@ impl ApprovalWorkflowRepository for DieselApprovalWorkflowRepository {
             .first::<ApprovalWorkflow>(&mut *conn)
             .await
             .optional()
-            .map_err(|e| {
-                AppError::Internal(format!("Failed to get active workflow: {}", e))
-            })?;
+            .map_err(|e| AppError::Internal(format!("Failed to get active workflow: {e}")))?;
 
         Ok(result)
     }
@@ -82,14 +85,17 @@ impl ApprovalWorkflowRepository for DieselApprovalWorkflowRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         workflow_id: Uuid,
     ) -> Result<Vec<ApprovalWorkflowStep>, AppError> {
-        let mut conn = self.diesel_pools.tenant_transaction_conn(auth_token).await?;
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
 
         let result = approval_workflow_steps::table
             .filter(approval_workflow_steps::workflow_id.eq(workflow_id))
             .order(approval_workflow_steps::step_order.asc())
             .load::<ApprovalWorkflowStep>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("Failed to get workflow steps: {}", e)))?;
+            .map_err(|e| AppError::Internal(format!("Failed to get workflow steps: {e}")))?;
 
         Ok(result)
     }
@@ -99,13 +105,16 @@ impl ApprovalWorkflowRepository for DieselApprovalWorkflowRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         log: ApprovalActionLog,
     ) -> Result<ApprovalActionLog, AppError> {
-        let mut conn = self.diesel_pools.tenant_transaction_conn(auth_token).await?;
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
 
         let result = diesel::insert_into(approval_action_log::table)
             .values(&log)
             .get_result(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("Failed to log approval action: {}", e)))?;
+            .map_err(|e| AppError::Internal(format!("Failed to log approval action: {e}")))?;
 
         Ok(result)
     }
@@ -115,14 +124,17 @@ impl ApprovalWorkflowRepository for DieselApprovalWorkflowRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         entity_id: Uuid,
     ) -> Result<Vec<ApprovalActionLog>, AppError> {
-        let mut conn = self.diesel_pools.tenant_transaction_conn(auth_token).await?;
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
 
         let result = approval_action_log::table
             .filter(approval_action_log::entity_id.eq(entity_id))
             .order(approval_action_log::acted_at.asc())
             .load::<ApprovalActionLog>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("Failed to get action logs: {}", e)))?;
+            .map_err(|e| AppError::Internal(format!("Failed to get action logs: {e}")))?;
 
         Ok(result)
     }

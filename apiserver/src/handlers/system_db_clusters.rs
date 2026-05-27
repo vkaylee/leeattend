@@ -36,6 +36,13 @@ pub struct UpdateDbClusterStatusRequest {
 
 /// GET /system/db-clusters
 /// List all system database clusters.
+#[utoipa::path(
+    get,
+    path = "/system/db-clusters",
+    responses(
+        (status = 200, description = "List of all system database clusters", body = [SystemDbCluster])
+    )
+)]
 pub async fn list_db_clusters(
     State(state): State<Arc<AppState>>,
     ctx: SystemContext,
@@ -50,6 +57,14 @@ pub async fn list_db_clusters(
 
 /// POST /system/db-clusters
 /// Create a new database cluster.
+#[utoipa::path(
+    post,
+    path = "/system/db-clusters",
+    request_body = CreateDbClusterRequest,
+    responses(
+        (status = 200, description = "Created database cluster successfully", body = SystemDbCluster)
+    )
+)]
 pub async fn create_db_cluster(
     State(state): State<Arc<AppState>>,
     ctx: SystemContext,
@@ -79,8 +94,18 @@ pub async fn create_db_cluster(
     Ok(Json(cluster))
 }
 
-/// DELETE /system/db-clusters/:id
+/// DELETE /system/db-clusters/{id}
 /// Delete a database cluster by ID.
+#[utoipa::path(
+    delete,
+    path = "/system/db-clusters/{id}",
+    params(
+        ("id" = Uuid, Path, description = "Database Cluster ID")
+    ),
+    responses(
+        (status = 204, description = "Deleted database cluster successfully")
+    )
+)]
 pub async fn delete_db_cluster(
     Path(id): Path<Uuid>,
     State(state): State<Arc<AppState>>,
@@ -98,8 +123,19 @@ pub async fn delete_db_cluster(
     Ok(StatusCode::NO_CONTENT)
 }
 
-/// PATCH /system/db-clusters/:id/status
+/// PATCH /system/db-clusters/{id}/status
 /// Update the active status of a database cluster.
+#[utoipa::path(
+    patch,
+    path = "/system/db-clusters/{id}/status",
+    params(
+        ("id" = Uuid, Path, description = "Database Cluster ID")
+    ),
+    request_body = UpdateDbClusterStatusRequest,
+    responses(
+        (status = 200, description = "Updated database cluster status successfully", body = SystemDbCluster)
+    )
+)]
 pub async fn update_db_cluster_status(
     Path(id): Path<Uuid>,
     State(state): State<Arc<AppState>>,

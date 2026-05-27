@@ -60,7 +60,7 @@ pub struct PunchOutRequest {
     pub note: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct UpdateTimeEntryRequest {
     pub punch_in_time: Option<DateTime<Utc>>,
     pub punch_out_time: Option<DateTime<Utc>>,

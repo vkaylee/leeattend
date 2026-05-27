@@ -14,19 +14,34 @@ use crate::handlers::common::MemberContext;
 use crate::models::AttendanceDailySummary;
 use crate::AppState;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, utoipa::ToSchema)]
 pub struct ClaimOtRequest {
     pub date: NaiveDate,
     pub claimed_minutes: i32,
     pub reason: Option<String>,
 }
 
+#[utoipa::path(
+    post,
+    path = "/v1/attendance/overtime/{employee_id}/claim",
+    params(
+        ("employee_id" = Uuid, Path, description = "Employee ID")
+    ),
+    request_body = ClaimOtRequest,
+    responses(
+        (status = 200, description = "Overtime claimed")
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 pub async fn claim_ot(
     State(state): State<Arc<AppState>>,
-    Path((_, employee_id)): Path<(Uuid, Uuid)>,
+    Path(__path_params): Path<(Uuid, Uuid)>,
     ctx: MemberContext,
     Json(req): Json<ClaimOtRequest>,
 ) -> AppResult<StatusCode> {
+    let (_, employee_id) = __path_params;
     // 1. Verify ownership (Employee can only claim for themselves) or has OvertimeClaim permission
     let employee = state
         .employees
@@ -59,7 +74,7 @@ pub async fn claim_ot(
     Ok(StatusCode::OK)
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, utoipa::ToSchema)]
 pub struct ApproveOtRequest {
     pub date: NaiveDate,
     pub approved_minutes: i32,
@@ -67,12 +82,27 @@ pub struct ApproveOtRequest {
     pub status: String, // "approved" or "rejected"
 }
 
+#[utoipa::path(
+    put,
+    path = "/v1/attendance/overtime/{employee_id}/approve",
+    params(
+        ("employee_id" = Uuid, Path, description = "Employee ID")
+    ),
+    request_body = ApproveOtRequest,
+    responses(
+        (status = 200, description = "Overtime approved/rejected")
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 pub async fn approve_ot(
     State(state): State<Arc<AppState>>,
-    Path((_, employee_id)): Path<(Uuid, Uuid)>,
+    Path(__path_params): Path<(Uuid, Uuid)>,
     ctx: MemberContext,
     Json(req): Json<ApproveOtRequest>,
 ) -> AppResult<StatusCode> {
+    let (_, employee_id) = __path_params;
     // RBAC: Only users with OvertimeApprove permission, scoped to department if TeamLead
     let target_dept_id =
         crate::handlers::common::current_department_id(&state, &ctx.auth_token, employee_id).await;
@@ -108,6 +138,21 @@ pub struct SummaryQuery {
     pub employee_id: Option<Uuid>,
 }
 
+#[utoipa::path(
+    get,
+    path = "/v1/attendance/overtime/summaries",
+    params(
+        ("start_date" = NaiveDate, Query, description = "Start date"),
+        ("end_date" = NaiveDate, Query, description = "End date"),
+        ("employee_id" = Option<Uuid>, Query, description = "Optional Employee ID")
+    ),
+    responses(
+        (status = 200, description = "Attendance summaries", body = Vec<AttendanceDailySummary>)
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 pub async fn get_attendance_summaries(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,

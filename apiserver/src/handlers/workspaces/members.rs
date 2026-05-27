@@ -14,11 +14,21 @@ use crate::models::{AddMemberRequest, WorkspaceMemberDetailResponse};
 use crate::services::audit_service::AuditHelper;
 use crate::AppState;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, utoipa::ToSchema)]
 pub struct UpdateMemberRoleRequest {
     pub role_id: Uuid,
 }
 
+#[utoipa::path(
+    get,
+    path = "/v1/workspaces/members",
+    responses(
+        (status = 200, description = "List of workspace members", body = Vec<WorkspaceMemberDetailResponse>)
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 pub async fn get_workspace_members(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -54,6 +64,17 @@ pub async fn get_workspace_members(
     Ok(Json(response))
 }
 
+#[utoipa::path(
+    post,
+    path = "/v1/workspaces/members",
+    request_body = AddMemberRequest,
+    responses(
+        (status = 201, description = "Member added successfully")
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 pub async fn add_workspace_member(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
@@ -105,13 +126,28 @@ pub async fn add_workspace_member(
     Ok(StatusCode::CREATED)
 }
 
+#[utoipa::path(
+    put,
+    path = "/v1/workspaces/members/{user_id}/role",
+    params(
+        ("user_id" = Uuid, Path, description = "User ID to update")
+    ),
+    request_body = UpdateMemberRoleRequest,
+    responses(
+        (status = 200, description = "Member role updated successfully")
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 pub async fn update_workspace_member_role(
-    Path((_, user_id)): Path<(Uuid, Uuid)>,
+    Path(__path_params): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     ctx: MemberContext,
     Json(req): Json<UpdateMemberRoleRequest>,
 ) -> AppResult<StatusCode> {
+    let (_, user_id) = __path_params;
     ctx.require_permission(Permission::MembersRolesManage)?;
 
     let old_role_id = state
@@ -158,12 +194,26 @@ pub async fn update_workspace_member_role(
     Ok(StatusCode::OK)
 }
 
+#[utoipa::path(
+    delete,
+    path = "/v1/workspaces/members/{user_id}",
+    params(
+        ("user_id" = Uuid, Path, description = "User ID to remove")
+    ),
+    responses(
+        (status = 204, description = "Member removed successfully")
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 pub async fn remove_workspace_member(
-    Path((_, user_id)): Path<(Uuid, Uuid)>,
+    Path(__path_params): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     ctx: MemberContext,
 ) -> AppResult<StatusCode> {
+    let (_, user_id) = __path_params;
     ctx.require_permission(Permission::MembersRemove)?;
 
     // Don't allow removing yourself (prevent lockout if only one admin, though owner should probably remain)

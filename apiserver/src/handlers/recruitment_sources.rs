@@ -3,7 +3,7 @@ use crate::errors::AppResult;
 use crate::handlers::common::MemberContext;
 use crate::models::{
     CreateRecruitmentSourceRequest, RecruitmentSource, RecruitmentSourceBreakdown,
-    UpdateRecruitmentSourceRequest,
+    TurnoverAnalytics, UpdateRecruitmentSourceRequest,
 };
 use crate::AppState;
 use axum::{
@@ -14,6 +14,19 @@ use axum::{
 use std::sync::Arc;
 use uuid::Uuid;
 
+#[utoipa::path(
+    get,
+    path = "/v1/workspaces/{ws_id}/recruitment-sources",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID")
+    ),
+    responses(
+        (status = 200, description = "List of recruitment sources", body = Vec<RecruitmentSource>)
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 pub async fn get_recruitment_sources(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -28,6 +41,20 @@ pub async fn get_recruitment_sources(
     Ok(Json(sources))
 }
 
+#[utoipa::path(
+    post,
+    path = "/v1/workspaces/{ws_id}/recruitment-sources",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID")
+    ),
+    request_body = CreateRecruitmentSourceRequest,
+    responses(
+        (status = 201, description = "Recruitment source created", body = RecruitmentSource)
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 pub async fn create_recruitment_source(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -42,12 +69,28 @@ pub async fn create_recruitment_source(
     Ok((StatusCode::CREATED, Json(source)))
 }
 
+#[utoipa::path(
+    patch,
+    path = "/v1/workspaces/{ws_id}/recruitment-sources/{id}",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        ("id" = Uuid, Path, description = "Source ID")
+    ),
+    request_body = UpdateRecruitmentSourceRequest,
+    responses(
+        (status = 200, description = "Recruitment source updated", body = RecruitmentSource)
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 pub async fn update_recruitment_source(
-    Path((_, id)): Path<(Uuid, Uuid)>,
+    Path(__path_params): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
     Json(req): Json<UpdateRecruitmentSourceRequest>,
 ) -> AppResult<Json<RecruitmentSource>> {
+    let (_, id) = __path_params;
     ctx.require_permission(Permission::RecruitmentManage)?;
     let source = state
         .employees
@@ -57,11 +100,26 @@ pub async fn update_recruitment_source(
     Ok(Json(source))
 }
 
+#[utoipa::path(
+    delete,
+    path = "/v1/workspaces/{ws_id}/recruitment-sources/{id}",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        ("id" = Uuid, Path, description = "Source ID")
+    ),
+    responses(
+        (status = 204, description = "Recruitment source deleted")
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 pub async fn delete_recruitment_source(
-    Path((_, id)): Path<(Uuid, Uuid)>,
+    Path(__path_params): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> AppResult<StatusCode> {
+    let (_, id) = __path_params;
     ctx.require_permission(Permission::RecruitmentManage)?;
     state
         .employees
@@ -72,6 +130,16 @@ pub async fn delete_recruitment_source(
 }
 
 /// Dashboard chart endpoint: recruitment source breakdown
+#[utoipa::path(
+    get,
+    path = "/v1/dashboard/recruitment-sources",
+    responses(
+        (status = 200, description = "Recruitment source breakdown", body = Vec<RecruitmentSourceBreakdown>)
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 pub async fn get_recruitment_source_breakdown(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -87,6 +155,20 @@ pub async fn get_recruitment_source_breakdown(
 }
 
 /// Dashboard chart endpoint: turnover analytics with date range filter
+#[utoipa::path(
+    get,
+    path = "/v1/dashboard/turnover-analytics",
+    params(
+        ("start" = Option<String>, Query, description = "Start date (YYYY-MM-DD)"),
+        ("end" = Option<String>, Query, description = "End date (YYYY-MM-DD)")
+    ),
+    responses(
+        (status = 200, description = "Turnover analytics", body = TurnoverAnalytics)
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 pub async fn get_turnover_analytics(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,

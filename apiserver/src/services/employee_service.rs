@@ -262,7 +262,6 @@ impl EmployeeService {
         Ok(employee)
     }
 
-
     #[tracing::instrument(skip_all, err)]
     pub async fn delete_employee(
         &self,
@@ -439,7 +438,8 @@ mod tests {
             _auth_token: &crate::diesel_pool::TenantAuthToken,
             _employee_id: Uuid,
             _assignment_id: Uuid,
-        ) -> Result<Option<crate::models::employee_assignment::EmployeeAssignment>, AppError> {
+        ) -> Result<Option<crate::models::employee_assignment::EmployeeAssignment>, AppError>
+        {
             Ok(None)
         }
 

@@ -208,10 +208,10 @@ pub async fn get_workspace_schedules(
     let _workspace_id = ctx.workspace_id;
 
     let start_date = NaiveDate::parse_from_str(&query.start_date, "%Y-%m-%d")
-        .map_err(|_| AppError::Validation("Invalid start_date format".to_string()))?;
+        .map_err(|_err| AppError::Validation("Invalid start_date format".to_string()))?;
 
     let end_date = NaiveDate::parse_from_str(&query.end_date, "%Y-%m-%d")
-        .map_err(|_| AppError::Validation("Invalid end_date format".to_string()))?;
+        .map_err(|_err| AppError::Validation("Invalid end_date format".to_string()))?;
 
     let schedules = state
         .shifts
@@ -275,12 +275,14 @@ pub async fn get_employee_rosters(
     Query(query): Query<EmployeeRostersQuery>,
 ) -> AppResult<Json<Vec<ShiftRoster>>> {
     let (_workspace_id, employee_id) = params;
-    let start_date = query.start_date
+    let start_date = query
+        .start_date
         .as_deref()
         .and_then(|s| NaiveDate::parse_from_str(s, "%Y-%m-%d").ok())
         .unwrap_or_else(|| chrono::Utc::now().date_naive());
 
-    let end_date = query.end_date
+    let end_date = query
+        .end_date
         .as_deref()
         .and_then(|s| NaiveDate::parse_from_str(s, "%Y-%m-%d").ok())
         .unwrap_or_else(|| start_date + chrono::Duration::days(30));

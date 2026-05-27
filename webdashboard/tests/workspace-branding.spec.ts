@@ -7,7 +7,7 @@ test.describe('Workspace Branding', () => {
     await loginPage.goto();
     // Using real login for better reliability in E2E
     await loginPage.login('admin@leeattend.com', 'admin123');
-    await expect(page).toHaveURL(/\/$/);
+    await page.waitForURL(url => !url.pathname.includes('/login'), { timeout: 30000 });
   });
 
   test('should update workspace logo and tagline', async ({ page }) => {

@@ -82,6 +82,7 @@
     "globals": "^17.0.0",
     "happy-dom": "^20.8.4",
     "jsdom": "^27.4.0",
+    "openapi-typescript": "^7.13.0",
     "rollup-plugin-visualizer": "^6.0.11",
     "tailwindcss": "^4",
     "typescript": "^5",

@@ -1,6 +1,4 @@
-import { API_BASE_URL } from "./config";
-import { apiFetch } from "./helpers";
-import { apiClient } from "./client";
+import { client } from "./client";
 
 export interface SystemRoleAssignment {
   assigned_at: string;
@@ -21,27 +19,36 @@ export interface AssignSystemRoleRequest {
 }
 
 export async function fetchSystemRoles(): Promise<SystemRoleInfo[]> {
-  const { data: resData } = await apiClient.get<SystemRoleInfo[]>(`/system/roles`);
-    return resData;
+  const { data: resData } = await client.GET("/system/roles");
+  if (!resData) throw new Error("No response data");
+  return resData as unknown as SystemRoleInfo[];
 }
 
 export async function fetchUserSystemRoles(userId: string): Promise<SystemRoleAssignment[]> {
-  const { data: resData } = await apiClient.get<SystemRoleAssignment[]>(`/system/users/${userId}/roles`);
-    return resData;
+  const { data: resData } = await client.GET("/system/users/{user_id}/roles", {
+    params: { path: { user_id: userId } }
+  });
+  if (!resData) throw new Error("No response data");
+  return resData as unknown as SystemRoleAssignment[];
 }
 
 export async function assignSystemRole(userId: string, request: AssignSystemRoleRequest): Promise<void> {
-  await apiClient.post(`/system/users/${userId}/roles`, request);
+  await client.POST("/system/users/{user_id}/roles", {
+    params: { path: { user_id: userId } },
+    body: request as never
+  });
 }
 
 export async function revokeSystemRole(userId: string, roleName: string): Promise<void> {
-  await apiClient.delete(`/system/users/${userId}/roles/${roleName}`);
+  await client.DELETE("/system/users/{user_id}/roles/{role_name}", {
+    params: { path: { user_id: userId, role_name: roleName } }
+  });
 }
 
- 
 export async function fetchSystemHealth(): Promise<Record<string, unknown>> {
-  const { data: resData } = await apiClient.get<Record<string, unknown>>(`/system/health`);
-    return resData;
+  const { data: resData } = await client.GET("/system/health");
+  if (!resData) throw new Error("No response data");
+  return resData as Record<string, unknown>;
 }
 
 export interface SystemTenant {
@@ -58,21 +65,27 @@ export interface CreateTenantRequestPayload {
 }
 
 export async function fetchSystemTenants(): Promise<SystemTenant[]> {
-  const { data: resData } = await apiClient.get<SystemTenant[]>(`/system/tenants`);
-    return resData;
+  const { data: resData } = await client.GET("/system/tenants");
+  if (!resData) throw new Error("No response data");
+  return resData as unknown as SystemTenant[];
 }
 
 export async function fetchStaleTenants(): Promise<SystemTenant[]> {
-  const { data: resData } = await apiClient.get<SystemTenant[]>(`/system/tenants/stale`);
-    return resData;
+  const { data: resData } = await client.GET("/system/tenants/stale");
+  if (!resData) throw new Error("No response data");
+  return resData as unknown as SystemTenant[];
 }
 
 export async function createSystemTenant(request: CreateTenantRequestPayload): Promise<void> {
-  await apiClient.post(`/system/tenants`, request);
+  await client.POST("/system/tenants", {
+    body: request as never
+  });
 }
 
 export async function deleteSystemTenant(tenantId: string): Promise<void> {
-  await apiClient.delete(`/system/tenants/${tenantId}`);
+  await client.DELETE("/system/tenants/{tenant_id}", {
+    params: { path: { tenant_id: tenantId } }
+  });
 }
 
 export interface TenantConfig {
@@ -98,12 +111,18 @@ export interface TenantConnectionStats {
 }
 
 export async function fetchSystemTenantStats(tenantId: string): Promise<TenantConnectionStats> {
-  const { data: resData } = await apiClient.get<TenantConnectionStats>(`/system/tenants/${tenantId}/stats`);
-    return resData;
+  const { data: resData } = await client.GET("/system/tenants/{tenant_id}/stats", {
+    params: { path: { tenant_id: tenantId } }
+  });
+  if (!resData) throw new Error("No response data");
+  return resData as unknown as TenantConnectionStats;
 }
 
 export async function updateTenantDatabase(tenantId: string, customDbUrl: string): Promise<void> {
-  await apiClient.put(`/system/tenants/${tenantId}/database`, { custom_db_url: customDbUrl });
+  await client.PUT("/system/tenants/{tenant_id}/database", {
+    params: { path: { tenant_id: tenantId } },
+    body: { database_url: customDbUrl } as never
+  });
 }
 
 export interface SystemDbCluster {
@@ -127,20 +146,30 @@ export interface CreateDbClusterRequestPayload {
 }
 
 export async function fetchSystemDbClusters(): Promise<SystemDbCluster[]> {
-  const { data: resData } = await apiClient.get<SystemDbCluster[]>(`/system/db-clusters`);
-    return resData;
+  const { data: resData } = await client.GET("/system/db-clusters");
+  if (!resData) throw new Error("No response data");
+  return resData;
 }
 
 export async function createSystemDbCluster(request: CreateDbClusterRequestPayload): Promise<SystemDbCluster> {
-  const { data: resData } = await apiClient.post<SystemDbCluster>(`/system/db-clusters`, request);
-    return resData;
+  const { data: resData } = await client.POST("/system/db-clusters", {
+    body: request as never
+  });
+  if (!resData) throw new Error("No response data");
+  return resData;
 }
 
 export async function deleteSystemDbCluster(id: string): Promise<void> {
-  await apiClient.delete(`/system/db-clusters/${id}`);
+  await client.DELETE("/system/db-clusters/{id}", {
+    params: { path: { id } }
+  });
 }
 
 export async function updateSystemDbClusterStatus(id: string, isActive: boolean): Promise<SystemDbCluster> {
-  const { data: resData } = await apiClient.patch<SystemDbCluster>(`/system/db-clusters/${id}/status`, { is_active: isActive });
-    return resData;
+  const { data: resData } = await client.PATCH("/system/db-clusters/{id}/status", {
+    params: { path: { id } },
+    body: { is_active: isActive } as never
+  });
+  if (!resData) throw new Error("No response data");
+  return resData;
 }

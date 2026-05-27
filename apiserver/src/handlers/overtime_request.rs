@@ -1,6 +1,6 @@
 use crate::{
     domain::permissions::Permission,
-    errors::{AppResult, AppError},
+    errors::{AppError, AppResult},
     handlers::common::MemberContext,
     models::{OtRequestStatus, OvertimeRequest, OvertimeRequestEmployee},
     AppState,
@@ -10,10 +10,10 @@ use axum::{
     http::StatusCode,
     response::Json,
 };
+use chrono::{NaiveDate, NaiveTime};
 use serde::Deserialize;
 use std::sync::Arc;
 use uuid::Uuid;
-use chrono::{NaiveDate, NaiveTime};
 
 #[derive(Deserialize, utoipa::ToSchema)]
 pub struct CreateOvertimeRequestPayload {
@@ -49,7 +49,7 @@ pub async fn create_ot_request(
     Json(req): Json<CreateOvertimeRequestPayload>,
 ) -> AppResult<Json<OvertimeRequest>> {
     ctx.require_permission(Permission::OvertimeRequestCreate)?;
-    
+
     let request = OvertimeRequest {
         id: crate::utils::id::new_id(),
         workspace_id: ctx.workspace_id,
@@ -69,7 +69,7 @@ pub async fn create_ot_request(
         created_at: chrono::Utc::now(),
         updated_at: chrono::Utc::now(),
     };
-    
+
     let mut employees = Vec::new();
     for emp_id in req.employees {
         employees.push(OvertimeRequestEmployee {
@@ -84,13 +84,13 @@ pub async fn create_ot_request(
             created_at: chrono::Utc::now(),
         });
     }
-    
+
     let created = state
         .payroll
         .overtime_request_service
         .create_request(&ctx.auth_token, request, employees)
         .await?;
-        
+
     Ok(Json(created))
 }
 
@@ -109,7 +109,7 @@ pub async fn list_ot_requests(
     ctx: MemberContext,
 ) -> AppResult<Json<Vec<OvertimeRequest>>> {
     ctx.require_permission(Permission::OvertimeRequestRead)?;
-    
+
     // We haven't implemented list_requests yet in repo
     Ok(Json(vec![]))
 }
@@ -132,20 +132,20 @@ pub async fn get_ot_request(
 ) -> AppResult<Json<OvertimeRequestDetail>> {
     let (_, id) = params;
     ctx.require_permission(Permission::OvertimeRequestRead)?;
-    
+
     let request = state
         .payroll
         .overtime_request_service
         .get_request(&ctx.auth_token, id)
         .await?
         .ok_or_else(|| AppError::NotFound("Request not found".into()))?;
-        
+
     let employees = state
         .payroll
         .overtime_request_service
         .get_request_employees(&ctx.auth_token, id)
         .await?;
-        
+
     Ok(Json(OvertimeRequestDetail { request, employees }))
 }
 
@@ -167,13 +167,18 @@ pub async fn submit_for_approval(
 ) -> AppResult<StatusCode> {
     let (_, id) = params;
     ctx.require_permission(Permission::OvertimeRequestCreate)?;
-    
+
     state
         .payroll
         .overtime_request_service
-        .update_request_status(&ctx.auth_token, id, OtRequestStatus::PendingApproval, Some(1))
+        .update_request_status(
+            &ctx.auth_token,
+            id,
+            OtRequestStatus::PendingApproval,
+            Some(1),
+        )
         .await?;
-        
+
     Ok(StatusCode::OK)
 }
 
@@ -208,6 +213,6 @@ pub async fn employee_consent(
         .overtime_request_service
         .update_employee_consent(&ctx.auth_token, id, emp_id, &req.status, req.decline_reason)
         .await?;
-        
+
     Ok(StatusCode::OK)
 }

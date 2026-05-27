@@ -1,18 +1,20 @@
-use apiserver::models::employee_assignment::{AssignmentStatusEnum, EmployeeAssignment, NewEmployeeAssignment};
+use apiserver::models::employee_assignment::{
+    AssignmentStatusEnum, EmployeeAssignment, NewEmployeeAssignment,
+};
 use apiserver::schema::employee_assignments;
 use apiserver::schema::work_locations;
+use axum::http::StatusCode;
 use chrono::NaiveDate;
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
-use uuid::Uuid;
-use axum::http::StatusCode;
 use serde_json::json;
 use std::sync::Arc;
 use tower::ServiceExt;
+use uuid::Uuid;
 
+use crate::common::app::setup_app_tower;
 use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
-use crate::common::app::setup_app_tower;
 use apiserver::AppState;
 
 async fn setup_db() -> (TestDatabase, TestFactory) {
@@ -28,12 +30,18 @@ async fn test_employee_assignment_crud_and_status_enum() {
     let ws_id = factory.workspace().create_with_owner(user_id).await;
     let emp_id = factory.employee().with_workspace(ws_id).create().await;
 
-    let mut tenant_conn = test_db.diesel_pools.tenants_tx.get_connection(&ws_id).await.unwrap();
+    let mut tenant_conn = test_db
+        .diesel_pools
+        .tenants_tx
+        .get_connection(&ws_id)
+        .await
+        .unwrap();
 
     let hq_id: Uuid = crate::test_query_scalar_uuid!(
         &test_db.diesel_pools.api,
         "SELECT primary_location_id AS id FROM employees WHERE id = $1",
-        diesel::sql_types::Uuid, emp_id
+        diesel::sql_types::Uuid,
+        emp_id
     );
 
     #[derive(Insertable)]
@@ -82,11 +90,13 @@ async fn test_employee_assignment_crud_and_status_enum() {
     assert_eq!(inserted.reason.unwrap(), "Secondment to Tokyo");
 
     // Test updating to Completed status
-    let updated: EmployeeAssignment = diesel::update(employee_assignments::table.filter(employee_assignments::id.eq(new_assignment.id)))
-        .set(employee_assignments::status.eq(AssignmentStatusEnum::Completed))
-        .get_result(&mut *tenant_conn)
-        .await
-        .unwrap();
+    let updated: EmployeeAssignment = diesel::update(
+        employee_assignments::table.filter(employee_assignments::id.eq(new_assignment.id)),
+    )
+    .set(employee_assignments::status.eq(AssignmentStatusEnum::Completed))
+    .get_result(&mut *tenant_conn)
+    .await
+    .unwrap();
 
     assert_eq!(updated.status, AssignmentStatusEnum::Completed);
 
@@ -148,12 +158,18 @@ async fn test_employee_assignments_api_crud() {
     let hq_id: Uuid = crate::test_query_scalar_uuid!(
         &_test_db.diesel_pools.api,
         "SELECT primary_location_id AS id FROM employees WHERE id = $1",
-        diesel::sql_types::Uuid, emp_id
+        diesel::sql_types::Uuid,
+        emp_id
     );
 
     let tokyo_loc_id = Uuid::new_v4();
-    let mut tenant_conn = _test_db.diesel_pools.tenants_tx.get_connection(&ws_id).await.unwrap();
-    
+    let mut tenant_conn = _test_db
+        .diesel_pools
+        .tenants_tx
+        .get_connection(&ws_id)
+        .await
+        .unwrap();
+
     #[derive(Insertable)]
     #[diesel(table_name = work_locations)]
     struct NewLoc {

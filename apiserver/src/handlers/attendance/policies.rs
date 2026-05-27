@@ -10,7 +10,7 @@ use crate::{
     models::AttendanceRules, AppState,
 };
 
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
 pub struct UpdateAttendanceRulesRequest {
     pub work_unit_minutes: Option<i32>,
     pub rounding_policy: Option<String>,
@@ -20,7 +20,7 @@ pub struct UpdateAttendanceRulesRequest {
 }
 
 /// Response shape for a single policy version (includes metadata)
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
 pub struct AttendancePolicyVersionResponse {
     pub id: String,
     pub work_unit_minutes: i32,
@@ -32,6 +32,19 @@ pub struct AttendancePolicyVersionResponse {
     pub created_at: String,
 }
 
+#[utoipa::path(
+    get,
+    path = "/v1/workspaces/{ws_id}/attendance/rules",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID")
+    ),
+    responses(
+        (status = 200, description = "Default attendance rules", body = AttendanceRules)
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 pub async fn get_default_attendance_rules(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -56,6 +69,19 @@ pub async fn get_default_attendance_rules(
 }
 
 /// Returns all versions of the default attendance policy, ordered newest first.
+#[utoipa::path(
+    get,
+    path = "/v1/workspaces/{ws_id}/attendance/rules/versions",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID")
+    ),
+    responses(
+        (status = 200, description = "Default attendance rules versions", body = Vec<AttendancePolicyVersionResponse>)
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 pub async fn list_default_attendance_policy_versions(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -86,6 +112,20 @@ pub async fn list_default_attendance_policy_versions(
     Ok(Json(response))
 }
 
+#[utoipa::path(
+    patch,
+    path = "/v1/workspaces/{ws_id}/attendance/rules",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID")
+    ),
+    request_body = UpdateAttendanceRulesRequest,
+    responses(
+        (status = 200, description = "Default attendance rules updated", body = AttendancePolicyVersionResponse)
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 #[allow(clippy::too_many_lines)]
 pub async fn update_default_attendance_rules(
     State(state): State<Arc<AppState>>,

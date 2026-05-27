@@ -1,24 +1,24 @@
 import type { AuditLog, PaginatedResponse } from "./types";
 
-import { API_BASE_URL } from "./config";
-import { apiFetch } from "./helpers";
+import { client } from "./client";
 
 export const fetchAuditLogs = async (
-    workspaceId: string,
-    params: { page: number; limit: number; action?: string; startDate?: string; endDate?: string }
+  workspaceId: string,
+  params: { page: number; limit: number; action?: string; startDate?: string; endDate?: string }
 ): Promise<PaginatedResponse<AuditLog>> => {
-    const query = new URLSearchParams({
-        page: params.page.toString(),
-        limit: params.limit.toString(),
-    });
-
-    if (params.action) query.append("action", params.action);
-    if (params.startDate) query.append("start_date", params.startDate);
-    if (params.endDate) query.append("end_date", params.endDate);
-
-    const response = await apiFetch(`${API_BASE_URL}/workspaces/${workspaceId}/audit-logs?${query}`);
-    if (!response.ok) {
-        throw new Error("Failed to fetch audit logs");
-    }
-    return response.json() as Promise<PaginatedResponse<AuditLog>>;
+  const { data: resData } = await client.GET("/workspaces/{ws_id}/audit-logs", {
+    params: {
+      path: { ws_id: workspaceId },
+      query: {
+        page: params.page,
+        limit: params.limit,
+        action: params.action,
+        start_date: params.startDate,
+        end_date: params.endDate,
+      },
+    },
+  });
+  if (!resData) throw new Error("No response data");
+  return resData as unknown as PaginatedResponse<AuditLog>;
 };
+

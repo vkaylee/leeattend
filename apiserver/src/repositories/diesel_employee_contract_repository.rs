@@ -70,13 +70,13 @@ impl super::EmployeeContractRepository for DieselEmployeeContractRepository {
 
                             diesel::sql_query(
                                 r"
-                                UPDATE employee_contracts 
-                                SET end_date = $1, 
-                                    status = 'expired', 
+                                UPDATE employee_contracts
+                                SET end_date = $1,
+                                    status = 'expired',
                                     updated_at = NOW(),
-                                    notes = CASE 
-                                        WHEN notes IS NULL OR notes = '' THEN $2 
-                                        ELSE notes || E'\n---\n' || $2 
+                                    notes = CASE
+                                        WHEN notes IS NULL OR notes = '' THEN $2
+                                        ELSE notes || E'\n---\n' || $2
                                     END
                                 WHERE id = ANY($3)
                                 ",

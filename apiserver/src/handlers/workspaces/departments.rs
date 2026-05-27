@@ -12,6 +12,19 @@ use crate::handlers::common::MemberContext;
 use crate::models::{CreateDepartmentRequest, Department, UpdateDepartmentRequest};
 use crate::AppState;
 
+#[utoipa::path(
+    get,
+    path = "/v1/workspaces/{ws_id}/departments",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID")
+    ),
+    responses(
+        (status = 200, description = "List of departments", body = Vec<Department>)
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 pub async fn get_departments(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -24,6 +37,20 @@ pub async fn get_departments(
     Ok(Json(departments))
 }
 
+#[utoipa::path(
+    post,
+    path = "/v1/workspaces/{ws_id}/departments",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID")
+    ),
+    request_body = CreateDepartmentRequest,
+    responses(
+        (status = 201, description = "Department created", body = Department)
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 pub async fn create_department(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -45,12 +72,28 @@ pub async fn create_department(
     Ok((StatusCode::CREATED, Json(dept)))
 }
 
+#[utoipa::path(
+    put,
+    path = "/v1/workspaces/{ws_id}/departments/{id}",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        ("id" = Uuid, Path, description = "Department ID")
+    ),
+    request_body = UpdateDepartmentRequest,
+    responses(
+        (status = 200, description = "Department updated", body = Department)
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 pub async fn update_department(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
-    Path((_, id)): Path<(Uuid, Uuid)>,
+    Path(__path_params): Path<(Uuid, Uuid)>,
     Json(req): Json<UpdateDepartmentRequest>,
 ) -> AppResult<Json<Department>> {
+    let (_, id) = __path_params;
     ctx.require_permission(Permission::DepartmentsUpdate)?;
     let dept = state
         .payroll
@@ -61,11 +104,26 @@ pub async fn update_department(
     Ok(Json(dept))
 }
 
+#[utoipa::path(
+    delete,
+    path = "/v1/workspaces/{ws_id}/departments/{id}",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        ("id" = Uuid, Path, description = "Department ID to delete")
+    ),
+    responses(
+        (status = 204, description = "Department deleted")
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 pub async fn delete_department(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
-    Path((_, id)): Path<(Uuid, Uuid)>,
+    Path(__path_params): Path<(Uuid, Uuid)>,
 ) -> AppResult<StatusCode> {
+    let (_, id) = __path_params;
     ctx.require_permission(Permission::DepartmentsDelete)?;
     state
         .payroll

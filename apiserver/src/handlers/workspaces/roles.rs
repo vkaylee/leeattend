@@ -16,7 +16,7 @@ use crate::services::WorkspaceService;
 use crate::AppState;
 use serde::Deserialize;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, utoipa::ToSchema)]
 pub struct CreateWorkspaceRoleRequest {
     pub name: String,
     pub description: Option<String>,
@@ -27,23 +27,38 @@ pub struct CreateWorkspaceRoleRequest {
     pub scope_type: RoleScopeType,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, utoipa::ToSchema)]
 pub struct UpdateWorkspaceRoleRequest {
     pub name: Option<String>,
     pub description: Option<String>,
     pub color: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, utoipa::ToSchema)]
 pub struct UpdateRolePermissionsRequest {
     pub permissions: Vec<String>,
 }
 
+#[utoipa::path(
+    get,
+    path = "/v1/workspaces/{ws_id}/members/{user_id}/roles",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        ("user_id" = Uuid, Path, description = "User ID")
+    ),
+    responses(
+        (status = 200, description = "List of member roles")
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 pub async fn get_member_roles(
-    Path((_, user_id)): Path<(Uuid, Uuid)>,
+    Path(__path_params): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> AppResult<Json<serde_json::Value>> {
+    let (_, user_id) = __path_params;
     let (primary, extra) = WorkspaceService::get_member_roles(
         state.core.workspace_repo.as_ref(),
         ctx.workspace_id,
@@ -57,13 +72,29 @@ pub async fn get_member_roles(
     })))
 }
 
+#[utoipa::path(
+    post,
+    path = "/v1/workspaces/{ws_id}/members/{user_id}/roles",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        ("user_id" = Uuid, Path, description = "User ID")
+    ),
+    request_body = AssignRoleRequest,
+    responses(
+        (status = 201, description = "Extra role assigned", body = MemberExtraRole)
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 pub async fn assign_extra_role(
-    Path((_, user_id)): Path<(Uuid, Uuid)>,
+    Path(__path_params): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     ctx: MemberContext,
     Json(req): Json<AssignRoleRequest>,
 ) -> AppResult<(StatusCode, Json<MemberExtraRole>)> {
+    let (_, user_id) = __path_params;
     ctx.require_permission(Permission::MembersRolesManage)?;
 
     if req.expires_at <= chrono::Utc::now() {
@@ -106,12 +137,29 @@ pub async fn assign_extra_role(
     Ok((StatusCode::CREATED, Json(extra_role)))
 }
 
+#[utoipa::path(
+    delete,
+    path = "/v1/workspaces/{ws_id}/members/{user_id}/roles/{role_id}",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        ("user_id" = Uuid, Path, description = "User ID"),
+        ("role_id" = Uuid, Path, description = "Role ID to revoke")
+    ),
+    responses(
+        (status = 204, description = "Extra role revoked"),
+        (status = 404, description = "Role not found")
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 pub async fn revoke_extra_role(
-    Path((_, user_id, role_id)): Path<(Uuid, Uuid, Uuid)>,
+    Path(__path_params): Path<(Uuid, Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     ctx: MemberContext,
 ) -> AppResult<StatusCode> {
+    let (_, user_id, role_id) = __path_params;
     ctx.require_permission(Permission::MembersRolesManage)?;
 
     let affected = state
@@ -154,6 +202,19 @@ pub async fn revoke_extra_role(
 
 // --- Workspace Role Management (CRUD) ---
 
+#[utoipa::path(
+    get,
+    path = "/v1/workspaces/{ws_id}/roles",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID")
+    ),
+    responses(
+        (status = 200, description = "List of workspace roles", body = Vec<WorkspaceRole>)
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 pub async fn get_workspace_roles(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -170,6 +231,20 @@ pub async fn get_workspace_roles(
     Ok(Json(roles))
 }
 
+#[utoipa::path(
+    post,
+    path = "/v1/workspaces/{ws_id}/roles",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID")
+    ),
+    request_body = CreateWorkspaceRoleRequest,
+    responses(
+        (status = 201, description = "Workspace role created", body = WorkspaceRole)
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 pub async fn create_workspace_role(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -192,12 +267,28 @@ pub async fn create_workspace_role(
     Ok((StatusCode::CREATED, Json(role)))
 }
 
+#[utoipa::path(
+    put,
+    path = "/v1/workspaces/{ws_id}/roles/{role_id}",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        ("role_id" = Uuid, Path, description = "Role ID to update")
+    ),
+    request_body = UpdateWorkspaceRoleRequest,
+    responses(
+        (status = 200, description = "Workspace role updated", body = WorkspaceRole)
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 pub async fn update_workspace_role(
-    Path((_, role_id)): Path<(Uuid, Uuid)>,
+    Path(__path_params): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
     Json(req): Json<UpdateWorkspaceRoleRequest>,
 ) -> AppResult<Json<WorkspaceRole>> {
+    let (_, role_id) = __path_params;
     ctx.require_permission(Permission::MembersRolesManage)?;
 
     let role = state
@@ -216,11 +307,27 @@ pub async fn update_workspace_role(
     Ok(Json(role))
 }
 
+#[utoipa::path(
+    delete,
+    path = "/v1/workspaces/{ws_id}/roles/{role_id}",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        ("role_id" = Uuid, Path, description = "Role ID to delete")
+    ),
+    responses(
+        (status = 204, description = "Workspace role deleted"),
+        (status = 404, description = "Role not found or is a system role")
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 pub async fn delete_workspace_role(
-    Path((_, role_id)): Path<(Uuid, Uuid)>,
+    Path(__path_params): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> AppResult<StatusCode> {
+    let (_, role_id) = __path_params;
     ctx.require_permission(Permission::MembersRolesManage)?;
 
     let affected = state
@@ -243,11 +350,26 @@ pub async fn delete_workspace_role(
     }
 }
 
+#[utoipa::path(
+    get,
+    path = "/v1/workspaces/{ws_id}/roles/{role_id}/permissions",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        ("role_id" = Uuid, Path, description = "Role ID")
+    ),
+    responses(
+        (status = 200, description = "List of permissions for the role", body = Vec<String>)
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 pub async fn get_role_permissions(
-    Path((_, role_id)): Path<(Uuid, Uuid)>,
+    Path(__path_params): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> AppResult<Json<Vec<String>>> {
+    let (_, role_id) = __path_params;
     ctx.require_permission(Permission::MembersRolesManage)?;
 
     let permissions = state
@@ -259,12 +381,28 @@ pub async fn get_role_permissions(
     Ok(Json(permissions))
 }
 
+#[utoipa::path(
+    put,
+    path = "/v1/workspaces/{ws_id}/roles/{role_id}/permissions",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        ("role_id" = Uuid, Path, description = "Role ID")
+    ),
+    request_body = UpdateRolePermissionsRequest,
+    responses(
+        (status = 200, description = "Role permissions updated")
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 pub async fn update_role_permissions(
-    Path((_, role_id)): Path<(Uuid, Uuid)>,
+    Path(__path_params): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
     Json(req): Json<UpdateRolePermissionsRequest>,
 ) -> AppResult<StatusCode> {
+    let (_, role_id) = __path_params;
     ctx.require_permission(Permission::MembersRolesManage)?;
 
     let role_exists = state

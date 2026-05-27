@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 /// A workspace-scoped feature flag.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, utoipa::ToSchema)]
 pub struct FeatureFlag {
     pub id: Uuid,
     pub workspace_id: Uuid,
@@ -16,7 +16,7 @@ pub struct FeatureFlag {
 }
 
 /// Request payload for creating a new feature flag.
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, utoipa::ToSchema)]
 pub struct CreateFeatureFlagRequest {
     pub flag_key: String,
     #[serde(default)]
@@ -27,11 +27,18 @@ pub struct CreateFeatureFlagRequest {
 }
 
 /// Request payload for updating a feature flag.
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, utoipa::ToSchema)]
 pub struct UpdateFeatureFlagRequest {
     pub enabled: Option<bool>,
     pub description: Option<String>,
     pub metadata: Option<serde_json::Value>,
+}
+
+/// Response payload for checking a feature flag.
+#[derive(Debug, Serialize, utoipa::ToSchema)]
+pub struct FeatureFlagCheckResponse {
+    pub key: String,
+    pub enabled: bool,
 }
 
 fn default_metadata() -> serde_json::Value {

@@ -1,8 +1,12 @@
 import createClient from "openapi-fetch";
+
 import type { paths } from "@/types/api-generated";
+
+import { API_BASE_URL } from "./config";
 import { ApiError, AppErrorResponse } from "./errors";
 import { apiFetch } from "./helpers";
 
+// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
 async function handleResponse<T>(res: Response): Promise<{ data: T }> {
   if (!res.ok) {
     let errorBody: AppErrorResponse | undefined;
@@ -21,7 +25,7 @@ async function handleResponse<T>(res: Response): Promise<{ data: T }> {
       res.status,
       res.statusText,
       errorBody?.error_code,
-      errorBody || (errorText ? { message: errorText } : undefined)
+      errorBody ?? (errorText ? { message: errorText } : undefined)
     );
   }
 
@@ -29,17 +33,15 @@ async function handleResponse<T>(res: Response): Promise<{ data: T }> {
   return { data: (text ? JSON.parse(text) : null) as T };
 }
 
-/**
- * A typed client wrapper around `apiFetch` that handles JSON parsing
- * and throws structured `ApiError` instances on failure.
- */
 export const apiClient = {
-  get: async <T = any>(url: string): Promise<{ data: T }> => {
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
+  get: async <T = unknown>(url: string): Promise<{ data: T }> => {
     const res = await apiFetch(url);
     return handleResponse<T>(res);
   },
   
-  post: async <T = any>(url: string, body?: any): Promise<{ data: T }> => {
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
+  post: async <T = unknown>(url: string, body?: unknown): Promise<{ data: T }> => {
     const res = await apiFetch(url, {
       method: "POST",
       body: body ? JSON.stringify(body) : undefined,
@@ -47,7 +49,8 @@ export const apiClient = {
     return handleResponse<T>(res);
   },
   
-  put: async <T = any>(url: string, body?: any): Promise<{ data: T }> => {
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
+  put: async <T = unknown>(url: string, body?: unknown): Promise<{ data: T }> => {
     const res = await apiFetch(url, {
       method: "PUT",
       body: body ? JSON.stringify(body) : undefined,
@@ -55,12 +58,14 @@ export const apiClient = {
     return handleResponse<T>(res);
   },
   
-  delete: async <T = any>(url: string): Promise<{ data: T }> => {
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
+  delete: async <T = unknown>(url: string): Promise<{ data: T }> => {
     const res = await apiFetch(url, { method: "DELETE" });
     return handleResponse<T>(res);
   },
   
-  patch: async <T = any>(url: string, body?: any): Promise<{ data: T }> => {
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
+  patch: async <T = unknown>(url: string, body?: unknown): Promise<{ data: T }> => {
     const res = await apiFetch(url, {
       method: "PATCH",
       body: body ? JSON.stringify(body) : undefined,
@@ -69,14 +74,54 @@ export const apiClient = {
   }
 };
 
-/**
- * A type-safe OpenAPI fetch client.
- * Calls standard `apiFetch` under the hood to preserve headers and token refresh logic.
- * Propagates `ApiError` on non-2xx status codes.
- */
+async function extractRequestInfo(
+  url: Request,
+  initOptions: RequestInit
+): Promise<{ urlStr: string; options: RequestInit }> {
+  const options = { ...initOptions };
+  const urlStr = url.url;
+  options.method = options.method ?? url.method;
+  
+  if (!options.headers) {
+    const headers: Record<string, string> = {};
+    url.headers.forEach((value, key) => {
+      headers[key] = value;
+    });
+    options.headers = headers;
+  }
+  
+  if (!options.body) {
+    const method = options.method.toUpperCase();
+    if (["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
+      try {
+        const bodyText = await url.clone().text();
+        if (bodyText) {
+          options.body = bodyText;
+        }
+      } catch {
+        // Ignore if body reading fails
+      }
+    }
+  }
+  
+  return { urlStr, options };
+}
+
 export const client = createClient<paths>({
+  baseUrl: API_BASE_URL,
   fetch: async (url: string | URL | Request, init?: RequestInit) => {
-    const res = await apiFetch(url.toString(), init as any);
+    let urlStr: string;
+    let options: RequestInit = { ...init };
+
+    if (url instanceof Request) {
+      const extracted = await extractRequestInfo(url, options);
+      urlStr = extracted.urlStr;
+      options = extracted.options;
+    } else {
+      urlStr = url.toString();
+    }
+
+    const res = await apiFetch(urlStr, options);
     
     if (!res.ok) {
       let errorBody: AppErrorResponse | undefined;
@@ -96,11 +141,10 @@ export const client = createClient<paths>({
         res.status,
         res.statusText,
         errorBody?.error_code,
-        errorBody || (errorText ? { message: errorText } : undefined)
+        errorBody ?? (errorText ? { message: errorText } : undefined)
       );
     }
     
     return res;
   }
 });
-

@@ -123,7 +123,7 @@ async fn test_staging_log_with_real_data() {
     let log_id = Uuid::new_v4();
     crate::test_execute!(
         &test_db.diesel_pools.api,
-        r"INSERT INTO attendance_staging_logs 
+        r"INSERT INTO attendance_staging_logs
            (id, workspace_id, raw_user_id, punch_time, fingerprint, status, created_at)
            VALUES ($1, $2, 'unknown_user_99', NOW(), 'test_fp_001', 'pending', NOW())",
         diesel::sql_types::Uuid,

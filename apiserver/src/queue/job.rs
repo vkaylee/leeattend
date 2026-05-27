@@ -48,7 +48,7 @@ pub enum JobPriority {
 }
 
 /// Report format type.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, utoipa::ToSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum ReportType {
     Summary,
@@ -56,7 +56,7 @@ pub enum ReportType {
 }
 
 /// Date range for report generation.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, utoipa::ToSchema)]
 pub struct DateRange {
     pub start: NaiveDate,
     pub end: NaiveDate,
@@ -391,7 +391,7 @@ impl Job {
 }
 
 /// Status of a job in the processing pipeline.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, utoipa::ToSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum JobStatus {
     Pending,
@@ -402,7 +402,7 @@ pub enum JobStatus {
 
 /// Metadata for tracking overall job progress.
 /// Stored in Redis with TTL for auto-cleanup.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, utoipa::ToSchema)]
 pub struct JobMetadata {
     /// Unique job identifier (same as parent_job_id in Job)
     pub job_id: Uuid,

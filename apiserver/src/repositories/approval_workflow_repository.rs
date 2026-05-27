@@ -10,32 +10,32 @@ pub trait ApprovalWorkflowRepository: Send + Sync {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         workflow: ApprovalWorkflow,
     ) -> Result<ApprovalWorkflow, AppError>;
-    
+
     async fn create_steps(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
         steps: Vec<ApprovalWorkflowStep>,
     ) -> Result<Vec<ApprovalWorkflowStep>, AppError>;
-    
+
     async fn get_active_workflow(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
         workspace_id: Uuid,
         entity_type: &str,
     ) -> Result<Option<ApprovalWorkflow>, AppError>;
-    
+
     async fn get_steps(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
         workflow_id: Uuid,
     ) -> Result<Vec<ApprovalWorkflowStep>, AppError>;
-    
+
     async fn log_action(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
         log: ApprovalActionLog,
     ) -> Result<ApprovalActionLog, AppError>;
-    
+
     async fn get_action_logs(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,

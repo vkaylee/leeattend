@@ -1525,12 +1525,6 @@ diesel::allow_tables_to_appear_in_same_query!(
     workspaces,
 );
 
-diesel::allow_tables_to_appear_in_same_query!(
-    work_locations,
-    employees,
-);
+diesel::allow_tables_to_appear_in_same_query!(work_locations, employees,);
 
-diesel::allow_tables_to_appear_in_same_query!(
-    work_locations,
-    workspaces,
-);
+diesel::allow_tables_to_appear_in_same_query!(work_locations, workspaces,);

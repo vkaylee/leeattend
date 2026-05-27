@@ -17,6 +17,17 @@ use crate::AppState;
 use crate::UserId;
 use serde::Deserialize;
 
+#[utoipa::path(
+    post,
+    path = "/v1/attendance/adjustments",
+    request_body = CreateAttendanceAdjustmentRequest,
+    responses(
+        (status = 201, description = "Attendance adjustment created", body = AttendanceAdjustmentRequest)
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 pub async fn submit_attendance_adjustment(
     State(state): State<Arc<AppState>>,
     UserId(user_id): UserId,
@@ -34,13 +45,28 @@ pub async fn submit_attendance_adjustment(
     Ok((StatusCode::CREATED, Json(adjustment)))
 }
 
+#[utoipa::path(
+    put,
+    path = "/v1/attendance/adjustments/{id}/approve",
+    params(
+        ("id" = Uuid, Path, description = "Adjustment Request ID")
+    ),
+    request_body = ApproveAttendanceAdjustmentRequest,
+    responses(
+        (status = 200, description = "Adjustment approved/rejected")
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 pub async fn approve_attendance_adjustment(
-    Path((_, id)): Path<(Uuid, Uuid)>,
+    Path(__path_params): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     UserId(user_id): UserId,
     ctx: MemberContext,
     Json(req): Json<ApproveAttendanceAdjustmentRequest>,
 ) -> AppResult<StatusCode> {
+    let (_, id) = __path_params;
     ctx.require_permission(Permission::AttendanceAdjustmentsApprove)?;
     state
         .attendance
@@ -51,6 +77,19 @@ pub async fn approve_attendance_adjustment(
     Ok(StatusCode::OK)
 }
 
+#[utoipa::path(
+    get,
+    path = "/v1/attendance/adjustments/me/{id}",
+    params(
+        ("id" = Uuid, Path, description = "Adjustment Request ID")
+    ),
+    responses(
+        (status = 200, description = "My adjustments", body = Vec<AttendanceAdjustmentRequest>)
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 pub async fn get_my_attendance_adjustments(
     Path(id): Path<Uuid>,
     UserId(_user_id): UserId,
@@ -71,6 +110,19 @@ pub struct AdjustmentStatusQuery {
     pub status: Option<AdjustmentStatus>,
 }
 
+#[utoipa::path(
+    get,
+    path = "/v1/attendance/adjustments/workspace",
+    params(
+        ("status" = Option<AdjustmentStatus>, Query, description = "Status filter")
+    ),
+    responses(
+        (status = 200, description = "Workspace adjustments", body = Vec<AttendanceAdjustmentRequest>)
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 pub async fn get_workspace_attendance_adjustments(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,

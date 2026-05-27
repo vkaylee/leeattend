@@ -311,7 +311,13 @@ impl EmployeeRepository for DieselEmployeeRepository {
         employee_id: Uuid,
         tentative_date: chrono::NaiveDate,
     ) -> Result<chrono_tz::Tz, AppError> {
-        EmployeeCoreRepository::get_employee_timezone_at_date(self, auth_token, employee_id, tentative_date).await
+        EmployeeCoreRepository::get_employee_timezone_at_date(
+            self,
+            auth_token,
+            employee_id,
+            tentative_date,
+        )
+        .await
     }
 
     async fn get_headquarters_location_id(
@@ -579,7 +585,13 @@ impl EmployeeRepository for DieselEmployeeRepository {
         employee_id: Uuid,
         assignment_id: Uuid,
     ) -> Result<Option<crate::models::employee_assignment::EmployeeAssignment>, AppError> {
-        EmployeeAssignmentRepository::get_employee_assignment(self, auth_token, employee_id, assignment_id).await
+        EmployeeAssignmentRepository::get_employee_assignment(
+            self,
+            auth_token,
+            employee_id,
+            assignment_id,
+        )
+        .await
     }
 
     async fn create_employee_assignment(
@@ -597,7 +609,14 @@ impl EmployeeRepository for DieselEmployeeRepository {
         assignment_id: Uuid,
         req: &crate::models::employee_assignment::UpdateEmployeeAssignmentRequest,
     ) -> Result<crate::models::employee_assignment::EmployeeAssignment, AppError> {
-        EmployeeAssignmentRepository::update_employee_assignment(self, auth_token, employee_id, assignment_id, req).await
+        EmployeeAssignmentRepository::update_employee_assignment(
+            self,
+            auth_token,
+            employee_id,
+            assignment_id,
+            req,
+        )
+        .await
     }
 
     async fn delete_employee_assignment(
@@ -606,7 +625,13 @@ impl EmployeeRepository for DieselEmployeeRepository {
         employee_id: Uuid,
         assignment_id: Uuid,
     ) -> Result<u64, AppError> {
-        EmployeeAssignmentRepository::delete_employee_assignment(self, auth_token, employee_id, assignment_id).await
+        EmployeeAssignmentRepository::delete_employee_assignment(
+            self,
+            auth_token,
+            employee_id,
+            assignment_id,
+        )
+        .await
     }
 }
 

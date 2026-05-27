@@ -19,7 +19,8 @@ export const MOCK_USER = {
   email: "test@example.com",
   full_name: "Mock Admin",
   avatar_url: null,
-  preferred_language: "vi"
+  preferred_language: "vi",
+  system_roles: ["platform_admin"]
 };
 
 export const MOCK_EMPLOYEES = [

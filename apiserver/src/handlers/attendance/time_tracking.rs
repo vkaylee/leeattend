@@ -116,12 +116,28 @@ pub async fn get_time_history(
     Ok(Json(entries))
 }
 
+#[utoipa::path(
+    put,
+    path = "/v1/workspaces/{ws_id}/attendance/time-tracking/{id}",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        ("id" = Uuid, Path, description = "Time Entry ID")
+    ),
+    request_body = UpdateTimeEntryRequest,
+    responses(
+        (status = 200, description = "Time entry updated", body = TimeEntry)
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 pub async fn update_time_entry(
-    Path((_, id)): Path<(Uuid, Uuid)>,
+    Path(__path_params): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
     Json(req): Json<UpdateTimeEntryRequest>,
 ) -> AppResult<Json<TimeEntry>> {
+    let (_, id) = __path_params;
     let _workspace_id = ctx.workspace_id;
 
     let entry = state
@@ -133,11 +149,26 @@ pub async fn update_time_entry(
     Ok(Json(entry))
 }
 
+#[utoipa::path(
+    delete,
+    path = "/v1/workspaces/{ws_id}/attendance/time-tracking/{id}",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        ("id" = Uuid, Path, description = "Time Entry ID")
+    ),
+    responses(
+        (status = 204, description = "Time entry deleted")
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 pub async fn delete_time_entry(
-    Path((_, id)): Path<(Uuid, Uuid)>,
+    Path(__path_params): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> AppResult<StatusCode> {
+    let (_, id) = __path_params;
     let workspace_id = ctx.workspace_id;
 
     state

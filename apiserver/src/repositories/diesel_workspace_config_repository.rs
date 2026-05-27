@@ -25,15 +25,16 @@ impl WorkspaceConfigRepository for DieselWorkspaceConfigRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         entry: WorkspaceConfigEntry,
     ) -> Result<WorkspaceConfigEntry, AppError> {
-        let mut conn = self.diesel_pools.tenant_transaction_conn(auth_token).await?;
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
 
         let result = diesel::insert_into(workspace_config_entries::table)
             .values(&entry)
             .get_result(&mut *conn)
             .await
-            .map_err(|e| {
-                AppError::Internal(format!("Failed to insert workspace config: {}", e))
-            })?;
+            .map_err(|e| AppError::Internal(format!("Failed to insert workspace config: {e}")))?;
 
         Ok(result)
     }
@@ -47,7 +48,10 @@ impl WorkspaceConfigRepository for DieselWorkspaceConfigRepository {
         scope_id: Option<Uuid>,
         target_date: NaiveDate,
     ) -> Result<Option<WorkspaceConfigEntry>, AppError> {
-        let mut conn = self.diesel_pools.tenant_transaction_conn(auth_token).await?;
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
 
         let mut query = workspace_config_entries::table
             .filter(workspace_config_entries::workspace_id.eq(workspace_id))
@@ -67,9 +71,7 @@ impl WorkspaceConfigRepository for DieselWorkspaceConfigRepository {
             .first::<WorkspaceConfigEntry>(&mut *conn)
             .await
             .optional()
-            .map_err(|e| {
-                AppError::Internal(format!("Failed to get effective config: {}", e))
-            })?;
+            .map_err(|e| AppError::Internal(format!("Failed to get effective config: {e}")))?;
 
         if let Some(entry) = &result {
             if let Some(to) = entry.effective_to {
@@ -88,7 +90,10 @@ impl WorkspaceConfigRepository for DieselWorkspaceConfigRepository {
         workspace_id: Uuid,
         config_key: Option<&str>,
     ) -> Result<Vec<WorkspaceConfigEntry>, AppError> {
-        let mut conn = self.diesel_pools.tenant_transaction_conn(auth_token).await?;
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
 
         let mut query = workspace_config_entries::table
             .filter(workspace_config_entries::workspace_id.eq(workspace_id))
@@ -102,9 +107,7 @@ impl WorkspaceConfigRepository for DieselWorkspaceConfigRepository {
             .order(workspace_config_entries::created_at.desc())
             .load::<WorkspaceConfigEntry>(&mut *conn)
             .await
-            .map_err(|e| {
-                AppError::Internal(format!("Failed to list workspace configs: {}", e))
-            })?;
+            .map_err(|e| AppError::Internal(format!("Failed to list workspace configs: {e}")))?;
 
         Ok(results)
     }
@@ -114,7 +117,10 @@ impl WorkspaceConfigRepository for DieselWorkspaceConfigRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         entry_id: Uuid,
     ) -> Result<(), AppError> {
-        let mut conn = self.diesel_pools.tenant_transaction_conn(auth_token).await?;
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
         let workspace_id = auth_token.workspace_id();
 
         diesel::delete(
@@ -124,9 +130,7 @@ impl WorkspaceConfigRepository for DieselWorkspaceConfigRepository {
         )
         .execute(&mut *conn)
         .await
-        .map_err(|e| {
-            AppError::Internal(format!("Failed to delete workspace config: {}", e))
-        })?;
+        .map_err(|e| AppError::Internal(format!("Failed to delete workspace config: {e}")))?;
 
         Ok(())
     }

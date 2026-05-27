@@ -10,11 +10,24 @@ use crate::handlers::common::MemberContext;
 use crate::queue::JobQueue;
 use crate::state::AppState;
 
+/// GET /workspaces/{ws_id}/jobs/{job_id}
+#[utoipa::path(
+    get,
+    path = "/workspaces/{ws_id}/jobs/{job_id}",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        ("job_id" = Uuid, Path, description = "Job ID")
+    ),
+    responses(
+        (status = 200, description = "Get job status", body = serde_json::Value)
+    )
+)]
 pub async fn get_generic_job_status(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
-    Path((_ws_id, job_id)): Path<(Uuid, Uuid)>,
+    Path(params): Path<(Uuid, Uuid)>,
 ) -> Result<Json<serde_json::Value>, AppError> {
+    let (_ws_id, job_id) = params;
     let redis = state.infra.redis.as_ref().ok_or_else(|| {
         AppError::ServiceUnavailable("Redis is required for job tracking".to_string())
     })?;

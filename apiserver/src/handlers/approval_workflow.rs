@@ -30,8 +30,8 @@ pub async fn list_workflows(
     ctx: MemberContext,
 ) -> AppResult<Json<Vec<ApprovalWorkflow>>> {
     ctx.require_permission(Permission::ApprovalWorkflowsRead)?;
-    
-    // As a placeholder, we use get_active_workflow to at least satisfy the compiler 
+
+    // As a placeholder, we use get_active_workflow to at least satisfy the compiler
     // if list_workflows is missing. If it expects something else, we could just return an empty vec for now.
     // Let's just return an empty vec since list_workflows is missing in the repo.
     Ok(Json(vec![]))
@@ -55,7 +55,7 @@ pub async fn create_workflow(
     Json(req): Json<CreateWorkflowRequest>,
 ) -> AppResult<Json<ApprovalWorkflow>> {
     ctx.require_permission(Permission::ApprovalWorkflowsManage)?;
-    
+
     let workflow_id = crate::utils::id::new_id();
     let workflow = ApprovalWorkflow {
         id: workflow_id,
@@ -69,29 +69,29 @@ pub async fn create_workflow(
         created_at: chrono::Utc::now(),
         updated_at: chrono::Utc::now(),
     };
-    
-    let steps: Vec<crate::models::approval_workflow::ApprovalWorkflowStep> = req.steps.into_iter().map(|s| crate::models::approval_workflow::ApprovalWorkflowStep {
-        id: crate::utils::id::new_id(),
-        workflow_id,
-        step_order: s.step_order,
-        step_name: s.step_name,
-        approver_type: s.approver_type,
-        approver_config: s.approver_config,
-        action_required: s.action_required,
-        can_skip: s.can_skip,
-        created_at: chrono::Utc::now(),
-    }).collect();
+
+    let steps: Vec<crate::models::approval_workflow::ApprovalWorkflowStep> = req
+        .steps
+        .into_iter()
+        .map(|s| crate::models::approval_workflow::ApprovalWorkflowStep {
+            id: crate::utils::id::new_id(),
+            workflow_id,
+            step_order: s.step_order,
+            step_name: s.step_name,
+            approver_type: s.approver_type,
+            approver_config: s.approver_config,
+            action_required: s.action_required,
+            can_skip: s.can_skip,
+            created_at: chrono::Utc::now(),
+        })
+        .collect();
 
     let created = state
         .core
         .approval_workflow_service
-        .create_workflow(
-            &ctx.auth_token,
-            workflow,
-            steps,
-        )
+        .create_workflow(&ctx.auth_token, workflow, steps)
         .await?;
-        
+
     // Returns (ApprovalWorkflow, Vec<ApprovalWorkflowStep>) from service maybe?
     // Based on error: found tuple `(models::approval_workflow::ApprovalWorkflow, Vec<models::approval_workflow::ApprovalWorkflowStep>)`
     Ok(Json(created.0))
@@ -116,9 +116,11 @@ pub async fn get_workflow(
 ) -> AppResult<Json<ApprovalWorkflow>> {
     let (_, _id) = params;
     ctx.require_permission(Permission::ApprovalWorkflowsRead)?;
-    
+
     // We don't have get_workflow_with_steps implemented on service/repo yet
-    Err(crate::errors::AppError::NotFound("Workflow not found".into()))
+    Err(crate::errors::AppError::NotFound(
+        "Workflow not found".into(),
+    ))
 }
 
 /// PUT /workspaces/{ws_id}/approval-workflows/{id}
@@ -142,7 +144,7 @@ pub async fn update_workflow(
 ) -> AppResult<Json<ApprovalWorkflow>> {
     let (_, _id) = params;
     ctx.require_permission(Permission::ApprovalWorkflowsManage)?;
-    
+
     Err(crate::errors::AppError::NotFound("Not implemented".into()))
 }
 
@@ -165,7 +167,7 @@ pub async fn delete_workflow(
 ) -> AppResult<StatusCode> {
     let (_, _id) = params;
     ctx.require_permission(Permission::ApprovalWorkflowsManage)?;
-    
+
     Err(crate::errors::AppError::NotFound("Not implemented".into()))
 }
 
@@ -197,7 +199,7 @@ pub async fn process_approval(
     if req.entity_type == "ot_request" {
         ctx.require_permission(Permission::OvertimeApproveWorkflow)?;
     }
-    
+
     let log = ApprovalActionLog {
         id: crate::utils::id::new_id(),
         workspace_id: ctx.workspace_id,
@@ -214,12 +216,9 @@ pub async fn process_approval(
     state
         .core
         .approval_workflow_service
-        .log_action(
-            &ctx.auth_token,
-            log,
-        )
+        .log_action(&ctx.auth_token, log)
         .await?;
-        
+
     Ok(StatusCode::OK)
 }
 
@@ -245,12 +244,12 @@ pub async fn get_approval_history(
     if entity_type == "ot_request" {
         ctx.require_permission(Permission::OvertimeRequestRead)?;
     }
-    
+
     let history = state
         .core
         .approval_workflow_service
         .get_action_logs(&ctx.auth_token, entity_id)
         .await?;
-        
+
     Ok(Json(history))
 }

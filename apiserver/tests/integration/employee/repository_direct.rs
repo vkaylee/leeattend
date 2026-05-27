@@ -544,7 +544,7 @@ async fn test_get_employee_timezone_fallback() {
     let user_id = factory.user().create().await;
     // Create workspace (creates HQ location by default)
     let ws_id = factory.workspace().create_with_owner(user_id).await;
-    
+
     let repo = DieselEmployeeRepository::new(test_db.diesel_pools.clone());
 
     // 1. Employee with custom location and explicit timezone
@@ -562,9 +562,14 @@ async fn test_get_employee_timezone_fallback() {
         is_headquarters: bool,
     }
 
-    let mut tenant_conn = test_db.diesel_pools.tenants_tx.get_connection(&ws_id).await.unwrap();
+    let mut tenant_conn = test_db
+        .diesel_pools
+        .tenants_tx
+        .get_connection(&ws_id)
+        .await
+        .unwrap();
     let custom_loc_id = Uuid::new_v4();
-    
+
     diesel::insert_into(work_locations::table)
         .values(&NewLoc {
             id: custom_loc_id,
@@ -577,11 +582,7 @@ async fn test_get_employee_timezone_fallback() {
         .await
         .unwrap();
 
-    let emp_id = factory
-        .employee()
-        .with_workspace(ws_id)
-        .create()
-        .await;
+    let emp_id = factory.employee().with_workspace(ws_id).create().await;
 
     // Update employee to use custom location
     use apiserver::schema::employees;
@@ -639,10 +640,15 @@ async fn test_get_employee_timezone_at_date() {
     let user_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(user_id).await;
     let repo = DieselEmployeeRepository::new(test_db.diesel_pools.clone());
-    let mut tenant_conn = test_db.diesel_pools.tenants_tx.get_connection(&ws_id).await.unwrap();
+    let mut tenant_conn = test_db
+        .diesel_pools
+        .tenants_tx
+        .get_connection(&ws_id)
+        .await
+        .unwrap();
 
-    use apiserver::schema::{employees, work_locations, employee_assignments};
     use apiserver::schema::sql_types::AssignmentStatus;
+    use apiserver::schema::{employee_assignments, employees, work_locations};
     use diesel::prelude::*;
     use diesel_async::RunQueryDsl;
 
@@ -673,7 +679,8 @@ async fn test_get_employee_timezone_at_date() {
     let hq_id: Uuid = crate::test_query_scalar_uuid!(
         &test_db.diesel_pools.api,
         "SELECT primary_location_id AS id FROM employees WHERE id = $1",
-        diesel::sql_types::Uuid, emp_id
+        diesel::sql_types::Uuid,
+        emp_id
     );
 
     // Default primary location is HQ (UTC)

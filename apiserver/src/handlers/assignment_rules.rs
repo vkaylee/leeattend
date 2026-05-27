@@ -13,6 +13,19 @@ use crate::handlers::common::MemberContext;
 use crate::models::{AssignmentRule, CreateAssignmentRuleRequest, UpdateAssignmentRuleRequest};
 use crate::AppState;
 
+#[utoipa::path(
+    get,
+    path = "/v1/workspaces/{ws_id}/assignment-rules",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID")
+    ),
+    responses(
+        (status = 200, description = "List of assignment rules", body = Vec<AssignmentRule>)
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 pub async fn get_assignment_rules(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -27,6 +40,20 @@ pub async fn get_assignment_rules(
     Ok(Json(rules))
 }
 
+#[utoipa::path(
+    post,
+    path = "/v1/workspaces/{ws_id}/assignment-rules",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID")
+    ),
+    request_body = CreateAssignmentRuleRequest,
+    responses(
+        (status = 201, description = "Assignment rule created", body = AssignmentRule)
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 pub async fn create_assignment_rule(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -47,12 +74,28 @@ pub async fn create_assignment_rule(
     Ok((StatusCode::CREATED, Json(rule)))
 }
 
+#[utoipa::path(
+    put,
+    path = "/v1/workspaces/{ws_id}/assignment-rules/{rule_id}",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        ("rule_id" = Uuid, Path, description = "Assignment Rule ID")
+    ),
+    request_body = UpdateAssignmentRuleRequest,
+    responses(
+        (status = 200, description = "Assignment rule updated", body = AssignmentRule)
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 pub async fn update_assignment_rule(
-    Path((_, rule_id)): Path<(Uuid, Uuid)>,
+    Path(__path_params): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
     Json(req): Json<UpdateAssignmentRuleRequest>,
 ) -> AppResult<Json<AssignmentRule>> {
+    let (_, rule_id) = __path_params;
     ctx.require_permission(Permission::AssignmentRulesManage)?;
 
     let rule = state
@@ -68,11 +111,26 @@ pub async fn update_assignment_rule(
     Ok(Json(rule))
 }
 
+#[utoipa::path(
+    delete,
+    path = "/v1/workspaces/{ws_id}/assignment-rules/{rule_id}",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        ("rule_id" = Uuid, Path, description = "Assignment Rule ID to delete")
+    ),
+    responses(
+        (status = 204, description = "Assignment rule deleted")
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 pub async fn delete_assignment_rule(
-    Path((_, rule_id)): Path<(Uuid, Uuid)>,
+    Path(__path_params): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> AppResult<StatusCode> {
+    let (_, rule_id) = __path_params;
     ctx.require_permission(Permission::AssignmentRulesManage)?;
 
     state

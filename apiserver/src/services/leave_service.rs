@@ -700,7 +700,8 @@ mod tests {
             _auth_token: &crate::diesel_pool::TenantAuthToken,
             _employee_id: Uuid,
             _assignment_id: Uuid,
-        ) -> Result<Option<crate::models::employee_assignment::EmployeeAssignment>, AppError> {
+        ) -> Result<Option<crate::models::employee_assignment::EmployeeAssignment>, AppError>
+        {
             Ok(None)
         }
 

@@ -13,8 +13,8 @@ use crate::models::{
     CreateAttendanceAdjustmentRequest, Employee, ImportJobStatus, LogSource,
 };
 use crate::repositories::attendance_adjustment_repository::AttendanceAdjustmentRepository;
-use crate::repositories::import_job_repository::ImportJobRepository;
 use crate::repositories::employee::EmployeeRepository;
+use crate::repositories::import_job_repository::ImportJobRepository;
 use crate::repositories::TimeEntryRepository;
 use crate::services::attendance_adjustment_service::AttendanceAdjustmentService;
 use crate::services::import_messages::{fmt_msg, AttendanceImportMessages};
@@ -219,9 +219,13 @@ impl ImportStrategy for EmployeeImportStrategy {
             }
         }
 
-        let hq_id = match EmployeeRepository::get_headquarters_location_id(&*self.employee_repo, &auth_token).await {
-            Ok(Some(id)) => id,
-            _ => return Err(AppError::Internal("Workspace headquarters location not found".into())),
+        let Ok(Some(hq_id)) =
+            EmployeeRepository::get_headquarters_location_id(&*self.employee_repo, &auth_token)
+                .await
+        else {
+            return Err(AppError::Internal(
+                "Workspace headquarters location not found".into(),
+            ));
         };
 
         let mut new_emps = Vec::new();

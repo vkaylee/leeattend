@@ -11,6 +11,19 @@ use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
 use crate::AppState;
 
+#[utoipa::path(
+    get,
+    path = "/v1/workspaces/{ws_id}/attendance/reports",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID")
+    ),
+    responses(
+        (status = 200, description = "Attendance report data")
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 pub async fn get_attendance_report(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,

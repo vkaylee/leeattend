@@ -67,7 +67,9 @@ impl ApprovalWorkflowService {
         mut log: ApprovalActionLog,
     ) -> AppResult<ApprovalActionLog> {
         log.workspace_id = auth_token.workspace_id();
-        self.approval_workflow_repo.log_action(auth_token, log).await
+        self.approval_workflow_repo
+            .log_action(auth_token, log)
+            .await
     }
 
     pub async fn get_action_logs(
@@ -84,11 +86,11 @@ impl ApprovalWorkflowService {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::errors::AppError;
     use crate::diesel_pool::TenantAuthToken;
+    use crate::errors::AppError;
     use async_trait::async_trait;
     use chrono::Utc;
-    
+
     struct MockApprovalWorkflowRepository {
         pub create_workflow_called: std::sync::atomic::AtomicBool,
     }
@@ -108,7 +110,8 @@ mod tests {
             _auth_token: &TenantAuthToken,
             workflow: ApprovalWorkflow,
         ) -> Result<ApprovalWorkflow, AppError> {
-            self.create_workflow_called.store(true, std::sync::atomic::Ordering::SeqCst);
+            self.create_workflow_called
+                .store(true, std::sync::atomic::Ordering::SeqCst);
             Ok(workflow)
         }
 
@@ -186,16 +189,20 @@ mod tests {
             created_at: Utc::now(),
         };
 
-        let (created_wf, created_steps) = service.create_workflow(&token, workflow, vec![step]).await.unwrap();
-        
+        let (created_wf, created_steps) = service
+            .create_workflow(&token, workflow, vec![step])
+            .await
+            .unwrap();
+
         // Ensure workspace_id is enforced
         assert_eq!(created_wf.workspace_id, ws_id);
-        
+
         // Ensure step has correct workflow_id
         assert_eq!(created_steps.len(), 1);
         assert_eq!(created_steps[0].workflow_id, created_wf.id);
-        
-        assert!(repo.create_workflow_called.load(std::sync::atomic::Ordering::SeqCst));
+
+        assert!(repo
+            .create_workflow_called
+            .load(std::sync::atomic::Ordering::SeqCst));
     }
 }
-

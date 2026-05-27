@@ -8,7 +8,7 @@ use crate::models::enums::{
 };
 use crate::services::attendance_utils::AttendanceStatus;
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct AttendanceAdjustmentRequest {
     pub id: Uuid,
     pub employee_id: Uuid,
@@ -24,7 +24,7 @@ pub struct AttendanceAdjustmentRequest {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, utoipa::ToSchema)]
 pub struct CreateAttendanceAdjustmentRequest {
     pub employee_id: Uuid,
     pub time_entry_id: Option<Uuid>,
@@ -34,7 +34,7 @@ pub struct CreateAttendanceAdjustmentRequest {
     pub reason: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, utoipa::ToSchema)]
 pub struct ApproveAttendanceAdjustmentRequest {
     pub status: AdjustmentStatus,
 }
@@ -134,7 +134,7 @@ pub struct RawAttendanceLogWithEmployee {
     pub device_name: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct AttendanceImportJob {
     pub id: Uuid,
     pub workspace_id: Uuid,
@@ -149,7 +149,7 @@ pub struct AttendanceImportJob {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct AttendanceDailySummary {
     pub id: Uuid,
     pub workspace_id: Uuid,
@@ -173,14 +173,14 @@ pub struct AttendanceDailySummary {
 }
 
 // Bulk OT Upload Models
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize, utoipa::ToSchema)]
 pub struct BulkOtEntryError {
     pub line_number: usize,
     pub employee_id: String,
     pub error_message: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize, utoipa::ToSchema)]
 pub struct BulkOtUploadResult {
     pub total_rows: usize,
     pub success_count: usize,
@@ -209,7 +209,7 @@ pub struct AttendancePolicyVersion {
     pub created_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct AttendanceRules {
     pub work_unit_minutes: i32,
     pub rounding_policy: String,

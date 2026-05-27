@@ -9,10 +9,25 @@ use uuid::Uuid;
 use crate::domain::permissions::Permission;
 use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
-use crate::models::feature_flag::{CreateFeatureFlagRequest, UpdateFeatureFlagRequest};
+use crate::models::{
+    CreateFeatureFlagRequest, FeatureFlag, UpdateFeatureFlagRequest,
+};
 use crate::AppState;
 
 /// GET /workspaces/:ws_id/feature-flags
+#[utoipa::path(
+    get,
+    path = "/v1/workspaces/{ws_id}/feature-flags",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID")
+    ),
+    responses(
+        (status = 200, description = "List of feature flags", body = Vec<FeatureFlag>)
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 pub async fn list_feature_flags(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -32,6 +47,20 @@ pub async fn list_feature_flags(
 }
 
 /// POST /workspaces/:ws_id/feature-flags
+#[utoipa::path(
+    post,
+    path = "/v1/workspaces/{ws_id}/feature-flags",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID")
+    ),
+    request_body = CreateFeatureFlagRequest,
+    responses(
+        (status = 201, description = "Feature flag created", body = FeatureFlag)
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 pub async fn create_feature_flag(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -65,11 +94,27 @@ pub async fn create_feature_flag(
 }
 
 /// GET /workspaces/:ws_id/feature-flags/:id
+#[utoipa::path(
+    get,
+    path = "/v1/workspaces/{ws_id}/feature-flags/{id}",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        ("id" = Uuid, Path, description = "Feature Flag ID")
+    ),
+    responses(
+        (status = 200, description = "Feature flag details", body = FeatureFlag),
+        (status = 404, description = "Feature flag not found")
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 pub async fn get_feature_flag(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
-    Path((_, id)): Path<(Uuid, Uuid)>,
+    Path(__path_params): Path<(Uuid, Uuid)>,
 ) -> AppResult<impl IntoResponse> {
+    let (_, id) = __path_params;
     ctx.require_permission(Permission::FeatureFlagsRead)?;
     let flag = state
         .payroll
@@ -88,11 +133,26 @@ pub async fn get_feature_flag(
 }
 
 /// GET /workspaces/:ws_id/feature-flags/check/:key
+#[utoipa::path(
+    get,
+    path = "/v1/workspaces/{ws_id}/feature-flags/check/{key}",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        ("key" = String, Path, description = "Feature Flag Key")
+    ),
+    responses(
+        (status = 200, description = "Feature flag status", body = crate::models::feature_flag::FeatureFlagCheckResponse)
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 pub async fn check_feature_flag(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
-    Path((_, key)): Path<(Uuid, String)>,
+    Path(__path_params): Path<(Uuid, String)>,
 ) -> AppResult<impl IntoResponse> {
+    let (_, key) = __path_params;
     ctx.require_permission(Permission::FeatureFlagsRead)?;
     let enabled = state
         .payroll
@@ -108,12 +168,29 @@ pub async fn check_feature_flag(
 }
 
 /// PATCH /workspaces/:ws_id/feature-flags/:id
+#[utoipa::path(
+    patch,
+    path = "/v1/workspaces/{ws_id}/feature-flags/{id}",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        ("id" = Uuid, Path, description = "Feature Flag ID")
+    ),
+    request_body = UpdateFeatureFlagRequest,
+    responses(
+        (status = 200, description = "Feature flag updated", body = FeatureFlag),
+        (status = 404, description = "Feature flag not found")
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 pub async fn update_feature_flag(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
-    Path((_, id)): Path<(Uuid, Uuid)>,
+    Path(__path_params): Path<(Uuid, Uuid)>,
     Json(body): Json<UpdateFeatureFlagRequest>,
 ) -> AppResult<impl IntoResponse> {
+    let (_, id) = __path_params;
     ctx.require_permission(Permission::FeatureFlagsManage)?;
     let flag = state
         .payroll
@@ -138,6 +215,20 @@ pub async fn update_feature_flag(
 }
 
 /// PUT /workspaces/:ws_id/feature-flags (upsert)
+#[utoipa::path(
+    put,
+    path = "/v1/workspaces/{ws_id}/feature-flags",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID")
+    ),
+    request_body = CreateFeatureFlagRequest,
+    responses(
+        (status = 200, description = "Feature flag upserted", body = FeatureFlag)
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 pub async fn upsert_feature_flag(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -171,11 +262,27 @@ pub async fn upsert_feature_flag(
 }
 
 /// DELETE /workspaces/:ws_id/feature-flags/:id
+#[utoipa::path(
+    delete,
+    path = "/v1/workspaces/{ws_id}/feature-flags/{id}",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        ("id" = Uuid, Path, description = "Feature Flag ID")
+    ),
+    responses(
+        (status = 204, description = "Feature flag deleted"),
+        (status = 404, description = "Feature flag not found")
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 pub async fn delete_feature_flag(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
-    Path((_, id)): Path<(Uuid, Uuid)>,
+    Path(__path_params): Path<(Uuid, Uuid)>,
 ) -> AppResult<impl IntoResponse> {
+    let (_, id) = __path_params;
     ctx.require_permission(Permission::FeatureFlagsManage)?;
     let deleted = state
         .payroll

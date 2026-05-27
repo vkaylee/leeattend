@@ -2,7 +2,9 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+use utoipa::ToSchema;
+
+#[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
 pub struct Notification {
     pub id: Uuid,
     pub user_id: Uuid,
@@ -14,20 +16,20 @@ pub struct Notification {
     pub created_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, ToSchema)]
 pub struct NotificationCursorRequest {
     pub limit: Option<i64>,
     pub cursor: Option<DateTime<Utc>>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, ToSchema)]
 pub struct NotificationResponse {
     pub notifications: Vec<Notification>,
     pub next_cursor: Option<DateTime<Utc>>,
     pub unread_count: i64,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, ToSchema)]
 pub struct UnreadCountResponse {
     pub count: i64,
 }

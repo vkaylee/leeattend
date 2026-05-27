@@ -25,12 +25,12 @@ fi
 #
 dc() {
     # shellcheck disable=SC2086
-    $DOCKER_COMPOSE_CMD "$@" </dev/null
+    $TOOLBOX_COMPOSE_CMD "$@" </dev/null
 }
 dc_detached() {
     local _timeout="${DOCKER_COMPOSE_TIMEOUT:-60}"
     # shellcheck disable=SC2086
-    setsid -w $DOCKER_COMPOSE_CMD "$@" </dev/null >/dev/null 2>&1 &
+    setsid -w $TOOLBOX_COMPOSE_CMD "$@" </dev/null >/dev/null 2>&1 &
     local _pid=$!
     (sleep "$_timeout"; kill -KILL -$_pid 2>/dev/null) </dev/null &
     local _watchdog=$!

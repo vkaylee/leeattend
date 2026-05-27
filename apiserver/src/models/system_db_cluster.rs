@@ -4,7 +4,17 @@ use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-#[derive(Debug, Clone, Serialize, Deserialize, Queryable, Selectable, Insertable, AsChangeset)]
+#[derive(
+    Debug,
+    Clone,
+    Serialize,
+    Deserialize,
+    Queryable,
+    Selectable,
+    Insertable,
+    AsChangeset,
+    utoipa::ToSchema,
+)]
 #[diesel(table_name = system_db_clusters)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct SystemDbCluster {

@@ -8,7 +8,7 @@ import { SystemRoleCard } from "./system-roles/components/system-role-card";
 import { useSystemRolesUI } from "./system-roles/hooks/use-system-roles-ui";
 
 export default function SystemRolesPage() {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["common", "system_roles"]);
   const {
     roles,
     isLoading,

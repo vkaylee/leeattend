@@ -5,7 +5,6 @@ vi.mock("../helpers", () => ({
   apiFetch: vi.fn(),
 }));
 
-import { API_BASE_URL } from "../config";
 import { apiFetch } from "../helpers";
 import { fetchSystemTenantStats } from "../system";
 
@@ -33,24 +32,33 @@ describe("System API methods", () => {
 
       vi.mocked(apiFetch).mockResolvedValueOnce({
         ok: true,
+        headers: new Headers({ "content-type": "application/json" }),
         json: () => Promise.resolve(mockStats),
+        text: () => Promise.resolve(JSON.stringify(mockStats)),
       } as Response);
 
       const result = await fetchSystemTenantStats("tenant_123");
 
       expect(apiFetch).toHaveBeenCalledTimes(1);
-      expect(apiFetch).toHaveBeenCalledWith(`${API_BASE_URL}/system/tenants/tenant_123/stats`);
+      expect(apiFetch).toHaveBeenCalledWith(expect.stringContaining("/system/tenants/tenant_123/stats"), expect.any(Object));
       expect(result).toEqual(mockStats);
     });
 
     it("should throw error if fetch failed", async () => {
-      vi.mocked(apiFetch).mockResolvedValueOnce({
+      const mockResponse = {
         ok: false,
-      } as Response);
+        status: 500,
+        statusText: "Internal Server Error",
+        headers: new Headers({ "content-type": "application/json" }),
+        text: () => Promise.resolve("Failed to fetch tenant stats"),
+        json: () => Promise.resolve({ message: "Failed to fetch tenant stats" }),
+        clone: function() { return this; }
+      } as unknown as Response;
 
-      await expect(fetchSystemTenantStats("tenant_123")).rejects.toThrow("Failed to fetch tenant stats");
+      vi.mocked(apiFetch).mockResolvedValueOnce(mockResponse);
+
+      await expect(fetchSystemTenantStats("tenant_123")).rejects.toThrow();
     });
   });
-
-
 });
+

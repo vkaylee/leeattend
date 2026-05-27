@@ -16,7 +16,7 @@ use crate::AppState;
 const MAX_BULK_UPLOAD_ROWS: usize = 10_000;
 const MAX_BULK_UPLOAD_FILE_SIZE: usize = 10 * 1024 * 1024; // 10MB
 
-#[derive(Deserialize)]
+#[derive(Deserialize, utoipa::ToSchema)]
 pub struct EnterPaperOtRequest {
     pub date: NaiveDate,
     pub claimed_minutes: i32,
@@ -26,12 +26,28 @@ pub struct EnterPaperOtRequest {
     pub paper_form_photo_url: Option<String>,
 }
 
+#[utoipa::path(
+    post,
+    path = "/v1/workspaces/{ws_id}/attendance/paper-forms/overtime/{employee_id}",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        ("employee_id" = Uuid, Path, description = "Employee ID")
+    ),
+    request_body = EnterPaperOtRequest,
+    responses(
+        (status = 200, description = "Paper OT entered successfully", body = AttendanceDailySummary)
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 pub async fn enter_paper_ot(
     State(state): State<Arc<AppState>>,
-    Path((_, employee_id)): Path<(Uuid, Uuid)>,
+    Path(__path_params): Path<(Uuid, Uuid)>,
     ctx: MemberContext,
     Json(req): Json<EnterPaperOtRequest>,
 ) -> AppResult<Json<AttendanceDailySummary>> {
+    let (_, employee_id) = __path_params;
     // 1. RBAC: OvertimePaperUpload permission required
     ctx.require_permission(Permission::OvertimePaperUpload)?;
 
@@ -71,7 +87,20 @@ pub async fn enter_paper_ot(
     Ok(Json(result))
 }
 
-#[allow(clippy::too_many_lines)]
+#[utoipa::path(
+    post,
+    path = "/v1/workspaces/{ws_id}/attendance/paper-forms/overtime/bulk",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID")
+    ),
+    request_body(content = String, content_type = "multipart/form-data"),
+    responses(
+        (status = 200, description = "Bulk OT upload result", body = BulkOtUploadResult)
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 pub async fn bulk_upload_paper_ot(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,

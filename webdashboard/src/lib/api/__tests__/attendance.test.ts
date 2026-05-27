@@ -21,6 +21,7 @@ describe("fetchAttendanceReport", () => {
         vi.mocked(apiFetch).mockResolvedValueOnce({
             ok: true,
             json: () => Promise.resolve({ data: [], total: 0 }),
+            text: () => Promise.resolve(JSON.stringify({ data: [], total: 0 })),
         } as Response);
 
         await fetchAttendanceReport({
@@ -34,7 +35,7 @@ describe("fetchAttendanceReport", () => {
  
         const calledUrl = vi.mocked(apiFetch).mock.calls[0][0];
 
-        expect(calledUrl).toContain(`${API_BASE_URL}/workspaces/test-ws-id/reports/attendance`);
+        expect(calledUrl).toContain("/workspaces/test-ws-id/reports/attendance");
         expect(calledUrl).toContain("start_date=2026-03-01");
         expect(calledUrl).toContain("end_date=2026-03-31");
         expect(calledUrl).toContain("type=summary");
@@ -46,6 +47,7 @@ describe("fetchAttendanceReport", () => {
         vi.mocked(apiFetch).mockResolvedValueOnce({
             ok: true,
             json: () => Promise.resolve({ data: [], total: 0 }),
+            text: () => Promise.resolve(JSON.stringify({ data: [], total: 0 })),
         } as Response);
 
         const departmentId = "dept-uuid-123";
@@ -78,6 +80,7 @@ describe("fetchAttendanceReport", () => {
         vi.mocked(apiFetch).mockResolvedValueOnce({
             ok: true,
             json: () => Promise.resolve({ data: [], total: 0 }),
+            text: () => Promise.resolve(JSON.stringify({ data: [], total: 0 })),
         } as Response);
 
         const employeeIds = ["emp-1", "emp-2"];

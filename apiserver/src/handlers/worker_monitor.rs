@@ -37,7 +37,7 @@ const STALE_THRESHOLD_SECS: i64 = 60;
 const SSE_INTERVAL_SECS: u64 = 2;
 
 /// Worker status enum
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, utoipa::ToSchema)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum WorkerStatus {
     Idle,
@@ -45,7 +45,7 @@ pub enum WorkerStatus {
 }
 
 /// Worker heartbeat payload stored in Redis
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, utoipa::ToSchema)]
 pub struct WorkerHeartbeat {
     pub id: Uuid,
     pub host: String,
@@ -55,7 +55,7 @@ pub struct WorkerHeartbeat {
 }
 
 /// Combined monitor overview response — stats + worker list in one call.
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, utoipa::ToSchema)]
 pub struct MonitorOverviewResponse {
     pub pending_tasks: u64,
     pub pending_high: u64,
@@ -137,6 +137,13 @@ async fn fetch_overview_data(state: &Arc<AppState>) -> AppResult<MonitorOverview
 ///
 /// Route: GET /monitor/overview
 /// Requires: PlatformAdmin or Support
+#[utoipa::path(
+    get,
+    path = "/monitor/overview",
+    responses(
+        (status = 200, description = "Monitor overview statistics and active worker status", body = MonitorOverviewResponse)
+    )
+)]
 pub async fn get_monitor_overview(
     State(state): State<Arc<AppState>>,
     ctx: SystemContext,

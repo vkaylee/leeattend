@@ -94,10 +94,10 @@ impl OvertimeRequestService {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::errors::AppError;
     use crate::diesel_pool::TenantAuthToken;
+    use crate::errors::AppError;
     use async_trait::async_trait;
-    use chrono::{Utc, NaiveTime, NaiveDate};
+    use chrono::{NaiveDate, NaiveTime, Utc};
 
     struct MockOvertimeRequestRepository {
         pub create_request_called: std::sync::atomic::AtomicBool,
@@ -121,7 +121,8 @@ mod tests {
             request: OvertimeRequest,
             _employees: Vec<OvertimeRequestEmployee>,
         ) -> Result<OvertimeRequest, AppError> {
-            self.create_request_called.store(true, std::sync::atomic::Ordering::SeqCst);
+            self.create_request_called
+                .store(true, std::sync::atomic::Ordering::SeqCst);
             Ok(request)
         }
 
@@ -130,7 +131,8 @@ mod tests {
             _auth_token: &TenantAuthToken,
             request: OvertimeRequest,
         ) -> Result<OvertimeRequest, AppError> {
-            self.update_request_called.store(true, std::sync::atomic::Ordering::SeqCst);
+            self.update_request_called
+                .store(true, std::sync::atomic::Ordering::SeqCst);
             Ok(request)
         }
 
@@ -221,11 +223,16 @@ mod tests {
             created_at: Utc::now(),
         };
 
-        let result = service.create_request(&token, request, vec![employee]).await.unwrap();
-        
+        let result = service
+            .create_request(&token, request, vec![employee])
+            .await
+            .unwrap();
+
         // Ensure workspace_id is enforced
         assert_eq!(result.workspace_id, ws_id);
-        assert!(repo.create_request_called.load(std::sync::atomic::Ordering::SeqCst));
+        assert!(repo
+            .create_request_called
+            .load(std::sync::atomic::Ordering::SeqCst));
     }
 
     #[tokio::test]
@@ -237,11 +244,15 @@ mod tests {
 
         let request_id = Uuid::new_v4();
 
-        let updated = service.update_request_status(&token, request_id, OtRequestStatus::Approved, Some(2)).await.unwrap();
+        let updated = service
+            .update_request_status(&token, request_id, OtRequestStatus::Approved, Some(2))
+            .await
+            .unwrap();
 
         assert_eq!(updated.status, OtRequestStatus::Approved);
         assert_eq!(updated.current_step, 2);
-        assert!(repo.update_request_called.load(std::sync::atomic::Ordering::SeqCst));
+        assert!(repo
+            .update_request_called
+            .load(std::sync::atomic::Ordering::SeqCst));
     }
 }
-

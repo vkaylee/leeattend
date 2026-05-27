@@ -16,7 +16,7 @@ use crate::{
     AppState,
 };
 
-#[derive(Deserialize)]
+#[derive(Deserialize, utoipa::ToSchema)]
 pub struct CreateEmploymentPhaseDefinitionRequest {
     pub name: String,
     pub description: Option<String>,
@@ -25,7 +25,7 @@ pub struct CreateEmploymentPhaseDefinitionRequest {
     pub display_order: Option<i32>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, utoipa::ToSchema)]
 pub struct AssignEmployeePhaseRequest {
     pub phase_definition_id: Uuid,
     pub start_date: NaiveDate,
@@ -33,12 +33,26 @@ pub struct AssignEmployeePhaseRequest {
     pub override_config: Option<serde_json::Value>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, utoipa::ToSchema)]
 pub struct UpdateEmployeePhaseStatusRequest {
     pub status: String,
     pub evaluation_notes: Option<String>,
 }
 
+#[utoipa::path(
+    post,
+    path = "/v1/workspaces/{ws_id}/employment-phases",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID")
+    ),
+    request_body = CreateEmploymentPhaseDefinitionRequest,
+    responses(
+        (status = 201, description = "Employment phase definition created", body = EmploymentPhaseDefinition)
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 pub async fn create_employment_phase_definition(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -62,6 +76,19 @@ pub async fn create_employment_phase_definition(
     Ok((StatusCode::CREATED, Json(def)))
 }
 
+#[utoipa::path(
+    get,
+    path = "/v1/workspaces/{ws_id}/employment-phases",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID")
+    ),
+    responses(
+        (status = 200, description = "List of employment phase definitions", body = Vec<EmploymentPhaseDefinition>)
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 pub async fn get_employment_phase_definitions(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -74,12 +101,28 @@ pub async fn get_employment_phase_definitions(
     Ok(Json(defs))
 }
 
+#[utoipa::path(
+    post,
+    path = "/v1/workspaces/{ws_id}/employees/{emp_id}/phases",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        ("emp_id" = Uuid, Path, description = "Employee ID")
+    ),
+    request_body = AssignEmployeePhaseRequest,
+    responses(
+        (status = 200, description = "Employee phase assigned", body = EmployeePhase)
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 pub async fn assign_employee_phase(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
-    Path((_ws_id, emp_id)): Path<(Uuid, Uuid)>,
+    Path(__path_params): Path<(Uuid, Uuid)>,
     Json(payload): Json<AssignEmployeePhaseRequest>,
 ) -> Result<Json<EmployeePhase>, AppError> {
+    let (_ws_id, emp_id) = __path_params;
     ctx.require_permission(Permission::EmploymentPhasesManage)?;
 
     let phase = state
@@ -98,12 +141,29 @@ pub async fn assign_employee_phase(
     Ok(Json(phase))
 }
 
+#[utoipa::path(
+    put,
+    path = "/v1/workspaces/{ws_id}/employees/{emp_id}/phases/{phase_id}/status",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        ("emp_id" = Uuid, Path, description = "Employee ID"),
+        ("phase_id" = Uuid, Path, description = "Phase ID")
+    ),
+    request_body = UpdateEmployeePhaseStatusRequest,
+    responses(
+        (status = 200, description = "Employee phase status updated", body = EmployeePhase)
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 pub async fn update_employee_phase_status(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
-    Path((_ws_id, emp_id, phase_id)): Path<(Uuid, Uuid, Uuid)>,
+    Path(__path_params): Path<(Uuid, Uuid, Uuid)>,
     Json(payload): Json<UpdateEmployeePhaseStatusRequest>,
 ) -> Result<Json<EmployeePhase>, AppError> {
+    let (_ws_id, emp_id, phase_id) = __path_params;
     ctx.require_permission(Permission::EmploymentPhasesManage)?;
 
     let phase = state
@@ -122,11 +182,26 @@ pub async fn update_employee_phase_status(
     Ok(Json(phase))
 }
 
+#[utoipa::path(
+    get,
+    path = "/v1/workspaces/{ws_id}/employees/{emp_id}/phases",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        ("emp_id" = Uuid, Path, description = "Employee ID")
+    ),
+    responses(
+        (status = 200, description = "List of employee phases", body = Vec<EmployeePhase>)
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 pub async fn get_employee_phases(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
-    Path((_ws_id, emp_id)): Path<(Uuid, Uuid)>,
+    Path(__path_params): Path<(Uuid, Uuid)>,
 ) -> Result<Json<Vec<EmployeePhase>>, AppError> {
+    let (_ws_id, emp_id) = __path_params;
     let phases = state
         .employees
         .employment_phase_repo

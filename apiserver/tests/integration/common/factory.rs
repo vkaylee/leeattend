@@ -222,7 +222,7 @@ impl WorkspaceBuilder {
             // Seed default leave types for tests
             crate::test_execute!(
         &self.diesel_pools.api,
-        "INSERT INTO leave_types (workspace_id, code, name, is_paid) VALUES 
+        "INSERT INTO leave_types (workspace_id, code, name, is_paid) VALUES
                 ($1, 'vacation', 'Vacation', true),
                 ($1, 'sick', 'Sick Leave', true),
                 ($1, 'personal', 'Personal Leave', true),

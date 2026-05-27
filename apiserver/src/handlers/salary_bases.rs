@@ -1,3 +1,4 @@
+use crate::models::SalaryBaseGroup;
 use axum::{
     extract::{Path, State},
     response::IntoResponse,
@@ -5,7 +6,6 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-use crate::models::SalaryBaseGroup;
 
 use std::sync::Arc;
 

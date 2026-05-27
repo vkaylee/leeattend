@@ -135,7 +135,7 @@ mod tests {
                 };
                 Box::pin(async move { Ok(Some(emp)) })
             });
-            
+
         emp_repo
             .expect_get_employee_timezone_fallback()
             .returning(|_, _| Box::pin(async { Ok(chrono_tz::UTC) }));

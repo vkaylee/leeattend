@@ -15,11 +15,26 @@ use crate::AppState;
 
 /// GET /workspaces/:ws_id/members/:user_id/permissions
 /// List all extra permissions for a member.
+#[utoipa::path(
+    get,
+    path = "/v1/workspaces/{ws_id}/members/{user_id}/permissions",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        ("user_id" = Uuid, Path, description = "User ID")
+    ),
+    responses(
+        (status = 200, description = "List of extra permissions", body = Vec<MemberExtraPermission>)
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 pub async fn get_member_extra_permissions(
-    Path((_, user_id)): Path<(Uuid, Uuid)>,
+    Path(__path_params): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> AppResult<Json<Vec<MemberExtraPermission>>> {
+    let (_, user_id) = __path_params;
     ctx.require_permission(Permission::MembersRead)?;
 
     let perms = state
@@ -33,13 +48,29 @@ pub async fn get_member_extra_permissions(
 
 /// POST /workspaces/:ws_id/members/:user_id/permissions
 /// Grant an extra permission to a member.
+#[utoipa::path(
+    post,
+    path = "/v1/workspaces/{ws_id}/members/{user_id}/permissions",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        ("user_id" = Uuid, Path, description = "User ID")
+    ),
+    request_body = AssignPermissionRequest,
+    responses(
+        (status = 201, description = "Permission assigned", body = MemberExtraPermission)
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 pub async fn assign_extra_permission(
-    Path((_, user_id)): Path<(Uuid, Uuid)>,
+    Path(__path_params): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     headers: axum::http::HeaderMap,
     ctx: MemberContext,
     Json(req): Json<AssignPermissionRequest>,
 ) -> AppResult<(StatusCode, Json<MemberExtraPermission>)> {
+    let (_, user_id) = __path_params;
     ctx.require_permission(Permission::MembersRolesManage)?;
 
     // Validate the permission string
@@ -100,12 +131,29 @@ pub async fn assign_extra_permission(
 
 /// DELETE /workspaces/:ws_id/members/:user_id/permissions/:perm_id
 /// Revoke an extra permission from a member.
+#[utoipa::path(
+    delete,
+    path = "/v1/workspaces/{ws_id}/members/{user_id}/permissions/{perm_id}",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        ("user_id" = Uuid, Path, description = "User ID"),
+        ("perm_id" = Uuid, Path, description = "Permission ID to revoke")
+    ),
+    responses(
+        (status = 204, description = "Permission revoked successfully"),
+        (status = 404, description = "Permission not found")
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 pub async fn revoke_extra_permission(
-    Path((_, user_id, perm_id)): Path<(Uuid, Uuid, Uuid)>,
+    Path(__path_params): Path<(Uuid, Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     headers: axum::http::HeaderMap,
     ctx: MemberContext,
 ) -> AppResult<StatusCode> {
+    let (_, user_id, perm_id) = __path_params;
     ctx.require_permission(Permission::MembersRolesManage)?;
 
     let affected = state
@@ -148,6 +196,19 @@ pub async fn revoke_extra_permission(
 
 /// GET /workspaces/:ws_id/permissions/available
 /// List all available permission strings.
+#[utoipa::path(
+    get,
+    path = "/v1/workspaces/{ws_id}/permissions/available",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID")
+    ),
+    responses(
+        (status = 200, description = "List of available permission strings", body = Vec<String>)
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 pub async fn get_available_permissions(ctx: MemberContext) -> AppResult<Json<Vec<&'static str>>> {
     ctx.require_permission(Permission::MembersRolesManage)?;
     Ok(Json(Permission::all_permission_strings()))

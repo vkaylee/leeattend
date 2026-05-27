@@ -15,11 +15,11 @@ echo "🔄 Synchronizing API types..."
 
 # 1. Generate OpenAPI spec from Backend
 echo "📡 Generating OpenAPI spec from Backend..."
-dc exec -T apiserver bash -c "cargo run --quiet -- gen-openapi > ../webdashboard/openapi.json" </dev/null
+"$SCRIPT_DIR/_cargo.sh" run --bin apiserver --quiet -- gen-openapi > "$PROJECT_ROOT/webdashboard/openapi.json"
 
 # 2. Generate TypeScript types for Frontend
 echo "💅 Generating TypeScript types for Frontend..."
-dc exec -T webdashboard bash -c "npx openapi-typescript openapi.json -o ./src/types/api-generated.ts && rm -f openapi.json" </dev/null
+cd "$PROJECT_ROOT/webdashboard" && "../scripts/_npm.sh" exec -- openapi-typescript openapi.json -o ./src/types/api-generated.ts && rm -f openapi.json
 
 echo "✅ API Synchronization complete!"
 

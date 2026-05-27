@@ -12,6 +12,7 @@ describe("api.ts comprehensive tests", () => {
   const mockSuccess = (data: unknown = {}) => {
     vi.mocked(fetch).mockResolvedValue({
       ok: true,
+      headers: new Headers({ "content-type": "application/json" }),
       json: () => Promise.resolve(data),
       text: () => Promise.resolve(data ? JSON.stringify(data) : ""),
     } as unknown as Response);
@@ -186,7 +187,7 @@ describe("api.ts comprehensive tests", () => {
     });
 
     it("fetchLatestImportJob", async () => {
-      vi.mocked(fetch).mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ id: "job-1" }), text: () => Promise.resolve(JSON.stringify({ id: "job-1" })) } as unknown as Response);
+      vi.mocked(fetch).mockResolvedValueOnce({ ok: true, headers: new Headers({ "content-type": "application/json" }), json: () => Promise.resolve({ id: "job-1" }), text: () => Promise.resolve(JSON.stringify({ id: "job-1" })) } as unknown as Response);
       await api.fetchLatestImportJob("ws-1", "adjustment");
       expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/attendance/import-jobs/latest?target_type=adjustment"), expect.anything());
     });
@@ -210,9 +211,10 @@ describe("api.ts comprehensive tests", () => {
     });
 
     it("fetchAttendanceLogs", async () => {
+      localStorage.setItem("active_workspace_id", "ws-1");
       mockSuccess({ data: [], total: 0 });
       await api.fetchAttendanceLogs({ page: 1 });
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/attendance/logs?page=1"), expect.any(Object));
+      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/attendance/logs"), expect.any(Object));
     });
 
     it("fetchAttendanceReport", async () => {
@@ -452,7 +454,7 @@ describe("api.ts comprehensive tests", () => {
     });
 
     it("changePassword", async () => {
-      vi.mocked(fetch).mockResolvedValue({ ok: true, text: () => Promise.resolve("OK"), json: () => Promise.resolve({}) } as unknown as Response);
+      vi.mocked(fetch).mockResolvedValue({ ok: true, headers: new Headers({ "content-type": "application/json" }), text: () => Promise.resolve("{}"), json: () => Promise.resolve({}) } as unknown as Response);
       await api.changePassword({ old_password: "o", new_password: "n" });
       expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/auth/change-password"), expect.objectContaining({ method: "POST" }));
     });

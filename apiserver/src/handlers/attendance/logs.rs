@@ -129,12 +129,28 @@ pub struct ReprocessQuery {
     pub end_date: NaiveDate,
 }
 
+#[utoipa::path(
+    post,
+    path = "/v1/attendance/reprocess/{employee_id}",
+    params(
+        ("employee_id" = Uuid, Path, description = "Employee ID"),
+        ("start_date" = NaiveDate, Query, description = "Start date"),
+        ("end_date" = NaiveDate, Query, description = "End date")
+    ),
+    responses(
+        (status = 200, description = "Attendance reprocessed")
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 pub async fn force_reprocess_attendance(
     State(state): State<Arc<AppState>>,
-    Path((_, employee_id)): Path<(Uuid, Uuid)>,
+    Path(__path_params): Path<(Uuid, Uuid)>,
     ctx: MemberContext,
     Query(query): Query<ReprocessQuery>,
 ) -> AppResult<StatusCode> {
+    let (_, employee_id) = __path_params;
     ctx.require_permission(Permission::AttendanceReprocess)?;
 
     const MAX_REPROCESS_DAYS: i64 = 90;
@@ -176,6 +192,20 @@ pub async fn force_reprocess_attendance(
     Ok(StatusCode::OK)
 }
 
+#[utoipa::path(
+    post,
+    path = "/v1/attendance/reprocess/all",
+    params(
+        ("start_date" = NaiveDate, Query, description = "Start date"),
+        ("end_date" = NaiveDate, Query, description = "End date")
+    ),
+    responses(
+        (status = 200, description = "Bulk reprocess queued", body = serde_json::Value)
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 pub async fn force_reprocess_all_attendance(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,

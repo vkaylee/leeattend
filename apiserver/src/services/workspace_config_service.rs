@@ -28,7 +28,9 @@ impl WorkspaceConfigService {
             return Err(AppError::Validation("Invalid scope type".to_string()));
         }
 
-        self.workspace_config_repo.create_entry(auth_token, entry).await
+        self.workspace_config_repo
+            .create_entry(auth_token, entry)
+            .await
     }
 
     pub async fn get_effective_config(
@@ -75,11 +77,11 @@ impl WorkspaceConfigService {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::errors::AppError;
     use crate::diesel_pool::TenantAuthToken;
+    use crate::errors::AppError;
     use async_trait::async_trait;
-    use chrono::{Utc, NaiveDate};
-    
+    use chrono::{NaiveDate, Utc};
+
     struct MockWorkspaceConfigRepository {
         pub create_entry_called: std::sync::atomic::AtomicBool,
     }
@@ -99,7 +101,8 @@ mod tests {
             _auth_token: &TenantAuthToken,
             entry: WorkspaceConfigEntry,
         ) -> Result<WorkspaceConfigEntry, AppError> {
-            self.create_entry_called.store(true, std::sync::atomic::Ordering::SeqCst);
+            self.create_entry_called
+                .store(true, std::sync::atomic::Ordering::SeqCst);
             Ok(entry)
         }
 
@@ -161,7 +164,9 @@ mod tests {
         let result = service.create_entry(&token, entry).await;
         assert!(result.is_err());
         assert!(matches!(result.unwrap_err(), AppError::Validation(_)));
-        assert!(!repo.create_entry_called.load(std::sync::atomic::Ordering::SeqCst));
+        assert!(!repo
+            .create_entry_called
+            .load(std::sync::atomic::Ordering::SeqCst));
     }
 
     #[tokio::test]
@@ -192,7 +197,8 @@ mod tests {
         let result = service.create_entry(&token, entry).await.unwrap();
         // Ensure workspace_id is enforced
         assert_eq!(result.workspace_id, ws_id);
-        assert!(repo.create_entry_called.load(std::sync::atomic::Ordering::SeqCst));
+        assert!(repo
+            .create_entry_called
+            .load(std::sync::atomic::Ordering::SeqCst));
     }
 }
-

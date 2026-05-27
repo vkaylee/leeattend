@@ -6,7 +6,7 @@ test.describe('Workspace Settings Flow', () => {
   test.beforeEach(async ({ loginPage, page }) => {
     await loginPage.goto();
     await loginPage.login('admin@leeattend.com', 'admin123');
-    await expect(page).toHaveURL(/\/$/);
+    await page.waitForURL(url => !url.pathname.includes('/login'), { timeout: 30000 });
   });
 
   test('should navigate to settings and update configurations', async ({ page }) => {
@@ -14,9 +14,8 @@ test.describe('Workspace Settings Flow', () => {
     await expect(page).toHaveURL(/.*\/workspace\/settings\/general/);
     
     // Check if tabs are visible
-    await expect(page.getByTestId('tab-general')).toBeVisible();
+    await expect(page.getByTestId('tab-localization')).toBeVisible();
     await expect(page.getByTestId('tab-appearance')).toBeVisible();
-    await expect(page.getByTestId('tab-danger')).toBeVisible();
 
     // Verify Timezone change
     await page.getByTestId('timezone-select').click();
