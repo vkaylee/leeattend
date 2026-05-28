@@ -148,6 +148,7 @@ export interface Employee {
   termination_date?: string;
   updated_at: string;
   user_id?: string;
+  primary_location_id: string;
   workspace_id: string;
 }
 

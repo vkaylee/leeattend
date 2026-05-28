@@ -7,6 +7,10 @@ import {
     User,
     UserPlus,
     X,
+    MapPin,
+    Check,
+    Globe,
+    Clock,
 } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -19,8 +23,12 @@ import EmployeeSalaryConfig from "@/components/payroll/employee-salary-config";
 import Button from "@/components/ui/button";
 import Sheet from "@/components/ui/sheet";
 import { Typography } from "@/components/ui/typography";
-import { fetchWorkspaceMembers } from "@/lib/api";
+import { fetchWorkspaceMembers, updateEmployee } from "@/lib/api";
+import type { WorkLocation } from "@/lib/api/locations";
 import { cn } from "@/lib/utils";
+import { useLocations } from "@/pages/settings/hooks/use-locations";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/components/ui/toast";
 
 import EmployeeAssignmentsTab from "./employee-assignments-tab";
 import EmployeeContractsTab from "./employee-contracts-tab";
@@ -105,6 +113,8 @@ function ProfileTab({
     linkedUser,
     departments,
     deptHistory,
+    locations,
+    wsId,
     formatDate,
     onEdit,
     onTerminate,
@@ -115,6 +125,8 @@ function ProfileTab({
     departments?: Department[];
     deptHistory?: DeptHistoryEntry[];
     employee: Employee;
+    locations?: WorkLocation[];
+    wsId: string;
     formatDate: (date: string) => string;
     linkedUser: WorkspaceMember | undefined;
     onEdit: (e: Employee) => void;
@@ -123,6 +135,34 @@ function ProfileTab({
     onTransfer: (id: string) => void;
     t: (k: string) => string;
 }) {
+    const queryClient = useQueryClient();
+    const toast = useToast();
+    const [isEditingLocation, setIsEditingLocation] = useState(false);
+    const [selectedLocationId, setSelectedLocationId] = useState(employee.primary_location_id);
+
+    const updateLocationMutation = useMutation({
+        mutationFn: (locationId: string) => updateEmployee(wsId, employee.id, { primary_location_id: locationId }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["employees", wsId] });
+            setIsEditingLocation(false);
+            toast.success(t("common.success"));
+        },
+        onError: () => {
+            toast.error("Failed to update location");
+            setSelectedLocationId(employee.primary_location_id);
+        }
+    });
+
+    const handleSaveLocation = () => {
+        if (selectedLocationId !== employee.primary_location_id) {
+            updateLocationMutation.mutate(selectedLocationId);
+        } else {
+            setIsEditingLocation(false);
+        }
+    };
+
+    const currentLocation = locations?.find(l => l.id === employee.primary_location_id);
+
     return (
         <div className="space-y-10">
             <div className="grid grid-cols-2 gap-6">
@@ -153,6 +193,53 @@ function ProfileTab({
                         </div>
                     ) : (<div className="text-xs text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest italic opacity-60">{t("employees.details.not_assigned_dept")}</div>)}
                     <Building2 className="absolute -right-8 -bottom-8 w-32 h-32 text-slate-700 dark:text-slate-200 opacity-5 -rotate-12 group-hover:rotate-0 transition-transform duration-700" />
+                </div>
+            </section>
+
+            <section className="space-y-5">
+                <div className="flex justify-between items-center px-2">
+                    <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.3em] flex items-center gap-2 opacity-70"><MapPin className="text-rose-500" size={14} /> WORK LOCATION</span>
+                    <PermissionGate permission="employees:update">
+                        {!isEditingLocation ? (
+                            <Button className="text-[10px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest hover:underline active:scale-90 h-auto shadow-none border-none p-0" onClick={() => { setIsEditingLocation(true); setSelectedLocationId(employee.primary_location_id); }} type="button" variant="ghost">{t("common.edit").toUpperCase()}</Button>
+                        ) : (
+                            <Button className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest hover:underline active:scale-90 h-auto shadow-none border-none p-0 flex items-center gap-1" disabled={updateLocationMutation.isPending} onClick={handleSaveLocation} type="button" variant="ghost"><Check size={12}/> SAVE</Button>
+                        )}
+                    </PermissionGate>
+                </div>
+                <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 p-8 rounded-[2.5rem] group hover:bg-white dark:hover:bg-slate-900 hover:shadow-xl hover:shadow-rose-100/10 transition-all shadow-inner relative overflow-hidden">
+                    {isEditingLocation ? (
+                        <div className="relative z-10">
+                            <select
+                                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 font-bold uppercase tracking-widest text-sm rounded-xl p-3 focus:ring-2 focus:ring-primary-500 outline-none"
+                                onChange={(e) => { setSelectedLocationId(e.target.value); }}
+                                value={selectedLocationId}
+                            >
+                                {locations?.map(loc => (
+                                    <option key={loc.id} value={loc.id}>{loc.name} {loc.is_headquarters ? "(HQ)" : ""}</option>
+                                ))}
+                            </select>
+                            <div className="mt-3 flex gap-2">
+                                <Button className="text-xs uppercase tracking-widest rounded-lg px-4" onClick={() => { setIsEditingLocation(false); }} size="sm" type="button" variant="ghost">Cancel</Button>
+                            </div>
+                        </div>
+                    ) : (
+                        <div>
+                            <div className="font-bold text-slate-700 dark:text-slate-200 text-2xl tracking-tighter uppercase leading-none mb-3 flex items-center gap-2">
+                                {currentLocation?.name ?? "Unknown Location"}
+                                {currentLocation?.is_headquarters && (
+                                    <span className="bg-rose-100 text-rose-700 dark:bg-rose-900 dark:text-rose-300 text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-widest border border-rose-200 dark:border-rose-800">HQ</span>
+                                )}
+                            </div>
+                            <div className="flex items-center gap-2 text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest opacity-70 group/tz cursor-help relative inline-flex">
+                                <Clock className="text-rose-400" size={12} /> {currentLocation?.timezone ?? "No Timezone"}
+                                <div className="absolute opacity-0 invisible group-hover/tz:opacity-100 group-hover/tz:visible transition-all bottom-full left-0 mb-2 whitespace-nowrap bg-slate-800 dark:bg-slate-100 text-white dark:text-slate-800 px-3 py-1.5 rounded-lg text-xs font-mono shadow-lg border border-slate-700 dark:border-slate-300">
+                                    Timezone set for {currentLocation?.name}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    <Globe className="absolute -right-8 -bottom-8 w-32 h-32 text-slate-700 dark:text-slate-200 opacity-5 group-hover:opacity-10 group-hover:scale-110 transition-all duration-700" />
                 </div>
             </section>
 
@@ -240,6 +327,8 @@ export default function EmployeeDetailDrawer({
         enabled: !!wsId && !!employee?.user_id,
     });
 
+    const { data: locations } = useLocations(wsId);
+
     if (!employee) return null;
 
     const linkedUser = members?.find((m: WorkspaceMember) => m.user_id === employee.user_id);
@@ -268,11 +357,13 @@ export default function EmployeeDetailDrawer({
                         employee={employee}
                         formatDate={formatDate}
                         linkedUser={linkedUser}
+                        locations={locations}
                         onEdit={onEdit}
                         onRehire={onRehire}
                         onTerminate={onTerminate}
                         onTransfer={onTransfer}
                         t={t}
+                        wsId={wsId}
                     />
                 )}
 

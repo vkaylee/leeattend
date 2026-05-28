@@ -53,6 +53,22 @@ const mockMembers = [
 
 vi.mock("@/lib/api", () => ({
     fetchWorkspaceMembers: vi.fn(() => Promise.resolve(mockMembers)),
+    updateEmployee: vi.fn(() => Promise.resolve({})),
+}));
+vi.mock("@/pages/settings/hooks/use-locations", () => ({
+    useLocations: () => ({
+        data: [
+            { id: "loc-1", name: "Tokyo HQ", is_headquarters: true, timezone: "Asia/Tokyo" },
+            { id: "loc-2", name: "Osaka Branch", is_headquarters: false, timezone: "Asia/Tokyo" }
+        ],
+        isLoading: false
+    })
+}));
+vi.mock("@/components/ui/toast", () => ({
+    useToast: () => ({
+        success: vi.fn(),
+        error: vi.fn()
+    })
 }));
 vi.mock("@/hooks/use-permissions", () => ({
     useMyPermissions: () => ({
@@ -76,6 +92,7 @@ const mockEmployee: Employee = {
     original_hire_date: "2020-01-01", hire_date: "2024-06-15",
     created_at: "2024-06-15T00:00:00Z",
     updated_at: "2024-06-15T00:00:00Z",
+    primary_location_id: "loc-1",
 };
 
 const terminatedEmployee: Employee = {
@@ -243,6 +260,34 @@ describe("EmployeeDetailDrawer", () => {
 
         await user.click(screen.getByText(/employees.details.transfer/i));
         expect(onTransfer).toHaveBeenCalledWith("dept-1");
+    });
+
+    // ── Work Location section ────────────────────────────────────
+
+    it("displays current work location", () => {
+        renderWithClient(<EmployeeDetailDrawer {...defaultProps} />);
+        expect(screen.getByText("Tokyo HQ")).toBeDefined();
+        expect(screen.getByText("Asia/Tokyo")).toBeDefined();
+        expect(screen.getByText("HQ")).toBeDefined();
+    });
+
+    it("switches to edit mode and saves new location", async () => {
+        const user = userEvent.setup();
+        const { updateEmployee } = await import("@/lib/api");
+        renderWithClient(<EmployeeDetailDrawer {...defaultProps} />);
+
+        // Click Edit
+        await user.click(screen.getByText(/common.edit/i));
+        
+        // Find combobox/select
+        const select = screen.getByRole("combobox");
+        // Change selection
+        await user.selectOptions(select, "loc-2");
+
+        // Click Save
+        await user.click(screen.getByText(/SAVE/i));
+
+        expect(updateEmployee).toHaveBeenCalledWith("ws-1", "emp-1", { primary_location_id: "loc-2" });
     });
 
     // ── Close ──────────────────────────────────────────────────
