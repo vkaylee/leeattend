@@ -58,7 +58,8 @@ impl TenantProvisionerTrait for TenantMigrator {
             // Ensure Headquarters location exists
             let insert_hq_sql = format!(
                 "INSERT INTO work_locations (id, workspace_id, name, timezone, is_headquarters)
-                 VALUES ('11111111-1111-1111-1111-111111111111'::uuid, '{ws_id}', 'Headquarters', 'UTC', true)
+                 SELECT '11111111-1111-1111-1111-111111111111'::uuid, '{ws_id}', 'Headquarters', COALESCE(timezone, 'UTC'), true
+                 FROM workspaces WHERE id = '{ws_id}'
                  ON CONFLICT (id) DO NOTHING"
             );
 

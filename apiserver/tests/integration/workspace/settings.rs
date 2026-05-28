@@ -292,3 +292,71 @@ async fn test_update_workspace_no_fields() {
     let err = result.unwrap_err();
     assert!(err.to_string().contains("No fields to update"));
 }
+
+#[tokio::test]
+async fn test_update_workspace_syncs_headquarters_timezone() {
+    let test_db = TestDatabase::new().await;
+    let pool = test_db.diesel_pools.clone();
+    let factory = TestFactory::new(pool.clone());
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
+    let workspace_repo = std::sync::Arc::new(
+        apiserver::repositories::DieselWorkspaceRepository::new(diesel_pools.clone()),
+    );
+    let user_repo = std::sync::Arc::new(apiserver::repositories::DieselUserRepository::new(
+        diesel_pools.clone(),
+    ));
+
+    let user_id: Uuid = factory.user().create().await;
+    let ws_id: Uuid = factory.workspace().create_with_owner(user_id).await;
+
+    // Get the existing Headquarters work location seeded by the factory
+    use diesel_async::RunQueryDsl;
+    use apiserver::schema::work_locations;
+    use diesel::prelude::*;
+    let mut conn = diesel_pools.tenants_tx.get_connection(&ws_id).await.unwrap();
+    let mut conn = apiserver::diesel_pool::TransactionConn(conn);
+
+    let hq_id: Uuid = work_locations::table
+        .filter(work_locations::workspace_id.eq(ws_id))
+        .filter(work_locations::is_headquarters.eq(true))
+        .select(work_locations::id)
+        .first(&mut *conn)
+        .await
+        .unwrap();
+
+    // Now update workspace timezone
+    let _updated_ws = WorkspaceService::new(
+        workspace_repo.clone(),
+        user_repo.clone(),
+        std::sync::Arc::new(DummyTenantProvisioner),
+        std::sync::Arc::new(DummyTenantManager),
+        std::sync::Arc::new(DummySystemDbClusterRepository),
+    )
+    .update_workspace(
+        apiserver::services::workspace_service::UpdateWorkspaceArgs {
+            ws_id,
+            name: None,
+            date_format: None,
+            time_format: None,
+            timezone: Some("Asia/Ho_Chi_Minh".to_string()),
+            theme_primary_color: None,
+            default_language: None,
+            holiday_overnight_strategy: None,
+            default_holiday_ot_multiplier: None,
+            logo_url: None,
+            tagline: None,
+        },
+    )
+    .await
+    .expect("Failed to update workspace");
+
+    // Verify headquarters location timezone
+    let hq_tz: String = work_locations::table
+        .filter(work_locations::id.eq(hq_id))
+        .select(work_locations::timezone)
+        .first(&mut *conn)
+        .await
+        .unwrap();
+
+    assert_eq!(hq_tz, "Asia/Ho_Chi_Minh");
+}

@@ -1181,6 +1181,26 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
+        if let Some(ref new_tz) = update.timezone {
+            let mut tenant_conn = crate::diesel_pool::TransactionConn(
+                self.diesel_pools
+                    .tenants_tx
+                    .get_connection(&id)
+                    .await
+                    .map_err(|e| AppError::Internal(format!("Failed to get tenant conn: {e}")))?,
+            );
+            use crate::schema::work_locations;
+            diesel::update(
+                work_locations::table
+                    .filter(work_locations::workspace_id.eq(id))
+                    .filter(work_locations::is_headquarters.eq(true)),
+            )
+            .set(work_locations::timezone.eq(new_tz))
+            .execute(&mut *tenant_conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db tenant: {e}")))?;
+        }
+
         Ok(result.into())
     }
 
