@@ -138,7 +138,7 @@ function ProfileTab({
     const queryClient = useQueryClient();
     const toast = useToast();
     const [isEditingLocation, setIsEditingLocation] = useState(false);
-    const [selectedLocationId, setSelectedLocationId] = useState(employee.primary_location_id);
+    const [selectedLocationId, setSelectedLocationId] = useState(employee.primary_location_id ?? "");
 
     const updateLocationMutation = useMutation({
         mutationFn: (locationId: string) => updateEmployee(wsId, employee.id, { primary_location_id: locationId }),
@@ -149,7 +149,7 @@ function ProfileTab({
         },
         onError: () => {
             toast.error("Failed to update location");
-            setSelectedLocationId(employee.primary_location_id);
+            setSelectedLocationId(employee.primary_location_id ?? "");
         }
     });
 
@@ -201,7 +201,7 @@ function ProfileTab({
                     <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.3em] flex items-center gap-2 opacity-70"><MapPin className="text-rose-500" size={14} /> WORK LOCATION</span>
                     <PermissionGate permission="employees:update">
                         {!isEditingLocation ? (
-                            <Button className="text-[10px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest hover:underline active:scale-90 h-auto shadow-none border-none p-0" onClick={() => { setIsEditingLocation(true); setSelectedLocationId(employee.primary_location_id); }} type="button" variant="ghost">{t("common.edit").toUpperCase()}</Button>
+                            <Button className="text-[10px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest hover:underline active:scale-90 h-auto shadow-none border-none p-0" onClick={() => { setIsEditingLocation(true); setSelectedLocationId(employee.primary_location_id ?? ""); }} type="button" variant="ghost">{t("common.edit").toUpperCase()}</Button>
                         ) : (
                             <Button className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest hover:underline active:scale-90 h-auto shadow-none border-none p-0 flex items-center gap-1" disabled={updateLocationMutation.isPending} onClick={handleSaveLocation} type="button" variant="ghost"><Check size={12}/> SAVE</Button>
                         )}

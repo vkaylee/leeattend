@@ -1,6 +1,6 @@
 import { Briefcase } from "lucide-react";
 import React, { useEffect } from "react";
-import { useForm, useWatch } from "react-hook-form";
+import { useForm, useWatch, Controller } from "react-hook-form";
 
 import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
 import { z } from "zod";
@@ -8,9 +8,11 @@ import { z } from "zod";
 import type { EmployeeAssignment } from "@/lib/api";
 
 import Button from "@/components/ui/button";
+import { Combobox } from "@/components/ui/combobox";
 import FormField from "@/components/ui/form-field";
 import Modal from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
+import { useLocations } from "@/pages/settings/hooks/use-locations";
 import {
   useCreateEmployeeAssignment,
   useUpdateEmployeeAssignment,
@@ -56,6 +58,7 @@ export default function EmployeeAssignmentFormModal({
   const toast = useToast();
   const createAssignment = useCreateEmployeeAssignment();
   const updateAssignment = useUpdateEmployeeAssignment();
+  const { data: locations } = useLocations(wsId);
 
   const {
     register,
@@ -172,12 +175,32 @@ export default function EmployeeAssignmentFormModal({
           </div>
 
           <div className="space-y-2">
-            <FormField
-              error={errors.host_location_id?.message}
-              label="Mã UUID Địa điểm đến (Tùy chọn)"
-              placeholder="VD: 123e4567-e89b-12d3-a456-426614174000"
-              {...register("host_location_id")}
+            <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">
+              Địa điểm đến (Tùy chọn)
+            </label>
+            <Controller
+              control={control}
+              name="host_location_id"
+              render={({ field }) => (
+                <Combobox
+                  clearOnEscape
+                  data-testid="assignment-location-combobox"
+                  onChange={field.onChange}
+                  options={(locations || []).map((loc) => ({
+                    value: loc.id,
+                    label: loc.name,
+                    description: loc.is_headquarters ? "Headquarters" : loc.timezone,
+                  }))}
+                  placeholder="Chọn địa điểm làm việc mới"
+                  value={field.value ?? ""}
+                />
+              )}
             />
+            {errors.host_location_id?.message && (
+              <p className="text-sm font-semibold text-rose-500 mt-1">
+                {errors.host_location_id.message}
+              </p>
+            )}
           </div>
 
           {!!editingAssignment && (
