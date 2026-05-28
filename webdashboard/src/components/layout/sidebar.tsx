@@ -131,7 +131,7 @@ function SidebarSection({
     <div className="space-y-2">
       {!isCollapsed && (
         <Button
-          className="flex w-full items-center justify-between px-4 py-3 min-h-[44px] text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-[0.25em] hover:text-primary-600 dark:hover:text-primary-400 transition-colors group"
+          className="flex w-full items-center justify-between px-4 py-3 min-h-[44px] text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] hover:text-primary-600 dark:hover:text-primary-400 transition-colors group"
           data-testid={item.testId}
           onClick={() => { toggleSection(item.section); }}
           variant="ghost"

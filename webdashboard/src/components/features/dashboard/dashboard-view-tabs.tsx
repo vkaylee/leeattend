@@ -50,7 +50,7 @@ export default function DashboardViewTabs({
                             "flex items-center gap-2 px-5 sm:px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all whitespace-nowrap h-auto shadow-none border border-transparent",
                             isActive
                                 ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border-slate-100 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-900"
-                                : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-transparent"
+                                : "text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-transparent"
                         )}
                         key={tab.id}
                         onClick={() => { onViewChange(tab.id); }}

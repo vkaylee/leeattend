@@ -19,9 +19,9 @@ const VARIANT_STYLES = {
 } as const;
 
 const SIZE_STYLES = {
-  sm: "h-[var(--ui-height-sm)] px-4 text-[10px] rounded-xl gap-2",
-  md: "h-[var(--ui-height-md)] px-8 text-xs rounded-2xl gap-3",
-  lg: "h-[var(--ui-height-lg)] px-10 text-xs rounded-2xl gap-4",
+  sm: "h-[var(--ui-height-sm)] min-w-[var(--ui-height-sm)] px-4 text-[10px] rounded-xl gap-2",
+  md: "h-[var(--ui-height-md)] min-w-[var(--ui-height-md)] px-8 text-xs rounded-2xl gap-3",
+  lg: "h-[var(--ui-height-lg)] min-w-[var(--ui-height-lg)] px-10 text-xs rounded-2xl gap-4",
   icon: "h-[var(--ui-height-md)] w-[var(--ui-height-md)] rounded-xl gap-0 p-0",
 } as const;
 
@@ -58,8 +58,9 @@ const Button = memo(
   ) {
     return (
       <button
+        data-component="Button"
         className={cn(
-          "inline-flex items-center justify-center font-bold uppercase tracking-widest transition-all active:scale-95 disabled:opacity-50 disabled:pointer-events-none",
+          "inline-flex items-center justify-center font-bold uppercase tracking-widest transition-all active:scale-95 disabled:bg-slate-200 disabled:text-slate-600 disabled:shadow-none disabled:cursor-not-allowed dark:disabled:bg-slate-800 dark:disabled:text-slate-400",
           VARIANT_STYLES[variant],
           SIZE_STYLES[size],
           className,
