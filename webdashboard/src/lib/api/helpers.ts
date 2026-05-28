@@ -122,22 +122,32 @@ export async function apiFetch(
   const timeoutMs = options.timeout ?? TIMEOUT.DEFAULT;
   const id = setTimeout(() => { controller.abort(); }, timeoutMs);
 
+  const headers = new Headers();
+  
+  // Add base headers
   const baseHeaders = getHeaders();
-  const customHeaders: Record<string, string> = options.headers 
-    ? (options.headers instanceof Headers 
-        ? Object.fromEntries(options.headers.entries()) 
-        : (Array.isArray(options.headers) 
-            ? Object.fromEntries(options.headers) 
-            : options.headers)) 
-    : {};
+  Object.entries(baseHeaders).forEach(([k, v]) => {
+    if (v) headers.set(k, v);
+  });
 
-  const headers = { ...baseHeaders, ...customHeaders };
+  // Add custom headers (overriding base headers)
+  if (options.headers) {
+    if (options.headers instanceof Headers) {
+      options.headers.forEach((v, k) => headers.set(k, v));
+    } else if (Array.isArray(options.headers)) {
+      options.headers.forEach(([k, v]) => headers.set(k, v));
+    } else {
+      Object.entries(options.headers).forEach(([k, v]) => {
+        if (v) headers.set(k, v as string);
+      });
+    }
+  }
 
   // Remove timeout from options to avoid passing it to fetch
   const { timeout: _timeout, ...fetchOptions } = options;
 
   if (fetchOptions.body instanceof FormData) {
-    delete (headers as Record<string, string>)["Content-Type"];
+    headers.delete("Content-Type");
   }
 
   const fullUrl = getFullUrl(url);
@@ -180,7 +190,7 @@ interface UnauthorizedParams {
   controller: AbortController;
   fetchOptions: RequestInit;
   fullUrl: string;
-  headers: Record<string, string>;
+  headers: Headers;
   timeoutId: number | ReturnType<typeof setTimeout>;
 }
 
@@ -206,7 +216,9 @@ async function handleUnauthorized({
         setAccessToken(data.access_token);
         setRefreshToken(data.refresh_token);
 
-        const retryHeaders = { ...headers, Authorization: `Bearer ${data.access_token}` };
+        const retryHeaders = new Headers(headers);
+        retryHeaders.set("Authorization", `Bearer ${data.access_token}`);
+        
         const retryResponse = await fetch(fullUrl, {
           ...fetchOptions,
           headers: retryHeaders,

@@ -3,8 +3,9 @@ import { expect } from "@playwright/test";
 import { test } from "./worker-orchestrator";
 
 test.describe("Overtime Flow", () => {
-  test.beforeEach(async ({ authPage }) => {
+test.beforeEach(async ({ authPage }) => {
     // authPage fixture automatically logs in
+    expect(authPage).toBeDefined();
   });
 
   test('should allow manager to create pre-ot request and employee to view it', async ({ page }) => {

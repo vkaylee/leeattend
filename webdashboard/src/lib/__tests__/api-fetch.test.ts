@@ -34,14 +34,34 @@ describe("apiFetch utility", () => {
 
     await apiFetch("/test", { method: "POST", body: JSON.stringify({ data: 1 }) });
 
-    expect(fetch).toHaveBeenCalledWith(
-      expect.any(String),
-      expect.objectContaining({
-        headers: expect.objectContaining({
-          "Content-Type": "application/json",
-        }) as unknown as HeadersInit,
-      }) as RequestInit
-    );
+    const callInit = vi.mocked(fetch).mock.calls[0][1]!;
+    expect(callInit.headers).toBeInstanceOf(Headers);
+    expect((callInit.headers as Headers).get("Content-Type")).toBe("application/json");
+  });
+
+  it("should deduplicate Content-Type headers regardless of case", async () => {
+    vi.mocked(fetch).mockResolvedValue({ ok: true, json: () => Promise.resolve({}) } as unknown as Response);
+
+    await apiFetch("/test", {
+      method: "POST",
+      body: JSON.stringify({ data: 1 }),
+      headers: { "content-type": "application/json" }
+    });
+
+    const callInit = vi.mocked(fetch).mock.calls[0][1]!;
+    const headers = callInit.headers as Headers;
+    expect(headers).toBeInstanceOf(Headers);
+    // There should only be one Content-Type header in the Headers object
+    // And it should map to 'application/json' (not 'application/json, application/json')
+    expect(headers.get("Content-Type")).toBe("application/json");
+    expect(headers.get("content-type")).toBe("application/json");
+    
+    // We can iterate to verify no duplicates exist in the Headers object iteration
+    let count = 0;
+    headers.forEach((_, key) => {
+      if (key.toLowerCase() === "content-type") count++;
+    });
+    expect(count).toBe(1);
   });
 
   it("should not set Content-Type if body is FormData", async () => {
@@ -50,8 +70,8 @@ describe("apiFetch utility", () => {
 
     await apiFetch("/test", { method: "POST", body: new FormData() });
 
-    const callHeaders = (vi.mocked(fetch).mock.calls[0][1]!).headers as Record<string, string>;
-    expect(callHeaders["Content-Type"]).toBeUndefined();
+    const callHeaders = (vi.mocked(fetch).mock.calls[0][1]!).headers as Headers;
+    expect(callHeaders.get("Content-Type")).toBeNull();
   });
 
   it("should include X-Workspace-Id if available in localStorage", async () => {
@@ -61,15 +81,8 @@ describe("apiFetch utility", () => {
 
     await apiFetch("/test");
 
-    expect(fetch).toHaveBeenCalledWith(
- 
-      expect.any(String),
-      expect.objectContaining({
-        headers: expect.objectContaining({
-          "X-Workspace-Id": "ws-123",
-        }) as unknown as HeadersInit,
-      }) as RequestInit
-    );
+    const callHeaders = (vi.mocked(fetch).mock.calls[0][1]!).headers as Headers;
+    expect(callHeaders.get("X-Workspace-Id")).toBe("ws-123");
   });
 
   it("should include Authorization header if token is available", async () => {
@@ -78,15 +91,8 @@ describe("apiFetch utility", () => {
 
     await apiFetch("/test");
 
-    expect(fetch).toHaveBeenCalledWith(
- 
-      expect.any(String),
-      expect.objectContaining({
-        headers: expect.objectContaining({
-          "Authorization": "Bearer token-abc",
-        }) as unknown as HeadersInit,
-      }) as RequestInit
-    );
+    const callHeaders = (vi.mocked(fetch).mock.calls[0][1]!).headers as Headers;
+    expect(callHeaders.get("Authorization")).toBe("Bearer token-abc");
   });
 
   describe("401 Unauthorized handling", () => {
