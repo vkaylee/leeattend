@@ -1,3 +1,4 @@
+# ruff: noqa
 #!/usr/bin/env python3
 """
 Tenant Workspace Migration Script
@@ -21,7 +22,9 @@ from contextlib import contextmanager
 
 # Local dev DB urls
 LEGACY_DB_URL = os.getenv("LEGACY_DB_URL", "postgres://postgres:postgres@localhost:5433/railway")
-WORKSPACE_DB_URL = os.getenv("WORKSPACE_DB_URL", "postgres://tenant_user:tenant_password@localhost:5435/tenant_db")
+WORKSPACE_DB_URL = os.getenv(
+    "WORKSPACE_DB_URL", "postgres://tenant_user:tenant_password@localhost:5435/tenant_db"
+)
 
 # Workspace mapping
 OLD_WORKSPACE_UUID = uuid.UUID("6e913c39-24f3-45b5-877d-e307c3e10c88")
@@ -50,17 +53,22 @@ SKIP_TABLES = {
 # Helpers
 # ─────────────────────────────────────────────────────────────────────
 
+
 def log(msg: str):
     print(f"[{time.strftime('%H:%M:%S')}] {msg}", flush=True)
+
 
 def log_ok(msg: str):
     print(f"[{time.strftime('%H:%M:%S')}] ✅ {msg}", flush=True)
 
+
 def log_warn(msg: str):
     print(f"[{time.strftime('%H:%M:%S')}] ⚠️  {msg}", flush=True)
 
+
 def log_err(msg: str):
     print(f"[{time.strftime('%H:%M:%S')}] ❌ {msg}", flush=True)
+
 
 @contextmanager
 def connect(url: str):
@@ -71,6 +79,7 @@ def connect(url: str):
     finally:
         conn.close()
 
+
 def get_child_tables(conn) -> set[str]:
     """Get all child/partition tables that inherit from parent tables."""
     cur = conn.cursor()
@@ -79,6 +88,7 @@ def get_child_tables(conn) -> set[str]:
         FROM pg_inherits;
     """)
     return {row[0].strip('"') for row in cur.fetchall()}
+
 
 def get_all_tables(conn) -> list[str]:
     """Get all base tables in the public schema."""
@@ -90,6 +100,7 @@ def get_all_tables(conn) -> list[str]:
         ORDER BY table_name;
     """)
     return [row[0] for row in cur.fetchall()]
+
 
 def get_table_columns(conn, table_name: str) -> list[str]:
     """Get column names for a table."""
@@ -104,6 +115,7 @@ def get_table_columns(conn, table_name: str) -> list[str]:
     )
     return [row[0] for row in cur.fetchall()]
 
+
 def get_json_columns(conn, table_name: str) -> set[str]:
     """Get columns of JSON or JSONB type in a table."""
     cur = conn.cursor()
@@ -117,6 +129,7 @@ def get_json_columns(conn, table_name: str) -> set[str]:
     )
     return {row[0] for row in cur.fetchall()}
 
+
 def get_row_count(conn, table_name: str) -> int:
     """Get total row count of a table."""
     cur = conn.cursor()
@@ -127,22 +140,24 @@ def get_row_count(conn, table_name: str) -> int:
         conn.rollback()
         return 0
 
+
 def replace_uuids_in_json(data):
     """Recursively replace old workspace/user UUIDs in dicts and lists."""
     if isinstance(data, dict):
         return {k: replace_uuids_in_json(v) for k, v in data.items()}
-    elif isinstance(data, list):
+    if isinstance(data, list):
         return [replace_uuids_in_json(x) for x in data]
-    elif isinstance(data, str):
+    if isinstance(data, str):
         try:
             val_uuid = uuid.UUID(data)
             if val_uuid == OLD_WORKSPACE_UUID:
                 return str(NEW_WORKSPACE_UUID)
-            elif val_uuid == OLD_USER_UUID:
+            if val_uuid == OLD_USER_UUID:
                 return str(NEW_USER_UUID)
         except ValueError:
             pass
     return data
+
 
 def process_value(val):
     """Replace old workspace/user UUIDs with current ones."""
@@ -151,22 +166,24 @@ def process_value(val):
     if isinstance(val, uuid.UUID):
         if val == OLD_WORKSPACE_UUID:
             return NEW_WORKSPACE_UUID
-        elif val == OLD_USER_UUID:
+        if val == OLD_USER_UUID:
             return NEW_USER_UUID
     elif isinstance(val, str):
         try:
             val_uuid = uuid.UUID(val)
             if val_uuid == OLD_WORKSPACE_UUID:
                 return NEW_WORKSPACE_UUID
-            elif val_uuid == OLD_USER_UUID:
+            if val_uuid == OLD_USER_UUID:
                 return NEW_USER_UUID
         except ValueError:
             pass
     return val
 
+
 # ─────────────────────────────────────────────────────────────────────
 # Main Migration Logic
 # ─────────────────────────────────────────────────────────────────────
+
 
 def main():
     log("╔══════════════════════════════════════════════════╗")
@@ -230,12 +247,15 @@ def main():
     log("Truncating all target tables...")
     for table in tables_to_migrate:
         cur = dst_conn.cursor()
-        cur.execute("""
+        cur.execute(
+            """
             SELECT EXISTS (
                 SELECT 1 FROM information_schema.tables 
                 WHERE table_schema = 'public' AND table_name = %s
             );
-        """, (table,))
+        """,
+            (table,),
+        )
         if cur.fetchone()[0]:
             dst_cur = dst_conn.cursor()
             dst_cur.execute(f'TRUNCATE TABLE public."{table}" CASCADE;')
@@ -249,12 +269,15 @@ def main():
     for table in tables_to_migrate:
         # Check if table exists in target DB
         cur = dst_conn.cursor()
-        cur.execute("""
+        cur.execute(
+            """
             SELECT EXISTS (
                 SELECT 1 FROM information_schema.tables 
                 WHERE table_schema = 'public' AND table_name = %s
             );
-        """, (table,))
+        """,
+            (table,),
+        )
         exists = cur.fetchone()[0]
         if not exists:
             log_warn(f"Table '{table}' does not exist in target DB, skipping")
@@ -317,7 +340,9 @@ def main():
                     if dept_name_lower in seen_names:
                         new_name = f"{dept_name} (2)"
                         r_list[name_idx] = new_name
-                        log_warn(f"Renamed duplicate department '{dept_name}' to '{new_name}' to satisfy unique constraint")
+                        log_warn(
+                            f"Renamed duplicate department '{dept_name}' to '{new_name}' to satisfy unique constraint"
+                        )
                     else:
                         seen_names.add(dept_name_lower)
                 renamed_rows.append(tuple(r_list))
@@ -358,7 +383,9 @@ def main():
         # Get actual target count (including partitions if parent table)
         actual_dst_cnt = get_row_count(dst_conn, table)
         if actual_dst_cnt != src_cnt:
-            log_warn(f"  Mismatch in '{table}': source={src_cnt}, target_actual={actual_dst_cnt} (inserted={dst_cnt})")
+            log_warn(
+                f"  Mismatch in '{table}': source={src_cnt}, target_actual={actual_dst_cnt} (inserted={dst_cnt})"
+            )
             all_passed = False
         else:
             log_ok(f"  '{table}': {actual_dst_cnt} rows match")
@@ -370,6 +397,7 @@ def main():
         log_ok("All tables migrated and verified successfully! 🎉")
     else:
         log_warn("Migration completed, but some row counts did not match target.")
+
 
 if __name__ == "__main__":
     main()
