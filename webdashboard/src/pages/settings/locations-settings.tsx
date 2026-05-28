@@ -6,7 +6,7 @@ import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { getCurrentWorkspaceId } from "@/lib/api";
 import { useLocations, useDeleteLocation } from "./hooks/use-locations";
-import { WorkLocation } from "@/lib/api/locations";
+import { WorkLocation } from "@/lib/api-generated/models";
 import LocationFormDrawer from "./components/location-form-drawer";
 import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";

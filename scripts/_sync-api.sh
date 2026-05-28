@@ -17,9 +17,9 @@ echo "🔄 Synchronizing API types..."
 echo "📡 Generating OpenAPI spec from Backend..."
 "$SCRIPT_DIR/_cargo.sh" run --bin apiserver --quiet -- gen-openapi > "$PROJECT_ROOT/webdashboard/openapi.json"
 
-# 2. Generate TypeScript types for Frontend
-echo "💅 Generating TypeScript types for Frontend..."
-cd "$PROJECT_ROOT/webdashboard" && "../scripts/_npm.sh" exec -- openapi-typescript openapi.json -o ./src/types/api-generated.ts && rm -f openapi.json
+# 2. Generate TypeScript types and React Query hooks for Frontend using Orval
+echo "💅 Generating API SDK for Frontend using Orval..."
+cd "$PROJECT_ROOT/webdashboard" && "../scripts/_npm.sh" run orval && rm -f openapi.json
 
 echo "✅ API Synchronization complete!"
 

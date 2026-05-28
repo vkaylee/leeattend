@@ -260,7 +260,25 @@
       "connectivity_desc": "Manage device connections and network.",
       "leave": "Leave Management",
       "billing_desc": "Manage billing and subscriptions.",
-      "leave_desc": "Configure leave types, accrual policies, and assignments."
+      "leave_desc": "Configure leave types, accrual policies, and assignments.",
+      "locations": "Work Locations",
+      "locations_desc": "Manage physical branches and locations."
+    },
+    "locations": {
+      "add": "Add Location",
+      "edit": "Edit Location",
+      "name": "Location Name",
+      "address": "Physical Address",
+      "timezone": "Timezone",
+      "set_as_hq": "Set as Headquarter",
+      "set_as_hq_desc": "Designate this location as the main HQ.",
+      "error_name_required": "Name is required",
+      "created": "Location created successfully",
+      "updated": "Location updated successfully",
+      "deleted": "Location deleted",
+      "confirm_delete": "Are you sure you want to delete this location?",
+      "cannot_delete_hq": "Cannot delete the Headquarter location",
+      "hq": "HQ"
     },
     "overtime": {
       "delete_config_desc": "Delete?",

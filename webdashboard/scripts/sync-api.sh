@@ -12,9 +12,9 @@ echo "Generating openapi.json from apiserver..."
 cd "$PROJECT_ROOT/apiserver"
 cargo run -- gen-openapi > "$PROJECT_ROOT/openapi.json"
 
-# 2. Generate TypeScript types
-echo "Generating src/types/api-generated.ts from openapi.json..."
+# 2. Generate TypeScript types and React Query hooks using Orval
+echo "Generating src/lib/api-generated/ from openapi.json using Orval..."
 cd "$PROJECT_ROOT/webdashboard"
-npx openapi-typescript "$PROJECT_ROOT/openapi.json" -o ./src/types/api-generated.ts
+npm run orval
 
 echo "✅ Sync complete!"

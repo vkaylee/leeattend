@@ -1,14 +1,24 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchLocations, createLocation, updateLocation, deleteLocation, CreateWorkLocationRequest, UpdateWorkLocationRequest } from "@/lib/api/locations";
+import { 
+  listLocations, 
+  createLocation, 
+  updateLocation, 
+  deleteLocation,
+  getListLocationsQueryKey
+} from "@/lib/api-generated/crate-handlers-locations/crate-handlers-locations";
+import type { CreateWorkLocationRequest, UpdateWorkLocationRequest } from "@/lib/api-generated/models";
 
 export const locationKeys = {
-  all: (wsId: string) => ["locations", wsId] as const,
+  all: (wsId: string) => getListLocationsQueryKey(wsId),
 };
 
 export function useLocations(wsId: string) {
   return useQuery({
     queryKey: locationKeys.all(wsId),
-    queryFn: () => fetchLocations(wsId),
+    queryFn: async () => {
+      const res = await listLocations(wsId);
+      return res.data;
+    },
     enabled: !!wsId,
   });
 }

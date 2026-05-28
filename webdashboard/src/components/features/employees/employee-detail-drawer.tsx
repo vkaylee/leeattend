@@ -25,7 +25,7 @@ import Button from "@/components/ui/button";
 import Sheet from "@/components/ui/sheet";
 import { Typography } from "@/components/ui/typography";
 import { fetchWorkspaceMembers, updateEmployee } from "@/lib/api";
-import type { WorkLocation } from "@/lib/api/locations";
+import type { WorkLocation } from "@/lib/api-generated/models";
 import { cn } from "@/lib/utils";
 import { useLocations } from "@/pages/settings/hooks/use-locations";
 import { useMutation, useQueryClient } from "@tanstack/react-query";

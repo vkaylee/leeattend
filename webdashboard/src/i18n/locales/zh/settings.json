@@ -260,7 +260,25 @@
       "connectivity_desc": "Manage device connections and network.",
       "leave": "Leave Management",
       "billing_desc": "Manage billing and subscriptions.",
-      "leave_desc": "Configure leave types, accrual policies, and assignments."
+      "leave_desc": "Configure leave types, accrual policies, and assignments.",
+      "locations": "办公地点",
+      "locations_desc": "管理物理分支机构和办公地点。"
+    },
+    "locations": {
+      "add": "添加地点",
+      "edit": "编辑地点",
+      "name": "地点名称",
+      "address": "实际地址",
+      "timezone": "时区",
+      "set_as_hq": "设为总部",
+      "set_as_hq_desc": "将此地点指定为主总部。",
+      "error_name_required": "名称为必填项",
+      "created": "成功创建地点",
+      "updated": "成功更新地点",
+      "deleted": "已删除地点",
+      "confirm_delete": "您确定要删除此地点吗？",
+      "cannot_delete_hq": "无法删除总部位置",
+      "hq": "总部"
     },
     "overtime": {
       "delete_config_desc": "Delete?",

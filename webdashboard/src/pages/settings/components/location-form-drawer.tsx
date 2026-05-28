@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { WorkLocation, CreateWorkLocationRequest, UpdateWorkLocationRequest } from "@/lib/api/locations";
+import type { WorkLocation, CreateWorkLocationRequest, UpdateWorkLocationRequest } from "@/lib/api-generated/models";
 import { useCreateLocation, useUpdateLocation } from "../hooks/use-locations";
 import Sheet from "@/components/ui/sheet";
 import Button from "@/components/ui/button";

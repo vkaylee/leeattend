@@ -260,7 +260,25 @@
       "connectivity_desc": "Manage device connections and network.",
       "leave": "Leave Management",
       "billing_desc": "Manage billing and subscriptions.",
-      "leave_desc": "Configure leave types, accrual policies, and assignments."
+      "leave_desc": "Configure leave types, accrual policies, and assignments.",
+      "locations": "Địa điểm",
+      "locations_desc": "Quản lý các chi nhánh và địa điểm làm việc."
+    },
+    "locations": {
+      "add": "Thêm địa điểm",
+      "edit": "Sửa địa điểm",
+      "name": "Tên địa điểm",
+      "address": "Địa chỉ thực tế",
+      "timezone": "Múi giờ",
+      "set_as_hq": "Đặt làm Trụ sở chính",
+      "set_as_hq_desc": "Chỉ định địa điểm này làm HQ chính.",
+      "error_name_required": "Vui lòng nhập tên địa điểm",
+      "created": "Đã tạo địa điểm thành công",
+      "updated": "Đã cập nhật địa điểm thành công",
+      "deleted": "Đã xoá địa điểm",
+      "confirm_delete": "Bạn có chắc chắn muốn xoá địa điểm này?",
+      "cannot_delete_hq": "Không thể xoá Trụ sở chính",
+      "hq": "HQ"
     },
     "overtime": {
       "delete_config_desc": "Delete?",
