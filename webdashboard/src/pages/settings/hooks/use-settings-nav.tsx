@@ -11,6 +11,7 @@ import {
   Palmtree,
   Cpu,
   Settings2,
+  MapPin,
 } from "lucide-react";
 import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
@@ -48,6 +49,13 @@ const getWorkspaceGroup = (t: TFunction): SettingItem[] => [
     icon: <CreditCard className="w-4 h-4" />,
     label: t("common.billing"),
     path: ROUTES.SETTINGS.BILLING,
+    permissions: ["workspace:settings:read"],
+  },
+  {
+    description: t("settings.categories.locations_desc", { defaultValue: "Manage work locations and timezones" }),
+    icon: <MapPin className="w-4 h-4" />,
+    label: t("settings.categories.locations", { defaultValue: "Locations" }),
+    path: ROUTES.SETTINGS.LOCATIONS,
     permissions: ["workspace:settings:read"],
   },
 ];

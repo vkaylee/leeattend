@@ -19,6 +19,7 @@ pub mod payroll;
 pub mod payroll_rule;
 pub mod roster;
 pub mod time_entry;
+pub mod work_location;
 pub mod working_pattern;
 
 use diesel::sql_types::BigInt;

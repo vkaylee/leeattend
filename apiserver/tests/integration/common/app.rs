@@ -609,6 +609,11 @@ pub async fn spawn_app() -> (String, TestDatabase) {
             ),
         },
         core: apiserver::CoreState {
+            location_repo: Arc::new(apiserver::repositories::DieselLocationRepository::new(diesel_pools.clone())),
+            location_service: Arc::new(apiserver::services::LocationService::new(
+                Arc::new(apiserver::repositories::DieselLocationRepository::new(diesel_pools.clone())),
+                audit_repo.clone(),
+            )),
             auth_service,
             workspace_service,
             workspace_repo: workspace_repo.clone(),
@@ -1171,6 +1176,11 @@ pub async fn spawn_app_with_factory_extended(
             ),
         },
         core: apiserver::CoreState {
+            location_repo: Arc::new(apiserver::repositories::DieselLocationRepository::new(diesel_pools.clone())),
+            location_service: Arc::new(apiserver::services::LocationService::new(
+                Arc::new(apiserver::repositories::DieselLocationRepository::new(diesel_pools.clone())),
+                audit_repo.clone(),
+            )),
             auth_service,
             workspace_service,
             workspace_repo: workspace_repo.clone(),
@@ -1786,6 +1796,11 @@ pub async fn setup_app_tower_internal_extended(
             ),
         },
         core: apiserver::CoreState {
+            location_repo: Arc::new(apiserver::repositories::DieselLocationRepository::new(diesel_pools.clone())),
+            location_service: Arc::new(apiserver::services::LocationService::new(
+                Arc::new(apiserver::repositories::DieselLocationRepository::new(diesel_pools.clone())),
+                audit_repo.clone(),
+            )),
             auth_service,
             workspace_service,
             workspace_repo: workspace_repo.clone(),

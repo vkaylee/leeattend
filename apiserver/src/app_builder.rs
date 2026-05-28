@@ -348,6 +348,14 @@ impl AppState {
             overtime_request_repo.clone(),
         ));
 
+        let location_repo: Arc<dyn crate::repositories::LocationRepository> =
+            Arc::new(crate::repositories::DieselLocationRepository::new(diesel_pools.clone()));
+            
+        let location_service = Arc::new(crate::services::LocationService::new(
+            location_repo.clone(),
+            audit_repo.clone(),
+        ));
+
         let roster_provider: Arc<dyn crate::services::payroll_service::RosterDataProvider> =
             Arc::new(crate::services::payroll_service::DirectRosterDataProvider(
                 Arc::clone(&roster_repo),
@@ -566,6 +574,8 @@ impl AppState {
                 approval_workflow_repo,
                 workspace_config_service,
                 approval_workflow_service,
+                location_repo,
+                location_service,
             },
             agents: crate::AgentState {
                 manager: agent_manager,

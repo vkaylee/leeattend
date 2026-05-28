@@ -9,3 +9,4 @@ mod permissions;
 mod roles;
 mod seeding;
 mod settings;
+mod locations;

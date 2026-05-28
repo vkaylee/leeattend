@@ -1,0 +1,167 @@
+use crate::errors::AppError;
+use crate::models::{CreateWorkLocationRequest, UpdateWorkLocationRequest, WorkLocation};
+use crate::handlers::common::MemberContext;
+use crate::state::AppState;
+use axum::{
+    extract::{Path, State},
+    http::StatusCode,
+    response::IntoResponse,
+    Json,
+};
+use std::sync::Arc;
+use uuid::Uuid;
+
+#[utoipa::path(
+    get,
+    path = "/v1/workspaces/{ws_id}/locations",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID")
+    ),
+    responses(
+        (status = 200, description = "List of locations", body = Vec<WorkLocation>)
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
+pub async fn list_locations(
+    State(state): State<Arc<AppState>>,
+    ctx: MemberContext,
+) -> Result<impl IntoResponse, AppError> {
+    let locations = state.core.location_service.list_locations(ctx.workspace_id).await?;
+    Ok(Json(locations))
+}
+
+#[utoipa::path(
+    get,
+    path = "/v1/workspaces/{ws_id}/locations/{id}",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        ("id" = Uuid, Path, description = "Location ID")
+    ),
+    responses(
+        (status = 200, description = "Work location details", body = WorkLocation)
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
+pub async fn get_location(
+    State(state): State<Arc<AppState>>,
+    Path((workspace_id, id)): Path<(Uuid, Uuid)>,
+    ctx: MemberContext,
+) -> Result<impl IntoResponse, AppError> {
+    if ctx.workspace_id != workspace_id {
+        return Err(AppError::Forbidden("Workspace ID mismatch".to_string()));
+    }
+    let location = state.core.location_service.get_location(workspace_id, id).await?;
+    Ok(Json(location))
+}
+
+#[utoipa::path(
+    post,
+    path = "/v1/workspaces/{ws_id}/locations",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID")
+    ),
+    request_body = CreateWorkLocationRequest,
+    responses(
+        (status = 201, description = "Work location created", body = WorkLocation)
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
+pub async fn create_location(
+    State(state): State<Arc<AppState>>,
+    Path(workspace_id): Path<Uuid>,
+    ctx: MemberContext,
+    Json(payload): Json<CreateWorkLocationRequest>,
+) -> Result<impl IntoResponse, AppError> {
+    if ctx.workspace_id != workspace_id {
+        return Err(AppError::Forbidden("Workspace ID mismatch".to_string()));
+    }
+    
+    // Ensure actor ID is available
+    let actor_id = ctx.user_id;
+
+    let location = state
+        .core
+        .location_service
+        .create_location(workspace_id, actor_id, payload)
+        .await?;
+
+    Ok((StatusCode::CREATED, Json(location)))
+}
+
+#[utoipa::path(
+    put,
+    path = "/v1/workspaces/{ws_id}/locations/{id}",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        ("id" = Uuid, Path, description = "Location ID")
+    ),
+    request_body = UpdateWorkLocationRequest,
+    responses(
+        (status = 200, description = "Work location updated", body = WorkLocation)
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
+pub async fn update_location(
+    State(state): State<Arc<AppState>>,
+    Path((workspace_id, id)): Path<(Uuid, Uuid)>,
+    ctx: MemberContext,
+    Json(payload): Json<UpdateWorkLocationRequest>,
+) -> Result<impl IntoResponse, AppError> {
+    if ctx.workspace_id != workspace_id {
+        return Err(AppError::Forbidden("Workspace ID mismatch".to_string()));
+    }
+
+    // Ensure actor ID is available
+    let actor_id = ctx.user_id;
+
+    let location = state
+        .core
+        .location_service
+        .update_location(workspace_id, id, actor_id, payload)
+        .await?;
+
+    Ok(Json(location))
+}
+
+#[utoipa::path(
+    delete,
+    path = "/v1/workspaces/{ws_id}/locations/{id}",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        ("id" = Uuid, Path, description = "Location ID")
+    ),
+    responses(
+        (status = 204, description = "Work location deleted")
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
+pub async fn delete_location(
+    State(state): State<Arc<AppState>>,
+    Path((workspace_id, id)): Path<(Uuid, Uuid)>,
+    ctx: MemberContext,
+) -> Result<impl IntoResponse, AppError> {
+    if ctx.workspace_id != workspace_id {
+        return Err(AppError::Forbidden("Workspace ID mismatch".to_string()));
+    }
+
+    // Ensure actor ID is available
+    let actor_id = ctx.user_id;
+
+    state
+        .core
+        .location_service
+        .delete_location(workspace_id, id, actor_id)
+        .await?;
+
+    Ok(StatusCode::NO_CONTENT)
+}

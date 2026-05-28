@@ -73,5 +73,6 @@ export const ROUTES = {
     BILLING: "/workspace/settings/billing",
     DANGER: "/workspace/settings/danger",
     OVERTIME: "/workspace/settings/overtime",
+    LOCATIONS: "/workspace/settings/locations",
   },
 } as const;

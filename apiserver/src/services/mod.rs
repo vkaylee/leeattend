@@ -34,6 +34,7 @@ pub mod time_tracking_service;
 pub mod working_pattern_service;
 pub mod workspace_config_service;
 pub mod workspace_service;
+pub mod location_service;
 
 pub use agent_service::AgentService;
 pub use approval_workflow_service::ApprovalWorkflowService;
@@ -50,6 +51,7 @@ pub use report_service::ReportService;
 pub use time_tracking_service::TimeTrackingService;
 pub use workspace_config_service::WorkspaceConfigService;
 pub use workspace_service::{UpdateWorkspaceArgs, WorkspaceService};
+pub use location_service::LocationService;
 
 pub mod agent_log_buffer;
 pub mod attendance_log_service;

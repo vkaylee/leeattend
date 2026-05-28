@@ -188,4 +188,15 @@ pub fn router() -> Router<Arc<AppState>> {
             "/workspaces/:ws_id/approval-workflows/history/:type/:id",
             get(handlers::approval_workflow::get_approval_history),
         )
+        // Locations
+        .route(
+            "/workspaces/:ws_id/locations",
+            get(handlers::locations::list_locations).post(handlers::locations::create_location),
+        )
+        .route(
+            "/workspaces/:ws_id/locations/:id",
+            get(handlers::locations::get_location)
+                .put(handlers::locations::update_location)
+                .delete(handlers::locations::delete_location),
+        )
 }

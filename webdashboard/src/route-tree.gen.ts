@@ -52,6 +52,7 @@ import { Route as AuthenticatedWorkspaceWorkspaceSettingsPayrollRouteImport } fr
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsOverviewRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/overview"
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsOvertimeRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/overtime"
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsOrganizationRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/organization"
+import { Route as AuthenticatedWorkspaceWorkspaceSettingsLocationsRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/locations"
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsLeaveRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/leave"
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsHolidaysRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/holidays"
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsGeneralRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/general"
@@ -444,6 +445,16 @@ const AuthenticatedWorkspaceWorkspaceSettingsOrganizationRoute =
       (d) => d.Route,
     ),
   )
+const AuthenticatedWorkspaceWorkspaceSettingsLocationsRoute =
+  AuthenticatedWorkspaceWorkspaceSettingsLocationsRouteImport.update({
+    id: "/locations",
+    path: "/locations",
+    getParentRoute: () => AuthenticatedWorkspaceWorkspaceSettingsRoute,
+  } as any).lazy(() =>
+    import("./routes/_authenticated/_workspace/workspace/settings/locations.lazy").then(
+      (d) => d.Route,
+    ),
+  )
 const AuthenticatedWorkspaceWorkspaceSettingsLeaveRoute =
   AuthenticatedWorkspaceWorkspaceSettingsLeaveRouteImport.update({
     id: "/leave",
@@ -566,6 +577,7 @@ export interface FileRoutesByFullPath {
   "/workspace/settings/general": typeof AuthenticatedWorkspaceWorkspaceSettingsGeneralRoute
   "/workspace/settings/holidays": typeof AuthenticatedWorkspaceWorkspaceSettingsHolidaysRoute
   "/workspace/settings/leave": typeof AuthenticatedWorkspaceWorkspaceSettingsLeaveRoute
+  "/workspace/settings/locations": typeof AuthenticatedWorkspaceWorkspaceSettingsLocationsRoute
   "/workspace/settings/organization": typeof AuthenticatedWorkspaceWorkspaceSettingsOrganizationRoute
   "/workspace/settings/overtime": typeof AuthenticatedWorkspaceWorkspaceSettingsOvertimeRoute
   "/workspace/settings/overview": typeof AuthenticatedWorkspaceWorkspaceSettingsOverviewRoute
@@ -614,6 +626,7 @@ export interface FileRoutesByTo {
   "/workspace/settings/general": typeof AuthenticatedWorkspaceWorkspaceSettingsGeneralRoute
   "/workspace/settings/holidays": typeof AuthenticatedWorkspaceWorkspaceSettingsHolidaysRoute
   "/workspace/settings/leave": typeof AuthenticatedWorkspaceWorkspaceSettingsLeaveRoute
+  "/workspace/settings/locations": typeof AuthenticatedWorkspaceWorkspaceSettingsLocationsRoute
   "/workspace/settings/organization": typeof AuthenticatedWorkspaceWorkspaceSettingsOrganizationRoute
   "/workspace/settings/overtime": typeof AuthenticatedWorkspaceWorkspaceSettingsOvertimeRoute
   "/workspace/settings/overview": typeof AuthenticatedWorkspaceWorkspaceSettingsOverviewRoute
@@ -668,6 +681,7 @@ export interface FileRoutesById {
   "/_authenticated/_workspace/workspace/settings/general": typeof AuthenticatedWorkspaceWorkspaceSettingsGeneralRoute
   "/_authenticated/_workspace/workspace/settings/holidays": typeof AuthenticatedWorkspaceWorkspaceSettingsHolidaysRoute
   "/_authenticated/_workspace/workspace/settings/leave": typeof AuthenticatedWorkspaceWorkspaceSettingsLeaveRoute
+  "/_authenticated/_workspace/workspace/settings/locations": typeof AuthenticatedWorkspaceWorkspaceSettingsLocationsRoute
   "/_authenticated/_workspace/workspace/settings/organization": typeof AuthenticatedWorkspaceWorkspaceSettingsOrganizationRoute
   "/_authenticated/_workspace/workspace/settings/overtime": typeof AuthenticatedWorkspaceWorkspaceSettingsOvertimeRoute
   "/_authenticated/_workspace/workspace/settings/overview": typeof AuthenticatedWorkspaceWorkspaceSettingsOverviewRoute
@@ -720,6 +734,7 @@ export interface FileRouteTypes {
     | "/workspace/settings/general"
     | "/workspace/settings/holidays"
     | "/workspace/settings/leave"
+    | "/workspace/settings/locations"
     | "/workspace/settings/organization"
     | "/workspace/settings/overtime"
     | "/workspace/settings/overview"
@@ -768,6 +783,7 @@ export interface FileRouteTypes {
     | "/workspace/settings/general"
     | "/workspace/settings/holidays"
     | "/workspace/settings/leave"
+    | "/workspace/settings/locations"
     | "/workspace/settings/organization"
     | "/workspace/settings/overtime"
     | "/workspace/settings/overview"
@@ -821,6 +837,7 @@ export interface FileRouteTypes {
     | "/_authenticated/_workspace/workspace/settings/general"
     | "/_authenticated/_workspace/workspace/settings/holidays"
     | "/_authenticated/_workspace/workspace/settings/leave"
+    | "/_authenticated/_workspace/workspace/settings/locations"
     | "/_authenticated/_workspace/workspace/settings/organization"
     | "/_authenticated/_workspace/workspace/settings/overtime"
     | "/_authenticated/_workspace/workspace/settings/overview"
@@ -1140,6 +1157,13 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsOrganizationRouteImport
       parentRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsRoute
     }
+    "/_authenticated/_workspace/workspace/settings/locations": {
+      id: "/_authenticated/_workspace/workspace/settings/locations"
+      path: "/locations"
+      fullPath: "/workspace/settings/locations"
+      preLoaderRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsLocationsRouteImport
+      parentRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsRoute
+    }
     "/_authenticated/_workspace/workspace/settings/leave": {
       id: "/_authenticated/_workspace/workspace/settings/leave"
       path: "/leave"
@@ -1246,6 +1270,7 @@ interface AuthenticatedWorkspaceWorkspaceSettingsRouteChildren {
   AuthenticatedWorkspaceWorkspaceSettingsGeneralRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsGeneralRoute
   AuthenticatedWorkspaceWorkspaceSettingsHolidaysRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsHolidaysRoute
   AuthenticatedWorkspaceWorkspaceSettingsLeaveRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsLeaveRoute
+  AuthenticatedWorkspaceWorkspaceSettingsLocationsRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsLocationsRoute
   AuthenticatedWorkspaceWorkspaceSettingsOrganizationRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsOrganizationRoute
   AuthenticatedWorkspaceWorkspaceSettingsOvertimeRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsOvertimeRoute
   AuthenticatedWorkspaceWorkspaceSettingsOverviewRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsOverviewRoute
@@ -1272,6 +1297,8 @@ const AuthenticatedWorkspaceWorkspaceSettingsRouteChildren: AuthenticatedWorkspa
       AuthenticatedWorkspaceWorkspaceSettingsHolidaysRoute,
     AuthenticatedWorkspaceWorkspaceSettingsLeaveRoute:
       AuthenticatedWorkspaceWorkspaceSettingsLeaveRoute,
+    AuthenticatedWorkspaceWorkspaceSettingsLocationsRoute:
+      AuthenticatedWorkspaceWorkspaceSettingsLocationsRoute,
     AuthenticatedWorkspaceWorkspaceSettingsOrganizationRoute:
       AuthenticatedWorkspaceWorkspaceSettingsOrganizationRoute,
     AuthenticatedWorkspaceWorkspaceSettingsOvertimeRoute:

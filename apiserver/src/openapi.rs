@@ -60,6 +60,13 @@ use utoipa::OpenApi;
         crate::handlers::create_workspace,
         crate::handlers::update_workspace,
 
+        // Locations
+        crate::handlers::locations::list_locations,
+        crate::handlers::locations::get_location,
+        crate::handlers::locations::create_location,
+        crate::handlers::locations::update_location,
+        crate::handlers::locations::delete_location,
+
         // Phase 3: Staff Management & Rosters
         crate::handlers::get_working_conditions,
         crate::handlers::create_working_condition,
@@ -483,6 +490,9 @@ use utoipa::OpenApi;
             Workspace,
             CreateWorkspaceRequest,
             UpdateWorkspaceRequest,
+            WorkLocation,
+            CreateWorkLocationRequest,
+            UpdateWorkLocationRequest,
 
             // Phase 3: Staff Management & Rosters
             WorkingCondition,
