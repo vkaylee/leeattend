@@ -18,6 +18,7 @@ import { useTranslation } from "react-i18next";
 import type { Department, Employee, WorkspaceMember } from "@/lib/api";
 
 import PermissionGate from "@/components/common/permission-gate";
+import { Combobox } from "@/components/ui/combobox";
 import WorkingConditionConfig from "@/components/employees/working-condition-config";
 import EmployeeSalaryConfig from "@/components/payroll/employee-salary-config";
 import Button from "@/components/ui/button";
@@ -210,15 +211,18 @@ function ProfileTab({
                 <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 p-8 rounded-[2.5rem] group hover:bg-white dark:hover:bg-slate-900 hover:shadow-xl hover:shadow-rose-100/10 transition-all shadow-inner relative overflow-hidden">
                     {isEditingLocation ? (
                         <div className="relative z-10">
-                            <select
-                                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 font-bold uppercase tracking-widest text-sm rounded-xl p-3 focus:ring-2 focus:ring-primary-500 outline-none"
-                                onChange={(e) => { setSelectedLocationId(e.target.value); }}
+                            <Combobox
+                                clearOnEscape
+                                data-testid="profile-location-combobox"
+                                onChange={setSelectedLocationId}
+                                options={(locations || []).map((loc) => ({
+                                    value: loc.id,
+                                    label: loc.name,
+                                    description: loc.is_headquarters ? "Headquarters" : loc.timezone,
+                                }))}
+                                placeholder="Chọn địa điểm làm việc mới"
                                 value={selectedLocationId}
-                            >
-                                {locations?.map(loc => (
-                                    <option key={loc.id} value={loc.id}>{loc.name} {loc.is_headquarters ? "(HQ)" : ""}</option>
-                                ))}
-                            </select>
+                            />
                             <div className="mt-3 flex gap-2">
                                 <Button className="text-xs uppercase tracking-widest rounded-lg px-4" onClick={() => { setIsEditingLocation(false); }} size="sm" type="button" variant="ghost">Cancel</Button>
                             </div>
