@@ -57,7 +57,7 @@ async fn test_salary_component_crud_lifecycle() {
         .clone()
         .oneshot(req(
             "POST",
-            &format!("/api/workspaces/{ws_id}/salary-components"),
+            &format!("/api/v1/workspaces/{ws_id}/salary-components"),
             ws_id,
             admin_id,
             Some(create_body.to_string()),
@@ -75,7 +75,7 @@ async fn test_salary_component_crud_lifecycle() {
         .clone()
         .oneshot(req(
             "GET",
-            &format!("/api/workspaces/{ws_id}/salary-components"),
+            &format!("/api/v1/workspaces/{ws_id}/salary-components"),
             ws_id,
             admin_id,
             None,
@@ -103,7 +103,7 @@ async fn test_salary_component_crud_lifecycle() {
         .clone()
         .oneshot(req(
             "POST",
-            &format!("/api/workspaces/{ws_id}/employees/{emp_id}/salary-components"),
+            &format!("/api/v1/workspaces/{ws_id}/employees/{emp_id}/salary-components"),
             ws_id,
             admin_id,
             Some(assign_body.to_string()),
@@ -117,7 +117,7 @@ async fn test_salary_component_crud_lifecycle() {
         .clone()
         .oneshot(req(
             "GET",
-            &format!("/api/workspaces/{ws_id}/employees/{emp_id}/salary-components"),
+            &format!("/api/v1/workspaces/{ws_id}/employees/{emp_id}/salary-components"),
             ws_id,
             admin_id,
             None,

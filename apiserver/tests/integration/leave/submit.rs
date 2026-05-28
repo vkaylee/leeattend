@@ -123,7 +123,7 @@ async fn test_teamlead_submit_own_dept_auto_approved() {
         .clone()
         .oneshot(req(
             "POST",
-            &format!("/api/workspaces/{ws_id}/leave/submit"),
+            &format!("/api/v1/workspaces/{ws_id}/leave/submit"),
             ws_id,
             tl_user_id,
             Some(serde_json::to_string(&submit_req).unwrap()),
@@ -212,7 +212,7 @@ async fn test_teamlead_submit_other_dept_forbidden() {
         .clone()
         .oneshot(req(
             "POST",
-            &format!("/api/workspaces/{ws_id}/leave/submit"),
+            &format!("/api/v1/workspaces/{ws_id}/leave/submit"),
             ws_id,
             tl_user_id,
             Some(serde_json::to_string(&submit_req).unwrap()),
@@ -272,7 +272,7 @@ async fn test_hr_submit_stays_pending() {
         .clone()
         .oneshot(req(
             "POST",
-            &format!("/api/workspaces/{ws_id}/leave/submit"),
+            &format!("/api/v1/workspaces/{ws_id}/leave/submit"),
             ws_id,
             hr_user_id,
             Some(serde_json::to_string(&submit_req).unwrap()),
@@ -335,7 +335,7 @@ async fn test_employee_submit_forbidden() {
         .clone()
         .oneshot(req(
             "POST",
-            &format!("/api/workspaces/{ws_id}/leave/submit"),
+            &format!("/api/v1/workspaces/{ws_id}/leave/submit"),
             ws_id,
             member_user_id,
             Some(serde_json::to_string(&submit_req).unwrap()),

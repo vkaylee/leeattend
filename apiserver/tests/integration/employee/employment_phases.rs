@@ -34,7 +34,7 @@ async fn test_employment_phases_crud_api() {
 
     let req = axum::http::Request::builder()
         .method("POST")
-        .uri(format!("/api/workspaces/{ws_id}/employment-phases"))
+        .uri(format!("/api/v1/workspaces/{ws_id}/employment-phases"))
         .header("X-Workspace-Id", ws_id.to_string())
         .header("X-User-Id", user_id.to_string())
         .header("Content-Type", "application/json")
@@ -56,7 +56,7 @@ async fn test_employment_phases_crud_api() {
     // 2. Fetch all Phase Definitions
     let req = axum::http::Request::builder()
         .method("GET")
-        .uri(format!("/api/workspaces/{ws_id}/employment-phases"))
+        .uri(format!("/api/v1/workspaces/{ws_id}/employment-phases"))
         .header("X-Workspace-Id", ws_id.to_string())
         .header("X-User-Id", user_id.to_string())
         .body(axum::body::Body::empty())
@@ -82,7 +82,7 @@ async fn test_employment_phases_crud_api() {
     let req = axum::http::Request::builder()
         .method("POST")
         .uri(format!(
-            "/api/workspaces/{ws_id}/employees/{employee_id}/phases"
+            "/api/v1/workspaces/{ws_id}/employees/{employee_id}/phases"
         ))
         .header("X-Workspace-Id", ws_id.to_string())
         .header("X-User-Id", user_id.to_string())
@@ -113,7 +113,7 @@ async fn test_employment_phases_crud_api() {
     let req = axum::http::Request::builder()
         .method("POST")
         .uri(format!(
-            "/api/workspaces/{ws_id}/employees/{employee_id}/phases"
+            "/api/v1/workspaces/{ws_id}/employees/{employee_id}/phases"
         ))
         .header("X-Workspace-Id", ws_id.to_string())
         .header("X-User-Id", user_id.to_string())
@@ -200,7 +200,7 @@ async fn test_employment_phases_permission_enforcement() {
 
     let req = axum::http::Request::builder()
         .method("POST")
-        .uri(format!("/api/workspaces/{ws_id}/employment-phases"))
+        .uri(format!("/api/v1/workspaces/{ws_id}/employment-phases"))
         .header("X-Workspace-Id", ws_id.to_string())
         .header("X-User-Id", owner_id.to_string())
         .header("Content-Type", "application/json")
@@ -238,7 +238,7 @@ async fn test_employment_phases_permission_enforcement() {
 
     // ── A: Employee-role user cannot create definition ──
     let req = unauthorized_auth(
-        format!("/api/workspaces/{ws_id}/employment-phases"),
+        format!("/api/v1/workspaces/{ws_id}/employment-phases"),
         "POST",
         Some(axum::body::Body::from(
             serde_json::to_string(&json!({
@@ -264,7 +264,7 @@ async fn test_employment_phases_permission_enforcement() {
         "override_config": null
     });
     let req = unauthorized_auth(
-        format!("/api/workspaces/{ws_id}/employees/{employee_id}/phases"),
+        format!("/api/v1/workspaces/{ws_id}/employees/{employee_id}/phases"),
         "POST",
         Some(axum::body::Body::from(
             serde_json::to_string(&assign_payload).unwrap(),
@@ -283,7 +283,7 @@ async fn test_employment_phases_permission_enforcement() {
         "evaluation_notes": "Should fail"
     });
     let req = unauthorized_auth(
-        format!("/api/workspaces/{ws_id}/employees/{employee_id}/phases/{phase_def_id}/status"),
+        format!("/api/v1/workspaces/{ws_id}/employees/{employee_id}/phases/{phase_def_id}/status"),
         "PUT",
         Some(axum::body::Body::from(
             serde_json::to_string(&status_payload).unwrap(),
@@ -298,7 +298,7 @@ async fn test_employment_phases_permission_enforcement() {
 
     // ── D: But employee-role user CAN read definitions (no permission required) ──
     let req = unauthorized_auth(
-        format!("/api/workspaces/{ws_id}/employment-phases"),
+        format!("/api/v1/workspaces/{ws_id}/employment-phases"),
         "GET",
         None,
     );
@@ -335,7 +335,7 @@ async fn test_employment_phases_permission_enforcement() {
 
     // ── E: HR Manager can create definition ──
     let req = hr_auth(
-        format!("/api/workspaces/{ws_id}/employment-phases"),
+        format!("/api/v1/workspaces/{ws_id}/employment-phases"),
         "POST",
         Some(axum::body::Body::from(
             serde_json::to_string(&json!({
@@ -355,7 +355,7 @@ async fn test_employment_phases_permission_enforcement() {
 
     // ── F: HR Manager can assign phase ──
     let req = hr_auth(
-        format!("/api/workspaces/{ws_id}/employees/{employee_id}/phases"),
+        format!("/api/v1/workspaces/{ws_id}/employees/{employee_id}/phases"),
         "POST",
         Some(axum::body::Body::from(
             serde_json::to_string(&json!({

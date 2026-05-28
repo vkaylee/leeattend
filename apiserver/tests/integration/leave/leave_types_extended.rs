@@ -52,7 +52,7 @@ async fn test_leave_types_crud_lifecycle() {
         .clone()
         .oneshot(make_req(
             "GET",
-            &format!("/api/workspaces/{ws_id}/leave/types"),
+            &format!("/api/v1/workspaces/{ws_id}/leave/types"),
             ws_id,
             owner_id,
             None,
@@ -82,7 +82,7 @@ async fn test_leave_types_crud_lifecycle() {
         .clone()
         .oneshot(make_req(
             "POST",
-            &format!("/api/workspaces/{ws_id}/leave/types"),
+            &format!("/api/v1/workspaces/{ws_id}/leave/types"),
             ws_id,
             owner_id,
             Some(create_payload),
@@ -116,7 +116,7 @@ async fn test_leave_types_crud_lifecycle() {
         .clone()
         .oneshot(make_req(
             "PUT",
-            &format!("/api/workspaces/{ws_id}/leave/types/{lt_id}/config"),
+            &format!("/api/v1/workspaces/{ws_id}/leave/types/{lt_id}/config"),
             ws_id,
             owner_id,
             Some(update_payload),
@@ -140,7 +140,7 @@ async fn test_leave_types_crud_lifecycle() {
         .clone()
         .oneshot(make_req(
             "DELETE",
-            &format!("/api/workspaces/{ws_id}/leave/types/{lt_id}"),
+            &format!("/api/v1/workspaces/{ws_id}/leave/types/{lt_id}"),
             ws_id,
             owner_id,
             None,
@@ -159,7 +159,7 @@ async fn test_leave_types_crud_lifecycle() {
         .clone()
         .oneshot(make_req(
             "GET",
-            &format!("/api/workspaces/{ws_id}/leave/types"),
+            &format!("/api/v1/workspaces/{ws_id}/leave/types"),
             ws_id,
             owner_id,
             None,
@@ -214,7 +214,7 @@ async fn test_leave_type_delete_blocked_by_balance() {
         .clone()
         .oneshot(make_req(
             "DELETE",
-            &format!("/api/workspaces/{ws_id}/leave/types/{vacation_id}"),
+            &format!("/api/v1/workspaces/{ws_id}/leave/types/{vacation_id}"),
             ws_id,
             owner_id,
             None,
@@ -266,7 +266,7 @@ async fn test_leave_types_permission_enforcement() {
         .clone()
         .oneshot(make_req(
             "POST",
-            &format!("/api/workspaces/{ws_id}/leave/types"),
+            &format!("/api/v1/workspaces/{ws_id}/leave/types"),
             ws_id,
             regular_user_id,
             Some(create_payload),

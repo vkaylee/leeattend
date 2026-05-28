@@ -76,7 +76,7 @@ async fn test_ess_shift_swap_flow() {
 
     // 1. Employee A creates swap
     let res = client
-        .post(format!("{address}/api/ess/shift-swaps"))
+        .post(format!("{address}/api/v1/ess/shift-swaps"))
         .header("Authorization", format!("Bearer {requester_token}"))
         .header("x-workspace-id", workspace_id.to_string())
         .json(&json!({
@@ -97,7 +97,7 @@ async fn test_ess_shift_swap_flow() {
 
     // 2. Target rejects the swap
     let res = client
-        .put(format!("{address}/api/ess/shift-swaps/{}/respond", swap.id))
+        .put(format!("{address}/api/v1/ess/shift-swaps/{}/respond", swap.id))
         .header("Authorization", format!("Bearer {target_token}"))
         .header("x-workspace-id", workspace_id.to_string())
         .json(&json!({ "accept": false }))
@@ -109,7 +109,7 @@ async fn test_ess_shift_swap_flow() {
 
     // List swaps for A
     let res = client
-        .get(format!("{address}/api/ess/shift-swaps"))
+        .get(format!("{address}/api/v1/ess/shift-swaps"))
         .header("Authorization", format!("Bearer {requester_token}"))
         .header("x-workspace-id", workspace_id.to_string())
         .send()
@@ -170,7 +170,7 @@ async fn test_ess_shift_swap_cancel_and_accept() {
 
     // 1. Employee A creates swap
     let swap: ShiftSwapRequest = client
-        .post(format!("{address}/api/ess/shift-swaps"))
+        .post(format!("{address}/api/v1/ess/shift-swaps"))
         .header("Authorization", format!("Bearer {requester_token}"))
         .header("x-workspace-id", workspace_id.to_string())
         .json(&json!({ "target_id": emp_b, "swap_date": swap_date.to_string() }))
@@ -183,7 +183,7 @@ async fn test_ess_shift_swap_cancel_and_accept() {
 
     // 2. Employee A cancels swap
     let res = client
-        .delete(format!("{address}/api/ess/shift-swaps/{}", swap.id))
+        .delete(format!("{address}/api/v1/ess/shift-swaps/{}", swap.id))
         .header("Authorization", format!("Bearer {requester_token}"))
         .header("x-workspace-id", workspace_id.to_string())
         .send()
@@ -193,7 +193,7 @@ async fn test_ess_shift_swap_cancel_and_accept() {
 
     // 3. Employee A creates another swap
     let res = client
-        .post(format!("{address}/api/ess/shift-swaps"))
+        .post(format!("{address}/api/v1/ess/shift-swaps"))
         .header("Authorization", format!("Bearer {requester_token}"))
         .header("x-workspace-id", workspace_id.to_string())
         .json(&json!({ "target_id": emp_b, "swap_date": swap_date.to_string() }))
@@ -210,7 +210,7 @@ async fn test_ess_shift_swap_cancel_and_accept() {
     // 4. Employee B accepts it
     let res = client
         .put(format!(
-            "{address}/api/ess/shift-swaps/{}/respond",
+            "{address}/api/v1/ess/shift-swaps/{}/respond",
             swap2.id
         ))
         .header("Authorization", format!("Bearer {target_token}"))
@@ -223,7 +223,7 @@ async fn test_ess_shift_swap_cancel_and_accept() {
 
     // Verify it is now PendingAdmin
     let swaps: Vec<ShiftSwapRequestWithNames> = client
-        .get(format!("{address}/api/ess/shift-swaps"))
+        .get(format!("{address}/api/v1/ess/shift-swaps"))
         .header("Authorization", format!("Bearer {requester_token}"))
         .header("x-workspace-id", workspace_id.to_string())
         .send()

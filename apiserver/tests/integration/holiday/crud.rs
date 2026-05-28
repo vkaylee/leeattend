@@ -59,7 +59,7 @@ async fn test_holiday_crud_lifecycle_smoke() {
         .clone()
         .oneshot(json_request(
             "GET",
-            &format!("/api/workspaces/{ws_id}/holidays"),
+            &format!("/api/v1/workspaces/{ws_id}/holidays"),
             ws_id,
             user_id,
             None,
@@ -83,7 +83,7 @@ async fn test_holiday_crud_lifecycle_smoke() {
         .clone()
         .oneshot(json_request(
             "POST",
-            &format!("/api/workspaces/{ws_id}/holidays"),
+            &format!("/api/v1/workspaces/{ws_id}/holidays"),
             ws_id,
             user_id,
             Some(create_body),
@@ -104,7 +104,7 @@ async fn test_holiday_crud_lifecycle_smoke() {
         .clone()
         .oneshot(json_request(
             "GET",
-            &format!("/api/workspaces/{ws_id}/holidays/{holiday_id}"),
+            &format!("/api/v1/workspaces/{ws_id}/holidays/{holiday_id}"),
             ws_id,
             user_id,
             None,
@@ -125,7 +125,7 @@ async fn test_holiday_crud_lifecycle_smoke() {
         .clone()
         .oneshot(json_request(
             "PUT",
-            &format!("/api/workspaces/{ws_id}/holidays/{holiday_id}"),
+            &format!("/api/v1/workspaces/{ws_id}/holidays/{holiday_id}"),
             ws_id,
             user_id,
             Some(update_body),
@@ -142,7 +142,7 @@ async fn test_holiday_crud_lifecycle_smoke() {
         .clone()
         .oneshot(json_request(
             "GET",
-            &format!("/api/workspaces/{ws_id}/holidays"),
+            &format!("/api/v1/workspaces/{ws_id}/holidays"),
             ws_id,
             user_id,
             None,
@@ -158,7 +158,7 @@ async fn test_holiday_crud_lifecycle_smoke() {
         .clone()
         .oneshot(json_request(
             "DELETE",
-            &format!("/api/workspaces/{ws_id}/holidays/{holiday_id}"),
+            &format!("/api/v1/workspaces/{ws_id}/holidays/{holiday_id}"),
             ws_id,
             user_id,
             None,
@@ -172,7 +172,7 @@ async fn test_holiday_crud_lifecycle_smoke() {
         .clone()
         .oneshot(json_request(
             "GET",
-            &format!("/api/workspaces/{ws_id}/holidays"),
+            &format!("/api/v1/workspaces/{ws_id}/holidays"),
             ws_id,
             user_id,
             None,
@@ -203,7 +203,7 @@ async fn test_holiday_duplicate_date_returns_conflict() {
         .clone()
         .oneshot(json_request(
             "POST",
-            &format!("/api/workspaces/{ws_id}/holidays"),
+            &format!("/api/v1/workspaces/{ws_id}/holidays"),
             ws_id,
             user_id,
             Some(create_body.clone()),
@@ -217,7 +217,7 @@ async fn test_holiday_duplicate_date_returns_conflict() {
         .clone()
         .oneshot(json_request(
             "POST",
-            &format!("/api/workspaces/{ws_id}/holidays"),
+            &format!("/api/v1/workspaces/{ws_id}/holidays"),
             ws_id,
             user_id,
             Some(create_body),
@@ -246,7 +246,7 @@ async fn test_holiday_year_filter() {
             .clone()
             .oneshot(json_request(
                 "POST",
-                &format!("/api/workspaces/{ws_id}/holidays"),
+                &format!("/api/v1/workspaces/{ws_id}/holidays"),
                 ws_id,
                 user_id,
                 Some(body),
@@ -261,7 +261,7 @@ async fn test_holiday_year_filter() {
         .clone()
         .oneshot(json_request(
             "GET",
-            &format!("/api/workspaces/{ws_id}/holidays?year=2026"),
+            &format!("/api/v1/workspaces/{ws_id}/holidays?year=2026"),
             ws_id,
             user_id,
             None,
@@ -277,7 +277,7 @@ async fn test_holiday_year_filter() {
         .clone()
         .oneshot(json_request(
             "GET",
-            &format!("/api/workspaces/{ws_id}/holidays?year=2027"),
+            &format!("/api/v1/workspaces/{ws_id}/holidays?year=2027"),
             ws_id,
             user_id,
             None,
@@ -293,7 +293,7 @@ async fn test_holiday_year_filter() {
         .clone()
         .oneshot(json_request(
             "GET",
-            &format!("/api/workspaces/{ws_id}/holidays"),
+            &format!("/api/v1/workspaces/{ws_id}/holidays"),
             ws_id,
             user_id,
             None,
@@ -319,7 +319,7 @@ async fn test_holiday_not_found() {
         .clone()
         .oneshot(json_request(
             "GET",
-            &format!("/api/workspaces/{ws_id}/holidays/{fake_id}"),
+            &format!("/api/v1/workspaces/{ws_id}/holidays/{fake_id}"),
             ws_id,
             user_id,
             None,
@@ -333,7 +333,7 @@ async fn test_holiday_not_found() {
         .clone()
         .oneshot(json_request(
             "DELETE",
-            &format!("/api/workspaces/{ws_id}/holidays/{fake_id}"),
+            &format!("/api/v1/workspaces/{ws_id}/holidays/{fake_id}"),
             ws_id,
             user_id,
             None,
@@ -364,7 +364,7 @@ async fn test_holiday_patch_update() {
         .clone()
         .oneshot(json_request(
             "POST",
-            &format!("/api/workspaces/{ws_id}/holidays"),
+            &format!("/api/v1/workspaces/{ws_id}/holidays"),
             ws_id,
             user_id,
             Some(create_body),
@@ -385,7 +385,7 @@ async fn test_holiday_patch_update() {
         .clone()
         .oneshot(json_request(
             "PATCH",
-            &format!("/api/workspaces/{ws_id}/holidays/{holiday_id}"),
+            &format!("/api/v1/workspaces/{ws_id}/holidays/{holiday_id}"),
             ws_id,
             user_id,
             Some(patch_body),
@@ -422,7 +422,7 @@ async fn test_holiday_with_ot_multiplier() {
         .clone()
         .oneshot(json_request(
             "POST",
-            &format!("/api/workspaces/{ws_id}/holidays"),
+            &format!("/api/v1/workspaces/{ws_id}/holidays"),
             ws_id,
             user_id,
             Some(body),

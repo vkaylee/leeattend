@@ -23,7 +23,7 @@ async fn test_agent_crud_operations_smoke() {
     });
 
     let response = client
-        .post(format!("{address}/api/authorized-agents"))
+        .post(format!("{address}/api/v1/authorized-agents"))
         .header(ws_header.0, ws_header.1.clone())
         .header(user_header.0, user_header.1.clone())
         .json(&create_body)
@@ -35,7 +35,7 @@ async fn test_agent_crud_operations_smoke() {
 
     // 2. Check initial retention_days (default 365)
     let response = client
-        .get(format!("{address}/api/authorized-agents/{agent_id}"))
+        .get(format!("{address}/api/v1/authorized-agents/{agent_id}"))
         .header(ws_header.0, ws_header.1.clone())
         .header(user_header.0, user_header.1.clone())
         .send()
@@ -53,7 +53,7 @@ async fn test_agent_crud_operations_smoke() {
     });
 
     let response = client
-        .patch(format!("{address}/api/authorized-agents/{agent_id}"))
+        .patch(format!("{address}/api/v1/authorized-agents/{agent_id}"))
         .header(ws_header.0, ws_header.1.clone())
         .header(user_header.0, user_header.1.clone())
         .json(&update_body)
@@ -65,7 +65,7 @@ async fn test_agent_crud_operations_smoke() {
 
     // 4. Verify updated retention_days
     let response = client
-        .get(format!("{address}/api/authorized-agents/{agent_id}"))
+        .get(format!("{address}/api/v1/authorized-agents/{agent_id}"))
         .header(ws_header.0, ws_header.1.clone())
         .header(user_header.0, user_header.1.clone())
         .send()
@@ -78,7 +78,7 @@ async fn test_agent_crud_operations_smoke() {
 
     // 5. Soft Delete
     let response = client
-        .delete(format!("{address}/api/authorized-agents/{agent_id}"))
+        .delete(format!("{address}/api/v1/authorized-agents/{agent_id}"))
         .header(ws_header.0, ws_header.1.clone())
         .header(user_header.0, user_header.1.clone())
         .send()
@@ -110,7 +110,7 @@ async fn test_workspace_isolation() {
 
     // 1. Create agent in WS 1
     client
-        .post(format!("{address}/api/authorized-agents"))
+        .post(format!("{address}/api/v1/authorized-agents"))
         .header("X-Workspace-Id", workspace_id_1.to_string())
         .header(user_header.0, user_header.1.clone())
         .json(&serde_json::json!({ "id": "A1", "name": "Agent 1", "token": "T1" }))
@@ -120,7 +120,7 @@ async fn test_workspace_isolation() {
 
     // 2. Create agent in WS 2
     client
-        .post(format!("{address}/api/authorized-agents"))
+        .post(format!("{address}/api/v1/authorized-agents"))
         .header("X-Workspace-Id", workspace_id_2.to_string())
         .header(user_header.0, user_header.1.clone())
         .json(&serde_json::json!({ "id": "A2", "name": "Agent 2", "token": "T2" }))
@@ -130,7 +130,7 @@ async fn test_workspace_isolation() {
 
     // 3. List agents from WS 1
     let resp_1 = client
-        .get(format!("{address}/api/authorized-agents"))
+        .get(format!("{address}/api/v1/authorized-agents"))
         .header("X-Workspace-Id", workspace_id_1.to_string())
         .header(user_header.0, user_header.1.clone())
         .send()
@@ -142,7 +142,7 @@ async fn test_workspace_isolation() {
 
     // 4. List agents from WS 2
     let resp_2 = client
-        .get(format!("{address}/api/authorized-agents"))
+        .get(format!("{address}/api/v1/authorized-agents"))
         .header("X-Workspace-Id", workspace_id_2.to_string())
         .header(user_header.0, user_header.1.clone())
         .send()
@@ -180,7 +180,7 @@ async fn test_rbac_member_cannot_invite() {
 
     // 3. Try to invite someone as this member
     let response = client
-        .post(format!("{address}/api/workspaces/{workspace_id}/members"))
+        .post(format!("{address}/api/v1/workspaces/{workspace_id}/members"))
         .header("X-User-Id", member_user_id.to_string())
         .header("X-Workspace-Id", workspace_id.to_string())
         .json(&serde_json::json!({ "email": "other@test.com", "role_id": "a0000000-0000-0000-0000-000000000002" }))

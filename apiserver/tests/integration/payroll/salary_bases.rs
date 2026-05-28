@@ -109,7 +109,7 @@ async fn test_salary_bases_crud() {
         .clone()
         .oneshot(make_req(
             "GET",
-            &format!("/api/workspaces/{ws_id}/salary-bases"),
+            &format!("/api/v1/workspaces/{ws_id}/salary-bases"),
             ws_id,
             user_id,
             None,
@@ -127,7 +127,7 @@ async fn test_salary_bases_crud() {
         .clone()
         .oneshot(make_req(
             "POST",
-            &format!("/api/workspaces/{ws_id}/salary-bases/{base_id}/members"),
+            &format!("/api/v1/workspaces/{ws_id}/salary-bases/{base_id}/members"),
             ws_id,
             user_id,
             Some(json!({ "component_definition_id": comp_id })),
@@ -141,7 +141,7 @@ async fn test_salary_bases_crud() {
         .clone()
         .oneshot(make_req(
             "GET",
-            &format!("/api/workspaces/{ws_id}/salary-bases"),
+            &format!("/api/v1/workspaces/{ws_id}/salary-bases"),
             ws_id,
             user_id,
             None,
@@ -160,7 +160,7 @@ async fn test_salary_bases_crud() {
         .clone()
         .oneshot(make_req(
             "DELETE",
-            &format!("/api/workspaces/{ws_id}/salary-bases/{base_id}/members/{comp_id}"),
+            &format!("/api/v1/workspaces/{ws_id}/salary-bases/{base_id}/members/{comp_id}"),
             ws_id,
             user_id,
             None,
@@ -174,7 +174,7 @@ async fn test_salary_bases_crud() {
         .clone()
         .oneshot(make_req(
             "GET",
-            &format!("/api/workspaces/{ws_id}/salary-bases"),
+            &format!("/api/v1/workspaces/{ws_id}/salary-bases"),
             ws_id,
             user_id,
             None,
@@ -207,7 +207,7 @@ async fn test_create_custom_salary_base() {
         .clone()
         .oneshot(make_req(
             "POST",
-            &format!("/api/workspaces/{ws_id}/salary-bases"),
+            &format!("/api/v1/workspaces/{ws_id}/salary-bases"),
             ws_id,
             user_id,
             Some(payload),
@@ -225,7 +225,7 @@ async fn test_create_custom_salary_base() {
     let res = app
         .oneshot(make_req(
             "GET",
-            &format!("/api/workspaces/{ws_id}/salary-bases"),
+            &format!("/api/v1/workspaces/{ws_id}/salary-bases"),
             ws_id,
             user_id,
             None,
@@ -253,7 +253,7 @@ async fn test_system_salary_bases_seeded() {
     let res = app
         .oneshot(make_req(
             "GET",
-            &format!("/api/workspaces/{ws_id}/salary-bases"),
+            &format!("/api/v1/workspaces/{ws_id}/salary-bases"),
             ws_id,
             user_id,
             None,

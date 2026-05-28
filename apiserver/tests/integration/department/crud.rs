@@ -20,7 +20,7 @@ async fn test_department_crud_smoke() {
     // 1. Create a department
     let response = client
         .post(format!(
-            "{address}/api/workspaces/{workspace_id}/departments"
+            "{address}/api/v1/workspaces/{workspace_id}/departments"
         ))
         .header("X-User-Id", user_id.to_string())
         .header("X-Workspace-Id", workspace_id.to_string())
@@ -40,7 +40,7 @@ async fn test_department_crud_smoke() {
     // 2. List departments
     let response = client
         .get(format!(
-            "{address}/api/workspaces/{workspace_id}/departments"
+            "{address}/api/v1/workspaces/{workspace_id}/departments"
         ))
         .header("X-User-Id", user_id.to_string())
         .header("X-Workspace-Id", workspace_id.to_string())
@@ -55,7 +55,7 @@ async fn test_department_crud_smoke() {
     // 3. Update department
     let response = client
         .patch(format!(
-            "{address}/api/workspaces/{workspace_id}/departments/{dept_id}"
+            "{address}/api/v1/workspaces/{workspace_id}/departments/{dept_id}"
         ))
         .header("X-User-Id", user_id.to_string())
         .header("X-Workspace-Id", workspace_id.to_string())
@@ -73,7 +73,7 @@ async fn test_department_crud_smoke() {
     // 4. Delete department
     let response = client
         .delete(format!(
-            "{address}/api/workspaces/{workspace_id}/departments/{dept_id}"
+            "{address}/api/v1/workspaces/{workspace_id}/departments/{dept_id}"
         ))
         .header("X-User-Id", user_id.to_string())
         .header("X-Workspace-Id", workspace_id.to_string())
@@ -86,7 +86,7 @@ async fn test_department_crud_smoke() {
     // 5. Verify deletion
     let response = client
         .get(format!(
-            "{address}/api/workspaces/{workspace_id}/departments"
+            "{address}/api/v1/workspaces/{workspace_id}/departments"
         ))
         .header("X-User-Id", user_id.to_string())
         .header("X-Workspace-Id", workspace_id.to_string())
@@ -100,7 +100,7 @@ async fn test_department_crud_smoke() {
     // 6. Verify recreation with same name (Soft Delete uniqueness test)
     let response = client
         .post(format!(
-            "{address}/api/workspaces/{workspace_id}/departments"
+            "{address}/api/v1/workspaces/{workspace_id}/departments"
         ))
         .header("X-User-Id", user_id.to_string())
         .header("X-Workspace-Id", workspace_id.to_string())
@@ -139,7 +139,7 @@ async fn test_department_rbac() {
     // Member tries to create a department - should fail
     let response = client
         .post(format!(
-            "{address}/api/workspaces/{workspace_id}/departments"
+            "{address}/api/v1/workspaces/{workspace_id}/departments"
         ))
         .header("X-User-Id", member_id.to_string())
         .header("X-Workspace-Id", workspace_id.to_string())
@@ -163,7 +163,7 @@ async fn test_department_rbac() {
     // Member tries to update - should fail
     let response = client
         .patch(format!(
-            "{address}/api/workspaces/{workspace_id}/departments/{dept_id}"
+            "{address}/api/v1/workspaces/{workspace_id}/departments/{dept_id}"
         ))
         .header("X-User-Id", member_id.to_string())
         .header("X-Workspace-Id", workspace_id.to_string())
@@ -179,7 +179,7 @@ async fn test_department_rbac() {
     // Member tries to delete - should fail
     let response = client
         .delete(format!(
-            "{address}/api/workspaces/{workspace_id}/departments/{dept_id}"
+            "{address}/api/v1/workspaces/{workspace_id}/departments/{dept_id}"
         ))
         .header("X-User-Id", member_id.to_string())
         .header("X-Workspace-Id", workspace_id.to_string())

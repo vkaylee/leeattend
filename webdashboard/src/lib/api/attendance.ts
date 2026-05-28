@@ -20,7 +20,7 @@ export async function punchIn(
   wsId: string,
   data: { employee_id: string; entry_type?: string; note?: string },
 ): Promise<TimeEntry> {
-  const { data: resData } = await client.POST("/workspaces/{workspace_id}/time/punch-in", {
+  const { data: resData } = await client.POST("/v1/workspaces/{workspace_id}/time/punch-in", {
     params: {
       path: { workspace_id: wsId },
     },
@@ -35,7 +35,7 @@ export async function punchOut(
   employeeId: string,
   data: { note?: string },
 ): Promise<TimeEntry> {
-  const { data: resData } = await client.POST("/workspaces/{workspace_id}/time/punch-out/{employee_id}", {
+  const { data: resData } = await client.POST("/v1/workspaces/{workspace_id}/time/punch-out/{employee_id}", {
     params: {
       path: { workspace_id: wsId, employee_id: employeeId },
     },
@@ -51,7 +51,7 @@ export async function fetchTimeHistory(
   start: string,
   end: string,
 ): Promise<TimeEntry[]> {
-  const { data: resData } = await client.GET("/workspaces/{workspace_id}/time/history/{employee_id}", {
+  const { data: resData } = await client.GET("/v1/workspaces/{workspace_id}/time/history/{employee_id}", {
     params: {
       path: { workspace_id: wsId, employee_id: employeeId },
       query: { start, end },
@@ -66,12 +66,12 @@ export async function updateTimeEntry(
   id: string,
   data: Partial<TimeEntry>,
 ): Promise<TimeEntry> {
-  const { data: resData } = await apiClient.put<TimeEntry>(`/workspaces/${wsId}/time/entries/${id}`, data);
+  const { data: resData } = await apiClient.put<TimeEntry>(`/v1/workspaces/${wsId}/time/entries/${id}`, data);
     return resData;
 }
 
 export async function deleteTimeEntry(wsId: string, id: string): Promise<void> {
-  await apiClient.delete(`/workspaces/${wsId}/time/entries/${id}`);
+  await apiClient.delete(`/v1/workspaces/${wsId}/time/entries/${id}`);
 }
 
 export async function submitAttendanceAdjustment(
@@ -85,7 +85,7 @@ export async function submitAttendanceAdjustment(
     reason?: string;
   }
 ): Promise<AttendanceAdjustmentRequest> {
-  const { data: resData } = await apiClient.post<AttendanceAdjustmentRequest>(`/workspaces/${wsId}/attendance/adjustments`, { is_break_overtime: false, ...data });
+  const { data: resData } = await apiClient.post<AttendanceAdjustmentRequest>(`/v1/workspaces/${wsId}/attendance/adjustments`, { is_break_overtime: false, ...data });
     return resData;
 }
 
@@ -103,7 +103,7 @@ export async function fetchWorkspaceAttendanceAdjustments(
 export async function fetchMyAttendanceAdjustments(
   employeeId: string
 ): Promise<AttendanceAdjustmentRequest[]> {
-  const { data: resData } = await apiClient.get<AttendanceAdjustmentRequest[]>(`/employees/${employeeId}/attendance/adjustments`);
+  const { data: resData } = await apiClient.get<AttendanceAdjustmentRequest[]>(`/v1/employees/${employeeId}/attendance/adjustments`);
     return resData;
 }
 
@@ -112,7 +112,7 @@ export async function approveAttendanceAdjustment(
   requestId: string,
   data: { status: string }
 ): Promise<void> {
-  await apiClient.post(`/workspaces/${wsId}/attendance/adjustments/${requestId}/approve`, data);
+  await apiClient.post(`/v1/workspaces/${wsId}/attendance/adjustments/${requestId}/approve`, data);
 }
 
 export async function fetchAttendanceLogs(params: {
@@ -125,7 +125,7 @@ export async function fetchAttendanceLogs(params: {
   const wsId = getCurrentWorkspaceId();
   if (!wsId) throw new Error("Workspace not selected");
 
-  const { data: resData } = await client.GET("/workspaces/{workspace_id}/attendance/logs", {
+  const { data: resData } = await client.GET("/v1/workspaces/{workspace_id}/attendance/logs", {
     params: {
       path: { workspace_id: wsId },
       query: {
@@ -151,7 +151,7 @@ export async function fetchRawAttendanceLogs(params: {
   const wsId = getCurrentWorkspaceId();
   if (!wsId) throw new Error("Workspace not selected");
 
-  const { data: resData } = await client.GET("/workspaces/{workspace_id}/attendance/raw-logs", {
+  const { data: resData } = await client.GET("/v1/workspaces/{workspace_id}/attendance/raw-logs", {
     params: {
       path: { workspace_id: wsId },
       query: {
@@ -235,7 +235,7 @@ export async function uploadAttendance(
   const formData = new FormData();
   formData.append("file", file);
 
-  const { data: resData } = await apiClient.post<{ job_id: string }>(`/workspaces/${wsId}${endpoint}`, formData);
+  const { data: resData } = await apiClient.post<{ job_id: string }>(`/v1/workspaces/${wsId}${endpoint}`, formData);
     return resData;
 }
 
@@ -254,7 +254,7 @@ export async function fetchImportJobStatus(
   wsId: string,
   jobId: string
 ): Promise<AttendanceImportJob> {
-  const { data: resData } = await apiClient.get<AttendanceImportJob>(`/workspaces/${wsId}/attendance/import-jobs/${jobId}`);
+  const { data: resData } = await apiClient.get<AttendanceImportJob>(`/v1/workspaces/${wsId}/attendance/import-jobs/${jobId}`);
     return resData;
 }
 
@@ -264,7 +264,7 @@ export async function reprocessAttendance(
   startDate: string,
   endDate: string
 ): Promise<void> {
-  await apiClient.post(`/workspaces/${wsId}/attendance/reprocess/${employeeId}?start_date=${startDate}&end_date=${endDate}`, {});
+  await apiClient.post(`/v1/workspaces/${wsId}/attendance/reprocess/${employeeId}?start_date=${startDate}&end_date=${endDate}`, {});
 }
 
 export async function reprocessAllAttendance(
@@ -272,7 +272,7 @@ export async function reprocessAllAttendance(
   startDate: string,
   endDate: string
 ): Promise<{ message: string; job_id: string }> {
-  const { data: resData } = await apiClient.post<{ message: string; job_id: string }>(`/workspaces/${wsId}/attendance/reprocess-all?start_date=${startDate}&end_date=${endDate}`, {});
+  const { data: resData } = await apiClient.post<{ message: string; job_id: string }>(`/v1/workspaces/${wsId}/attendance/reprocess-all?start_date=${startDate}&end_date=${endDate}`, {});
     return resData;
 }
 
@@ -296,7 +296,7 @@ export async function fetchGenericJobStatus(
   wsId: string,
   jobId: string
 ): Promise<GenericJobStatus> {
-  const { data: resData } = await apiClient.get<GenericJobStatus>(`/workspaces/${wsId}/jobs/${jobId}`);
+  const { data: resData } = await apiClient.get<GenericJobStatus>(`/v1/workspaces/${wsId}/jobs/${jobId}`);
     return resData;
 }
 
@@ -367,7 +367,7 @@ export async function claimOt(
   employeeId: string,
   data: { date: string; claimed_minutes: number; reason?: string }
 ): Promise<void> {
-  await apiClient.post(`/workspaces/${wsId}/attendance/claim-ot/${employeeId}`, data);
+  await apiClient.post(`/v1/workspaces/${wsId}/attendance/claim-ot/${employeeId}`, data);
 }
 
 export async function approveOt(
@@ -375,7 +375,7 @@ export async function approveOt(
   employeeId: string,
   data: { date: string; approved_minutes: number; manager_note?: string; status: "approved" | "rejected" }
 ): Promise<void> {
-  await apiClient.post(`/workspaces/${wsId}/attendance/approve-ot/${employeeId}`, data);
+  await apiClient.post(`/v1/workspaces/${wsId}/attendance/approve-ot/${employeeId}`, data);
 }
 
 export async function fetchAttendanceSummaries(
@@ -390,7 +390,7 @@ export async function fetchAttendanceSummaries(
   });
   if (employeeId) params.append("employee_id", employeeId);
 
-  const { data: resData } = await apiClient.get<AttendanceDailySummary[]>(`/workspaces/${wsId}/attendance/summaries?${params.toString()}`);
+  const { data: resData } = await apiClient.get<AttendanceDailySummary[]>(`/v1/workspaces/${wsId}/attendance/summaries?${params.toString()}`);
     return resData;
 }
 
@@ -404,7 +404,7 @@ export async function enterPaperOt(
     paper_form_photo_url?: string;
   }
 ): Promise<AttendanceDailySummary> {
-  const { data: resData } = await apiClient.post<AttendanceDailySummary>(`/workspaces/${wsId}/attendance/enter-paper-ot/${employeeId}`, data);
+  const { data: resData } = await apiClient.post<AttendanceDailySummary>(`/v1/workspaces/${wsId}/attendance/enter-paper-ot/${employeeId}`, data);
     return resData;
 }
 
@@ -433,7 +433,7 @@ export async function bulkUploadPaperOt(
           employee_id: string;
           error_message: string;
         }[];
-      }>(`/workspaces/${wsId}/attendance/bulk-upload-paper-ot`, formData);
+      }>(`/v1/workspaces/${wsId}/attendance/bulk-upload-paper-ot`, formData);
     return resData;
 }
 
@@ -467,7 +467,7 @@ export async function fetchStagingLogs(
     limit: limit.toString(),
   });
 
-  const { data: resData } = await apiClient.get<StagingLogsResponse>(`/workspaces/${wsId}/attendance/staging-logs?${params.toString()}`);
+  const { data: resData } = await apiClient.get<StagingLogsResponse>(`/v1/workspaces/${wsId}/attendance/staging-logs?${params.toString()}`);
     return resData;
 }
 
@@ -476,14 +476,14 @@ export async function resolveStagingLog(
   logId: string,
   employeeId: string
 ): Promise<void> {
-  await apiClient.post(`/workspaces/${wsId}/attendance/staging-logs/${logId}/resolve`, { employee_id: employeeId });
+  await apiClient.post(`/v1/workspaces/${wsId}/attendance/staging-logs/${logId}/resolve`, { employee_id: employeeId });
 }
 
 export async function dismissStagingLog(
   wsId: string,
   logId: string
 ): Promise<void> {
-  await apiClient.delete(`/workspaces/${wsId}/attendance/staging-logs/${logId}`);
+  await apiClient.delete(`/v1/workspaces/${wsId}/attendance/staging-logs/${logId}`);
 }
 
 // --- Report Export ---
@@ -492,7 +492,7 @@ export async function createReportExportJob(
   wsId: string,
   request: CreateReportExportRequest
 ): Promise<CreateReportExportResponse> {
-  const { data: resData } = await apiClient.post<CreateReportExportResponse>(`/workspaces/${wsId}/reports/export`, request);
+  const { data: resData } = await apiClient.post<CreateReportExportResponse>(`/v1/workspaces/${wsId}/reports/export`, request);
     return resData;
 }
 
@@ -500,7 +500,7 @@ export async function fetchExportJobStatus(
   wsId: string,
   jobId: string
 ): Promise<ReportExportJob> {
-  const { data: resData } = await apiClient.get<ReportExportJob>(`/workspaces/${wsId}/reports/jobs/${jobId}`);
+  const { data: resData } = await apiClient.get<ReportExportJob>(`/v1/workspaces/${wsId}/reports/jobs/${jobId}`);
     return resData;
 }
 
@@ -508,7 +508,7 @@ export async function cancelExportJob(
   wsId: string,
   jobId: string
 ): Promise<void> {
-  await apiClient.delete(`/workspaces/${wsId}/reports/jobs/${jobId}`);
+  await apiClient.delete(`/v1/workspaces/${wsId}/reports/jobs/${jobId}`);
 }
 
 export async function downloadExportReport(
@@ -525,7 +525,7 @@ export async function downloadExportReport(
 // --- Worker Monitoring (Global Infrastructure) ---
 
 export async function fetchMonitorOverview(): Promise<WorkerMonitorStats> {
-  const { data: resData } = await apiClient.get<WorkerMonitorStats>(`/monitor/overview`);
+  const { data: resData } = await apiClient.get<WorkerMonitorStats>(`/v1/monitor/overview`);
     return resData;
 }
 
@@ -554,12 +554,12 @@ export interface UpdateAttendanceRulesRequest {
 }
 
 export async function fetchDefaultAttendanceRules(wsId: string): Promise<AttendanceRules> {
-  const { data: resData } = await apiClient.get<AttendanceRules>(`/workspaces/${wsId}/attendance/policies/default`);
+  const { data: resData } = await apiClient.get<AttendanceRules>(`/v1/workspaces/${wsId}/attendance/policies/default`);
     return resData;
 }
 
 export async function fetchAttendancePolicyVersions(wsId: string): Promise<AttendancePolicyVersion[]> {
-  const { data: resData } = await apiClient.get<AttendancePolicyVersion[]>(`/workspaces/${wsId}/attendance/policies/default/versions`);
+  const { data: resData } = await apiClient.get<AttendancePolicyVersion[]>(`/v1/workspaces/${wsId}/attendance/policies/default/versions`);
     return resData;
 }
 
@@ -582,7 +582,7 @@ export interface UpsertPolicyAssignmentRequest {
 }
 
 export async function fetchPolicyAssignments(wsId: string): Promise<PolicyAssignmentResponse[]> {
-  const { data: resData } = await apiClient.get<PolicyAssignmentResponse[]>(`/workspaces/${wsId}/attendance/policies/assignments`);
+  const { data: resData } = await apiClient.get<PolicyAssignmentResponse[]>(`/v1/workspaces/${wsId}/attendance/policies/assignments`);
     return resData;
 }
 
@@ -590,18 +590,18 @@ export async function upsertPolicyAssignment(
   wsId: string,
   data: UpsertPolicyAssignmentRequest
 ): Promise<PolicyAssignmentResponse> {
-  const { data: resData } = await apiClient.post<PolicyAssignmentResponse>(`/workspaces/${wsId}/attendance/policies/assignments`, data);
+  const { data: resData } = await apiClient.post<PolicyAssignmentResponse>(`/v1/workspaces/${wsId}/attendance/policies/assignments`, data);
     return resData;
 }
 
 export async function deletePolicyAssignment(wsId: string, assignmentId: string): Promise<void> {
-  await apiClient.delete(`/workspaces/${wsId}/attendance/policies/assignments/${assignmentId}`);
+  await apiClient.delete(`/v1/workspaces/${wsId}/attendance/policies/assignments/${assignmentId}`);
 }
 
 export async function updateDefaultAttendanceRules(
   wsId: string,
   data: UpdateAttendanceRulesRequest
 ): Promise<AttendancePolicyVersion> {
-  const { data: resData } = await apiClient.patch<AttendancePolicyVersion>(`/workspaces/${wsId}/attendance/policies/default`, data);
+  const { data: resData } = await apiClient.patch<AttendancePolicyVersion>(`/v1/workspaces/${wsId}/attendance/policies/default`, data);
     return resData;
 }

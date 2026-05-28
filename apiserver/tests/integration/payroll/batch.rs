@@ -67,7 +67,7 @@ async fn test_batch_calculate_payroll() {
 
     let res = client
         .post(format!(
-            "{address}/api/workspaces/{ws_id}/payroll/calculate-batch"
+            "{address}/api/v1/workspaces/{ws_id}/payroll/calculate-batch"
         ))
         .header("Authorization", format!("Bearer {auth_token}"))
         .json(&req_body)

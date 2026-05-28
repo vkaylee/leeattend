@@ -41,7 +41,7 @@ async fn test_leave_adjustment() {
             axum::http::Request::builder()
                 .method("POST")
                 .uri(format!(
-                    "/api/workspaces/{ws_id}/employees/{emp_id}/leave/adjust"
+                    "/api/v1/workspaces/{ws_id}/employees/{emp_id}/leave/adjust"
                 ))
                 .header("Content-Type", "application/json")
                 .header("X-Workspace-Id", ws_id.to_string())
@@ -63,7 +63,7 @@ async fn test_leave_adjustment() {
             axum::http::Request::builder()
                 .method("GET")
                 .uri(format!(
-                    "/api/workspaces/{ws_id}/employees/{emp_id}/leave/history"
+                    "/api/v1/workspaces/{ws_id}/employees/{emp_id}/leave/history"
                 ))
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())

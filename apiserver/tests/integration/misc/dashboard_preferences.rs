@@ -10,7 +10,7 @@ async fn test_get_dashboard_preferences_returns_defaults() {
     let client = reqwest::Client::new();
 
     let res = client
-        .get(format!("{address}/api/dashboard/preferences"))
+        .get(format!("{address}/api/v1/dashboard/preferences"))
         .header("X-User-Id", user_id.to_string())
         .header("X-Workspace-Id", ws_id.to_string())
         .send()
@@ -42,7 +42,7 @@ async fn test_update_dashboard_preferences_upserts_and_returns_updated() {
     });
 
     let res = client
-        .put(format!("{address}/api/dashboard/preferences"))
+        .put(format!("{address}/api/v1/dashboard/preferences"))
         .header("X-User-Id", user_id.to_string())
         .header("X-Workspace-Id", ws_id.to_string())
         .json(&payload)
@@ -62,7 +62,7 @@ async fn test_update_dashboard_preferences_upserts_and_returns_updated() {
 
     // 2. GET again should return the persisted data
     let res2 = client
-        .get(format!("{address}/api/dashboard/preferences"))
+        .get(format!("{address}/api/v1/dashboard/preferences"))
         .header("X-User-Id", user_id.to_string())
         .header("X-Workspace-Id", ws_id.to_string())
         .send()

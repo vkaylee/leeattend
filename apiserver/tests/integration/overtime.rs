@@ -91,7 +91,7 @@ async fn test_overtime_request_full_flow() {
 
     let res = admin_client
         .put(&format!(
-            "{}/api/workspaces/{}/configs",
+            "{}/api/v1/workspaces/{}/configs",
             app_addr, admin_ws_id
         ))
         .header("X-Workspace-Id", admin_ws_id.to_string())
@@ -123,7 +123,7 @@ async fn test_overtime_request_full_flow() {
 
     let res = admin_client
         .post(&format!(
-            "{}/api/workspaces/{}/approval-workflows",
+            "{}/api/v1/workspaces/{}/approval-workflows",
             app_addr, admin_ws_id
         ))
         .header("X-Workspace-Id", admin_ws_id.to_string())
@@ -147,7 +147,7 @@ async fn test_overtime_request_full_flow() {
 
     let res = manager_client
         .post(&format!(
-            "{}/api/workspaces/{}/overtime/requests",
+            "{}/api/v1/workspaces/{}/overtime/requests",
             app_addr, admin_ws_id
         ))
         .header("X-Workspace-Id", admin_ws_id.to_string())

@@ -31,7 +31,7 @@ async fn test_create_and_get_export_job() {
     });
 
     let res = client
-        .post(&format!("{address}/api/workspaces/{ws_id}/reports/export"))
+        .post(&format!("{address}/api/v1/workspaces/{ws_id}/reports/export"))
         .header("Authorization", format!("Bearer {token}"))
         .json(&body)
         .send()
@@ -51,7 +51,7 @@ async fn test_create_and_get_export_job() {
     // 2. Poll status
     let res = client
         .get(&format!(
-            "{address}/api/workspaces/{ws_id}/reports/jobs/{job_id}"
+            "{address}/api/v1/workspaces/{ws_id}/reports/jobs/{job_id}"
         ))
         .header("Authorization", format!("Bearer {token}"))
         .send()
@@ -65,7 +65,7 @@ async fn test_create_and_get_export_job() {
     // 3. Download report (Should be 202 because pending)
     let res = client
         .get(&format!(
-            "{address}/api/workspaces/{ws_id}/reports/jobs/{job_id}/download"
+            "{address}/api/v1/workspaces/{ws_id}/reports/jobs/{job_id}/download"
         ))
         .header("Authorization", format!("Bearer {token}"))
         .send()
@@ -77,7 +77,7 @@ async fn test_create_and_get_export_job() {
     // 4. Cancel job
     let res = client
         .delete(&format!(
-            "{address}/api/workspaces/{ws_id}/reports/jobs/{job_id}"
+            "{address}/api/v1/workspaces/{ws_id}/reports/jobs/{job_id}"
         ))
         .header("Authorization", format!("Bearer {token}"))
         .send()
@@ -107,7 +107,7 @@ async fn test_create_export_job_invalid_dates() {
     });
 
     let res = client
-        .post(&format!("{address}/api/workspaces/{ws_id}/reports/export"))
+        .post(&format!("{address}/api/v1/workspaces/{ws_id}/reports/export"))
         .header("Authorization", format!("Bearer {token}"))
         .json(&body)
         .send()

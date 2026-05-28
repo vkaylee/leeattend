@@ -227,7 +227,7 @@ impl ReportCoordinator {
             status: "pending".to_string(),
             total_batches,
             estimated_seconds,
-            status_url: format!("/api/workspaces/{workspace_id}/reports/jobs/{parent_job_id}"),
+            status_url: format!("/api/v1/workspaces/{workspace_id}/reports/jobs/{parent_job_id}"),
         })
     }
 
@@ -555,7 +555,7 @@ mod tests {
             status: "pending".into(),
             total_batches: 5,
             estimated_seconds: 5,
-            status_url: "/api/reports/jobs/x".into(),
+            status_url: "/api/v1/reports/jobs/x".into(),
         };
         let json = serde_json::to_value(&response).unwrap();
         assert_eq!(json["status"], "pending");

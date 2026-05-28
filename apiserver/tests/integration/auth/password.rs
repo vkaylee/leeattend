@@ -16,7 +16,7 @@ async fn test_change_password_flow_smoke() {
         full_name: "Test User".to_string(),
     };
     let res = client
-        .post(format!("{address}/api/auth/register"))
+        .post(format!("{address}/api/v1/auth/register"))
         .json(&reg_req)
         .send()
         .await
@@ -29,7 +29,7 @@ async fn test_change_password_flow_smoke() {
         password: "old_password_123".to_string(),
     };
     let res = client
-        .post(format!("{address}/api/auth/login"))
+        .post(format!("{address}/api/v1/auth/login"))
         .json(&login_req)
         .send()
         .await
@@ -44,7 +44,7 @@ async fn test_change_password_flow_smoke() {
         new_password: "new_password_456".to_string(),
     };
     let res = client
-        .post(format!("{address}/api/auth/change-password"))
+        .post(format!("{address}/api/v1/auth/change-password"))
         .header("Authorization", format!("Bearer {token}"))
         .json(&change_req)
         .send()
@@ -58,7 +58,7 @@ async fn test_change_password_flow_smoke() {
         password: "old_password_123".to_string(),
     };
     let res = client
-        .post(format!("{address}/api/auth/login"))
+        .post(format!("{address}/api/v1/auth/login"))
         .json(&login_req_old)
         .send()
         .await
@@ -71,7 +71,7 @@ async fn test_change_password_flow_smoke() {
         password: "new_password_456".to_string(),
     };
     let res = client
-        .post(format!("{address}/api/auth/login"))
+        .post(format!("{address}/api/v1/auth/login"))
         .json(&login_req_new)
         .send()
         .await

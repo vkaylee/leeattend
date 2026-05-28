@@ -58,7 +58,7 @@ async fn test_enter_paper_ot_employee_not_found() {
         .clone()
         .oneshot(req(
             "POST",
-            &format!("/api/workspaces/{ws_id}/attendance/enter-paper-ot/{fake_emp_id}"),
+            &format!("/api/v1/workspaces/{ws_id}/attendance/enter-paper-ot/{fake_emp_id}"),
             ws_id,
             admin_id,
             Some(body.to_string()),
@@ -87,7 +87,7 @@ async fn test_enter_paper_ot_invalid_minutes() {
         .clone()
         .oneshot(req(
             "POST",
-            &format!("/api/workspaces/{ws_id}/attendance/enter-paper-ot/{emp_id}"),
+            &format!("/api/v1/workspaces/{ws_id}/attendance/enter-paper-ot/{emp_id}"),
             ws_id,
             admin_id,
             Some(body.to_string()),
@@ -117,7 +117,7 @@ async fn test_enter_paper_ot_zero_minutes() {
         .clone()
         .oneshot(req(
             "POST",
-            &format!("/api/workspaces/{ws_id}/attendance/enter-paper-ot/{emp_id}"),
+            &format!("/api/v1/workspaces/{ws_id}/attendance/enter-paper-ot/{emp_id}"),
             ws_id,
             admin_id,
             Some(body.to_string()),
@@ -159,7 +159,7 @@ async fn test_enter_paper_ot_rbac_member_forbidden() {
         .clone()
         .oneshot(req(
             "POST",
-            &format!("/api/workspaces/{ws_id}/attendance/enter-paper-ot/{emp_id}"),
+            &format!("/api/v1/workspaces/{ws_id}/attendance/enter-paper-ot/{emp_id}"),
             ws_id,
             member_id,
             Some(body.to_string()),
@@ -187,7 +187,7 @@ async fn test_bulk_upload_paper_ot_no_file() {
             axum::http::Request::builder()
                 .method("POST")
                 .uri(format!(
-                    "/api/workspaces/{ws_id}/attendance/bulk-upload-paper-ot"
+                    "/api/v1/workspaces/{ws_id}/attendance/bulk-upload-paper-ot"
                 ))
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", admin_id.to_string())
@@ -233,7 +233,7 @@ async fn test_bulk_upload_paper_ot_with_csv() {
             axum::http::Request::builder()
                 .method("POST")
                 .uri(format!(
-                    "/api/workspaces/{ws_id}/attendance/bulk-upload-paper-ot"
+                    "/api/v1/workspaces/{ws_id}/attendance/bulk-upload-paper-ot"
                 ))
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", admin_id.to_string())
@@ -283,7 +283,7 @@ async fn test_bulk_upload_paper_ot_rbac_forbidden() {
             axum::http::Request::builder()
                 .method("POST")
                 .uri(format!(
-                    "/api/workspaces/{ws_id}/attendance/bulk-upload-paper-ot"
+                    "/api/v1/workspaces/{ws_id}/attendance/bulk-upload-paper-ot"
                 ))
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", member_id.to_string())

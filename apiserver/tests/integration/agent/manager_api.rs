@@ -29,7 +29,7 @@ async fn test_agent_commands_api() {
         .oneshot(
             axum::http::Request::builder()
                 .method("GET")
-                .uri("/api/agents")
+                .uri("/api/v1/agents")
                 .header("X-User-Id", user_id.to_string())
                 .header("X-Workspace-Id", ws_id.to_string())
                 .body(axum::body::Body::empty())
@@ -49,7 +49,7 @@ async fn test_agent_commands_api() {
         .oneshot(
             axum::http::Request::builder()
                 .method("POST")
-                .uri(format!("/api/agent/{agent_id}/command"))
+                .uri(format!("/api/v1/agent/{agent_id}/command"))
                 .header("Content-Type", "application/json")
                 .header("X-User-Id", user_id.to_string())
                 .header("X-Workspace-Id", ws_id.to_string())
@@ -70,7 +70,7 @@ async fn test_agent_commands_api() {
         .oneshot(
             axum::http::Request::builder()
                 .method("POST")
-                .uri(format!("/api/agent/{agent_id}/command"))
+                .uri(format!("/api/v1/agent/{agent_id}/command"))
                 .header("Content-Type", "application/json")
                 .header("X-User-Id", user_id.to_string())
                 .header("X-Workspace-Id", ws_id.to_string())
@@ -143,7 +143,7 @@ async fn test_get_agents_device_status() {
         .oneshot(
             axum::http::Request::builder()
                 .method("GET")
-                .uri("/api/agents")
+                .uri("/api/v1/agents")
                 .header("X-User-Id", user_id.to_string())
                 .header("X-Workspace-Id", ws_id.to_string())
                 .body(axum::body::Body::empty())
@@ -185,7 +185,7 @@ async fn test_get_agents_device_status() {
         .oneshot(
             axum::http::Request::builder()
                 .method("GET")
-                .uri("/api/agents")
+                .uri("/api/v1/agents")
                 .header("X-User-Id", user_id.to_string())
                 .header("X-Workspace-Id", ws_id.to_string())
                 .body(axum::body::Body::empty())

@@ -31,7 +31,7 @@ async fn test_department_management() {
         .oneshot(
             axum::http::Request::builder()
                 .method("POST")
-                .uri(format!("/api/workspaces/{ws_id}/departments"))
+                .uri(format!("/api/v1/workspaces/{ws_id}/departments"))
                 .header("Content-Type", "application/json")
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())
@@ -56,7 +56,7 @@ async fn test_department_management() {
         .oneshot(
             axum::http::Request::builder()
                 .method("GET")
-                .uri(format!("/api/workspaces/{ws_id}/departments"))
+                .uri(format!("/api/v1/workspaces/{ws_id}/departments"))
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())
                 .body(axum::body::Body::empty())
@@ -84,7 +84,7 @@ async fn test_department_management() {
             axum::http::Request::builder()
                 .method("POST")
                 .uri(format!(
-                    "/api/workspaces/{ws_id}/employees/{emp_id}/departments"
+                    "/api/v1/workspaces/{ws_id}/employees/{emp_id}/departments"
                 ))
                 .header("Content-Type", "application/json")
                 .header("X-Workspace-Id", ws_id.to_string())
@@ -106,7 +106,7 @@ async fn test_department_management() {
             axum::http::Request::builder()
                 .method("GET")
                 .uri(format!(
-                    "/api/workspaces/{ws_id}/employees/{emp_id}/departments"
+                    "/api/v1/workspaces/{ws_id}/employees/{emp_id}/departments"
                 ))
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())
@@ -154,7 +154,7 @@ async fn test_department_working_pattern_api() {
         .oneshot(
             axum::http::Request::builder()
                 .method("POST")
-                .uri(format!("/api/workspaces/{ws_id}/departments"))
+                .uri(format!("/api/v1/workspaces/{ws_id}/departments"))
                 .header("Content-Type", "application/json")
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())
@@ -183,7 +183,7 @@ async fn test_department_working_pattern_api() {
         .oneshot(
             axum::http::Request::builder()
                 .method("PATCH")
-                .uri(format!("/api/workspaces/{}/departments/{}", ws_id, dept.id))
+                .uri(format!("/api/v1/workspaces/{}/departments/{}", ws_id, dept.id))
                 .header("Content-Type", "application/json")
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())
@@ -223,7 +223,7 @@ async fn test_department_api_lifecycle() {
         .oneshot(
             axum::http::Request::builder()
                 .method("POST")
-                .uri(format!("/api/workspaces/{ws_id}/departments"))
+                .uri(format!("/api/v1/workspaces/{ws_id}/departments"))
                 .header("Content-Type", "application/json")
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", admin_id.to_string())
@@ -247,7 +247,7 @@ async fn test_department_api_lifecycle() {
         .oneshot(
             axum::http::Request::builder()
                 .method("GET")
-                .uri(format!("/api/workspaces/{ws_id}/departments"))
+                .uri(format!("/api/v1/workspaces/{ws_id}/departments"))
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", admin_id.to_string())
                 .body(axum::body::Body::empty())
@@ -271,7 +271,7 @@ async fn test_department_api_lifecycle() {
             axum::http::Request::builder()
                 .method("POST")
                 .uri(format!(
-                    "/api/workspaces/{ws_id}/employees/{emp_id}/departments"
+                    "/api/v1/workspaces/{ws_id}/employees/{emp_id}/departments"
                 ))
                 .header("Content-Type", "application/json")
                 .header("X-Workspace-Id", ws_id.to_string())
@@ -290,7 +290,7 @@ async fn test_department_api_lifecycle() {
             axum::http::Request::builder()
                 .method("GET")
                 .uri(format!(
-                    "/api/workspaces/{ws_id}/employees/{emp_id}/departments"
+                    "/api/v1/workspaces/{ws_id}/employees/{emp_id}/departments"
                 ))
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", admin_id.to_string())

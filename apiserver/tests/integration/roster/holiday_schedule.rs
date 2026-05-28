@@ -46,7 +46,7 @@ async fn test_schedule_shows_holiday_metadata() {
 
     let res = client
         .get(format!(
-            "{address}/api/workspaces/{workspace_id}/schedules?start_date={start_date}&end_date={end_date}&employee_ids={emp_id}"
+            "{address}/api/v1/workspaces/{workspace_id}/schedules?start_date={start_date}&end_date={end_date}&employee_ids={emp_id}"
         ))
         .header("Authorization", format!("Bearer {auth_token}"))
         .send()

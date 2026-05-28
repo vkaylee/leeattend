@@ -83,7 +83,7 @@ async fn test_ess_get_profile_smoke() {
 
     let resp = app
         .clone()
-        .oneshot(req("GET", "/api/ess/profile", ws_id, user_id, None))
+        .oneshot(req("GET", "/api/v1/ess/profile", ws_id, user_id, None))
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
@@ -113,7 +113,7 @@ async fn test_ess_emergency_contacts_crud() {
         .clone()
         .oneshot(req(
             "GET",
-            "/api/ess/emergency-contacts",
+            "/api/v1/ess/emergency-contacts",
             ws_id,
             user_id,
             None,
@@ -134,7 +134,7 @@ async fn test_ess_emergency_contacts_crud() {
         .clone()
         .oneshot(req(
             "POST",
-            "/api/ess/emergency-contacts",
+            "/api/v1/ess/emergency-contacts",
             ws_id,
             user_id,
             Some(body.to_string()),
@@ -150,7 +150,7 @@ async fn test_ess_emergency_contacts_crud() {
         .clone()
         .oneshot(req(
             "GET",
-            "/api/ess/emergency-contacts",
+            "/api/v1/ess/emergency-contacts",
             ws_id,
             user_id,
             None,
@@ -166,7 +166,7 @@ async fn test_ess_emergency_contacts_crud() {
         .clone()
         .oneshot(req(
             "DELETE",
-            &format!("/api/ess/emergency-contacts/{contact_id}"),
+            &format!("/api/v1/ess/emergency-contacts/{contact_id}"),
             ws_id,
             user_id,
             None,
@@ -194,7 +194,7 @@ async fn test_ess_get_documents_empty() {
 
     let resp = app
         .clone()
-        .oneshot(req("GET", "/api/ess/documents", ws_id, user_id, None))
+        .oneshot(req("GET", "/api/v1/ess/documents", ws_id, user_id, None))
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
@@ -219,7 +219,7 @@ async fn test_ess_get_payslips_empty() {
 
     let resp = app
         .clone()
-        .oneshot(req("GET", "/api/ess/payslips", ws_id, user_id, None))
+        .oneshot(req("GET", "/api/v1/ess/payslips", ws_id, user_id, None))
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
@@ -245,7 +245,7 @@ async fn test_ess_get_attendance_empty() {
         .clone()
         .oneshot(req(
             "GET",
-            "/api/ess/attendance?start_date=2026-01-01&end_date=2026-01-31",
+            "/api/v1/ess/attendance?start_date=2026-01-01&end_date=2026-01-31",
             ws_id,
             user_id,
             None,
@@ -273,7 +273,7 @@ async fn test_ess_get_leave_balances() {
 
     let resp = app
         .clone()
-        .oneshot(req("GET", "/api/ess/leave/balances", ws_id, user_id, None))
+        .oneshot(req("GET", "/api/v1/ess/leave/balances", ws_id, user_id, None))
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
@@ -297,7 +297,7 @@ async fn test_ess_get_leave_requests_empty() {
 
     let resp = app
         .clone()
-        .oneshot(req("GET", "/api/ess/leave/requests", ws_id, user_id, None))
+        .oneshot(req("GET", "/api/v1/ess/leave/requests", ws_id, user_id, None))
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
@@ -321,7 +321,7 @@ async fn test_ess_get_shift_swaps_empty() {
 
     let resp = app
         .clone()
-        .oneshot(req("GET", "/api/ess/shift-swaps", ws_id, user_id, None))
+        .oneshot(req("GET", "/api/v1/ess/shift-swaps", ws_id, user_id, None))
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
@@ -351,7 +351,7 @@ async fn test_ess_no_employee_record_returns_forbidden() {
 
     let resp = app
         .clone()
-        .oneshot(req("GET", "/api/ess/profile", ws_id, user_id, None))
+        .oneshot(req("GET", "/api/v1/ess/profile", ws_id, user_id, None))
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::FORBIDDEN);
@@ -380,7 +380,7 @@ async fn test_ess_time_tracking_endpoints() {
         .clone()
         .oneshot(req(
             "GET",
-            "/api/ess/time-entries?start_date=2026-01-01T00:00:00Z&end_date=2026-12-31T23:59:59Z",
+            "/api/v1/ess/time-entries?start_date=2026-01-01T00:00:00Z&end_date=2026-12-31T23:59:59Z",
             ws_id,
             user_id,
             None,
@@ -400,7 +400,7 @@ async fn test_ess_time_tracking_endpoints() {
         .clone()
         .oneshot(req(
             "POST",
-            "/api/ess/punch",
+            "/api/v1/ess/punch",
             ws_id,
             user_id,
             Some(punch_in_body.to_string()),
@@ -419,7 +419,7 @@ async fn test_ess_time_tracking_endpoints() {
         .clone()
         .oneshot(req(
             "POST",
-            "/api/ess/punch",
+            "/api/v1/ess/punch",
             ws_id,
             user_id,
             Some(punch_out_body.to_string()),
@@ -433,7 +433,7 @@ async fn test_ess_time_tracking_endpoints() {
         .clone()
         .oneshot(req(
             "GET",
-            "/api/ess/time-entries?start_date=2000-01-01T00:00:00Z&end_date=2100-12-31T23:59:59Z",
+            "/api/v1/ess/time-entries?start_date=2000-01-01T00:00:00Z&end_date=2100-12-31T23:59:59Z",
             ws_id,
             user_id,
             None,
@@ -469,7 +469,7 @@ async fn test_ess_punch_out_without_punch_in() {
         .clone()
         .oneshot(req(
             "POST",
-            "/api/ess/punch",
+            "/api/v1/ess/punch",
             ws_id,
             user_id,
             Some(punch_out_body.to_string()),
@@ -507,7 +507,7 @@ async fn test_ess_punch_in_already_active() {
         .clone()
         .oneshot(req(
             "POST",
-            "/api/ess/punch",
+            "/api/v1/ess/punch",
             ws_id,
             user_id,
             Some(punch_in_body.to_string()),
@@ -521,7 +521,7 @@ async fn test_ess_punch_in_already_active() {
         .clone()
         .oneshot(req(
             "POST",
-            "/api/ess/punch",
+            "/api/v1/ess/punch",
             ws_id,
             user_id,
             Some(punch_in_body.to_string()),
@@ -547,7 +547,7 @@ async fn test_ess_invalid_workspace_id_returns_forbidden() {
     // Try to access an ESS endpoint with this fake workspace ID in the X-Workspace-Id header.
     let resp = app
         .clone()
-        .oneshot(req("GET", "/api/ess/profile", fake_ws_id, user_id, None))
+        .oneshot(req("GET", "/api/v1/ess/profile", fake_ws_id, user_id, None))
         .await
         .unwrap();
 

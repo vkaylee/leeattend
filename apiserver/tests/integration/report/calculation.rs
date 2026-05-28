@@ -51,7 +51,7 @@ async fn test_report_calculation_grace_period_and_break() {
         .await;
 
     let response = client
-        .get(format!("{address}/api/workspaces/{workspace_id}/reports/attendance?type=daily&start_date={now}&end_date={now}"))
+        .get(format!("{address}/api/v1/workspaces/{workspace_id}/reports/attendance?type=daily&start_date={now}&end_date={now}"))
         .header("Authorization", format!("Bearer {auth_token}"))
         .send()
         .await

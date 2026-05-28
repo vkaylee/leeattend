@@ -15,7 +15,7 @@ async fn test_work_locations_crud() {
     
     // 1. Fetch all locations
     let res = client
-        .get(&format!("{address}/api/workspaces/{workspace_id}/locations"))
+        .get(&format!("{address}/api/v1/workspaces/{workspace_id}/locations"))
         .header("X-User-Id", user_id.to_string())
         .send()
         .await
@@ -40,7 +40,7 @@ async fn test_work_locations_crud() {
     };
 
     let res = client
-        .post(&format!("{address}/api/workspaces/{workspace_id}/locations"))
+        .post(&format!("{address}/api/v1/workspaces/{workspace_id}/locations"))
         .header("X-User-Id", user_id.to_string())
         .json(&create_payload)
         .send()
@@ -55,7 +55,7 @@ async fn test_work_locations_crud() {
 
     // 3. Try to delete HQ (should fail)
     let res = client
-        .delete(&format!("{address}/api/workspaces/{workspace_id}/locations/{hq_id}"))
+        .delete(&format!("{address}/api/v1/workspaces/{workspace_id}/locations/{hq_id}"))
         .header("X-User-Id", user_id.to_string())
         .send()
         .await
@@ -73,7 +73,7 @@ async fn test_work_locations_crud() {
     };
 
     let res = client
-        .put(&format!("{address}/api/workspaces/{workspace_id}/locations/{location_1_id}"))
+        .put(&format!("{address}/api/v1/workspaces/{workspace_id}/locations/{location_1_id}"))
         .header("X-User-Id", user_id.to_string())
         .json(&update_payload)
         .send()
@@ -86,7 +86,7 @@ async fn test_work_locations_crud() {
 
     // 5. Delete the Location
     let res = client
-        .delete(&format!("{address}/api/workspaces/{workspace_id}/locations/{location_1_id}"))
+        .delete(&format!("{address}/api/v1/workspaces/{workspace_id}/locations/{location_1_id}"))
         .header("X-User-Id", user_id.to_string())
         .send()
         .await

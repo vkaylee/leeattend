@@ -71,7 +71,7 @@ async fn test_working_pattern_crud_lifecycle() {
         .clone()
         .oneshot(make_req(
             "POST",
-            &format!("/api/workspaces/{ws_id}/working-patterns"),
+            &format!("/api/v1/workspaces/{ws_id}/working-patterns"),
             ws_id,
             owner_id,
             Some(create_payload),
@@ -96,7 +96,7 @@ async fn test_working_pattern_crud_lifecycle() {
         .clone()
         .oneshot(make_req(
             "GET",
-            &format!("/api/workspaces/{ws_id}/working-patterns"),
+            &format!("/api/v1/workspaces/{ws_id}/working-patterns"),
             ws_id,
             owner_id,
             None,
@@ -119,7 +119,7 @@ async fn test_working_pattern_crud_lifecycle() {
         .clone()
         .oneshot(make_req(
             "GET",
-            &format!("/api/workspaces/{ws_id}/working-patterns/{pattern_id}"),
+            &format!("/api/v1/workspaces/{ws_id}/working-patterns/{pattern_id}"),
             ws_id,
             owner_id,
             None,
@@ -145,7 +145,7 @@ async fn test_working_pattern_crud_lifecycle() {
         .clone()
         .oneshot(make_req(
             "POST",
-            &format!("/api/workspaces/{ws_id}/employees/{emp_id}/working-patterns"),
+            &format!("/api/v1/workspaces/{ws_id}/employees/{emp_id}/working-patterns"),
             ws_id,
             owner_id,
             Some(assign_payload),
@@ -170,7 +170,7 @@ async fn test_working_pattern_crud_lifecycle() {
         .clone()
         .oneshot(make_req(
             "GET",
-            &format!("/api/workspaces/{ws_id}/employees/{emp_id}/working-patterns"),
+            &format!("/api/v1/workspaces/{ws_id}/employees/{emp_id}/working-patterns"),
             ws_id,
             owner_id,
             None,
@@ -193,7 +193,7 @@ async fn test_working_pattern_crud_lifecycle() {
         .clone()
         .oneshot(make_req(
             "DELETE",
-            &format!("/api/workspaces/{ws_id}/working-patterns/{pattern_id}"),
+            &format!("/api/v1/workspaces/{ws_id}/working-patterns/{pattern_id}"),
             ws_id,
             owner_id,
             None,
@@ -245,7 +245,7 @@ async fn test_working_pattern_permission_enforcement() {
         .clone()
         .oneshot(make_req(
             "POST",
-            &format!("/api/workspaces/{ws_id}/working-patterns"),
+            &format!("/api/v1/workspaces/{ws_id}/working-patterns"),
             ws_id,
             regular_user_id,
             Some(create_payload),
@@ -293,7 +293,7 @@ async fn test_bulk_assign_pattern() {
         .clone()
         .oneshot(make_req(
             "POST",
-            &format!("/api/workspaces/{ws_id}/working-patterns"),
+            &format!("/api/v1/workspaces/{ws_id}/working-patterns"),
             ws_id,
             owner_id,
             Some(create_payload),
@@ -322,7 +322,7 @@ async fn test_bulk_assign_pattern() {
         .clone()
         .oneshot(make_req(
             "POST",
-            &format!("/api/workspaces/{ws_id}/working-patterns/bulk-assign"),
+            &format!("/api/v1/workspaces/{ws_id}/working-patterns/bulk-assign"),
             ws_id,
             owner_id,
             Some(bulk_payload),

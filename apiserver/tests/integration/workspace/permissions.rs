@@ -18,7 +18,7 @@ async fn test_grant_and_list_extra_permission() {
     // 1. Grant a permission to the member
     let res = client
         .post(format!(
-            "{address}/api/workspaces/{ws_id}/members/{member_id}/permissions"
+            "{address}/api/v1/workspaces/{ws_id}/members/{member_id}/permissions"
         ))
         .header("X-User-Id", owner_id.to_string())
         .json(&serde_json::json!({
@@ -38,7 +38,7 @@ async fn test_grant_and_list_extra_permission() {
     // 2. List the member's extra permissions
     let res = client
         .get(format!(
-            "{address}/api/workspaces/{ws_id}/members/{member_id}/permissions"
+            "{address}/api/v1/workspaces/{ws_id}/members/{member_id}/permissions"
         ))
         .header("X-User-Id", owner_id.to_string())
         .send()
@@ -53,7 +53,7 @@ async fn test_grant_and_list_extra_permission() {
     // 3. Revoke the permission
     let res = client
         .delete(format!(
-            "{address}/api/workspaces/{ws_id}/members/{member_id}/permissions/{perm_id}"
+            "{address}/api/v1/workspaces/{ws_id}/members/{member_id}/permissions/{perm_id}"
         ))
         .header("X-User-Id", owner_id.to_string())
         .send()
@@ -65,7 +65,7 @@ async fn test_grant_and_list_extra_permission() {
     // 4. Verify it's gone
     let res = client
         .get(format!(
-            "{address}/api/workspaces/{ws_id}/members/{member_id}/permissions"
+            "{address}/api/v1/workspaces/{ws_id}/members/{member_id}/permissions"
         ))
         .header("X-User-Id", owner_id.to_string())
         .send()
@@ -90,7 +90,7 @@ async fn test_grant_invalid_permission_returns_validation_error() {
 
     let res = client
         .post(format!(
-            "{address}/api/workspaces/{ws_id}/members/{member_id}/permissions"
+            "{address}/api/v1/workspaces/{ws_id}/members/{member_id}/permissions"
         ))
         .header("X-User-Id", owner_id.to_string())
         .json(&serde_json::json!({
@@ -118,7 +118,7 @@ async fn test_grant_expired_permission_returns_validation_error() {
 
     let res = client
         .post(format!(
-            "{address}/api/workspaces/{ws_id}/members/{member_id}/permissions"
+            "{address}/api/v1/workspaces/{ws_id}/members/{member_id}/permissions"
         ))
         .header("X-User-Id", owner_id.to_string())
         .json(&serde_json::json!({
@@ -147,7 +147,7 @@ async fn test_member_cannot_grant_permissions() {
     // Member tries to grant themselves a permission (Forbidden)
     let res = client
         .post(format!(
-            "{address}/api/workspaces/{ws_id}/members/{member_id}/permissions"
+            "{address}/api/v1/workspaces/{ws_id}/members/{member_id}/permissions"
         ))
         .header("X-User-Id", member_id.to_string())
         .json(&serde_json::json!({
@@ -175,7 +175,7 @@ async fn test_list_available_permissions() {
 
     let res = client
         .get(format!(
-            "{address}/api/workspaces/{ws_id}/permissions/available"
+            "{address}/api/v1/workspaces/{ws_id}/permissions/available"
         ))
         .header("X-User-Id", owner_id.to_string())
         .send()
@@ -204,7 +204,7 @@ async fn test_revoke_nonexistent_permission_returns_not_found() {
     let fake_id = uuid::Uuid::new_v4();
     let res = client
         .delete(format!(
-            "{address}/api/workspaces/{ws_id}/members/{member_id}/permissions/{fake_id}"
+            "{address}/api/v1/workspaces/{ws_id}/members/{member_id}/permissions/{fake_id}"
         ))
         .header("X-User-Id", owner_id.to_string())
         .send()

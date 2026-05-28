@@ -64,7 +64,7 @@ async fn test_leave_type_crud_lifecycle() {
         .clone()
         .oneshot(req(
             "POST",
-            &format!("/api/workspaces/{ws_id}/leave/types"),
+            &format!("/api/v1/workspaces/{ws_id}/leave/types"),
             ws_id,
             admin_id,
             Some(create_body.to_string()),
@@ -83,7 +83,7 @@ async fn test_leave_type_crud_lifecycle() {
         .clone()
         .oneshot(req(
             "GET",
-            &format!("/api/workspaces/{ws_id}/leave/types"),
+            &format!("/api/v1/workspaces/{ws_id}/leave/types"),
             ws_id,
             admin_id,
             None,
@@ -111,7 +111,7 @@ async fn test_leave_type_crud_lifecycle() {
         .clone()
         .oneshot(req(
             "PUT",
-            &format!("/api/workspaces/{ws_id}/leave/types/{type_id}/config"),
+            &format!("/api/v1/workspaces/{ws_id}/leave/types/{type_id}/config"),
             ws_id,
             admin_id,
             Some(update_body.to_string()),
@@ -125,7 +125,7 @@ async fn test_leave_type_crud_lifecycle() {
         .clone()
         .oneshot(req(
             "DELETE",
-            &format!("/api/workspaces/{ws_id}/leave/types/{type_id}"),
+            &format!("/api/v1/workspaces/{ws_id}/leave/types/{type_id}"),
             ws_id,
             admin_id,
             None,
@@ -154,7 +154,7 @@ async fn test_leave_type_delete_conflict_when_in_use() {
         .clone()
         .oneshot(req(
             "POST",
-            &format!("/api/workspaces/{ws_id}/leave/types"),
+            &format!("/api/v1/workspaces/{ws_id}/leave/types"),
             ws_id,
             admin_id,
             Some(create_body.to_string()),
@@ -180,7 +180,7 @@ async fn test_leave_type_delete_conflict_when_in_use() {
         .clone()
         .oneshot(req(
             "DELETE",
-            &format!("/api/workspaces/{ws_id}/leave/types/{type_id}"),
+            &format!("/api/v1/workspaces/{ws_id}/leave/types/{type_id}"),
             ws_id,
             admin_id,
             None,
@@ -223,7 +223,7 @@ async fn test_leave_type_rbac_member_forbidden() {
         .clone()
         .oneshot(req(
             "POST",
-            &format!("/api/workspaces/{ws_id}/leave/types"),
+            &format!("/api/v1/workspaces/{ws_id}/leave/types"),
             ws_id,
             member_id,
             Some(create_body.to_string()),

@@ -9,7 +9,7 @@ async fn test_access_without_token_is_forbidden() {
     let client = reqwest::Client::new();
 
     let response = client
-        .get(format!("{}/api/workspaces", &address))
+        .get(format!("{}/api/v1/workspaces", &address))
         .send()
         .await
         .expect("Failed to execute request.");

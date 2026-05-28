@@ -52,7 +52,7 @@ async fn test_delete_time_entry_not_found() {
         .clone()
         .oneshot(req(
             "DELETE",
-            &format!("/api/workspaces/{ws_id}/time/entries/{fake_id}"),
+            &format!("/api/v1/workspaces/{ws_id}/time/entries/{fake_id}"),
             ws_id,
             admin_id,
             None,
@@ -78,7 +78,7 @@ async fn test_update_time_entry_not_found() {
         .clone()
         .oneshot(req(
             "PUT",
-            &format!("/api/workspaces/{ws_id}/time/entries/{fake_id}"),
+            &format!("/api/v1/workspaces/{ws_id}/time/entries/{fake_id}"),
             ws_id,
             admin_id,
             Some(body.to_string()),
@@ -101,7 +101,7 @@ async fn test_get_time_history_empty() {
         .clone()
         .oneshot(req(
             "GET",
-            &format!("/api/workspaces/{ws_id}/time/history/{emp_id}?start=2026-01-01T00:00:00Z&end=2026-01-31T23:59:59Z"),
+            &format!("/api/v1/workspaces/{ws_id}/time/history/{emp_id}?start=2026-01-01T00:00:00Z&end=2026-01-31T23:59:59Z"),
             ws_id,
             admin_id,
             None,

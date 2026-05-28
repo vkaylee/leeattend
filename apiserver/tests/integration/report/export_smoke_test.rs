@@ -33,7 +33,7 @@ async fn test_create_export_job_success() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri(format!("/api/workspaces/{ws_id}/reports/export"))
+                .uri(format!("/api/v1/workspaces/{ws_id}/reports/export"))
                 .header("Content-Type", "application/json")
                 .header("X-User-Id", admin_id.to_string())
                 .header("X-Workspace-Id", ws_id.to_string())

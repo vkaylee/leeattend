@@ -53,7 +53,7 @@ async fn test_system_roles_are_seeded_with_permissions() {
         .clone()
         .oneshot(req(
             "GET",
-            &format!("/api/workspaces/{ws_id}/roles"),
+            &format!("/api/v1/workspaces/{ws_id}/roles"),
             ws_id,
             admin_id,
             None,
@@ -79,7 +79,7 @@ async fn test_system_roles_are_seeded_with_permissions() {
         .clone()
         .oneshot(req(
             "GET",
-            &format!("/api/workspaces/{ws_id}/roles/{role_id}/permissions"),
+            &format!("/api/v1/workspaces/{ws_id}/roles/{role_id}/permissions"),
             ws_id,
             admin_id,
             None,
@@ -134,7 +134,7 @@ async fn test_extra_role_assign_and_revoke() {
         .clone()
         .oneshot(req(
             "GET",
-            &format!("/api/workspaces/{ws_id}/members/{member_id}/roles"),
+            &format!("/api/v1/workspaces/{ws_id}/members/{member_id}/roles"),
             ws_id,
             admin_id,
             None,
@@ -156,7 +156,7 @@ async fn test_extra_role_assign_and_revoke() {
         .clone()
         .oneshot(req(
             "POST",
-            &format!("/api/workspaces/{ws_id}/members/{member_id}/roles"),
+            &format!("/api/v1/workspaces/{ws_id}/members/{member_id}/roles"),
             ws_id,
             admin_id,
             Some(assign_body.to_string()),
@@ -172,7 +172,7 @@ async fn test_extra_role_assign_and_revoke() {
         .clone()
         .oneshot(req(
             "GET",
-            &format!("/api/workspaces/{ws_id}/members/{member_id}/roles"),
+            &format!("/api/v1/workspaces/{ws_id}/members/{member_id}/roles"),
             ws_id,
             admin_id,
             None,
@@ -188,7 +188,7 @@ async fn test_extra_role_assign_and_revoke() {
         .clone()
         .oneshot(req(
             "DELETE",
-            &format!("/api/workspaces/{ws_id}/members/{member_id}/roles/{role_id}"),
+            &format!("/api/v1/workspaces/{ws_id}/members/{member_id}/roles/{role_id}"),
             ws_id,
             admin_id,
             None,
@@ -230,7 +230,7 @@ async fn test_assign_role_expired_returns_validation_error() {
         .clone()
         .oneshot(req(
             "POST",
-            &format!("/api/workspaces/{ws_id}/members/{member_id}/roles"),
+            &format!("/api/v1/workspaces/{ws_id}/members/{member_id}/roles"),
             ws_id,
             admin_id,
             Some(body.to_string()),
@@ -284,7 +284,7 @@ async fn test_assign_role_rbac_member_forbidden() {
         .clone()
         .oneshot(req(
             "POST",
-            &format!("/api/workspaces/{ws_id}/members/{target_id}/roles"),
+            &format!("/api/v1/workspaces/{ws_id}/members/{target_id}/roles"),
             ws_id,
             member_id,
             Some(body.to_string()),
@@ -313,7 +313,7 @@ async fn test_custom_role_crud() {
         .clone()
         .oneshot(req(
             "POST",
-            &format!("/api/workspaces/{ws_id}/roles"),
+            &format!("/api/v1/workspaces/{ws_id}/roles"),
             ws_id,
             admin_id,
             Some(create_body.to_string()),
@@ -338,7 +338,7 @@ async fn test_custom_role_crud() {
         .clone()
         .oneshot(req(
             "PUT",
-            &format!("/api/workspaces/{ws_id}/roles/{role_id}"),
+            &format!("/api/v1/workspaces/{ws_id}/roles/{role_id}"),
             ws_id,
             admin_id,
             Some(update_body.to_string()),
@@ -355,7 +355,7 @@ async fn test_custom_role_crud() {
         .clone()
         .oneshot(req(
             "DELETE",
-            &format!("/api/workspaces/{ws_id}/roles/{role_id}"),
+            &format!("/api/v1/workspaces/{ws_id}/roles/{role_id}"),
             ws_id,
             admin_id,
             None,
@@ -385,7 +385,7 @@ async fn test_custom_role_permissions() {
         .clone()
         .oneshot(req(
             "POST",
-            &format!("/api/workspaces/{ws_id}/roles"),
+            &format!("/api/v1/workspaces/{ws_id}/roles"),
             ws_id,
             admin_id,
             Some(create_body.to_string()),
@@ -401,7 +401,7 @@ async fn test_custom_role_permissions() {
         .clone()
         .oneshot(req(
             "GET",
-            &format!("/api/workspaces/{ws_id}/roles/{role_id}/permissions"),
+            &format!("/api/v1/workspaces/{ws_id}/roles/{role_id}/permissions"),
             ws_id,
             admin_id,
             None,
@@ -421,7 +421,7 @@ async fn test_custom_role_permissions() {
         .clone()
         .oneshot(req(
             "PUT",
-            &format!("/api/workspaces/{ws_id}/roles/{role_id}/permissions"),
+            &format!("/api/v1/workspaces/{ws_id}/roles/{role_id}/permissions"),
             ws_id,
             admin_id,
             Some(update_body.to_string()),
@@ -435,7 +435,7 @@ async fn test_custom_role_permissions() {
         .clone()
         .oneshot(req(
             "GET",
-            &format!("/api/workspaces/{ws_id}/roles/{role_id}/permissions"),
+            &format!("/api/v1/workspaces/{ws_id}/roles/{role_id}/permissions"),
             ws_id,
             admin_id,
             None,
@@ -482,7 +482,7 @@ async fn test_regular_member_can_list_workspace_roles() {
         .clone()
         .oneshot(req(
             "GET",
-            &format!("/api/workspaces/{ws_id}/roles"),
+            &format!("/api/v1/workspaces/{ws_id}/roles"),
             ws_id,
             employee_id,
             None,
@@ -531,7 +531,7 @@ async fn test_workspace_roles_response_includes_scope_type() {
         .clone()
         .oneshot(req(
             "GET",
-            &format!("/api/workspaces/{ws_id}/roles"),
+            &format!("/api/v1/workspaces/{ws_id}/roles"),
             ws_id,
             owner_id,
             None,
@@ -603,7 +603,7 @@ async fn test_regular_member_cannot_create_role() {
         .clone()
         .oneshot(req(
             "POST",
-            &format!("/api/workspaces/{ws_id}/roles"),
+            &format!("/api/v1/workspaces/{ws_id}/roles"),
             ws_id,
             member_id,
             Some(create_body.to_string()),
@@ -637,7 +637,7 @@ async fn test_regular_member_cannot_update_or_delete_role() {
         .clone()
         .oneshot(req(
             "POST",
-            &format!("/api/workspaces/{ws_id}/roles"),
+            &format!("/api/v1/workspaces/{ws_id}/roles"),
             ws_id,
             owner_id,
             Some(create_body.to_string()),
@@ -667,7 +667,7 @@ async fn test_regular_member_cannot_update_or_delete_role() {
         .clone()
         .oneshot(req(
             "PUT",
-            &format!("/api/workspaces/{ws_id}/roles/{role_id}"),
+            &format!("/api/v1/workspaces/{ws_id}/roles/{role_id}"),
             ws_id,
             member_id,
             Some(serde_json::json!({ "name": "Pwned Role" }).to_string()),
@@ -685,7 +685,7 @@ async fn test_regular_member_cannot_update_or_delete_role() {
         .clone()
         .oneshot(req(
             "DELETE",
-            &format!("/api/workspaces/{ws_id}/roles/{role_id}"),
+            &format!("/api/v1/workspaces/{ws_id}/roles/{role_id}"),
             ws_id,
             member_id,
             None,
@@ -712,7 +712,7 @@ async fn test_cannot_delete_system_role() {
         .clone()
         .oneshot(req(
             "GET",
-            &format!("/api/workspaces/{ws_id}/roles"),
+            &format!("/api/v1/workspaces/{ws_id}/roles"),
             ws_id,
             owner_id,
             None,
@@ -733,7 +733,7 @@ async fn test_cannot_delete_system_role() {
         .clone()
         .oneshot(req(
             "DELETE",
-            &format!("/api/workspaces/{ws_id}/roles/{system_role_id}"),
+            &format!("/api/v1/workspaces/{ws_id}/roles/{system_role_id}"),
             ws_id,
             owner_id,
             None,
@@ -764,7 +764,7 @@ async fn test_cannot_update_system_role() {
         .clone()
         .oneshot(req(
             "PUT",
-            &format!("/api/workspaces/{ws_id}/roles/{admin_role_id}"),
+            &format!("/api/v1/workspaces/{ws_id}/roles/{admin_role_id}"),
             ws_id,
             owner_id,
             Some(serde_json::json!({ "name": "Renamed Admin" }).to_string()),
@@ -802,7 +802,7 @@ async fn test_update_primary_role_via_patch_members() {
         .clone()
         .oneshot(req(
             "GET",
-            &format!("/api/workspaces/{ws_id}/members/{member_id}/roles"),
+            &format!("/api/v1/workspaces/{ws_id}/members/{member_id}/roles"),
             ws_id,
             owner_id,
             None,
@@ -818,7 +818,7 @@ async fn test_update_primary_role_via_patch_members() {
         .clone()
         .oneshot(req(
             "PATCH",
-            &format!("/api/workspaces/{ws_id}/members/{member_id}"),
+            &format!("/api/v1/workspaces/{ws_id}/members/{member_id}"),
             ws_id,
             owner_id,
             Some(serde_json::json!({ "role_id": admin_role }).to_string()),
@@ -836,7 +836,7 @@ async fn test_update_primary_role_via_patch_members() {
         .clone()
         .oneshot(req(
             "GET",
-            &format!("/api/workspaces/{ws_id}/members/{member_id}/roles"),
+            &format!("/api/v1/workspaces/{ws_id}/members/{member_id}/roles"),
             ws_id,
             owner_id,
             None,
@@ -872,7 +872,7 @@ async fn test_custom_role_with_scope_type() {
         .clone()
         .oneshot(req(
             "POST",
-            &format!("/api/workspaces/{ws_id}/roles"),
+            &format!("/api/v1/workspaces/{ws_id}/roles"),
             ws_id,
             owner_id,
             Some(create_body.to_string()),
@@ -899,7 +899,7 @@ async fn test_custom_role_with_scope_type() {
         .clone()
         .oneshot(req(
             "POST",
-            &format!("/api/workspaces/{ws_id}/roles"),
+            &format!("/api/v1/workspaces/{ws_id}/roles"),
             ws_id,
             owner_id,
             Some(create_body.to_string()),

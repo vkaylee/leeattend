@@ -123,7 +123,7 @@ async fn test_get_me_and_logout_smoke() {
         .oneshot(
             axum::http::Request::builder()
                 .method("GET")
-                .uri("/api/me")
+                .uri("/api/v1/me")
                 .header("X-User-Id", user_id.to_string())
                 .body(axum::body::Body::empty())
                 .unwrap(),
@@ -141,7 +141,7 @@ async fn test_get_me_and_logout_smoke() {
         .oneshot(
             axum::http::Request::builder()
                 .method("POST")
-                .uri("/api/auth/logout")
+                .uri("/api/v1/auth/logout")
                 .header("Content-Type", "application/json")
                 .body(axum::body::Body::from(logout_req.to_string()))
                 .unwrap(),
@@ -173,7 +173,7 @@ async fn test_get_me_not_found() {
         .oneshot(
             axum::http::Request::builder()
                 .method("GET")
-                .uri("/api/me")
+                .uri("/api/v1/me")
                 .header("X-User-Id", Uuid::new_v4().to_string())
                 .body(axum::body::Body::empty())
                 .unwrap(),
@@ -205,7 +205,7 @@ async fn test_refresh_token_api() {
         .oneshot(
             axum::http::Request::builder()
                 .method("POST")
-                .uri("/api/auth/refresh")
+                .uri("/api/v1/auth/refresh")
                 .header("Content-Type", "application/json")
                 .body(axum::body::Body::from(req.to_string()))
                 .unwrap(),

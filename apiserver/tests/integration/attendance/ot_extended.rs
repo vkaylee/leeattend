@@ -51,7 +51,7 @@ async fn test_get_attendance_summaries_empty() {
         .clone()
         .oneshot(req(
             "GET",
-            &format!("/api/workspaces/{ws_id}/attendance/summaries?start_date=2026-01-01&end_date=2026-01-31"),
+            &format!("/api/v1/workspaces/{ws_id}/attendance/summaries?start_date=2026-01-01&end_date=2026-01-31"),
             ws_id,
             admin_id,
             None,
@@ -76,7 +76,7 @@ async fn test_get_attendance_summaries_for_employee() {
         .clone()
         .oneshot(req(
             "GET",
-            &format!("/api/workspaces/{ws_id}/attendance/summaries?start_date=2026-01-01&end_date=2026-01-31&employee_id={emp_id}"),
+            &format!("/api/v1/workspaces/{ws_id}/attendance/summaries?start_date=2026-01-01&end_date=2026-01-31&employee_id={emp_id}"),
             ws_id,
             admin_id,
             None,
@@ -106,7 +106,7 @@ async fn test_claim_ot_employee_not_found() {
         .clone()
         .oneshot(req(
             "POST",
-            &format!("/api/workspaces/{ws_id}/attendance/claim-ot/{fake_id}"),
+            &format!("/api/v1/workspaces/{ws_id}/attendance/claim-ot/{fake_id}"),
             ws_id,
             admin_id,
             Some(body.to_string()),
@@ -135,7 +135,7 @@ async fn test_approve_ot_employee_not_found() {
         .clone()
         .oneshot(req(
             "POST",
-            &format!("/api/workspaces/{ws_id}/attendance/approve-ot/{fake_id}"),
+            &format!("/api/v1/workspaces/{ws_id}/attendance/approve-ot/{fake_id}"),
             ws_id,
             admin_id,
             Some(body.to_string()),
@@ -165,7 +165,7 @@ async fn test_approve_ot_invalid_status() {
         .clone()
         .oneshot(req(
             "POST",
-            &format!("/api/workspaces/{ws_id}/attendance/approve-ot/{emp_id}"),
+            &format!("/api/v1/workspaces/{ws_id}/attendance/approve-ot/{emp_id}"),
             ws_id,
             admin_id,
             Some(body.to_string()),
@@ -208,7 +208,7 @@ async fn test_approve_ot_rbac_member_forbidden() {
         .clone()
         .oneshot(req(
             "POST",
-            &format!("/api/workspaces/{ws_id}/attendance/approve-ot/{emp_id}"),
+            &format!("/api/v1/workspaces/{ws_id}/attendance/approve-ot/{emp_id}"),
             ws_id,
             member_id,
             Some(body.to_string()),

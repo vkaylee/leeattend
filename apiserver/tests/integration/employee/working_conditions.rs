@@ -58,7 +58,7 @@ async fn test_working_conditions_crud_lifecycle() {
         .clone()
         .oneshot(make_req(
             "POST",
-            &format!("/api/workspaces/{ws_id}/employees/{emp_id}/conditions"),
+            &format!("/api/v1/workspaces/{ws_id}/employees/{emp_id}/conditions"),
             ws_id,
             user_id,
             Some(create_payload),
@@ -85,7 +85,7 @@ async fn test_working_conditions_crud_lifecycle() {
         .clone()
         .oneshot(make_req(
             "GET",
-            &format!("/api/workspaces/{ws_id}/employees/{emp_id}/conditions"),
+            &format!("/api/v1/workspaces/{ws_id}/employees/{emp_id}/conditions"),
             ws_id,
             user_id,
             None,
@@ -106,7 +106,7 @@ async fn test_working_conditions_crud_lifecycle() {
         .clone()
         .oneshot(make_req(
             "DELETE",
-            &format!("/api/workspaces/{ws_id}/employees/{emp_id}/conditions/{cond_id}"),
+            &format!("/api/v1/workspaces/{ws_id}/employees/{emp_id}/conditions/{cond_id}"),
             ws_id,
             user_id,
             None,
@@ -125,7 +125,7 @@ async fn test_working_conditions_crud_lifecycle() {
         .clone()
         .oneshot(make_req(
             "GET",
-            &format!("/api/workspaces/{ws_id}/employees/{emp_id}/conditions"),
+            &format!("/api/v1/workspaces/{ws_id}/employees/{emp_id}/conditions"),
             ws_id,
             user_id,
             None,
@@ -176,7 +176,7 @@ async fn test_working_conditions_permission_enforcement() {
         .clone()
         .oneshot(make_req(
             "POST",
-            &format!("/api/workspaces/{ws_id}/employees/{emp_id}/conditions"),
+            &format!("/api/v1/workspaces/{ws_id}/employees/{emp_id}/conditions"),
             ws_id,
             regular_user_id,
             Some(create_payload.clone()),
@@ -195,7 +195,7 @@ async fn test_working_conditions_permission_enforcement() {
         .clone()
         .oneshot(make_req(
             "POST",
-            &format!("/api/workspaces/{ws_id}/employees/{emp_id}/conditions"),
+            &format!("/api/v1/workspaces/{ws_id}/employees/{emp_id}/conditions"),
             ws_id,
             owner_id,
             Some(create_payload),
@@ -219,7 +219,7 @@ async fn test_working_conditions_permission_enforcement() {
         .clone()
         .oneshot(make_req(
             "DELETE",
-            &format!("/api/workspaces/{ws_id}/employees/{emp_id}/conditions/{cond_id}"),
+            &format!("/api/v1/workspaces/{ws_id}/employees/{emp_id}/conditions/{cond_id}"),
             ws_id,
             regular_user_id,
             None,
@@ -247,7 +247,7 @@ async fn test_working_condition_for_nonexistent_employee_returns_not_found() {
         .clone()
         .oneshot(make_req(
             "POST",
-            &format!("/api/workspaces/{ws_id}/employees/{fake_emp_id}/conditions"),
+            &format!("/api/v1/workspaces/{ws_id}/employees/{fake_emp_id}/conditions"),
             ws_id,
             owner_id,
             Some(json!({

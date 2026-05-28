@@ -49,7 +49,7 @@ async fn test_ot_claim_approval_workflow() {
             axum::http::Request::builder()
                 .method("POST")
                 .uri(format!(
-                    "/api/workspaces/{ws_id}/attendance/claim-ot/{emp_id}"
+                    "/api/v1/workspaces/{ws_id}/attendance/claim-ot/{emp_id}"
                 ))
                 .header("Content-Type", "application/json")
                 .header("X-User-Id", user_id.to_string())

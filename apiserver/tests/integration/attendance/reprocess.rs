@@ -78,7 +78,7 @@ async fn test_force_reprocess_attendance_api() {
             Request::builder()
                 .method("POST")
                 .uri(format!(
-                    "/api/workspaces/{ws_id}/attendance/reprocess/{emp_id}?start_date={base_date}&end_date={base_date}"
+                    "/api/v1/workspaces/{ws_id}/attendance/reprocess/{emp_id}?start_date={base_date}&end_date={base_date}"
                 ))
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())
@@ -173,7 +173,7 @@ async fn test_force_reprocess_all_attendance_api() {
             Request::builder()
                 .method("POST")
                 .uri(format!(
-                    "/api/workspaces/{ws_id}/attendance/reprocess-all?start_date={base_date}&end_date={base_date}"
+                    "/api/v1/workspaces/{ws_id}/attendance/reprocess-all?start_date={base_date}&end_date={base_date}"
                 ))
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())

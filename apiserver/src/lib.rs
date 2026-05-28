@@ -272,7 +272,7 @@ pub fn create_app(state: Arc<AppState>) -> Router {
     };
 
     Router::new()
-        .nest("/api", router)
+        .nest("/api/v1", router)
         .layer(cors)
         .layer(tower_http::trace::TraceLayer::new_for_http())
         .with_state(state)

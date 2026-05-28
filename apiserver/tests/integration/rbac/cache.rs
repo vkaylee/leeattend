@@ -16,7 +16,7 @@ use uuid::Uuid;
 fn member_list_request(ws_id: Uuid, caller_id: Uuid) -> axum::http::Request<axum::body::Body> {
     axum::http::Request::builder()
         .method("GET")
-        .uri(format!("/api/workspaces/{ws_id}/members"))
+        .uri(format!("/api/v1/workspaces/{ws_id}/members"))
         .header("X-Workspace-Id", ws_id.to_string())
         .header("X-User-Id", caller_id.to_string())
         .body(axum::body::Body::empty())
@@ -91,7 +91,7 @@ async fn test_cache_invalidation_on_member_role_update() {
         .oneshot(
             axum::http::Request::builder()
                 .method("PATCH")
-                .uri(format!("/api/workspaces/{ws_id}/members/{member_id}"))
+                .uri(format!("/api/v1/workspaces/{ws_id}/members/{member_id}"))
                 .header("Content-Type", "application/json")
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", owner_id.to_string())
@@ -164,7 +164,7 @@ async fn test_cache_invalidation_on_extra_permission_grant() {
             axum::http::Request::builder()
                 .method("POST")
                 .uri(format!(
-                    "/api/workspaces/{ws_id}/members/{member_id}/permissions"
+                    "/api/v1/workspaces/{ws_id}/members/{member_id}/permissions"
                 ))
                 .header("Content-Type", "application/json")
                 .header("X-Workspace-Id", ws_id.to_string())
@@ -219,7 +219,7 @@ async fn test_cache_invalidation_on_extra_permission_revoke() {
             axum::http::Request::builder()
                 .method("POST")
                 .uri(format!(
-                    "/api/workspaces/{ws_id}/members/{member_id}/permissions"
+                    "/api/v1/workspaces/{ws_id}/members/{member_id}/permissions"
                 ))
                 .header("Content-Type", "application/json")
                 .header("X-Workspace-Id", ws_id.to_string())
@@ -251,7 +251,7 @@ async fn test_cache_invalidation_on_extra_permission_revoke() {
             axum::http::Request::builder()
                 .method("DELETE")
                 .uri(format!(
-                    "/api/workspaces/{ws_id}/members/{member_id}/permissions/{perm_id}"
+                    "/api/v1/workspaces/{ws_id}/members/{member_id}/permissions/{perm_id}"
                 ))
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", owner_id.to_string())
@@ -300,7 +300,7 @@ async fn test_cache_invalidation_on_role_permissions_update() {
         .oneshot(
             axum::http::Request::builder()
                 .method("POST")
-                .uri(format!("/api/workspaces/{ws_id}/roles"))
+                .uri(format!("/api/v1/workspaces/{ws_id}/roles"))
                 .header("Content-Type", "application/json")
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", owner_id.to_string())
@@ -335,7 +335,7 @@ async fn test_cache_invalidation_on_role_permissions_update() {
             axum::http::Request::builder()
                 .method("PUT")
                 .uri(format!(
-                    "/api/workspaces/{ws_id}/roles/{role_id}/permissions"
+                    "/api/v1/workspaces/{ws_id}/roles/{role_id}/permissions"
                 ))
                 .header("Content-Type", "application/json")
                 .header("X-Workspace-Id", ws_id.to_string())
@@ -389,7 +389,7 @@ async fn test_cache_invalidation_on_member_removal() {
         .oneshot(
             axum::http::Request::builder()
                 .method("DELETE")
-                .uri(format!("/api/workspaces/{ws_id}/members/{member_id}"))
+                .uri(format!("/api/v1/workspaces/{ws_id}/members/{member_id}"))
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", owner_id.to_string())
                 .body(axum::body::Body::empty())

@@ -47,7 +47,7 @@ async fn test_leave_request_lifecycle_smoke() {
         .oneshot(
             axum::http::Request::builder()
                 .method("POST")
-                .uri(format!("/api/workspaces/{ws_id}/leave/submit"))
+                .uri(format!("/api/v1/workspaces/{ws_id}/leave/submit"))
                 .header("Content-Type", "application/json")
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())
@@ -77,7 +77,7 @@ async fn test_leave_request_lifecycle_smoke() {
             axum::http::Request::builder()
                 .method("POST")
                 .uri(format!(
-                    "/api/workspaces/{}/leave/requests/{}/approve",
+                    "/api/v1/workspaces/{}/leave/requests/{}/approve",
                     ws_id, leave_req.id
                 ))
                 .header("Content-Type", "application/json")
@@ -129,7 +129,7 @@ async fn test_leave_balances_smoke() {
             axum::http::Request::builder()
                 .method("GET")
                 .uri(format!(
-                    "/api/workspaces/{ws_id}/employees/{emp_id}/leave/balances"
+                    "/api/v1/workspaces/{ws_id}/employees/{emp_id}/leave/balances"
                 ))
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())
@@ -182,7 +182,7 @@ async fn test_workspace_leave_balances_filtering() {
         .oneshot(
             axum::http::Request::builder()
                 .method("GET")
-                .uri(format!("/api/workspaces/{ws_id}/leave/balances"))
+                .uri(format!("/api/v1/workspaces/{ws_id}/leave/balances"))
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())
                 .body(axum::body::Body::empty())

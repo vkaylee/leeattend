@@ -77,7 +77,7 @@ async fn test_system_health_access() {
     // PlatformAdmin can access
     let res = app
         .clone()
-        .oneshot(make_req("GET", "/api/system/health", admin_id, None))
+        .oneshot(make_req("GET", "/api/v1/system/health", admin_id, None))
         .await
         .unwrap();
     assert_eq!(res.status(), StatusCode::OK);
@@ -85,7 +85,7 @@ async fn test_system_health_access() {
     // Support can access
     let res = app
         .clone()
-        .oneshot(make_req("GET", "/api/system/health", support_id, None))
+        .oneshot(make_req("GET", "/api/v1/system/health", support_id, None))
         .await
         .unwrap();
     assert_eq!(res.status(), StatusCode::OK);
@@ -93,7 +93,7 @@ async fn test_system_health_access() {
     // Regular user cannot access
     let res = app
         .clone()
-        .oneshot(make_req("GET", "/api/system/health", regular_id, None))
+        .oneshot(make_req("GET", "/api/v1/system/health", regular_id, None))
         .await
         .unwrap();
     assert_eq!(res.status(), StatusCode::FORBIDDEN);
@@ -112,7 +112,7 @@ async fn test_system_roles_crud_lifecycle() {
     // 1. List system roles
     let res = app
         .clone()
-        .oneshot(make_req("GET", "/api/system/roles", admin_id, None))
+        .oneshot(make_req("GET", "/api/v1/system/roles", admin_id, None))
         .await
         .unwrap();
     assert_eq!(res.status(), StatusCode::OK);
@@ -124,7 +124,7 @@ async fn test_system_roles_crud_lifecycle() {
         .clone()
         .oneshot(make_req(
             "GET",
-            &format!("/api/system/users/{target_id}/roles"),
+            &format!("/api/v1/system/users/{target_id}/roles"),
             admin_id,
             None,
         ))
@@ -139,7 +139,7 @@ async fn test_system_roles_crud_lifecycle() {
         .clone()
         .oneshot(make_req(
             "POST",
-            &format!("/api/system/users/{target_id}/roles"),
+            &format!("/api/v1/system/users/{target_id}/roles"),
             admin_id,
             Some(json!({ "role_name": "support" })),
         ))
@@ -152,7 +152,7 @@ async fn test_system_roles_crud_lifecycle() {
         .clone()
         .oneshot(make_req(
             "GET",
-            &format!("/api/system/users/{target_id}/roles"),
+            &format!("/api/v1/system/users/{target_id}/roles"),
             admin_id,
             None,
         ))
@@ -172,7 +172,7 @@ async fn test_system_roles_crud_lifecycle() {
         .clone()
         .oneshot(make_req(
             "DELETE",
-            &format!("/api/system/users/{target_id}/roles/support"),
+            &format!("/api/v1/system/users/{target_id}/roles/support"),
             admin_id,
             None,
         ))
@@ -185,7 +185,7 @@ async fn test_system_roles_crud_lifecycle() {
         .clone()
         .oneshot(make_req(
             "GET",
-            &format!("/api/system/users/{target_id}/roles"),
+            &format!("/api/v1/system/users/{target_id}/roles"),
             admin_id,
             None,
         ))
@@ -214,7 +214,7 @@ async fn test_cannot_revoke_last_platform_admin() {
         .clone()
         .oneshot(make_req(
             "DELETE",
-            &format!("/api/system/users/{admin_id}/roles/platform_admin"),
+            &format!("/api/v1/system/users/{admin_id}/roles/platform_admin"),
             admin_id,
             None,
         ))
@@ -233,7 +233,7 @@ async fn test_cannot_revoke_last_platform_admin() {
         .clone()
         .oneshot(make_req(
             "DELETE",
-            &format!("/api/system/users/{second_admin_id}/roles/platform_admin"),
+            &format!("/api/v1/system/users/{second_admin_id}/roles/platform_admin"),
             admin_id,
             None,
         ))
@@ -253,7 +253,7 @@ async fn test_regular_user_cannot_manage_system_roles() {
     // Try to list roles
     let res = app
         .clone()
-        .oneshot(make_req("GET", "/api/system/roles", regular_id, None))
+        .oneshot(make_req("GET", "/api/v1/system/roles", regular_id, None))
         .await
         .unwrap();
     assert_eq!(res.status(), StatusCode::FORBIDDEN);
@@ -263,7 +263,7 @@ async fn test_regular_user_cannot_manage_system_roles() {
         .clone()
         .oneshot(make_req(
             "POST",
-            &format!("/api/system/users/{regular_id}/roles"),
+            &format!("/api/v1/system/users/{regular_id}/roles"),
             regular_id,
             Some(json!({ "role_name": "support" })),
         ))

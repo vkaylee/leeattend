@@ -19,7 +19,7 @@ async fn test_agent_token_update() {
 
     // 1. Khai báo agent
     client
-        .post(format!("{address}/api/authorized-agents"))
+        .post(format!("{address}/api/v1/authorized-agents"))
         .header("X-Workspace-Id", workspace_id.to_string())
         .header("X-User-Id", user_id.to_string())
         .json(&serde_json::json!({
@@ -33,7 +33,7 @@ async fn test_agent_token_update() {
 
     // 2. Cập nhật token
     let response = client
-        .patch(format!("{address}/api/authorized-agents/{agent_id}"))
+        .patch(format!("{address}/api/v1/authorized-agents/{agent_id}"))
         .header("X-Workspace-Id", workspace_id.to_string())
         .header("X-User-Id", user_id.to_string())
         .json(&serde_json::json!({
@@ -49,7 +49,7 @@ async fn test_agent_token_update() {
 
     // 3. Kiểm tra lại bằng GET
     let response = client
-        .get(format!("{address}/api/authorized-agents/{agent_id}"))
+        .get(format!("{address}/api/v1/authorized-agents/{agent_id}"))
         .header("X-Workspace-Id", workspace_id.to_string())
         .header("X-User-Id", user_id.to_string())
         .send()

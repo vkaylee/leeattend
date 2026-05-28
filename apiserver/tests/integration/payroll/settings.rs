@@ -63,7 +63,7 @@ async fn test_payroll_settings_update_and_history() {
         .clone()
         .oneshot(req(
             "GET",
-            &format!("/api/workspaces/{ws_id}/payroll-settings"),
+            &format!("/api/v1/workspaces/{ws_id}/payroll-settings"),
             ws_id,
             admin_id,
             None,
@@ -85,7 +85,7 @@ async fn test_payroll_settings_update_and_history() {
         .clone()
         .oneshot(req(
             "PATCH",
-            &format!("/api/workspaces/{ws_id}/payroll-settings"),
+            &format!("/api/v1/workspaces/{ws_id}/payroll-settings"),
             ws_id,
             admin_id,
             Some(update_body.to_string()),
@@ -101,7 +101,7 @@ async fn test_payroll_settings_update_and_history() {
         .clone()
         .oneshot(req(
             "GET",
-            &format!("/api/workspaces/{ws_id}/payroll-settings/history"),
+            &format!("/api/v1/workspaces/{ws_id}/payroll-settings/history"),
             ws_id,
             admin_id,
             None,

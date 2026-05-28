@@ -57,7 +57,7 @@ async fn test_cannot_revoke_sole_platform_admin_self() {
         .oneshot(
             axum::http::Request::builder()
                 .method("DELETE")
-                .uri(format!("/api/system/users/{admin_id}/roles/platform_admin"))
+                .uri(format!("/api/v1/system/users/{admin_id}/roles/platform_admin"))
                 .header("X-User-Id", admin_id.to_string())
                 .body(axum::body::Body::empty())
                 .unwrap(),
@@ -101,7 +101,7 @@ async fn test_cannot_revoke_other_sole_platform_admin() {
         .oneshot(
             axum::http::Request::builder()
                 .method("DELETE")
-                .uri(format!("/api/system/users/{user_a}/roles/platform_admin"))
+                .uri(format!("/api/v1/system/users/{user_a}/roles/platform_admin"))
                 .header("X-User-Id", user_b.to_string())
                 .body(axum::body::Body::empty())
                 .unwrap(),
@@ -123,7 +123,7 @@ async fn test_cannot_revoke_other_sole_platform_admin() {
         .oneshot(
             axum::http::Request::builder()
                 .method("DELETE")
-                .uri(format!("/api/system/users/{user_b}/roles/platform_admin"))
+                .uri(format!("/api/v1/system/users/{user_b}/roles/platform_admin"))
                 .header("X-User-Id", user_b.to_string())
                 .body(axum::body::Body::empty())
                 .unwrap(),
@@ -156,7 +156,7 @@ async fn test_revoke_platform_admin_succeeds_when_multiple_admins() {
         .oneshot(
             axum::http::Request::builder()
                 .method("DELETE")
-                .uri(format!("/api/system/users/{admin_b}/roles/platform_admin"))
+                .uri(format!("/api/v1/system/users/{admin_b}/roles/platform_admin"))
                 .header("X-User-Id", admin_a.to_string())
                 .body(axum::body::Body::empty())
                 .unwrap(),
@@ -188,7 +188,7 @@ async fn test_revoke_support_role_from_sole_admin_is_allowed() {
         .oneshot(
             axum::http::Request::builder()
                 .method("DELETE")
-                .uri(format!("/api/system/users/{admin_id}/roles/support"))
+                .uri(format!("/api/v1/system/users/{admin_id}/roles/support"))
                 .header("X-User-Id", admin_id.to_string())
                 .body(axum::body::Body::empty())
                 .unwrap(),
@@ -218,7 +218,7 @@ async fn test_blocked_revoke_preserves_role_assignment() {
         .oneshot(
             axum::http::Request::builder()
                 .method("DELETE")
-                .uri(format!("/api/system/users/{admin_id}/roles/platform_admin"))
+                .uri(format!("/api/v1/system/users/{admin_id}/roles/platform_admin"))
                 .header("X-User-Id", admin_id.to_string())
                 .body(axum::body::Body::empty())
                 .unwrap(),

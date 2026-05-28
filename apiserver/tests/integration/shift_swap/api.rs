@@ -131,7 +131,7 @@ async fn test_create_shift_swap() {
 
     let res = client
         .post(format!(
-            "{}/api/workspaces/{}/shift-swaps",
+            "{}/api/v1/workspaces/{}/shift-swaps",
             s.address, s.workspace_id
         ))
         .header("Authorization", format!("Bearer {}", s.auth_token))
@@ -170,7 +170,7 @@ async fn test_list_shift_swaps_by_status() {
     // Create a swap
     let create_res = client
         .post(format!(
-            "{}/api/workspaces/{}/shift-swaps",
+            "{}/api/v1/workspaces/{}/shift-swaps",
             s.address, s.workspace_id
         ))
         .header("Authorization", format!("Bearer {}", s.auth_token))
@@ -187,7 +187,7 @@ async fn test_list_shift_swaps_by_status() {
     // List pending_admin — should find it
     let list_res = client
         .get(format!(
-            "{}/api/workspaces/{}/shift-swaps?status=pending_admin",
+            "{}/api/v1/workspaces/{}/shift-swaps?status=pending_admin",
             s.address, s.workspace_id
         ))
         .header("Authorization", format!("Bearer {}", s.auth_token))
@@ -204,7 +204,7 @@ async fn test_list_shift_swaps_by_status() {
     // List approved — should be empty
     let empty_res = client
         .get(format!(
-            "{}/api/workspaces/{}/shift-swaps?status=approved",
+            "{}/api/v1/workspaces/{}/shift-swaps?status=approved",
             s.address, s.workspace_id
         ))
         .header("Authorization", format!("Bearer {}", s.auth_token))
@@ -229,7 +229,7 @@ async fn test_approve_shift_swap_swaps_rosters() {
     // 1. Create swap
     let swap: ShiftSwapRequest = client
         .post(format!(
-            "{}/api/workspaces/{}/shift-swaps",
+            "{}/api/v1/workspaces/{}/shift-swaps",
             s.address, s.workspace_id
         ))
         .header("Authorization", format!("Bearer {}", s.auth_token))
@@ -248,7 +248,7 @@ async fn test_approve_shift_swap_swaps_rosters() {
     // 2. Approve
     let approve_res = client
         .put(format!(
-            "{}/api/workspaces/{}/shift-swaps/{}/approve",
+            "{}/api/v1/workspaces/{}/shift-swaps/{}/approve",
             s.address, s.workspace_id, swap.id
         ))
         .header("Authorization", format!("Bearer {}", s.auth_token))
@@ -263,7 +263,7 @@ async fn test_approve_shift_swap_swaps_rosters() {
     // Employee A should now have Evening shift
     let roster_a: Vec<ShiftRoster> = client
         .get(format!(
-            "{}/api/workspaces/{}/employees/{}/rosters",
+            "{}/api/v1/workspaces/{}/employees/{}/rosters",
             s.address, s.workspace_id, s.emp_a
         ))
         .header("Authorization", format!("Bearer {}", s.auth_token))
@@ -285,7 +285,7 @@ async fn test_approve_shift_swap_swaps_rosters() {
     // Employee B should now have Morning shift
     let roster_b: Vec<ShiftRoster> = client
         .get(format!(
-            "{}/api/workspaces/{}/employees/{}/rosters",
+            "{}/api/v1/workspaces/{}/employees/{}/rosters",
             s.address, s.workspace_id, s.emp_b
         ))
         .header("Authorization", format!("Bearer {}", s.auth_token))
@@ -307,7 +307,7 @@ async fn test_approve_shift_swap_swaps_rosters() {
     // 4. Verify swap status is approved
     let swaps: Vec<ShiftSwapRequestWithNames> = client
         .get(format!(
-            "{}/api/workspaces/{}/shift-swaps?status=approved",
+            "{}/api/v1/workspaces/{}/shift-swaps?status=approved",
             s.address, s.workspace_id
         ))
         .header("Authorization", format!("Bearer {}", s.auth_token))
@@ -334,7 +334,7 @@ async fn test_reject_shift_swap() {
     // Create
     let swap: ShiftSwapRequest = client
         .post(format!(
-            "{}/api/workspaces/{}/shift-swaps",
+            "{}/api/v1/workspaces/{}/shift-swaps",
             s.address, s.workspace_id
         ))
         .header("Authorization", format!("Bearer {}", s.auth_token))
@@ -353,7 +353,7 @@ async fn test_reject_shift_swap() {
     // Reject
     let reject_res = client
         .put(format!(
-            "{}/api/workspaces/{}/shift-swaps/{}/approve",
+            "{}/api/v1/workspaces/{}/shift-swaps/{}/approve",
             s.address, s.workspace_id, swap.id
         ))
         .header("Authorization", format!("Bearer {}", s.auth_token))
@@ -367,7 +367,7 @@ async fn test_reject_shift_swap() {
     // Verify original roster still intact for Employee A (Morning)
     let roster_a: Vec<ShiftRoster> = client
         .get(format!(
-            "{}/api/workspaces/{}/employees/{}/rosters",
+            "{}/api/v1/workspaces/{}/employees/{}/rosters",
             s.address, s.workspace_id, s.emp_a
         ))
         .header("Authorization", format!("Bearer {}", s.auth_token))
@@ -399,7 +399,7 @@ async fn test_cannot_double_approve() {
     // Create & approve
     let swap: ShiftSwapRequest = client
         .post(format!(
-            "{}/api/workspaces/{}/shift-swaps",
+            "{}/api/v1/workspaces/{}/shift-swaps",
             s.address, s.workspace_id
         ))
         .header("Authorization", format!("Bearer {}", s.auth_token))
@@ -418,7 +418,7 @@ async fn test_cannot_double_approve() {
     // First approve
     client
         .put(format!(
-            "{}/api/workspaces/{}/shift-swaps/{}/approve",
+            "{}/api/v1/workspaces/{}/shift-swaps/{}/approve",
             s.address, s.workspace_id, swap.id
         ))
         .header("Authorization", format!("Bearer {}", s.auth_token))
@@ -430,7 +430,7 @@ async fn test_cannot_double_approve() {
     // Second approve → should fail with CONFLICT
     let res = client
         .put(format!(
-            "{}/api/workspaces/{}/shift-swaps/{}/approve",
+            "{}/api/v1/workspaces/{}/shift-swaps/{}/approve",
             s.address, s.workspace_id, swap.id
         ))
         .header("Authorization", format!("Bearer {}", s.auth_token))
@@ -458,7 +458,7 @@ async fn test_create_swap_same_employee_rejected() {
 
     let res = client
         .post(format!(
-            "{}/api/workspaces/{}/shift-swaps",
+            "{}/api/v1/workspaces/{}/shift-swaps",
             s.address, s.workspace_id
         ))
         .header("Authorization", format!("Bearer {}", s.auth_token))
@@ -499,7 +499,7 @@ async fn test_non_admin_cannot_create_swap() {
     let client = reqwest::Client::new();
     let res = client
         .post(format!(
-            "{address}/api/workspaces/{workspace_id}/shift-swaps"
+            "{address}/api/v1/workspaces/{workspace_id}/shift-swaps"
         ))
         .header("Authorization", format!("Bearer {member_token}"))
         .json(&json!({
@@ -530,7 +530,7 @@ async fn test_duplicate_swap_rejected() {
     // First swap — should succeed
     let res1 = client
         .post(format!(
-            "{}/api/workspaces/{}/shift-swaps",
+            "{}/api/v1/workspaces/{}/shift-swaps",
             s.address, s.workspace_id
         ))
         .header("Authorization", format!("Bearer {}", s.auth_token))
@@ -548,7 +548,7 @@ async fn test_duplicate_swap_rejected() {
     // Second identical swap — should fail with CONFLICT
     let res2 = client
         .post(format!(
-            "{}/api/workspaces/{}/shift-swaps",
+            "{}/api/v1/workspaces/{}/shift-swaps",
             s.address, s.workspace_id
         ))
         .header("Authorization", format!("Bearer {}", s.auth_token))
@@ -621,7 +621,7 @@ async fn test_same_shift_swap_rejected() {
     // Try to swap A ↔ C (both have Morning) — should fail
     let res = client
         .post(format!(
-            "{}/api/workspaces/{}/shift-swaps",
+            "{}/api/v1/workspaces/{}/shift-swaps",
             s.address, s.workspace_id
         ))
         .header("Authorization", format!("Bearer {}", s.auth_token))
@@ -653,7 +653,7 @@ async fn test_shift_swap_stats() {
     // Create a swap (pending_admin)
     let swap: ShiftSwapRequest = client
         .post(format!(
-            "{}/api/workspaces/{}/shift-swaps",
+            "{}/api/v1/workspaces/{}/shift-swaps",
             s.address, s.workspace_id
         ))
         .header("Authorization", format!("Bearer {}", s.auth_token))
@@ -672,7 +672,7 @@ async fn test_shift_swap_stats() {
     // Approve it
     client
         .put(format!(
-            "{}/api/workspaces/{}/shift-swaps/{}/approve",
+            "{}/api/v1/workspaces/{}/shift-swaps/{}/approve",
             s.address, s.workspace_id, swap.id
         ))
         .header("Authorization", format!("Bearer {}", s.auth_token))
@@ -684,7 +684,7 @@ async fn test_shift_swap_stats() {
     // Fetch stats
     let stats_res = client
         .get(format!(
-            "{}/api/workspaces/{}/shift-swaps/stats",
+            "{}/api/v1/workspaces/{}/shift-swaps/stats",
             s.address, s.workspace_id
         ))
         .header("Authorization", format!("Bearer {}", s.auth_token))

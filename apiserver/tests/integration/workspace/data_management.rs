@@ -42,12 +42,12 @@ async fn test_clear_attendance_data() {
     let admin_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(admin_id).await;
 
-    // Route is POST /api/dev/workspaces/:ws_id/clear?group=attendance (debug_assertions only)
+    // Route is POST /api/v1/dev/workspaces/:ws_id/clear?group=attendance (debug_assertions only)
     let resp = app
         .clone()
         .oneshot(req(
             "POST",
-            &format!("/api/dev/workspaces/{ws_id}/clear?group=attendance"),
+            &format!("/api/v1/dev/workspaces/{ws_id}/clear?group=attendance"),
             ws_id,
             admin_id,
             None,
@@ -69,7 +69,7 @@ async fn test_clear_schedules_data() {
         .clone()
         .oneshot(req(
             "POST",
-            &format!("/api/dev/workspaces/{ws_id}/clear?group=schedules"),
+            &format!("/api/v1/dev/workspaces/{ws_id}/clear?group=schedules"),
             ws_id,
             admin_id,
             None,
@@ -91,7 +91,7 @@ async fn test_clear_leave_data() {
         .clone()
         .oneshot(req(
             "POST",
-            &format!("/api/dev/workspaces/{ws_id}/clear?group=leave"),
+            &format!("/api/v1/dev/workspaces/{ws_id}/clear?group=leave"),
             ws_id,
             admin_id,
             None,
@@ -113,7 +113,7 @@ async fn test_clear_payroll_data() {
         .clone()
         .oneshot(req(
             "POST",
-            &format!("/api/dev/workspaces/{ws_id}/clear?group=payroll"),
+            &format!("/api/v1/dev/workspaces/{ws_id}/clear?group=payroll"),
             ws_id,
             admin_id,
             None,
@@ -135,7 +135,7 @@ async fn test_clear_full_reset() {
         .clone()
         .oneshot(req(
             "POST",
-            &format!("/api/dev/workspaces/{ws_id}/clear?group=full_reset"),
+            &format!("/api/v1/dev/workspaces/{ws_id}/clear?group=full_reset"),
             ws_id,
             admin_id,
             None,
@@ -157,7 +157,7 @@ async fn test_clear_invalid_group_returns_error() {
         .clone()
         .oneshot(req(
             "POST",
-            &format!("/api/dev/workspaces/{ws_id}/clear?group=invalid"),
+            &format!("/api/v1/dev/workspaces/{ws_id}/clear?group=invalid"),
             ws_id,
             admin_id,
             None,

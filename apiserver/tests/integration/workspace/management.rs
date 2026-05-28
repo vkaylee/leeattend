@@ -26,7 +26,7 @@ async fn test_workspace_creation_and_membership_smoke() {
         .create()
         .await;
     let deny = client
-        .post(format!("{address}/api/workspaces"))
+        .post(format!("{address}/api/v1/workspaces"))
         .header("X-User-Id", regular_user.to_string())
         .json(&serde_json::json!({
             "name": "Unauthorized Workspace",
@@ -52,7 +52,7 @@ async fn test_workspace_creation_and_membership_smoke() {
     );
 
     let response = client
-        .post(format!("{address}/api/workspaces"))
+        .post(format!("{address}/api/v1/workspaces"))
         .header("X-User-Id", user_id.to_string())
         .json(&serde_json::json!({
             "name": "Valid Workspace",
@@ -88,7 +88,7 @@ async fn test_workspace_creation_and_membership_smoke() {
 
     // 3. Check member list — creator should be owner
     let response = client
-        .get(format!("{address}/api/workspaces/{ws_id}/members"))
+        .get(format!("{address}/api/v1/workspaces/{ws_id}/members"))
         .header("X-User-Id", user_id.to_string())
         .send()
         .await
@@ -107,7 +107,7 @@ async fn test_workspace_creation_and_membership_smoke() {
     let future_date = chrono::Utc::now() + chrono::Duration::days(365);
     let res = client
         .post(format!(
-            "{address}/api/workspaces/{ws_id}/members/{user_id}/roles"
+            "{address}/api/v1/workspaces/{ws_id}/members/{user_id}/roles"
         ))
         .header("X-User-Id", user_id.to_string())
         .json(&serde_json::json!({
@@ -121,7 +121,7 @@ async fn test_workspace_creation_and_membership_smoke() {
 
     // 5. Verify extra_role_ids populated
     let response = client
-        .get(format!("{address}/api/workspaces/{ws_id}/members"))
+        .get(format!("{address}/api/v1/workspaces/{ws_id}/members"))
         .header("X-User-Id", user_id.to_string())
         .send()
         .await
@@ -144,7 +144,7 @@ async fn test_create_workspace_with_non_existent_user() {
     let fake_user_id = Uuid::new_v4();
 
     let response = client
-        .post(format!("{address}/api/workspaces"))
+        .post(format!("{address}/api/v1/workspaces"))
         .header("X-User-Id", fake_user_id.to_string())
         .json(&serde_json::json!({
             "name": "Ghost Workspace",
@@ -180,7 +180,7 @@ async fn test_workspace_rbac_flow() {
         .oneshot(
             axum::http::Request::builder()
                 .method("PATCH")
-                .uri(format!("/api/workspaces/{ws_id}/members/{member_id}"))
+                .uri(format!("/api/v1/workspaces/{ws_id}/members/{member_id}"))
                 .header("Content-Type", "application/json")
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", member_id.to_string())
@@ -199,7 +199,7 @@ async fn test_workspace_rbac_flow() {
         .oneshot(
             axum::http::Request::builder()
                 .method("PATCH")
-                .uri(format!("/api/workspaces/{ws_id}/members/{member_id}"))
+                .uri(format!("/api/v1/workspaces/{ws_id}/members/{member_id}"))
                 .header("Content-Type", "application/json")
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", owner_id.to_string())

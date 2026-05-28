@@ -24,7 +24,7 @@ async fn test_first_user_gets_platform_admin() {
         full_name: "Platform Founder".to_string(),
     };
     let res = client
-        .post(format!("{address}/api/auth/register"))
+        .post(format!("{address}/api/v1/auth/register"))
         .json(&reg_req)
         .send()
         .await
@@ -55,7 +55,7 @@ async fn test_first_user_gets_platform_admin() {
         full_name: "Regular Employee".to_string(),
     };
     let res2 = client
-        .post(format!("{address}/api/auth/register"))
+        .post(format!("{address}/api/v1/auth/register"))
         .json(&reg_req2)
         .send()
         .await

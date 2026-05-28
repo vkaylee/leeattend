@@ -52,7 +52,7 @@ async fn test_incentive_policy_list_empty() {
         .clone()
         .oneshot(req(
             "GET",
-            &format!("/api/workspaces/{ws_id}/payroll/incentive-policies"),
+            &format!("/api/v1/workspaces/{ws_id}/payroll/incentive-policies"),
             ws_id,
             admin_id,
             None,
@@ -92,7 +92,7 @@ async fn test_incentive_policy_create_and_list() {
         .clone()
         .oneshot(req(
             "POST",
-            &format!("/api/workspaces/{ws_id}/payroll/incentive-policies"),
+            &format!("/api/v1/workspaces/{ws_id}/payroll/incentive-policies"),
             ws_id,
             admin_id,
             Some(create_payload.to_string()),
@@ -111,7 +111,7 @@ async fn test_incentive_policy_create_and_list() {
         .clone()
         .oneshot(req(
             "GET",
-            &format!("/api/workspaces/{ws_id}/payroll/incentive-policies"),
+            &format!("/api/v1/workspaces/{ws_id}/payroll/incentive-policies"),
             ws_id,
             admin_id,
             None,
@@ -152,7 +152,7 @@ async fn test_incentive_policy_delete() {
         .clone()
         .oneshot(req(
             "DELETE",
-            &format!("/api/workspaces/{ws_id}/payroll/incentive-policies/{policy_id}"),
+            &format!("/api/v1/workspaces/{ws_id}/payroll/incentive-policies/{policy_id}"),
             ws_id,
             admin_id,
             None,
@@ -166,7 +166,7 @@ async fn test_incentive_policy_delete() {
         .clone()
         .oneshot(req(
             "GET",
-            &format!("/api/workspaces/{ws_id}/payroll/incentive-policies"),
+            &format!("/api/v1/workspaces/{ws_id}/payroll/incentive-policies"),
             ws_id,
             admin_id,
             None,

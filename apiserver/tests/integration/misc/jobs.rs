@@ -70,7 +70,7 @@ async fn test_get_job_status_success() {
     let res = app
         .clone()
         .oneshot(make_req(
-            &format!("/api/workspaces/{ws_id}/jobs/{job_id}"),
+            &format!("/api/v1/workspaces/{ws_id}/jobs/{job_id}"),
             ws_id,
             user_id,
         ))
@@ -100,7 +100,7 @@ async fn test_get_job_status_not_found() {
     let res = app
         .clone()
         .oneshot(make_req(
-            &format!("/api/workspaces/{ws_id}/jobs/{job_id}"),
+            &format!("/api/v1/workspaces/{ws_id}/jobs/{job_id}"),
             ws_id,
             user_id,
         ))
@@ -145,7 +145,7 @@ async fn test_get_job_status_forbidden_cross_workspace() {
     let res = app
         .clone()
         .oneshot(make_req(
-            &format!("/api/workspaces/{ws_2}/jobs/{job_id}"),
+            &format!("/api/v1/workspaces/{ws_2}/jobs/{job_id}"),
             ws_2,
             user_id,
         ))

@@ -46,7 +46,7 @@ async fn test_employee_crud_lifecycle_smoke() {
         .oneshot(
             axum::http::Request::builder()
                 .method("POST")
-                .uri(format!("/api/workspaces/{ws_id}/employees"))
+                .uri(format!("/api/v1/workspaces/{ws_id}/employees"))
                 .header("Content-Type", "application/json")
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())
@@ -69,7 +69,7 @@ async fn test_employee_crud_lifecycle_smoke() {
         .oneshot(
             axum::http::Request::builder()
                 .method("GET")
-                .uri(format!("/api/workspaces/{}/employees/{}", ws_id, emp.id))
+                .uri(format!("/api/v1/workspaces/{}/employees/{}", ws_id, emp.id))
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())
                 .body(axum::body::Body::empty())
@@ -90,7 +90,7 @@ async fn test_employee_crud_lifecycle_smoke() {
         .oneshot(
             axum::http::Request::builder()
                 .method("PUT")
-                .uri(format!("/api/workspaces/{}/employees/{}", ws_id, emp.id))
+                .uri(format!("/api/v1/workspaces/{}/employees/{}", ws_id, emp.id))
                 .header("Content-Type", "application/json")
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())
@@ -113,7 +113,7 @@ async fn test_employee_crud_lifecycle_smoke() {
         .oneshot(
             axum::http::Request::builder()
                 .method("DELETE")
-                .uri(format!("/api/workspaces/{}/employees/{}", ws_id, emp.id))
+                .uri(format!("/api/v1/workspaces/{}/employees/{}", ws_id, emp.id))
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())
                 .body(axum::body::Body::empty())
@@ -143,7 +143,7 @@ async fn test_get_employees_list_smoke() {
         .oneshot(
             axum::http::Request::builder()
                 .method("GET")
-                .uri(format!("/api/workspaces/{ws_id}/employees"))
+                .uri(format!("/api/v1/workspaces/{ws_id}/employees"))
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())
                 .body(axum::body::Body::empty())
@@ -169,7 +169,7 @@ async fn test_delete_non_existent_employee() {
         .oneshot(
             axum::http::Request::builder()
                 .method("DELETE")
-                .uri(format!("/api/workspaces/{ws_id}/employees/{fake_emp_id}"))
+                .uri(format!("/api/v1/workspaces/{ws_id}/employees/{fake_emp_id}"))
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())
                 .body(axum::body::Body::empty())

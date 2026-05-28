@@ -106,7 +106,7 @@ async fn test_punch_in_grace_period_enforcement_smoke() {
 
     let req = Request::builder()
         .method("POST")
-        .uri(format!("/api/workspaces/{ws_id}/time/punch-in"))
+        .uri(format!("/api/v1/workspaces/{ws_id}/time/punch-in"))
         .header("Authorization", format!("Bearer {token}"))
         .header("X-Workspace-Id", ws_id.to_string())
         .header("Content-Type", "application/json")
@@ -138,7 +138,7 @@ async fn test_punch_in_grace_period_enforcement_smoke() {
 
     let req2 = Request::builder()
         .method("POST")
-        .uri(format!("/api/workspaces/{ws_id}/time/punch-in"))
+        .uri(format!("/api/v1/workspaces/{ws_id}/time/punch-in"))
         .header("Authorization", format!("Bearer {token}"))
         .header("X-Workspace-Id", ws_id.to_string())
         .header("Content-Type", "application/json")

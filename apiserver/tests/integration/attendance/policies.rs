@@ -56,7 +56,7 @@ async fn test_default_attendance_policy_lifecycle() {
         .clone()
         .oneshot(req(
             "GET",
-            &format!("/api/workspaces/{ws_id}/attendance/policies/default"),
+            &format!("/api/v1/workspaces/{ws_id}/attendance/policies/default"),
             ws_id,
             admin_id,
             None,
@@ -71,7 +71,7 @@ async fn test_default_attendance_policy_lifecycle() {
     // PATCH — create a new version
     let resp = app.clone().oneshot(req(
         "PATCH",
-        &format!("/api/workspaces/{ws_id}/attendance/policies/default"),
+        &format!("/api/v1/workspaces/{ws_id}/attendance/policies/default"),
         ws_id, admin_id,
         Some(serde_json::json!({ "work_unit_minutes": 30, "rounding_policy": "floor", "valid_from": "2026-05-01" }).to_string()),
     )).await.expect("patch rules");
@@ -87,7 +87,7 @@ async fn test_default_attendance_policy_lifecycle() {
         .clone()
         .oneshot(req(
             "GET",
-            &format!("/api/workspaces/{ws_id}/attendance/policies/default/versions"),
+            &format!("/api/v1/workspaces/{ws_id}/attendance/policies/default/versions"),
             ws_id,
             admin_id,
             None,
@@ -113,7 +113,7 @@ async fn test_default_attendance_policy_lifecycle() {
         .clone()
         .oneshot(req(
             "GET",
-            &format!("/api/workspaces/{ws_id}/attendance/policies/default"),
+            &format!("/api/v1/workspaces/{ws_id}/attendance/policies/default"),
             ws_id,
             admin_id,
             None,
@@ -140,7 +140,7 @@ async fn test_patch_invalid_valid_from_returns_400() {
         .clone()
         .oneshot(req(
             "PATCH",
-            &format!("/api/workspaces/{ws_id}/attendance/policies/default"),
+            &format!("/api/v1/workspaces/{ws_id}/attendance/policies/default"),
             ws_id,
             admin_id,
             Some(
@@ -182,7 +182,7 @@ async fn test_patch_forbidden_for_regular_member() {
         .clone()
         .oneshot(req(
             "PATCH",
-            &format!("/api/workspaces/{ws_id}/attendance/policies/default"),
+            &format!("/api/v1/workspaces/{ws_id}/attendance/policies/default"),
             ws_id,
             member_id,
             Some(serde_json::json!({ "work_unit_minutes": 60 }).to_string()),
@@ -212,7 +212,7 @@ async fn test_partial_update_preserves_existing_fields() {
         .clone()
         .oneshot(req(
             "PATCH",
-            &format!("/api/workspaces/{ws_id}/attendance/policies/default"),
+            &format!("/api/v1/workspaces/{ws_id}/attendance/policies/default"),
             ws_id,
             admin_id,
             Some(
@@ -229,7 +229,7 @@ async fn test_partial_update_preserves_existing_fields() {
         .clone()
         .oneshot(req(
             "PATCH",
-            &format!("/api/workspaces/{ws_id}/attendance/policies/default"),
+            &format!("/api/v1/workspaces/{ws_id}/attendance/policies/default"),
             ws_id,
             admin_id,
             Some(serde_json::json!({ "work_unit_minutes": 60 }).to_string()),
@@ -250,7 +250,7 @@ async fn test_partial_update_preserves_existing_fields() {
         .clone()
         .oneshot(req(
             "PATCH",
-            &format!("/api/workspaces/{ws_id}/attendance/policies/default"),
+            &format!("/api/v1/workspaces/{ws_id}/attendance/policies/default"),
             ws_id,
             admin_id,
             Some(serde_json::json!({ "rounding_policy": "round" }).to_string()),
@@ -283,7 +283,7 @@ async fn test_multiple_updates_version_chain_integrity() {
             .clone()
             .oneshot(req(
                 "PATCH",
-                &format!("/api/workspaces/{ws_id}/attendance/policies/default"),
+                &format!("/api/v1/workspaces/{ws_id}/attendance/policies/default"),
                 ws_id,
                 admin_id,
                 Some(serde_json::json!({ "work_unit_minutes": wum }).to_string()),
@@ -298,7 +298,7 @@ async fn test_multiple_updates_version_chain_integrity() {
         .clone()
         .oneshot(req(
             "GET",
-            &format!("/api/workspaces/{ws_id}/attendance/policies/default/versions"),
+            &format!("/api/v1/workspaces/{ws_id}/attendance/policies/default/versions"),
             ws_id,
             admin_id,
             None,
@@ -363,7 +363,7 @@ async fn test_get_versions_empty_workspace_returns_empty_list() {
         .clone()
         .oneshot(req(
             "GET",
-            &format!("/api/workspaces/{ws_id}/attendance/policies/default/versions"),
+            &format!("/api/v1/workspaces/{ws_id}/attendance/policies/default/versions"),
             ws_id,
             admin_id,
             None,
@@ -399,7 +399,7 @@ async fn test_patch_with_rfc3339_valid_from() {
         .clone()
         .oneshot(req(
             "PATCH",
-            &format!("/api/workspaces/{ws_id}/attendance/policies/default"),
+            &format!("/api/v1/workspaces/{ws_id}/attendance/policies/default"),
             ws_id,
             admin_id,
             Some(
@@ -439,7 +439,7 @@ async fn test_patch_early_arrival_strategy() {
         .clone()
         .oneshot(req(
             "GET",
-            &format!("/api/workspaces/{ws_id}/attendance/policies/default"),
+            &format!("/api/v1/workspaces/{ws_id}/attendance/policies/default"),
             ws_id,
             admin_id,
             None,
@@ -458,7 +458,7 @@ async fn test_patch_early_arrival_strategy() {
         .clone()
         .oneshot(req(
             "PATCH",
-            &format!("/api/workspaces/{ws_id}/attendance/policies/default"),
+            &format!("/api/v1/workspaces/{ws_id}/attendance/policies/default"),
             ws_id,
             admin_id,
             Some(

@@ -53,7 +53,7 @@ async fn test_create_employee_id_normalization() {
         .oneshot(
             axum::http::Request::builder()
                 .method("POST")
-                .uri(format!("/api/workspaces/{ws_id}/employees"))
+                .uri(format!("/api/v1/workspaces/{ws_id}/employees"))
                 .header("Authorization", format!("Bearer {token}"))
                 .header("Content-Type", "application/json")
                 .body(Body::from(serde_json::to_string(&req_body).unwrap()))
@@ -135,7 +135,7 @@ async fn test_update_employee_id_normalization() {
         .oneshot(
             axum::http::Request::builder()
                 .method("PUT")
-                .uri(format!("/api/workspaces/{ws_id}/employees/{emp_id}"))
+                .uri(format!("/api/v1/workspaces/{ws_id}/employees/{emp_id}"))
                 .header("Authorization", format!("Bearer {token}"))
                 .header("Content-Type", "application/json")
                 .body(Body::from(serde_json::to_string(&req_body).unwrap()))
@@ -214,7 +214,7 @@ async fn test_employee_id_uniqueness_on_normalized_values() {
         .oneshot(
             axum::http::Request::builder()
                 .method("POST")
-                .uri(format!("/api/workspaces/{ws_id}/employees"))
+                .uri(format!("/api/v1/workspaces/{ws_id}/employees"))
                 .header("Authorization", format!("Bearer {token}"))
                 .header("Content-Type", "application/json")
                 .body(Body::from(serde_json::to_string(&req_body).unwrap()))

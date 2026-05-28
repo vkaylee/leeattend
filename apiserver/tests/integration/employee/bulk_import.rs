@@ -46,7 +46,7 @@ async fn test_upload_employee_csv_api() {
         .oneshot(
             axum::http::Request::builder()
                 .method("POST")
-                .uri(format!("/api/workspaces/{ws_id}/employees/upload"))
+                .uri(format!("/api/v1/workspaces/{ws_id}/employees/upload"))
                 .header("Content-Type", content_type)
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())
@@ -154,7 +154,7 @@ async fn test_upload_employee_duplicate_id_skips() {
         .oneshot(
             axum::http::Request::builder()
                 .method("POST")
-                .uri(format!("/api/workspaces/{ws_id}/employees/upload"))
+                .uri(format!("/api/v1/workspaces/{ws_id}/employees/upload"))
                 .header("Content-Type", content_type)
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())
@@ -278,7 +278,7 @@ async fn test_upload_employee_csv_with_department() {
         .oneshot(
             axum::http::Request::builder()
                 .method("POST")
-                .uri(format!("/api/workspaces/{ws_id}/employees/upload"))
+                .uri(format!("/api/v1/workspaces/{ws_id}/employees/upload"))
                 .header("Content-Type", content_type)
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())
@@ -441,7 +441,7 @@ async fn test_upload_employee_csv_reuses_existing_department() {
         .oneshot(
             axum::http::Request::builder()
                 .method("POST")
-                .uri(format!("/api/workspaces/{ws_id}/employees/upload"))
+                .uri(format!("/api/v1/workspaces/{ws_id}/employees/upload"))
                 .header("Content-Type", content_type)
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())
@@ -604,7 +604,7 @@ async fn test_upload_employee_xlsx_with_department() {
         .oneshot(
             axum::http::Request::builder()
                 .method("POST")
-                .uri(format!("/api/workspaces/{ws_id}/employees/upload"))
+                .uri(format!("/api/v1/workspaces/{ws_id}/employees/upload"))
                 .header("Content-Type", content_type)
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())
@@ -766,7 +766,7 @@ async fn test_upload_employee_xlsx_reuses_existing_department() {
         .oneshot(
             axum::http::Request::builder()
                 .method("POST")
-                .uri(format!("/api/workspaces/{ws_id}/employees/upload"))
+                .uri(format!("/api/v1/workspaces/{ws_id}/employees/upload"))
                 .header("Content-Type", content_type)
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())
@@ -898,7 +898,7 @@ async fn test_upload_csv_existing_employee_new_department() {
         .oneshot(
             axum::http::Request::builder()
                 .method("POST")
-                .uri(format!("/api/workspaces/{ws_id}/employees/upload"))
+                .uri(format!("/api/v1/workspaces/{ws_id}/employees/upload"))
                 .header("Content-Type", content_type)
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())
@@ -1028,7 +1028,7 @@ async fn test_upload_csv_existing_employee_existing_department() {
         .oneshot(
             axum::http::Request::builder()
                 .method("POST")
-                .uri(format!("/api/workspaces/{ws_id}/employees/upload"))
+                .uri(format!("/api/v1/workspaces/{ws_id}/employees/upload"))
                 .header("Content-Type", content_type)
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())
@@ -1153,7 +1153,7 @@ async fn test_upload_xlsx_existing_employee_new_department() {
         .oneshot(
             axum::http::Request::builder()
                 .method("POST")
-                .uri(format!("/api/workspaces/{ws_id}/employees/upload"))
+                .uri(format!("/api/v1/workspaces/{ws_id}/employees/upload"))
                 .header("Content-Type", content_type)
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())
@@ -1279,7 +1279,7 @@ async fn test_upload_xlsx_existing_employee_existing_department() {
         .oneshot(
             axum::http::Request::builder()
                 .method("POST")
-                .uri(format!("/api/workspaces/{ws_id}/employees/upload"))
+                .uri(format!("/api/v1/workspaces/{ws_id}/employees/upload"))
                 .header("Content-Type", content_type)
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())

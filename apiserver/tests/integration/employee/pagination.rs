@@ -61,7 +61,7 @@ async fn test_employee_pagination_logic() {
         .oneshot(
             axum::http::Request::builder()
                 .method("GET")
-                .uri(format!("/api/workspaces/{ws_id}/employees?page=1&limit=10"))
+                .uri(format!("/api/v1/workspaces/{ws_id}/employees?page=1&limit=10"))
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())
                 .body(axum::body::Body::empty())
@@ -84,7 +84,7 @@ async fn test_employee_pagination_logic() {
         .oneshot(
             axum::http::Request::builder()
                 .method("GET")
-                .uri(format!("/api/workspaces/{ws_id}/employees?page=3&limit=10"))
+                .uri(format!("/api/v1/workspaces/{ws_id}/employees?page=3&limit=10"))
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())
                 .body(axum::body::Body::empty())
@@ -149,7 +149,7 @@ async fn test_employee_search_limit() {
         .oneshot(
             axum::http::Request::builder()
                 .method("GET")
-                .uri(format!("/api/workspaces/{ws_id}/employees?q=SearchTest"))
+                .uri(format!("/api/v1/workspaces/{ws_id}/employees?q=SearchTest"))
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())
                 .body(axum::body::Body::empty())

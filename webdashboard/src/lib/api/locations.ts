@@ -29,20 +29,20 @@ export interface UpdateWorkLocationRequest {
 }
 
 export async function fetchLocations(wsId: string): Promise<WorkLocation[]> {
-  const { data } = await apiClient.get<WorkLocation[]>(`/workspaces/${wsId}/locations`);
+  const { data } = await apiClient.get<WorkLocation[]>(`/v1/workspaces/${wsId}/locations`);
   return data;
 }
 
 export async function createLocation(wsId: string, payload: CreateWorkLocationRequest): Promise<WorkLocation> {
-  const { data } = await apiClient.post<WorkLocation>(`/workspaces/${wsId}/locations`, payload);
+  const { data } = await apiClient.post<WorkLocation>(`/v1/workspaces/${wsId}/locations`, payload);
   return data;
 }
 
 export async function updateLocation(wsId: string, id: string, payload: UpdateWorkLocationRequest): Promise<WorkLocation> {
-  const { data } = await apiClient.put<WorkLocation>(`/workspaces/${wsId}/locations/${id}`, payload);
+  const { data } = await apiClient.put<WorkLocation>(`/v1/workspaces/${wsId}/locations/${id}`, payload);
   return data;
 }
 
 export async function deleteLocation(wsId: string, id: string): Promise<void> {
-  await apiClient.delete(`/workspaces/${wsId}/locations/${id}`);
+  await apiClient.delete(`/v1/workspaces/${wsId}/locations/${id}`);
 }

@@ -103,7 +103,7 @@ async fn test_workspace_theme_color_update() {
 
     // 1. Check default color (Violet #7c3aed)
     let response = client
-        .get(format!("{address}/api/workspaces/{workspace_id}"))
+        .get(format!("{address}/api/v1/workspaces/{workspace_id}"))
         .header("X-User-Id", user_id.to_string())
         .send()
         .await
@@ -116,7 +116,7 @@ async fn test_workspace_theme_color_update() {
     // 2. Update to new color (Emerald #059669)
     let new_color = "#059669";
     let response = client
-        .patch(format!("{address}/api/workspaces/{workspace_id}"))
+        .patch(format!("{address}/api/v1/workspaces/{workspace_id}"))
         .header("X-User-Id", user_id.to_string())
         .json(&serde_json::json!({ "theme_primary_color": new_color }))
         .send()
@@ -129,7 +129,7 @@ async fn test_workspace_theme_color_update() {
 
     // 3. Verify persistence
     let response = client
-        .get(format!("{address}/api/workspaces/{workspace_id}"))
+        .get(format!("{address}/api/v1/workspaces/{workspace_id}"))
         .header("X-User-Id", user_id.to_string())
         .send()
         .await

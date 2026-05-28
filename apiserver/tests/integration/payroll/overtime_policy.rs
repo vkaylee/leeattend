@@ -57,7 +57,7 @@ async fn test_overtime_policy_lifecycle() {
         .clone()
         .oneshot(req(
             "POST",
-            &format!("/api/workspaces/{ws_id}/overtime/policies"),
+            &format!("/api/v1/workspaces/{ws_id}/overtime/policies"),
             ws_id,
             admin_id,
             Some(create_body.to_string()),
@@ -83,7 +83,7 @@ async fn test_overtime_policy_lifecycle() {
         .clone()
         .oneshot(req(
             "POST",
-            &format!("/api/workspaces/{ws_id}/overtime/policies/{policy_id}/rules"),
+            &format!("/api/v1/workspaces/{ws_id}/overtime/policies/{policy_id}/rules"),
             ws_id,
             admin_id,
             Some(rule_body.to_string()),
@@ -99,7 +99,7 @@ async fn test_overtime_policy_lifecycle() {
         .clone()
         .oneshot(req(
             "GET",
-            &format!("/api/workspaces/{ws_id}/overtime/policies/{policy_id}"),
+            &format!("/api/v1/workspaces/{ws_id}/overtime/policies/{policy_id}"),
             ws_id,
             admin_id,
             None,
@@ -113,7 +113,7 @@ async fn test_overtime_policy_lifecycle() {
         .clone()
         .oneshot(req(
             "GET",
-            &format!("/api/workspaces/{ws_id}/overtime/policies"),
+            &format!("/api/v1/workspaces/{ws_id}/overtime/policies"),
             ws_id,
             admin_id,
             None,
@@ -143,7 +143,7 @@ async fn test_overtime_policy_assignment() {
         .clone()
         .oneshot(req(
             "POST",
-            &format!("/api/workspaces/{ws_id}/overtime/policies"),
+            &format!("/api/v1/workspaces/{ws_id}/overtime/policies"),
             ws_id,
             admin_id,
             Some(create_body.to_string()),
@@ -166,7 +166,7 @@ async fn test_overtime_policy_assignment() {
         .clone()
         .oneshot(req(
             "POST",
-            &format!("/api/workspaces/{ws_id}/overtime/policies/assign"),
+            &format!("/api/v1/workspaces/{ws_id}/overtime/policies/assign"),
             ws_id,
             admin_id,
             Some(assign_body.to_string()),

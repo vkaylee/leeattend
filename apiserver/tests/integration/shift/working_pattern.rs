@@ -71,7 +71,7 @@ async fn test_working_pattern_crud_lifecycle_smoke() {
         .clone()
         .oneshot(req(
             "POST",
-            &format!("/api/workspaces/{ws_id}/working-patterns"),
+            &format!("/api/v1/workspaces/{ws_id}/working-patterns"),
             ws_id,
             admin_id,
             Some(create_body.to_string()),
@@ -88,7 +88,7 @@ async fn test_working_pattern_crud_lifecycle_smoke() {
         .clone()
         .oneshot(req(
             "GET",
-            &format!("/api/workspaces/{ws_id}/working-patterns"),
+            &format!("/api/v1/workspaces/{ws_id}/working-patterns"),
             ws_id,
             admin_id,
             None,
@@ -104,7 +104,7 @@ async fn test_working_pattern_crud_lifecycle_smoke() {
         .clone()
         .oneshot(req(
             "GET",
-            &format!("/api/workspaces/{ws_id}/working-patterns/{pattern_id}"),
+            &format!("/api/v1/workspaces/{ws_id}/working-patterns/{pattern_id}"),
             ws_id,
             admin_id,
             None,
@@ -118,7 +118,7 @@ async fn test_working_pattern_crud_lifecycle_smoke() {
         .clone()
         .oneshot(req(
             "DELETE",
-            &format!("/api/workspaces/{ws_id}/working-patterns/{pattern_id}"),
+            &format!("/api/v1/workspaces/{ws_id}/working-patterns/{pattern_id}"),
             ws_id,
             admin_id,
             None,
@@ -159,7 +159,7 @@ async fn test_working_pattern_assign_to_employee() {
         .clone()
         .oneshot(req(
             "POST",
-            &format!("/api/workspaces/{ws_id}/working-patterns"),
+            &format!("/api/v1/workspaces/{ws_id}/working-patterns"),
             ws_id,
             admin_id,
             Some(create_body.to_string()),
@@ -180,7 +180,7 @@ async fn test_working_pattern_assign_to_employee() {
         .clone()
         .oneshot(req(
             "POST",
-            &format!("/api/workspaces/{ws_id}/employees/{emp_id}/working-patterns"),
+            &format!("/api/v1/workspaces/{ws_id}/employees/{emp_id}/working-patterns"),
             ws_id,
             admin_id,
             Some(assign_body.to_string()),
@@ -194,7 +194,7 @@ async fn test_working_pattern_assign_to_employee() {
         .clone()
         .oneshot(req(
             "GET",
-            &format!("/api/workspaces/{ws_id}/employees/{emp_id}/working-patterns"),
+            &format!("/api/v1/workspaces/{ws_id}/employees/{emp_id}/working-patterns"),
             ws_id,
             admin_id,
             None,

@@ -65,7 +65,7 @@ where
 
         // 2. If no Tenant context, verify if it's a valid System route
         let path = parts.uri.path();
-        if path.starts_with("/system") || path.starts_with("/api/system") {
+        if path.starts_with("/system") || path.starts_with("/api/v1/system") {
             Ok(ApiContext::System)
         } else {
             // If it's not a system route, it means it's a tenant route that failed to provide a Workspace ID.
@@ -665,7 +665,7 @@ mod tests {
         use axum::http::Request;
 
         let req = Request::builder()
-            .uri("/api/system/roles")
+            .uri("/api/v1/system/roles")
             .body(())
             .unwrap();
         let (mut parts, ()) = req.into_parts();
@@ -683,7 +683,7 @@ mod tests {
         let ws_id = Uuid::new_v4();
 
         let req = Request::builder()
-            .uri("/api/workspaces")
+            .uri("/api/v1/workspaces")
             .header("X-Workspace-Id", ws_id.to_string())
             .body(())
             .unwrap();
@@ -704,7 +704,7 @@ mod tests {
         use axum::extract::FromRequestParts;
         use axum::http::Request;
 
-        let req = Request::builder().uri("/api/workspaces").body(()).unwrap();
+        let req = Request::builder().uri("/api/v1/workspaces").body(()).unwrap();
         let (mut parts, ()) = req.into_parts();
 
         let res = ApiContext::from_request_parts(&mut parts, &()).await;

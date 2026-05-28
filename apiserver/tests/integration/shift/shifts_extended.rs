@@ -51,7 +51,7 @@ async fn test_get_workspace_schedules_empty() {
         .clone()
         .oneshot(req(
             "GET",
-            &format!("/api/workspaces/{ws_id}/schedules?start_date=2026-01-01&end_date=2026-01-31"),
+            &format!("/api/v1/workspaces/{ws_id}/schedules?start_date=2026-01-01&end_date=2026-01-31"),
             ws_id,
             admin_id,
             None,
@@ -75,7 +75,7 @@ async fn test_get_workspace_schedules_missing_dates() {
         .clone()
         .oneshot(req(
             "GET",
-            &format!("/api/workspaces/{ws_id}/schedules"),
+            &format!("/api/v1/workspaces/{ws_id}/schedules"),
             ws_id,
             admin_id,
             None,
@@ -97,7 +97,7 @@ async fn test_get_assignment_history_empty() {
         .clone()
         .oneshot(req(
             "GET",
-            &format!("/api/workspaces/{ws_id}/assignment-history"),
+            &format!("/api/v1/workspaces/{ws_id}/assignment-history"),
             ws_id,
             admin_id,
             None,
@@ -122,7 +122,7 @@ async fn test_get_employee_rosters_empty() {
         .clone()
         .oneshot(req(
             "GET",
-            &format!("/api/workspaces/{ws_id}/employees/{emp_id}/rosters?start_date=2026-01-01&end_date=2026-01-31"),
+            &format!("/api/v1/workspaces/{ws_id}/employees/{emp_id}/rosters?start_date=2026-01-01&end_date=2026-01-31"),
             ws_id,
             admin_id,
             None,
@@ -160,7 +160,7 @@ async fn test_delete_roster_rbac_member_forbidden() {
         .clone()
         .oneshot(req(
             "DELETE",
-            &format!("/api/workspaces/{ws_id}/employees/{emp_id}/rosters/2026-01-15"),
+            &format!("/api/v1/workspaces/{ws_id}/employees/{emp_id}/rosters/2026-01-15"),
             ws_id,
             member_id,
             None,
@@ -202,7 +202,7 @@ async fn test_create_shift_rbac_member_forbidden() {
         .clone()
         .oneshot(req(
             "POST",
-            &format!("/api/workspaces/{ws_id}/shifts"),
+            &format!("/api/v1/workspaces/{ws_id}/shifts"),
             ws_id,
             member_id,
             Some(body.to_string()),

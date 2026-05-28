@@ -67,7 +67,7 @@ async fn test_employee_transfer_and_department_history() {
         .clone()
         .oneshot(make_req(
             "GET",
-            &format!("/api/workspaces/{ws_id}/employees/{emp_id}/departments"),
+            &format!("/api/v1/workspaces/{ws_id}/employees/{emp_id}/departments"),
             ws_id,
             owner_id,
             None,
@@ -97,7 +97,7 @@ async fn test_employee_transfer_and_department_history() {
         .clone()
         .oneshot(make_req(
             "POST",
-            &format!("/api/workspaces/{ws_id}/employees/{emp_id}/departments"),
+            &format!("/api/v1/workspaces/{ws_id}/employees/{emp_id}/departments"),
             ws_id,
             owner_id,
             Some(transfer_payload),
@@ -129,7 +129,7 @@ async fn test_employee_transfer_and_department_history() {
         .clone()
         .oneshot(make_req(
             "POST",
-            &format!("/api/workspaces/{ws_id}/employees/{emp_id}/departments"),
+            &format!("/api/v1/workspaces/{ws_id}/employees/{emp_id}/departments"),
             ws_id,
             owner_id,
             Some(transfer_payload2),
@@ -149,7 +149,7 @@ async fn test_employee_transfer_and_department_history() {
         .clone()
         .oneshot(make_req(
             "GET",
-            &format!("/api/workspaces/{ws_id}/employees/{emp_id}/departments"),
+            &format!("/api/v1/workspaces/{ws_id}/employees/{emp_id}/departments"),
             ws_id,
             owner_id,
             None,
@@ -210,7 +210,7 @@ async fn test_employee_transfer_permission_enforcement() {
         .clone()
         .oneshot(make_req(
             "POST",
-            &format!("/api/workspaces/{ws_id}/employees/{emp_id}/departments"),
+            &format!("/api/v1/workspaces/{ws_id}/employees/{emp_id}/departments"),
             ws_id,
             regular_user_id,
             Some(transfer_payload),
@@ -247,7 +247,7 @@ async fn test_employee_rehire_lifecycle() {
         .clone()
         .oneshot(make_req(
             "PUT",
-            &format!("/api/workspaces/{ws_id}/employees/{emp_id}"),
+            &format!("/api/v1/workspaces/{ws_id}/employees/{emp_id}"),
             ws_id,
             owner_id,
             Some(terminate_payload),
@@ -269,7 +269,7 @@ async fn test_employee_rehire_lifecycle() {
         .clone()
         .oneshot(make_req(
             "POST",
-            &format!("/api/workspaces/{ws_id}/employees/{emp_id}/rehire"),
+            &format!("/api/v1/workspaces/{ws_id}/employees/{emp_id}/rehire"),
             ws_id,
             owner_id,
             Some(rehire_payload),
@@ -293,7 +293,7 @@ async fn test_employee_rehire_lifecycle() {
         .clone()
         .oneshot(make_req(
             "GET",
-            &format!("/api/workspaces/{ws_id}/employees/{emp_id}"),
+            &format!("/api/v1/workspaces/{ws_id}/employees/{emp_id}"),
             ws_id,
             owner_id,
             None,

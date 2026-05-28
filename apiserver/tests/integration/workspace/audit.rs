@@ -51,7 +51,7 @@ async fn test_get_audit_logs_empty() {
         .clone()
         .oneshot(req(
             "GET",
-            &format!("/api/workspaces/{ws_id}/audit-logs"),
+            &format!("/api/v1/workspaces/{ws_id}/audit-logs"),
             ws_id,
             admin_id,
             None,
@@ -95,7 +95,7 @@ async fn test_get_audit_logs_with_role_action() {
         .clone()
         .oneshot(req(
             "POST",
-            &format!("/api/workspaces/{ws_id}/members/{member_id}/roles"),
+            &format!("/api/v1/workspaces/{ws_id}/members/{member_id}/roles"),
             ws_id,
             admin_id,
             Some(body.to_string()),
@@ -109,7 +109,7 @@ async fn test_get_audit_logs_with_role_action() {
         .clone()
         .oneshot(req(
             "GET",
-            &format!("/api/workspaces/{ws_id}/audit-logs"),
+            &format!("/api/v1/workspaces/{ws_id}/audit-logs"),
             ws_id,
             admin_id,
             None,
@@ -150,7 +150,7 @@ async fn test_get_audit_logs_rbac_member_forbidden() {
         .clone()
         .oneshot(req(
             "GET",
-            &format!("/api/workspaces/{ws_id}/audit-logs"),
+            &format!("/api/v1/workspaces/{ws_id}/audit-logs"),
             ws_id,
             member_id,
             None,
@@ -186,7 +186,7 @@ async fn test_audit_log_on_primary_role_update() {
         .clone()
         .oneshot(req(
             "PATCH",
-            &format!("/api/workspaces/{ws_id}/members/{member_id}"),
+            &format!("/api/v1/workspaces/{ws_id}/members/{member_id}"),
             ws_id,
             admin_id,
             Some(body.to_string()),
@@ -200,7 +200,7 @@ async fn test_audit_log_on_primary_role_update() {
         .clone()
         .oneshot(req(
             "GET",
-            &format!("/api/workspaces/{ws_id}/audit-logs"),
+            &format!("/api/v1/workspaces/{ws_id}/audit-logs"),
             ws_id,
             admin_id,
             None,

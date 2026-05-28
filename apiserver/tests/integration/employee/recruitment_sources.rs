@@ -57,7 +57,7 @@ async fn test_recruitment_source_crud_lifecycle() {
         .clone()
         .oneshot(req(
             "POST",
-            &format!("/api/workspaces/{ws_id}/recruitment-sources"),
+            &format!("/api/v1/workspaces/{ws_id}/recruitment-sources"),
             ws_id,
             admin_id,
             Some(create_body.to_string()),
@@ -74,7 +74,7 @@ async fn test_recruitment_source_crud_lifecycle() {
         .clone()
         .oneshot(req(
             "GET",
-            &format!("/api/workspaces/{ws_id}/recruitment-sources"),
+            &format!("/api/v1/workspaces/{ws_id}/recruitment-sources"),
             ws_id,
             admin_id,
             None,
@@ -97,7 +97,7 @@ async fn test_recruitment_source_crud_lifecycle() {
         .clone()
         .oneshot(req(
             "PUT",
-            &format!("/api/workspaces/{ws_id}/recruitment-sources/{source_id}"),
+            &format!("/api/v1/workspaces/{ws_id}/recruitment-sources/{source_id}"),
             ws_id,
             admin_id,
             Some(update_body.to_string()),
@@ -113,7 +113,7 @@ async fn test_recruitment_source_crud_lifecycle() {
         .clone()
         .oneshot(req(
             "DELETE",
-            &format!("/api/workspaces/{ws_id}/recruitment-sources/{source_id}"),
+            &format!("/api/v1/workspaces/{ws_id}/recruitment-sources/{source_id}"),
             ws_id,
             admin_id,
             None,
@@ -136,7 +136,7 @@ async fn test_recruitment_source_dashboard_breakdown() {
         .clone()
         .oneshot(req(
             "GET",
-            "/api/dashboard/recruitment-sources",
+            "/api/v1/dashboard/recruitment-sources",
             ws_id,
             admin_id,
             None,
@@ -158,7 +158,7 @@ async fn test_turnover_analytics() {
         .clone()
         .oneshot(req(
             "GET",
-            "/api/dashboard/turnover-analytics",
+            "/api/v1/dashboard/turnover-analytics",
             ws_id,
             admin_id,
             None,
@@ -194,7 +194,7 @@ async fn test_recruitment_source_rbac_member_forbidden() {
         .clone()
         .oneshot(req(
             "POST",
-            &format!("/api/workspaces/{ws_id}/recruitment-sources"),
+            &format!("/api/v1/workspaces/{ws_id}/recruitment-sources"),
             ws_id,
             member_id,
             Some(body.to_string()),

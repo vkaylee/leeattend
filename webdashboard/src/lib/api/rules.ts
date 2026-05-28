@@ -36,20 +36,20 @@ export interface UpdateAssignmentRuleRequest {
 }
 
 export async function fetchAssignmentRules(wsId: string): Promise<AssignmentRule[]> {
-  const { data: resData } = await apiClient.get<AssignmentRule[]>(`/workspaces/${wsId}/assignment-rules`);
+  const { data: resData } = await apiClient.get<AssignmentRule[]>(`/v1/workspaces/${wsId}/assignment-rules`);
     return resData;
 }
 
 export async function createAssignmentRule(wsId: string, data: CreateAssignmentRuleRequest): Promise<AssignmentRule> {
-  const { data: resData } = await apiClient.post<AssignmentRule>(`/workspaces/${wsId}/assignment-rules`, data);
+  const { data: resData } = await apiClient.post<AssignmentRule>(`/v1/workspaces/${wsId}/assignment-rules`, data);
     return resData;
 }
 
 export async function updateAssignmentRule(wsId: string, ruleId: string, data: UpdateAssignmentRuleRequest): Promise<AssignmentRule> {
-  const { data: resData } = await apiClient.patch<AssignmentRule>(`/workspaces/${wsId}/assignment-rules/${ruleId}`, data);
+  const { data: resData } = await apiClient.patch<AssignmentRule>(`/v1/workspaces/${wsId}/assignment-rules/${ruleId}`, data);
     return resData;
 }
 
 export async function deleteAssignmentRule(wsId: string, ruleId: string): Promise<void> {
-  await apiClient.delete(`/workspaces/${wsId}/assignment-rules/${ruleId}`);
+  await apiClient.delete(`/v1/workspaces/${wsId}/assignment-rules/${ruleId}`);
 }

@@ -91,7 +91,7 @@ async fn test_attendance_logs_include_employee_details() -> Result<(), Box<dyn s
         .oneshot(
             axum::http::Request::builder()
                 .method("GET")
-                .uri(format!("/api/workspaces/{ws_id}/attendance/logs"))
+                .uri(format!("/api/v1/workspaces/{ws_id}/attendance/logs"))
                 .header("X-User-Id", user_id.to_string())
                 .body(axum::body::Body::empty())?,
         )
@@ -113,7 +113,7 @@ async fn test_attendance_logs_include_employee_details() -> Result<(), Box<dyn s
         .oneshot(
             axum::http::Request::builder()
                 .method("GET")
-                .uri(format!("/api/workspaces/{ws_id}/attendance/raw-logs"))
+                .uri(format!("/api/v1/workspaces/{ws_id}/attendance/raw-logs"))
                 .header("X-User-Id", user_id.to_string())
                 .body(axum::body::Body::empty())?,
         )

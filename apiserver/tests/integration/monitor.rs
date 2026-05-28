@@ -50,7 +50,7 @@ async fn test_monitor_overview_rest() {
 
     // 2. Call the overview endpoint
     let response = client
-        .get(format!("{address}/api/monitor/overview"))
+        .get(format!("{address}/api/v1/monitor/overview"))
         .header("X-User-Id", user_id.to_string())
         .send()
         .await
@@ -97,7 +97,7 @@ async fn test_monitor_stream_sse() {
 
     // 2. Connect to SSE stream
     let response = client
-        .get(format!("{address}/api/monitor/stream?access_token={token}"))
+        .get(format!("{address}/api/v1/monitor/stream?access_token={token}"))
         .send()
         .await
         .unwrap();

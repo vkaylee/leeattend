@@ -72,7 +72,7 @@ async fn test_create_and_delete_tenant_with_mock() {
     });
 
     let response = client
-        .post(&format!("{address}/api/system/tenants"))
+        .post(&format!("{address}/api/v1/system/tenants"))
         .header("X-User-Id", user_id.to_string())
         .json(&req)
         .send()
@@ -105,7 +105,7 @@ async fn test_create_and_delete_tenant_with_mock() {
 
     // 2. Delete Tenant
     let delete_res = client
-        .delete(&format!("{address}/api/system/tenants/{}", new_ws_id))
+        .delete(&format!("{address}/api/v1/system/tenants/{}", new_ws_id))
         .header("X-User-Id", user_id.to_string())
         .send()
         .await
@@ -163,7 +163,7 @@ async fn test_create_tenant_with_byod() {
     });
 
     let response = client
-        .post(&format!("{address}/api/system/tenants"))
+        .post(&format!("{address}/api/v1/system/tenants"))
         .header("X-User-Id", user_id.to_string())
         .json(&req)
         .send()
@@ -268,7 +268,7 @@ async fn test_create_tenant_requires_platform_admin() {
     });
 
     let response = client
-        .post(&format!("{address}/api/system/tenants"))
+        .post(&format!("{address}/api/v1/system/tenants"))
         .header("X-User-Id", user_id.to_string())
         .json(&req)
         .send()
@@ -328,7 +328,7 @@ async fn test_get_tenant_stats() {
     // Execute GET
     let response = client
         .get(&format!(
-            "{address}/api/system/tenants/{workspace_id}/stats"
+            "{address}/api/v1/system/tenants/{workspace_id}/stats"
         ))
         .header("X-User-Id", user_id.to_string())
         .send()
@@ -381,7 +381,7 @@ async fn test_update_tenant_database() {
     // 1. PUT update database
     let response = client
         .put(&format!(
-            "{address}/api/system/tenants/{tenant_id}/database"
+            "{address}/api/v1/system/tenants/{tenant_id}/database"
         ))
         .header("X-User-Id", user_id.to_string())
         .json(&req)
@@ -432,7 +432,7 @@ async fn test_update_tenant_database() {
 
     // 4. Verify GET stats returns masked_db_url with password redacted
     let response = client
-        .get(&format!("{address}/api/system/tenants/{tenant_id}/stats"))
+        .get(&format!("{address}/api/v1/system/tenants/{tenant_id}/stats"))
         .header("X-User-Id", user_id.to_string())
         .send()
         .await
@@ -471,7 +471,7 @@ async fn test_update_tenant_database_requires_admin() {
 
     let response = client
         .put(&format!(
-            "{address}/api/system/tenants/{tenant_id}/database"
+            "{address}/api/v1/system/tenants/{tenant_id}/database"
         ))
         .header("X-User-Id", user_id.to_string())
         .json(&req)
@@ -517,7 +517,7 @@ async fn test_update_tenant_database_invalid_tenant_id() {
     // Use an invalid tenant_id (not a valid UUID)
     let response = client
         .put(&format!(
-            "{address}/api/system/tenants/tenant_not-a-uuid/database"
+            "{address}/api/v1/system/tenants/tenant_not-a-uuid/database"
         ))
         .header("X-User-Id", user_id.to_string())
         .json(&req)

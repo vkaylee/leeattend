@@ -54,7 +54,7 @@ async fn test_upload_attendance_csv_api() {
         .oneshot(
             axum::http::Request::builder()
                 .method("POST")
-                .uri(format!("/api/workspaces/{ws_id}/attendance/upload"))
+                .uri(format!("/api/v1/workspaces/{ws_id}/attendance/upload"))
                 .header("Content-Type", content_type)
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())

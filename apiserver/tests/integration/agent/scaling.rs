@@ -43,7 +43,7 @@ async fn test_agent_scaling_config() {
 
     let req = Request::builder()
         .method("POST")
-        .uri("/api/authorized-agents")
+        .uri("/api/v1/authorized-agents")
         .header("Content-Type", "application/json")
         .header("Authorization", format!("Bearer {token}"))
         .header("X-Workspace-Id", workspace_id.to_string())
@@ -73,7 +73,7 @@ async fn test_agent_scaling_config() {
 
     let req = Request::builder()
         .method("PATCH")
-        .uri(format!("/api/authorized-agents/{agent_id}"))
+        .uri(format!("/api/v1/authorized-agents/{agent_id}"))
         .header("Content-Type", "application/json")
         .header("Authorization", format!("Bearer {token}"))
         .header("X-Workspace-Id", workspace_id.to_string())
@@ -103,7 +103,7 @@ async fn test_agent_scaling_config() {
 
     let req = Request::builder()
         .method("PATCH")
-        .uri(format!("/api/authorized-agents/{agent_id}"))
+        .uri(format!("/api/v1/authorized-agents/{agent_id}"))
         .header("Content-Type", "application/json")
         .header("Authorization", format!("Bearer {token}"))
         .header("X-Workspace-Id", workspace_id.to_string())

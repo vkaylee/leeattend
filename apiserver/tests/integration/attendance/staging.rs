@@ -51,7 +51,7 @@ async fn test_get_staging_logs_empty() {
         .clone()
         .oneshot(req(
             "GET",
-            &format!("/api/workspaces/{ws_id}/attendance/staging-logs"),
+            &format!("/api/v1/workspaces/{ws_id}/attendance/staging-logs"),
             ws_id,
             admin_id,
             None,
@@ -77,7 +77,7 @@ async fn test_dismiss_staging_log_not_found() {
         .clone()
         .oneshot(req(
             "DELETE",
-            &format!("/api/workspaces/{ws_id}/attendance/staging-logs/{fake_id}"),
+            &format!("/api/v1/workspaces/{ws_id}/attendance/staging-logs/{fake_id}"),
             ws_id,
             admin_id,
             None,
@@ -101,7 +101,7 @@ async fn test_resolve_staging_log_not_found() {
         .clone()
         .oneshot(req(
             "POST",
-            &format!("/api/workspaces/{ws_id}/attendance/staging-logs/{fake_id}/resolve"),
+            &format!("/api/v1/workspaces/{ws_id}/attendance/staging-logs/{fake_id}/resolve"),
             ws_id,
             admin_id,
             Some(body.to_string()),
@@ -137,7 +137,7 @@ async fn test_staging_log_with_real_data() {
         .clone()
         .oneshot(req(
             "GET",
-            &format!("/api/workspaces/{ws_id}/attendance/staging-logs"),
+            &format!("/api/v1/workspaces/{ws_id}/attendance/staging-logs"),
             ws_id,
             admin_id,
             None,
@@ -153,7 +153,7 @@ async fn test_staging_log_with_real_data() {
         .clone()
         .oneshot(req(
             "DELETE",
-            &format!("/api/workspaces/{ws_id}/attendance/staging-logs/{log_id}"),
+            &format!("/api/v1/workspaces/{ws_id}/attendance/staging-logs/{log_id}"),
             ws_id,
             admin_id,
             None,
@@ -167,7 +167,7 @@ async fn test_staging_log_with_real_data() {
         .clone()
         .oneshot(req(
             "GET",
-            &format!("/api/workspaces/{ws_id}/attendance/staging-logs"),
+            &format!("/api/v1/workspaces/{ws_id}/attendance/staging-logs"),
             ws_id,
             admin_id,
             None,
@@ -204,7 +204,7 @@ async fn test_staging_log_rbac_member_forbidden() {
         .clone()
         .oneshot(req(
             "GET",
-            &format!("/api/workspaces/{ws_id}/attendance/staging-logs"),
+            &format!("/api/v1/workspaces/{ws_id}/attendance/staging-logs"),
             ws_id,
             member_id,
             None,

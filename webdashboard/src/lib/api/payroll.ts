@@ -20,7 +20,7 @@ import {
 import { client } from "./client";
 
 export async function fetchIncentivePolicies(wsId: string): Promise<PayrollIncentivePolicy[]> {
-  const { data: resData } = await client.GET("/workspaces/{ws_id}/payroll/incentive-policies", {
+  const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/payroll/incentive-policies", {
     params: { path: { ws_id: wsId } }
   });
   if (!resData) throw new Error("No response data");
@@ -28,26 +28,26 @@ export async function fetchIncentivePolicies(wsId: string): Promise<PayrollIncen
 }
 
 export async function createIncentivePolicy(wsId: string, data: Partial<PayrollIncentivePolicy>): Promise<void> {
-  await client.POST("/workspaces/{ws_id}/payroll/incentive-policies", {
+  await client.POST("/v1/workspaces/{ws_id}/payroll/incentive-policies", {
     params: { path: { ws_id: wsId } },
     body: data as any
   });
 }
 
 export async function cloneIncentivePolicy(wsId: string, policyId: string): Promise<void> {
-  await client.POST("/workspaces/{ws_id}/payroll/incentive-policies/{policy_id}/clone", {
+  await client.POST("/v1/workspaces/{ws_id}/payroll/incentive-policies/{policy_id}/clone", {
     params: { path: { ws_id: wsId, policy_id: policyId } }
   });
 }
 
 export async function deleteIncentivePolicy(wsId: string, policyId: string): Promise<void> {
-  await client.DELETE("/workspaces/{ws_id}/payroll/incentive-policies/{policy_id}", {
+  await client.DELETE("/v1/workspaces/{ws_id}/payroll/incentive-policies/{policy_id}", {
     params: { path: { ws_id: wsId, policy_id: policyId } }
   });
 }
 
 export async function createSalaryBaseGroup(wsId: string, data: { name: string; slug: string; description?: string }): Promise<SalaryBaseGroup> {
-  const { data: resData } = await client.POST("/workspaces/{ws_id}/salary-bases", {
+  const { data: resData } = await client.POST("/v1/workspaces/{ws_id}/salary-bases", {
     params: { path: { ws_id: wsId } },
     body: data
   });
@@ -56,7 +56,7 @@ export async function createSalaryBaseGroup(wsId: string, data: { name: string; 
 }
 
 export async function fetchSalaryBaseGroups(wsId: string): Promise<{ groups: SalaryBaseGroup[], members: SalaryBaseGroupMember[] }> {
-  const { data: resData } = await client.GET("/workspaces/{ws_id}/salary-bases", {
+  const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/salary-bases", {
     params: { path: { ws_id: wsId } }
   });
   if (!resData) throw new Error("No response data");
@@ -64,20 +64,20 @@ export async function fetchSalaryBaseGroups(wsId: string): Promise<{ groups: Sal
 }
 
 export async function assignComponentToSalaryBase(wsId: string, baseId: string, componentId: string): Promise<void> {
-  await client.POST("/workspaces/{ws_id}/salary-bases/{base_id}/members", {
+  await client.POST("/v1/workspaces/{ws_id}/salary-bases/{base_id}/members", {
     params: { path: { ws_id: wsId, base_id: baseId } },
     body: { component_definition_id: componentId }
   });
 }
 
 export async function unassignComponentFromSalaryBase(wsId: string, baseId: string, componentId: string): Promise<void> {
-  await client.DELETE("/workspaces/{ws_id}/salary-bases/{base_id}/members/{component_id}", {
+  await client.DELETE("/v1/workspaces/{ws_id}/salary-bases/{base_id}/members/{component_id}", {
     params: { path: { ws_id: wsId, base_id: baseId, component_id: componentId } }
   });
 }
 
 export async function fetchPayrollSettings(wsId: string): Promise<PayrollSettings> {
-  const { data: resData } = await client.GET("/workspaces/{ws_id}/payroll-settings", {
+  const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/payroll-settings", {
     params: { path: { ws_id: wsId } }
   });
   if (!resData) throw new Error("No response data");
@@ -85,7 +85,7 @@ export async function fetchPayrollSettings(wsId: string): Promise<PayrollSetting
 }
 
 export async function updatePayrollSettings(wsId: string, data: Partial<PayrollSettings>): Promise<PayrollSettings> {
-  const { data: resData } = await client.PATCH("/workspaces/{ws_id}/payroll-settings", {
+  const { data: resData } = await client.PATCH("/v1/workspaces/{ws_id}/payroll-settings", {
     params: { path: { ws_id: wsId } },
     body: data as any
   });
@@ -94,7 +94,7 @@ export async function updatePayrollSettings(wsId: string, data: Partial<PayrollS
 }
 
 export async function fetchPayrollSettingsHistory(wsId: string): Promise<PayrollSettings[]> {
-  const { data: resData } = await client.GET("/workspaces/{ws_id}/payroll-settings/history", {
+  const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/payroll-settings/history", {
     params: { path: { ws_id: wsId } }
   });
   if (!resData) throw new Error("No response data");
@@ -102,7 +102,7 @@ export async function fetchPayrollSettingsHistory(wsId: string): Promise<Payroll
 }
 
 export async function fetchSalaryComponents(wsId: string): Promise<SalaryComponentDefinition[]> {
-  const { data: resData } = await client.GET("/workspaces/{ws_id}/salary-components", {
+  const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/salary-components", {
     params: { path: { ws_id: wsId } }
   });
   if (!resData) throw new Error("No response data");
@@ -113,7 +113,7 @@ export async function createSalaryComponent(
   wsId: string, 
   data: CreateSalaryComponentRequest
 ): Promise<SalaryComponentDefinition> {
-  const { data: resData } = await client.POST("/workspaces/{ws_id}/salary-components", {
+  const { data: resData } = await client.POST("/v1/workspaces/{ws_id}/salary-components", {
     params: { path: { ws_id: wsId } },
     body: data
   });
@@ -122,7 +122,7 @@ export async function createSalaryComponent(
 }
 
 export async function fetchEmployeeSalaryComponents(wsId: string, employeeId: string): Promise<EmployeeSalaryComponent[]> {
-  const { data: resData } = await client.GET("/workspaces/{ws_id}/employees/{employee_id}/salary-components", {
+  const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/employees/{employee_id}/salary-components", {
     params: { path: { ws_id: wsId, employee_id: employeeId } }
   });
   if (!resData) throw new Error("No response data");
@@ -134,7 +134,7 @@ export async function assignEmployeeSalaryComponent(
   employeeId: string, 
   data: Partial<EmployeeSalaryComponent>
 ): Promise<EmployeeSalaryComponent> {
-  const { data: resData } = await client.POST("/workspaces/{ws_id}/employees/{employee_id}/salary-components", {
+  const { data: resData } = await client.POST("/v1/workspaces/{ws_id}/employees/{employee_id}/salary-components", {
     params: { path: { ws_id: wsId, employee_id: employeeId } },
     body: data as any
   });
@@ -148,7 +148,7 @@ export async function calculate_payroll(
   year: number,
   month: number,
 ): Promise<Payslip> {
-  const { data: resData } = await client.POST("/workspaces/{ws_id}/employees/{employee_id}/calculate-payroll", {
+  const { data: resData } = await client.POST("/v1/workspaces/{ws_id}/employees/{employee_id}/calculate-payroll", {
     params: { 
       path: { ws_id: wsId, employee_id: employeeId },
       query: { year, month }
@@ -162,7 +162,7 @@ export async function fetchEmployeePayslips(
   wsId: string,
   employeeId: string,
 ): Promise<Payslip[]> {
-  const { data: resData } = await client.GET("/workspaces/{ws_id}/employees/{employee_id}/payslips", {
+  const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/employees/{employee_id}/payslips", {
     params: { path: { ws_id: wsId, employee_id: employeeId } }
   });
   if (!resData) throw new Error("No response data");
@@ -170,7 +170,7 @@ export async function fetchEmployeePayslips(
 }
 
 export async function fetchEmployeePayrollConfigs(wsId: string, employeeId: string): Promise<ConfigRecord[]> {
-  const { data: resData } = await client.GET("/workspaces/{ws_id}/employees/{id}/payroll-config", {
+  const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/employees/{id}/payroll-config", {
     params: { path: { ws_id: wsId, id: employeeId } }
   });
   if (!resData) throw new Error("No response data");
@@ -179,7 +179,7 @@ export async function fetchEmployeePayrollConfigs(wsId: string, employeeId: stri
 
 // Overtime Policies
 export async function fetchOvertimePolicies(wsId: string): Promise<OvertimePolicy[]> {
-  const { data: resData } = await client.GET("/workspaces/{ws_id}/overtime/policies", {
+  const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/overtime/policies", {
     params: { path: { ws_id: wsId } }
   });
   if (!resData) throw new Error("No response data");
@@ -187,7 +187,7 @@ export async function fetchOvertimePolicies(wsId: string): Promise<OvertimePolic
 }
 
 export async function fetchOvertimePolicy(wsId: string, policyId: string): Promise<[OvertimePolicy, OvertimeRule[]]> {
-  const { data: resData } = await client.GET("/workspaces/{ws_id}/overtime/policies/{policy_id}", {
+  const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/overtime/policies/{policy_id}", {
     params: { path: { ws_id: wsId, policy_id: policyId } }
   });
   if (!resData) throw new Error("No response data");
@@ -195,7 +195,7 @@ export async function fetchOvertimePolicy(wsId: string, policyId: string): Promi
 }
 
 export async function createOvertimePolicy(wsId: string, data: Partial<OvertimePolicy>): Promise<OvertimePolicy> {
-  const { data: resData } = await client.POST("/workspaces/{ws_id}/overtime/policies", {
+  const { data: resData } = await client.POST("/v1/workspaces/{ws_id}/overtime/policies", {
     params: { path: { ws_id: wsId } },
     body: data as any
   });
@@ -204,7 +204,7 @@ export async function createOvertimePolicy(wsId: string, data: Partial<OvertimeP
 }
 
 export async function addOvertimeRule(wsId: string, policyId: string, data: Partial<OvertimeRule>): Promise<OvertimeRule> {
-  const { data: resData } = await client.POST("/workspaces/{ws_id}/overtime/policies/{policy_id}/rules", {
+  const { data: resData } = await client.POST("/v1/workspaces/{ws_id}/overtime/policies/{policy_id}/rules", {
     params: { path: { ws_id: wsId, policy_id: policyId } },
     body: data as any
   });
@@ -213,7 +213,7 @@ export async function addOvertimeRule(wsId: string, policyId: string, data: Part
 }
 
 export async function setEmployeePayrollConfig(wsId: string, employeeId: string, data: Record<string, unknown>): Promise<Record<string, unknown>> {
-  const { data: resData } = await client.POST("/workspaces/{ws_id}/employees/{id}/payroll-config", {
+  const { data: resData } = await client.POST("/v1/workspaces/{ws_id}/employees/{id}/payroll-config", {
     params: { path: { ws_id: wsId, id: employeeId } },
     body: data as any
   });
@@ -222,7 +222,7 @@ export async function setEmployeePayrollConfig(wsId: string, employeeId: string,
 }
 
 export async function fetchDepartmentPayrollConfigs(wsId: string, deptId: string): Promise<Record<string, unknown>> {
-  const { data: resData } = await client.GET("/workspaces/{ws_id}/departments/{id}/payroll-config", {
+  const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/departments/{id}/payroll-config", {
     params: { path: { ws_id: wsId, id: deptId } }
   });
   if (!resData) throw new Error("No response data");
@@ -230,7 +230,7 @@ export async function fetchDepartmentPayrollConfigs(wsId: string, deptId: string
 }
 
 export async function setDepartmentPayrollConfig(wsId: string, deptId: string, data: Record<string, unknown>): Promise<Record<string, unknown>> {
-  const { data: resData } = await client.POST("/workspaces/{ws_id}/departments/{id}/payroll-config", {
+  const { data: resData } = await client.POST("/v1/workspaces/{ws_id}/departments/{id}/payroll-config", {
     params: { path: { ws_id: wsId, id: deptId } },
     body: data as any
   });
@@ -239,7 +239,7 @@ export async function setDepartmentPayrollConfig(wsId: string, deptId: string, d
 }
 
 export async function calculateBatchPayslips(wsId: string, data: { employee_ids: string[]; year: number; month: number }): Promise<{ results: BatchCalculateResult[] }> {
-  const { data: resData } = await client.POST("/workspaces/{ws_id}/payroll/calculate-batch", {
+  const { data: resData } = await client.POST("/v1/workspaces/{ws_id}/payroll/calculate-batch", {
     params: { path: { ws_id: wsId } },
     body: data as any
   });
@@ -248,7 +248,7 @@ export async function calculateBatchPayslips(wsId: string, data: { employee_ids:
 }
 
 export async function fetchWorkspacePayslips(wsId: string, year: number, month: number): Promise<Payslip[]> {
-  const { data: resData } = await client.GET("/workspaces/{ws_id}/payroll/payslips", {
+  const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/payroll/payslips", {
     params: { 
       path: { ws_id: wsId },
       query: { year, month }
@@ -259,7 +259,7 @@ export async function fetchWorkspacePayslips(wsId: string, year: number, month: 
 }
 
 export async function assignOvertimePolicy(wsId: string, data: { employee_id?: string; department_id?: string; policy_id: string; effective_from: string }): Promise<void> {
-  await client.POST("/workspaces/{ws_id}/overtime/policies/assign", {
+  await client.POST("/v1/workspaces/{ws_id}/overtime/policies/assign", {
     params: { path: { ws_id: wsId } },
     body: data as any
   });
@@ -268,7 +268,7 @@ export async function assignOvertimePolicy(wsId: string, data: { employee_id?: s
 // --- Payroll Rules API ---
 
 export async function fetchPayrollRules(wsId: string): Promise<PayrollRuleDefinition[]> {
-  const { data: resData } = await client.GET("/workspaces/{ws_id}/payroll-rules", {
+  const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/payroll-rules", {
     params: { path: { ws_id: wsId } }
   });
   if (!resData) throw new Error("No response data");
@@ -276,7 +276,7 @@ export async function fetchPayrollRules(wsId: string): Promise<PayrollRuleDefini
 }
 
 export async function createPayrollRule(wsId: string, data: Partial<PayrollRuleDefinition>): Promise<PayrollRuleDefinition> {
-  const { data: resData } = await client.POST("/workspaces/{ws_id}/payroll-rules", {
+  const { data: resData } = await client.POST("/v1/workspaces/{ws_id}/payroll-rules", {
     params: { path: { ws_id: wsId } },
     body: data as any
   });
@@ -285,7 +285,7 @@ export async function createPayrollRule(wsId: string, data: Partial<PayrollRuleD
 }
 
 export async function fetchPayrollRuleTiers(wsId: string, ruleId: string): Promise<PayrollRuleTier[]> {
-  const { data: resData } = await client.GET("/workspaces/{ws_id}/payroll-rules/{rule_id}/tiers", {
+  const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/payroll-rules/{rule_id}/tiers", {
     params: { path: { ws_id: wsId, rule_id: ruleId } }
   });
   if (!resData) throw new Error("No response data");
@@ -293,7 +293,7 @@ export async function fetchPayrollRuleTiers(wsId: string, ruleId: string): Promi
 }
 
 export async function createPayrollRuleTier(wsId: string, ruleId: string, data: Partial<PayrollRuleTier>): Promise<PayrollRuleTier> {
-  const { data: resData } = await client.POST("/workspaces/{ws_id}/payroll-rules/{rule_id}/tiers", {
+  const { data: resData } = await client.POST("/v1/workspaces/{ws_id}/payroll-rules/{rule_id}/tiers", {
     params: { path: { ws_id: wsId, rule_id: ruleId } },
     body: data as any
   });
@@ -304,7 +304,7 @@ export async function createPayrollRuleTier(wsId: string, ruleId: string, data: 
 // --- Payroll Rule Assignments ---
 
 export async function fetchPayrollRuleAssignments(wsId: string, ruleId: string): Promise<PayrollRuleAssignment[]> {
-  const { data: resData } = await client.GET("/workspaces/{ws_id}/payroll-rules/{rule_id}/assignments", {
+  const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/payroll-rules/{rule_id}/assignments", {
     params: { path: { ws_id: wsId, rule_id: ruleId } }
   });
   if (!resData) throw new Error("No response data");
@@ -312,7 +312,7 @@ export async function fetchPayrollRuleAssignments(wsId: string, ruleId: string):
 }
 
 export async function createPayrollRuleAssignment(wsId: string, ruleId: string, data: Partial<PayrollRuleAssignment>): Promise<PayrollRuleAssignment> {
-  const { data: resData } = await client.POST("/workspaces/{ws_id}/payroll-rules/{rule_id}/assignments", {
+  const { data: resData } = await client.POST("/v1/workspaces/{ws_id}/payroll-rules/{rule_id}/assignments", {
     params: { path: { ws_id: wsId, rule_id: ruleId } },
     body: data as any
   });
@@ -321,7 +321,7 @@ export async function createPayrollRuleAssignment(wsId: string, ruleId: string, 
 }
 
 export async function deletePayrollRuleAssignment(wsId: string, ruleId: string, assignmentId: string): Promise<void> {
-  await client.DELETE("/workspaces/{ws_id}/payroll-rules/{rule_id}/assignments/{assignment_id}", {
+  await client.DELETE("/v1/workspaces/{ws_id}/payroll-rules/{rule_id}/assignments/{assignment_id}", {
     params: { path: { ws_id: wsId, rule_id: ruleId, assignment_id: assignmentId } }
   });
 }

@@ -56,7 +56,7 @@ async fn test_get_me_returns_system_roles_for_platform_admin() {
         .oneshot(
             axum::http::Request::builder()
                 .method("GET")
-                .uri("/api/me")
+                .uri("/api/v1/me")
                 .header("X-User-Id", user_id.to_string())
                 .body(axum::body::Body::empty())
                 .unwrap(),
@@ -89,7 +89,7 @@ async fn test_get_me_returns_empty_system_roles_for_regular_user() {
         .oneshot(
             axum::http::Request::builder()
                 .method("GET")
-                .uri("/api/me")
+                .uri("/api/v1/me")
                 .header("X-User-Id", user_id.to_string())
                 .body(axum::body::Body::empty())
                 .unwrap(),
@@ -124,7 +124,7 @@ async fn test_get_me_returns_multiple_system_roles() {
         .oneshot(
             axum::http::Request::builder()
                 .method("GET")
-                .uri("/api/me")
+                .uri("/api/v1/me")
                 .header("X-User-Id", user_id.to_string())
                 .body(axum::body::Body::empty())
                 .unwrap(),

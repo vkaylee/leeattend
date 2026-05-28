@@ -41,7 +41,7 @@ async fn test_leave_policy_api_lifecycle() {
         .oneshot(
             axum::http::Request::builder()
                 .method("POST")
-                .uri(format!("/api/workspaces/{ws_id}/leave/policies"))
+                .uri(format!("/api/v1/workspaces/{ws_id}/leave/policies"))
                 .header("Content-Type", "application/json")
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", admin_id.to_string())
@@ -72,7 +72,7 @@ async fn test_leave_policy_api_lifecycle() {
         .oneshot(
             axum::http::Request::builder()
                 .method("POST")
-                .uri(format!("/api/workspaces/{ws_id}/leave/policies/assign"))
+                .uri(format!("/api/v1/workspaces/{ws_id}/leave/policies/assign"))
                 .header("Content-Type", "application/json")
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", admin_id.to_string())
@@ -90,7 +90,7 @@ async fn test_leave_policy_api_lifecycle() {
             axum::http::Request::builder()
                 .method("DELETE")
                 .uri(format!(
-                    "/api/workspaces/{ws_id}/leave/policies/{policy_id}"
+                    "/api/v1/workspaces/{ws_id}/leave/policies/{policy_id}"
                 ))
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", admin_id.to_string())

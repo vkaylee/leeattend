@@ -82,7 +82,7 @@ async fn test_system_tenants_lifecycle() {
     // 1. Regular user cannot access GET /api/v1/system/tenants
     let res = app
         .clone()
-        .oneshot(make_req("GET", "/api/system/tenants", regular_id, None))
+        .oneshot(make_req("GET", "/api/v1/system/tenants", regular_id, None))
         .await
         .unwrap();
     assert_eq!(res.status(), StatusCode::FORBIDDEN);
@@ -90,7 +90,7 @@ async fn test_system_tenants_lifecycle() {
     // 2. Admin CAN access GET
     let res = app
         .clone()
-        .oneshot(make_req("GET", "/api/system/tenants", admin_id, None))
+        .oneshot(make_req("GET", "/api/v1/system/tenants", admin_id, None))
         .await
         .unwrap();
     let status = res.status();
@@ -99,7 +99,7 @@ async fn test_system_tenants_lifecycle() {
             .await
             .unwrap();
         println!(
-            "GET /api/system/tenants failed: {:?}",
+            "GET /api/v1/system/tenants failed: {:?}",
             String::from_utf8(bytes.to_vec())
         );
     }
@@ -116,7 +116,7 @@ async fn test_system_tenants_lifecycle() {
         .clone()
         .oneshot(make_req(
             "POST",
-            "/api/system/tenants",
+            "/api/v1/system/tenants",
             admin_id,
             Some(payload),
         ))
@@ -133,7 +133,7 @@ async fn test_system_tenants_lifecycle() {
         )
         .ok();
         println!(
-            "POST /api/system/tenants failed: {:?}",
+            "POST /api/v1/system/tenants failed: {:?}",
             String::from_utf8(bytes.to_vec())
         );
     }
@@ -142,7 +142,7 @@ async fn test_system_tenants_lifecycle() {
     // 4. Verify tenant is in GET list
     let res = app
         .clone()
-        .oneshot(make_req("GET", "/api/system/tenants", admin_id, None))
+        .oneshot(make_req("GET", "/api/v1/system/tenants", admin_id, None))
         .await
         .unwrap();
     assert_eq!(res.status(), StatusCode::OK);
@@ -161,7 +161,7 @@ async fn test_system_tenants_lifecycle() {
         .clone()
         .oneshot(make_req(
             "DELETE",
-            &format!("/api/system/tenants/{}", workspace_id),
+            &format!("/api/v1/system/tenants/{}", workspace_id),
             admin_id,
             None,
         ))

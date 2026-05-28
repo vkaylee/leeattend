@@ -51,7 +51,7 @@ async fn test_get_workspace_adjustments_empty() {
         .clone()
         .oneshot(req(
             "GET",
-            &format!("/api/workspaces/{ws_id}/attendance/adjustments"),
+            &format!("/api/v1/workspaces/{ws_id}/attendance/adjustments"),
             ws_id,
             admin_id,
             None,
@@ -75,7 +75,7 @@ async fn test_get_workspace_adjustments_filtered_by_status() {
         .clone()
         .oneshot(req(
             "GET",
-            &format!("/api/workspaces/{ws_id}/attendance/adjustments?status=pending"),
+            &format!("/api/v1/workspaces/{ws_id}/attendance/adjustments?status=pending"),
             ws_id,
             admin_id,
             None,
@@ -100,7 +100,7 @@ async fn test_get_my_adjustments_empty() {
         .clone()
         .oneshot(req(
             "GET",
-            &format!("/api/employees/{emp_id}/attendance/adjustments"),
+            &format!("/api/v1/employees/{emp_id}/attendance/adjustments"),
             ws_id,
             admin_id,
             None,
@@ -129,7 +129,7 @@ async fn test_approve_adjustment_not_found() {
         .clone()
         .oneshot(req(
             "POST",
-            &format!("/api/workspaces/{ws_id}/attendance/adjustments/{fake_id}/approve"),
+            &format!("/api/v1/workspaces/{ws_id}/attendance/adjustments/{fake_id}/approve"),
             ws_id,
             admin_id,
             Some(body.to_string()),
@@ -167,7 +167,7 @@ async fn test_approve_adjustment_rbac_member_forbidden() {
         .clone()
         .oneshot(req(
             "POST",
-            &format!("/api/workspaces/{ws_id}/attendance/adjustments/{fake_id}/approve"),
+            &format!("/api/v1/workspaces/{ws_id}/attendance/adjustments/{fake_id}/approve"),
             ws_id,
             member_id,
             Some(body.to_string()),

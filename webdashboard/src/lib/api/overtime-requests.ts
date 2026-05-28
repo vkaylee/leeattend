@@ -68,7 +68,7 @@ export interface QuotaSummary {
 
 export const overtimeRequestsApi = {
   listRequests: async (workspaceId: string, params?: any): Promise<OvertimeRequest[]> => {
-    const { data } = await client.GET("/workspaces/{ws_id}/overtime/requests", {
+    const { data } = await client.GET("/v1/workspaces/{ws_id}/overtime/requests", {
       params: {
         path: { ws_id: workspaceId },
         query: params,
@@ -79,7 +79,7 @@ export const overtimeRequestsApi = {
   },
 
   getRequest: async (workspaceId: string, id: string): Promise<OvertimeRequestDetail> => {
-    const { data } = await client.GET("/workspaces/{ws_id}/overtime/requests/{id}", {
+    const { data } = await client.GET("/v1/workspaces/{ws_id}/overtime/requests/{id}", {
       params: {
         path: { ws_id: workspaceId, id },
       },
@@ -89,7 +89,7 @@ export const overtimeRequestsApi = {
   },
 
   createRequest: async (workspaceId: string, payload: CreateOvertimeRequestPayload): Promise<OvertimeRequest> => {
-    const { data } = await client.POST("/workspaces/{ws_id}/overtime/requests", {
+    const { data } = await client.POST("/v1/workspaces/{ws_id}/overtime/requests", {
       params: {
         path: { ws_id: workspaceId },
       },
@@ -100,7 +100,7 @@ export const overtimeRequestsApi = {
   },
 
   submitRequest: async (workspaceId: string, id: string): Promise<void> => {
-    await client.POST("/workspaces/{ws_id}/overtime/requests/{id}/submit", {
+    await client.POST("/v1/workspaces/{ws_id}/overtime/requests/{id}/submit", {
       params: {
         path: { ws_id: workspaceId, id },
       },
@@ -108,7 +108,7 @@ export const overtimeRequestsApi = {
   },
 
   cancelRequest: async (workspaceId: string, id: string): Promise<void> => {
-    await client.POST("/workspaces/{ws_id}/overtime/requests/{id}/cancel" as any, {
+    await client.POST("/v1/workspaces/{ws_id}/overtime/requests/{id}/cancel" as any, {
       params: {
         path: { ws_id: workspaceId, id } as any,
       },
@@ -120,7 +120,7 @@ export const overtimeRequestsApi = {
     status: ConsentStatus;
     decline_reason?: string;
   }): Promise<void> => {
-    await client.POST("/workspaces/{ws_id}/overtime/requests/{id}/consent/{emp_id}", {
+    await client.POST("/v1/workspaces/{ws_id}/overtime/requests/{id}/consent/{emp_id}", {
       params: {
         path: { ws_id: workspaceId, id, emp_id: payload.employee_id },
       },
@@ -132,7 +132,7 @@ export const overtimeRequestsApi = {
   },
 
   getMyAssignments: async (employeeId: string): Promise<OvertimeRequest[]> => {
-    const { data } = await client.GET("/employees/{employeeId}/overtime/assignments" as any, {
+    const { data } = await client.GET("/v1/employees/{employeeId}/overtime/assignments" as any, {
       params: {
         path: { employeeId } as any,
       },
@@ -142,7 +142,7 @@ export const overtimeRequestsApi = {
   },
 
   getWorkspaceQuotaSummary: async (workspaceId: string, month: string): Promise<QuotaSummary[]> => {
-    const { data } = await client.GET("/workspaces/{ws_id}/overtime/quota/summary" as any, {
+    const { data } = await client.GET("/v1/workspaces/{ws_id}/overtime/quota/summary" as any, {
       params: {
         path: { ws_id: workspaceId } as any,
         query: { month } as any,
@@ -153,7 +153,7 @@ export const overtimeRequestsApi = {
   },
 
   getEmployeeQuota: async (workspaceId: string, employeeId: string, date: string): Promise<QuotaSummary> => {
-    const { data } = await client.GET("/workspaces/{ws_id}/overtime/quota/{employeeId}" as any, {
+    const { data } = await client.GET("/v1/workspaces/{ws_id}/overtime/quota/{employeeId}" as any, {
       params: {
         path: { ws_id: workspaceId, employeeId } as any,
         query: { date } as any,

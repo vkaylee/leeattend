@@ -46,7 +46,7 @@ async fn test_bulk_upsert_roster_api_smoke() {
     // 3. Send Request
     let res = client
         .post(format!(
-            "{address}/api/workspaces/{workspace_id}/employees/{emp_id}/rosters/bulk"
+            "{address}/api/v1/workspaces/{workspace_id}/employees/{emp_id}/rosters/bulk"
         ))
         .header("Authorization", format!("Bearer {auth_token}"))
         .json(&req)
@@ -59,7 +59,7 @@ async fn test_bulk_upsert_roster_api_smoke() {
     // 4. Verify via GET (handler returns no body, just status code)
     let get_res = client
         .get(format!(
-            "{address}/api/workspaces/{workspace_id}/employees/{emp_id}/rosters"
+            "{address}/api/v1/workspaces/{workspace_id}/employees/{emp_id}/rosters"
         ))
         .header("Authorization", format!("Bearer {auth_token}"))
         .send()

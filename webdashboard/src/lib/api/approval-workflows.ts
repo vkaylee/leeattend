@@ -32,7 +32,7 @@ export interface UpdateWorkflowRequest {
 
 export const approvalWorkflowsApi = {
   listWorkflows: async (workspaceId: string, entityType?: string): Promise<ApprovalWorkflow[]> => {
-    const { data: resData } = await client.GET("/workspaces/{ws_id}/approval-workflows", {
+    const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/approval-workflows", {
       params: {
         path: { ws_id: workspaceId },
         query: entityType ? { entity_type: entityType } : undefined
@@ -43,7 +43,7 @@ export const approvalWorkflowsApi = {
   },
 
   getWorkflow: async (workspaceId: string, id: string): Promise<ApprovalWorkflow> => {
-    const { data: resData } = await client.GET("/workspaces/{ws_id}/approval-workflows/{id}", {
+    const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/approval-workflows/{id}", {
       params: {
         path: { ws_id: workspaceId, id }
       }
@@ -53,7 +53,7 @@ export const approvalWorkflowsApi = {
   },
 
   createWorkflow: async (workspaceId: string, payload: CreateWorkflowRequest): Promise<ApprovalWorkflow> => {
-    const { data: resData } = await client.POST("/workspaces/{ws_id}/approval-workflows", {
+    const { data: resData } = await client.POST("/v1/workspaces/{ws_id}/approval-workflows", {
       params: {
         path: { ws_id: workspaceId }
       },
@@ -64,7 +64,7 @@ export const approvalWorkflowsApi = {
   },
 
   updateWorkflow: async (workspaceId: string, id: string, payload: UpdateWorkflowRequest): Promise<ApprovalWorkflow> => {
-    const { data: resData } = await client.PUT("/workspaces/{ws_id}/approval-workflows/{id}", {
+    const { data: resData } = await client.PUT("/v1/workspaces/{ws_id}/approval-workflows/{id}", {
       params: {
         path: { ws_id: workspaceId, id }
       },
@@ -75,7 +75,7 @@ export const approvalWorkflowsApi = {
   },
 
   deleteWorkflow: async (workspaceId: string, id: string): Promise<void> => {
-    await client.DELETE("/workspaces/{ws_id}/approval-workflows/{id}", {
+    await client.DELETE("/v1/workspaces/{ws_id}/approval-workflows/{id}", {
       params: {
         path: { ws_id: workspaceId, id }
       }
@@ -83,7 +83,7 @@ export const approvalWorkflowsApi = {
   },
 
   getApprovalHistory: async (workspaceId: string, entityType: string, entityId: string): Promise<ApprovalActionLog[]> => {
-    const { data: resData } = await client.GET("/workspaces/{ws_id}/approval-workflows/history/{type}/{id}", {
+    const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/approval-workflows/history/{type}/{id}", {
       params: {
         path: { ws_id: workspaceId, type: entityType, id: entityId }
       }
@@ -98,7 +98,7 @@ export const approvalWorkflowsApi = {
     action: string;
     note?: string;
   }): Promise<void> => {
-    await client.POST("/workspaces/{ws_id}/approval-workflows/approve", {
+    await client.POST("/v1/workspaces/{ws_id}/approval-workflows/approve", {
       params: {
         path: { ws_id: workspaceId }
       },

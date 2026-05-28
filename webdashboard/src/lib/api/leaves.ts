@@ -16,7 +16,7 @@ export async function submitLeaveRequest(
     end_time?: string;
   },
 ): Promise<LeaveRequest> {
-  const { data: resData } = await client.POST("/workspaces/{ws_id}/leave/submit", {
+  const { data: resData } = await client.POST("/v1/workspaces/{ws_id}/leave/submit", {
     params: {
       path: { ws_id: wsId },
     },
@@ -30,7 +30,7 @@ export async function fetchWorkspaceLeaveRequests(
   wsId: string,
   status?: string,
 ): Promise<LeaveRequest[]> {
-  const { data: resData } = await client.GET("/workspaces/{ws_id}/leave/requests", {
+  const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/leave/requests", {
     params: {
       path: { ws_id: wsId },
       query: status ? { status: status as any } : undefined,
@@ -43,7 +43,7 @@ export async function fetchWorkspaceLeaveRequests(
 export async function fetchMyLeaveRequests(
   employeeId: string
 ): Promise<LeaveRequest[]> {
-  const { data: resData } = await client.GET("/employees/{id}/leave/requests", {
+  const { data: resData } = await client.GET("/v1/employees/{id}/leave/requests", {
     params: {
       path: { id: employeeId },
     },
@@ -57,7 +57,7 @@ export async function approveLeaveRequest(
   requestId: string,
   data: { status: string },
 ): Promise<void> {
-  await client.POST("/workspaces/{ws_id}/leave/requests/{id}/approve", {
+  await client.POST("/v1/workspaces/{ws_id}/leave/requests/{id}/approve", {
     params: {
       path: { ws_id: wsId, id: requestId },
     },
@@ -69,7 +69,7 @@ export async function fetchEmployeeLeaveBalances(
   wsId: string,
   employeeId: string,
 ): Promise<EmployeeLeaveBalance[]> {
-  const { data: resData } = await client.GET("/workspaces/{ws_id}/employees/{id}/leave/balances", {
+  const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/employees/{id}/leave/balances", {
     params: {
       path: { ws_id: wsId, id: employeeId },
     },
@@ -82,7 +82,7 @@ export async function fetchWorkspaceLeaveBalances(
   wsId: string,
   params?: { page?: number; limit?: number; q?: string; year?: number }
 ): Promise<PaginatedResponse<WorkspaceLeaveBalance>> {
-  const { data: resData } = await client.GET("/workspaces/{ws_id}/leave/balances", {
+  const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/leave/balances", {
     params: {
       path: { ws_id: wsId },
       query: {
@@ -102,7 +102,7 @@ export async function fetchLeaveHistory(
   employeeId: string,
   leaveTypeId?: string,
 ): Promise<LeaveHistoryItem[]> {
-  const { data: resData } = await client.GET("/workspaces/{ws_id}/employees/{id}/leave/history", {
+  const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/employees/{id}/leave/history", {
     params: {
       path: { ws_id: wsId, id: employeeId },
       query: leaveTypeId ? { leave_type_id: leaveTypeId } : undefined,
@@ -117,7 +117,7 @@ export async function adjustLeaveBalance(
   employeeId: string,
   data: { leave_type_id: string; amount: number; reason: string; transaction_date: string }
 ): Promise<void> {
-  await client.POST("/workspaces/{ws_id}/employees/{id}/leave/adjust", {
+  await client.POST("/v1/workspaces/{ws_id}/employees/{id}/leave/adjust", {
     params: {
       path: { ws_id: wsId, id: employeeId },
     },
@@ -126,7 +126,7 @@ export async function adjustLeaveBalance(
 }
 
 export async function fetchLeavePolicies(wsId: string): Promise<LeavePolicy[]> {
-  const { data: resData } = await client.GET("/workspaces/{ws_id}/leave/policies", {
+  const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/leave/policies", {
     params: {
       path: { ws_id: wsId },
     },
@@ -139,7 +139,7 @@ export async function createLeavePolicy(
   wsId: string,
   data: Partial<LeavePolicy>
 ): Promise<LeavePolicy> {
-  const { data: resData } = await client.POST("/workspaces/{ws_id}/leave/policies", {
+  const { data: resData } = await client.POST("/v1/workspaces/{ws_id}/leave/policies", {
     params: {
       path: { ws_id: wsId },
     },
@@ -154,7 +154,7 @@ export async function updateLeavePolicy(
   policyId: string,
   data: Partial<LeavePolicy>
 ): Promise<LeavePolicy> {
-  const { data: resData } = await client.PATCH("/workspaces/{ws_id}/leave/policies/{policy_id}", {
+  const { data: resData } = await client.PATCH("/v1/workspaces/{ws_id}/leave/policies/{policy_id}", {
     params: {
       path: { ws_id: wsId, policy_id: policyId },
     },
@@ -168,7 +168,7 @@ export async function deleteLeavePolicy(
   wsId: string,
   policyId: string
 ): Promise<void> {
-  await client.DELETE("/workspaces/{ws_id}/leave/policies/{policy_id}", {
+  await client.DELETE("/v1/workspaces/{ws_id}/leave/policies/{policy_id}", {
     params: {
       path: { ws_id: wsId, policy_id: policyId },
     },
@@ -176,7 +176,7 @@ export async function deleteLeavePolicy(
 }
 
 export async function fetchLeaveTypes(wsId: string): Promise<LeaveType[]> {
-  const { data: resData } = await client.GET("/workspaces/{workspace_id}/leave/types", {
+  const { data: resData } = await client.GET("/v1/workspaces/{workspace_id}/leave/types", {
     params: {
       path: { workspace_id: wsId },
     },
@@ -189,7 +189,7 @@ export async function createLeaveType(
   wsId: string,
   data: Partial<LeaveType>
 ): Promise<LeaveType> {
-  const { data: resData } = await client.POST("/workspaces/{workspace_id}/leave/types", {
+  const { data: resData } = await client.POST("/v1/workspaces/{workspace_id}/leave/types", {
     params: {
       path: { workspace_id: wsId },
     },
@@ -204,7 +204,7 @@ export async function updateLeaveType(
   id: string,
   data: Partial<LeaveType>
 ): Promise<LeaveType> {
-  const { data: resData } = await client.PATCH("/workspaces/{workspace_id}/leave/types/{id}" as any, {
+  const { data: resData } = await client.PATCH("/v1/workspaces/{workspace_id}/leave/types/{id}" as any, {
     params: {
       path: { workspace_id: wsId, id } as any,
     },
@@ -218,7 +218,7 @@ export async function deleteLeaveType(
   wsId: string,
   id: string
 ): Promise<void> {
-  await client.DELETE("/workspaces/{workspace_id}/leave/types/{id}", {
+  await client.DELETE("/v1/workspaces/{workspace_id}/leave/types/{id}", {
     params: {
       path: { workspace_id: wsId, id },
     },
@@ -226,7 +226,7 @@ export async function deleteLeaveType(
 }
 
 export async function fetchLeavePolicyAssignments(wsId: string): Promise<LeavePolicyAssignmentDetail[]> {
-  const { data: resData } = await client.GET("/workspaces/{ws_id}/leave/policies/assignments", {
+  const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/leave/policies/assignments", {
     params: {
       path: { ws_id: wsId },
     },
@@ -239,7 +239,7 @@ export async function assignLeavePolicy(
   wsId: string,
   data: { assignee_type: string; assignee_id: string | null; policy_id: string; effective_from: string }
 ): Promise<void> {
-  await client.POST("/workspaces/{ws_id}/leave/policies/assign", {
+  await client.POST("/v1/workspaces/{ws_id}/leave/policies/assign", {
     params: {
       path: { ws_id: wsId },
     },
@@ -257,7 +257,7 @@ export async function triggerAccrualRun(
   wsId: string,
   data: { date: string }
 ): Promise<AccrualJobResponse> {
-  const { data: resData } = await client.POST("/workspaces/{ws_id}/leave/accrual/run", {
+  const { data: resData } = await client.POST("/v1/workspaces/{ws_id}/leave/accrual/run", {
     params: {
       path: { ws_id: wsId },
     },
@@ -278,7 +278,7 @@ export async function fetchJobStatus(
   wsId: string,
   jobId: string
 ): Promise<JobStatusResponse> {
-  const { data: resData } = await client.GET("/workspaces/{ws_id}/jobs/{job_id}/status", {
+  const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/jobs/{job_id}/status", {
     params: {
       path: { ws_id: wsId, job_id: jobId },
     },
@@ -292,7 +292,7 @@ export async function updateLeaveTypeConfig(
   id: string,
   config: LeaveTypeConfig
 ): Promise<LeaveType> {
-  const { data: resData } = await client.PUT("/workspaces/{workspace_id}/leave/types/{id}/config", {
+  const { data: resData } = await client.PUT("/v1/workspaces/{workspace_id}/leave/types/{id}/config", {
     params: {
       path: { workspace_id: wsId, id },
     },
@@ -323,7 +323,7 @@ export async function uploadLeaveExcel(
 ): Promise<{ job_id: string; status: string }> {
   const formData = new FormData();
   formData.append('file', file);
-  const { data: resData } = await client.POST("/workspaces/{ws_id}/leave/upload-excel", {
+  const { data: resData } = await client.POST("/v1/workspaces/{ws_id}/leave/upload-excel", {
     params: {
       path: { ws_id: wsId },
     },
@@ -337,7 +337,7 @@ export async function uploadLeaveExcel(
 export async function fetchLatestLeaveImport(
   wsId: string,
 ): Promise<LeaveImportJob | null> {
-  const { data: resData } = await client.GET("/workspaces/{ws_id}/leave/import/latest", {
+  const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/leave/import/latest", {
     params: {
       path: { ws_id: wsId },
     },
@@ -350,7 +350,7 @@ export async function fetchLeaveImportStatus(
   wsId: string,
   _jobId: string,
 ): Promise<LeaveImportJob | null> {
-  const { data: resData } = await client.GET("/workspaces/{ws_id}/leave/import/latest", {
+  const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/leave/import/latest", {
     params: {
       path: { ws_id: wsId },
     },

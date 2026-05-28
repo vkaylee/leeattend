@@ -41,24 +41,24 @@ pub fn router() -> Router<Arc<AppState>> {
         )
         // Employee Contracts (v1 prefix as requested)
         .route(
-            "/v1/workspaces/:ws_id/employees/:employee_id/contracts",
+            "/workspaces/:ws_id/employees/:employee_id/contracts",
             get(handlers::employee_contracts::list_employee_contracts)
                 .post(handlers::employee_contracts::create_contract),
         )
         .route(
-            "/v1/workspaces/:ws_id/employees/:employee_id/contracts/:contract_id",
+            "/workspaces/:ws_id/employees/:employee_id/contracts/:contract_id",
             get(handlers::employee_contracts::get_contract)
                 .patch(handlers::employee_contracts::update_contract)
                 .delete(handlers::employee_contracts::delete_contract),
         )
         // Employee Assignments (Secondment)
         .route(
-            "/v1/workspaces/:ws_id/employees/:employee_id/assignments",
+            "/workspaces/:ws_id/employees/:employee_id/assignments",
             get(handlers::employee_assignments::list_employee_assignments)
                 .post(handlers::employee_assignments::create_employee_assignment),
         )
         .route(
-            "/v1/workspaces/:ws_id/employees/:employee_id/assignments/:assignment_id",
+            "/workspaces/:ws_id/employees/:employee_id/assignments/:assignment_id",
             get(handlers::employee_assignments::get_employee_assignment)
                 .patch(handlers::employee_assignments::update_employee_assignment)
                 .delete(handlers::employee_assignments::delete_employee_assignment),

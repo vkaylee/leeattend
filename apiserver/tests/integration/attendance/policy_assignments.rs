@@ -29,7 +29,7 @@ async fn test_upsert_and_list_policy_assignments() {
 
     let res = client
         .post(&format!(
-            "{address}/api/workspaces/{ws_id}/attendance/policies/assignments"
+            "{address}/api/v1/workspaces/{ws_id}/attendance/policies/assignments"
         ))
         .header("Authorization", format!("Bearer {token}"))
         .json(&req_body)
@@ -44,7 +44,7 @@ async fn test_upsert_and_list_policy_assignments() {
     // 2. List assignments
     let res = client
         .get(&format!(
-            "{address}/api/workspaces/{ws_id}/attendance/policies/assignments"
+            "{address}/api/v1/workspaces/{ws_id}/attendance/policies/assignments"
         ))
         .header("Authorization", format!("Bearer {token}"))
         .send()
@@ -71,7 +71,7 @@ async fn test_upsert_and_list_policy_assignments() {
 
     let res = client
         .post(&format!(
-            "{address}/api/workspaces/{ws_id}/attendance/policies/assignments"
+            "{address}/api/v1/workspaces/{ws_id}/attendance/policies/assignments"
         ))
         .header("Authorization", format!("Bearer {token}"))
         .json(&req_body2)
@@ -84,7 +84,7 @@ async fn test_upsert_and_list_policy_assignments() {
     // 4. Delete assignment
     let res = client
         .delete(&format!(
-            "{address}/api/workspaces/{ws_id}/attendance/policies/assignments/{assignment_id}"
+            "{address}/api/v1/workspaces/{ws_id}/attendance/policies/assignments/{assignment_id}"
         ))
         .header("Authorization", format!("Bearer {token}"))
         .send()
@@ -96,7 +96,7 @@ async fn test_upsert_and_list_policy_assignments() {
     // Verify it's deleted (listed should be empty)
     let res = client
         .get(&format!(
-            "{address}/api/workspaces/{ws_id}/attendance/policies/assignments"
+            "{address}/api/v1/workspaces/{ws_id}/attendance/policies/assignments"
         ))
         .header("Authorization", format!("Bearer {token}"))
         .send()

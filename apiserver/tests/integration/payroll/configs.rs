@@ -39,7 +39,7 @@ async fn test_set_and_get_department_payroll_config() {
             Request::builder()
                 .method("POST")
                 .uri(format!(
-                    "/api/workspaces/{ws_id}/departments/{dept_id}/payroll-config"
+                    "/api/v1/workspaces/{ws_id}/departments/{dept_id}/payroll-config"
                 ))
                 .header("Content-Type", "application/json")
                 .header("X-Workspace-Id", ws_id.to_string())
@@ -58,7 +58,7 @@ async fn test_set_and_get_department_payroll_config() {
             Request::builder()
                 .method("GET")
                 .uri(format!(
-                    "/api/workspaces/{ws_id}/departments/{dept_id}/payroll-config"
+                    "/api/v1/workspaces/{ws_id}/departments/{dept_id}/payroll-config"
                 ))
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())
@@ -100,7 +100,7 @@ async fn test_set_and_get_employee_payroll_config() {
             Request::builder()
                 .method("POST")
                 .uri(format!(
-                    "/api/workspaces/{ws_id}/employees/{emp_id}/payroll-config"
+                    "/api/v1/workspaces/{ws_id}/employees/{emp_id}/payroll-config"
                 ))
                 .header("Content-Type", "application/json")
                 .header("X-Workspace-Id", ws_id.to_string())
@@ -119,7 +119,7 @@ async fn test_set_and_get_employee_payroll_config() {
             Request::builder()
                 .method("GET")
                 .uri(format!(
-                    "/api/workspaces/{ws_id}/employees/{emp_id}/payroll-config"
+                    "/api/v1/workspaces/{ws_id}/employees/{emp_id}/payroll-config"
                 ))
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())
@@ -162,7 +162,7 @@ async fn test_get_empty_payroll_configs() {
             Request::builder()
                 .method("GET")
                 .uri(format!(
-                    "/api/workspaces/{ws_id}/departments/{dept_id}/payroll-config"
+                    "/api/v1/workspaces/{ws_id}/departments/{dept_id}/payroll-config"
                 ))
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())
@@ -183,7 +183,7 @@ async fn test_get_empty_payroll_configs() {
             Request::builder()
                 .method("GET")
                 .uri(format!(
-                    "/api/workspaces/{ws_id}/employees/{emp_id}/payroll-config"
+                    "/api/v1/workspaces/{ws_id}/employees/{emp_id}/payroll-config"
                 ))
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())

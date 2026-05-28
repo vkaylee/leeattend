@@ -33,7 +33,7 @@ async fn test_get_attendance_logs_smoke() {
             axum::http::Request::builder()
                 .method("GET")
                 .uri(format!(
-                    "/api/workspaces/{ws_id}/attendance/logs?employee_id={emp_id}"
+                    "/api/v1/workspaces/{ws_id}/attendance/logs?employee_id={emp_id}"
                 ))
                 .header("X-User-Id", user_id.to_string())
                 .body(axum::body::Body::empty())
@@ -61,7 +61,7 @@ async fn test_get_attendance_logs_unauthorized() {
             axum::http::Request::builder()
                 .method("GET")
                 .uri(format!(
-                    "/api/workspaces/{ws_id}/attendance/logs?employee_id={emp_id}"
+                    "/api/v1/workspaces/{ws_id}/attendance/logs?employee_id={emp_id}"
                 ))
                 .header("X-User-Id", other_user.to_string()) // Unauthorized user
                 .body(axum::body::Body::empty())

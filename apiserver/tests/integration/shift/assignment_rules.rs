@@ -56,7 +56,7 @@ async fn test_assignment_rules_crud_lifecycle() {
         .clone()
         .oneshot(req(
             "POST",
-            &format!("/api/workspaces/{ws_id}/working-patterns"),
+            &format!("/api/v1/workspaces/{ws_id}/working-patterns"),
             ws_id,
             admin_id,
             Some(pattern_body.to_string()),
@@ -79,7 +79,7 @@ async fn test_assignment_rules_crud_lifecycle() {
         .clone()
         .oneshot(req(
             "POST",
-            &format!("/api/workspaces/{ws_id}/assignment-rules"),
+            &format!("/api/v1/workspaces/{ws_id}/assignment-rules"),
             ws_id,
             admin_id,
             Some(create_body.to_string()),
@@ -96,7 +96,7 @@ async fn test_assignment_rules_crud_lifecycle() {
         .clone()
         .oneshot(req(
             "GET",
-            &format!("/api/workspaces/{ws_id}/assignment-rules"),
+            &format!("/api/v1/workspaces/{ws_id}/assignment-rules"),
             ws_id,
             admin_id,
             None,
@@ -116,7 +116,7 @@ async fn test_assignment_rules_crud_lifecycle() {
         .clone()
         .oneshot(req(
             "PATCH",
-            &format!("/api/workspaces/{ws_id}/assignment-rules/{rule_id}"),
+            &format!("/api/v1/workspaces/{ws_id}/assignment-rules/{rule_id}"),
             ws_id,
             admin_id,
             Some(update_body.to_string()),
@@ -130,7 +130,7 @@ async fn test_assignment_rules_crud_lifecycle() {
         .clone()
         .oneshot(req(
             "DELETE",
-            &format!("/api/workspaces/{ws_id}/assignment-rules/{rule_id}"),
+            &format!("/api/v1/workspaces/{ws_id}/assignment-rules/{rule_id}"),
             ws_id,
             admin_id,
             None,
@@ -173,7 +173,7 @@ async fn test_assignment_rules_rbac_member_forbidden() {
         .clone()
         .oneshot(req(
             "POST",
-            &format!("/api/workspaces/{ws_id}/assignment-rules"),
+            &format!("/api/v1/workspaces/{ws_id}/assignment-rules"),
             ws_id,
             member_id,
             Some(create_body.to_string()),

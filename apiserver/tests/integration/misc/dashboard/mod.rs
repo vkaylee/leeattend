@@ -1,8 +1,8 @@
 //! Integration tests for dashboard chart endpoints:
-//! - GET /api/dashboard/peak-times
-//! - GET /api/dashboard/leave-types
-//! - GET /api/dashboard/lateness-by-day
-//! - GET /api/dashboard/unexcused-absences
+//! - GET /api/v1/dashboard/peak-times
+//! - GET /api/v1/dashboard/leave-types
+//! - GET /api/v1/dashboard/lateness-by-day
+//! - GET /api/v1/dashboard/unexcused-absences
 
 use crate::common::app::spawn_app_with_factory;
 use crate::common::db::TestDatabase;
@@ -22,7 +22,7 @@ async fn test_peak_times_returns_empty_when_no_data() {
     let client = reqwest::Client::new();
 
     let res = client
-        .get(format!("{address}/api/dashboard/peak-times"))
+        .get(format!("{address}/api/v1/dashboard/peak-times"))
         .header("X-User-Id", user_id.to_string())
         .header("X-Workspace-Id", ws_id.to_string())
         .send()
@@ -55,7 +55,7 @@ async fn test_peak_times_returns_slots_with_time_entries() {
         .await;
 
     let res = client
-        .get(format!("{address}/api/dashboard/peak-times"))
+        .get(format!("{address}/api/v1/dashboard/peak-times"))
         .header("X-User-Id", user_id.to_string())
         .header("X-Workspace-Id", ws_id.to_string())
         .send()
@@ -100,7 +100,7 @@ async fn test_leave_types_returns_empty_when_no_leave() {
     let client = reqwest::Client::new();
 
     let res = client
-        .get(format!("{address}/api/dashboard/leave-types"))
+        .get(format!("{address}/api/v1/dashboard/leave-types"))
         .header("X-User-Id", user_id.to_string())
         .header("X-Workspace-Id", ws_id.to_string())
         .send()
@@ -170,7 +170,7 @@ async fn test_leave_types_returns_breakdown_with_data() {
         .await;
 
     let res = client
-        .get(format!("{address}/api/dashboard/leave-types"))
+        .get(format!("{address}/api/v1/dashboard/leave-types"))
         .header("X-User-Id", user_id.to_string())
         .header("X-Workspace-Id", ws_id.to_string())
         .send()
@@ -212,7 +212,7 @@ async fn test_lateness_by_day_returns_empty_when_no_late_entries() {
     let client = reqwest::Client::new();
 
     let res = client
-        .get(format!("{address}/api/dashboard/lateness-by-day"))
+        .get(format!("{address}/api/v1/dashboard/lateness-by-day"))
         .header("X-User-Id", user_id.to_string())
         .header("X-Workspace-Id", ws_id.to_string())
         .send()
@@ -259,7 +259,7 @@ async fn test_lateness_by_day_returns_data_with_late_entries() {
         .await;
 
     let res = client
-        .get(format!("{address}/api/dashboard/lateness-by-day"))
+        .get(format!("{address}/api/v1/dashboard/lateness-by-day"))
         .header("X-User-Id", user_id.to_string())
         .header("X-Workspace-Id", ws_id.to_string())
         .send()
@@ -310,7 +310,7 @@ async fn test_unexcused_absences_returns_empty_when_no_employees() {
     let client = reqwest::Client::new();
 
     let res = client
-        .get(format!("{address}/api/dashboard/unexcused-absences"))
+        .get(format!("{address}/api/v1/dashboard/unexcused-absences"))
         .header("X-User-Id", user_id.to_string())
         .header("X-Workspace-Id", ws_id.to_string())
         .send()
@@ -360,7 +360,7 @@ async fn test_unexcused_absences_returns_data_with_absent_employees() {
     // No time entries and no leave for this employee → should be unexcused
 
     let res = client
-        .get(format!("{address}/api/dashboard/unexcused-absences"))
+        .get(format!("{address}/api/v1/dashboard/unexcused-absences"))
         .header("X-User-Id", user_id.to_string())
         .header("X-Workspace-Id", ws_id.to_string())
         .send()
@@ -407,7 +407,7 @@ async fn test_unexcused_absences_supports_date_range_query() {
 
     let res = client
         .get(format!(
-            "{address}/api/dashboard/unexcused-absences?start_date={start}&end_date={end}"
+            "{address}/api/v1/dashboard/unexcused-absences?start_date={start}&end_date={end}"
         ))
         .header("X-User-Id", user_id.to_string())
         .header("X-Workspace-Id", ws_id.to_string())
@@ -455,7 +455,7 @@ async fn test_unexcused_absences_group_by_employee() {
 
     let res = client
         .get(format!(
-            "{address}/api/dashboard/unexcused-absences?group_by=employee"
+            "{address}/api/v1/dashboard/unexcused-absences?group_by=employee"
         ))
         .header("X-User-Id", user_id.to_string())
         .header("X-Workspace-Id", ws_id.to_string())
@@ -506,7 +506,7 @@ async fn test_unexcused_absences_includes_employees_without_department() {
 
     // group_by=department — should show "Unassigned" group
     let res = client
-        .get(format!("{address}/api/dashboard/unexcused-absences"))
+        .get(format!("{address}/api/v1/dashboard/unexcused-absences"))
         .header("X-User-Id", user_id.to_string())
         .header("X-Workspace-Id", ws_id.to_string())
         .send()
@@ -534,7 +534,7 @@ async fn test_unexcused_absences_includes_employees_without_department() {
     // group_by=employee — should also include this employee
     let res2 = client
         .get(format!(
-            "{address}/api/dashboard/unexcused-absences?group_by=employee"
+            "{address}/api/v1/dashboard/unexcused-absences?group_by=employee"
         ))
         .header("X-User-Id", user_id.to_string())
         .header("X-Workspace-Id", ws_id.to_string())
@@ -569,7 +569,7 @@ async fn test_attendance_trend_returns_30_days_data() {
     let client = reqwest::Client::new();
 
     let res = client
-        .get(format!("{address}/api/dashboard/attendance-trend"))
+        .get(format!("{address}/api/v1/dashboard/attendance-trend"))
         .header("X-User-Id", user_id.to_string())
         .header("X-Workspace-Id", ws_id.to_string())
         .send()
@@ -639,7 +639,7 @@ async fn test_attendance_trend_includes_present_and_late() {
         .await;
 
     let res = client
-        .get(format!("{address}/api/dashboard/attendance-trend"))
+        .get(format!("{address}/api/v1/dashboard/attendance-trend"))
         .header("X-User-Id", user_id.to_string())
         .header("X-Workspace-Id", ws_id.to_string())
         .send()
@@ -704,7 +704,7 @@ async fn test_attendance_trend_late_via_employee_shifts() {
         .await;
 
     let res = client
-        .get(format!("{address}/api/dashboard/attendance-trend"))
+        .get(format!("{address}/api/v1/dashboard/attendance-trend"))
         .header("X-User-Id", user_id.to_string())
         .header("X-Workspace-Id", ws_id.to_string())
         .send()
@@ -745,7 +745,7 @@ async fn test_department_attendance_returns_empty_with_no_departments() {
     let client = reqwest::Client::new();
 
     let res = client
-        .get(format!("{address}/api/dashboard/department-attendance"))
+        .get(format!("{address}/api/v1/dashboard/department-attendance"))
         .header("X-User-Id", user_id.to_string())
         .header("X-Workspace-Id", ws_id.to_string())
         .send()
@@ -788,7 +788,7 @@ async fn test_department_attendance_returns_data_with_present_employees() {
         .await;
 
     let res = client
-        .get(format!("{address}/api/dashboard/department-attendance"))
+        .get(format!("{address}/api/v1/dashboard/department-attendance"))
         .header("X-User-Id", user_id.to_string())
         .header("X-Workspace-Id", ws_id.to_string())
         .send()
@@ -825,7 +825,7 @@ async fn test_department_attendance_supports_week_range() {
 
     let res = client
         .get(format!(
-            "{address}/api/dashboard/department-attendance?range=week"
+            "{address}/api/v1/dashboard/department-attendance?range=week"
         ))
         .header("X-User-Id", user_id.to_string())
         .header("X-Workspace-Id", ws_id.to_string())
@@ -848,7 +848,7 @@ async fn test_workspace_stats_returns_all_fields() {
     let client = reqwest::Client::new();
 
     let res = client
-        .get(format!("{address}/api/dashboard/workspace-stats"))
+        .get(format!("{address}/api/v1/dashboard/workspace-stats"))
         .header("X-User-Id", user_id.to_string())
         .header("X-Workspace-Id", ws_id.to_string())
         .send()
@@ -898,7 +898,7 @@ async fn test_workspace_stats_counts_present_and_absent() {
         .await;
 
     let res = client
-        .get(format!("{address}/api/dashboard/workspace-stats"))
+        .get(format!("{address}/api/v1/dashboard/workspace-stats"))
         .header("X-User-Id", user_id.to_string())
         .header("X-Workspace-Id", ws_id.to_string())
         .send()
@@ -950,7 +950,7 @@ async fn test_workspace_stats_detects_late_today() {
         .await;
 
     let res = client
-        .get(format!("{address}/api/dashboard/workspace-stats"))
+        .get(format!("{address}/api/v1/dashboard/workspace-stats"))
         .header("X-User-Id", user_id.to_string())
         .header("X-Workspace-Id", ws_id.to_string())
         .send()
@@ -973,7 +973,7 @@ async fn test_overtime_trend_returns_empty_with_no_data() {
     let client = reqwest::Client::new();
 
     let res = client
-        .get(format!("{address}/api/dashboard/overtime-trend"))
+        .get(format!("{address}/api/v1/dashboard/overtime-trend"))
         .header("X-User-Id", user_id.to_string())
         .header("X-Workspace-Id", ws_id.to_string())
         .send()
@@ -1013,7 +1013,7 @@ async fn test_overtime_trend_returns_correct_structure() {
     );
 
     let res = client
-        .get(format!("{address}/api/dashboard/overtime-trend"))
+        .get(format!("{address}/api/v1/dashboard/overtime-trend"))
         .header("X-User-Id", user_id.to_string())
         .header("X-Workspace-Id", ws_id.to_string())
         .send()

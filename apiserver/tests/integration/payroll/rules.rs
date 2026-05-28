@@ -43,7 +43,7 @@ async fn test_payroll_rules_crud_api() {
 
     let req = axum::http::Request::builder()
         .method("POST")
-        .uri(format!("/api/workspaces/{ws_id}/payroll-rules"))
+        .uri(format!("/api/v1/workspaces/{ws_id}/payroll-rules"))
         .header("X-Workspace-Id", ws_id.to_string())
         .header("X-User-Id", user_id.to_string())
         .header("Content-Type", "application/json")
@@ -65,7 +65,7 @@ async fn test_payroll_rules_crud_api() {
     // 2. Fetch all rules
     let req = axum::http::Request::builder()
         .method("GET")
-        .uri(format!("/api/workspaces/{ws_id}/payroll-rules"))
+        .uri(format!("/api/v1/workspaces/{ws_id}/payroll-rules"))
         .header("X-Workspace-Id", ws_id.to_string())
         .header("X-User-Id", user_id.to_string())
         .body(axum::body::Body::empty())
@@ -92,7 +92,7 @@ async fn test_payroll_rules_crud_api() {
     let req = axum::http::Request::builder()
         .method("POST")
         .uri(format!(
-            "/api/workspaces/{ws_id}/payroll-rules/{rule_id}/tiers"
+            "/api/v1/workspaces/{ws_id}/payroll-rules/{rule_id}/tiers"
         ))
         .header("X-Workspace-Id", ws_id.to_string())
         .header("X-User-Id", user_id.to_string())
@@ -117,7 +117,7 @@ async fn test_payroll_rules_crud_api() {
     let req = axum::http::Request::builder()
         .method("POST")
         .uri(format!(
-            "/api/workspaces/{ws_id}/payroll-rules/{rule_id}/assignments"
+            "/api/v1/workspaces/{ws_id}/payroll-rules/{rule_id}/assignments"
         ))
         .header("X-Workspace-Id", ws_id.to_string())
         .header("X-User-Id", user_id.to_string())

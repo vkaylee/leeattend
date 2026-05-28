@@ -80,7 +80,7 @@ async fn test_db_cluster_api_lifecycle() {
     });
 
     let create_res = client
-        .post(&format!("{address}/api/system/db-clusters"))
+        .post(&format!("{address}/api/v1/system/db-clusters"))
         .header("X-User-Id", user_id.to_string())
         .json(&req_payload)
         .send()
@@ -98,7 +98,7 @@ async fn test_db_cluster_api_lifecycle() {
 
     // 2. List Db Clusters via API
     let list_res = client
-        .get(&format!("{address}/api/system/db-clusters"))
+        .get(&format!("{address}/api/v1/system/db-clusters"))
         .header("X-User-Id", user_id.to_string())
         .send()
         .await
@@ -114,7 +114,7 @@ async fn test_db_cluster_api_lifecycle() {
     });
     let patch_res = client
         .patch(&format!(
-            "{address}/api/system/db-clusters/{cluster_id}/status"
+            "{address}/api/v1/system/db-clusters/{cluster_id}/status"
         ))
         .header("X-User-Id", user_id.to_string())
         .json(&status_payload)
@@ -128,7 +128,7 @@ async fn test_db_cluster_api_lifecycle() {
 
     // 4. Delete via API
     let delete_res = client
-        .delete(&format!("{address}/api/system/db-clusters/{cluster_id}"))
+        .delete(&format!("{address}/api/v1/system/db-clusters/{cluster_id}"))
         .header("X-User-Id", user_id.to_string())
         .send()
         .await
@@ -138,7 +138,7 @@ async fn test_db_cluster_api_lifecycle() {
 
     // Verify it is deleted from list
     let list_res2 = client
-        .get(&format!("{address}/api/system/db-clusters"))
+        .get(&format!("{address}/api/v1/system/db-clusters"))
         .header("X-User-Id", user_id.to_string())
         .send()
         .await
@@ -157,7 +157,7 @@ async fn test_db_cluster_api_authorization() {
 
     // 1. List request should be forbidden
     let list_res = client
-        .get(&format!("{address}/api/system/db-clusters"))
+        .get(&format!("{address}/api/v1/system/db-clusters"))
         .header("X-User-Id", user_id.to_string())
         .send()
         .await
@@ -173,7 +173,7 @@ async fn test_db_cluster_api_authorization() {
         "is_active": true
     });
     let create_res = client
-        .post(&format!("{address}/api/system/db-clusters"))
+        .post(&format!("{address}/api/v1/system/db-clusters"))
         .header("X-User-Id", user_id.to_string())
         .json(&req_payload)
         .send()
@@ -187,7 +187,7 @@ async fn test_db_cluster_api_authorization() {
     });
     let patch_res = client
         .patch(&format!(
-            "{address}/api/system/db-clusters/{}/status",
+            "{address}/api/v1/system/db-clusters/{}/status",
             Uuid::new_v4()
         ))
         .header("X-User-Id", user_id.to_string())
@@ -200,7 +200,7 @@ async fn test_db_cluster_api_authorization() {
     // 4. Delete request should be forbidden
     let delete_res = client
         .delete(&format!(
-            "{address}/api/system/db-clusters/{}",
+            "{address}/api/v1/system/db-clusters/{}",
             Uuid::new_v4()
         ))
         .header("X-User-Id", user_id.to_string())
