@@ -1,9 +1,10 @@
 //! Employee domain integration tests
 
-mod assignment;
+pub mod assignment;
 mod bulk_import;
-mod contracts;
+pub mod contracts;
 mod department_name;
+mod employment_phase_repo;
 mod employment_phases;
 mod id_normalization;
 mod management;

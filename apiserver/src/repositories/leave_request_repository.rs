@@ -123,6 +123,7 @@ pub trait LeaveRequestRepository: Send + Sync {
     ) -> Result<Vec<(NaiveDate, NaiveDate)>, AppError>;
 }
 
+#[derive(Clone)]
 pub struct LeaveHistoryRequestItem {
     pub id: Uuid,
     pub start_date: NaiveDate,

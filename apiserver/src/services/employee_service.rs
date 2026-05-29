@@ -448,7 +448,19 @@ mod tests {
             _auth_token: &crate::diesel_pool::TenantAuthToken,
             _assignment: &crate::models::employee_assignment::NewEmployeeAssignment,
         ) -> Result<crate::models::employee_assignment::EmployeeAssignment, AppError> {
-            unimplemented!()
+            Ok(crate::models::employee_assignment::EmployeeAssignment {
+                id: Uuid::new_v4(),
+                workspace_id: _assignment.workspace_id,
+                employee_id: _assignment.employee_id,
+                home_location_id: _assignment.home_location_id,
+                host_location_id: _assignment.host_location_id,
+                start_date: _assignment.start_date,
+                end_date: _assignment.end_date,
+                reason: _assignment.reason.clone(),
+                status: _assignment.status,
+                created_at: chrono::Utc::now(),
+                updated_at: chrono::Utc::now(),
+            })
         }
 
         async fn update_employee_assignment(
@@ -458,7 +470,19 @@ mod tests {
             _assignment_id: Uuid,
             _req: &crate::models::employee_assignment::UpdateEmployeeAssignmentRequest,
         ) -> Result<crate::models::employee_assignment::EmployeeAssignment, AppError> {
-            unimplemented!()
+            Ok(crate::models::employee_assignment::EmployeeAssignment {
+                id: _assignment_id,
+                workspace_id: Uuid::new_v4(),
+                employee_id: _employee_id,
+                home_location_id: Uuid::new_v4(),
+                host_location_id: Uuid::new_v4(),
+                start_date: chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+                end_date: None,
+                reason: None,
+                status: crate::models::employee_assignment::AssignmentStatusEnum::Active,
+                created_at: chrono::Utc::now(),
+                updated_at: chrono::Utc::now(),
+            })
         }
 
         async fn delete_employee_assignment(
@@ -950,7 +974,14 @@ mod tests {
             _date: chrono::NaiveDate,
             _notes: Option<String>,
         ) -> Result<crate::models::EmployeeDepartmentHistory, AppError> {
-            unimplemented!()
+            Ok(crate::models::EmployeeDepartmentHistory {
+                id: Uuid::new_v4(),
+                employee_id: _emp,
+                department_id: _dept,
+                effective_date: _date,
+                notes: _notes,
+                created_at: chrono::Utc::now(),
+            })
         }
         async fn get_employee_department_history(
             &self,
@@ -1249,8 +1280,54 @@ mod tests {
             .await
             .expect("ok");
 
-        assert!(list.is_empty());
+        assert_eq!(list.len(), 0);
         assert_eq!(total, 0);
+    }
+
+    #[tokio::test]
+    async fn create_employee_success() {
+        let ws = Uuid::new_v4();
+        let svc = make_service(MockEmployeeRepo::empty());
+        let emp = crate::models::CreateEmployeeRequest {
+            user_id: None,
+            full_name: "New Employee".into(),
+            employee_id_number: crate::models::SanitizedEmployeeId::new("EMP001"),
+            hire_date: chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+            tags: None,
+            recruitment_source_id: None,
+            primary_location_id: Uuid::new_v4(),
+        };
+        let result = svc
+            .create_employee(
+                &crate::diesel_pool::TenantAuthToken::system_override(ws),
+                emp,
+            )
+            .await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn transfer_employee_success() {
+        let ws = Uuid::new_v4();
+        let emp = make_employee(ws);
+        let emp_id = emp.id;
+        let mock = MockEmployeeRepo::empty();
+        *mock.employee.lock().expect("lock") = Some(emp.clone());
+        let svc = make_service(mock);
+
+        let req = crate::models::department::TransferEmployeeRequest {
+            department_id: Uuid::new_v4(),
+            effective_date: chrono::NaiveDate::from_ymd_opt(2024, 2, 1).unwrap(),
+            notes: None,
+        };
+        let result = svc
+            .transfer_employee(
+                emp_id,
+                &crate::diesel_pool::TenantAuthToken::system_override(ws),
+                req,
+            )
+            .await;
+        assert!(result.is_ok());
     }
 
     // ── Tests: get_working_conditions ────────────────────────────────

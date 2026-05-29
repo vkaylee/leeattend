@@ -532,6 +532,7 @@ mod tests {
         exists: Mutex<bool>,
         leave_request: Mutex<Option<LeaveRequest>>,
         update_called: Mutex<bool>,
+        history_requests: Mutex<Vec<LeaveHistoryRequestItem>>,
     }
     #[async_trait]
     impl LeaveRequestRepository for MockLeaveRequestRepo {
@@ -594,7 +595,7 @@ mod tests {
             _y: i32,
             _t: Option<Uuid>,
         ) -> Result<Vec<LeaveHistoryRequestItem>, AppError> {
-            Ok(vec![])
+            Ok(self.history_requests.lock().unwrap().clone())
         }
 
         // Unused in tests but required by trait
@@ -1061,7 +1062,9 @@ mod tests {
         }
     }
 
-    struct MockRosterRepo;
+    struct MockRosterRepo {
+        upserts: Mutex<Vec<ShiftRoster>>,
+    }
     #[async_trait]
     impl RosterRepository for MockRosterRepo {
         async fn get_employee_rosters_batch(
@@ -1089,6 +1092,7 @@ mod tests {
             _auth_token: &crate::diesel_pool::TenantAuthToken,
             _r: &ShiftRoster,
         ) -> Result<ShiftRoster, AppError> {
+            self.upserts.lock().unwrap().push(_r.clone());
             Ok(_r.clone())
         }
         async fn bulk_upsert_roster(
@@ -1144,7 +1148,9 @@ mod tests {
         }
     }
 
-    struct MockLeaveAccrualLogRepo;
+    struct MockLeaveAccrualLogRepo {
+        history_logs: Mutex<Vec<LeaveHistoryLogItem>>,
+    }
     #[async_trait]
     impl crate::repositories::leave_accrual_log_repository::LeaveAccrualLogRepository
         for MockLeaveAccrualLogRepo
@@ -1156,7 +1162,7 @@ mod tests {
             _y: i32,
             _t: Option<Uuid>,
         ) -> Result<Vec<LeaveHistoryLogItem>, AppError> {
-            Ok(vec![])
+            Ok(self.history_logs.lock().unwrap().clone())
         }
 
         async fn persist_accrual(
@@ -1240,6 +1246,8 @@ mod tests {
         LeaveService,
         Arc<MockLeaveBalanceRepo>,
         Arc<MockLeaveRequestRepo>,
+        Arc<MockRosterRepo>,
+        Arc<MockLeaveAccrualLogRepo>,
     ) {
         let bal_repo = Arc::new(MockLeaveBalanceRepo {
             workspace_balances: Mutex::new(vec![]),
@@ -1250,23 +1258,30 @@ mod tests {
             exists: Mutex::new(type_exists),
             leave_request: Mutex::new(None),
             update_called: Mutex::new(false),
+            history_requests: Mutex::new(vec![]),
         });
         let emp_repo = Arc::new(MockEmployeeRepo {
             employee: Mutex::new(mock_emp),
         });
-        let ros_repo = Arc::new(MockRosterRepo);
-        let log_repo = Arc::new(MockLeaveAccrualLogRepo);
+        let ros_repo = Arc::new(MockRosterRepo {
+            upserts: Mutex::new(vec![]),
+        });
+        let log_repo = Arc::new(MockLeaveAccrualLogRepo {
+            history_logs: Mutex::new(vec![]),
+        });
 
         (
             LeaveService::new(
                 bal_repo.clone(),
                 req_repo.clone(),
                 emp_repo,
-                ros_repo,
-                log_repo,
+                ros_repo.clone(),
+                log_repo.clone(),
             ),
             bal_repo,
             req_repo,
+            ros_repo,
+            log_repo,
         )
     }
 
@@ -1291,7 +1306,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_workspace_balances() {
-        let (svc, _, _) = build_service(None, true);
+        let (svc, _, _, _, _) = build_service(None, true);
         let res = svc
             .get_workspace_balances(
                 Uuid::new_v4(),
@@ -1312,18 +1327,18 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_get_employee_leave_history() {
-        let (svc, _, _) = build_service(None, true);
-        let res = svc
+    async fn test_get_employee_leave_history_empty() {
+        let (svc, _, _, _, _) = build_service(Some(dummy_employee()), true);
+        let history = svc
             .get_employee_leave_history(Uuid::new_v4(), Uuid::new_v4(), 2024, None)
             .await
             .unwrap();
-        assert!(res.is_empty());
+        assert!(history.is_empty());
     }
 
     #[tokio::test]
     async fn test_adjust_balance_success() {
-        let (svc, bal_repo, _) = build_service(None, true);
+        let (svc, bal_repo, _, _, _) = build_service(Some(dummy_employee()), true);
         let req = crate::models::AdjustBalanceRequest {
             leave_type_id: Uuid::new_v4(),
             amount: 10.5,
@@ -1338,7 +1353,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_employee_balances_not_found() {
-        let (svc, _, _) = build_service(None, true); // No employee mock
+        let (svc, _, _, _, _) = build_service(None, true); // No employee mock
         let err = svc
             .get_employee_balances(Uuid::new_v4(), Uuid::new_v4(), 2024)
             .await
@@ -1348,7 +1363,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_employee_balances_success() {
-        let (svc, _, _) = build_service(Some(dummy_employee()), true);
+        let (svc, _, _, _, _) = build_service(Some(dummy_employee()), true);
         let res = svc
             .get_employee_balances(Uuid::new_v4(), Uuid::new_v4(), 2024)
             .await
@@ -1358,7 +1373,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_submit_leave_request_employee_not_found() {
-        let (svc, _, _) = build_service(None, true);
+        let (svc, _, _, _, _) = build_service(None, true);
         let req = crate::models::SubmitLeaveRequest {
             employee_id: Uuid::new_v4(),
             leave_type_id: Uuid::new_v4(),
@@ -1378,7 +1393,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_submit_leave_request_invalid_leave_type() {
-        let (svc, _, _) = build_service(Some(dummy_employee()), false); // leave_type exists = false
+        let (svc, _, _, _, _) = build_service(Some(dummy_employee()), false); // leave_type exists = false
         let req = crate::models::SubmitLeaveRequest {
             employee_id: Uuid::new_v4(),
             leave_type_id: Uuid::new_v4(),
@@ -1398,7 +1413,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_submit_leave_request_success() {
-        let (svc, _, _) = build_service(Some(dummy_employee()), true);
+        let (svc, _, _, _, _) = build_service(Some(dummy_employee()), true);
         let req = crate::models::SubmitLeaveRequest {
             employee_id: Uuid::new_v4(),
             leave_type_id: Uuid::new_v4(),
@@ -1417,7 +1432,7 @@ mod tests {
     }
     #[tokio::test]
     async fn test_submit_leave_request_half_day_validation() {
-        let (svc, _, _) = build_service(Some(dummy_employee()), true);
+        let (svc, _, _, _, _) = build_service(Some(dummy_employee()), true);
         let req = crate::models::SubmitLeaveRequest {
             employee_id: Uuid::new_v4(),
             leave_type_id: Uuid::new_v4(),
@@ -1437,27 +1452,53 @@ mod tests {
 
     #[tokio::test]
     async fn test_submit_leave_request_custom_hours_validation() {
-        let (svc, _, _) = build_service(Some(dummy_employee()), true);
-        let req = crate::models::SubmitLeaveRequest {
+        let (svc, _, _, _, _) = build_service(Some(dummy_employee()), true);
+
+        // Test missing time
+        let mut req = crate::models::SubmitLeaveRequest {
             employee_id: Uuid::new_v4(),
             leave_type_id: Uuid::new_v4(),
             start_date: NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
             end_date: NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
             duration_type: LeaveDurationType::CustomHours,
-            start_time: NaiveTime::from_hms_opt(10, 0, 0),
-            end_time: NaiveTime::from_hms_opt(9, 0, 0), // End before start
+            start_time: None,
+            end_time: None,
             reason: None,
         };
+        let err = svc
+            .submit_leave_request(Uuid::new_v4(), Uuid::new_v4(), req.clone(), false)
+            .await
+            .unwrap_err();
+        assert!(
+            matches!(err, AppError::Validation(msg) if msg.contains("requires both start_time and end_time"))
+        );
+
+        // Test cross-day
+        req.start_time = NaiveTime::from_hms_opt(9, 0, 0);
+        req.end_time = NaiveTime::from_hms_opt(10, 0, 0);
+        req.end_date = NaiveDate::from_ymd_opt(2024, 1, 2).unwrap();
+        let err = svc
+            .submit_leave_request(Uuid::new_v4(), Uuid::new_v4(), req.clone(), false)
+            .await
+            .unwrap_err();
+        assert!(matches!(err, AppError::Validation(msg) if msg.contains("must be a single day")));
+
+        // Test end before start
+        req.end_date = NaiveDate::from_ymd_opt(2024, 1, 1).unwrap();
+        req.start_time = NaiveTime::from_hms_opt(10, 0, 0);
+        req.end_time = NaiveTime::from_hms_opt(9, 0, 0);
         let err = svc
             .submit_leave_request(Uuid::new_v4(), Uuid::new_v4(), req, false)
             .await
             .unwrap_err();
-        assert!(matches!(err, AppError::Validation(_)));
+        assert!(
+            matches!(err, AppError::Validation(msg) if msg.contains("must be before end_time"))
+        );
     }
 
     #[tokio::test]
     async fn test_approve_leave_request_not_found() {
-        let (svc, _, req_repo) = build_service(Some(dummy_employee()), true);
+        let (svc, _, req_repo, _, _) = build_service(Some(dummy_employee()), true);
         *req_repo.leave_request.lock().unwrap() = None;
         let req = crate::models::ApproveLeaveRequest {
             status: LeaveStatus::Approved,
@@ -1470,8 +1511,41 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_approve_leave_request_forbidden() {
+        // Employee is NOT found in the workspace employee repo
+        let (svc, _, req_repo, _, _) = build_service(None, true);
+
+        let mock_req = LeaveRequest {
+            id: Uuid::new_v4(),
+            employee_id: Uuid::new_v4(),
+            leave_type_id: Uuid::new_v4(),
+            start_date: NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+            end_date: NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+            reason: None,
+            status: LeaveStatus::Pending,
+            duration_type: LeaveDurationType::FullDay,
+            start_time: None,
+            end_time: None,
+            requested_by_user_id: None,
+            approved_by_user_id: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        };
+        *req_repo.leave_request.lock().unwrap() = Some(mock_req);
+
+        let req = crate::models::ApproveLeaveRequest {
+            status: LeaveStatus::Approved,
+        };
+        let err = svc
+            .approve_leave_request(Uuid::new_v4(), Uuid::new_v4(), Uuid::new_v4(), req)
+            .await
+            .unwrap_err();
+        assert!(matches!(err, AppError::Forbidden(_)));
+    }
+
+    #[tokio::test]
     async fn test_approve_leave_request_success() {
-        let (svc, _, req_repo) = build_service(Some(dummy_employee()), true);
+        let (svc, _, req_repo, _, _) = build_service(Some(dummy_employee()), true);
         let mock_req = LeaveRequest {
             id: Uuid::new_v4(),
             employee_id: Uuid::new_v4(),
@@ -1500,11 +1574,271 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_leave_history() {
-        let (svc, _, _) = build_service(None, true);
+        let (svc, _, _, _, _) = build_service(None, true);
         let res = svc
             .get_employee_leave_history(Uuid::new_v4(), Uuid::new_v4(), 2024, None)
             .await
             .unwrap();
         assert_eq!(res.len(), 0);
+    }
+
+    #[tokio::test]
+    async fn test_get_employee_leave_requests() {
+        let (svc, _, _, _, _) = build_service(Some(dummy_employee()), true);
+        let result = svc
+            .get_employee_leave_requests(Uuid::new_v4(), Uuid::new_v4())
+            .await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_get_workspace_leave_requests() {
+        let (svc, _, _, _, _) = build_service(None, true);
+        let result = svc.get_workspace_leave_requests(Uuid::new_v4(), None).await;
+        assert!(result.is_ok());
+    }
+    #[tokio::test]
+    async fn test_get_employee_leave_history_with_data() {
+        let (svc, _, req_repo, _, log_repo) = build_service(None, true);
+
+        let req_item = LeaveHistoryRequestItem {
+            id: Uuid::new_v4(),
+            start_date: NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(), // Monday
+            end_date: NaiveDate::from_ymd_opt(2024, 1, 3).unwrap(),   // Wednesday (3 days)
+            reason: Some("Vacation".into()),
+            created_at: Some(Utc::now()),
+            leave_type_name: "Vacation".into(),
+        };
+        req_repo.history_requests.lock().unwrap().push(req_item);
+
+        let log_item = LeaveHistoryLogItem {
+            id: Uuid::new_v4(),
+            accrual_date: NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+            amount: Decimal::new(10, 0), // 10
+            notes: Some("Accrual".into()),
+            policy_assignment_id: Some(Uuid::new_v4()),
+            created_at: Some(Utc::now()),
+            leave_type_name: "Vacation".into(),
+        };
+        log_repo.history_logs.lock().unwrap().push(log_item);
+
+        let log_item_adj = LeaveHistoryLogItem {
+            id: Uuid::new_v4(),
+            accrual_date: NaiveDate::from_ymd_opt(2024, 2, 1).unwrap(),
+            amount: Decimal::new(-2, 0), // -2
+            notes: Some("Adjustment".into()),
+            policy_assignment_id: None,
+            created_at: Some(Utc::now()),
+            leave_type_name: "Vacation".into(),
+        };
+        log_repo.history_logs.lock().unwrap().push(log_item_adj);
+
+        let res = svc
+            .get_employee_leave_history(Uuid::new_v4(), Uuid::new_v4(), 2024, None)
+            .await
+            .unwrap();
+
+        assert_eq!(res.len(), 3);
+
+        let usage = res
+            .iter()
+            .find(|r| r.transaction_type == crate::models::LeaveTransactionType::Usage)
+            .unwrap();
+        assert_eq!(usage.amount, -3.0);
+
+        let accrual = res
+            .iter()
+            .find(|r| r.transaction_type == crate::models::LeaveTransactionType::Accrual)
+            .unwrap();
+        assert_eq!(accrual.amount, 10.0);
+
+        let adjust = res
+            .iter()
+            .find(|r| r.transaction_type == crate::models::LeaveTransactionType::Adjustment)
+            .unwrap();
+        assert_eq!(adjust.amount, -2.0);
+    }
+
+    #[tokio::test]
+    async fn test_submit_leave_request_auto_approve_multi_day() {
+        let (svc, _, _, ros_repo, _) = build_service(Some(dummy_employee()), true);
+
+        let start_date = NaiveDate::from_ymd_opt(2024, 1, 1).unwrap();
+        let end_date = NaiveDate::from_ymd_opt(2024, 1, 3).unwrap();
+
+        let req = crate::models::SubmitLeaveRequest {
+            employee_id: Uuid::new_v4(),
+            leave_type_id: Uuid::new_v4(),
+            start_date,
+            end_date,
+            duration_type: LeaveDurationType::FullDay,
+            start_time: None,
+            end_time: None,
+            reason: None,
+        };
+
+        let res = svc
+            .submit_leave_request(Uuid::new_v4(), Uuid::new_v4(), req, true)
+            .await
+            .unwrap();
+
+        assert_eq!(res.status, LeaveStatus::PreApproved);
+
+        let upserts = ros_repo.upserts.lock().unwrap();
+        assert_eq!(upserts.len(), 3);
+        assert_eq!(
+            upserts[0].date,
+            NaiveDate::from_ymd_opt(2024, 1, 1).unwrap()
+        );
+        assert_eq!(
+            upserts[1].date,
+            NaiveDate::from_ymd_opt(2024, 1, 2).unwrap()
+        );
+        assert_eq!(
+            upserts[2].date,
+            NaiveDate::from_ymd_opt(2024, 1, 3).unwrap()
+        );
+        assert_eq!(upserts[0].status, "on_leave");
+    }
+
+    #[tokio::test]
+    async fn test_submit_leave_request_auto_approve_custom_hours() {
+        let (svc, _, _, ros_repo, _) = build_service(Some(dummy_employee()), true);
+
+        let start_date = NaiveDate::from_ymd_opt(2024, 1, 1).unwrap();
+        let end_date = NaiveDate::from_ymd_opt(2024, 1, 1).unwrap();
+
+        let req = crate::models::SubmitLeaveRequest {
+            employee_id: Uuid::new_v4(),
+            leave_type_id: Uuid::new_v4(),
+            start_date,
+            end_date,
+            duration_type: LeaveDurationType::CustomHours,
+            start_time: Some(NaiveTime::from_hms_opt(10, 0, 0).unwrap()),
+            end_time: Some(NaiveTime::from_hms_opt(14, 0, 0).unwrap()),
+            reason: None,
+        };
+
+        let res = svc
+            .submit_leave_request(Uuid::new_v4(), Uuid::new_v4(), req, true)
+            .await
+            .unwrap();
+
+        assert_eq!(res.status, LeaveStatus::PreApproved);
+
+        let upserts = ros_repo.upserts.lock().unwrap();
+        assert_eq!(upserts.len(), 1);
+        let note = upserts[0].notes.as_deref().unwrap();
+        assert!(note.contains("10:00 - 14:00"));
+    }
+
+    #[tokio::test]
+    async fn test_approve_leave_request_first_half() {
+        let (svc, _, req_repo, ros_repo, _) = build_service(Some(dummy_employee()), true);
+
+        let mock_req = LeaveRequest {
+            id: Uuid::new_v4(),
+            employee_id: Uuid::new_v4(),
+            leave_type_id: Uuid::new_v4(),
+            start_date: NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+            end_date: NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+            reason: None,
+            status: LeaveStatus::Pending,
+            duration_type: LeaveDurationType::FirstHalf,
+            start_time: None,
+            end_time: None,
+            requested_by_user_id: None,
+            approved_by_user_id: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        };
+        *req_repo.leave_request.lock().unwrap() = Some(mock_req);
+
+        let req = crate::models::ApproveLeaveRequest {
+            status: LeaveStatus::Approved,
+        };
+        svc.approve_leave_request(Uuid::new_v4(), Uuid::new_v4(), Uuid::new_v4(), req)
+            .await
+            .unwrap();
+
+        assert!(*req_repo.update_called.lock().unwrap());
+
+        let upserts = ros_repo.upserts.lock().unwrap();
+        assert_eq!(upserts.len(), 1);
+        let note = upserts[0].notes.as_deref().unwrap();
+        assert!(note.contains("Nửa ngày sáng"));
+    }
+
+    #[tokio::test]
+    async fn test_approve_leave_request_second_half() {
+        let (svc, _, req_repo, ros_repo, _) = build_service(Some(dummy_employee()), true);
+
+        let mock_req = LeaveRequest {
+            id: Uuid::new_v4(),
+            employee_id: Uuid::new_v4(),
+            leave_type_id: Uuid::new_v4(),
+            start_date: NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+            end_date: NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+            reason: None,
+            status: LeaveStatus::Pending,
+            duration_type: LeaveDurationType::SecondHalf,
+            start_time: None,
+            end_time: None,
+            requested_by_user_id: None,
+            approved_by_user_id: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        };
+        *req_repo.leave_request.lock().unwrap() = Some(mock_req);
+
+        let req = crate::models::ApproveLeaveRequest {
+            status: LeaveStatus::Approved,
+        };
+        svc.approve_leave_request(Uuid::new_v4(), Uuid::new_v4(), Uuid::new_v4(), req)
+            .await
+            .unwrap();
+
+        assert!(*req_repo.update_called.lock().unwrap());
+
+        let upserts = ros_repo.upserts.lock().unwrap();
+        assert_eq!(upserts.len(), 1);
+        let note = upserts[0].notes.as_deref().unwrap();
+        assert!(note.contains("Nửa ngày chiều"));
+    }
+    #[tokio::test]
+    async fn test_approve_leave_request_custom_hours() {
+        let (svc, _, req_repo, ros_repo, _) = build_service(Some(dummy_employee()), true);
+
+        let mock_req = LeaveRequest {
+            id: Uuid::new_v4(),
+            employee_id: Uuid::new_v4(),
+            leave_type_id: Uuid::new_v4(),
+            start_date: NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+            end_date: NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+            reason: None,
+            status: LeaveStatus::Pending,
+            duration_type: LeaveDurationType::CustomHours,
+            start_time: Some(NaiveTime::from_hms_opt(9, 0, 0).unwrap()),
+            end_time: Some(NaiveTime::from_hms_opt(11, 0, 0).unwrap()),
+            requested_by_user_id: None,
+            approved_by_user_id: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        };
+        *req_repo.leave_request.lock().unwrap() = Some(mock_req);
+
+        let req = crate::models::ApproveLeaveRequest {
+            status: LeaveStatus::Approved,
+        };
+        svc.approve_leave_request(Uuid::new_v4(), Uuid::new_v4(), Uuid::new_v4(), req)
+            .await
+            .unwrap();
+
+        assert!(*req_repo.update_called.lock().unwrap());
+
+        let upserts = ros_repo.upserts.lock().unwrap();
+        assert_eq!(upserts.len(), 1);
+        let note = upserts[0].notes.as_deref().unwrap();
+        assert!(note.contains("09:00 - 11:00"));
     }
 }

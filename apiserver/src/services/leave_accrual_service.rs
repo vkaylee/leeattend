@@ -1189,4 +1189,197 @@ mod tests {
 
         assert!(result.is_empty());
     }
+
+    #[tokio::test]
+    async fn test_count_qualifying_days_success() {
+        use crate::repositories::attendance_daily_summary_repository::MockAttendanceDailySummaryRepository;
+        use crate::repositories::department_repository::MockDepartmentRepository;
+        use crate::repositories::employee::MockEmployeeRepository;
+        use crate::repositories::employee_contract_repository::MockEmployeeContractRepository;
+        use crate::repositories::leave_accrual_log_repository::MockLeaveAccrualLogRepository;
+        use crate::repositories::leave_policy_repository::MockLeavePolicyRepository;
+        use crate::repositories::leave_request_repository::MockLeaveRequestRepository;
+        use crate::repositories::time_entry_repository::MockTimeEntryRepository;
+        use std::sync::Arc;
+
+        let mut mock_time_entry = MockTimeEntryRepository::new();
+        let mut mock_leave_req = MockLeaveRequestRepository::new();
+
+        mock_time_entry
+            .expect_get_distinct_work_days()
+            .returning(|_, _, _, _, _| Ok(vec![nd(2026, 1, 15), nd(2026, 1, 16)]));
+
+        mock_leave_req
+            .expect_get_approved_leave_periods()
+            .returning(|_, _, _, _| {
+                Box::pin(std::future::ready(Ok(vec![(
+                    nd(2026, 1, 20),
+                    nd(2026, 1, 21),
+                )])))
+            });
+
+        let service = LeaveAccrualService {
+            employee_repo: Arc::new(MockEmployeeRepository::new()),
+            department_repo: Arc::new(MockDepartmentRepository::new()),
+            leave_policy_repo: Arc::new(MockLeavePolicyRepository::new()),
+            accrual_log_repo: Arc::new(MockLeaveAccrualLogRepository::new()),
+            time_entry_repo: Arc::new(mock_time_entry),
+            leave_request_repo: Arc::new(mock_leave_req),
+            contract_repo: Arc::new(MockEmployeeContractRepository::new()),
+            daily_summary_repo: Arc::new(MockAttendanceDailySummaryRepository::new()),
+        };
+
+        let result = service
+            .count_qualifying_days(
+                Uuid::new_v4(),
+                Uuid::new_v4(),
+                nd(2026, 1, 1),
+                nd(2026, 1, 31),
+                "UTC".parse().unwrap(),
+            )
+            .await
+            .unwrap();
+
+        // 2 work days + 2 leave days = 4 qualifying days
+        assert_eq!(result, 4);
+    }
+
+    #[tokio::test]
+    async fn test_batch_count_qualifying_days_success() {
+        use crate::repositories::attendance_daily_summary_repository::MockAttendanceDailySummaryRepository;
+        use crate::repositories::department_repository::MockDepartmentRepository;
+        use crate::repositories::employee::MockEmployeeRepository;
+        use crate::repositories::employee_contract_repository::MockEmployeeContractRepository;
+        use crate::repositories::leave_accrual_log_repository::MockLeaveAccrualLogRepository;
+        use crate::repositories::leave_policy_repository::MockLeavePolicyRepository;
+        use crate::repositories::leave_request_repository::MockLeaveRequestRepository;
+        use crate::repositories::time_entry_repository::MockTimeEntryRepository;
+        use std::sync::Arc;
+
+        let mut mock_time_entry = MockTimeEntryRepository::new();
+        let mut mock_leave_req = MockLeaveRequestRepository::new();
+
+        mock_time_entry
+            .expect_get_distinct_work_days()
+            .returning(|_, _, _, _, _| Ok(vec![nd(2026, 1, 15), nd(2026, 2, 10)]));
+
+        mock_leave_req
+            .expect_get_approved_leave_periods()
+            .returning(|_, _, _, _| {
+                Box::pin(std::future::ready(Ok(vec![
+                    (nd(2026, 1, 20), nd(2026, 1, 21)),
+                    (nd(2026, 3, 5), nd(2026, 3, 5)),
+                ])))
+            });
+
+        let service = LeaveAccrualService {
+            employee_repo: Arc::new(MockEmployeeRepository::new()),
+            department_repo: Arc::new(MockDepartmentRepository::new()),
+            leave_policy_repo: Arc::new(MockLeavePolicyRepository::new()),
+            accrual_log_repo: Arc::new(MockLeaveAccrualLogRepository::new()),
+            time_entry_repo: Arc::new(mock_time_entry),
+            leave_request_repo: Arc::new(mock_leave_req),
+            contract_repo: Arc::new(MockEmployeeContractRepository::new()),
+            daily_summary_repo: Arc::new(MockAttendanceDailySummaryRepository::new()),
+        };
+
+        let result = service
+            .batch_count_qualifying_days(
+                Uuid::new_v4(),
+                Uuid::new_v4(),
+                nd(2026, 1, 1),
+                nd(2026, 3, 31),
+                "UTC".parse().unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(result.get(&nd(2026, 1, 1)), Some(&3)); // 1 work day + 2 leave days
+        assert_eq!(result.get(&nd(2026, 2, 1)), Some(&1)); // 1 work day
+        assert_eq!(result.get(&nd(2026, 3, 1)), Some(&1)); // 1 leave day
+    }
+
+    #[tokio::test]
+    async fn test_batch_count_qualifying_days_for_workspace_success() {
+        use crate::repositories::attendance_daily_summary_repository::MockAttendanceDailySummaryRepository;
+        use crate::repositories::department_repository::MockDepartmentRepository;
+        use crate::repositories::employee::MockEmployeeRepository;
+        use crate::repositories::employee_contract_repository::MockEmployeeContractRepository;
+        use crate::repositories::leave_accrual_log_repository::MockLeaveAccrualLogRepository;
+        use crate::repositories::leave_policy_repository::MockLeavePolicyRepository;
+        use crate::repositories::leave_request_repository::MockLeaveRequestRepository;
+        use crate::repositories::time_entry_repository::MockTimeEntryRepository;
+        use std::sync::Arc;
+
+        let mut mock_time_entry = MockTimeEntryRepository::new();
+        let mut mock_leave_req = MockLeaveRequestRepository::new();
+
+        let emp1 = Uuid::new_v4();
+        let emp2 = Uuid::new_v4();
+
+        use chrono::TimeZone;
+        mock_time_entry
+            .expect_get_workspace_time_entries_batch()
+            .returning(move |_, _, _, _| {
+                let mut map = std::collections::HashMap::new();
+                map.insert(
+                    emp1,
+                    vec![crate::models::TimeEntry {
+                        id: Uuid::new_v4(),
+                        employee_id: emp1,
+                        workspace_id: Uuid::new_v4(),
+                        punch_in_time: chrono::Utc.with_ymd_and_hms(2026, 1, 15, 8, 0, 0).unwrap(),
+                        punch_out_time: None,
+                        entry_type: "work".to_string(),
+                        duration_minutes: None,
+                        shift_id: None,
+                        is_break_overtime: false,
+                        note: None,
+                        generation_metadata: None,
+                        created_at: chrono::Utc::now(),
+                        updated_at: chrono::Utc::now(),
+                    }],
+                );
+                Ok(map)
+            });
+
+        mock_leave_req
+            .expect_get_batch_leave_days()
+            .returning(|_, _, _, _| {
+                Box::pin(std::future::ready(Ok(std::collections::HashMap::new())))
+            });
+
+        mock_leave_req
+            .expect_get_approved_leave_dates()
+            .returning(move |_, _, _, _| {
+                Box::pin(std::future::ready(Ok(
+                    std::collections::HashSet::from_iter(vec![(emp2, nd(2026, 1, 20))]),
+                )))
+            });
+
+        let service = LeaveAccrualService {
+            employee_repo: Arc::new(MockEmployeeRepository::new()),
+            department_repo: Arc::new(MockDepartmentRepository::new()),
+            leave_policy_repo: Arc::new(MockLeavePolicyRepository::new()),
+            accrual_log_repo: Arc::new(MockLeaveAccrualLogRepository::new()),
+            time_entry_repo: Arc::new(mock_time_entry),
+            leave_request_repo: Arc::new(mock_leave_req),
+            contract_repo: Arc::new(MockEmployeeContractRepository::new()),
+            daily_summary_repo: Arc::new(MockAttendanceDailySummaryRepository::new()),
+        };
+
+        let result = service
+            .batch_count_qualifying_days_for_workspace(
+                Uuid::new_v4(),
+                &[emp1, emp2],
+                nd(2026, 1, 1),
+                nd(2026, 1, 31),
+                "UTC".parse().unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(result.get(&emp1).unwrap().get(&nd(2026, 1, 1)), Some(&1));
+        assert_eq!(result.get(&emp2).unwrap().get(&nd(2026, 1, 1)), Some(&1));
+    }
 }

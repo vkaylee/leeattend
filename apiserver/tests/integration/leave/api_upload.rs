@@ -147,6 +147,26 @@ async fn test_upload_leave_csv_api() {
         job_opt.error_log
     );
 
+    // Get job status via API
+    let response = app
+        .clone()
+        .oneshot(
+            axum::http::Request::builder()
+                .method("GET")
+                .uri(format!("/api/v1/workspaces/{ws_id}/jobs/{job_uuid}/status"))
+                .header("X-Workspace-Id", ws_id.to_string())
+                .header("X-User-Id", user_id.to_string())
+                .body(axum::body::Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert!(
+        response.status().is_success() || response.status() == StatusCode::NOT_FOUND,
+        "Expected success or not found, got {}",
+        response.status()
+    );
+
     let lr_repo = apiserver::repositories::DieselLeaveRequestRepository::new(diesel_pools.clone());
     let requests = lr_repo
         .get_employee_leave_requests(
@@ -158,4 +178,55 @@ async fn test_upload_leave_csv_api() {
 
     assert_eq!(requests.len(), 1, "Leave request was not created");
     assert_eq!(requests[0].leave_type_id, leave_type_id);
+
+    // Get latest leave import
+    let response = app
+        .clone()
+        .oneshot(
+            axum::http::Request::builder()
+                .method("GET")
+                .uri(format!("/api/v1/workspaces/{ws_id}/leave/import/latest"))
+                .header("X-Workspace-Id", ws_id.to_string())
+                .header("X-User-Id", user_id.to_string())
+                .body(axum::body::Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // Download template
+    let response = app
+        .clone()
+        .oneshot(
+            axum::http::Request::builder()
+                .method("GET")
+                .uri(format!("/api/v1/workspaces/{ws_id}/leave/upload-template"))
+                .header("X-Workspace-Id", ws_id.to_string())
+                .header("X-User-Id", user_id.to_string())
+                .body(axum::body::Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // Download errors
+    let response = app
+        .clone()
+        .oneshot(
+            axum::http::Request::builder()
+                .method("GET")
+                .uri(format!(
+                    "/api/v1/workspaces/{ws_id}/leave/import/{job_uuid}/errors"
+                ))
+                .header("X-Workspace-Id", ws_id.to_string())
+                .header("X-User-Id", user_id.to_string())
+                .body(axum::body::Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    // It could be BAD_REQUEST or OK depending on if there are errors. Just check it runs without 500
+    assert!(response.status().is_success() || response.status().is_client_error());
 }

@@ -96,6 +96,7 @@ pub struct ExistingAccrualLog {
     pub amount: Decimal,
 }
 
+#[derive(Clone)]
 pub struct LeaveHistoryLogItem {
     pub id: Uuid,
     pub accrual_date: NaiveDate,

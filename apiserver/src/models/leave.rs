@@ -34,7 +34,7 @@ pub struct LeaveRequestWithType {
     pub is_paid: bool,
 }
 
-#[derive(Debug, Serialize, Deserialize, utoipa::ToSchema)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct SubmitLeaveRequest {
     pub employee_id: Uuid,
     pub leave_type_id: Uuid,

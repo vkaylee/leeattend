@@ -83,7 +83,10 @@ async fn test_leave_policy_crud() {
         .unwrap();
     let body_str = String::from_utf8(body.to_vec()).unwrap();
     if status != StatusCode::CREATED {
-        panic!("Failed to create policy. Status: {}, body: {}", status, body_str);
+        panic!(
+            "Failed to create policy. Status: {}, body: {}",
+            status, body_str
+        );
     }
     let created: serde_json::Value = serde_json::from_slice(&body).unwrap();
     let policy_id = created["id"].as_str().unwrap().to_string();
@@ -108,6 +111,64 @@ async fn test_leave_policy_crud() {
     assert_eq!(resp.status(), StatusCode::OK);
     let updated = body_json(resp).await;
     assert_eq!(updated["name"], "Updated Vacation Policy");
+
+    // 2.5 Get Policies
+    let resp = app
+        .clone()
+        .oneshot(req(
+            "GET",
+            &format!("/api/v1/workspaces/{ws_id}/leave/policies"),
+            ws_id,
+            admin_id,
+            None,
+        ))
+        .await
+        .unwrap();
+
+    assert_eq!(resp.status(), StatusCode::OK);
+    let policies = body_json(resp).await;
+    let items = policies.as_array().unwrap();
+    assert!(!items.is_empty());
+
+    // 3. Assign Leave Policy
+    let emp_id = factory.employee().with_workspace(ws_id).create().await;
+    let assign_req = serde_json::json!({
+        "policy_id": policy_id,
+        "assignee_id": emp_id,
+        "assignee_type": "employee",
+        "effective_from": "2024-01-01"
+    });
+
+    let resp = app
+        .clone()
+        .oneshot(req(
+            "POST",
+            &format!("/api/v1/workspaces/{ws_id}/leave/policies/assign"),
+            ws_id,
+            admin_id,
+            Some(assign_req),
+        ))
+        .await
+        .unwrap();
+
+    assert_eq!(resp.status(), StatusCode::CREATED);
+
+    // 4. Get Assignments
+    let resp = app
+        .clone()
+        .oneshot(req(
+            "GET",
+            &format!("/api/v1/workspaces/{ws_id}/leave/policies/assignments?policy_id={policy_id}"),
+            ws_id,
+            admin_id,
+            None,
+        ))
+        .await
+        .unwrap();
+
+    assert_eq!(resp.status(), StatusCode::OK);
+    let assignments = body_json(resp).await;
+    assert!(!assignments.as_array().unwrap().is_empty());
 
     // 3. Delete Policy
     let resp = app

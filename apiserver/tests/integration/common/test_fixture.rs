@@ -137,3 +137,23 @@ macro_rules! test_query_scalar_bool {
             .val
     }};
 }
+
+#[macro_export]
+macro_rules! test_query_scalar_bigdecimal {
+    ($pool:expr, $query:expr $(, $bind_type:ty, $bind_val:expr)*) => {{
+        #[derive(diesel::query_builder::QueryId, diesel::deserialize::QueryableByName)]
+        struct ScalarResult {
+            #[diesel(sql_type = diesel::sql_types::Numeric)]
+            val: bigdecimal::BigDecimal,
+        }
+        let mut conn = $pool.get().await.expect("Failed to get connection from pool");
+        let q = diesel::sql_query($query)
+        $(
+            .bind::<$bind_type, _>($bind_val)
+        )*;
+        diesel_async::RunQueryDsl::get_result::<ScalarResult>(q, &mut *conn)
+            .await
+            .expect("Failed to execute test_query_scalar_bigdecimal")
+            .val
+    }};
+}
