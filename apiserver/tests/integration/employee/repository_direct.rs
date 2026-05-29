@@ -756,3 +756,179 @@ async fn test_get_employee_timezone_at_date() {
         .unwrap();
     assert_eq!(tz_after.name(), "Asia/Ho_Chi_Minh");
 }
+
+#[tokio::test]
+async fn test_employee_core_crud() {
+    let (test_db, factory) = setup_db().await;
+    let pool = test_db.diesel_pools.clone();
+
+    let user_id = factory.user().create().await;
+    let ws_id = factory.workspace().create_with_owner(user_id).await;
+
+    let repo = DieselEmployeeRepository::new(test_db.diesel_pools.clone());
+    let auth_token = apiserver::diesel_pool::TenantAuthToken::system_override(ws_id);
+
+    let hq_loc_id = {
+        let mut conn = pool.tenants_tx.get_connection(&ws_id).await.unwrap();
+        use apiserver::schema::work_locations::dsl::*;
+        use diesel::prelude::*;
+        use diesel_async::RunQueryDsl;
+        work_locations
+            .filter(workspace_id.eq(ws_id))
+            .filter(is_headquarters.eq(true))
+            .select(id)
+            .first::<uuid::Uuid>(&mut *conn)
+            .await
+            .unwrap()
+    };
+
+    // Create
+    let new_emp = apiserver::models::Employee {
+        id: Uuid::new_v4(),
+        workspace_id: ws_id,
+        user_id: None,
+        full_name: "Core Employee".to_string(),
+        employee_id_number: "CORE1".to_string(),
+        tags: vec!["Test".to_string()],
+        is_active: true,
+        hire_date: NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+        termination_date: None,
+        primary_location_id: hq_loc_id,
+        original_hire_date: NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+        department_name: None,
+        created_at: Utc::now(),
+        updated_at: Utc::now(),
+    };
+    repo.create_employee(&new_emp).await.unwrap();
+
+    // Read by ID
+    let found = repo
+        .get_employee_by_id(new_emp.id, &auth_token)
+        .await
+        .unwrap();
+    assert!(found.is_some());
+    let found = found.unwrap();
+    assert_eq!(found.full_name, "Core Employee");
+
+    // Read by IDs
+    let multi = repo
+        .get_employees_by_ids(&[new_emp.id], &auth_token)
+        .await
+        .unwrap();
+    assert_eq!(multi.len(), 1);
+
+    // Update
+    let update_req = apiserver::models::UpdateEmployeeRequest {
+        full_name: Some("Core Updated".to_string()),
+        employee_id_number: Some("CORE1-U".to_string().into()),
+        tags: Some(vec!["Updated".to_string()]),
+        is_active: Some(false),
+        hire_date: Some(NaiveDate::from_ymd_opt(2026, 2, 1).unwrap()),
+        termination_date: Some(NaiveDate::from_ymd_opt(2026, 3, 1).unwrap()),
+        primary_location_id: None,
+        user_id: None,
+        recruitment_source_id: None,
+        max_concurrent_workers: None,
+    };
+    let updated = repo
+        .update_employee(new_emp.id, &auth_token, &update_req)
+        .await
+        .unwrap();
+    assert!(updated.is_some());
+    let updated = updated.unwrap();
+    assert_eq!(updated.full_name, "Core Updated");
+    assert_eq!(updated.is_active, false);
+
+    // Rehire
+    let rehired = repo
+        .rehire_employee(
+            &auth_token,
+            new_emp.id,
+            NaiveDate::from_ymd_opt(2026, 4, 1).unwrap(),
+        )
+        .await
+        .unwrap();
+    assert!(rehired.is_some());
+    let rehired = rehired.unwrap();
+    assert_eq!(rehired.is_active, true);
+    assert_eq!(
+        rehired.hire_date,
+        NaiveDate::from_ymd_opt(2026, 4, 1).unwrap()
+    );
+    assert!(rehired.termination_date.is_none());
+
+    // Delete
+    let deleted = repo.delete_employee(new_emp.id, &auth_token).await.unwrap();
+    assert_eq!(deleted, 1);
+
+    let not_found = repo
+        .get_employee_by_id(new_emp.id, &auth_token)
+        .await
+        .unwrap();
+    assert!(not_found.is_none());
+}
+
+#[tokio::test]
+async fn test_get_all_employees_with_filters() {
+    let (test_db, factory) = setup_db().await;
+    let pool = test_db.diesel_pools.clone();
+
+    let user_id = factory.user().create().await;
+    let ws_id = factory.workspace().create_with_owner(user_id).await;
+
+    // Create 3 employees
+    factory
+        .employee()
+        .with_workspace(ws_id)
+        .with_full_name("Alice Alpha")
+        .with_employee_id_number("EMP01")
+        .create()
+        .await;
+    factory
+        .employee()
+        .with_workspace(ws_id)
+        .with_full_name("Bob Bravo")
+        .with_employee_id_number("EMP02")
+        .create()
+        .await;
+    factory
+        .employee()
+        .with_workspace(ws_id)
+        .with_full_name("Charlie Alpha")
+        .with_employee_id_number("EMP03")
+        .create()
+        .await;
+
+    let repo = DieselEmployeeRepository::new(test_db.diesel_pools.clone());
+    let auth_token = apiserver::diesel_pool::TenantAuthToken::system_override(ws_id);
+
+    // No filters
+    let opts_all = apiserver::models::EmployeeFilterOptions {
+        limit: 10,
+        page: 1,
+        search_query: None,
+        sort_by: Some("full_name".to_string()),
+        sort_dir: Some("asc".to_string()),
+        department_ids: None,
+    };
+    let (all, count) = repo.get_all_employees(&auth_token, opts_all).await.unwrap();
+    assert_eq!(count, 3);
+    assert_eq!(all.len(), 3);
+    assert_eq!(all[0].full_name, "Alice Alpha"); // sorted ascending
+
+    // Filter by search
+    let opts_search = apiserver::models::EmployeeFilterOptions {
+        limit: 10,
+        page: 1,
+        search_query: Some("Alpha".to_string()),
+        sort_by: None,
+        sort_dir: None,
+        department_ids: None,
+    };
+    let (search_res, count) = repo
+        .get_all_employees(&auth_token, opts_search)
+        .await
+        .unwrap();
+    assert_eq!(count, 2);
+    assert_eq!(search_res.len(), 2);
+}

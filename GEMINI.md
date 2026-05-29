@@ -21,10 +21,15 @@ trigger: always_on
 3. **Structured Errors:** Use domain-specific error types (`AppError`). NEVER throw generic `Error` or `unwrap()` blindly.
 4. **Boy Scout Rule:** If you see a typo, bad pattern, or visible bug nearby, FIX IT IMMEDIATELY. Never say "it's out of scope".
 5. **PTY Safety & File Creation (CRITICAL):** 
-   - 🛑 **When using the `run_command` tool:** You MUST ALWAYS append ` > logs/run_{command_slug}.log 2>&1 </dev/null` directly inside the `CommandLine` argument for **ALL execution commands** without exception. `{command_slug}` is a short snake_case name derived from the command (e.g., `cargo_check`, `npm_dev`, `ls`, `docker_up`). Failure to do so WILL hang the system. Example: `CommandLine: "mkdir -p logs && ls -la > logs/run_ls.log 2>&1 </dev/null"`. Always prefix with `mkdir -p logs &&` to ensure the directory exists.
-   - NEVER use multiline strings directly in terminal commands (such as `echo "..." > file`, `git commit -m "..."`, or `python -c`).
-   - NEVER use `echo` or `cat` in shell/bash to create/edit files with multiline content.
-   - You MUST use your NATIVE TOOL (such as `write_to_file`) to create files (e.g., `scratch/commit_msg.txt` or `script.py`), then use shell commands to execute them (e.g., `git commit -F scratch/commit_msg.txt`). Deliberately passing multiline strings through bash/shell will break the PTY parser and cause system hangs.
+   - **Execution Pattern:** For ALL terminal commands, you **MUST** append ` > logs/run_{command_slug}.log 2>&1 </dev/null` directly inside the `CommandLine` argument. Always prefix with `mkdir -p logs &&`. Example: `CommandLine: "mkdir -p logs && ls -la > logs/run_ls.log 2>&1 </dev/null"`.
+   - **Anti-pattern:** Leaving stdout/stderr un-redirected, which hangs the system.
+   - **Script Execution Pattern (2-Step Workflow):** Any code execution (Python, Bash, JS) MUST follow a strict 2-step workflow:
+     1. Use the native `write_to_file` tool to create a temporary script (e.g., `scratch/temp_script.py` or `scratch/commit_msg.txt`).
+     2. Execute the file via `run_command` (e.g., `python scratch/temp_script.py > logs/run_script.log 2>&1`).
+   - **Anti-pattern:** Using inline scripts (`python -c "..."`, `bash -c "..."`) or multiline strings (`echo "..." > file`, `git commit -m "..."`). This breaks the PTY parser and causes system hangs.
+   - **Pre-Flight Check:** Before calling `run_command`, evaluate: "Does this command contain multiline strings, inline python (`-c`), or `echo` with complex formatting?" If YES, you MUST STOP and use the 2-Step Workflow instead.
+   - **Log Monitoring Pattern:** Use **periodic sampling** (e.g., one-shot reads via `tail -n 100`, `cat`, or native `view_file` tool) to inspect states safely.
+   - **Anti-pattern:** Using infinite-blocking streams (`tail -f`, `watch`, `top`, `ping`) via `run_command` in background mode. These commands hang the PTY and pollute the task list forever.
 6. **Hermetic Wrappers (CRITICAL):** DO NOT call `cargo`, `npm`, or `diesel` directly. You must use wrapper scripts in `scripts/` (e.g., `./scripts/_cargo.sh`). See `execution-wrappers.md` for details.
 7. **AI MUST BE CALM & PATIENT (CRITICAL):** This is a fundamental mindset for all situations. DO NOT RUSH.
     - Read requirements carefully before starting.
@@ -32,6 +37,9 @@ trigger: always_on
     - Never jump to conclusions based on assumptions or subjective guesses.
     - Always verify with concrete evidence before responding.
     - Always wait for processes to finish, carefully read error logs (if any), and only then report back to the user. Never say "it's done" without actually verifying the outcome.
+8. **AI MUST EXPLORE BEFORE CREATING (ANTI-REINVENTION):**
+    - You MUST use `list_dir`, `grep_search`, or read root-level scripts to verify that a tool doesn't already exist BEFORE creating any new scripts (bash/python).
+    - AI tends to ignore existing large codebase tools and writes new ones, causing context bloat and technical debt. DO NOT REINVENT THE WHEEL.
 
 ## 🥇 Layer 1: CRITICAL PROTOCOL
 **Before writing ANY code or proposing solutions, you MUST:**

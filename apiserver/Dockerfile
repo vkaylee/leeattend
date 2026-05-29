@@ -1,7 +1,7 @@
 # Multi-stage build for Rust API Server supporting Dev, Test, and Prod
 
 # Stage 1: Cargo Chef base
-FROM public.ecr.aws/docker/library/rust:1.91-slim-bookworm AS chef
+FROM public.ecr.aws/docker/library/rust:1.93-slim-bookworm AS chef
 RUN rustup component add clippy rustfmt
 RUN cargo install cargo-chef --version ^0.1.77 --locked
 RUN apt-get update && apt-get install -y wget && \
@@ -28,7 +28,7 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
     cargo chef cook --release --recipe-path recipe.json
 
 # Stage 4: Dev
-FROM public.ecr.aws/docker/library/rust:1.91-bookworm AS dev
+FROM public.ecr.aws/docker/library/rust:1.93-bookworm AS dev
 RUN apt-get update && apt-get install -y clang mold git redis-tools postgresql-client sqlite3 netcat-traditional curl dnsutils iputils-ping iproute2 nmap jq htop bash && \
     rm -rf /var/lib/apt/lists/* && \
     rustup component add clippy && \
@@ -41,7 +41,6 @@ CMD ["cargo", "watch", "-x", "run"]
 # Stage 5: Test
 FROM chef AS test
 ENV SCCACHE_DIR=/sccache
-ENV RUSTC_WRAPPER=sccache
 RUN apt-get update && apt-get install -y libpq-dev && \
     cargo install diesel_cli --locked --no-default-features --features postgres
 RUN curl -LsSf https://get.nexte.st/0.9.133/linux | tar zxf - -C /usr/local/bin
@@ -49,6 +48,7 @@ RUN curl -LsSf https://get.nexte.st/0.9.133/linux | tar zxf - -C /usr/local/bin
 RUN rustup component add llvm-tools-preview && \
     cargo install cargo-llvm-cov --locked
 COPY --from=planner /app/recipe.json recipe.json
+ENV RUSTC_WRAPPER=sccache
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/sccache \
     cargo chef cook --tests --recipe-path recipe.json

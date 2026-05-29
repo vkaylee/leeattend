@@ -81,3 +81,113 @@ fn env_parse<T: std::str::FromStr>(key: &str, default: T) -> T {
         .and_then(|s| s.parse().ok())
         .unwrap_or(default)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serial_test::serial;
+    use std::env;
+
+    fn setup_env(
+        db_url: Option<&str>,
+        pool_tx: Option<&str>,
+        pool_sess: Option<&str>,
+        reader: Option<&str>,
+    ) {
+        let vars = [
+            ("DATABASE_URL", db_url),
+            ("DATABASE_POOLER_TX_URL", pool_tx),
+            ("DATABASE_POOLER_SESS_URL", pool_sess),
+            ("DATABASE_READER_URL", reader),
+            ("DB_API_MAX_CONN", None),
+            ("DB_API_ACQUIRE_TIMEOUT_SECS", None),
+            ("DB_WORKER_MAX_CONN", None),
+            ("DB_WORKER_ACQUIRE_TIMEOUT_SECS", None),
+            ("DB_TENANT_MAX_CONN", None),
+        ];
+
+        for (k, v) in vars.iter() {
+            if let Some(val) = v {
+                env::set_var(k, val);
+            } else {
+                env::remove_var(k);
+            }
+        }
+    }
+
+    #[test]
+    #[serial]
+    fn test_from_env_success() {
+        setup_env(
+            Some("postgres://user:pass@localhost:5432/db"),
+            Some("postgres://pooler:pass@localhost:6543/db"),
+            Some("postgres://pooler:pass@localhost:5452/db"),
+            None,
+        );
+
+        let config = DbPoolConfig::from_env().expect("Should parse config");
+        assert_eq!(config.primary_url, "postgres://user:pass@localhost:5432/db");
+        assert_eq!(
+            config.pooler_tx_url,
+            "postgres://pooler:pass@localhost:6543/db"
+        );
+        assert_eq!(
+            config.pooler_sess_url,
+            "postgres://pooler:pass@localhost:5452/db"
+        );
+        assert_eq!(config.reader_url, None);
+        assert_eq!(config.api_max_conn, 20);
+
+        let (api_tx, sess, reader) = config.resolve_pool_urls();
+        assert_eq!(api_tx, "postgres://pooler:pass@localhost:6543/db");
+        assert_eq!(sess, "postgres://pooler:pass@localhost:5452/db");
+        assert_eq!(reader, "postgres://pooler:pass@localhost:6543/db"); // Fallback to tx url
+    }
+
+    #[test]
+    #[serial]
+    fn test_from_env_with_reader() {
+        setup_env(
+            Some("postgres://user:pass@localhost:5432/db"),
+            Some("postgres://pooler:pass@localhost:6543/db"),
+            Some("postgres://pooler:pass@localhost:5452/db"),
+            Some("postgres://reader:pass@localhost:5432/db"),
+        );
+
+        let config = DbPoolConfig::from_env().unwrap();
+        let (_, _, reader) = config.resolve_pool_urls();
+        assert_eq!(reader, "postgres://reader:pass@localhost:5432/db");
+    }
+
+    #[test]
+    #[serial]
+    fn test_from_env_missing_urls() {
+        setup_env(None, None, None, None);
+        assert!(DbPoolConfig::from_env().is_err());
+
+        setup_env(Some("url"), None, None, None);
+        assert!(DbPoolConfig::from_env().is_err());
+
+        setup_env(Some("url"), Some("tx"), None, None);
+        assert!(DbPoolConfig::from_env().is_err());
+    }
+
+    #[test]
+    #[serial]
+    fn test_env_parse_defaults_and_overrides() {
+        setup_env(
+            Some("postgres://user:pass@localhost:5432/db"),
+            Some("postgres://pooler:pass@localhost:6543/db"),
+            Some("postgres://pooler:pass@localhost:5452/db"),
+            None,
+        );
+        env::set_var("DB_API_MAX_CONN", "42");
+        env::set_var("DB_WORKER_ACQUIRE_TIMEOUT_SECS", "99");
+
+        let config = DbPoolConfig::from_env().unwrap();
+        assert_eq!(config.api_max_conn, 42);
+        assert_eq!(config.api_acquire_timeout_secs, 5); // default
+        assert_eq!(config.worker_acquire_timeout_secs, 99);
+        assert_eq!(config.tenant_max_conn, 5); // default
+    }
+}

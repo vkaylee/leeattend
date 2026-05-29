@@ -93,4 +93,53 @@ mod tests {
         let _repo = DieselSystemRepository::new(pools);
         // DI connection test passes if it compiles
     }
+
+    #[tokio::test]
+    async fn test_execute_partition_query() {
+        let test_db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://user:pass@localhost:5432/leeattend_test_db".to_string()
+        });
+
+        let pools = DieselPools::for_test(&test_db_url);
+        let repo = DieselSystemRepository::new(pools);
+
+        let res = repo.execute_partition_query("SELECT 1").await;
+        // In our CI environment, DB connection should succeed and execute the query
+        assert!(res.is_ok(), "expected ok, got {:?}", res.err());
+    }
+
+    #[tokio::test]
+    async fn test_execute_tenant_partition_query() {
+        let test_db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://user:pass@localhost:5432/leeattend_test_db".to_string()
+        });
+
+        let pools = DieselPools::for_test(&test_db_url);
+        let repo = DieselSystemRepository::new(pools);
+        let tenant_id = uuid::Uuid::new_v4();
+
+        let res = repo
+            .execute_tenant_partition_query(tenant_id, "SELECT 1")
+            .await;
+        assert!(res.is_ok(), "expected ok, got {:?}", res.err());
+    }
+
+    #[tokio::test]
+    async fn test_execute_tenant_partition_queries_batch() {
+        let test_db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://user:pass@localhost:5432/leeattend_test_db".to_string()
+        });
+
+        let pools = DieselPools::for_test(&test_db_url);
+        let repo = DieselSystemRepository::new(pools);
+        let tenant_id = uuid::Uuid::new_v4();
+
+        let res = repo
+            .execute_tenant_partition_queries_batch(
+                tenant_id,
+                &["SELECT 1".to_string(), "SELECT 2".to_string()],
+            )
+            .await;
+        assert!(res.is_ok(), "expected ok, got {:?}", res.err());
+    }
 }

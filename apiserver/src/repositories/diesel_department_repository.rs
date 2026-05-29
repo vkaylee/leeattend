@@ -753,4 +753,123 @@ mod tests {
         let _repo = DieselDepartmentRepository::new(pools);
         // DI connection test passes if it compiles
     }
+
+    #[tokio::test]
+    async fn test_repo_methods_error_handling() {
+        let bad_url = "postgres://invalid:invalid@localhost:12345/invalid_db";
+        let pools = DieselPools::for_test(bad_url);
+        let repo = DieselDepartmentRepository::new(pools);
+        let ws_id = Uuid::new_v4();
+        let auth_token = crate::diesel_pool::TenantAuthToken::system_override(ws_id);
+
+        let err = repo
+            .create_department(&auth_token, "Name".into(), None, None, None)
+            .await;
+        assert!(err.is_err());
+
+        let err = repo.get_department_by_id(&auth_token, Uuid::new_v4()).await;
+        assert!(err.is_err());
+
+        let err = repo.get_department_by_name(&auth_token, "Name").await;
+        assert!(err.is_err());
+
+        let err = repo
+            .get_department_ids_by_names(&auth_token, &["Name".into()])
+            .await;
+        assert!(err.is_err());
+
+        let err = repo
+            .bulk_create_departments_skip_duplicates(
+                &auth_token,
+                &[crate::models::Department {
+                    id: Uuid::new_v4(),
+                    workspace_id: ws_id,
+                    name: "N".into(),
+                    description: None,
+                    manager_id: None,
+                    default_working_pattern_id: None,
+                    created_at: chrono::Utc::now(),
+                    updated_at: chrono::Utc::now(),
+                    active_employee_count: 0,
+                }],
+            )
+            .await;
+        assert!(err.is_err());
+
+        let err = repo
+            .update_department(
+                &auth_token,
+                Uuid::new_v4(),
+                crate::models::UpdateDepartmentRequest {
+                    name: Some("Name".to_string()),
+                    description: None,
+                    manager_id: None,
+                    default_working_pattern_id: None,
+                },
+            )
+            .await;
+        assert!(err.is_err());
+
+        let err = repo.delete_department(&auth_token, Uuid::new_v4()).await;
+        assert!(err.is_err());
+
+        let err = repo.get_departments(&auth_token).await;
+        assert!(err.is_err());
+
+        let err = repo
+            .transfer_employee(
+                &auth_token,
+                Uuid::new_v4(),
+                Uuid::new_v4(),
+                chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+                None,
+            )
+            .await;
+        assert!(err.is_err());
+
+        let err = repo
+            .get_employee_department_history(&auth_token, Uuid::new_v4())
+            .await;
+        assert!(err.is_err());
+
+        let err = repo
+            .get_employee_department_history_batch(&auth_token, &[Uuid::new_v4()])
+            .await;
+        assert!(err.is_err());
+
+        let err = repo
+            .get_current_department(&auth_token, Uuid::new_v4())
+            .await;
+        assert!(err.is_err());
+
+        let err = repo
+            .get_current_departments_batch(&auth_token, &[Uuid::new_v4()])
+            .await;
+        assert!(err.is_err());
+
+        let err = repo
+            .upsert_department_payroll_config(
+                &auth_token,
+                Uuid::new_v4(),
+                Decimal::new(1, 0),
+                Decimal::new(8, 0),
+                chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+            )
+            .await;
+        assert!(err.is_err());
+
+        let err = repo
+            .get_department_payroll_config_at(
+                &auth_token,
+                Uuid::new_v4(),
+                chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+            )
+            .await;
+        assert!(err.is_err());
+
+        let err = repo
+            .get_department_payroll_configs(&auth_token, Uuid::new_v4())
+            .await;
+        assert!(err.is_err());
+    }
 }

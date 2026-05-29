@@ -91,3 +91,115 @@ impl From<AttendancePolicyAssignmentEntity> for AttendancePolicyAssignment {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_attendance_policy_entity_from() {
+        let id = Uuid::new_v4();
+        let workspace_id = Uuid::new_v4();
+        let now = Utc::now();
+
+        let entity = AttendancePolicyEntity {
+            id,
+            workspace_id,
+            name: "Default Policy".to_string(),
+            is_default: true,
+            created_at: now,
+            updated_at: now,
+        };
+
+        let policy: AttendancePolicy = entity.into();
+        assert_eq!(policy.id, id);
+        assert_eq!(policy.workspace_id, workspace_id);
+        assert_eq!(policy.name, "Default Policy");
+        assert!(policy.is_default);
+        assert_eq!(policy.created_at, now);
+        assert_eq!(policy.updated_at, now);
+    }
+
+    #[test]
+    fn test_attendance_policy_version_entity_from_valid_json() {
+        let id = Uuid::new_v4();
+        let policy_id = Uuid::new_v4();
+        let user_id = Uuid::new_v4();
+        let now = Utc::now();
+
+        let rules_json = serde_json::json!({
+            "work_unit_minutes": 15,
+            "rounding_policy": "round_down",
+            "early_arrival_strategy": "block"
+        });
+
+        let entity = AttendancePolicyVersionEntity {
+            id,
+            policy_id,
+            rules: rules_json,
+            valid_from: now,
+            valid_to: None,
+            created_by: Some(user_id),
+            created_at: now,
+        };
+
+        let version: AttendancePolicyVersion = entity.into();
+        assert_eq!(version.id, id);
+        assert_eq!(version.policy_id, policy_id);
+        assert_eq!(version.rules.work_unit_minutes, 15);
+        assert_eq!(version.rules.rounding_policy, "round_down");
+        assert_eq!(version.created_by, Some(user_id));
+        assert_eq!(version.created_at, now);
+    }
+
+    #[test]
+    fn test_attendance_policy_version_entity_from_invalid_json() {
+        let id = Uuid::new_v4();
+        let policy_id = Uuid::new_v4();
+        let now = Utc::now();
+
+        // Missing required fields
+        let rules_json = serde_json::json!({});
+
+        let entity = AttendancePolicyVersionEntity {
+            id,
+            policy_id,
+            rules: rules_json,
+            valid_from: now,
+            valid_to: None,
+            created_by: None,
+            created_at: now,
+        };
+
+        let version: AttendancePolicyVersion = entity.into();
+        assert_eq!(version.id, id);
+        assert_eq!(version.rules.work_unit_minutes, 0);
+        assert_eq!(version.rules.rounding_policy, "none");
+    }
+
+    #[test]
+    fn test_attendance_policy_assignment_entity_from() {
+        let id = Uuid::new_v4();
+        let policy_id = Uuid::new_v4();
+        let target_id = Uuid::new_v4();
+        let now = Utc::now();
+
+        let entity = AttendancePolicyAssignmentEntity {
+            id,
+            policy_id,
+            target_type: "employee".to_string(),
+            target_id,
+            valid_from: now,
+            valid_to: Some(now),
+            created_at: now,
+            updated_at: now,
+        };
+
+        let assignment: AttendancePolicyAssignment = entity.into();
+        assert_eq!(assignment.id, id);
+        assert_eq!(assignment.policy_id, policy_id);
+        assert_eq!(assignment.target_type, "employee");
+        assert_eq!(assignment.target_id, target_id);
+        assert_eq!(assignment.valid_to, Some(now));
+    }
+}

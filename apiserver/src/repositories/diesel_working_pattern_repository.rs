@@ -388,4 +388,68 @@ mod tests {
         let _repo = DieselWorkingPatternRepository::new(pools);
         // DI connection test passes if it compiles
     }
+
+    #[tokio::test]
+    async fn test_repo_methods_error_handling() {
+        let bad_url = "postgres://invalid:invalid@localhost:12345/invalid_db";
+        let pools = DieselPools::for_test(bad_url);
+        let repo = DieselWorkingPatternRepository::new(pools);
+        let ws_id = Uuid::new_v4();
+
+        let err = repo
+            .create_pattern_with_details(ws_id, "Name", None, "weekly", None, vec![])
+            .await;
+        assert!(err.is_err());
+
+        let err = repo
+            .update_pattern_with_details(
+                ws_id,
+                Uuid::new_v4(),
+                "Name",
+                None,
+                "weekly",
+                None,
+                vec![],
+            )
+            .await;
+        assert!(err.is_err());
+
+        let err = repo.get_patterns(ws_id).await;
+        assert!(err.is_err());
+
+        let err = repo.get_pattern_details(ws_id, Uuid::new_v4()).await;
+        assert!(err.is_err());
+
+        let err = repo
+            .assign_pattern(
+                ws_id,
+                Uuid::new_v4(),
+                Uuid::new_v4(),
+                chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+                None,
+                None,
+            )
+            .await;
+        assert!(err.is_err());
+
+        let err = repo
+            .get_employee_pattern_history(ws_id, Uuid::new_v4())
+            .await;
+        assert!(err.is_err());
+
+        let err = repo
+            .bulk_assign_pattern(
+                ws_id,
+                &[Uuid::new_v4()],
+                Uuid::new_v4(),
+                chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+                None,
+                None,
+            )
+            .await;
+        assert!(err.is_err());
+
+        let err = repo.delete_pattern(ws_id, Uuid::new_v4()).await;
+        assert!(err.is_err());
+    }
 }

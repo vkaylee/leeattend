@@ -125,3 +125,55 @@ pub struct AssignmentHistory {
     #[diesel(sql_type = diesel::sql_types::Timestamptz)]
     pub created_at: DateTime<Utc>,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::{NaiveDate, NaiveTime};
+
+    #[test]
+    fn test_working_pattern_serialization() {
+        let pattern = WorkingPattern {
+            id: Uuid::new_v4(),
+            workspace_id: Uuid::new_v4(),
+            name: "Test Pattern".to_string(),
+            description: None,
+            is_active: true,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+            pattern_type: "weekly".to_string(),
+            cycle_length_days: Some(7),
+        };
+
+        let json = serde_json::to_string(&pattern).unwrap();
+        assert!(json.contains("Test Pattern"));
+        assert!(json.contains("weekly"));
+        assert!(json.contains("cycle_length_days"));
+    }
+
+    #[test]
+    fn test_effective_schedule_serialization() {
+        let schedule = EffectiveSchedule {
+            date: NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+            shift_id: Some(Uuid::new_v4()),
+            source: "roster".to_string(),
+            shift_name: Some("Morning Shift".to_string()),
+            shift_symbol: Some("M".to_string()),
+            start_time: NaiveTime::from_hms_opt(8, 0, 0),
+            end_time: NaiveTime::from_hms_opt(17, 0, 0),
+            break_duration_minutes: Some(60),
+            break_start: None,
+            break_end: None,
+            is_break_auto_deduct: Some(true),
+            early_punch_in_grace_period_minutes: None,
+            allow_early_ot: None,
+            traces: vec![],
+            is_holiday: false,
+            holiday_name: None,
+        };
+
+        let json = serde_json::to_string(&schedule).unwrap();
+        assert!(json.contains("Morning Shift"));
+        assert!(json.contains("roster"));
+    }
+}

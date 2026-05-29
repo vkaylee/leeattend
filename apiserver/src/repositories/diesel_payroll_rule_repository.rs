@@ -275,6 +275,10 @@ impl PayrollRuleRepository for DieselPayrollRuleRepository {
 mod tests {
     use super::*;
     use crate::diesel_pool::DieselPools;
+    use crate::models::{
+        AssigneeType, PayrollCalculationMethod, PayrollRuleCategory, RuleAppliesTo,
+    };
+    use serde_json::json;
 
     #[tokio::test]
     async fn test_repo_initialization() {
@@ -285,5 +289,74 @@ mod tests {
         let pools = DieselPools::for_test(&test_db_url);
         let _repo = DieselPayrollRuleRepository::new(pools);
         // DI connection test passes if it compiles
+    }
+
+    #[tokio::test]
+    async fn test_repo_methods_error_handling() {
+        let bad_url = "postgres://invalid:invalid@localhost:12345/invalid_db";
+        let pools = DieselPools::for_test(bad_url);
+        let repo = DieselPayrollRuleRepository::new(pools);
+        let ws_id = Uuid::new_v4();
+
+        let create_args = CreatePayrollRuleDefinitionArgs {
+            workspace_id: ws_id,
+            name: "test".into(),
+            description: None,
+            code: "T1".into(),
+            category: PayrollRuleCategory::Allowance,
+            applies_to: RuleAppliesTo::Employee,
+            calculation_method: PayrollCalculationMethod::Fixed,
+            rule_config: json!({}),
+            is_mandatory: true,
+            display_order: 1,
+        };
+
+        let err = repo.create_definition(create_args).await;
+        assert!(err.is_err());
+
+        let err = repo.get_definitions(ws_id).await;
+        assert!(err.is_err());
+
+        let err = repo
+            .create_tier(
+                ws_id,
+                Uuid::new_v4(),
+                1,
+                rust_decimal::Decimal::new(0, 0),
+                None,
+                rust_decimal::Decimal::new(0, 0),
+                rust_decimal::Decimal::new(0, 0),
+            )
+            .await;
+        assert!(err.is_err());
+
+        let err = repo.get_tiers_for_rule(ws_id, Uuid::new_v4()).await;
+        assert!(err.is_err());
+
+        let err = repo
+            .delete_tier(ws_id, Uuid::new_v4(), Uuid::new_v4())
+            .await;
+        assert!(err.is_err());
+
+        let assign_args = AssignPayrollRuleArgs {
+            workspace_id: ws_id,
+            rule_definition_id: Uuid::new_v4(),
+            assignee_type: AssigneeType::Employee,
+            assignee_id: Some(Uuid::new_v4()),
+            effective_from: chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+            effective_to: None,
+            override_config: None,
+        };
+
+        let err = repo.assign_rule(assign_args).await;
+        assert!(err.is_err());
+
+        let err = repo.get_assignments_for_rule(ws_id, Uuid::new_v4()).await;
+        assert!(err.is_err());
+
+        let err = repo
+            .delete_assignment(ws_id, Uuid::new_v4(), Uuid::new_v4())
+            .await;
+        assert!(err.is_err());
     }
 }

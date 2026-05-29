@@ -166,3 +166,61 @@ pub async fn delete_config(
 
     Ok(StatusCode::OK)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn test_upsert_config_request_deserialization() {
+        let json = json!({
+            "scope_type": "workspace",
+            "scope_id": null,
+            "config_key": "max_overtime_hours",
+            "value": {"Int": 40},
+            "effective_from": "2024-01-01",
+            "effective_to": null
+        });
+
+        let req: UpsertConfigRequest = serde_json::from_value(json).unwrap();
+        assert_eq!(req.scope_type, "workspace");
+        assert_eq!(req.scope_id, None);
+        assert_eq!(req.config_key, "max_overtime_hours");
+        assert_eq!(
+            req.effective_from,
+            NaiveDate::from_ymd_opt(2024, 1, 1).unwrap()
+        );
+        assert_eq!(req.effective_to, None);
+
+        if let ConfigValue::Int(v) = req.value {
+            assert_eq!(v, 40);
+        } else {
+            panic!("Expected ConfigValue::Int");
+        }
+    }
+
+    #[test]
+    fn test_upsert_config_request_text_value() {
+        let json = json!({
+            "scope_type": "department",
+            "scope_id": "123e4567-e89b-12d3-a456-426614174000",
+            "config_key": "theme",
+            "value": {"Text": "dark"},
+            "effective_from": "2024-01-01"
+        });
+
+        let req: UpsertConfigRequest = serde_json::from_value(json).unwrap();
+        assert_eq!(req.scope_type, "department");
+        assert_eq!(
+            req.scope_id,
+            Some(Uuid::parse_str("123e4567-e89b-12d3-a456-426614174000").unwrap())
+        );
+
+        if let ConfigValue::Text(v) = req.value {
+            assert_eq!(v, "dark");
+        } else {
+            panic!("Expected ConfigValue::Text");
+        }
+    }
+}

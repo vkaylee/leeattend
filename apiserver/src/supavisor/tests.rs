@@ -3,6 +3,7 @@ mod tests {
     use crate::supavisor::*;
     use serde_json::json;
     #[test]
+    #[serial_test::serial]
     fn test_build_tenant_payload_valid() {
         let url = "postgres://my_user:my_secret@my_db_host:5433/my_company_db";
         let (tenant_id, payload) = build_tenant_payload(
@@ -30,6 +31,7 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_build_tenant_payload_enforce_ssl_from_env() {
         std::env::set_var("DATABASE_REQUIRE_SSL", "true");
         let url = "postgres://my_user:my_secret@my_db_host:5433/my_company_db";
@@ -59,6 +61,7 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_build_tenant_payload_sets_pool_password_from_env() {
         let physical_db_url = "postgres://tenant_user:physical_pass@my_db_host:5433/tenant_db";
 
@@ -117,6 +120,7 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_build_tenant_payload_with_custom_tenant_id() {
         std::env::set_var("SUPAVISOR_TENANT_ID", "custom_tenant_name");
         let url = "postgres://my_user:my_secret@my_db_host:5433/my_company_db";
@@ -141,6 +145,7 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_build_tenant_payload_dynamic_ignores_global_env() {
         std::env::set_var("SUPAVISOR_TENANT_ID", "global_tenant_id");
 
@@ -167,6 +172,7 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_build_tenant_payload_with_explicit_options() {
         std::env::set_var("SUPAVISOR_TENANT_ID", "global_tenant_id");
         std::env::set_var("SUPAVISOR_POOL_SIZE", "50");
@@ -204,6 +210,7 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_build_tenant_payload_byod_preserves_db_name() {
         let url = "postgres://byod_user:byod_pass@remote_host:5432/custom_byod_db";
 
@@ -297,6 +304,7 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_build_tenant_payload_decodes_percent_encoding() {
         // "user@name":"pass#word" encoded in URL
         let url = "postgres://user%40name:pass%23word@dynamic_db_host:5433/dynamic_db";
@@ -320,6 +328,7 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_build_tenant_payload_with_custom_pool_settings() {
         std::env::set_var("SUPAVISOR_POOL_SIZE", "50");
         std::env::set_var("SUPAVISOR_MODE_TYPE", "session");
@@ -347,6 +356,7 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_build_tenant_payload_with_custom_ip_version() {
         std::env::set_var("SUPAVISOR_IP_VERSION", "v4");
 
@@ -367,6 +377,7 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_build_tenant_payload_missing_password() {
         let url = "postgres://my_user@my_db_host:5432/my_company_db";
         let result = build_tenant_payload(
@@ -383,6 +394,7 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_build_tenant_payload_missing_user() {
         let url = "postgres://:my_secret@my_db_host:5432/my_company_db";
         let result = build_tenant_payload(
@@ -396,6 +408,7 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_build_tenant_payload_missing_db_name() {
         let url = "postgres://my_user:my_secret@my_db_host:5432/";
         let result = build_tenant_payload(
@@ -409,6 +422,7 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_build_tenant_payload_invalid_url() {
         let url = "not_a_url";
         let result = build_tenant_payload(
@@ -422,6 +436,7 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_build_tenant_payload_with_query_params() {
         // Query parameters like sslmode or application_name should not break the path extraction
         let url = "postgres://my_user:my_secret@my_db_host:5432/my_company_db?sslmode=disable&application_name=leeattend";
@@ -444,6 +459,7 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_build_tenant_payload_tenant_id_matches_connection_url_format() {
         // The tenant_id must match the format produced by diesel_pool::get_tenant_url():
         // tenant_<uuid-without-hyphens>. This contract prevents "Tenant or user not found"
@@ -493,6 +509,7 @@ mod tests {
     // ─────────────────────────────────────────────────────────────────────
 
     #[test]
+    #[serial_test::serial]
     fn test_build_tenant_payload_tenant_id_standard_db_name() {
         // When the DB name follows tenant_<uuid-no-hyphens>, tenant_id
         // defaults to the database name from the URL.
@@ -541,6 +558,7 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_build_tenant_payload_supavisor_tenant_id_overrides_db_name() {
         // When SUPAVISOR_TENANT_ID is set, tenant_id takes that value,
         // but db_database in the payload stays as the actual PG database name.
@@ -578,6 +596,7 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_build_tenant_payload_tenant_id_never_contains_hyphens() {
         // Regardless of URL format or env vars, the tenant_id must NEVER
         // contain hyphens — the connection URL strips them and Supavisor
@@ -634,6 +653,7 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_build_tenant_payload_tenant_id_matches_connection_format_exactly() {
         // Roundtrip verification: given a standard DB URL, the tenant_id
         // must match EXACTLY what diesel_pool::get_tenant_url() would embed
@@ -668,6 +688,7 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_build_tenant_payload_tenant_id_format_length_invariant() {
         // The tenant_id for standard workspace DBs is always exactly
         // 39 characters: "tenant_" (7) + 32 hex digits.
@@ -689,6 +710,7 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_generate_supavisor_token_valid() {
         let secret = "super_secret_test_key_with_at_least_32_bytes_length";
         let token = generate_supavisor_token(secret).expect("Should generate token");
@@ -717,6 +739,7 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_build_tenant_payload_includes_default_mode_and_pool_size() {
         // Test that Supavisor payload correctly injects default_mode and default_pool_size
         std::env::set_var("SUPAVISOR_MODE_TYPE", "session");
@@ -755,6 +778,7 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_parse_postgres_url() {
         // Basic case
         let url = "postgres://user:password@localhost:5432/mydb";

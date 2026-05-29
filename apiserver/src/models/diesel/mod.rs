@@ -29,3 +29,14 @@ pub struct BigIntCount {
     #[diesel(sql_type = BigInt)]
     pub count: i64,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_big_int_count() {
+        let count = BigIntCount { count: 42 };
+        assert_eq!(count.count, 42);
+    }
+}

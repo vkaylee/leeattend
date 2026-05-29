@@ -24,13 +24,13 @@ x-rust-test-base: &rust-test-base
     <<: *rust-env-base
   tmpfs:
     - /workspace/target/nextest
+    - /workspace/apiserver/storage
   volumes:
     - ${PROJECT_ROOT}:/workspace
     - target-cache:/workspace/target
     - ${HOME}/.cargo/registry:/usr/local/cargo/registry
     - sccache-cache:/workspace/.sccache
     - /dev/shm/leeattend-shared-data:/workspace/shared
-    - /workspace/apiserver/storage
 
 services:
   db_system:
@@ -167,11 +167,6 @@ services:
       context: ..
       dockerfile: apiserver/Dockerfile
       target: test
-    depends_on:
-      db_system:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
     working_dir: /workspace/apiserver
     environment:
       <<: *rust-env-base
@@ -201,11 +196,6 @@ services:
       context: ..
       dockerfile: agent-main/Dockerfile
       target: test
-    depends_on:
-      db_system:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
     working_dir: /workspace/agent-main
     environment:
       <<: *rust-env-base

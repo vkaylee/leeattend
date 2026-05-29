@@ -74,3 +74,57 @@ impl CacheManager {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::repositories::{
+        cache_repository::MockCacheRepository, shift_repository::MockShiftRepository,
+        workspace_repository::MockWorkspaceRepository,
+    };
+
+    #[tokio::test]
+    async fn test_cache_manager_warm_up() {
+        let mut mock_cache = MockCacheRepository::new();
+        // Setup mock to return ok for getting workspace and shifts
+        mock_cache.expect_get_json().returning(|_| Ok(None));
+        mock_cache.expect_set_json().returning(|_, _, _| Ok(()));
+
+        let mut mock_workspace = MockWorkspaceRepository::new();
+        mock_workspace
+            .expect_get_workspace_by_id()
+            .returning(|_| Box::pin(std::future::ready(Ok(None))));
+
+        let mut mock_shift = MockShiftRepository::new();
+        mock_shift
+            .expect_get_workspace_shifts()
+            .returning(|_| Box::pin(std::future::ready(Ok(vec![]))));
+
+        let manager = CacheManager::new(
+            Arc::new(mock_cache),
+            Arc::new(mock_workspace),
+            Arc::new(mock_shift),
+        );
+
+        manager.warm_up(Uuid::new_v4()).await;
+        // if it doesn't panic, it's good
+    }
+
+    #[tokio::test]
+    async fn test_cache_manager_invalidate() {
+        let mut mock_cache = MockCacheRepository::new();
+        mock_cache.expect_delete().returning(|_| Ok(()));
+        mock_cache.expect_delete_pattern().returning(|_| Ok(()));
+
+        let mock_workspace = MockWorkspaceRepository::new();
+        let mock_shift = MockShiftRepository::new();
+
+        let manager = CacheManager::new(
+            Arc::new(mock_cache),
+            Arc::new(mock_workspace),
+            Arc::new(mock_shift),
+        );
+
+        manager.invalidate_workspace(Uuid::new_v4()).await;
+    }
+}

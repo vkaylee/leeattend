@@ -156,7 +156,49 @@ async fn test_overtime_request_full_flow() {
         .await
         .unwrap();
 
+    let create_response: serde_json::Value = res.json().await.unwrap();
+    let request_id = create_response["id"].as_str().unwrap();
+
+    // 5. Get OT Request
+    let res = manager_client
+        .get(&format!(
+            "{}/api/v1/workspaces/{}/overtime/requests/{}",
+            app_addr, admin_ws_id, request_id
+        ))
+        .header("X-Workspace-Id", admin_ws_id.to_string())
+        .send()
+        .await
+        .unwrap();
     assert_eq!(res.status(), StatusCode::OK);
 
-    // Note: To fully test the flow, we'd extract the Request ID and simulate the manager approving it and the employee consenting to it.
+    // 7. Update Employee Consent (assuming employee logs in and updates it)
+    let mut employee_client = Client::builder()
+        .default_headers({
+            let mut headers = reqwest::header::HeaderMap::new();
+            let token = factory.auth().create_token(employee_user_id);
+            headers.insert(
+                reqwest::header::AUTHORIZATION,
+                reqwest::header::HeaderValue::from_str(&format!("Bearer {}", token)).unwrap(),
+            );
+            headers
+        })
+        .build()
+        .unwrap();
+
+    let consent_payload = serde_json::json!({
+        "status": "accepted"
+    });
+
+    let res = employee_client
+        .post(&format!(
+            "{}/api/v1/workspaces/{}/overtime/requests/{}/consent/{}",
+            app_addr, admin_ws_id, request_id, employee_emp_id
+        ))
+        .header("X-Workspace-Id", admin_ws_id.to_string())
+        .json(&consent_payload)
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(res.status(), StatusCode::OK);
 }

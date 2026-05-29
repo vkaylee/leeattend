@@ -117,3 +117,94 @@ pub struct DayRow {
     #[diesel(sql_type = Double)]
     pub avg_late_minutes: f64,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rust_decimal::Decimal;
+    use std::str::FromStr;
+
+    #[test]
+    fn test_raw_models_instantiation() {
+        let tz = TzRow {
+            timezone: "UTC".to_string(),
+        };
+        assert_eq!(tz.timezone, "UTC");
+
+        let base = BaseRow {
+            date: NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+            present: 10,
+            on_leave: 2,
+        };
+        assert_eq!(base.present, 10);
+
+        let late = LateRow {
+            work_date: NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+            late_count: 5,
+        };
+        assert_eq!(late.late_count, 5);
+
+        let count = CountRow { count: 42 };
+        assert_eq!(count.count, 42);
+
+        let dept = DeptRow {
+            department_id: Uuid::new_v4(),
+            department_name: "Engineering".to_string(),
+            total_employees: 50,
+        };
+        assert_eq!(dept.total_employees, 50);
+
+        let present = PresentRow {
+            department_id: Uuid::new_v4(),
+            present_count: 45,
+        };
+        assert_eq!(present.present_count, 45);
+
+        let late_dept = LateDepartmentRow {
+            department_id: Uuid::new_v4(),
+            late_count: 3,
+        };
+        assert_eq!(late_dept.late_count, 3);
+
+        let leave = LeaveRow {
+            department_id: Uuid::new_v4(),
+            leave_count: 2,
+        };
+        assert_eq!(leave.leave_count, 2);
+
+        let ot = OtRow {
+            date: NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+            system_ot_minutes: 120,
+            approved_ot_minutes: 60,
+        };
+        assert_eq!(ot.system_ot_minutes, 120);
+
+        let dec_row = DecimalRow {
+            amount: Decimal::from_str("123.45").unwrap(),
+        };
+        assert_eq!(dec_row.amount, Decimal::from_str("123.45").unwrap());
+
+        let float_row = FloatRow { amount: Some(12.3) };
+        assert_eq!(float_row.amount, Some(12.3));
+
+        let slot = SlotRow {
+            time_slot: "08:00".to_string(),
+            check_in: 20,
+            check_out: 0,
+        };
+        assert_eq!(slot.check_in, 20);
+
+        let lt = LtRow {
+            leave_type: "annual".to_string(),
+            count: 5,
+        };
+        assert_eq!(lt.count, 5);
+
+        let day = DayRow {
+            dow: 1,
+            late_count: 10,
+            avg_late_minutes: 15.5,
+        };
+        assert_eq!(day.avg_late_minutes, 15.5);
+    }
+}

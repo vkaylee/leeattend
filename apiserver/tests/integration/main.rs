@@ -15,6 +15,7 @@ pub mod common;
 
 // Domain modules - uncomment as migrated
 pub mod agent;
+pub mod assignment_rule;
 pub mod attendance;
 pub mod auth;
 pub mod department;
@@ -28,6 +29,8 @@ pub mod roster;
 pub mod shift_swap;
 pub mod workspace;
 // pub mod workspace;
+pub mod approval;
+pub mod audit;
 pub mod ess;
 pub mod feature_flags;
 pub mod misc;

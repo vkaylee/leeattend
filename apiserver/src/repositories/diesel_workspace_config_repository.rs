@@ -135,3 +135,60 @@ impl WorkspaceConfigRepository for DieselWorkspaceConfigRepository {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::diesel_pool::{DieselPools, TenantAuthToken};
+    use chrono::Utc;
+    use serde_json::json;
+    use uuid::Uuid;
+
+    #[tokio::test]
+    async fn test_repo_methods_error_handling() {
+        let bad_url = "postgres://invalid:invalid@localhost:12345/invalid_db";
+        let pools = DieselPools::for_test(bad_url);
+        let repo = DieselWorkspaceConfigRepository::new(pools);
+        let ws_id = Uuid::new_v4();
+        let auth_token = TenantAuthToken::system_override(ws_id);
+
+        let entry = WorkspaceConfigEntry {
+            id: Uuid::new_v4(),
+            workspace_id: ws_id,
+            config_key: "test".into(),
+            value_int: None,
+            value_decimal: None,
+            value_text: None,
+            value_bool: None,
+            value_json: Some(json!({})),
+            scope_type: "workspace".into(),
+            scope_id: None,
+            effective_from: chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+            effective_to: None,
+            created_by: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        };
+
+        let err = repo.create_entry(&auth_token, entry).await;
+        assert!(err.is_err());
+
+        let err = repo
+            .get_effective_config(
+                &auth_token,
+                ws_id,
+                "test",
+                "workspace",
+                None,
+                chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+            )
+            .await;
+        assert!(err.is_err());
+
+        let err = repo.list_entries(&auth_token, ws_id, None).await;
+        assert!(err.is_err());
+
+        let err = repo.delete_entry(&auth_token, Uuid::new_v4()).await;
+        assert!(err.is_err());
+    }
+}

@@ -139,3 +139,66 @@ impl ApprovalWorkflowRepository for DieselApprovalWorkflowRepository {
         Ok(result)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::diesel_pool::{DieselPools, TenantAuthToken};
+    use chrono::Utc;
+    use uuid::Uuid;
+
+    #[tokio::test]
+    async fn test_repo_methods_error_handling() {
+        let bad_url = "postgres://invalid:invalid@localhost:12345/invalid_db";
+        let pools = DieselPools::for_test(bad_url);
+        let repo = DieselApprovalWorkflowRepository::new(pools);
+        let ws_id = Uuid::new_v4();
+        let auth_token = TenantAuthToken::system_override(ws_id);
+
+        let workflow = ApprovalWorkflow {
+            id: Uuid::new_v4(),
+            workspace_id: ws_id,
+            entity_type: "ot_request".into(),
+            name: "Test".into(),
+            description: None,
+            total_steps: 1,
+            is_active: true,
+            created_by: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        };
+
+        let err = repo.create_workflow(&auth_token, workflow).await;
+        assert!(err.is_err());
+
+        let err = repo.create_steps(&auth_token, vec![]).await;
+        assert!(err.is_err());
+
+        let err = repo
+            .get_active_workflow(&auth_token, ws_id, "ot_request")
+            .await;
+        assert!(err.is_err());
+
+        let err = repo.get_steps(&auth_token, Uuid::new_v4()).await;
+        assert!(err.is_err());
+
+        let log = ApprovalActionLog {
+            id: Uuid::new_v4(),
+            workspace_id: ws_id,
+            entity_type: "ot_request".into(),
+            entity_id: Uuid::new_v4(),
+            step_order: 1,
+            step_name: None,
+            acted_by_user_id: Uuid::new_v4(),
+            action: "approve".into(),
+            note: None,
+            acted_at: Utc::now(),
+        };
+
+        let err = repo.log_action(&auth_token, log).await;
+        assert!(err.is_err());
+
+        let err = repo.get_action_logs(&auth_token, Uuid::new_v4()).await;
+        assert!(err.is_err());
+    }
+}

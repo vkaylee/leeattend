@@ -108,3 +108,40 @@ pub struct UpdateDeviceRequest {
     pub timezone: Option<String>,
     pub is_enabled: Option<bool>,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_default_timezone() {
+        assert_eq!(default_timezone(), "UTC");
+    }
+
+    #[test]
+    fn test_device_status_serialization() {
+        let status = DeviceStatus {
+            device_id: "dev-1".to_string(),
+            status: "online".to_string(),
+            last_sync: Some(Utc::now()),
+            error: None,
+            info: None,
+        };
+        let serialized = serde_json::to_string(&status).unwrap();
+        assert!(serialized.contains("dev-1"));
+        assert!(serialized.contains("online"));
+    }
+
+    #[test]
+    fn test_agent_status_serialization() {
+        let status = AgentStatus {
+            agent_id: "agent-1".to_string(),
+            last_seen: Utc::now(),
+            is_online: true,
+            devices: vec![],
+        };
+        let serialized = serde_json::to_string(&status).unwrap();
+        assert!(serialized.contains("agent-1"));
+        assert!(serialized.contains("is_online"));
+    }
+}

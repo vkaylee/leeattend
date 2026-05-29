@@ -109,3 +109,72 @@ impl std::fmt::Debug for ChangePasswordRequest {
             .finish()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::Utc;
+    use uuid::Uuid;
+
+    #[test]
+    fn test_user_debug_masks_pii() {
+        let user = User {
+            id: Uuid::new_v4(),
+            email: "john.doe@example.com".to_string(),
+            password_hash: "secret_hash".to_string(),
+            created_at: Utc::now(),
+            full_name: Some("John Doe".to_string()),
+            avatar_url: None,
+            bio: None,
+            preferred_language: Some("en".to_string()),
+        };
+
+        let debug_str = format!("{:?}", user);
+        assert!(!debug_str.contains("john.doe@example.com"));
+        assert!(
+            debug_str.contains("jo***@example.com")
+                || debug_str.contains("j***e@example.com")
+                || debug_str.contains("***@example.com")
+        );
+        assert!(!debug_str.contains("secret_hash"));
+        assert!(debug_str.contains("John Doe"));
+    }
+
+    #[test]
+    fn test_login_request_debug_masks_pii() {
+        let req = LoginRequest {
+            email: "jane.doe@example.com".to_string(),
+            password: "super_secret_password".to_string(),
+        };
+
+        let debug_str = format!("{:?}", req);
+        assert!(!debug_str.contains("jane.doe@example.com"));
+        assert!(!debug_str.contains("super_secret_password"));
+    }
+
+    #[test]
+    fn test_register_request_debug_masks_pii() {
+        let req = RegisterRequest {
+            email: "bob@example.com".to_string(),
+            password: "my_password123".to_string(),
+            full_name: "Bob Smith".to_string(),
+        };
+
+        let debug_str = format!("{:?}", req);
+        assert!(!debug_str.contains("bob@example.com"));
+        assert!(!debug_str.contains("my_password123"));
+        assert!(debug_str.contains("Bob Smith"));
+    }
+
+    #[test]
+    fn test_change_password_request_debug_masks_pii() {
+        let req = ChangePasswordRequest {
+            old_password: "old_password_123".to_string(),
+            new_password: "new_password_456".to_string(),
+        };
+
+        let debug_str = format!("{:?}", req);
+        assert!(!debug_str.contains("old_password_123"));
+        assert!(!debug_str.contains("new_password_456"));
+    }
+}

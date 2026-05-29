@@ -420,7 +420,46 @@ mod tests {
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,
         ) -> Result<Vec<Shift>, AppError> {
-            Ok(vec![])
+            // Provide a few mock shifts for overlap testing
+            let s1 = Shift {
+                id: Uuid::from_u128(1),
+                workspace_id: Uuid::new_v4(),
+                name: "S1".into(),
+                report_symbol: None,
+                start_time: chrono::NaiveTime::from_hms_opt(8, 0, 0).unwrap(),
+                end_time: chrono::NaiveTime::from_hms_opt(12, 0, 0).unwrap(),
+                break_duration_minutes: 0,
+                break_start: None,
+                break_end: None,
+                is_break_auto_deduct: false,
+                break_is_overtime: false,
+                early_punch_in_grace_period_minutes: 0,
+                allow_early_ot: false,
+                is_active: true,
+                parent_shift_id: None,
+                created_at: Utc::now(),
+                updated_at: Utc::now(),
+            };
+            let s2 = Shift {
+                id: Uuid::from_u128(2),
+                workspace_id: Uuid::new_v4(),
+                name: "S2".into(),
+                report_symbol: None,
+                start_time: chrono::NaiveTime::from_hms_opt(10, 0, 0).unwrap(),
+                end_time: chrono::NaiveTime::from_hms_opt(14, 0, 0).unwrap(),
+                break_duration_minutes: 0,
+                break_start: None,
+                break_end: None,
+                is_break_auto_deduct: false,
+                break_is_overtime: false,
+                early_punch_in_grace_period_minutes: 0,
+                allow_early_ot: false,
+                is_active: true,
+                parent_shift_id: None,
+                created_at: Utc::now(),
+                updated_at: Utc::now(),
+            };
+            Ok(vec![s1, s2])
         }
         async fn update_shift_direct(
             &self,
@@ -684,5 +723,175 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(result.name, "Standard 5×8");
+    }
+
+    #[tokio::test]
+    async fn test_create_working_pattern_validation_errors() {
+        let (repo, shift_repo) = make_repos();
+
+        // 1. Invalid pattern type
+        let req1 = crate::models::CreateWorkingPatternRequest {
+            name: "Invalid Type".into(),
+            description: None,
+            pattern_type: Some("invalid_type".into()),
+            cycle_length_days: None,
+            details: vec![],
+        };
+        let res1 =
+            create_working_pattern(repo.clone(), shift_repo.clone(), Uuid::new_v4(), req1).await;
+        assert!(res1.is_err());
+        assert!(res1
+            .unwrap_err()
+            .to_string()
+            .contains("pattern_type must be"));
+
+        // 2. Rotation type with missing/invalid cycle_length_days
+        let req2 = crate::models::CreateWorkingPatternRequest {
+            name: "Rotation missing length".into(),
+            description: None,
+            pattern_type: Some("rotation".into()),
+            cycle_length_days: Some(400),
+            details: vec![],
+        };
+        let res2 =
+            create_working_pattern(repo.clone(), shift_repo.clone(), Uuid::new_v4(), req2).await;
+        assert!(res2.is_err());
+        assert!(res2
+            .unwrap_err()
+            .to_string()
+            .contains("cycle_length_days must be between 1 and 366"));
+
+        // 3. Rotation type with schedule_day out of range
+        let req3 = crate::models::CreateWorkingPatternRequest {
+            name: "Rotation out of range".into(),
+            description: None,
+            pattern_type: Some("rotation".into()),
+            cycle_length_days: Some(10),
+            details: vec![crate::models::WorkingPatternDetailRequest {
+                schedule_day: 10, // out of range [0, 10)
+                shift_id: None,
+            }],
+        };
+        let res3 =
+            create_working_pattern(repo.clone(), shift_repo.clone(), Uuid::new_v4(), req3).await;
+        assert!(res3.is_err());
+        assert!(res3
+            .unwrap_err()
+            .to_string()
+            .contains("schedule_day 10 is out of range"));
+
+        // 4. Shifts overlap
+        let req4 = crate::models::CreateWorkingPatternRequest {
+            name: "Overlap".into(),
+            description: None,
+            pattern_type: Some("weekly".into()),
+            cycle_length_days: None,
+            details: vec![
+                crate::models::WorkingPatternDetailRequest {
+                    schedule_day: 1,
+                    shift_id: Some(Uuid::from_u128(1)),
+                },
+                crate::models::WorkingPatternDetailRequest {
+                    schedule_day: 1,                    // Same day
+                    shift_id: Some(Uuid::from_u128(2)), // Overlaps with 1
+                },
+            ],
+        };
+        let res4 =
+            create_working_pattern(repo.clone(), shift_repo.clone(), Uuid::new_v4(), req4).await;
+        assert!(res4.is_err());
+        assert!(res4
+            .unwrap_err()
+            .to_string()
+            .contains("Shifts overlap on the same day"));
+    }
+
+    #[tokio::test]
+    async fn test_update_working_pattern_validation_errors() {
+        let (repo, shift_repo) = make_repos();
+
+        // 1. Invalid pattern type
+        let req1 = crate::models::CreateWorkingPatternRequest {
+            name: "Invalid Type".into(),
+            description: None,
+            pattern_type: Some("invalid_type".into()),
+            cycle_length_days: None,
+            details: vec![],
+        };
+        let res1 = update_working_pattern(
+            repo.clone(),
+            shift_repo.clone(),
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            req1,
+        )
+        .await;
+        assert!(res1.is_err());
+
+        // 2. Rotation type with missing/invalid cycle_length_days
+        let req2 = crate::models::CreateWorkingPatternRequest {
+            name: "Rotation missing length".into(),
+            description: None,
+            pattern_type: Some("rotation".into()),
+            cycle_length_days: Some(400),
+            details: vec![],
+        };
+        let res2 = update_working_pattern(
+            repo.clone(),
+            shift_repo.clone(),
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            req2,
+        )
+        .await;
+        assert!(res2.is_err());
+
+        // 3. Rotation type with schedule_day out of range
+        let req3 = crate::models::CreateWorkingPatternRequest {
+            name: "Rotation out of range".into(),
+            description: None,
+            pattern_type: Some("rotation".into()),
+            cycle_length_days: Some(10),
+            details: vec![crate::models::WorkingPatternDetailRequest {
+                schedule_day: 10, // out of range [0, 10)
+                shift_id: None,
+            }],
+        };
+        let res3 = update_working_pattern(
+            repo.clone(),
+            shift_repo.clone(),
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            req3,
+        )
+        .await;
+        assert!(res3.is_err());
+
+        // 4. Shifts overlap
+        let req4 = crate::models::CreateWorkingPatternRequest {
+            name: "Overlap".into(),
+            description: None,
+            pattern_type: Some("weekly".into()),
+            cycle_length_days: None,
+            details: vec![
+                crate::models::WorkingPatternDetailRequest {
+                    schedule_day: 1,
+                    shift_id: Some(Uuid::from_u128(1)),
+                },
+                crate::models::WorkingPatternDetailRequest {
+                    schedule_day: 1,                    // Same day
+                    shift_id: Some(Uuid::from_u128(2)), // Overlaps with 1
+                },
+            ],
+        };
+        let res4 = update_working_pattern(
+            repo.clone(),
+            shift_repo.clone(),
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            req4,
+        )
+        .await;
+        assert!(res4.is_err());
     }
 }

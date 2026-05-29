@@ -170,7 +170,16 @@ def leeattend_run_coverage(
             f"--no-tests=pass 2>&1 </dev/null && "
             f"{coverage_env} cargo llvm-cov report {ignore_regex} --html "
             f"--output-dir /workspace/.test_logs/coverage-apiserver-html 2>&1 </dev/null && "
-            f"{coverage_env} cargo llvm-cov report {ignore_regex} --summary-only 2>&1 </dev/null"
+            f"{coverage_env} cargo llvm-cov report {ignore_regex} --summary-only 2>&1 </dev/null && "
+            f"{coverage_env} cargo llvm-cov report {ignore_regex} --json > /workspace/.test_logs/coverage.json 2>/dev/null </dev/null && "
+            f"python3 -c \"import json\n"
+            f"cov=json.load(open('/workspace/.test_logs/coverage.json'))\n"
+            f"print('\\n\\n' + '='*60 + '\\n🤖 AI COVERAGE SUMMARY (Target: 50.0%)\\n' + '='*60)\n"
+            f"files=[f for f in cov['data'][0]['files'] if f['summary']['lines']['count'] > 0 and (f['summary']['lines']['covered'] / f['summary']['lines']['count']) < 0.5]\n"
+            f"files.sort(key=lambda x: x['summary']['lines']['covered'] / x['summary']['lines']['count'])\n"
+            f"for f in files: print('❌ %s (%.1f%%)' % (f['filename'], (f['summary']['lines']['covered']/f['summary']['lines']['count'])*100))\n"
+            f"if not files: print('✅ Tất cả các file đều đã đạt >= 50% coverage!')\n"
+            f"print('='*60 + '\\n')\""
         )
         task_name = (
             f"rust-backend-coverage-{component_filter}"

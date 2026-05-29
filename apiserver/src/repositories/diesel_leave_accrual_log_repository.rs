@@ -476,4 +476,68 @@ mod tests {
         let _repo = DieselLeaveAccrualLogRepository::new(pools);
         // DI connection test passes if it compiles
     }
+
+    #[tokio::test]
+    async fn test_repo_methods_error_handling() {
+        // Create a repo with a bad connection string
+        let bad_url = "postgres://invalid:invalid@localhost:12345/invalid_db";
+        let pools = DieselPools::for_test(bad_url);
+        let repo = DieselLeaveAccrualLogRepository::new(pools);
+        let ws_id = Uuid::new_v4();
+        let emp_id = Uuid::new_v4();
+        let lt_id = Uuid::new_v4();
+        let date = NaiveDate::from_ymd_opt(2024, 1, 1).unwrap();
+        let dec = Decimal::new(1, 0);
+
+        let err = repo
+            .find_by_employee_date_type(emp_id, lt_id, date, ws_id)
+            .await;
+        assert!(err.is_err());
+
+        let err = repo
+            .get_assignment_effective_from(Uuid::new_v4(), ws_id)
+            .await;
+        assert!(err.is_err());
+
+        let err = repo.get_workspace_timezone(ws_id).await;
+        assert!(err.is_err());
+
+        let err = repo
+            .get_employee_leave_history_logs(ws_id, emp_id, 2024, None)
+            .await;
+        assert!(err.is_err());
+
+        let err = repo.update_accrual_amount(Uuid::new_v4(), ws_id, dec).await;
+        assert!(err.is_err());
+
+        let err = repo
+            .insert_accrual_log(ws_id, emp_id, None, date, dec, lt_id)
+            .await;
+        assert!(err.is_err());
+
+        let err = repo
+            .upsert_balance_accrual(ws_id, emp_id, 2024, lt_id, dec)
+            .await;
+        assert!(err.is_err());
+
+        let err = repo
+            .adjust_balance_accrual(ws_id, emp_id, 2024, lt_id, dec)
+            .await;
+        assert!(err.is_err());
+
+        let auth_token = crate::diesel_pool::TenantAuthToken::system_override(ws_id);
+        let err = repo
+            .persist_accrual(
+                &auth_token,
+                ws_id,
+                emp_id,
+                Uuid::new_v4(),
+                lt_id,
+                date,
+                1.0,
+                false,
+            )
+            .await;
+        assert!(err.is_err());
+    }
 }

@@ -81,3 +81,36 @@ impl TenantProvisionerTrait for TenantMigrator {
         Ok(db_url_owned)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_tenant_migrator_new() {
+        let _migrator = TenantMigrator::new();
+    }
+
+    #[tokio::test]
+    async fn test_provision_tenant_db_connection_failure() {
+        let migrator = TenantMigrator::new();
+        let workspace_id = Uuid::new_v4();
+        // Use an invalid connection string to force a connection failure
+        let invalid_url = "postgres://invalid:invalid@localhost:12345/invalid_db";
+
+        let result = migrator
+            .provision_tenant_db(&workspace_id, invalid_url)
+            .await;
+
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        if let AppError::Internal(msg) = err {
+            assert!(
+                msg.contains("Failed to connect to tenant DB")
+                    || msg.contains("could not translate host name")
+            );
+        } else {
+            panic!("Expected AppError::Internal");
+        }
+    }
+}

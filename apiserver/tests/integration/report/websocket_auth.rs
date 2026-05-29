@@ -27,6 +27,7 @@ async fn test_ws_report_missing_token_returns_401() {
             Request::builder()
                 .method("GET")
                 .uri(format!("/api/v1/ws/reports/{fake_job_id}"))
+                .version(axum::http::Version::HTTP_11)
                 .header("Connection", "Upgrade")
                 .header("Upgrade", "websocket")
                 .header("Sec-WebSocket-Version", "13")
@@ -58,6 +59,7 @@ async fn test_ws_report_invalid_token_returns_401() {
                 .uri(format!(
                     "/api/v1/ws/reports/{fake_job_id}?token=invalid_token_abc123"
                 ))
+                .version(axum::http::Version::HTTP_11)
                 .header("Connection", "Upgrade")
                 .header("Upgrade", "websocket")
                 .header("Sec-WebSocket-Version", "13")
@@ -93,6 +95,7 @@ async fn test_ws_report_valid_token_passes_auth() {
                 .uri(format!(
                     "/api/v1/ws/reports/{fake_job_id}?token={valid_token}"
                 ))
+                .version(axum::http::Version::HTTP_11)
                 .header("Connection", "Upgrade")
                 .header("Upgrade", "websocket")
                 .header("Sec-WebSocket-Version", "13")

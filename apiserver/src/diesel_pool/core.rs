@@ -163,3 +163,16 @@ impl DieselPools {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_tenant_conn_success() {
+        let pools = DieselPools::for_test("postgres://user:pass@localhost:5432/leeattend_test_db");
+        let token = TenantAuthToken::system_override(uuid::Uuid::new_v4());
+        let _tx_conn = pools.tenant_transaction_conn(&token).await;
+        let _sess_conn = pools.tenant_session_conn(&token).await;
+    }
+}
