@@ -288,8 +288,9 @@ impl TenantConnectionProvider for SupavisorTenantPoolManager {
         // Supavisor mode (prod): parse tenant credentials, then build a
         // Supavisor-routed URL with the tenant's own db_user / db_password.
         let (db_user, db_password, _, _, db_name) =
-            crate::supavisor::parse_postgres_url(tenant_direct_url)
-                .ok_or_else(|| format!("Failed to parse tenant URL for migration: {tenant_direct_url}"))?;
+            crate::supavisor::parse_postgres_url(tenant_direct_url).ok_or_else(|| {
+                format!("Failed to parse tenant URL for migration: {tenant_direct_url}")
+            })?;
 
         Ok(self.get_tenant_url_with_credentials(
             workspace_id,

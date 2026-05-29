@@ -107,3 +107,126 @@ async fn test_upload_attendance_csv_api() {
     .unwrap();
     assert_eq!(entries.len(), 1);
 }
+
+#[tokio::test]
+async fn test_upload_attendance_logs_api() {
+    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
+
+    let user_id = factory.user().create().await;
+    let ws_id = factory.workspace().create_with_owner(user_id).await;
+
+    let csv_content = "employee_code,full_name,punch_time\nEMP001,Test User,14/01/2026 08:00";
+    let (content_type, body) = create_multipart_body("test.csv", &csv_content);
+
+    let response = app
+        .clone()
+        .oneshot(
+            axum::http::Request::builder()
+                .method("POST")
+                .uri(format!("/api/v1/workspaces/{ws_id}/attendance/logs/upload"))
+                .header("Content-Type", content_type)
+                .header("X-Workspace-Id", ws_id.to_string())
+                .header("X-User-Id", user_id.to_string())
+                .body(axum::body::Body::from(body))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+}
+
+#[tokio::test]
+async fn test_upload_employee_excel_api() {
+    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
+
+    let user_id = factory.user().create().await;
+    let ws_id = factory.workspace().create_with_owner(user_id).await;
+
+    let csv_content =
+        "employee_code,full_name,hire_date,department_name\nEMP001,User 1,2023-01-01,IT\n";
+    let (content_type, body) = create_multipart_body("emps.csv", &csv_content);
+
+    let response = app
+        .clone()
+        .oneshot(
+            axum::http::Request::builder()
+                .method("POST")
+                .uri(format!("/api/v1/workspaces/{ws_id}/employees/upload"))
+                .header("Content-Type", content_type)
+                .header("X-Workspace-Id", ws_id.to_string())
+                .header("X-User-Id", user_id.to_string())
+                .body(axum::body::Body::from(body))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+}
+
+#[tokio::test]
+async fn test_import_job_queries_api() {
+    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
+
+    let user_id = factory.user().create().await;
+    let ws_id = factory.workspace().create_with_owner(user_id).await;
+    let job_id = Uuid::new_v4();
+
+    // Latest import job
+    let response = app
+        .clone()
+        .oneshot(
+            axum::http::Request::builder()
+                .method("GET")
+                .uri(format!(
+                    "/api/v1/workspaces/{ws_id}/attendance/import-jobs/latest"
+                ))
+                .header("X-Workspace-Id", ws_id.to_string())
+                .header("X-User-Id", user_id.to_string())
+                .body(axum::body::Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // Job status (will be 404 because job_id is fake, but covers the handler)
+    let response = app
+        .clone()
+        .oneshot(
+            axum::http::Request::builder()
+                .method("GET")
+                .uri(format!(
+                    "/api/v1/workspaces/{ws_id}/attendance/import-jobs/{job_id}"
+                ))
+                .header("X-Workspace-Id", ws_id.to_string())
+                .header("X-User-Id", user_id.to_string())
+                .body(axum::body::Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::NOT_FOUND);
+
+    // Error file (will be 404)
+    let response = app
+        .clone()
+        .oneshot(
+            axum::http::Request::builder()
+                .method("GET")
+                .uri(format!(
+                    "/api/v1/workspaces/{ws_id}/attendance/import-jobs/{job_id}/error-file"
+                ))
+                .header("X-Workspace-Id", ws_id.to_string())
+                .header("X-User-Id", user_id.to_string())
+                .body(axum::body::Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::NOT_FOUND);
+}

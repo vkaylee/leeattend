@@ -90,7 +90,9 @@ async fn test_ws_report_valid_token_passes_auth() {
         .oneshot(
             Request::builder()
                 .method("GET")
-                .uri(format!("/api/v1/ws/reports/{fake_job_id}?token={valid_token}"))
+                .uri(format!(
+                    "/api/v1/ws/reports/{fake_job_id}?token={valid_token}"
+                ))
                 .header("Connection", "Upgrade")
                 .header("Upgrade", "websocket")
                 .header("Sec-WebSocket-Version", "13")

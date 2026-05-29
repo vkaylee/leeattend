@@ -97,7 +97,9 @@ async fn test_monitor_stream_sse() {
 
     // 2. Connect to SSE stream
     let response = client
-        .get(format!("{address}/api/v1/monitor/stream?access_token={token}"))
+        .get(format!(
+            "{address}/api/v1/monitor/stream?access_token={token}"
+        ))
         .send()
         .await
         .unwrap();

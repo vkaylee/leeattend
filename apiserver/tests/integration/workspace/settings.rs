@@ -310,10 +310,14 @@ async fn test_update_workspace_syncs_headquarters_timezone() {
     let ws_id: Uuid = factory.workspace().create_with_owner(user_id).await;
 
     // Get the existing Headquarters work location seeded by the factory
-    use diesel_async::RunQueryDsl;
     use apiserver::schema::work_locations;
     use diesel::prelude::*;
-    let mut conn = diesel_pools.tenants_tx.get_connection(&ws_id).await.unwrap();
+    use diesel_async::RunQueryDsl;
+    let mut conn = diesel_pools
+        .tenants_tx
+        .get_connection(&ws_id)
+        .await
+        .unwrap();
     let mut conn = apiserver::diesel_pool::TransactionConn(conn);
 
     let hq_id: Uuid = work_locations::table

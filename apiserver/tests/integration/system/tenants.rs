@@ -432,7 +432,9 @@ async fn test_update_tenant_database() {
 
     // 4. Verify GET stats returns masked_db_url with password redacted
     let response = client
-        .get(&format!("{address}/api/v1/system/tenants/{tenant_id}/stats"))
+        .get(&format!(
+            "{address}/api/v1/system/tenants/{tenant_id}/stats"
+        ))
         .header("X-User-Id", user_id.to_string())
         .send()
         .await

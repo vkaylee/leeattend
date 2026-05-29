@@ -183,7 +183,10 @@ async fn test_department_working_pattern_api() {
         .oneshot(
             axum::http::Request::builder()
                 .method("PATCH")
-                .uri(format!("/api/v1/workspaces/{}/departments/{}", ws_id, dept.id))
+                .uri(format!(
+                    "/api/v1/workspaces/{}/departments/{}",
+                    ws_id, dept.id
+                ))
                 .header("Content-Type", "application/json")
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())

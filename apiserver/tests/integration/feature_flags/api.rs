@@ -81,7 +81,9 @@ async fn test_feature_flag_crud_lifecycle() {
         .oneshot(
             axum::http::Request::builder()
                 .method("GET")
-                .uri(format!("/api/v1/workspaces/{ws_id}/feature-flags/{flag_id}"))
+                .uri(format!(
+                    "/api/v1/workspaces/{ws_id}/feature-flags/{flag_id}"
+                ))
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())
                 .body(axum::body::Body::empty())
@@ -132,7 +134,9 @@ async fn test_feature_flag_crud_lifecycle() {
         .oneshot(
             axum::http::Request::builder()
                 .method("PATCH")
-                .uri(format!("/api/v1/workspaces/{ws_id}/feature-flags/{flag_id}"))
+                .uri(format!(
+                    "/api/v1/workspaces/{ws_id}/feature-flags/{flag_id}"
+                ))
                 .header("Content-Type", "application/json")
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())
@@ -183,7 +187,9 @@ async fn test_feature_flag_crud_lifecycle() {
         .oneshot(
             axum::http::Request::builder()
                 .method("DELETE")
-                .uri(format!("/api/v1/workspaces/{ws_id}/feature-flags/{flag_id}"))
+                .uri(format!(
+                    "/api/v1/workspaces/{ws_id}/feature-flags/{flag_id}"
+                ))
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())
                 .body(axum::body::Body::empty())
@@ -200,7 +206,9 @@ async fn test_feature_flag_crud_lifecycle() {
         .oneshot(
             axum::http::Request::builder()
                 .method("GET")
-                .uri(format!("/api/v1/workspaces/{ws_id}/feature-flags/{flag_id}"))
+                .uri(format!(
+                    "/api/v1/workspaces/{ws_id}/feature-flags/{flag_id}"
+                ))
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())
                 .body(axum::body::Body::empty())
@@ -338,7 +346,9 @@ async fn test_get_and_delete_nonexistent_flag_returns_404() {
         .oneshot(
             axum::http::Request::builder()
                 .method("GET")
-                .uri(format!("/api/v1/workspaces/{ws_id}/feature-flags/{fake_id}"))
+                .uri(format!(
+                    "/api/v1/workspaces/{ws_id}/feature-flags/{fake_id}"
+                ))
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())
                 .body(axum::body::Body::empty())
@@ -354,7 +364,9 @@ async fn test_get_and_delete_nonexistent_flag_returns_404() {
         .oneshot(
             axum::http::Request::builder()
                 .method("DELETE")
-                .uri(format!("/api/v1/workspaces/{ws_id}/feature-flags/{fake_id}"))
+                .uri(format!(
+                    "/api/v1/workspaces/{ws_id}/feature-flags/{fake_id}"
+                ))
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())
                 .body(axum::body::Body::empty())

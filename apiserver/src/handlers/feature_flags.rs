@@ -9,9 +9,7 @@ use uuid::Uuid;
 use crate::domain::permissions::Permission;
 use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
-use crate::models::{
-    CreateFeatureFlagRequest, FeatureFlag, UpdateFeatureFlagRequest,
-};
+use crate::models::{CreateFeatureFlagRequest, FeatureFlag, UpdateFeatureFlagRequest};
 use crate::AppState;
 
 /// GET /workspaces/:ws_id/feature-flags

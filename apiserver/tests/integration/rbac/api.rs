@@ -90,7 +90,9 @@ async fn test_rbac_teamlead_scope_and_admin_bypass() {
         .oneshot(
             axum::http::Request::builder()
                 .method("PUT")
-                .uri(format!("/api/v1/workspaces/{ws_id}/employees/{emp_target_b}"))
+                .uri(format!(
+                    "/api/v1/workspaces/{ws_id}/employees/{emp_target_b}"
+                ))
                 .header("Content-Type", "application/json")
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", tl_user_id.to_string())
@@ -123,7 +125,9 @@ async fn test_rbac_teamlead_scope_and_admin_bypass() {
         .oneshot(
             axum::http::Request::builder()
                 .method("PUT")
-                .uri(format!("/api/v1/workspaces/{ws_id}/employees/{emp_target_b}"))
+                .uri(format!(
+                    "/api/v1/workspaces/{ws_id}/employees/{emp_target_b}"
+                ))
                 .header("Content-Type", "application/json")
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", admin_user_id.to_string())

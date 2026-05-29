@@ -97,7 +97,10 @@ async fn test_ess_shift_swap_flow() {
 
     // 2. Target rejects the swap
     let res = client
-        .put(format!("{address}/api/v1/ess/shift-swaps/{}/respond", swap.id))
+        .put(format!(
+            "{address}/api/v1/ess/shift-swaps/{}/respond",
+            swap.id
+        ))
         .header("Authorization", format!("Bearer {target_token}"))
         .header("x-workspace-id", workspace_id.to_string())
         .json(&json!({ "accept": false }))

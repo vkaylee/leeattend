@@ -31,7 +31,9 @@ async fn test_create_and_get_export_job() {
     });
 
     let res = client
-        .post(&format!("{address}/api/v1/workspaces/{ws_id}/reports/export"))
+        .post(&format!(
+            "{address}/api/v1/workspaces/{ws_id}/reports/export"
+        ))
         .header("Authorization", format!("Bearer {token}"))
         .json(&body)
         .send()
@@ -107,7 +109,9 @@ async fn test_create_export_job_invalid_dates() {
     });
 
     let res = client
-        .post(&format!("{address}/api/v1/workspaces/{ws_id}/reports/export"))
+        .post(&format!(
+            "{address}/api/v1/workspaces/{ws_id}/reports/export"
+        ))
         .header("Authorization", format!("Bearer {token}"))
         .json(&body)
         .send()

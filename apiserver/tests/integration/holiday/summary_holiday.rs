@@ -39,7 +39,9 @@ async fn test_summary_records_holiday_flag_after_recalculate() {
 
     // Create a holiday via API
     let resp = client
-        .post(format!("{address}/api/v1/workspaces/{workspace_id}/holidays"))
+        .post(format!(
+            "{address}/api/v1/workspaces/{workspace_id}/holidays"
+        ))
         .header("Authorization", format!("Bearer {auth_token}"))
         .json(&serde_json::json!({
             "name": "Ngày Quốc khánh",

@@ -1076,7 +1076,9 @@ async fn test_holiday_crud_new_fields() {
 
     // Create holiday with new fields
     let resp = client
-        .post(format!("{address}/api/v1/workspaces/{workspace_id}/holidays"))
+        .post(format!(
+            "{address}/api/v1/workspaces/{workspace_id}/holidays"
+        ))
         .header("Authorization", format!("Bearer {auth_token}"))
         .json(&serde_json::json!({
             "name": "Configurable Holiday",

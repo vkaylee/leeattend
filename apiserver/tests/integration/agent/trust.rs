@@ -50,7 +50,9 @@ async fn test_authorized_agent_lifecycle() {
 
     // 3. Phê duyệt Agent (Trust)
     let response = client
-        .put(format!("{address}/api/v1/authorized-agents/{agent_id}/trust"))
+        .put(format!(
+            "{address}/api/v1/authorized-agents/{agent_id}/trust"
+        ))
         .header(ws_header.0, ws_header.1.clone())
         .header(user_header.0, user_header.1.clone())
         .json(&serde_json::json!({ "is_trusted": true }))

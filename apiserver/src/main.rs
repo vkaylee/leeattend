@@ -198,6 +198,7 @@ async fn init_redis() -> Option<RedisPool> {
 
 /// Register all existing workspace tenants with Supavisor, then run pending
 /// tenant migrations. Called once at startup after pools are connected.
+#[allow(clippy::too_many_lines)]
 async fn register_workspace_tenants_and_migrate(
     db_config: &DbPoolConfig,
     diesel_pools: &DieselPools,
@@ -300,7 +301,10 @@ async fn register_workspace_tenants_and_migrate(
         // Resolve migration URL via the session pool manager — it knows whether
         // to route through Supavisor (prod) or connect directly (dev), and uses
         // the tenant's own credentials extracted from `tenant_url`.
-        let migration_url = match diesel_pools.tenants_sess.resolve_migration_url(&ws_id, &tenant_url) {
+        let migration_url = match diesel_pools
+            .tenants_sess
+            .resolve_migration_url(&ws_id, &tenant_url)
+        {
             Ok(url) => url,
             Err(e) => {
                 tracing::warn!(
@@ -323,9 +327,7 @@ async fn register_workspace_tenants_and_migrate(
 
         match tokio::task::spawn_blocking(move || {
             for (ws_id, migration_url) in &migration_targets {
-                if let Err(e) =
-                    DieselPools::run_single_tenant_migration(migration_url, ws_id)
-                {
+                if let Err(e) = DieselPools::run_single_tenant_migration(migration_url, ws_id) {
                     tracing::warn!(
                         workspace_id = %ws_id,
                         error = %e,

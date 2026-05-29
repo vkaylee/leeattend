@@ -704,7 +704,10 @@ mod tests {
         use axum::extract::FromRequestParts;
         use axum::http::Request;
 
-        let req = Request::builder().uri("/api/v1/workspaces").body(()).unwrap();
+        let req = Request::builder()
+            .uri("/api/v1/workspaces")
+            .body(())
+            .unwrap();
         let (mut parts, ()) = req.into_parts();
 
         let res = ApiContext::from_request_parts(&mut parts, &()).await;

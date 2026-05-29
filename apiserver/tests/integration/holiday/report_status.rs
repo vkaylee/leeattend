@@ -53,7 +53,9 @@ async fn test_report_status_holiday_no_punch() {
 
     // Create a holiday for today via API
     let create_resp = client
-        .post(format!("{address}/api/v1/workspaces/{workspace_id}/holidays"))
+        .post(format!(
+            "{address}/api/v1/workspaces/{workspace_id}/holidays"
+        ))
         .header("Authorization", format!("Bearer {auth_token}"))
         .json(&serde_json::json!({
             "name": "Test Holiday",
@@ -120,7 +122,9 @@ async fn test_report_status_holiday_with_punch() {
 
     // Create holiday
     let create_resp = client
-        .post(format!("{address}/api/v1/workspaces/{workspace_id}/holidays"))
+        .post(format!(
+            "{address}/api/v1/workspaces/{workspace_id}/holidays"
+        ))
         .header("Authorization", format!("Bearer {auth_token}"))
         .json(&serde_json::json!({
             "name": "Quốc tế Lao động",

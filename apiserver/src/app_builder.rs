@@ -348,9 +348,10 @@ impl AppState {
             overtime_request_repo.clone(),
         ));
 
-        let location_repo: Arc<dyn crate::repositories::LocationRepository> =
-            Arc::new(crate::repositories::DieselLocationRepository::new(diesel_pools.clone()));
-            
+        let location_repo: Arc<dyn crate::repositories::LocationRepository> = Arc::new(
+            crate::repositories::DieselLocationRepository::new(diesel_pools.clone()),
+        );
+
         let location_service = Arc::new(crate::services::LocationService::new(
             location_repo.clone(),
             audit_repo.clone(),

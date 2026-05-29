@@ -236,7 +236,7 @@ use utoipa::OpenApi;
         crate::handlers::agents::update_authorized_agent,
         crate::handlers::agents::get_device_info_on_demand,
         crate::handlers::agents::delete_authorized_agent,
-        
+
         // Notifications Paths
         crate::handlers::notifications::get_notifications,
         crate::handlers::notifications::get_unread_count,
@@ -248,7 +248,7 @@ use utoipa::OpenApi;
         crate::handlers::workspaces::members::add_workspace_member,
         crate::handlers::workspaces::members::update_workspace_member_role,
         crate::handlers::workspaces::members::remove_workspace_member,
-        
+
         // Workspace Permissions Paths
         crate::handlers::workspaces::permissions::get_member_extra_permissions,
         crate::handlers::workspaces::permissions::assign_extra_permission,
@@ -385,7 +385,7 @@ use utoipa::OpenApi;
             AddMemberRequest,
             WorkspaceMemberDetail,
             WorkspaceMemberDetailResponse,
-            
+
             // Workspace Permissions Schemas
             MemberExtraPermission,
             AssignPermissionRequest,
@@ -685,16 +685,21 @@ mod tests {
     #[test]
     fn test_all_handlers_documented() {
         let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").unwrap_or_else(|_| ".".to_string());
-        
+
         let openapi_file = format!("{}/src/openapi.rs", manifest_dir);
-        let openapi_content = std::fs::read_to_string(&openapi_file).expect("Failed to read openapi.rs");
+        let openapi_content =
+            std::fs::read_to_string(&openapi_file).expect("Failed to read openapi.rs");
 
         let mut registered_handlers = std::collections::HashSet::new();
         for line in openapi_content.lines() {
             if let Some(start_idx) = line.find("crate::handlers::") {
                 let start = start_idx + "crate::handlers::".len();
                 let mut end = start;
-                while end < line.len() && (line.as_bytes()[end].is_ascii_alphanumeric() || line.as_bytes()[end] == b'_' || line.as_bytes()[end] == b':') {
+                while end < line.len()
+                    && (line.as_bytes()[end].is_ascii_alphanumeric()
+                        || line.as_bytes()[end] == b'_'
+                        || line.as_bytes()[end] == b':')
+                {
                     end += 1;
                 }
                 registered_handlers.insert(line[start..end].to_string());
@@ -720,12 +725,17 @@ mod tests {
                                 let absolute_idx = start_idx + idx;
                                 let start = absolute_idx + method.len();
                                 let mut end = start;
-                                while end < content.len() && (content.as_bytes()[end].is_ascii_alphanumeric() || content.as_bytes()[end] == b'_' || content.as_bytes()[end] == b':') {
+                                while end < content.len()
+                                    && (content.as_bytes()[end].is_ascii_alphanumeric()
+                                        || content.as_bytes()[end] == b'_'
+                                        || content.as_bytes()[end] == b':')
+                                {
                                     end += 1;
                                 }
                                 let handler = &content[start..end];
                                 if !handler.is_empty() && !handler.contains("axum") {
-                                    let clean_handler = if handler.starts_with("crate::handlers::") {
+                                    let clean_handler = if handler.starts_with("crate::handlers::")
+                                    {
                                         &handler["crate::handlers::".len()..]
                                     } else {
                                         handler
@@ -750,23 +760,29 @@ mod tests {
             "ws_handler",
             "report_stream_ws",
             "monitor_stream_sse",
-            "health_check", 
+            "health_check",
         ];
 
         for h in used_handlers {
-            if h == "get" || h == "post" || h == "put" || h == "delete" || h == "patch" || h == "any" {
+            if h == "get"
+                || h == "post"
+                || h == "put"
+                || h == "delete"
+                || h == "patch"
+                || h == "any"
+            {
                 continue;
             }
             if whitelist.iter().any(|&w| h.ends_with(w)) {
                 continue;
             }
-            
+
             let h_last = h.split("::").last().unwrap_or(&h);
             let is_registered = registered_handlers.iter().any(|reg| {
                 let reg_last = reg.split("::").last().unwrap_or(reg);
                 reg_last == h_last
             });
-            
+
             if !is_registered {
                 missing_handlers.push(h);
             }

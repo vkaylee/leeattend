@@ -1,6 +1,6 @@
 use crate::errors::AppError;
-use crate::models::{CreateWorkLocationRequest, UpdateWorkLocationRequest, WorkLocation};
 use crate::handlers::common::MemberContext;
+use crate::models::{CreateWorkLocationRequest, UpdateWorkLocationRequest, WorkLocation};
 use crate::state::AppState;
 use axum::{
     extract::{Path, State},
@@ -28,7 +28,11 @@ pub async fn list_locations(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> Result<impl IntoResponse, AppError> {
-    let locations = state.core.location_service.list_locations(ctx.workspace_id).await?;
+    let locations = state
+        .core
+        .location_service
+        .list_locations(ctx.workspace_id)
+        .await?;
     Ok(Json(locations))
 }
 
@@ -51,7 +55,11 @@ pub async fn get_location(
     Path((_workspace_id, id)): Path<(Uuid, Uuid)>,
     ctx: MemberContext,
 ) -> Result<impl IntoResponse, AppError> {
-    let location = state.core.location_service.get_location(ctx.workspace_id, id).await?;
+    let location = state
+        .core
+        .location_service
+        .get_location(ctx.workspace_id, id)
+        .await?;
     Ok(Json(location))
 }
 

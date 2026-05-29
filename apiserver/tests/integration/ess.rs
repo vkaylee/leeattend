@@ -273,7 +273,13 @@ async fn test_ess_get_leave_balances() {
 
     let resp = app
         .clone()
-        .oneshot(req("GET", "/api/v1/ess/leave/balances", ws_id, user_id, None))
+        .oneshot(req(
+            "GET",
+            "/api/v1/ess/leave/balances",
+            ws_id,
+            user_id,
+            None,
+        ))
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
@@ -297,7 +303,13 @@ async fn test_ess_get_leave_requests_empty() {
 
     let resp = app
         .clone()
-        .oneshot(req("GET", "/api/v1/ess/leave/requests", ws_id, user_id, None))
+        .oneshot(req(
+            "GET",
+            "/api/v1/ess/leave/requests",
+            ws_id,
+            user_id,
+            None,
+        ))
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);

@@ -23,7 +23,6 @@ pub struct AttendanceReportQuery {
     pub department_id: Option<uuid::Uuid>,
 }
 
-
 #[utoipa::path(
     get,
     path = "/v1/workspaces/{ws_id}/reports/attendance",
@@ -51,7 +50,12 @@ pub async fn get_attendance_report(
 
     let page = params.page;
     let limit = params.limit;
-    let sort = params.sort.as_ref().and_then(|s| serde_json::from_value::<crate::models::AttendanceReportSort>(serde_json::Value::String(s.clone())).ok());
+    let sort = params.sort.as_ref().and_then(|s| {
+        serde_json::from_value::<crate::models::AttendanceReportSort>(serde_json::Value::String(
+            s.clone(),
+        ))
+        .ok()
+    });
     let employee_ids = params.employee_ids.as_ref().map(|s| {
         s.split(',')
             .filter_map(|id| Uuid::parse_str(id).ok())

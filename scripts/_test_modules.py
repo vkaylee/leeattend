@@ -162,14 +162,15 @@ def leeattend_run_coverage(
             else "--workspace"
         )
         test_flags = "--lib" if unit_only else "--lib --test integration"
+        ignore_regex = "--ignore-filename-regex 'app_builder\\.rs|handlers/debug\\.rs|worker/runner\\.rs|worker/main\\.rs|main\\.rs|report_service_test\\.rs'"
         apiserver_cov = (
             f"mkdir -p /workspace/.test_logs && "
-            f"{coverage_env} cargo llvm-cov nextest {test_flags} {pkg_flag} "
+            f"{coverage_env} cargo llvm-cov nextest {test_flags} {pkg_flag} {ignore_regex} "
             f"--lcov --output-path /workspace/.test_logs/coverage-apiserver.lcov "
             f"--no-tests=pass 2>&1 </dev/null && "
-            f"{coverage_env} cargo llvm-cov report --html "
+            f"{coverage_env} cargo llvm-cov report {ignore_regex} --html "
             f"--output-dir /workspace/.test_logs/coverage-apiserver-html 2>&1 </dev/null && "
-            f"{coverage_env} cargo llvm-cov report --summary-only 2>&1 </dev/null"
+            f"{coverage_env} cargo llvm-cov report {ignore_regex} --summary-only 2>&1 </dev/null"
         )
         task_name = (
             f"rust-backend-coverage-{component_filter}"

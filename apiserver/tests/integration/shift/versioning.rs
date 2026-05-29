@@ -67,7 +67,9 @@ async fn test_shift_versioning_update() {
         .oneshot(
             axum::http::Request::builder()
                 .method("PUT")
-                .uri(format!("/api/v1/workspaces/{workspace_id}/shifts/{shift_id}"))
+                .uri(format!(
+                    "/api/v1/workspaces/{workspace_id}/shifts/{shift_id}"
+                ))
                 .header("Content-Type", "application/json")
                 .header("X-Workspace-Id", workspace_id.to_string())
                 .header("X-User-Id", user_id.to_string())

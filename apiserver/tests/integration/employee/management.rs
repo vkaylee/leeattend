@@ -169,7 +169,9 @@ async fn test_delete_non_existent_employee() {
         .oneshot(
             axum::http::Request::builder()
                 .method("DELETE")
-                .uri(format!("/api/v1/workspaces/{ws_id}/employees/{fake_emp_id}"))
+                .uri(format!(
+                    "/api/v1/workspaces/{ws_id}/employees/{fake_emp_id}"
+                ))
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())
                 .body(axum::body::Body::empty())

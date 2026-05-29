@@ -33,8 +33,8 @@ async fn test_system_migrations_only_create_system_tables() {
     let db_url = format!("{base_connection_string}/{db_name}");
     let config = DbPoolConfig {
         primary_url: db_url.clone(),
-        pooler_tx_url: None,
-        pooler_sess_url: None,
+        pooler_tx_url: "".to_string(),
+        pooler_sess_url: "".to_string(),
         reader_url: None,
         api_max_conn: 1,
         api_acquire_timeout_secs: 5,
@@ -108,7 +108,7 @@ async fn test_system_migrations_only_create_system_tables() {
     let _ = admin_client.execute(&drop_sql, &[]).await;
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_run_tenant_migrations_on_existing_workspace() {
     let base_url = std::env::var("DATABASE_URL_FOR_TEST_GENERATION")
         .or_else(|_| std::env::var("DATABASE_URL"))
@@ -147,8 +147,8 @@ async fn test_run_tenant_migrations_on_existing_workspace() {
 
     let config = DbPoolConfig {
         primary_url: sys_db_url.clone(),
-        pooler_tx_url: None,
-        pooler_sess_url: None,
+        pooler_tx_url: "".to_string(),
+        pooler_sess_url: "".to_string(),
         reader_url: None,
         api_max_conn: 1,
         api_acquire_timeout_secs: 5,
@@ -162,8 +162,8 @@ async fn test_run_tenant_migrations_on_existing_workspace() {
     tokio::task::spawn_blocking(move || {
         DieselPools::run_system_migrations(&DbPoolConfig {
             primary_url: sys_url_clone.clone(),
-            pooler_tx_url: None,
-            pooler_sess_url: None,
+            pooler_tx_url: "".to_string(),
+            pooler_sess_url: "".to_string(),
             reader_url: None,
             api_max_conn: 1,
             api_acquire_timeout_secs: 5,
@@ -206,9 +206,10 @@ async fn test_run_tenant_migrations_on_existing_workspace() {
     drop(tenant_client);
 
     // 4. Run tenant migrations
-    let config_clone = config.clone();
+    let tenant_db_url_clone = tenant_db_url.clone();
+    let ws_id_clone = workspace_id;
     tokio::task::spawn_blocking(move || {
-        DieselPools::run_tenant_migrations(&config_clone);
+        DieselPools::run_single_tenant_migration(&tenant_db_url_clone, &ws_id_clone).unwrap();
     })
     .await
     .unwrap();
@@ -292,8 +293,8 @@ async fn test_notifications_table_in_system_db() {
     tokio::task::spawn_blocking(move || {
         DieselPools::run_system_migrations(&DbPoolConfig {
             primary_url: url_clone,
-            pooler_tx_url: None,
-            pooler_sess_url: None,
+            pooler_tx_url: "".to_string(),
+            pooler_sess_url: "".to_string(),
             reader_url: None,
             api_max_conn: 1,
             api_acquire_timeout_secs: 5,
@@ -419,8 +420,8 @@ async fn test_authorized_agents_only_in_system_db() {
     tokio::task::spawn_blocking(move || {
         DieselPools::run_system_migrations(&DbPoolConfig {
             primary_url: url_clone,
-            pooler_tx_url: None,
-            pooler_sess_url: None,
+            pooler_tx_url: "".to_string(),
+            pooler_sess_url: "".to_string(),
             reader_url: None,
             api_max_conn: 1,
             api_acquire_timeout_secs: 5,
@@ -551,8 +552,8 @@ async fn test_workspace_tables_fk_cascade_in_system_db() {
     tokio::task::spawn_blocking(move || {
         DieselPools::run_system_migrations(&DbPoolConfig {
             primary_url: url_clone,
-            pooler_tx_url: None,
-            pooler_sess_url: None,
+            pooler_tx_url: "".to_string(),
+            pooler_sess_url: "".to_string(),
             reader_url: None,
             api_max_conn: 1,
             api_acquire_timeout_secs: 5,
@@ -701,7 +702,7 @@ async fn test_workspace_tables_fk_cascade_in_system_db() {
         .await;
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_run_tenant_migrations_falls_back_to_primary_url() {
     // Verify run_tenant_migrations works when pooler_url is None
     // (dev/test mode or no Supavisor). It falls back to primary_url.
@@ -744,8 +745,8 @@ async fn test_run_tenant_migrations_falls_back_to_primary_url() {
 
         let config = DbPoolConfig {
             primary_url: url_clone.clone(),
-            pooler_tx_url: None,
-            pooler_sess_url: None,
+            pooler_tx_url: "".to_string(),
+            pooler_sess_url: "".to_string(),
             reader_url: None,
             api_max_conn: 1,
             api_acquire_timeout_secs: 5,
@@ -765,11 +766,11 @@ async fn test_run_tenant_migrations_falls_back_to_primary_url() {
     .await
     .unwrap();
 
-    // Run tenant migrations with pooler_tx_url: None, pooler_sess_url: None — should fall back to primary_url
+    // Run tenant migrations with pooler_tx_url: "".to_string(), pooler_sess_url: "".to_string() — should fall back to primary_url
     let config_no_pooler = DbPoolConfig {
         primary_url: sys_db_url.clone(),
-        pooler_tx_url: None,
-        pooler_sess_url: None,
+        pooler_tx_url: "".to_string(),
+        pooler_sess_url: "".to_string(),
         reader_url: None,
         api_max_conn: 1,
         api_acquire_timeout_secs: 5,
@@ -778,9 +779,10 @@ async fn test_run_tenant_migrations_falls_back_to_primary_url() {
         tenant_max_conn: 1,
     };
 
-    let config_clone = config_no_pooler.clone();
+    let tenant_db_url_clone = format!("{base_connection_string}/{tenant_db_name}");
+    let ws_id_clone = workspace_id;
     tokio::task::spawn_blocking(move || {
-        DieselPools::run_tenant_migrations(&config_clone);
+        DieselPools::run_single_tenant_migration(&tenant_db_url_clone, &ws_id_clone).unwrap();
     })
     .await
     .unwrap();

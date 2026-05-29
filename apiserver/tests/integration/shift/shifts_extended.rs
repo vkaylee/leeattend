@@ -51,7 +51,9 @@ async fn test_get_workspace_schedules_empty() {
         .clone()
         .oneshot(req(
             "GET",
-            &format!("/api/v1/workspaces/{ws_id}/schedules?start_date=2026-01-01&end_date=2026-01-31"),
+            &format!(
+                "/api/v1/workspaces/{ws_id}/schedules?start_date=2026-01-01&end_date=2026-01-31"
+            ),
             ws_id,
             admin_id,
             None,

@@ -34,14 +34,18 @@ impl DbPoolConfig {
             .ok()
             .filter(|s| !s.trim().is_empty())
             .ok_or_else(|| {
-                crate::errors::AppError::Internal("DATABASE_POOLER_TX_URL must be set (Supavisor mode is enforced)".to_string())
+                crate::errors::AppError::Internal(
+                    "DATABASE_POOLER_TX_URL must be set (Supavisor mode is enforced)".to_string(),
+                )
             })?;
 
         let pooler_sess_url = std::env::var("DATABASE_POOLER_SESS_URL")
             .ok()
             .filter(|s| !s.trim().is_empty())
             .ok_or_else(|| {
-                crate::errors::AppError::Internal("DATABASE_POOLER_SESS_URL must be set (Supavisor mode is enforced)".to_string())
+                crate::errors::AppError::Internal(
+                    "DATABASE_POOLER_SESS_URL must be set (Supavisor mode is enforced)".to_string(),
+                )
             })?;
 
         let reader_url = std::env::var("DATABASE_READER_URL")

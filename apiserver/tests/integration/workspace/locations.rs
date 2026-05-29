@@ -12,10 +12,12 @@ use uuid::Uuid;
 async fn test_work_locations_crud() {
     let (address, workspace_id, user_id, factory, _db) = spawn_app_with_factory().await;
     let client = reqwest::Client::new();
-    
+
     // 1. Fetch all locations
     let res = client
-        .get(&format!("{address}/api/v1/workspaces/{workspace_id}/locations"))
+        .get(&format!(
+            "{address}/api/v1/workspaces/{workspace_id}/locations"
+        ))
         .header("X-User-Id", user_id.to_string())
         .send()
         .await
@@ -24,9 +26,11 @@ async fn test_work_locations_crud() {
     assert_eq!(res.status(), StatusCode::OK);
     let locations: Vec<Value> = res.json().await.unwrap();
     assert!(!locations.is_empty());
-    
+
     // We should have at least the Headquarters (created on workspace init)
-    let hq = locations.iter().find(|l| l["is_headquarters"].as_bool() == Some(true));
+    let hq = locations
+        .iter()
+        .find(|l| l["is_headquarters"].as_bool() == Some(true));
     assert!(hq.is_some(), "Should have a headquarters location");
     let hq_id = hq.unwrap()["id"].as_str().unwrap().to_string();
 
@@ -40,7 +44,9 @@ async fn test_work_locations_crud() {
     };
 
     let res = client
-        .post(&format!("{address}/api/v1/workspaces/{workspace_id}/locations"))
+        .post(&format!(
+            "{address}/api/v1/workspaces/{workspace_id}/locations"
+        ))
         .header("X-User-Id", user_id.to_string())
         .json(&create_payload)
         .send()
@@ -55,7 +61,9 @@ async fn test_work_locations_crud() {
 
     // 3. Try to delete HQ (should fail)
     let res = client
-        .delete(&format!("{address}/api/v1/workspaces/{workspace_id}/locations/{hq_id}"))
+        .delete(&format!(
+            "{address}/api/v1/workspaces/{workspace_id}/locations/{hq_id}"
+        ))
         .header("X-User-Id", user_id.to_string())
         .send()
         .await
@@ -73,7 +81,9 @@ async fn test_work_locations_crud() {
     };
 
     let res = client
-        .put(&format!("{address}/api/v1/workspaces/{workspace_id}/locations/{location_1_id}"))
+        .put(&format!(
+            "{address}/api/v1/workspaces/{workspace_id}/locations/{location_1_id}"
+        ))
         .header("X-User-Id", user_id.to_string())
         .json(&update_payload)
         .send()
@@ -86,7 +96,9 @@ async fn test_work_locations_crud() {
 
     // 5. Delete the Location
     let res = client
-        .delete(&format!("{address}/api/v1/workspaces/{workspace_id}/locations/{location_1_id}"))
+        .delete(&format!(
+            "{address}/api/v1/workspaces/{workspace_id}/locations/{location_1_id}"
+        ))
         .header("X-User-Id", user_id.to_string())
         .send()
         .await

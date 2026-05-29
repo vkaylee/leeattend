@@ -96,10 +96,10 @@ pub mod diesel_workspace_config_repository;
 pub mod diesel_workspace_repository;
 
 pub mod approval_workflow_repository;
+pub mod diesel_location_repository;
+pub mod location_repository;
 pub mod overtime_request_repository;
 pub mod workspace_config_repository;
-pub mod location_repository;
-pub mod diesel_location_repository;
 pub use approval_workflow_repository::ApprovalWorkflowRepository;
 pub use diesel_approval_workflow_repository::DieselApprovalWorkflowRepository;
 pub use diesel_location_repository::DieselLocationRepository;

@@ -195,7 +195,6 @@ fn test_get_tenant_url_tenant_name_is_predictable_from_workspace_id() {
     assert_eq!(parsed.path(), format!("/{expected_name}"));
 }
 
-
 // ── Cross-contract: URL tenant name must match registration tenant_id ─
 
 #[test]
@@ -339,7 +338,10 @@ fn test_resolve_migration_url_each_tenant_gets_own_credentials() {
     assert!(!url1.contains("master_pass"), "ws1 has no master pass");
     assert!(!url2.contains("master_pass"), "ws2 has no master pass");
     assert!(!url1.contains("bob_secret"), "ws1 doesn't have bob's pass");
-    assert!(!url2.contains("alice_secret"), "ws2 doesn't have alice's pass");
+    assert!(
+        !url2.contains("alice_secret"),
+        "ws2 doesn't have alice's pass"
+    );
 }
 
 #[test]
@@ -529,7 +531,6 @@ fn test_get_tenant_url_with_override_user() {
     );
 }
 
-
 #[test]
 fn test_get_tenant_url_with_override_db_name_in_production_manager() {
     let base_url = "postgres://admin.leeattend:pass@supavisor:5452/leeattend";
@@ -656,10 +657,7 @@ fn test_regression_supavisor_mode_preserves_tenant_db_name() {
     let ws = Uuid::new_v4();
 
     let url = manager
-        .resolve_migration_url(
-            &ws,
-            "postgres://user:pass@db-host:5432/my_custom_database",
-        )
+        .resolve_migration_url(&ws, "postgres://user:pass@db-host:5432/my_custom_database")
         .unwrap();
 
     assert!(
@@ -711,8 +709,14 @@ fn test_startup_flow_collects_valid_targets() {
     let ws1 = Uuid::new_v4();
     let ws2 = Uuid::new_v4();
     let workspaces = vec![
-        (ws1, Some("postgres://user1:pass1@db1:5432/tenant_db1".to_string())),
-        (ws2, Some("postgres://user2:pass2@db2:5432/tenant_db2".to_string())),
+        (
+            ws1,
+            Some("postgres://user1:pass1@db1:5432/tenant_db1".to_string()),
+        ),
+        (
+            ws2,
+            Some("postgres://user2:pass2@db2:5432/tenant_db2".to_string()),
+        ),
     ];
 
     let targets = collect_migration_targets(workspaces, &[]);
@@ -729,7 +733,10 @@ fn test_startup_flow_skips_workspace_missing_custom_db_url() {
     let ws_valid = Uuid::new_v4();
     let ws_missing = Uuid::new_v4();
     let workspaces = vec![
-        (ws_valid, Some("postgres://user:pass@db:5432/tenant_db".to_string())),
+        (
+            ws_valid,
+            Some("postgres://user:pass@db:5432/tenant_db".to_string()),
+        ),
         (ws_missing, None), // No custom_db_url_encrypted
     ];
 
@@ -744,7 +751,10 @@ fn test_startup_flow_skips_workspace_with_invalid_url() {
     let ws_valid = Uuid::new_v4();
     let ws_invalid = Uuid::new_v4();
     let workspaces = vec![
-        (ws_valid, Some("postgres://user:pass@db:5432/tenant_db".to_string())),
+        (
+            ws_valid,
+            Some("postgres://user:pass@db:5432/tenant_db".to_string()),
+        ),
         (ws_invalid, Some("not-a-postgres-url".to_string())),
     ];
 
@@ -759,8 +769,14 @@ fn test_startup_flow_skips_workspace_on_registration_failure() {
     let ws_ok = Uuid::new_v4();
     let ws_fail = Uuid::new_v4();
     let workspaces = vec![
-        (ws_ok, Some("postgres://user1:pass1@db1:5432/db1".to_string())),
-        (ws_fail, Some("postgres://user2:pass2@db2:5432/db2".to_string())),
+        (
+            ws_ok,
+            Some("postgres://user1:pass1@db1:5432/db1".to_string()),
+        ),
+        (
+            ws_fail,
+            Some("postgres://user2:pass2@db2:5432/db2".to_string()),
+        ),
     ];
 
     // ws_fail fails Supavisor registration
@@ -781,7 +797,7 @@ fn test_startup_flow_all_workspaces_fail() {
     let ws1 = Uuid::new_v4();
     let ws2 = Uuid::new_v4();
     let workspaces = vec![
-        (ws1, None),           // missing URL
+        (ws1, None),                        // missing URL
         (ws2, Some("invalid".to_string())), // invalid URL
     ];
 
@@ -810,15 +826,25 @@ fn test_startup_flow_mixed_failures() {
     let ws_reg_fail = Uuid::new_v4();
 
     let workspaces = vec![
-        (ws_ok, Some("postgres://user:pass@db:5432/good_db".to_string())),
+        (
+            ws_ok,
+            Some("postgres://user:pass@db:5432/good_db".to_string()),
+        ),
         (ws_no_url, None),
         (ws_bad_url, Some("ftp://not-postgres".to_string())),
-        (ws_reg_fail, Some("postgres://user:pass@db:5432/fail_db".to_string())),
+        (
+            ws_reg_fail,
+            Some("postgres://user:pass@db:5432/fail_db".to_string()),
+        ),
     ];
 
     let targets = collect_migration_targets(workspaces, &[ws_reg_fail]);
 
-    assert_eq!(targets.len(), 1, "Only the fully successful workspace should be a migration target");
+    assert_eq!(
+        targets.len(),
+        1,
+        "Only the fully successful workspace should be a migration target"
+    );
     assert_eq!(targets[0].0, ws_ok);
 }
 
@@ -831,9 +857,18 @@ fn test_startup_flow_preserves_each_tenants_own_credentials() {
     let ws3 = Uuid::new_v4();
 
     let workspaces = vec![
-        (ws1, Some("postgres://alice:alice_secret@db1.example.com:5432/alice_db".to_string())),
-        (ws2, Some("postgres://bob:bob_secret@db2.example.com:5432/bob_db".to_string())),
-        (ws3, Some("postgres://charlie:charlie_secret@db3.example.com:5432/charlie_db".to_string())),
+        (
+            ws1,
+            Some("postgres://alice:alice_secret@db1.example.com:5432/alice_db".to_string()),
+        ),
+        (
+            ws2,
+            Some("postgres://bob:bob_secret@db2.example.com:5432/bob_db".to_string()),
+        ),
+        (
+            ws3,
+            Some("postgres://charlie:charlie_secret@db3.example.com:5432/charlie_db".to_string()),
+        ),
     ];
 
     let targets = collect_migration_targets(workspaces, &[]);
@@ -843,7 +878,9 @@ fn test_startup_flow_preserves_each_tenants_own_credentials() {
     // Each migration target preserves the tenant's individual credentials
     assert!(targets[0].1.contains("alice:alice_secret@db1.example.com"));
     assert!(targets[1].1.contains("bob:bob_secret@db2.example.com"));
-    assert!(targets[2].1.contains("charlie:charlie_secret@db3.example.com"));
+    assert!(targets[2]
+        .1
+        .contains("charlie:charlie_secret@db3.example.com"));
 
     // None of them share credentials with a hypothetical master password
     for (_, url) in &targets {
@@ -857,9 +894,10 @@ fn test_startup_flow_preserves_each_tenants_own_credentials() {
 #[test]
 fn test_startup_flow_url_with_special_chars_in_password() {
     let ws = Uuid::new_v4();
-    let workspaces = vec![
-        (ws, Some("postgres://user:p@ss!w#rd$%^&@db:5432/tenant_db".to_string())),
-    ];
+    let workspaces = vec![(
+        ws,
+        Some("postgres://user:p@ss!w#rd$%^&@db:5432/tenant_db".to_string()),
+    )];
 
     let targets = collect_migration_targets(workspaces, &[]);
 
@@ -884,14 +922,17 @@ fn test_resolve_migration_url_special_chars_in_tenant_password() {
     let ws = Uuid::new_v4();
 
     // Password with special chars handled by parse_postgres_url (custom parser)
-    let result = manager.resolve_migration_url(
-        &ws,
-        "postgres://user:p@ss!w#rd@db:5432/tenant_db",
-    );
+    let result = manager.resolve_migration_url(&ws, "postgres://user:p@ss!w#rd@db:5432/tenant_db");
 
-    assert!(result.is_ok(), "Special chars in password should be handled");
+    assert!(
+        result.is_ok(),
+        "Special chars in password should be handled"
+    );
     let url = result.unwrap();
-    assert!(url.contains("supavisor:5452"), "Still routes through Supavisor: {url}");
+    assert!(
+        url.contains("supavisor:5452"),
+        "Still routes through Supavisor: {url}"
+    );
 }
 
 #[test]
@@ -939,4 +980,3 @@ fn test_resolve_migration_url_empty_tenant_url_returns_error() {
     let result = manager.resolve_migration_url(&ws, "");
     assert!(result.is_err(), "Empty tenant URL should return error");
 }
-

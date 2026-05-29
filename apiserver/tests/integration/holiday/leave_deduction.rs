@@ -67,7 +67,9 @@ async fn test_create_holiday_with_leave_type_id() {
     });
 
     let resp = client
-        .post(format!("{address}/api/v1/workspaces/{workspace_id}/holidays"))
+        .post(format!(
+            "{address}/api/v1/workspaces/{workspace_id}/holidays"
+        ))
         .header("Authorization", format!("Bearer {auth_token}"))
         .json(&body)
         .send()
@@ -103,7 +105,9 @@ async fn test_update_holiday_with_leave_type_id() {
 
     // Create paid holiday first
     let resp = client
-        .post(format!("{address}/api/v1/workspaces/{workspace_id}/holidays"))
+        .post(format!(
+            "{address}/api/v1/workspaces/{workspace_id}/holidays"
+        ))
         .header("Authorization", format!("Bearer {auth_token}"))
         .json(&serde_json::json!({
             "name": "Flex Day",
@@ -177,7 +181,9 @@ async fn test_report_status_holiday_unpaid() {
 
     // Create unpaid holiday (no leave_type_id, is_paid=false)
     let resp = client
-        .post(format!("{address}/api/v1/workspaces/{workspace_id}/holidays"))
+        .post(format!(
+            "{address}/api/v1/workspaces/{workspace_id}/holidays"
+        ))
         .header("Authorization", format!("Bearer {auth_token}"))
         .json(&serde_json::json!({
             "name": "Company Anniversary",
@@ -250,7 +256,9 @@ async fn test_report_status_holiday_leave_deducted() {
 
     // Create unpaid holiday
     let resp = client
-        .post(format!("{address}/api/v1/workspaces/{workspace_id}/holidays"))
+        .post(format!(
+            "{address}/api/v1/workspaces/{workspace_id}/holidays"
+        ))
         .header("Authorization", format!("Bearer {auth_token}"))
         .json(&serde_json::json!({
             "name": "Team Building Day",
@@ -336,7 +344,9 @@ async fn test_process_holiday_leave_api() {
 
     // Create unpaid holiday
     let resp = client
-        .post(format!("{address}/api/v1/workspaces/{workspace_id}/holidays"))
+        .post(format!(
+            "{address}/api/v1/workspaces/{workspace_id}/holidays"
+        ))
         .header("Authorization", format!("Bearer {auth_token}"))
         .json(&serde_json::json!({
             "name": "Founder's Day",
@@ -423,7 +433,9 @@ async fn test_process_holiday_leave_insufficient_balance() {
 
     // Create unpaid holiday
     let resp = client
-        .post(format!("{address}/api/v1/workspaces/{workspace_id}/holidays"))
+        .post(format!(
+            "{address}/api/v1/workspaces/{workspace_id}/holidays"
+        ))
         .header("Authorization", format!("Bearer {auth_token}"))
         .json(&serde_json::json!({
             "name": "Extra Day Off",
@@ -501,7 +513,9 @@ async fn test_process_holiday_leave_idempotent() {
         .await;
 
     let resp = client
-        .post(format!("{address}/api/v1/workspaces/{workspace_id}/holidays"))
+        .post(format!(
+            "{address}/api/v1/workspaces/{workspace_id}/holidays"
+        ))
         .header("Authorization", format!("Bearer {auth_token}"))
         .json(&serde_json::json!({
             "name": "Team Day",
@@ -568,7 +582,9 @@ async fn test_process_leave_on_paid_holiday_noop() {
 
     // Create PAID holiday
     let resp = client
-        .post(format!("{address}/api/v1/workspaces/{workspace_id}/holidays"))
+        .post(format!(
+            "{address}/api/v1/workspaces/{workspace_id}/holidays"
+        ))
         .header("Authorization", format!("Bearer {auth_token}"))
         .json(&serde_json::json!({
             "name": "National Day",

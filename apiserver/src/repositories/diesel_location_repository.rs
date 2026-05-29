@@ -1,5 +1,5 @@
-use crate::diesel_pool::DieselPools;
 use crate::diesel_pool::tenant_manager::TenantAuthToken;
+use crate::diesel_pool::DieselPools;
 use crate::models::diesel::work_location::WorkLocationEntity;
 use crate::models::{CreateWorkLocationRequest, UpdateWorkLocationRequest, WorkLocation};
 use crate::repositories::location_repository::LocationRepository;
