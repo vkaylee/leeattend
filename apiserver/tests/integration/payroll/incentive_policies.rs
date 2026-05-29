@@ -223,7 +223,7 @@ async fn test_incentive_policy_clone() {
     let cloned = body_json(resp).await;
     assert_eq!(cloned["name"], "Original Policy (Copy)");
     assert_eq!(cloned["is_active"], false); // Clone is inactive by default
-    
+
     let new_policy_id = cloned["id"].as_str().unwrap();
     assert_ne!(new_policy_id, policy_id.to_string());
 }

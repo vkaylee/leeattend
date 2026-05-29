@@ -13,6 +13,34 @@ use std::sync::Arc;
 use tower::ServiceExt;
 use uuid::Uuid;
 
+fn req(
+    method: &str,
+    uri: &str,
+    ws_id: Uuid,
+    user_id: Uuid,
+    body: Option<serde_json::Value>,
+) -> axum::http::Request<axum::body::Body> {
+    let mut builder = axum::http::Request::builder()
+        .method(method)
+        .uri(uri)
+        .header("X-Workspace-Id", ws_id.to_string())
+        .header("X-User-Id", user_id.to_string());
+
+    if let Some(b) = body {
+        builder = builder.header("Content-Type", "application/json");
+        builder.body(axum::body::Body::from(b.to_string())).unwrap()
+    } else {
+        builder.body(axum::body::Body::empty()).unwrap()
+    }
+}
+
+async fn body_json(resp: axum::response::Response) -> serde_json::Value {
+    let body = axum::body::to_bytes(resp.into_body(), 1024 * 1024)
+        .await
+        .unwrap();
+    serde_json::from_slice(&body).unwrap()
+}
+
 #[tokio::test]
 async fn test_leave_request_lifecycle_smoke() {
     let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
