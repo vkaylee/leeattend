@@ -22,7 +22,8 @@ describe("fetchAttendanceReport", () => {
             ok: true,
             json: () => Promise.resolve({ data: [], total: 0 }),
             text: () => Promise.resolve(JSON.stringify({ data: [], total: 0 })),
-        } as Response);
+            headers: { get: () => "application/json" },
+        } as unknown as Response);
 
         await fetchAttendanceReport({
             wsId: "test-ws-id",
@@ -35,7 +36,7 @@ describe("fetchAttendanceReport", () => {
  
         const calledUrl = vi.mocked(apiFetch).mock.calls[0][0];
 
-        expect(calledUrl).toContain("/workspaces/test-ws-id/reports/attendance");
+        expect(calledUrl).toContain("/v1/workspaces/test-ws-id/reports/attendance");
         expect(calledUrl).toContain("start_date=2026-03-01");
         expect(calledUrl).toContain("end_date=2026-03-31");
         expect(calledUrl).toContain("type=summary");
@@ -48,7 +49,8 @@ describe("fetchAttendanceReport", () => {
             ok: true,
             json: () => Promise.resolve({ data: [], total: 0 }),
             text: () => Promise.resolve(JSON.stringify({ data: [], total: 0 })),
-        } as Response);
+            headers: { get: () => "application/json" },
+        } as unknown as Response);
 
         const departmentId = "dept-uuid-123";
 
@@ -81,7 +83,8 @@ describe("fetchAttendanceReport", () => {
             ok: true,
             json: () => Promise.resolve({ data: [], total: 0 }),
             text: () => Promise.resolve(JSON.stringify({ data: [], total: 0 })),
-        } as Response);
+            headers: { get: () => "application/json" },
+        } as unknown as Response);
 
         const employeeIds = ["emp-1", "emp-2"];
 

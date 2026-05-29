@@ -4,6 +4,7 @@ import {
   getRefreshToken,
   setAccessToken,
   setRefreshToken,
+  forceRefreshToken,
 } from "@/lib/api/helpers";
 
 /**
@@ -16,7 +17,7 @@ export function buildWebSocketUrl(jobId: string): string {
   const host = window.location.host;
   const token = getAccessToken();
   const params = token ? `?token=${encodeURIComponent(token)}` : "";
-  return `${protocol}//${host}/api/ws/reports/${jobId}${params}`;
+  return `${protocol}//${host}/api/v1/ws/reports/${jobId}${params}`;
 }
 
 /**
@@ -32,26 +33,5 @@ export function getBackoffDelay(retryCount: number): number {
  * Returns true if refresh succeeded, false otherwise
  */
 export async function tryRefreshToken(): Promise<boolean> {
-  const refreshToken = getRefreshToken();
-  if (!refreshToken) return false;
-
-  try {
-    const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ refresh_token: refreshToken }),
-    });
-
-    if (response.ok) {
-      const data = await response.json() as { access_token: string; refresh_token: string };
-      setAccessToken(data.access_token);
-      setRefreshToken(data.refresh_token);
-      
-      return true;
-    }
-  } catch (e) {
-    console.error("[ReportStream] Token refresh failed", e);
-  }
-
-  return false;
+  return await forceRefreshToken();
 }

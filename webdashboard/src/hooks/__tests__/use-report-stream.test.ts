@@ -369,7 +369,7 @@ describe("useReportStream Hook", () => {
       });
 
       expect(capturedUrl).toContain("?token=test-jwt-token-123");
-      expect(capturedUrl).toContain("/api/ws/reports/job-abc");
+      expect(capturedUrl).toContain("/api/v1/ws/reports/job-abc");
     });
 
     it("should not include token param when no auth token exists", async () => {
@@ -381,7 +381,7 @@ describe("useReportStream Hook", () => {
         expect(capturedUrl).toBeDefined();
       });
 
-      expect(capturedUrl).toContain("/api/ws/reports/job-xyz");
+      expect(capturedUrl).toContain("/api/v1/ws/reports/job-xyz");
       expect(capturedUrl).not.toContain("?token=");
     });
 

@@ -1,6 +1,6 @@
 import { API_BASE_URL } from "./config";
 import { apiFetch } from "./helpers";
-import { apiClient } from "./client";
+import { client } from "./client";
 
 export interface AssignmentRuleConditions {
   department_id?: string;
@@ -36,20 +36,28 @@ export interface UpdateAssignmentRuleRequest {
 }
 
 export async function fetchAssignmentRules(wsId: string): Promise<AssignmentRule[]> {
-  const { data: resData } = await apiClient.get<AssignmentRule[]>(`/v1/workspaces/${wsId}/assignment-rules`);
-    return resData;
+  const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/assignment-rules", {
+            params: { path: { ws_id: wsId } }
+      });
+    return resData as any;
 }
 
 export async function createAssignmentRule(wsId: string, data: CreateAssignmentRuleRequest): Promise<AssignmentRule> {
-  const { data: resData } = await apiClient.post<AssignmentRule>(`/v1/workspaces/${wsId}/assignment-rules`, data);
-    return resData;
+  const { data: resData } = await client.POST("/v1/workspaces/{ws_id}/assignment-rules", {
+            params: { path: { ws_id: wsId } },
+          body: data });
+    return resData as any;
 }
 
 export async function updateAssignmentRule(wsId: string, ruleId: string, data: UpdateAssignmentRuleRequest): Promise<AssignmentRule> {
-  const { data: resData } = await apiClient.patch<AssignmentRule>(`/v1/workspaces/${wsId}/assignment-rules/${ruleId}`, data);
-    return resData;
+  const { data: resData } = await client.PUT("/v1/workspaces/{ws_id}/assignment-rules/{rule_id}", {
+            params: { path: { ws_id: wsId, rule_id: ruleId } },
+          body: data });
+    return resData as any;
 }
 
 export async function deleteAssignmentRule(wsId: string, ruleId: string): Promise<void> {
-  await apiClient.delete(`/v1/workspaces/${wsId}/assignment-rules/${ruleId}`);
+  await client.DELETE("/v1/workspaces/{ws_id}/assignment-rules/{rule_id}", {
+            params: { path: { ws_id: wsId, rule_id: ruleId } }
+      });
 }

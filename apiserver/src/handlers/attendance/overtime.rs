@@ -23,8 +23,9 @@ pub struct ClaimOtRequest {
 
 #[utoipa::path(
     post,
-    path = "/v1/attendance/overtime/{employee_id}/claim",
+    path = "/v1/workspaces/{ws_id}/attendance/claim-ot/{employee_id}",
     params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
         ("employee_id" = Uuid, Path, description = "Employee ID")
     ),
     request_body = ClaimOtRequest,
@@ -83,9 +84,10 @@ pub struct ApproveOtRequest {
 }
 
 #[utoipa::path(
-    put,
-    path = "/v1/attendance/overtime/{employee_id}/approve",
+    post,
+    path = "/v1/workspaces/{ws_id}/attendance/approve-ot/{employee_id}",
     params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
         ("employee_id" = Uuid, Path, description = "Employee ID")
     ),
     request_body = ApproveOtRequest,
@@ -140,8 +142,9 @@ pub struct SummaryQuery {
 
 #[utoipa::path(
     get,
-    path = "/v1/attendance/overtime/summaries",
+    path = "/v1/workspaces/{ws_id}/attendance/summaries",
     params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
         ("start_date" = NaiveDate, Query, description = "Start date"),
         ("end_date" = NaiveDate, Query, description = "End date"),
         ("employee_id" = Option<Uuid>, Query, description = "Optional Employee ID")

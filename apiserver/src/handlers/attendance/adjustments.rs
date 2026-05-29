@@ -19,7 +19,10 @@ use serde::Deserialize;
 
 #[utoipa::path(
     post,
-    path = "/v1/attendance/adjustments",
+    path = "/v1/workspaces/{ws_id}/attendance/adjustments",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID")
+    ),
     request_body = CreateAttendanceAdjustmentRequest,
     responses(
         (status = 201, description = "Attendance adjustment created", body = AttendanceAdjustmentRequest)
@@ -47,9 +50,10 @@ pub async fn submit_attendance_adjustment(
 
 #[utoipa::path(
     put,
-    path = "/v1/attendance/adjustments/{id}/approve",
+    path = "/v1/workspaces/{ws_id}/attendance/adjustments/{id}/approve",
     params(
-        ("id" = Uuid, Path, description = "Adjustment Request ID")
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        ("id" = Uuid, Path, description = "Adjustment ID")
     ),
     request_body = ApproveAttendanceAdjustmentRequest,
     responses(
@@ -79,9 +83,9 @@ pub async fn approve_attendance_adjustment(
 
 #[utoipa::path(
     get,
-    path = "/v1/attendance/adjustments/me/{id}",
+    path = "/v1/employees/{id}/attendance/adjustments",
     params(
-        ("id" = Uuid, Path, description = "Adjustment Request ID")
+        ("id" = Uuid, Path, description = "Employee ID")
     ),
     responses(
         (status = 200, description = "My adjustments", body = Vec<AttendanceAdjustmentRequest>)
@@ -112,8 +116,9 @@ pub struct AdjustmentStatusQuery {
 
 #[utoipa::path(
     get,
-    path = "/v1/attendance/adjustments/workspace",
+    path = "/v1/workspaces/{ws_id}/attendance/adjustments",
     params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
         ("status" = Option<AdjustmentStatus>, Query, description = "Status filter")
     ),
     responses(

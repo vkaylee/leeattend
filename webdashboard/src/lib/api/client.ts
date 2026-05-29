@@ -33,46 +33,7 @@ async function handleResponse<T>(res: Response): Promise<{ data: T }> {
   return { data: (text ? JSON.parse(text) : null) as T };
 }
 
-export const apiClient = {
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
-  get: async <T = unknown>(url: string): Promise<{ data: T }> => {
-    const res = await apiFetch(url);
-    return handleResponse<T>(res);
-  },
-  
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
-  post: async <T = unknown>(url: string, body?: unknown): Promise<{ data: T }> => {
-    const res = await apiFetch(url, {
-      method: "POST",
-      body: body ? JSON.stringify(body) : undefined,
-    });
-    return handleResponse<T>(res);
-  },
-  
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
-  put: async <T = unknown>(url: string, body?: unknown): Promise<{ data: T }> => {
-    const res = await apiFetch(url, {
-      method: "PUT",
-      body: body ? JSON.stringify(body) : undefined,
-    });
-    return handleResponse<T>(res);
-  },
-  
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
-  delete: async <T = unknown>(url: string): Promise<{ data: T }> => {
-    const res = await apiFetch(url, { method: "DELETE" });
-    return handleResponse<T>(res);
-  },
-  
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
-  patch: async <T = unknown>(url: string, body?: unknown): Promise<{ data: T }> => {
-    const res = await apiFetch(url, {
-      method: "PATCH",
-      body: body ? JSON.stringify(body) : undefined,
-    });
-    return handleResponse<T>(res);
-  }
-};
+
 
 async function extractRequestInfo(
   url: Request,
@@ -115,7 +76,16 @@ export const client = createClient<paths>({
 
     if (url instanceof Request) {
       const extracted = await extractRequestInfo(url, options);
-      urlStr = extracted.urlStr;
+      
+      // Cleanup paths due to inconsistent OpenAPI schema generation
+      let pathUrl = extracted.urlStr;
+      if (pathUrl.includes('/api/api/v1')) {
+        pathUrl = pathUrl.replace('/api/api/v1', '/api/v1');
+      } else if (pathUrl.includes('/api/') && !pathUrl.includes('/api/v1/')) {
+        pathUrl = pathUrl.replace('/api/', '/api/v1/');
+      }
+      urlStr = pathUrl;
+      
       options = extracted.options;
     } else {
       urlStr = url.toString();
@@ -145,6 +115,6 @@ export const client = createClient<paths>({
       );
     }
     
-    return res;
+    return res!;
   }
 });

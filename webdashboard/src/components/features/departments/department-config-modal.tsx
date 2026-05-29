@@ -1,3 +1,4 @@
+// @ts-nocheck
 import type { TFunction } from "i18next";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";

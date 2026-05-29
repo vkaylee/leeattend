@@ -70,7 +70,7 @@ describe("use-dashboard hooks", () => {
 
             await waitFor(() => { expect(result.current.isLoading).toBe(false); });
 
-            expect(api.apiFetch).toHaveBeenCalledWith("/dashboard/workspace-stats");
+            expect(api.apiFetch).toHaveBeenCalledWith("/v1/dashboard/workspace-stats");
             expect(result.current.data).toEqual(mockStats);
         });
 
@@ -103,7 +103,7 @@ describe("use-dashboard hooks", () => {
 
             await waitFor(() => { expect(result.current.isLoading).toBe(false); });
 
-            expect(api.apiFetch).toHaveBeenCalledWith("/dashboard/attendance-trend");
+            expect(api.apiFetch).toHaveBeenCalledWith("/v1/dashboard/attendance-trend");
             expect(result.current.data).toEqual(mockData);
         });
     });
@@ -123,7 +123,7 @@ describe("use-dashboard hooks", () => {
 
             await waitFor(() => { expect(result.current.isLoading).toBe(false); });
 
-            expect(api.apiFetch).toHaveBeenCalledWith("/dashboard/department-attendance?range=week");
+            expect(api.apiFetch).toHaveBeenCalledWith("/v1/dashboard/department-attendance?range=week");
             expect(result.current.data).toEqual(mockData);
         });
     });
@@ -143,7 +143,7 @@ describe("use-dashboard hooks", () => {
 
             await waitFor(() => { expect(result.current.isLoading).toBe(false); });
 
-            expect(api.apiFetch).toHaveBeenCalledWith("/dashboard/unexcused-absences?start_date=2023-01-01&end_date=2023-01-31&group_by=employee");
+            expect(api.apiFetch).toHaveBeenCalledWith("/v1/dashboard/unexcused-absences?start_date=2023-01-01&end_date=2023-01-31&group_by=employee");
             expect(result.current.data).toEqual(mockData);
         });
         
@@ -159,7 +159,7 @@ describe("use-dashboard hooks", () => {
 
             await waitFor(() => { expect(result.current.isLoading).toBe(false); });
 
-            expect(api.apiFetch).toHaveBeenCalledWith("/dashboard/unexcused-absences");
+            expect(api.apiFetch).toHaveBeenCalledWith("/v1/dashboard/unexcused-absences");
         });
     });
 
@@ -194,7 +194,7 @@ describe("use-dashboard hooks", () => {
 
             await waitFor(() => { expect(result.current.isLoading).toBe(false); });
 
-            expect(api.apiFetch).toHaveBeenCalledWith("/dashboard/turnover-analytics?start=2023-01-01&end=2023-01-31");
+            expect(api.apiFetch).toHaveBeenCalledWith("/v1/dashboard/turnover-analytics?start=2023-01-01&end=2023-01-31");
             expect(result.current.data).toEqual(mockData);
         });
     });

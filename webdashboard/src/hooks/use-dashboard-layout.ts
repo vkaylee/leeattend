@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 
-import { apiFetch } from "@/lib/api";
+import { apiFetch } from "@/lib/api/helpers";
 
 import { useWorkspace } from "./use-workspace";
 
@@ -211,7 +211,7 @@ function useDashboardPreferences(workspaceId: string | undefined) {
     return useQuery<DashboardLayoutPreferences>({
         queryKey: ["dashboard-preferences", workspaceId],
         queryFn: async () => {
-            const response = await apiFetch("/dashboard/preferences");
+            const response = await apiFetch("/v1/dashboard/preferences");
             if (!response.ok) throw new Error("Failed to fetch dashboard preferences");
             return (await response.json()) as DashboardLayoutPreferences;
         },
@@ -225,7 +225,7 @@ function useDashboardMutation(workspaceId: string | undefined) {
 
     return useMutation({
         mutationFn: async (update: Partial<Omit<DashboardLayoutPreferences, "id" | "user_id" | "workspace_id">>) => {
-            const response = await apiFetch("/dashboard/preferences", {
+            const response = await apiFetch("/v1/dashboard/preferences", {
                 method: "PUT",
                 body: JSON.stringify(update),
             });

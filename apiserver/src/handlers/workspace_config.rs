@@ -27,7 +27,7 @@ pub struct UpsertConfigRequest {
 
 #[utoipa::path(
     get,
-    path = "/workspaces/{workspace_id}/configs",
+    path = "/v1/workspaces/{workspace_id}/configs",
     responses(
         (status = 200, description = "List config entries", body = Vec<WorkspaceConfigEntry>)
     ),
@@ -53,7 +53,7 @@ pub async fn list_configs(
 
 #[utoipa::path(
     get,
-    path = "/workspaces/{workspace_id}/configs/{key}",
+    path = "/v1/workspaces/{workspace_id}/configs/{key}",
     responses(
         (status = 200, description = "Get config entry", body = ResolvedConfig)
     ),
@@ -88,7 +88,7 @@ pub async fn get_config(
 
 #[utoipa::path(
     put,
-    path = "/workspaces/{workspace_id}/configs",
+    path = "/v1/workspaces/{workspace_id}/configs",
     request_body = UpsertConfigRequest,
     responses(
         (status = 200, description = "Upsert config entry", body = WorkspaceConfigEntry)
@@ -141,7 +141,7 @@ pub async fn upsert_config(
 
 #[utoipa::path(
     delete,
-    path = "/workspaces/{workspace_id}/configs/{id}",
+    path = "/v1/workspaces/{workspace_id}/configs/{id}",
     responses(
         (status = 200, description = "Delete config entry")
     ),

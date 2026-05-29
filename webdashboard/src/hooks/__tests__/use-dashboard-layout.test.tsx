@@ -3,12 +3,11 @@ import { renderHook, waitFor, act } from "@testing-library/react";
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-import * as api from "@/lib/api";
-
+import * as api from "@/lib/api/helpers";
 import { useDashboardLayout } from "../use-dashboard-layout";
 
-vi.mock("@/lib/api", async () => {
-    const actual = await vi.importActual("@/lib/api");
+vi.mock("@/lib/api/helpers", async () => {
+    const actual = await vi.importActual("@/lib/api/helpers");
     return {
         ...actual,
         apiFetch: vi.fn(),
@@ -62,7 +61,7 @@ describe("useDashboardLayout hook", () => {
 
         await waitFor(() => { expect(result.current.isLoading).toBe(false); });
 
-        expect(api.apiFetch).toHaveBeenCalledWith("/dashboard/preferences");
+        expect(api.apiFetch).toHaveBeenCalledWith("/v1/dashboard/preferences");
         expect(result.current.activeView).toBe("attendance");
     });
 
@@ -106,7 +105,7 @@ describe("useDashboardLayout hook", () => {
 
  
         const putCallArguments = vi.mocked(api.apiFetch).mock.calls[1];
-        expect(putCallArguments[0]).toBe("/dashboard/preferences");
+        expect(putCallArguments[0]).toBe("/v1/dashboard/preferences");
         expect(putCallArguments[1]!.method).toBe("PUT");
 
         const body = JSON.parse(putCallArguments[1]!.body as string) as { active_view: string, visible_widgets: { overtime_trend: boolean, kpi_cards: boolean } };
@@ -153,7 +152,7 @@ describe("useDashboardLayout hook", () => {
             json: () => Promise.resolve(mockPreferences),
         } as Response);
 
-        vi.mocked(api.apiFetch).mockImplementation((url, init): Promise<Response> => {
+        vi.mocked(api.apiFetch).mockImplementation((url: any, init?: any): Promise<Response> => {
             if (url === "/dashboard/preferences" && init?.method === "PUT") {
                 return slowMutationPromise;
             }

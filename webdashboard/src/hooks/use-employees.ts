@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 
 import { fetchEmployees } from "@/lib/api";
+import { apiFetch } from "@/lib/api/helpers";
 import { WorkingCondition } from "@/lib/api/types";
 
 /**
@@ -53,7 +54,7 @@ export function useWorkingConditions(employeeId: string) {
   return useQuery({
     queryKey: ["working-conditions", employeeId],
     queryFn: async () => {
-      const response = await fetch(`/api/employees/${employeeId}/working-conditions`);
+      const response = await apiFetch(`/v1/employees/${employeeId}/working-conditions`);
       if (!response.ok) throw new Error("Failed to fetch");
       return response.json() as Promise<WorkingCondition[]>;
     },

@@ -3,34 +3,44 @@ import { ApiError, AppErrorResponse } from "@/lib/api/errors";
 import { apiFetch } from "@/lib/api/helpers";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const customFetch = async <T>(config: any, extraOptions?: RequestInit): Promise<T> => {
-  const { url, method, params, data, headers } = config;
+export const customFetch = async <T>(configOrUrl: any, extraOptions?: RequestInit): Promise<T> => {
+  let finalUrl: string;
+  let options: RequestInit;
 
-  // Construct URL with query parameters
-  const urlObj = new URL(`${API_BASE_URL}${url}`);
-  if (params) {
-    Object.entries(params).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) {
-        urlObj.searchParams.append(key, String(value));
-      }
-    });
+  if (typeof configOrUrl === "string") {
+    // Orval fetch client passes (url, options)
+    finalUrl = `${API_BASE_URL}${configOrUrl}`;
+    options = { ...extraOptions };
+  } else {
+    // Legacy / object config support
+    const { url, method, params, data, headers } = configOrUrl;
+    const urlObj = new URL(`${API_BASE_URL}${url}`, typeof window !== "undefined" ? window.location.origin : "http://localhost");
+    
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          urlObj.searchParams.append(key, String(value));
+        }
+      });
+    }
+    finalUrl = urlObj.toString();
+
+    options = {
+      method: method ? method.toUpperCase() : "GET",
+      headers: {
+        "Content-Type": "application/json",
+        ...headers,
+        ...extraOptions?.headers,
+      },
+      ...extraOptions,
+    };
+
+    if (data) {
+      options.body = JSON.stringify(data);
+    }
   }
 
-  const options: RequestInit = {
-    method: method ? method.toUpperCase() : "GET",
-    headers: {
-      "Content-Type": "application/json",
-      ...headers,
-      ...extraOptions?.headers,
-    },
-    ...extraOptions,
-  };
-
-  if (data) {
-    options.body = JSON.stringify(data);
-  }
-
-  const res = await apiFetch(urlObj.toString(), options);
+  const res = await apiFetch(finalUrl, options);
 
   if (!res.ok) {
     let errorBody: AppErrorResponse | undefined;

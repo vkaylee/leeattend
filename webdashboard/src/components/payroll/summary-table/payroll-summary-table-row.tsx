@@ -34,7 +34,7 @@ function BonusPayCell({ canReadSensitive, slip }: CellProps) {
   return (
     <td className="px-4 py-6 text-right font-mono text-sm text-blue-600 dark:text-blue-300 font-bold">
       {slip?.incentives && slip.incentives.length > 0 
-        ? `+${new Intl.NumberFormat('vi-VN').format(slip.incentives.reduce((accumulator, inc) => accumulator + parseFloat(inc.amount), 0))}` 
+        ? `+${new Intl.NumberFormat('vi-VN').format(slip.incentives.reduce((accumulator: any, inc: any) => accumulator + parseFloat(inc.amount), 0))}` 
         : "—"}
     </td>
   );

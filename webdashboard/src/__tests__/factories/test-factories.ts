@@ -17,11 +17,11 @@ export function createMockWorkspace(overrides?: Partial<Workspace>): Workspace {
     created_at: new Date().toISOString(),
     date_format: "YYYY-MM-DD",
     default_language: "en",
-    rounding_policy: "nearest_5",
+    default_holiday_ot_multiplier: "1.0",
+    holiday_overnight_strategy: "split",
     theme_primary_color: "#000000",
     time_format: "24h",
     timezone: "UTC",
-    work_unit_minutes: 60,
     ...overrides,
   };
 }
@@ -37,6 +37,8 @@ export function createMockEmployee(overrides?: Partial<Employee>): Employee {
     workspace_id: "ws-123",
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
+    primary_location_id: "loc-123",
+    tags: [],
     ...overrides,
   };
 }
@@ -48,6 +50,11 @@ export function createMockShift(overrides?: Partial<Shift>): Shift {
     start_time: "09:00:00",
     end_time: "17:00:00",
     break_duration_minutes: 60,
+    allow_early_ot: false,
+    break_is_overtime: false,
+    early_punch_in_grace_period_minutes: 0,
+    is_active: true,
+    is_break_auto_deduct: false,
     workspace_id: "ws-123",
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
@@ -62,6 +69,7 @@ export function createMockLeaveType(overrides?: Partial<LeaveType>): LeaveType {
     name: "Annual Leave",
     is_paid: true,
     workspace_id: "ws-123",
+    policy_config: {},
     created_at: new Date().toISOString(),
     ...overrides,
   };
@@ -72,7 +80,6 @@ export function createMockAttendanceAdjustment(overrides?: Partial<AttendanceAdj
     id: "adj-123",
     employee_id: "emp-123",
     is_break_overtime: false,
-    requested_date: "2023-10-01",
     requested_punch_in_time: "2023-10-01T09:00:00Z",
     status: "pending",
     created_at: new Date().toISOString(),
@@ -92,7 +99,12 @@ export function createMockUseMyProfile(overrides?: Partial<UseMyProfileReturn>):
     isUpdating: false,
     profile: undefined,
     refetch: async () => Promise.resolve(),
-    updateProfile: async () => Promise.resolve({} as any),
+    updateProfile: async () => Promise.resolve({
+      id: 'prof-123',
+      employee_id: 'emp-123',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }),
     ...overrides,
   };
 }
@@ -105,7 +117,16 @@ export function createMockUseMyClockReturn(overrides?: Partial<UseMyClockReturn>
     isError: false,
     isLoading: false,
     isPunching: false,
-    punch: async () => Promise.resolve({} as any),
+    punch: async () => Promise.resolve({
+      id: 'entry-123',
+      employee_id: 'emp-123',
+      entry_type: 'regular',
+      is_break_overtime: false,
+      punch_in_time: new Date().toISOString(),
+      workspace_id: 'ws-123',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }),
     refetch: async () => Promise.resolve(),
     ...overrides,
   };

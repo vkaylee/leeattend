@@ -100,7 +100,7 @@ export function ApprovalWorkflowsTab({ wsId }: { wsId: string }) {
                 {/* Workflow Steps Preview */}
                 {!!wf.steps && wf.steps.length > 0 && (
                   <div className="flex items-center gap-2 pt-2 overflow-x-auto custom-scrollbar pb-2">
-                    {wf.steps.map((step, idx) => (
+                    {wf.steps.map((step: any, idx: any) => (
                       <React.Fragment key={step.id}>
                         <div className="flex items-center gap-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 shrink-0">
                           <span className="w-5 h-5 rounded-full bg-slate-100 dark:bg-slate-900 flex items-center justify-center text-[10px] font-bold text-slate-500">

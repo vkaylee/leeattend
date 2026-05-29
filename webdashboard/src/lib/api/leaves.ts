@@ -16,11 +16,11 @@ export async function submitLeaveRequest(
     end_time?: string;
   },
 ): Promise<LeaveRequest> {
-  const { data: resData } = await client.POST("/v1/workspaces/{ws_id}/leave/submit", {
+  const { data: resData } = await client.POST("/workspaces/{ws_id}/leave/submit", {
     params: {
       path: { ws_id: wsId },
     },
-    body: data as any,
+    body: data,
   });
   if (!resData) throw new Error("No response data");
   return resData as unknown as LeaveRequest;
@@ -28,12 +28,12 @@ export async function submitLeaveRequest(
 
 export async function fetchWorkspaceLeaveRequests(
   wsId: string,
-  status?: string,
+  status?: "pending" | "approved" | "rejected" | "cancelled" | "pre_approved"
 ): Promise<LeaveRequest[]> {
-  const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/leave/requests", {
+  const { data: resData } = await client.GET("/workspaces/{ws_id}/leave/requests", {
     params: {
       path: { ws_id: wsId },
-      query: status ? { status: status as any } : undefined,
+      query: { status }
     },
   });
   if (!resData) throw new Error("No response data");
@@ -43,7 +43,7 @@ export async function fetchWorkspaceLeaveRequests(
 export async function fetchMyLeaveRequests(
   employeeId: string
 ): Promise<LeaveRequest[]> {
-  const { data: resData } = await client.GET("/v1/employees/{id}/leave/requests", {
+  const { data: resData } = await client.GET("/employees/{id}/leave/requests", {
     params: {
       path: { id: employeeId },
     },
@@ -55,13 +55,13 @@ export async function fetchMyLeaveRequests(
 export async function approveLeaveRequest(
   wsId: string,
   requestId: string,
-  data: { status: string },
+  data: { status: any }
 ): Promise<void> {
-  await client.POST("/v1/workspaces/{ws_id}/leave/requests/{id}/approve", {
+  await client.POST("/workspaces/{ws_id}/leave/requests/{id}/approve", {
     params: {
       path: { ws_id: wsId, id: requestId },
     },
-    body: data as any,
+    body: data,
   });
 }
 
@@ -69,7 +69,7 @@ export async function fetchEmployeeLeaveBalances(
   wsId: string,
   employeeId: string,
 ): Promise<EmployeeLeaveBalance[]> {
-  const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/employees/{id}/leave/balances", {
+  const { data: resData } = await client.GET("/workspaces/{ws_id}/employees/{id}/leave/balances", {
     params: {
       path: { ws_id: wsId, id: employeeId },
     },
@@ -82,15 +82,15 @@ export async function fetchWorkspaceLeaveBalances(
   wsId: string,
   params?: { page?: number; limit?: number; q?: string; year?: number }
 ): Promise<PaginatedResponse<WorkspaceLeaveBalance>> {
-  const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/leave/balances", {
+  const { data: resData } = await client.GET("/workspaces/{ws_id}/leave/balances", {
     params: {
       path: { ws_id: wsId },
       query: {
-        page: params?.page,
-        limit: params?.limit,
-        q: params?.q,
-        year: params?.year,
-      } as any,
+              page: params?.page,
+              limit: params?.limit,
+              q: params?.q,
+              year: params?.year,
+            },
     },
   });
   if (!resData) throw new Error("No response data");
@@ -102,7 +102,7 @@ export async function fetchLeaveHistory(
   employeeId: string,
   leaveTypeId?: string,
 ): Promise<LeaveHistoryItem[]> {
-  const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/employees/{id}/leave/history", {
+  const { data: resData } = await client.GET("/workspaces/{ws_id}/employees/{id}/leave/history", {
     params: {
       path: { ws_id: wsId, id: employeeId },
       query: leaveTypeId ? { leave_type_id: leaveTypeId } : undefined,
@@ -117,16 +117,16 @@ export async function adjustLeaveBalance(
   employeeId: string,
   data: { leave_type_id: string; amount: number; reason: string; transaction_date: string }
 ): Promise<void> {
-  await client.POST("/v1/workspaces/{ws_id}/employees/{id}/leave/adjust", {
+  await client.POST("/workspaces/{ws_id}/employees/{id}/leave/adjust", {
     params: {
       path: { ws_id: wsId, id: employeeId },
     },
-    body: data as any,
+    body: data,
   });
 }
 
 export async function fetchLeavePolicies(wsId: string): Promise<LeavePolicy[]> {
-  const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/leave/policies", {
+  const { data: resData } = await client.GET("/workspaces/{ws_id}/leave/policies", {
     params: {
       path: { ws_id: wsId },
     },
@@ -137,13 +137,13 @@ export async function fetchLeavePolicies(wsId: string): Promise<LeavePolicy[]> {
 
 export async function createLeavePolicy(
   wsId: string,
-  data: Partial<LeavePolicy>
+  data: { description?: string | null; leave_type_id: string; name: string; rule_config: any }
 ): Promise<LeavePolicy> {
-  const { data: resData } = await client.POST("/v1/workspaces/{ws_id}/leave/policies", {
+  const { data: resData } = await client.POST("/workspaces/{ws_id}/leave/policies", {
     params: {
       path: { ws_id: wsId },
     },
-    body: data as any,
+    body: data,
   });
   if (!resData) throw new Error("No response data");
   return resData as unknown as LeavePolicy;
@@ -154,11 +154,11 @@ export async function updateLeavePolicy(
   policyId: string,
   data: Partial<LeavePolicy>
 ): Promise<LeavePolicy> {
-  const { data: resData } = await client.PATCH("/v1/workspaces/{ws_id}/leave/policies/{policy_id}", {
+  const { data: resData } = await client.PATCH("/workspaces/{ws_id}/leave/policies/{policy_id}", {
     params: {
       path: { ws_id: wsId, policy_id: policyId },
     },
-    body: data as any,
+    body: data,
   });
   if (!resData) throw new Error("No response data");
   return resData as unknown as LeavePolicy;
@@ -168,7 +168,7 @@ export async function deleteLeavePolicy(
   wsId: string,
   policyId: string
 ): Promise<void> {
-  await client.DELETE("/v1/workspaces/{ws_id}/leave/policies/{policy_id}", {
+  await client.DELETE("/workspaces/{ws_id}/leave/policies/{policy_id}", {
     params: {
       path: { ws_id: wsId, policy_id: policyId },
     },
@@ -176,7 +176,7 @@ export async function deleteLeavePolicy(
 }
 
 export async function fetchLeaveTypes(wsId: string): Promise<LeaveType[]> {
-  const { data: resData } = await client.GET("/v1/workspaces/{workspace_id}/leave/types", {
+  const { data: resData } = await client.GET("/workspaces/{workspace_id}/leave/types", {
     params: {
       path: { workspace_id: wsId },
     },
@@ -187,13 +187,13 @@ export async function fetchLeaveTypes(wsId: string): Promise<LeaveType[]> {
 
 export async function createLeaveType(
   wsId: string,
-  data: Partial<LeaveType>
+  data: { code: string; is_paid: boolean; name: string; policy_config?: any }
 ): Promise<LeaveType> {
-  const { data: resData } = await client.POST("/v1/workspaces/{workspace_id}/leave/types", {
+  const { data: resData } = await client.POST("/workspaces/{workspace_id}/leave/types", {
     params: {
       path: { workspace_id: wsId },
     },
-    body: data as any,
+    body: data,
   });
   if (!resData) throw new Error("No response data");
   return resData as unknown as LeaveType;
@@ -204,21 +204,14 @@ export async function updateLeaveType(
   id: string,
   data: Partial<LeaveType>
 ): Promise<LeaveType> {
-  const { data: resData } = await client.PATCH("/v1/workspaces/{workspace_id}/leave/types/{id}" as any, {
-    params: {
-      path: { workspace_id: wsId, id } as any,
-    },
-    body: data as any,
-  });
-  if (!resData) throw new Error("No response data");
-  return resData as unknown as LeaveType;
+  throw new Error("updateLeaveType is deprecated. Use updateLeaveTypeConfig instead.");
 }
 
 export async function deleteLeaveType(
   wsId: string,
   id: string
 ): Promise<void> {
-  await client.DELETE("/v1/workspaces/{workspace_id}/leave/types/{id}", {
+  await client.DELETE("/workspaces/{workspace_id}/leave/types/{id}", {
     params: {
       path: { workspace_id: wsId, id },
     },
@@ -226,7 +219,7 @@ export async function deleteLeaveType(
 }
 
 export async function fetchLeavePolicyAssignments(wsId: string): Promise<LeavePolicyAssignmentDetail[]> {
-  const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/leave/policies/assignments", {
+  const { data: resData } = await client.GET("/workspaces/{ws_id}/leave/policies/assignments", {
     params: {
       path: { ws_id: wsId },
     },
@@ -239,11 +232,11 @@ export async function assignLeavePolicy(
   wsId: string,
   data: { assignee_type: string; assignee_id: string | null; policy_id: string; effective_from: string }
 ): Promise<void> {
-  await client.POST("/v1/workspaces/{ws_id}/leave/policies/assign", {
+  await client.POST("/workspaces/{ws_id}/leave/policies/assign", {
     params: {
       path: { ws_id: wsId },
     },
-    body: data as any,
+    body: data,
   });
 }
 
@@ -257,11 +250,11 @@ export async function triggerAccrualRun(
   wsId: string,
   data: { date: string }
 ): Promise<AccrualJobResponse> {
-  const { data: resData } = await client.POST("/v1/workspaces/{ws_id}/leave/accrual/run", {
+  const { data: resData } = await client.POST("/workspaces/{ws_id}/leave/accrual/run", {
     params: {
       path: { ws_id: wsId },
     },
-    body: data as any,
+    body: data,
   });
   if (!resData) throw new Error("No response data");
   return resData as unknown as AccrualJobResponse;
@@ -278,7 +271,7 @@ export async function fetchJobStatus(
   wsId: string,
   jobId: string
 ): Promise<JobStatusResponse> {
-  const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/jobs/{job_id}/status", {
+  const { data: resData } = await client.GET("/workspaces/{ws_id}/jobs/{job_id}/status", {
     params: {
       path: { ws_id: wsId, job_id: jobId },
     },
@@ -292,11 +285,11 @@ export async function updateLeaveTypeConfig(
   id: string,
   config: LeaveTypeConfig
 ): Promise<LeaveType> {
-  const { data: resData } = await client.PUT("/v1/workspaces/{workspace_id}/leave/types/{id}/config", {
+  const { data: resData } = await client.PUT("/workspaces/{workspace_id}/leave/types/{id}/config", {
     params: {
       path: { workspace_id: wsId, id },
     },
-    body: config as any,
+    body: { policy_config: config as any },
   });
   if (!resData) throw new Error("No response data");
   return resData as unknown as LeaveType;
@@ -323,7 +316,7 @@ export async function uploadLeaveExcel(
 ): Promise<{ job_id: string; status: string }> {
   const formData = new FormData();
   formData.append('file', file);
-  const { data: resData } = await client.POST("/v1/workspaces/{ws_id}/leave/upload-excel", {
+  const { data: resData } = await client.POST("/workspaces/{ws_id}/leave/upload-excel", {
     params: {
       path: { ws_id: wsId },
     },
@@ -337,7 +330,7 @@ export async function uploadLeaveExcel(
 export async function fetchLatestLeaveImport(
   wsId: string,
 ): Promise<LeaveImportJob | null> {
-  const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/leave/import/latest", {
+  const { data: resData } = await client.GET("/workspaces/{ws_id}/leave/import/latest", {
     params: {
       path: { ws_id: wsId },
     },
@@ -350,7 +343,7 @@ export async function fetchLeaveImportStatus(
   wsId: string,
   _jobId: string,
 ): Promise<LeaveImportJob | null> {
-  const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/leave/import/latest", {
+  const { data: resData } = await client.GET("/workspaces/{ws_id}/leave/import/latest", {
     params: {
       path: { ws_id: wsId },
     },
@@ -360,17 +353,17 @@ export async function fetchLeaveImportStatus(
 
 /** Get the URL for downloading the error Excel file (URL-only, for non-fetch usage). */
 export function getLeaveImportErrorsUrl(wsId: string, jobId: string): string {
-  return `${API_BASE_URL}/workspaces/${wsId}/leave/import/${jobId}/errors`;
+  return `${API_BASE_URL}/v1/workspaces/${wsId}/leave/import/${jobId}/errors`;
 }
 
 /** Get the URL for downloading the import template Excel (URL-only, for non-fetch usage). */
 export function getLeaveImportTemplateUrl(wsId: string, lang = "en"): string {
-  return `${API_BASE_URL}/workspaces/${wsId}/leave/upload-template?lang=${lang}`;
+  return `${API_BASE_URL}/v1/workspaces/${wsId}/leave/upload-template?lang=${lang}`;
 }
 
 /** Download the leave import template Excel via authenticated fetch. */
 export async function downloadLeaveImportTemplate(wsId: string, lang = "en"): Promise<void> {
-  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/leave/upload-template?lang=${lang}`);
+  const response = await apiFetch(`/v1/workspaces/${wsId}/leave/upload-template?lang=${lang}`);
   if (!response.ok) throw new Error("Failed to download template");
   const blob = await response.blob();
   const url = window.URL.createObjectURL(blob);
@@ -385,7 +378,7 @@ export async function downloadLeaveImportTemplate(wsId: string, lang = "en"): Pr
 
 /** Download the error Excel file via authenticated fetch. */
 export async function downloadLeaveImportErrors(wsId: string, jobId: string): Promise<void> {
-  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/leave/import/${jobId}/errors`);
+  const response = await apiFetch(`/v1/workspaces/${wsId}/leave/import/${jobId}/errors`);
   if (!response.ok) throw new Error("Failed to download errors");
   const blob = await response.blob();
   const url = window.URL.createObjectURL(blob);

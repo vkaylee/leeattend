@@ -26,10 +26,10 @@ export async function fetchShiftSwaps(
     wsId: string,
     status?: ShiftSwapStatus,
 ): Promise<ShiftSwapRequest[]> {
-    const { data } = await client.GET("/v1/workspaces/{workspace_id}/shift-swaps", {
+    const { data } = await client.GET("/workspaces/{workspace_id}/shift-swaps", {
         params: {
             path: { workspace_id: wsId },
-            query: { status: status as any },
+            query: { status: status },
         },
     });
     if (!data) throw new Error("No response data");
@@ -45,11 +45,11 @@ export async function createShiftSwap(
         reason?: string;
     },
 ): Promise<ShiftSwapRequest> {
-    const { data: resData } = await client.POST("/v1/workspaces/{workspace_id}/shift-swaps", {
+    const { data: resData } = await client.POST("/workspaces/{workspace_id}/shift-swaps", {
         params: {
             path: { workspace_id: wsId },
         },
-        body: data as any,
+        body: data,
     });
     if (!resData) throw new Error("No response data");
     return resData as unknown as ShiftSwapRequest;
@@ -60,11 +60,11 @@ export async function approveShiftSwap(
     swapId: string,
     data: { status: ShiftSwapStatus },
 ): Promise<void> {
-    await client.PUT("/v1/workspaces/{workspace_id}/shift-swaps/{id}/approve", {
+    await client.PUT("/workspaces/{workspace_id}/shift-swaps/{id}/approve", {
         params: {
             path: { workspace_id: wsId, id: swapId },
         },
-        body: data as any,
+        body: data,
     });
 }
 
@@ -81,7 +81,7 @@ export interface SwapStats {
 export async function fetchShiftSwapStats(
     wsId: string,
 ): Promise<SwapStats> {
-    const { data: resData } = await client.GET("/v1/workspaces/{workspace_id}/shift-swaps/stats", {
+    const { data: resData } = await client.GET("/workspaces/{workspace_id}/shift-swaps/stats", {
         params: {
             path: { workspace_id: wsId },
         },

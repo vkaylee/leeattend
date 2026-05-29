@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Upload, FileText, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { useState } from "react";

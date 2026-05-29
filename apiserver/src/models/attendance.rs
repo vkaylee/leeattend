@@ -39,7 +39,7 @@ pub struct ApproveAttendanceAdjustmentRequest {
     pub status: AdjustmentStatus,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct AttendanceSummary {
     pub employee_id: Uuid,
     pub employee_name: String,

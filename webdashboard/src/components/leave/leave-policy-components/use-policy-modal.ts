@@ -50,7 +50,7 @@ export function usePolicyModal(
   };
 
   const removeBonusMilestone = (index: number) => {
-    setSeniorityBonus(seniorityBonus.filter((_, i) => i !== index));
+    setSeniorityBonus(seniorityBonus.filter((_: any, i: any) => i !== index));
   };
 
   const updateBonusMilestone = (index: number, field: "min_years" | "extra_days", value: number) => {

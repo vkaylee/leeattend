@@ -34,7 +34,7 @@ pub struct OvertimeRequestDetail {
 
 #[utoipa::path(
     post,
-    path = "/workspaces/{ws_id}/overtime/requests",
+    path = "/v1/workspaces/{ws_id}/overtime/requests",
     request_body = CreateOvertimeRequestPayload,
     responses(
         (status = 200, description = "Overtime request created", body = OvertimeRequest)
@@ -96,7 +96,7 @@ pub async fn create_ot_request(
 
 #[utoipa::path(
     get,
-    path = "/workspaces/{ws_id}/overtime/requests",
+    path = "/v1/workspaces/{ws_id}/overtime/requests",
     responses(
         (status = 200, description = "List overtime requests", body = [OvertimeRequest])
     ),
@@ -116,7 +116,7 @@ pub async fn list_ot_requests(
 
 #[utoipa::path(
     get,
-    path = "/workspaces/{ws_id}/overtime/requests/{id}",
+    path = "/v1/workspaces/{ws_id}/overtime/requests/{id}",
     responses(
         (status = 200, description = "Overtime request details", body = OvertimeRequestDetail)
     ),
@@ -151,7 +151,7 @@ pub async fn get_ot_request(
 
 #[utoipa::path(
     post,
-    path = "/workspaces/{ws_id}/overtime/requests/{id}/submit",
+    path = "/v1/workspaces/{ws_id}/overtime/requests/{id}/submit",
     responses(
         (status = 200, description = "Overtime request submitted for approval")
     ),
@@ -190,7 +190,7 @@ pub struct EmployeeConsentRequest {
 
 #[utoipa::path(
     post,
-    path = "/workspaces/{ws_id}/overtime/requests/{id}/consent/{emp_id}",
+    path = "/v1/workspaces/{ws_id}/overtime/requests/{id}/consent/{emp_id}",
     request_body = EmployeeConsentRequest,
     responses(
         (status = 200, description = "Employee consent status updated")

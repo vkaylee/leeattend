@@ -17,6 +17,7 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { WorkingCondition } from "@/lib/api/types";
+import { apiFetch } from "@/lib/api/helpers";
 
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
@@ -160,7 +161,7 @@ function useWorkingConditionActions({
 }) {
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const response = await fetch(`/api/employees/${employeeId}/working-conditions/${id}`, { method: "DELETE" });
+      const response = await apiFetch(`/v1/employees/${employeeId}/working-conditions/${id}`, { method: "DELETE" });
       if (!response.ok) throw new Error("Failed to delete");
     },
     onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ["working-conditions", employeeId] }); },
@@ -168,7 +169,7 @@ function useWorkingConditionActions({
 
   const createMutation = useMutation({
     mutationFn: async (data: CreateWorkingConditionData) => {
-      const response = await fetch(`/api/employees/${employeeId}/working-conditions`, {
+      const response = await apiFetch(`/v1/employees/${employeeId}/working-conditions`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),

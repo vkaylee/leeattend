@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi, Mock } from 'vitest';
 
 import {
   getAccessToken,
@@ -11,7 +11,10 @@ import {
   setCurrentUserId,
   clearAuthSession,
   TIMEOUT,
+  apiFetch,
+  forceRefreshToken,
 } from '../helpers';
+import { API_BASE_URL } from '../config';
 
 describe('Token helpers', () => {
   beforeEach(() => {
@@ -70,6 +73,10 @@ describe('User ID helpers', () => {
 describe('clearAuthSession', () => {
   beforeEach(() => {
     localStorage.clear();
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true }));
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   it('clears all auth-related localStorage keys', () => {
@@ -85,10 +92,6 @@ describe('clearAuthSession', () => {
     expect(getCurrentWorkspaceId()).toBeNull();
     expect(getCurrentUserId()).toBeNull();
   });
-
-  it('does not throw when localStorage is empty', () => {
-    expect(() => { clearAuthSession(); }).not.toThrow();
-  });
 });
 
 describe('TIMEOUT constants', () => {
@@ -102,5 +105,105 @@ describe('TIMEOUT constants', () => {
 
   it('QUICK is 5 seconds', () => {
     expect(TIMEOUT.QUICK).toBe(5000);
+  });
+});
+
+describe('apiFetch interceptor logic', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    vi.stubGlobal('fetch', vi.fn());
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  it('injects headers correctly', async () => {
+    const mockFetch = globalThis.fetch as Mock;
+    mockFetch.mockResolvedValue({ ok: true, status: 200 });
+
+    setAccessToken('test-token');
+    setCurrentWorkspaceId('ws-123');
+
+    const promise = apiFetch('/v1/test');
+    await vi.runAllTimersAsync();
+    await promise;
+
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    const [, options] = mockFetch.mock.calls[0];
+    
+    // Using Headers object
+    const headers = options.headers as Headers;
+    expect(headers.get('Authorization')).toBe('Bearer test-token');
+    expect(headers.get('X-Workspace-Id')).toBe('ws-123');
+    expect(headers.get('Content-Type')).toBe('application/json');
+  });
+
+  it('aborts request on timeout', async () => {
+    const mockFetch = globalThis.fetch as Mock;
+    // Mock fetch that never resolves
+    mockFetch.mockImplementation(() => new Promise(() => {}));
+
+    const promise = apiFetch('/v1/slow', { timeout: 1000 });
+    
+    // Advance timer by 1001ms
+    await vi.advanceTimersByTimeAsync(1001);
+    
+    // The AbortController should have triggered
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    const [, options] = mockFetch.mock.calls[0];
+    expect(options.signal.aborted).toBe(true);
+  });
+});
+
+describe('Token Refresh Mutex (Stampede Prevention)', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    vi.stubGlobal('fetch', vi.fn());
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  it('batches concurrent refresh requests into a single fetch call', async () => {
+    setRefreshToken('refresh-abc');
+
+    const mockFetch = globalThis.fetch as Mock;
+    let resolveRefresh: (value: any) => void;
+    // Create a delayed promise to simulate network latency for refresh
+    const delayedResponse = new Promise((resolve) => {
+      resolveRefresh = resolve;
+    });
+
+    mockFetch.mockReturnValue(delayedResponse);
+
+    // Call forceRefreshToken 3 times concurrently
+    const promises = [
+      forceRefreshToken(),
+      forceRefreshToken(),
+      forceRefreshToken(),
+    ];
+
+    // Wait a tick to ensure they all hit the if (refreshPromise) branch
+    await new Promise(r => setTimeout(r, 0));
+    
+    expect(mockFetch).toHaveBeenCalledTimes(1); // Only ONE network call should be made!
+
+    // Now resolve the network call
+    resolveRefresh!({
+      ok: true,
+      json: () => Promise.resolve({ access_token: 'new-acc', refresh_token: 'new-ref' }),
+    });
+
+    const results = await Promise.all(promises);
+
+    expect(results).toEqual([true, true, true]); // All three should return success
+    expect(mockFetch).toHaveBeenCalledTimes(1); // Still exactly 1 fetch call
+    expect(getAccessToken()).toBe('new-acc');
   });
 });

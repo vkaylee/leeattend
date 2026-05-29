@@ -32,7 +32,7 @@ export function useDashboardStats() {
     queryFn: async () => {
       if (!workspace) throw new Error("No workspace selected");
 
-      const response = await apiFetch(`/dashboard/workspace-stats`);
+      const response = await apiFetch(`/v1/dashboard/workspace-stats`);
 
       if (!response.ok) {
         throw new Error("Failed to fetch dashboard stats");
@@ -52,7 +52,7 @@ export function useAttendanceTrend() {
     queryFn: async () => {
       if (!workspace) throw new Error("No workspace selected");
 
-      const response = await apiFetch(`/dashboard/attendance-trend`);
+      const response = await apiFetch(`/v1/dashboard/attendance-trend`);
 
       if (!response.ok) {
         throw new Error("Failed to fetch attendance trend");
@@ -82,7 +82,7 @@ export function useDepartmentAttendance(range: "today" | "week" = "today") {
       if (!workspace) throw new Error("No workspace selected");
 
       const response = await apiFetch(
-        `/dashboard/department-attendance?range=${range}`
+        `/v1/dashboard/department-attendance?range=${range}`
       );
 
       if (!response.ok) {
@@ -119,7 +119,7 @@ export function useUnexcusedAbsences(startDate?: string, endDate?: string, group
       if (endDate) params.set("end_date", endDate);
       if (groupBy) params.set("group_by", groupBy);
       const qs = params.toString();
-      const response = await apiFetch(`/dashboard/unexcused-absences${qs ? `?${qs}` : ""}`);
+      const response = await apiFetch(`/v1/dashboard/unexcused-absences${qs ? `?${qs}` : ""}`);
 
       if (!response.ok) {
         throw new Error("Failed to fetch unexcused absences");
@@ -145,7 +145,7 @@ export function useOvertimeTrend() {
     queryFn: async () => {
       if (!workspace) throw new Error("No workspace selected");
 
-      const response = await apiFetch(`/dashboard/overtime-trend`);
+      const response = await apiFetch(`/v1/dashboard/overtime-trend`);
 
       if (!response.ok) {
         throw new Error("Failed to fetch overtime trend");
@@ -173,7 +173,7 @@ export function usePeakTimes() {
     queryFn: async () => {
       if (!workspace) throw new Error("No workspace selected");
 
-      const response = await apiFetch(`/dashboard/peak-times`);
+      const response = await apiFetch(`/v1/dashboard/peak-times`);
 
       if (!response.ok) {
         throw new Error("Failed to fetch peak times");
@@ -200,7 +200,7 @@ export function useLeaveTypesBreakdown() {
     queryFn: async () => {
       if (!workspace) throw new Error("No workspace selected");
 
-      const response = await apiFetch(`/dashboard/leave-types`);
+      const response = await apiFetch(`/v1/dashboard/leave-types`);
 
       if (!response.ok) {
         throw new Error("Failed to fetch leave types breakdown");
@@ -228,7 +228,7 @@ export function useLatenessByDay() {
     queryFn: async () => {
       if (!workspace) throw new Error("No workspace selected");
 
-      const response = await apiFetch(`/dashboard/lateness-by-day`);
+      const response = await apiFetch(`/v1/dashboard/lateness-by-day`);
 
       if (!response.ok) {
         throw new Error("Failed to fetch lateness by day");
@@ -256,7 +256,7 @@ export function useRecruitmentSourceBreakdown() {
     queryFn: async () => {
       if (!workspace) throw new Error("No workspace selected");
 
-      const response = await apiFetch(`/dashboard/recruitment-sources`);
+      const response = await apiFetch(`/v1/dashboard/recruitment-sources`);
 
       if (!response.ok) {
         throw new Error("Failed to fetch recruitment source breakdown");
@@ -304,7 +304,7 @@ export function useTurnoverAnalytics(startDate: string, endDate: string) {
       if (!workspace) throw new Error("No workspace selected");
 
       const response = await apiFetch(
-        `/dashboard/turnover-analytics?start=${startDate}&end=${endDate}`
+        `/v1/dashboard/turnover-analytics?start=${startDate}&end=${endDate}`
       );
 
       if (!response.ok) {

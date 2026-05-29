@@ -32,7 +32,7 @@ export async function createEmployeeContract(
     params: {
       path: { ws_id: wsId, employee_id: employeeId },
     },
-    body: data as any,
+    body: data,
   });
   if (!result) throw new Error("No response data");
   return result as unknown as EmployeeContract;
@@ -48,7 +48,7 @@ export async function updateEmployeeContract(
     params: {
       path: { ws_id: wsId, employee_id: employeeId, contract_id: contractId },
     },
-    body: data as any,
+    body: data,
   });
   if (!result) throw new Error("No response data");
   return result as unknown as EmployeeContract;

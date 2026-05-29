@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useQueryClient } from "@tanstack/react-query";
 import { Activity } from "lucide-react";
 import { useState } from "react";

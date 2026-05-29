@@ -3,7 +3,7 @@ use axum::{
     response::Json,
 };
 use chrono::NaiveDate;
-use std::collections::BTreeMap;
+
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -11,11 +11,25 @@ use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
 use crate::AppState;
 
+#[derive(serde::Deserialize, utoipa::IntoParams)]
+pub struct AttendanceReportQuery {
+    pub start_date: String,
+    pub end_date: String,
+    pub r#type: Option<String>,
+    pub page: Option<i64>,
+    pub limit: Option<i64>,
+    pub sort: Option<String>,
+    pub employee_ids: Option<String>,
+    pub department_id: Option<uuid::Uuid>,
+}
+
+
 #[utoipa::path(
     get,
-    path = "/v1/workspaces/{ws_id}/attendance/reports",
+    path = "/v1/workspaces/{ws_id}/reports/attendance",
     params(
-        ("ws_id" = Uuid, Path, description = "Workspace ID")
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        AttendanceReportQuery
     ),
     responses(
         (status = 200, description = "Attendance report data")
@@ -27,36 +41,23 @@ use crate::AppState;
 pub async fn get_attendance_report(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
-    Query(params): Query<BTreeMap<String, String>>,
+    Query(params): Query<AttendanceReportQuery>,
 ) -> AppResult<Json<serde_json::Value>> {
     let workspace_id = ctx.workspace_id;
 
-    let start_date_str = params
-        .get("start_date")
-        .ok_or_else(|| AppError::Validation("Missing start_date".to_string()))?;
-    let end_date_str = params
-        .get("end_date")
-        .ok_or_else(|| AppError::Validation("Missing end_date".to_string()))?;
-    let report_type = params
-        .get("type")
-        .map_or("summary", std::string::String::as_str);
+    let start_date_str = &params.start_date;
+    let end_date_str = &params.end_date;
+    let report_type = params.r#type.as_deref().unwrap_or("summary");
 
-    let page = params.get("page").and_then(|s| s.parse::<i64>().ok());
-    let limit = params.get("limit").and_then(|s| s.parse::<i64>().ok());
-    let sort = params.get("sort").and_then(|s| {
-        serde_json::from_value::<crate::models::AttendanceReportSort>(serde_json::Value::String(
-            s.clone(),
-        ))
-        .ok()
-    });
-    let employee_ids = params.get("employee_ids").map(|s| {
+    let page = params.page;
+    let limit = params.limit;
+    let sort = params.sort.as_ref().and_then(|s| serde_json::from_value::<crate::models::AttendanceReportSort>(serde_json::Value::String(s.clone())).ok());
+    let employee_ids = params.employee_ids.as_ref().map(|s| {
         s.split(',')
             .filter_map(|id| Uuid::parse_str(id).ok())
             .collect::<Vec<Uuid>>()
     });
-    let department_id = params
-        .get("department_id")
-        .and_then(|s| Uuid::parse_str(s).ok());
+    let department_id = params.department_id;
 
     let start_date = NaiveDate::parse_from_str(start_date_str, "%Y-%m-%d")
         .map_err(|_e| AppError::Validation("Invalid start_date format".to_string()))?;

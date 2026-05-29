@@ -22,19 +22,19 @@ import { client } from "./client";
 // --- Profile ---
 
 export async function fetchMyProfile(): Promise<MyProfileResponse> {
-  const { data: resData } = await client.GET("/v1/ess/profile");
+  const { data: resData } = await client.GET("/ess/profile");
   if (!resData) throw new Error("No response data");
-  return resData as any;
+  return resData!;
 }
 
 export async function updateMyProfile(
   data: UpdateProfileRequest
 ): Promise<EmployeeProfile> {
-  const { data: resData } = await client.PUT("/v1/ess/profile", {
-    body: data as any,
+  const { data: resData } = await client.PUT("/ess/profile", {
+    body: data,
   });
   if (!resData) throw new Error("No response data");
-  return resData as any;
+  return resData!;
 }
 
 // --- Emergency Contacts ---
@@ -42,23 +42,23 @@ export async function updateMyProfile(
 export async function fetchMyEmergencyContacts(): Promise<
   EmployeeEmergencyContact[]
 > {
-  const { data: resData } = await client.GET("/v1/ess/emergency-contacts");
+  const { data: resData } = await client.GET("/ess/emergency-contacts");
   if (!resData) throw new Error("No response data");
-  return resData as any[];
+  return resData!;
 }
 
 export async function addEmergencyContact(
   data: CreateEmergencyContactRequest
 ): Promise<EmployeeEmergencyContact> {
-  const { data: resData } = await client.POST("/v1/ess/emergency-contacts", {
-    body: data as any,
+  const { data: resData } = await client.POST("/ess/emergency-contacts", {
+    body: data,
   });
   if (!resData) throw new Error("No response data");
-  return resData as any;
+  return resData!;
 }
 
 export async function deleteEmergencyContact(contactId: string): Promise<void> {
-  await client.DELETE("/v1/ess/emergency-contacts/{contact_id}", {
+  await client.DELETE("/ess/emergency-contacts/{contact_id}", {
     params: {
       path: { contact_id: contactId },
     },
@@ -68,9 +68,9 @@ export async function deleteEmergencyContact(contactId: string): Promise<void> {
 // --- Documents ---
 
 export async function fetchMyDocuments(): Promise<EmployeeDocument[]> {
-  const { data: resData } = await client.GET("/v1/ess/documents");
+  const { data: resData } = await client.GET("/ess/documents");
   if (!resData) throw new Error("No response data");
-  return resData as any[];
+  return resData!;
 }
 
 // Document upload will be implemented in Phase 4
@@ -78,9 +78,9 @@ export async function fetchMyDocuments(): Promise<EmployeeDocument[]> {
 // --- Payslips ---
 
 export async function fetchMyPayslips(): Promise<Payslip[]> {
-  const { data: resData } = await client.GET("/v1/ess/payslips");
+  const { data: resData } = await client.GET("/ess/payslips");
   if (!resData) throw new Error("No response data");
-  return resData as any[];
+  return resData!;
 }
 
 // --- Attendance ---
@@ -93,7 +93,7 @@ export interface AttendanceParams {
 export async function fetchMyAttendance(
   params?: AttendanceParams
 ): Promise<TimeEntry[]> {
-  const { data: resData } = await client.GET("/v1/ess/attendance", {
+  const { data: resData } = await client.GET("/ess/attendance", {
     params: {
       query: {
         start_date: params?.start_date,
@@ -102,7 +102,7 @@ export async function fetchMyAttendance(
     },
   });
   if (!resData) throw new Error("No response data");
-  return resData as any[];
+  return resData!;
 }
 
 // --- Time Clock ---
@@ -110,7 +110,7 @@ export async function fetchMyAttendance(
 export async function fetchMyTimeEntries(
   params?: { start_date?: string; end_date?: string }
 ): Promise<TimeEntry[]> {
-  const { data: resData } = await client.GET("/v1/ess/time-entries", {
+  const { data: resData } = await client.GET("/ess/time-entries", {
     params: {
       query: {
         start_date: params?.start_date,
@@ -119,31 +119,31 @@ export async function fetchMyTimeEntries(
     },
   });
   if (!resData) throw new Error("No response data");
-  return resData as any[];
+  return resData!;
 }
 
 export async function punchMySelf(
   data?: { note?: string }
 ): Promise<TimeEntry> {
-  const { data: resData } = await client.POST("/v1/ess/punch", {
+  const { data: resData } = await client.POST("/ess/punch", {
     body: data || {},
   });
   if (!resData) throw new Error("No response data");
-  return resData as any;
+  return resData!;
 }
 
 // --- Leave ---
 
 export async function fetchEssLeaveBalances(): Promise<EmployeeLeaveBalance[]> {
-  const { data: resData } = await client.GET("/v1/ess/leave/balances");
+  const { data: resData } = await client.GET("/ess/leave/balances");
   if (!resData) throw new Error("No response data");
-  return resData as any[];
+  return resData!;
 }
 
 export async function fetchEssLeaveRequests(): Promise<LeaveRequest[]> {
-  const { data: resData } = await client.GET("/v1/ess/leave/requests");
+  const { data: resData } = await client.GET("/ess/leave/requests");
   if (!resData) throw new Error("No response data");
-  return resData as any[];
+  return resData!;
 }
 
 // --- OT Claim (ESS Wrapper) ---

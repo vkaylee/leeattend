@@ -33,7 +33,7 @@ export const createEmployeeAssignment = async (
     params: {
       path: { ws_id: workspaceId, employee_id: employeeId },
     },
-    body: data as any,
+    body: data,
   });
   if (!result) throw new Error("Failed to create employee assignment");
   return result as unknown as EmployeeAssignment;
@@ -49,7 +49,7 @@ export const updateEmployeeAssignment = async (
     params: {
       path: { ws_id: workspaceId, employee_id: employeeId, assignment_id: assignmentId },
     },
-    body: data as any,
+    body: data,
   });
   if (!result) throw new Error("Failed to update employee assignment");
   return result as unknown as EmployeeAssignment;

@@ -41,7 +41,7 @@ export const clearAuthSession = () => {
   localStorage.removeItem("refresh_token");
 
   // Call backend to clear HttpOnly cookies
-  fetch(`${API_BASE_URL}/auth/logout`, { 
+  fetch(`${API_BASE_URL}/v1/auth/logout`, { 
     method: "POST", 
     credentials: "include",
     headers: { "Content-Type": "application/json" },
@@ -171,7 +171,7 @@ export async function apiFetch(
       });
     }
 
-    return response;
+    return response!;
   } catch (error) {
     clearTimeout(id);
     throw error;
@@ -194,17 +194,19 @@ interface UnauthorizedParams {
   timeoutId: number | ReturnType<typeof setTimeout>;
 }
 
-async function handleUnauthorized({
-  fullUrl,
-  fetchOptions,
-  headers,
-  controller,
-  timeoutId
-}: UnauthorizedParams): Promise<Response> {
-  const refreshToken = getRefreshToken();
-  if (refreshToken) {
+let refreshPromise: Promise<boolean> | null = null;
+
+export async function forceRefreshToken(): Promise<boolean> {
+  if (refreshPromise) {
+    return refreshPromise; // Xếp hàng chờ nếu đang có request refresh
+  }
+
+  refreshPromise = (async () => {
+    const refreshToken = getRefreshToken();
+    if (!refreshToken) return false;
+
     try {
-      const refreshResponse = await fetch(`${API_BASE_URL}/auth/refresh`, {
+      const refreshResponse = await fetch(`${API_BASE_URL}/v1/auth/refresh`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -215,22 +217,42 @@ async function handleUnauthorized({
         const data = (await refreshResponse.json()) as { access_token: string; refresh_token: string };
         setAccessToken(data.access_token);
         setRefreshToken(data.refresh_token);
-
-        const retryHeaders = new Headers(headers);
-        retryHeaders.set("Authorization", `Bearer ${data.access_token}`);
-        
-        const retryResponse = await fetch(fullUrl, {
-          ...fetchOptions,
-          headers: retryHeaders,
-          credentials: "include",
-          signal: controller.signal
-        });
-        clearTimeout(timeoutId);
-        return retryResponse;
+        return true;
       }
     } catch (e) {
       console.error("Token refresh failed", e);
     }
+    return false;
+  })().finally(() => {
+    refreshPromise = null;
+  });
+
+  return refreshPromise;
+}
+
+async function handleUnauthorized({
+  fullUrl,
+  fetchOptions,
+  headers,
+  controller,
+  timeoutId
+}: UnauthorizedParams): Promise<Response> {
+  const success = await forceRefreshToken();
+  if (success) {
+    const token = getAccessToken();
+    const retryHeaders = new Headers(headers);
+    if (token) {
+      retryHeaders.set("Authorization", `Bearer ${token}`);
+    }
+    
+    const retryResponse = await fetch(fullUrl, {
+      ...fetchOptions,
+      headers: retryHeaders,
+      credentials: "include",
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+    return retryResponse;
   }
   
   console.warn("Session expired (401). Redirecting to login...");
@@ -242,6 +264,6 @@ async function handleUnauthorized({
 }
 
 export async function fetchHealth(): Promise<{ status: string }> {
-  const response = await apiFetch(`${API_BASE_URL}/health`);
+  const response = await apiFetch(`/v1/health`);
   return response.json() as Promise<{ status: string }>;
 }

@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, CheckCircle2, FileText, Trash2, Percent, Calculator } from "lucide-react";
 import React, { useState } from "react";

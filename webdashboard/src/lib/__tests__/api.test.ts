@@ -164,13 +164,13 @@ describe("api.ts comprehensive tests", () => {
     it("updateTimeEntry", async () => {
       mockSuccess({});
       await api.updateTimeEntry("ws-1", "t1", { note: "U" });
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/time/entries/t1"), expect.objectContaining({ method: "PUT" }));
+      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/attendance/time-tracking/t1"), expect.objectContaining({ method: "PUT" }));
     });
 
     it("deleteTimeEntry", async () => {
       mockSuccess({});
       await api.deleteTimeEntry("ws-1", "t1");
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/time/entries/t1"), expect.objectContaining({ method: "DELETE" }));
+      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/attendance/time-tracking/t1"), expect.objectContaining({ method: "DELETE" }));
     });
 
     it("submitAttendanceAdjustment", async () => {
@@ -179,10 +179,10 @@ describe("api.ts comprehensive tests", () => {
       expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/attendance/adjustments"), expect.objectContaining({ method: "POST" }));
     });
 
-    it("uploadAttendanceExcel", async () => {
-      mockSuccess({ job_id: "j1" });
-      const file = new File([""], "test.csv");
-      await api.uploadAttendanceExcel("ws-1", file);
+    it("uploadAttendance", async () => {
+      mockSuccess({});
+      const file = new File([""], "test.xlsx");
+      await api.uploadAttendance("ws-1", file, "timecard");
       expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/attendance/upload"), expect.objectContaining({ method: "POST" }));
     });
 
@@ -207,7 +207,7 @@ describe("api.ts comprehensive tests", () => {
     it("approveAttendanceAdjustment", async () => {
       mockSuccess({});
       await api.approveAttendanceAdjustment("ws-1", "req-1", { status: "approved" });
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/attendance/adjustments/req-1/approve"), expect.objectContaining({ method: "POST" }));
+      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/attendance/adjustments/req-1/approve"), expect.objectContaining({ method: "PUT" }));
     });
 
     it("fetchAttendanceLogs", async () => {
@@ -430,7 +430,7 @@ describe("api.ts comprehensive tests", () => {
     it("updateWorkspaceMemberRole", async () => {
       mockSuccess({});
       await api.updateWorkspaceMemberRole("ws-1", "u1", "owner");
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/members/u1"), expect.objectContaining({ method: "PATCH" }));
+      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/members/u1/role"), expect.objectContaining({ method: "PUT" }));
     });
 
     it("login", async () => {

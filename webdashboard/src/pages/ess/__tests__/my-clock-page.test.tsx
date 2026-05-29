@@ -145,7 +145,7 @@ describe("MyClockPage", () => {
   });
 
   it("handles adjustment request successfully", async () => {
-    const mockSubmit = vi.mocked(api.submitAttendanceAdjustment).mockResolvedValue({} as any);
+    const mockSubmit = vi.mocked(api.submitAttendanceAdjustment).mockResolvedValue({});
     vi.mocked(essHooks.useMyProfile).mockReturnValue(createMockUseMyProfile({ 
       isLoading: false, 
       employee: createMockEmployee({ id: "emp-1", full_name: "John Doe" }) 

@@ -361,7 +361,7 @@ export function WeeklyRosterGrid({
           const dateString = format(day, 'yyyy-MM-dd');
           const isSelected = selectedDays.includes(dateString);
  
-          const effectiveSchedule = employeeSchedule?.schedules.find((s) => s.date === dateString);
+          const effectiveSchedule = employeeSchedule?.schedules.find((s: any) => s.date === dateString);
           const isToday = day.toDateString() === new Date().toDateString();
  
           const isHoliday = effectiveSchedule?.is_holiday === true;

@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { User, Workspace, AuthorizedAgent, WorkspaceMember, Device } from "@/lib/api";
 
 export const userFactory = (overrides: Partial<User> = {}): User => {

@@ -124,7 +124,7 @@ const computeCellData = (
   
   let shiftSymbol = "";
   if (hasShift) {
-    const shiftConfig = shifts?.find(s => s.id === shiftId);
+    const shiftConfig = shifts?.find((s: any) => s.id === shiftId);
     shiftSymbol = getShiftSymbol(daySchedule.shift_name, shiftConfig?.report_symbol);
   }
 
@@ -233,7 +233,7 @@ export function MonthlyRosterGrid({ hook }: MonthlyRosterGridProps) {
       }
     });
     return list.map(emp => {
-      const existing = monthSchedules?.find(s => s.employee_id === emp.id);
+      const existing = monthSchedules?.find((s: any) => s.employee_id === emp.id);
       if (existing) {
         return existing;
       }
@@ -293,8 +293,8 @@ export function MonthlyRosterGrid({ hook }: MonthlyRosterGridProps) {
 
     const [startEmpId, startDateStr] = dragStartCell.split(":");
 
-    const startEmpIdx = filteredSchedules.findIndex(s => s.employee_id === startEmpId);
-    const endEmpIdx = filteredSchedules.findIndex(s => s.employee_id === employeeId);
+    const startEmpIdx = filteredSchedules.findIndex((s: any) => s.employee_id === startEmpId);
+    const endEmpIdx = filteredSchedules.findIndex((s: any) => s.employee_id === employeeId);
 
     if (startEmpIdx === -1 || endEmpIdx === -1) return;
 
@@ -842,7 +842,7 @@ const RosterGridTable = memo(function RosterGridTable({
                 const dateStr = format(day, "yyyy-MM-dd");
                 const cellKey = `${empSchedule.employee_id}:${dateStr}`;
                 const isSelected = selectedCells.has(cellKey);
-                const daySchedule = empSchedule.schedules.find(s => s.date === dateStr);
+                const daySchedule = empSchedule.schedules.find((s: any) => s.date === dateStr);
                 const cellData = computeCellData(daySchedule, isSelected, shifts);
 
                 return (
