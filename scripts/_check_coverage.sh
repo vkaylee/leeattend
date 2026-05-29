@@ -23,7 +23,7 @@ import json, sys
 try:
     with open('.test_logs/coverage.json') as f:
         data = json.load(f)
-    lines = data['data'][0]['summary']['lines']
+    lines = data['data'][0]['totals']['lines']
     pct = (lines['covered'] / lines['count']) * 100
     print(f'{pct:.2f}')
 except Exception as e:
