@@ -4,9 +4,9 @@ pub struct DbPoolConfig {
     /// Primary database URL (read + write). Used for migrations.
     pub primary_url: String,
     /// Transaction Pooler URL (Port 6543)
-    pub pooler_tx_url: Option<String>,
+    pub pooler_tx_url: String,
     /// Session Pooler URL (Port 5452)
-    pub pooler_sess_url: Option<String>,
+    pub pooler_sess_url: String,
     /// Optional read-replica URL. Falls back to `pooler_tx_url` then `primary_url`.
     pub reader_url: Option<String>,
 
@@ -32,11 +32,17 @@ impl DbPoolConfig {
 
         let pooler_tx_url = std::env::var("DATABASE_POOLER_TX_URL")
             .ok()
-            .filter(|s| !s.trim().is_empty());
+            .filter(|s| !s.trim().is_empty())
+            .ok_or_else(|| {
+                crate::errors::AppError::Internal("DATABASE_POOLER_TX_URL must be set (Supavisor mode is enforced)".to_string())
+            })?;
 
         let pooler_sess_url = std::env::var("DATABASE_POOLER_SESS_URL")
             .ok()
-            .filter(|s| !s.trim().is_empty());
+            .filter(|s| !s.trim().is_empty())
+            .ok_or_else(|| {
+                crate::errors::AppError::Internal("DATABASE_POOLER_SESS_URL must be set (Supavisor mode is enforced)".to_string())
+            })?;
 
         let reader_url = std::env::var("DATABASE_READER_URL")
             .ok()
@@ -56,9 +62,9 @@ impl DbPoolConfig {
     }
 
     pub fn resolve_pool_urls(&self) -> (&str, &str, &str) {
-        let api_worker_url = self.pooler_tx_url.as_deref().unwrap_or(&self.primary_url);
+        let api_worker_url = &self.pooler_tx_url;
         let reader_url = self.reader_url.as_deref().unwrap_or(api_worker_url);
-        let sess_url = self.pooler_sess_url.as_deref().unwrap_or(&self.primary_url);
+        let sess_url = &self.pooler_sess_url;
 
         (api_worker_url, sess_url, reader_url)
     }

@@ -197,11 +197,10 @@ async fn init_redis() -> Option<RedisPool> {
 }
 
 /// Register all existing workspace tenants with Supavisor, then run pending
-/// tenant migrations through the pooler. Called once at startup after pools
-/// are connected.
+/// tenant migrations. Called once at startup after pools are connected.
 async fn register_workspace_tenants_and_migrate(
     db_config: &DbPoolConfig,
-    _diesel_pools: &DieselPools,
+    diesel_pools: &DieselPools,
     tenant_manager: &dyn apiserver::supavisor::TenantManager,
 ) {
     // Query workspaces from system DB via direct connection
@@ -255,8 +254,7 @@ async fn register_workspace_tenants_and_migrate(
             .ok()
             .and_then(|keys| apiserver::crypto::CryptoService::from_json(&keys).ok());
 
-    // We no longer extract user, password, host, port from DATABASE_URL
-    // because ALL tenants MUST be BYOD and have a custom connection string.
+    let mut migration_targets: Vec<(Uuid, String)> = Vec::new();
 
     for (ws_id, custom_db_url_encrypted) in workspaces {
         let db_name = format!("tenant_{}", ws_id.to_string().replace('-', ""));
@@ -296,17 +294,51 @@ async fn register_workspace_tenants_and_migrate(
                 error = %e,
                 "Failed to register tenant with Supavisor — will retry on next startup"
             );
+            continue;
         }
+
+        // Resolve migration URL via the session pool manager — it knows whether
+        // to route through Supavisor (prod) or connect directly (dev), and uses
+        // the tenant's own credentials extracted from `tenant_url`.
+        let migration_url = match diesel_pools.tenants_sess.resolve_migration_url(&ws_id, &tenant_url) {
+            Ok(url) => url,
+            Err(e) => {
+                tracing::warn!(
+                    workspace_id = %ws_id,
+                    error = %e,
+                    "Failed to resolve tenant migration URL — skipping"
+                );
+                continue;
+            }
+        };
+
+        migration_targets.push((ws_id, migration_url));
     }
 
-    // Run pending tenant migrations through the pooler (via Supavisor)
-    let config_clone = db_config.clone();
-    match tokio::task::spawn_blocking(move || DieselPools::run_tenant_migrations(&config_clone))
+    if !migration_targets.is_empty() {
+        tracing::info!(
+            workspace_count = migration_targets.len(),
+            "Running tenant migrations with per-tenant credentials"
+        );
+
+        match tokio::task::spawn_blocking(move || {
+            for (ws_id, migration_url) in &migration_targets {
+                if let Err(e) =
+                    DieselPools::run_single_tenant_migration(migration_url, ws_id)
+                {
+                    tracing::warn!(
+                        workspace_id = %ws_id,
+                        error = %e,
+                        "Tenant migration failed — skipping workspace"
+                    );
+                }
+            }
+        })
         .await
-    {
-        Ok(Err(e)) => tracing::error!("Tenant migration failed: {e}"),
-        Err(e) => tracing::error!("Tenant migration task panicked: {e}"),
-        Ok(Ok(())) => {}
+        {
+            Ok(()) => {}
+            Err(e) => tracing::error!("Tenant migration task panicked: {e}"),
+        }
     }
 }
 

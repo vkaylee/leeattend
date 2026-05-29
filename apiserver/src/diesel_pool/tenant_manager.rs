@@ -11,6 +11,20 @@ use uuid::Uuid;
 #[async_trait::async_trait]
 pub trait TenantConnectionProvider: Send + Sync {
     async fn get_connection(&self, workspace_id: &Uuid) -> Result<DieselConnection, AppError>;
+
+    /// Resolve the correct migration URL for a tenant.
+    ///
+    /// Takes the decrypted `custom_db_url_encrypted` (tenant's direct DB URL with real
+    /// credentials) and returns a URL suitable for sync `PgConnection::establish`.
+    ///
+    /// - **Supavisor mode** (production): routes through the Supavisor session port
+    ///   with the tenant's own `db_user`/`db_password` as credentials.
+    /// - **Direct mode** (dev): returns the tenant URL as-is.
+    fn resolve_migration_url(
+        &self,
+        workspace_id: &Uuid,
+        tenant_direct_url: &str,
+    ) -> Result<String, String>;
 }
 
 pub struct SupavisorTenantPoolManager {
@@ -84,8 +98,10 @@ impl SupavisorTenantPoolManager {
                     };
                     result_url.replace_range(replace_start..replace_end, &new_auth);
                 } else if !override_user.is_empty() {
-                    // Direct connection mode: replace user entirely, no .tenant suffix
-                    let new_user = override_user.to_string();
+                    // Supavisor mode is enforced. We cannot connect directly.
+                    // If an override user is provided but it doesn't contain a dot,
+                    // we append the .tenant_id suffix to route through Supavisor.
+                    let new_user = format!("{override_user}.{tenant_uuid_str}");
                     let replace_start = plen;
                     let replace_end = plen + auth.len();
 
@@ -259,6 +275,29 @@ impl TenantConnectionProvider for SupavisorTenantPoolManager {
             }
         }
     }
+
+    fn resolve_migration_url(
+        &self,
+        workspace_id: &Uuid,
+        tenant_direct_url: &str,
+    ) -> Result<String, String> {
+        // Enforce Supavisor Mode:
+        // We always parse tenant credentials and build a Supavisor-routed URL
+        // with the tenant's own db_user / db_password.
+
+        // Supavisor mode (prod): parse tenant credentials, then build a
+        // Supavisor-routed URL with the tenant's own db_user / db_password.
+        let (db_user, db_password, _, _, db_name) =
+            crate::supavisor::parse_postgres_url(tenant_direct_url)
+                .ok_or_else(|| format!("Failed to parse tenant URL for migration: {tenant_direct_url}"))?;
+
+        Ok(self.get_tenant_url_with_credentials(
+            workspace_id,
+            &db_user,
+            &db_password,
+            Some(&db_name),
+        ))
+    }
 }
 
 pub struct TestTenantPoolManager {
@@ -278,6 +317,15 @@ impl TenantConnectionProvider for TestTenantPoolManager {
             .get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))
+    }
+
+    fn resolve_migration_url(
+        &self,
+        _workspace_id: &Uuid,
+        tenant_direct_url: &str,
+    ) -> Result<String, String> {
+        // Test mode: use the direct URL as-is
+        Ok(tenant_direct_url.to_string())
     }
 }
 
