@@ -26,8 +26,7 @@ trigger: always_on
    - **Script Execution Pattern (2-Step Workflow):** Any code execution (Python, Bash, JS) MUST follow a strict 2-step workflow:
      1. Use the native `write_to_file` tool to create a temporary script (e.g., `scratch/temp_script.py` or `scratch/commit_msg.txt`).
      2. Execute the file via `run_command` (e.g., `python scratch/temp_script.py > logs/run_script.log 2>&1`).
-   - **Anti-pattern:** Using inline scripts (`python -c "..."`, `bash -c "..."`) or multiline strings (`echo "..." > file`, `git commit -m "..."`). This breaks the PTY parser and causes system hangs.
-   - **Pre-Flight Check:** Before calling `run_command`, evaluate: "Does this command contain multiline strings, inline python (`-c`), or `echo` with complex formatting?" If YES, you MUST STOP and use the 2-Step Workflow instead.
+   - **Pre-Flight Check for Multiline:** ALWAYS check if your command requires multiline inputs, complex formatting, or inline execution (`python -c`, `bash -c`, multiline `echo`/`cat`). If it does, YOU MUST USE the `write_to_file` tool to save it as a physical file first. Multiline strings in the terminal break the PTY parser and cause system hangs. Use `write_to_file` as your best friend!
    - **Log Monitoring Pattern:** Use **periodic sampling** (e.g., one-shot reads via `tail -n 100`, `cat`, or native `view_file` tool) to inspect states safely.
    - **Anti-pattern:** Using infinite-blocking streams (`tail -f`, `watch`, `top`, `ping`) via `run_command` in background mode. These commands hang the PTY and pollute the task list forever.
 6. **Hermetic Wrappers (CRITICAL):** DO NOT call `cargo`, `npm`, or `diesel` directly. You must use wrapper scripts in `scripts/` (e.g., `./scripts/_cargo.sh`). See `execution-wrappers.md` for details.

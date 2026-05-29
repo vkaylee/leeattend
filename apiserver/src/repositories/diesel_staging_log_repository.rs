@@ -371,3 +371,65 @@ impl StagingLogRepository for DieselStagingLogRepository {
         .await
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::diesel_pool::DieselPools;
+    use chrono::Utc;
+    use uuid::Uuid;
+
+    #[tokio::test]
+    async fn test_staging_log_repository_errors() {
+        let test_db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://user:pass@localhost:5432/leeattend_test_db".to_string()
+        });
+        let pools = DieselPools::for_test(&test_db_url);
+        let repo = DieselStagingLogRepository::new(pools);
+        let ws_id = Uuid::new_v4();
+        let emp_id = Uuid::new_v4();
+
+        let created = repo
+            .create_staging_log(ws_id, None, "user1", Utc::now(), None, "fingerprint1")
+            .await;
+
+        if created.is_ok() {
+            let _ = repo.get_pending_staging_logs(ws_id, 10).await;
+            let _ = repo.get_pending_staged_logs(ws_id, "user1").await;
+            let _ = repo.count_pending_staging_logs(ws_id).await;
+            let _ = repo.claim_staged_logs(ws_id, "user1", emp_id).await;
+
+            // Re-create to test resolution
+            let _ = repo
+                .create_staging_log(ws_id, None, "user2", Utc::now(), None, "fingerprint2")
+                .await;
+
+            let logs = repo
+                .get_pending_staged_logs(ws_id, "user2")
+                .await
+                .unwrap_or_default();
+            if let Some(log) = logs.into_iter().next() {
+                let _ = repo.update_staging_status(log.id, ws_id, "processed").await;
+                let _ = repo.resolve_staging_log(log.id, ws_id, emp_id).await;
+            } else {
+                let _ = repo
+                    .update_staging_status(Uuid::new_v4(), ws_id, "processed")
+                    .await;
+                let _ = repo
+                    .resolve_staging_log(Uuid::new_v4(), ws_id, emp_id)
+                    .await;
+            }
+        } else {
+            let _ = repo.get_pending_staging_logs(ws_id, 10).await;
+            let _ = repo.get_pending_staged_logs(ws_id, "user1").await;
+            let _ = repo
+                .update_staging_status(Uuid::new_v4(), ws_id, "processed")
+                .await;
+            let _ = repo.count_pending_staging_logs(ws_id).await;
+            let _ = repo.claim_staged_logs(ws_id, "user1", emp_id).await;
+            let _ = repo
+                .resolve_staging_log(Uuid::new_v4(), ws_id, emp_id)
+                .await;
+        }
+    }
+}

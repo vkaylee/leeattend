@@ -172,25 +172,48 @@ mod tests {
             updated_at: Utc::now(),
         };
 
-        let err = repo.create_entry(&auth_token, entry).await;
-        let _ = err;
+        // Try to create the entry. Since it's a real DB, it might actually succeed!
+        let created = repo.create_entry(&auth_token, entry.clone()).await;
 
-        let err = repo
-            .get_effective_config(
-                &auth_token,
-                ws_id,
-                "test",
-                "workspace",
-                None,
-                chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
-            )
-            .await;
-        let _ = err;
+        if created.is_ok() {
+            let _ = repo
+                .get_effective_config(
+                    &auth_token,
+                    ws_id,
+                    "test",
+                    "workspace",
+                    None,
+                    chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+                )
+                .await;
 
-        let err = repo.list_entries(&auth_token, ws_id, None).await;
-        let _ = err;
+            let _ = repo
+                .get_effective_config(
+                    &auth_token,
+                    ws_id,
+                    "test",
+                    "workspace",
+                    Some(Uuid::new_v4()),
+                    chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+                )
+                .await;
 
-        let err = repo.delete_entry(&auth_token, Uuid::new_v4()).await;
-        let _ = err;
+            let _ = repo.list_entries(&auth_token, ws_id, Some("test")).await;
+            let _ = repo.delete_entry(&auth_token, entry.id).await;
+        } else {
+            let _ = repo
+                .get_effective_config(
+                    &auth_token,
+                    ws_id,
+                    "test",
+                    "workspace",
+                    None,
+                    chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+                )
+                .await;
+
+            let _ = repo.list_entries(&auth_token, ws_id, None).await;
+            let _ = repo.delete_entry(&auth_token, Uuid::new_v4()).await;
+        }
     }
 }

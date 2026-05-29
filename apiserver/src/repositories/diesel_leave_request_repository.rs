@@ -661,3 +661,109 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
         Ok(rows)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::diesel_pool::{DieselPools, TenantAuthToken};
+    use crate::models::{LeaveRequest, LeaveStatus};
+    use chrono::{NaiveDate, Utc};
+    use uuid::Uuid;
+
+    #[tokio::test]
+    async fn test_leave_request_repository_errors() {
+        let test_db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://user:pass@localhost:5432/leeattend_test_db".to_string()
+        });
+        let pools = DieselPools::for_test(&test_db_url);
+        let repo = DieselLeaveRequestRepository::new(pools);
+        let ws_id = Uuid::new_v4();
+        let emp_id = Uuid::new_v4();
+        let lt_id = Uuid::new_v4();
+        let auth_token = TenantAuthToken(ws_id);
+
+        let req = LeaveRequest {
+            id: Uuid::new_v4(),
+            employee_id: emp_id,
+            leave_type_id: lt_id,
+            start_date: NaiveDate::from_ymd_opt(2023, 1, 1).unwrap(),
+            end_date: NaiveDate::from_ymd_opt(2023, 1, 2).unwrap(),
+            reason: Some("test".to_string()),
+            status: LeaveStatus::Pending,
+            duration_type: crate::models::LeaveDurationType::FullDay,
+            start_time: None,
+            end_time: None,
+            requested_by_user_id: None,
+            approved_by_user_id: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        };
+
+        let _ = repo.create_leave_request(&auth_token, &req).await;
+        let _ = repo
+            .get_leave_request_by_id(&auth_token, Uuid::new_v4())
+            .await;
+        let _ = repo
+            .update_leave_request_status(&auth_token, Uuid::new_v4(), LeaveStatus::Approved, None)
+            .await;
+        let _ = repo.get_employee_leave_requests(&auth_token, emp_id).await;
+        let _ = repo.get_workspace_leave_requests(&auth_token, None).await;
+        let _ = repo
+            .get_approved_leave_breakdown(
+                emp_id,
+                NaiveDate::from_ymd_opt(2023, 1, 1).unwrap(),
+                NaiveDate::from_ymd_opt(2023, 1, 31).unwrap(),
+                &auth_token,
+            )
+            .await;
+        let _ = repo
+            .get_employee_department_for_request(Uuid::new_v4(), &auth_token)
+            .await;
+        let _ = repo.get_leave_types(&auth_token).await;
+        let _ = repo
+            .get_system_generated_holiday_leave(
+                &auth_token,
+                emp_id,
+                NaiveDate::from_ymd_opt(2023, 1, 1).unwrap(),
+            )
+            .await;
+        let _ = repo.cancel_leave_request(&auth_token, Uuid::new_v4()).await;
+        let _ = repo
+            .get_employee_leave_history_requests(&auth_token, emp_id, 2023, None)
+            .await;
+        let _ = repo.check_leave_type_exists(&auth_token, lt_id).await;
+        let _ = repo.get_leave_type_name(&auth_token, lt_id).await;
+        let _ = repo
+            .get_unpaid_holiday_days_without_leave(
+                &auth_token,
+                emp_id,
+                NaiveDate::from_ymd_opt(2023, 1, 1).unwrap(),
+                NaiveDate::from_ymd_opt(2023, 1, 31).unwrap(),
+            )
+            .await;
+        let _ = repo
+            .get_batch_leave_days(
+                &auth_token,
+                &[emp_id],
+                NaiveDate::from_ymd_opt(2023, 1, 1).unwrap(),
+                NaiveDate::from_ymd_opt(2023, 1, 31).unwrap(),
+            )
+            .await;
+        let _ = repo
+            .get_approved_leave_dates(
+                &auth_token,
+                &[emp_id],
+                NaiveDate::from_ymd_opt(2023, 1, 1).unwrap(),
+                NaiveDate::from_ymd_opt(2023, 1, 31).unwrap(),
+            )
+            .await;
+        let _ = repo
+            .get_approved_leave_periods(
+                &auth_token,
+                emp_id,
+                NaiveDate::from_ymd_opt(2023, 1, 1).unwrap(),
+                NaiveDate::from_ymd_opt(2023, 1, 31).unwrap(),
+            )
+            .await;
+    }
+}

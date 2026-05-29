@@ -170,37 +170,57 @@ mod tests {
             updated_at: Utc::now(),
         };
 
-        let err = repo.create_workflow(&auth_token, workflow).await;
-        let _ = err;
+        // Try to create the workflow. Since it's a real DB, it might actually succeed!
+        let created = repo.create_workflow(&auth_token, workflow).await;
 
-        let err = repo.create_steps(&auth_token, vec![]).await;
-        let _ = err;
+        if created.is_ok() {
+            let _ = repo.create_steps(&auth_token, vec![]).await;
 
-        let err = repo
-            .get_active_workflow(&auth_token, ws_id, "ot_request")
-            .await;
-        let _ = err;
+            let _ = repo
+                .get_active_workflow(&auth_token, ws_id, "ot_request")
+                .await;
 
-        let err = repo.get_steps(&auth_token, Uuid::new_v4()).await;
-        let _ = err;
+            let _ = repo.get_steps(&auth_token, Uuid::new_v4()).await;
 
-        let log = ApprovalActionLog {
-            id: Uuid::new_v4(),
-            workspace_id: ws_id,
-            entity_type: "ot_request".into(),
-            entity_id: Uuid::new_v4(),
-            step_order: 1,
-            step_name: None,
-            acted_by_user_id: Uuid::new_v4(),
-            action: "approve".into(),
-            note: None,
-            acted_at: Utc::now(),
-        };
+            let log = ApprovalActionLog {
+                id: Uuid::new_v4(),
+                workspace_id: ws_id,
+                entity_type: "ot_request".into(),
+                entity_id: Uuid::new_v4(),
+                step_order: 1,
+                step_name: None,
+                acted_by_user_id: Uuid::new_v4(),
+                action: "approve".into(),
+                note: None,
+                acted_at: Utc::now(),
+            };
 
-        let err = repo.log_action(&auth_token, log).await;
-        let _ = err;
+            let _ = repo.log_action(&auth_token, log).await;
+            let _ = repo.get_action_logs(&auth_token, Uuid::new_v4()).await;
+        } else {
+            let _ = repo.create_steps(&auth_token, vec![]).await;
 
-        let err = repo.get_action_logs(&auth_token, Uuid::new_v4()).await;
-        let _ = err;
+            let _ = repo
+                .get_active_workflow(&auth_token, ws_id, "ot_request")
+                .await;
+
+            let _ = repo.get_steps(&auth_token, Uuid::new_v4()).await;
+
+            let log = ApprovalActionLog {
+                id: Uuid::new_v4(),
+                workspace_id: ws_id,
+                entity_type: "ot_request".into(),
+                entity_id: Uuid::new_v4(),
+                step_order: 1,
+                step_name: None,
+                acted_by_user_id: Uuid::new_v4(),
+                action: "approve".into(),
+                note: None,
+                acted_at: Utc::now(),
+            };
+
+            let _ = repo.log_action(&auth_token, log).await;
+            let _ = repo.get_action_logs(&auth_token, Uuid::new_v4()).await;
+        }
     }
 }

@@ -6,13 +6,13 @@
 ## ⚠️ PTY Compatibility & Execution — CRITICAL
 
 > [!CAUTION]
-> **Tránh PTY Hang.** AI LUÔN LUÔN phải tuân thủ các quy tắc sau khi thực thi lệnh:
-> 1. **Dành riêng cho tool `run_command`:** Bạn BẮT BUỘC phải thêm chuỗi ` > logs/run_{command_slug}.log 2>&1 </dev/null` trực tiếp vào tham số `CommandLine` khi chạy **BẤT KỲ LỆNH NÀO**. `{command_slug}` là tên viết tắt dạng snake_case của lệnh (ví dụ: `cargo_check`, `npm_dev`, `ls`, `docker_up`). Nếu không làm vậy, terminal của AI SẼ bị treo. Luôn thêm `mkdir -p logs &&` phía trước để đảm bảo thư mục tồn tại. Ví dụ: `CommandLine: "mkdir -p logs && ls -la > logs/run_ls.log 2>&1 </dev/null"`.
-> 2. **TUYỆT ĐỐI KHÔNG** sử dụng lệnh có chứa chuỗi nhiều dòng (multiline strings) trực tiếp trong terminal (như `echo "..." > file`, `git commit -m "dòng 1\ndòng 2"` hoặc `python -c "..."`). Lệnh này sẽ làm treo PTY ngay lập tức do lỗi parsing của shell. 
->    - **Đặc biệt lưu ý:** KHÔNG dùng lệnh `echo` hay `cat` trong bash để tạo/sửa file đa dòng.
->    - Bạn BẮT BUỘC phải dùng NATIVE TOOL (như `write_to_file` hoặc `multi_replace_file_content`) của AI để tạo file (ví dụ `scratch/commit_msg.txt`), rồi mới chạy lệnh `git commit -F scratch/commit_msg.txt`.
->    - Tương tự, nếu cần chạy script python, dùng tool tạo file `.py` riêng biệt rồi mới chạy lệnh `python file.py`.
-> 3. **HERMETIC WRAPPERS:** Tuyệt đối không gọi trực tiếp `cargo`, `npm`, `diesel`. Phải dùng wrapper scripts trong `scripts/` (ví dụ: `./scripts/_cargo.sh`). Chi tiết xem ở `execution-wrappers.md`.
+> **Prevent PTY Hangs.** AI MUST ALWAYS follow these rules when executing commands:
+> 1. **Exclusive for `run_command` tool:** You MUST append the string ` > logs/run_{command_slug}.log 2>&1 </dev/null` directly to the `CommandLine` parameter when running **ANY COMMAND**. `{command_slug}` is a short snake_case name for the command (e.g., `cargo_check`, `npm_dev`, `ls`, `docker_up`). Failure to do this WILL hang the AI's terminal. Always prefix with `mkdir -p logs &&` to ensure the directory exists. Example: `CommandLine: "mkdir -p logs && ls -la > logs/run_ls.log 2>&1 </dev/null"`.
+> 2. **MANDATORY WORKFLOW FOR MULTILINE FILES/SCRIPTS:** To prevent PTY hangs, AI MUST ALWAYS follow this 2-step workflow instead of using bash commands with multiline strings (like `echo "..." > file`, `git commit -m "..."`, or `python -c "..."`):
+>    - **Step 1:** Use the AI's native tool (e.g., `write_to_file` or `multi_replace_file_content`) to create a physical file (e.g., `scratch/temp_script.py`, `scratch/commit_msg.txt`).
+>    - **Step 2:** Use the `run_command` tool to execute the created file (e.g., `python scratch/temp_script.py`, or `git commit -F scratch/commit_msg.txt`).
+>    - *Rationale:* Passing multiline strings directly into the terminal will break the shell's parser and cause a permanent system hang. Always consider `write_to_file` as your best friend for any task involving multiline text/code!
+> 3. **HERMETIC WRAPPERS:** Absolutely do not call `cargo`, `npm`, or `diesel` directly. You must use wrapper scripts in `scripts/` (e.g., `./scripts/_cargo.sh`). See `execution-wrappers.md` for details.
 > 4. **AI MUST BE CALM & PATIENT (CRITICAL):** This is a fundamental mindset for all situations. DO NOT RUSH.
 >    - Read requirements carefully before starting.
 >    - Cross-check risks before modifying source code.

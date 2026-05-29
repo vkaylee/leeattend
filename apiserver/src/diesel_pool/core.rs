@@ -175,4 +175,33 @@ mod tests {
         let _tx_conn = pools.tenant_transaction_conn(&token).await;
         let _sess_conn = pools.tenant_session_conn(&token).await;
     }
+
+    #[tokio::test]
+    async fn test_connect() {
+        use crate::supavisor::client::NoopTenantManager;
+
+        // This won't actually try to connect if the driver parses the URL successfully,
+        // but it will initialize the pool builder. We just use a valid-looking URL.
+        std::env::set_var(
+            "DATABASE_URL",
+            "postgres://user:pass@localhost:5432/leeattend_test_db",
+        );
+
+        let config = DbPoolConfig {
+            primary_url: "postgres://postgres:postgres@localhost:5432/test_db".to_string(),
+            pooler_tx_url: "".to_string(),
+            pooler_sess_url: "".to_string(),
+            reader_url: None,
+            api_max_conn: 1,
+            worker_max_conn: 1,
+            tenant_max_conn: 1,
+            api_acquire_timeout_secs: 1,
+            worker_acquire_timeout_secs: 1,
+        };
+
+        let result = DieselPools::connect(&config, Arc::new(NoopTenantManager));
+
+        // As long as the URLs are well-formed, it will return Ok
+        assert!(result.is_ok());
+    }
 }

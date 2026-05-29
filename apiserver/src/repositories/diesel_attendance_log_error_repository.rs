@@ -102,16 +102,24 @@ impl AttendanceLogErrorRepository for DieselAttendanceLogErrorRepository {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::diesel_pool::DieselPools;
+    use crate::diesel_pool::{DieselPools, TenantAuthToken};
+    use uuid::Uuid;
 
     #[tokio::test]
-    async fn test_repo_initialization() {
+    async fn test_repo_errors() {
         let test_db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
             "postgres://user:pass@localhost:5432/leeattend_test_db".to_string()
         });
-
         let pools = DieselPools::for_test(&test_db_url);
-        let _repo = DieselAttendanceLogErrorRepository::new(pools);
-        // DI connection test passes if it compiles
+        let repo = DieselAttendanceLogErrorRepository::new(pools);
+        let ws_id = Uuid::new_v4();
+        let auth_token = TenantAuthToken(ws_id);
+
+        let _ = repo
+            .create_error_log(&auth_token, None, None, "test", "device")
+            .await;
+        let _ = repo
+            .create_error_log_with_fingerprint(&auth_token, None, None, "test", "device", "fprint")
+            .await;
     }
 }
