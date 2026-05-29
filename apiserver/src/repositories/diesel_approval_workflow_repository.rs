@@ -149,8 +149,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_repo_methods_error_handling() {
-        let bad_url = "postgres://invalid:invalid@localhost:12345/invalid_db";
-        let pools = DieselPools::for_test(bad_url);
+        let test_db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://user:pass@localhost:5432/leeattend_test_db".to_string()
+        });
+        let pools = DieselPools::for_test(&test_db_url);
         let repo = DieselApprovalWorkflowRepository::new(pools);
         let ws_id = Uuid::new_v4();
         let auth_token = TenantAuthToken::system_override(ws_id);

@@ -201,4 +201,29 @@ async fn test_overtime_request_full_flow() {
         .unwrap();
 
     assert_eq!(res.status(), StatusCode::OK);
+
+    // 8. Submit for Approval
+    let res = manager_client
+        .post(&format!(
+            "{}/api/v1/workspaces/{}/overtime/requests/{}/submit",
+            app_addr, admin_ws_id, request_id
+        ))
+        .header("X-Workspace-Id", admin_ws_id.to_string())
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(res.status(), StatusCode::OK);
+
+    // 9. List Requests
+    let res = manager_client
+        .get(&format!(
+            "{}/api/v1/workspaces/{}/overtime/requests",
+            app_addr, admin_ws_id
+        ))
+        .header("X-Workspace-Id", admin_ws_id.to_string())
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(res.status(), StatusCode::OK);
 }
