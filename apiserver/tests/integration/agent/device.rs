@@ -43,7 +43,7 @@ async fn test_device_crud_endpoints() {
 
     let user_id: Uuid = factory.user().create().await;
     let ws_id: Uuid = factory.workspace().create_with_owner(user_id).await;
-    
+
     // Create an agent first
     let agent_id: String = factory
         .agent()
@@ -81,13 +81,7 @@ async fn test_device_crud_endpoints() {
     // 2. Get Devices
     let resp = app
         .clone()
-        .oneshot(req(
-            "GET",
-            "/api/v1/devices",
-            ws_id,
-            user_id,
-            None,
-        ))
+        .oneshot(req("GET", "/api/v1/devices", ws_id, user_id, None))
         .await
         .unwrap();
 
@@ -119,13 +113,7 @@ async fn test_device_crud_endpoints() {
     // Verify Update
     let resp = app
         .clone()
-        .oneshot(req(
-            "GET",
-            "/api/v1/devices",
-            ws_id,
-            user_id,
-            None,
-        ))
+        .oneshot(req("GET", "/api/v1/devices", ws_id, user_id, None))
         .await
         .unwrap();
 
@@ -151,13 +139,7 @@ async fn test_device_crud_endpoints() {
     // Verify Delete
     let resp = app
         .clone()
-        .oneshot(req(
-            "GET",
-            "/api/v1/devices",
-            ws_id,
-            user_id,
-            None,
-        ))
+        .oneshot(req("GET", "/api/v1/devices", ws_id, user_id, None))
         .await
         .unwrap();
 

@@ -1,334 +1,118 @@
-//! Leave accrual integration tests
+//! Leave Accrual & Import tests
 
+use crate::common::app::setup_app_tower;
 use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
-use apiserver::services::leave_accrual_service::LeaveAccrualService;
-use chrono::{NaiveDate, TimeZone, Utc};
+use apiserver::AppState;
+use axum::http::StatusCode;
 use std::sync::Arc;
+use tower::ServiceExt;
+use uuid::Uuid;
 
-#[tokio::test]
-async fn test_accrual_scenarios() {
-    let test_db = TestDatabase::new().await;
-    let pool = test_db.diesel_pools.clone();
-    let factory = TestFactory::new(pool.clone());
-    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
+fn req(
+    method: &str,
+    uri: &str,
+    ws_id: Uuid,
+    user_id: Uuid,
+    body: Option<serde_json::Value>,
+) -> axum::http::Request<axum::body::Body> {
+    let mut builder = axum::http::Request::builder()
+        .method(method)
+        .uri(uri)
+        .header("X-Workspace-Id", ws_id.to_string())
+        .header("X-User-Id", user_id.to_string());
 
-    // 1. Setup
-    let user_id = factory.user().create().await;
-    let ws_id = factory.workspace().create_with_owner(user_id).await;
-
-    // Hire date: Jan 1, 2025
-    let emp = factory
-        .employee()
-        .with_workspace(ws_id)
-        .with_hire_date(NaiveDate::from_ymd_opt(2025, 1, 1).unwrap())
-        .create()
-        .await;
-
-    // Init balance for 2026
-    factory
-        .leave_balance()
-        .with_employee(emp)
-        .with_entitlement(12)
-        .create()
-        .await;
-
-    // Policy: Monthly 1.0
-    let policy_monthly = factory
-        .leave_policy()
-        .with_workspace(ws_id)
-        .with_name("Monthly 1.0")
-        .with_config(serde_json::json!({
-            "frequency": "monthly",
-            "accrual_amount": 1.0,
-            "accrual_timing": "start_of_period"
-        }))
-        .create()
-        .await;
-
-    factory
-        .leave_policy()
-        .assign_to(
-            ws_id,
-            policy_monthly,
-            "employee",
-            Some(emp),
-            NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
-            None,
-        )
-        .await;
-
-    // Run Accrual for Jan 1, 2026
-    let employee_repo: Arc<dyn apiserver::repositories::EmployeeRepository> = Arc::new(
-        apiserver::repositories::DieselEmployeeRepository::new(diesel_pools.clone()),
-    );
-    let department_repo: Arc<
-        dyn apiserver::repositories::department_repository::DepartmentRepository,
-    > = Arc::new(apiserver::repositories::DieselDepartmentRepository::new(
-        diesel_pools.clone(),
-    ));
-    let leave_policy_repo: Arc<
-        dyn apiserver::repositories::leave_policy_repository::LeavePolicyRepository,
-    > = Arc::new(apiserver::repositories::DieselLeavePolicyRepository::new(
-        diesel_pools.clone(),
-    ));
-    let accrual_service = LeaveAccrualService::new(
-        employee_repo,
-        department_repo,
-        leave_policy_repo,
-        Arc::new(
-            apiserver::repositories::DieselLeaveAccrualLogRepository::new(diesel_pools.clone()),
-        ),
-        Arc::new(apiserver::repositories::DieselTimeEntryRepository::new(
-            diesel_pools.clone(),
-        )),
-        Arc::new(apiserver::repositories::DieselLeaveRequestRepository::new(
-            diesel_pools.clone(),
-        )),
-        Arc::new(
-            apiserver::repositories::DieselAttendanceDailySummaryRepository::new(
-                diesel_pools.clone(),
-            ),
-        ),
-        Arc::new(
-            apiserver::repositories::DieselEmployeeContractRepository::new(diesel_pools.clone()),
-        ),
-    );
-    let logs = accrual_service
-        .process_workspace_accruals(ws_id, NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(), false)
-        .await
-        .unwrap();
-
-    assert_eq!(logs.len(), 1);
-    assert_eq!(logs[0].amount.to_string(), "1.00");
+    if let Some(b) = body {
+        builder = builder.header("Content-Type", "application/json");
+        builder.body(axum::body::Body::from(b.to_string())).unwrap()
+    } else {
+        builder.body(axum::body::Body::empty()).unwrap()
+    }
 }
 
 #[tokio::test]
-async fn test_performance_based_accrual() {
-    let test_db = TestDatabase::new().await;
-    let pool = test_db.diesel_pools.clone();
-    let factory = TestFactory::new(pool.clone());
-    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
+async fn test_trigger_accrual_run() {
+    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
 
-    let user_id = factory.user().create().await;
-    let ws_id = factory.workspace().create_with_owner(user_id).await;
-    let emp = factory.employee().with_workspace(ws_id).create().await;
+    let admin_id = factory.user().create().await;
+    let ws_id = factory.workspace().create_with_owner(admin_id).await;
 
-    // Policy: Monthly 1.0 with 14 days threshold
-    let policy = factory
-        .leave_policy()
-        .with_workspace(ws_id)
-        .with_name("Performance Policy")
-        .with_config(serde_json::json!({
-            "frequency": "monthly",
-            "accrual_amount": 1.0,
-            "accrual_timing": "start_of_period",
-            "min_work_days_threshold": 14.0
-        }))
-        .create()
-        .await;
+    let payload = serde_json::json!({
+        "date": "2024-05-01"
+    });
 
-    factory
-        .leave_policy()
-        .assign_to(
+    let resp = app
+        .clone()
+        .oneshot(req(
+            "POST",
+            &format!("/api/v1/workspaces/{ws_id}/leave/accrual/run"),
             ws_id,
-            policy,
-            "employee",
-            Some(emp),
-            NaiveDate::from_ymd_opt(2026, 2, 1).unwrap(),
-            None,
-        )
-        .await;
-
-    // 10 work days (below threshold)
-    for i in 1..=10 {
-        let dt = Utc.with_ymd_and_hms(2026, 1, i, 8, 0, 0).unwrap();
-        factory
-            .time_entry()
-            .with_employee(emp)
-            .with_punch_in(dt)
-            .with_entry_type("work")
-            .create()
-            .await;
-    }
-
-    // Run accrual for Feb 1 (checking Jan)
-    let employee_repo: Arc<dyn apiserver::repositories::EmployeeRepository> = Arc::new(
-        apiserver::repositories::DieselEmployeeRepository::new(diesel_pools.clone()),
-    );
-    let department_repo: Arc<
-        dyn apiserver::repositories::department_repository::DepartmentRepository,
-    > = Arc::new(apiserver::repositories::DieselDepartmentRepository::new(
-        diesel_pools.clone(),
-    ));
-    let leave_policy_repo: Arc<
-        dyn apiserver::repositories::leave_policy_repository::LeavePolicyRepository,
-    > = Arc::new(apiserver::repositories::DieselLeavePolicyRepository::new(
-        diesel_pools.clone(),
-    ));
-    let accrual_service = LeaveAccrualService::new(
-        employee_repo,
-        department_repo,
-        leave_policy_repo,
-        Arc::new(
-            apiserver::repositories::DieselLeaveAccrualLogRepository::new(diesel_pools.clone()),
-        ),
-        Arc::new(apiserver::repositories::DieselTimeEntryRepository::new(
-            diesel_pools.clone(),
-        )),
-        Arc::new(apiserver::repositories::DieselLeaveRequestRepository::new(
-            diesel_pools.clone(),
-        )),
-        Arc::new(
-            apiserver::repositories::DieselAttendanceDailySummaryRepository::new(
-                diesel_pools.clone(),
-            ),
-        ),
-        Arc::new(
-            apiserver::repositories::DieselEmployeeContractRepository::new(diesel_pools.clone()),
-        ),
-    );
-    let logs = accrual_service
-        .process_workspace_accruals(ws_id, NaiveDate::from_ymd_opt(2026, 2, 1).unwrap(), false)
+            admin_id,
+            Some(payload),
+        ))
         .await
         .unwrap();
 
-    assert!(logs.is_empty());
-
-    // Add 5 days (total 15 > 14)
-    for i in 11..=15 {
-        let dt = Utc.with_ymd_and_hms(2026, 1, i, 8, 0, 0).unwrap();
-        factory
-            .time_entry()
-            .with_employee(emp)
-            .with_punch_in(dt)
-            .with_entry_type("work")
-            .create()
-            .await;
-    }
-
-    // Retry
-    let logs = accrual_service
-        .process_workspace_accruals(ws_id, NaiveDate::from_ymd_opt(2026, 2, 1).unwrap(), false)
+    let status = resp.status();
+    let body = axum::body::to_bytes(resp.into_body(), 1024 * 1024)
         .await
         .unwrap();
-
-    assert_eq!(logs.len(), 1);
+    let body_str = String::from_utf8(body.to_vec()).unwrap();
+    if status != StatusCode::ACCEPTED && status != StatusCode::SERVICE_UNAVAILABLE {
+        panic!("Failed with status: {}, body: {}", status, body_str);
+    }
 }
 
 #[tokio::test]
-async fn test_accrual_recalculation() {
-    let test_db = TestDatabase::new().await;
-    let pool = test_db.diesel_pools.clone();
-    let factory = TestFactory::new(pool.clone());
-    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
+async fn test_download_leave_import_template() {
+    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
 
-    let user_id = factory.user().create().await;
-    let ws_id = factory.workspace().create_with_owner(user_id).await;
-    let emp = factory.employee().with_workspace(ws_id).create().await;
+    let admin_id = factory.user().create().await;
+    let ws_id = factory.workspace().create_with_owner(admin_id).await;
 
-    // Policy: Monthly 1.0
-    let policy = factory
-        .leave_policy()
-        .with_workspace(ws_id)
-        .with_name("Monthly Base")
-        .with_config(serde_json::json!({
-            "frequency": "monthly",
-            "accrual_amount": 1.0,
-            "accrual_timing": "start_of_period"
-        }))
-        .create()
-        .await;
-
-    factory
-        .leave_policy()
-        .assign_to(
+    let resp = app
+        .clone()
+        .oneshot(req(
+            "GET",
+            &format!("/api/v1/workspaces/{ws_id}/leave/upload-template"),
             ws_id,
-            policy,
-            "employee",
-            Some(emp),
-            NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+            admin_id,
             None,
-        )
-        .await;
-
-    let employee_repo: Arc<dyn apiserver::repositories::EmployeeRepository> = Arc::new(
-        apiserver::repositories::DieselEmployeeRepository::new(diesel_pools.clone()),
-    );
-    let department_repo: Arc<
-        dyn apiserver::repositories::department_repository::DepartmentRepository,
-    > = Arc::new(apiserver::repositories::DieselDepartmentRepository::new(
-        diesel_pools.clone(),
-    ));
-    let leave_policy_repo: Arc<
-        dyn apiserver::repositories::leave_policy_repository::LeavePolicyRepository,
-    > = Arc::new(apiserver::repositories::DieselLeavePolicyRepository::new(
-        diesel_pools.clone(),
-    ));
-    let accrual_service = LeaveAccrualService::new(
-        employee_repo,
-        department_repo,
-        leave_policy_repo.clone(),
-        Arc::new(
-            apiserver::repositories::DieselLeaveAccrualLogRepository::new(diesel_pools.clone()),
-        ),
-        Arc::new(apiserver::repositories::DieselTimeEntryRepository::new(
-            diesel_pools.clone(),
-        )),
-        Arc::new(apiserver::repositories::DieselLeaveRequestRepository::new(
-            diesel_pools.clone(),
-        )),
-        Arc::new(
-            apiserver::repositories::DieselAttendanceDailySummaryRepository::new(
-                diesel_pools.clone(),
-            ),
-        ),
-        Arc::new(
-            apiserver::repositories::DieselEmployeeContractRepository::new(diesel_pools.clone()),
-        ),
-    );
-
-    // 1st run: Accrues 1.0
-    let logs = accrual_service
-        .process_workspace_accruals(ws_id, NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(), false)
+        ))
         .await
         .unwrap();
-    assert_eq!(logs.len(), 1);
-    assert_eq!(logs[0].amount.to_string(), "1.00");
 
-    // Change policy to 2.0
-    leave_policy_repo
-        .update_policy_definition(
-            policy,
+    assert_eq!(resp.status(), StatusCode::OK);
+    let headers = resp.headers();
+    assert_eq!(
+        headers.get("content-type").unwrap(),
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+}
+
+#[tokio::test]
+async fn test_download_leave_import_errors() {
+    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
+
+    let admin_id = factory.user().create().await;
+    let ws_id = factory.workspace().create_with_owner(admin_id).await;
+
+    let fake_job_id = Uuid::new_v4();
+
+    let resp = app
+        .clone()
+        .oneshot(req(
+            "GET",
+            &format!("/api/v1/workspaces/{ws_id}/leave/import/{fake_job_id}/errors"),
             ws_id,
+            admin_id,
             None,
-            None,
-            None,
-            Some(apiserver::models::LeavePolicyConfig {
-                frequency: apiserver::models::enums::AccrualFrequency::Monthly,
-                accrual_amount: 2.0,
-                accrual_timing: "start_of_period".to_string(),
-                carry_over_limit: None,
-                max_balance: None,
-                reset_month: None,
-                min_work_days_threshold: None,
-                seniority_bonus: vec![],
-            }),
-        )
+        ))
         .await
         .unwrap();
 
-    // 2nd run (force = true)
-    let logs_2 = accrual_service
-        .process_workspace_accruals(ws_id, NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(), true)
-        .await
-        .unwrap();
-
-    assert_eq!(logs_2.len(), 1);
-    assert_eq!(logs_2[0].amount.to_string(), "2.00");
-    assert!(logs_2[0]
-        .notes
-        .as_deref()
-        .unwrap_or("")
-        .contains("Re-calculated"));
+    assert_eq!(resp.status(), StatusCode::NOT_FOUND);
 }

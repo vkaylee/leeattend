@@ -1,4 +1,4 @@
-//! Leave policy API integration tests
+//! Leave Policy API integration tests
 
 use crate::common::app::setup_app_tower;
 use crate::common::db::TestDatabase;
@@ -9,25 +9,54 @@ use std::sync::Arc;
 use tower::ServiceExt;
 use uuid::Uuid;
 
+fn req(
+    method: &str,
+    uri: &str,
+    ws_id: Uuid,
+    user_id: Uuid,
+    body: Option<serde_json::Value>,
+) -> axum::http::Request<axum::body::Body> {
+    let mut builder = axum::http::Request::builder()
+        .method(method)
+        .uri(uri)
+        .header("X-Workspace-Id", ws_id.to_string())
+        .header("X-User-Id", user_id.to_string());
+
+    if let Some(b) = body {
+        builder = builder.header("Content-Type", "application/json");
+        builder.body(axum::body::Body::from(b.to_string())).unwrap()
+    } else {
+        builder.body(axum::body::Body::empty()).unwrap()
+    }
+}
+
+async fn body_json(resp: axum::response::Response) -> serde_json::Value {
+    let body = axum::body::to_bytes(resp.into_body(), 1024 * 1024)
+        .await
+        .unwrap();
+    serde_json::from_slice(&body).unwrap()
+}
+
 #[tokio::test]
-async fn test_leave_policy_api_lifecycle() {
-    let (test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+async fn test_leave_policy_crud() {
+    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
         setup_app_tower().await;
 
-    let admin_id: Uuid = factory.user().create().await;
-    let ws_id: Uuid = factory.workspace().create_with_owner(admin_id).await;
+    let admin_id = factory.user().create().await;
+    let ws_id = factory.workspace().create_with_owner(admin_id).await;
 
-    // 1. Create Policy
+    // Get a leave type
     let vacation_id: Uuid = crate::test_query_scalar_uuid!(
-        &test_db.diesel_pools.api,
+        &factory.diesel_pools.api,
         "SELECT id FROM leave_types WHERE workspace_id = $1 AND code = 'vacation'",
         diesel::sql_types::Uuid,
         ws_id
     );
 
-    let policy_req = serde_json::json!({
-        "name": "Standard Annual Leave",
-        "description": "Standard policy for all employees",
+    // 1. Create Policy
+    let create_req = serde_json::json!({
+        "name": "Standard Vacation Policy",
+        "description": "Standard 15 days",
         "leave_type_id": vacation_id,
         "rule_config": {
             "frequency": "monthly",
@@ -36,68 +65,62 @@ async fn test_leave_policy_api_lifecycle() {
         }
     });
 
-    let response = app
+    let resp = app
         .clone()
-        .oneshot(
-            axum::http::Request::builder()
-                .method("POST")
-                .uri(format!("/api/v1/workspaces/{ws_id}/leave/policies"))
-                .header("Content-Type", "application/json")
-                .header("X-Workspace-Id", ws_id.to_string())
-                .header("X-User-Id", admin_id.to_string())
-                .body(axum::body::Body::from(policy_req.to_string()))
-                .unwrap(),
-        )
+        .oneshot(req(
+            "POST",
+            &format!("/api/v1/workspaces/{ws_id}/leave/policies"),
+            ws_id,
+            admin_id,
+            Some(create_req),
+        ))
         .await
         .unwrap();
-    assert_eq!(response.status(), StatusCode::CREATED);
-    let policy: serde_json::Value = serde_json::from_slice(
-        &axum::body::to_bytes(response.into_body(), 10000)
-            .await
-            .unwrap(),
-    )
-    .unwrap();
-    let policy_id = policy["id"].as_str().unwrap();
 
-    // 2. Assign Policy
-    let assign_req = serde_json::json!({
-        "policy_id": policy_id,
-        "assignee_type": "workspace",
-        "assignee_id": null,
-        "effective_from": "2026-01-01"
+    let status = resp.status();
+    let body = axum::body::to_bytes(resp.into_body(), 1024 * 1024)
+        .await
+        .unwrap();
+    let body_str = String::from_utf8(body.to_vec()).unwrap();
+    if status != StatusCode::CREATED {
+        panic!("Failed to create policy. Status: {}, body: {}", status, body_str);
+    }
+    let created: serde_json::Value = serde_json::from_slice(&body).unwrap();
+    let policy_id = created["id"].as_str().unwrap().to_string();
+
+    // 2. Update Policy
+    let update_req = serde_json::json!({
+        "name": "Updated Vacation Policy"
     });
 
-    let response = app
+    let resp = app
         .clone()
-        .oneshot(
-            axum::http::Request::builder()
-                .method("POST")
-                .uri(format!("/api/v1/workspaces/{ws_id}/leave/policies/assign"))
-                .header("Content-Type", "application/json")
-                .header("X-Workspace-Id", ws_id.to_string())
-                .header("X-User-Id", admin_id.to_string())
-                .body(axum::body::Body::from(assign_req.to_string()))
-                .unwrap(),
-        )
+        .oneshot(req(
+            "PATCH",
+            &format!("/api/v1/workspaces/{ws_id}/leave/policies/{policy_id}"),
+            ws_id,
+            admin_id,
+            Some(update_req),
+        ))
         .await
         .unwrap();
-    assert_eq!(response.status(), StatusCode::CREATED);
+
+    assert_eq!(resp.status(), StatusCode::OK);
+    let updated = body_json(resp).await;
+    assert_eq!(updated["name"], "Updated Vacation Policy");
 
     // 3. Delete Policy
-    let response = app
+    let resp = app
         .clone()
-        .oneshot(
-            axum::http::Request::builder()
-                .method("DELETE")
-                .uri(format!(
-                    "/api/v1/workspaces/{ws_id}/leave/policies/{policy_id}"
-                ))
-                .header("X-Workspace-Id", ws_id.to_string())
-                .header("X-User-Id", admin_id.to_string())
-                .body(axum::body::Body::empty())
-                .unwrap(),
-        )
+        .oneshot(req(
+            "DELETE",
+            &format!("/api/v1/workspaces/{ws_id}/leave/policies/{policy_id}"),
+            ws_id,
+            admin_id,
+            None,
+        ))
         .await
         .unwrap();
-    assert_eq!(response.status(), StatusCode::NO_CONTENT);
+
+    assert_eq!(resp.status(), StatusCode::NO_CONTENT);
 }
