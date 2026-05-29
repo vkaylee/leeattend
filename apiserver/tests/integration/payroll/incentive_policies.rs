@@ -177,3 +177,53 @@ async fn test_incentive_policy_delete() {
     let list = body_json(resp).await;
     assert!(list.as_array().unwrap().is_empty());
 }
+
+#[tokio::test]
+async fn test_incentive_policy_clone() {
+    let (test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
+
+    let admin_id = factory.user().create().await;
+    let ws_id = factory.workspace().create_with_owner(admin_id).await;
+
+    // Insert policy directly
+    let policy_id = Uuid::new_v4();
+    crate::test_execute!(
+        &test_db.diesel_pools.api,
+        r"INSERT INTO payroll_incentive_policies (id, workspace_id, name, base_amount, payout_type, is_active, created_at)
+           VALUES ($1, $2, 'Original Policy', 100000, 'monthly', TRUE, NOW()::timestamp)",
+        diesel::sql_types::Uuid,
+        policy_id,
+        diesel::sql_types::Uuid,
+        ws_id
+    );
+    // Insert a tier for the policy
+    crate::test_execute!(
+        &test_db.diesel_pools.api,
+        r"INSERT INTO payroll_incentive_tiers (id, policy_id, priority, payout_amount, rule_config)
+           VALUES (gen_random_uuid(), $1, 1, 50000, '{}')",
+        diesel::sql_types::Uuid,
+        policy_id
+    );
+
+    // Clone the policy
+    let resp = app
+        .clone()
+        .oneshot(req(
+            "POST",
+            &format!("/api/v1/workspaces/{ws_id}/payroll/incentive-policies/{policy_id}/clone"),
+            ws_id,
+            admin_id,
+            None,
+        ))
+        .await
+        .unwrap();
+
+    assert_eq!(resp.status(), StatusCode::CREATED);
+    let cloned = body_json(resp).await;
+    assert_eq!(cloned["name"], "Original Policy (Copy)");
+    assert_eq!(cloned["is_active"], false); // Clone is inactive by default
+    
+    let new_policy_id = cloned["id"].as_str().unwrap();
+    assert_ne!(new_policy_id, policy_id.to_string());
+}
