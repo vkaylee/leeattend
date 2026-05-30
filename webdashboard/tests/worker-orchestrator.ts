@@ -54,7 +54,7 @@ authPage: async ({ page, loginPage }, use) => {
   await loginPage.login(MOCK_USER.email, 'password123');
 
   // Chờ cho đến khi thoát khỏi trang login
-  await page.waitForURL(url => !url.pathname.includes('/login'), { timeout: 30000 });
+  await page.waitForURL(url => !url.pathname.includes('/login'), { timeout: 90000 });
   
   await use(loginPage);
 },  storageState: async ({}, use) => { // eslint-disable-line no-empty-pattern

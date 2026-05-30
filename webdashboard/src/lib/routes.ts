@@ -33,6 +33,8 @@ export const ROUTES = {
   // Operations
   REPORTS: "/reports",
   SHIFTS: "/shifts",
+  SHIFTS_NEW: "/shifts/new",
+  SHIFTS_EDIT: "/shifts/$shiftId/edit",
   SHIFT_SWAPS: "/shift-swaps",
   PAYROLL: "/payroll",
   AGENTS: "/agents",

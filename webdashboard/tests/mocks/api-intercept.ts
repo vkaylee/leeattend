@@ -22,7 +22,10 @@ export async function setupApiMocks(page: Page) {
   await page.route(url => url.pathname.startsWith('/api/') && !(/\.(ts|js|css|jsx|tsx)$/.exec(url.pathname)), async (route) => {
     const url = route.request().url();
     const method = route.request().method();
-    const pathname = new URL(url).pathname;
+    let pathname = new URL(url).pathname;
+    
+    // Normalize path by stripping /v1/ prefix if present to support both raw and versioned routes
+    pathname = pathname.replace(/^\/api\/v1\//, "/api/");
 
     
 
@@ -37,7 +40,7 @@ export async function setupApiMocks(page: Page) {
     };
 
     // 1. Health check
-    if (pathname === '/api/v1/health') {
+    if (pathname === '/api/health') {
       return fulfill({ status: "ok" });
     }
 
@@ -118,53 +121,53 @@ export async function setupApiMocks(page: Page) {
     }
 
     // 7. Dashboard Stats & Trends
-    if (/\/api\/v1\/dashboard\/workspace-stats/.exec(pathname)) {
+    if (/\/api\/dashboard\/workspace-stats/.exec(pathname)) {
       return fulfill({ employee_count: 2, present_today: 1, on_leave: 0, pending_requests: 0 });
     }
 
-    if (/\/api\/v1\/dashboard\/attendance-trend/.exec(pathname)) {
+    if (/\/api\/dashboard\/attendance-trend/.exec(pathname)) {
       return fulfill([
         { date: "2026-01-10", present: 20, absent: 2, late: 1 },
         { date: "2026-01-11", present: 22, absent: 0, late: 0 }
       ]);
     }
 
-    if (/\/api\/v1\/dashboard\/unexcused-absences/.exec(pathname)) {
+    if (/\/api\/dashboard\/unexcused-absences/.exec(pathname)) {
       return fulfill({
         data: [],
         pagination: { total_count: 0, page: 1, page_size: 50, totalpages: 0 }
       });
     }
 
-    if (/\/api\/v1\/dashboard\/overtime-trend/.exec(pathname)) {
+    if (/\/api\/dashboard\/overtime-trend/.exec(pathname)) {
       return fulfill([
         { date: "2026-01-10", hours: 5.5 },
         { date: "2026-01-11", hours: 3.2 }
       ]);
     }
 
-    if (/\/api\/v1\/dashboard\/peak-times/.exec(pathname)) {
+    if (/\/api\/dashboard\/peak-times/.exec(pathname)) {
       return fulfill([
         { hour: 8, count: 15 },
         { hour: 9, count: 5 }
       ]);
     }
 
-    if (/\/api\/v1\/dashboard\/leave-types/.exec(pathname)) {
+    if (/\/api\/dashboard\/leave-types/.exec(pathname)) {
       return fulfill([
         { type: "SICK", count: 2 },
         { type: "ANNUAL", count: 5 }
       ]);
     }
 
-    if (/\/api\/v1\/dashboard\/lateness-by-day/.exec(pathname)) {
+    if (/\/api\/dashboard\/lateness-by-day/.exec(pathname)) {
       return fulfill([
         { day: "Mon", count: 3 },
         { day: "Tue", count: 1 }
       ]);
     }
 
-    if (/\/api\/v1\/dashboard\/preferences/.exec(pathname)) {
+    if (/\/api\/dashboard\/preferences/.exec(pathname)) {
       return fulfill({
         dashboard_layout: {},
         theme: "light",
@@ -204,11 +207,11 @@ export async function setupApiMocks(page: Page) {
       ]);
     }
 
-    if (/\/api\/v1\/notifications\/unread-count/.exec(pathname)) {
+    if (/\/api\/notifications\/unread-count/.exec(pathname)) {
       return fulfill({ count: 0 });
     }
 
-    if (/\/api\/v1\/notifications/.exec(pathname)) {
+    if (/\/api\/notifications/.exec(pathname)) {
       return fulfill({
         next_cursor: null,
         notifications: [],
@@ -357,7 +360,7 @@ export async function setupApiMocks(page: Page) {
       return fulfill([]);
     }
     if (pathname.includes('/schedules')) {
-      return fulfill({ data: [], pagination: { total_count: 0, page: 1, page_size: 50, totalpages: 0 } });
+      return fulfill([]);
     }
     if (pathname.includes('/holidays')) {
       return fulfill([]);

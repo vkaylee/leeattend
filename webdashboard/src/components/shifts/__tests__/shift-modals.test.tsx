@@ -1,439 +1,108 @@
-/* eslint-disable */
 import { render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi } from "vitest";
-
-import { CreateShiftModal } from "../create-shift-modal";
-import { EditShiftModal } from "../edit-shift-modal";
+import { ShiftTimelinePreview } from "../shift-timeline-preview";
 
 // Mock i18next
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
-    t: (key: string) => key,
+    t: (key: string, defaultVal?: string) => defaultVal || key,
     i18n: { language: "en" },
   }),
 }));
 
-const mockShift = {
-  id: "shift-1",
-  name: "Morning Shift",
-  start_time: "08:00",
-  end_time: "17:00",
-  break_duration_minutes: 60,
-  is_break_auto_deduct: true,
-  break_is_overtime: false,
-};
-
-describe("Shift Modals Break Policy Tests", () => {
-  it("renders CreateShiftModal with three break policies", () => {
-    const setIsAutoDeduct = vi.fn();
-    const setIsBreakOvertime = vi.fn();
-
+describe("ShiftTimelinePreview Tests", () => {
+  it("renders basic shift info and duration correctly", () => {
     render(
-      <CreateShiftModal
+      <ShiftTimelinePreview
+        allowEarlyOt={false}
+        breakEnd=""
+        breakStart=""
         isAutoDeduct={true}
         isBreakOvertime={false}
         isFixedBreak={false}
-        isLoading={false}
-        isOpen={true}
-        newBreakEnd=""
-        newBreakStart=""
-        newShiftBreak={60}
-        newShiftEnd="17:00"
-        onClose={vi.fn()}
-        onCreateShift={vi.fn()}
-        setIsAutoDeduct={setIsAutoDeduct}
-        setIsBreakOvertime={setIsBreakOvertime}
-        setIsFixedBreak={vi.fn()}
-        setNewBreakEnd={vi.fn()}
-        setNewBreakStart={vi.fn()}
-        setNewShiftBreak={vi.fn()}
-        setNewShiftEnd={vi.fn()}
-        setNewShiftName={vi.fn()}
-        setNewShiftStart={vi.fn()}
-        setNewShiftSymbol={vi.fn()}
-        newShiftName="Test Shift"
-        newShiftStart="08:00"
-        newShiftSymbol="T"
-              newShiftGrace={15}
-        allowEarlyOt={false}
         maxEarlyOtMinutes={0}
-        setNewShiftGrace={vi.fn()}
-        setAllowEarlyOt={vi.fn()}
-        setMaxEarlyOtMinutes={vi.fn()}
+        shiftBreak={60}
+        shiftEnd="17:00"
+        shiftGrace={15}
+        shiftName="Morning Shift"
+        shiftStart="08:00"
       />
     );
 
-    expect(screen.getByLabelText("shifts.modal.break_policy_auto_deduct")).toBeDefined();
-    expect(screen.getByLabelText("shifts.modal.break_policy_no_deduct")).toBeDefined();
-    expect(screen.getByLabelText("shifts.modal.break_policy_overtime")).toBeDefined();
+    // Verify shift name
+    expect(screen.getByText("Morning Shift")).toBeDefined();
+    // Verify shift hours (08:00 - 17:00 is 9.0 hours)
+    expect(screen.getByText("9.0")).toBeDefined();
+    // Working hours (9 - 1 hour break = 8.00)
+    expect(screen.getByText("8.00")).toBeDefined();
   });
 
-  it("triggers correct state changes on CreateShiftModal break policy selection", async () => {
-    const user = userEvent.setup();
-    const setIsAutoDeduct = vi.fn();
-    const setIsBreakOvertime = vi.fn();
-
+  it("handles cross-midnight shifts correctly", () => {
     render(
-      <CreateShiftModal
+      <ShiftTimelinePreview
+        allowEarlyOt={false}
+        breakEnd=""
+        breakStart=""
+        isAutoDeduct={true}
+        isBreakOvertime={false}
+        isFixedBreak={false}
+        maxEarlyOtMinutes={0}
+        shiftBreak={60}
+        shiftEnd="06:00"
+        shiftGrace={0}
+        shiftName="Night Shift"
+        shiftStart="22:00"
+      />
+    );
+
+    // 22:00 to 06:00 is 8 hours duration
+    expect(screen.getByText("8.0")).toBeDefined();
+    // 8 - 1 hour break = 7.00 working hours
+    expect(screen.getByText("7.00")).toBeDefined();
+  });
+
+  it("renders fixed break details when isFixedBreak is true", () => {
+    render(
+      <ShiftTimelinePreview
+        allowEarlyOt={false}
+        breakEnd="13:00"
+        breakStart="12:00"
         isAutoDeduct={true}
         isBreakOvertime={false}
         isFixedBreak={true}
-        isLoading={false}
-        isOpen={true}
-        newBreakEnd=""
-        newBreakStart=""
-        newShiftBreak={60}
-        newShiftEnd="17:00"
-        onClose={vi.fn()}
-        onCreateShift={vi.fn()}
-        setIsAutoDeduct={setIsAutoDeduct}
-        setIsBreakOvertime={setIsBreakOvertime}
-        setIsFixedBreak={vi.fn()}
-        setNewBreakEnd={vi.fn()}
-        setNewBreakStart={vi.fn()}
-        setNewShiftBreak={vi.fn()}
-        setNewShiftEnd={vi.fn()}
-        setNewShiftName={vi.fn()}
-        setNewShiftStart={vi.fn()}
-        setNewShiftSymbol={vi.fn()}
-        newShiftName="Test Shift"
-        newShiftStart="08:00"
-        newShiftSymbol="T"
-              newShiftGrace={15}
-        allowEarlyOt={false}
         maxEarlyOtMinutes={0}
-        setNewShiftGrace={vi.fn()}
-        setAllowEarlyOt={vi.fn()}
-        setMaxEarlyOtMinutes={vi.fn()}
+        shiftBreak={0}
+        shiftEnd="17:00"
+        shiftGrace={0}
+        shiftName="Day Shift"
+        shiftStart="08:00"
       />
     );
 
-    // Option 1 (auto_deduct) should be checked
-    const autoDeductRadio = screen.getByLabelText("shifts.modal.break_policy_auto_deduct") as HTMLInputElement;
-    expect(autoDeductRadio.checked).toBe(true);
-
-    // Click Option 2 (no_deduct)
-    const noDeductRadio = screen.getByLabelText("shifts.modal.break_policy_no_deduct");
-    await user.click(noDeductRadio);
-    expect(setIsAutoDeduct).toHaveBeenCalledWith(false);
-    expect(setIsBreakOvertime).toHaveBeenCalledWith(false);
-
-    // Click Option 3 (overtime)
-    const overtimeRadio = screen.getByLabelText("shifts.modal.break_policy_overtime");
-    await user.click(overtimeRadio);
-    expect(setIsAutoDeduct).toHaveBeenCalledWith(false);
-    expect(setIsBreakOvertime).toHaveBeenCalledWith(true);
+    // Check that the break time interval is shown
+    expect(screen.getByText("12:00 - 13:00")).toBeDefined();
   });
 
-  it("disables Break Overtime radio button in CreateShiftModal when isFixedBreak is false", () => {
+  it("renders early OT details when allowed", () => {
     render(
-      <CreateShiftModal
-        isAutoDeduct={true}
-        isBreakOvertime={false}
-        isFixedBreak={false}
-        isLoading={false}
-        isOpen={true}
-        newBreakEnd=""
-        newBreakStart=""
-        newShiftBreak={60}
-        newShiftEnd="17:00"
-        onClose={vi.fn()}
-        onCreateShift={vi.fn()}
-        setIsAutoDeduct={vi.fn()}
-        setIsBreakOvertime={vi.fn()}
-        setIsFixedBreak={vi.fn()}
-        setNewBreakEnd={vi.fn()}
-        setNewBreakStart={vi.fn()}
-        setNewShiftBreak={vi.fn()}
-        setNewShiftEnd={vi.fn()}
-        setNewShiftName={vi.fn()}
-        setNewShiftStart={vi.fn()}
-        setNewShiftSymbol={vi.fn()}
-        newShiftName="Test Shift"
-        newShiftStart="08:00"
-        newShiftSymbol="T"
-              newShiftGrace={15}
-        allowEarlyOt={false}
-        maxEarlyOtMinutes={0}
-        setNewShiftGrace={vi.fn()}
-        setAllowEarlyOt={vi.fn()}
-        setMaxEarlyOtMinutes={vi.fn()}
-      />
-    );
-
-    const overtimeRadio = screen.getByLabelText("shifts.modal.break_policy_overtime") as HTMLInputElement;
-    expect(overtimeRadio.disabled).toBe(true);
-    expect(screen.getByText(/shifts.modal.break_policy_overtime_disabled_hint/)).toBeDefined();
-  });
-
-  it("renders EditShiftModal with preselected options based on state", () => {
-    render(
-      <EditShiftModal
-        correctionEffectiveDate="2026-05-30"
-        editingShift={mockShift}
-        isAutoDeduct={false}
-        isBreakOvertime={true}
-        isCorrection={false}
-        isFixedBreak={false}
-        isLoading={false}
-        newBreakEnd=""
-        newBreakStart=""
-        newShiftBreak={60}
-        newShiftEnd="17:00"
-        newShiftGrace={15}
-        newShiftName="Test Shift"
-        newShiftStart="08:00"
-        newShiftSymbol="T"
-        onClose={vi.fn()}
-        onUpdateShift={vi.fn()}
-        setCorrectionEffectiveDate={vi.fn()}
-        setIsAutoDeduct={vi.fn()}
-        setIsBreakOvertime={vi.fn()}
-        setIsCorrection={vi.fn()}
-        setIsFixedBreak={vi.fn()}
-        setNewBreakEnd={vi.fn()}
-        setNewBreakStart={vi.fn()}
-        setNewShiftBreak={vi.fn()}
-        setNewShiftEnd={vi.fn()}
-        setNewShiftGrace={vi.fn()}
-        setNewShiftName={vi.fn()}
-        setNewShiftStart={vi.fn()}
-        setNewShiftSymbol={vi.fn()}
-              allowEarlyOt={false}
-        maxEarlyOtMinutes={0}
-        setAllowEarlyOt={vi.fn()}
-        setMaxEarlyOtMinutes={vi.fn()}
-      />
-    );
-
-    // Overtime break option should be checked
-    const overtimeRadio = screen.getByLabelText("shifts.modal.break_policy_overtime") as HTMLInputElement;
-    expect(overtimeRadio.checked).toBe(true);
-
-    const autoDeductRadio = screen.getByLabelText("shifts.modal.break_policy_auto_deduct") as HTMLInputElement;
-    expect(autoDeductRadio.checked).toBe(false);
-  });
-
-  it("renders Break Start and Break End inputs in CreateShiftModal when isFixedBreak is true", () => {
-    render(
-      <CreateShiftModal
-        isAutoDeduct={true}
-        isBreakOvertime={false}
-        isFixedBreak={true}
-        isLoading={false}
-        isOpen={true}
-        newBreakEnd="13:00"
-        newBreakStart="12:00"
-        newShiftBreak={60}
-        newShiftEnd="17:00"
-        onClose={vi.fn()}
-        onCreateShift={vi.fn()}
-        setIsAutoDeduct={vi.fn()}
-        setIsBreakOvertime={vi.fn()}
-        setIsFixedBreak={vi.fn()}
-        setNewBreakEnd={vi.fn()}
-        setNewBreakStart={vi.fn()}
-        setNewShiftBreak={vi.fn()}
-        setNewShiftEnd={vi.fn()}
-        setNewShiftName={vi.fn()}
-        setNewShiftStart={vi.fn()}
-        setNewShiftSymbol={vi.fn()}
-        newShiftName="Test Shift"
-        newShiftStart="08:00"
-        newShiftSymbol="T"
-              newShiftGrace={15}
-        allowEarlyOt={false}
-        maxEarlyOtMinutes={0}
-        setNewShiftGrace={vi.fn()}
-        setAllowEarlyOt={vi.fn()}
-        setMaxEarlyOtMinutes={vi.fn()}
-      />
-    );
-
-    // Should display start/end labels and query elements
-    expect(screen.getByText("shifts.modal.break_start")).toBeDefined();
-    expect(screen.getByText("shifts.modal.break_end")).toBeDefined();
-    expect(screen.queryByText("shifts.modal.break_duration")).toBeNull();
-  });
-
-  it("renders Break Duration input in CreateShiftModal when isFixedBreak is false", () => {
-    render(
-      <CreateShiftModal
-        isAutoDeduct={true}
-        isBreakOvertime={false}
-        isFixedBreak={false}
-        isLoading={false}
-        isOpen={true}
-        newBreakEnd=""
-        newBreakStart=""
-        newShiftBreak={60}
-        newShiftEnd="17:00"
-        onClose={vi.fn()}
-        onCreateShift={vi.fn()}
-        setIsAutoDeduct={vi.fn()}
-        setIsBreakOvertime={vi.fn()}
-        setIsFixedBreak={vi.fn()}
-        setNewBreakEnd={vi.fn()}
-        setNewBreakStart={vi.fn()}
-        setNewShiftBreak={vi.fn()}
-        setNewShiftEnd={vi.fn()}
-        setNewShiftName={vi.fn()}
-        setNewShiftStart={vi.fn()}
-        setNewShiftSymbol={vi.fn()}
-        newShiftName="Test Shift"
-        newShiftStart="08:00"
-        newShiftSymbol="T"
-              newShiftGrace={15}
-        allowEarlyOt={false}
-        maxEarlyOtMinutes={0}
-        setNewShiftGrace={vi.fn()}
-        setAllowEarlyOt={vi.fn()}
-        setMaxEarlyOtMinutes={vi.fn()}
-      />
-    );
-
-    // Should display duration label and query elements
-    expect(screen.getByText(/shifts.modal.break_duration/)).toBeDefined();
-    expect(screen.queryByText("shifts.modal.break_start")).toBeNull();
-    expect(screen.queryByText("shifts.modal.break_end")).toBeNull();
-  });
-
-  it("triggers setIsFixedBreak when Fixed Break toggle switch is clicked", async () => {
-    const user = userEvent.setup();
-    const setIsFixedBreak = vi.fn();
-
-    render(
-      <CreateShiftModal
-        isAutoDeduct={true}
-        isBreakOvertime={false}
-        isFixedBreak={false}
-        isLoading={false}
-        isOpen={true}
-        newBreakEnd=""
-        newBreakStart=""
-        newShiftBreak={60}
-        newShiftEnd="17:00"
-        onClose={vi.fn()}
-        onCreateShift={vi.fn()}
-        setIsAutoDeduct={vi.fn()}
-        setIsBreakOvertime={vi.fn()}
-        setIsFixedBreak={setIsFixedBreak}
-        setNewBreakEnd={vi.fn()}
-        setNewBreakStart={vi.fn()}
-        setNewShiftBreak={vi.fn()}
-        setNewShiftEnd={vi.fn()}
-        setNewShiftName={vi.fn()}
-        setNewShiftStart={vi.fn()}
-        setNewShiftSymbol={vi.fn()}
-        newShiftName="Test Shift"
-        newShiftStart="08:00"
-        newShiftSymbol="T"
-              newShiftGrace={15}
-        allowEarlyOt={false}
-        maxEarlyOtMinutes={0}
-        setNewShiftGrace={vi.fn()}
-        setAllowEarlyOt={vi.fn()}
-        setMaxEarlyOtMinutes={vi.fn()}
-      />
-    );
-
-    const toggleSwitch = screen.getByRole("button", { name: "shifts.types.fixed" });
-    await user.click(toggleSwitch);
-    expect(setIsFixedBreak).toHaveBeenCalledWith(true);
-  });
-
-  it("renders CreateShiftModal with Early OT controls and handles toggle state changes", async () => {
-    const user = userEvent.setup();
-    const setAllowEarlyOt = vi.fn();
-    const setMaxEarlyOtMinutes = vi.fn();
-
-    const { rerender } = render(
-      <CreateShiftModal
-        isAutoDeduct={true}
-        isBreakOvertime={false}
-        isFixedBreak={false}
-        isLoading={false}
-        isOpen={true}
-        newBreakEnd=""
-        newBreakStart=""
-        newShiftBreak={60}
-        newShiftEnd="17:00"
-        newShiftGrace={15}
-        allowEarlyOt={false}
-        maxEarlyOtMinutes={0}
-        onClose={vi.fn()}
-        onCreateShift={vi.fn()}
-        setIsAutoDeduct={vi.fn()}
-        setIsBreakOvertime={vi.fn()}
-        setIsFixedBreak={vi.fn()}
-        setNewBreakEnd={vi.fn()}
-        setNewBreakStart={vi.fn()}
-        setNewShiftBreak={vi.fn()}
-        setNewShiftEnd={vi.fn()}
-        setNewShiftName={vi.fn()}
-        setNewShiftStart={vi.fn()}
-        setNewShiftSymbol={vi.fn()}
-        setNewShiftGrace={vi.fn()}
-        setAllowEarlyOt={setAllowEarlyOt}
-        setMaxEarlyOtMinutes={setMaxEarlyOtMinutes}
-        newShiftName="Test Shift"
-        newShiftStart="08:00"
-        newShiftSymbol="T"
-      />
-    );
-
-    // Toggle button should be visible
-    const toggleButton = screen.getByRole("button", { name: "shifts.modal.allow_early_ot" });
-    expect(toggleButton).toBeDefined();
-
-    // Click toggle to enable early OT
-    await user.click(toggleButton);
-    expect(setAllowEarlyOt).toHaveBeenCalledWith(true);
-
-    // Rerender with allowEarlyOt = true to check if the max early OT input is shown
-    rerender(
-      <CreateShiftModal
-        isAutoDeduct={true}
-        isBreakOvertime={false}
-        isFixedBreak={false}
-        isLoading={false}
-        isOpen={true}
-        newBreakEnd=""
-        newBreakStart=""
-        newShiftBreak={60}
-        newShiftEnd="17:00"
-        newShiftGrace={15}
+      <ShiftTimelinePreview
         allowEarlyOt={true}
-        maxEarlyOtMinutes={120}
-        onClose={vi.fn()}
-        onCreateShift={vi.fn()}
-        setIsAutoDeduct={vi.fn()}
-        setIsBreakOvertime={vi.fn()}
-        setIsFixedBreak={vi.fn()}
-        setNewBreakEnd={vi.fn()}
-        setNewBreakStart={vi.fn()}
-        setNewShiftBreak={vi.fn()}
-        setNewShiftEnd={vi.fn()}
-        setNewShiftName={vi.fn()}
-        setNewShiftStart={vi.fn()}
-        setNewShiftSymbol={vi.fn()}
-        setNewShiftGrace={vi.fn()}
-        setAllowEarlyOt={setAllowEarlyOt}
-        setMaxEarlyOtMinutes={setMaxEarlyOtMinutes}
-        newShiftName="Test Shift"
-        newShiftStart="08:00"
-        newShiftSymbol="T"
+        breakEnd=""
+        breakStart=""
+        isAutoDeduct={false}
+        isBreakOvertime={false}
+        isFixedBreak={false}
+        maxEarlyOtMinutes={60}
+        shiftBreak={0}
+        shiftEnd="17:00"
+        shiftGrace={0}
+        shiftName="OT Shift"
+        shiftStart="08:00"
       />
     );
 
-    // Input for max early OT should now be visible
-    const input = screen.getByLabelText(/shifts.modal.max_early_ot/) as HTMLInputElement;
-    expect(input).toBeDefined();
-    expect(input.value).toBe("120");
-
-    // Change input value
-    await user.type(input, "180");
-    expect(setMaxEarlyOtMinutes).toHaveBeenCalled();
+    // Check for allow early OT label/text
+    expect(screen.getByText("shifts.modal.allow_early_ot")).toBeDefined();
+    expect(screen.getByText(/60/)).toBeDefined();
   });
 });

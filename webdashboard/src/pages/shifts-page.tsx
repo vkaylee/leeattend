@@ -32,11 +32,7 @@ export default function ShiftsPage() {
 
   return (
     <div className="space-y-6">
-      <ShiftsHeader
-        onCreateClick={() => {
-          setIsCreateModalOpen(true);
-        }}
-      />
+      <ShiftsHeader />
 
       <ShiftsTabs 
         activeTab={activeTab} 

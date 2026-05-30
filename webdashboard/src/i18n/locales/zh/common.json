@@ -1,6 +1,7 @@
 {
   "common": {
     "switching_workspace": "正在切换工作区...",
+    "hours": "小时",
     "syncing_data": "正在同步数据...",
     "preparing_environment": "正在准备环境...",
     "search": "搜索...",

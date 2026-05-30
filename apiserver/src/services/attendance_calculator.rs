@@ -6,6 +6,7 @@ pub struct WorkBuckets {
     pub standard_minutes: i32,
     pub early_ot_minutes: i32,
     pub late_ot_minutes: i32,
+    pub break_ot_minutes: i32,
 }
 
 /// Encapsulates all inputs for daily attendance calculation.
@@ -37,6 +38,7 @@ pub struct AttendanceCalculator;
 
 impl AttendanceCalculator {
     /// Calculate standard and OT buckets using structured input.
+    #[allow(clippy::too_many_lines)]
     pub fn calculate_buckets<T: TimeZone>(input: &DailyCalcInput<T>) -> WorkBuckets {
         let punch_in = &input.punch_in;
         let punch_out = &input.punch_out;
@@ -100,22 +102,47 @@ impl AttendanceCalculator {
 
             if standard_out > standard_in {
                 let mut standard_raw = standard_out
-                    .signed_duration_since(standard_in)
+                    .clone()
+                    .signed_duration_since(standard_in.clone())
                     .num_minutes() as i32;
 
-                // Deduct break from standard time
-                let break_to_deduct = Self::calculate_break_deduction(
-                    actual_break_minutes,
-                    scheduled_break_minutes,
-                    rules.is_break_auto_deduct,
-                    rules.is_break_overtime,
-                    input.break_start.as_ref(),
-                    input.break_end.as_ref(),
-                    punch_in,
-                    punch_out,
-                );
+                // Calculate break deduction and break OT
+                let (break_to_deduct, break_ot_minutes) = if rules.is_break_overtime {
+                    if actual_break_minutes > 0 {
+                        // Employee punched out for break -> no OT, but deduct break from standard
+                        (actual_break_minutes, 0)
+                    } else {
+                        // Employee worked during break -> deduct from standard, add to OT
+                        let overlap = if let (Some(bs), Some(be)) = (input.break_start.clone(), input.break_end.clone()) {
+                            let overlap_start = DateTime::max(standard_in, bs);
+                            let overlap_end = DateTime::min(standard_out, be);
+                            if overlap_end > overlap_start {
+                                overlap_end.signed_duration_since(overlap_start).num_minutes() as i32
+                            } else {
+                                0
+                            }
+                        } else {
+                            scheduled_break_minutes
+                        };
+                        (overlap, overlap)
+                    }
+                } else {
+                    let deduct = Self::calculate_break_deduction(
+                        actual_break_minutes,
+                        scheduled_break_minutes,
+                        rules.is_break_auto_deduct,
+                        rules.is_break_overtime,
+                        input.break_start.as_ref(),
+                        input.break_end.as_ref(),
+                        punch_in,
+                        punch_out,
+                    );
+                    (deduct, 0)
+                };
+
                 standard_raw = i32::max(0, standard_raw - break_to_deduct);
                 buckets.standard_minutes = standard_raw;
+                buckets.break_ot_minutes = break_ot_minutes;
             }
 
             // 2. Early OT: Time before ShiftStart
@@ -229,7 +256,7 @@ impl AttendanceCalculator {
             &input.rounding_policy,
         );
         let ot_units = Self::calculate_units(
-            buckets.early_ot_minutes + buckets.late_ot_minutes,
+            buckets.early_ot_minutes + buckets.late_ot_minutes + buckets.break_ot_minutes,
             input.work_unit,
             &input.rounding_policy,
         );
@@ -1507,5 +1534,94 @@ ot_ceiling: None,
             max_early_ot_minutes: Some(45),
         });
         assert_eq!(b8.early_ot_minutes, 45);
+    }
+
+    #[test]
+    fn test_break_is_overtime_fixed_worked() {
+        let start = Some(dt(8, 0));
+        let end = Some(dt(17, 0));
+        let bs = Some(dt(12, 0));
+        let be = Some(dt(13, 0));
+        let mut rules = mock_rules();
+        rules.is_break_overtime = true;
+
+        let b = AttendanceCalculator::calculate_buckets(&DailyCalcInput {
+            punch_in: dt(8, 0),
+            punch_out: dt(17, 0),
+            shift_start: start,
+            shift_end: end,
+            scheduled_break_minutes: 60,
+            actual_break_minutes: 0,
+            break_start: bs,
+            break_end: be,
+            rules,
+            ot_ceiling: None,
+            work_unit: 0,
+            rounding_policy: String::new(),
+            max_early_ot_minutes: None,
+        });
+
+        // 9 hours total (540 mins). Break is 1 hour (60 mins).
+        // Break is OT -> deducted from standard work (540 - 60 = 480 mins)
+        // and added to break_ot_minutes = 60 mins.
+        assert_eq!(b.standard_minutes, 480);
+        assert_eq!(b.break_ot_minutes, 60);
+    }
+
+    #[test]
+    fn test_break_is_overtime_fixed_taken() {
+        let start = Some(dt(8, 0));
+        let end = Some(dt(17, 0));
+        let bs = Some(dt(12, 0));
+        let be = Some(dt(13, 0));
+        let mut rules = mock_rules();
+        rules.is_break_overtime = true;
+
+        let b = AttendanceCalculator::calculate_buckets(&DailyCalcInput {
+            punch_in: dt(8, 0),
+            punch_out: dt(17, 0),
+            shift_start: start,
+            shift_end: end,
+            scheduled_break_minutes: 60,
+            actual_break_minutes: 60, // punched out for break
+            break_start: bs,
+            break_end: be,
+            rules,
+            ot_ceiling: None,
+            work_unit: 0,
+            rounding_policy: String::new(),
+            max_early_ot_minutes: None,
+        });
+
+        // Employee punched out for break -> standard deducted by 60 mins, but no break OT
+        assert_eq!(b.standard_minutes, 480);
+        assert_eq!(b.break_ot_minutes, 0);
+    }
+
+    #[test]
+    fn test_break_is_overtime_flexible_worked() {
+        let start = Some(dt(8, 0));
+        let end = Some(dt(17, 0));
+        let mut rules = mock_rules();
+        rules.is_break_overtime = true;
+
+        let b = AttendanceCalculator::calculate_buckets(&DailyCalcInput {
+            punch_in: dt(8, 0),
+            punch_out: dt(17, 0),
+            shift_start: start,
+            shift_end: end,
+            scheduled_break_minutes: 60,
+            actual_break_minutes: 0,
+            break_start: None,
+            break_end: None,
+            rules,
+            ot_ceiling: None,
+            work_unit: 0,
+            rounding_policy: String::new(),
+            max_early_ot_minutes: None,
+        });
+
+        assert_eq!(b.standard_minutes, 480);
+        assert_eq!(b.break_ot_minutes, 60);
     }
 }

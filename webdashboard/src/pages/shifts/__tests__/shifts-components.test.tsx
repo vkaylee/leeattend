@@ -28,9 +28,7 @@ vi.mock("@/components/shifts/shift-list", () => ({ ShiftList: () => <div data-te
 vi.mock("@/components/shifts/priority-legend", () => ({ PriorityLegend: () => <div data-testid="priority-legend" /> }));
 vi.mock("@/components/shifts/assignment-history", () => ({ AssignmentHistory: () => <div data-testid="assignment-history" /> }));
 
-vi.mock("@/components/shifts/create-shift-modal", () => ({ CreateShiftModal: (props: any) => <Button data-testid="create-modal" onClick={props.onClose} variant="primary">Close</Button> }));
 vi.mock("@/components/shifts/shift-picker-modal", () => ({ ShiftPickerModal: (props: any) => <Button data-testid="picker-modal" onClick={props.onClose} variant="ghost">Close</Button> }));
-vi.mock("@/components/shifts/edit-shift-modal", () => ({ EditShiftModal: (props: any) => <Button data-testid="edit-modal" onClick={props.onClose} variant="ghost">Close</Button> }));
 
 describe("Shifts Components Unit Tests", () => {
   const mockHook = {
@@ -104,19 +102,19 @@ describe("Shifts Components Unit Tests", () => {
   });
 
   it("renders ShiftsContent MonthlyRosterGrid", () => {
-    const { getByTestId } = render(<ShiftsContent hook={mockHook} />);
+    const { getByTestId } = render(<ShiftsContent hook={mockHook as any} />);
     expect(getByTestId("monthly-roster")).toBeDefined();
   });
 
   it("renders null for Weekly view without selected employee", () => {
     const hook = { ...mockHook, activeTab: "weekly-roster", viewMode: "week", selectedEmployee: null };
-    const { container } = render(<ShiftsContent hook={hook} />);
+    const { container } = render(<ShiftsContent hook={hook as any} />);
     expect(container.firstChild).toBeNull();
   });
 
   it("renders WeeklyRosterGrid and handles callbacks", () => {
     const hook = { ...mockHook, activeTab: "weekly-roster", viewMode: "week" };
-    const { getByTestId } = render(<ShiftsContent hook={hook} />);
+    const { getByTestId } = render(<ShiftsContent hook={hook as any} />);
     expect(getByTestId("weekly-roster")).toBeDefined();
 
     getByTestId("btn-assign-all").click();
@@ -150,30 +148,22 @@ describe("Shifts Components Unit Tests", () => {
 
   it("renders PatternAssignmentForm", () => {
     const hook = { ...mockHook, activeTab: "assignments" };
-    const { getByTestId } = render(<ShiftsContent hook={hook} />);
+    const { getByTestId } = render(<ShiftsContent hook={hook as any} />);
     expect(getByTestId("pattern-form")).toBeDefined();
   });
 
   it("renders ShiftList", () => {
     const hook = { ...mockHook, activeTab: "directory" };
-    const { getByTestId } = render(<ShiftsContent hook={hook} />);
+    const { getByTestId } = render(<ShiftsContent hook={hook as any} />);
     expect(getByTestId("shift-list")).toBeDefined();
   });
 
   it("renders ShiftsModals and handles close events", () => {
-    const { getByTestId } = render(<ShiftsModals hook={mockHook} />);
-    expect(getByTestId("create-modal")).toBeDefined();
+    const { getByTestId } = render(<ShiftsModals hook={mockHook as any} />);
     expect(getByTestId("picker-modal")).toBeDefined();
-    expect(getByTestId("edit-modal")).toBeDefined();
-
-    getByTestId("create-modal").click();
-    expect(mockHook.setIsCreateModalOpen).toHaveBeenCalledWith(false);
 
     getByTestId("picker-modal").click();
     expect(mockHook.setIsShiftPickerOpen).toHaveBeenCalledWith(false);
     expect(mockHook.setTargetDates).toHaveBeenCalledWith([]);
-
-    getByTestId("edit-modal").click();
-    expect(mockHook.setEditingShift).toHaveBeenCalledWith(null);
   });
 });

@@ -1,17 +1,18 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
+import { useNavigate } from "@tanstack/react-router";
 import { getCurrentWorkspaceId } from "@/lib/api";
 
 import { useMonthNavigation } from "./use-month-navigation";
 import { useRosterHandlers } from "./use-roster-handlers";
 import { useShiftData } from "./use-shift-data";
 import { useShiftFormState } from "./use-shift-form-state";
-import { useShiftModalHandlers } from "./use-shift-modal-handlers";
 import { useShiftMutations } from "./use-shift-mutations";
 import { useShiftNavigation } from "./use-shift-navigation";
 import { UseShiftsReturn } from "./use-shifts-types";
+import type { Shift } from "@/lib/api/types";
 
 export function useShifts(): UseShiftsReturn {
   const wsId = getCurrentWorkspaceId() ?? "";
+  const navigate = useNavigate();
   const nav = useShiftNavigation();
   const monthNav = useMonthNavigation();
   const form = useShiftFormState();
@@ -64,11 +65,15 @@ export function useShifts(): UseShiftsReturn {
     monthDays: monthNav.monthDays,
   });
 
-  const modalHandlers = useShiftModalHandlers({
-    ...form,
-    mutations,
-    formActions: form
-  });
+  const openEditModal = (shift: Shift) => {
+    void navigate({
+      to: "/shifts/$shiftId/edit",
+      params: { shiftId: shift.id }
+    });
+  };
+
+  const handleCreateShift = () => {};
+  const handleUpdateShift = () => {};
 
   const employeeSchedule = data.allSchedules?.find(s => s.employee_id === form.selectedEmployee?.id);
 
@@ -79,7 +84,9 @@ export function useShifts(): UseShiftsReturn {
     ...data,
     ...mutations,
     ...rosterHandlers,
-    ...modalHandlers,
+    openEditModal,
+    handleCreateShift,
+    handleUpdateShift,
     employeeSchedule,
     wsId,
     handleNavigateWeek: (dir: "prev" | "next") => { nav.handleNavigateWeek(dir, () => { form.setSelectedDays([]); }); }

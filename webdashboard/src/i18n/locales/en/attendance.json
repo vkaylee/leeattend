@@ -331,7 +331,14 @@
       "allow_early_ot": "Allow Early OT",
       "allow_early_ot_help": "Count working time before shift start as early overtime (Early OT)",
       "max_early_ot": "Maximum Early OT (minutes)",
-      "max_early_ot_required": "Please enter a limit greater than 0."
+      "max_early_ot_required": "Please enter a limit greater than 0.",
+      "basic_info": "Basic Info",
+      "edit_description": "Update config or change hours",
+      "ot_grace_config": "Overtime & Grace Period Configuration",
+      "preview_title": "Visual Shift Schedule Preview",
+      "shift_duration": "Shift Duration",
+      "shift_name_label": "Shift Name",
+      "working_hours": "Net Working Hours"
     },
     "messages": {
       "assign_success": "Shift assigned to employee successfully.",

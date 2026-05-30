@@ -331,7 +331,14 @@
       "allow_early_ot": "Cho phép tính tăng ca sớm",
       "allow_early_ot_help": "Tính thời gian làm việc trước ca là tăng ca sớm (Early OT)",
       "max_early_ot": "Giới hạn tăng ca sớm tối đa (phút)",
-      "max_early_ot_required": "Vui lòng nhập số phút giới hạn lớn hơn 0."
+      "max_early_ot_required": "Vui lòng nhập số phút giới hạn lớn hơn 0.",
+      "basic_info": "Thông tin cơ bản",
+      "edit_description": "Cập nhật cấu hình hoặc thay đổi giờ làm",
+      "ot_grace_config": "Cấu hình đi muộn & Tăng ca",
+      "preview_title": "Xem trước sơ đồ ca",
+      "shift_duration": "Tổng thời gian ca",
+      "shift_name_label": "Tên ca",
+      "working_hours": "Công thực tế"
     },
     "messages": {
       "assign_success": "Đã gán ca làm việc cho nhân viên thành công.",

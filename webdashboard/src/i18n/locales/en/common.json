@@ -1,6 +1,7 @@
 {
   "common": {
     "switching_workspace": "Switching workspace...",
+    "hours": "Hours",
     "syncing_data": "Syncing data...",
     "preparing_environment": "Preparing environment...",
     "search": "Search...",

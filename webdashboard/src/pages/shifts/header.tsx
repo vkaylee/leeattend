@@ -7,11 +7,7 @@ import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { ROUTES } from "@/lib/routes";
 
-interface ShiftsHeaderProps {
-  onCreateClick: () => void;
-}
-
-export function ShiftsHeader({ onCreateClick }: ShiftsHeaderProps) {
+export function ShiftsHeader() {
   const { t } = useTranslation();
 
   return (
@@ -37,18 +33,14 @@ export function ShiftsHeader({ onCreateClick }: ShiftsHeaderProps) {
             {t("patterns.manage_btn")}
           </span>
         </Link>
-        <Button className="bg-primary-600 hover:bg-primary-700 text-white font-bold px-6 py-2.5 rounded-2xl flex items-center gap-2 shadow-lg shadow-primary-100 transition-all"
-          onClick={() => {
-            onCreateClick();
-          }}
-          type="button"
-          variant="primary"
+        <Link className="bg-primary-600 hover:bg-primary-700 text-white font-bold px-6 py-2.5 rounded-2xl flex items-center gap-2 shadow-lg shadow-primary-100 transition-all text-center"
+          to="/shifts/new"
         >
           <Plus className="w-5 h-5" />
           <span className="text-xs uppercase tracking-widest">
             {t("shifts.create_btn")}
           </span>
-        </Button>
+        </Link>
       </div>
     </div>
   );
