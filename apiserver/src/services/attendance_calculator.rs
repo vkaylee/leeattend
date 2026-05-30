@@ -108,24 +108,25 @@ impl AttendanceCalculator {
 
                 // Calculate break deduction and break OT
                 let (break_to_deduct, break_ot_minutes) = if rules.is_break_overtime {
-                    if actual_break_minutes > 0 {
-                        // Employee punched out for break -> no OT, but deduct break from standard
-                        (actual_break_minutes, 0)
-                    } else {
-                        // Employee worked during break -> deduct from standard, add to OT
-                        let overlap = if let (Some(bs), Some(be)) = (input.break_start.clone(), input.break_end.clone()) {
-                            let overlap_start = DateTime::max(standard_in, bs);
-                            let overlap_end = DateTime::min(standard_out, be);
-                            if overlap_end > overlap_start {
-                                overlap_end.signed_duration_since(overlap_start).num_minutes() as i32
-                            } else {
-                                0
-                            }
+                    let break_overlap = if let (Some(bs), Some(be)) =
+                        (input.break_start.clone(), input.break_end.clone())
+                    {
+                        let overlap_start = DateTime::max(standard_in, bs);
+                        let overlap_end = DateTime::min(standard_out, be);
+                        if overlap_end > overlap_start {
+                            overlap_end
+                                .signed_duration_since(overlap_start)
+                                .num_minutes() as i32
                         } else {
-                            scheduled_break_minutes
-                        };
-                        (overlap, overlap)
-                    }
+                            0
+                        }
+                    } else {
+                        scheduled_break_minutes
+                    };
+                    (
+                        i32::max(actual_break_minutes, break_overlap),
+                        i32::max(0, break_overlap - actual_break_minutes),
+                    )
                 } else {
                     let deduct = Self::calculate_break_deduction(
                         actual_break_minutes,
@@ -1622,6 +1623,206 @@ ot_ceiling: None,
         });
 
         assert_eq!(b.standard_minutes, 480);
+        assert_eq!(b.break_ot_minutes, 60);
+    }
+
+    #[test]
+    fn test_break_is_overtime_partial_overlap() {
+        // Employee leaves mid-break (12:30), shift break is 12:00-13:00 (Fixed)
+        let start = Some(dt(8, 0));
+        let end = Some(dt(17, 0));
+        let bs = Some(dt(12, 0));
+        let be = Some(dt(13, 0));
+        let mut rules = mock_rules();
+        rules.is_break_overtime = true;
+
+        let b = AttendanceCalculator::calculate_buckets(&DailyCalcInput {
+            punch_in: dt(8, 0),
+            punch_out: dt(12, 30),
+            shift_start: start,
+            shift_end: end,
+            scheduled_break_minutes: 60,
+            actual_break_minutes: 0,
+            break_start: bs,
+            break_end: be,
+            rules,
+            ot_ceiling: None,
+            work_unit: 0,
+            rounding_policy: String::new(),
+            max_early_ot_minutes: None,
+        });
+
+        // 270 minutes raw standard. Break overlap is 30 mins (12:00-12:30).
+        // Standard: 270 - 30 = 240 mins.
+        // Break OT: 30 mins.
+        assert_eq!(b.standard_minutes, 240);
+        assert_eq!(b.break_ot_minutes, 30);
+    }
+
+    #[test]
+    fn test_break_is_overtime_no_overlap() {
+        // Employee leaves before break window starts
+        let start = Some(dt(8, 0));
+        let end = Some(dt(17, 0));
+        let bs = Some(dt(12, 0));
+        let be = Some(dt(13, 0));
+        let mut rules = mock_rules();
+        rules.is_break_overtime = true;
+
+        let b = AttendanceCalculator::calculate_buckets(&DailyCalcInput {
+            punch_in: dt(8, 0),
+            punch_out: dt(11, 30),
+            shift_start: start,
+            shift_end: end,
+            scheduled_break_minutes: 60,
+            actual_break_minutes: 0,
+            break_start: bs,
+            break_end: be,
+            rules,
+            ot_ceiling: None,
+            work_unit: 0,
+            rounding_policy: String::new(),
+            max_early_ot_minutes: None,
+        });
+
+        // 210 minutes raw standard. Break overlap is 0.
+        // Standard: 210. Break OT: 0.
+        assert_eq!(b.standard_minutes, 210);
+        assert_eq!(b.break_ot_minutes, 0);
+    }
+
+    #[test]
+    fn test_break_is_overtime_actual_shorter() {
+        // Employee punches out for only 30 mins of the 60-min break
+        let start = Some(dt(8, 0));
+        let end = Some(dt(17, 0));
+        let bs = Some(dt(12, 0));
+        let be = Some(dt(13, 0));
+        let mut rules = mock_rules();
+        rules.is_break_overtime = true;
+
+        let b = AttendanceCalculator::calculate_buckets(&DailyCalcInput {
+            punch_in: dt(8, 0),
+            punch_out: dt(17, 0),
+            shift_start: start,
+            shift_end: end,
+            scheduled_break_minutes: 60,
+            actual_break_minutes: 30, // punched out 30 mins
+            break_start: bs,
+            break_end: be,
+            rules,
+            ot_ceiling: None,
+            work_unit: 0,
+            rounding_policy: String::new(),
+            max_early_ot_minutes: None,
+        });
+
+        // Worked full shift. 540 mins raw.
+        // max(30, 60) = 60 mins break deduction -> standard = 480 mins.
+        // max(0, 60 - 30) = 30 mins break OT.
+        assert_eq!(b.standard_minutes, 480);
+        assert_eq!(b.break_ot_minutes, 30);
+    }
+
+    #[test]
+    fn test_break_is_overtime_actual_longer() {
+        // Employee punches out for 90 mins (exceeds the 60-min break)
+        let start = Some(dt(8, 0));
+        let end = Some(dt(17, 0));
+        let bs = Some(dt(12, 0));
+        let be = Some(dt(13, 0));
+        let mut rules = mock_rules();
+        rules.is_break_overtime = true;
+
+        let b = AttendanceCalculator::calculate_buckets(&DailyCalcInput {
+            punch_in: dt(8, 0),
+            punch_out: dt(17, 0),
+            shift_start: start,
+            shift_end: end,
+            scheduled_break_minutes: 60,
+            actual_break_minutes: 90, // punched out 90 mins
+            break_start: bs,
+            break_end: be,
+            rules,
+            ot_ceiling: None,
+            work_unit: 0,
+            rounding_policy: String::new(),
+            max_early_ot_minutes: None,
+        });
+
+        // max(90, 60) = 90 mins break deduction -> standard = 540 - 90 = 450 mins.
+        // max(0, 60 - 90) = 0 mins break OT.
+        assert_eq!(b.standard_minutes, 450);
+        assert_eq!(b.break_ot_minutes, 0);
+    }
+
+    #[test]
+    fn test_break_is_overtime_overnight() {
+        // Overnight shift: 22:00 -> 06:00 (next day)
+        // Overnight break window: 01:00 -> 02:00 (next day)
+        let tz = Utc;
+        let punch_in = tz
+            .from_local_datetime(
+                &NaiveDate::from_ymd_opt(2026, 1, 1)
+                    .unwrap()
+                    .and_time(NaiveTime::from_hms_opt(22, 0, 0).unwrap()),
+            )
+            .single()
+            .unwrap();
+        let punch_out = tz
+            .from_local_datetime(
+                &NaiveDate::from_ymd_opt(2026, 1, 2)
+                    .unwrap()
+                    .and_time(NaiveTime::from_hms_opt(6, 0, 0).unwrap()),
+            )
+            .single()
+            .unwrap();
+
+        let shift_start = Some(punch_in.clone());
+        let shift_end = Some(punch_out.clone());
+
+        let break_start = Some(
+            tz.from_local_datetime(
+                &NaiveDate::from_ymd_opt(2026, 1, 2)
+                    .unwrap()
+                    .and_time(NaiveTime::from_hms_opt(1, 0, 0).unwrap()),
+            )
+            .single()
+            .unwrap(),
+        );
+        let break_end = Some(
+            tz.from_local_datetime(
+                &NaiveDate::from_ymd_opt(2026, 1, 2)
+                    .unwrap()
+                    .and_time(NaiveTime::from_hms_opt(2, 0, 0).unwrap()),
+            )
+            .single()
+            .unwrap(),
+        );
+
+        let mut rules = mock_rules();
+        rules.is_break_overtime = true;
+
+        let b = AttendanceCalculator::calculate_buckets(&DailyCalcInput {
+            punch_in,
+            punch_out,
+            shift_start,
+            shift_end,
+            scheduled_break_minutes: 60,
+            actual_break_minutes: 0,
+            break_start,
+            break_end,
+            rules,
+            ot_ceiling: None,
+            work_unit: 0,
+            rounding_policy: String::new(),
+            max_early_ot_minutes: None,
+        });
+
+        // 480 mins raw standard. Break window is 60 mins.
+        // Standard: 480 - 60 = 420 mins.
+        // Break OT: 60 mins.
+        assert_eq!(b.standard_minutes, 420);
         assert_eq!(b.break_ot_minutes, 60);
     }
 }

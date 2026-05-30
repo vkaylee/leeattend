@@ -227,7 +227,9 @@ impl AttendanceSummaryService {
                     );
 
                     // System Detected OT = Early OT + Late OT + Break OT
-                    system_detected_ot_minutes = buckets.early_ot_minutes + buckets.late_ot_minutes + buckets.break_ot_minutes;
+                    system_detected_ot_minutes = buckets.early_ot_minutes
+                        + buckets.late_ot_minutes
+                        + buckets.break_ot_minutes;
                 }
             }
         }

@@ -90,18 +90,29 @@ function ThemeToggle() {
   const { t } = useTranslation(['common', 'employees', 'leave', 'payroll', 'settings']);
 
   const options: { value: ThemeMode; icon: React.ReactNode; label: string }[] = [
-    { value: 'light', icon: <Sun size={14} />, label: t('common.theme.light', 'Light') },
-    { value: 'system', icon: <Monitor size={14} />, label: t('common.theme.system', 'System') },
-    { value: 'dark', icon: <Moon size={14} />, label: t('common.theme.dark', 'Dark') },
+    { value: 'light', icon: <Sun size={15} />, label: t('common.theme.light', 'Light') },
+    { value: 'system', icon: <Monitor size={15} />, label: t('common.theme.system', 'System') },
+    { value: 'dark', icon: <Moon size={15} />, label: t('common.theme.dark', 'Dark') },
   ];
 
+  const activeIndex = options.findIndex((opt) => opt.value === mode);
+
   return (
-    <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700 shadow-inner" data-testid="theme-toggle">
+    <div className="relative flex bg-slate-100/80 dark:bg-slate-800/80 p-0.5 rounded-full border border-slate-200/40 dark:border-slate-700/60 shadow-inner backdrop-blur-md" data-testid="theme-toggle">
+      {/* Sliding Pill Indicator */}
+      <div
+        className="absolute top-[2px] bottom-[2px] left-[2px] rounded-full bg-white dark:bg-slate-900 shadow-sm border border-slate-200/50 dark:border-slate-800/50 transition-all duration-300 ease-out"
+        style={{
+          width: 'calc(33.333% - 1.33px)',
+          transform: `translateX(${activeIndex * 100}%)`,
+        }}
+      />
       {options.map((opt) => (
-        <Button className={cn(
-            "p-2 rounded-lg transition-all flex items-center justify-center gap-1.5 min-w-[44px] min-h-[44px]",
+        <Button
+          className={cn(
+            "relative z-10 w-8 h-8 min-w-[32px] min-h-[32px] p-0 rounded-full transition-colors duration-300 flex items-center justify-center gap-0 cursor-pointer",
             mode === opt.value
-              ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-700"
+              ? "text-primary-600 dark:text-primary-400 font-bold bg-white/0 dark:bg-slate-900/0"
               : "text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300"
           )}
           data-testid={`theme-toggle-${opt.value}`}
@@ -110,7 +121,14 @@ function ThemeToggle() {
           title={opt.label}
           variant="ghost"
         >
-          {opt.icon}
+          <span className={cn(
+            "transition-all duration-300 ease-out flex items-center justify-center",
+            mode === opt.value 
+              ? (opt.value === 'light' ? "rotate-45 scale-110" : opt.value === 'dark' ? "-rotate-12 scale-110" : "scale-110")
+              : "scale-100"
+          )}>
+            {opt.icon}
+          </span>
         </Button>
       ))}
     </div>
