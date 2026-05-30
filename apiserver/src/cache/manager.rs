@@ -38,12 +38,9 @@ impl CacheManager {
     pub async fn warm_up(&self, workspace_id: Uuid) {
         debug!(workspace_id = %workspace_id, "Warming up cache");
 
-        // Fire-and-forget cache warming
-        // Use join! to run in parallel
-        let (ws_result, shifts_result) = tokio::join!(
-            self.workspace.get(workspace_id),
-            self.shifts.get_map(workspace_id),
-        );
+        // Warm up caches sequentially to prevent DB pool exhaustion
+        let ws_result = self.workspace.get(workspace_id).await;
+        let shifts_result = self.shifts.get_map(workspace_id).await;
 
         if let Err(e) = ws_result {
             warn!(workspace_id = %workspace_id, error = %e, "Workspace cache warm-up failed");
@@ -60,10 +57,9 @@ impl CacheManager {
     pub async fn invalidate_workspace(&self, workspace_id: Uuid) {
         debug!(workspace_id = %workspace_id, "Invalidating workspace caches");
 
-        let (ws_result, shifts_result) = tokio::join!(
-            self.workspace.invalidate(workspace_id),
-            self.shifts.invalidate(workspace_id),
-        );
+        // Invalidate caches sequentially to prevent DB pool exhaustion
+        let ws_result = self.workspace.invalidate(workspace_id).await;
+        let shifts_result = self.shifts.invalidate(workspace_id).await;
 
         if let Err(e) = ws_result {
             warn!(workspace_id = %workspace_id, error = %e, "Workspace cache invalidation failed");

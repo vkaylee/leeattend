@@ -21,7 +21,12 @@ export default tseslint.config(
       'src/route-tree.gen.ts',
       'src/types/api-generated.ts',
       'src/vite-env.d.ts',
-      'src/components/shifts/__tests__/shift-modals.test.tsx'
+      'src/components/shifts/__tests__/shift-modals.test.tsx',
+      'scratch',
+      'orval.config.ts',
+      'playwright.config.ts',
+      'playwright.dev.config.ts',
+      'vitest.config.ts'
     ] 
   },
   {
@@ -207,6 +212,23 @@ export default tseslint.config(
         { element: 'p', message: 'Use <Typography variant="p"> instead.' },
         { element: 'button', message: 'Use <Button> instead.' }
       ] }],
+    },
+  },
+  {
+    files: [
+      '**/*.test.{ts,tsx}',
+      '**/__tests__/**/*.{ts,tsx}',
+      'orval.config.ts',
+      'playwright.config.ts',
+      'playwright.dev.config.ts',
+      'scratch/**/*.ts',
+      'vitest.config.ts'
+    ],
+    extends: [tseslint.configs.disableTypeChecked],
+    languageOptions: {
+      parserOptions: {
+        project: null,
+      },
     },
   },
   {

@@ -68,23 +68,23 @@ impl AttendanceHandler {
             crate::services::attendance_utils::date_range_to_utc_checked(tz, start_date, end_date)
                 .ok_or("Invalid or ambiguous date range")?;
 
-        // 3. Fetch schedules AND time entries in parallel (biggest latency win)
+        // 3. Fetch schedules AND time entries sequentially (prevent DB pool exhaustion)
         let auth_token = crate::diesel_pool::TenantAuthToken::system_override(workspace_id);
-        let (schedules_result, entries_result) = tokio::join!(
-            deps.roster_repo.get_workspace_schedules(
+        let schedules_result = deps
+            .roster_repo
+            .get_workspace_schedules(
                 roster_cache,
                 &auth_token,
                 start_date,
                 end_date,
                 Some(employee_ids),
-            ),
-            deps.time_entry_repo.get_workspace_time_entries_batch(
-                &auth_token,
-                employee_ids,
-                start_dt,
-                end_dt,
             )
-        );
+            .await;
+
+        let entries_result = deps
+            .time_entry_repo
+            .get_workspace_time_entries_batch(&auth_token, employee_ids, start_dt, end_dt)
+            .await;
 
         let schedules = schedules_result.map_err(|e| format!("Failed to fetch schedules: {e}"))?;
 
