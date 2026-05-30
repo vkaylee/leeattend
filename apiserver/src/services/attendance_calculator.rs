@@ -1215,4 +1215,85 @@ ot_ceiling: None
         // OT: 60 + 120 = 180; floor(180/30) = 6
         assert_eq!(ot, 6);
     }
+
+    #[test]
+    fn test_calculate_buckets_fixed_break_frame_intersection_partial_overlap() {
+        let start = Some(dt(8, 0));
+        let end = Some(dt(17, 0));
+        let bs = Some(dt(11, 30));
+        let be = Some(dt(12, 30));
+        let mut rules = mock_rules();
+        rules.is_break_auto_deduct = true;
+
+        let b = AttendanceCalculator::calculate_buckets(&DailyCalcInput {
+            punch_in: dt(8, 0),
+            punch_out: dt(12, 0), // leaves mid-break
+            shift_start: start,
+            shift_end: end,
+            scheduled_break_minutes: 60,
+            actual_break_minutes: 0,
+            break_start: bs,
+            break_end: be,
+            rules,
+            ot_ceiling: None,
+            work_unit: 0,
+            rounding_policy: String::new(),
+        });
+        // Worked time: 240 min. Break overlap: 30 min. Standard work: 240 - 30 = 210 min.
+        assert_eq!(b.standard_minutes, 210);
+    }
+
+    #[test]
+    fn test_calculate_buckets_fixed_break_frame_intersection_no_overlap() {
+        let start = Some(dt(8, 0));
+        let end = Some(dt(17, 0));
+        let bs = Some(dt(11, 30));
+        let be = Some(dt(12, 30));
+        let mut rules = mock_rules();
+        rules.is_break_auto_deduct = true;
+
+        let b = AttendanceCalculator::calculate_buckets(&DailyCalcInput {
+            punch_in: dt(8, 0),
+            punch_out: dt(11, 0), // leaves before break
+            shift_start: start,
+            shift_end: end,
+            scheduled_break_minutes: 60,
+            actual_break_minutes: 0,
+            break_start: bs,
+            break_end: be,
+            rules,
+            ot_ceiling: None,
+            work_unit: 0,
+            rounding_policy: String::new(),
+        });
+        // Worked time: 180 min. Break overlap: 0 min. Standard work: 180 - 0 = 180 min.
+        assert_eq!(b.standard_minutes, 180);
+    }
+
+    #[test]
+    fn test_calculate_buckets_fixed_break_frame_intersection_full_overlap() {
+        let start = Some(dt(8, 0));
+        let end = Some(dt(17, 0));
+        let bs = Some(dt(11, 30));
+        let be = Some(dt(12, 30));
+        let mut rules = mock_rules();
+        rules.is_break_auto_deduct = true;
+
+        let b = AttendanceCalculator::calculate_buckets(&DailyCalcInput {
+            punch_in: dt(8, 0),
+            punch_out: dt(17, 0), // works full shift
+            shift_start: start,
+            shift_end: end,
+            scheduled_break_minutes: 60,
+            actual_break_minutes: 0,
+            break_start: bs,
+            break_end: be,
+            rules,
+            ot_ceiling: None,
+            work_unit: 0,
+            rounding_policy: String::new(),
+        });
+        // Worked time: 540 min. Break overlap: 60 min. Standard work: 540 - 60 = 480 min.
+        assert_eq!(b.standard_minutes, 480);
+    }
 }
