@@ -405,6 +405,7 @@ mod tests {
                 allow_early_ot: false,
                 is_active: true,
                 parent_shift_id: _p,
+                max_early_ot_minutes: None,
                 created_at: Utc::now(),
                 updated_at: Utc::now(),
             })
@@ -437,6 +438,7 @@ mod tests {
                 allow_early_ot: false,
                 is_active: true,
                 parent_shift_id: None,
+                max_early_ot_minutes: None,
                 created_at: Utc::now(),
                 updated_at: Utc::now(),
             };
@@ -456,6 +458,7 @@ mod tests {
                 allow_early_ot: false,
                 is_active: true,
                 parent_shift_id: None,
+                max_early_ot_minutes: None,
                 created_at: Utc::now(),
                 updated_at: Utc::now(),
             };

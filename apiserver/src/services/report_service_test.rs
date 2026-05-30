@@ -1618,6 +1618,7 @@ mod tests {
                     early_punch_in_grace_period_minutes: Some(0),
                     allow_early_ot: Some(false),
                     break_is_overtime: None,
+                    max_early_ot_minutes: None,
                     traces: vec![],
                     is_holiday: false,
                     holiday_name: None,

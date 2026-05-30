@@ -327,7 +327,11 @@
       "mark_as_off": "Mark selected days as OFF",
       "assign_to_days": "Assign to {{days}}",
       "report_symbol": "Report Symbol",
-      "report_symbol_placeholder": "E.g: S8, T8, FX..."
+      "report_symbol_placeholder": "E.g: S8, T8, FX...",
+      "allow_early_ot": "Allow Early OT",
+      "allow_early_ot_help": "Count working time before shift start as early overtime (Early OT)",
+      "max_early_ot": "Maximum Early OT (minutes)",
+      "max_early_ot_required": "Please enter a limit greater than 0."
     },
     "messages": {
       "assign_success": "Shift assigned to employee successfully.",

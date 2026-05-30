@@ -338,6 +338,7 @@ impl AttendanceHandler {
                             rounding_policy: emp_attendance_rules.rounding_policy.clone(),
                             rules: rules.clone(),
                             ot_ceiling: None,
+                            max_early_ot_minutes: daily.max_early_ot_minutes,
                         },
                     );
 
@@ -506,6 +507,7 @@ impl AttendanceHandler {
                                 rounding_policy: emp_attendance_rules.rounding_policy.clone(),
                                 rules: rules.clone(),
                                 ot_ceiling: None,
+                                max_early_ot_minutes: daily.max_early_ot_minutes,
                             },
                         );
 
@@ -1199,6 +1201,7 @@ mod tests {
                 early_punch_in_grace_period_minutes: Some(0),
                 allow_early_ot: Some(false),
                 break_is_overtime: Some(false),
+                max_early_ot_minutes: None,
                 traces: vec![],
             }],
         };
@@ -1380,6 +1383,7 @@ mod tests {
                 early_punch_in_grace_period_minutes: Some(0),
                 allow_early_ot: Some(false),
                 break_is_overtime: Some(false),
+                max_early_ot_minutes: None,
                 traces: vec![],
             }],
         };

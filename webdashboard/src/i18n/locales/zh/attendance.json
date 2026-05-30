@@ -327,7 +327,11 @@
       "mark_as_off": "将选中日期标记为休息",
       "assign_to_days": "分配给 {{days}}",
       "report_symbol": "报表符号",
-      "report_symbol_placeholder": "例: S8, T8, FX..."
+      "report_symbol_placeholder": "例: S8, T8, FX...",
+      "allow_early_ot": "允许提前加班",
+      "allow_early_ot_help": "将班次开始前的动作计算为提前加班 (Early OT)",
+      "max_early_ot": "最大提前加班限制 (分钟)",
+      "max_early_ot_required": "请输入大于 0.0 的限制数。"
     },
     "messages": {
       "assign_success": "员工班次分配成功。",

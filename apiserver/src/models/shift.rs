@@ -37,6 +37,7 @@ pub struct Shift {
     pub break_is_overtime: bool,
     pub early_punch_in_grace_period_minutes: i32,
     pub allow_early_ot: bool,
+    pub max_early_ot_minutes: Option<i32>,
     pub is_active: bool,
     pub parent_shift_id: Option<Uuid>,
     pub created_at: DateTime<Utc>,
@@ -67,6 +68,8 @@ pub struct CreateShiftRequest {
     pub early_punch_in_grace_period_minutes: i32,
     #[serde(default)]
     pub allow_early_ot: bool,
+    #[serde(default)]
+    pub max_early_ot_minutes: Option<i32>,
 }
 
 #[derive(Debug, Deserialize, utoipa::ToSchema)]
@@ -90,6 +93,8 @@ pub struct UpdateShiftRequest {
     pub early_punch_in_grace_period_minutes: i32,
     #[serde(default)]
     pub allow_early_ot: bool,
+    #[serde(default)]
+    pub max_early_ot_minutes: Option<i32>,
     /// If true, update the current record (Correction).
     /// If false (default), create a new version if time-related fields changed.
     #[serde(default)]
@@ -151,6 +156,7 @@ mod tests {
         assert!(!req.break_is_overtime); // default false
         assert_eq!(req.early_punch_in_grace_period_minutes, 0);
         assert!(!req.allow_early_ot);
+        assert!(req.max_early_ot_minutes.is_none());
         assert!(req.report_symbol.is_none());
         assert!(req.break_start.is_none());
         assert!(req.break_end.is_none());
@@ -169,7 +175,8 @@ mod tests {
             "is_break_auto_deduct": false,
             "break_is_overtime": true,
             "early_punch_in_grace_period_minutes": 15,
-            "allow_early_ot": true
+            "allow_early_ot": true,
+            "max_early_ot_minutes": 120
         }"#;
         let req: CreateShiftRequest = serde_json::from_str(json).unwrap();
         assert_eq!(req.name, "Night");
@@ -178,6 +185,7 @@ mod tests {
         assert!(req.break_is_overtime);
         assert_eq!(req.early_punch_in_grace_period_minutes, 15);
         assert!(req.allow_early_ot);
+        assert_eq!(req.max_early_ot_minutes, Some(120));
     }
 
     #[test]

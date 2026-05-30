@@ -30,6 +30,7 @@ pub struct DailyCalcInput<T: TimeZone> {
     pub rounding_policy: String,
     pub rules: PolicyRules,
     pub ot_ceiling: Option<DateTime<T>>,
+    pub max_early_ot_minutes: Option<i32>,
 }
 
 pub struct AttendanceCalculator;
@@ -121,9 +122,13 @@ impl AttendanceCalculator {
             if rules.allow_early_ot && punch_in < &start {
                 let early_out = DateTime::min(punch_out.clone(), start);
                 if early_out > effective_ot_start {
-                    buckets.early_ot_minutes = early_out
+                    let mut capped_early_ot = early_out
                         .signed_duration_since(effective_ot_start)
                         .num_minutes() as i32;
+                    if let Some(max_ot) = input.max_early_ot_minutes {
+                        capped_early_ot = i32::min(capped_early_ot, max_ot);
+                    }
+                    buckets.early_ot_minutes = capped_early_ot;
                 }
             }
 
@@ -278,6 +283,7 @@ mod tests {
             ot_ceiling: None,
             work_unit: 0,
             rounding_policy: String::new(),
+            max_early_ot_minutes: None,
         });
         assert_eq!(b1.standard_minutes, 570); // 9.5 hours (no break deducted)
 
@@ -296,6 +302,7 @@ mod tests {
             ot_ceiling: None,
             work_unit: 0,
             rounding_policy: String::new(),
+            max_early_ot_minutes: None,
         });
         assert_eq!(b2.standard_minutes, 510); // 8.5 hours
     }
@@ -322,6 +329,7 @@ mod tests {
             ot_ceiling: None,
             work_unit: 0,
             rounding_policy: String::new(),
+            max_early_ot_minutes: None,
         });
         assert_eq!(b1.early_ot_minutes, 0);
 
@@ -339,6 +347,7 @@ mod tests {
             ot_ceiling: None,
             work_unit: 0,
             rounding_policy: String::new(),
+            max_early_ot_minutes: None,
         });
         assert_eq!(b2.early_ot_minutes, 45);
 
@@ -357,6 +366,7 @@ mod tests {
             ot_ceiling: None,
             work_unit: 0,
             rounding_policy: String::new(),
+            max_early_ot_minutes: None,
         });
         assert_eq!(b3.early_ot_minutes, 30);
     }
@@ -383,6 +393,7 @@ mod tests {
             ot_ceiling: None,
             work_unit: 0,
             rounding_policy: String::new(),
+            max_early_ot_minutes: None,
         });
         assert_eq!(b1.standard_minutes, 540);
 
@@ -400,6 +411,7 @@ mod tests {
             ot_ceiling: None,
             work_unit: 0,
             rounding_policy: String::new(),
+            max_early_ot_minutes: None,
         });
         assert_eq!(b2.standard_minutes, 450);
     }
@@ -423,6 +435,7 @@ mod tests {
             rounding_policy: "floor".to_string(),
             rules: rules.clone(),
             ot_ceiling: None,
+            max_early_ot_minutes: None,
         });
         // (17:00 - 08:00) = 540m.
         // Actual work = 08:00 - 16:55 = 535m.
@@ -445,6 +458,7 @@ mod tests {
             rounding_policy: "floor".to_string(),
             rules: r2,
             ot_ceiling: None,
+            max_early_ot_minutes: None,
         });
         // Net = 535 - 60 = 475. Floor(475, 30) = 15 units.
         assert_eq!(std2, 15);
@@ -471,6 +485,7 @@ mod tests {
             ot_ceiling: ceiling,
             work_unit: 0,
             rounding_policy: String::new(),
+            max_early_ot_minutes: None,
         });
         assert_eq!(b.standard_minutes, 240); // 08:00-12:00 = 4h
         assert_eq!(b.late_ot_minutes, 60); // 12:00-13:00 (capped, not 90)
@@ -495,6 +510,7 @@ mod tests {
             ot_ceiling: None,
             work_unit: 0,
             rounding_policy: String::new(),
+            max_early_ot_minutes: None,
         });
         assert_eq!(b.standard_minutes, 240);
         assert_eq!(b.late_ot_minutes, 90); // 12:00-13:30 = 90min (no cap)
@@ -521,6 +537,7 @@ mod tests {
             ot_ceiling: ceiling,
             work_unit: 0,
             rounding_policy: String::new(),
+            max_early_ot_minutes: None,
         });
         assert_eq!(b.standard_minutes, 240);
         assert_eq!(b.late_ot_minutes, 60); // 12:00-13:00 = full gap
@@ -588,6 +605,7 @@ mod tests {
             rounding_policy: "floor".to_string(),
             rules: mock_rules(),
             ot_ceiling: None,
+            max_early_ot_minutes: None,
         };
         let (std_units, ot_units) = AttendanceCalculator::calculate_daily_units(&input);
         // 9h = 540m, floor(540/30) = 18 units (no break auto-deduct in mock_rules)
@@ -612,6 +630,7 @@ mod tests {
             rounding_policy: "floor".to_string(),
             rules,
             ot_ceiling: None,
+            max_early_ot_minutes: None,
         };
         let (std_units, _) = AttendanceCalculator::calculate_daily_units(&input);
         // 540m - 60m break = 480m, floor(480/30) = 16 units
@@ -633,6 +652,7 @@ mod tests {
             rounding_policy: "floor".to_string(),
             rules: mock_rules(),
             ot_ceiling: None,
+            max_early_ot_minutes: None,
         };
         // Verify Debug trait works without panic
         let debug_str = format!("{input:?}");
@@ -658,6 +678,7 @@ mod tests {
             ot_ceiling: None,
             work_unit: 0,
             rounding_policy: String::new(),
+            max_early_ot_minutes: None,
         });
         assert_eq!(b.standard_minutes, 0);
         assert_eq!(b.early_ot_minutes, 0);
@@ -679,6 +700,7 @@ mod tests {
             ot_ceiling: None,
             work_unit: 0,
             rounding_policy: String::new(),
+            max_early_ot_minutes: None,
         });
         assert_eq!(b.standard_minutes, 0);
         assert_eq!(b.early_ot_minutes, 0);
@@ -704,6 +726,7 @@ mod tests {
             ot_ceiling: None,
             work_unit: 0,
             rounding_policy: String::new(),
+            max_early_ot_minutes: None,
         });
         // 12 hours = 720 minutes, all standard
         assert_eq!(b.standard_minutes, 720);
@@ -726,6 +749,7 @@ mod tests {
             ot_ceiling: None,
             work_unit: 0,
             rounding_policy: String::new(),
+            max_early_ot_minutes: None,
         });
         assert_eq!(b.standard_minutes, 15);
     }
@@ -755,8 +779,9 @@ work_unit: // no break
             30,
 rounding_policy: "floor".to_string(),
 rules,
-ot_ceiling: None
-});
+ot_ceiling: None,
+            max_early_ot_minutes: None,
+        });
 
         // Without the report guard, the calculator happily returns 18 standard units
         // (540 min / 30 = 18) and 0 OT.  The report_service guard prevents this
@@ -789,6 +814,7 @@ ot_ceiling: None
             rounding_policy: "floor".to_string(),
             rules,
             ot_ceiling: None,
+            max_early_ot_minutes: None,
         });
 
         // Break deduction is only applied inside the shift-boundary branch.
@@ -817,6 +843,7 @@ ot_ceiling: None
             rounding_policy: "floor".to_string(),
             rules, // 5 / 30 = 0.17 → floor = 0
             ot_ceiling: None,
+            max_early_ot_minutes: None,
         });
 
         assert_eq!(std, 0, "5-min accidental session rounds to 0 units");
@@ -853,6 +880,7 @@ ot_ceiling: None
             rounding_policy: String::new(),
             rules: mock_rules(),
             ot_ceiling: None,
+            max_early_ot_minutes: None,
         });
         // 22:00 → 06:00+1 = 480 min standard
         assert_eq!(b.standard_minutes, 480);
@@ -1072,6 +1100,7 @@ ot_ceiling: None
             ot_ceiling: None,
             work_unit: 0,
             rounding_policy: String::new(),
+            max_early_ot_minutes: None,
         });
         // Punch in 2h early, but allow_early_ot = false → no early OT
         assert_eq!(b.early_ot_minutes, 0);
@@ -1098,6 +1127,7 @@ ot_ceiling: None
             ot_ceiling: None,
             work_unit: 0,
             rounding_policy: String::new(),
+            max_early_ot_minutes: None,
         });
         // Standard: 08→17 = 540, Late OT: 17→20 = 180
         assert_eq!(b.standard_minutes, 540);
@@ -1123,6 +1153,7 @@ ot_ceiling: None
             ot_ceiling: None,
             work_unit: 0,
             rounding_policy: String::new(),
+            max_early_ot_minutes: None,
         });
         // Standard: intersection [9:30, 15:00] ∩ [8:00, 17:00] = 330 min
         assert_eq!(b.standard_minutes, 330);
@@ -1152,6 +1183,7 @@ ot_ceiling: None
             ot_ceiling: None,
             work_unit: 0,
             rounding_policy: String::new(),
+            max_early_ot_minutes: None,
         });
         // Early OT: 06:00→08:00 = 120 min
         assert_eq!(b.early_ot_minutes, 120);
@@ -1183,6 +1215,7 @@ ot_ceiling: None
             rounding_policy: "floor".to_string(),
             rules,
             ot_ceiling: None,
+            max_early_ot_minutes: None,
         });
         // Standard: 540 min - 0 break = 540 min; floor(540/30) = 18 units
         assert_eq!(std, 18);
@@ -1209,6 +1242,7 @@ ot_ceiling: None
             rounding_policy: "floor".to_string(),
             rules,
             ot_ceiling: None,
+            max_early_ot_minutes: None,
         });
         // Standard: 540 - 60 break = 480 min; floor(480/30) = 16
         assert_eq!(std, 16);
@@ -1238,6 +1272,7 @@ ot_ceiling: None
             ot_ceiling: None,
             work_unit: 0,
             rounding_policy: String::new(),
+            max_early_ot_minutes: None,
         });
         // Worked time: 240 min. Break overlap: 30 min. Standard work: 240 - 30 = 210 min.
         assert_eq!(b.standard_minutes, 210);
@@ -1265,6 +1300,7 @@ ot_ceiling: None
             ot_ceiling: None,
             work_unit: 0,
             rounding_policy: String::new(),
+            max_early_ot_minutes: None,
         });
         // Worked time: 180 min. Break overlap: 0 min. Standard work: 180 - 0 = 180 min.
         assert_eq!(b.standard_minutes, 180);
@@ -1292,8 +1328,184 @@ ot_ceiling: None
             ot_ceiling: None,
             work_unit: 0,
             rounding_policy: String::new(),
+            max_early_ot_minutes: None,
         });
         // Worked time: 540 min. Break overlap: 60 min. Standard work: 540 - 60 = 480 min.
         assert_eq!(b.standard_minutes, 480);
+    }
+
+    #[test]
+    fn test_early_ot_capping() {
+        let start = Some(dt(8, 0));
+        let end = Some(dt(17, 0));
+        let mut rules = mock_rules();
+        rules.allow_early_ot = true;
+
+        // Case 1: Early OT is capped (punch in 180 min early, max early OT is 120 min)
+        let b1 = AttendanceCalculator::calculate_buckets(&DailyCalcInput {
+            punch_in: dt(5, 0),
+            punch_out: dt(17, 0),
+            shift_start: start,
+            shift_end: end,
+            scheduled_break_minutes: 0,
+            actual_break_minutes: 0,
+            break_start: None,
+            break_end: None,
+            rules: rules.clone(),
+            ot_ceiling: None,
+            work_unit: 0,
+            rounding_policy: String::new(),
+            max_early_ot_minutes: Some(120),
+        });
+        assert_eq!(b1.early_ot_minutes, 120);
+
+        // Case 2: Early OT is uncapped (max early OT is None)
+        let b2 = AttendanceCalculator::calculate_buckets(&DailyCalcInput {
+            punch_in: dt(5, 0),
+            punch_out: dt(17, 0),
+            shift_start: start,
+            shift_end: end,
+            scheduled_break_minutes: 0,
+            actual_break_minutes: 0,
+            break_start: None,
+            break_end: None,
+            rules: rules.clone(),
+            ot_ceiling: None,
+            work_unit: 0,
+            rounding_policy: String::new(),
+            max_early_ot_minutes: None,
+        });
+        assert_eq!(b2.early_ot_minutes, 180);
+
+        // Case 3: Early OT is under the cap (punch in 180 min early, max early OT is 240 min)
+        let b3 = AttendanceCalculator::calculate_buckets(&DailyCalcInput {
+            punch_in: dt(5, 0),
+            punch_out: dt(17, 0),
+            shift_start: start,
+            shift_end: end,
+            scheduled_break_minutes: 0,
+            actual_break_minutes: 0,
+            break_start: None,
+            break_end: None,
+            rules: rules.clone(),
+            ot_ceiling: None,
+            work_unit: 0,
+            rounding_policy: String::new(),
+            max_early_ot_minutes: Some(240),
+        });
+        assert_eq!(b3.early_ot_minutes, 180);
+
+        // Case 4: Early OT limit is 0 (should yield 0 OT)
+        let b4 = AttendanceCalculator::calculate_buckets(&DailyCalcInput {
+            punch_in: dt(5, 0),
+            punch_out: dt(17, 0),
+            shift_start: start,
+            shift_end: end,
+            scheduled_break_minutes: 0,
+            actual_break_minutes: 0,
+            break_start: None,
+            break_end: None,
+            rules: rules.clone(),
+            ot_ceiling: None,
+            work_unit: 0,
+            rounding_policy: String::new(),
+            max_early_ot_minutes: Some(0),
+        });
+        assert_eq!(b4.early_ot_minutes, 0);
+
+        // Case 5: Capping with Clamp Grace Period
+        // Punch in: 7:15 (45 min early)
+        // Shift start: 8:00
+        // Grace period: 30 min (threshold 7:30)
+        // Strategy: Clamp (clamps effective OT start to 7:30, i.e. max 30 min of early OT)
+        // If max early OT is Some(15), early OT should be capped at 15 min.
+        let mut clamp_rules = mock_rules();
+        clamp_rules.allow_early_ot = true;
+        clamp_rules.grace_period_minutes = 30;
+        clamp_rules.early_arrival_strategy = EarlyArrivalStrategy::Clamp;
+
+        let b5 = AttendanceCalculator::calculate_buckets(&DailyCalcInput {
+            punch_in: dt(7, 15),
+            punch_out: dt(17, 0),
+            shift_start: start,
+            shift_end: end,
+            scheduled_break_minutes: 0,
+            actual_break_minutes: 0,
+            break_start: None,
+            break_end: None,
+            rules: clamp_rules.clone(),
+            ot_ceiling: None,
+            work_unit: 0,
+            rounding_policy: String::new(),
+            max_early_ot_minutes: Some(15),
+        });
+        assert_eq!(b5.early_ot_minutes, 15);
+
+        // If max early OT is Some(60), early OT should be 30 min (limited by clamp, not cap)
+        let b6 = AttendanceCalculator::calculate_buckets(&DailyCalcInput {
+            punch_in: dt(7, 15),
+            punch_out: dt(17, 0),
+            shift_start: start,
+            shift_end: end,
+            scheduled_break_minutes: 0,
+            actual_break_minutes: 0,
+            break_start: None,
+            break_end: None,
+            rules: clamp_rules.clone(),
+            ot_ceiling: None,
+            work_unit: 0,
+            rounding_policy: String::new(),
+            max_early_ot_minutes: Some(60),
+        });
+        assert_eq!(b6.early_ot_minutes, 30);
+
+        // Case 6: Capping with Block Grace Period
+        // Punch in: 7:45 (15 min early, inside 30 min grace period threshold 7:30)
+        // Shift start: 8:00
+        // Strategy: Block (effective OT start becomes 8:00, i.e. 0 min early OT)
+        // If max early OT is Some(15), early OT should still be 0.
+        let mut block_rules = mock_rules();
+        block_rules.allow_early_ot = true;
+        block_rules.grace_period_minutes = 30;
+        block_rules.early_arrival_strategy = EarlyArrivalStrategy::Block;
+
+        let b7 = AttendanceCalculator::calculate_buckets(&DailyCalcInput {
+            punch_in: dt(7, 45),
+            punch_out: dt(17, 0),
+            shift_start: start,
+            shift_end: end,
+            scheduled_break_minutes: 0,
+            actual_break_minutes: 0,
+            break_start: None,
+            break_end: None,
+            rules: block_rules.clone(),
+            ot_ceiling: None,
+            work_unit: 0,
+            rounding_policy: String::new(),
+            max_early_ot_minutes: Some(15),
+        });
+        assert_eq!(b7.early_ot_minutes, 0);
+
+        // Case 7: Overnight Shift early OT capping
+        // Shift starts at 22:00 (starts on 2026-01-01), ends at 06:00 (on 2026-01-02)
+        // Punch in: 20:00 (120 min early)
+        // Max early OT: Some(45)
+        // Expected early OT: 45 min
+        let b8 = AttendanceCalculator::calculate_buckets(&DailyCalcInput {
+            punch_in: dt(20, 0),
+            punch_out: dt(6, 0) + chrono::Duration::days(1),
+            shift_start: Some(dt(22, 0)),
+            shift_end: Some(dt(6, 0) + chrono::Duration::days(1)),
+            scheduled_break_minutes: 0,
+            actual_break_minutes: 0,
+            break_start: None,
+            break_end: None,
+            rules: rules.clone(),
+            ot_ceiling: None,
+            work_unit: 0,
+            rounding_policy: String::new(),
+            max_early_ot_minutes: Some(45),
+        });
+        assert_eq!(b8.early_ot_minutes, 45);
     }
 }

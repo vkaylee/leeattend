@@ -56,6 +56,7 @@ impl ShiftRepository for DieselShiftRepository {
             is_active,
             parent_shift_id,
             allow_early_ot: req.allow_early_ot,
+            max_early_ot_minutes: req.max_early_ot_minutes,
             report_symbol: req.report_symbol.clone(),
         };
 
@@ -148,6 +149,7 @@ impl ShiftRepository for DieselShiftRepository {
                 shifts::early_punch_in_grace_period_minutes
                     .eq(req.early_punch_in_grace_period_minutes),
                 shifts::allow_early_ot.eq(req.allow_early_ot),
+                shifts::max_early_ot_minutes.eq(req.max_early_ot_minutes),
                 shifts::updated_at.eq(Utc::now()),
             ))
             .get_result(&mut *conn)

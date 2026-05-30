@@ -23,11 +23,15 @@ interface UseShiftModalHandlersProps {
     setIsBreakOvertime: (v: boolean) => void;
     setIsCorrection: (v: boolean) => void;
     setCorrectionEffectiveDate: (v: string) => void;
+    setAllowEarlyOt: (v: boolean) => void;
+    setMaxEarlyOtMinutes: (v: number) => void;
   };
   isAutoDeduct: boolean;
   isBreakOvertime: boolean;
   isCorrection: boolean;
   isFixedBreak: boolean;
+  allowEarlyOt: boolean;
+  maxEarlyOtMinutes: number;
   mutations: {
     createShiftMutation: UseMutationResult<Shift, Error, Partial<Shift>>;
     updateShiftMutation: UseMutationResult<Shift, Error, { id: string; data: Partial<Shift> }>;
@@ -54,6 +58,8 @@ export function useShiftModalHandlers({
   newBreakEnd,
   isAutoDeduct,
   isBreakOvertime,
+  allowEarlyOt,
+  maxEarlyOtMinutes,
   editingShift,
   isCorrection,
   correctionEffectiveDate,
@@ -71,6 +77,8 @@ export function useShiftModalHandlers({
       break_duration_minutes: newShiftBreak,
       early_punch_in_grace_period_minutes: newShiftGrace,
       break_is_overtime: isBreakOvertime,
+      allow_early_ot: allowEarlyOt,
+      max_early_ot_minutes: allowEarlyOt ? maxEarlyOtMinutes : null,
       ...(isFixedBreak && newBreakStart && newBreakEnd ? {
         break_start: newBreakStart + ":00",
         break_end: newBreakEnd + ":00"
@@ -91,6 +99,8 @@ export function useShiftModalHandlers({
         break_duration_minutes: newShiftBreak,
         early_punch_in_grace_period_minutes: newShiftGrace,
         break_is_overtime: isBreakOvertime,
+        allow_early_ot: allowEarlyOt,
+        max_early_ot_minutes: allowEarlyOt ? maxEarlyOtMinutes : null,
         ...(isFixedBreak && newBreakStart && newBreakEnd ? {
           break_start: newBreakStart,
           break_end: newBreakEnd
@@ -118,6 +128,8 @@ export function useShiftModalHandlers({
     formActions.setIsFixedBreak(!!shift.break_start);
     formActions.setIsAutoDeduct(shift.is_break_auto_deduct ?? true);
     formActions.setIsBreakOvertime(shift.break_is_overtime ?? false);
+    formActions.setAllowEarlyOt(shift.allow_early_ot ?? false);
+    formActions.setMaxEarlyOtMinutes(shift.max_early_ot_minutes ?? 60);
     formActions.setIsCorrection(false);
     formActions.setCorrectionEffectiveDate(format(new Date(), 'yyyy-MM-dd'));
   };

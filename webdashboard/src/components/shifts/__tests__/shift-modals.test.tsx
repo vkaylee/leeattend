@@ -55,6 +55,12 @@ describe("Shift Modals Break Policy Tests", () => {
         newShiftName="Test Shift"
         newShiftStart="08:00"
         newShiftSymbol="T"
+              newShiftGrace={15}
+        allowEarlyOt={false}
+        maxEarlyOtMinutes={0}
+        setNewShiftGrace={vi.fn()}
+        setAllowEarlyOt={vi.fn()}
+        setMaxEarlyOtMinutes={vi.fn()}
       />
     );
 
@@ -94,6 +100,12 @@ describe("Shift Modals Break Policy Tests", () => {
         newShiftName="Test Shift"
         newShiftStart="08:00"
         newShiftSymbol="T"
+              newShiftGrace={15}
+        allowEarlyOt={false}
+        maxEarlyOtMinutes={0}
+        setNewShiftGrace={vi.fn()}
+        setAllowEarlyOt={vi.fn()}
+        setMaxEarlyOtMinutes={vi.fn()}
       />
     );
 
@@ -141,6 +153,12 @@ describe("Shift Modals Break Policy Tests", () => {
         newShiftName="Test Shift"
         newShiftStart="08:00"
         newShiftSymbol="T"
+              newShiftGrace={15}
+        allowEarlyOt={false}
+        maxEarlyOtMinutes={0}
+        setNewShiftGrace={vi.fn()}
+        setAllowEarlyOt={vi.fn()}
+        setMaxEarlyOtMinutes={vi.fn()}
       />
     );
 
@@ -182,6 +200,10 @@ describe("Shift Modals Break Policy Tests", () => {
         setNewShiftName={vi.fn()}
         setNewShiftStart={vi.fn()}
         setNewShiftSymbol={vi.fn()}
+              allowEarlyOt={false}
+        maxEarlyOtMinutes={0}
+        setAllowEarlyOt={vi.fn()}
+        setMaxEarlyOtMinutes={vi.fn()}
       />
     );
 
@@ -220,6 +242,12 @@ describe("Shift Modals Break Policy Tests", () => {
         newShiftName="Test Shift"
         newShiftStart="08:00"
         newShiftSymbol="T"
+              newShiftGrace={15}
+        allowEarlyOt={false}
+        maxEarlyOtMinutes={0}
+        setNewShiftGrace={vi.fn()}
+        setAllowEarlyOt={vi.fn()}
+        setMaxEarlyOtMinutes={vi.fn()}
       />
     );
 
@@ -256,6 +284,12 @@ describe("Shift Modals Break Policy Tests", () => {
         newShiftName="Test Shift"
         newShiftStart="08:00"
         newShiftSymbol="T"
+              newShiftGrace={15}
+        allowEarlyOt={false}
+        maxEarlyOtMinutes={0}
+        setNewShiftGrace={vi.fn()}
+        setAllowEarlyOt={vi.fn()}
+        setMaxEarlyOtMinutes={vi.fn()}
       />
     );
 
@@ -295,11 +329,111 @@ describe("Shift Modals Break Policy Tests", () => {
         newShiftName="Test Shift"
         newShiftStart="08:00"
         newShiftSymbol="T"
+              newShiftGrace={15}
+        allowEarlyOt={false}
+        maxEarlyOtMinutes={0}
+        setNewShiftGrace={vi.fn()}
+        setAllowEarlyOt={vi.fn()}
+        setMaxEarlyOtMinutes={vi.fn()}
       />
     );
 
     const toggleSwitch = screen.getByRole("button", { name: "shifts.types.fixed" });
     await user.click(toggleSwitch);
     expect(setIsFixedBreak).toHaveBeenCalledWith(true);
+  });
+
+  it("renders CreateShiftModal with Early OT controls and handles toggle state changes", async () => {
+    const user = userEvent.setup();
+    const setAllowEarlyOt = vi.fn();
+    const setMaxEarlyOtMinutes = vi.fn();
+
+    const { rerender } = render(
+      <CreateShiftModal
+        isAutoDeduct={true}
+        isBreakOvertime={false}
+        isFixedBreak={false}
+        isLoading={false}
+        isOpen={true}
+        newBreakEnd=""
+        newBreakStart=""
+        newShiftBreak={60}
+        newShiftEnd="17:00"
+        newShiftGrace={15}
+        allowEarlyOt={false}
+        maxEarlyOtMinutes={0}
+        onClose={vi.fn()}
+        onCreateShift={vi.fn()}
+        setIsAutoDeduct={vi.fn()}
+        setIsBreakOvertime={vi.fn()}
+        setIsFixedBreak={vi.fn()}
+        setNewBreakEnd={vi.fn()}
+        setNewBreakStart={vi.fn()}
+        setNewShiftBreak={vi.fn()}
+        setNewShiftEnd={vi.fn()}
+        setNewShiftName={vi.fn()}
+        setNewShiftStart={vi.fn()}
+        setNewShiftSymbol={vi.fn()}
+        setNewShiftGrace={vi.fn()}
+        setAllowEarlyOt={setAllowEarlyOt}
+        setMaxEarlyOtMinutes={setMaxEarlyOtMinutes}
+        newShiftName="Test Shift"
+        newShiftStart="08:00"
+        newShiftSymbol="T"
+      />
+    );
+
+    // Toggle button should be visible
+    const toggleButton = screen.getByRole("button", { name: "shifts.modal.allow_early_ot" });
+    expect(toggleButton).toBeDefined();
+
+    // Click toggle to enable early OT
+    await user.click(toggleButton);
+    expect(setAllowEarlyOt).toHaveBeenCalledWith(true);
+
+    // Rerender with allowEarlyOt = true to check if the max early OT input is shown
+    rerender(
+      <CreateShiftModal
+        isAutoDeduct={true}
+        isBreakOvertime={false}
+        isFixedBreak={false}
+        isLoading={false}
+        isOpen={true}
+        newBreakEnd=""
+        newBreakStart=""
+        newShiftBreak={60}
+        newShiftEnd="17:00"
+        newShiftGrace={15}
+        allowEarlyOt={true}
+        maxEarlyOtMinutes={120}
+        onClose={vi.fn()}
+        onCreateShift={vi.fn()}
+        setIsAutoDeduct={vi.fn()}
+        setIsBreakOvertime={vi.fn()}
+        setIsFixedBreak={vi.fn()}
+        setNewBreakEnd={vi.fn()}
+        setNewBreakStart={vi.fn()}
+        setNewShiftBreak={vi.fn()}
+        setNewShiftEnd={vi.fn()}
+        setNewShiftName={vi.fn()}
+        setNewShiftStart={vi.fn()}
+        setNewShiftSymbol={vi.fn()}
+        setNewShiftGrace={vi.fn()}
+        setAllowEarlyOt={setAllowEarlyOt}
+        setMaxEarlyOtMinutes={setMaxEarlyOtMinutes}
+        newShiftName="Test Shift"
+        newShiftStart="08:00"
+        newShiftSymbol="T"
+      />
+    );
+
+    // Input for max early OT should now be visible
+    const input = screen.getByLabelText(/shifts.modal.max_early_ot/) as HTMLInputElement;
+    expect(input).toBeDefined();
+    expect(input.value).toBe("120");
+
+    // Change input value
+    await user.type(input, "180");
+    expect(setMaxEarlyOtMinutes).toHaveBeenCalled();
   });
 });

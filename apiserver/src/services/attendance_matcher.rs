@@ -202,6 +202,7 @@ impl AttendanceMatcher {
                                             .clone(),
                                         rules: rules.clone(),
                                         ot_ceiling,
+                                        max_early_ot_minutes: s.max_early_ot_minutes,
                                     },
                                 );
                                 segment_std_units += std_u;

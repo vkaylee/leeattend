@@ -18,6 +18,7 @@ export type ViewMode = "week" | "month";
 export interface UseShiftsReturn {
   activeTab: TabType;
   assignPatternMutation: UseMutationResult<EmployeeWorkingPattern, Error, AssignPatternRequest>;
+  allowEarlyOt: boolean;
   bulkRosterMutation: UseMutationResult<unknown, Error, { date: string; shift_id: string | null }[]>;
   correctionEffectiveDate: string;
   createShiftMutation: UseMutationResult<Shift, Error, Partial<Shift>>;
@@ -30,6 +31,7 @@ export interface UseShiftsReturn {
   employeeSchedule: EmployeeSchedule | undefined;
   employeesError: Error | null;
   endDate: string;
+  maxEarlyOtMinutes: number;
 
 
   handleAssign: () => void;
@@ -85,6 +87,8 @@ export interface UseShiftsReturn {
   setIsFixedBreak: (v: boolean) => void;
   setIsForever: (v: boolean) => void;
   setIsShiftPickerOpen: (v: boolean) => void;
+  setAllowEarlyOt: (v: boolean) => void;
+  setMaxEarlyOtMinutes: (v: number) => void;
   setNewBreakEnd: (v: string) => void;
   setNewBreakStart: (v: string) => void;
   setNewShiftBreak: (v: number) => void;

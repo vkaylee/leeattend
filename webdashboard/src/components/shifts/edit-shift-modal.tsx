@@ -26,6 +26,8 @@ interface EditShiftModalProps {
   newShiftName: string;
   newShiftStart: string;
   newShiftSymbol: string;
+  allowEarlyOt: boolean;
+  maxEarlyOtMinutes: number;
   onClose: () => void;
   onUpdateShift: () => void;
   setCorrectionEffectiveDate: (value: string) => void;
@@ -41,6 +43,8 @@ interface EditShiftModalProps {
   setNewShiftName: (value: string) => void;
   setNewShiftStart: (value: string) => void;
   setNewShiftSymbol: (value: string) => void;
+  setAllowEarlyOt: (value: boolean) => void;
+  setMaxEarlyOtMinutes: (value: number) => void;
 }
 
 function BasicShiftFields({
@@ -429,10 +433,16 @@ export function EditShiftModal({
   setIsCorrection,
   correctionEffectiveDate,
   setCorrectionEffectiveDate,
+  allowEarlyOt,
+  setAllowEarlyOt,
+  maxEarlyOtMinutes,
+  setMaxEarlyOtMinutes,
   onUpdateShift,
   isLoading,
 }: EditShiftModalProps) {
   const { t } = useTranslation();
+
+  const isSaveDisabled = isLoading || !newShiftName || !newShiftStart || !newShiftEnd || (allowEarlyOt && (!maxEarlyOtMinutes || maxEarlyOtMinutes <= 0));
 
   return (
     <Modal
@@ -441,7 +451,7 @@ export function EditShiftModal({
       subtitle={t("shifts.modal.edit_subtitle")}
       title={t("shifts.modal.setup_title")}
     >
-      <div className="space-y-4 pt-2">
+      <div className="space-y-4 pt-2 max-h-[75vh] overflow-y-auto pr-2">
         <div className="space-y-3">
           <BasicShiftFields
             newShiftEnd={newShiftEnd}
@@ -473,6 +483,49 @@ export function EditShiftModal({
             t={t}
           />
 
+          {/* Early OT Config (Tăng ca sớm) */}
+          <div className="space-y-4 bg-slate-50 dark:bg-slate-800 p-6 rounded-[32px] border border-slate-100 dark:border-slate-800">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-200 block">
+                  {t("shifts.modal.allow_early_ot", "Cho phép tính tăng ca sớm")}
+                </label>
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-normal leading-normal">
+                  {t("shifts.modal.allow_early_ot_help", "Tính thời gian làm việc trước ca là tăng ca sớm (Early OT)")}
+                </span>
+              </div>
+              <button
+                aria-label={t("shifts.modal.allow_early_ot", "Cho phép tính tăng ca sớm")}
+                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 ${allowEarlyOt ? 'bg-primary-600' : 'bg-slate-200 dark:bg-slate-600'}`}
+                onClick={() => { setAllowEarlyOt(!allowEarlyOt); }}
+                type="button"
+              >
+                <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white dark:bg-slate-900 transition-transform ${allowEarlyOt ? 'translate-x-5' : 'translate-x-1'}`} />
+              </button>
+            </div>
+
+            {allowEarlyOt && (
+              <div className="space-y-2 pt-3 border-t border-slate-200/50 dark:border-slate-700/50">
+                <label htmlFor="edit-max-early-ot" className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest block">
+                  {t("shifts.modal.max_early_ot", "Giới hạn tăng ca sớm tối đa (phút)")} <span className="text-red-500">*</span>
+                </label>
+                <input
+                  id="edit-max-early-ot"
+                  className="w-full bg-white dark:bg-slate-900 border-none rounded-xl px-4 py-2.5 font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 transition-all text-xs"
+                  min="1"
+                  onChange={(e) => { setMaxEarlyOtMinutes(parseInt(e.target.value) || 0); }}
+                  type="number"
+                  value={maxEarlyOtMinutes}
+                />
+                {maxEarlyOtMinutes <= 0 && (
+                  <span className="text-[10px] text-red-500 block font-medium">
+                    {t("shifts.modal.max_early_ot_required", "Vui lòng nhập số phút giới hạn lớn hơn 0.")}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+
           <CorrectionConfigPanel
             correctionEffectiveDate={correctionEffectiveDate}
             isCorrection={isCorrection}
@@ -490,7 +543,7 @@ export function EditShiftModal({
             {t("common.cancel")}
           </Button>
           <Button className="flex-1 bg-primary-600 hover:bg-primary-700 text-white font-bold px-6 py-3 rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-primary-100 transition-all active:scale-95 disabled:opacity-50 text-xs uppercase tracking-widest"
-            disabled={isLoading}
+            disabled={isSaveDisabled}
             onClick={onUpdateShift}
             variant="primary"
           >

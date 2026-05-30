@@ -222,6 +222,7 @@ impl AttendanceSummaryService {
                             rounding_policy: String::new(),
                             rules: policy_rules,
                             ot_ceiling: None,
+                            max_early_ot_minutes: daily_schedule.max_early_ot_minutes,
                         },
                     );
 

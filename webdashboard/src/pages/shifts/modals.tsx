@@ -36,6 +36,9 @@ function CreateModal({ hook }: ShiftsModalsProps) {
     newShiftName,
     newShiftStart,
     newShiftSymbol,
+    newShiftGrace,
+    allowEarlyOt,
+    maxEarlyOtMinutes,
     setIsAutoDeduct,
     setIsBreakOvertime,
     setIsCreateModalOpen,
@@ -47,6 +50,9 @@ function CreateModal({ hook }: ShiftsModalsProps) {
     setNewShiftName,
     setNewShiftStart,
     setNewShiftSymbol,
+    setNewShiftGrace,
+    setAllowEarlyOt,
+    setMaxEarlyOtMinutes,
   } = hook;
 
   return (
@@ -63,6 +69,9 @@ function CreateModal({ hook }: ShiftsModalsProps) {
       newShiftName={newShiftName}
       newShiftStart={newShiftStart}
       newShiftSymbol={newShiftSymbol}
+      newShiftGrace={newShiftGrace}
+      allowEarlyOt={allowEarlyOt}
+      maxEarlyOtMinutes={maxEarlyOtMinutes}
       onClose={() => {
         setIsCreateModalOpen(false);
       }}
@@ -77,6 +86,9 @@ function CreateModal({ hook }: ShiftsModalsProps) {
       setNewShiftName={setNewShiftName}
       setNewShiftStart={setNewShiftStart}
       setNewShiftSymbol={setNewShiftSymbol}
+      setNewShiftGrace={setNewShiftGrace}
+      setAllowEarlyOt={setAllowEarlyOt}
+      setMaxEarlyOtMinutes={setMaxEarlyOtMinutes}
     />
   );
 }
@@ -122,6 +134,8 @@ function EditModal({ hook }: ShiftsModalsProps) {
     newShiftName,
     newShiftStart,
     newShiftSymbol,
+    allowEarlyOt,
+    maxEarlyOtMinutes,
     setCorrectionEffectiveDate,
     setEditingShift,
     setIsAutoDeduct,
@@ -136,6 +150,8 @@ function EditModal({ hook }: ShiftsModalsProps) {
     setNewShiftName,
     setNewShiftStart,
     setNewShiftSymbol,
+    setAllowEarlyOt,
+    setMaxEarlyOtMinutes,
     updateShiftMutation,
   } = hook;
 
@@ -156,6 +172,8 @@ function EditModal({ hook }: ShiftsModalsProps) {
       newShiftName={newShiftName}
       newShiftStart={newShiftStart}
       newShiftSymbol={newShiftSymbol}
+      allowEarlyOt={allowEarlyOt}
+      maxEarlyOtMinutes={maxEarlyOtMinutes}
       onClose={() => {
         setEditingShift(null);
       }}
@@ -173,6 +191,8 @@ function EditModal({ hook }: ShiftsModalsProps) {
       setNewShiftName={setNewShiftName}
       setNewShiftStart={setNewShiftStart}
       setNewShiftSymbol={setNewShiftSymbol}
+      setAllowEarlyOt={setAllowEarlyOt}
+      setMaxEarlyOtMinutes={setMaxEarlyOtMinutes}
     />
   );
 }

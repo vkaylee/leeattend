@@ -61,7 +61,8 @@ impl ShiftService {
             || old_shift.break_duration_minutes != req.break_duration_minutes
             || old_shift.break_start != req.break_start
             || old_shift.break_end != req.break_end
-            || old_shift.allow_early_ot != req.allow_early_ot;
+            || old_shift.allow_early_ot != req.allow_early_ot
+            || old_shift.max_early_ot_minutes != req.max_early_ot_minutes;
 
         if req.is_correction || !has_time_changes {
             // Direct update
@@ -103,6 +104,7 @@ impl ShiftService {
                         early_punch_in_grace_period_minutes: req
                             .early_punch_in_grace_period_minutes,
                         allow_early_ot: req.allow_early_ot,
+                        max_early_ot_minutes: req.max_early_ot_minutes,
                     },
                     true,
                     Some(shift_id),
@@ -188,6 +190,7 @@ mod tests {
             break_is_overtime: false,
             early_punch_in_grace_period_minutes: 0,
             allow_early_ot: false,
+            max_early_ot_minutes: None,
             is_active: true,
             parent_shift_id: None,
             created_at: Utc::now(),
@@ -237,6 +240,7 @@ mod tests {
                 break_is_overtime: req.break_is_overtime,
                 early_punch_in_grace_period_minutes: req.early_punch_in_grace_period_minutes,
                 allow_early_ot: req.allow_early_ot,
+                max_early_ot_minutes: req.max_early_ot_minutes,
                 is_active: true,
                 parent_shift_id: parent,
                 created_at: Utc::now(),
@@ -340,6 +344,7 @@ mod tests {
             break_is_overtime: false,
             early_punch_in_grace_period_minutes: 0,
             allow_early_ot: false,
+            max_early_ot_minutes: None,
         }
     }
 
@@ -387,6 +392,7 @@ mod tests {
             break_is_overtime: false,
             early_punch_in_grace_period_minutes: 0,
             allow_early_ot: false,
+            max_early_ot_minutes: None,
             is_correction: true,
             effective_date: None,
         };
@@ -412,6 +418,7 @@ mod tests {
             break_is_overtime: false,
             early_punch_in_grace_period_minutes: 0,
             allow_early_ot: false,
+            max_early_ot_minutes: None,
             is_correction: false,
             effective_date: None,
         };
@@ -439,6 +446,7 @@ mod tests {
             break_is_overtime: false,
             early_punch_in_grace_period_minutes: 0,
             allow_early_ot: false,
+            max_early_ot_minutes: None,
             is_correction: false,
             effective_date: Some(NaiveDate::from_ymd_opt(2026, 1, 1).unwrap()),
         };

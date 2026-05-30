@@ -1048,6 +1048,7 @@ diesel::table! {
         is_active -> Bool,
         parent_shift_id -> Nullable<Uuid>,
         allow_early_ot -> Bool,
+        max_early_ot_minutes -> Nullable<Int4>,
         #[max_length = 10]
         report_symbol -> Nullable<Varchar>,
     }

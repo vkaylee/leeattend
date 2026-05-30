@@ -4183,6 +4183,7 @@ export interface components {
             early_punch_in_grace_period_minutes?: number;
             end_time: string;
             is_break_auto_deduct?: boolean;
+            max_early_ot_minutes?: number | null;
             name: string;
             report_symbol?: string | null;
             start_time: string;
@@ -5576,6 +5577,7 @@ export interface components {
             id: string;
             is_active: boolean;
             is_break_auto_deduct: boolean;
+            max_early_ot_minutes?: number | null;
             name: string;
             /** Format: uuid */
             parent_shift_id?: string | null;
@@ -6032,6 +6034,7 @@ export interface components {
              *     If false (default), create a new version if time-related fields changed.
              */
             is_correction?: boolean;
+            max_early_ot_minutes?: number | null;
             name: string;
             report_symbol?: string | null;
             start_time: string;

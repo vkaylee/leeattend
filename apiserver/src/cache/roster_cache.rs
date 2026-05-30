@@ -38,6 +38,7 @@ pub struct RosterShift {
     pub early_punch_in_grace_period_minutes: i32,
     pub allow_early_ot: bool,
     pub break_is_overtime: bool,
+    pub max_early_ot_minutes: Option<i32>,
 }
 
 /// A fixed (direct) shift assignment row for one employee.
@@ -302,6 +303,7 @@ pub async fn build_roster_data(
                     is_break_auto_deduct: r.is_break_auto_deduct,
                     early_punch_in_grace_period_minutes: r.early_punch_in_grace_period_minutes,
                     allow_early_ot: r.allow_early_ot,
+                    max_early_ot_minutes: r.max_early_ot_minutes,
                     break_is_overtime: r.break_is_overtime,
                 },
             )
@@ -605,6 +607,7 @@ mod tests {
             early_punch_in_grace_period_minutes: 15,
             allow_early_ot: false,
             break_is_overtime: false,
+            max_early_ot_minutes: None,
         };
 
         assert_eq!(shift.name, "Morning");

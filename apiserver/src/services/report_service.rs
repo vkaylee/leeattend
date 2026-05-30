@@ -162,6 +162,7 @@ impl ReportService {
                     rounding_policy: args.rounding_policy.to_string(),
                     rules: args.rules,
                     ot_ceiling: None,
+                    max_early_ot_minutes: args.daily.max_early_ot_minutes,
                 },
             )
         } else {

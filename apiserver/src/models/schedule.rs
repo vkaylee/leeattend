@@ -93,6 +93,7 @@ pub struct EffectiveSchedule {
     pub early_punch_in_grace_period_minutes: Option<i32>,
     pub allow_early_ot: Option<bool>,
     pub break_is_overtime: Option<bool>,
+    pub max_early_ot_minutes: Option<i32>,
     #[serde(default)]
     pub traces: Vec<ScheduleTrace>,
     #[serde(default)]
@@ -169,6 +170,7 @@ mod tests {
             early_punch_in_grace_period_minutes: None,
             allow_early_ot: None,
             break_is_overtime: None,
+            max_early_ot_minutes: None,
             traces: vec![],
             is_holiday: false,
             holiday_name: None,

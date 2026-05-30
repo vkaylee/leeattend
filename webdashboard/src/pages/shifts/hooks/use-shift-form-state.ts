@@ -37,6 +37,8 @@ export function useShiftFormState() {
   const [isFixedBreak, setIsFixedBreakState] = useState(false);
   const [isAutoDeduct, setIsAutoDeduct] = useState(true);
   const [isBreakOvertime, setIsBreakOvertime] = useState(false);
+  const [allowEarlyOt, setAllowEarlyOt] = useState(false);
+  const [maxEarlyOtMinutes, setMaxEarlyOtMinutes] = useState(60);
 
   const setIsFixedBreak = (val: boolean) => {
     setIsFixedBreakState(val);
@@ -74,6 +76,8 @@ export function useShiftFormState() {
     isFixedBreak, setIsFixedBreak,
     isAutoDeduct, setIsAutoDeduct,
     isBreakOvertime, setIsBreakOvertime,
+    allowEarlyOt, setAllowEarlyOt,
+    maxEarlyOtMinutes, setMaxEarlyOtMinutes,
     editingShift, setEditingShift,
     isCorrection, setIsCorrection,
     correctionEffectiveDate, setCorrectionEffectiveDate
