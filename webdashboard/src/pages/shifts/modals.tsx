@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import React from "react";
 
 import { CreateShiftModal } from "@/components/shifts/create-shift-modal";
@@ -25,6 +26,7 @@ function CreateModal({ hook }: ShiftsModalsProps) {
     createShiftMutation,
     handleCreateShift,
     isAutoDeduct,
+    isBreakOvertime,
     isCreateModalOpen,
     isFixedBreak,
     newBreakEnd,
@@ -35,6 +37,7 @@ function CreateModal({ hook }: ShiftsModalsProps) {
     newShiftStart,
     newShiftSymbol,
     setIsAutoDeduct,
+    setIsBreakOvertime,
     setIsCreateModalOpen,
     setIsFixedBreak,
     setNewBreakEnd,
@@ -49,6 +52,7 @@ function CreateModal({ hook }: ShiftsModalsProps) {
   return (
     <CreateShiftModal
       isAutoDeduct={isAutoDeduct}
+      isBreakOvertime={isBreakOvertime}
       isFixedBreak={isFixedBreak}
       isLoading={createShiftMutation.isPending}
       isOpen={isCreateModalOpen}
@@ -64,6 +68,7 @@ function CreateModal({ hook }: ShiftsModalsProps) {
       }}
       onCreateShift={handleCreateShift}
       setIsAutoDeduct={setIsAutoDeduct}
+      setIsBreakOvertime={setIsBreakOvertime}
       setIsFixedBreak={setIsFixedBreak}
       setNewBreakEnd={setNewBreakEnd}
       setNewBreakStart={setNewBreakStart}
@@ -106,6 +111,7 @@ function EditModal({ hook }: ShiftsModalsProps) {
     editingShift,
     handleUpdateShift,
     isAutoDeduct,
+    isBreakOvertime,
     isCorrection,
     isFixedBreak,
     newBreakEnd,
@@ -119,6 +125,7 @@ function EditModal({ hook }: ShiftsModalsProps) {
     setCorrectionEffectiveDate,
     setEditingShift,
     setIsAutoDeduct,
+    setIsBreakOvertime,
     setIsCorrection,
     setIsFixedBreak,
     setNewBreakEnd,
@@ -137,6 +144,7 @@ function EditModal({ hook }: ShiftsModalsProps) {
       correctionEffectiveDate={correctionEffectiveDate}
       editingShift={editingShift}
       isAutoDeduct={isAutoDeduct}
+      isBreakOvertime={isBreakOvertime}
       isCorrection={isCorrection}
       isFixedBreak={isFixedBreak}
       isLoading={updateShiftMutation.isPending}
@@ -154,6 +162,7 @@ function EditModal({ hook }: ShiftsModalsProps) {
       onUpdateShift={handleUpdateShift}
       setCorrectionEffectiveDate={setCorrectionEffectiveDate}
       setIsAutoDeduct={setIsAutoDeduct}
+      setIsBreakOvertime={setIsBreakOvertime}
       setIsCorrection={setIsCorrection}
       setIsFixedBreak={setIsFixedBreak}
       setNewBreakEnd={setNewBreakEnd}

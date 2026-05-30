@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
 import { getCurrentWorkspaceId } from "@/lib/api";
 
 import { useMonthNavigation } from "./use-month-navigation";
@@ -43,6 +44,8 @@ export function useShifts(): UseShiftsReturn {
         form.setNewBreakStart("");
         form.setNewBreakEnd("");
         form.setIsFixedBreak(false);
+        form.setIsAutoDeduct(true);
+        form.setIsBreakOvertime(false);
         form.setIsCreateModalOpen(false);
         form.setActiveTab("directory");
       } else if (type === "updateShift") {

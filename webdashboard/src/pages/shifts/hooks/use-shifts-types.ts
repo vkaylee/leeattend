@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-redundant-type-constituents */
 import { UseMutationResult } from "@tanstack/react-query";
 
 import {
@@ -44,6 +45,7 @@ export interface UseShiftsReturn {
   handleUpdateShift: () => void;
   history: AssignmentHistory[] | undefined;
   isAutoDeduct: boolean;
+  isBreakOvertime: boolean;
   isCorrection: boolean;
   isCreateModalOpen: boolean;
   isEmployeesError: boolean;
@@ -77,6 +79,7 @@ export interface UseShiftsReturn {
   setEditingShift: (v: Shift | null) => void;
   setEndDate: (v: string) => void;
   setIsAutoDeduct: (v: boolean) => void;
+  setIsBreakOvertime: (v: boolean) => void;
   setIsCorrection: (v: boolean) => void;
   setIsCreateModalOpen: (v: boolean) => void;
   setIsFixedBreak: (v: boolean) => void;

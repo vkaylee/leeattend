@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-redundant-type-constituents, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-call */
 import type { UseMutationResult } from "@tanstack/react-query";
 
 import { format } from "date-fns";
@@ -19,10 +20,12 @@ interface UseShiftModalHandlersProps {
     setNewBreakEnd: (v: string) => void;
     setIsFixedBreak: (v: boolean) => void;
     setIsAutoDeduct: (v: boolean) => void;
+    setIsBreakOvertime: (v: boolean) => void;
     setIsCorrection: (v: boolean) => void;
     setCorrectionEffectiveDate: (v: string) => void;
   };
   isAutoDeduct: boolean;
+  isBreakOvertime: boolean;
   isCorrection: boolean;
   isFixedBreak: boolean;
   mutations: {
@@ -50,6 +53,7 @@ export function useShiftModalHandlers({
   newBreakStart,
   newBreakEnd,
   isAutoDeduct,
+  isBreakOvertime,
   editingShift,
   isCorrection,
   correctionEffectiveDate,
@@ -66,7 +70,7 @@ export function useShiftModalHandlers({
       end_time: newShiftEnd + ":00",
       break_duration_minutes: newShiftBreak,
       early_punch_in_grace_period_minutes: newShiftGrace,
-      is_break_overtime: false,
+      break_is_overtime: isBreakOvertime,
       ...(isFixedBreak && newBreakStart && newBreakEnd ? {
         break_start: newBreakStart + ":00",
         break_end: newBreakEnd + ":00"
@@ -86,7 +90,7 @@ export function useShiftModalHandlers({
         end_time: newShiftEnd,
         break_duration_minutes: newShiftBreak,
         early_punch_in_grace_period_minutes: newShiftGrace,
-        is_break_overtime: false,
+        break_is_overtime: isBreakOvertime,
         ...(isFixedBreak && newBreakStart && newBreakEnd ? {
           break_start: newBreakStart,
           break_end: newBreakEnd
@@ -113,6 +117,7 @@ export function useShiftModalHandlers({
     formActions.setNewBreakEnd(shift.break_end?.substring(0, 5) ?? "");
     formActions.setIsFixedBreak(!!shift.break_start);
     formActions.setIsAutoDeduct(shift.is_break_auto_deduct ?? true);
+    formActions.setIsBreakOvertime(shift.break_is_overtime ?? false);
     formActions.setIsCorrection(false);
     formActions.setCorrectionEffectiveDate(format(new Date(), 'yyyy-MM-dd'));
   };

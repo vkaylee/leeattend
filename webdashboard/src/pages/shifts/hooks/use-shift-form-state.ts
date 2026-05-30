@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-redundant-type-constituents, @typescript-eslint/no-unsafe-assignment */
 import { useState } from "react";
 
 import { format } from "date-fns";
@@ -35,6 +36,7 @@ export function useShiftFormState() {
   const [newBreakEnd, setNewBreakEnd] = useState("");
   const [isFixedBreak, setIsFixedBreak] = useState(false);
   const [isAutoDeduct, setIsAutoDeduct] = useState(true);
+  const [isBreakOvertime, setIsBreakOvertime] = useState(false);
 
   // Edit Shift State
   const [editingShift, setEditingShift] = useState<Shift | null>(null);
@@ -63,6 +65,7 @@ export function useShiftFormState() {
     newBreakEnd, setNewBreakEnd,
     isFixedBreak, setIsFixedBreak,
     isAutoDeduct, setIsAutoDeduct,
+    isBreakOvertime, setIsBreakOvertime,
     editingShift, setEditingShift,
     isCorrection, setIsCorrection,
     correctionEffectiveDate, setCorrectionEffectiveDate

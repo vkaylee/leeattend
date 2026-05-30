@@ -10,6 +10,7 @@ import { Typography } from "@/components/ui/typography";
 
 interface CreateShiftModalProps {
   isAutoDeduct: boolean;
+  isBreakOvertime: boolean;
   isFixedBreak: boolean;
   isLoading: boolean;
   isOpen: boolean;
@@ -23,6 +24,7 @@ interface CreateShiftModalProps {
   onClose: () => void;
   onCreateShift: () => void;
   setIsAutoDeduct: (value: boolean) => void;
+  setIsBreakOvertime: (value: boolean) => void;
   setIsFixedBreak: (value: boolean) => void;
   setNewBreakEnd: (value: string) => void;
   setNewBreakStart: (value: string) => void;
@@ -118,14 +120,18 @@ function BreakConfigPanel({
   newShiftBreak,
   setNewShiftBreak,
   isAutoDeduct,
-  setIsAutoDeduct
+  setIsAutoDeduct,
+  isBreakOvertime,
+  setIsBreakOvertime
 }: {
   isAutoDeduct: boolean;
+  isBreakOvertime: boolean;
   isFixedBreak: boolean;
   newBreakEnd: string;
   newBreakStart: string;
   newShiftBreak: number;
   setIsAutoDeduct: (val: boolean) => void;
+  setIsBreakOvertime: (val: boolean) => void;
   setIsFixedBreak: (val: boolean) => void;
   setNewBreakEnd: (val: string) => void;
   setNewBreakStart: (val: string) => void;
@@ -134,64 +140,124 @@ function BreakConfigPanel({
 }) {
   return (
     <div className="space-y-4 bg-slate-50 dark:bg-slate-800 p-6 rounded-[32px] border border-slate-100 dark:border-slate-800">
-      <div className="flex items-center justify-between">
-        <Typography className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest" variant="h4">{t("shifts.modal.break_config")}</Typography>
-        <div className="flex items-center gap-2">
-          <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">{t("shifts.types.fixed")}</span>
-          <Button className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${isFixedBreak ? 'bg-primary-600' : 'bg-slate-200 dark:bg-slate-600'}`}
-            onClick={() => { setIsFixedBreak(!isFixedBreak); }}
-            type="button"
-            variant="ghost"
-          >
-            <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white dark:bg-slate-900 transition-transform ${isFixedBreak ? 'translate-x-5' : 'translate-x-1'}`} />
-          </Button>
+      <div className="grid grid-cols-2 gap-4 items-start">
+        {/* Column 1: Break Configuration Toggle */}
+        <div className="space-y-2">
+          <Typography className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest block" variant="h4">
+            {t("shifts.modal.break_config")}
+          </Typography>
+          <div className="flex items-center justify-between h-[42px] bg-white dark:bg-slate-900 px-4 rounded-xl border border-slate-100/50 dark:border-slate-800/50">
+            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">{t("shifts.types.fixed")}</span>
+            <button
+              aria-label={t("shifts.types.fixed")}
+              className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 ${isFixedBreak ? 'bg-primary-600' : 'bg-slate-200 dark:bg-slate-600'}`}
+              onClick={() => { setIsFixedBreak(!isFixedBreak); }}
+              type="button"
+            >
+              <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white dark:bg-slate-900 transition-transform ${isFixedBreak ? 'translate-x-5' : 'translate-x-1'}`} />
+            </button>
+          </div>
         </div>
+
+        {/* Column 2: Break Duration or Break Start/End */}
+        {isFixedBreak ? (
+          <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase block">{t("shifts.modal.break_start")}</label>
+              <input
+                className="w-full bg-white dark:bg-slate-900 border-none rounded-xl px-4 py-2.5 font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 transition-all text-xs"
+                onChange={(e) => { setNewBreakStart(e.target.value); }}
+                type="time"
+                value={newBreakStart}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase block">{t("shifts.modal.break_end")}</label>
+              <input
+                className="w-full bg-white dark:bg-slate-900 border-none rounded-xl px-4 py-2.5 font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 transition-all text-xs"
+                onChange={(e) => { setNewBreakEnd(e.target.value); }}
+                type="time"
+                value={newBreakEnd}
+              />
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase block">
+              {t("shifts.modal.break_duration")} ({t("common.minutes")})
+            </label>
+            <input
+              className="w-full bg-white dark:bg-slate-900 border-none rounded-xl px-4 py-2.5 font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 transition-all text-xs"
+              onChange={(e) => { setNewShiftBreak(parseInt(e.target.value) || 0); }}
+              type="number"
+              value={newShiftBreak}
+            />
+          </div>
+        )}
       </div>
 
-      {isFixedBreak ? (
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">{t("shifts.modal.break_start")}</label>
-            <input
-              className="w-full bg-white dark:bg-slate-900 border-none rounded-xl px-4 py-2.5 font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 transition-all"
-              onChange={(e) => { setNewBreakStart(e.target.value); }}
-              type="time"
-              value={newBreakStart}
-            />
-          </div>
-          <div className="space-y-2">
-            <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">{t("shifts.modal.break_end")}</label>
-            <input
-              className="w-full bg-white dark:bg-slate-900 border-none rounded-xl px-4 py-2.5 font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 transition-all"
-              onChange={(e) => { setNewBreakEnd(e.target.value); }}
-              type="time"
-              value={newBreakEnd}
-            />
-          </div>
-        </div>
-      ) : (
-        <div className="space-y-2">
-          <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">{t("shifts.modal.break_duration")} ({t("common.minutes")})</label>
-          <input
-            className="w-full bg-white dark:bg-slate-900 border-none rounded-xl px-4 py-2.5 font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 transition-all"
-            onChange={(e) => { setNewShiftBreak(parseInt(e.target.value) || 0); }}
-            type="number"
-            value={newShiftBreak}
-          />
-        </div>
-      )}
-
-      <div className="flex items-center gap-3 pt-2">
-        <input
-          checked={isAutoDeduct}
-          className="w-5 h-5 rounded-lg border-slate-200 dark:border-slate-700 text-primary-600 dark:text-primary-400 focus:ring-primary-500"
-          id="auto_deduct"
-          onChange={(e) => { setIsAutoDeduct(e.target.checked); }}
-          type="checkbox"
-        />
-        <label className="text-sm font-bold text-slate-700 dark:text-slate-200" htmlFor="auto_deduct">
-          {t("shifts.modal.auto_deduct_label")}
+      <div className="space-y-3 pt-2">
+        <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest block">
+          {t("shifts.modal.break_policy_label")}
         </label>
+        <div className="space-y-2">
+          {/* Option 1: Auto Deduct */}
+          <div className="flex items-start gap-3 p-3 bg-white dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-800/80 cursor-pointer hover:bg-slate-100/50 dark:hover:bg-slate-800/30 transition-all">
+            <input
+              checked={isAutoDeduct && !isBreakOvertime ? true : false}
+              className="mt-0.5 w-4 h-4 text-primary-600 border-slate-300 dark:border-slate-700 focus:ring-primary-500 cursor-pointer"
+              id="break_policy_auto_deduct"
+              name="break_policy"
+              onChange={() => {
+                setIsAutoDeduct(true);
+                setIsBreakOvertime(false);
+              }}
+              type="radio"
+              value="auto_deduct"
+            />
+            <label className="text-xs font-bold text-slate-700 dark:text-slate-200 cursor-pointer" htmlFor="break_policy_auto_deduct">
+              {t("shifts.modal.break_policy_auto_deduct")}
+            </label>
+          </div>
+
+          {/* Option 2: No Deduct */}
+          <div className="flex items-start gap-3 p-3 bg-white dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-800/80 cursor-pointer hover:bg-slate-100/50 dark:hover:bg-slate-800/30 transition-all">
+            <input
+              checked={!isAutoDeduct && !isBreakOvertime ? true : false}
+              className="mt-0.5 w-4 h-4 text-primary-600 border-slate-300 dark:border-slate-700 focus:ring-primary-500 cursor-pointer"
+              id="break_policy_no_deduct"
+              name="break_policy"
+              onChange={() => {
+                setIsAutoDeduct(false);
+                setIsBreakOvertime(false);
+              }}
+              type="radio"
+              value="no_deduct"
+            />
+            <label className="text-xs font-bold text-slate-700 dark:text-slate-200 cursor-pointer" htmlFor="break_policy_no_deduct">
+              {t("shifts.modal.break_policy_no_deduct")}
+            </label>
+          </div>
+
+          {/* Option 3: Break Overtime */}
+          <div className="flex items-start gap-3 p-3 bg-white dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-800/80 cursor-pointer hover:bg-slate-100/50 dark:hover:bg-slate-800/30 transition-all">
+            <input
+              checked={isBreakOvertime ? true : false}
+              className="mt-0.5 w-4 h-4 text-primary-600 border-slate-300 dark:border-slate-700 focus:ring-primary-500 cursor-pointer"
+              id="break_policy_overtime"
+              name="break_policy"
+              onChange={() => {
+                setIsAutoDeduct(false);
+                setIsBreakOvertime(true);
+              }}
+              type="radio"
+              value="overtime"
+            />
+            <label className="text-xs font-bold text-slate-700 dark:text-slate-200 cursor-pointer" htmlFor="break_policy_overtime">
+              {t("shifts.modal.break_policy_overtime")}
+            </label>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -218,6 +284,8 @@ export function CreateShiftModal({
   setIsFixedBreak,
   isAutoDeduct,
   setIsAutoDeduct,
+  isBreakOvertime,
+  setIsBreakOvertime,
   onCreateShift,
   isLoading,
 }: CreateShiftModalProps) {
@@ -246,11 +314,13 @@ export function CreateShiftModal({
 
           <BreakConfigPanel
             isAutoDeduct={isAutoDeduct}
+            isBreakOvertime={isBreakOvertime}
             isFixedBreak={isFixedBreak}
             newBreakEnd={newBreakEnd}
             newBreakStart={newBreakStart}
             newShiftBreak={newShiftBreak}
             setIsAutoDeduct={setIsAutoDeduct}
+            setIsBreakOvertime={setIsBreakOvertime}
             setIsFixedBreak={setIsFixedBreak}
             setNewBreakEnd={setNewBreakEnd}
             setNewBreakStart={setNewBreakStart}

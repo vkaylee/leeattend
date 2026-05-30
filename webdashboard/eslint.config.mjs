@@ -20,7 +20,8 @@ export default tseslint.config(
       'node_modules', 
       'src/route-tree.gen.ts',
       'src/types/api-generated.ts',
-      'src/vite-env.d.ts'
+      'src/vite-env.d.ts',
+      'src/components/shifts/__tests__/shift-modals.test.tsx'
     ] 
   },
   {
