@@ -226,6 +226,7 @@ impl AppState {
                 tenant_provisioner.clone(),
                 tenant_manager.clone(),
                 system_db_cluster_repo.clone(),
+                diesel_pools.clone(),
             ));
         let leave_balance_repo: Arc<
             dyn crate::repositories::leave_balance_repository::LeaveBalanceRepository,

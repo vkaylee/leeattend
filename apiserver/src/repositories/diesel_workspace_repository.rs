@@ -50,8 +50,6 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
             timezone: "UTC".to_string(),
             theme_primary_color: Some("#1890ff".to_string()),
             default_language: "en".to_string(),
-            holiday_overnight_strategy: "split".to_string(),
-            default_holiday_ot_multiplier: bigdecimal::BigDecimal::from(2),
             logo_url: None,
             tagline: None,
             custom_db_url_encrypted,
@@ -1105,7 +1103,6 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
         Ok(permissions)
     }
 
-    #[allow(clippy::too_many_arguments)]
     async fn update_workspace(
         &self,
         id: Uuid,
@@ -1115,8 +1112,6 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
         timezone: Option<String>,
         theme_primary_color: Option<String>,
         default_language: Option<String>,
-        holiday_overnight_strategy: Option<String>,
-        default_holiday_ot_multiplier: Option<bigdecimal::BigDecimal>,
         logo_url: Option<String>,
         tagline: Option<String>,
     ) -> Result<Workspace, AppError> {
@@ -1138,8 +1133,6 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
             timezone: Option<String>,
             theme_primary_color: Option<Option<String>>,
             default_language: Option<String>,
-            holiday_overnight_strategy: Option<String>,
-            default_holiday_ot_multiplier: Option<bigdecimal::BigDecimal>,
             logo_url: Option<Option<String>>,
             tagline: Option<Option<String>>,
         }
@@ -1150,8 +1143,6 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
             || timezone.is_some()
             || theme_primary_color.is_some()
             || default_language.is_some()
-            || holiday_overnight_strategy.is_some()
-            || default_holiday_ot_multiplier.is_some()
             || logo_url.is_some()
             || tagline.is_some();
 
@@ -1169,8 +1160,6 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
             timezone,
             theme_primary_color: theme_primary_color.map(Some),
             default_language,
-            holiday_overnight_strategy,
-            default_holiday_ot_multiplier,
             logo_url: logo_url.map(Some),
             tagline: tagline.map(Some),
         };

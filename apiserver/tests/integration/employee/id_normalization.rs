@@ -46,6 +46,7 @@ async fn test_create_employee_id_normalization() {
         tags: None,
         recruitment_source_id: None,
         primary_location_id: hq_loc_id,
+        employer_id: None,
     };
 
     let response = app
@@ -128,6 +129,7 @@ async fn test_update_employee_id_normalization() {
         max_concurrent_workers: None,
         recruitment_source_id: None,
         primary_location_id: Some(hq_loc_id),
+        employer_id: None,
     };
 
     let response = app
@@ -207,6 +209,7 @@ async fn test_employee_id_uniqueness_on_normalized_values() {
         tags: None,
         recruitment_source_id: None,
         primary_location_id: hq_loc_id,
+        employer_id: None,
     };
 
     let response = app

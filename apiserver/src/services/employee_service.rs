@@ -136,6 +136,7 @@ impl EmployeeService {
             updated_at: Utc::now(),
             department_name: None,
             primary_location_id: req.primary_location_id,
+            employer_id: req.employer_id,
         };
 
         // Use repository to create employee and set recruitment source transactionally
@@ -354,6 +355,7 @@ mod tests {
             updated_at: Utc::now(),
             department_name: None,
             primary_location_id: Uuid::new_v4(),
+            employer_id: None,
         }
     }
 
@@ -1296,6 +1298,7 @@ mod tests {
             tags: None,
             recruitment_source_id: None,
             primary_location_id: Uuid::new_v4(),
+            employer_id: None,
         };
         let result = svc
             .create_employee(
@@ -1572,6 +1575,7 @@ mod tests {
             max_concurrent_workers: None,
             recruitment_source_id: None,
             primary_location_id: None,
+            employer_id: None,
         };
         let result = svc
             .update_employee(
@@ -1602,6 +1606,7 @@ mod tests {
             max_concurrent_workers: None,
             recruitment_source_id: None, // No source ID, no id_number update
             primary_location_id: None,
+            employer_id: None,
         };
         let result = svc
             .update_employee(

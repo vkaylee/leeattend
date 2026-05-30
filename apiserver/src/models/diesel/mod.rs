@@ -8,6 +8,7 @@ pub mod audit_log;
 pub mod core;
 pub mod department;
 pub mod employee;
+pub mod employer;
 pub mod employee_contract;
 pub mod employment_phase;
 pub mod feature_flag;

@@ -163,8 +163,6 @@ pub trait WorkspaceRepository: Send + Sync {
         timezone: Option<String>,
         theme_primary_color: Option<String>,
         default_language: Option<String>,
-        holiday_overnight_strategy: Option<String>,
-        default_holiday_ot_multiplier: Option<bigdecimal::BigDecimal>,
         logo_url: Option<String>,
         tagline: Option<String>,
     ) -> Result<Workspace, AppError>;

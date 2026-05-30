@@ -18,7 +18,7 @@ async fn test_housekeeping_execution() {
     {
         let mut conn = pool.api.get().await.unwrap();
         diesel::sql_query(
-            format!("INSERT INTO workspaces (id, name, date_format, time_format, timezone, theme_primary_color, default_language, holiday_overnight_strategy, default_holiday_ot_multiplier) VALUES ('{}', 'Test Workspace', 'YYYY-MM-DD', '24h', 'UTC', '#000000', 'en', 'split', 1.5)", workspace_id)
+            format!("INSERT INTO workspaces (id, name, date_format, time_format, timezone, theme_primary_color, default_language) VALUES ('{}', 'Test Workspace', 'YYYY-MM-DD', '24h', 'UTC', '#000000', 'en')", workspace_id)
         ).execute(&mut conn).await.unwrap();
     }
 

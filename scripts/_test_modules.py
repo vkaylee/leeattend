@@ -96,7 +96,8 @@ def leeattend_run_unit(
             if component_filter in ["apiserver", "agent-main"]
             else "--workspace"
         )
-        backend = f"cargo nextest run {pkg_flag} --lib {_safe_pattern(test_pattern)} {shard_flag} --no-tests=pass"
+        db_url = "postgres://test_user:test_password@localhost:5432/test_database?sslmode=disable"
+        backend = f"DATABASE_URL={db_url} cargo nextest run {pkg_flag} --lib {_safe_pattern(test_pattern)} {shard_flag} --no-tests=pass"
         backend_cmd = build_compose_exec("apiserver", backend, workdir="/workspace", mode=mode)
         task_name = f"rust-backend-{component_filter}" if component_filter else "rust-backend"
         tasks.append((task_name, "apiserver", backend_cmd))

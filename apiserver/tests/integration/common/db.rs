@@ -33,7 +33,7 @@ impl std::ops::Deref for TestDatabase {
 
 #[allow(dead_code)]
 impl TestDatabase {
-    async fn connect_with_retries(url: &str) -> tokio_postgres::Client {
+    pub async fn connect_with_retries(url: &str) -> tokio_postgres::Client {
         for attempt in 0..15 {
             if let Ok((client, conn)) = tokio_postgres::connect(url, NoTls).await {
                 tokio::spawn(async move {

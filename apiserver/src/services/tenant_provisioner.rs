@@ -56,11 +56,34 @@ impl TenantProvisionerTrait for TenantMigrator {
                 .map_err(|e| AppError::Internal(format!("Failed to run tenant migrations: {e}")))?;
 
             // Ensure Headquarters location exists
+            // Fetch timezone from workspaces table in system database if possible
+            let mut timezone = "UTC".to_string();
+            if let Ok(system_url) = std::env::var("DATABASE_URL") {
+                if let Ok(mut system_conn) = diesel::PgConnection::establish(&system_url) {
+                    #[derive(diesel::QueryableByName)]
+                    struct TimezoneRow {
+                        #[diesel(sql_type = diesel::sql_types::Text)]
+                        timezone: String,
+                    }
+                    use diesel::RunQueryDsl;
+                    if let Ok(rows) = diesel::sql_query(format!(
+                        "SELECT timezone FROM workspaces WHERE id = '{}'",
+                        ws_id
+                    ))
+                    .load::<TimezoneRow>(&mut system_conn)
+                    {
+                        if let Some(row) = rows.first() {
+                            timezone = row.timezone.clone();
+                        }
+                    }
+                }
+            }
+
             let insert_hq_sql = format!(
                 "INSERT INTO work_locations (id, workspace_id, name, timezone, is_headquarters)
-                 SELECT '11111111-1111-1111-1111-111111111111'::uuid, '{ws_id}', 'Headquarters', COALESCE(timezone, 'UTC'), true
-                 FROM workspaces WHERE id = '{ws_id}'
-                 ON CONFLICT (id) DO NOTHING"
+                 VALUES ('11111111-1111-1111-1111-111111111111'::uuid, '{}', 'Headquarters', '{}', true)
+                 ON CONFLICT (id) DO NOTHING",
+                ws_id, timezone
             );
 
             use diesel::RunQueryDsl;

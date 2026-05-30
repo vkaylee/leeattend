@@ -24,7 +24,11 @@ impl WorkspaceConfigService {
         // Enforce workspace_id matches auth_token
         entry.workspace_id = auth_token.workspace_id();
 
-        if entry.scope_type != "workspace" && entry.scope_type != "department" {
+        if entry.scope_type != "workspace"
+            && entry.scope_type != "employer"
+            && entry.scope_type != "department"
+            && entry.scope_type != "employee"
+        {
             return Err(AppError::Validation("Invalid scope type".to_string()));
         }
 
@@ -71,6 +75,198 @@ impl WorkspaceConfigService {
         self.workspace_config_repo
             .delete_entry(auth_token, entry_id)
             .await
+    }
+
+    pub async fn get_effective_holiday_strategy(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        employee_id: Uuid,
+        department_id: Option<Uuid>,
+        employer_id: Option<Uuid>,
+        target_date: NaiveDate,
+    ) -> AppResult<crate::models::HolidayOvernightStrategy> {
+        let config_key = "overtime.holiday_overnight_strategy";
+
+        // 1. Employee scope
+        if let Some(entry) = self
+            .workspace_config_repo
+            .get_effective_config(
+                auth_token,
+                auth_token.workspace_id(),
+                config_key,
+                "employee",
+                Some(employee_id),
+                target_date,
+            )
+            .await?
+        {
+            if let Some(text) = entry.value_text {
+                use std::str::FromStr;
+                if let Ok(strategy) = crate::models::HolidayOvernightStrategy::from_str(&text) {
+                    return Ok(strategy);
+                }
+            }
+        }
+
+        // 2. Department scope
+        if let Some(dept_id) = department_id {
+            if let Some(entry) = self
+                .workspace_config_repo
+                .get_effective_config(
+                    auth_token,
+                    auth_token.workspace_id(),
+                    config_key,
+                    "department",
+                    Some(dept_id),
+                    target_date,
+                )
+                .await?
+            {
+                if let Some(text) = entry.value_text {
+                    use std::str::FromStr;
+                    if let Ok(strategy) = crate::models::HolidayOvernightStrategy::from_str(&text) {
+                        return Ok(strategy);
+                    }
+                }
+            }
+        }
+
+        // 3. Employer scope
+        if let Some(emp_id) = employer_id {
+            if let Some(entry) = self
+                .workspace_config_repo
+                .get_effective_config(
+                    auth_token,
+                    auth_token.workspace_id(),
+                    config_key,
+                    "employer",
+                    Some(emp_id),
+                    target_date,
+                )
+                .await?
+            {
+                if let Some(text) = entry.value_text {
+                    use std::str::FromStr;
+                    if let Ok(strategy) = crate::models::HolidayOvernightStrategy::from_str(&text) {
+                        return Ok(strategy);
+                    }
+                }
+            }
+        }
+
+        // 4. Workspace scope
+        if let Some(entry) = self
+            .workspace_config_repo
+            .get_effective_config(
+                auth_token,
+                auth_token.workspace_id(),
+                config_key,
+                "workspace",
+                None,
+                target_date,
+            )
+            .await?
+        {
+            if let Some(text) = entry.value_text {
+                use std::str::FromStr;
+                if let Ok(strategy) = crate::models::HolidayOvernightStrategy::from_str(&text) {
+                    return Ok(strategy);
+                }
+            }
+        }
+
+        // 5. Fallback Default
+        Ok(crate::models::HolidayOvernightStrategy::SplitAtMidnight)
+    }
+
+    pub async fn get_effective_holiday_ot_multiplier(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        employee_id: Uuid,
+        department_id: Option<Uuid>,
+        employer_id: Option<Uuid>,
+        target_date: NaiveDate,
+    ) -> AppResult<rust_decimal::Decimal> {
+        let config_key = "overtime.default_holiday_ot_multiplier";
+
+        // 1. Employee scope
+        if let Some(entry) = self
+            .workspace_config_repo
+            .get_effective_config(
+                auth_token,
+                auth_token.workspace_id(),
+                config_key,
+                "employee",
+                Some(employee_id),
+                target_date,
+            )
+            .await?
+        {
+            if let Some(decimal) = entry.value_decimal {
+                return Ok(decimal);
+            }
+        }
+
+        // 2. Department scope
+        if let Some(dept_id) = department_id {
+            if let Some(entry) = self
+                .workspace_config_repo
+                .get_effective_config(
+                    auth_token,
+                    auth_token.workspace_id(),
+                    config_key,
+                    "department",
+                    Some(dept_id),
+                    target_date,
+                )
+                .await?
+            {
+                if let Some(decimal) = entry.value_decimal {
+                    return Ok(decimal);
+                }
+            }
+        }
+
+        // 3. Employer scope
+        if let Some(emp_id) = employer_id {
+            if let Some(entry) = self
+                .workspace_config_repo
+                .get_effective_config(
+                    auth_token,
+                    auth_token.workspace_id(),
+                    config_key,
+                    "employer",
+                    Some(emp_id),
+                    target_date,
+                )
+                .await?
+            {
+                if let Some(decimal) = entry.value_decimal {
+                    return Ok(decimal);
+                }
+            }
+        }
+
+        // 4. Workspace scope
+        if let Some(entry) = self
+            .workspace_config_repo
+            .get_effective_config(
+                auth_token,
+                auth_token.workspace_id(),
+                config_key,
+                "workspace",
+                None,
+                target_date,
+            )
+            .await?
+        {
+            if let Some(decimal) = entry.value_decimal {
+                return Ok(decimal);
+            }
+        }
+
+        // 5. Fallback Default
+        Ok(rust_decimal::Decimal::new(30, 1)) // 3.0
     }
 }
 

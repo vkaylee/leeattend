@@ -470,6 +470,7 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
             termination_date: req.termination_date.map(Some),
             updated_at: Some(chrono::Utc::now()),
             primary_location_id: req.primary_location_id,
+            employer_id: req.employer_id.map(Some),
         };
 
         let result: Option<EmployeeEntity> = diesel::update(employees::table)

@@ -393,6 +393,7 @@ pub async fn spawn_app() -> (String, TestDatabase) {
             std::sync::Arc::new(DummyTenantProvisioner),
             std::sync::Arc::new(DummyTenantManager),
             std::sync::Arc::new(DummySystemDbClusterRepository),
+            diesel_pools.clone(),
         ),
     );
     let leave_accrual_log_repo: Arc<
@@ -960,6 +961,7 @@ pub async fn spawn_app_with_factory_extended(
             std::sync::Arc::new(DummyTenantProvisioner),
             std::sync::Arc::new(DummyTenantManager),
             std::sync::Arc::new(DummySystemDbClusterRepository),
+            diesel_pools.clone(),
         ),
     );
     let leave_accrual_log_repo: Arc<
@@ -1576,6 +1578,7 @@ pub async fn setup_app_tower_internal_extended(
             std::sync::Arc::new(DummyTenantProvisioner),
             std::sync::Arc::new(DummyTenantManager),
             std::sync::Arc::new(DummySystemDbClusterRepository),
+            diesel_pools.clone(),
         ),
     );
     let leave_accrual_log_repo: Arc<

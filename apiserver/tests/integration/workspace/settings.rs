@@ -172,6 +172,7 @@ async fn test_update_workspace_time_format() {
         std::sync::Arc::new(DummyTenantProvisioner),
         std::sync::Arc::new(DummyTenantManager),
         std::sync::Arc::new(DummySystemDbClusterRepository),
+        diesel_pools.clone(),
     )
     .update_workspace(
         apiserver::services::workspace_service::UpdateWorkspaceArgs {
@@ -224,6 +225,7 @@ async fn test_update_workspace_all_fields() {
         std::sync::Arc::new(DummyTenantProvisioner),
         std::sync::Arc::new(DummyTenantManager),
         std::sync::Arc::new(DummySystemDbClusterRepository),
+        diesel_pools.clone(),
     )
     .update_workspace(
         apiserver::services::workspace_service::UpdateWorkspaceArgs {
@@ -271,6 +273,7 @@ async fn test_update_workspace_no_fields() {
         std::sync::Arc::new(DummyTenantProvisioner),
         std::sync::Arc::new(DummyTenantManager),
         std::sync::Arc::new(DummySystemDbClusterRepository),
+        diesel_pools.clone(),
     )
     .update_workspace(
         apiserver::services::workspace_service::UpdateWorkspaceArgs {
@@ -335,6 +338,7 @@ async fn test_update_workspace_syncs_headquarters_timezone() {
         std::sync::Arc::new(DummyTenantProvisioner),
         std::sync::Arc::new(DummyTenantManager),
         std::sync::Arc::new(DummySystemDbClusterRepository),
+        diesel_pools.clone(),
     )
     .update_workspace(
         apiserver::services::workspace_service::UpdateWorkspaceArgs {

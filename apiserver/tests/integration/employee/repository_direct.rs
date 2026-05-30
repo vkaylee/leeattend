@@ -798,6 +798,7 @@ async fn test_employee_core_crud() {
         department_name: None,
         created_at: Utc::now(),
         updated_at: Utc::now(),
+        employer_id: None,
     };
     repo.create_employee(&new_emp).await.unwrap();
 
@@ -829,6 +830,7 @@ async fn test_employee_core_crud() {
         user_id: None,
         recruitment_source_id: None,
         max_concurrent_workers: None,
+        employer_id: None,
     };
     let updated = repo
         .update_employee(new_emp.id, &auth_token, &update_req)

@@ -3,7 +3,6 @@ use crate::schema::{
     dashboard_preferences, member_extra_roles, notifications, system_roles, user_system_roles,
     users, workspace_members, workspace_roles, workspaces,
 };
-use bigdecimal::BigDecimal;
 use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -108,8 +107,6 @@ pub struct WorkspaceEntity {
     pub timezone: String,
     pub theme_primary_color: Option<String>,
     pub default_language: String,
-    pub holiday_overnight_strategy: String,
-    pub default_holiday_ot_multiplier: BigDecimal,
     pub logo_url: Option<String>,
     pub tagline: Option<String>,
     pub custom_db_url_encrypted: Option<String>,
@@ -117,7 +114,6 @@ pub struct WorkspaceEntity {
 
 impl From<WorkspaceEntity> for Workspace {
     fn from(entity: WorkspaceEntity) -> Self {
-        use std::str::FromStr;
         Self {
             id: entity.id,
             name: entity.name,
@@ -130,11 +126,8 @@ impl From<WorkspaceEntity> for Workspace {
             default_language: entity.default_language,
             logo_url: entity.logo_url,
             tagline: entity.tagline,
-            holiday_overnight_strategy: entity.holiday_overnight_strategy,
-            default_holiday_ot_multiplier: rust_decimal::Decimal::from_str(
-                &entity.default_holiday_ot_multiplier.to_string(),
-            )
-            .unwrap_or_default(),
+            holiday_overnight_strategy: "split_at_midnight".to_string(),
+            default_holiday_ot_multiplier: rust_decimal::Decimal::new(30, 1), // 3.0
             created_at: entity.created_at.unwrap_or_else(Utc::now),
             custom_db_url_encrypted: entity.custom_db_url_encrypted,
         }

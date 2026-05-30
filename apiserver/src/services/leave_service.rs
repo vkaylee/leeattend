@@ -1301,6 +1301,7 @@ mod tests {
             created_at: Utc::now(),
             updated_at: Utc::now(),
             primary_location_id: uuid::Uuid::new_v4(),
+            employer_id: None,
         }
     }
 

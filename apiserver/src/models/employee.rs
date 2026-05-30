@@ -132,6 +132,7 @@ pub struct Employee {
     pub updated_at: DateTime<Utc>,
     pub department_name: Option<String>,
     pub primary_location_id: Uuid,
+    pub employer_id: Option<Uuid>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
@@ -241,6 +242,7 @@ pub struct CreateEmployeeRequest {
     pub tags: Option<Vec<String>>,
     pub recruitment_source_id: Option<Uuid>,
     pub primary_location_id: Uuid,
+    pub employer_id: Option<Uuid>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
@@ -255,4 +257,5 @@ pub struct UpdateEmployeeRequest {
     pub is_active: Option<bool>,
     pub max_concurrent_workers: Option<i32>,
     pub recruitment_source_id: Option<Uuid>,
+    pub employer_id: Option<Uuid>,
 }

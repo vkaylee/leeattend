@@ -190,8 +190,6 @@ mod tests {
             _tz: Option<String>,
             _tc: Option<String>,
             _dl: Option<String>,
-            _ho: Option<String>,
-            _dho: Option<bigdecimal::BigDecimal>,
             _l: Option<String>,
             _t: Option<String>,
         ) -> Result<Workspace, AppError> {

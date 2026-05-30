@@ -249,6 +249,7 @@ impl ImportStrategy for EmployeeImportStrategy {
                     updated_at: Utc::now(),
                     department_name: None,
                     primary_location_id: hq_id,
+                    employer_id: None,
                 });
                 self.emp_cache.insert(key.clone(), emp_id);
                 self.newly_added_emps.insert(key);

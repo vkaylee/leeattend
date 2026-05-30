@@ -52,6 +52,62 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize configurable database pools (API + Worker + optional Reader)
     let db_config = DbPoolConfig::from_env()?;
 
+    // Backup workspace configurations before dropping columns in system migrations
+    let backup_cache = match tokio::task::spawn_blocking({
+        let primary_url = db_config.primary_url.clone();
+        move || {
+            use diesel::Connection;
+            use diesel::RunQueryDsl;
+
+            #[derive(diesel::QueryableByName)]
+            struct ExistsRow {
+                #[diesel(sql_type = diesel::sql_types::Bool)]
+                exists: bool,
+            }
+
+            #[derive(diesel::QueryableByName)]
+            struct BackupRow {
+                #[diesel(sql_type = diesel::sql_types::Uuid)]
+                id: Uuid,
+                #[diesel(sql_type = diesel::sql_types::Text)]
+                name: String,
+                #[diesel(sql_type = diesel::sql_types::Text)]
+                holiday_overnight_strategy: String,
+                #[diesel(sql_type = diesel::sql_types::Numeric)]
+                default_holiday_ot_multiplier: rust_decimal::Decimal,
+            }
+
+            let mut conn = diesel::PgConnection::establish(&primary_url)
+                .map_err(|e| format!("Failed to connect to primary DB for backup: {e}"))?;
+
+            let cols_exist = diesel::sql_query(
+                "SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='workspaces' AND column_name='holiday_overnight_strategy') as exists"
+            )
+            .get_result::<ExistsRow>(&mut conn)
+            .map(|r| r.exists)
+            .unwrap_or(false);
+
+            if cols_exist {
+                let rows = diesel::sql_query("SELECT id, name, holiday_overnight_strategy, default_holiday_ot_multiplier FROM workspaces")
+                    .load::<BackupRow>(&mut conn)
+                    .map_err(|e| format!("Failed to query workspaces backup: {e}"))?;
+
+                let cache: std::collections::HashMap<Uuid, (String, String, rust_decimal::Decimal)> = rows
+                    .into_iter()
+                    .map(|r| (r.id, (r.name, r.holiday_overnight_strategy, r.default_holiday_ot_multiplier)))
+                    .collect();
+                Ok::<_, String>(cache)
+            } else {
+                Ok::<_, String>(std::collections::HashMap::new())
+            }
+        }
+    })
+    .await
+    {
+        Ok(Ok(cache)) => cache,
+        _ => std::collections::HashMap::new(),
+    };
+
     // 1. System migrations must run via direct connection before Supavisor is available
     DieselPools::run_system_migrations(&db_config)?;
 
@@ -67,8 +123,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // 3. Connect pools (API/worker/tenant all go through Supavisor)
     let diesel_pools = DieselPools::connect(&db_config, std::sync::Arc::clone(&tenant_manager))?;
 
-    // 4. Register existing workspace tenants with Supavisor, then run pending migrations
-    register_workspace_tenants_and_migrate(&db_config, &diesel_pools, &*tenant_manager).await;
+    // 4. Register existing workspace tenants with Supavisor, then run pending migrations & reconcile
+    register_workspace_tenants_and_migrate(&db_config, &diesel_pools, &*tenant_manager, backup_cache).await;
 
     // ╔═══════════════════════════════════════════════════════════════╗
     // ║  POOL ASSIGNMENT RULES                                       ║
@@ -203,6 +259,7 @@ async fn register_workspace_tenants_and_migrate(
     db_config: &DbPoolConfig,
     diesel_pools: &DieselPools,
     tenant_manager: &dyn apiserver::supavisor::TenantManager,
+    backup_cache: std::collections::HashMap<Uuid, (String, String, rust_decimal::Decimal)>,
 ) {
     // Query workspaces from system DB via direct connection
     let primary_url = db_config.primary_url.clone();
@@ -325,6 +382,7 @@ async fn register_workspace_tenants_and_migrate(
             "Running tenant migrations with per-tenant credentials"
         );
 
+        let cache_clone = backup_cache.clone();
         match tokio::task::spawn_blocking(move || {
             for (ws_id, migration_url) in &migration_targets {
                 if let Err(e) = DieselPools::run_single_tenant_migration(migration_url, ws_id) {
@@ -332,6 +390,17 @@ async fn register_workspace_tenants_and_migrate(
                         workspace_id = %ws_id,
                         error = %e,
                         "Tenant migration failed — skipping workspace"
+                    );
+                    continue;
+                }
+
+                // Run EAV reconciliation
+                let backup_info = cache_clone.get(ws_id);
+                if let Err(e) = reconcile_tenant_database(migration_url, ws_id, backup_info) {
+                    tracing::error!(
+                        workspace_id = %ws_id,
+                        error = %e,
+                        "Failed to reconcile tenant database: {e}"
                     );
                 }
             }
@@ -371,3 +440,78 @@ async fn shutdown_signal() {
         () = terminate => {},
     }
 }
+
+fn reconcile_tenant_database(
+    migration_url: &str,
+    ws_id: &Uuid,
+    backup_info: Option<&(String, String, rust_decimal::Decimal)>,
+) -> Result<(), String> {
+    use diesel::Connection;
+    use diesel::RunQueryDsl;
+
+    #[derive(diesel::QueryableByName)]
+    struct ExistsRow {
+        #[diesel(sql_type = diesel::sql_types::Bool)]
+        exists: bool,
+    }
+
+
+    let mut conn = diesel::PgConnection::establish(migration_url)
+        .map_err(|e| format!("Failed to connect to tenant database: {e}"))?;
+
+    // 1. Seed overtime.holiday_overnight_strategy
+    let strategy_exists: bool = diesel::sql_query(
+        "SELECT EXISTS(SELECT 1 FROM workspace_config_entries WHERE workspace_id = $1 AND scope_type = 'workspace' AND scope_id IS NULL AND config_key = 'overtime.holiday_overnight_strategy')"
+    )
+    .bind::<diesel::sql_types::Uuid, _>(*ws_id)
+    .get_result::<ExistsRow>(&mut conn)
+    .map(|r| r.exists)
+    .map_err(|e| format!("Failed to check strategy existence: {e}"))?;
+
+    if !strategy_exists {
+        let strategy_val = if let Some((_, strategy, _)) = backup_info {
+            strategy.clone()
+        } else {
+            "split_at_midnight".to_string()
+        };
+
+        diesel::sql_query(
+            "INSERT INTO workspace_config_entries (id, workspace_id, scope_type, scope_id, config_key, value_text, effective_from) \
+             VALUES (gen_random_uuid(), $1, 'workspace', NULL, 'overtime.holiday_overnight_strategy', $2, '1970-01-01')"
+        )
+        .bind::<diesel::sql_types::Uuid, _>(*ws_id)
+        .bind::<diesel::sql_types::Text, _>(strategy_val)
+        .execute(&mut conn)
+        .map_err(|e| format!("Failed to insert default strategy: {e}"))?;
+    }
+
+    // 2. Seed overtime.default_holiday_ot_multiplier
+    let multiplier_exists: bool = diesel::sql_query(
+        "SELECT EXISTS(SELECT 1 FROM workspace_config_entries WHERE workspace_id = $1 AND scope_type = 'workspace' AND scope_id IS NULL AND config_key = 'overtime.default_holiday_ot_multiplier')"
+    )
+    .bind::<diesel::sql_types::Uuid, _>(*ws_id)
+    .get_result::<ExistsRow>(&mut conn)
+    .map(|r| r.exists)
+    .map_err(|e| format!("Failed to check multiplier existence: {e}"))?;
+
+    if !multiplier_exists {
+        let multiplier_val = if let Some((_, _, multiplier)) = backup_info {
+            *multiplier
+        } else {
+            rust_decimal::Decimal::new(30, 1) // 3.0
+        };
+
+        diesel::sql_query(
+            "INSERT INTO workspace_config_entries (id, workspace_id, scope_type, scope_id, config_key, value_decimal, effective_from) \
+             VALUES (gen_random_uuid(), $1, 'workspace', NULL, 'overtime.default_holiday_ot_multiplier', $2, '1970-01-01')"
+        )
+        .bind::<diesel::sql_types::Uuid, _>(*ws_id)
+        .bind::<diesel::sql_types::Numeric, _>(multiplier_val)
+        .execute(&mut conn)
+        .map_err(|e| format!("Failed to insert default multiplier: {e}"))?;
+    }
+
+
+    Ok(())
+}
+

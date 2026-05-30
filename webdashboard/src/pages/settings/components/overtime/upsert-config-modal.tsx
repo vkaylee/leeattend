@@ -11,7 +11,7 @@ import { useUpsertWorkspaceConfig } from "@/hooks/use-workspace-config";
 
 const configSchema = z.object({
   config_key: z.string().min(1, "Key is required"),
-  scope_type: z.enum(["workspace", "department", "employee"]),
+  scope_type: z.enum(["workspace", "employer", "department", "employee"]),
   scope_id: z.string().optional(),
   value_type: z.enum(["int", "decimal", "text", "bool", "json"]),
   value: z.string().min(1, "Value is required"),
@@ -143,6 +143,7 @@ export function UpsertConfigModal({
                 className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
               >
                 <option value="workspace">Workspace</option>
+                <option value="employer">Employer</option>
                 <option value="department">Department</option>
                 <option value="employee">Employee</option>
               </select>

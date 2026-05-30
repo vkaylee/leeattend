@@ -500,6 +500,20 @@ diesel::table! {
         termination_date -> Nullable<Date>,
         original_hire_date -> Date,
         primary_location_id -> Uuid,
+        employer_id -> Nullable<Uuid>,
+    }
+}
+
+diesel::table! {
+    employers (id) {
+        id -> Uuid,
+        workspace_id -> Uuid,
+        #[max_length = 255]
+        name -> Varchar,
+        #[max_length = 50]
+        tax_code -> Nullable<Varchar>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
     }
 }
 
@@ -1220,9 +1234,6 @@ diesel::table! {
         theme_primary_color -> Nullable<Text>,
         #[max_length = 10]
         default_language -> Varchar,
-        #[max_length = 30]
-        holiday_overnight_strategy -> Varchar,
-        default_holiday_ot_multiplier -> Numeric,
         logo_url -> Nullable<Text>,
         tagline -> Nullable<Text>,
         custom_db_url_encrypted -> Nullable<Text>,
@@ -1436,6 +1447,7 @@ diesel::joinable!(workspace_members -> workspace_roles (role_id));
 diesel::joinable!(workspace_members -> workspaces (workspace_id));
 diesel::joinable!(workspace_role_permissions -> workspace_roles (role_id));
 diesel::joinable!(employees -> work_locations (primary_location_id));
+diesel::joinable!(employees -> employers (employer_id));
 diesel::joinable!(employee_assignments -> employees (employee_id));
 diesel::joinable!(employee_assignments -> work_locations (home_location_id));
 
@@ -1474,6 +1486,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     employee_shifts,
     employee_working_patterns,
     employees,
+    employers,
     employment_phase_definitions,
     feature_flags,
     holidays,

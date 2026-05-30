@@ -140,6 +140,11 @@ services:
       - bash
       - -c
       - |
+        set -e
+        until pg_isready -h db_system -U test_user; do
+          echo "Waiting for db_system..."
+          sleep 1
+        done
         diesel migration run --migration-dir ./migrations/system
         diesel migration run --migration-dir ./migrations/tenant
         for i in {1..5}; do

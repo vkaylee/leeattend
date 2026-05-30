@@ -85,6 +85,7 @@ impl SyncHireDateHandler {
                             max_concurrent_workers: None,
                             recruitment_source_id: None,
                             primary_location_id: None,
+                            employer_id: None,
                         },
                     )
                     .await
@@ -142,6 +143,7 @@ mod tests {
                     updated_at: Utc::now(),
                     department_name: None,
                     primary_location_id: uuid::Uuid::new_v4(),
+                    employer_id: None,
                 }))
             })
         });

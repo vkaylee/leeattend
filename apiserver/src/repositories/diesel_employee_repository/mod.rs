@@ -42,7 +42,7 @@ pub const EMPLOYEE_SELECT_QUERY: &str = r"
         e.id, e.workspace_id, e.user_id, e.full_name, e.employee_id_number,
         e.original_hire_date, e.hire_date, e.termination_date,
         e.tags, e.is_active, e.created_at, e.updated_at,
-        d_cur.name as department_name, e.primary_location_id
+        d_cur.name as department_name, e.primary_location_id, e.employer_id
     FROM employees e
     LEFT JOIN (
         SELECT DISTINCT ON (employee_id) employee_id, department_id

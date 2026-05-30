@@ -150,9 +150,6 @@ diesel::table! {
         theme_primary_color -> Nullable<Text>,
         #[max_length = 10]
         default_language -> Varchar,
-        #[max_length = 30]
-        holiday_overnight_strategy -> Varchar,
-        default_holiday_ot_multiplier -> Numeric,
         logo_url -> Nullable<Text>,
         tagline -> Nullable<Text>,
         custom_db_url_encrypted -> Nullable<Text>,

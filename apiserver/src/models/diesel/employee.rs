@@ -42,6 +42,8 @@ pub struct EmployeeRow {
     pub department_name: Option<String>,
     #[diesel(sql_type = UuidType)]
     pub primary_location_id: Uuid,
+    #[diesel(sql_type = Nullable<UuidType>)]
+    pub employer_id: Option<Uuid>,
 }
 
 impl From<EmployeeRow> for Employee {
@@ -61,6 +63,7 @@ impl From<EmployeeRow> for Employee {
             updated_at: row.updated_at,
             department_name: row.department_name,
             primary_location_id: row.primary_location_id,
+            employer_id: row.employer_id,
         }
     }
 }
@@ -82,6 +85,7 @@ pub struct EmployeeEntity {
     pub termination_date: Option<NaiveDate>,
     pub original_hire_date: NaiveDate,
     pub primary_location_id: Uuid,
+    pub employer_id: Option<Uuid>,
 }
 
 impl From<Employee> for EmployeeEntity {
@@ -101,6 +105,7 @@ impl From<Employee> for EmployeeEntity {
             termination_date: val.termination_date,
             original_hire_date: val.original_hire_date,
             primary_location_id: val.primary_location_id,
+            employer_id: val.employer_id,
         }
     }
 }
@@ -122,6 +127,7 @@ impl From<EmployeeEntity> for Employee {
             updated_at: val.updated_at.unwrap_or_else(Utc::now),
             department_name: None,
             primary_location_id: val.primary_location_id,
+            employer_id: val.employer_id,
         }
     }
 }
@@ -138,6 +144,7 @@ pub struct UpdateDieselEmployee {
     pub termination_date: Option<Option<NaiveDate>>,
     pub updated_at: Option<DateTime<Utc>>,
     pub primary_location_id: Option<Uuid>,
+    pub employer_id: Option<Option<Uuid>>,
 }
 
 use crate::models::{RecruitmentSource, RecruitmentSourceType};
