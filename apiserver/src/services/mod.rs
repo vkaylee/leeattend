@@ -67,3 +67,5 @@ pub use holiday_leave_service::HolidayLeaveService;
 
 #[cfg(test)]
 mod report_service_test;
+#[cfg(test)]
+mod attendance_calculator_tests;
