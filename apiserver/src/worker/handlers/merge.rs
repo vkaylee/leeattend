@@ -162,8 +162,8 @@ impl MergeHandler {
         tracing::info!(
             parent_job_id = %parent_job_id,
             fetch_ms = t_fetch.as_millis() as u64,
-            merge_excel_ms = (t_merge_excel - t_fetch).as_millis() as u64,
-            store_ms = (t_store - t_merge_excel).as_millis() as u64,
+            merge_excel_ms = t_merge_excel.checked_sub(t_fetch).unwrap_or_default().as_millis() as u64,
+            store_ms = t_store.checked_sub(t_merge_excel).unwrap_or_default().as_millis() as u64,
             total_ms = t_store.as_millis() as u64,
             total_records = total_records,
             file_size = excel_data.len(),

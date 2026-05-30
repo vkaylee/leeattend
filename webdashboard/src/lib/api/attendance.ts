@@ -272,8 +272,8 @@ export async function reprocessAttendance(
   startDate: string,
   endDate: string
 ): Promise<void> {
-  await client.POST("/v1/attendance/reprocess/{employee_id}", {
-    params: { path: { employee_id: employeeId }, query: { start_date: startDate, end_date: endDate } },
+  await client.POST("/workspaces/{workspace_id}/attendance/reprocess/{employee_id}", {
+    params: { path: { workspace_id: wsId, employee_id: employeeId }, query: { start_date: startDate, end_date: endDate } },
     body: {}
   });
 }
@@ -283,8 +283,8 @@ export async function reprocessAllAttendance(
   startDate: string,
   endDate: string
 ): Promise<{ message: string; job_id: string }> {
-  const { data: resData } = await client.POST("/v1/attendance/reprocess/all", {
-    params: { query: { start_date: startDate, end_date: endDate } },
+  const { data: resData } = await client.POST("/workspaces/{workspace_id}/attendance/reprocess-all", {
+    params: { path: { workspace_id: wsId }, query: { start_date: startDate, end_date: endDate } },
     body: {}
   });
   return resData as any;

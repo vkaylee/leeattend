@@ -34,9 +34,17 @@ export function useShiftFormState() {
   const [newShiftGrace, setNewShiftGrace] = useState(15);
   const [newBreakStart, setNewBreakStart] = useState("");
   const [newBreakEnd, setNewBreakEnd] = useState("");
-  const [isFixedBreak, setIsFixedBreak] = useState(false);
+  const [isFixedBreak, setIsFixedBreakState] = useState(false);
   const [isAutoDeduct, setIsAutoDeduct] = useState(true);
   const [isBreakOvertime, setIsBreakOvertime] = useState(false);
+
+  const setIsFixedBreak = (val: boolean) => {
+    setIsFixedBreakState(val);
+    if (!val && isBreakOvertime) {
+      setIsBreakOvertime(false);
+      setIsAutoDeduct(true);
+    }
+  };
 
   // Edit Shift State
   const [editingShift, setEditingShift] = useState<Shift | null>(null);

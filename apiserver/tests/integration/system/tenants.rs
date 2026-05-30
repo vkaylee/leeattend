@@ -538,8 +538,8 @@ async fn test_update_tenant_database_invalid_tenant_id() {
 #[tokio::test]
 async fn test_tenant_migrator_with_timezone_seeding() {
     use apiserver::services::tenant_provisioner::{TenantMigrator, TenantProvisionerTrait};
-    use uuid::Uuid;
     use diesel::Connection;
+    use uuid::Uuid;
 
     let mock_manager = Arc::new(TestMockTenantManager::default());
     let (_address, workspace_id, _user_id, factory, db) =
@@ -549,12 +549,13 @@ async fn test_tenant_migrator_with_timezone_seeding() {
     crate::test_execute!(
         &factory.diesel_pools.api,
         "UPDATE workspaces SET timezone = 'Asia/Bangkok' WHERE id = $1",
-        diesel::sql_types::Uuid, workspace_id
+        diesel::sql_types::Uuid,
+        workspace_id
     );
 
     // 2. Create a clean tenant database for testing
     let tenant_db_name = format!("test_tenant_migrator_{}", Uuid::new_v4().simple());
-    
+
     // Connect to system database as admin to create tenant DB
     let admin_url = db.url();
     let mut url_parts: Vec<&str> = admin_url.split('/').collect();
@@ -575,8 +576,14 @@ async fn test_tenant_migrator_with_timezone_seeding() {
 
     // 3. Run provision_tenant_db
     let migrator = TenantMigrator::new();
-    let res = migrator.provision_tenant_db(&workspace_id, &tenant_url).await;
-    assert!(res.is_ok(), "Failed to provision tenant DB: {:?}", res.err());
+    let res = migrator
+        .provision_tenant_db(&workspace_id, &tenant_url)
+        .await;
+    assert!(
+        res.is_ok(),
+        "Failed to provision tenant DB: {:?}",
+        res.err()
+    );
 
     // 4. Verify work_locations has Headquarters seeded with 'Asia/Bangkok' timezone
     #[derive(diesel::QueryableByName, Debug)]
@@ -594,7 +601,7 @@ async fn test_tenant_migrator_with_timezone_seeding() {
     let mut tenant_conn = diesel::PgConnection::establish(&tenant_url).unwrap();
     use diesel::RunQueryDsl;
     let locations = diesel::sql_query(
-        "SELECT id, timezone, is_headquarters FROM work_locations WHERE is_headquarters = true"
+        "SELECT id, timezone, is_headquarters FROM work_locations WHERE is_headquarters = true",
     )
     .load::<WorkLocationRow>(&mut tenant_conn)
     .unwrap();

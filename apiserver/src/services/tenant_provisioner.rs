@@ -67,13 +67,12 @@ impl TenantProvisionerTrait for TenantMigrator {
                     }
                     use diesel::RunQueryDsl;
                     if let Ok(rows) = diesel::sql_query(format!(
-                        "SELECT timezone FROM workspaces WHERE id = '{}'",
-                        ws_id
+                        "SELECT timezone FROM workspaces WHERE id = '{ws_id}'"
                     ))
                     .load::<TimezoneRow>(&mut system_conn)
                     {
                         if let Some(row) = rows.first() {
-                            timezone = row.timezone.clone();
+                            timezone.clone_from(&row.timezone);
                         }
                     }
                 }
@@ -81,9 +80,8 @@ impl TenantProvisionerTrait for TenantMigrator {
 
             let insert_hq_sql = format!(
                 "INSERT INTO work_locations (id, workspace_id, name, timezone, is_headquarters)
-                 VALUES ('11111111-1111-1111-1111-111111111111'::uuid, '{}', 'Headquarters', '{}', true)
-                 ON CONFLICT (id) DO NOTHING",
-                ws_id, timezone
+                 VALUES ('11111111-1111-1111-1111-111111111111'::uuid, '{ws_id}', 'Headquarters', '{timezone}', true)
+                 ON CONFLICT (id) DO NOTHING"
             );
 
             use diesel::RunQueryDsl;

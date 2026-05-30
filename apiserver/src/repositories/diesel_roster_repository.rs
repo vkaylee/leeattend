@@ -153,6 +153,7 @@ impl RosterRepository for DieselRosterRepository {
                         is_break_auto_deduct: None,
                         early_punch_in_grace_period_minutes: None,
                         allow_early_ot: None,
+                        break_is_overtime: None,
                         traces: traces.clone(),
                         is_holiday: holiday.is_some(),
                         holiday_name: holiday.map(|h| h.name.clone()),
@@ -171,6 +172,7 @@ impl RosterRepository for DieselRosterRepository {
                             sched.early_punch_in_grace_period_minutes =
                                 Some(shift.early_punch_in_grace_period_minutes);
                             sched.allow_early_ot = Some(shift.allow_early_ot);
+                            sched.break_is_overtime = Some(shift.break_is_overtime);
                         }
                     }
 

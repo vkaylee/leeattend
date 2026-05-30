@@ -49,8 +49,7 @@ impl SyncHireDateHandler {
         {
             Ok(contracts) => contracts
                 .into_iter()
-                .filter(|c| c.status != crate::models::enums::ContractStatus::Draft)
-                .next_back()
+                .rfind(|c| c.status != crate::models::enums::ContractStatus::Draft)
                 .map(|c| c.start_date),
             Err(e) => {
                 error!("Database error fetching oldest contract: {:?}", e);

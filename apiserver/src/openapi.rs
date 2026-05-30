@@ -797,4 +797,123 @@ mod tests {
             );
         }
     }
+
+    #[test]
+    fn test_openapi_paths_match_axum_routes() {
+        let openapi = ApiDoc::openapi();
+        let json_str = openapi
+            .to_json()
+            .expect("Failed to serialize OpenAPI to JSON");
+        let json_val: serde_json::Value = serde_json::from_str(&json_str).unwrap();
+
+        let mut openapi_normalized_paths = std::collections::HashSet::new();
+        if let Some(paths) = json_val["paths"].as_object() {
+            for path in paths.keys() {
+                let mut normalized = String::new();
+                let mut in_param = false;
+                for c in path.chars() {
+                    if c == '{' {
+                        in_param = true;
+                        normalized.push('{');
+                    } else if c == '}' {
+                        in_param = false;
+                        normalized.push('}');
+                    } else if !in_param {
+                        normalized.push(c);
+                    }
+                }
+                openapi_normalized_paths.insert(normalized);
+            }
+        }
+
+        let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").unwrap_or_else(|_| ".".to_string());
+        let routes_dir = format!("{}/src/routes", manifest_dir);
+
+        let mut axum_normalized_paths = std::collections::HashSet::new();
+
+        fn visit_dirs_for_routes(
+            dir: &std::path::Path,
+            used: &mut std::collections::HashSet<String>,
+        ) {
+            if dir.is_dir() {
+                for entry in std::fs::read_dir(dir).unwrap() {
+                    let entry = entry.unwrap();
+                    let path = entry.path();
+                    if path.is_dir() {
+                        visit_dirs_for_routes(&path, used);
+                    } else if path.extension().map_or(false, |ext| ext == "rs") {
+                        let content = std::fs::read_to_string(&path).unwrap();
+                        let mut start_idx = 0;
+                        while let Some(idx) = content[start_idx..].find(".route(\"") {
+                            let absolute_idx = start_idx + idx;
+                            let start = absolute_idx + ".route(\"".len();
+                            if let Some(end_offset) = content[start..].find("\",") {
+                                let end = start + end_offset;
+                                let axum_route = &content[start..end];
+
+                                let parts: Vec<&str> = axum_route.split('/').collect();
+                                let mut normalized = String::new();
+                                for (i, part) in parts.iter().enumerate() {
+                                    if i > 0 {
+                                        normalized.push('/');
+                                    }
+                                    if part.starts_with(':') || part.starts_with('*') {
+                                        normalized.push_str("{}");
+                                    } else {
+                                        normalized.push_str(part);
+                                    }
+                                }
+
+                                used.insert(normalized);
+                            }
+                            start_idx = start;
+                        }
+                    }
+                }
+            }
+        }
+
+        if std::path::Path::new(&routes_dir).exists() {
+            visit_dirs_for_routes(
+                std::path::Path::new(&routes_dir),
+                &mut axum_normalized_paths,
+            );
+        }
+
+        let whitelist = [
+            "/{}/ws",
+            "/ws",
+            "/debug/users",
+            "/debug/workspaces/{}/clear",
+            "/dev/workspaces/{}/clear",
+        ];
+
+        let mut missing_in_openapi = Vec::new();
+        for axum_path in axum_normalized_paths {
+            if whitelist.iter().any(|&w| axum_path.ends_with(w)) {
+                continue;
+            }
+
+            // Axum routes are typically nested under /api/v1 (some under /dev, /debug)
+            // Utoipa paths usually start with the sub-path e.g. /workspaces/{}
+            // We check if the axum_path matches an openapi_path directly, or if the openapi_path is a prefix/suffix.
+            // A simple reliable way: check if ANY openapi path ends with the axum path,
+            // or if the axum path ends with the openapi path.
+            let has_match = openapi_normalized_paths
+                .iter()
+                .any(|op| op == &axum_path || op.ends_with(&axum_path) || axum_path.ends_with(op));
+
+            if !has_match {
+                missing_in_openapi.push(axum_path);
+            }
+        }
+
+        if !missing_in_openapi.is_empty() {
+            missing_in_openapi.sort();
+            panic!(
+                "The following Axum routes are defined but missing (or path structure mismatched) in OpenAPI:\n{:#?}",
+                missing_in_openapi
+            );
+        }
+    }
 }

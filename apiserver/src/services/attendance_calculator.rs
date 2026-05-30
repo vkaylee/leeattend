@@ -20,6 +20,12 @@ pub struct DailyCalcInput<T: TimeZone> {
     pub shift_end: Option<DateTime<T>>,
     pub scheduled_break_minutes: i32,
     pub actual_break_minutes: i32,
+    /// Break frame start (Fixed mode only). When both break_start and break_end
+    /// are present, the calculator uses Frame Intersection (overlap algorithm)
+    /// instead of flat deduction for auto-deduct mode.
+    pub break_start: Option<DateTime<T>>,
+    /// Break frame end (Fixed mode only).
+    pub break_end: Option<DateTime<T>>,
     pub work_unit: i32,
     pub rounding_policy: String,
     pub rules: PolicyRules,
@@ -102,6 +108,10 @@ impl AttendanceCalculator {
                     scheduled_break_minutes,
                     rules.is_break_auto_deduct,
                     rules.is_break_overtime,
+                    input.break_start.as_ref(),
+                    input.break_end.as_ref(),
+                    punch_in,
+                    punch_out,
                 );
                 standard_raw = i32::max(0, standard_raw - break_to_deduct);
                 buckets.standard_minutes = standard_raw;
@@ -143,19 +153,47 @@ impl AttendanceCalculator {
     }
 
     /// Break Deduction Logic
-    pub fn calculate_break_deduction(
+    ///
+    /// Supports two modes:
+    /// - **Flat deduction** (Flexible): subtracts `scheduled_break_minutes` wholesale.
+    /// - **Frame Intersection** (Fixed): when `break_start`/`break_end` are provided,
+    ///   computes the actual overlap between `[punch_in, punch_out]` and
+    ///   `[break_start, break_end]`. This prevents over-deduction when an employee's
+    ///   working period only partially overlaps with the configured break window.
+    #[allow(clippy::too_many_arguments)]
+    pub fn calculate_break_deduction<T: TimeZone>(
         actual_break_minutes: i32,
         scheduled_break_minutes: i32,
         is_break_auto_deduct: bool,
         is_break_overtime: bool,
+        break_start: Option<&DateTime<T>>,
+        break_end: Option<&DateTime<T>>,
+        punch_in: &DateTime<T>,
+        punch_out: &DateTime<T>,
     ) -> i32 {
+        // 1. If there's actual break time recorded (4-punch mode), use it directly
         if actual_break_minutes > 0 {
-            actual_break_minutes
-        } else if is_break_auto_deduct && !is_break_overtime {
-            scheduled_break_minutes
-        } else {
-            0
+            return actual_break_minutes;
         }
+
+        // 2. No auto-deduct or break is OT → no deduction
+        if !is_break_auto_deduct || is_break_overtime {
+            return 0;
+        }
+
+        // 3. Frame Intersection: when break_start/break_end are provided (Fixed mode),
+        //    calculate overlap between [punch_in, punch_out] ∩ [break_start, break_end]
+        if let (Some(bs), Some(be)) = (break_start, break_end) {
+            let overlap_start = DateTime::max(punch_in.clone(), bs.clone());
+            let overlap_end = DateTime::min(punch_out.clone(), be.clone());
+            let overlap_mins = overlap_end
+                .signed_duration_since(overlap_start)
+                .num_minutes();
+            return i32::max(0, overlap_mins as i32);
+        }
+
+        // 4. Fallback: flat deduction (Flexible mode — no break frame configured)
+        scheduled_break_minutes
     }
 
     /// Unit Calculation Logic
@@ -234,6 +272,8 @@ mod tests {
             shift_end: end,
             scheduled_break_minutes: 60,
             actual_break_minutes: 0,
+            break_start: None,
+            break_end: None,
             rules: mock_rules(),
             ot_ceiling: None,
             work_unit: 0,
@@ -250,6 +290,8 @@ mod tests {
             shift_end: end,
             scheduled_break_minutes: 60,
             actual_break_minutes: 0,
+            break_start: None,
+            break_end: None,
             rules,
             ot_ceiling: None,
             work_unit: 0,
@@ -274,6 +316,8 @@ mod tests {
             shift_end: end,
             scheduled_break_minutes: 0,
             actual_break_minutes: 0,
+            break_start: None,
+            break_end: None,
             rules: rules.clone(),
             ot_ceiling: None,
             work_unit: 0,
@@ -289,6 +333,8 @@ mod tests {
             shift_end: end,
             scheduled_break_minutes: 0,
             actual_break_minutes: 0,
+            break_start: None,
+            break_end: None,
             rules: rules.clone(),
             ot_ceiling: None,
             work_unit: 0,
@@ -305,6 +351,8 @@ mod tests {
             shift_end: end,
             scheduled_break_minutes: 0,
             actual_break_minutes: 0,
+            break_start: None,
+            break_end: None,
             rules,
             ot_ceiling: None,
             work_unit: 0,
@@ -329,6 +377,8 @@ mod tests {
             shift_end: end,
             scheduled_break_minutes: 0,
             actual_break_minutes: 0,
+            break_start: None,
+            break_end: None,
             rules: rules.clone(),
             ot_ceiling: None,
             work_unit: 0,
@@ -344,6 +394,8 @@ mod tests {
             shift_end: end,
             scheduled_break_minutes: 0,
             actual_break_minutes: 0,
+            break_start: None,
+            break_end: None,
             rules,
             ot_ceiling: None,
             work_unit: 0,
@@ -365,6 +417,8 @@ mod tests {
             shift_end: end,
             scheduled_break_minutes: 60,
             actual_break_minutes: 0,
+            break_start: None,
+            break_end: None,
             work_unit: 30,
             rounding_policy: "floor".to_string(),
             rules: rules.clone(),
@@ -385,6 +439,8 @@ mod tests {
             shift_end: end,
             scheduled_break_minutes: 60,
             actual_break_minutes: 0,
+            break_start: None,
+            break_end: None,
             work_unit: 30,
             rounding_policy: "floor".to_string(),
             rules: r2,
@@ -409,6 +465,8 @@ mod tests {
             shift_end: end,
             scheduled_break_minutes: 0,
             actual_break_minutes: 0,
+            break_start: None,
+            break_end: None,
             rules: mock_rules(),
             ot_ceiling: ceiling,
             work_unit: 0,
@@ -431,6 +489,8 @@ mod tests {
             shift_end: end,
             scheduled_break_minutes: 0,
             actual_break_minutes: 0,
+            break_start: None,
+            break_end: None,
             rules: mock_rules(),
             ot_ceiling: None,
             work_unit: 0,
@@ -455,6 +515,8 @@ mod tests {
             shift_end: end,
             scheduled_break_minutes: 0,
             actual_break_minutes: 0,
+            break_start: None,
+            break_end: None,
             rules: mock_rules(),
             ot_ceiling: ceiling,
             work_unit: 0,
@@ -520,6 +582,8 @@ mod tests {
             shift_end: Some(dt(17, 0)),
             scheduled_break_minutes: 60,
             actual_break_minutes: 0,
+            break_start: None,
+            break_end: None,
             work_unit: 30,
             rounding_policy: "floor".to_string(),
             rules: mock_rules(),
@@ -542,6 +606,8 @@ mod tests {
             shift_end: Some(dt(17, 0)),
             scheduled_break_minutes: 60,
             actual_break_minutes: 0,
+            break_start: None,
+            break_end: None,
             work_unit: 30,
             rounding_policy: "floor".to_string(),
             rules,
@@ -561,6 +627,8 @@ mod tests {
             shift_end: None,
             scheduled_break_minutes: 0,
             actual_break_minutes: 0,
+            break_start: None,
+            break_end: None,
             work_unit: 30,
             rounding_policy: "floor".to_string(),
             rules: mock_rules(),
@@ -584,6 +652,8 @@ mod tests {
             shift_end: Some(dt(17, 0)),
             scheduled_break_minutes: 60,
             actual_break_minutes: 0,
+            break_start: None,
+            break_end: None,
             rules: mock_rules(),
             ot_ceiling: None,
             work_unit: 0,
@@ -603,6 +673,8 @@ mod tests {
             shift_end: Some(dt(17, 0)),
             scheduled_break_minutes: 0,
             actual_break_minutes: 0,
+            break_start: None,
+            break_end: None,
             rules: mock_rules(),
             ot_ceiling: None,
             work_unit: 0,
@@ -626,6 +698,8 @@ mod tests {
             shift_end: None,
             scheduled_break_minutes: 0,
             actual_break_minutes: 0,
+            break_start: None,
+            break_end: None,
             rules: mock_rules(),
             ot_ceiling: None,
             work_unit: 0,
@@ -646,6 +720,8 @@ mod tests {
             shift_end: None,
             scheduled_break_minutes: 0,
             actual_break_minutes: 0,
+            break_start: None,
+            break_end: None,
             rules: mock_rules(),
             ot_ceiling: None,
             work_unit: 0,
@@ -673,6 +749,8 @@ shift_end: None,
 scheduled_break_minutes: // no shift boundaries
             0,
 actual_break_minutes: 0,
+break_start: None,
+break_end: None,
 work_unit: // no break
             30,
 rounding_policy: "floor".to_string(),
@@ -705,6 +783,8 @@ ot_ceiling: None
             shift_end: None,
             scheduled_break_minutes: 60, // 60-min scheduled break, no actual break logged
             actual_break_minutes: 0,
+            break_start: None,
+            break_end: None,
             work_unit: 30,
             rounding_policy: "floor".to_string(),
             rules,
@@ -731,6 +811,8 @@ ot_ceiling: None
             shift_end: None,
             scheduled_break_minutes: 0,
             actual_break_minutes: 0,
+            break_start: None,
+            break_end: None,
             work_unit: 30,
             rounding_policy: "floor".to_string(),
             rules, // 5 / 30 = 0.17 → floor = 0
@@ -765,6 +847,8 @@ ot_ceiling: None
             shift_end: end,
             scheduled_break_minutes: 0,
             actual_break_minutes: 0,
+            break_start: None,
+            break_end: None,
             work_unit: 0,
             rounding_policy: String::new(),
             rules: mock_rules(),
@@ -779,35 +863,164 @@ ot_ceiling: None
     // Break deduction edge cases
     // =====================================================================
 
+    // Helper for break deduction tests — provides punch_in/punch_out that span
+    // the full break window so they don't affect Flexible mode deduction.
+    fn punch_range() -> (DateTime<Utc>, DateTime<Utc>) {
+        (dt(7, 0), dt(18, 0))
+    }
+
     #[test]
     fn test_break_deduction_actual_break_takes_precedence() {
         // If actual_break_minutes > 0, use that instead of scheduled
-        let deduction = AttendanceCalculator::calculate_break_deduction(45, 60, true, false);
+        let (pi, po) = punch_range();
+        let deduction = AttendanceCalculator::calculate_break_deduction(
+            45, 60, true, false, None, None, &pi, &po,
+        );
         assert_eq!(deduction, 45); // actual break (45) used, not scheduled (60)
     }
 
     #[test]
     fn test_break_deduction_auto_deduct_when_no_actual() {
-        let deduction = AttendanceCalculator::calculate_break_deduction(0, 60, true, false);
-        assert_eq!(deduction, 60); // auto-deducted scheduled break
+        let (pi, po) = punch_range();
+        let deduction = AttendanceCalculator::calculate_break_deduction(
+            0, 60, true, false, None, None, &pi, &po,
+        );
+        assert_eq!(deduction, 60); // auto-deducted scheduled break (Flexible mode)
     }
 
     #[test]
     fn test_break_deduction_skip_when_break_is_overtime() {
         // is_break_overtime = true → don't deduct even if auto_deduct is on
-        let deduction = AttendanceCalculator::calculate_break_deduction(0, 60, true, true);
+        let (pi, po) = punch_range();
+        let deduction = AttendanceCalculator::calculate_break_deduction(
+            0, 60, true, true, None, None, &pi, &po,
+        );
         assert_eq!(deduction, 0);
     }
 
     #[test]
     fn test_break_deduction_no_auto_deduct_no_actual() {
-        let deduction = AttendanceCalculator::calculate_break_deduction(0, 60, false, false);
+        let (pi, po) = punch_range();
+        let deduction = AttendanceCalculator::calculate_break_deduction(
+            0, 60, false, false, None, None, &pi, &po,
+        );
         assert_eq!(deduction, 0);
     }
 
     #[test]
     fn test_break_deduction_zero_scheduled() {
-        let deduction = AttendanceCalculator::calculate_break_deduction(0, 0, true, false);
+        let (pi, po) = punch_range();
+        let deduction = AttendanceCalculator::calculate_break_deduction(
+            0, 0, true, false, None, None, &pi, &po,
+        );
+        assert_eq!(deduction, 0);
+    }
+
+    // =====================================================================
+    // Frame Intersection tests (Fixed break mode)
+    // =====================================================================
+
+    #[test]
+    fn test_frame_intersection_full_overlap() {
+        // Employee works full shift 08:00→17:00, break 11:30→12:30
+        // Full overlap → deduct 60 minutes
+        let pi = dt(8, 0);
+        let po = dt(17, 0);
+        let bs = Some(dt(11, 30));
+        let be = Some(dt(12, 30));
+        let deduction = AttendanceCalculator::calculate_break_deduction(
+            0,
+            60,
+            true,
+            false,
+            bs.as_ref(),
+            be.as_ref(),
+            &pi,
+            &po,
+        );
+        assert_eq!(deduction, 60);
+    }
+
+    #[test]
+    fn test_frame_intersection_partial_overlap_leave_during_break() {
+        // Employee leaves at 12:00 (mid-break), break 11:30→12:30
+        // Overlap = min(12:00, 12:30) - max(08:00, 11:30) = 30 min
+        let pi = dt(8, 0);
+        let po = dt(12, 0);
+        let bs = Some(dt(11, 30));
+        let be = Some(dt(12, 30));
+        let deduction = AttendanceCalculator::calculate_break_deduction(
+            0,
+            60,
+            true,
+            false,
+            bs.as_ref(),
+            be.as_ref(),
+            &pi,
+            &po,
+        );
+        assert_eq!(deduction, 30);
+    }
+
+    #[test]
+    fn test_frame_intersection_no_overlap_leave_before_break() {
+        // Employee leaves at 11:00 (before break starts), break 11:30→12:30
+        // Overlap = 0
+        let pi = dt(8, 0);
+        let po = dt(11, 0);
+        let bs = Some(dt(11, 30));
+        let be = Some(dt(12, 30));
+        let deduction = AttendanceCalculator::calculate_break_deduction(
+            0,
+            60,
+            true,
+            false,
+            bs.as_ref(),
+            be.as_ref(),
+            &pi,
+            &po,
+        );
+        assert_eq!(deduction, 0);
+    }
+
+    #[test]
+    fn test_frame_intersection_arrive_during_break() {
+        // Employee arrives at 12:00 (mid-break), break 11:30→12:30
+        // Overlap = min(17:00, 12:30) - max(12:00, 11:30) = 30 min
+        let pi = dt(12, 0);
+        let po = dt(17, 0);
+        let bs = Some(dt(11, 30));
+        let be = Some(dt(12, 30));
+        let deduction = AttendanceCalculator::calculate_break_deduction(
+            0,
+            60,
+            true,
+            false,
+            bs.as_ref(),
+            be.as_ref(),
+            &pi,
+            &po,
+        );
+        assert_eq!(deduction, 30);
+    }
+
+    #[test]
+    fn test_frame_intersection_break_ot_no_deduction() {
+        // Fixed break + Break OT → deduction = 0 (employee gets paid for break time)
+        let pi = dt(8, 0);
+        let po = dt(17, 0);
+        let bs = Some(dt(11, 30));
+        let be = Some(dt(12, 30));
+        let deduction = AttendanceCalculator::calculate_break_deduction(
+            0,
+            60,
+            true,
+            true,
+            bs.as_ref(),
+            be.as_ref(),
+            &pi,
+            &po,
+        );
         assert_eq!(deduction, 0);
     }
 
@@ -853,6 +1066,8 @@ ot_ceiling: None
             shift_end: Some(dt(17, 0)),
             scheduled_break_minutes: 0,
             actual_break_minutes: 0,
+            break_start: None,
+            break_end: None,
             rules,
             ot_ceiling: None,
             work_unit: 0,
@@ -877,6 +1092,8 @@ ot_ceiling: None
             shift_end: Some(dt(17, 0)),
             scheduled_break_minutes: 0,
             actual_break_minutes: 0,
+            break_start: None,
+            break_end: None,
             rules: mock_rules(),
             ot_ceiling: None,
             work_unit: 0,
@@ -900,6 +1117,8 @@ ot_ceiling: None
             shift_end: Some(dt(17, 0)),
             scheduled_break_minutes: 0,
             actual_break_minutes: 0,
+            break_start: None,
+            break_end: None,
             rules: mock_rules(),
             ot_ceiling: None,
             work_unit: 0,
@@ -927,6 +1146,8 @@ ot_ceiling: None
             shift_end: Some(dt(17, 0)),
             scheduled_break_minutes: 0,
             actual_break_minutes: 0,
+            break_start: None,
+            break_end: None,
             rules,
             ot_ceiling: None,
             work_unit: 0,
@@ -956,6 +1177,8 @@ ot_ceiling: None
             shift_end: Some(dt(17, 0)),
             scheduled_break_minutes: 60,
             actual_break_minutes: 0,
+            break_start: None,
+            break_end: None,
             work_unit: 30,
             rounding_policy: "floor".to_string(),
             rules,
@@ -980,6 +1203,8 @@ ot_ceiling: None
             shift_end: Some(dt(17, 0)),
             scheduled_break_minutes: 60,
             actual_break_minutes: 0,
+            break_start: None,
+            break_end: None,
             work_unit: 30,
             rounding_policy: "floor".to_string(),
             rules,

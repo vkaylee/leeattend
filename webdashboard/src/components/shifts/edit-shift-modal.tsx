@@ -187,7 +187,7 @@ function BreakConfigPanel({
 }) {
   return (
     <div className="space-y-3 bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
-      <div className="grid grid-cols-2 gap-4 items-start">
+      <div className="grid grid-cols-[110px_1fr] gap-4 items-start">
         {/* Column 1: Break Configuration Toggle */}
         <div className="space-y-2">
           <Typography className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest block" variant="h4">
@@ -249,9 +249,14 @@ function BreakConfigPanel({
               type="radio"
               value="auto_deduct"
             />
-            <label className="text-xs font-bold text-slate-700 dark:text-slate-200 cursor-pointer" htmlFor="edit_break_policy_auto_deduct">
-              {t("shifts.modal.break_policy_auto_deduct")}
-            </label>
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-200 cursor-pointer block" htmlFor="edit_break_policy_auto_deduct">
+                {t("shifts.modal.break_policy_auto_deduct")}
+              </label>
+              <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-normal leading-normal">
+                {t("shifts.modal.break_policy_auto_deduct_help")}
+              </span>
+            </div>
           </div>
 
           {/* Option 2: No Deduct */}
@@ -268,16 +273,28 @@ function BreakConfigPanel({
               type="radio"
               value="no_deduct"
             />
-            <label className="text-xs font-bold text-slate-700 dark:text-slate-200 cursor-pointer" htmlFor="edit_break_policy_no_deduct">
-              {t("shifts.modal.break_policy_no_deduct")}
-            </label>
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-200 cursor-pointer block" htmlFor="edit_break_policy_no_deduct">
+                {t("shifts.modal.break_policy_no_deduct")}
+              </label>
+              <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-normal leading-normal">
+                {t("shifts.modal.break_policy_no_deduct_help")}
+              </span>
+            </div>
           </div>
 
           {/* Option 3: Break Overtime */}
-          <div className="flex items-start gap-3 p-3 bg-white dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-800/80 cursor-pointer hover:bg-slate-100/50 dark:hover:bg-slate-800/30 transition-all">
+          <div className={`flex items-start gap-3 p-3 rounded-2xl border transition-all ${
+            !isFixedBreak 
+              ? "bg-slate-100/50 dark:bg-slate-900/20 border-slate-200/50 dark:border-slate-800/30 opacity-60 cursor-not-allowed" 
+              : "bg-white dark:bg-slate-900/50 border-slate-100 dark:border-slate-800/80 cursor-pointer hover:bg-slate-100/50 dark:hover:bg-slate-800/30"
+          }`}>
             <input
               checked={isBreakOvertime ? true : false}
-              className="mt-0.5 w-4 h-4 text-primary-600 border-slate-300 dark:border-slate-700 focus:ring-primary-500 cursor-pointer"
+              className={`mt-0.5 w-4 h-4 text-primary-600 border-slate-300 dark:border-slate-700 focus:ring-primary-500 ${
+                !isFixedBreak ? "cursor-not-allowed" : "cursor-pointer"
+              }`}
+              disabled={!isFixedBreak}
               id="edit_break_policy_overtime"
               name="break_policy"
               onChange={() => {
@@ -287,9 +304,20 @@ function BreakConfigPanel({
               type="radio"
               value="overtime"
             />
-            <label className="text-xs font-bold text-slate-700 dark:text-slate-200 cursor-pointer" htmlFor="edit_break_policy_overtime">
-              {t("shifts.modal.break_policy_overtime")}
-            </label>
+            <div className="space-y-1">
+              <label className={`text-xs font-bold block ${!isFixedBreak ? "text-slate-400 dark:text-slate-500 cursor-not-allowed" : "text-slate-700 dark:text-slate-200 cursor-pointer"}`} htmlFor="edit_break_policy_overtime">
+                {t("shifts.modal.break_policy_overtime")}
+              </label>
+              <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-normal leading-normal">
+                {!isFixedBreak ? (
+                  <span className="text-amber-600 dark:text-amber-500 font-medium">
+                    ⚠️ {t("shifts.modal.break_policy_overtime_disabled_hint")}
+                  </span>
+                ) : (
+                  t("shifts.modal.break_policy_overtime_help")
+                )}
+              </span>
+            </div>
           </div>
         </div>
       </div>

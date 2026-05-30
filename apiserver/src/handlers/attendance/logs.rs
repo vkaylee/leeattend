@@ -131,8 +131,9 @@ pub struct ReprocessQuery {
 
 #[utoipa::path(
     post,
-    path = "/v1/attendance/reprocess/{employee_id}",
+    path = "/workspaces/{workspace_id}/attendance/reprocess/{employee_id}",
     params(
+        ("workspace_id" = Uuid, Path, description = "Workspace ID"),
         ("employee_id" = Uuid, Path, description = "Employee ID"),
         ("start_date" = NaiveDate, Query, description = "Start date"),
         ("end_date" = NaiveDate, Query, description = "End date")
@@ -194,8 +195,9 @@ pub async fn force_reprocess_attendance(
 
 #[utoipa::path(
     post,
-    path = "/v1/attendance/reprocess/all",
+    path = "/workspaces/{workspace_id}/attendance/reprocess-all",
     params(
+        ("workspace_id" = Uuid, Path, description = "Workspace ID"),
         ("start_date" = NaiveDate, Query, description = "Start date"),
         ("end_date" = NaiveDate, Query, description = "End date")
     ),

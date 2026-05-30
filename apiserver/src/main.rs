@@ -31,6 +31,7 @@ impl Drop for PortFileGuard {
 }
 
 #[tokio::main]
+#[allow(clippy::too_many_lines)]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Check for openapi generation flag before everything else
     if std::env::args().any(|arg| arg == "gen-openapi") {
@@ -124,7 +125,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let diesel_pools = DieselPools::connect(&db_config, std::sync::Arc::clone(&tenant_manager))?;
 
     // 4. Register existing workspace tenants with Supavisor, then run pending migrations & reconcile
-    register_workspace_tenants_and_migrate(&db_config, &diesel_pools, &*tenant_manager, backup_cache).await;
+    register_workspace_tenants_and_migrate(
+        &db_config,
+        &diesel_pools,
+        &*tenant_manager,
+        backup_cache,
+    )
+    .await;
 
     // ╔═══════════════════════════════════════════════════════════════╗
     // ║  POOL ASSIGNMENT RULES                                       ║
@@ -455,7 +462,6 @@ fn reconcile_tenant_database(
         exists: bool,
     }
 
-
     let mut conn = diesel::PgConnection::establish(migration_url)
         .map_err(|e| format!("Failed to connect to tenant database: {e}"))?;
 
@@ -511,7 +517,5 @@ fn reconcile_tenant_database(
         .map_err(|e| format!("Failed to insert default multiplier: {e}"))?;
     }
 
-
     Ok(())
 }
-

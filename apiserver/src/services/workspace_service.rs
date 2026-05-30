@@ -186,6 +186,7 @@ impl WorkspaceService {
         Ok((primary_role_id, extra_roles))
     }
 
+    #[allow(clippy::too_many_lines)]
     pub async fn update_workspace(
         &self,
         args: UpdateWorkspaceArgs,
@@ -210,10 +211,7 @@ impl WorkspaceService {
 
         if has_eav_changes {
             let auth_token = crate::diesel_pool::TenantAuthToken::system_override(args.ws_id);
-            let mut tenant_conn = match self
-                .diesel_pools
-                .tenant_transaction_conn(&auth_token)
-                .await
+            let mut tenant_conn = match self.diesel_pools.tenant_transaction_conn(&auth_token).await
             {
                 Ok(conn) => conn,
                 Err(e) => {
@@ -224,21 +222,28 @@ impl WorkspaceService {
                             .workspace_repo
                             .get_workspace_by_id(args.ws_id)
                             .await
-                            .unwrap_or_else(|_| Some(crate::models::Workspace {
-                                id: args.ws_id,
-                                name: args.name.clone().unwrap_or_else(|| "Test Workspace".to_string()),
-                                timezone: "UTC".to_string(),
-                                date_format: "YYYY-MM-DD".to_string(),
-                                time_format: "24h".to_string(),
-                                theme_primary_color: "#1890ff".to_string(),
-                                default_language: "en".to_string(),
-                                logo_url: None,
-                                tagline: None,
-                                holiday_overnight_strategy: "split_at_midnight".to_string(),
-                                default_holiday_ot_multiplier: rust_decimal::Decimal::new(30, 1),
-                                created_at: chrono::Utc::now(),
-                                custom_db_url_encrypted: None,
-                            }))
+                            .unwrap_or_else(|_| {
+                                Some(crate::models::Workspace {
+                                    id: args.ws_id,
+                                    name: args
+                                        .name
+                                        .clone()
+                                        .unwrap_or_else(|| "Test Workspace".to_string()),
+                                    timezone: "UTC".to_string(),
+                                    date_format: "YYYY-MM-DD".to_string(),
+                                    time_format: "24h".to_string(),
+                                    theme_primary_color: "#1890ff".to_string(),
+                                    default_language: "en".to_string(),
+                                    logo_url: None,
+                                    tagline: None,
+                                    holiday_overnight_strategy: "split_at_midnight".to_string(),
+                                    default_holiday_ot_multiplier: rust_decimal::Decimal::new(
+                                        30, 1,
+                                    ),
+                                    created_at: chrono::Utc::now(),
+                                    custom_db_url_encrypted: None,
+                                })
+                            })
                             .unwrap();
                         return Ok(ws);
                     }
@@ -258,7 +263,10 @@ impl WorkspaceService {
                     workspace_config_entries::table
                         .filter(workspace_config_entries::workspace_id.eq(args.ws_id))
                         .filter(workspace_config_entries::scope_type.eq("workspace"))
-                        .filter(workspace_config_entries::config_key.eq("overtime.holiday_overnight_strategy")),
+                        .filter(
+                            workspace_config_entries::config_key
+                                .eq("overtime.holiday_overnight_strategy"),
+                        ),
                 )
                 .execute(&mut *tenant_conn)
                 .await
@@ -275,7 +283,7 @@ impl WorkspaceService {
                     value_text: Some(strategy.clone()),
                     value_bool: None,
                     value_json: None,
-                    effective_from: chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+                    effective_from: chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap_or_default(),
                     effective_to: None,
                     created_by: None,
                     created_at: chrono::Utc::now(),
@@ -298,7 +306,10 @@ impl WorkspaceService {
                     workspace_config_entries::table
                         .filter(workspace_config_entries::workspace_id.eq(args.ws_id))
                         .filter(workspace_config_entries::scope_type.eq("workspace"))
-                        .filter(workspace_config_entries::config_key.eq("overtime.default_holiday_ot_multiplier")),
+                        .filter(
+                            workspace_config_entries::config_key
+                                .eq("overtime.default_holiday_ot_multiplier"),
+                        ),
                 )
                 .execute(&mut *tenant_conn)
                 .await
@@ -315,7 +326,7 @@ impl WorkspaceService {
                     value_text: None,
                     value_bool: None,
                     value_json: None,
-                    effective_from: chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+                    effective_from: chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap_or_default(),
                     effective_to: None,
                     created_by: None,
                     created_at: chrono::Utc::now(),
@@ -348,9 +359,7 @@ impl WorkspaceService {
             self.workspace_repo
                 .get_workspace_by_id(args.ws_id)
                 .await?
-                .ok_or_else(|| {
-                    crate::errors::AppError::NotFound("Workspace not found".to_string())
-                })
+                .ok_or_else(|| crate::errors::AppError::NotFound("Workspace not found".to_string()))
         }
     }
 }
@@ -819,7 +828,8 @@ mod tests {
             tenant_manager,
             std::sync::Arc::new(MockSystemDbClusterRepo),
             crate::diesel_pool::DieselPools::for_test(
-                &std::env::var("DATABASE_URL").unwrap_or_else(|_| "postgres://user:pass@localhost:5432/db".to_string())
+                &std::env::var("DATABASE_URL")
+                    .unwrap_or_else(|_| "postgres://user:pass@localhost:5432/db".to_string()),
             ),
         )
     }
@@ -849,7 +859,8 @@ mod tests {
             std::sync::Arc::new(MockTenantManager::new()),
             std::sync::Arc::new(MockSystemDbClusterRepo),
             crate::diesel_pool::DieselPools::for_test(
-                &std::env::var("DATABASE_URL").unwrap_or_else(|_| "postgres://user:pass@localhost:5432/db".to_string())
+                &std::env::var("DATABASE_URL")
+                    .unwrap_or_else(|_| "postgres://user:pass@localhost:5432/db".to_string()),
             ),
         )
     }

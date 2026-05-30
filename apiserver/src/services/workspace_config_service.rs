@@ -77,6 +77,7 @@ impl WorkspaceConfigService {
             .await
     }
 
+    #[allow(clippy::similar_names)]
     pub async fn get_effective_holiday_strategy(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
@@ -179,6 +180,7 @@ impl WorkspaceConfigService {
         Ok(crate::models::HolidayOvernightStrategy::SplitAtMidnight)
     }
 
+    #[allow(clippy::similar_names)]
     pub async fn get_effective_holiday_ot_multiplier(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,

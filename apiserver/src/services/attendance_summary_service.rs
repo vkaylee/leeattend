@@ -189,10 +189,22 @@ impl AttendanceSummaryService {
                             is_break_auto_deduct: daily_schedule.is_break_auto_deduct,
                             allow_early_ot: daily_schedule.allow_early_ot,
                             early_arrival_strategy: rules.early_arrival_strategy,
-                            is_break_overtime: false,
+                            is_break_overtime: daily_schedule.break_is_overtime.unwrap_or(false),
                         },
                     )
                     .await;
+
+                    // Build break frame datetimes for Frame Intersection
+                    let break_start_dt = daily_schedule
+                        .break_start
+                        .and_then(|t| tz.from_local_datetime(&date.and_time(t)).single());
+                    let break_end_dt = daily_schedule.break_end.and_then(|t| {
+                        let mut dt = tz.from_local_datetime(&date.and_time(t)).single()?;
+                        if daily_schedule.break_end < daily_schedule.break_start {
+                            dt += chrono::Duration::days(1);
+                        }
+                        Some(dt)
+                    });
 
                     let buckets = AttendanceCalculator::calculate_buckets(
                         &crate::services::attendance_calculator::DailyCalcInput {
@@ -204,6 +216,8 @@ impl AttendanceSummaryService {
                                 .break_duration_minutes
                                 .unwrap_or(0),
                             actual_break_minutes,
+                            break_start: break_start_dt,
+                            break_end: break_end_dt,
                             work_unit: 0,
                             rounding_policy: String::new(),
                             rules: policy_rules,

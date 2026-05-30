@@ -5,7 +5,17 @@ use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-#[derive(Debug, Clone, Queryable, Selectable, Insertable, Identifiable, AsChangeset, Serialize, Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Queryable,
+    Selectable,
+    Insertable,
+    Identifiable,
+    AsChangeset,
+    Serialize,
+    Deserialize,
+)]
 #[diesel(table_name = employers)]
 pub struct EmployerEntity {
     pub id: Uuid,

@@ -164,9 +164,9 @@ impl AttendanceHandler {
                 job_id = %job.job_id,
                 employees = employee_ids.len(),
                 fetch_parallel_ms = t_fetch.as_millis() as u64,
-                calc_ms = (t_calc - t_fetch).as_millis() as u64,
-                store_ms = (t_store - t_calc).as_millis() as u64,
-                publish_ms = (t_total - t_store).as_millis() as u64,
+                calc_ms = t_calc.checked_sub(t_fetch).unwrap_or_default().as_millis() as u64,
+                store_ms = t_store.checked_sub(t_calc).unwrap_or_default().as_millis() as u64,
+                publish_ms = t_total.checked_sub(t_store).unwrap_or_default().as_millis() as u64,
                 result_bytes = result_json.len(),
                 total_ms = t_total.as_millis() as u64,
                 "Slow attendance batch breakdown"
@@ -312,6 +312,18 @@ impl AttendanceHandler {
                             (None, None)
                         };
 
+                    // Build break frame datetimes for Frame Intersection
+                    let break_start_dt = daily
+                        .break_start
+                        .and_then(|t| args.tz.from_local_datetime(&date.and_time(t)).single());
+                    let break_end_dt = daily.break_end.and_then(|t| {
+                        let mut dt = args.tz.from_local_datetime(&date.and_time(t)).single()?;
+                        if daily.break_end < daily.break_start {
+                            dt += Duration::days(1);
+                        }
+                        Some(dt)
+                    });
+
                     let (std_units, ot_units) = AttendanceCalculator::calculate_daily_units(
                         &crate::services::attendance_calculator::DailyCalcInput {
                             punch_in,
@@ -320,6 +332,8 @@ impl AttendanceHandler {
                             shift_end,
                             scheduled_break_minutes: daily.break_duration_minutes.unwrap_or(0),
                             actual_break_minutes,
+                            break_start: break_start_dt,
+                            break_end: break_end_dt,
                             work_unit: emp_attendance_rules.work_unit_minutes,
                             rounding_policy: emp_attendance_rules.rounding_policy.clone(),
                             rules: rules.clone(),
@@ -452,6 +466,9 @@ impl AttendanceHandler {
                         if let Some(aeo) = daily.allow_early_ot {
                             rules.allow_early_ot = aeo;
                         }
+                        if let Some(bio) = daily.break_is_overtime {
+                            rules.is_break_overtime = bio;
+                        }
 
                         let (shift_start, shift_end) =
                             if let (Some(start), Some(mut end)) = (shift_start_dt, shift_end_dt) {
@@ -463,6 +480,18 @@ impl AttendanceHandler {
                                 (None, None)
                             };
 
+                        // Build break frame datetimes for Frame Intersection
+                        let break_start_dt = daily
+                            .break_start
+                            .and_then(|t| args.tz.from_local_datetime(&date.and_time(t)).single());
+                        let break_end_dt = daily.break_end.and_then(|t| {
+                            let mut dt = args.tz.from_local_datetime(&date.and_time(t)).single()?;
+                            if daily.break_end < daily.break_start {
+                                dt += Duration::days(1);
+                            }
+                            Some(dt)
+                        });
+
                         let (std_units, ot_units) = AttendanceCalculator::calculate_daily_units(
                             &crate::services::attendance_calculator::DailyCalcInput {
                                 punch_in,
@@ -471,6 +500,8 @@ impl AttendanceHandler {
                                 shift_end,
                                 scheduled_break_minutes: daily.break_duration_minutes.unwrap_or(0),
                                 actual_break_minutes,
+                                break_start: break_start_dt,
+                                break_end: break_end_dt,
                                 work_unit: emp_attendance_rules.work_unit_minutes,
                                 rounding_policy: emp_attendance_rules.rounding_policy.clone(),
                                 rules: rules.clone(),
@@ -1167,6 +1198,7 @@ mod tests {
                 is_break_auto_deduct: Some(true),
                 early_punch_in_grace_period_minutes: Some(0),
                 allow_early_ot: Some(false),
+                break_is_overtime: Some(false),
                 traces: vec![],
             }],
         };
@@ -1347,6 +1379,7 @@ mod tests {
                 is_break_auto_deduct: Some(true),
                 early_punch_in_grace_period_minutes: Some(0),
                 allow_early_ot: Some(false),
+                break_is_overtime: Some(false),
                 traces: vec![],
             }],
         };

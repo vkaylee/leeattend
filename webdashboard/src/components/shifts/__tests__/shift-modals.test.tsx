@@ -72,7 +72,7 @@ describe("Shift Modals Break Policy Tests", () => {
       <CreateShiftModal
         isAutoDeduct={true}
         isBreakOvertime={false}
-        isFixedBreak={false}
+        isFixedBreak={true}
         isLoading={false}
         isOpen={true}
         newBreakEnd=""
@@ -112,6 +112,41 @@ describe("Shift Modals Break Policy Tests", () => {
     await user.click(overtimeRadio);
     expect(setIsAutoDeduct).toHaveBeenCalledWith(false);
     expect(setIsBreakOvertime).toHaveBeenCalledWith(true);
+  });
+
+  it("disables Break Overtime radio button in CreateShiftModal when isFixedBreak is false", () => {
+    render(
+      <CreateShiftModal
+        isAutoDeduct={true}
+        isBreakOvertime={false}
+        isFixedBreak={false}
+        isLoading={false}
+        isOpen={true}
+        newBreakEnd=""
+        newBreakStart=""
+        newShiftBreak={60}
+        newShiftEnd="17:00"
+        onClose={vi.fn()}
+        onCreateShift={vi.fn()}
+        setIsAutoDeduct={vi.fn()}
+        setIsBreakOvertime={vi.fn()}
+        setIsFixedBreak={vi.fn()}
+        setNewBreakEnd={vi.fn()}
+        setNewBreakStart={vi.fn()}
+        setNewShiftBreak={vi.fn()}
+        setNewShiftEnd={vi.fn()}
+        setNewShiftName={vi.fn()}
+        setNewShiftStart={vi.fn()}
+        setNewShiftSymbol={vi.fn()}
+        newShiftName="Test Shift"
+        newShiftStart="08:00"
+        newShiftSymbol="T"
+      />
+    );
+
+    const overtimeRadio = screen.getByLabelText("shifts.modal.break_policy_overtime") as HTMLInputElement;
+    expect(overtimeRadio.disabled).toBe(true);
+    expect(screen.getByText(/shifts.modal.break_policy_overtime_disabled_hint/)).toBeDefined();
   });
 
   it("renders EditShiftModal with preselected options based on state", () => {

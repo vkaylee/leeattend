@@ -116,6 +116,16 @@ impl ReportService {
                 .end_time
                 .and_then(|t| args.tz.from_local_datetime(&args.date.and_time(t)).single());
 
+            // Build break frame datetimes for Frame Intersection (Fixed break mode)
+            let break_start_dt = args
+                .daily
+                .break_start
+                .and_then(|t| args.tz.from_local_datetime(&args.date.and_time(t)).single());
+            let break_end_dt = args
+                .daily
+                .break_end
+                .and_then(|t| args.tz.from_local_datetime(&args.date.and_time(t)).single());
+
             // Handle shift boundaries (with overnight shift support)
             let (shift_start, shift_end) =
                 if let (Some(start), Some(mut end)) = (shift_start_dt, shift_end_dt) {
@@ -123,6 +133,17 @@ impl ReportService {
                         end += chrono::Duration::days(1);
                     }
                     (Some(start), Some(end))
+                } else {
+                    (None, None)
+                };
+
+            // Handle overnight break linearization (break_end < break_start)
+            let (break_start, break_end) =
+                if let (Some(bs), Some(mut be)) = (break_start_dt, break_end_dt) {
+                    if args.daily.break_end < args.daily.break_start {
+                        be += chrono::Duration::days(1);
+                    }
+                    (Some(bs), Some(be))
                 } else {
                     (None, None)
                 };
@@ -135,6 +156,8 @@ impl ReportService {
                     shift_end,
                     scheduled_break_minutes: args.daily.break_duration_minutes.unwrap_or(0),
                     actual_break_minutes,
+                    break_start,
+                    break_end,
                     work_unit: args.work_unit_minutes,
                     rounding_policy: args.rounding_policy.to_string(),
                     rules: args.rules,
@@ -332,7 +355,7 @@ impl ReportService {
                     is_break_auto_deduct: daily.is_break_auto_deduct,
                     allow_early_ot: daily.allow_early_ot,
                     early_arrival_strategy: emp_attendance_rules.early_arrival_strategy,
-                    is_break_overtime: false,
+                    is_break_overtime: daily.break_is_overtime.unwrap_or(false),
                 };
                 let rules = PolicyResolver::apply_shift_overrides(base_rules, &overrides);
 
@@ -614,7 +637,7 @@ impl ReportService {
                     is_break_auto_deduct: daily.is_break_auto_deduct,
                     allow_early_ot: daily.allow_early_ot,
                     early_arrival_strategy: emp_attendance_rules.early_arrival_strategy,
-                    is_break_overtime: false,
+                    is_break_overtime: daily.break_is_overtime.unwrap_or(false),
                 };
                 let rules = PolicyResolver::apply_shift_overrides(base_rules, &overrides);
                 let (std_units, ot_units) = Self::calculate_day_units(CalculateDayUnitsArgs {

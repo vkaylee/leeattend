@@ -1617,6 +1617,7 @@ mod tests {
                     is_break_auto_deduct: Some(true),
                     early_punch_in_grace_period_minutes: Some(0),
                     allow_early_ot: Some(false),
+                    break_is_overtime: None,
                     traces: vec![],
                     is_holiday: false,
                     holiday_name: None,

@@ -106,8 +106,13 @@ mod tests {
         let res = repo.execute_partition_query("SELECT 1").await;
         if let Err(e) = &res {
             let err_str = e.to_string();
-            if err_str.contains("connection") || err_str.contains("error connecting") || err_str.contains("db conn error") {
-                println!("Skipping test_execute_partition_query due to connection failure: {err_str}");
+            if err_str.contains("connection")
+                || err_str.contains("error connecting")
+                || err_str.contains("db conn error")
+            {
+                println!(
+                    "Skipping test_execute_partition_query due to connection failure: {err_str}"
+                );
                 return;
             }
         }
@@ -129,7 +134,10 @@ mod tests {
             .await;
         if let Err(e) = &res {
             let err_str = e.to_string();
-            if err_str.contains("connection") || err_str.contains("error connecting") || err_str.contains("db conn error") {
+            if err_str.contains("connection")
+                || err_str.contains("error connecting")
+                || err_str.contains("db conn error")
+            {
                 println!("Skipping test_execute_tenant_partition_query due to connection failure: {err_str}");
                 return;
             }
@@ -155,7 +163,10 @@ mod tests {
             .await;
         if let Err(e) = &res {
             let err_str = e.to_string();
-            if err_str.contains("connection") || err_str.contains("error connecting") || err_str.contains("db conn error") {
+            if err_str.contains("connection")
+                || err_str.contains("error connecting")
+                || err_str.contains("db conn error")
+            {
                 println!("Skipping test_execute_tenant_partition_queries_batch due to connection failure: {err_str}");
                 return;
             }

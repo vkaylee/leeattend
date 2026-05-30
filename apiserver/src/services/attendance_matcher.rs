@@ -178,6 +178,23 @@ impl AttendanceMatcher {
                                         shift_end: Some(end),
                                         scheduled_break_minutes: s.break_duration_minutes,
                                         actual_break_minutes,
+                                        break_start: s.break_start.and_then(|t| {
+                                            args.ctx
+                                                .tz
+                                                .from_local_datetime(&current_date.and_time(t))
+                                                .single()
+                                        }),
+                                        break_end: s.break_end.and_then(|t| {
+                                            let mut dt = args
+                                                .ctx
+                                                .tz
+                                                .from_local_datetime(&current_date.and_time(t))
+                                                .single()?;
+                                            if s.break_end < s.break_start {
+                                                dt += chrono::Duration::days(1);
+                                            }
+                                            Some(dt)
+                                        }),
                                         work_unit: args.attendance_rules.work_unit_minutes,
                                         rounding_policy: args
                                             .attendance_rules
