@@ -1422,6 +1422,7 @@
       "absent": "Vắng mặt",
       "off": "Ngày nghỉ",
       "unscheduled": "Ngoài lịch",
+      "leave": "Nghỉ phép",
       "unscheduled_tooltip": "Nhân viên chấm công khi không có ca được sắp xếp"
     },
     "table": {

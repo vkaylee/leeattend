@@ -192,6 +192,11 @@ impl Default for MockWorkerDepsBuilder {
 
 impl MockWorkerDepsBuilder {
     pub fn new() -> Self {
+        let mut leave_request_repo = MockLeaveRequestRepository::new();
+        leave_request_repo
+            .expect_get_approved_leave_dates()
+            .returning(|_, _, _, _| Box::pin(async move { Ok(std::collections::HashSet::new()) }));
+
         Self {
             time_entry_repo: MockTimeEntryRepository::new(),
             roster_repo: MockRosterRepository::new(),
@@ -202,7 +207,7 @@ impl MockWorkerDepsBuilder {
             error_repo: MockAttendanceLogErrorRepository::new(),
             workspace_repo: MockWorkspaceRepository::new(),
             holiday_repo: MockHolidayRepository::new(),
-            leave_request_repo: MockLeaveRequestRepository::new(),
+            leave_request_repo,
             daily_summary_repo: MockAttendanceDailySummaryRepository::new(),
             shift_repo: MockShiftRepository::new(),
             adjustment_repo: MockAttendanceAdjustmentRepository::new(),

@@ -1422,6 +1422,7 @@
       "absent": "Absent",
       "off": "Off-day",
       "unscheduled": "Unscheduled",
+      "leave": "On Leave",
       "unscheduled_tooltip": "Employee punched in without a scheduled shift"
     },
     "table": {

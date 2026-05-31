@@ -1,10 +1,17 @@
 import { render, screen, fireEvent } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 
 import { describe, it, expect, vi } from "vitest";
 
 import { DailyAttendanceReport } from "@/lib/api";
 
 import DailyReportTable from "../daily-report-table";
+
+vi.mock("react-i18next", () => ({
+  useTranslation: () => ({
+    t: (key: string) => key,
+  }),
+}));
 
 describe("DailyReportTable", () => {
     const mockT = (key: string) => key;
@@ -222,4 +229,34 @@ describe("DailyReportTable", () => {
         const badge = screen.queryByTitle("reports.status.unscheduled_tooltip");
         expect(badge).not.toBeInTheDocument();
     });
+
+    it("displays correct shift name in trace popover when shift_name is provided", async () => {
+        const user = userEvent.setup();
+        const dataWithTraces: DailyAttendanceReport[] = [
+            {
+                ...mockData[0],
+                shift_name: "Mocked Special Shift",
+                generation_metadata: {
+                    schedule_traces: [
+                        {
+                            rule_name: "Override Rule",
+                            priority: 100,
+                            status: "applied",
+                            reason: "Manual assignment"
+                        }
+                    ]
+                }
+            }
+        ];
+        render(<DailyReportTable {...defaultProps} data={dataWithTraces} />);
+
+        const trigger = screen.getByTestId("schedule-trace-trigger");
+        expect(trigger).toBeInTheDocument();
+        await user.click(trigger);
+
+        expect(screen.getByText("shifts.traceability.applied_shift")).toBeInTheDocument();
+        expect(screen.getByText("Mocked Special Shift")).toBeInTheDocument();
+        expect(screen.getByText("Override Rule")).toBeInTheDocument();
+    });
 });
+

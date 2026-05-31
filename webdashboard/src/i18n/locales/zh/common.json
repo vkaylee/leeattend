@@ -1410,6 +1410,7 @@
       "absent": "缺勤",
       "off": "休息日",
       "unscheduled": "未排班",
+      "leave": "请假",
       "unscheduled_tooltip": "员工在无排班的情况下打卡"
     },
     "table": {

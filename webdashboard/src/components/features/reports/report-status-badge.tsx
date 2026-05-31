@@ -24,6 +24,7 @@ export function ReportStatusBadge({ status, row, t, onResolveUnscheduled }: Repo
     holiday_leave: "bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800",
     holiday_unpaid: "bg-rose-50 dark:bg-rose-950 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800",
     holiday_work: "bg-orange-50 dark:bg-orange-950 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-800",
+    leave: "bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-300 border-blue-100 dark:border-blue-800",
   };
 
   const labels: Record<string, string> = {
@@ -32,6 +33,7 @@ export function ReportStatusBadge({ status, row, t, onResolveUnscheduled }: Repo
     absent: t("reports.status.absent"),
     off: t("reports.status.off"),
     unscheduled: t("reports.status.unscheduled"),
+    leave: t("reports.status.leave"),
     holiday: "🏖️ Holiday",
     holiday_paid: "🏖️ Holiday (Paid)",
     holiday_leave: "⚡ Holiday (Leave)",

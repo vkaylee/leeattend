@@ -423,6 +423,7 @@ impl ReportService {
                     employee_name: emp_sched.full_name.clone(),
                     employee_id_number: emp_sched.employee_id_number.clone(),
                     shift_symbol: daily.shift_symbol.clone(),
+                    shift_name: daily.shift_name.clone(),
                     scheduled_start: daily.start_time,
                     scheduled_end: daily.end_time,
                     break_duration_minutes: daily.break_duration_minutes,
@@ -856,6 +857,7 @@ mod tests {
             employee_name: "Test Employee".to_string(),
             employee_id_number: "EMP001".to_string(),
             shift_symbol: None,
+            shift_name: None,
             scheduled_start,
             scheduled_end,
             break_duration_minutes: None,
@@ -977,4 +979,21 @@ mod tests {
             "missing is_unscheduled in JSON should default to false via #[serde(default)]"
         );
     }
+
+    /// shift_name survives JSON serialize -> deserialize roundtrip
+    #[test]
+    fn test_shift_name_serialization_roundtrip() {
+        let mut report = make_report(true, true);
+        report.shift_name = Some("Morning Shift".to_string());
+
+        let json = serde_json::to_string(&report).unwrap();
+        let decoded: DailyAttendanceReport = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(
+            decoded.shift_name,
+            Some("Morning Shift".to_string()),
+            "shift_name should survive JSON roundtrip"
+        );
+    }
 }
+

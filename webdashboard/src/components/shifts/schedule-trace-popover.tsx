@@ -194,6 +194,7 @@ export const ScheduleTracePopover: React.FC<ScheduleTracePopoverProps> = ({
   return (
     <Popover.Root>
       <Popover.Trigger 
+        data-testid="schedule-trace-trigger"
         className="w-[18px] h-[18px] flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-750 text-slate-500 dark:text-slate-400 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary-500 cursor-pointer" 
         onClick={(e: React.MouseEvent) => { e.stopPropagation(); }}
       >
@@ -201,7 +202,7 @@ export const ScheduleTracePopover: React.FC<ScheduleTracePopoverProps> = ({
       </Popover.Trigger>
       <Popover.Portal>
         <Popover.Content 
-          className="z-50 w-80 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md rounded-[24px] shadow-2xl border border-slate-100/80 dark:border-slate-800/80 p-4 animate-in fade-in zoom-in-95 duration-200"
+          className="z-[10000] w-80 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md rounded-[24px] shadow-2xl border border-slate-100/80 dark:border-slate-800/80 p-4 animate-in fade-in zoom-in-95 duration-200"
           onClick={(e: React.MouseEvent) => { e.stopPropagation(); }}
           sideOffset={5}
         >

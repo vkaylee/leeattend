@@ -83,7 +83,7 @@ function ShiftCell({ row, t }: { row: DailyAttendanceReport; t: (k: string) => s
           >
             <ScheduleTracePopover
               endTime={row.scheduled_end}
-              shiftName={appliedRule?.rule_name}
+              shiftName={row.shift_name}
               shiftSymbol={row.shift_symbol}
               source={derivedSource}
               startTime={row.scheduled_start}

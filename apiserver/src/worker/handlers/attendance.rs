@@ -392,6 +392,17 @@ impl AttendanceHandler {
         .await
         .map_err(|e| format!("Failed to fetch attendance rules: {e}"))?;
 
+        let leave_date_set = args
+            .leave_repo
+            .get_approved_leave_dates(
+                &crate::diesel_pool::TenantAuthToken::system_override(args.workspace_id),
+                &emp_ids,
+                args.start_date,
+                args.end_date,
+            )
+            .await
+            .map_err(|e| format!("Failed to fetch leave dates: {e}"))?;
+
         for emp_sched in args.schedules {
             let entries = args
                 .entries_map
@@ -418,6 +429,7 @@ impl AttendanceHandler {
 
             for daily in &emp_sched.schedules {
                 let date = daily.date;
+                let is_on_leave = leave_date_set.contains(&(emp_sched.employee_id, date));
 
                 let day_entries = entries_by_date
                     .get(&date)
@@ -524,7 +536,7 @@ impl AttendanceHandler {
                         is_holiday: daily.is_holiday,
                         is_holiday_paid: false,
                         has_shift: daily.shift_id.is_some(),
-                        is_on_leave: false,
+                        is_on_leave,
                     },
                 );
 
@@ -559,6 +571,7 @@ impl AttendanceHandler {
                     employee_name: emp_sched.full_name.clone(),
                     employee_id_number: emp_sched.employee_id_number.clone(),
                     shift_symbol: daily.shift_symbol.clone(),
+                    shift_name: daily.shift_name.clone(),
                     scheduled_start: daily.start_time,
                     scheduled_end: daily.end_time,
                     break_duration_minutes: daily.break_duration_minutes,
@@ -737,6 +750,7 @@ mod tests {
             employee_name: "Charlie".to_string(),
             employee_id_number: "EMP001".to_string(),
             shift_symbol: None,
+            shift_name: None,
             scheduled_start: Some(NaiveTime::from_hms_opt(9, 0, 0).unwrap()),
             scheduled_end: Some(NaiveTime::from_hms_opt(17, 0, 0).unwrap()),
             break_duration_minutes: Some(60),

@@ -35,6 +35,8 @@ pub enum AttendanceStatus {
     HolidayUnpaid,
     /// Holiday with an approved leave request.
     HolidayLeave,
+    /// Non-holiday day with an approved leave request.
+    Leave,
 }
 
 impl fmt::Display for AttendanceStatus {
@@ -49,6 +51,7 @@ impl fmt::Display for AttendanceStatus {
             Self::HolidayPaid => write!(f, "holiday_paid"),
             Self::HolidayUnpaid => write!(f, "holiday_unpaid"),
             Self::HolidayLeave => write!(f, "holiday_leave"),
+            Self::Leave => write!(f, "leave"),
         }
     }
 }
@@ -66,6 +69,7 @@ impl AttendanceStatus {
             "holiday_paid" => Some(Self::HolidayPaid),
             "holiday_unpaid" => Some(Self::HolidayUnpaid),
             "holiday_leave" => Some(Self::HolidayLeave),
+            "leave" => Some(Self::Leave),
             _ => None,
         }
     }
@@ -90,6 +94,7 @@ impl AttendanceStatus {
             Self::HolidayPaid => "holiday_paid",
             Self::HolidayUnpaid => "holiday_unpaid",
             Self::HolidayLeave => "holiday_leave",
+            Self::Leave => "leave",
         }
     }
 }
@@ -153,6 +158,10 @@ pub fn determine_daily_status(input: &DailyStatusInput) -> AttendanceStatus {
             return AttendanceStatus::HolidayLeave;
         }
         return AttendanceStatus::HolidayUnpaid;
+    }
+
+    if input.is_on_leave {
+        return AttendanceStatus::Leave;
     }
 
     if !input.has_shift {
@@ -323,6 +332,7 @@ mod tests {
             (AttendanceStatus::HolidayPaid, "holiday_paid"),
             (AttendanceStatus::HolidayUnpaid, "holiday_unpaid"),
             (AttendanceStatus::HolidayLeave, "holiday_leave"),
+            (AttendanceStatus::Leave, "leave"),
         ];
 
         for (status, expected_str) in statuses {
@@ -347,6 +357,7 @@ mod tests {
         assert!(!AttendanceStatus::Off.is_unexcused());
         assert!(!AttendanceStatus::Late.is_unexcused());
         assert!(!AttendanceStatus::HolidayPaid.is_unexcused());
+        assert!(!AttendanceStatus::Leave.is_unexcused());
     }
 
     // ===== determine_daily_status tests =====
@@ -508,10 +519,8 @@ mod tests {
     }
 
     #[test]
-    fn test_absent_with_leave_is_still_absent() {
-        // Having approved leave does NOT change status from Absent.
-        // Leave status is tracked separately (leave_date_set).
-        // This function only determines the base attendance status.
+    fn test_absent_with_leave_is_now_leave() {
+        // Having approved leave on a shift-assigned day now resolves to Leave status.
         let input = DailyStatusInput {
             has_punch_in: false,
             punch_in_time: None,
@@ -521,7 +530,21 @@ mod tests {
             has_shift: true,
             is_on_leave: true,
         };
-        assert_eq!(determine_daily_status(&input), AttendanceStatus::Absent);
+        assert_eq!(determine_daily_status(&input), AttendanceStatus::Leave);
+    }
+
+    #[test]
+    fn test_leave_day_no_shift() {
+        let input = DailyStatusInput {
+            has_punch_in: false,
+            punch_in_time: None,
+            scheduled_start: None,
+            is_holiday: false,
+            is_holiday_paid: false,
+            has_shift: false,
+            is_on_leave: true,
+        };
+        assert_eq!(determine_daily_status(&input), AttendanceStatus::Leave);
     }
 
     // ===== date_range_to_utc tests =====
