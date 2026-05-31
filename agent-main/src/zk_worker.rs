@@ -3,8 +3,9 @@ use async_trait::async_trait;
 use log::{debug, error, info, warn};
 use rustzk::ZK;
 use serde_json::Value;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::time::Duration;
+use tokio::sync::Mutex;
 
 // Simple error type to match the previous JsonRpcError structure for compatibility
 #[derive(Debug)]
@@ -141,7 +142,8 @@ impl Worker for ZkWorker {
                 }
 
                 // Store ZK in Arc<Mutex>
-                if let Ok(mut guard) = self.zk.lock() {
+                {
+                    let mut guard = self.zk.lock().await;
                     *guard = Some(zk_instance);
                 }
 
@@ -197,32 +199,38 @@ impl Worker for ZkWorker {
         let ip = self.ip.clone();
         let zk_arc = self.zk.clone();
 
-        // Verify connection exists before spawning thread
-        {
-            let guard = zk_arc.lock().map_err(|_| ZkError {
-                message: "Mutex poisoned".to_string(),
-            })?;
-            if guard.is_none() {
-                return Err(Box::new(ZkError {
-                    message: "Device not connected".to_string(),
-                }));
+        // Take ZK out of Mutex to avoid holding the lock during blocking call
+        let zk_val = {
+            let mut guard = zk_arc.lock().await;
+            match guard.take() {
+                Some(zk) => zk,
+                None => {
+                    return Err(Box::new(ZkError {
+                        message: "Device not connected".to_string(),
+                    }));
+                }
             }
-        }
+        };
 
         debug!("[{ip}] Fetching attendance logs from device...");
 
         let join_handle = tokio::task::spawn_blocking(move || {
-            let mut guard = zk_arc.lock().map_err(|_| "Mutex poisoned".to_string())?;
-            let zk = guard.as_mut().ok_or("Device not connected".to_string())?;
-            let logs = zk.get_attendance().map_err(|e| format!("{e}"))?;
-            Ok::<_, String>(logs)
+            let mut zk = zk_val;
+            let res = zk.get_attendance().map_err(|e| format!("{e}"));
+            (zk, res)
         });
 
         match tokio::time::timeout(Duration::from_secs(self.inflight_timeout_secs), join_handle)
             .await
         {
-            Ok(Ok(Ok(logs))) => {
+            Ok(Ok((zk, Ok(logs)))) => {
                 debug!("[{ip}] Successfully fetched {} logs", logs.len());
+
+                // Restore connection to Mutex
+                {
+                    let mut guard = zk_arc.lock().await;
+                    *guard = Some(zk);
+                }
 
                 // Optimization: Pre-allocate vector
                 let mut models_logs = Vec::with_capacity(logs.len());
@@ -230,7 +238,7 @@ impl Worker for ZkWorker {
                 for log in logs {
                     models_logs.push(crate::models::AttendanceData {
                         user_id: log.user_id,
-                        timestamp: log.timestamp.to_string().replace("T", " "),
+                        timestamp: log.timestamp.to_string().replace('T', " "),
                         status: Some(log.status as i32),
                         punch: Some(log.punch as i32),
                     });
@@ -238,7 +246,12 @@ impl Worker for ZkWorker {
 
                 Ok(models_logs)
             }
-            Ok(Ok(Err(e))) => {
+            Ok(Ok((zk, Err(e)))) => {
+                // Restore connection to Mutex on normal error
+                {
+                    let mut guard = zk_arc.lock().await;
+                    *guard = Some(zk);
+                }
                 let msg = format!("[{ip}] Failed to get logs: {e}");
                 warn!("{msg}");
                 Err(Box::new(ZkError { message: msg }))
@@ -249,32 +262,12 @@ impl Worker for ZkWorker {
                 Err(Box::new(ZkError { message: msg }))
             }
             Err(_) => {
-                // TIMEOUT — blocking thread still holds mutex lock.
-                // Instead of spawning a cleanup task (which races with outer disconnect()),
-                // we clear the ZK instance here. The outer loop will call disconnect()
-                // which will see None and no-op, avoiding the race condition.
-                // The blocking thread will eventually finish and release the lock.
-                let cleanup_arc = self.zk.clone();
-                let cleanup_ip = self.ip.clone();
-                let cleanup_timeout = self.inflight_timeout_secs;
-                tokio::task::spawn_blocking(move || {
-                    // Wait for blocking thread to release lock, then take & disconnect
-                    if let Ok(mut guard) = cleanup_arc.lock()
-                        && let Some(mut zk) = guard.take()
-                    {
-                        warn!(
-                            "[{cleanup_ip}] Force-disconnecting after get_logs timeout ({cleanup_timeout}s)"
-                        );
-                        let _ = zk.disconnect();
-                    }
-                });
-                // Mark our local ZK as gone so outer disconnect() is a no-op
-                if let Ok(mut guard) = self.zk.try_lock() {
-                    let _ = guard.take();
-                }
+                // TIMEOUT — the background thread is still running and holds the ZK instance.
+                // It will drop it when it eventually wakes and returns, cleaning up naturally.
+                // We return immediately leaving self.zk as None.
                 let timeout_secs = self.inflight_timeout_secs;
                 let msg = format!(
-                    "[{ip}] Getting logs timed out after {timeout_secs}s — force-disconnect scheduled"
+                    "[{ip}] Getting logs timed out after {timeout_secs}s — connection dropped"
                 );
                 warn!("{msg}");
                 Err(Box::new(ZkError { message: msg }))
@@ -290,17 +283,18 @@ impl Worker for ZkWorker {
         let ip_thread = ip.clone();
         let zk_arc = self.zk.clone();
 
-        // Verify connection exists before spawning thread
-        {
-            let guard = zk_arc.lock().map_err(|_| ZkError {
-                message: "Mutex poisoned".to_string(),
-            })?;
-            if guard.is_none() {
-                return Err(Box::new(ZkError {
-                    message: "Device not connected".to_string(),
-                }));
+        // Take ZK out of Mutex to avoid holding the lock during blocking call
+        let zk_val = {
+            let mut guard = zk_arc.lock().await;
+            match guard.take() {
+                Some(zk) => zk,
+                None => {
+                    return Err(Box::new(ZkError {
+                        message: "Device not connected".to_string(),
+                    }));
+                }
             }
-        }
+        };
 
         // Clone cached values for thread safety
         let cached_firmware = self.firmware.clone().unwrap_or("N/A".to_string());
@@ -313,8 +307,7 @@ impl Worker for ZkWorker {
         let last_sync_time = time_sync.corrected_now().to_rfc3339();
 
         let join_handle = tokio::task::spawn_blocking(move || {
-            let mut guard = zk_arc.lock().map_err(|_| "Mutex poisoned".to_string())?;
-            let zk = guard.as_mut().ok_or("Device not connected".to_string())?;
+            let mut zk = zk_val;
 
             // Only fetch dynamic checks: get_time and read_sizes (for current counts)
             debug!("[{ip_thread}] Starting read_sizes (dynamic)...");
@@ -329,7 +322,7 @@ impl Worker for ZkWorker {
             debug!("[{ip_thread}] Starting get_time...");
             let time = match zk.get_time() {
                 Ok(t) => {
-                    let s = t.naive_local().to_string().replace("T", " ");
+                    let s = t.naive_local().to_string().replace('T', " ");
                     debug!("[{ip_thread}] get_time success: {s}");
                     s
                 }
@@ -353,38 +346,37 @@ impl Worker for ZkWorker {
                 "last_sync": last_sync_time
             });
 
-            // Mutex unlocked here when guard drops
-            Ok::<_, String>(info)
+            (zk, Ok::<_, String>(info))
         });
 
         match tokio::time::timeout(Duration::from_secs(30), join_handle).await {
-            Ok(Ok(Ok(info))) => Ok(info),
-            Ok(Ok(Err(e))) => Err(Box::new(ZkError {
-                message: format!("[{ip}] get_info operation failed: {e}"),
-            })),
+            Ok(Ok((zk, Ok(info)))) => {
+                // Restore connection to Mutex
+                {
+                    let mut guard = zk_arc.lock().await;
+                    *guard = Some(zk);
+                }
+                Ok(info)
+            }
+            Ok(Ok((zk, Err(e)))) => {
+                // Restore connection to Mutex on error
+                {
+                    let mut guard = zk_arc.lock().await;
+                    *guard = Some(zk);
+                }
+                Err(Box::new(ZkError {
+                    message: format!("[{ip}] get_info operation failed: {e}"),
+                }))
+            }
             Ok(Err(e)) => Err(Box::new(ZkError {
                 message: format!("[{ip}] Task join error during get_info: {e}"),
             })),
             Err(_) => {
-                // TIMEOUT — blocking thread still holds mutex lock.
-                // Spawn cleanup that waits for lock release, then disconnects.
-                let cleanup_arc = self.zk.clone();
-                let cleanup_ip = self.ip.clone();
-                tokio::task::spawn_blocking(move || {
-                    if let Ok(mut guard) = cleanup_arc.lock()
-                        && let Some(mut zk) = guard.take()
-                    {
-                        warn!("[{cleanup_ip}] Force-disconnecting after get_info timeout (30s)");
-                        let _ = zk.disconnect();
-                    }
-                });
-                // Try to clear local ZK so outer disconnect() is a no-op
-                if let Ok(mut guard) = self.zk.try_lock() {
-                    let _ = guard.take();
-                }
-                let msg = format!(
-                    "[{ip}] Getting device info timed out after 30s — force-disconnect scheduled"
-                );
+                // TIMEOUT — the background thread is still running and holds the ZK instance.
+                // It will drop it when it eventually wakes and returns, cleaning up naturally.
+                // We return immediately leaving self.zk as None.
+                let msg =
+                    format!("[{ip}] Getting device info timed out after 30s — connection dropped");
                 warn!("{msg}");
                 Err(Box::new(ZkError { message: msg }))
             }
@@ -395,24 +387,40 @@ impl Worker for ZkWorker {
         let zk_arc = self.zk.clone();
         let ip = self.ip.clone();
 
-        // Quick check: if ZK is already gone, no point pinging
-        if let Ok(guard) = self.zk.try_lock()
-            && guard.is_none()
-        {
-            return false;
-        }
+        // Take ZK out of Mutex to avoid holding the lock during blocking call
+        let zk_val = {
+            if let Ok(mut guard) = zk_arc.try_lock() {
+                match guard.take() {
+                    Some(zk) => zk,
+                    None => return false,
+                }
+            } else {
+                return false;
+            }
+        };
 
         let join_handle = tokio::task::spawn_blocking(move || {
-            let mut guard = zk_arc.lock().map_err(|_| "Mutex poisoned")?;
-            let zk = guard.as_mut().ok_or("Device not connected")?;
+            let mut zk = zk_val;
             // Use get_time() as a lightweight probe — it's a single UDP roundtrip
-            zk.get_time().map_err(|e| format!("{e}"))?;
-            Ok::<_, String>(())
+            let res = zk.get_time().map_err(|e| format!("{e}"));
+            (zk, res)
         });
 
         match tokio::time::timeout(Duration::from_secs(5), join_handle).await {
-            Ok(Ok(Ok(()))) => true,
-            Ok(Ok(Err(e))) => {
+            Ok(Ok((zk, Ok(_)))) => {
+                // Restore connection to Mutex
+                {
+                    let mut guard = zk_arc.lock().await;
+                    *guard = Some(zk);
+                }
+                true
+            }
+            Ok(Ok((zk, Err(e)))) => {
+                // Restore connection to Mutex
+                {
+                    let mut guard = zk_arc.lock().await;
+                    *guard = Some(zk);
+                }
                 debug!("[{ip}] Ping failed: {e}");
                 false
             }
@@ -430,15 +438,14 @@ impl Worker for ZkWorker {
     async fn disconnect(&mut self) {
         let zk_arc = self.zk.clone();
         let ip = self.ip.clone();
-        let _ = tokio::task::spawn_blocking(move || {
-            if let Ok(mut guard) = zk_arc.lock()
-                && let Some(mut zk) = guard.take()
-            {
+        let mut guard = zk_arc.lock().await;
+        if let Some(mut zk) = guard.take() {
+            let _ = tokio::task::spawn_blocking(move || {
                 info!("[{ip}] Explicitly disconnecting from ZK device...");
                 let _ = zk.disconnect();
-            }
-        })
-        .await;
+            })
+            .await;
+        }
     }
 
     fn detected_checksum_mode(&self) -> Option<bool> {
@@ -485,20 +492,20 @@ mod tests {
     #[test]
     fn test_zk_worker_new_no_password() {
         let worker = ZkWorker::new(None, None, 60, 300);
-        assert!(worker.zk.lock().unwrap().is_none());
+        assert!(worker.zk.blocking_lock().is_none());
     }
 
     #[test]
     fn test_zk_worker_new_with_password() {
         let worker = ZkWorker::new(Some(12345), None, 60, 300);
-        assert!(worker.zk.lock().unwrap().is_none()); // Not connected yet
+        assert!(worker.zk.blocking_lock().is_none()); // Not connected yet
     }
 
     #[test]
     fn test_zk_worker_new_with_legacy_checksum() {
         let worker = ZkWorker::new(None, Some(true), 60, 300);
         assert!(worker.use_legacy_checksum == Some(true));
-        assert!(worker.zk.lock().unwrap().is_none());
+        assert!(worker.zk.blocking_lock().is_none());
     }
 
     #[test]
@@ -516,6 +523,6 @@ mod tests {
     #[test]
     fn test_zk_worker_default() {
         let worker = ZkWorker::default();
-        assert!(worker.zk.lock().unwrap().is_none());
+        assert!(worker.zk.blocking_lock().is_none());
     }
 }

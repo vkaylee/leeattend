@@ -36,8 +36,9 @@ def leeattend_run_lint(component_filter: str = "", mode: str = "all") -> bool:
     tasks: list[tuple[str, str, list[str]]] = []
 
     if mode in ("all", "api", "integration"):
+        pkg_name = "agent" if component_filter == "agent-main" else component_filter
         pkg_flag = (
-            f"--package {component_filter}"
+            f"--package {pkg_name}"
             if component_filter in ["apiserver", "agent-main"]
             else "--workspace"
         )
@@ -91,8 +92,9 @@ def leeattend_run_unit(
     shard_flag = f"--shard={shard_n}/{shard_m}" if shard_n and shard_m else ""
 
     if mode in ("all", "api", "integration"):
+        pkg_name = "agent" if component_filter == "agent-main" else component_filter
         pkg_flag = (
-            f"--package {component_filter}"
+            f"--package {pkg_name}"
             if component_filter in ["apiserver", "agent-main"]
             else "--workspace"
         )
@@ -123,8 +125,9 @@ def leeattend_run_integration(
         # API server startup is handled by the lifecycle/container health check
         # Integration tests use the already-running apiserver container
         db_url = "postgres://test_user:test_password@db_system:5432/leeattend_test_template"
+        pkg_name = "agent" if component_filter == "agent-main" else component_filter
         pkg_flag = (
-            f"--package {component_filter}"
+            f"--package {pkg_name}"
             if component_filter in ["apiserver", "agent-main"]
             else "--workspace"
         )
@@ -157,8 +160,9 @@ def leeattend_run_coverage(
     coverage_env = "RUSTC_WRAPPER=''"
 
     if mode in ("all", "api", "integration"):
+        pkg_name = "agent" if component_filter == "agent-main" else component_filter
         pkg_flag = (
-            f"--package {component_filter}"
+            f"--package {pkg_name}"
             if component_filter in ["apiserver", "agent-main"]
             else "--workspace"
         )

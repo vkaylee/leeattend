@@ -533,7 +533,7 @@ pub fn spawn_worker(
             }
 
             // Acquire semaphore BEFORE connecting to limit concurrent device access.
-            let _connect_permit = match sem.acquire().await {
+            let connect_permit = match sem.acquire().await {
                 Ok(p) => p,
                 Err(_) => {
                     error!(
@@ -550,7 +550,7 @@ pub fn spawn_worker(
                 .entry(config.id.clone())
                 .or_insert_with(|| Arc::new(tokio::sync::Mutex::new(())))
                 .clone();
-            let _connect_device_guard = connect_device_lock.lock().await;
+            let connect_device_guard = connect_device_lock.lock().await;
 
             let mut worker_impl: Box<dyn Worker> = if config.brand == "mock" {
                 Box::new(mock_worker::MockWorker::new())
@@ -570,8 +570,8 @@ pub fn spawn_worker(
 
             if let Err(e) = worker_impl.connect(&config.ip, config.port as u16).await {
                 error!("[{}] Device connection failed: {}", config.name, e);
-                drop(_connect_device_guard);
-                drop(_connect_permit);
+                drop(connect_device_guard);
+                drop(connect_permit);
                 retry_count = std::cmp::min(retry_count + 1, SIDECAR_MAX_RETRY_COUNT);
                 continue;
             }
@@ -610,8 +610,8 @@ pub fn spawn_worker(
                         config.name, e
                     );
                     worker_impl.disconnect().await;
-                    drop(_connect_device_guard);
-                    drop(_connect_permit);
+                    drop(connect_device_guard);
+                    drop(connect_permit);
                     retry_count = std::cmp::min(retry_count + 1, SIDECAR_MAX_RETRY_COUNT);
                     continue;
                 }
@@ -619,8 +619,8 @@ pub fn spawn_worker(
 
             // Connection + initial get_info succeeded — release connect-phase guards.
             let connected_at = Instant::now();
-            drop(_connect_device_guard);
-            drop(_connect_permit);
+            drop(connect_device_guard);
+            drop(connect_permit);
 
             let mut seen_logs: HashSet<u64> = HashSet::with_capacity(100_000);
             const SEEN_LOGS_CAP: usize = 200_000;
@@ -643,7 +643,7 @@ pub fn spawn_worker(
                     break;
                 }
 
-                let _permit = match sem.acquire().await {
+                let permit = match sem.acquire().await {
                     Ok(p) => p,
                     Err(_) => {
                         error!("[{}] Semaphore closed, stopping worker", config.name);
@@ -655,7 +655,7 @@ pub fn spawn_worker(
                     .entry(config.id.clone())
                     .or_insert_with(|| Arc::new(tokio::sync::Mutex::new(())))
                     .clone();
-                let _device_guard = device_lock.lock().await;
+                let device_guard = device_lock.lock().await;
 
                 poll_count += 1;
 
@@ -802,8 +802,8 @@ pub fn spawn_worker(
                                 "[{}] Cooldown {}s, disconnecting to free device slot...",
                                 config.name, new_interval
                             );
-                            drop(_device_guard);
-                            drop(_permit);
+                            drop(device_guard);
+                            drop(permit);
                             worker_impl.disconnect().await;
                             tokio::select! {
                                 _ = token.cancelled() => { return; }
@@ -823,8 +823,8 @@ pub fn spawn_worker(
                     }
                 }
 
-                drop(_device_guard);
-                drop(_permit);
+                drop(device_guard);
+                drop(permit);
                 let capped_interval =
                     std::cmp::min(polling_state.interval(), SESSION_SAFE_INTERVAL_SECS);
                 // Cancel-aware sleep: respond to shutdown immediately instead of

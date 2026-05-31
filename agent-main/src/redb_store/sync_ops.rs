@@ -271,8 +271,9 @@ impl RedbStore {
     pub fn reset_stale_syncing(&self, timeout_secs: i64) -> Result<u64, StoreError> {
         let now = chrono::Utc::now().timestamp();
 
-        // Phase 1: Read — find stale in-flight logs
-        let ids_to_reset: Vec<i64> = {
+        // Phase 1: Read — find stale in-flight logs and prepare updates
+        let mut updates: Vec<(i64, Vec<u8>)> = Vec::new();
+        {
             let txn = self
                 .db
                 .begin_read()
@@ -284,7 +285,6 @@ impl RedbStore {
                 .open_table(ATTENDANCE_LOGS)
                 .map_err(|e| StoreError::DbError(e.to_string()))?;
 
-            let mut result = Vec::new();
             for entry in sync_table
                 .iter()
                 .map_err(|e| StoreError::DbError(e.to_string()))?
@@ -297,27 +297,48 @@ impl RedbStore {
                         .get(id)
                         .map_err(|e| StoreError::DbError(e.to_string()))?
                     {
-                        let log = StoredLog::from_bytes(bytes_guard.value())?;
+                        let mut log = StoredLog::from_bytes(bytes_guard.value())?;
                         if let Some(updated_at) = log.updated_at
                             && now - updated_at > timeout_secs
                         {
-                            result.push(id);
+                            log.is_synced = 0;
+                            updates.push((id, log.to_bytes()));
                         }
                     }
                 }
             }
-            result
-        };
+        }
 
-        if ids_to_reset.is_empty() {
+        let count = updates.len() as u64;
+        if count == 0 {
             return Ok(0);
         }
 
-        // Phase 2: Reset each (uses own read+write txns internally)
-        for id in &ids_to_reset {
-            self.reset_to_unsynced(*id)?;
+        // Phase 2: Write updates in a single transaction
+        let txn = self
+            .db
+            .begin_write()
+            .map_err(|e| StoreError::DbError(e.to_string()))?;
+        {
+            let mut log_table = txn
+                .open_table(ATTENDANCE_LOGS)
+                .map_err(|e| StoreError::DbError(e.to_string()))?;
+            let mut sync_table = txn
+                .open_table(SYNC_INDEX)
+                .map_err(|e| StoreError::DbError(e.to_string()))?;
+            for (id, bytes) in &updates {
+                log_table
+                    .insert(*id, bytes.as_slice())
+                    .map_err(|e| StoreError::DbError(e.to_string()))?;
+                sync_table
+                    .insert(*id, 0u8)
+                    .map_err(|e| StoreError::DbError(e.to_string()))?;
+            }
         }
-        Ok(ids_to_reset.len() as u64)
+        txn.commit()
+            .map_err(|e| StoreError::DbError(e.to_string()))?;
+
+        Ok(count)
     }
 
     /// Get max log ID.

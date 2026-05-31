@@ -1,3 +1,5 @@
+#![allow(clippy::disallowed_macros)]
+
 use agent::redb_store::RedbStore;
 use std::collections::HashMap;
 
