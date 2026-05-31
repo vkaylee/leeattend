@@ -1,5 +1,6 @@
 {
   "common": {
+    "required_fields": "请填写所有必填字段",
     "switching_workspace": "正在切换工作区...",
     "hours": "小时",
     "syncing_data": "正在同步数据...",

@@ -417,11 +417,14 @@ export type PayrollRuleAssignment = Omit<components["schemas"]["PayrollRuleAssig
   override_config?: any;
 };
 // --- Employment Phases ---
+export interface EmploymentPhaseRuleConfig {
+  duration_days?: number;
+}
 export type EmploymentPhaseDefinition = Omit<components["schemas"]["EmploymentPhaseDefinition"], "rule_config"> & {
-  rule_config?: any;
+  rule_config?: EmploymentPhaseRuleConfig;
 };
 export type EmployeePhase = Omit<components["schemas"]["EmployeePhase"], "rule_config"> & {
-  rule_config?: any;
+  rule_config?: EmploymentPhaseRuleConfig;
 };
 // --- Workspace Config (EAV) ---
 export type WorkspaceConfigEntry = components["schemas"]["WorkspaceConfigEntry"];

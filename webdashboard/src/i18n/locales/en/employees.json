@@ -299,7 +299,26 @@
       "col_c": "Column C: Hire Date (Optional, YYYY-MM-DD)",
       "col_d": "Column D: Department Name (Optional)"
     },
-    "label": "Employees"
+    "label": "Employees",
+    "phases": {
+      "journey_title": "Development Journey",
+      "evaluation_purpose": "Evaluation Purpose",
+      "journey_description": "Track milestones in the employee's development path (e.g. Probation, Senior Promotion, Rank Promotion). This is also where performance evaluations are stored upon completing each milestone.",
+      "add_milestone": "Add Milestone",
+      "add_milestone_subtitle": "Record a new milestone for the employee. Milestones are tracked independently of Contracts.",
+      "no_milestones": "No milestones in this journey yet",
+      "update_status": "Update Status",
+      "update_status_subtitle": "Record the evaluation result for this milestone.",
+      "evaluation": "Evaluation",
+      "milestone_type": "Milestone Type",
+      "select_milestone": "-- Select Milestone --",
+      "status_new": "New Status",
+      "evaluation_notes": "Evaluation Notes",
+      "evaluation_notes_placeholder": "Evaluation notes upon completing this milestone...",
+      "soft_warning": "Soft Warning",
+      "out_of_bounds_warning": "This milestone timeline exceeds the total duration of active contracts.",
+      "no_contracts_warning": "This employee has no contracts, this milestone may be invalid."
+    }
   },
   "profile": {
     "subtitle": "Manage personal information and account settings",

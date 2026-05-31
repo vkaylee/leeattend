@@ -299,7 +299,26 @@
       "col_c": "C列：入职日期（可选，YYYY-MM-DD）",
       "col_d": "D列：部门名称（可选）"
     },
-    "label": "员工"
+    "label": "员工",
+    "phases": {
+      "journey_title": "发展历程",
+      "evaluation_purpose": "评估目的",
+      "journey_description": "跟踪员工发展路径中的里程碑（例如试用期、晋升高级职位、职级晋升）。这也是在完成每个里程碑时存储绩效评估的地方。",
+      "add_milestone": "添加里程碑",
+      "add_milestone_subtitle": "记录员工的新里程碑。里程碑的跟踪完全独立于合同。",
+      "no_milestones": "此历程中暂无里程碑",
+      "update_status": "更新状态",
+      "update_status_subtitle": "记录此里程碑的评估结果。",
+      "evaluation": "评估",
+      "milestone_type": "里程碑类型",
+      "select_milestone": "-- 选择里程碑 --",
+      "status_new": "新状态",
+      "evaluation_notes": "评估备注",
+      "evaluation_notes_placeholder": "完成此里程碑后的评估备注...",
+      "soft_warning": "软警告",
+      "out_of_bounds_warning": "此里程碑的时间线超出了当前合同的总期限。",
+      "no_contracts_warning": "该员工没有合同，此里程碑可能无效。"
+    }
   },
   "profile": {
     "subtitle": "管理个人信息和账号设置",

@@ -422,6 +422,31 @@
     "filter": {
       "paper_forms": "Đơn giấy",
       "self_service": "Tự phục vụ"
+    },
+    "pre_ot_dialog": {
+      "new_request_btn": "Đăng ký Pre-OT mới",
+      "modal_title": "Lập kế hoạch tăng ca (Pre-OT)",
+      "modal_subtitle": "Gán giờ tăng ca trước cho nhân viên",
+      "select_employees": "Chọn nhân viên",
+      "no_employees": "Không tìm thấy nhân viên nào",
+      "selected_count": "Đã chọn {{count}}",
+      "quota_warning_title": "Cảnh báo hạn mức",
+      "quota_warning_desc": "Nhân viên được chọn đã dùng {{used}}h trên tổng số {{limit}}h trong tháng này.",
+      "date": "Ngày",
+      "start_time": "Giờ bắt đầu",
+      "end_time": "Giờ kết thúc",
+      "estimated_duration": "Thời gian dự kiến",
+      "duration_hours": "{{hours}} giờ",
+      "business_reason": "Lý do công việc",
+      "reason_placeholder": "Tại sao việc tăng ca này là cần thiết?",
+      "submit_btn": "Gửi yêu cầu",
+      "validation": {
+        "select_employee": "Vui lòng chọn ít nhất một nhân viên",
+        "provide_reason": "Vui lòng nhập lý do",
+        "invalid_time": "Khoảng thời gian không hợp lệ"
+      },
+      "success_message": "Đã tạo yêu cầu Pre-OT thành công!",
+      "error_message": "Tạo yêu cầu OT thất bại"
     }
   },
   "holidays": {

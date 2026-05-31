@@ -299,7 +299,26 @@
       "col_c": "Cột C: Ngày vào làm (Tùy chọn, DD/MM/YYYY)",
       "col_d": "Cột D: Tên bộ phận (Tùy chọn)"
     },
-    "label": "Nhân viên"
+    "label": "Nhân viên",
+    "phases": {
+      "journey_title": "Hành trình Phát triển",
+      "evaluation_purpose": "Phục vụ Đánh giá",
+      "journey_description": "Theo dõi các cột mốc trong lộ trình phát triển của nhân sự (Ví dụ: Thử việc, Lên Senior, Thăng chức). Đây cũng là nơi lưu trữ đánh giá hiệu suất khi hoàn thành mỗi cột mốc.",
+      "add_milestone": "Thêm Cột mốc",
+      "add_milestone_subtitle": "Ghi nhận một Cột mốc mới cho nhân viên. Các Cột mốc được theo dõi hoàn toàn độc lập với Hợp đồng.",
+      "no_milestones": "Chưa có cột mốc nào trong hành trình",
+      "update_status": "Cập nhật trạng thái",
+      "update_status_subtitle": "Ghi nhận kết quả đánh giá cho Cột mốc này.",
+      "evaluation": "Đánh giá",
+      "milestone_type": "Loại Cột mốc",
+      "select_milestone": "-- Chọn Cột mốc --",
+      "status_new": "Trạng thái mới",
+      "evaluation_notes": "Ghi chú Đánh giá",
+      "evaluation_notes_placeholder": "Ghi chú đánh giá sau khi kết thúc cột mốc này...",
+      "soft_warning": "Cảnh báo Mềm",
+      "out_of_bounds_warning": "Thời gian của cột mốc này đang vượt ra ngoài tổng thời hạn các hợp đồng hiện tại.",
+      "no_contracts_warning": "Nhân sự này chưa có hợp đồng nào, Cột mốc này có thể không hợp lệ."
+    }
   },
   "profile": {
     "subtitle": "Quản lý thông tin cá nhân và cài đặt tài khoản",

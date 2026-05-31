@@ -99,7 +99,7 @@ export default function EmployeePhasesTab({ wsId, employeeId, formatDate }: Prop
 
   const isOutOfContractBounds = useMemo(() => {
     if (!assignData.start_date || !assignData.end_date || contracts.length === 0) {
-      return contracts.length === 0 ? "Nhân sự này chưa có hợp đồng nào, Cột mốc này có thể không hợp lệ." : null;
+      return contracts.length === 0 ? t("employees.phases.no_contracts_warning") : null;
     }
     const startDates = contracts.map(c => new Date(c.start_date).getTime());
     const endDates = contracts.map(c => c.end_date ? new Date(c.end_date).getTime() : Infinity);
@@ -109,15 +109,15 @@ export default function EmployeePhasesTab({ wsId, employeeId, formatDate }: Prop
     const phaseEnd = new Date(assignData.end_date).getTime();
     
     if (phaseStart < minStart || phaseEnd > maxEnd) {
-      return "Thời gian của cột mốc này đang vượt ra ngoài tổng thời hạn các hợp đồng hiện tại.";
+      return t("employees.phases.out_of_bounds_warning");
     }
     return null;
-  }, [assignData.start_date, assignData.end_date, contracts]);
+  }, [assignData.start_date, assignData.end_date, contracts, t]);
 
   const handleAssignSubmit = (e: React.SyntheticEvent) => {
     e.preventDefault();
     if (!assignData.phase_definition_id || !assignData.start_date || !assignData.end_date) {
-      toast.error("Please fill all required fields"); return;
+      toast.error(t("common.required_fields")); return;
     }
     assignMutation.mutate(assignData);
   };
@@ -145,12 +145,11 @@ export default function EmployeePhasesTab({ wsId, employeeId, formatDate }: Prop
       <div className="flex items-center justify-between px-2">
         <div className="max-w-xl">
           <Typography className="text-sm font-bold text-slate-800 dark:text-slate-100 uppercase tracking-widest flex items-center gap-2" variant="h3">
-            Hành trình Phát triển
-            <span className="bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded-full text-[10px] normal-case tracking-normal border border-blue-100 dark:border-blue-800/50">Phục vụ Đánh giá</span>
+            {t("employees.phases.journey_title")}
+            <span className="bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded-full text-[10px] normal-case tracking-normal border border-blue-100 dark:border-blue-800/50">{t("employees.phases.evaluation_purpose")}</span>
           </Typography>
           <Typography className="text-[11px] font-medium text-slate-500 dark:text-slate-400 mt-2 leading-relaxed" variant="p">
-            Theo dõi các cột mốc trong lộ trình phát triển của nhân sự (Ví dụ: Thử việc, Lên Senior, Thăng chức). 
-            Đây cũng là nơi lưu trữ đánh giá hiệu suất khi hoàn thành mỗi cột mốc.
+            {t("employees.phases.journey_description")}
           </Typography>
         </div>
         <PermissionGate permission="employment_phases:manage">
@@ -160,7 +159,7 @@ export default function EmployeePhasesTab({ wsId, employeeId, formatDate }: Prop
             type="button"
             variant="ghost"
           >
-            <Plus size={14} /> Thêm Cột mốc
+            <Plus size={14} /> {t("employees.phases.add_milestone")}
           </Button>
         </PermissionGate>
       </div>
@@ -173,7 +172,7 @@ export default function EmployeePhasesTab({ wsId, employeeId, formatDate }: Prop
         ) : phases?.length === 0 ? (
           <div className="p-10 text-center bg-slate-50 dark:bg-slate-800/30 rounded-[2rem] border border-dashed border-slate-200 dark:border-slate-700">
             <Milestone className="w-10 h-10 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
-            <Typography className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest" variant="p">Chưa có cột mốc nào trong hành trình</Typography>
+            <Typography className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest" variant="p">{t("employees.phases.no_milestones")}</Typography>
           </div>
         ) : (
           <div className="relative pl-10 space-y-6 before:absolute before:left-[19px] before:top-4 before:bottom-4 before:w-px before:bg-slate-200 dark:before:bg-slate-700">
@@ -213,7 +212,7 @@ export default function EmployeePhasesTab({ wsId, employeeId, formatDate }: Prop
                           className="p-2 text-slate-300 dark:text-slate-600 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-all h-auto w-auto shadow-none"
                           onClick={() => { openStatusModal(phase); }}
                           size="icon"
-                          title="Cập nhật trạng thái"
+                          title={t("employees.phases.update_status")}
                           type="button"
                           variant="ghost"
                         >
@@ -224,7 +223,7 @@ export default function EmployeePhasesTab({ wsId, employeeId, formatDate }: Prop
 
                     {!!phase.evaluation_notes && (
                       <div className="mt-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-700/50">
-                        <Typography className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1" variant="p">Đánh giá</Typography>
+                        <Typography className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1" variant="p">{t("employees.phases.evaluation")}</Typography>
                         <Typography className="text-sm text-slate-600 dark:text-slate-300" variant="p">{phase.evaluation_notes}</Typography>
                       </div>
                     )}
@@ -236,10 +235,10 @@ export default function EmployeePhasesTab({ wsId, employeeId, formatDate }: Prop
         )}
       </div>
 
-      <Modal icon={<Milestone size={24} />} isOpen={isAssignModalOpen} maxWidth="md" onClose={() => { setIsAssignModalOpen(false); }} subtitle="Ghi nhận một Cột mốc mới cho nhân viên. Các Cột mốc được theo dõi hoàn toàn độc lập với Hợp đồng." title="Thêm Cột mốc">
+      <Modal icon={<Milestone size={24} />} isOpen={isAssignModalOpen} maxWidth="md" onClose={() => { setIsAssignModalOpen(false); }} subtitle={t("employees.phases.add_milestone_subtitle")} title={t("employees.phases.add_milestone")}>
         <form className="space-y-6 pt-4 animate-in fade-in" onSubmit={handleAssignSubmit}>
           <div className="space-y-3">
-            <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="phase_definition_id">Loại Cột mốc</label>
+            <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="phase_definition_id">{t("employees.phases.milestone_type")}</label>
             <select 
               className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all shadow-sm"
               id="phase_definition_id"
@@ -259,7 +258,7 @@ export default function EmployeePhasesTab({ wsId, employeeId, formatDate }: Prop
               required
               value={assignData.phase_definition_id}
             >
-              <option value="">-- Chọn Cột mốc --</option>
+              <option value="">{t("employees.phases.select_milestone")}</option>
               {definitions?.filter(d => d.is_active).map(def => (
                 <option key={def.id} value={def.id}>{def.name} ({def.phase_type})</option>
               ))}
@@ -268,7 +267,7 @@ export default function EmployeePhasesTab({ wsId, employeeId, formatDate }: Prop
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-3">
-              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="start_date">Từ ngày</label>
+              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="start_date">{t("common.startDate")}</label>
               <input 
                 className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 font-mono font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all shadow-sm"
                 id="start_date"
@@ -291,7 +290,7 @@ export default function EmployeePhasesTab({ wsId, employeeId, formatDate }: Prop
               />
             </div>
             <div className="space-y-3">
-              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="end_date">Đến ngày</label>
+              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="end_date">{t("common.endDate")}</label>
               <input 
                 className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 font-mono font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all shadow-sm"
                 id="end_date"
@@ -307,23 +306,23 @@ export default function EmployeePhasesTab({ wsId, employeeId, formatDate }: Prop
             <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 p-4 rounded-2xl flex gap-3 items-start animate-in fade-in slide-in-from-top-2">
               <AlertTriangle className="text-amber-500 shrink-0 mt-0.5" size={18} />
               <div>
-                <Typography className="text-[11px] font-bold text-amber-800 dark:text-amber-500 uppercase tracking-widest mb-1" variant="p">Cảnh báo Mềm</Typography>
-                <Typography className="text-xs text-amber-700 dark:text-amber-600 font-medium leading-relaxed" variant="p">{isOutOfContractBounds} Bạn vẫn có thể lưu lại nếu đây là chủ đích của mình.</Typography>
+                <Typography className="text-[11px] font-bold text-amber-800 dark:text-amber-500 uppercase tracking-widest mb-1" variant="p">{t("employees.phases.soft_warning")}</Typography>
+                <Typography className="text-xs text-amber-700 dark:text-amber-600 font-medium leading-relaxed" variant="p">{isOutOfContractBounds}</Typography>
               </div>
             </div>
           )}
 
           <div className="flex gap-4 pt-4 border-t border-slate-50 dark:border-slate-800">
-            <Button className="flex-1 px-6 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-800 transition-all active:scale-95 h-auto shadow-none" onClick={() => { setIsAssignModalOpen(false); }} type="button" variant="outline">Hủy</Button>
-            <Button className="flex-[1.5] bg-primary-600 text-white rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95 disabled:opacity-50 h-auto" disabled={assignMutation.isPending} type="submit" variant="primary">{assignMutation.isPending ? "Đang lưu..." : "Thêm Cột mốc"}</Button>
+            <Button className="flex-1 px-6 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-800 transition-all active:scale-95 h-auto shadow-none" onClick={() => { setIsAssignModalOpen(false); }} type="button" variant="outline">{t("common.cancel")}</Button>
+            <Button className="flex-[1.5] bg-primary-600 text-white rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95 disabled:opacity-50 h-auto" disabled={assignMutation.isPending} type="submit" variant="primary">{assignMutation.isPending ? t("common.saving") : t("employees.phases.add_milestone")}</Button>
           </div>
         </form>
       </Modal>
 
-      <Modal icon={<CheckCircle2 size={24} />} isOpen={isStatusModalOpen} maxWidth="md" onClose={() => { setIsStatusModalOpen(false); }} subtitle="Ghi nhận kết quả đánh giá cho Cột mốc này." title="Cập nhật kết quả">
+      <Modal icon={<CheckCircle2 size={24} />} isOpen={isStatusModalOpen} maxWidth="md" onClose={() => { setIsStatusModalOpen(false); }} subtitle={t("employees.phases.update_status_subtitle")} title={t("employees.phases.update_status")}>
         <form className="space-y-6 pt-4 animate-in fade-in" onSubmit={handleStatusSubmit}>
           <div className="space-y-3">
-            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1 block">Trạng thái mới</span>
+            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1 block">{t("employees.phases.status_new")}</span>
             <div className="flex gap-4">
               <Button 
                 className={cn("flex-1 py-3 px-4 rounded-xl font-bold text-xs uppercase tracking-widest border transition-all flex items-center justify-center gap-2 h-auto shadow-none border-transparent", statusData.status === "completed" ? "bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-50" : "bg-white text-slate-400 border-slate-200 hover:border-emerald-200 hover:bg-slate-50")}
@@ -345,19 +344,19 @@ export default function EmployeePhasesTab({ wsId, employeeId, formatDate }: Prop
           </div>
 
           <div className="space-y-3">
-            <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="evaluation_notes">Ghi chú Đánh giá</label>
+            <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="evaluation_notes">{t("employees.phases.evaluation_notes")}</label>
             <textarea 
               className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all shadow-sm min-h-[120px] resize-none"
               id="evaluation_notes"
               onChange={e => { setStatusData({...statusData, evaluation_notes: e.target.value}); }}
-              placeholder="Ghi chú đánh giá sau khi kết thúc cột mốc này..."
+              placeholder={t("employees.phases.evaluation_notes_placeholder")}
               value={statusData.evaluation_notes}
             />
           </div>
 
           <div className="flex gap-4 pt-4 border-t border-slate-50 dark:border-slate-800">
-            <Button className="flex-1 px-6 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-800 transition-all active:scale-95 h-auto shadow-none" onClick={() => { setIsStatusModalOpen(false); }} type="button" variant="outline">Hủy</Button>
-            <Button className="flex-[1.5] bg-primary-600 text-white rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95 disabled:opacity-50 h-auto" disabled={statusMutation.isPending} type="submit" variant="primary">{statusMutation.isPending ? "Đang lưu..." : "Cập nhật"}</Button>
+            <Button className="flex-1 px-6 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-800 transition-all active:scale-95 h-auto shadow-none" onClick={() => { setIsStatusModalOpen(false); }} type="button" variant="outline">{t("common.cancel")}</Button>
+            <Button className="flex-[1.5] bg-primary-600 text-white rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95 disabled:opacity-50 h-auto" disabled={statusMutation.isPending} type="submit" variant="primary">{statusMutation.isPending ? t("common.saving") : t("common.update")}</Button>
           </div>
         </form>
       </Modal>

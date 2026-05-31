@@ -422,6 +422,31 @@
     "filter": {
       "paper_forms": "纸质表单",
       "self_service": "自助服务"
+    },
+    "pre_ot_dialog": {
+      "new_request_btn": "新建 Pre-OT 申请",
+      "modal_title": "计划加班 (Pre-OT)",
+      "modal_subtitle": "提前为员工安排加班",
+      "select_employees": "选择员工",
+      "no_employees": "未找到员工",
+      "selected_count": "已选择 {{count}} 人",
+      "quota_warning_title": "额度预警",
+      "quota_warning_desc": "所选员工本月已使用 {{used}} 小时（上限 {{limit}} 小时）。",
+      "date": "日期",
+      "start_time": "开始时间",
+      "end_time": "结束时间",
+      "estimated_duration": "预计时长",
+      "duration_hours": "{{hours}} 小时",
+      "business_reason": "业务原因",
+      "reason_placeholder": "为什么需要加班？",
+      "submit_btn": "提交申请",
+      "validation": {
+        "select_employee": "请至少选择一名员工",
+        "provide_reason": "请提供原因",
+        "invalid_time": "无效的时间范围"
+      },
+      "success_message": "Pre-OT 申请创建成功！",
+      "error_message": "创建加班申请失败"
     }
   },
   "holidays": {

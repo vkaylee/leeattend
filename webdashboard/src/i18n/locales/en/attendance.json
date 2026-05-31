@@ -422,6 +422,31 @@
     "filter": {
       "paper_forms": "Paper Forms",
       "self_service": "Self-Service"
+    },
+    "pre_ot_dialog": {
+      "new_request_btn": "New Pre-OT Request",
+      "modal_title": "Plan Overtime (Pre-OT)",
+      "modal_subtitle": "Assign overtime to employees beforehand",
+      "select_employees": "Select Employees",
+      "no_employees": "No employees found",
+      "selected_count": "{{count}} selected",
+      "quota_warning_title": "Quota Warning",
+      "quota_warning_desc": "Selected employee has used {{used}}h out of {{limit}}h this month.",
+      "date": "Date",
+      "start_time": "Start Time",
+      "end_time": "End Time",
+      "estimated_duration": "Estimated Duration",
+      "duration_hours": "{{hours}} hours",
+      "business_reason": "Business Reason",
+      "reason_placeholder": "Why is this overtime necessary?",
+      "submit_btn": "Submit Request",
+      "validation": {
+        "select_employee": "Please select at least one employee",
+        "provide_reason": "Please provide a reason",
+        "invalid_time": "Invalid time range"
+      },
+      "success_message": "Pre-OT Request created successfully!",
+      "error_message": "Failed to create OT request"
     }
   },
   "holidays": {

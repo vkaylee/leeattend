@@ -1,5 +1,6 @@
 {
   "common": {
+    "required_fields": "Please fill in all required fields",
     "switching_workspace": "Switching workspace...",
     "hours": "Hours",
     "syncing_data": "Syncing data...",
