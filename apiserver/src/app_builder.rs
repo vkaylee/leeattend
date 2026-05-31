@@ -341,15 +341,27 @@ impl AppState {
             workspace_config_repo.clone(),
         ));
 
-        let approval_workflow_service = Arc::new(crate::services::ApprovalWorkflowService::new(
-            approval_workflow_repo.clone(),
-            workspace_config_repo.clone(),
-            workspace_repo.clone(),
-            employee_repo.clone(),
-            department_repo.clone(),
-            leave_request_repo.clone(),
-            overtime_request_repo.clone(),
-        ));
+        let mut workflow_handlers: std::collections::HashMap<
+            String,
+            Arc<dyn crate::services::approval_workflow_service::WorkflowCallbackHandler>,
+        > = std::collections::HashMap::new();
+        workflow_handlers.insert(
+            "attendance_adjustment".to_string(),
+            adjustment_service.clone(),
+        );
+
+        let approval_workflow_service = Arc::new(
+            crate::services::ApprovalWorkflowService::new(
+                approval_workflow_repo.clone(),
+                workspace_config_repo.clone(),
+                workspace_repo.clone(),
+                employee_repo.clone(),
+                department_repo.clone(),
+                leave_request_repo.clone(),
+                overtime_request_repo.clone(),
+            )
+            .with_handlers(workflow_handlers),
+        );
 
         let overtime_request_service = Arc::new(crate::services::OvertimeRequestService::new(
             overtime_request_repo.clone(),

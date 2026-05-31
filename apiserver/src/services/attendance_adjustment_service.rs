@@ -178,6 +178,28 @@ impl AttendanceAdjustmentService {
     }
 }
 
+#[async_trait::async_trait]
+impl crate::services::approval_workflow_service::WorkflowCallbackHandler
+    for AttendanceAdjustmentService
+{
+    async fn on_workflow_completed(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        entity_id: Uuid,
+        status: &str,
+        user_id: Uuid,
+    ) -> Result<(), AppError> {
+        let workspace_id = auth_token.workspace_id();
+        let adj_status = match status {
+            "approved" => crate::models::AdjustmentStatus::Approved,
+            "rejected" => crate::models::AdjustmentStatus::Rejected,
+            _ => crate::models::AdjustmentStatus::Pending,
+        };
+        self.approve_request(workspace_id, user_id, entity_id, adj_status)
+            .await
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

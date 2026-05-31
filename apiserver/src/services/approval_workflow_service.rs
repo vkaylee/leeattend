@@ -14,6 +14,17 @@ use serde_json::json;
 use std::sync::Arc;
 use uuid::Uuid;
 
+#[async_trait::async_trait]
+pub trait WorkflowCallbackHandler: Send + Sync {
+    async fn on_workflow_completed(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        entity_id: Uuid,
+        status: &str,
+        user_id: Uuid,
+    ) -> Result<(), AppError>;
+}
+
 pub struct ApprovalWorkflowService {
     approval_workflow_repo: Arc<dyn ApprovalWorkflowRepository>,
     workspace_config_repo: Arc<dyn WorkspaceConfigRepository>,
@@ -22,6 +33,7 @@ pub struct ApprovalWorkflowService {
     department_repo: Arc<dyn DepartmentRepository>,
     leave_request_repo: Arc<dyn LeaveRequestRepository>,
     overtime_request_repo: Arc<dyn OvertimeRequestRepository>,
+    handlers: std::collections::HashMap<String, Arc<dyn WorkflowCallbackHandler>>,
 }
 
 impl ApprovalWorkflowService {
@@ -42,7 +54,17 @@ impl ApprovalWorkflowService {
             department_repo,
             leave_request_repo,
             overtime_request_repo,
+            handlers: std::collections::HashMap::new(),
         }
+    }
+
+    #[must_use]
+    pub fn with_handlers(
+        mut self,
+        handlers: std::collections::HashMap<String, Arc<dyn WorkflowCallbackHandler>>,
+    ) -> Self {
+        self.handlers = handlers;
+        self
     }
 
     pub async fn create_workflow(
@@ -842,42 +864,49 @@ impl ApprovalWorkflowService {
 
         if updated_instance.status != "pending" {
             let entity_id = updated_instance.entity_id;
-            match updated_instance.entity_type.as_str() {
-                "leave_request" => {
-                    let new_leave_status = match updated_instance.status.as_str() {
-                        "approved" => LeaveStatus::Approved,
-                        "rejected" => LeaveStatus::Rejected,
-                        _ => LeaveStatus::Pending,
-                    };
-                    self.leave_request_repo
-                        .update_leave_request_status(
-                            auth_token,
-                            entity_id,
-                            new_leave_status,
-                            Some(user_id),
-                        )
-                        .await?;
-                }
-                "ot_request" => {
-                    let new_ot_status = match updated_instance.status.as_str() {
-                        "approved" => OtRequestStatus::Approved,
-                        "rejected" => OtRequestStatus::Rejected,
-                        "returned" => OtRequestStatus::Draft,
-                        _ => OtRequestStatus::PendingApproval,
-                    };
-                    if let Ok(Some(mut req)) = self
-                        .overtime_request_repo
-                        .get_request(auth_token, workspace_id, entity_id)
-                        .await
-                    {
-                        req.status = new_ot_status;
-                        let _ = self
-                            .overtime_request_repo
-                            .update_request(auth_token, req)
-                            .await;
+            let entity_type = &updated_instance.entity_type;
+            if let Some(handler) = self.handlers.get(entity_type) {
+                handler
+                    .on_workflow_completed(auth_token, entity_id, &updated_instance.status, user_id)
+                    .await?;
+            } else {
+                match entity_type.as_str() {
+                    "leave_request" => {
+                        let new_leave_status = match updated_instance.status.as_str() {
+                            "approved" => LeaveStatus::Approved,
+                            "rejected" => LeaveStatus::Rejected,
+                            _ => LeaveStatus::Pending,
+                        };
+                        self.leave_request_repo
+                            .update_leave_request_status(
+                                auth_token,
+                                entity_id,
+                                new_leave_status,
+                                Some(user_id),
+                            )
+                            .await?;
                     }
+                    "ot_request" => {
+                        let new_ot_status = match updated_instance.status.as_str() {
+                            "approved" => OtRequestStatus::Approved,
+                            "rejected" => OtRequestStatus::Rejected,
+                            "returned" => OtRequestStatus::Draft,
+                            _ => OtRequestStatus::PendingApproval,
+                        };
+                        if let Ok(Some(mut req)) = self
+                            .overtime_request_repo
+                            .get_request(auth_token, workspace_id, entity_id)
+                            .await
+                        {
+                            req.status = new_ot_status;
+                            let _ = self
+                                .overtime_request_repo
+                                .update_request(auth_token, req)
+                                .await;
+                        }
+                    }
+                    _ => {}
                 }
-                _ => {}
             }
         }
 
@@ -3308,6 +3337,106 @@ mod tests {
                 *s.leave_statuses.get(&entity_id).unwrap(),
                 LeaveStatus::Approved
             );
+        }
+    }
+
+    #[tokio::test]
+    async fn test_custom_workflow_callback_handler() {
+        let (mut service, state) = setup_test_service();
+        let ws_id = Uuid::new_v4();
+        let token = TenantAuthToken::system_override(ws_id);
+
+        let entity_id = Uuid::new_v4();
+        let user_id = Uuid::new_v4();
+
+        let called_state = std::sync::Arc::new(std::sync::Mutex::new(None));
+        let handler = MockCallbackHandler {
+            called: called_state.clone(),
+        };
+        let mut handlers = std::collections::HashMap::new();
+        handlers.insert(
+            "custom_entity".to_string(),
+            Arc::new(handler) as Arc<dyn WorkflowCallbackHandler>,
+        );
+        service = service.with_handlers(handlers);
+
+        let instance = ApprovalWorkflowInstance {
+            id: Uuid::new_v4(),
+            workspace_id: ws_id,
+            workflow_id: None,
+            entity_type: "custom_entity".to_string(),
+            entity_id,
+            status: "pending".to_string(),
+            current_step_order: 1,
+            steps_snapshot: serde_json::json!([{
+                "step_order": 1,
+                "step_name": "Step 1",
+                "approver_type": "specific_user",
+                "approver_config": {},
+                "resolved_approver_ids": [user_id.to_string()],
+                "consensus_mode": "any",
+                "action_required": "approve",
+                "can_skip": false,
+                "status": "pending",
+                "sla_hours": null,
+                "escalation_action": null,
+                "approvers_acted": []
+            }]),
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        };
+
+        let task = ApprovalWorkflowTask::new(
+            instance.id,
+            1,
+            "specific_user".to_string(),
+            Some(user_id),
+            None,
+        );
+
+        {
+            let mut s = state.lock().unwrap();
+            s.instances.insert(instance.id, instance.clone());
+            s.tasks.insert(task.id(), task);
+        }
+
+        let res = service
+            .process_approval_action(
+                &token,
+                user_id,
+                instance.id,
+                "approve".to_string(),
+                None,
+                None,
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(res.status, "approved");
+
+        let result_guard = called_state.lock().unwrap();
+        assert!(result_guard.is_some());
+        let (called_id, called_status) = result_guard.as_ref().unwrap();
+        assert_eq!(*called_id, entity_id);
+        assert_eq!(called_status, "approved");
+    }
+
+    struct MockCallbackHandler {
+        called: std::sync::Arc<std::sync::Mutex<Option<(Uuid, String)>>>,
+    }
+
+    #[async_trait::async_trait]
+    impl WorkflowCallbackHandler for MockCallbackHandler {
+        async fn on_workflow_completed(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            entity_id: Uuid,
+            status: &str,
+            _user_id: Uuid,
+        ) -> Result<(), AppError> {
+            let mut guard = self.called.lock().unwrap();
+            *guard = Some((entity_id, status.to_string()));
+            Ok(())
         }
     }
 }

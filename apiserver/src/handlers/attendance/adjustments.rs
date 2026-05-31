@@ -45,6 +45,17 @@ pub async fn submit_attendance_adjustment(
         .submit_request(workspace_id, user_id, req)
         .await?;
 
+    state
+        .core
+        .approval_workflow_service
+        .submit_to_workflow(
+            &ctx.auth_token,
+            "attendance_adjustment".to_string(),
+            adjustment.id,
+            adjustment.employee_id,
+        )
+        .await?;
+
     Ok((StatusCode::CREATED, Json(adjustment)))
 }
 
@@ -72,11 +83,36 @@ pub async fn approve_attendance_adjustment(
 ) -> AppResult<StatusCode> {
     let (_, id) = __path_params;
     ctx.require_permission(Permission::AttendanceAdjustmentsApprove)?;
-    state
-        .attendance
-        .adjustment_service
-        .approve_request(ctx.workspace_id, user_id, id, req.status)
+
+    let opt_instance = state
+        .core
+        .approval_workflow_service
+        .get_workflow_instance_by_entity(&ctx.auth_token, "attendance_adjustment", id)
         .await?;
+
+    if let Some(instance) = opt_instance {
+        let action = match req.status {
+            AdjustmentStatus::Approved => "approve".to_string(),
+            AdjustmentStatus::Rejected => "reject".to_string(),
+            AdjustmentStatus::Pending => {
+                return Err(crate::errors::AppError::Validation(
+                    "Cannot set status to pending".to_string(),
+                ))
+            }
+        };
+
+        state
+            .core
+            .approval_workflow_service
+            .process_approval_action(&ctx.auth_token, user_id, instance.id, action, None, None)
+            .await?;
+    } else {
+        state
+            .attendance
+            .adjustment_service
+            .approve_request(ctx.workspace_id, user_id, id, req.status)
+            .await?;
+    }
 
     Ok(StatusCode::OK)
 }
