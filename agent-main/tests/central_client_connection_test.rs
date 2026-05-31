@@ -26,11 +26,13 @@ use agent::hybrid_database::HybridDatabase;
 use agent::models::AttendanceData;
 use agent::time_sync::TimeSync;
 use dashmap::DashMap;
+use tokio_util::sync::CancellationToken;
 
 async fn start_mock_ws_server() -> (tokio::sync::broadcast::Receiver<serde_json::Value>, u16) {
     let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
     let port = listener.local_addr().unwrap().port();
     let (tx, rx) = tokio::sync::broadcast::channel(100);
+    let tx_clone = tx.clone();
 
     tokio::spawn(async move {
         if let Ok((stream, _)) = listener.accept().await {
@@ -59,6 +61,7 @@ async fn start_mock_ws_server() -> (tokio::sync::broadcast::Receiver<serde_json:
                 }
             }
         }
+        let _ = tx_clone.send(serde_json::json!({"closed": true}));
     });
 
     (rx, port)
@@ -67,6 +70,7 @@ async fn start_mock_ws_server() -> (tokio::sync::broadcast::Receiver<serde_json:
 #[tokio::test]
 #[ignore] // Network-dependent: requires WS mock server timing; run explicitly
 async fn test_central_client_connection_and_sync() {
+    let _ = env_logger::builder().is_test(true).try_init();
     let (mut rx_server, port) = start_mock_ws_server().await;
     let url = format!("ws://127.0.0.1:{}", port);
 
@@ -93,6 +97,12 @@ async fn test_central_client_connection_and_sync() {
         command_registry,
         device_locks,
         time_sync,
+        CancellationToken::new(),
+        500,
+        500,
+        50,
+        100,
+        200,
     );
 
     let _tx = client.get_tx();
@@ -139,4 +149,69 @@ async fn test_central_client_connection_and_sync() {
         }
     }
     assert!(found_log, "Did not receive sync message");
+}
+
+#[tokio::test]
+async fn test_central_client_cancellation() {
+    let _ = env_logger::builder().is_test(true).try_init();
+
+    let (mut rx_server, port) = start_mock_ws_server().await;
+    let url = format!("ws://127.0.0.1:{}", port);
+    let hybrid = HybridDatabase::new(":memory:", 1000, 90).unwrap();
+
+    let time_sync = Arc::new(TimeSync::new());
+    let device_locks = Arc::new(DashMap::new());
+    let command_registry = Arc::new(DashMap::new());
+    let cancel_token = CancellationToken::new();
+
+    let (client, central_rx, _reload_rx) = CentralClient::new(
+        url,
+        "AGENT_1".to_string(),
+        "TOKEN".to_string(),
+        hybrid.clone(),
+        30,
+        command_registry,
+        device_locks,
+        time_sync,
+        cancel_token.clone(),
+        500,
+        500,
+        50,
+        100,
+        200,
+    );
+
+    // Spawn the client
+    let handle = tokio::spawn(async move {
+        client.start(central_rx).await;
+    });
+
+    // Wait and receive Handshake to confirm connection is established
+    let handshake = tokio::time::timeout(Duration::from_secs(10), rx_server.recv())
+        .await
+        .expect("Timeout waiting for handshake")
+        .unwrap();
+    assert!(handshake.to_string().contains("AGENT_1"));
+
+    // Trigger cancellation
+    cancel_token.cancel();
+
+    // The client connection manager should exit, dropping the socket, and mock server should broadcast "closed"
+    let mut closed_received = false;
+    for _ in 0..10 {
+        if let Ok(msg) = tokio::time::timeout(Duration::from_secs(1), rx_server.recv()).await {
+            let msg_val = msg.unwrap();
+            if msg_val.get("closed").is_some() {
+                closed_received = true;
+                break;
+            }
+        }
+    }
+    assert!(
+        closed_received,
+        "Mock server did not receive connection closed event after client cancellation"
+    );
+
+    // Clean up handle
+    let _ = handle.await;
 }

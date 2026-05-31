@@ -160,3 +160,21 @@ async fn test_zk_worker_detected_checksum_with_preset_no_connect() {
         "Preset checksum != detected; detected requires successful connect"
     );
 }
+
+#[tokio::test]
+async fn test_zk_worker_connect_timeout_cleanup() {
+    let _ = env_logger::builder().is_test(true).try_init();
+
+    // Start a listener that binds but does nothing
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let port = listener.local_addr().unwrap().port();
+
+    // Create worker with 1 second connect timeout
+    let mut worker = ZkWorker::new(None, None, 1, 60);
+
+    let result = worker.connect("127.0.0.1", port).await;
+
+    assert!(result.is_err());
+    let err_msg = result.err().unwrap().to_string();
+    assert!(err_msg.contains("Connection timed out after 1s") || err_msg.contains("timed out"));
+}

@@ -25,6 +25,11 @@ pub struct Config {
     pub zk_legacy_checksum: Option<bool>,
     /// Timeout (seconds) for ZK device connect + initial info fetch
     pub zk_connect_timeout_secs: u64,
+    pub sync_batch_limit: usize,
+    pub sync_idle_interval_ms: u64,
+    pub sync_backlogged_interval_ms: u64,
+    pub sync_moderate_interval_ms: u64,
+    pub sync_normal_interval_ms: u64,
 }
 
 impl Config {
@@ -101,6 +106,31 @@ impl Config {
             .parse()
             .unwrap_or(60);
 
+        let sync_batch_limit = env::var("SYNC_BATCH_LIMIT")
+            .unwrap_or_default()
+            .parse()
+            .unwrap_or(500);
+
+        let sync_idle_interval_ms = env::var("SYNC_IDLE_INTERVAL_MS")
+            .unwrap_or_default()
+            .parse()
+            .unwrap_or(500);
+
+        let sync_backlogged_interval_ms = env::var("SYNC_BACKLOGGED_INTERVAL_MS")
+            .unwrap_or_default()
+            .parse()
+            .unwrap_or(50);
+
+        let sync_moderate_interval_ms = env::var("SYNC_MODERATE_INTERVAL_MS")
+            .unwrap_or_default()
+            .parse()
+            .unwrap_or(100);
+
+        let sync_normal_interval_ms = env::var("SYNC_NORMAL_INTERVAL_MS")
+            .unwrap_or_default()
+            .parse()
+            .unwrap_or(200);
+
         if !fallbacks.is_empty() {
             warn!("⚠️  PHÁT HIỆN THIẾU CẤU HÌNH .ENV - SỬ DỤNG GIÁ TRỊ MẶC ĐỊNH:");
             for f in fallbacks {
@@ -124,6 +154,11 @@ impl Config {
             connection_max_lifetime_secs,
             zk_legacy_checksum,
             zk_connect_timeout_secs,
+            sync_batch_limit,
+            sync_idle_interval_ms,
+            sync_backlogged_interval_ms,
+            sync_moderate_interval_ms,
+            sync_normal_interval_ms,
         }
     }
 
@@ -172,6 +207,17 @@ impl Config {
         );
         info!("ZK Connect Timeout : {}s", self.zk_connect_timeout_secs);
         info!("------------------------------------------------------------");
+        info!("📤 CENTRAL SERVER SYNC SETTINGS");
+        info!("------------------------------------------------------------");
+        info!("Sync Batch Limit   : {}", self.sync_batch_limit);
+        info!("Sync Idle Int      : {}ms", self.sync_idle_interval_ms);
+        info!(
+            "Sync Backlog Int   : {}ms",
+            self.sync_backlogged_interval_ms
+        );
+        info!("Sync Moderate Int  : {}ms", self.sync_moderate_interval_ms);
+        info!("Sync Normal Int    : {}ms", self.sync_normal_interval_ms);
+        info!("------------------------------------------------------------");
         info!("🔄 RETRY & BACKOFF CONSTANTS");
         info!("------------------------------------------------------------");
         info!("Sync Backoff Cap   : 300s (5 min) ±10% jitter");
@@ -208,6 +254,11 @@ mod tests {
             connection_max_lifetime_secs: 1800,
             zk_legacy_checksum: None,
             zk_connect_timeout_secs: 60,
+            sync_batch_limit: 500,
+            sync_idle_interval_ms: 500,
+            sync_backlogged_interval_ms: 50,
+            sync_moderate_interval_ms: 100,
+            sync_normal_interval_ms: 200,
         };
 
         assert_eq!(config.agent_id, "test-agent");
@@ -224,6 +275,11 @@ mod tests {
         assert_eq!(config.connection_max_lifetime_secs, 1800);
         assert_eq!(config.zk_legacy_checksum, None);
         assert_eq!(config.zk_connect_timeout_secs, 60);
+        assert_eq!(config.sync_batch_limit, 500);
+        assert_eq!(config.sync_idle_interval_ms, 500);
+        assert_eq!(config.sync_backlogged_interval_ms, 50);
+        assert_eq!(config.sync_moderate_interval_ms, 100);
+        assert_eq!(config.sync_normal_interval_ms, 200);
     }
 
     #[test]
@@ -246,6 +302,11 @@ mod tests {
             std::env::set_var("CONNECTION_MAX_LIFETIME_SECS", "900");
             std::env::set_var("ZK_LEGACY_CHECKSUM", "true");
             std::env::set_var("ZK_CONNECT_TIMEOUT_SECS", "30");
+            std::env::set_var("SYNC_BATCH_LIMIT", "1000");
+            std::env::set_var("SYNC_IDLE_INTERVAL_MS", "1000");
+            std::env::set_var("SYNC_BACKLOGGED_INTERVAL_MS", "100");
+            std::env::set_var("SYNC_MODERATE_INTERVAL_MS", "200");
+            std::env::set_var("SYNC_NORMAL_INTERVAL_MS", "300");
         }
 
         let config = Config::load();
@@ -264,6 +325,11 @@ mod tests {
         assert_eq!(config.connection_max_lifetime_secs, 900);
         assert_eq!(config.zk_legacy_checksum, Some(true));
         assert_eq!(config.zk_connect_timeout_secs, 30);
+        assert_eq!(config.sync_batch_limit, 1000);
+        assert_eq!(config.sync_idle_interval_ms, 1000);
+        assert_eq!(config.sync_backlogged_interval_ms, 100);
+        assert_eq!(config.sync_moderate_interval_ms, 200);
+        assert_eq!(config.sync_normal_interval_ms, 300);
 
         // Cleanup
         unsafe {
@@ -281,6 +347,11 @@ mod tests {
             std::env::remove_var("CONNECTION_MAX_LIFETIME_SECS");
             std::env::remove_var("ZK_LEGACY_CHECKSUM");
             std::env::remove_var("ZK_CONNECT_TIMEOUT_SECS");
+            std::env::remove_var("SYNC_BATCH_LIMIT");
+            std::env::remove_var("SYNC_IDLE_INTERVAL_MS");
+            std::env::remove_var("SYNC_BACKLOGGED_INTERVAL_MS");
+            std::env::remove_var("SYNC_MODERATE_INTERVAL_MS");
+            std::env::remove_var("SYNC_NORMAL_INTERVAL_MS");
         }
     }
 
@@ -308,6 +379,11 @@ mod tests {
             std::env::set_var("SIGNATURE_CLEANUP_HOURS", "");
             std::env::set_var("INFLIGHT_TIMEOUT_SECS", "-1");
             std::env::set_var("SUCCESS_COOLDOWN_SECS", "abc");
+            std::env::set_var("SYNC_BATCH_LIMIT", "abc");
+            std::env::set_var("SYNC_IDLE_INTERVAL_MS", "abc");
+            std::env::set_var("SYNC_BACKLOGGED_INTERVAL_MS", "abc");
+            std::env::set_var("SYNC_MODERATE_INTERVAL_MS", "abc");
+            std::env::set_var("SYNC_NORMAL_INTERVAL_MS", "abc");
         }
 
         let config = Config::load();
@@ -320,6 +396,11 @@ mod tests {
         assert_eq!(config.signature_cleanup_hours, 24);
         assert_eq!(config.inflight_timeout_secs, 300);
         assert_eq!(config.success_cooldown_secs, 300);
+        assert_eq!(config.sync_batch_limit, 500);
+        assert_eq!(config.sync_idle_interval_ms, 500);
+        assert_eq!(config.sync_backlogged_interval_ms, 50);
+        assert_eq!(config.sync_moderate_interval_ms, 100);
+        assert_eq!(config.sync_normal_interval_ms, 200);
 
         // Cleanup
         unsafe {
@@ -330,6 +411,11 @@ mod tests {
             std::env::remove_var("SIGNATURE_CLEANUP_HOURS");
             std::env::remove_var("INFLIGHT_TIMEOUT_SECS");
             std::env::remove_var("SUCCESS_COOLDOWN_SECS");
+            std::env::remove_var("SYNC_BATCH_LIMIT");
+            std::env::remove_var("SYNC_IDLE_INTERVAL_MS");
+            std::env::remove_var("SYNC_BACKLOGGED_INTERVAL_MS");
+            std::env::remove_var("SYNC_MODERATE_INTERVAL_MS");
+            std::env::remove_var("SYNC_NORMAL_INTERVAL_MS");
         }
     }
 
@@ -350,6 +436,11 @@ mod tests {
             connection_max_lifetime_secs: 1800,
             zk_legacy_checksum: None,
             zk_connect_timeout_secs: 60,
+            sync_batch_limit: 500,
+            sync_idle_interval_ms: 500,
+            sync_backlogged_interval_ms: 50,
+            sync_moderate_interval_ms: 100,
+            sync_normal_interval_ms: 200,
         };
 
         // Should not panic

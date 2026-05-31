@@ -99,6 +99,12 @@ impl Orchestrator {
             command_registry.clone(),
             device_locks.clone(),
             time_sync.clone(),
+            self.cancel_token.clone(),
+            self.config.sync_batch_limit,
+            self.config.sync_idle_interval_ms,
+            self.config.sync_backlogged_interval_ms,
+            self.config.sync_moderate_interval_ms,
+            self.config.sync_normal_interval_ms,
         );
 
         tokio::spawn(central_client.start(central_rx));

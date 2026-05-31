@@ -95,7 +95,7 @@ impl Worker for ZkWorker {
             );
         }
 
-        let join_handle = tokio::task::spawn_blocking(move || {
+        let mut join_handle = tokio::task::spawn_blocking(move || {
             let res = zk.connect(rustzk::ZKProtocol::Auto);
 
             // If connected successfully, fetch static info immediately
@@ -127,8 +127,11 @@ impl Worker for ZkWorker {
             (zk, res, static_info)
         });
 
-        match tokio::time::timeout(Duration::from_secs(self.connect_timeout_secs), join_handle)
-            .await
+        match tokio::time::timeout(
+            Duration::from_secs(self.connect_timeout_secs),
+            &mut join_handle,
+        )
+        .await
         {
             Ok(Ok((zk_instance, Ok(_), static_info))) => {
                 // Capture detected checksum mode BEFORE moving ZK into mutex
@@ -180,14 +183,30 @@ impl Worker for ZkWorker {
                 Err(Box::new(ZkError { message: msg }))
             }
             Err(_) => {
-                // TIMEOUT — blocking thread still running with ZK instance.
-                // Abort it so the ZK gets dropped (triggers rustzk cleanup).
-                // Note: spawn_blocking tasks cannot be truly aborted, but
-                // the ZK will be dropped when the thread eventually finishes.
+                let timeout_secs = self.connect_timeout_secs;
                 warn!(
-                    "⚠️ [{ip}] Connection timed out after 20s — blocking thread may still be running"
+                    "⚠️ [{ip}] Connection timed out after {timeout_secs}s — spawning cleanup task for blocking thread"
                 );
-                let msg = format!("❌ [{ip}] Connection timed out after 20s");
+                let ip_clone = ip.to_string();
+                tokio::spawn(async move {
+                    match join_handle.await {
+                        Ok((mut zk, _, _)) => {
+                            info!(
+                                "[{ip_clone}] Connection background task finished post-timeout. Disconnecting..."
+                            );
+                            let _ = tokio::task::spawn_blocking(move || {
+                                let _ = zk.disconnect();
+                            })
+                            .await;
+                        }
+                        Err(e) => {
+                            error!(
+                                "[{ip_clone}] Connection background task join error post-timeout: {e}"
+                            );
+                        }
+                    }
+                });
+                let msg = format!("❌ [{ip}] Connection timed out after {timeout_secs}s");
                 Err(Box::new(ZkError { message: msg }))
             }
         }
@@ -214,14 +233,17 @@ impl Worker for ZkWorker {
 
         debug!("[{ip}] Fetching attendance logs from device...");
 
-        let join_handle = tokio::task::spawn_blocking(move || {
+        let mut join_handle = tokio::task::spawn_blocking(move || {
             let mut zk = zk_val;
             let res = zk.get_attendance().map_err(|e| format!("{e}"));
             (zk, res)
         });
 
-        match tokio::time::timeout(Duration::from_secs(self.inflight_timeout_secs), join_handle)
-            .await
+        match tokio::time::timeout(
+            Duration::from_secs(self.inflight_timeout_secs),
+            &mut join_handle,
+        )
+        .await
         {
             Ok(Ok((zk, Ok(logs)))) => {
                 debug!("[{ip}] Successfully fetched {} logs", logs.len());
@@ -262,14 +284,30 @@ impl Worker for ZkWorker {
                 Err(Box::new(ZkError { message: msg }))
             }
             Err(_) => {
-                // TIMEOUT — the background thread is still running and holds the ZK instance.
-                // It will drop it when it eventually wakes and returns, cleaning up naturally.
-                // We return immediately leaving self.zk as None.
                 let timeout_secs = self.inflight_timeout_secs;
                 let msg = format!(
                     "[{ip}] Getting logs timed out after {timeout_secs}s — connection dropped"
                 );
                 warn!("{msg}");
+                let ip_clone = ip.clone();
+                tokio::spawn(async move {
+                    match join_handle.await {
+                        Ok((mut zk, _)) => {
+                            info!(
+                                "[{ip_clone}] Get logs background task finished post-timeout. Disconnecting..."
+                            );
+                            let _ = tokio::task::spawn_blocking(move || {
+                                let _ = zk.disconnect();
+                            })
+                            .await;
+                        }
+                        Err(e) => {
+                            error!(
+                                "[{ip_clone}] Get logs background task join error post-timeout: {e}"
+                            );
+                        }
+                    }
+                });
                 Err(Box::new(ZkError { message: msg }))
             }
         }
@@ -306,7 +344,7 @@ impl Worker for ZkWorker {
         let cached_logs_cap = self.logs_capacity.unwrap_or(0);
         let last_sync_time = time_sync.corrected_now().to_rfc3339();
 
-        let join_handle = tokio::task::spawn_blocking(move || {
+        let mut join_handle = tokio::task::spawn_blocking(move || {
             let mut zk = zk_val;
 
             // Only fetch dynamic checks: get_time and read_sizes (for current counts)
@@ -349,7 +387,7 @@ impl Worker for ZkWorker {
             (zk, Ok::<_, String>(info))
         });
 
-        match tokio::time::timeout(Duration::from_secs(30), join_handle).await {
+        match tokio::time::timeout(Duration::from_secs(30), &mut join_handle).await {
             Ok(Ok((zk, Ok(info)))) => {
                 // Restore connection to Mutex
                 {
@@ -372,12 +410,28 @@ impl Worker for ZkWorker {
                 message: format!("[{ip}] Task join error during get_info: {e}"),
             })),
             Err(_) => {
-                // TIMEOUT — the background thread is still running and holds the ZK instance.
-                // It will drop it when it eventually wakes and returns, cleaning up naturally.
-                // We return immediately leaving self.zk as None.
                 let msg =
                     format!("[{ip}] Getting device info timed out after 30s — connection dropped");
                 warn!("{msg}");
+                let ip_clone = ip.clone();
+                tokio::spawn(async move {
+                    match join_handle.await {
+                        Ok((mut zk, _)) => {
+                            info!(
+                                "[{ip_clone}] Get info background task finished post-timeout. Disconnecting..."
+                            );
+                            let _ = tokio::task::spawn_blocking(move || {
+                                let _ = zk.disconnect();
+                            })
+                            .await;
+                        }
+                        Err(e) => {
+                            error!(
+                                "[{ip_clone}] Get info background task join error post-timeout: {e}"
+                            );
+                        }
+                    }
+                });
                 Err(Box::new(ZkError { message: msg }))
             }
         }
@@ -399,14 +453,14 @@ impl Worker for ZkWorker {
             }
         };
 
-        let join_handle = tokio::task::spawn_blocking(move || {
+        let mut join_handle = tokio::task::spawn_blocking(move || {
             let mut zk = zk_val;
             // Use get_time() as a lightweight probe — it's a single UDP roundtrip
             let res = zk.get_time().map_err(|e| format!("{e}"));
             (zk, res)
         });
 
-        match tokio::time::timeout(Duration::from_secs(5), join_handle).await {
+        match tokio::time::timeout(Duration::from_secs(5), &mut join_handle).await {
             Ok(Ok((zk, Ok(_)))) => {
                 // Restore connection to Mutex
                 {
@@ -429,7 +483,28 @@ impl Worker for ZkWorker {
                 false
             }
             Err(_) => {
-                warn!("[{ip}] Ping timed out after 5s — connection likely dead");
+                warn!(
+                    "[{ip}] Ping timed out after 5s — connection likely dead. Spawning cleanup task."
+                );
+                let ip_clone = ip.clone();
+                tokio::spawn(async move {
+                    match join_handle.await {
+                        Ok((mut zk, _)) => {
+                            info!(
+                                "[{ip_clone}] Ping background task finished post-timeout. Disconnecting..."
+                            );
+                            let _ = tokio::task::spawn_blocking(move || {
+                                let _ = zk.disconnect();
+                            })
+                            .await;
+                        }
+                        Err(e) => {
+                            error!(
+                                "[{ip_clone}] Ping background task join error post-timeout: {e}"
+                            );
+                        }
+                    }
+                });
                 false
             }
         }
@@ -440,11 +515,22 @@ impl Worker for ZkWorker {
         let ip = self.ip.clone();
         let mut guard = zk_arc.lock().await;
         if let Some(mut zk) = guard.take() {
-            let _ = tokio::task::spawn_blocking(move || {
-                info!("[{ip}] Explicitly disconnecting from ZK device...");
+            let ip_clone = ip.clone();
+            let join_handle = tokio::task::spawn_blocking(move || {
+                info!("[{ip_clone}] Explicitly disconnecting from ZK device...");
                 let _ = zk.disconnect();
-            })
-            .await;
+            });
+            match tokio::time::timeout(Duration::from_secs(5), join_handle).await {
+                Ok(Ok(_)) => {
+                    info!("[{ip}] Disconnected successfully.");
+                }
+                Ok(Err(e)) => {
+                    error!("[{ip}] Disconnect task join error: {e}");
+                }
+                Err(_) => {
+                    warn!("[{ip}] Disconnect timed out after 5s — continuing shutdown/reload");
+                }
+            }
         }
     }
 

@@ -20,6 +20,7 @@ use super::retry_manager::{RetryManager, calculate_sync_stats};
 
 use crate::time_sync::TimeSync;
 use dashmap::DashMap;
+use tokio_util::sync::CancellationToken;
 
 // Retry configuration constants
 pub(super) const CONNECTION_TIMEOUT_SECS: u64 = 30;
@@ -45,6 +46,12 @@ pub struct CentralClient {
     command_registry: Arc<DashMap<String, mpsc::Sender<CentralMessage>>>,
     device_locks: DeviceLocks,
     time_sync: Arc<TimeSync>,
+    cancel_token: CancellationToken,
+    sync_batch_limit: usize,
+    sync_idle_interval_ms: u64,
+    sync_backlogged_interval_ms: u64,
+    sync_moderate_interval_ms: u64,
+    sync_normal_interval_ms: u64,
 }
 
 #[allow(clippy::collapsible_if)]
@@ -58,6 +65,12 @@ impl CentralClient {
         command_registry: Arc<DashMap<String, mpsc::Sender<CentralMessage>>>,
         device_locks: DeviceLocks,
         time_sync: Arc<TimeSync>,
+        cancel_token: CancellationToken,
+        sync_batch_limit: usize,
+        sync_idle_interval_ms: u64,
+        sync_backlogged_interval_ms: u64,
+        sync_moderate_interval_ms: u64,
+        sync_normal_interval_ms: u64,
     ) -> (Self, mpsc::Receiver<CentralMessage>, mpsc::Receiver<()>) {
         let (tx, rx) = mpsc::channel(100);
         let (reload_tx, reload_rx) = mpsc::channel(1);
@@ -75,6 +88,12 @@ impl CentralClient {
                 command_registry,
                 device_locks,
                 time_sync,
+                cancel_token,
+                sync_batch_limit,
+                sync_idle_interval_ms,
+                sync_backlogged_interval_ms,
+                sync_moderate_interval_ms,
+                sync_normal_interval_ms,
             },
             rx,
             reload_rx,
@@ -100,12 +119,25 @@ impl CentralClient {
         let connected = self.is_connected.clone();
         let inflight_timeout_secs = self.inflight_timeout_secs;
         let sync_time = self.time_sync.clone();
+        let sync_cancel_token = self.cancel_token.clone();
+        let sync_batch_limit = self.sync_batch_limit;
+        let sync_idle_interval_ms = self.sync_idle_interval_ms;
+        let sync_backlogged_interval_ms = self.sync_backlogged_interval_ms;
+        let sync_moderate_interval_ms = self.sync_moderate_interval_ms;
+        let sync_normal_interval_ms = self.sync_normal_interval_ms;
         tokio::spawn(async move {
             let mut last_stale_check = Instant::now();
 
             loop {
+                if sync_cancel_token.is_cancelled() {
+                    break;
+                }
+
                 if !connected.load(Ordering::Relaxed) {
-                    sleep(Duration::from_secs(1)).await;
+                    tokio::select! {
+                        _ = sync_cancel_token.cancelled() => break,
+                        _ = sleep(Duration::from_secs(1)) => {}
+                    }
                     continue;
                 }
 
@@ -116,7 +148,10 @@ impl CentralClient {
                 };
                 if device_count == 0 {
                     warn!("🔴 Sync loop waiting - no active devices configured");
-                    sleep(Duration::from_secs(5)).await;
+                    tokio::select! {
+                        _ = sync_cancel_token.cancelled() => break,
+                        _ = sleep(Duration::from_secs(5)) => {}
+                    }
                     continue;
                 }
 
@@ -151,7 +186,7 @@ impl CentralClient {
                 }
 
                 // Read from memory
-                let limit = 500;
+                let limit = sync_batch_limit;
                 let start = Instant::now();
                 let logs = sync_hybrid
                     .get_unsynced_logs(limit)
@@ -168,7 +203,7 @@ impl CentralClient {
                     let total_pending = sync_hybrid.count_unsynced_logs().await;
 
                     info!(
-                        "📤 Syncing {count} logs to central server ({stats_str} | Pending: {total_pending})..."
+                        "📤 Syncing {count} logs to central server ({stats_str} | Pending: {total_pending})...."
                     );
 
                     // Mark in-flight in memory
@@ -213,16 +248,22 @@ impl CentralClient {
                 // No separate monitoring needed
 
                 let sleep_duration = if count == 0 {
-                    Duration::from_millis(500) // Idle: check every 500ms
+                    Duration::from_millis(sync_idle_interval_ms) // Idle
                 } else if unsynced_count > 1000 {
-                    Duration::from_millis(50) // Backlogged: drain fast
+                    Duration::from_millis(sync_backlogged_interval_ms) // Backlogged: drain fast
                 } else if unsynced_count > 100 {
-                    Duration::from_millis(100) // Moderate: drain
+                    Duration::from_millis(sync_moderate_interval_ms) // Moderate: drain
                 } else {
-                    Duration::from_millis(200) // Normal: balanced
+                    Duration::from_millis(sync_normal_interval_ms) // Normal: balanced
                 };
 
-                sleep(sleep_duration).await;
+                tokio::select! {
+                    _ = sync_cancel_token.cancelled() => {
+                        info!("⏹️ Sync loop received cancellation signal, stopping.");
+                        break;
+                    }
+                    _ = sleep(sleep_duration) => {}
+                }
             }
         });
 
@@ -230,14 +271,23 @@ impl CentralClient {
         let hb_agent_id = agent_id.clone();
         let hb_tx = tx.clone();
         let hb_time = self.time_sync.clone();
+        let hb_cancel_token = self.cancel_token.clone();
         tokio::spawn(async move {
             loop {
-                sleep(Duration::from_secs(30)).await;
+                tokio::select! {
+                    _ = hb_cancel_token.cancelled() => {
+                        info!("⏹️ Heartbeat task received cancellation signal, stopping.");
+                        break;
+                    }
+                    _ = sleep(Duration::from_secs(30)) => {}
+                }
                 let hb = CentralMessage::Heartbeat {
                     agent_id: hb_agent_id.clone(),
                     timestamp: hb_time.corrected_now().to_rfc3339(),
                 };
-                let _ = hb_tx.send(hb).await;
+                if hb_tx.send(hb).await.is_err() {
+                    break;
+                }
             }
         });
 
@@ -245,14 +295,26 @@ impl CentralClient {
         let conn_reload_tx = ws_reload_tx;
         let ws_connected = self.is_connected.clone();
         let ws_time = self.time_sync.clone();
+        let ws_cancel_token = self.cancel_token.clone();
         tokio::spawn(async move {
             let mut manager = RetryManager::new();
             let mut rx_opt: Option<mpsc::Receiver<CentralMessage>> = Some(rx);
 
             loop {
+                if ws_cancel_token.is_cancelled() {
+                    break;
+                }
+
                 let delay = manager.get_delay();
                 if delay > Duration::from_secs(0) {
-                    sleep(delay).await;
+                    tokio::select! {
+                        _ = ws_cancel_token.cancelled() => break,
+                        _ = sleep(delay) => {}
+                    }
+                }
+
+                if ws_cancel_token.is_cancelled() {
+                    break;
                 }
 
                 // Take the receiver; if unavailable, connection is unrecoverable
@@ -265,7 +327,14 @@ impl CentralClient {
                 };
 
                 info!("Connecting to Central Server at {url}...");
-                match connect_central(&url, &agent_id, &token).await {
+                let conn_res = tokio::select! {
+                    _ = ws_cancel_token.cancelled() => {
+                        break;
+                    }
+                    res = connect_central(&url, &agent_id, &token) => res,
+                };
+
+                match conn_res {
                     Ok((ws_stream, _)) => {
                         info!("✅ Connected to Central Server.");
                         ws_connected.store(true, Ordering::Relaxed);
@@ -327,12 +396,16 @@ impl CentralClient {
                             }
                         });
 
+                        let write_cancel_token = ws_cancel_token.clone();
                         let mut write_task = tokio::spawn(async move {
                             #[allow(unused_mut)]
                             let mut rx = rx;
                             let mut shutdown_rx = shutdown_rx;
                             loop {
                                 tokio::select! {
+                                    _ = write_cancel_token.cancelled() => {
+                                        break;
+                                    }
                                     msg = rx.recv() => {
                                         match msg {
                                             Some(out_msg) => {
@@ -353,8 +426,15 @@ impl CentralClient {
                             rx // Return receiver for reuse on reconnect
                         });
 
-                        // Wait for either task to finish (connection broken)
+                        // Wait for either task to finish (connection broken) or cancellation
                         tokio::select! {
+                            _ = ws_cancel_token.cancelled() => {
+                                info!("⏹️ WS connection manager received cancellation signal, closing connection.");
+                                read_task.abort();
+                                let _ = shutdown_tx.send(()); // Signal write_task to stop
+                                let _ = write_task.await;
+                                break;
+                            }
                             _ = &mut read_task => {
                                 warn!("🔌 WS read loop ended.");
                                 let _ = shutdown_tx.send(()); // Signal write_task to stop gracefully
