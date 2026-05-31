@@ -1,13 +1,14 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable max-lines-per-function, complexity */
 import { useNavigate, useParams } from "@tanstack/react-router";
-import { ArrowLeft, Save, Info, Zap, Clock } from "lucide-react";
+import { ArrowLeft, Save, Info, Zap } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
+import { ShiftTimelinePreview } from "@/components/shifts/shift-timeline-preview";
 import Button from "@/components/ui/button";
 import ConfirmDialog from "@/components/ui/confirm-dialog";
 import { Typography } from "@/components/ui/typography";
-import { ShiftTimelinePreview } from "@/components/shifts/shift-timeline-preview";
+
 import { useShiftEditor } from "./hooks/use-shift-editor";
 
 export default function ShiftEditorPage() {
@@ -50,7 +51,6 @@ export default function ShiftEditorPage() {
     correctionEffectiveDate,
     setCorrectionEffectiveDate,
     handleSubmit,
-    isSaving,
     isSaveDisabled,
     blocker,
   } = useShiftEditor(shiftId);
@@ -139,12 +139,13 @@ export default function ShiftEditorPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
+                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest" htmlFor="shift_name_input">
                   {t("shifts.table.shift_name")} <span className="text-red-500">*</span>
                 </label>
                 <input
                   className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl px-5 py-3.5 font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 transition-all outline-none"
-                  onChange={(e) => setShiftName(e.target.value)}
+                  id="shift_name_input"
+                  onChange={(e) => { setShiftName(e.target.value); }}
                   placeholder={t("shifts.modal.name_placeholder")}
                   required
                   type="text"
@@ -153,14 +154,15 @@ export default function ShiftEditorPage() {
               </div>
               
               <div className="space-y-2">
-                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
+                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest" htmlFor="shift_symbol_input">
                   {t("shifts.modal.report_symbol", "Ký hiệu báo cáo")}
                   <span className="ml-1 normal-case font-normal text-slate-400">(tối đa 10 ký tự)</span>
                 </label>
                 <input
                   className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl px-5 py-3.5 font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 transition-all outline-none"
+                  id="shift_symbol_input"
                   maxLength={10}
-                  onChange={(e) => setShiftSymbol(e.target.value.slice(0, 10))}
+                  onChange={(e) => { setShiftSymbol(e.target.value.slice(0, 10)); }}
                   placeholder={t("shifts.modal.report_symbol_placeholder", "VD: S8, T8, FX...")}
                   type="text"
                   value={shiftSymbol}
@@ -170,24 +172,26 @@ export default function ShiftEditorPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
               <div className="space-y-2">
-                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
+                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest" htmlFor="shift_start_input">
                   {t("shifts.modal.start_time")} <span className="text-red-500">*</span>
                 </label>
                 <input
                   className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl px-5 py-3.5 font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 transition-all outline-none"
-                  onChange={(e) => setShiftStart(e.target.value)}
+                  id="shift_start_input"
+                  onChange={(e) => { setShiftStart(e.target.value); }}
                   required
                   type="time"
                   value={shiftStart}
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
+                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest" htmlFor="shift_end_input">
                   {t("shifts.modal.end_time")} <span className="text-red-500">*</span>
                 </label>
                 <input
                   className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl px-5 py-3.5 font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 transition-all outline-none"
-                  onChange={(e) => setShiftEnd(e.target.value)}
+                  id="shift_end_input"
+                  onChange={(e) => { setShiftEnd(e.target.value); }}
                   required
                   type="time"
                   value={shiftEnd}
@@ -205,7 +209,7 @@ export default function ShiftEditorPage() {
             {/* Grace Period */}
             <div className="space-y-2">
               <div className="flex items-center gap-2">
-                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
+                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest" htmlFor="shift_grace_input">
                   {t("shifts.grace_period")}
                 </label>
                 <div className="group relative">
@@ -217,8 +221,9 @@ export default function ShiftEditorPage() {
               </div>
               <input
                 className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl px-5 py-3.5 font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 transition-all outline-none"
+                id="shift_grace_input"
                 min="0"
-                onChange={(e) => setShiftGrace(parseInt(e.target.value) || 0)}
+                onChange={(e) => { setShiftGrace(parseInt(e.target.value) || 0); }}
                 type="number"
                 value={shiftGrace}
               />
@@ -228,9 +233,9 @@ export default function ShiftEditorPage() {
             <div className="p-6 bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 rounded-3xl space-y-4">
               <div className="flex items-center justify-between">
                 <div className="space-y-1 pr-4">
-                  <label className="text-xs font-bold text-slate-700 dark:text-slate-200 block">
+                  <span className="text-xs font-bold text-slate-700 dark:text-slate-200 block">
                     {t("shifts.modal.allow_early_ot", "Cho phép tính tăng ca sớm")}
-                  </label>
+                  </span>
                   <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-normal leading-normal">
                     {t("shifts.modal.allow_early_ot_help", "Tính thời gian làm việc trước ca là tăng ca sớm (Early OT)")}
                   </span>
@@ -239,7 +244,7 @@ export default function ShiftEditorPage() {
                   aria-checked={allowEarlyOt}
                   aria-label={t("shifts.modal.allow_early_ot", "Cho phép tính tăng ca sớm")}
                   className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 cursor-pointer ${allowEarlyOt ? 'bg-primary-600' : 'bg-slate-200 dark:bg-slate-700'}`}
-                  onClick={() => setAllowEarlyOt(!allowEarlyOt)}
+                  onClick={() => { setAllowEarlyOt(!allowEarlyOt); }}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === " ") {
                       e.preventDefault();
@@ -253,31 +258,31 @@ export default function ShiftEditorPage() {
                 </div>
               </div>
 
-              {allowEarlyOt && (
+              {allowEarlyOt ? (
                 <div className="space-y-2 pt-3 border-t border-slate-200/50 dark:border-slate-700/50 animate-in fade-in slide-in-from-top-2 duration-300">
-                  <label htmlFor="max-early-ot" className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest block">
+                  <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest block" htmlFor="max-early-ot">
                     {t("shifts.modal.max_early_ot", "Giới hạn tăng ca sớm tối đa (phút)")} <span className="text-red-500">*</span>
                   </label>
                   <input
-                    id="max-early-ot"
                     className="w-full bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-3.5 font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 transition-all outline-none"
+                    id="max-early-ot"
                     min="1"
-                    onChange={(e) => setMaxEarlyOtMinutes(parseInt(e.target.value) || 0)}
+                    onChange={(e) => { setMaxEarlyOtMinutes(parseInt(e.target.value) || 0); }}
                     type="number"
                     value={maxEarlyOtMinutes}
                   />
-                  {maxEarlyOtMinutes <= 0 && (
+                  {maxEarlyOtMinutes <= 0 ? (
                     <span className="text-[10px] text-red-500 block font-medium">
                       {t("shifts.modal.max_early_ot_required", "Vui lòng nhập số phút giới hạn lớn hơn 0.")}
                     </span>
-                  )}
+                  ) : null}
                 </div>
-              )}
+              ) : null}
             </div>
           </div>
 
           {/* Card 3: Correction Config (Only in Edit Mode) */}
-          {isEditMode && (
+          {isEditMode ? (
             <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/60 rounded-[2.5rem] p-10 shadow-sm space-y-6">
               <div className="flex items-center gap-3">
                 <div className="bg-amber-100 dark:bg-amber-900 p-2.5 rounded-2xl text-amber-600 dark:text-amber-300">
@@ -298,7 +303,7 @@ export default function ShiftEditorPage() {
                   checked={isCorrection}
                   className="w-4 h-4 rounded-md border-amber-300 text-amber-600 dark:text-amber-400 focus:ring-amber-500 cursor-pointer"
                   id="editor_is_correction"
-                  onChange={(e) => setIsCorrection(e.target.checked)}
+                  onChange={(e) => { setIsCorrection(e.target.checked); }}
                   type="checkbox"
                 />
                 <label className="text-[10px] font-bold text-amber-800 dark:text-amber-300 uppercase tracking-widest cursor-pointer select-none" htmlFor="editor_is_correction">
@@ -306,14 +311,15 @@ export default function ShiftEditorPage() {
                 </label>
               </div>
 
-              {!isCorrection && (
+              {!isCorrection ? (
                 <div className="space-y-2 pt-2 animate-in fade-in slide-in-from-top-2 duration-300">
-                  <label className="text-[10px] font-bold text-amber-750 dark:text-amber-400 uppercase tracking-widest block">
+                  <label className="text-[10px] font-bold text-amber-750 dark:text-amber-400 uppercase tracking-widest block" htmlFor="correction_effective_date_input">
                     {t("shifts.modal.effective_date_label", "Ngày hiệu lực mới")}
                   </label>
                   <input
                     className="w-full bg-white dark:bg-slate-900 border border-amber-250 dark:border-amber-900 rounded-2xl px-5 py-3.5 font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-amber-500 transition-all outline-none"
-                    onChange={(e) => setCorrectionEffectiveDate(e.target.value)}
+                    id="correction_effective_date_input"
+                    onChange={(e) => { setCorrectionEffectiveDate(e.target.value); }}
                     type="date"
                     value={correctionEffectiveDate}
                   />
@@ -321,9 +327,9 @@ export default function ShiftEditorPage() {
                     {t("shifts.modal.effective_date_desc", "Các thay đổi sẽ chỉ có hiệu lực từ ngày được chọn trở đi.")}
                   </Typography>
                 </div>
-              )}
+              ) : null}
             </div>
-          )}
+          ) : null}
         </div>
 
         {/* Right Column: Break Configuration & Visual Timeline (1 col on lg) */}
@@ -342,7 +348,7 @@ export default function ShiftEditorPage() {
                 aria-checked={isFixedBreak}
                 aria-label={t("shifts.types.fixed")}
                 className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 cursor-pointer ${isFixedBreak ? 'bg-primary-600' : 'bg-slate-200 dark:bg-slate-700'}`}
-                onClick={() => setIsFixedBreak(!isFixedBreak)}
+                onClick={() => { setIsFixedBreak(!isFixedBreak); }}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault();
@@ -360,19 +366,21 @@ export default function ShiftEditorPage() {
             {isFixedBreak ? (
               <div className="grid grid-cols-2 gap-4 animate-in fade-in duration-350">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">{t("shifts.modal.break_start")}</label>
+                  <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase" htmlFor="break_start_input">{t("shifts.modal.break_start")}</label>
                   <input
                     className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl px-4 py-3 font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 transition-all outline-none"
-                    onChange={(e) => setBreakStart(e.target.value)}
+                    id="break_start_input"
+                    onChange={(e) => { setBreakStart(e.target.value); }}
                     type="time"
                     value={breakStart}
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">{t("shifts.modal.break_end")}</label>
+                  <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase" htmlFor="break_end_input">{t("shifts.modal.break_end")}</label>
                   <input
                     className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl px-4 py-3 font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 transition-all outline-none"
-                    onChange={(e) => setBreakEnd(e.target.value)}
+                    id="break_end_input"
+                    onChange={(e) => { setBreakEnd(e.target.value); }}
                     type="time"
                     value={breakEnd}
                   />
@@ -380,12 +388,13 @@ export default function ShiftEditorPage() {
               </div>
             ) : (
               <div className="space-y-2 animate-in fade-in duration-350">
-                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase block">
+                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase block" htmlFor="break_duration_input">
                   {t("shifts.modal.break_duration")} ({t("common.minutes")})
                 </label>
                 <input
                   className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl px-4 py-3 font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 transition-all outline-none"
-                  onChange={(e) => setShiftBreak(parseInt(e.target.value) || 0)}
+                  id="break_duration_input"
+                  onChange={(e) => { setShiftBreak(parseInt(e.target.value) || 0); }}
                   type="number"
                   value={shiftBreak}
                 />
@@ -401,70 +410,68 @@ export default function ShiftEditorPage() {
               <div className="space-y-2">
                 
                 {/* Option 1: Auto Deduct */}
-                <div
+                <label
+                  aria-label={t("shifts.modal.break_policy_auto_deduct")}
                   className="flex items-start gap-3 p-4 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-100 dark:border-slate-800/80 cursor-pointer hover:bg-slate-100/50 dark:hover:bg-slate-800/30 transition-all"
-                  onClick={() => {
-                    setIsAutoDeduct(true);
-                    setIsBreakOvertime(false);
-                  }}
+                  htmlFor="break_policy_auto_deduct"
                 >
                   <input
-                    checked={isAutoDeduct && !isBreakOvertime}
+                    checked={isAutoDeduct && !isBreakOvertime ? true : false}
                     className="mt-0.5 w-4 h-4 text-primary-600 border-slate-350 dark:border-slate-700 focus:ring-primary-500 cursor-pointer"
                     id="break_policy_auto_deduct"
                     name="break_policy"
-                    onChange={() => {}}
+                    onChange={() => {
+                      setIsAutoDeduct(true);
+                      setIsBreakOvertime(false);
+                    }}
                     type="radio"
                   />
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-slate-750 dark:text-slate-200 cursor-pointer block" htmlFor="break_policy_auto_deduct">
+                    <span className="text-xs font-bold text-slate-750 dark:text-slate-200 cursor-pointer block">
                       {t("shifts.modal.break_policy_auto_deduct")}
-                    </label>
+                    </span>
                     <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-normal leading-normal">
                       {t("shifts.modal.break_policy_auto_deduct_help")}
                     </span>
                   </div>
-                </div>
+                </label>
 
                 {/* Option 2: No Deduct */}
-                <div
+                <label
+                  aria-label={t("shifts.modal.break_policy_no_deduct")}
                   className="flex items-start gap-3 p-4 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-100 dark:border-slate-800/80 cursor-pointer hover:bg-slate-100/50 dark:hover:bg-slate-800/30 transition-all"
-                  onClick={() => {
-                    setIsAutoDeduct(false);
-                    setIsBreakOvertime(false);
-                  }}
+                  htmlFor="break_policy_no_deduct"
                 >
                   <input
                     checked={!isAutoDeduct && !isBreakOvertime}
                     className="mt-0.5 w-4 h-4 text-primary-600 border-slate-355 dark:border-slate-700 focus:ring-primary-500 cursor-pointer"
                     id="break_policy_no_deduct"
                     name="break_policy"
-                    onChange={() => {}}
+                    onChange={() => {
+                      setIsAutoDeduct(false);
+                      setIsBreakOvertime(false);
+                    }}
                     type="radio"
                   />
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-slate-755 dark:text-slate-200 cursor-pointer block" htmlFor="break_policy_no_deduct">
+                    <span className="text-xs font-bold text-slate-755 dark:text-slate-200 cursor-pointer block">
                       {t("shifts.modal.break_policy_no_deduct")}
-                    </label>
+                    </span>
                     <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-normal leading-normal">
                       {t("shifts.modal.break_policy_no_deduct_help")}
                     </span>
                   </div>
-                </div>
+                </label>
 
                 {/* Option 3: Break Overtime */}
-                <div
+                <label
+                  aria-label={t("shifts.modal.break_policy_overtime")}
                   className={`flex items-start gap-3 p-4 rounded-2xl border transition-all ${
                     !isFixedBreak
                       ? "bg-slate-100/50 dark:bg-slate-900/20 border-slate-200/50 dark:border-slate-800/30 opacity-60 cursor-not-allowed"
                       : "bg-slate-50 dark:bg-slate-800/40 border-slate-100 dark:border-slate-800/80 cursor-pointer hover:bg-slate-100/50 dark:hover:bg-slate-800/30"
                   }`}
-                  onClick={() => {
-                    if (isFixedBreak) {
-                      setIsAutoDeduct(false);
-                      setIsBreakOvertime(true);
-                    }
-                  }}
+                  htmlFor="break_policy_overtime"
                 >
                   <input
                     checked={isBreakOvertime}
@@ -474,13 +481,16 @@ export default function ShiftEditorPage() {
                     disabled={!isFixedBreak}
                     id="break_policy_overtime"
                     name="break_policy"
-                    onChange={() => {}}
+                    onChange={() => {
+                      setIsAutoDeduct(false);
+                      setIsBreakOvertime(true);
+                    }}
                     type="radio"
                   />
                   <div className="space-y-1">
-                    <label className={`text-xs font-bold block ${!isFixedBreak ? "text-slate-400 dark:text-slate-500 cursor-not-allowed" : "text-slate-700 dark:text-slate-200 cursor-pointer"}`} htmlFor="break_policy_overtime">
+                    <span className={`text-xs font-bold block ${!isFixedBreak ? "text-slate-400 dark:text-slate-500 cursor-not-allowed" : "text-slate-700 dark:text-slate-200 cursor-pointer"}`}>
                       {t("shifts.modal.break_policy_overtime")}
-                    </label>
+                    </span>
                     <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-normal leading-normal">
                       {!isFixedBreak ? (
                         <span className="text-amber-600 dark:text-amber-500 font-medium">
@@ -491,7 +501,7 @@ export default function ShiftEditorPage() {
                       )}
                     </span>
                   </div>
-                </div>
+                </label>
               </div>
             </div>
           </div>
