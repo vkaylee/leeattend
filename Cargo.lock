@@ -57,6 +57,7 @@ dependencies = [
  "futures-util",
  "libc",
  "log",
+ "parking_lot",
  "rand 0.8.6",
  "redb",
  "rustc-hash",

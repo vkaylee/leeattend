@@ -17,6 +17,7 @@ impl RedbStore {
         {
             let txn = self
                 .db
+                .read()
                 .begin_read()
                 .map_err(|e| StoreError::DbError(e.to_string()))?;
             let log_table = txn
@@ -39,6 +40,7 @@ impl RedbStore {
         // Phase 2: Write updates
         let txn = self
             .db
+            .read()
             .begin_write()
             .map_err(|e| StoreError::DbError(e.to_string()))?;
         {
@@ -74,6 +76,7 @@ impl RedbStore {
         {
             let txn = self
                 .db
+                .read()
                 .begin_read()
                 .map_err(|e| StoreError::DbError(e.to_string()))?;
             let log_table = txn
@@ -100,6 +103,7 @@ impl RedbStore {
         // Phase 2: Remove from active storage
         let txn = self
             .db
+            .read()
             .begin_write()
             .map_err(|e| StoreError::DbError(e.to_string()))?;
         {
@@ -129,6 +133,7 @@ impl RedbStore {
         let log_data: Option<Vec<u8>> = {
             let txn = self
                 .db
+                .read()
                 .begin_read()
                 .map_err(|e| StoreError::DbError(e.to_string()))?;
             let log_table = txn
@@ -149,6 +154,7 @@ impl RedbStore {
         if let Some(bytes) = log_data {
             let txn = self
                 .db
+                .read()
                 .begin_write()
                 .map_err(|e| StoreError::DbError(e.to_string()))?;
             {
@@ -195,6 +201,7 @@ impl RedbStore {
         let ids_to_reset: Vec<i64> = {
             let txn = self
                 .db
+                .read()
                 .begin_read()
                 .map_err(|e| StoreError::DbError(e.to_string()))?;
             let sync_table = txn
@@ -224,6 +231,7 @@ impl RedbStore {
         {
             let txn = self
                 .db
+                .read()
                 .begin_read()
                 .map_err(|e| StoreError::DbError(e.to_string()))?;
             let log_table = txn
@@ -244,6 +252,7 @@ impl RedbStore {
         // Phase 3: Write updates
         let txn = self
             .db
+            .read()
             .begin_write()
             .map_err(|e| StoreError::DbError(e.to_string()))?;
         {
@@ -276,6 +285,7 @@ impl RedbStore {
         {
             let txn = self
                 .db
+                .read()
                 .begin_read()
                 .map_err(|e| StoreError::DbError(e.to_string()))?;
             let sync_table = txn
@@ -317,6 +327,7 @@ impl RedbStore {
         // Phase 2: Write updates in a single transaction
         let txn = self
             .db
+            .read()
             .begin_write()
             .map_err(|e| StoreError::DbError(e.to_string()))?;
         {
@@ -345,6 +356,7 @@ impl RedbStore {
     pub fn get_max_id(&self) -> Result<i64, StoreError> {
         let txn = self
             .db
+            .read()
             .begin_read()
             .map_err(|e| StoreError::DbError(e.to_string()))?;
         let table = txn
@@ -365,6 +377,7 @@ impl RedbStore {
         let (before, to_remove) = {
             let txn = self
                 .db
+                .read()
                 .begin_read()
                 .map_err(|e| StoreError::DbError(e.to_string()))?;
             let sig_table = txn
@@ -392,6 +405,7 @@ impl RedbStore {
         if !to_remove.is_empty() {
             let txn = self
                 .db
+                .read()
                 .begin_write()
                 .map_err(|e| StoreError::DbError(e.to_string()))?;
             {

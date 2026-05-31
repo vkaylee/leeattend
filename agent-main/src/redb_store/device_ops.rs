@@ -5,6 +5,7 @@ impl RedbStore {
     pub fn get_device_timezone(&self, device_id: &str) -> Result<chrono_tz::Tz, StoreError> {
         let txn = self
             .db
+            .read()
             .begin_read()
             .map_err(|e| StoreError::DbError(e.to_string()))?;
         let table = txn
@@ -57,6 +58,7 @@ impl RedbStore {
         let existing = {
             let txn = self
                 .db
+                .read()
                 .begin_read()
                 .map_err(|e| StoreError::DbError(e.to_string()))?;
             let table = txn
@@ -94,6 +96,7 @@ impl RedbStore {
 
         let txn = self
             .db
+            .read()
             .begin_write()
             .map_err(|e| StoreError::DbError(e.to_string()))?;
         {
@@ -112,6 +115,7 @@ impl RedbStore {
     pub fn get_active_devices(&self) -> Result<Vec<StoredDevice>, StoreError> {
         let txn = self
             .db
+            .read()
             .begin_read()
             .map_err(|e| StoreError::DbError(e.to_string()))?;
         let table = txn
@@ -143,6 +147,7 @@ impl RedbStore {
         let existing = {
             let txn = self
                 .db
+                .read()
                 .begin_read()
                 .map_err(|e| StoreError::DbError(e.to_string()))?;
             let table = txn
@@ -159,6 +164,7 @@ impl RedbStore {
 
             let txn = self
                 .db
+                .read()
                 .begin_write()
                 .map_err(|e| StoreError::DbError(e.to_string()))?;
             {
@@ -178,6 +184,7 @@ impl RedbStore {
     pub fn get_device_metadata(&self, id: &str) -> Result<Option<StoredDevice>, StoreError> {
         let txn = self
             .db
+            .read()
             .begin_read()
             .map_err(|e| StoreError::DbError(e.to_string()))?;
         let table = txn
@@ -225,6 +232,7 @@ impl RedbStore {
         let existing = {
             let txn = self
                 .db
+                .read()
                 .begin_read()
                 .map_err(|e| StoreError::DbError(e.to_string()))?;
             let table = txn
@@ -251,6 +259,7 @@ impl RedbStore {
 
             let txn = self
                 .db
+                .read()
                 .begin_write()
                 .map_err(|e| StoreError::DbError(e.to_string()))?;
             {
@@ -284,6 +293,7 @@ impl RedbStore {
         let existing = {
             let txn = self
                 .db
+                .read()
                 .begin_read()
                 .map_err(|e| StoreError::DbError(e.to_string()))?;
             let table = txn
@@ -306,6 +316,7 @@ impl RedbStore {
 
             let txn = self
                 .db
+                .read()
                 .begin_write()
                 .map_err(|e| StoreError::DbError(e.to_string()))?;
             {
@@ -325,6 +336,7 @@ impl RedbStore {
     fn find_device_key_ci(&self, id: &str) -> Result<Option<String>, StoreError> {
         let txn = self
             .db
+            .read()
             .begin_read()
             .map_err(|e| StoreError::DbError(e.to_string()))?;
         let table = txn
@@ -355,6 +367,7 @@ impl RedbStore {
         let updates: Vec<(String, StoredDevice)> = {
             let txn = self
                 .db
+                .read()
                 .begin_read()
                 .map_err(|e| StoreError::DbError(e.to_string()))?;
             let table = txn
@@ -383,6 +396,7 @@ impl RedbStore {
         // Phase 2: Write deactivated devices
         let txn = self
             .db
+            .read()
             .begin_write()
             .map_err(|e| StoreError::DbError(e.to_string()))?;
         {
@@ -403,6 +417,7 @@ impl RedbStore {
     pub fn upsert_agent_config(&self, key: &str, value: &str) -> Result<(), StoreError> {
         let txn = self
             .db
+            .read()
             .begin_write()
             .map_err(|e| StoreError::DbError(e.to_string()))?;
         {
@@ -421,6 +436,7 @@ impl RedbStore {
     pub fn get_agent_config(&self, key: &str) -> Result<Option<String>, StoreError> {
         let txn = self
             .db
+            .read()
             .begin_read()
             .map_err(|e| StoreError::DbError(e.to_string()))?;
         let table = txn
@@ -439,6 +455,7 @@ impl RedbStore {
         {
             let txn = self
                 .db
+                .read()
                 .begin_read()
                 .map_err(|e| StoreError::DbError(e.to_string()))?;
 
@@ -469,6 +486,7 @@ impl RedbStore {
         // Phase 2: Write changes
         let txn = self
             .db
+            .read()
             .begin_write()
             .map_err(|e| StoreError::DbError(e.to_string()))?;
         {
@@ -497,6 +515,7 @@ impl RedbStore {
     pub fn get_all_devices(&self) -> Result<Vec<StoredDevice>, StoreError> {
         let txn = self
             .db
+            .read()
             .begin_read()
             .map_err(|e| StoreError::DbError(e.to_string()))?;
         let table = txn
@@ -519,6 +538,7 @@ impl RedbStore {
         let keys: Vec<String> = {
             let txn = self
                 .db
+                .read()
                 .begin_read()
                 .map_err(|e| StoreError::DbError(e.to_string()))?;
             let table = txn
@@ -537,6 +557,7 @@ impl RedbStore {
         // Phase 2: Remove all
         let txn = self
             .db
+            .read()
             .begin_write()
             .map_err(|e| StoreError::DbError(e.to_string()))?;
         {
@@ -558,6 +579,7 @@ impl RedbStore {
         let updates: Vec<(String, Vec<u8>)> = {
             let txn = self
                 .db
+                .read()
                 .begin_read()
                 .map_err(|e| StoreError::DbError(e.to_string()))?;
             let table = txn
@@ -584,6 +606,7 @@ impl RedbStore {
         // Phase 2: Write updates
         let txn = self
             .db
+            .read()
             .begin_write()
             .map_err(|e| StoreError::DbError(e.to_string()))?;
         {

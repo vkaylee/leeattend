@@ -27,10 +27,8 @@ x-rust-test-base: &rust-test-base
     - /workspace/apiserver/storage
   volumes:
     - ${PROJECT_ROOT}:/workspace
-    - target-cache:/workspace/target
     - ${HOME}/.cargo/registry:/usr/local/cargo/registry
     - sccache-cache:/workspace/.sccache
-    - /dev/shm/leeattend-shared-data:/workspace/shared
 
 services:
   db_system:
@@ -185,6 +183,12 @@ services:
       API_JWT_SECRET: ${SUPAVISOR_API_JWT:-your-super-secret-jwt-token-with-at-least-32-bytes-long}
       REDIS_URL: redis://redis:6379
       STORAGE_DIR: /workspace/apiserver/storage
+    volumes:
+      - ${PROJECT_ROOT}:/workspace
+      - apiserver-target-cache:/workspace/target
+      - ${HOME}/.cargo/registry:/usr/local/cargo/registry
+      - sccache-cache:/workspace/.sccache
+      - shared-data:/workspace/shared
     healthcheck:
       test: "echo 'ready'"
       interval: 5s
@@ -206,6 +210,11 @@ services:
       <<: *rust-env-base
       DATABASE_URL: ":memory:"
       CENTRAL_SERVER_URL: ws://apiserver:3001/api/ws
+    volumes:
+      - ${PROJECT_ROOT}:/workspace
+      - agent-target-cache:/workspace/target
+      - ${HOME}/.cargo/registry:/usr/local/cargo/registry
+      - sccache-cache:/workspace/.sccache
 
   bun_init:
     profiles:
@@ -272,14 +281,17 @@ services:
     volumes:
       - ${PROJECT_ROOT}:/workspace
       - web-node-modules:/workspace/webdashboard/node_modules
-      - /dev/shm/leeattend-shared-data:/workspace/shared
+      - shared-data:/workspace/shared
       - bun-cache:/workspace/.bun-cache
       - ${PROJECT_ROOT}/webdashboard/test-results:/workspace/webdashboard/test-results
       - ${PROJECT_ROOT}/webdashboard/playwright-report:/workspace/webdashboard/playwright-report
 
 volumes:
-  target-cache:
-    name: leeattend-test_target-cache
+  apiserver-target-cache:
+    name: leeattend-test_apiserver-target-cache
+    driver: local
+  agent-target-cache:
+    name: leeattend-test_agent-target-cache
     driver: local
   sccache-cache:
     name: leeattend-test_sccache-cache
@@ -289,4 +301,6 @@ volumes:
     driver: local
   web-node-modules:
     name: leeattend-test_web-node-modules
+    driver: local
+  shared-data:
     driver: local

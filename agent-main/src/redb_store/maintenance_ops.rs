@@ -15,6 +15,7 @@ impl RedbStore {
         let to_remove: Vec<(i64, StoredLog)> = {
             let txn = self
                 .db
+                .read()
                 .begin_read()
                 .map_err(|e| StoreError::DbError(e.to_string()))?;
             let log_table = txn
@@ -51,49 +52,55 @@ impl RedbStore {
             return Ok(0);
         }
 
-        // Phase 2: Write — remove old logs and their indices
-        let txn = self
-            .db
-            .begin_write()
-            .map_err(|e| StoreError::DbError(e.to_string()))?;
-        {
-            let mut lt = txn
-                .open_table(ATTENDANCE_LOGS)
+        // Phase 2: Write — remove old logs and their indices in chunks of 500
+        for chunk in to_remove.chunks(500) {
+            let txn = self
+                .db
+                .read()
+                .begin_write()
                 .map_err(|e| StoreError::DbError(e.to_string()))?;
-            let mut st = txn
-                .open_table(SYNC_INDEX)
-                .map_err(|e| StoreError::DbError(e.to_string()))?;
-            let mut ct = txn
-                .open_table(COMPOSITE_INDEX)
-                .map_err(|e| StoreError::DbError(e.to_string()))?;
-            let mut sigt = txn
-                .open_table(SIGNATURES)
-                .map_err(|e| StoreError::DbError(e.to_string()))?;
+            {
+                let mut lt = txn
+                    .open_table(ATTENDANCE_LOGS)
+                    .map_err(|e| StoreError::DbError(e.to_string()))?;
+                let mut st = txn
+                    .open_table(SYNC_INDEX)
+                    .map_err(|e| StoreError::DbError(e.to_string()))?;
+                let mut ct = txn
+                    .open_table(COMPOSITE_INDEX)
+                    .map_err(|e| StoreError::DbError(e.to_string()))?;
+                let mut sigt = txn
+                    .open_table(SIGNATURES)
+                    .map_err(|e| StoreError::DbError(e.to_string()))?;
 
-            for (id, log) in &to_remove {
-                let sig = Self::compute_signature(
-                    &log.device_id,
-                    &log.user_id,
-                    log.timestamp,
-                    log.punch,
-                    log.status,
-                );
-                let comp = Self::compute_composite_hash(
-                    &log.device_id,
-                    &log.user_id,
-                    log.timestamp,
-                    log.punch,
-                    log.status,
-                );
+                for (id, log) in chunk {
+                    let sig = Self::compute_signature(
+                        &log.device_id,
+                        &log.user_id,
+                        log.timestamp,
+                        log.punch,
+                        log.status,
+                    );
+                    let comp = Self::compute_composite_hash(
+                        &log.device_id,
+                        &log.user_id,
+                        log.timestamp,
+                        log.punch,
+                        log.status,
+                    );
 
-                let _ = lt.remove(*id);
-                let _ = st.remove(*id);
-                let _ = ct.remove(comp);
-                let _ = sigt.remove(sig);
+                    let _ = lt.remove(*id);
+                    let _ = st.remove(*id);
+                    let _ = ct.remove(comp);
+                    let _ = sigt.remove(sig);
+                }
             }
+            txn.commit()
+                .map_err(|e| StoreError::DbError(e.to_string()))?;
+
+            // Brief sleep to yield write lock to real-time operations
+            std::thread::sleep(std::time::Duration::from_millis(10));
         }
-        txn.commit()
-            .map_err(|e| StoreError::DbError(e.to_string()))?;
         Ok(count)
     }
 
@@ -105,6 +112,7 @@ impl RedbStore {
         let to_move: Vec<StoredLog> = {
             let txn = self
                 .db
+                .read()
                 .begin_read()
                 .map_err(|e| StoreError::DbError(e.to_string()))?;
             let log_table = txn
@@ -132,6 +140,7 @@ impl RedbStore {
         // Phase 2: Write — move to DLQ and remove from active
         let txn = self
             .db
+            .read()
             .begin_write()
             .map_err(|e| StoreError::DbError(e.to_string()))?;
         {
@@ -186,6 +195,7 @@ impl RedbStore {
     pub fn get_failed_logs(&self) -> Result<Vec<StoredFailedLog>, StoreError> {
         let txn = self
             .db
+            .read()
             .begin_read()
             .map_err(|e| StoreError::DbError(e.to_string()))?;
         let table = txn
@@ -206,6 +216,7 @@ impl RedbStore {
     pub fn count_failed_logs(&self) -> Result<usize, StoreError> {
         let txn = self
             .db
+            .read()
             .begin_read()
             .map_err(|e| StoreError::DbError(format!("{e}")))?;
         let table = txn
@@ -222,6 +233,7 @@ impl RedbStore {
         let failed_data: Option<StoredFailedLog> = {
             let txn = self
                 .db
+                .read()
                 .begin_read()
                 .map_err(|e| StoreError::DbError(e.to_string()))?;
             let ft = txn
@@ -254,6 +266,7 @@ impl RedbStore {
 
         let txn = self
             .db
+            .read()
             .begin_write()
             .map_err(|e| StoreError::DbError(e.to_string()))?;
         {
@@ -295,6 +308,7 @@ impl RedbStore {
     pub fn delete_failed_log(&self, id: i64) -> Result<bool, StoreError> {
         let txn = self
             .db
+            .read()
             .begin_write()
             .map_err(|e| StoreError::DbError(e.to_string()))?;
         let removed;
@@ -318,6 +332,7 @@ impl RedbStore {
         let ids: Vec<i64> = {
             let txn = self
                 .db
+                .read()
                 .begin_read()
                 .map_err(|e| StoreError::DbError(e.to_string()))?;
             let table = txn
@@ -338,6 +353,7 @@ impl RedbStore {
         // Phase 2: Write — remove all
         let txn = self
             .db
+            .read()
             .begin_write()
             .map_err(|e| StoreError::DbError(e.to_string()))?;
         {
@@ -381,6 +397,7 @@ impl RedbStore {
 
         let txn = self
             .db
+            .read()
             .begin_write()
             .map_err(|e| StoreError::DbError(e.to_string()))?;
         {
@@ -400,6 +417,7 @@ impl RedbStore {
     pub fn get_all_logs(&self) -> Result<Vec<StoredLog>, StoreError> {
         let txn = self
             .db
+            .read()
             .begin_read()
             .map_err(|e| StoreError::DbError(e.to_string()))?;
         let table = txn

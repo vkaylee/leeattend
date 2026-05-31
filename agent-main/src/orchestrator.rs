@@ -76,12 +76,10 @@ impl Orchestrator {
         self.handle_crash_recovery()?;
         self.setup_signal_handlers();
 
-        // Clear startup config
-        if let Err(e) = self.hybrid_db.store().clear_startup_config() {
-            warn!("Failed to clear startup config: {e}");
-        } else {
-            info!("🔄 Cleared local config on startup - waiting for ConfigPush from Server...");
-        }
+        // Retain last known local config on startup to ensure offline resiliency
+        info!(
+            "🔄 Retaining last known local config on startup - awaiting ConfigPush from Server..."
+        );
 
         let mut current_max_workers = self.config.max_concurrent_workers;
         info!("⚙️ Using default Max Workers: {current_max_workers} (until ConfigPush)");
@@ -242,6 +240,19 @@ impl Orchestrator {
                     }
                 }
             }
+
+            // Flush remaining logs in buffer on shutdown
+            if !buffer.is_empty() {
+                let to_save = std::mem::take(&mut buffer);
+                info!(
+                    "💾 DB Writer Worker flushing {} remaining logs...",
+                    to_save.len()
+                );
+                if let Err(e) = writer_hybrid.save_raw_attendance_batch(to_save).await {
+                    error!("Failed to save final batch during shutdown: {e}");
+                }
+            }
+
             info!("💾 DB Writer Worker stopped");
         });
 
@@ -278,6 +289,21 @@ impl Orchestrator {
                             }
                             Err(e) => {
                                 error!("❌ Disk cleanup failed: {e}");
+                            }
+                        }
+
+                        // Compact database to reclaim freed disk space
+                        let compact_hybrid = cleanup_hybrid.clone();
+                        match tokio::task::spawn_blocking(move || compact_hybrid.store().compact()).await.unwrap_or(Err(crate::redb_store::StoreError::Internal("Compaction task paniced".into()))) {
+                            Ok(compacted) => {
+                                if compacted {
+                                    info!("🧹 Database compaction complete: reclaimed unused page space");
+                                } else {
+                                    debug!("🧹 Database compaction finished (no changes needed)");
+                                }
+                            }
+                            Err(e) => {
+                                warn!("⚠️ Database compaction failed: {e}");
                             }
                         }
                     }
@@ -522,6 +548,9 @@ pub fn spawn_worker(
         const RECONNECT_WINDOW_SECS: u64 = 3600; // 1 hour
         const RECONNECT_WARN_THRESHOLD: usize = 5;
 
+        let mut seen_logs: HashSet<u64> = HashSet::with_capacity(100_000);
+        const SEEN_LOGS_CAP: usize = 200_000;
+
         while !token.is_cancelled() {
             if retry_count > 0 {
                 let delay = get_sidecar_retry_delay(retry_count);
@@ -622,8 +651,7 @@ pub fn spawn_worker(
             drop(connect_device_guard);
             drop(connect_permit);
 
-            let mut seen_logs: HashSet<u64> = HashSet::with_capacity(100_000);
-            const SEEN_LOGS_CAP: usize = 200_000;
+            // Note: seen_logs cache is now persisted across reconnections
 
             let mut polling_state =
                 AdaptivePollingState::with_cooldown(success_cooldown.load(Ordering::Relaxed));

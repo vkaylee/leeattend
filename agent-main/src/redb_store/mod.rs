@@ -6,6 +6,7 @@ mod types;
 
 pub use types::{StoreError, StoredDevice, StoredFailedLog, StoredLog};
 
+use parking_lot::RwLock;
 use redb::{Database, ReadableDatabase, ReadableTable, ReadableTableMetadata, TableDefinition};
 use std::path::Path;
 use std::sync::Arc;
@@ -42,7 +43,7 @@ const PARSING_ERRORS: TableDefinition<i64, &[u8]> = TableDefinition::new("parsin
 /// Unified persistent store backed by Redb.
 /// Replaces both InMemoryStore (DashMap) and Database (SQLite).
 pub struct RedbStore {
-    db: Database,
+    db: RwLock<Database>,
     next_id: Arc<AtomicI64>,
     signature_ttl_days: i64,
 }
@@ -87,14 +88,14 @@ impl RedbStore {
         };
 
         Ok(Self {
-            db,
+            db: RwLock::new(db),
             next_id: Arc::new(AtomicI64::new(max_id + 1001)), // Safety gap
             signature_ttl_days,
         })
     }
 
-    /// Get a reference to the underlying Redb database.
-    pub const fn db(&self) -> &Database {
+    /// Get a reference to the underlying Redb database lock.
+    pub const fn db(&self) -> &RwLock<Database> {
         &self.db
     }
 
@@ -180,6 +181,7 @@ impl RedbStore {
     pub fn count_total(&self) -> Result<usize, StoreError> {
         let txn = self
             .db
+            .read()
             .begin_read()
             .map_err(|e| StoreError::DbError(format!("{e}")))?;
         let table = txn
@@ -194,6 +196,7 @@ impl RedbStore {
     pub fn count_signatures(&self) -> Result<usize, StoreError> {
         let txn = self
             .db
+            .read()
             .begin_read()
             .map_err(|e| StoreError::DbError(format!("{e}")))?;
         let table = txn
@@ -216,6 +219,7 @@ impl RedbStore {
         let sig = Self::compute_signature(device_id, user_id, timestamp, punch, status);
         let txn = self
             .db
+            .read()
             .begin_read()
             .map_err(|e| StoreError::DbError(format!("{e}")))?;
         let table = txn
@@ -251,12 +255,20 @@ impl RedbStore {
         };
 
         let hash = Self::compute_composite_hash(device_id, user_id, timestamp_unix, punch, status);
-        let txn = self.db.begin_read().ok()?;
+        let txn = self.db.read().begin_read().ok()?;
         let table: redb::ReadOnlyTable<u64, i64> = txn.open_table(COMPOSITE_INDEX).ok()?;
         table
             .get(hash)
             .ok()?
             .map(|v: redb::AccessGuard<'_, i64>| v.value())
+    }
+
+    /// Compact the database file to reclaim unused space.
+    pub fn compact(&self) -> Result<bool, StoreError> {
+        self.db
+            .write()
+            .compact()
+            .map_err(|e| StoreError::DbError(e.to_string()))
     }
 }
 

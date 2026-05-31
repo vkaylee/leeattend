@@ -30,6 +30,7 @@ impl RedbStore {
 
         let txn = self
             .db
+            .read()
             .begin_write()
             .map_err(|e| StoreError::DbError(e.to_string()))?;
         {
@@ -110,6 +111,7 @@ impl RedbStore {
 
         let txn = self
             .db
+            .read()
             .begin_write()
             .map_err(|e| StoreError::DbError(e.to_string()))?;
         let mut inserted = 0;
@@ -196,6 +198,7 @@ impl RedbStore {
     pub fn get_unsynced(&self, limit: usize) -> Result<Vec<StoredLog>, StoreError> {
         let txn = self
             .db
+            .read()
             .begin_read()
             .map_err(|e| StoreError::DbError(e.to_string()))?;
         let sync_table = txn
@@ -248,6 +251,7 @@ impl RedbStore {
     pub fn count_unsynced(&self) -> Result<usize, StoreError> {
         let txn = self
             .db
+            .read()
             .begin_read()
             .map_err(|e| StoreError::DbError(e.to_string()))?;
         let sync_table = txn
@@ -271,6 +275,7 @@ impl RedbStore {
     pub fn remove_signatures_for_device(&self, device_id: &str) -> Result<usize, StoreError> {
         let txn = self
             .db
+            .read()
             .begin_read()
             .map_err(|e| StoreError::DbError(e.to_string()))?;
         let log_table = txn
@@ -314,6 +319,7 @@ impl RedbStore {
 
         let txn = self
             .db
+            .read()
             .begin_write()
             .map_err(|e| StoreError::DbError(e.to_string()))?;
         {
