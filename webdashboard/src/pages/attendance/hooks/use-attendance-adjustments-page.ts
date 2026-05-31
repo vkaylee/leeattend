@@ -42,8 +42,8 @@ export function useAttendanceAdjustmentsPage() {
   });
 
   const downloadTemplate = () => {
-    const headers = "empNo,empName,empDt";
-    const example = "EMP001,Nguyen Van A,11/01/2026 08:00";
+    const headers = "employee_code,punch_time";
+    const example = "EMP001,11/01/2026 08:00";
     const blob = new Blob([`\uFEFF${headers}\n${example}`], { type: "text/csv;charset=utf-8;" });
     const link = document.body.appendChild(document.createElement("a"));
     link.href = URL.createObjectURL(blob);

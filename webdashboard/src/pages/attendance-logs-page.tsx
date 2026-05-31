@@ -118,6 +118,21 @@ export default function AttendanceLogsPage() {
       />
       <AttendanceImportDialog
         endpoint="/attendance/logs/upload"
+        expectedColumns={[
+          {
+            key: "employee_code",
+            label: "Mã nhân viên",
+            required: true,
+            description: "Mã số định danh của nhân viên trong hệ thống (Employee ID)."
+          },
+          {
+            key: "punch_time",
+            label: "Thời gian quẹt thẻ",
+            required: true,
+            format: "DD/MM/YYYY HH:mm hoặc YYYY-MM-DD HH:mm",
+            description: "Thời gian quẹt thẻ thô thu nhận từ thiết bị chấm công hoặc nhập thủ công."
+          }
+        ]}
         isOpen={isImportDialogOpen}
         onClose={() => { setIsImportDialogOpen(false); }}
         targetType="log"

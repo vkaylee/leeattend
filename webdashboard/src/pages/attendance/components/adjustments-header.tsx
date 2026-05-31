@@ -1,4 +1,4 @@
-import { FileDown, Upload } from "lucide-react";
+import { Upload } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
@@ -6,11 +6,10 @@ import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 
 interface AdjustmentsHeaderProps {
-  onDownloadTemplate: () => void;
   onImportClick: () => void;
 }
 
-export function AdjustmentsHeader({ onDownloadTemplate, onImportClick }: AdjustmentsHeaderProps) {
+export function AdjustmentsHeader({ onImportClick }: AdjustmentsHeaderProps) {
   const { t } = useTranslation();
 
   return (
@@ -24,10 +23,7 @@ export function AdjustmentsHeader({ onDownloadTemplate, onImportClick }: Adjustm
         </Typography>
       </div>
       <div className="flex items-center gap-4">
-        <Button icon={<FileDown size={18} />} onClick={onDownloadTemplate} variant="outline">
-          {t("attendance_confirm.excel_template").toUpperCase()}
-        </Button>
-        <Button icon={<Upload size={18} />} onClick={onImportClick} variant="ghost">
+        <Button icon={<Upload size={18} />} onClick={onImportClick} variant="outline">
           {t("attendance_confirm.import_excel").toUpperCase()}
         </Button>
       </div>

@@ -11,13 +11,23 @@ import { uploadAttendance, fetchLatestImportJob, fetchImportJobStatus, getCurren
 import { AttendanceImportJob } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 
+export interface ExpectedColumn {
+  key: string;
+  label: string;
+  required: boolean;
+  format?: string;
+  description: string;
+}
+
 interface AttendanceImportDialogProps {
   customRequirements?: string[];
+  expectedColumns?: ExpectedColumn[];
   endpoint: string; // e.g., "/attendance/upload" or "/attendance/logs/upload"
   isOpen: boolean;
   onClose: () => void;
   targetType: string; // "adjustment", "log", or "employee"
   title: string;
+  onDownloadTemplate?: () => void;
 }
 
 interface ImportProgressProps {
@@ -119,31 +129,100 @@ function ImportProgress({ jobStatus, t }: ImportProgressProps) {
   );
 }
 
-function ImportRequirements({ t, customRequirements, targetType }: { t: (key: string) => string; customRequirements?: string[]; targetType?: string }) {
+function ImportRequirements({
+  t,
+  customRequirements,
+  expectedColumns,
+  targetType,
+  onDownloadTemplate,
+}: {
+  t: (key: string) => string;
+  customRequirements?: string[];
+  expectedColumns?: ExpectedColumn[];
+  targetType?: string;
+  onDownloadTemplate?: () => void;
+}) {
   return (
     <div className="bg-primary-50 dark:bg-primary-950/50 rounded-2xl p-5 border border-primary-200 dark:border-primary-800/50 flex gap-4">
       <div className="w-9 h-9 rounded-xl bg-white dark:bg-slate-900 flex items-center justify-center text-primary-600 dark:text-primary-400 shadow-sm border border-primary-200 dark:border-primary-800 shrink-0"><AlertCircle size={18} /></div>
       <div className="text-xs text-primary-800 dark:text-primary-200 leading-relaxed font-medium pt-0.5 flex-1">
         <Typography className="font-bold uppercase tracking-[0.2em] mb-2 text-slate-700 dark:text-slate-300" variant="p">{t("attendance_import.file_requirements.title")}</Typography>
-        <ul className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-1.5 text-slate-600 dark:text-slate-400 font-bold uppercase tracking-tight">
-          {customRequirements ? (
-            customRequirements.map((request, index) => (
-              <li className="flex items-center gap-2" key={index}><div className="w-1.5 h-1.5 bg-primary-500 dark:bg-primary-400 rounded-full" /> {request}</li>
-            ))
-          ) : (
-            <>
-              <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-primary-500 dark:bg-primary-400 rounded-full" /> {t("attendance_import.file_requirements.col_a")}</li>
-              <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-primary-500 dark:bg-primary-400 rounded-full" /> {t("attendance_import.file_requirements.col_b")}</li>
-              <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-primary-500 dark:bg-primary-400 rounded-full" /> {t("attendance_import.file_requirements.col_c")}</li>
-              <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-primary-500 dark:bg-primary-400 rounded-full" /> {t("attendance_import.file_requirements.formats")}</li>
-            </>
-          )}
-        </ul>
+        
+        {expectedColumns ? (
+          <div className="space-y-3">
+            <Typography className="text-slate-600 dark:text-slate-400 text-[11px] leading-relaxed italic" variant="p">
+              💡 Hệ thống nhận diện cột tự động theo tiêu đề ở hàng đầu tiên (Header). Thứ tự các cột không quan trọng. Các cột khác ngoài danh sách dưới đây sẽ tự động được bỏ qua.
+            </Typography>
+            <ul className="space-y-3 mt-2 text-slate-700 dark:text-slate-300 font-medium text-xs">
+              {expectedColumns.map((col, idx) => (
+                <li key={idx} className="flex flex-col space-y-1">
+                  <div className="flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 bg-primary-500 dark:bg-primary-400 rounded-full shrink-0" />
+                    <span className="font-mono text-[11px] font-bold bg-white dark:bg-slate-900 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-800 text-primary-700 dark:text-primary-400 shadow-sm">
+                      {col.key}
+                    </span>
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                      — {col.label}
+                    </span>
+                    <span className={cn(
+                      "text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider",
+                      col.required 
+                        ? "bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-900/50" 
+                        : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700"
+                    )}>
+                      {col.required ? "Bắt buộc" : "Tùy chọn"}
+                    </span>
+                  </div>
+                  <div className="pl-5 space-y-1">
+                    <Typography className="text-[11px] text-slate-500 dark:text-slate-400" variant="p">
+                      {col.description}
+                    </Typography>
+                    {col.format && (
+                      <span className="inline-block text-[9px] font-mono font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/20 px-1.5 py-0.5 rounded">
+                        Định dạng: {col.format}
+                      </span>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+            <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-2 font-bold uppercase tracking-wide">
+              {t("attendance_import.file_requirements.formats")}
+            </div>
+          </div>
+        ) : (
+          <ul className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-1.5 text-slate-600 dark:text-slate-400 font-bold uppercase tracking-tight">
+            {customRequirements ? (
+              customRequirements.map((request, index) => (
+                <li className="flex items-center gap-2" key={index}><div className="w-1.5 h-1.5 bg-primary-500 dark:bg-primary-400 rounded-full" /> {request}</li>
+              ))
+            ) : (
+              <>
+                <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-primary-500 dark:bg-primary-400 rounded-full" /> {t("attendance_import.file_requirements.col_a")}</li>
+                <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-primary-500 dark:bg-primary-400 rounded-full" /> {t("attendance_import.file_requirements.col_b")}</li>
+                <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-primary-500 dark:bg-primary-400 rounded-full" /> {t("attendance_import.file_requirements.col_c")}</li>
+                <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-primary-500 dark:bg-primary-400 rounded-full" /> {t("attendance_import.file_requirements.formats")}</li>
+              </>
+            )}
+          </ul>
+        )}
+
         {targetType === "employee" && (
           <div className="mt-4 flex items-center">
             <a className="text-[10px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest hover:text-primary-700 hover:underline flex items-center gap-1.5" download href="/templates/employee_import_template.xlsx">
               <FileText size={14} /> Tải file Excel mẫu (Template)
             </a>
+          </div>
+        )}
+        {onDownloadTemplate && (
+          <div className="mt-4 flex items-center">
+            <button
+              className="text-[10px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest hover:text-primary-700 hover:underline flex items-center gap-1.5 cursor-pointer bg-transparent border-0 p-0"
+              onClick={onDownloadTemplate}
+              type="button"
+            >
+              <FileText size={14} /> Tải file mẫu CSV / Excel (Template)
+            </button>
           </div>
         )}
       </div>
@@ -191,7 +270,9 @@ export default function AttendanceImportDialog({
   endpoint, 
   title, 
   targetType,
-  customRequirements
+  customRequirements,
+  expectedColumns,
+  onDownloadTemplate
 }: AttendanceImportDialogProps) {
   const { t } = useTranslation();
   const wsId = getCurrentWorkspaceId();
@@ -263,7 +344,7 @@ export default function AttendanceImportDialog({
         </>
       ) : (
         <div className="space-y-6 pt-2 animate-in fade-in duration-500">
-          <ImportRequirements customRequirements={customRequirements} t={t} targetType={targetType} />
+          <ImportRequirements customRequirements={customRequirements} expectedColumns={expectedColumns} onDownloadTemplate={onDownloadTemplate} t={t} targetType={targetType} />
 
           <FileUploadZone file={file} setFile={setFile} t={t} />
 

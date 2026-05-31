@@ -87,13 +87,34 @@ export function EmployeeModals(props: EmployeeModalsProps) {
       />
 
       <AttendanceImportDialog
-        customRequirements={[
-          "Cột A (employee_code): Mã nhân viên (Bắt buộc)",
-          "Cột B (full_name): Họ và tên (Bắt buộc)",
-          "Cột C (hire_date): Ngày vào làm (VD: 2023-01-15)",
-          "Cột D (department_name): Tên phòng ban",
-        ]}
         endpoint="/employees/upload"
+        expectedColumns={[
+          {
+            key: "employee_code",
+            label: "Mã nhân viên",
+            required: true,
+            description: "Mã số định danh duy nhất của nhân viên trong hệ thống (Employee ID)."
+          },
+          {
+            key: "full_name",
+            label: "Họ và tên",
+            required: true,
+            description: "Họ và tên đầy đủ của nhân viên."
+          },
+          {
+            key: "hire_date",
+            label: "Ngày vào làm",
+            required: false,
+            format: "YYYY-MM-DD hoặc DD/MM/YYYY",
+            description: "Ngày bắt đầu làm việc chính thức (mặc định lấy ngày hôm nay nếu để trống)."
+          },
+          {
+            key: "department_name",
+            label: "Tên phòng ban",
+            required: false,
+            description: "Phòng ban làm việc của nhân viên (sẽ tự động tạo phòng ban mới nếu chưa tồn tại)."
+          }
+        ]}
         isOpen={isImportDialogOpen}
         onClose={() => { setIsImportDialogOpen(false); }}
         targetType="employee"

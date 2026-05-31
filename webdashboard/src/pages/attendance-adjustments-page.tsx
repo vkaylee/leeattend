@@ -37,7 +37,6 @@ export default function AttendanceAdjustmentsPage() {
   return (
     <div className="space-y-10 animate-in fade-in duration-700 pb-20">
       <AdjustmentsHeader
-        onDownloadTemplate={downloadTemplate}
         onImportClick={() => { setIsImportDialogOpen(true); }}
       />
 
@@ -59,8 +58,24 @@ export default function AttendanceAdjustmentsPage() {
 
       <AttendanceImportDialog
         endpoint="/attendance-adjustments/upload"
+        expectedColumns={[
+          {
+            key: "employee_code",
+            label: "Mã nhân viên",
+            required: true,
+            description: "Mã số định danh duy nhất của nhân viên trong hệ thống (Employee ID)."
+          },
+          {
+            key: "punch_time",
+            label: "Thời gian chấm công",
+            required: true,
+            format: "DD/MM/YYYY HH:mm hoặc YYYY-MM-DD HH:mm",
+            description: "Mốc thời gian vào/ra ca cần điều chỉnh."
+          }
+        ]}
         isOpen={isImportDialogOpen}
         onClose={() => { setIsImportDialogOpen(false); }}
+        onDownloadTemplate={downloadTemplate}
         targetType="adjustment"
         title={t("attendance_confirm.import_excel")}
       />
