@@ -112,7 +112,8 @@ COMPOSE_CMD+=("--entrypoint")
 
 # Step 1: Install dependencies
 echo "📦 [1/3] Installing dependencies..."
-"${COMPOSE_CMD[@]}" bash webdashboard -c "bun install --frozen-lockfile" </dev/null
+"${COMPOSE_CMD[@]}" bash webdashboard -c "rm -rf node_modules/.[!.]* node_modules/* && bun install --frozen-lockfile" </dev/null
+
 
 # Step 2: Build the project
 echo "🏗️ [2/3] Building webdashboard..."

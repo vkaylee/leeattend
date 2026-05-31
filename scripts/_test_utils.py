@@ -122,6 +122,17 @@ def run_parallel_ordered(
         else:
             filtered.append((name, service, cmd))
 
+    # Prioritize formatting tasks by moving them to the beginning of the list
+    format_tasks = []
+    other_tasks = []
+    for task in filtered:
+        task_name = task[0].lower()
+        if "format" in task_name or "fmt" in task_name:
+            format_tasks.append(task)
+        else:
+            other_tasks.append(task)
+    filtered = format_tasks + other_tasks
+
     if not filtered:
         return True
 

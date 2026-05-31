@@ -491,7 +491,7 @@ impl ReportService {
 
         let tz: Tz = crate::utils::tz::parse_workspace_tz(&workspace.timezone);
 
-        // 1. PAGINATION AT DATABASE LEVEL
+        // 1. PAGINATION AT DATABASE LEVEL (Conditional for computed sorts)
         let page = args.page.unwrap_or(1);
         let limit = args.limit.unwrap_or(20);
 
@@ -499,23 +499,80 @@ impl ReportService {
         // NameDesc -> ORDER BY full_name DESC; all others -> ORDER BY full_name ASC
         let sort_desc = matches!(args.sort, Some(AttendanceReportSort::NameDesc));
 
-        let (paginated_employees, total_employees) = self
-            .employee_repo
-            .get_paginated_employee_ids(
-                &crate::diesel_pool::TenantAuthToken::system_override(args.workspace_id),
-                crate::models::EmployeePaginationArgs {
-                    filter_ids: args.employee_ids.as_ref(),
-                    department_id: args.department_id,
-                    page,
-                    limit,
-                    sort_desc,
-                },
+        let is_computed_sort = matches!(
+            args.sort,
+            Some(
+                AttendanceReportSort::WorkHoursAsc
+                    | AttendanceReportSort::WorkHoursDesc
+                    | AttendanceReportSort::LeaveDaysAsc
+                    | AttendanceReportSort::LeaveDaysDesc
+                    | AttendanceReportSort::OtHoursAsc
+                    | AttendanceReportSort::OtHoursDesc
+                    | AttendanceReportSort::TotalHoursAsc
+                    | AttendanceReportSort::TotalHoursDesc
             )
-            .await
-            .map_err(|e| {
-                tracing::error!("Error fetching paginated employees: {}", e);
-                AppError::Internal("Internal error".into())
-            })?;
+        );
+
+        let (paginated_employees, total_employees) = if is_computed_sort {
+            // First get the total count by doing a fast call
+            let (_, total) = self
+                .employee_repo
+                .get_paginated_employee_ids(
+                    &crate::diesel_pool::TenantAuthToken::system_override(args.workspace_id),
+                    crate::models::EmployeePaginationArgs {
+                        filter_ids: args.employee_ids.as_ref(),
+                        department_id: args.department_id,
+                        page: 1,
+                        limit: 1,
+                        sort_desc,
+                    },
+                )
+                .await
+                .map_err(|e| {
+                    tracing::error!("Error fetching employee count: {}", e);
+                    AppError::Internal("Internal error".into())
+                })?;
+
+            if total == 0 {
+                (Vec::new(), 0)
+            } else {
+                let (emps, _) = self
+                    .employee_repo
+                    .get_paginated_employee_ids(
+                        &crate::diesel_pool::TenantAuthToken::system_override(args.workspace_id),
+                        crate::models::EmployeePaginationArgs {
+                            filter_ids: args.employee_ids.as_ref(),
+                            department_id: args.department_id,
+                            page: 1,
+                            limit: total,
+                            sort_desc,
+                        },
+                    )
+                    .await
+                    .map_err(|e| {
+                        tracing::error!("Error fetching all employees: {}", e);
+                        AppError::Internal("Internal error".into())
+                    })?;
+                (emps, total)
+            }
+        } else {
+            self.employee_repo
+                .get_paginated_employee_ids(
+                    &crate::diesel_pool::TenantAuthToken::system_override(args.workspace_id),
+                    crate::models::EmployeePaginationArgs {
+                        filter_ids: args.employee_ids.as_ref(),
+                        department_id: args.department_id,
+                        page,
+                        limit,
+                        sort_desc,
+                    },
+                )
+                .await
+                .map_err(|e| {
+                    tracing::error!("Error fetching paginated employees: {}", e);
+                    AppError::Internal("Internal error".into())
+                })?
+        };
 
         // Early return if no employees
         if paginated_employees.is_empty() {
@@ -726,7 +783,22 @@ impl ReportService {
             }
         }
 
-        // 10. Return response (NO in-memory skip/take - pagination done at DB level)
+        // Apply in-memory pagination for computed sort fields
+        if is_computed_sort {
+            let offset = ((page - 1) * limit) as usize;
+            let total = results.len();
+            if offset >= total {
+                results = Vec::new();
+            } else {
+                results = results
+                    .into_iter()
+                    .skip(offset)
+                    .take(limit as usize)
+                    .collect();
+            }
+        }
+
+        // 10. Return response
         Ok(PaginatedResponse {
             data: results,
             total: total_employees as usize,
