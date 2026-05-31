@@ -433,7 +433,9 @@ impl crate::services::approval_workflow_service::WorkflowCallbackHandler for Lea
             workspace_id,
             user_id,
             entity_id,
-            ApproveLeaveRequest { status: leave_status },
+            ApproveLeaveRequest {
+                status: leave_status,
+            },
         )
         .await
     }

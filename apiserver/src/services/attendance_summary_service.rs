@@ -618,7 +618,9 @@ impl AttendanceSummaryService {
 }
 
 #[async_trait::async_trait]
-impl crate::services::approval_workflow_service::WorkflowCallbackHandler for AttendanceSummaryService {
+impl crate::services::approval_workflow_service::WorkflowCallbackHandler
+    for AttendanceSummaryService
+{
     async fn on_workflow_completed(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
@@ -627,7 +629,7 @@ impl crate::services::approval_workflow_service::WorkflowCallbackHandler for Att
         _user_id: Uuid,
     ) -> Result<(), AppError> {
         let workspace_id = auth_token.workspace_id();
-        
+
         let summary = self
             .daily_summary_repo
             .get_summary_by_id(auth_token, entity_id)
@@ -645,7 +647,7 @@ impl crate::services::approval_workflow_service::WorkflowCallbackHandler for Att
             summary.employee_id,
             summary.date,
             summary.claimed_ot_minutes,
-            Some(format!("Approved via workflow")),
+            Some("Approved via workflow".to_string()),
             ot_status,
         )
         .await

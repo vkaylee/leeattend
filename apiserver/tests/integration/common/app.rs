@@ -500,18 +500,9 @@ pub async fn spawn_app() -> (String, TestDatabase) {
         "attendance_adjustment".to_string(),
         adjustment_service.clone(),
     );
-    workflow_handlers.insert(
-        "leave_request".to_string(),
-        leave_service.clone(),
-    );
-    workflow_handlers.insert(
-        "ot_request".to_string(),
-        overtime_request_service.clone(),
-    );
-    workflow_handlers.insert(
-        "ot_claim".to_string(),
-        attendance_summary_service.clone(),
-    );
+    workflow_handlers.insert("leave_request".to_string(), leave_service.clone());
+    workflow_handlers.insert("ot_request".to_string(), overtime_request_service.clone());
+    workflow_handlers.insert("ot_claim".to_string(), attendance_summary_service.clone());
 
     let approval_workflow_service = Arc::new(
         apiserver::services::ApprovalWorkflowService::new(
@@ -1100,18 +1091,9 @@ pub async fn spawn_app_with_factory_extended(
         "attendance_adjustment".to_string(),
         adjustment_service.clone(),
     );
-    workflow_handlers.insert(
-        "leave_request".to_string(),
-        leave_service.clone(),
-    );
-    workflow_handlers.insert(
-        "ot_request".to_string(),
-        overtime_request_service.clone(),
-    );
-    workflow_handlers.insert(
-        "ot_claim".to_string(),
-        attendance_summary_service.clone(),
-    );
+    workflow_handlers.insert("leave_request".to_string(), leave_service.clone());
+    workflow_handlers.insert("ot_request".to_string(), overtime_request_service.clone());
+    workflow_handlers.insert("ot_claim".to_string(), attendance_summary_service.clone());
 
     let approval_workflow_service = Arc::new(
         apiserver::services::ApprovalWorkflowService::new(
@@ -1749,18 +1731,9 @@ pub async fn setup_app_tower_internal_extended(
         "attendance_adjustment".to_string(),
         adjustment_service.clone(),
     );
-    workflow_handlers.insert(
-        "leave_request".to_string(),
-        leave_service.clone(),
-    );
-    workflow_handlers.insert(
-        "ot_request".to_string(),
-        overtime_request_service.clone(),
-    );
-    workflow_handlers.insert(
-        "ot_claim".to_string(),
-        attendance_summary_service.clone(),
-    );
+    workflow_handlers.insert("leave_request".to_string(), leave_service.clone());
+    workflow_handlers.insert("ot_request".to_string(), overtime_request_service.clone());
+    workflow_handlers.insert("ot_claim".to_string(), attendance_summary_service.clone());
 
     let approval_workflow_service = Arc::new(
         apiserver::services::ApprovalWorkflowService::new(

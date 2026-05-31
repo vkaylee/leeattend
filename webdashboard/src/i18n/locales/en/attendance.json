@@ -85,6 +85,23 @@
     "upload_prompt": "Click or drag file here",
     "upload_limit": "Excel or CSV (Max 10MB)",
     "start_import": "Start Import",
+    "download_error_logs": "Download Excel file containing list of error / skipped lines",
+    "required": "Required",
+    "optional": "Optional",
+    "format_label": "Format",
+    "download_template": "Download Excel template",
+    "download_csv_excel_template": "Download CSV / Excel template",
+    "or": "or",
+    "columns": {
+      "employee_code": {
+        "label": "Employee Code",
+        "desc": "Unique identifier of the employee in the system (Employee ID)."
+      },
+      "punch_time": {
+        "label": "Punch Time",
+        "desc": "Target punch in/out time to adjust."
+      }
+    },
     "status": {
       "processing": "Processing data...",
       "completed": "Completed!",
@@ -94,6 +111,7 @@
     },
     "file_requirements": {
       "title": "File Format Requirements:",
+      "auto_detect": "💡 The system automatically detects columns based on the header in the first row. The order of columns does not matter. Other columns not listed below will be automatically ignored.",
       "col_a": "Column A: Employee ID",
       "col_b": "Column B: Employee Name (Optional)",
       "col_c": "Column C: Punch Time (DD/MM/YYYY HH:mm)",

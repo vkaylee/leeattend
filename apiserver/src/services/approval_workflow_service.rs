@@ -1,8 +1,7 @@
 use crate::errors::{AppError, AppResult};
 use crate::models::{
     ApprovalActionLog, ApprovalWorkflow, ApprovalWorkflowInstance, ApprovalWorkflowStep,
-    ApprovalWorkflowTask, ApproverActionInfo,
-    WorkflowInstanceStepSnapshot,
+    ApprovalWorkflowTask, ApproverActionInfo, WorkflowInstanceStepSnapshot,
 };
 use crate::repositories::{
     department_repository::DepartmentRepository, leave_request_repository::LeaveRequestRepository,
@@ -38,6 +37,7 @@ pub struct ApprovalWorkflowService {
 }
 
 impl ApprovalWorkflowService {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         approval_workflow_repo: Arc<dyn ApprovalWorkflowRepository>,
         workspace_config_repo: Arc<dyn WorkspaceConfigRepository>,
@@ -1079,7 +1079,7 @@ mod tests {
     use super::*;
     use crate::diesel_pool::TenantAuthToken;
     use crate::errors::AppError;
-    use crate::models::{Employee, WorkspaceConfigEntry, LeaveStatus};
+    use crate::models::{Employee, LeaveStatus, WorkspaceConfigEntry};
     use async_trait::async_trait;
     use chrono::{DateTime, NaiveDate, Utc};
     use rust_decimal::Decimal;
@@ -2376,7 +2376,9 @@ mod tests {
     struct MockDailySummaryRepository;
 
     #[async_trait]
-    impl crate::repositories::attendance_daily_summary_repository::AttendanceDailySummaryRepository for MockDailySummaryRepository {
+    impl crate::repositories::attendance_daily_summary_repository::AttendanceDailySummaryRepository
+        for MockDailySummaryRepository
+    {
         async fn get_summary(
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,

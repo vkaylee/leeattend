@@ -353,18 +353,9 @@ impl AppState {
             "attendance_adjustment".to_string(),
             adjustment_service.clone(),
         );
-        workflow_handlers.insert(
-            "leave_request".to_string(),
-            leave_service.clone(),
-        );
-        workflow_handlers.insert(
-            "ot_request".to_string(),
-            overtime_request_service.clone(),
-        );
-        workflow_handlers.insert(
-            "ot_claim".to_string(),
-            attendance_summary_service.clone(),
-        );
+        workflow_handlers.insert("leave_request".to_string(), leave_service.clone());
+        workflow_handlers.insert("ot_request".to_string(), overtime_request_service.clone());
+        workflow_handlers.insert("ot_claim".to_string(), attendance_summary_service.clone());
 
         let approval_workflow_service = Arc::new(
             crate::services::ApprovalWorkflowService::new(

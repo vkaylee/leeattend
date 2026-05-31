@@ -98,6 +98,13 @@ impl ApprovalWorkflowRepository for DieselApprovalWorkflowRepository {
 
         let result = approval_workflow_steps::table
             .filter(approval_workflow_steps::workflow_id.eq(workflow_id))
+            .filter(
+                approval_workflow_steps::workflow_id.eq_any(
+                    approval_workflows::table
+                        .select(approval_workflows::id)
+                        .filter(approval_workflows::workspace_id.eq(auth_token.workspace_id())),
+                ),
+            )
             .order(approval_workflow_steps::step_order.asc())
             .load::<ApprovalWorkflowStep>(&mut *conn)
             .await
@@ -137,6 +144,7 @@ impl ApprovalWorkflowRepository for DieselApprovalWorkflowRepository {
 
         let result = approval_action_log::table
             .filter(approval_action_log::entity_id.eq(entity_id))
+            .filter(approval_action_log::workspace_id.eq(auth_token.workspace_id()))
             .order(approval_action_log::acted_at.asc())
             .load::<ApprovalActionLog>(&mut *conn)
             .await
@@ -178,7 +186,8 @@ impl ApprovalWorkflowRepository for DieselApprovalWorkflowRepository {
 
         let result = diesel::update(
             approval_workflow_instances::table
-                .filter(approval_workflow_instances::id.eq(instance.id)),
+                .filter(approval_workflow_instances::id.eq(instance.id))
+                .filter(approval_workflow_instances::workspace_id.eq(auth_token.workspace_id())),
         )
         .set(&instance)
         .get_result(&mut *conn)
@@ -204,6 +213,7 @@ impl ApprovalWorkflowRepository for DieselApprovalWorkflowRepository {
         let result = approval_workflow_instances::table
             .filter(approval_workflow_instances::entity_type.eq(entity_type))
             .filter(approval_workflow_instances::entity_id.eq(entity_id))
+            .filter(approval_workflow_instances::workspace_id.eq(auth_token.workspace_id()))
             .first::<ApprovalWorkflowInstance>(&mut *conn)
             .await
             .optional()
@@ -228,6 +238,7 @@ impl ApprovalWorkflowRepository for DieselApprovalWorkflowRepository {
 
         let result = approval_workflow_instances::table
             .filter(approval_workflow_instances::id.eq(instance_id))
+            .filter(approval_workflow_instances::workspace_id.eq(auth_token.workspace_id()))
             .first::<ApprovalWorkflowInstance>(&mut *conn)
             .await
             .optional()
@@ -252,6 +263,7 @@ impl ApprovalWorkflowRepository for DieselApprovalWorkflowRepository {
 
         let result = approval_workflows::table
             .filter(approval_workflows::id.eq(workflow_id))
+            .filter(approval_workflows::workspace_id.eq(auth_token.workspace_id()))
             .first::<ApprovalWorkflow>(&mut *conn)
             .await
             .optional()
@@ -292,7 +304,9 @@ impl ApprovalWorkflowRepository for DieselApprovalWorkflowRepository {
             .await?;
 
         let result = diesel::update(
-            approval_workflows::table.filter(approval_workflows::id.eq(workflow.id)),
+            approval_workflows::table
+                .filter(approval_workflows::id.eq(workflow.id))
+                .filter(approval_workflows::workspace_id.eq(auth_token.workspace_id())),
         )
         .set((
             approval_workflows::name.eq(workflow.name),
@@ -322,7 +336,9 @@ impl ApprovalWorkflowRepository for DieselApprovalWorkflowRepository {
             .await?;
 
         let rows_deleted = diesel::delete(
-            approval_workflows::table.filter(approval_workflows::id.eq(workflow_id)),
+            approval_workflows::table
+                .filter(approval_workflows::id.eq(workflow_id))
+                .filter(approval_workflows::workspace_id.eq(auth_token.workspace_id())),
         )
         .execute(&mut *conn)
         .await
@@ -347,7 +363,14 @@ impl ApprovalWorkflowRepository for DieselApprovalWorkflowRepository {
 
         diesel::delete(
             approval_workflow_steps::table
-                .filter(approval_workflow_steps::workflow_id.eq(workflow_id)),
+                .filter(approval_workflow_steps::workflow_id.eq(workflow_id))
+                .filter(
+                    approval_workflow_steps::workflow_id.eq_any(
+                        approval_workflows::table
+                            .select(approval_workflows::id)
+                            .filter(approval_workflows::workspace_id.eq(auth_token.workspace_id())),
+                    ),
+                ),
         )
         .execute(&mut *conn)
         .await
@@ -411,7 +434,18 @@ impl ApprovalWorkflowRepository for DieselApprovalWorkflowRepository {
             .await?;
 
         let result = diesel::update(
-            approval_workflow_tasks::table.filter(approval_workflow_tasks::id.eq(task.id())),
+            approval_workflow_tasks::table
+                .filter(approval_workflow_tasks::id.eq(task.id()))
+                .filter(
+                    approval_workflow_tasks::instance_id.eq_any(
+                        approval_workflow_instances::table
+                            .select(approval_workflow_instances::id)
+                            .filter(
+                                approval_workflow_instances::workspace_id
+                                    .eq(auth_token.workspace_id()),
+                            ),
+                    ),
+                ),
         )
         .set(&task)
         .get_result(&mut *conn)
@@ -433,6 +467,15 @@ impl ApprovalWorkflowRepository for DieselApprovalWorkflowRepository {
 
         let result = approval_workflow_tasks::table
             .filter(approval_workflow_tasks::instance_id.eq(instance_id))
+            .filter(
+                approval_workflow_tasks::instance_id.eq_any(
+                    approval_workflow_instances::table
+                        .select(approval_workflow_instances::id)
+                        .filter(
+                            approval_workflow_instances::workspace_id.eq(auth_token.workspace_id()),
+                        ),
+                ),
+            )
             .filter(approval_workflow_tasks::status.eq("pending"))
             .load::<ApprovalWorkflowTask>(&mut *conn)
             .await
@@ -462,6 +505,15 @@ impl ApprovalWorkflowRepository for DieselApprovalWorkflowRepository {
 
         let result = approval_workflow_tasks::table
             .filter(approval_workflow_tasks::status.eq("pending"))
+            .filter(
+                approval_workflow_tasks::instance_id.eq_any(
+                    approval_workflow_instances::table
+                        .select(approval_workflow_instances::id)
+                        .filter(
+                            approval_workflow_instances::workspace_id.eq(auth_token.workspace_id()),
+                        ),
+                ),
+            )
             .filter(
                 cond_user
                     .or(approval_workflow_tasks::assignee_type

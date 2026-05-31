@@ -302,7 +302,8 @@
         "types_desc": "Define available leave types and their rules",
         "policies_desc": "Set up how leave is earned over time",
         "assignments": "Policy Assignments",
-        "assignments_desc": "Assign policies to employees or departments"
+        "assignments_desc": "Assign policies to employees or departments",
+        "workflows": "Workflows"
       },
       "messages": {
         "update_success": "Leave type updated successfully",

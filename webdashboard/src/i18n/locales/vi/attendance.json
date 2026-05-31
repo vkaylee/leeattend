@@ -85,6 +85,23 @@
     "upload_prompt": "Click hoặc kéo thả file vào đây",
     "upload_limit": "Excel hoặc CSV (Tối đa 10MB)",
     "start_import": "Bắt đầu nhập dữ liệu",
+    "download_error_logs": "Tải file Excel chứa danh sách các dòng lỗi / bỏ qua",
+    "required": "Bắt buộc",
+    "optional": "Tùy chọn",
+    "format_label": "Định dạng",
+    "download_template": "Tải file Excel mẫu (Template)",
+    "download_csv_excel_template": "Tải file mẫu CSV / Excel (Template)",
+    "or": "hoặc",
+    "columns": {
+      "employee_code": {
+        "label": "Mã nhân viên",
+        "desc": "Mã số định danh duy nhất của nhân viên trong hệ thống (Employee ID)."
+      },
+      "punch_time": {
+        "label": "Thời gian chấm công",
+        "desc": "Mốc thời gian vào/ra ca cần điều chỉnh."
+      }
+    },
     "status": {
       "processing": "Đang xử lý dữ liệu...",
       "completed": "Hoàn thành!",
@@ -94,6 +111,7 @@
     },
     "file_requirements": {
       "title": "Yêu cầu định dạng file:",
+      "auto_detect": "💡 Hệ thống nhận diện cột tự động theo tiêu đề ở hàng đầu tiên (Header). Thứ tự các cột không quan trọng. Các cột khác ngoài danh sách dưới đây sẽ tự động được bỏ qua.",
       "col_a": "Cột A: Mã số nhân viên (Employee ID)",
       "col_b": "Cột B: Tên nhân viên (Không bắt buộc)",
       "col_c": "Cột C: Thời gian quẹt thẻ (DD/MM/YYYY HH:mm)",

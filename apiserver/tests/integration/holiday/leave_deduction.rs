@@ -621,3 +621,112 @@ async fn test_process_leave_on_paid_holiday_noop() {
         "Paid holiday result should be explicitly Paid"
     );
 }
+
+/// POST /holidays/:id/process-leave — edge cases: mix of employees with balance, zero balance, and no balance
+#[tokio::test]
+async fn test_process_holiday_leave_edge_cases() {
+    let (address, test_db) = spawn_app().await;
+    let pool = test_db.diesel_pools.clone();
+    let factory = crate::common::factory::TestFactory::new(pool.clone());
+    let client = reqwest::Client::new();
+
+    let user_id = factory.user().create().await;
+    let workspace_id = factory.workspace().create_with_owner(user_id).await;
+    let auth_token = factory.auth().create_token(user_id);
+
+    // 1. Employee with sufficient balance (5 days)
+    let emp_sufficient = factory
+        .employee()
+        .with_workspace(workspace_id)
+        .create()
+        .await;
+    factory
+        .leave_balance()
+        .with_employee(emp_sufficient)
+        .with_entitlement(5)
+        .create()
+        .await;
+
+    // 2. Employee with zero balance (0 days)
+    let emp_zero = factory
+        .employee()
+        .with_workspace(workspace_id)
+        .create()
+        .await;
+    factory
+        .leave_balance()
+        .with_employee(emp_zero)
+        .with_entitlement(0)
+        .create()
+        .await;
+
+    // 3. Employee with no balance entry at all
+    let emp_none = factory
+        .employee()
+        .with_workspace(workspace_id)
+        .create()
+        .await;
+
+    let today = Utc::now().date_naive();
+    let vacation_id: Uuid = crate::test_query_scalar_uuid!(
+        &pool.api,
+        "SELECT id FROM leave_types WHERE workspace_id = $1 AND code = 'vacation'",
+        diesel::sql_types::Uuid,
+        workspace_id
+    );
+
+    // Create unpaid holiday
+    let resp = client
+        .post(format!(
+            "{address}/api/v1/workspaces/{workspace_id}/holidays"
+        ))
+        .header("Authorization", format!("Bearer {auth_token}"))
+        .json(&serde_json::json!({
+            "name": "Edge Case Day",
+            "date": today.to_string(),
+            "holiday_type": "company",
+            "is_paid": false,
+            "leave_type_id": vacation_id.to_string(),
+        }))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::CREATED);
+    let holiday: HolidayResponse = resp.json().await.unwrap();
+
+    // Process leave deductions
+    let resp = client
+        .post(format!(
+            "{address}/api/v1/workspaces/{workspace_id}/holidays/{}/process-leave",
+            holiday.id
+        ))
+        .header("Authorization", format!("Bearer {auth_token}"))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::OK);
+
+    let results: Vec<serde_json::Value> = resp.json().await.unwrap();
+    assert_eq!(results.len(), 3);
+
+    // Verify Employee 1 got processed correctly (LeaveDeducted)
+    let sufficient_result = results
+        .iter()
+        .find(|r| r["LeaveDeducted"]["employee_id"].as_str() == Some(&emp_sufficient.to_string()))
+        .expect("Employee with sufficient balance should be processed as LeaveDeducted");
+    assert!(sufficient_result["LeaveDeducted"]["leave_request_id"].is_string());
+
+    // Verify Employee 2 got processed correctly (Unpaid)
+    let zero_result = results
+        .iter()
+        .find(|r| r["Unpaid"]["employee_id"].as_str() == Some(&emp_zero.to_string()))
+        .expect("Employee with zero balance should be processed as Unpaid");
+    assert!(zero_result["Unpaid"].is_object());
+
+    // Verify Employee 3 got processed correctly (Unpaid)
+    let none_result = results
+        .iter()
+        .find(|r| r["Unpaid"]["employee_id"].as_str() == Some(&emp_none.to_string()))
+        .expect("Employee with no balance entry should be processed as Unpaid");
+    assert!(none_result["Unpaid"].is_object());
+}

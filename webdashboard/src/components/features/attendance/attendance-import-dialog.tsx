@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
 // @ts-nocheck
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Upload, FileText, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
@@ -12,22 +13,22 @@ import { AttendanceImportJob } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 
 export interface ExpectedColumn {
+  description: string;
+  format?: string;
   key: string;
   label: string;
   required: boolean;
-  format?: string;
-  description: string;
 }
 
 interface AttendanceImportDialogProps {
   customRequirements?: string[];
-  expectedColumns?: ExpectedColumn[];
   endpoint: string; // e.g., "/attendance/upload" or "/attendance/logs/upload"
+  expectedColumns?: ExpectedColumn[];
   isOpen: boolean;
   onClose: () => void;
+  onDownloadTemplate?: () => void;
   targetType: string; // "adjustment", "log", or "employee"
   title: string;
-  onDownloadTemplate?: () => void;
 }
 
 interface ImportProgressProps {
@@ -69,8 +70,8 @@ function ErrorLog({ errorLog, t }: { errorLog: string; t: (key: string) => strin
           if (error.startsWith("DL_LINK:")) {
             const url = error.replace("DL_LINK:", "").trim();
             return (
-              <a className="mb-4 text-[11px] bg-rose-50 dark:bg-rose-900/30 p-3 rounded-lg border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-400 font-bold flex items-center gap-2 hover:bg-rose-100 dark:hover:bg-rose-900/50 transition-colors" download href={url} key={index}>
-                <FileText size={16} /> Tải file Excel chứa danh sách các dòng lỗi / bỏ qua
+              <a className="mb-4 text-[11px] bg-rose-50 dark:bg-rose-950/30 p-3 rounded-lg border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-400 font-bold flex items-center gap-2 hover:bg-rose-100 dark:hover:bg-rose-900/50 transition-colors" download href={url} key={index}>
+                <FileText size={16} /> {t("attendance_import.download_error_logs")}
               </a>
             );
           }
@@ -151,11 +152,11 @@ function ImportRequirements({
         {expectedColumns ? (
           <div className="space-y-3">
             <Typography className="text-slate-600 dark:text-slate-400 text-[11px] leading-relaxed italic" variant="p">
-              💡 Hệ thống nhận diện cột tự động theo tiêu đề ở hàng đầu tiên (Header). Thứ tự các cột không quan trọng. Các cột khác ngoài danh sách dưới đây sẽ tự động được bỏ qua.
+              {t("attendance_import.file_requirements.auto_detect")}
             </Typography>
             <ul className="space-y-3 mt-2 text-slate-700 dark:text-slate-300 font-medium text-xs">
               {expectedColumns.map((col, idx) => (
-                <li key={idx} className="flex flex-col space-y-1">
+                <li className="flex flex-col space-y-1" key={idx}>
                   <div className="flex items-center gap-2">
                     <div className="w-1.5 h-1.5 bg-primary-500 dark:bg-primary-400 rounded-full shrink-0" />
                     <span className="font-mono text-[11px] font-bold bg-white dark:bg-slate-900 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-800 text-primary-700 dark:text-primary-400 shadow-sm">
@@ -170,16 +171,16 @@ function ImportRequirements({
                         ? "bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-900/50" 
                         : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700"
                     )}>
-                      {col.required ? "Bắt buộc" : "Tùy chọn"}
+                      {col.required ? t("attendance_import.required") : t("attendance_import.optional")}
                     </span>
                   </div>
                   <div className="pl-5 space-y-1">
                     <Typography className="text-[11px] text-slate-500 dark:text-slate-400" variant="p">
                       {col.description}
                     </Typography>
-                    {col.format && (
+                    {!!col.format && (
                       <span className="inline-block text-[9px] font-mono font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/20 px-1.5 py-0.5 rounded">
-                        Định dạng: {col.format}
+                        {t("attendance_import.format_label")}: {col.format}
                       </span>
                     )}
                   </div>
@@ -210,19 +211,20 @@ function ImportRequirements({
         {targetType === "employee" && (
           <div className="mt-4 flex items-center">
             <a className="text-[10px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest hover:text-primary-700 hover:underline flex items-center gap-1.5" download href="/templates/employee_import_template.xlsx">
-              <FileText size={14} /> Tải file Excel mẫu (Template)
+              <FileText size={14} /> {t("attendance_import.download_template")}
             </a>
           </div>
         )}
-        {onDownloadTemplate && (
+        {!!onDownloadTemplate && (
           <div className="mt-4 flex items-center">
-            <button
-              className="text-[10px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest hover:text-primary-700 hover:underline flex items-center gap-1.5 cursor-pointer bg-transparent border-0 p-0"
+            <Button
+              className="text-[10px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest hover:text-primary-700 hover:underline flex items-center gap-1.5 cursor-pointer bg-transparent border-0 p-0 h-auto min-w-0"
               onClick={onDownloadTemplate}
               type="button"
+              variant="ghost"
             >
-              <FileText size={14} /> Tải file mẫu CSV / Excel (Template)
-            </button>
+              <FileText size={14} /> {t("attendance_import.download_csv_excel_template")}
+            </Button>
           </div>
         )}
       </div>

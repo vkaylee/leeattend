@@ -239,6 +239,8 @@ where
                     .map_err(|e| {
                         if e == "Not a member of this workspace" {
                             AppError::Forbidden(e)
+                        } else if e == "User not found" {
+                            AppError::Auth(e)
                         } else {
                             tracing::error!("DB error fetching member context: {e}");
                             AppError::Internal("Database error".to_string())
@@ -253,6 +255,8 @@ where
                 .map_err(|e| {
                     if e == "Not a member of this workspace" {
                         AppError::Forbidden(e)
+                    } else if e == "User not found" {
+                        AppError::Auth(e)
                     } else {
                         tracing::error!("DB error fetching member context: {e}");
                         AppError::Internal("Database error".to_string())

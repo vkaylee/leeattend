@@ -1,7 +1,7 @@
 use crate::common::app::setup_app_tower;
 use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
-use apiserver::models::{LeaveRequest, LeaveStatus, OtRequestStatus, OvertimeRequest, OtStatus};
+use apiserver::models::{LeaveRequest, LeaveStatus, OtRequestStatus, OtStatus, OvertimeRequest};
 use apiserver::AppState;
 use axum::body::Body;
 use axum::http::{Request, StatusCode};
@@ -9,13 +9,7 @@ use std::sync::Arc;
 use tower::ServiceExt;
 use uuid::Uuid;
 
-fn req(
-    method: &str,
-    uri: &str,
-    ws_id: Uuid,
-    token: &str,
-    body: Option<String>,
-) -> Request<Body> {
+fn req(method: &str, uri: &str, ws_id: Uuid, token: &str, body: Option<String>) -> Request<Body> {
     let mut builder = Request::builder()
         .method(method)
         .uri(uri)
@@ -35,7 +29,9 @@ fn req(
 }
 
 async fn body_json(resp: axum::http::Response<Body>) -> serde_json::Value {
-    let bytes = axum::body::to_bytes(resp.into_body(), 100000).await.unwrap();
+    let bytes = axum::body::to_bytes(resp.into_body(), 100000)
+        .await
+        .unwrap();
     serde_json::from_slice(&bytes).unwrap()
 }
 
@@ -48,7 +44,11 @@ async fn test_leave_request_workflow_flow() {
     let ws_id = factory.workspace().create_with_owner(admin_user_id).await;
 
     // Create regular employee who doesn't have auto-approve permission
-    let emp_user_id = factory.user().with_email("emp_workflow@test.com").create().await;
+    let emp_user_id = factory
+        .user()
+        .with_email("emp_workflow@test.com")
+        .create()
+        .await;
     factory
         .add_member(
             ws_id,
@@ -149,7 +149,8 @@ async fn test_leave_request_workflow_flow() {
     let status_str: String = crate::test_query_scalar_string!(
         &factory.diesel_pools.api,
         "SELECT status::text AS val FROM leave_requests WHERE id = $1",
-        diesel::sql_types::Uuid, created.id
+        diesel::sql_types::Uuid,
+        created.id
     );
     assert_eq!(status_str, "approved");
 
@@ -205,7 +206,8 @@ async fn test_leave_request_workflow_flow() {
     let status_str_b: String = crate::test_query_scalar_string!(
         &factory.diesel_pools.api,
         "SELECT status::text AS val FROM leave_requests WHERE id = $1",
-        diesel::sql_types::Uuid, created_b.id
+        diesel::sql_types::Uuid,
+        created_b.id
     );
     assert_eq!(status_str_b, "rejected");
 }
@@ -281,7 +283,10 @@ async fn test_ot_request_workflow_flow() {
         .clone()
         .oneshot(req(
             "POST",
-            &format!("/api/v1/workspaces/{ws_id}/overtime/requests/{}/consent/{}", created.id, emp_id),
+            &format!(
+                "/api/v1/workspaces/{ws_id}/overtime/requests/{}/consent/{}",
+                created.id, emp_id
+            ),
             ws_id,
             &admin_token,
             Some(consent_payload.to_string()),
@@ -295,7 +300,10 @@ async fn test_ot_request_workflow_flow() {
         .clone()
         .oneshot(req(
             "POST",
-            &format!("/api/v1/workspaces/{ws_id}/overtime/requests/{}/submit", created.id),
+            &format!(
+                "/api/v1/workspaces/{ws_id}/overtime/requests/{}/submit",
+                created.id
+            ),
             ws_id,
             &admin_token,
             None,
@@ -329,7 +337,8 @@ async fn test_ot_request_workflow_flow() {
     let status_str: String = crate::test_query_scalar_string!(
         &factory.diesel_pools.api,
         "SELECT status::text AS val FROM overtime_requests WHERE id = $1",
-        diesel::sql_types::Uuid, created.id
+        diesel::sql_types::Uuid,
+        created.id
     );
     assert_eq!(status_str, "approved");
 }
@@ -394,7 +403,8 @@ async fn test_ot_claim_workflow_flow() {
     let ot_status_str: String = crate::test_query_scalar_string!(
         &factory.diesel_pools.api,
         "SELECT ot_status::text AS val FROM attendance_daily_summaries WHERE id = $1",
-        diesel::sql_types::Uuid, summary_id
+        diesel::sql_types::Uuid,
+        summary_id
     );
     assert_eq!(ot_status_str, "pending_manager");
 
@@ -423,7 +433,8 @@ async fn test_ot_claim_workflow_flow() {
     let ot_status_str: String = crate::test_query_scalar_string!(
         &factory.diesel_pools.api,
         "SELECT ot_status::text AS val FROM attendance_daily_summaries WHERE id = $1",
-        diesel::sql_types::Uuid, summary_id
+        diesel::sql_types::Uuid,
+        summary_id
     );
     assert_eq!(ot_status_str, "approved");
 }

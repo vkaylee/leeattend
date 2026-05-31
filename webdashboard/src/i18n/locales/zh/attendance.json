@@ -85,6 +85,23 @@
     "upload_prompt": "点击或将文件拖到此处",
     "upload_limit": "Excel 或 CSV (最大 10MB)",
     "start_import": "开始导入",
+    "download_error_logs": "下载包含错误/跳过行列表的 Excel 文件",
+    "required": "必填",
+    "optional": "选填",
+    "format_label": "格式",
+    "download_template": "下载 Excel 模板",
+    "download_csv_excel_template": "下载 CSV / Excel 模板",
+    "or": "或",
+    "columns": {
+      "employee_code": {
+        "label": "员工编号",
+        "desc": "系统内员工的唯一标识符（Employee ID）。"
+      },
+      "punch_time": {
+        "label": "打卡时间",
+        "desc": "需要调整的进入/离开班次的时间点。"
+      }
+    },
     "status": {
       "processing": "正在处理数据...",
       "completed": "已完成！",
@@ -94,6 +111,7 @@
     },
     "file_requirements": {
       "title": "文件格式要求：",
+      "auto_detect": "💡 系统根据第一行的标题（Header）自动识别列。列的顺序并不重要。以下列表之外的其他列将被自动忽略。",
       "col_a": "A 列：员工 ID",
       "col_b": "B 列：员工姓名 (可选)",
       "col_c": "C 列：打卡时间 (DD/MM/YYYY HH:mm)",

@@ -343,35 +343,67 @@ impl HolidayRepository for DieselHolidayRepository {
                         .await?;
                 }
 
-                // 3. Insert accrual logs and update balances
-                for (emp_id, leave_type_id, amount, date, notes) in logs {
-                    let amount_bd = BigDecimal::from_str(&amount.to_string()).unwrap_or_default();
-                    let year = date.year();
+                // 3. Bulk insert accrual logs
+                if !logs.is_empty() {
+                    let log_entities: Vec<crate::models::diesel::leave::LeaveAccrualLogEntity> =
+                        logs.iter()
+                            .map(|(emp_id, leave_type_id, amount, date, notes)| {
+                                let amount_bd =
+                                    BigDecimal::from_str(&amount.to_string()).unwrap_or_default();
+                                crate::models::diesel::leave::LeaveAccrualLogEntity {
+                                    id: Uuid::new_v4(),
+                                    workspace_id,
+                                    employee_id: *emp_id,
+                                    policy_assignment_id: None,
+                                    accrual_date: *date,
+                                    amount: amount_bd,
+                                    notes: Some(notes.clone()),
+                                    created_at: Some(chrono::Utc::now()),
+                                    leave_type_id: *leave_type_id,
+                                }
+                            })
+                            .collect();
 
-                    // Log adjustment
                     diesel::insert_into(crate::schema::leave_accrual_logs::table)
-                        .values((
-                            crate::schema::leave_accrual_logs::workspace_id.eq(workspace_id),
-                            crate::schema::leave_accrual_logs::employee_id.eq(emp_id),
-                            crate::schema::leave_accrual_logs::accrual_date.eq(date),
-                            crate::schema::leave_accrual_logs::amount.eq(&amount_bd),
-                            crate::schema::leave_accrual_logs::leave_type_id.eq(leave_type_id),
-                            crate::schema::leave_accrual_logs::notes.eq(notes),
-                        ))
+                        .values(&log_entities)
                         .execute(&mut *conn)
                         .await?;
+                }
 
-                    // Update balance
+                // 4. Bulk insert/upsert leave balances
+                if !logs.is_empty() {
+                    let mut balance_aggregates: HashMap<(Uuid, Uuid, i32), BigDecimal> =
+                        HashMap::new();
+
+                    for (emp_id, leave_type_id, amount, date, _) in logs {
+                        let amount_bd =
+                            BigDecimal::from_str(&amount.to_string()).unwrap_or_default();
+                        let year = date.year();
+                        let key = (*emp_id, *leave_type_id, year);
+                        let entry = balance_aggregates.entry(key).or_default();
+                        *entry += amount_bd;
+                    }
+
+                    let balance_entities: Vec<crate::models::diesel::leave::LeaveBalanceEntity> =
+                        balance_aggregates
+                            .into_iter()
+                            .map(|((emp_id, leave_type_id, year), amount_bd)| {
+                                crate::models::diesel::leave::LeaveBalanceEntity {
+                                    id: Uuid::new_v4(),
+                                    employee_id: emp_id,
+                                    leave_type_id,
+                                    year,
+                                    entitlement: 0,
+                                    accrued_amount: amount_bd,
+                                    carried_over: 0,
+                                    created_at: Some(chrono::Utc::now()),
+                                    updated_at: Some(chrono::Utc::now()),
+                                }
+                            })
+                            .collect();
+
                     diesel::insert_into(crate::schema::leave_balances::table)
-                        .values((
-                            crate::schema::leave_balances::id.eq(Uuid::new_v4()),
-                            crate::schema::leave_balances::employee_id.eq(emp_id),
-                            crate::schema::leave_balances::leave_type_id.eq(leave_type_id),
-                            crate::schema::leave_balances::year.eq(year),
-                            crate::schema::leave_balances::entitlement.eq(0),
-                            crate::schema::leave_balances::accrued_amount.eq(&amount_bd),
-                            crate::schema::leave_balances::carried_over.eq(0),
-                        ))
+                        .values(&balance_entities)
                         .on_conflict((
                             crate::schema::leave_balances::employee_id,
                             crate::schema::leave_balances::leave_type_id,
@@ -380,7 +412,8 @@ impl HolidayRepository for DieselHolidayRepository {
                         .do_update()
                         .set((
                             crate::schema::leave_balances::accrued_amount
-                                .eq(crate::schema::leave_balances::accrued_amount + &amount_bd),
+                                .eq(crate::schema::leave_balances::accrued_amount
+                                    + excluded(crate::schema::leave_balances::accrued_amount)),
                             crate::schema::leave_balances::updated_at.eq(diesel::dsl::now),
                         ))
                         .execute(&mut *conn)

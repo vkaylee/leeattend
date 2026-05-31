@@ -61,16 +61,16 @@ export default function AttendanceAdjustmentsPage() {
         expectedColumns={[
           {
             key: "employee_code",
-            label: "Mã nhân viên",
+            label: t("attendance_import.columns.employee_code.label"),
             required: true,
-            description: "Mã số định danh duy nhất của nhân viên trong hệ thống (Employee ID)."
+            description: t("attendance_import.columns.employee_code.desc")
           },
           {
             key: "punch_time",
-            label: "Thời gian chấm công",
+            label: t("attendance_import.columns.punch_time.label"),
             required: true,
-            format: "DD/MM/YYYY HH:mm hoặc YYYY-MM-DD HH:mm",
-            description: "Mốc thời gian vào/ra ca cần điều chỉnh."
+            format: "DD/MM/YYYY HH:mm " + t("attendance_import.or") + " YYYY-MM-DD HH:mm",
+            description: t("attendance_import.columns.punch_time.desc")
           }
         ]}
         isOpen={isImportDialogOpen}
