@@ -7,8 +7,8 @@ use uuid::Uuid;
 
 use crate::models::{
     AdjustBalanceRequest, ApproveLeaveRequest, EmployeeLeaveBalance, LeaveDurationType,
-    LeaveHistoryItem, LeaveRequest, LeaveStatus, LeaveTransactionType, ShiftRoster,
-    SubmitLeaveRequest, WorkspaceLeaveBalance,
+    LeaveHistoryItem, LeaveRequest, LeaveStatus, LeaveTransactionType, SubmitLeaveRequest,
+    WorkspaceLeaveBalance,
 };
 use crate::repositories::leave_balance_repository::LeaveBalanceRepository;
 use crate::repositories::leave_request_repository::LeaveRequestRepository;
@@ -20,6 +20,7 @@ pub struct LeaveService {
     leave_balance_repo: Arc<dyn LeaveBalanceRepository>,
     leave_request_repo: Arc<dyn LeaveRequestRepository>,
     employee_repo: Arc<dyn EmployeeRepository>,
+    #[allow(dead_code)]
     roster_repo: Arc<dyn RosterRepository>,
     leave_accrual_log_repo:
         Arc<dyn crate::repositories::leave_accrual_log_repository::LeaveAccrualLogRepository>,
@@ -315,68 +316,14 @@ impl LeaveService {
 
     /// Apply leave-to-roster side effects (create roster entries with "on_leave" status).
     /// Shared between auto-approve (submit) and manual approve flows.
+    #[allow(clippy::unused_async)]
     async fn apply_leave_to_roster(
         &self,
-        workspace_id: Uuid,
-        request: &LeaveRequest,
+        _workspace_id: Uuid,
+        _request: &LeaveRequest,
     ) -> Result<(), AppError> {
-        let leave_type_name = self
-            .leave_request_repo
-            .get_leave_type_name(
-                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
-                request.leave_type_id,
-            )
-            .await?
-            .unwrap_or_else(|| "Leave".to_string());
-
-        let duration_label = match request.duration_type {
-            LeaveDurationType::FirstHalf => " (Nửa ngày sáng)",
-            LeaveDurationType::SecondHalf => " (Nửa ngày chiều)",
-            LeaveDurationType::CustomHours => {
-                if let (Some(st), Some(et)) = (request.start_time, request.end_time) {
-                    // We'll format inline below
-                    &format!(" ({} - {})", st.format("%H:%M"), et.format("%H:%M"))
-                } else {
-                    ""
-                }
-            }
-            LeaveDurationType::FullDay => "",
-        };
-        // Clone to avoid borrow issues with format above
-        let duration_label = duration_label.to_string();
-
-        let mut current_date = request.start_date;
-        while current_date <= request.end_date {
-            let roster = ShiftRoster {
-                id: Uuid::new_v4(),
-                employee_id: request.employee_id,
-                shift_id: None,
-                date: current_date,
-                status: "on_leave".to_string(),
-                notes: Some(format!("Nghỉ phép: {leave_type_name}{duration_label}")),
-                created_at: Utc::now(),
-                updated_at: Utc::now(),
-            };
-
-            let _ = self
-                .roster_repo
-                .upsert_roster(
-                    &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
-                    &roster,
-                )
-                .await
-                .map_err(|e| {
-                    tracing::error!(error = %e, "SQLx Error in apply_leave_to_roster");
-                    AppError::Internal("Internal error".into())
-                })?;
-
-            if let Some(next_date) = current_date.succ_opt() {
-                current_date = next_date;
-            } else {
-                break;
-            }
-        }
-
+        // Option B: Giữ nguyên ca làm việc gốc và đối chiếu đơn phép khi chấm công.
+        // Không tạo bản ghi đè shift_id = NULL trong bảng shift_rosters.
         Ok(())
     }
 
@@ -470,7 +417,9 @@ impl LeaveService {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::models::{Employee, EmployeeLeaveBalance, LeaveRequest, WorkspaceLeaveBalance};
+    use crate::models::{
+        Employee, EmployeeLeaveBalance, LeaveRequest, ShiftRoster, WorkspaceLeaveBalance,
+    };
     use crate::repositories::leave_accrual_log_repository::{
         ExistingAccrualLog, LeaveHistoryLogItem,
     };
@@ -1686,20 +1635,10 @@ mod tests {
         assert_eq!(res.status, LeaveStatus::PreApproved);
 
         let upserts = ros_repo.upserts.lock().unwrap();
-        assert_eq!(upserts.len(), 3);
-        assert_eq!(
-            upserts[0].date,
-            NaiveDate::from_ymd_opt(2024, 1, 1).unwrap()
+        assert!(
+            upserts.is_empty(),
+            "Option B should not write roster overrides"
         );
-        assert_eq!(
-            upserts[1].date,
-            NaiveDate::from_ymd_opt(2024, 1, 2).unwrap()
-        );
-        assert_eq!(
-            upserts[2].date,
-            NaiveDate::from_ymd_opt(2024, 1, 3).unwrap()
-        );
-        assert_eq!(upserts[0].status, "on_leave");
     }
 
     #[tokio::test]
@@ -1728,9 +1667,10 @@ mod tests {
         assert_eq!(res.status, LeaveStatus::PreApproved);
 
         let upserts = ros_repo.upserts.lock().unwrap();
-        assert_eq!(upserts.len(), 1);
-        let note = upserts[0].notes.as_deref().unwrap();
-        assert!(note.contains("10:00 - 14:00"));
+        assert!(
+            upserts.is_empty(),
+            "Option B should not write roster overrides"
+        );
     }
 
     #[tokio::test]
@@ -1765,9 +1705,10 @@ mod tests {
         assert!(*req_repo.update_called.lock().unwrap());
 
         let upserts = ros_repo.upserts.lock().unwrap();
-        assert_eq!(upserts.len(), 1);
-        let note = upserts[0].notes.as_deref().unwrap();
-        assert!(note.contains("Nửa ngày sáng"));
+        assert!(
+            upserts.is_empty(),
+            "Option B should not write roster overrides"
+        );
     }
 
     #[tokio::test]
@@ -1802,9 +1743,10 @@ mod tests {
         assert!(*req_repo.update_called.lock().unwrap());
 
         let upserts = ros_repo.upserts.lock().unwrap();
-        assert_eq!(upserts.len(), 1);
-        let note = upserts[0].notes.as_deref().unwrap();
-        assert!(note.contains("Nửa ngày chiều"));
+        assert!(
+            upserts.is_empty(),
+            "Option B should not write roster overrides"
+        );
     }
     #[tokio::test]
     async fn test_approve_leave_request_custom_hours() {
@@ -1838,8 +1780,9 @@ mod tests {
         assert!(*req_repo.update_called.lock().unwrap());
 
         let upserts = ros_repo.upserts.lock().unwrap();
-        assert_eq!(upserts.len(), 1);
-        let note = upserts[0].notes.as_deref().unwrap();
-        assert!(note.contains("09:00 - 11:00"));
+        assert!(
+            upserts.is_empty(),
+            "Option B should not write roster overrides"
+        );
     }
 }

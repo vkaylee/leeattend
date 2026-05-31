@@ -90,7 +90,7 @@ impl AttendanceSummaryService {
         date: NaiveDate,
     ) -> AppResult<()> {
         // 1. Fetch schedule & time entries
-        let (tz, mut daily_schedule, day_entries) = self
+        let (tz, daily_schedule, day_entries) = self
             .fetch_daily_schedule(workspace_id, employee_id, date)
             .await?;
 
@@ -116,30 +116,6 @@ impl AttendanceSummaryService {
                 self.leave_request_repo
                     .cancel_leave_request(&TenantAuthToken::system_override(workspace_id), req.id)
                     .await?;
-
-                // Delete roster overrides for all dates in the request
-                let mut current_date = req.start_date;
-                while current_date <= req.end_date {
-                    let _ = self
-                        .roster_repo
-                        .delete_roster(
-                            &TenantAuthToken::system_override(workspace_id),
-                            employee_id,
-                            current_date,
-                        )
-                        .await;
-                    if let Some(next_date) = current_date.succ_opt() {
-                        current_date = next_date;
-                    } else {
-                        break;
-                    }
-                }
-
-                // Re-fetch daily schedule to get the restored original shift
-                let (_, restored_schedule, _) = self
-                    .fetch_daily_schedule(workspace_id, employee_id, date)
-                    .await?;
-                daily_schedule = restored_schedule;
             }
         }
 
@@ -1006,20 +982,11 @@ mod tests {
                 .expect_is_holiday()
                 .returning(move |_, _| Box::pin(async move { Ok(None) }));
 
-            // Mock fetch schedule: initially we return a schedule with shift_id=None (leave)
-            let counter = std::sync::Arc::new(std::sync::atomic::AtomicU32::new(0));
-            let counter_clone = counter.clone();
+            // Mock fetch schedule: initially we return a schedule with shift_id=Some(shift_id) (original shift)
             let shift_id = Uuid::new_v4();
             roster_repo
                 .expect_get_workspace_schedules()
                 .returning(move |_, _, _, _, _| {
-                    let call_count =
-                        counter_clone.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
-                    let resolved_shift = if call_count == 0 {
-                        None
-                    } else {
-                        Some(shift_id)
-                    };
                     Box::pin(async move {
                         Ok(vec![crate::models::EmployeeSchedule {
                             employee_id,
@@ -1027,7 +994,7 @@ mod tests {
                             full_name: "John Doe".to_string(),
                             schedules: vec![crate::models::EffectiveSchedule {
                                 date,
-                                shift_id: resolved_shift,
+                                shift_id: Some(shift_id),
                                 source: "pattern".to_string(),
                                 shift_name: None,
                                 shift_symbol: None,
@@ -1102,16 +1069,8 @@ mod tests {
                 .times(1)
                 .returning(|_, _| Box::pin(async move { Ok(()) }));
 
-            // Expect deletion of roster overrides
-            roster_repo
-                .expect_delete_roster()
-                .with(
-                    mockall::predicate::always(),
-                    mockall::predicate::eq(employee_id),
-                    mockall::predicate::eq(date),
-                )
-                .times(1)
-                .returning(|_, _, _| Box::pin(async move { Ok(()) }));
+            // Under Option B, we never delete roster overrides because we don't write them on approval
+            roster_repo.expect_delete_roster().never();
 
             // Expect get summary
             daily_summary_repo
@@ -1140,8 +1099,6 @@ mod tests {
                 .recalculate_daily_summary(workspace_id, employee_id, date)
                 .await;
             assert!(result.is_ok());
-            // Confirm we ran the refetch
-            assert_eq!(counter.load(std::sync::atomic::Ordering::SeqCst), 2);
         }
 
         #[tokio::test]
@@ -1272,11 +1229,8 @@ mod tests {
                 .times(1)
                 .returning(|_, _| Box::pin(async move { Ok(()) }));
 
-            // Should delete roster for Mon, Tue, Wed
-            roster_repo
-                .expect_delete_roster()
-                .times(3)
-                .returning(|_, _, _| Box::pin(async move { Ok(()) }));
+            // Under Option B, we never delete roster overrides
+            roster_repo.expect_delete_roster().never();
 
             daily_summary_repo
                 .expect_get_summary()
