@@ -113,7 +113,7 @@ function ThemeToggle() {
             "relative z-10 w-8 h-8 min-w-[32px] min-h-[32px] p-0 rounded-full transition-colors duration-300 flex items-center justify-center gap-0 cursor-pointer",
             mode === opt.value
               ? "text-primary-600 dark:text-primary-400 font-bold bg-white/0 dark:bg-slate-900/0"
-              : "text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300"
+              : "text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
           )}
           data-testid={`theme-toggle-${opt.value}`}
           key={opt.value}

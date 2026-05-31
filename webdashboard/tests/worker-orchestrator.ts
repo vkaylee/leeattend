@@ -2,7 +2,6 @@
 import { test as base, expect } from '@playwright/test';
 
 import { setupApiMocks } from './mocks/api-intercept';
-import { MOCK_USER } from './mocks/mock-data';
 import { ConnectivityPage } from './pom/connectivity-page';
 import { DevicesPage } from './pom/devices-page';
 import { EmployeesPage } from './pom/employees-page';
@@ -48,30 +47,12 @@ export const test = base.extend<TestFixtures>({
   devicesPage: async ({ page }, use) => {
     await use(new DevicesPage(page));
   },
-// Fixture that automatically logs in
-authPage: async ({ page, loginPage }, use) => {
-  await loginPage.goto();
-  await loginPage.login(MOCK_USER.email, 'password123');
-
-  // Chờ cho đến khi thoát khỏi trang login
-  await page.waitForURL(url => !url.pathname.includes('/login'), { timeout: 90000 });
-  
-  await use(loginPage);
-},  storageState: async ({}, use) => { // eslint-disable-line no-empty-pattern
-    await use({
-      cookies: [],
-      origins: [
-        {
-          origin: 'http://127.0.0.1',
-          localStorage: [
-            {
-              name: 'i18nextLng',
-              value: 'en',
-            },
-          ],
-        },
-      ],
-    });
+  authPage: async ({ page, loginPage }, use) => {
+    await setupApiMocks(page);
+    await page.goto('/');
+    // Ensure we successfully navigated out of login page
+    await expect(page).not.toHaveURL(/.*\/login/, { timeout: 15000 });
+    await use(loginPage);
   },
 });
 

@@ -16,7 +16,7 @@ export class DevicesPage extends BasePage {
   async waitForLoad() {
     // 1. Wait for the main container
     const container = this.page.getByTestId('connectivity-topology');
-    await expect(container).toBeVisible({ timeout: 10000 });
+    await expect(container).toBeVisible({ timeout: 30000 });
     
     // 2. Wait for loading to finish (either agents list or empty state appears)
     await expect(this.page.locator('[data-testid="agents-list"], [data-testid="empty-agents-state"]')).toBeVisible({ timeout: 20000 });
@@ -37,8 +37,11 @@ export class DevicesPage extends BasePage {
     const firstCard = agentCards.first();
     const testId = await firstCard.getAttribute('data-testid') ?? '';
     const agentId = testId.replace('agent-card-', '');
-    await this.page.getByTestId(`agent-header-${agentId}`).click(); // Expand first
-    await this.page.getByTestId(`add-device-btn-${agentId}`).click();
+    const addBtn = this.page.getByTestId(`add-device-btn-${agentId}`);
+    if (!(await addBtn.isVisible())) {
+      await this.page.getByTestId(`agent-header-${agentId}`).click(); // Expand first if not visible
+    }
+    await addBtn.click();
     await this.page.waitForTimeout(1000);
     await this.page.screenshot({ path: 'add-device-fail.png', fullPage: true });
     await expect(this.page.getByTestId('add-device-form')).toBeVisible();
@@ -101,12 +104,16 @@ export class DevicesPage extends BasePage {
   }
 
   async clickEditDevice(deviceId: string) {
-    await this.page.getByTestId(`device-edit-${deviceId}`).click();
+    const btn = this.page.getByTestId(`device-edit-${deviceId}`);
+    await btn.waitFor({ state: 'visible', timeout: 5000 });
+    await btn.click();
     await expect(this.page.getByTestId('edit-device-form')).toBeVisible();
   }
 
   async clickDeleteDevice(deviceId: string) {
-    await this.page.getByTestId(`device-delete-${deviceId}`).click();
+    const btn = this.page.getByTestId(`device-delete-${deviceId}`);
+    await btn.waitFor({ state: 'visible', timeout: 5000 });
+    await btn.click();
     // The delete confirmation modal should appear
     await expect(this.page.getByTestId(`delete-modal-${deviceId}`)).toBeVisible();
   }

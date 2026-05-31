@@ -141,7 +141,7 @@ def leeattend_run_integration(
 
     if mode in ("all", "web"):
         pw_args = f"-g {_safe_pattern(test_pattern)}" if test_pattern else ""
-        pw = f"npx playwright test {pw_args} --workers 1"
+        pw = f"bunx playwright test {pw_args} --workers 2"
         pw_cmd = build_compose_exec("webdashboard", pw, mode=mode)
         tasks.append(("playwright-e2e", "webdashboard", pw_cmd))
 
@@ -173,7 +173,7 @@ def leeattend_run_coverage(
             f"--output-dir /workspace/.test_logs/coverage-apiserver-html 2>&1 </dev/null && "
             f"{coverage_env} cargo llvm-cov report {ignore_regex} --summary-only 2>&1 </dev/null && "
             f"{coverage_env} cargo llvm-cov report {ignore_regex} --json > /workspace/.test_logs/coverage.json 2>/dev/null </dev/null && "
-            f"python3 -c \"import json\n"
+            f'python3 -c "import json\n'
             f"cov=json.load(open('/workspace/.test_logs/coverage.json'))\n"
             f"print('\\n\\n' + '='*60 + '\\n🤖 AI COVERAGE SUMMARY (Target: 50.0%)\\n' + '='*60)\n"
             f"files=[f for f in cov['data'][0]['files'] if f['summary']['lines']['count'] > 0 and (f['summary']['lines']['covered'] / f['summary']['lines']['count']) < 0.5]\n"

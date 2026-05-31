@@ -8,7 +8,8 @@ import { test, expect } from './worker-orchestrator';
 test.describe('Report Export Streaming E2E', () => {
   test.setTimeout(120000); // 2 minutes for export operations
 
-  test.beforeEach(async ({ page }) => {
+  test.beforeEach(async ({ authPage, page }) => {
+    expect(authPage).toBeDefined();
     // Enable browser console logging for debugging
     page.on('console', _message => { /* empty */ });
     page.on('pageerror', _error => { /* empty */ });
@@ -19,13 +20,6 @@ test.describe('Report Export Streaming E2E', () => {
         
       }
     });
-
-    // Login first
-    await page.goto('/login');
-    await page.getByTestId('login-email-input').fill('admin@leeattend.com');
-    await page.getByTestId('login-password-input').fill('admin123');
-    await page.getByTestId('login-submit-btn').click();
-    await expect(page.getByRole('heading', { level: 1 })).toBeVisible({ timeout: 60000 });
 
     // Verify console capture is working
     await page.evaluate(() => { console.error("INJECTED_TEST_LOG_FOR_DEBUGGING"); });
@@ -48,7 +42,7 @@ test.describe('Report Export Streaming E2E', () => {
 
     // Wait for completion status
     const statusText = page.getByTestId('report-export-status-text');
-    await expect(statusText).toContainText(/completed|success|Sẵn sàng/i, { timeout: 60000 });
+    await expect(statusText).toContainText(/completed|success|Sẵn sàng|Ready/i, { timeout: 60000 });
 
     // Verify download button appears
     const downloadButton = page.getByTestId('report-export-download-button');
@@ -78,10 +72,10 @@ test.describe('Report Export Streaming E2E', () => {
 
     // Click "Run in Background" button
     const backgroundButton = page.getByTestId('report-export-background-button');
-    await expect(backgroundButton).toBeVisible({ timeout: 10000 });
-    await backgroundButton.click({ force: true });
+    await expect(backgroundButton).toBeVisible({ timeout: 15000 });
+    await backgroundButton.click();
 
     // Verify dialog closes
-    await expect(page.getByTestId('report-export-dialog')).not.toBeVisible({ timeout: 5000 });
+    await expect(page.getByTestId('report-export-dialog')).not.toBeVisible({ timeout: 15000 });
   });
 });

@@ -158,7 +158,7 @@ export async function updateLeavePolicy(
     params: {
       path: { ws_id: wsId, policy_id: policyId },
     },
-    body: data,
+    body: data as any,
   });
   if (!resData) throw new Error("No response data");
   return resData as unknown as LeavePolicy;

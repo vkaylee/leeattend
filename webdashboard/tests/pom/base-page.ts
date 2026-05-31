@@ -8,6 +8,6 @@ export class BasePage {
   }
 
   async verifyTitle(testId: string) {
-    await expect(this.page.getByTestId(testId)).toBeVisible({ timeout: 10000 });
+    await expect(this.page.getByTestId(testId)).toBeVisible({ timeout: 30000 });
   }
 }

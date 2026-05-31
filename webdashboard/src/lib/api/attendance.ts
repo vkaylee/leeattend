@@ -311,7 +311,7 @@ export async function fetchGenericJobStatus(
   jobId: string
 ): Promise<GenericJobStatus> {
   const { data: resData } = await client.GET("/workspaces/{ws_id}/jobs/{job_id}", {
-            params: { path: { ws_id: wsId, id: jobId } }
+            params: { path: { ws_id: wsId, job_id: jobId } }
       });
     return resData!;
 }
@@ -384,7 +384,7 @@ export async function claimOt(
   data: { date: string; claimed_minutes: number; reason?: string }
 ): Promise<void> {
   await client.POST("/v1/workspaces/{ws_id}/attendance/claim-ot/{employee_id}", {
-            params: { path: { ws_id: wsId, id: employeeId } },
+            params: { path: { ws_id: wsId, employee_id: employeeId } },
           body: data });
 }
 
@@ -394,7 +394,7 @@ export async function approveOt(
   data: { date: string; approved_minutes: number; manager_note?: string; status: "approved" | "rejected" }
 ): Promise<void> {
   await client.POST("/v1/workspaces/{ws_id}/attendance/approve-ot/{employee_id}", {
-            params: { path: { ws_id: wsId, id: employeeId } },
+            params: { path: { ws_id: wsId, employee_id: employeeId } },
           body: data });
 }
 
@@ -425,7 +425,7 @@ export async function enterPaperOt(
   }
 ): Promise<AttendanceDailySummary> {
   const { data: resData } = await client.POST("/v1/workspaces/{ws_id}/attendance/paper-forms/overtime/{employee_id}", {
-            params: { path: { ws_id: wsId, id: employeeId } },
+            params: { path: { ws_id: wsId, employee_id: employeeId } },
           body: data });
     return resData!;
 }
@@ -523,7 +523,7 @@ export async function fetchExportJobStatus(
   jobId: string
 ) {
   const { data: resData } = await client.GET("/workspaces/{ws_id}/reports/jobs/{job_id}", {
-            params: { path: { ws_id: wsId, id: jobId } }
+            params: { path: { ws_id: wsId, job_id: jobId } }
       });
     return resData!;
 }
@@ -533,7 +533,7 @@ export async function cancelExportJob(
   jobId: string
 ): Promise<void> {
   await client.DELETE("/workspaces/{ws_id}/reports/jobs/{job_id}", {
-            params: { path: { ws_id: wsId, id: jobId } }
+            params: { path: { ws_id: wsId, job_id: jobId } }
       });
 }
 

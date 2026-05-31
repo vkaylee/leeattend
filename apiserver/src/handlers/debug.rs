@@ -52,7 +52,13 @@ pub async fn get_debug_users(
         }
 
         let users: Vec<DebugUserRow> = diesel::sql_query(
-            r"SELECT id, COALESCE(full_name, 'Unknown') as name, email, role FROM users LIMIT 20",
+            r"
+            SELECT u.id, COALESCE(u.full_name, 'Unknown') as name, u.email, COALESCE(sr.name, 'user') as role
+            FROM users u
+            LEFT JOIN user_system_roles usr ON usr.user_id = u.id
+            LEFT JOIN system_roles sr ON sr.id = usr.role_id
+            LIMIT 20
+            ",
         )
         .load(&mut *conn)
         .await
@@ -234,23 +240,51 @@ pub async fn clear_debug_db(
                         .await
                         .map_err(|e| AppError::ServiceUnavailable(e.to_string()))?;
 
+                        let loc_id = crate::utils::id::new_id();
+                        diesel::sql_query(
+                            "INSERT INTO work_locations (id, workspace_id, name, is_headquarters, timezone, status) \
+                             VALUES ($1, $2, 'Headquarters', true, 'UTC', 'active') \
+                             ON CONFLICT (workspace_id) WHERE is_headquarters = true DO NOTHING"
+                        )
+                        .bind::<diesel::sql_types::Uuid, _>(loc_id)
+                        .bind::<diesel::sql_types::Uuid, _>(ws_id)
+                        .execute(conn)
+                        .await
+                        .map_err(|e| AppError::ServiceUnavailable(e.to_string()))?;
+
+                        #[derive(diesel::QueryableByName)]
+                        struct LocIdRow {
+                            #[diesel(sql_type = diesel::sql_types::Uuid)]
+                            id: Uuid,
+                        }
+
+                        let loc: LocIdRow = diesel::sql_query(
+                            "SELECT id FROM work_locations WHERE workspace_id = $1 AND is_headquarters = true LIMIT 1"
+                        )
+                        .bind::<diesel::sql_types::Uuid, _>(ws_id)
+                        .get_result(conn)
+                        .await
+                        .map_err(|e| AppError::ServiceUnavailable(e.to_string()))?;
+
                         let employees = vec![
-                            ("Alice Engineer", "alice@example.com", "EMP001", dept_eng.id),
-                            ("Bob Developer", "bob@example.com", "EMP002", dept_eng.id),
-                            ("Charlie Manager", "charlie@example.com", "EMP003", dept_eng.id),
-                            ("David HR", "david@example.com", "EMP004", dept_hr.id),
-                            ("Eve Recruiter", "eve@example.com", "EMP005", dept_hr.id),
+                            ("Alice Engineer", "EMP001", dept_eng.id),
+                            ("Bob Developer", "EMP002", dept_eng.id),
+                            ("Charlie Manager", "EMP003", dept_eng.id),
+                            ("David HR", "EMP004", dept_hr.id),
+                            ("Eve Recruiter", "EMP005", dept_hr.id),
                         ];
 
-                        for (name, email, code, dept_id) in employees {
+                        for (name, code, dept_id) in employees {
                             let emp_id = crate::utils::id::new_id();
-                            diesel::sql_query("INSERT INTO employees (id, workspace_id, full_name, email, employee_id_number, original_hire_date, hire_date, is_active) VALUES ($1, $2, $3, $4, $5, CURRENT_DATE, CURRENT_DATE, true)"
+                            diesel::sql_query(
+                                "INSERT INTO employees (id, workspace_id, full_name, employee_id_number, original_hire_date, hire_date, is_active, primary_location_id) \
+                                 VALUES ($1, $2, $3, $4, CURRENT_DATE, CURRENT_DATE, true, $5)"
                             )
                             .bind::<diesel::sql_types::Uuid, _>(emp_id)
                             .bind::<diesel::sql_types::Uuid, _>(ws_id)
                             .bind::<diesel::sql_types::Text, _>(name)
-                            .bind::<diesel::sql_types::Text, _>(email)
                             .bind::<diesel::sql_types::Text, _>(code)
+                            .bind::<diesel::sql_types::Uuid, _>(loc.id)
                             .execute(conn)
                             .await
                             .map_err(|e| AppError::ServiceUnavailable(e.to_string()))?;

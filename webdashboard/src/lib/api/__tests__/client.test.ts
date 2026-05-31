@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi, Mock } from 'vitest';
-import { client } from '../client';
+import { client, customFetch } from '../client';
 import { ApiError } from '../errors';
 
 // Mock apiFetch which is used inside client.ts
@@ -86,5 +86,68 @@ describe('client (openapi-fetch adapter)', () => {
       expect(apiError.errorCode).toBeUndefined();
       expect(apiError.errorBody).toEqual({ message: "Internal Server Error occurred" });
     }
+  });
+
+  describe('customFetch URL sanitization and cleanup', () => {
+    it('handles string URLs without modification', async () => {
+      const mockApiFetch = apiFetch as Mock;
+      mockApiFetch.mockResolvedValue(new Response(JSON.stringify({ data: "ok" }), { status: 200 }));
+
+      const testUrl = "http://127.0.0.1:5173/api/v1/workspaces";
+      await customFetch(testUrl);
+
+      expect(mockApiFetch).toHaveBeenCalledWith(testUrl, {});
+    });
+
+    it('corrects double /api/api/v1 in Request objects', async () => {
+      const mockApiFetch = apiFetch as Mock;
+      mockApiFetch.mockResolvedValue(new Response(JSON.stringify({ data: "ok" }), { status: 200 }));
+
+      const request = new Request("http://127.0.0.1:5173/api/api/v1/workspaces", {
+        method: "GET",
+      });
+
+      await customFetch(request);
+
+      expect(mockApiFetch).toHaveBeenCalledWith(
+        "http://127.0.0.1:5173/api/v1/workspaces",
+        expect.objectContaining({ method: "GET" })
+      );
+    });
+
+    it('corrects /api/ missing /v1 in Request objects', async () => {
+      const mockApiFetch = apiFetch as Mock;
+      mockApiFetch.mockResolvedValue(new Response(JSON.stringify({ data: "ok" }), { status: 200 }));
+
+      const request = new Request("http://127.0.0.1:5173/api/workspaces", {
+        method: "POST",
+        body: JSON.stringify({ name: "New" }),
+        headers: { "Content-Type": "application/json" },
+      });
+
+      await customFetch(request);
+
+      expect(mockApiFetch).toHaveBeenCalledWith(
+        "http://127.0.0.1:5173/api/v1/workspaces",
+        expect.objectContaining({
+          method: "POST",
+          headers: expect.objectContaining({ "Content-Type": "application/json" }),
+          body: JSON.stringify({ name: "New" }),
+        })
+      );
+    });
+
+    it('leaves correct /api/v1/ paths untouched in Request objects', async () => {
+      const mockApiFetch = apiFetch as Mock;
+      mockApiFetch.mockResolvedValue(new Response(JSON.stringify({ data: "ok" }), { status: 200 }));
+
+      const request = new Request("http://127.0.0.1:5173/api/v1/workspaces");
+      await customFetch(request);
+
+      expect(mockApiFetch).toHaveBeenCalledWith(
+        "http://127.0.0.1:5173/api/v1/workspaces",
+        expect.any(Object)
+      );
+    });
   });
 });

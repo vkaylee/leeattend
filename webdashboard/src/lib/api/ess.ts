@@ -24,7 +24,7 @@ import { client } from "./client";
 export async function fetchMyProfile(): Promise<MyProfileResponse> {
   const { data: resData } = await client.GET("/ess/profile");
   if (!resData) throw new Error("No response data");
-  return resData!;
+  return resData as unknown as MyProfileResponse;
 }
 
 export async function updateMyProfile(

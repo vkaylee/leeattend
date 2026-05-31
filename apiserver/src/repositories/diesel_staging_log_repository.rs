@@ -224,43 +224,47 @@ impl StagingLogRepository for DieselStagingLogRepository {
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
-        let mut claimed = 0u64;
-        for staged in staged_logs {
-            let id = crate::utils::id::new_id();
-            let raw_log_entity = crate::models::diesel::attendance_log::RawAttendanceLogEntity {
-                id,
-                workspace_id,
-                employee_id,
-                punch_time: staged.punch_time,
-                source: crate::models::LogSource::Device,
-                device_id: staged.device_id.clone(),
-                raw_data: staged.raw_data.clone(),
-                punch: -1,
-                status: -1,
-                created_at: Some(chrono::Utc::now()),
-            };
+        if staged_logs.is_empty() {
+            return Ok(0);
+        }
 
-            let rows = diesel::insert_into(crate::schema::raw_attendance_logs::table)
-                .values(&raw_log_entity)
-                .on_conflict_do_nothing()
-                .execute(&mut *conn)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?;
-
-            if rows > 0 {
-                claimed += 1;
-            }
-
-            diesel::update(
-                attendance_staging_logs::table.filter(attendance_staging_logs::id.eq(staged.id)),
+        let now = chrono::Utc::now();
+        let raw_log_entities: Vec<_> = staged_logs
+            .iter()
+            .map(
+                |staged| crate::models::diesel::attendance_log::RawAttendanceLogEntity {
+                    id: crate::utils::id::new_id(),
+                    workspace_id,
+                    employee_id,
+                    punch_time: staged.punch_time,
+                    source: crate::models::LogSource::Device,
+                    device_id: staged.device_id.clone(),
+                    raw_data: staged.raw_data.clone(),
+                    punch: -1,
+                    status: -1,
+                    created_at: Some(now),
+                },
             )
-            .set(attendance_staging_logs::status.eq("processed"))
+            .collect();
+
+        let inserted_rows = diesel::insert_into(crate::schema::raw_attendance_logs::table)
+            .values(&raw_log_entities)
+            .on_conflict_do_nothing()
             .execute(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
-        }
 
-        Ok(claimed)
+        let staged_ids: Vec<_> = staged_logs.iter().map(|staged| staged.id).collect();
+
+        diesel::update(
+            attendance_staging_logs::table.filter(attendance_staging_logs::id.eq_any(&staged_ids)),
+        )
+        .set(attendance_staging_logs::status.eq("processed"))
+        .execute(&mut *conn)
+        .await
+        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        Ok(inserted_rows as u64)
     }
 
     async fn resolve_staging_log(

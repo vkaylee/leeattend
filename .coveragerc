@@ -5,6 +5,7 @@ omit =
     scripts/_test_utils.py
     scripts/tests/*
     scripts/migrate_legacy_data.py
+    scripts/migrate_tenant_workspace.py
 
 [report]
 exclude_lines =

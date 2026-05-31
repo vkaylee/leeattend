@@ -84,7 +84,7 @@ export function useMyProfile(): UseMyProfileReturn {
   return {
     data: profileQuery.data,
     employee: profileQuery.data?.employee,
-    profile: profileQuery.data?.profile,
+    profile: profileQuery.data?.profile ?? undefined,
     emergencyContacts: profileQuery.data?.emergency_contacts ?? [],
     isLoading: profileQuery.isLoading,
     isError: profileQuery.isError,

@@ -206,9 +206,7 @@ mod tests {
 
         #[test]
         fn partial_shift_late_in_early_out() {
-            let b = TestInputBuilder::new()
-                .punch(9, 30, 15, 0)
-                .buckets();
+            let b = TestInputBuilder::new().punch(9, 30, 15, 0).buckets();
             assert_eq!(b.standard_minutes, 330);
             assert_eq!(b.early_ot_minutes, 0);
             assert_eq!(b.late_ot_minutes, 0);
@@ -216,9 +214,7 @@ mod tests {
 
         #[test]
         fn only_ot_worked() {
-            let b = TestInputBuilder::new()
-                .punch(18, 0, 20, 0)
-                .buckets();
+            let b = TestInputBuilder::new().punch(18, 0, 20, 0).buckets();
             assert_eq!(b.standard_minutes, 0);
             assert_eq!(b.early_ot_minutes, 0);
             assert_eq!(b.late_ot_minutes, 120);
@@ -274,7 +270,10 @@ mod tests {
                 .no_shift()
                 .work_unit_cfg(30, "floor")
                 .daily_units();
-            assert_eq!(std, 18, "calculator gives 18 std units without shift — report guard needed");
+            assert_eq!(
+                std, 18,
+                "calculator gives 18 std units without shift — report guard needed"
+            );
             assert_eq!(ot, 0, "no shift boundaries means no OT");
         }
 
@@ -781,18 +780,24 @@ mod tests {
         }
 
         fn deduct(
-            actual: i32, scheduled: i32,
-            auto_deduct: bool, is_ot: bool,
-            bs: Option<&DateTime<Utc>>, be: Option<&DateTime<Utc>>,
-            pi: &DateTime<Utc>, po: &DateTime<Utc>,
+            actual: i32,
+            scheduled: i32,
+            auto_deduct: bool,
+            is_ot: bool,
+            bs: Option<&DateTime<Utc>>,
+            be: Option<&DateTime<Utc>>,
+            pi: &DateTime<Utc>,
+            po: &DateTime<Utc>,
         ) -> i32 {
             AttendanceCalculator::calculate_break_deduction(&BreakDeductionInput {
                 actual_break_minutes: actual,
                 scheduled_break_minutes: scheduled,
                 is_break_auto_deduct: auto_deduct,
                 is_break_overtime: is_ot,
-                break_start: bs, break_end: be,
-                punch_in: pi, punch_out: po,
+                break_start: bs,
+                break_end: be,
+                punch_in: pi,
+                punch_out: po,
             })
         }
 
@@ -840,8 +845,10 @@ mod tests {
         use super::*;
 
         fn deduct_framed(
-            bs: Option<&DateTime<Utc>>, be: Option<&DateTime<Utc>>,
-            pi: &DateTime<Utc>, po: &DateTime<Utc>,
+            bs: Option<&DateTime<Utc>>,
+            be: Option<&DateTime<Utc>>,
+            pi: &DateTime<Utc>,
+            po: &DateTime<Utc>,
             is_ot: bool,
         ) -> i32 {
             AttendanceCalculator::calculate_break_deduction(&BreakDeductionInput {
@@ -849,8 +856,10 @@ mod tests {
                 scheduled_break_minutes: 60,
                 is_break_auto_deduct: true,
                 is_break_overtime: is_ot,
-                break_start: bs, break_end: be,
-                punch_in: pi, punch_out: po,
+                break_start: bs,
+                break_end: be,
+                punch_in: pi,
+                punch_out: po,
             })
         }
 
@@ -1102,7 +1111,10 @@ mod tests {
         fn work_unit_edge_cases() {
             assert_eq!(AttendanceCalculator::calculate_units(480, 0, "floor"), 480);
             assert_eq!(AttendanceCalculator::calculate_units(480, 1, "floor"), 480);
-            assert_eq!(AttendanceCalculator::calculate_units(75, 30, "invalid_policy"), 2);
+            assert_eq!(
+                AttendanceCalculator::calculate_units(75, 30, "invalid_policy"),
+                2
+            );
         }
 
         // --- Daily units integration ---

@@ -81,3 +81,5 @@ scratch/
 *.txt
 .venv/
 apiserver/storage/
+webdashboard/playwright/
+

@@ -1,4 +1,5 @@
 # ruff: noqa
+# mypy: ignore-errors
 #!/usr/bin/env python3
 """
 Tenant Workspace Migration Script

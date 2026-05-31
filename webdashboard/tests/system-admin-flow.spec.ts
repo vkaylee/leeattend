@@ -3,19 +3,21 @@ import { expect } from '@playwright/test';
 import { test } from './worker-orchestrator';
 
 test.describe('System Admin Flow', () => {
-  test.beforeEach(async ({ loginPage, page }) => {
-    await loginPage.goto();
-    // Assuming superadmin or similar account has access
-    await loginPage.login('admin@leeattend.com', 'admin123');
-    await page.waitForURL(url => !url.pathname.includes('/login'), { timeout: 30000 });
+  test.beforeEach(async ({ authPage }) => {
+    // authPage fixture automatically logs in
+    expect(authPage).toBeDefined();
   });
 
   test('should navigate to system admin tenants and see list', async ({ page }) => {
-    await page.goto('/system/tenants');
+    // Wait for sidebar to load and system section to be visible (allow extra timeout for Vite cold compile)
+    await expect(page.getByTestId('sidebar-section-system')).toBeVisible({ timeout: 30000 });
+    // Expand system section if collapsed
+    await page.getByTestId('sidebar-section-system').click();
+    await page.getByTestId('sidebar-link-system-tenants').click();
     await expect(page).toHaveURL(/.*\/system\/tenants/);
     
-    // Check page title
-    await expect(page.getByRole('heading', { name: /tenant/i })).toBeVisible();
+    // Check page title with 30s timeout for stability
+    await expect(page.getByRole('heading', { name: /tenant/i })).toBeVisible({ timeout: 30000 });
     
     // Verify Create Tenant button exists
     const createBtn = page.getByRole('button', { name: /create|add/i });
@@ -27,11 +29,15 @@ test.describe('System Admin Flow', () => {
   });
 
   test('should navigate to system roles and view matrix', async ({ page }) => {
-    await page.goto('/system/roles');
+    // Wait for sidebar to load and system section to be visible (allow extra timeout for Vite cold compile)
+    await expect(page.getByTestId('sidebar-section-system')).toBeVisible({ timeout: 30000 });
+    // Expand system section if collapsed
+    await page.getByTestId('sidebar-section-system').click();
+    await page.getByTestId('sidebar-link-system-roles').click();
     await expect(page).toHaveURL(/.*\/system\/roles/);
     
-    await expect(page.getByRole('heading', { name: /platform|nền tảng|admin/i }).first()).toBeVisible();
+    await expect(page.getByRole('heading', { name: /platform|nền tảng|admin/i }).first()).toBeVisible({ timeout: 30000 });
     // Validate grid is visible
-    await expect(page.locator('.grid')).toBeVisible();
+    await expect(page.locator('.grid')).toBeVisible({ timeout: 30000 });
   });
 });

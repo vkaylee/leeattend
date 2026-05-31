@@ -269,14 +269,13 @@ services:
     dns:
       - 8.8.8.8
       - 1.1.1.1
-    tmpfs:
-      - /workspace/webdashboard/test-results:size=128M
-      - /workspace/webdashboard/playwright-report:size=64M
     volumes:
       - ${PROJECT_ROOT}:/workspace
       - web-node-modules:/workspace/webdashboard/node_modules
       - /dev/shm/leeattend-shared-data:/workspace/shared
       - bun-cache:/workspace/.bun-cache
+      - ${PROJECT_ROOT}/webdashboard/test-results:/workspace/webdashboard/test-results
+      - ${PROJECT_ROOT}/webdashboard/playwright-report:/workspace/webdashboard/playwright-report
 
 volumes:
   target-cache:

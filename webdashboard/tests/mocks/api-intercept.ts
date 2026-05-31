@@ -1,21 +1,15 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, complexity, max-lines-per-function */
 import { Page } from '@playwright/test';
 
-import { Device, Workspace } from '../../src/lib/api/types';
+import { Device } from '../../src/lib/api/types';
 import { MOCK_WORKSPACE, MOCK_USER, MOCK_EMPLOYEES, MOCK_DEPARTMENTS, MOCK_AGENTS, MOCK_DEVICES_INITIAL } from './mock-data';
 
-// --- Stateful mock stores (reset per page via setupApiMocks) ---
-let devices: Device[];
-let nextDeviceId = 100;
-let activeWorkspace: Workspace;
-let exportJobCalls = 0;
-
 export async function setupApiMocks(page: Page) {
-  // Reset stateful stores for each test
-  devices = structuredClone(MOCK_DEVICES_INITIAL);
-  nextDeviceId = 100;
-  activeWorkspace = structuredClone(MOCK_WORKSPACE);
-  exportJobCalls = 0;
+  // --- Stateful mock stores (isolated per page instance via closures) ---
+  let devices = structuredClone(MOCK_DEVICES_INITIAL);
+  let nextDeviceId = 100;
+  let activeWorkspace = structuredClone(MOCK_WORKSPACE);
+  let exportJobCalls = 0;
 
   // Chặn các request gọi đến Backend API (/api/...)
   // Loại trừ các file tĩnh (.ts, .js, .css, .jsx, .tsx) của Vite
@@ -48,7 +42,26 @@ export async function setupApiMocks(page: Page) {
     if ((/\/api\/me(\/|$)/.exec(pathname)) || (/\/api\/auth\/profile/.exec(pathname))) {
       if (pathname.includes('/permissions')) {
         return fulfill({
-          permissions: ["workspace.admin", "devices.manage", "agents.manage"],
+          permissions: [
+            "workspace.admin", "devices.manage", "agents.manage",
+            "workspace:update", "workspace:delete", "workspace:settings:read", "workspace:settings:write", "approval_workflows:read", "approval_workflows:manage",
+            "members:read", "members:invite", "members:roles:manage", "members:remove",
+            "employees:read", "employees:create", "employees:update", "employees:delete", "employees:rehire", "employees:upload", "employees:bulk_edit",
+            "departments:read", "departments:create", "departments:update", "departments:delete", "departments:transfer",
+            "attendance:logs:read", "attendance:logs:import", "attendance:summaries:read", "attendance:adjustments:submit", "attendance:adjustments:approve", "attendance:reprocess", "attendance:staging:manage", "attendance:force_clock_out",
+            "overtime:claim", "overtime:approve", "overtime:policies:manage", "overtime:paper:upload", "overtime:request:create", "overtime:request:read", "overtime:approve:workflow", "overtime:quota:read",
+            "leave:requests:read", "leave:requests:submit", "leave:requests:approve", "leave:approve:l1", "leave:approve:l2", "leave:balances:read", "leave:balances:adjust", "leave:types:manage", "leave:policies:manage", "leave:accrual:run",
+            "shifts:read", "shifts:create", "shifts:update", "shifts:assign", "shift_swaps:manage", "shift_swaps:approve", "patterns:read", "patterns:create", "patterns:assign", "patterns:delete", "rosters:read", "rosters:manage", "assignment_rules:manage",
+            "payroll:read", "payroll:calculate", "payroll:settings:manage", "payroll:components:manage", "payroll:incentives:manage", "payroll:approve", "payroll:disburse", "payroll:sensitive:read",
+            "holidays:read", "holidays:manage",
+            "reports:read", "reports:export", "dashboard:read", "dashboard:preferences",
+            "documents:medical:read", "documents:contract:read",
+            "audit_logs:read", "audit_logs:export", "security:settings:manage",
+            "agents:read", "agents:manage", "devices:read", "devices:manage", "feature_flags:read", "feature_flags:manage", "infra:monitor",
+            "recruitment:read", "recruitment:manage",
+            "employment_phases:read", "employment_phases:manage",
+            "ess:profile", "ess:attendance", "ess:clock", "ess:leave", "ess:payslips", "ess:shift_swaps"
+          ],
           roles: ["Admin"],
           managed_department_ids: null
         });
@@ -434,7 +447,7 @@ export async function setupApiMocks(page: Page) {
   // Chặn WebSocket calls để tránh hang (mock stream API)
   await page.routeWebSocket(/.*/, ws => {
     
-    if (ws.url().includes('/api/ws/reports/')) {
+    if (ws.url().includes('/ws/reports/')) {
       // Simulate connection rejected so it falls back to HTTP polling
       ws.onMessage(message => {
         if (message === '{"type":"ping"}') {

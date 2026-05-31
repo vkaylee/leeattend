@@ -3,19 +3,22 @@ import { type Dialog } from '@playwright/test';
 import { test, expect } from './worker-orchestrator';
 
 test.describe('Workspace Branding', () => {
-  test.beforeEach(async ({ loginPage, page }) => {
-    await loginPage.goto();
-    // Using real login for better reliability in E2E
-    await loginPage.login('admin@leeattend.com', 'admin123');
-    await page.waitForURL(url => !url.pathname.includes('/login'), { timeout: 30000 });
+  test.beforeEach(async ({ authPage }) => {
+    // authPage fixture automatically logs in
+    expect(authPage).toBeDefined();
   });
 
   test('should update workspace logo and tagline', async ({ page }) => {
-    // Navigate directly to general settings
-    await page.goto('/workspace/settings/general');
+    // Wait for sidebar to load and system section to be visible (allow extra timeout for Vite cold compile)
+    await expect(page.getByTestId('sidebar-section-system')).toBeVisible({ timeout: 30000 });
+    await page.getByTestId('sidebar-section-system').click();
+    await page.getByTestId('sidebar-link-settings-root').click();
+    
+    // Navigate to General Settings sub-tab client-side
+    await page.getByTestId('settings-nav-/workspace/settings/general').click();
     
     await expect(page).toHaveURL(/.*\/workspace\/settings\/general/);
-    await expect(page.getByTestId('general-settings-title')).toBeVisible();
+    await expect(page.getByTestId('general-settings-title')).toBeVisible({ timeout: 30000 });
 
     // Go to Appearance tab
     await page.getByTestId('tab-appearance').click();

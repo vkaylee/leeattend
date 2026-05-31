@@ -16,10 +16,11 @@ import { Combobox } from "@/components/ui/combobox";
 import ConfirmDialog from "@/components/ui/confirm-dialog";
 import FormField, { LABEL_BASE } from "@/components/ui/form-field";
 import { Typography } from "@/components/ui/typography";
-import { cn } from "@/lib/utils";
-import { useWorkingPatternForm } from "@/hooks/use-working-pattern-form";
 import { useCalendarPreview } from "@/hooks/use-calendar-preview";
+import { useWorkingPatternForm } from "@/hooks/use-working-pattern-form";
+import { cn } from "@/lib/utils";
 
+/* eslint-disable complexity, max-lines-per-function */
 export default function WorkingPatternsEditorPage() {
   const { t, i18n } = useTranslation();
   const { patternId } = useParams({ strict: false });
@@ -313,7 +314,7 @@ export default function WorkingPatternsEditorPage() {
                   )}
                     <Button
                       className="text-[9px] text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/20 border-rose-100 dark:border-rose-950 hover:bg-rose-100 dark:hover:bg-rose-900/35"
-                      onClick={() => setIsClearConfirmOpen(true)}
+                      onClick={() => { setIsClearConfirmOpen(true); }}
                     size="sm"
                     type="button"
                     variant="outline"

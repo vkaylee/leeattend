@@ -112,10 +112,9 @@ export default function EmployeeAssignmentFormModal({
           employeeId,
           assignmentId: editingAssignment.id,
           data: {
-            ...data,
             end_date: payloadDate,
-            host_location_id: payloadLocationId,
-            status: data.status,
+            reason: data.reason,
+            status: data.status as any,
           },
         });
         toast.success("Đã cập nhật phái cử thành công");
@@ -127,7 +126,7 @@ export default function EmployeeAssignmentFormModal({
           data: {
             start_date: data.start_date,
             end_date: payloadDate,
-            host_location_id: payloadLocationId,
+            host_location_id: payloadLocationId as string,
             reason: data.reason,
           },
         });

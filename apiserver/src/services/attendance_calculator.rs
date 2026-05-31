@@ -80,8 +80,7 @@ impl AttendanceCalculator {
             shift_end_dt
         };
 
-        let effective_ot_start =
-            Self::effective_ot_start(punch_in, &start, &input.rules);
+        let effective_ot_start = Self::effective_ot_start(punch_in, &start, &input.rules);
 
         Self::fill_standard_bucket(input, &start, &end, &mut buckets);
         Self::fill_early_ot(input, &start, &effective_ot_start, &mut buckets);
@@ -111,9 +110,7 @@ impl AttendanceCalculator {
                     punch_in.clone()
                 }
             }
-            EarlyArrivalStrategy::Clamp => {
-                DateTime::max(punch_in.clone(), grace_threshold)
-            }
+            EarlyArrivalStrategy::Clamp => DateTime::max(punch_in.clone(), grace_threshold),
         }
     }
 
@@ -318,4 +315,3 @@ impl AttendanceCalculator {
         (std_units, ot_units)
     }
 }
-

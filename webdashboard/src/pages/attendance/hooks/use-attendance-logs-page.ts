@@ -29,6 +29,7 @@ export type FilterMode = "this_month" | "last_month" | "custom" | "specific_mont
 function useAttendanceDateRange(urlFrom: string | null, urlTo: string | null) {
   const getMonthRange = (offset = 0) => {
     const d = new Date();
+    d.setDate(1); // Prevent rollover when today is 31st
     d.setMonth(d.getMonth() + offset);
     const firstDay = format(new Date(d.getFullYear(), d.getMonth(), 1), "yyyy-MM-dd");
     const lastDay = format(new Date(d.getFullYear(), d.getMonth() + 1, 0), "yyyy-MM-dd");

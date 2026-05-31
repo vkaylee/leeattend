@@ -133,7 +133,7 @@ const computeCellData = (
     ? "bg-teal-100/60 dark:bg-teal-950/60 text-teal-800 dark:text-teal-200"
     : "bg-slate-100/50 dark:bg-slate-800 text-slate-700 dark:text-slate-300";
 
-  const traces = daySchedule.traces;
+  const traces = daySchedule.traces || [];
   const hasTraces = traces.length > 0;
 
   return {

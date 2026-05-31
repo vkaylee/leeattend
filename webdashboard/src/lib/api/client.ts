@@ -68,53 +68,56 @@ async function extractRequestInfo(
   return { urlStr, options };
 }
 
+export async function customFetch(url: string | URL | Request, init?: RequestInit): Promise<Response> {
+  let urlStr: string;
+  let options: RequestInit = { ...init };
+
+  if (url instanceof Request) {
+    const extracted = await extractRequestInfo(url, options);
+    
+    // Cleanup paths due to inconsistent OpenAPI schema generation
+    let pathUrl = extracted.urlStr;
+    if (pathUrl.includes('/api/api/v1')) {
+      pathUrl = pathUrl.replace('/api/api/v1', '/api/v1');
+    } else if (pathUrl.includes('/api/') && !pathUrl.includes('/api/v1/')) {
+      pathUrl = pathUrl.replace('/api/', '/api/v1/');
+    }
+    urlStr = pathUrl;
+    
+    options = extracted.options;
+  } else {
+    urlStr = url.toString();
+  }
+
+  const res = await apiFetch(urlStr, options);
+  
+  if (!res.ok) {
+    let errorBody: AppErrorResponse | undefined;
+    let errorText = "";
+    
+    try {
+      const clonedRes = res.clone();
+      errorText = await clonedRes.text();
+      if (errorText) {
+        errorBody = JSON.parse(errorText) as AppErrorResponse;
+      }
+    } catch {
+      // Ignore parsing errors
+    }
+
+    throw new ApiError(
+      res.status,
+      res.statusText,
+      errorBody?.error_code,
+      errorBody ?? (errorText ? { message: errorText } : undefined)
+    );
+  }
+  
+  return res!;
+}
+
 export const client = createClient<paths>({
   baseUrl: API_BASE_URL,
-  fetch: async (url: string | URL | Request, init?: RequestInit) => {
-    let urlStr: string;
-    let options: RequestInit = { ...init };
-
-    if (url instanceof Request) {
-      const extracted = await extractRequestInfo(url, options);
-      
-      // Cleanup paths due to inconsistent OpenAPI schema generation
-      let pathUrl = extracted.urlStr;
-      if (pathUrl.includes('/api/api/v1')) {
-        pathUrl = pathUrl.replace('/api/api/v1', '/api/v1');
-      } else if (pathUrl.includes('/api/') && !pathUrl.includes('/api/v1/')) {
-        pathUrl = pathUrl.replace('/api/', '/api/v1/');
-      }
-      urlStr = pathUrl;
-      
-      options = extracted.options;
-    } else {
-      urlStr = url.toString();
-    }
-
-    const res = await apiFetch(urlStr, options);
-    
-    if (!res.ok) {
-      let errorBody: AppErrorResponse | undefined;
-      let errorText = "";
-      
-      try {
-        const clonedRes = res.clone();
-        errorText = await clonedRes.text();
-        if (errorText) {
-          errorBody = JSON.parse(errorText) as AppErrorResponse;
-        }
-      } catch {
-        // Ignore parsing errors
-      }
-
-      throw new ApiError(
-        res.status,
-        res.statusText,
-        errorBody?.error_code,
-        errorBody ?? (errorText ? { message: errorText } : undefined)
-      );
-    }
-    
-    return res!;
-  }
+  fetch: customFetch
 });
+

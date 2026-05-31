@@ -17,17 +17,48 @@ function formatTime(d: Date): string {
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 }
 
+// Module-level global ticker store to avoid triggering infinite re-renders.
+// Since `getTickerSnapshot` is called during every React render phase,
+// returning a millisecond-changing `Date.now()` directly makes React think
+// the store changed between the render start and end, triggering infinite updates.
+let currentTick = Date.now();
+const listeners = new Set<() => void>();
+let intervalId: ReturnType<typeof setInterval> | null = null;
+
+function ensureIntervalStarted() {
+    if (!intervalId) {
+        intervalId = setInterval(() => {
+            currentTick = Date.now();
+            listeners.forEach((l) => l());
+        }, 1000);
+    }
+}
+
+function stopIntervalIfNoListeners() {
+    if (listeners.size === 0 && intervalId) {
+        clearInterval(intervalId);
+        intervalId = null;
+    }
+}
+
 /**
  * Subscribe to a 1-second ticker via useSyncExternalStore.
  * This avoids setState-in-useEffect (react-hooks/set-state-in-effect).
  */
 function subscribeToTicker(onStoreChange: () => void): () => void {
-    const id = setInterval(onStoreChange, 1000);
-    return () => { clearInterval(id); };
+    listeners.add(onStoreChange);
+    ensureIntervalStarted();
+    return () => {
+        listeners.delete(onStoreChange);
+        stopIntervalIfNoListeners();
+    };
 }
 
 function getTickerSnapshot(): number {
-    return Date.now();
+    if (listeners.size === 0) {
+        currentTick = Date.now();
+    }
+    return currentTick;
 }
 
 /**

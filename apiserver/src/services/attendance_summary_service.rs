@@ -55,6 +55,17 @@ pub struct AttendanceSummaryService {
     daily_summary_repo: Arc<dyn AttendanceDailySummaryRepository>,
 }
 
+struct CalculateOtBucketsParams<'a> {
+    tz: &'a Tz,
+    date: NaiveDate,
+    employee_id: Uuid,
+    workspace_id: Uuid,
+    daily_schedule: &'a crate::models::EffectiveSchedule,
+    punch_in: chrono::DateTime<Tz>,
+    punch_out: chrono::DateTime<Tz>,
+    actual_break_minutes: i32,
+}
+
 impl AttendanceSummaryService {
     pub fn new(args: AttendanceSummaryServiceArgs) -> Self {
         Self {
@@ -79,18 +90,30 @@ impl AttendanceSummaryService {
         date: NaiveDate,
     ) -> AppResult<()> {
         // 1. Fetch schedule & time entries
-        let (tz, daily_schedule, day_entries) =
-            self.fetch_daily_schedule(workspace_id, employee_id, date).await?;
+        let (tz, daily_schedule, day_entries) = self
+            .fetch_daily_schedule(workspace_id, employee_id, date)
+            .await?;
 
         // 2. Calculate work minutes and OT
-        let (actual_work_minutes, system_detected_ot_minutes) =
-            self.calculate_work_and_ot(&tz, date, employee_id, workspace_id, &daily_schedule, &day_entries).await?;
+        let (actual_work_minutes, system_detected_ot_minutes) = self
+            .calculate_work_and_ot(
+                &tz,
+                date,
+                employee_id,
+                workspace_id,
+                &daily_schedule,
+                &day_entries,
+            )
+            .await?;
 
         // 3. Holiday leave conflict detection
         let (is_holiday, holiday_name) = self
             .handle_holiday_leave_conflict(
-                workspace_id, employee_id, date,
-                actual_work_minutes, &daily_schedule,
+                workspace_id,
+                employee_id,
+                date,
+                actual_work_minutes,
+                &daily_schedule,
             )
             .await?;
 
@@ -122,7 +145,11 @@ impl AttendanceSummaryService {
         workspace_id: Uuid,
         employee_id: Uuid,
         date: NaiveDate,
-    ) -> AppResult<(Tz, crate::models::EffectiveSchedule, Vec<crate::models::TimeEntry>)> {
+    ) -> AppResult<(
+        Tz,
+        crate::models::EffectiveSchedule,
+        Vec<crate::models::TimeEntry>,
+    )> {
         let workspace = self
             .workspace_repo
             .get_workspace_by_id(workspace_id)
@@ -205,27 +232,33 @@ impl AttendanceSummaryService {
         let actual_work_minutes = i32::max(0, raw_duration - actual_break_minutes);
 
         let system_detected_ot_minutes = self
-            .calculate_ot_buckets(
-                tz, date, employee_id, workspace_id,
-                daily_schedule, punch_in, punch_out, actual_break_minutes,
-            )
+            .calculate_ot_buckets(CalculateOtBucketsParams {
+                tz,
+                date,
+                employee_id,
+                workspace_id,
+                daily_schedule,
+                punch_in,
+                punch_out,
+                actual_break_minutes,
+            })
             .await?;
 
         Ok((actual_work_minutes, system_detected_ot_minutes))
     }
 
     /// Internal: compute OT buckets from schedule + punches.
-    async fn calculate_ot_buckets(
-        &self,
-        tz: &Tz,
-        date: NaiveDate,
-        employee_id: Uuid,
-        workspace_id: Uuid,
-        daily_schedule: &crate::models::EffectiveSchedule,
-        punch_in: chrono::DateTime<Tz>,
-        punch_out: chrono::DateTime<Tz>,
-        actual_break_minutes: i32,
-    ) -> AppResult<i32> {
+    async fn calculate_ot_buckets(&self, params: CalculateOtBucketsParams<'_>) -> AppResult<i32> {
+        let CalculateOtBucketsParams {
+            tz,
+            date,
+            employee_id,
+            workspace_id,
+            daily_schedule,
+            punch_in,
+            punch_out,
+            actual_break_minutes,
+        } = params;
         let (Some(sched_start_time), Some(sched_end_time)) =
             (daily_schedule.start_time, daily_schedule.end_time)
         else {
@@ -247,15 +280,14 @@ impl AttendanceSummaryService {
             end += chrono::Duration::days(1);
         }
 
-        let rules =
-            PolicyResolver::resolve_attendance_rules(
-                &*self.policy_repo,
-                &*self.employee_repo,
-                employee_id,
-                workspace_id,
-                date,
-            )
-            .await?;
+        let rules = PolicyResolver::resolve_attendance_rules(
+            &*self.policy_repo,
+            &*self.employee_repo,
+            employee_id,
+            workspace_id,
+            date,
+        )
+        .await?;
 
         let policy_rules = PolicyResolver::resolve_with_shift_overrides(
             &*self.policy_repo,
@@ -290,9 +322,7 @@ impl AttendanceSummaryService {
                 punch_out,
                 shift_start: Some(start),
                 shift_end: Some(end),
-                scheduled_break_minutes: daily_schedule
-                    .break_duration_minutes
-                    .unwrap_or(0),
+                scheduled_break_minutes: daily_schedule.break_duration_minutes.unwrap_or(0),
                 actual_break_minutes,
                 break_start: break_start_dt,
                 break_end: break_end_dt,
@@ -318,10 +348,7 @@ impl AttendanceSummaryService {
     ) -> AppResult<(bool, Option<String>)> {
         let holiday = self
             .holiday_repo
-            .is_holiday(
-                &TenantAuthToken::system_override(workspace_id),
-                date,
-            )
+            .is_holiday(&TenantAuthToken::system_override(workspace_id), date)
             .await
             .unwrap_or(None);
         let is_holiday = holiday.is_some();
@@ -330,8 +357,12 @@ impl AttendanceSummaryService {
         if is_holiday && actual_work_minutes > 0 {
             if let Some(ref hol) = holiday {
                 self.maybe_reverse_holiday_leave(
-                    workspace_id, employee_id, date,
-                    actual_work_minutes, daily_schedule, hol,
+                    workspace_id,
+                    employee_id,
+                    date,
+                    actual_work_minutes,
+                    daily_schedule,
+                    hol,
                 )
                 .await;
             }
@@ -654,9 +685,8 @@ mod tests {
         #[tokio::test]
         async fn status_pending_when_existing_none_and_has_ot() {
             let mut mock = MockAttendanceDailySummaryRepository::new();
-            mock.expect_get_summary().returning(|_, _, _| {
-                Ok(Some(create_dummy_summary(0, OtStatus::None)))
-            });
+            mock.expect_get_summary()
+                .returning(|_, _, _| Ok(Some(create_dummy_summary(0, OtStatus::None))));
 
             let svc = make_service(mock);
             let status = svc
@@ -670,9 +700,8 @@ mod tests {
         #[tokio::test]
         async fn status_preserved_when_already_claimed() {
             let mut mock = MockAttendanceDailySummaryRepository::new();
-            mock.expect_get_summary().returning(|_, _, _| {
-                Ok(Some(create_dummy_summary(60, OtStatus::PendingManager)))
-            });
+            mock.expect_get_summary()
+                .returning(|_, _, _| Ok(Some(create_dummy_summary(60, OtStatus::PendingManager))));
 
             let svc = make_service(mock);
             let status = svc
@@ -729,8 +758,7 @@ mod tests {
         #[tokio::test]
         async fn approve_ot_success() {
             let mut mock = MockAttendanceDailySummaryRepository::new();
-            mock.expect_approve_ot()
-                .returning(|_, _, _, _, _, _| Ok(1));
+            mock.expect_approve_ot().returning(|_, _, _, _, _, _| Ok(1));
 
             let svc = make_service(mock);
             let result = svc
@@ -750,8 +778,7 @@ mod tests {
         #[tokio::test]
         async fn approve_ot_not_found() {
             let mut mock = MockAttendanceDailySummaryRepository::new();
-            mock.expect_approve_ot()
-                .returning(|_, _, _, _, _, _| Ok(0));
+            mock.expect_approve_ot().returning(|_, _, _, _, _, _| Ok(0));
 
             let svc = make_service(mock);
             let result = svc
@@ -795,9 +822,7 @@ mod tests {
             let mut mock = MockAttendanceDailySummaryRepository::new();
             mock.expect_get_summary().returning(|_, _, _| Ok(None));
             mock.expect_upsert_paper_ot()
-                .returning(|_, _, _, _, _, _, _| {
-                    Ok(create_dummy_summary(0, OtStatus::None))
-                });
+                .returning(|_, _, _, _, _, _, _| Ok(create_dummy_summary(0, OtStatus::None)));
 
             let svc = make_service(mock);
             let result = svc.enter_paper_ot(paper_ot_args(60, true)).await;
@@ -807,9 +832,8 @@ mod tests {
         #[tokio::test]
         async fn paper_ot_exceed_fails() {
             let mut mock = MockAttendanceDailySummaryRepository::new();
-            mock.expect_get_summary().returning(|_, _, _| {
-                Ok(Some(create_dummy_summary(60, OtStatus::None)))
-            });
+            mock.expect_get_summary()
+                .returning(|_, _, _| Ok(Some(create_dummy_summary(60, OtStatus::None))));
             // upsert_paper_ot should NOT be called — validation rejects first
             mock.expect_upsert_paper_ot().never();
 
@@ -823,13 +847,10 @@ mod tests {
         #[tokio::test]
         async fn paper_ot_exceed_allowed_bypasses_validation() {
             let mut mock = MockAttendanceDailySummaryRepository::new();
-            mock.expect_get_summary().returning(|_, _, _| {
-                Ok(Some(create_dummy_summary(60, OtStatus::None)))
-            });
+            mock.expect_get_summary()
+                .returning(|_, _, _| Ok(Some(create_dummy_summary(60, OtStatus::None))));
             mock.expect_upsert_paper_ot()
-                .returning(|_, _, _, _, _, _, _| {
-                    Ok(create_dummy_summary(0, OtStatus::None))
-                });
+                .returning(|_, _, _, _, _, _, _| Ok(create_dummy_summary(0, OtStatus::None)));
 
             let svc = make_service(mock);
             // claimed_minutes=120 > system_detected=60, but allow_exceed=true
@@ -842,9 +863,7 @@ mod tests {
             let mut mock = MockAttendanceDailySummaryRepository::new();
             mock.expect_get_summary().returning(|_, _, _| Ok(None));
             mock.expect_upsert_paper_ot()
-                .returning(|_, _, _, _, _, _, _| {
-                    Ok(create_dummy_summary(0, OtStatus::None))
-                });
+                .returning(|_, _, _, _, _, _, _| Ok(create_dummy_summary(0, OtStatus::None)));
 
             let svc = make_service(mock);
             // allow_exceed=false but no existing summary → no validation to fail
@@ -853,4 +872,3 @@ mod tests {
         }
     }
 }
-

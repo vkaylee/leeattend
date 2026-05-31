@@ -218,9 +218,12 @@ export default tseslint.config(
     files: [
       '**/*.test.{ts,tsx}',
       '**/__tests__/**/*.{ts,tsx}',
+      'tests/**/*.ts',
+      'tests/**/*.tsx',
       'orval.config.ts',
       'playwright.config.ts',
       'playwright.dev.config.ts',
+      'vite.config.ts',
       'scratch/**/*.ts',
       'vitest.config.ts'
     ],
@@ -232,7 +235,12 @@ export default tseslint.config(
     },
   },
   {
-    files: ['**/*.test.{ts,tsx}', '**/__tests__/**/*.{ts,tsx}'],
+    files: [
+      '**/*.test.{ts,tsx}',
+      '**/__tests__/**/*.{ts,tsx}',
+      'tests/**/*.ts',
+      'tests/**/*.tsx'
+    ],
     rules: {
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-non-null-assertion': 'off',

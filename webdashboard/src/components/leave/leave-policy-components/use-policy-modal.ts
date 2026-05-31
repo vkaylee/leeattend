@@ -69,7 +69,7 @@ export function usePolicyModal(
         accrual_timing: "start_of_period",
         carry_over_limit: formData.carry_over_limit,
         min_work_days_threshold: formData.min_work_days_threshold,
-        seniority_bonus: [...seniorityBonus].sort((a, b) => a.min_years - b.min_years)
+        seniority_bonus: [...seniorityBonus].sort((a, b) => (a.min_years ?? 0) - (b.min_years ?? 0))
       }
     });
   };

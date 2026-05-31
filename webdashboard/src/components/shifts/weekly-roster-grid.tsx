@@ -120,7 +120,7 @@ function DayCardSourceTags({ source, effectiveSchedule, t }: DayCardSourceTagsPr
           <Building2 size={8} /> {t("common.department")}
         </span>
       )}
-      {effectiveSchedule ? <ScheduleTracePopover source={effectiveSchedule.source} traces={effectiveSchedule.traces} /> : null}
+      {effectiveSchedule ? <ScheduleTracePopover source={effectiveSchedule.source} traces={effectiveSchedule.traces || []} /> : null}
     </div>
   );
 }

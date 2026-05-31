@@ -19,7 +19,7 @@ export type DeviceStatus = components["schemas"]["DeviceStatus"];
 export type AgentStatus = components["schemas"]["AgentStatus"];
 export type Device = components["schemas"]["Device"];
 export type AuthorizedAgent = components["schemas"]["AuthorizedAgent"];
-export type Workspace = any; // fallback for ui
+export type Workspace = components["schemas"]["Workspace"];
 
 export interface User {
   avatar_url?: string;
@@ -32,9 +32,9 @@ export interface User {
   system_roles?: string[];
 }
 
-export type UpdateUserRequest = any; // fallback for ui
-export type ChangePasswordRequest = any; // fallback for ui
-export type RegisterRequest = any; // fallback for ui
+export type UpdateUserRequest = components["schemas"]["UpdateUserRequest"];
+export type ChangePasswordRequest = components["schemas"]["ChangePasswordRequest"];
+export type RegisterRequest = components["schemas"]["RegisterRequest"];
 
 export interface WorkspaceMember {
   avatar_url?: string;
@@ -51,11 +51,14 @@ export enum RoleScopeType {
   Scoped = 'scoped',
 }
 
-export type WorkspaceRole = any; // fallback for ui
-export type AuthResponse = any; // fallback for ui
+export type WorkspaceRole = Omit<components["schemas"]["WorkspaceRole"], "description"> & {
+  description?: string;
+};
+
+export type AuthResponse = components["schemas"]["AuthResponse"];
 // --- Timekeeping Models ---
-export type Employee = any; // fallback for ui
-export type TimeEntry = any; // fallback for ui
+export type Employee = components["schemas"]["Employee"];
+export type TimeEntry = components["schemas"]["TimeEntry"];
 export type AttendanceEntry = TimeEntry;
 
 export interface RawAttendanceLog {
@@ -74,10 +77,23 @@ export interface RawAttendanceLog {
 }
 
 export type LeaveDurationType = 'full_day' | 'first_half' | 'second_half' | 'custom_hours';
-export type LeaveRequest = any; // fallback for ui
-export type EmployeeLeaveBalance = any; // fallback for ui
-export type WorkspaceLeaveBalance = any; // fallback for ui
-export type AttendanceAdjustmentRequest = any; // fallback for ui
+export type LeaveRequest = components["schemas"]["LeaveRequest"];
+
+export type EmployeeLeaveBalance = {
+  accrued_amount: number;
+  carried_over: number;
+  entitlement: number;
+  remaining: number;
+  used: number;
+  leave_type?: string;
+  is_paid?: boolean;
+  leave_type_code?: string;
+  leave_type_id?: string;
+  leave_type_name?: string;
+};
+
+export type WorkspaceLeaveBalance = components["schemas"]["WorkspaceLeaveBalance"];
+export type AttendanceAdjustmentRequest = components["schemas"]["AttendanceAdjustmentRequest"] & { requested_date?: string };
 
 export interface PaginatedResponse<T> {
   data: T[];
@@ -111,8 +127,12 @@ export interface AttendanceSummary {
   unit_type: 'DAY' | 'SHIFT' | 'HOUR' | 'MINUTE';
 }
 
-export type AuditLog = any; // fallback for ui
-export type Holiday = any; // fallback for ui
+export type AuditLog = Omit<components["schemas"]["AuditLog"], "actor_id" | "target_user_id"> & {
+  actor_id?: string;
+  target_user_id?: string;
+};
+
+export type Holiday = components["schemas"]["Holiday"];
 
 export interface DailyAttendanceReport {
   actual_punch_in: string | null;
@@ -141,8 +161,8 @@ export interface DailyAttendanceReport {
 }
 
 // --- Payroll and Shift Models ---
-export type Shift = any; // fallback for ui
-export type PayrollSettings = any; // fallback for ui
+export type Shift = components["schemas"]["Shift"];
+export type PayrollSettings = components["schemas"]["PayrollSettings"];
 
 export interface ConfigRecord {
   created_at?: string;
@@ -155,9 +175,9 @@ export interface ConfigRecord {
   std_working_days: number;
 }
 
-export type SalaryComponentDefinition = any; // fallback for ui
-export type CreateSalaryComponentRequest = any; // fallback for ui
-export type EmployeeSalaryComponent = any; // fallback for ui
+export type SalaryComponentDefinition = components["schemas"]["SalaryComponentDefinition"];
+export type CreateSalaryComponentRequest = components["schemas"]["CreateSalaryComponentRequest"];
+export type EmployeeSalaryComponent = components["schemas"]["EmployeeSalaryComponent"];
 
 export interface PayrollSegment {
   actual_work_days: number;
@@ -174,11 +194,11 @@ export interface PayrollSegment {
   std_days_source?: "individual" | "department" | "workspace" | "system";
 }
 
-export type IncentiveEvaluationResult = any; // fallback for ui
-export type SalaryComponentWithDefinition = any; // fallback for ui
-export type SalaryBaseGroup = any; // fallback for ui
-export type SalaryBaseGroupMember = any; // fallback for ui
-export type Payslip = any; // fallback for ui
+export type IncentiveEvaluationResult = components["schemas"]["IncentiveEvaluationResult"];
+export type SalaryComponentWithDefinition = components["schemas"]["SalaryComponentWithDefinition"];
+export type SalaryBaseGroup = components["schemas"]["SalaryBaseGroup"];
+export type SalaryBaseGroupMember = components["schemas"]["SalaryBaseGroupMember"];
+export type Payslip = components["schemas"]["Payslip"] & { incentives?: any[] };
 
 export interface RuleCondition {
   metric: string;
@@ -186,16 +206,16 @@ export interface RuleCondition {
   value: number;
 }
 
-export type IncentiveTier = any; // fallback for ui
-export type PayrollIncentivePolicy = any; // fallback for ui
-export type BatchCalculatePayrollRequest = any; // fallback for ui
-export type BatchCalculateResult = any; // fallback for ui
-export type BatchCalculatePayrollResponse = any; // fallback for ui
+export type IncentiveTier = components["schemas"]["IncentiveTier"];
+export type PayrollIncentivePolicy = components["schemas"]["PayrollIncentivePolicy"];
+export type BatchCalculatePayrollRequest = components["schemas"]["BatchCalculatePayrollRequest"];
+export type BatchCalculateResult = components["schemas"]["BatchCalculateResult"];
+export type BatchCalculatePayrollResponse = components["schemas"]["BatchCalculatePayrollResponse"];
 // --- Department Models ---
-export type Department = any; // fallback for ui
-export type EmployeeDepartmentHistory = any; // fallback for ui
-export type ShiftRoster = any; // fallback for ui
-export type AttendanceImportJob = any; // fallback for ui
+export type Department = components["schemas"]["Department"];
+export type EmployeeDepartmentHistory = components["schemas"]["EmployeeDepartmentHistory"];
+export type ShiftRoster = components["schemas"]["ShiftRoster"];
+export type AttendanceImportJob = components["schemas"]["AttendanceImportJob"];
 
 export interface ReportExportJobProgress {
   completed_batches: number;
@@ -256,15 +276,15 @@ export interface RecentJob {
   workspace_id: string;
 }
 
-export type WorkerHeartbeat = any; // fallback for ui
+export type WorkerHeartbeat = components["schemas"]["WorkerHeartbeat"];
 
 export interface MemberRolesResponse {
   extra: MemberExtraRole[];
   primary: string;
 }
 
-export type MemberExtraRole = any; // fallback for ui
-export type MemberExtraPermission = any; // fallback for ui
+export type MemberExtraRole = components["schemas"]["MemberExtraRole"];
+export type MemberExtraPermission = components["schemas"]["MemberExtraPermission"];
 
 export interface EmploymentPeriod {
   created_at: string;
@@ -276,8 +296,8 @@ export interface EmploymentPeriod {
   updated_at: string;
 }
 
-export type LeaveTypeConfig = any; // fallback for ui
-export type LeaveType = any; // fallback for ui
+export type LeaveTypeConfig = components["schemas"]["LeaveTypeConfig"];
+export type LeaveType = components["schemas"]["LeaveType"];
 
 export interface LeavePolicy {
   created_at: string;
@@ -300,30 +320,43 @@ export interface ProcessResponse {
 
 export * from "./contract-types";
 
-export type SeniorityBonus = any; // fallback for ui
-export type LeavePolicyConfig = any; // fallback for ui
-export type ScheduleTrace = any; // fallback for ui
-export type EffectiveSchedule = any; // fallback for ui
-export type EmployeeSchedule = any; // fallback for ui
-export type AssignmentHistory = any; // fallback for ui
-export type LeaveHistoryItem = any; // fallback for ui
+export type SeniorityBonus = Omit<components["schemas"]["SeniorityBonus"], "bonus_amount" | "months"> & {
+  bonus_amount?: number;
+  months?: number;
+  min_years?: number;
+  extra_days?: number;
+};
+
+export type LeavePolicyConfig = Omit<components["schemas"]["LeavePolicyConfig"], "seniority_bonus"> & {
+  seniority_bonus?: SeniorityBonus[];
+};
+export type ScheduleTrace = components["schemas"]["ScheduleTrace"];
+export type EffectiveSchedule = components["schemas"]["EffectiveSchedule"];
+export type EmployeeSchedule = Omit<components["schemas"]["EmployeeSchedule"], "employee_id_number"> & {
+  employee_id_number?: string;
+};
+export type AssignmentHistory = components["schemas"]["AssignmentHistory"];
+export type LeaveHistoryItem = components["schemas"]["LeaveHistoryItem"];
 // --- Assignment (Secondment) Models ---
 
-export enum AssignmentStatus {
-  Scheduled = "scheduled",
-  Active = "active",
-  Completed = "completed",
-  Cancelled = "cancelled",
-}
+export const AssignmentStatus = {
+  Scheduled: "scheduled",
+  Active: "active",
+  Completed: "completed",
+  Cancelled: "cancelled",
+} as const;
+export type AssignmentStatus = typeof AssignmentStatus[keyof typeof AssignmentStatus];
 
-export type EmployeeAssignment = any; // fallback for ui
-export type CreateEmployeeAssignmentRequest = any; // fallback for ui
-export type UpdateEmployeeAssignmentRequest = any; // fallback for ui
+export type EmployeeAssignment = Omit<components["schemas"]["EmployeeAssignment"], "status"> & { status: AssignmentStatus };
+export type CreateEmployeeAssignmentRequest = components["schemas"]["CreateEmployeeAssignmentRequest"];
+export type UpdateEmployeeAssignmentRequest = components["schemas"]["UpdateEmployeeAssignmentRequest"] & { host_location_id?: string | null };
 // --- Employee Self-Service (ESS) Types ---
-export type EmployeeProfile = any; // fallback for ui
-export type EmployeeEmergencyContact = any; // fallback for ui
-export type EmployeeDocument = any; // fallback for ui
-export type MyProfileResponse = any; // fallback for ui
+export type EmployeeProfile = components["schemas"]["EmployeeProfile"];
+export type EmployeeEmergencyContact = components["schemas"]["EmployeeEmergencyContact"];
+export type EmployeeDocument = components["schemas"]["EmployeeDocument"];
+export type MyProfileResponse = Omit<components["schemas"]["MyProfileResponse"], "profile"> & {
+  profile?: components["schemas"]["EmployeeProfile"] | null;
+};
 
 export interface UpdateProfileRequest {
   address?: string;
@@ -336,13 +369,15 @@ export interface UpdateProfileRequest {
   phone?: string;
 }
 
-export type CreateEmergencyContactRequest = any; // fallback for ui
+export type CreateEmergencyContactRequest = components["schemas"]["CreateEmergencyContactRequest"];
 // --- Working Pattern Models ---
-export type WorkingPattern = any; // fallback for ui
-export type WorkingPatternDetail = any; // fallback for ui
-export type EmployeeWorkingPattern = any; // fallback for ui
-export type WorkingPatternDetailRequest = any; // fallback for ui
-export type CreateWorkingPatternRequest = any; // fallback for ui
+export type WorkingPattern = Omit<components["schemas"]["WorkingPattern"], "description"> & {
+  description?: string;
+};
+export type WorkingPatternDetail = components["schemas"]["WorkingPatternDetail"];
+export type EmployeeWorkingPattern = components["schemas"]["EmployeeWorkingPattern"];
+export type WorkingPatternDetailRequest = components["schemas"]["WorkingPatternDetailRequest"];
+export type CreateWorkingPatternRequest = components["schemas"]["CreateWorkingPatternRequest"];
 
 export interface UpdateWorkingPatternRequest {
 
@@ -358,25 +393,36 @@ export interface UpdateWorkingPatternRequest {
 
 }
 
-export type AssignPatternRequest = any; // fallback for ui
-export type BulkAssignResponse = any; // fallback for ui
-export type BulkAssignPatternRequest = any; // fallback for ui
-export type WorkingCondition = any; // fallback for ui
+export type AssignPatternRequest = components["schemas"]["AssignPatternRequest"];
+export type BulkAssignResponse = components["schemas"]["BulkAssignResponse"];
+export type BulkAssignPatternRequest = components["schemas"]["BulkAssignPatternRequest"];
+export type WorkingCondition = Omit<components["schemas"]["WorkingCondition"], "type_"> & { type: string };
 // --- Payroll Models ---
-export type OvertimePolicy = any; // fallback for ui
-export type OvertimeRule = any; // fallback for ui
-export type LeavePolicyAssignmentDetail = any; // fallback for ui
+export type OvertimePolicy = components["schemas"]["OvertimePolicy"];
+export type OvertimeRule = components["schemas"]["OvertimeRule"];
+export type LeavePolicyAssignmentDetail = Omit<components["schemas"]["LeavePolicyAssignmentDetail"], "effective_to"> & {
+  effective_to: string | null;
+};
 export type OtStatus = "none" | "pending_employee" | "pending_manager" | "approved" | "rejected";
-export type AttendanceDailySummary = any; // fallback for ui
+export type AttendanceDailySummary = Omit<components["schemas"]["AttendanceDailySummary"], "entered_via" | "ot_reason"> & {
+  entered_via?: string;
+  ot_reason?: string;
+};
 // --- Payroll Rules ---
-export type PayrollRuleDefinition = any; // fallback for ui
-export type PayrollRuleTier = any; // fallback for ui
-export type PayrollRuleAssignment = any; // fallback for ui
+export type PayrollRuleDefinition = components["schemas"]["PayrollRuleDefinition"];
+export type PayrollRuleTier = components["schemas"]["PayrollRuleTier"];
+export type PayrollRuleAssignment = Omit<components["schemas"]["PayrollRuleAssignment"], "override_config"> & {
+  override_config?: any;
+};
 // --- Employment Phases ---
-export type EmploymentPhaseDefinition = any; // fallback for ui
-export type EmployeePhase = any; // fallback for ui
+export type EmploymentPhaseDefinition = Omit<components["schemas"]["EmploymentPhaseDefinition"], "rule_config"> & {
+  rule_config?: any;
+};
+export type EmployeePhase = Omit<components["schemas"]["EmployeePhase"], "rule_config"> & {
+  rule_config?: any;
+};
 // --- Workspace Config (EAV) ---
-export type WorkspaceConfigEntry = any; // fallback for ui
+export type WorkspaceConfigEntry = components["schemas"]["WorkspaceConfigEntry"];
 
 export interface CreateConfigEntryRequest {
   config_key: string;
@@ -406,14 +452,16 @@ export interface ApprovalWorkflowStep {
   workflow_id: string;
 }
 
-export type ApprovalWorkflow = any; // fallback for ui
-export type CreateWorkflowRequest = any; // fallback for ui
-export type ApprovalActionLog = any; // fallback for ui
-export type ProcessApprovalRequest = any; // fallback for ui
+export type ApprovalWorkflow = components["schemas"]["ApprovalWorkflow"] & {
+  steps?: ApprovalWorkflowStep[];
+};
+export type CreateWorkflowRequest = components["schemas"]["CreateWorkflowRequest"];
+export type ApprovalActionLog = components["schemas"]["ApprovalActionLog"];
+export type ProcessApprovalRequest = components["schemas"]["ProcessApprovalRequest"];
 // --- Overtime Requests ---
 export type OtRequestStatus = "draft" | "pending_approval" | "approved" | "partially_accepted" | "active" | "completed" | "cancelled" | "rejected";
 export type ConsentStatus = "pending" | "accepted" | "declined";
-export type OvertimeRequestEmployee = any; // fallback for ui
-export type OvertimeRequest = any; // fallback for ui
-export type OvertimeRequestDetail = any; // fallback for ui
-export type CreateOvertimeRequestPayload = any; // fallback for ui
+export type OvertimeRequestEmployee = components["schemas"]["OvertimeRequestEmployee"];
+export type OvertimeRequest = components["schemas"]["OvertimeRequest"];
+export type OvertimeRequestDetail = components["schemas"]["OvertimeRequestDetail"];
+export type CreateOvertimeRequestPayload = components["schemas"]["CreateOvertimeRequestPayload"];

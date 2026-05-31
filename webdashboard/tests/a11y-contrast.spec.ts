@@ -1,9 +1,13 @@
-import { expect } from '@playwright/test';
+// eslint-disable-next-line import-x/no-named-as-default
 import AxeBuilder from '@axe-core/playwright';
+import { expect } from '@playwright/test';
 
 import { test } from './worker-orchestrator';
 
 test.describe('Accessibility Contrast Rules', () => {
+  // Clear global storage state so we stay on the login page
+  test.use({ storageState: { cookies: [], origins: [] } });
+
   test('login page buttons and elements should have sufficient color contrast', async ({ page }) => {
     await page.goto('/login');
     await page.waitForLoadState('networkidle');
