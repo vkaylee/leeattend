@@ -99,6 +99,9 @@ interface RosterCellData {
   shiftSymbol: string;
   source?: string;
   traces?: EffectiveSchedule["traces"];
+  shiftName?: string | null;
+  startTime?: string | null;
+  endTime?: string | null;
 }
 
 const computeCellData = (
@@ -146,6 +149,9 @@ const computeCellData = (
     shiftSymbol,
     source,
     traces,
+    shiftName: daySchedule.shift_name,
+    startTime: daySchedule.start_time,
+    endTime: daySchedule.end_time,
   };
 };
 
@@ -862,6 +868,9 @@ const RosterGridTable = memo(function RosterGridTable({
                     shiftSymbol={cellData.shiftSymbol}
                     source={cellData.source}
                     traces={cellData.traces}
+                    shiftName={cellData.shiftName}
+                    startTime={cellData.startTime}
+                    endTime={cellData.endTime}
                   />
                 );
               })}
@@ -889,6 +898,9 @@ interface RosterCellProps {
   shiftSymbol: string;
   source?: string;
   traces?: EffectiveSchedule["traces"];
+  shiftName?: string | null;
+  startTime?: string | null;
+  endTime?: string | null;
 }
 
 const RosterCell = memo(function RosterCell({
@@ -905,6 +917,9 @@ const RosterCell = memo(function RosterCell({
   shiftSymbol,
   source,
   traces,
+  shiftName,
+  startTime,
+  endTime,
 }: RosterCellProps) {
   const handleMouseDown = (e: React.MouseEvent) => {
     e.preventDefault(); // Prevent text highlighting while dragging
@@ -943,16 +958,18 @@ const RosterCell = memo(function RosterCell({
         ) : null}
 
         {hasTraces && traces ? (
-          <Button className="absolute top-0.5 right-0.5 opacity-0 hover:opacity-100 group-hover:opacity-60 transition-opacity bg-transparent border-none p-0 cursor-default" 
+          <div className="absolute top-0.5 right-0.5 z-30 opacity-0 hover:opacity-100 group-hover:opacity-60 transition-opacity" 
             onClick={handleTraceClick}
-            type="button"
-            variant="ghost"
           >
             <ScheduleTracePopover 
               source={source ?? "none"} 
               traces={traces} 
+              shiftName={shiftName}
+              startTime={startTime}
+              endTime={endTime}
+              shiftSymbol={shiftSymbol}
             />
-          </Button>
+          </div>
         ) : null}
       </div>
     </td>

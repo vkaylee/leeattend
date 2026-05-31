@@ -158,6 +158,7 @@ export interface DailyAttendanceReport {
   std_work_units: number;
   unit_coefficient_hours: number;
   unit_type: 'DAY' | 'SHIFT' | 'HOUR' | 'MINUTE';
+  shift_symbol?: string | null;
 }
 
 // --- Payroll and Shift Models ---

@@ -363,6 +363,7 @@
     "traceability": {
       "title": "Logic Traceability",
       "applied": "Applied Logic",
+      "applied_shift": "Applied Shift",
       "overridden": "Overridden Rules",
       "show_overridden": "Show overridden rules",
       "priority": "Priority",

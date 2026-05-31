@@ -3,7 +3,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi } from "vitest";
 
-import { ScheduleTrace } from "@/lib/api/types";
+import { ScheduleTrace } from "../../../lib/api/types";
 
 import { ScheduleTracePopover } from "../schedule-trace-popover";
 
@@ -80,5 +80,60 @@ describe("ScheduleTracePopover", () => {
 
     // Check for Override Hint (P < 100)
     expect(screen.getByText("shifts.traceability.override_hint")).toBeDefined();
+  });
+
+  it("shows resolved shift details when shiftName is provided", async () => {
+    const user = userEvent.setup();
+    render(
+      <ScheduleTracePopover 
+        source="roster" 
+        traces={mockTraces} 
+        shiftName="Day Shift" 
+        startTime="08:00:00" 
+        endTime="17:00:00" 
+        shiftSymbol="DS" 
+      />
+    );
+
+    const trigger = screen.getByRole("button");
+    await user.click(trigger);
+
+    expect(screen.getByText("shifts.traceability.applied_shift")).toBeDefined();
+    expect(screen.getByText("Day Shift")).toBeDefined();
+    expect(screen.getByText("08:00 - 17:00")).toBeDefined();
+    expect(screen.getByText("DS")).toBeDefined();
+  });
+
+  it("shows Off Day when shiftName is not provided", async () => {
+    const user = userEvent.setup();
+    render(
+      <ScheduleTracePopover 
+        source="roster" 
+        traces={mockTraces} 
+      />
+    );
+
+    const trigger = screen.getByRole("button");
+    await user.click(trigger);
+
+    expect(screen.getByText("shifts.traceability.applied_shift")).toBeDefined();
+    expect(screen.getByText("shifts.off_day")).toBeDefined();
+    expect(screen.getByText("OFF")).toBeDefined();
+  });
+
+  it("stops propagation when the trigger is clicked", async () => {
+    const parentClick = vi.fn();
+    const user = userEvent.setup();
+
+    render(
+      <div onClick={parentClick}>
+        <ScheduleTracePopover source="roster" traces={mockTraces} />
+      </div>
+    );
+
+    const trigger = screen.getByRole("button");
+    await user.click(trigger);
+
+    expect(parentClick).not.toHaveBeenCalled();
   });
 });

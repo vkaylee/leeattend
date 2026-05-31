@@ -363,6 +363,7 @@
     "traceability": {
       "title": "逻辑可追溯性",
       "applied": "应用的逻辑",
+      "applied_shift": "应用的班次",
       "overridden": "覆盖的规则",
       "show_overridden": "显示覆盖的规则",
       "priority": "优先级",

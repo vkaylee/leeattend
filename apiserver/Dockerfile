@@ -25,7 +25,9 @@ ENV SCCACHE_DIR=/sccache
 ENV RUSTC_WRAPPER=sccache
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/sccache \
-    cargo chef cook --release --recipe-path recipe.json
+    sccache --start-server && \
+    cargo chef cook --release --recipe-path recipe.json && \
+    sccache --stop-server
 
 # Stage 4: Dev
 FROM public.ecr.aws/docker/library/rust:1.93-bookworm AS dev
@@ -51,7 +53,9 @@ COPY --from=planner /app/recipe.json recipe.json
 ENV RUSTC_WRAPPER=sccache
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/sccache \
-    cargo chef cook --tests --recipe-path recipe.json
+    sccache --start-server && \
+    cargo chef cook --tests --recipe-path recipe.json && \
+    sccache --stop-server
 COPY . .
 CMD ["cargo", "nextest", "run"]
 
@@ -64,7 +68,9 @@ ENV SCCACHE_DIR=/sccache
 ENV RUSTC_WRAPPER=sccache
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/sccache \
+    sccache --start-server && \
     cargo build --release --locked -p apiserver && \
+    sccache --stop-server && \
     cp target/release/apiserver /usr/local/bin/apiserver
 
 # Stage 7: Runtime

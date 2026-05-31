@@ -9,6 +9,7 @@ import { formatHours, getUnitTypeI18nKey, buildWorkUnitsTooltip } from "@/lib/ut
 
 import { ReportOtStatusBadge } from "./report-ot-status-badge";
 import { ReportStatusBadge } from "./report-status-badge";
+import { ScheduleTracePopover } from "../../shifts/schedule-trace-popover";
 
 function DailyReportTableRowExpanded({ row }: { row: DailyAttendanceReport }) {
   return (
@@ -51,11 +52,46 @@ function ShiftCell({ row, t }: { row: DailyAttendanceReport; t: (k: string) => s
     );
   }
 
+  const metadata = row.generation_metadata as { schedule_traces?: any[] } | undefined;
+  const traces = metadata?.schedule_traces || [];
+  const hasTraces = traces.length > 0;
+
+  const appliedRule = traces.find(t => t.status === 'applied');
+  let derivedSource = "system";
+  if (appliedRule) {
+    if (appliedRule.priority === 100) derivedSource = "roster";
+    else if (appliedRule.priority === 80) derivedSource = "pattern";
+    else if (appliedRule.priority === 60) derivedSource = "rules";
+    else if (appliedRule.priority === 40) derivedSource = "department_pattern";
+    else if (appliedRule.priority === 20) derivedSource = "fixed";
+    else if (appliedRule.priority === 10) derivedSource = "department_fixed";
+  }
+
   return (
     <div className="flex flex-col">
-      <span className="font-bold text-slate-700 dark:text-slate-200 text-xs uppercase tracking-tighter shadow-sm bg-white dark:bg-slate-900 px-2 py-0.5 rounded-lg border border-slate-100 dark:border-slate-800 w-fit">
-        {row.scheduled_start.substring(0, 5)} — {row.scheduled_end?.substring(0, 5)}
-      </span>
+      <div className="relative w-fit flex items-center">
+        <span className={cn(
+          "font-bold text-slate-700 dark:text-slate-200 text-xs uppercase tracking-tighter shadow-sm bg-white dark:bg-slate-900 py-0.5 rounded-lg border border-slate-100 dark:border-slate-800",
+          hasTraces ? "pl-2 pr-6.5" : "px-2"
+        )}>
+          {row.scheduled_start.substring(0, 5)} — {row.scheduled_end?.substring(0, 5)}
+        </span>
+        {hasTraces ? (
+          <div 
+            className="absolute right-1 top-1/2 -translate-y-1/2 z-10 flex items-center justify-center"
+            onClick={(e) => { e.stopPropagation(); }}
+          >
+            <ScheduleTracePopover
+              endTime={row.scheduled_end}
+              shiftName={appliedRule?.rule_name}
+              shiftSymbol={row.shift_symbol}
+              source={derivedSource}
+              startTime={row.scheduled_start}
+              traces={traces}
+            />
+          </div>
+        ) : null}
+      </div>
       {row.break_duration_minutes !== null ? (
         <span className="text-[8px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] mt-1.5 opacity-70 italic">
           {row.break_start

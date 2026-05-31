@@ -363,6 +363,7 @@
     "traceability": {
       "title": "Truy vết Logic",
       "applied": "Logic đang áp dụng",
+      "applied_shift": "Ca áp dụng",
       "overridden": "Các quy tắc bị ghi đè",
       "show_overridden": "Hiển thị các quy tắc bị ghi đè",
       "priority": "Độ ưu tiên",
