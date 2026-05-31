@@ -617,6 +617,41 @@ impl AttendanceSummaryService {
     }
 }
 
+#[async_trait::async_trait]
+impl crate::services::approval_workflow_service::WorkflowCallbackHandler for AttendanceSummaryService {
+    async fn on_workflow_completed(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        entity_id: Uuid,
+        status: &str,
+        _user_id: Uuid,
+    ) -> Result<(), AppError> {
+        let workspace_id = auth_token.workspace_id();
+        
+        let summary = self
+            .daily_summary_repo
+            .get_summary_by_id(auth_token, entity_id)
+            .await?
+            .ok_or_else(|| AppError::NotFound("Attendance daily summary not found".to_string()))?;
+
+        let ot_status = match status {
+            "approved" => crate::models::OtStatus::Approved,
+            "rejected" => crate::models::OtStatus::Rejected,
+            _ => crate::models::OtStatus::PendingManager,
+        };
+
+        self.approve_ot(
+            workspace_id,
+            summary.employee_id,
+            summary.date,
+            summary.claimed_ot_minutes,
+            Some(format!("Approved via workflow")),
+            ot_status,
+        )
+        .await
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

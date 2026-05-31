@@ -1013,6 +1013,13 @@ mod tests {
         ) -> Result<Option<AttendanceDailySummary>, AppError> {
             unimplemented!()
         }
+        async fn get_summary_by_id(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _id: Uuid,
+        ) -> Result<Option<AttendanceDailySummary>, AppError> {
+            unimplemented!()
+        }
         async fn upsert_calculated_summary(
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,
@@ -1867,6 +1874,13 @@ mod tests {
             _auth_token: &crate::diesel_pool::TenantAuthToken,
             _e: Uuid,
             _d: NaiveDate,
+        ) -> Result<Option<AttendanceDailySummary>, AppError> {
+            unimplemented!()
+        }
+        async fn get_summary_by_id(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _id: Uuid,
         ) -> Result<Option<AttendanceDailySummary>, AppError> {
             unimplemented!()
         }

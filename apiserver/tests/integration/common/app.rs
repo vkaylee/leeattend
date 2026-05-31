@@ -349,15 +349,6 @@ pub async fn spawn_app() -> (String, TestDatabase) {
     let workspace_config_service = Arc::new(apiserver::services::WorkspaceConfigService::new(
         workspace_config_repo.clone(),
     ));
-    let approval_workflow_service = Arc::new(apiserver::services::ApprovalWorkflowService::new(
-        approval_workflow_repo.clone(),
-        workspace_config_repo.clone(),
-        workspace_repo.clone(),
-        employee_repo.clone(),
-        department_repo.clone(),
-        leave_request_repo.clone(),
-        overtime_request_repo.clone(),
-    ));
     let overtime_request_service = Arc::new(apiserver::services::OvertimeRequestService::new(
         overtime_request_repo.clone(),
     ));
@@ -500,6 +491,41 @@ pub async fn spawn_app() -> (String, TestDatabase) {
             ),
         },
     ));
+
+    let mut workflow_handlers: std::collections::HashMap<
+        String,
+        Arc<dyn apiserver::services::approval_workflow_service::WorkflowCallbackHandler>,
+    > = std::collections::HashMap::new();
+    workflow_handlers.insert(
+        "attendance_adjustment".to_string(),
+        adjustment_service.clone(),
+    );
+    workflow_handlers.insert(
+        "leave_request".to_string(),
+        leave_service.clone(),
+    );
+    workflow_handlers.insert(
+        "ot_request".to_string(),
+        overtime_request_service.clone(),
+    );
+    workflow_handlers.insert(
+        "ot_claim".to_string(),
+        attendance_summary_service.clone(),
+    );
+
+    let approval_workflow_service = Arc::new(
+        apiserver::services::ApprovalWorkflowService::new(
+            approval_workflow_repo.clone(),
+            workspace_config_repo.clone(),
+            workspace_repo.clone(),
+            employee_repo.clone(),
+            department_repo.clone(),
+            leave_request_repo.clone(),
+            overtime_request_repo.clone(),
+            attendance_summary_repo.clone(),
+        )
+        .with_handlers(workflow_handlers),
+    );
 
     let raw_log_repo: Arc<
         dyn apiserver::repositories::raw_attendance_log_repository::RawAttendanceLogRepository,
@@ -923,15 +949,6 @@ pub async fn spawn_app_with_factory_extended(
     let workspace_config_service = Arc::new(apiserver::services::WorkspaceConfigService::new(
         workspace_config_repo.clone(),
     ));
-    let approval_workflow_service = Arc::new(apiserver::services::ApprovalWorkflowService::new(
-        approval_workflow_repo.clone(),
-        workspace_config_repo.clone(),
-        workspace_repo.clone(),
-        employee_repo.clone(),
-        department_repo.clone(),
-        leave_request_repo.clone(),
-        overtime_request_repo.clone(),
-    ));
     let overtime_request_service = Arc::new(apiserver::services::OvertimeRequestService::new(
         overtime_request_repo.clone(),
     ));
@@ -1074,6 +1091,41 @@ pub async fn spawn_app_with_factory_extended(
             ),
         },
     ));
+
+    let mut workflow_handlers: std::collections::HashMap<
+        String,
+        Arc<dyn apiserver::services::approval_workflow_service::WorkflowCallbackHandler>,
+    > = std::collections::HashMap::new();
+    workflow_handlers.insert(
+        "attendance_adjustment".to_string(),
+        adjustment_service.clone(),
+    );
+    workflow_handlers.insert(
+        "leave_request".to_string(),
+        leave_service.clone(),
+    );
+    workflow_handlers.insert(
+        "ot_request".to_string(),
+        overtime_request_service.clone(),
+    );
+    workflow_handlers.insert(
+        "ot_claim".to_string(),
+        attendance_summary_service.clone(),
+    );
+
+    let approval_workflow_service = Arc::new(
+        apiserver::services::ApprovalWorkflowService::new(
+            approval_workflow_repo.clone(),
+            workspace_config_repo.clone(),
+            workspace_repo.clone(),
+            employee_repo.clone(),
+            department_repo.clone(),
+            leave_request_repo.clone(),
+            overtime_request_repo.clone(),
+            attendance_summary_repo.clone(),
+        )
+        .with_handlers(workflow_handlers),
+    );
 
     let raw_log_repo: Arc<
         dyn apiserver::repositories::raw_attendance_log_repository::RawAttendanceLogRepository,
@@ -1546,15 +1598,6 @@ pub async fn setup_app_tower_internal_extended(
     let workspace_config_service = Arc::new(apiserver::services::WorkspaceConfigService::new(
         workspace_config_repo.clone(),
     ));
-    let approval_workflow_service = Arc::new(apiserver::services::ApprovalWorkflowService::new(
-        approval_workflow_repo.clone(),
-        workspace_config_repo.clone(),
-        workspace_repo.clone(),
-        employee_repo.clone(),
-        department_repo.clone(),
-        leave_request_repo.clone(),
-        overtime_request_repo.clone(),
-    ));
     let overtime_request_service = Arc::new(apiserver::services::OvertimeRequestService::new(
         overtime_request_repo.clone(),
     ));
@@ -1697,6 +1740,41 @@ pub async fn setup_app_tower_internal_extended(
             ),
         },
     ));
+
+    let mut workflow_handlers: std::collections::HashMap<
+        String,
+        Arc<dyn apiserver::services::approval_workflow_service::WorkflowCallbackHandler>,
+    > = std::collections::HashMap::new();
+    workflow_handlers.insert(
+        "attendance_adjustment".to_string(),
+        adjustment_service.clone(),
+    );
+    workflow_handlers.insert(
+        "leave_request".to_string(),
+        leave_service.clone(),
+    );
+    workflow_handlers.insert(
+        "ot_request".to_string(),
+        overtime_request_service.clone(),
+    );
+    workflow_handlers.insert(
+        "ot_claim".to_string(),
+        attendance_summary_service.clone(),
+    );
+
+    let approval_workflow_service = Arc::new(
+        apiserver::services::ApprovalWorkflowService::new(
+            approval_workflow_repo.clone(),
+            workspace_config_repo.clone(),
+            workspace_repo.clone(),
+            employee_repo.clone(),
+            department_repo.clone(),
+            leave_request_repo.clone(),
+            overtime_request_repo.clone(),
+            attendance_daily_summary_repo.clone(),
+        )
+        .with_handlers(workflow_handlers),
+    );
 
     let raw_log_repo: Arc<
         dyn apiserver::repositories::raw_attendance_log_repository::RawAttendanceLogRepository,

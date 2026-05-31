@@ -14,6 +14,12 @@ pub trait AttendanceDailySummaryRepository: Send + Sync {
         date: NaiveDate,
     ) -> Result<Option<AttendanceDailySummary>, AppError>;
 
+    async fn get_summary_by_id(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        id: Uuid,
+    ) -> Result<Option<AttendanceDailySummary>, AppError>;
+
     #[allow(clippy::too_many_arguments)]
     async fn upsert_calculated_summary(
         &self,

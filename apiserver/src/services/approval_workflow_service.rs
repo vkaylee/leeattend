@@ -1,7 +1,7 @@
 use crate::errors::{AppError, AppResult};
 use crate::models::{
     ApprovalActionLog, ApprovalWorkflow, ApprovalWorkflowInstance, ApprovalWorkflowStep,
-    ApprovalWorkflowTask, ApproverActionInfo, LeaveStatus, OtRequestStatus,
+    ApprovalWorkflowTask, ApproverActionInfo,
     WorkflowInstanceStepSnapshot,
 };
 use crate::repositories::{
@@ -33,6 +33,7 @@ pub struct ApprovalWorkflowService {
     department_repo: Arc<dyn DepartmentRepository>,
     leave_request_repo: Arc<dyn LeaveRequestRepository>,
     overtime_request_repo: Arc<dyn OvertimeRequestRepository>,
+    daily_summary_repo: Arc<dyn crate::repositories::attendance_daily_summary_repository::AttendanceDailySummaryRepository>,
     handlers: std::collections::HashMap<String, Arc<dyn WorkflowCallbackHandler>>,
 }
 
@@ -45,6 +46,7 @@ impl ApprovalWorkflowService {
         department_repo: Arc<dyn DepartmentRepository>,
         leave_request_repo: Arc<dyn LeaveRequestRepository>,
         overtime_request_repo: Arc<dyn OvertimeRequestRepository>,
+        daily_summary_repo: Arc<dyn crate::repositories::attendance_daily_summary_repository::AttendanceDailySummaryRepository>,
     ) -> Self {
         Self {
             approval_workflow_repo,
@@ -54,6 +56,7 @@ impl ApprovalWorkflowService {
             department_repo,
             leave_request_repo,
             overtime_request_repo,
+            daily_summary_repo,
             handlers: std::collections::HashMap::new(),
         }
     }
@@ -286,6 +289,21 @@ impl ApprovalWorkflowService {
                     .await
                 {
                     return Some(req.requested_by_user_id);
+                }
+            }
+            "ot_claim" => {
+                if let Ok(Some(summary)) = self
+                    .daily_summary_repo
+                    .get_summary_by_id(auth_token, entity_id)
+                    .await
+                {
+                    if let Ok(Some(emp)) = self
+                        .employee_repo
+                        .get_employee_by_id(summary.employee_id, auth_token)
+                        .await
+                    {
+                        return emp.user_id;
+                    }
                 }
             }
             _ => {}
@@ -644,19 +662,29 @@ impl ApprovalWorkflowService {
             ));
         }
 
-        let log_entry = ApprovalActionLog {
-            id: Uuid::new_v4(),
-            workspace_id,
-            entity_type: instance.entity_type.clone(),
-            entity_id: instance.entity_id,
-            step_order: current_step_order,
-            step_name: Some(steps[current_step_idx].step_name.clone()),
-            acted_by_user_id: user_id,
-            action: action.clone(),
-            note: note.clone(),
-            acted_at: Utc::now(),
+        let db_action = match action.as_str() {
+            "approve" | "approved" => Some("approved".to_string()),
+            "reject" | "rejected" => Some("rejected".to_string()),
+            "return" | "returned" => Some("returned".to_string()),
+            "skip" | "skipped" => Some("skipped".to_string()),
+            _ => None,
         };
-        self.log_action(auth_token, log_entry).await?;
+
+        if let Some(db_act) = db_action {
+            let log_entry = ApprovalActionLog {
+                id: Uuid::new_v4(),
+                workspace_id,
+                entity_type: instance.entity_type.clone(),
+                entity_id: instance.entity_id,
+                step_order: current_step_order,
+                step_name: Some(steps[current_step_idx].step_name.clone()),
+                acted_by_user_id: user_id,
+                action: db_act,
+                note: note.clone(),
+                acted_at: Utc::now(),
+            };
+            self.log_action(auth_token, log_entry).await?;
+        }
 
         steps[current_step_idx]
             .approvers_acted
@@ -831,6 +859,17 @@ impl ApprovalWorkflowService {
                                     Uuid::nil()
                                 }
                             }
+                            "ot_claim" => {
+                                if let Ok(Some(summary)) = self
+                                    .daily_summary_repo
+                                    .get_summary_by_id(auth_token, instance.entity_id)
+                                    .await
+                                {
+                                    summary.employee_id
+                                } else {
+                                    Uuid::nil()
+                                }
+                            }
                             _ => Uuid::nil(),
                         };
 
@@ -869,44 +908,6 @@ impl ApprovalWorkflowService {
                 handler
                     .on_workflow_completed(auth_token, entity_id, &updated_instance.status, user_id)
                     .await?;
-            } else {
-                match entity_type.as_str() {
-                    "leave_request" => {
-                        let new_leave_status = match updated_instance.status.as_str() {
-                            "approved" => LeaveStatus::Approved,
-                            "rejected" => LeaveStatus::Rejected,
-                            _ => LeaveStatus::Pending,
-                        };
-                        self.leave_request_repo
-                            .update_leave_request_status(
-                                auth_token,
-                                entity_id,
-                                new_leave_status,
-                                Some(user_id),
-                            )
-                            .await?;
-                    }
-                    "ot_request" => {
-                        let new_ot_status = match updated_instance.status.as_str() {
-                            "approved" => OtRequestStatus::Approved,
-                            "rejected" => OtRequestStatus::Rejected,
-                            "returned" => OtRequestStatus::Draft,
-                            _ => OtRequestStatus::PendingApproval,
-                        };
-                        if let Ok(Some(mut req)) = self
-                            .overtime_request_repo
-                            .get_request(auth_token, workspace_id, entity_id)
-                            .await
-                        {
-                            req.status = new_ot_status;
-                            let _ = self
-                                .overtime_request_repo
-                                .update_request(auth_token, req)
-                                .await;
-                        }
-                    }
-                    _ => {}
-                }
             }
         }
 
@@ -1078,7 +1079,7 @@ mod tests {
     use super::*;
     use crate::diesel_pool::TenantAuthToken;
     use crate::errors::AppError;
-    use crate::models::{Employee, WorkspaceConfigEntry};
+    use crate::models::{Employee, WorkspaceConfigEntry, LeaveStatus};
     use async_trait::async_trait;
     use chrono::{DateTime, NaiveDate, Utc};
     use rust_decimal::Decimal;
@@ -2372,8 +2373,145 @@ mod tests {
         }
     }
 
+    struct MockDailySummaryRepository;
+
+    #[async_trait]
+    impl crate::repositories::attendance_daily_summary_repository::AttendanceDailySummaryRepository for MockDailySummaryRepository {
+        async fn get_summary(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _employee_id: Uuid,
+            _date: NaiveDate,
+        ) -> Result<Option<crate::models::AttendanceDailySummary>, AppError> {
+            Ok(None)
+        }
+
+        async fn get_summary_by_id(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _id: Uuid,
+        ) -> Result<Option<crate::models::AttendanceDailySummary>, AppError> {
+            Ok(None)
+        }
+
+        async fn upsert_calculated_summary(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _employee_id: Uuid,
+            _date: NaiveDate,
+            _actual_work_minutes: i32,
+            _system_detected_ot_minutes: i32,
+            _new_status: crate::models::OtStatus,
+            _is_holiday: bool,
+            _holiday_name: Option<String>,
+        ) -> Result<(), AppError> {
+            Ok(())
+        }
+
+        async fn claim_ot(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _employee_id: Uuid,
+            _date: NaiveDate,
+            _claimed_minutes: i32,
+            _reason: Option<String>,
+        ) -> Result<usize, AppError> {
+            Ok(0)
+        }
+
+        async fn approve_ot(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _employee_id: Uuid,
+            _date: NaiveDate,
+            _approved_minutes: i32,
+            _manager_note: Option<String>,
+            _status: crate::models::OtStatus,
+        ) -> Result<usize, AppError> {
+            Ok(0)
+        }
+
+        async fn upsert_paper_ot(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _employee_id: Uuid,
+            _date: NaiveDate,
+            _claimed_minutes: i32,
+            _reason: String,
+            _entered_by_user_id: Uuid,
+            _photo_url: Option<String>,
+        ) -> Result<crate::models::AttendanceDailySummary, AppError> {
+            unimplemented!()
+        }
+
+        async fn get_batch_ot_statuses(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _employee_ids: &[Uuid],
+            _start_date: NaiveDate,
+            _end_date: NaiveDate,
+        ) -> Result<std::collections::HashMap<(Uuid, NaiveDate), String>, AppError> {
+            Ok(std::collections::HashMap::new())
+        }
+
+        async fn get_summaries(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _employee_id: Option<Uuid>,
+            _start_date: NaiveDate,
+            _end_date: NaiveDate,
+        ) -> Result<Vec<crate::models::AttendanceDailySummary>, AppError> {
+            Ok(vec![])
+        }
+
+        async fn get_distinct_work_days_from_summary(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _employee_id: Uuid,
+            _start_date: NaiveDate,
+            _end_date: NaiveDate,
+        ) -> Result<Vec<NaiveDate>, AppError> {
+            Ok(vec![])
+        }
+    }
+
+    struct TestLeaveWorkflowCallbackHandler {
+        leave_request_repo: Arc<MockLeaveRequestRepo>,
+    }
+
+    #[async_trait]
+    impl WorkflowCallbackHandler for TestLeaveWorkflowCallbackHandler {
+        async fn on_workflow_completed(
+            &self,
+            auth_token: &crate::diesel_pool::TenantAuthToken,
+            entity_id: Uuid,
+            status: &str,
+            user_id: Uuid,
+        ) -> Result<(), AppError> {
+            let leave_status = match status {
+                "approved" => LeaveStatus::Approved,
+                "rejected" => LeaveStatus::Rejected,
+                _ => LeaveStatus::Pending,
+            };
+            self.leave_request_repo
+                .update_leave_request_status(auth_token, entity_id, leave_status, Some(user_id))
+                .await
+        }
+    }
+
     fn setup_test_service() -> (ApprovalWorkflowService, Arc<Mutex<MockState>>) {
         let state = Arc::new(Mutex::new(MockState::new()));
+        let leave_repo = Arc::new(MockLeaveRequestRepo {
+            state: state.clone(),
+        });
+        let mut handlers: std::collections::HashMap<String, Arc<dyn WorkflowCallbackHandler>> =
+            std::collections::HashMap::new();
+        handlers.insert(
+            "leave_request".to_string(),
+            Arc::new(TestLeaveWorkflowCallbackHandler {
+                leave_request_repo: leave_repo.clone(),
+            }),
+        );
         let service = ApprovalWorkflowService::new(
             Arc::new(MockApprovalWorkflowRepository {
                 create_workflow_called: std::sync::atomic::AtomicBool::new(false),
@@ -2391,13 +2529,13 @@ mod tests {
             Arc::new(MockDepartmentRepo {
                 state: state.clone(),
             }),
-            Arc::new(MockLeaveRequestRepo {
-                state: state.clone(),
-            }),
+            leave_repo,
             Arc::new(MockOvertimeRequestRepository {
                 state: state.clone(),
             }),
-        );
+            Arc::new(MockDailySummaryRepository),
+        )
+        .with_handlers(handlers);
         (service, state)
     }
 

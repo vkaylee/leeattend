@@ -72,6 +72,24 @@ pub async fn claim_ot(
         )
         .await?;
 
+    let summary = state
+        .attendance
+        .attendance_daily_summary_repo
+        .get_summary(&ctx.auth_token, employee_id, req.date)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Attendance summary not found".to_string()))?;
+
+    state
+        .core
+        .approval_workflow_service
+        .submit_to_workflow(
+            &ctx.auth_token,
+            "ot_claim".to_string(),
+            summary.id,
+            employee_id,
+        )
+        .await?;
+
     Ok(StatusCode::OK)
 }
 

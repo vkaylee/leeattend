@@ -298,6 +298,13 @@ mod tests {
         ) -> Result<Option<crate::models::AttendanceDailySummary>, AppError> {
             Ok(None)
         }
+        async fn get_summary_by_id(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _id: Uuid,
+        ) -> Result<Option<crate::models::AttendanceDailySummary>, AppError> {
+            Ok(None)
+        }
         async fn upsert_calculated_summary(
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,

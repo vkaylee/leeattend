@@ -91,6 +91,27 @@ impl OvertimeRequestService {
     }
 }
 
+#[async_trait::async_trait]
+impl crate::services::approval_workflow_service::WorkflowCallbackHandler for OvertimeRequestService {
+    async fn on_workflow_completed(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        entity_id: Uuid,
+        status: &str,
+        _user_id: Uuid,
+    ) -> Result<(), AppError> {
+        let ot_status = match status {
+            "approved" => OtRequestStatus::Approved,
+            "rejected" => OtRequestStatus::Rejected,
+            "returned" => OtRequestStatus::Draft,
+            _ => OtRequestStatus::PendingApproval,
+        };
+        self.update_request_status(auth_token, entity_id, ot_status, None)
+            .await?;
+        Ok(())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -49,6 +49,33 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
             .map_err(|e| AppError::Internal(format!("db: {e}")))
     }
 
+    async fn get_summary_by_id(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        id: Uuid,
+    ) -> Result<Option<AttendanceDailySummary>, AppError> {
+        let workspace_id = auth_token.workspace_id();
+        use crate::schema::attendance_daily_summaries::dsl as ads;
+
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&auth_token.workspace_id())
+                .await?,
+        );
+
+        use crate::models::diesel::attendance_daily_summary::AttendanceDailySummaryEntity;
+
+        ads::attendance_daily_summaries
+            .filter(ads::workspace_id.eq(workspace_id))
+            .filter(ads::id.eq(id))
+            .first::<AttendanceDailySummaryEntity>(&mut *conn)
+            .await
+            .optional()
+            .map(|opt| opt.map(Into::into))
+            .map_err(|e| AppError::Internal(format!("db: {e}")))
+    }
+
     #[allow(clippy::too_many_arguments)]
     async fn upsert_calculated_summary(
         &self,

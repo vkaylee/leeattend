@@ -37,5 +37,5 @@ pub mod roster;
 pub mod shift;
 pub mod shift_swap;
 pub mod system;
-pub mod workspace;
 pub mod workspace_config;
+pub mod workflow_callback;

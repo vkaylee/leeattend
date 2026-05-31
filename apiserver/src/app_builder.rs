@@ -337,6 +337,10 @@ impl AppState {
         let overtime_request_repo: Arc<dyn crate::repositories::overtime_request_repository::OvertimeRequestRepository> =
             Arc::new(crate::repositories::diesel_overtime_request_repository::DieselOvertimeRequestRepository::new(diesel_pools.clone()));
 
+        let overtime_request_service = Arc::new(crate::services::OvertimeRequestService::new(
+            overtime_request_repo.clone(),
+        ));
+
         let workspace_config_service = Arc::new(crate::services::WorkspaceConfigService::new(
             workspace_config_repo.clone(),
         ));
@@ -349,6 +353,18 @@ impl AppState {
             "attendance_adjustment".to_string(),
             adjustment_service.clone(),
         );
+        workflow_handlers.insert(
+            "leave_request".to_string(),
+            leave_service.clone(),
+        );
+        workflow_handlers.insert(
+            "ot_request".to_string(),
+            overtime_request_service.clone(),
+        );
+        workflow_handlers.insert(
+            "ot_claim".to_string(),
+            attendance_summary_service.clone(),
+        );
 
         let approval_workflow_service = Arc::new(
             crate::services::ApprovalWorkflowService::new(
@@ -359,13 +375,10 @@ impl AppState {
                 department_repo.clone(),
                 leave_request_repo.clone(),
                 overtime_request_repo.clone(),
+                attendance_daily_summary_repo.clone(),
             )
             .with_handlers(workflow_handlers),
         );
-
-        let overtime_request_service = Arc::new(crate::services::OvertimeRequestService::new(
-            overtime_request_repo.clone(),
-        ));
 
         let location_repo: Arc<dyn crate::repositories::LocationRepository> = Arc::new(
             crate::repositories::DieselLocationRepository::new(diesel_pools.clone()),
