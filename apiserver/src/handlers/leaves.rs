@@ -74,6 +74,19 @@ pub async fn submit_leave_request(
         .submit_leave_request(ctx.workspace_id, user_id, req, can_auto_approve)
         .await?;
 
+    if !can_auto_approve {
+        state
+            .core
+            .approval_workflow_service
+            .submit_to_workflow(
+                &ctx.auth_token,
+                "leave_request".to_string(),
+                request.id,
+                request.employee_id,
+            )
+            .await?;
+    }
+
     Ok((StatusCode::CREATED, Json(request)))
 }
 

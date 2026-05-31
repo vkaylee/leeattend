@@ -343,6 +343,12 @@ impl AppState {
 
         let approval_workflow_service = Arc::new(crate::services::ApprovalWorkflowService::new(
             approval_workflow_repo.clone(),
+            workspace_config_repo.clone(),
+            workspace_repo.clone(),
+            employee_repo.clone(),
+            department_repo.clone(),
+            leave_request_repo.clone(),
+            overtime_request_repo.clone(),
         ));
 
         let overtime_request_service = Arc::new(crate::services::OvertimeRequestService::new(

@@ -8,9 +8,9 @@ import { useConfirm } from "@/hooks/use-confirm";
 
 import { UpsertWorkflowModal } from "./upsert-workflow-modal";
 
-export function ApprovalWorkflowsTab({ wsId }: { wsId: string }) {
+export function ApprovalWorkflowsTab({ wsId, entityType = "ot_request" }: { wsId: string; entityType?: string }) {
   const { t } = useTranslation();
-  const { data: workflows, isLoading } = useApprovalWorkflows("ot_request");
+  const { data: workflows, isLoading } = useApprovalWorkflows(entityType);
   const { mutate: deleteWorkflow, isPending: isDeleting } = useDeleteApprovalWorkflow();
   const { confirm } = useConfirm();
 
@@ -145,6 +145,7 @@ export function ApprovalWorkflowsTab({ wsId }: { wsId: string }) {
           onClose={() => { setUpsertModalOpen(false); }}
           workflow={selectedWorkflow}
           wsId={wsId}
+          defaultEntityType={entityType}
         />
       )}
     </div>

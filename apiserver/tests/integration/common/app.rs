@@ -351,6 +351,12 @@ pub async fn spawn_app() -> (String, TestDatabase) {
     ));
     let approval_workflow_service = Arc::new(apiserver::services::ApprovalWorkflowService::new(
         approval_workflow_repo.clone(),
+        workspace_config_repo.clone(),
+        workspace_repo.clone(),
+        employee_repo.clone(),
+        department_repo.clone(),
+        leave_request_repo.clone(),
+        overtime_request_repo.clone(),
     ));
     let overtime_request_service = Arc::new(apiserver::services::OvertimeRequestService::new(
         overtime_request_repo.clone(),
@@ -919,6 +925,12 @@ pub async fn spawn_app_with_factory_extended(
     ));
     let approval_workflow_service = Arc::new(apiserver::services::ApprovalWorkflowService::new(
         approval_workflow_repo.clone(),
+        workspace_config_repo.clone(),
+        workspace_repo.clone(),
+        employee_repo.clone(),
+        department_repo.clone(),
+        leave_request_repo.clone(),
+        overtime_request_repo.clone(),
     ));
     let overtime_request_service = Arc::new(apiserver::services::OvertimeRequestService::new(
         overtime_request_repo.clone(),
@@ -1536,6 +1548,12 @@ pub async fn setup_app_tower_internal_extended(
     ));
     let approval_workflow_service = Arc::new(apiserver::services::ApprovalWorkflowService::new(
         approval_workflow_repo.clone(),
+        workspace_config_repo.clone(),
+        workspace_repo.clone(),
+        employee_repo.clone(),
+        department_repo.clone(),
+        leave_request_repo.clone(),
+        overtime_request_repo.clone(),
     ));
     let overtime_request_service = Arc::new(apiserver::services::OvertimeRequestService::new(
         overtime_request_repo.clone(),

@@ -9,6 +9,7 @@ import { Typography } from "@/components/ui/typography";
 import { LeaveAssignmentsTab } from "./components/leave/leave-assignments-tab";
 import { LeaveSettingsHeader } from "./components/leave/leave-settings-header";
 import { LeaveSettingsTabs } from "./components/leave/leave-settings-tabs";
+import { ApprovalWorkflowsTab } from "./components/overtime/approval-workflows-tab";
 import { useLeaveSettings } from "./hooks/use-leave-settings";
 
 export default function LeaveSettings() {
@@ -67,6 +68,10 @@ export default function LeaveSettings() {
               isLoading={assignmentsLoading}
               onAssignClick={() => { setIsAssignModalOpen(true); }}
             />
+          )}
+
+          {activeTab === "workflows" && (
+            <ApprovalWorkflowsTab wsId={wsId} entityType="leave_request" />
           )}
         </div>
       </div>

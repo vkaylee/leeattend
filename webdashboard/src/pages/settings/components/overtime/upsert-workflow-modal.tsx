@@ -34,11 +34,13 @@ export function UpsertWorkflowModal({
   isOpen,
   onClose,
   wsId,
+  defaultEntityType = "ot_request",
 }: {
   workflow: any | null;
   isOpen: boolean;
   onClose: () => void;
   wsId: string;
+  defaultEntityType?: string;
 }) {
   const { t } = useTranslation();
   const toast = useToast();
@@ -49,7 +51,7 @@ export function UpsertWorkflowModal({
     resolver: zodResolver(workflowSchema),
     defaultValues: {
       name: "",
-      entity_type: "ot_request",
+      entity_type: defaultEntityType,
       description: "",
       is_active: true,
       steps: [

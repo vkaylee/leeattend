@@ -1311,6 +1311,41 @@ diesel::table! {
 }
 
 diesel::table! {
+    approval_workflow_instances (id) {
+        id -> Uuid,
+        workspace_id -> Uuid,
+        workflow_id -> Nullable<Uuid>,
+        #[max_length = 50]
+        entity_type -> Varchar,
+        entity_id -> Uuid,
+        #[max_length = 20]
+        status -> Varchar,
+        current_step_order -> Int4,
+        steps_snapshot -> Jsonb,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    approval_workflow_tasks (id) {
+        id -> Uuid,
+        instance_id -> Uuid,
+        step_order -> Int4,
+        #[max_length = 20]
+        status -> Varchar,
+        #[max_length = 30]
+        assignee_type -> Varchar,
+        assignee_target_id -> Nullable<Uuid>,
+        #[max_length = 100]
+        assignee_target_name -> Nullable<Varchar>,
+        created_at -> Timestamptz,
+        completed_at -> Nullable<Timestamptz>,
+        completed_by -> Nullable<Uuid>,
+    }
+}
+
+diesel::table! {
     workspace_config_entries (id) {
         id -> Uuid,
         workspace_id -> Uuid,
@@ -1451,9 +1486,13 @@ diesel::joinable!(employees -> work_locations (primary_location_id));
 diesel::joinable!(employees -> employers (employer_id));
 diesel::joinable!(employee_assignments -> employees (employee_id));
 diesel::joinable!(employee_assignments -> work_locations (home_location_id));
+diesel::joinable!(approval_workflow_instances -> approval_workflows (workflow_id));
+diesel::joinable!(approval_workflow_tasks -> approval_workflow_instances (instance_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
     approval_action_log,
+    approval_workflow_instances,
+    approval_workflow_tasks,
     approval_workflow_steps,
     approval_workflows,
     overtime_request_employees,

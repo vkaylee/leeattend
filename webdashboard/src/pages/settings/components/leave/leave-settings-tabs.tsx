@@ -1,4 +1,4 @@
-import { CalendarDays, ShieldCheck, UserPlus } from "lucide-react";
+import { CalendarDays, ShieldCheck, UserPlus, GitFork } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
@@ -19,6 +19,7 @@ export function LeaveSettingsTabs({ activeTab, onTabChange }: LeaveSettingsTabsP
     { icon: CalendarDays, id: "types", label: t("settings.leave.tabs.types") },
     { icon: ShieldCheck, id: "policies", label: t("settings.leave.tabs.policies") },
     { icon: UserPlus, id: "assignments", label: t("settings.leave.tabs.assignments") },
+    { icon: GitFork, id: "workflows", label: t("settings.leave.tabs.workflows", { defaultValue: "Workflows" }) },
   ] as const;
 
   return (

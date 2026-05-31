@@ -1,7 +1,13 @@
 use crate::errors::AppError;
-use crate::models::{ApprovalActionLog, ApprovalWorkflow, ApprovalWorkflowStep};
+use crate::models::{
+    ApprovalActionLog, ApprovalWorkflow, ApprovalWorkflowInstance, ApprovalWorkflowStep,
+    ApprovalWorkflowTask,
+};
 use crate::repositories::ApprovalWorkflowRepository;
-use crate::schema::{approval_action_log, approval_workflow_steps, approval_workflows};
+use crate::schema::{
+    approval_action_log, approval_workflow_instances, approval_workflow_steps,
+    approval_workflow_tasks, approval_workflows,
+};
 use async_trait::async_trait;
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
@@ -135,6 +141,344 @@ impl ApprovalWorkflowRepository for DieselApprovalWorkflowRepository {
             .load::<ApprovalActionLog>(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("Failed to get action logs: {e}")))?;
+
+        Ok(result)
+    }
+
+    async fn create_instance(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        instance: ApprovalWorkflowInstance,
+    ) -> Result<ApprovalWorkflowInstance, AppError> {
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
+
+        let result = diesel::insert_into(approval_workflow_instances::table)
+            .values(&instance)
+            .get_result(&mut *conn)
+            .await
+            .map_err(|e| {
+                AppError::Internal(format!("Failed to create approval workflow instance: {e}"))
+            })?;
+
+        Ok(result)
+    }
+
+    async fn update_instance(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        instance: ApprovalWorkflowInstance,
+    ) -> Result<ApprovalWorkflowInstance, AppError> {
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
+
+        let result = diesel::update(
+            approval_workflow_instances::table
+                .filter(approval_workflow_instances::id.eq(instance.id)),
+        )
+        .set(&instance)
+        .get_result(&mut *conn)
+        .await
+        .map_err(|e| {
+            AppError::Internal(format!("Failed to update approval workflow instance: {e}"))
+        })?;
+
+        Ok(result)
+    }
+
+    async fn get_instance_by_entity(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        entity_type: &str,
+        entity_id: Uuid,
+    ) -> Result<Option<ApprovalWorkflowInstance>, AppError> {
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
+
+        let result = approval_workflow_instances::table
+            .filter(approval_workflow_instances::entity_type.eq(entity_type))
+            .filter(approval_workflow_instances::entity_id.eq(entity_id))
+            .first::<ApprovalWorkflowInstance>(&mut *conn)
+            .await
+            .optional()
+            .map_err(|e| {
+                AppError::Internal(format!(
+                    "Failed to get approval workflow instance by entity: {e}"
+                ))
+            })?;
+
+        Ok(result)
+    }
+
+    async fn get_instance_by_id(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        instance_id: Uuid,
+    ) -> Result<Option<ApprovalWorkflowInstance>, AppError> {
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
+
+        let result = approval_workflow_instances::table
+            .filter(approval_workflow_instances::id.eq(instance_id))
+            .first::<ApprovalWorkflowInstance>(&mut *conn)
+            .await
+            .optional()
+            .map_err(|e| {
+                AppError::Internal(format!(
+                    "Failed to get approval workflow instance by id: {e}"
+                ))
+            })?;
+
+        Ok(result)
+    }
+
+    async fn get_workflow_by_id(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        workflow_id: Uuid,
+    ) -> Result<Option<ApprovalWorkflow>, AppError> {
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
+
+        let result = approval_workflows::table
+            .filter(approval_workflows::id.eq(workflow_id))
+            .first::<ApprovalWorkflow>(&mut *conn)
+            .await
+            .optional()
+            .map_err(|e| {
+                AppError::Internal(format!("Failed to get approval workflow by id: {e}"))
+            })?;
+
+        Ok(result)
+    }
+
+    async fn list_workflows(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        workspace_id: Uuid,
+    ) -> Result<Vec<ApprovalWorkflow>, AppError> {
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
+
+        let result = approval_workflows::table
+            .filter(approval_workflows::workspace_id.eq(workspace_id))
+            .load::<ApprovalWorkflow>(&mut *conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("Failed to list approval workflows: {e}")))?;
+
+        Ok(result)
+    }
+
+    async fn update_workflow(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        workflow: ApprovalWorkflow,
+    ) -> Result<ApprovalWorkflow, AppError> {
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
+
+        let result = diesel::update(
+            approval_workflows::table.filter(approval_workflows::id.eq(workflow.id)),
+        )
+        .set((
+            approval_workflows::name.eq(workflow.name),
+            approval_workflows::description.eq(workflow.description),
+            approval_workflows::total_steps.eq(workflow.total_steps),
+            approval_workflows::is_active.eq(workflow.is_active),
+            approval_workflows::updated_at.eq(chrono::Utc::now()),
+        ))
+        .get_result(&mut *conn)
+        .await
+        .map_err(|e| match e {
+            diesel::result::Error::NotFound => AppError::NotFound("Workflow not found".to_string()),
+            _ => AppError::Internal(format!("Failed to update approval workflow: {e}")),
+        })?;
+
+        Ok(result)
+    }
+
+    async fn delete_workflow(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        workflow_id: Uuid,
+    ) -> Result<(), AppError> {
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
+
+        let rows_deleted = diesel::delete(
+            approval_workflows::table.filter(approval_workflows::id.eq(workflow_id)),
+        )
+        .execute(&mut *conn)
+        .await
+        .map_err(|e| AppError::Internal(format!("Failed to delete approval workflow: {e}")))?;
+
+        if rows_deleted == 0 {
+            return Err(AppError::NotFound("Workflow not found".to_string()));
+        }
+
+        Ok(())
+    }
+
+    async fn delete_steps_by_workflow_id(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        workflow_id: Uuid,
+    ) -> Result<(), AppError> {
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
+
+        diesel::delete(
+            approval_workflow_steps::table
+                .filter(approval_workflow_steps::workflow_id.eq(workflow_id)),
+        )
+        .execute(&mut *conn)
+        .await
+        .map_err(|e| AppError::Internal(format!("Failed to delete workflow steps: {e}")))?;
+
+        Ok(())
+    }
+
+    async fn get_steps_for_workflows(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        workflow_ids: Vec<Uuid>,
+    ) -> Result<Vec<ApprovalWorkflowStep>, AppError> {
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
+
+        let result = approval_workflow_steps::table
+            .filter(approval_workflow_steps::workflow_id.eq_any(workflow_ids))
+            .order((
+                approval_workflow_steps::workflow_id,
+                approval_workflow_steps::step_order.asc(),
+            ))
+            .load::<ApprovalWorkflowStep>(&mut *conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("Failed to get steps for workflows: {e}")))?;
+
+        Ok(result)
+    }
+
+    async fn create_tasks(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        tasks: Vec<ApprovalWorkflowTask>,
+    ) -> Result<Vec<ApprovalWorkflowTask>, AppError> {
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
+
+        let result = diesel::insert_into(approval_workflow_tasks::table)
+            .values(&tasks)
+            .get_results(&mut *conn)
+            .await
+            .map_err(|e| {
+                AppError::Internal(format!("Failed to create approval workflow tasks: {e}"))
+            })?;
+
+        Ok(result)
+    }
+
+    async fn update_task(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        task: ApprovalWorkflowTask,
+    ) -> Result<ApprovalWorkflowTask, AppError> {
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
+
+        let result = diesel::update(
+            approval_workflow_tasks::table.filter(approval_workflow_tasks::id.eq(task.id())),
+        )
+        .set(&task)
+        .get_result(&mut *conn)
+        .await
+        .map_err(|e| AppError::Internal(format!("Failed to update approval workflow task: {e}")))?;
+
+        Ok(result)
+    }
+
+    async fn get_active_tasks_for_instance(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        instance_id: Uuid,
+    ) -> Result<Vec<ApprovalWorkflowTask>, AppError> {
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
+
+        let result = approval_workflow_tasks::table
+            .filter(approval_workflow_tasks::instance_id.eq(instance_id))
+            .filter(approval_workflow_tasks::status.eq("pending"))
+            .load::<ApprovalWorkflowTask>(&mut *conn)
+            .await
+            .map_err(|e| {
+                AppError::Internal(format!("Failed to get active tasks for instance: {e}"))
+            })?;
+
+        Ok(result)
+    }
+
+    async fn get_pending_tasks_for_user(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        user_id: Uuid,
+        role_ids: Vec<Uuid>,
+        permissions: Vec<String>,
+        managed_dept_ids: Vec<Uuid>,
+    ) -> Result<Vec<ApprovalWorkflowTask>, AppError> {
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
+
+        let cond_user = approval_workflow_tasks::assignee_type
+            .eq("specific_user")
+            .and(approval_workflow_tasks::assignee_target_id.eq(user_id));
+
+        let result = approval_workflow_tasks::table
+            .filter(approval_workflow_tasks::status.eq("pending"))
+            .filter(
+                cond_user
+                    .or(approval_workflow_tasks::assignee_type
+                        .eq("role")
+                        .and(approval_workflow_tasks::assignee_target_id.eq_any(role_ids)))
+                    .or(approval_workflow_tasks::assignee_type
+                        .eq("permission")
+                        .and(approval_workflow_tasks::assignee_target_name.eq_any(permissions)))
+                    .or(approval_workflow_tasks::assignee_type
+                        .eq("department_manager")
+                        .and(approval_workflow_tasks::assignee_target_id.eq_any(managed_dept_ids))),
+            )
+            .load::<ApprovalWorkflowTask>(&mut *conn)
+            .await
+            .map_err(|e| {
+                AppError::Internal(format!("Failed to get pending tasks for user: {e}"))
+            })?;
 
         Ok(result)
     }

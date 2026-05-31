@@ -179,6 +179,26 @@ pub async fn submit_for_approval(
         )
         .await?;
 
+    let employees = state
+        .payroll
+        .overtime_request_service
+        .get_request_employees(&ctx.auth_token, id)
+        .await?;
+    let beneficiary_employee_id = employees.first().map(|e| e.employee_id).ok_or_else(|| {
+        AppError::Validation("Overtime request has no employees assigned".to_string())
+    })?;
+
+    state
+        .core
+        .approval_workflow_service
+        .submit_to_workflow(
+            &ctx.auth_token,
+            "ot_request".to_string(),
+            id,
+            beneficiary_employee_id,
+        )
+        .await?;
+
     Ok(StatusCode::OK)
 }
 

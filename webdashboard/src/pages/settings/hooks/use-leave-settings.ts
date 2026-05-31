@@ -4,7 +4,7 @@ import { useState } from "react";
 import { fetchLeavePolicyAssignments } from "@/lib/api";
 import { getCurrentWorkspaceId } from "@/lib/api/helpers";
 
-export type TabType = "types" | "policies" | "assignments";
+export type TabType = "types" | "policies" | "assignments" | "workflows";
 
 export interface LeaveAssignment {
   assignee_type: string;

@@ -1,5 +1,8 @@
 use crate::errors::AppError;
-use crate::models::{ApprovalActionLog, ApprovalWorkflow, ApprovalWorkflowStep};
+use crate::models::{
+    ApprovalActionLog, ApprovalWorkflow, ApprovalWorkflowInstance, ApprovalWorkflowStep,
+    ApprovalWorkflowTask,
+};
 use async_trait::async_trait;
 use uuid::Uuid;
 
@@ -41,4 +44,92 @@ pub trait ApprovalWorkflowRepository: Send + Sync {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         entity_id: Uuid,
     ) -> Result<Vec<ApprovalActionLog>, AppError>;
+
+    async fn create_instance(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        instance: ApprovalWorkflowInstance,
+    ) -> Result<ApprovalWorkflowInstance, AppError>;
+
+    async fn update_instance(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        instance: ApprovalWorkflowInstance,
+    ) -> Result<ApprovalWorkflowInstance, AppError>;
+
+    async fn get_instance_by_entity(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        entity_type: &str,
+        entity_id: Uuid,
+    ) -> Result<Option<ApprovalWorkflowInstance>, AppError>;
+
+    async fn get_instance_by_id(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        instance_id: Uuid,
+    ) -> Result<Option<ApprovalWorkflowInstance>, AppError>;
+
+    async fn get_workflow_by_id(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        workflow_id: Uuid,
+    ) -> Result<Option<ApprovalWorkflow>, AppError>;
+
+    async fn list_workflows(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        workspace_id: Uuid,
+    ) -> Result<Vec<ApprovalWorkflow>, AppError>;
+
+    async fn update_workflow(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        workflow: ApprovalWorkflow,
+    ) -> Result<ApprovalWorkflow, AppError>;
+
+    async fn delete_workflow(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        workflow_id: Uuid,
+    ) -> Result<(), AppError>;
+
+    async fn delete_steps_by_workflow_id(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        workflow_id: Uuid,
+    ) -> Result<(), AppError>;
+
+    async fn get_steps_for_workflows(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        workflow_ids: Vec<Uuid>,
+    ) -> Result<Vec<ApprovalWorkflowStep>, AppError>;
+
+    async fn create_tasks(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        tasks: Vec<ApprovalWorkflowTask>,
+    ) -> Result<Vec<ApprovalWorkflowTask>, AppError>;
+
+    async fn update_task(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        task: ApprovalWorkflowTask,
+    ) -> Result<ApprovalWorkflowTask, AppError>;
+
+    async fn get_active_tasks_for_instance(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        instance_id: Uuid,
+    ) -> Result<Vec<ApprovalWorkflowTask>, AppError>;
+
+    async fn get_pending_tasks_for_user(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        user_id: Uuid,
+        role_ids: Vec<Uuid>,
+        permissions: Vec<String>,
+        managed_dept_ids: Vec<Uuid>,
+    ) -> Result<Vec<ApprovalWorkflowTask>, AppError>;
 }

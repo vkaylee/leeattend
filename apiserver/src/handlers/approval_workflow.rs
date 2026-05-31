@@ -2,7 +2,7 @@ use crate::{
     domain::permissions::Permission,
     errors::AppResult,
     handlers::common::MemberContext,
-    models::{ApprovalActionLog, ApprovalWorkflow, CreateWorkflowRequest},
+    models::{ApprovalActionLog, ApprovalWorkflow, ApprovalWorkflowTask, CreateWorkflowRequest},
     AppState,
 };
 use axum::{
@@ -26,15 +26,27 @@ use uuid::Uuid;
     )
 )]
 pub async fn list_workflows(
-    State(_state): State<Arc<AppState>>,
+    State(state): State<Arc<AppState>>,
     ctx: MemberContext,
-) -> AppResult<Json<Vec<ApprovalWorkflow>>> {
+    axum::extract::Query(query): axum::extract::Query<ListWorkflowsQuery>,
+) -> AppResult<Json<serde_json::Value>> {
     ctx.require_permission(Permission::ApprovalWorkflowsRead)?;
+    let mut workflows = state
+        .core
+        .approval_workflow_service
+        .list_workflows(&ctx.auth_token, ctx.workspace_id)
+        .await?;
 
-    // As a placeholder, we use get_active_workflow to at least satisfy the compiler
-    // if list_workflows is missing. If it expects something else, we could just return an empty vec for now.
-    // Let's just return an empty vec since list_workflows is missing in the repo.
-    Ok(Json(vec![]))
+    if let Some(entity_type) = query.entity_type {
+        workflows.retain(|w| w.get("entity_type").and_then(|v| v.as_str()) == Some(&entity_type));
+    }
+
+    Ok(Json(serde_json::Value::Array(workflows)))
+}
+
+#[derive(Deserialize)]
+pub struct ListWorkflowsQuery {
+    pub entity_type: Option<String>,
 }
 
 /// POST /workspaces/{ws_id}/approval-workflows
@@ -53,7 +65,7 @@ pub async fn create_workflow(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
     Json(req): Json<CreateWorkflowRequest>,
-) -> AppResult<Json<ApprovalWorkflow>> {
+) -> AppResult<Json<serde_json::Value>> {
     ctx.require_permission(Permission::ApprovalWorkflowsManage)?;
 
     let workflow_id = crate::utils::id::new_id();
@@ -86,15 +98,23 @@ pub async fn create_workflow(
         })
         .collect();
 
-    let created = state
+    let (created_wf, created_steps) = state
         .core
         .approval_workflow_service
         .create_workflow(&ctx.auth_token, workflow, steps)
         .await?;
 
-    // Returns (ApprovalWorkflow, Vec<ApprovalWorkflowStep>) from service maybe?
-    // Based on error: found tuple `(models::approval_workflow::ApprovalWorkflow, Vec<models::approval_workflow::ApprovalWorkflowStep>)`
-    Ok(Json(created.0))
+    let mut val = serde_json::to_value(&created_wf)
+        .map_err(|e| crate::errors::AppError::Internal(e.to_string()))?;
+    if let serde_json::Value::Object(ref mut map) = val {
+        map.insert(
+            "steps".to_string(),
+            serde_json::to_value(&created_steps)
+                .map_err(|e| crate::errors::AppError::Internal(e.to_string()))?,
+        );
+    }
+
+    Ok(Json(val))
 }
 
 /// GET /workspaces/{ws_id}/approval-workflows/{id}
@@ -110,17 +130,31 @@ pub async fn create_workflow(
     )
 )]
 pub async fn get_workflow(
-    State(_state): State<Arc<AppState>>,
+    State(state): State<Arc<AppState>>,
     Path(params): Path<(Uuid, Uuid)>,
     ctx: MemberContext,
-) -> AppResult<Json<ApprovalWorkflow>> {
-    let (_, _id) = params;
+) -> AppResult<Json<serde_json::Value>> {
+    let (_, id) = params;
     ctx.require_permission(Permission::ApprovalWorkflowsRead)?;
 
-    // We don't have get_workflow_with_steps implemented on service/repo yet
-    Err(crate::errors::AppError::NotFound(
-        "Workflow not found".into(),
-    ))
+    let (workflow, steps) = state
+        .core
+        .approval_workflow_service
+        .get_workflow(&ctx.auth_token, id)
+        .await?
+        .ok_or_else(|| crate::errors::AppError::NotFound("Workflow not found".into()))?;
+
+    let mut val = serde_json::to_value(&workflow)
+        .map_err(|e| crate::errors::AppError::Internal(e.to_string()))?;
+    if let serde_json::Value::Object(ref mut map) = val {
+        map.insert(
+            "steps".to_string(),
+            serde_json::to_value(&steps)
+                .map_err(|e| crate::errors::AppError::Internal(e.to_string()))?,
+        );
+    }
+
+    Ok(Json(val))
 }
 
 /// PUT /workspaces/{ws_id}/approval-workflows/{id}
@@ -137,15 +171,60 @@ pub async fn get_workflow(
     )
 )]
 pub async fn update_workflow(
-    State(_state): State<Arc<AppState>>,
+    State(state): State<Arc<AppState>>,
     Path(params): Path<(Uuid, Uuid)>,
     ctx: MemberContext,
-    Json(_req): Json<CreateWorkflowRequest>,
-) -> AppResult<Json<ApprovalWorkflow>> {
-    let (_, _id) = params;
+    Json(req): Json<CreateWorkflowRequest>,
+) -> AppResult<Json<serde_json::Value>> {
+    let (_, id) = params;
     ctx.require_permission(Permission::ApprovalWorkflowsManage)?;
 
-    Err(crate::errors::AppError::NotFound("Not implemented".into()))
+    let workflow = ApprovalWorkflow {
+        id,
+        workspace_id: ctx.workspace_id,
+        entity_type: req.entity_type.clone(),
+        name: req.name.clone(),
+        description: req.description.clone(),
+        total_steps: req.steps.len() as i32,
+        is_active: req.is_active,
+        created_by: Some(ctx.user_id),
+        created_at: chrono::Utc::now(),
+        updated_at: chrono::Utc::now(),
+    };
+
+    let steps: Vec<crate::models::approval_workflow::ApprovalWorkflowStep> = req
+        .steps
+        .into_iter()
+        .map(|s| crate::models::approval_workflow::ApprovalWorkflowStep {
+            id: crate::utils::id::new_id(),
+            workflow_id: id,
+            step_order: s.step_order,
+            step_name: s.step_name,
+            approver_type: s.approver_type,
+            approver_config: s.approver_config,
+            action_required: s.action_required,
+            can_skip: s.can_skip,
+            created_at: chrono::Utc::now(),
+        })
+        .collect();
+
+    let (updated_wf, created_steps) = state
+        .core
+        .approval_workflow_service
+        .update_workflow_definition(&ctx.auth_token, workflow, steps)
+        .await?;
+
+    let mut val = serde_json::to_value(&updated_wf)
+        .map_err(|e| crate::errors::AppError::Internal(e.to_string()))?;
+    if let serde_json::Value::Object(ref mut map) = val {
+        map.insert(
+            "steps".to_string(),
+            serde_json::to_value(&created_steps)
+                .map_err(|e| crate::errors::AppError::Internal(e.to_string()))?,
+        );
+    }
+
+    Ok(Json(val))
 }
 
 /// DELETE /workspaces/{ws_id}/approval-workflows/{id}
@@ -161,14 +240,20 @@ pub async fn update_workflow(
     )
 )]
 pub async fn delete_workflow(
-    State(_state): State<Arc<AppState>>,
+    State(state): State<Arc<AppState>>,
     Path(params): Path<(Uuid, Uuid)>,
     ctx: MemberContext,
 ) -> AppResult<StatusCode> {
-    let (_, _id) = params;
+    let (_, id) = params;
     ctx.require_permission(Permission::ApprovalWorkflowsManage)?;
 
-    Err(crate::errors::AppError::NotFound("Not implemented".into()))
+    state
+        .core
+        .approval_workflow_service
+        .delete_workflow(&ctx.auth_token, id)
+        .await?;
+
+    Ok(StatusCode::OK)
 }
 
 #[derive(Deserialize, utoipa::ToSchema)]
@@ -177,6 +262,7 @@ pub struct ProcessApprovalRequest {
     pub entity_id: Uuid,
     pub action: String,
     pub note: Option<String>,
+    pub new_approver_user_id: Option<Uuid>,
 }
 
 /// POST /workspaces/{ws_id}/approval-workflows/approve
@@ -200,23 +286,26 @@ pub async fn process_approval(
         ctx.require_permission(Permission::OvertimeApproveWorkflow)?;
     }
 
-    let log = ApprovalActionLog {
-        id: crate::utils::id::new_id(),
-        workspace_id: ctx.workspace_id,
-        entity_type: req.entity_type.clone(),
-        entity_id: req.entity_id,
-        step_order: 1, // dummy step_order for now
-        step_name: None,
-        acted_by_user_id: ctx.user_id,
-        action: req.action.clone(),
-        note: req.note.clone(),
-        acted_at: chrono::Utc::now(),
-    };
+    let instance = state
+        .core
+        .approval_workflow_service
+        .get_workflow_instance_by_entity(&ctx.auth_token, &req.entity_type, req.entity_id)
+        .await?
+        .ok_or_else(|| {
+            crate::errors::AppError::NotFound("Workflow instance not found for this entity".into())
+        })?;
 
     state
         .core
         .approval_workflow_service
-        .log_action(&ctx.auth_token, log)
+        .process_approval_action(
+            &ctx.auth_token,
+            ctx.user_id,
+            instance.id,
+            req.action,
+            req.note,
+            req.new_approver_user_id,
+        )
         .await?;
 
     Ok(StatusCode::OK)
@@ -252,4 +341,29 @@ pub async fn get_approval_history(
         .await?;
 
     Ok(Json(history))
+}
+
+/// GET /workspaces/{ws_id}/approval-workflows/pending-tasks
+#[utoipa::path(
+    get,
+    path = "/workspaces/{ws_id}/approval-workflows/pending-tasks",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID")
+    ),
+    responses(
+        (status = 200, description = "Pending approval tasks for the current user", body = [ApprovalWorkflowTask])
+    )
+)]
+pub async fn get_pending_tasks(
+    State(state): State<Arc<AppState>>,
+    ctx: MemberContext,
+) -> AppResult<Json<Vec<crate::models::ApprovalWorkflowTask>>> {
+    ctx.require_permission(Permission::ApprovalWorkflowsRead)?;
+    let tasks = state
+        .core
+        .approval_workflow_service
+        .get_pending_tasks_for_user(&ctx.auth_token, ctx.user_id)
+        .await?;
+
+    Ok(Json(tasks))
 }

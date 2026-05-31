@@ -185,6 +185,10 @@ pub fn router() -> Router<Arc<AppState>> {
             post(handlers::approval_workflow::process_approval),
         )
         .route(
+            "/workspaces/:ws_id/approval-workflows/pending-tasks",
+            get(handlers::approval_workflow::get_pending_tasks),
+        )
+        .route(
             "/workspaces/:ws_id/approval-workflows/history/:type/:id",
             get(handlers::approval_workflow::get_approval_history),
         )
