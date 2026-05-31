@@ -196,6 +196,9 @@ impl MockWorkerDepsBuilder {
         leave_request_repo
             .expect_get_approved_leave_dates()
             .returning(|_, _, _, _| Box::pin(async move { Ok(std::collections::HashSet::new()) }));
+        leave_request_repo
+            .expect_get_approved_leave_details()
+            .returning(|_, _, _, _| Box::pin(async move { Ok(std::collections::HashMap::new()) }));
 
         Self {
             time_entry_repo: MockTimeEntryRepository::new(),

@@ -32,6 +32,12 @@ pub fn generate(
     let holiday_fmt = Format::new()
         .set_align(FormatAlign::Center)
         .set_background_color(Color::RGB(0x00C8_E6C9)); // light green for holidays
+    let leave_paid_fmt = Format::new()
+        .set_align(FormatAlign::Center)
+        .set_background_color(Color::RGB(0x00E3_F2FD)); // light blue for paid leave
+    let leave_unpaid_fmt = Format::new()
+        .set_align(FormatAlign::Center)
+        .set_background_color(Color::RGB(0x00EC_EFF1)); // light gray for unpaid leave
 
     // Title (row 0) and subtitle (row 1)
     worksheet.write_string_with_format(
@@ -74,6 +80,8 @@ pub fn generate(
                 scheduled_end: r.scheduled_end,
                 shift_symbol: r.shift_symbol.clone(),
                 is_holiday: r.is_holiday,
+                status: r.status,
+                is_leave_paid: r.is_leave_paid,
             },
         );
     }
@@ -98,58 +106,75 @@ pub fn generate(
 
         for (day_idx, date) in dates.iter().enumerate() {
             if let Some(cell) = day_map.get(date) {
-                // Symbol prefix: "S8" → "S8", None → ""
                 let prefix = cell.shift_symbol.as_deref().unwrap_or("");
-
-                // Convert work units to hours
-                let std_h = units_to_hours(cell.std_work_units, work_unit_minutes);
-
-                // Calculate late: ceil to nearest work unit, then convert to hours
-                let late_h = match (cell.punch_in, cell.scheduled_start) {
-                    (Some(pin_utc), Some(sched)) => {
-                        let pin_local = pin_utc.with_timezone(&tz);
-                        let pin_time = pin_local.time();
-                        if pin_time > sched {
-                            let diff_minutes = (pin_time - sched).num_minutes();
-                            ceil_units_to_hours(diff_minutes, i64::from(work_unit_minutes))
-                        } else {
-                            0.0
-                        }
-                    }
-                    _ => 0.0,
-                };
-
-                // Calculate early-leave: ceil to nearest work unit, then convert to hours
-                let early_leave_h = match (cell.punch_out, cell.scheduled_end) {
-                    (Some(pout_utc), Some(sched)) => {
-                        let pout_local = pout_utc.with_timezone(&tz);
-                        let pout_time = pout_local.time();
-                        if pout_time < sched {
-                            let diff_minutes = (sched - pout_time).num_minutes();
-                            ceil_units_to_hours(diff_minutes, i64::from(work_unit_minutes))
-                        } else {
-                            0.0
-                        }
-                    }
-                    _ => 0.0,
-                };
-
-                let ot_h = units_to_hours(cell.ot_work_units, work_unit_minutes);
-                let text = format!(
-                    "{}{}/{}/{}/{}",
-                    prefix,
-                    fmt_h(std_h),
-                    fmt_h(late_h),
-                    fmt_h(early_leave_h),
-                    fmt_h(ot_h)
-                );
-                let fmt = if cell.is_holiday {
-                    &holiday_fmt
-                } else if cell.ot_work_units > 0 {
-                    &ot_fmt
+                let (text, fmt) = if cell.status
+                    == crate::services::attendance_utils::AttendanceStatus::Leave
+                    || cell.status
+                        == crate::services::attendance_utils::AttendanceStatus::HolidayLeave
+                {
+                    let suffix = match cell.is_leave_paid {
+                        Some(true) => "(PL)",
+                        _ => "(UL)",
+                    };
+                    let t = format!("{prefix}{suffix}");
+                    let f = match cell.is_leave_paid {
+                        Some(true) => &leave_paid_fmt,
+                        _ => &leave_unpaid_fmt,
+                    };
+                    (t, f)
                 } else {
-                    &cell_fmt
+                    // Convert work units to hours
+                    let std_h = units_to_hours(cell.std_work_units, work_unit_minutes);
+
+                    // Calculate late: ceil to nearest work unit, then convert to hours
+                    let late_h = match (cell.punch_in, cell.scheduled_start) {
+                        (Some(pin_utc), Some(sched)) => {
+                            let pin_local = pin_utc.with_timezone(&tz);
+                            let pin_time = pin_local.time();
+                            if pin_time > sched {
+                                let diff_minutes = (pin_time - sched).num_minutes();
+                                ceil_units_to_hours(diff_minutes, i64::from(work_unit_minutes))
+                            } else {
+                                0.0
+                            }
+                        }
+                        _ => 0.0,
+                    };
+
+                    // Calculate early-leave: ceil to nearest work unit, then convert to hours
+                    let early_leave_h = match (cell.punch_out, cell.scheduled_end) {
+                        (Some(pout_utc), Some(sched)) => {
+                            let pout_local = pout_utc.with_timezone(&tz);
+                            let pout_time = pout_local.time();
+                            if pout_time < sched {
+                                let diff_minutes = (sched - pout_time).num_minutes();
+                                ceil_units_to_hours(diff_minutes, i64::from(work_unit_minutes))
+                            } else {
+                                0.0
+                            }
+                        }
+                        _ => 0.0,
+                    };
+
+                    let ot_h = units_to_hours(cell.ot_work_units, work_unit_minutes);
+                    let t = format!(
+                        "{}{}/{}/{}/{}",
+                        prefix,
+                        fmt_h(std_h),
+                        fmt_h(late_h),
+                        fmt_h(early_leave_h),
+                        fmt_h(ot_h)
+                    );
+                    let f = if cell.is_holiday {
+                        &holiday_fmt
+                    } else if cell.ot_work_units > 0 {
+                        &ot_fmt
+                    } else {
+                        &cell_fmt
+                    };
+                    (t, f)
                 };
+
                 worksheet.write_string_with_format(row, (day_idx + 2) as u16, &text, fmt)?;
             }
         }

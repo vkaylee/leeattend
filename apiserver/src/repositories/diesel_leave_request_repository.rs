@@ -626,6 +626,31 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
         .await
     }
 
+    async fn get_approved_leave_details(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        employee_ids: &[Uuid],
+        start_date: NaiveDate,
+        end_date: NaiveDate,
+    ) -> Result<std::collections::HashMap<(Uuid, NaiveDate), bool>, AppError> {
+        let workspace_id = auth_token.workspace_id();
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&auth_token.workspace_id())
+                .await?,
+        );
+
+        crate::services::attendance_utils::build_leave_details_map(
+            &mut conn,
+            workspace_id,
+            employee_ids,
+            start_date,
+            end_date,
+        )
+        .await
+    }
+
     async fn get_approved_leave_periods(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,

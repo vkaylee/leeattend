@@ -11,6 +11,8 @@ pub struct DayCell {
     pub scheduled_end: Option<NaiveTime>,
     pub shift_symbol: Option<String>,
     pub is_holiday: bool,
+    pub status: crate::services::attendance_utils::AttendanceStatus,
+    pub is_leave_paid: Option<bool>,
 }
 
 /// Convert work units to hours: units × work_unit_minutes / 60

@@ -102,6 +102,8 @@ pub struct DailyAttendanceReport {
     pub is_unscheduled: bool,
     pub holiday_name: Option<String>,
     pub generation_metadata: Option<serde_json::Value>,
+    #[serde(default)]
+    pub is_leave_paid: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

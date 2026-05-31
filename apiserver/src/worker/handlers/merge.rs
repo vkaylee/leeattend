@@ -435,6 +435,7 @@ mod tests {
             is_unscheduled: false,
             holiday_name: None,
             generation_metadata: None,
+            is_leave_paid: None,
         };
         let report2 = DailyAttendanceReport {
             date: NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
@@ -463,6 +464,7 @@ mod tests {
             is_unscheduled: false,
             holiday_name: None,
             generation_metadata: None,
+            is_leave_paid: None,
         };
 
         let batch_results: Vec<(String, String)> = vec![
@@ -611,6 +613,7 @@ mod tests {
             is_unscheduled: false,
             holiday_name: None,
             generation_metadata: None,
+            is_leave_paid: None,
         };
 
         let b1 = vec![
@@ -697,6 +700,7 @@ mod tests {
             is_unscheduled: false,
             holiday_name: None,
             generation_metadata: None,
+            is_leave_paid: None,
         };
         let json = serde_json::to_string(&report).unwrap();
         assert!(json.contains("EMP-002"));
@@ -892,6 +896,7 @@ mod tests {
                 is_unscheduled: false,
                 holiday_name: None,
                 generation_metadata: None,
+                is_leave_paid: None,
             };
             let json = serde_json::to_string(&vec![report]).unwrap();
             Ok(vec![

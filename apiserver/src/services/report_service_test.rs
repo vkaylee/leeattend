@@ -982,6 +982,15 @@ mod tests {
         ) -> Result<std::collections::HashSet<(Uuid, NaiveDate)>, AppError> {
             unimplemented!()
         }
+        async fn get_approved_leave_details(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _employee_ids: &[Uuid],
+            _start_date: NaiveDate,
+            _end_date: NaiveDate,
+        ) -> Result<std::collections::HashMap<(Uuid, NaiveDate), bool>, AppError> {
+            Ok(std::collections::HashMap::new())
+        }
         async fn get_approved_leave_periods(
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,
@@ -2062,6 +2071,15 @@ mod tests {
             _en: NaiveDate,
         ) -> Result<std::collections::HashSet<(Uuid, NaiveDate)>, AppError> {
             Ok(std::collections::HashSet::new())
+        }
+        async fn get_approved_leave_details(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _employee_ids: &[Uuid],
+            _start_date: NaiveDate,
+            _end_date: NaiveDate,
+        ) -> Result<std::collections::HashMap<(Uuid, NaiveDate), bool>, AppError> {
+            Ok(std::collections::HashMap::new())
         }
         async fn get_approved_leave_periods(
             &self,

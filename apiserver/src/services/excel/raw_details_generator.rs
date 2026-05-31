@@ -43,6 +43,14 @@ pub fn generate(
         .set_font_color(Color::RGB(0x00E6_5100))
         .set_align(FormatAlign::Center)
         .set_background_color(Color::RGB(0x00FF_E0B2)); // light orange
+    let status_leave_paid = Format::new()
+        .set_font_color(Color::RGB(0x000D_47A1))
+        .set_align(FormatAlign::Center)
+        .set_background_color(Color::RGB(0x00E3_F2FD));
+    let status_leave_unpaid = Format::new()
+        .set_font_color(Color::RGB(0x0037_474F))
+        .set_align(FormatAlign::Center)
+        .set_background_color(Color::RGB(0x00EC_EFF1));
 
     worksheet.write_string_with_format(
         0,
@@ -100,6 +108,13 @@ pub fn generate(
             "off" => &status_off,
             "holiday" => &status_holiday,
             "holiday_work" => &status_holiday_work,
+            "leave" | "holiday_leave" => {
+                if report.is_leave_paid == Some(true) {
+                    &status_leave_paid
+                } else {
+                    &status_leave_unpaid
+                }
+            }
             _ => &time_fmt,
         };
         worksheet.write_string_with_format(row, 10, report.status.as_str(), status_fmt)?;

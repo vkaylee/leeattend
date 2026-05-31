@@ -276,15 +276,18 @@ impl ReportService {
             )
             .await?;
 
-        let leave_date_set = self
+        let leave_details_map = self
             .leave_repo
-            .get_approved_leave_dates(
+            .get_approved_leave_details(
                 &crate::diesel_pool::TenantAuthToken::system_override(args.workspace_id),
                 &emp_ids,
                 args.start_date,
                 args.end_date,
             )
             .await?;
+
+        let leave_date_set: std::collections::HashSet<(Uuid, NaiveDate)> =
+            leave_details_map.keys().copied().collect();
 
         // 5d. BATCH fetch attendance rules (SCD Type 2)
         let attendance_rules_map = PolicyResolver::resolve_attendance_policy_batch(
@@ -377,6 +380,13 @@ impl ReportService {
                 let holiday_entry = holidays_map.get(&date);
                 let is_hol = holiday_entry.is_some();
                 let is_on_leave = leave_date_set.contains(&(emp_sched.employee_id, date));
+                let is_leave_paid = if is_on_leave {
+                    leave_details_map
+                        .get(&(emp_sched.employee_id, date))
+                        .copied()
+                } else {
+                    None
+                };
 
                 let status = crate::services::attendance_utils::determine_daily_status(
                     &crate::services::attendance_utils::DailyStatusInput {
@@ -448,6 +458,7 @@ impl ReportService {
                         == crate::services::attendance_utils::AttendanceStatus::Unscheduled,
                     holiday_name: holiday_entry.map(|h| h.name.clone()),
                     generation_metadata: combined_metadata,
+                    is_leave_paid,
                 });
             }
         }
@@ -878,6 +889,7 @@ mod tests {
             is_unscheduled: status == AttendanceStatus::Unscheduled,
             holiday_name: None,
             generation_metadata: None,
+            is_leave_paid: None,
         }
     }
 

@@ -392,16 +392,19 @@ impl AttendanceHandler {
         .await
         .map_err(|e| format!("Failed to fetch attendance rules: {e}"))?;
 
-        let leave_date_set = args
+        let leave_details_map = args
             .leave_repo
-            .get_approved_leave_dates(
+            .get_approved_leave_details(
                 &crate::diesel_pool::TenantAuthToken::system_override(args.workspace_id),
                 &emp_ids,
                 args.start_date,
                 args.end_date,
             )
             .await
-            .map_err(|e| format!("Failed to fetch leave dates: {e}"))?;
+            .map_err(|e| format!("Failed to fetch leave details: {e}"))?;
+
+        let leave_date_set: std::collections::HashSet<(Uuid, NaiveDate)> =
+            leave_details_map.keys().copied().collect();
 
         for emp_sched in args.schedules {
             let entries = args
@@ -430,6 +433,13 @@ impl AttendanceHandler {
             for daily in &emp_sched.schedules {
                 let date = daily.date;
                 let is_on_leave = leave_date_set.contains(&(emp_sched.employee_id, date));
+                let is_leave_paid = if is_on_leave {
+                    leave_details_map
+                        .get(&(emp_sched.employee_id, date))
+                        .copied()
+                } else {
+                    None
+                };
 
                 let day_entries = entries_by_date
                     .get(&date)
@@ -596,6 +606,7 @@ impl AttendanceHandler {
                         == crate::services::attendance_utils::AttendanceStatus::Unscheduled,
                     holiday_name: None,
                     generation_metadata: combined_metadata,
+                    is_leave_paid,
                 });
             }
         }
@@ -771,6 +782,7 @@ mod tests {
             is_unscheduled: false,
             holiday_name: None,
             generation_metadata: None,
+            is_leave_paid: None,
         }];
 
         let json = serde_json::to_string(&reports).unwrap();

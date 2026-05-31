@@ -114,6 +114,14 @@ pub trait LeaveRequestRepository: Send + Sync {
         end_date: NaiveDate,
     ) -> Result<std::collections::HashSet<(Uuid, NaiveDate)>, AppError>;
 
+    async fn get_approved_leave_details(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        employee_ids: &[Uuid],
+        start_date: NaiveDate,
+        end_date: NaiveDate,
+    ) -> Result<std::collections::HashMap<(Uuid, NaiveDate), bool>, AppError>;
+
     async fn get_approved_leave_periods(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
