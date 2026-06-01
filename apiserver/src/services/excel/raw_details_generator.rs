@@ -7,8 +7,6 @@ use crate::models::DailyAttendanceReport;
 use crate::services::import_messages::ExcelReportMessages;
 use crate::utils::excel_format_utils::ExcelFormatUtils;
 
-
-
 #[allow(clippy::too_many_lines)]
 pub fn generate(
     workbook: &mut Workbook,

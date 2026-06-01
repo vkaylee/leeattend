@@ -161,6 +161,7 @@ pub enum Permission {
 
 impl Permission {
     /// Try to parse a permission from its string representation (e.g., "employees:read").
+    #[allow(clippy::too_many_lines)]
     pub fn from_str_permission(s: &str) -> Option<Self> {
         match s {
             "workspace:update" => Some(Self::WorkspaceUpdate),

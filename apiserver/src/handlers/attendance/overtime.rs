@@ -54,17 +54,30 @@ pub async fn claim_ot(
     if let Some(uid) = employee.user_id {
         if uid != ctx.user_id {
             // Not self → need OvertimeApprove or OvertimeClaimOnBehalf permission (scoped)
-            let dept_id = crate::handlers::common::current_department_id(&state, &ctx.auth_token, employee_id).await;
+            let dept_id = crate::handlers::common::current_department_id(
+                &state,
+                &ctx.auth_token,
+                employee_id,
+            )
+            .await;
             ctx.require_any_scoped_permission(
-                &[Permission::OvertimeApprove, Permission::OvertimeClaimOnBehalf],
+                &[
+                    Permission::OvertimeApprove,
+                    Permission::OvertimeClaimOnBehalf,
+                ],
                 dept_id,
             )?;
         }
     } else {
         // Not linked to user → need OvertimeApprove or OvertimeClaimOnBehalf permission (scoped)
-        let dept_id = crate::handlers::common::current_department_id(&state, &ctx.auth_token, employee_id).await;
+        let dept_id =
+            crate::handlers::common::current_department_id(&state, &ctx.auth_token, employee_id)
+                .await;
         ctx.require_any_scoped_permission(
-            &[Permission::OvertimeApprove, Permission::OvertimeClaimOnBehalf],
+            &[
+                Permission::OvertimeApprove,
+                Permission::OvertimeClaimOnBehalf,
+            ],
             dept_id,
         )?;
     }

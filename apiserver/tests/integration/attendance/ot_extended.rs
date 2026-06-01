@@ -5,6 +5,7 @@ use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
 use apiserver::AppState;
 use axum::http::StatusCode;
+use chrono::NaiveDate;
 use std::sync::Arc;
 use tower::ServiceExt;
 use uuid::Uuid;
@@ -215,5 +216,142 @@ async fn test_approve_ot_rbac_member_forbidden() {
         ))
         .await
         .unwrap();
+    assert_eq!(resp.status(), StatusCode::FORBIDDEN);
+}
+
+#[tokio::test]
+async fn test_claim_ot_delegated_success() {
+    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
+
+    let admin_id = factory.user().create().await;
+    let ws_id = factory.workspace().create_with_owner(admin_id).await;
+
+    let emp_id = factory.employee().with_workspace(ws_id).create().await;
+
+    let date = NaiveDate::from_ymd_opt(2026, 1, 20).unwrap();
+    crate::test_execute!(
+        &factory.diesel_pools.api,
+        "INSERT INTO attendance_daily_summaries (id, workspace_id, employee_id, date, actual_work_minutes, system_detected_ot_minutes, ot_status, created_at, updated_at) VALUES ($1, $2, $3, $4, 500, 60, $5::ot_status_type, NOW(), NOW())",
+        diesel::sql_types::Uuid, uuid::Uuid::new_v4(),
+        diesel::sql_types::Uuid, ws_id,
+        diesel::sql_types::Uuid, emp_id,
+        diesel::sql_types::Date, date,
+        diesel::sql_types::Text, "pending_employee"
+    );
+
+    let clerk_user_id = factory
+        .user()
+        .with_email("clerk@example.com")
+        .create()
+        .await;
+    let employee_role_id = uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap();
+    factory
+        .add_member(ws_id, clerk_user_id, employee_role_id)
+        .await;
+
+    let clerk_emp_id = factory
+        .employee()
+        .with_user(clerk_user_id)
+        .with_workspace(ws_id)
+        .create()
+        .await;
+    let dept_id = factory.department().with_workspace(ws_id).create().await;
+
+    crate::test_execute!(
+        &factory.diesel_pools.api,
+        "INSERT INTO employee_department_history (employee_id, department_id, effective_date) VALUES ($1, $3, CURRENT_DATE), ($2, $3, CURRENT_DATE)",
+        diesel::sql_types::Uuid, emp_id,
+        diesel::sql_types::Uuid, clerk_emp_id,
+        diesel::sql_types::Uuid, dept_id
+    );
+
+    crate::test_execute!(
+        &factory.diesel_pools.api,
+        "INSERT INTO workspace_role_permissions (role_id, permission_name) VALUES ($1, 'overtime:claim_on_behalf') ON CONFLICT DO NOTHING",
+        diesel::sql_types::Uuid, employee_role_id
+    );
+
+    let body = serde_json::json!({
+        "date": date.to_string(),
+        "claimed_minutes": 60,
+        "reason": "Delegated OT claim"
+    });
+
+    let resp = app
+        .clone()
+        .oneshot(req(
+            "POST",
+            &format!("/api/v1/workspaces/{ws_id}/attendance/claim-ot/{emp_id}"),
+            ws_id,
+            clerk_user_id,
+            Some(body.to_string()),
+        ))
+        .await
+        .unwrap();
+
+    assert_eq!(resp.status(), StatusCode::OK);
+}
+
+#[tokio::test]
+async fn test_claim_ot_delegated_forbidden() {
+    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
+
+    let admin_id = factory.user().create().await;
+    let ws_id = factory.workspace().create_with_owner(admin_id).await;
+
+    let emp_id = factory.employee().with_workspace(ws_id).create().await;
+
+    let normal_user_id = factory
+        .user()
+        .with_email("normal@example.com")
+        .create()
+        .await;
+    let employee_role_id = uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap();
+    factory
+        .add_member(ws_id, normal_user_id, employee_role_id)
+        .await;
+
+    let normal_emp_id = factory
+        .employee()
+        .with_user(normal_user_id)
+        .with_workspace(ws_id)
+        .create()
+        .await;
+    let dept_id = factory.department().with_workspace(ws_id).create().await;
+
+    crate::test_execute!(
+        &factory.diesel_pools.api,
+        "INSERT INTO employee_department_history (employee_id, department_id, effective_date) VALUES ($1, $3, CURRENT_DATE), ($2, $3, CURRENT_DATE)",
+        diesel::sql_types::Uuid, emp_id,
+        diesel::sql_types::Uuid, normal_emp_id,
+        diesel::sql_types::Uuid, dept_id
+    );
+
+    crate::test_execute!(
+        &factory.diesel_pools.api,
+        "DELETE FROM workspace_role_permissions WHERE role_id = $1 AND permission_name = 'overtime:claim_on_behalf'",
+        diesel::sql_types::Uuid, employee_role_id
+    );
+
+    let body = serde_json::json!({
+        "date": "2026-01-20",
+        "claimed_minutes": 60,
+        "reason": "Unauthorized claim attempt"
+    });
+
+    let resp = app
+        .clone()
+        .oneshot(req(
+            "POST",
+            &format!("/api/v1/workspaces/{ws_id}/attendance/claim-ot/{emp_id}"),
+            ws_id,
+            normal_user_id,
+            Some(body.to_string()),
+        ))
+        .await
+        .unwrap();
+
     assert_eq!(resp.status(), StatusCode::FORBIDDEN);
 }
