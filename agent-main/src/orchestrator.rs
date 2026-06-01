@@ -828,44 +828,31 @@ pub fn spawn_worker(
                             );
                         }
 
-                        // Proactive disconnect: if cooldown interval exceeds session-safe
-                        // limit, disconnect device to free connection slot, sleep, then
-                        // reconnect via outer loop.
-                        if polling_state.needs_disconnect() {
-                            info!(
-                                "[{}] Cooldown {}s, disconnecting to free device slot...",
-                                config.name, new_interval
-                            );
-                            drop(device_guard);
-                            drop(permit);
-                            worker_impl.disconnect().await;
-                            tokio::select! {
-                                _ = token.cancelled() => { return; }
-                                _ = sleep(Duration::from_secs(new_interval)) => {}
-                            }
-                            // Reset interval to base for fresh reconnect
+                        // Always disconnect after successfully fetching/processing logs
+                        info!(
+                            "[{}] Polling cycle complete, disconnecting to free device slot (interval: {}s)...",
+                            config.name, new_interval
+                        );
+                        drop(device_guard);
+                        drop(permit);
+                        worker_impl.disconnect().await;
+                        tokio::select! {
+                            _ = token.cancelled() => { return; }
+                            _ = sleep(Duration::from_secs(new_interval)) => {}
+                        }
+                        // Reset interval to base for fresh reconnect if we did a long cooldown
+                        if new_interval > SESSION_SAFE_INTERVAL_SECS {
                             polling_state.current_interval_secs =
                                 crate::adaptive_polling::BASE_POLL_INTERVAL_SECS;
                             polling_state.consecutive_no_new_data = 0;
-                            proactive_cooldown = true;
-                            break; // → outer loop reconnects cleanly
                         }
+                        proactive_cooldown = true;
+                        break; // → outer loop reconnects cleanly
                     }
                     Err(e) => {
                         error!("[{}] Polling error: {}, disconnecting...", config.name, e);
                         break;
                     }
-                }
-
-                drop(device_guard);
-                drop(permit);
-                let capped_interval =
-                    std::cmp::min(polling_state.interval(), SESSION_SAFE_INTERVAL_SECS);
-                // Cancel-aware sleep: respond to shutdown immediately instead of
-                // sleeping the full interval while new worker is waiting
-                tokio::select! {
-                    _ = token.cancelled() => { break; }
-                    _ = sleep(Duration::from_secs(capped_interval)) => {}
                 }
             }
 

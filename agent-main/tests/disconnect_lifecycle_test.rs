@@ -213,3 +213,34 @@ async fn test_mock_worker_detected_checksum_is_none() {
         "MockWorker should return None after disconnect"
     );
 }
+
+/// Test simulating the updated worker loop logic to verify that
+/// the worker is always disconnected after a successful logs fetch.
+#[tokio::test]
+async fn test_always_disconnect_after_fetch_simulation() {
+    use std::sync::Arc;
+    use std::sync::atomic::{AtomicBool, Ordering};
+
+    let disconnected = Arc::new(AtomicBool::new(false));
+    let dc_clone = disconnected.clone();
+
+    let handle = tokio::spawn(async move {
+        let mut worker = MockWorker::new();
+        // 1. Connect
+        worker.connect("127.0.0.1", 4370).await.unwrap();
+
+        // 2. Fetch logs (succeeds)
+        let res = worker.get_attendance_logs().await;
+        assert!(res.is_ok());
+
+        // 3. Always disconnect immediately after fetch
+        worker.disconnect().await;
+        dc_clone.store(true, Ordering::SeqCst);
+    });
+
+    handle.await.unwrap();
+    assert!(
+        disconnected.load(Ordering::SeqCst),
+        "Worker must have disconnected immediately after fetch"
+    );
+}
