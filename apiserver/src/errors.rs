@@ -125,7 +125,7 @@ impl IntoResponse for AppError {
         let status = self.status_code();
         let code = self.error_code();
 
-        // Determine the message to send to the client
+        // Determine the message to send to the client, dynamically translating key strings
         let message = match &self {
             // Hide internal details in production
             Self::Diesel(_)
@@ -135,10 +135,56 @@ impl IntoResponse for AppError {
             | Self::TemplateError(_) => {
                 // Log the full error for debugging
                 error!(error = ?self, "Internal API Error");
-                "An internal server error occurred.".to_string()
+                crate::utils::i18n::t("error.internal")
             }
             // Safe to expose messages for client errors
-            _ => self.to_string(),
+            Self::Auth(msg) => {
+                let key = if msg.is_empty() {
+                    "error.unauthorized"
+                } else {
+                    msg
+                };
+                crate::utils::i18n::t(key)
+            }
+            Self::Forbidden(msg) => {
+                let key = if msg.is_empty() {
+                    "error.forbidden"
+                } else {
+                    msg
+                };
+                crate::utils::i18n::t(key)
+            }
+            Self::NotFound(msg) => {
+                let key = if msg.is_empty() {
+                    "error.not_found"
+                } else {
+                    msg
+                };
+                crate::utils::i18n::t(key)
+            }
+            Self::Conflict(msg) => {
+                let key = if msg.is_empty() {
+                    "error.conflict"
+                } else {
+                    msg
+                };
+                crate::utils::i18n::t(key)
+            }
+            Self::ServiceUnavailable(msg) => {
+                let key = if msg.is_empty() {
+                    "error.service_unavailable"
+                } else {
+                    msg
+                };
+                crate::utils::i18n::t(key)
+            }
+            Self::Validation(msg) => {
+                if msg.starts_with("error.") {
+                    crate::utils::i18n::t(msg)
+                } else {
+                    crate::utils::i18n::t_args("error.validation", &[("msg", msg)])
+                }
+            }
         };
 
         let body = Json(json!({

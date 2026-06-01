@@ -6,6 +6,7 @@ mod db_trap;
 mod forbidden;
 mod health;
 pub mod housekeeping;
+mod i18n;
 mod jobs;
 mod repo_pagination;
 mod schema_isolation;

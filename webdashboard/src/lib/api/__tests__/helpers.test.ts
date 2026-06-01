@@ -142,6 +142,23 @@ describe('apiFetch interceptor logic', () => {
     expect(headers.get('Content-Type')).toBe('application/json');
   });
 
+  it('injects Accept-Language header correctly based on i18nextLng localStorage', async () => {
+    const mockFetch = globalThis.fetch as Mock;
+    mockFetch.mockResolvedValue({ ok: true, status: 200 });
+
+    localStorage.setItem('i18nextLng', 'zh-CN');
+
+    const promise = apiFetch('/v1/test');
+    await vi.runAllTimersAsync();
+    await promise;
+
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    const [, options] = mockFetch.mock.calls[0];
+    
+    const headers = options.headers as Headers;
+    expect(headers.get('Accept-Language')).toBe('zh-CN');
+  });
+
   it('aborts request on timeout', async () => {
     const mockFetch = globalThis.fetch as Mock;
     // Mock fetch that never resolves

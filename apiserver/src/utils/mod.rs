@@ -4,6 +4,7 @@ pub mod datetime;
 pub mod debug;
 pub mod excel_format_utils;
 pub mod file_parser;
+pub mod i18n;
 pub mod id;
 pub mod masking;
 pub mod serde_helpers;

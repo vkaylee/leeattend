@@ -275,6 +275,9 @@ pub fn create_app(state: Arc<AppState>) -> Router {
         .nest("/api/v1", router)
         .layer(cors)
         .layer(tower_http::trace::TraceLayer::new_for_http())
+        .layer(axum::middleware::from_fn(
+            crate::mw::i18n::locale_middleware,
+        ))
         .with_state(state)
 }
 

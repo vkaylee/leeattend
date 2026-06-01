@@ -69,10 +69,7 @@ where
             Ok(ApiContext::System)
         } else {
             // If it's not a system route, it means it's a tenant route that failed to provide a Workspace ID.
-            Err(AppError::Validation(
-                "Missing Workspace Context. Provide 'ws_id' in path or 'X-Workspace-Id' header."
-                    .to_string(),
-            ))
+            Err(AppError::Validation("error.missing_workspace".to_string()))
         }
     }
 }
@@ -104,14 +101,10 @@ where
             .headers
             .get("X-Workspace-Id")
             .and_then(|h| h.to_str().ok())
-            .ok_or_else(|| {
-                AppError::Validation(
-                "Missing Workspace Context. Provide 'ws_id' in path or 'X-Workspace-Id' header."
-                    .to_string())
-            })?;
+            .ok_or_else(|| AppError::Validation("error.missing_workspace".to_string()))?;
 
         let workspace_id = Uuid::parse_str(workspace_id_str)
-            .map_err(|_e| AppError::Validation("Invalid Workspace ID format".to_string()))?;
+            .map_err(|_e| AppError::Validation("error.invalid_workspace_id".to_string()))?;
 
         Ok(WorkspaceId::from(workspace_id))
     }
@@ -220,7 +213,7 @@ where
             ApiContext::Tenant(ws_id) => ws_id.into_inner(),
             ApiContext::System => {
                 return Err(AppError::Forbidden(
-                    "Cannot use Tenant context (MemberContext) in a System route".to_string(),
+                    "error.system_route_tenant_context".to_string(),
                 ))
             }
         };
@@ -237,13 +230,15 @@ where
                 let fresh = Self::fetch_member_context_from_db(user_id, workspace_id, &app_state)
                     .await
                     .map_err(|e| {
-                        if e == "Not a member of this workspace" {
-                            AppError::Forbidden(e)
-                        } else if e == "User not found" {
-                            AppError::Auth(e)
+                        if e == "Not a member of this workspace"
+                            || e == "error.not_workspace_member"
+                        {
+                            AppError::Forbidden("error.not_workspace_member".to_string())
+                        } else if e == "User not found" || e == "error.user_not_found" {
+                            AppError::Auth("error.user_not_found".to_string())
                         } else {
                             tracing::error!("DB error fetching member context: {e}");
-                            AppError::Internal("Database error".to_string())
+                            AppError::Internal("error.database_error".to_string())
                         }
                     })?;
                 let _ = cache.set(&cache_key, &fresh, ttl).await;
@@ -253,13 +248,13 @@ where
             Self::fetch_member_context_from_db(user_id, workspace_id, &app_state)
                 .await
                 .map_err(|e| {
-                    if e == "Not a member of this workspace" {
-                        AppError::Forbidden(e)
-                    } else if e == "User not found" {
-                        AppError::Auth(e)
+                    if e == "Not a member of this workspace" || e == "error.not_workspace_member" {
+                        AppError::Forbidden("error.not_workspace_member".to_string())
+                    } else if e == "User not found" || e == "error.user_not_found" {
+                        AppError::Auth("error.user_not_found".to_string())
                     } else {
                         tracing::error!("DB error fetching member context: {e}");
-                        AppError::Internal("Database error".to_string())
+                        AppError::Internal("error.database_error".to_string())
                     }
                 })?
         };
@@ -305,7 +300,7 @@ impl MemberContext {
             .get_user_by_id(user_id)
             .await
             .map_err(|e| e.to_string())?
-            .ok_or_else(|| "User not found".to_string())?;
+            .ok_or_else(|| "error.user_not_found".to_string())?;
 
         // 1. Fetch Primary Role
         let primary_role = app_state
@@ -314,7 +309,7 @@ impl MemberContext {
             .find_primary_role(workspace_id, user_id)
             .await
             .map_err(|e| e.to_string())?
-            .ok_or_else(|| "Not a member of this workspace".to_string())?;
+            .ok_or_else(|| "error.not_workspace_member".to_string())?;
 
         // 2. Fetch Active Extra Roles
         let all_extra_roles = app_state
@@ -440,9 +435,7 @@ where
             .repo
             .get_employee_id_by_user_id(&member_ctx.auth_token, user_id)
             .await?
-            .ok_or_else(|| {
-                AppError::Forbidden("No employee record linked to your account".to_string())
-            })?;
+            .ok_or_else(|| AppError::Forbidden("error.no_employee_record".to_string()))?;
 
         Ok(EmployeeContext {
             user_id,

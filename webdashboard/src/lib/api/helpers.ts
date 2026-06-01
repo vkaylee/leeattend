@@ -81,6 +81,12 @@ function getHeaders() {
     }
   }
 
+  // Set Accept-Language to sync with frontend's active locale
+  const lng = localStorage.getItem("i18nextLng");
+  if (lng) {
+    headers["Accept-Language"] = lng;
+  }
+
   return headers;
 }
 
