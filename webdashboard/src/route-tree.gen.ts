@@ -47,6 +47,7 @@ import { Route as AuthenticatedInfraSystemRolesRouteImport } from "./routes/_aut
 import { Route as AuthenticatedInfraSystemDbClustersRouteImport } from "./routes/_authenticated/_infra/system/db-clusters"
 import { Route as AuthenticatedInfraInfraMonitorRouteImport } from "./routes/_authenticated/_infra/infra/monitor"
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsIndexRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/index"
+import { Route as AuthenticatedWorkspaceWorkspaceSettingsWorkflowsRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/workflows"
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsTimeRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/time"
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsRolesRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/roles"
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsPermissionsRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/permissions"
@@ -64,6 +65,9 @@ import { Route as AuthenticatedWorkspaceWorkspaceSettingsBillingRouteImport } fr
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsAuditLogsRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/audit-logs"
 import { Route as AuthenticatedWorkspaceWorkingPatternsPatternIdEditRouteImport } from "./routes/_authenticated/_workspace/working-patterns.$patternId.edit"
 import { Route as AuthenticatedWorkspaceShiftsShiftIdEditRouteImport } from "./routes/_authenticated/_workspace/shifts.$shiftId.edit"
+import { Route as AuthenticatedWorkspaceWorkspaceSettingsWorkflowsIndexRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/workflows.index"
+import { Route as AuthenticatedWorkspaceWorkspaceSettingsWorkflowsNewRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/workflows.new"
+import { Route as AuthenticatedWorkspaceWorkspaceSettingsWorkflowsWorkflowIdEditRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/workflows.$workflowId.edit"
 
 const RegisterRoute = RegisterRouteImport.update({
   id: "/register",
@@ -394,6 +398,12 @@ const AuthenticatedWorkspaceWorkspaceSettingsIndexRoute =
     path: "/",
     getParentRoute: () => AuthenticatedWorkspaceWorkspaceSettingsRoute,
   } as any)
+const AuthenticatedWorkspaceWorkspaceSettingsWorkflowsRoute =
+  AuthenticatedWorkspaceWorkspaceSettingsWorkflowsRouteImport.update({
+    id: "/workflows",
+    path: "/workflows",
+    getParentRoute: () => AuthenticatedWorkspaceWorkspaceSettingsRoute,
+  } as any)
 const AuthenticatedWorkspaceWorkspaceSettingsTimeRoute =
   AuthenticatedWorkspaceWorkspaceSettingsTimeRouteImport.update({
     id: "/time",
@@ -564,6 +574,39 @@ const AuthenticatedWorkspaceShiftsShiftIdEditRoute =
       (d) => d.Route,
     ),
   )
+const AuthenticatedWorkspaceWorkspaceSettingsWorkflowsIndexRoute =
+  AuthenticatedWorkspaceWorkspaceSettingsWorkflowsIndexRouteImport.update({
+    id: "/",
+    path: "/",
+    getParentRoute: () => AuthenticatedWorkspaceWorkspaceSettingsWorkflowsRoute,
+  } as any).lazy(() =>
+    import("./routes/_authenticated/_workspace/workspace/settings/workflows.index.lazy").then(
+      (d) => d.Route,
+    ),
+  )
+const AuthenticatedWorkspaceWorkspaceSettingsWorkflowsNewRoute =
+  AuthenticatedWorkspaceWorkspaceSettingsWorkflowsNewRouteImport.update({
+    id: "/new",
+    path: "/new",
+    getParentRoute: () => AuthenticatedWorkspaceWorkspaceSettingsWorkflowsRoute,
+  } as any).lazy(() =>
+    import("./routes/_authenticated/_workspace/workspace/settings/workflows.new.lazy").then(
+      (d) => d.Route,
+    ),
+  )
+const AuthenticatedWorkspaceWorkspaceSettingsWorkflowsWorkflowIdEditRoute =
+  AuthenticatedWorkspaceWorkspaceSettingsWorkflowsWorkflowIdEditRouteImport.update(
+    {
+      id: "/$workflowId/edit",
+      path: "/$workflowId/edit",
+      getParentRoute: () =>
+        AuthenticatedWorkspaceWorkspaceSettingsWorkflowsRoute,
+    } as any,
+  ).lazy(() =>
+    import("./routes/_authenticated/_workspace/workspace/settings/workflows.$workflowId.edit.lazy").then(
+      (d) => d.Route,
+    ),
+  )
 
 export interface FileRoutesByFullPath {
   "/": typeof AuthenticatedWorkspaceIndexRoute
@@ -617,7 +660,11 @@ export interface FileRoutesByFullPath {
   "/workspace/settings/permissions": typeof AuthenticatedWorkspaceWorkspaceSettingsPermissionsRoute
   "/workspace/settings/roles": typeof AuthenticatedWorkspaceWorkspaceSettingsRolesRoute
   "/workspace/settings/time": typeof AuthenticatedWorkspaceWorkspaceSettingsTimeRoute
+  "/workspace/settings/workflows": typeof AuthenticatedWorkspaceWorkspaceSettingsWorkflowsRouteWithChildren
   "/workspace/settings/": typeof AuthenticatedWorkspaceWorkspaceSettingsIndexRoute
+  "/workspace/settings/workflows/new": typeof AuthenticatedWorkspaceWorkspaceSettingsWorkflowsNewRoute
+  "/workspace/settings/workflows/": typeof AuthenticatedWorkspaceWorkspaceSettingsWorkflowsIndexRoute
+  "/workspace/settings/workflows/$workflowId/edit": typeof AuthenticatedWorkspaceWorkspaceSettingsWorkflowsWorkflowIdEditRoute
 }
 export interface FileRoutesByTo {
   "/": typeof AuthenticatedWorkspaceIndexRoute
@@ -669,6 +716,9 @@ export interface FileRoutesByTo {
   "/workspace/settings/roles": typeof AuthenticatedWorkspaceWorkspaceSettingsRolesRoute
   "/workspace/settings/time": typeof AuthenticatedWorkspaceWorkspaceSettingsTimeRoute
   "/workspace/settings": typeof AuthenticatedWorkspaceWorkspaceSettingsIndexRoute
+  "/workspace/settings/workflows/new": typeof AuthenticatedWorkspaceWorkspaceSettingsWorkflowsNewRoute
+  "/workspace/settings/workflows": typeof AuthenticatedWorkspaceWorkspaceSettingsWorkflowsIndexRoute
+  "/workspace/settings/workflows/$workflowId/edit": typeof AuthenticatedWorkspaceWorkspaceSettingsWorkflowsWorkflowIdEditRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -726,7 +776,11 @@ export interface FileRoutesById {
   "/_authenticated/_workspace/workspace/settings/permissions": typeof AuthenticatedWorkspaceWorkspaceSettingsPermissionsRoute
   "/_authenticated/_workspace/workspace/settings/roles": typeof AuthenticatedWorkspaceWorkspaceSettingsRolesRoute
   "/_authenticated/_workspace/workspace/settings/time": typeof AuthenticatedWorkspaceWorkspaceSettingsTimeRoute
+  "/_authenticated/_workspace/workspace/settings/workflows": typeof AuthenticatedWorkspaceWorkspaceSettingsWorkflowsRouteWithChildren
   "/_authenticated/_workspace/workspace/settings/": typeof AuthenticatedWorkspaceWorkspaceSettingsIndexRoute
+  "/_authenticated/_workspace/workspace/settings/workflows/new": typeof AuthenticatedWorkspaceWorkspaceSettingsWorkflowsNewRoute
+  "/_authenticated/_workspace/workspace/settings/workflows/": typeof AuthenticatedWorkspaceWorkspaceSettingsWorkflowsIndexRoute
+  "/_authenticated/_workspace/workspace/settings/workflows/$workflowId/edit": typeof AuthenticatedWorkspaceWorkspaceSettingsWorkflowsWorkflowIdEditRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -782,7 +836,11 @@ export interface FileRouteTypes {
     | "/workspace/settings/permissions"
     | "/workspace/settings/roles"
     | "/workspace/settings/time"
+    | "/workspace/settings/workflows"
     | "/workspace/settings/"
+    | "/workspace/settings/workflows/new"
+    | "/workspace/settings/workflows/"
+    | "/workspace/settings/workflows/$workflowId/edit"
   fileRoutesByTo: FileRoutesByTo
   to:
     | "/"
@@ -834,6 +892,9 @@ export interface FileRouteTypes {
     | "/workspace/settings/roles"
     | "/workspace/settings/time"
     | "/workspace/settings"
+    | "/workspace/settings/workflows/new"
+    | "/workspace/settings/workflows"
+    | "/workspace/settings/workflows/$workflowId/edit"
   id:
     | "__root__"
     | "/_authenticated"
@@ -890,7 +951,11 @@ export interface FileRouteTypes {
     | "/_authenticated/_workspace/workspace/settings/permissions"
     | "/_authenticated/_workspace/workspace/settings/roles"
     | "/_authenticated/_workspace/workspace/settings/time"
+    | "/_authenticated/_workspace/workspace/settings/workflows"
     | "/_authenticated/_workspace/workspace/settings/"
+    | "/_authenticated/_workspace/workspace/settings/workflows/new"
+    | "/_authenticated/_workspace/workspace/settings/workflows/"
+    | "/_authenticated/_workspace/workspace/settings/workflows/$workflowId/edit"
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -1167,6 +1232,13 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsIndexRouteImport
       parentRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsRoute
     }
+    "/_authenticated/_workspace/workspace/settings/workflows": {
+      id: "/_authenticated/_workspace/workspace/settings/workflows"
+      path: "/workflows"
+      fullPath: "/workspace/settings/workflows"
+      preLoaderRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsWorkflowsRouteImport
+      parentRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsRoute
+    }
     "/_authenticated/_workspace/workspace/settings/time": {
       id: "/_authenticated/_workspace/workspace/settings/time"
       path: "/time"
@@ -1286,6 +1358,27 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof AuthenticatedWorkspaceShiftsShiftIdEditRouteImport
       parentRoute: typeof AuthenticatedWorkspaceShiftsRoute
     }
+    "/_authenticated/_workspace/workspace/settings/workflows/": {
+      id: "/_authenticated/_workspace/workspace/settings/workflows/"
+      path: "/"
+      fullPath: "/workspace/settings/workflows/"
+      preLoaderRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsWorkflowsIndexRouteImport
+      parentRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsWorkflowsRoute
+    }
+    "/_authenticated/_workspace/workspace/settings/workflows/new": {
+      id: "/_authenticated/_workspace/workspace/settings/workflows/new"
+      path: "/new"
+      fullPath: "/workspace/settings/workflows/new"
+      preLoaderRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsWorkflowsNewRouteImport
+      parentRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsWorkflowsRoute
+    }
+    "/_authenticated/_workspace/workspace/settings/workflows/$workflowId/edit": {
+      id: "/_authenticated/_workspace/workspace/settings/workflows/$workflowId/edit"
+      path: "/$workflowId/edit"
+      fullPath: "/workspace/settings/workflows/$workflowId/edit"
+      preLoaderRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsWorkflowsWorkflowIdEditRouteImport
+      parentRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsWorkflowsRoute
+    }
   }
 }
 
@@ -1348,6 +1441,27 @@ const AuthenticatedWorkspaceWorkingPatternsRouteWithChildren =
     AuthenticatedWorkspaceWorkingPatternsRouteChildren,
   )
 
+interface AuthenticatedWorkspaceWorkspaceSettingsWorkflowsRouteChildren {
+  AuthenticatedWorkspaceWorkspaceSettingsWorkflowsNewRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsWorkflowsNewRoute
+  AuthenticatedWorkspaceWorkspaceSettingsWorkflowsIndexRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsWorkflowsIndexRoute
+  AuthenticatedWorkspaceWorkspaceSettingsWorkflowsWorkflowIdEditRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsWorkflowsWorkflowIdEditRoute
+}
+
+const AuthenticatedWorkspaceWorkspaceSettingsWorkflowsRouteChildren: AuthenticatedWorkspaceWorkspaceSettingsWorkflowsRouteChildren =
+  {
+    AuthenticatedWorkspaceWorkspaceSettingsWorkflowsNewRoute:
+      AuthenticatedWorkspaceWorkspaceSettingsWorkflowsNewRoute,
+    AuthenticatedWorkspaceWorkspaceSettingsWorkflowsIndexRoute:
+      AuthenticatedWorkspaceWorkspaceSettingsWorkflowsIndexRoute,
+    AuthenticatedWorkspaceWorkspaceSettingsWorkflowsWorkflowIdEditRoute:
+      AuthenticatedWorkspaceWorkspaceSettingsWorkflowsWorkflowIdEditRoute,
+  }
+
+const AuthenticatedWorkspaceWorkspaceSettingsWorkflowsRouteWithChildren =
+  AuthenticatedWorkspaceWorkspaceSettingsWorkflowsRoute._addFileChildren(
+    AuthenticatedWorkspaceWorkspaceSettingsWorkflowsRouteChildren,
+  )
+
 interface AuthenticatedWorkspaceWorkspaceSettingsRouteChildren {
   AuthenticatedWorkspaceWorkspaceSettingsAuditLogsRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsAuditLogsRoute
   AuthenticatedWorkspaceWorkspaceSettingsBillingRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsBillingRoute
@@ -1364,6 +1478,7 @@ interface AuthenticatedWorkspaceWorkspaceSettingsRouteChildren {
   AuthenticatedWorkspaceWorkspaceSettingsPermissionsRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsPermissionsRoute
   AuthenticatedWorkspaceWorkspaceSettingsRolesRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsRolesRoute
   AuthenticatedWorkspaceWorkspaceSettingsTimeRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsTimeRoute
+  AuthenticatedWorkspaceWorkspaceSettingsWorkflowsRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsWorkflowsRouteWithChildren
   AuthenticatedWorkspaceWorkspaceSettingsIndexRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsIndexRoute
 }
 
@@ -1399,6 +1514,8 @@ const AuthenticatedWorkspaceWorkspaceSettingsRouteChildren: AuthenticatedWorkspa
       AuthenticatedWorkspaceWorkspaceSettingsRolesRoute,
     AuthenticatedWorkspaceWorkspaceSettingsTimeRoute:
       AuthenticatedWorkspaceWorkspaceSettingsTimeRoute,
+    AuthenticatedWorkspaceWorkspaceSettingsWorkflowsRoute:
+      AuthenticatedWorkspaceWorkspaceSettingsWorkflowsRouteWithChildren,
     AuthenticatedWorkspaceWorkspaceSettingsIndexRoute:
       AuthenticatedWorkspaceWorkspaceSettingsIndexRoute,
   }

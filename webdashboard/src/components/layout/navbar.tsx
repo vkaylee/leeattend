@@ -37,6 +37,7 @@ export default function Navbar({ currentWorkspaceName, onOpenSidebar, isCollapse
       [ROUTES.AGENTS]: t("agents.title"), [ROUTES.DEVICES]: t("common.devices"), [ROUTES.SETTINGS.ROOT]: t("settings.title"), [ROUTES.SETTINGS.GENERAL]: t("settings.categories.general"),
       [ROUTES.SETTINGS.ORGANIZATION]: t("settings.categories.organization", { defaultValue: "Organization" }), [ROUTES.SETTINGS.TIME]: t("settings.categories.time"),
       [ROUTES.SETTINGS.PAYROLL]: t("settings.categories.payroll"), [ROUTES.SETTINGS.CONNECTIVITY]: t("settings.categories.connectivity"),
+      [ROUTES.SETTINGS.WORKFLOWS]: t("settings.categories.workflows", { defaultValue: "Approval Workflows" }),
       [ROUTES.PROFILE]: t("common.profile"), [ROUTES.ESS_PROFILE]: t("common.my_profile"), [ROUTES.ESS_ATTENDANCE]: t("ess.attendance.title"),
       [ROUTES.ESS_CLOCK]: t("ess.clock.title"),
     };

@@ -262,7 +262,9 @@
       "billing_desc": "Manage billing and subscriptions.",
       "leave_desc": "Configure leave types, accrual policies, and assignments.",
       "locations": "Work Locations",
-      "locations_desc": "Manage physical branches and locations."
+      "locations_desc": "Manage physical branches and locations.",
+      "workflows": "Approval Workflows",
+      "workflows_desc": "Manage approval workflows for requests."
     },
     "locations": {
       "add": "Add Location",
@@ -288,7 +290,17 @@
         "quotas": "Quotas",
         "workflows": "Workflows"
       },
-      "workflows_desc": "Workflows"
+      "workflows_desc": "Workflows",
+      "workflows": {
+        "name_label": "Name",
+        "entity_label": "Entity Type",
+        "desc_label": "Description",
+        "active_label": "Active Workflow",
+        "step_title": "Step",
+        "steps_header": "Approval Steps",
+        "add_step": "Add Step"
+      },
+      "title": "Overtime Settings"
     },
     "title": "Settings Hub",
     "navigation": "Navigation",
@@ -343,6 +355,48 @@
     },
     "tabs": {
       "members": "Members"
+    },
+    "workflows": {
+      "general_section": "General Config",
+      "edit_title": "Edit Workflow",
+      "new_title": "New Workflow",
+      "edit_desc": "Modify approval rules and steps",
+      "new_desc": "Define a new multi-step approval process"
+    },
+    "attendance": {
+      "title": "Attendance Settings"
+    },
+    "employers": {
+      "title": "Employers",
+      "subtitle": "Manage company entities and details",
+      "add_btn": "Add Employer",
+      "tax_code": "Tax Code",
+      "legal_address": "Legal Address",
+      "active_employees_label": "Active Employees",
+      "employee_unit": "employees",
+      "messages": {
+        "confirm_delete": "Are you sure you want to delete employer {{name}}?",
+        "created_success": "Employer created successfully",
+        "updated_success": "Employer updated successfully",
+        "deleted_success": "Employer deleted successfully",
+        "empty_desc": "No employers added yet.",
+        "no_employers": "No employers found"
+      },
+      "modal": {
+        "add_title": "Add Employer",
+        "edit_title": "Edit Employer",
+        "subtitle": "Employer details",
+        "submit_btn": "Submit"
+      },
+      "form": {
+        "name_label": "Name",
+        "name_placeholder": "Enter name",
+        "tax_code_label": "Tax Code",
+        "tax_code_placeholder": "Enter tax code",
+        "legal_address_label": "Legal Address",
+        "legal_address_placeholder": "Enter legal address"
+      },
+      "error_name_required": "Name is required"
     }
   }
 }

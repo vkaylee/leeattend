@@ -262,7 +262,9 @@
       "billing_desc": "Manage billing and subscriptions.",
       "leave_desc": "Configure leave types, accrual policies, and assignments.",
       "locations": "Địa điểm",
-      "locations_desc": "Quản lý các chi nhánh và địa điểm làm việc."
+      "locations_desc": "Quản lý các chi nhánh và địa điểm làm việc.",
+      "workflows": "Quy trình duyệt",
+      "workflows_desc": "Quản lý quy trình phê duyệt các yêu cầu."
     },
     "locations": {
       "add": "Thêm địa điểm",
@@ -288,7 +290,17 @@
         "quotas": "Quotas",
         "workflows": "Workflows"
       },
-      "workflows_desc": "Workflows"
+      "workflows_desc": "Workflows",
+      "workflows": {
+        "name_label": "Tên quy trình",
+        "entity_label": "Loại yêu cầu",
+        "desc_label": "Mô tả",
+        "active_label": "Quy trình hoạt động",
+        "step_title": "Bước",
+        "steps_header": "Các bước phê duyệt",
+        "add_step": "Thêm bước"
+      },
+      "title": "Cấu hình Tăng ca"
     },
     "title": "Settings Hub",
     "navigation": "Navigation",
@@ -343,6 +355,48 @@
     },
     "tabs": {
       "members": "Members"
+    },
+    "workflows": {
+      "general_section": "Thông tin chung",
+      "edit_title": "Sửa quy trình",
+      "new_title": "Thêm quy trình",
+      "edit_desc": "Chỉnh sửa quy tắc và các bước phê duyệt",
+      "new_desc": "Định nghĩa một quy trình phê duyệt nhiều bước"
+    },
+    "attendance": {
+      "title": "Cấu hình Chấm công"
+    },
+    "employers": {
+      "title": "Đơn vị tuyển dụng",
+      "subtitle": "Quản lý các pháp nhân và thông tin chi tiết công ty",
+      "add_btn": "Thêm đơn vị",
+      "tax_code": "Mã số thuế",
+      "legal_address": "Địa chỉ pháp lý",
+      "active_employees_label": "Nhân viên hoạt động",
+      "employee_unit": "nhân viên",
+      "messages": {
+        "confirm_delete": "Bạn có chắc chắn muốn xóa đơn vị {{name}}?",
+        "created_success": "Tạo đơn vị thành công",
+        "updated_success": "Cập nhật đơn vị thành công",
+        "deleted_success": "Xóa đơn vị thành công",
+        "empty_desc": "Chưa có đơn vị nào được thêm.",
+        "no_employers": "Không tìm thấy đơn vị nào"
+      },
+      "modal": {
+        "add_title": "Thêm đơn vị",
+        "edit_title": "Sửa đơn vị",
+        "subtitle": "Thông tin chi tiết",
+        "submit_btn": "Xác nhận"
+      },
+      "form": {
+        "name_label": "Tên đơn vị",
+        "name_placeholder": "Nhập tên đơn vị",
+        "tax_code_label": "Mã số thuế",
+        "tax_code_placeholder": "Nhập mã số thuế",
+        "legal_address_label": "Địa chỉ pháp lý",
+        "legal_address_placeholder": "Nhập địa chỉ pháp lý"
+      },
+      "error_name_required": "Yêu cầu nhập tên"
     }
   }
 }

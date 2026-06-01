@@ -1191,7 +1191,8 @@
     "submitting": "Submitting...",
     "key": "Key",
     "scope": "Scope",
-    "value": "Value"
+    "value": "Value",
+    "not_assigned": "Not assigned"
   },
   "dashboard": {
     "title": "Dashboard",

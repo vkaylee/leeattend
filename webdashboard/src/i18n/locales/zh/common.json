@@ -1191,7 +1191,8 @@
     "submitting": "Submitting...",
     "key": "Key",
     "scope": "Scope",
-    "value": "Value"
+    "value": "Value",
+    "not_assigned": "未分配"
   },
   "dashboard": {
     "title": "仪表板",

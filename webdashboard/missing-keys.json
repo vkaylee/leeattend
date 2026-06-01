@@ -1,17 +1,1 @@
-[
-  {
-    "file": "src/pages/settings/components/leave/leave-settings-tabs.tsx",
-    "key": "settings.leave.tabs.workflows",
-    "lang": "en"
-  },
-  {
-    "file": "src/pages/settings/components/leave/leave-settings-tabs.tsx",
-    "key": "settings.leave.tabs.workflows",
-    "lang": "vi"
-  },
-  {
-    "file": "src/pages/settings/components/leave/leave-settings-tabs.tsx",
-    "key": "settings.leave.tabs.workflows",
-    "lang": "zh"
-  }
-]
+[]

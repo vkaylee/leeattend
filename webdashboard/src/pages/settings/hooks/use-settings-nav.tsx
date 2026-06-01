@@ -12,6 +12,7 @@ import {
   Cpu,
   Settings2,
   MapPin,
+  Workflow,
 } from "lucide-react";
 import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
@@ -118,6 +119,13 @@ const getOperationsGroup = (t: TFunction): SettingItem[] => [
     icon: <Clock className="w-4 h-4" />,
     label: t("settings.categories.overtime", { defaultValue: "Overtime" }),
     path: ROUTES.SETTINGS.OVERTIME,
+    permissions: ["workspace:settings:read", "approval_workflows:read"],
+  },
+  {
+    description: t("settings.categories.workflows_desc", { defaultValue: "Manage approval workflows for requests" }),
+    icon: <Workflow className="w-4 h-4" />,
+    label: t("settings.categories.workflows", { defaultValue: "Approval Workflows" }),
+    path: ROUTES.SETTINGS.WORKFLOWS,
     permissions: ["workspace:settings:read", "approval_workflows:read"],
   },
 ];

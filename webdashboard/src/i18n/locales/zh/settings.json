@@ -262,7 +262,9 @@
       "billing_desc": "Manage billing and subscriptions.",
       "leave_desc": "Configure leave types, accrual policies, and assignments.",
       "locations": "办公地点",
-      "locations_desc": "管理物理分支机构和办公地点。"
+      "locations_desc": "管理物理分支机构和办公地点。",
+      "workflows": "审批工作流",
+      "workflows_desc": "管理各类申请的审批流程"
     },
     "locations": {
       "add": "添加地点",
@@ -288,7 +290,17 @@
         "quotas": "Quotas",
         "workflows": "Workflows"
       },
-      "workflows_desc": "Workflows"
+      "workflows_desc": "Workflows",
+      "workflows": {
+        "name_label": "名称",
+        "entity_label": "实体类型",
+        "desc_label": "描述",
+        "active_label": "启用工作流",
+        "step_title": "步骤",
+        "steps_header": "审批步骤",
+        "add_step": "添加步骤"
+      },
+      "title": "加班设置"
     },
     "title": "Settings Hub",
     "navigation": "Navigation",
@@ -343,6 +355,48 @@
     },
     "tabs": {
       "members": "Members"
+    },
+    "workflows": {
+      "general_section": "基本配置",
+      "edit_title": "编辑工作流",
+      "new_title": "新建工作流",
+      "edit_desc": "修改审批规则和步骤",
+      "new_desc": "定义一个新的多级审批流程"
+    },
+    "attendance": {
+      "title": "考勤设置"
+    },
+    "employers": {
+      "title": "雇主",
+      "subtitle": "管理公司实体和详细信息",
+      "add_btn": "添加雇主",
+      "tax_code": "纳税识别号",
+      "legal_address": "法定地址",
+      "active_employees_label": "在职员工",
+      "employee_unit": "员工",
+      "messages": {
+        "confirm_delete": "确定要删除雇主 {{name}} 吗？",
+        "created_success": "雇主创建成功",
+        "updated_success": "雇主更新成功",
+        "deleted_success": "雇主删除成功",
+        "empty_desc": "尚未添加任何雇主。",
+        "no_employers": "未找到雇主"
+      },
+      "modal": {
+        "add_title": "添加雇主",
+        "edit_title": "编辑雇主",
+        "subtitle": "雇主详情",
+        "submit_btn": "提交"
+      },
+      "form": {
+        "name_label": "名称",
+        "name_placeholder": "请输入名称",
+        "tax_code_label": "纳税识别号",
+        "tax_code_placeholder": "请输入纳税识别号",
+        "legal_address_label": "法定地址",
+        "legal_address_placeholder": "请输入法定地址"
+      },
+      "error_name_required": "名称为必填项"
     }
   }
 }

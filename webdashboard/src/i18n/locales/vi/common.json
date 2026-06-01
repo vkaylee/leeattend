@@ -1191,7 +1191,8 @@
     "submitting": "Submitting...",
     "key": "Key",
     "scope": "Scope",
-    "value": "Value"
+    "value": "Value",
+    "not_assigned": "Chưa gán"
   },
   "dashboard": {
     "title": "Bảng điều khiển",

@@ -76,5 +76,6 @@ export const ROUTES = {
     DANGER: "/workspace/settings/danger",
     OVERTIME: "/workspace/settings/overtime",
     LOCATIONS: "/workspace/settings/locations",
+    WORKFLOWS: "/workspace/settings/workflows",
   },
 } as const;
