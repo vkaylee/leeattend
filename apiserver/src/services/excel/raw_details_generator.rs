@@ -7,6 +7,8 @@ use crate::models::DailyAttendanceReport;
 use crate::services::import_messages::ExcelReportMessages;
 use crate::utils::excel_format_utils::ExcelFormatUtils;
 
+
+
 #[allow(clippy::too_many_lines)]
 pub fn generate(
     workbook: &mut Workbook,
@@ -100,26 +102,34 @@ pub fn generate(
         )?;
         worksheet.write_number(row, 7, report.computed_std_hours)?;
         worksheet.write_number(row, 8, report.computed_ot_hours)?;
-        worksheet.write_string(row, 9, report.ot_claim_status.as_deref().unwrap_or("-"))?;
+        let ot_status_label = match report.ot_claim_status.as_deref() {
+            Some("pending_employee" | "pendingemployee") => msgs.ot_status_pending_employee,
+            Some("pending_manager" | "pendingmanager") => msgs.ot_status_pending_manager,
+            Some("approved") => msgs.ot_status_approved,
+            Some("rejected") => msgs.ot_status_rejected,
+            _ => "-",
+        };
+        worksheet.write_string(row, 9, ot_status_label)?;
 
-        let status_fmt = match report.status.as_str() {
-            "present" => &status_present,
-            "late" => &status_late,
-            "absent" => &status_absent,
-            "off" => &status_off,
-            "holiday" | "holiday_paid" => &status_holiday,
-            "holiday_unpaid" => &status_leave_unpaid,
-            "holiday_work" => &status_holiday_work,
+        let (status_label, status_fmt) = match report.status.as_str() {
+            "present" => (msgs.status_present, &status_present),
+            "late" => (msgs.status_late, &status_late),
+            "absent" => (msgs.status_absent, &status_absent),
+            "off" => (msgs.status_off, &status_off),
+            "holiday" | "holiday_paid" => (msgs.status_holiday, &status_holiday),
+            "holiday_unpaid" => (msgs.status_leave_unpaid, &status_leave_unpaid),
+            "holiday_work" => (msgs.status_holiday_work, &status_holiday_work),
             "leave" | "holiday_leave" => {
                 if report.is_leave_paid == Some(true) {
-                    &status_leave_paid
+                    (msgs.status_leave_paid, &status_leave_paid)
                 } else {
-                    &status_leave_unpaid
+                    (msgs.status_leave_unpaid, &status_leave_unpaid)
                 }
             }
-            _ => &time_fmt,
+            "unscheduled" => (msgs.status_unscheduled, &time_fmt),
+            other => (other, &time_fmt),
         };
-        worksheet.write_string_with_format(row, 10, report.status.as_str(), status_fmt)?;
+        worksheet.write_string_with_format(row, 10, status_label, status_fmt)?;
 
         // Holiday column (col 11)
         worksheet.write_string(row, 11, report.holiday_name.as_deref().unwrap_or(""))?;

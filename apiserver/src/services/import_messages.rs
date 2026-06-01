@@ -294,6 +294,23 @@ pub struct ExcelReportMessages {
     pub guide_explanation_format: &'static str,
     pub guide_explanation_example: &'static str,
     pub guide_abbreviations: [[&'static str; 3]; 5],
+
+    // Status translations
+    pub status_present: &'static str,
+    pub status_late: &'static str,
+    pub status_absent: &'static str,
+    pub status_off: &'static str,
+    pub status_holiday: &'static str,
+    pub status_holiday_work: &'static str,
+    pub status_leave_paid: &'static str,
+    pub status_leave_unpaid: &'static str,
+    pub status_unscheduled: &'static str,
+
+    // OT status translations
+    pub ot_status_pending_employee: &'static str,
+    pub ot_status_pending_manager: &'static str,
+    pub ot_status_approved: &'static str,
+    pub ot_status_rejected: &'static str,
 }
 
 impl ExcelReportMessages {
@@ -345,6 +362,19 @@ impl ExcelReportMessages {
                 ["(HU)", "Holiday (Unpaid)", "Unpaid public holidays, employee did not work"],
                 ["(HW)", "Holiday Work", "Employee worked on a public holiday (followed by work hours details)"],
             ],
+            status_present: "Present",
+            status_late: "Late",
+            status_absent: "Absent",
+            status_off: "Off",
+            status_holiday: "Holiday (Paid)",
+            status_holiday_work: "Holiday Work",
+            status_leave_paid: "Paid Leave",
+            status_leave_unpaid: "Unpaid Leave",
+            status_unscheduled: "Unscheduled",
+            ot_status_pending_employee: "Pending Emp",
+            ot_status_pending_manager: "Pending Mgr",
+            ot_status_approved: "Approved",
+            ot_status_rejected: "Rejected",
         }
     }
 
@@ -392,6 +422,19 @@ impl ExcelReportMessages {
                 ["(HU)", "Nghỉ lễ không lương", "Ngày lễ không hưởng lương, nhân viên không đi làm"],
                 ["(HW)", "Đi làm ngày lễ", "Nhân viên đi làm vào ngày lễ (kèm theo chi tiết số giờ làm việc)"],
             ],
+            status_present: "Đúng giờ",
+            status_late: "Đi muộn",
+            status_absent: "Vắng mặt",
+            status_off: "Ngày nghỉ",
+            status_holiday: "Nghỉ lễ có lương",
+            status_holiday_work: "Làm ngày lễ",
+            status_leave_paid: "Nghỉ phép có lương",
+            status_leave_unpaid: "Nghỉ không lương",
+            status_unscheduled: "Ngoài lịch",
+            ot_status_pending_employee: "Chờ NV",
+            ot_status_pending_manager: "Chờ duyệt",
+            ot_status_approved: "Đã duyệt",
+            ot_status_rejected: "Từ chối",
         }
     }
 
@@ -439,6 +482,19 @@ impl ExcelReportMessages {
                     "员工在法定节假日出勤（后跟具体工时明细）",
                 ],
             ],
+            status_present: "准时",
+            status_late: "迟到",
+            status_absent: "缺勤",
+            status_off: "休息日",
+            status_holiday: "法定节假日(带薪)",
+            status_holiday_work: "节假日出勤",
+            status_leave_paid: "有薪假",
+            status_leave_unpaid: "无薪假",
+            status_unscheduled: "未排班",
+            ot_status_pending_employee: "待员工确认",
+            ot_status_pending_manager: "待经理审批",
+            ot_status_approved: "已批准",
+            ot_status_rejected: "已拒绝",
         }
     }
 }

@@ -296,7 +296,16 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
 
         Ok(rows
             .into_iter()
-            .map(|(eid, d, status)| ((eid, d), status.to_string().to_lowercase()))
+            .map(|(eid, d, status)| {
+                let status_str = match status {
+                    OtStatus::None => "none",
+                    OtStatus::PendingEmployee => "pending_employee",
+                    OtStatus::PendingManager => "pending_manager",
+                    OtStatus::Approved => "approved",
+                    OtStatus::Rejected => "rejected",
+                };
+                ((eid, d), status_str.to_string())
+            })
             .collect())
     }
 
