@@ -5,6 +5,7 @@ import {
   approveOt,
   enterPaperOt,
   bulkUploadPaperOt,
+  claimOt,
 } from "@/lib/api";
 import { getCurrentWorkspaceId } from "@/lib/api/helpers";
 
@@ -114,5 +115,30 @@ export function useBulkUploadPaperOt() {
   return {
     bulkUploadPaperOt: mutation.mutateAsync,
     isUploading: mutation.isPending,
+  };
+}
+
+export function useClaimOt() {
+  const queryClient = useQueryClient();
+  const wsId = getCurrentWorkspaceId();
+
+  const mutation = useMutation({
+    mutationFn: (data: { employeeId: string; date: string; claimed_minutes: number; reason?: string }) => {
+      if (!wsId) throw new Error("No workspace");
+      return claimOt(wsId, data.employeeId, {
+        date: data.date,
+        claimed_minutes: data.claimed_minutes,
+        reason: data.reason,
+      });
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: attendanceKeys.all });
+      void queryClient.invalidateQueries({ queryKey: ["attendance-report"] });
+    },
+  });
+
+  return {
+    claimOt: mutation.mutateAsync,
+    isSubmitting: mutation.isPending,
   };
 }

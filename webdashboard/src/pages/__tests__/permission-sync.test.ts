@@ -16,8 +16,8 @@ import { permissionGroups } from "../../lib/permission-groups";
  * Source of truth: apiserver/src/domain/permissions.rs → Permission::all_permission_strings()
  *
  * // IMPORTANT: This count must match exactly the number of permissions in 
- * // apiserver/src/domain/permissions.rs `test_total_permission_count_is_97`
- * const EXPECTED_BACKEND_PERMISSION_COUNT = 97;
+ * // apiserver/src/domain/permissions.rs `test_total_permission_count_is_98`
+ * const EXPECTED_BACKEND_PERMISSION_COUNT = 98;
  *
  * ⚠️  When adding a new Permission variant in Rust, you MUST also add it here
  *     AND in the permissionGroups of WorkspacePermissionsPage.tsx.
@@ -35,7 +35,7 @@ const BACKEND_PERMISSION_STRINGS: ReadonlySet<string> = new Set([
     "attendance:logs:read", "attendance:logs:import", "attendance:summaries:read",
     "attendance:adjustments:submit", "attendance:adjustments:approve", "attendance:reprocess", "attendance:staging:manage",
     // Overtime
-    "overtime:claim", "overtime:approve", "overtime:policies:manage", "overtime:paper:upload",
+    "overtime:claim", "overtime:approve", "overtime:claim_on_behalf", "overtime:policies:manage", "overtime:paper:upload",
     "overtime:request:create", "overtime:request:read", "overtime:approve:workflow", "overtime:quota:read",
     "approval_workflows:read", "approval_workflows:manage",
     // Leave
@@ -87,13 +87,13 @@ describe("Permission Sync: Backend ↔ Frontend", () => {
 
     // ─── Count Verification ────────────────────────────────────
 
-    it("backend defines exactly 97 permissions", () => {
-        expect(BACKEND_PERMISSION_STRINGS.size).toBe(97);
+    it("backend defines exactly 98 permissions", () => {
+        expect(BACKEND_PERMISSION_STRINGS.size).toBe(98);
     });
 
-    it("UI permissionGroups defines exactly 97 permissions", () => {
+    it("UI permissionGroups defines exactly 98 permissions", () => {
         const uiIds = extractUiPermissionIds();
-        expect(uiIds.length).toBe(97);
+        expect(uiIds.length).toBe(98);
     });
 
     it("backend count matches UI count", () => {

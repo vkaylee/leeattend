@@ -582,7 +582,33 @@
     },
     "tabs": {
       "post_ot": "Post-OT",
-      "pre_ot": "Pre-OT"
+      "pre_ot": "Pre-OT",
+      "delegated_claim": "Delegated Claims"
+    },
+    "delegated_claim": {
+      "title": "Delegated Claims",
+      "subtitle": "Claim overtime hours on behalf of workshop/production personnel who lack system accounts",
+      "table": {
+        "employee": "Employee",
+        "date": "Date",
+        "actual_hours": "Actual Work Hours",
+        "computed_ot": "System OT",
+        "claimed_ot": "Claimed OT",
+        "reason": "Claim Reason"
+      },
+      "actions": {
+        "claim": "Claim",
+        "claim_selected": "Claim {{count}} Selected"
+      },
+      "messages": {
+        "success": "Overtime claimed successfully",
+        "error": "Failed to claim overtime",
+        "select_at_least_one": "Please select at least one entry to claim"
+      },
+      "empty_state": {
+        "title": "No pending entries to claim",
+        "description": "All overtime has been claimed, or no overtime hours were computed for the selected period."
+      }
     }
   },
   "attendance": {

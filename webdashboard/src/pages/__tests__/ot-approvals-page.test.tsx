@@ -6,7 +6,10 @@ import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import { ToastProvider } from "../../components/ui/toast";
-import * as attendanceHooks from "../../hooks/use-attendance";
+import * as attendanceHooks from "@/hooks/use-attendance";
+import { useMyPermissions } from "@/hooks/use-permissions";
+import { useWorkspace } from "@/hooks/use-workspace";
+import { fetchAttendanceReport } from "@/lib/api";
 import OtApprovalsPage from "../approvals/ot-approvals-page";
 
 // Mock i18next
@@ -25,12 +28,42 @@ vi.mock("react-i18next", () => ({
   }),
 }));
 
-vi.mock("../../hooks/use-attendance", () => ({
+vi.mock("@/hooks/use-permissions", () => ({
+  useMyPermissions: vi.fn(() => ({
+    hasPermission: (perm: string) => perm === "overtime:approve",
+    hasAnyPermission: () => true,
+    hasScopedPermission: () => true,
+    hasRole: () => true,
+    isLoading: false,
+    permissions: ["overtime:approve"],
+    roles: ["admin"],
+    managedDepartmentIds: null,
+  })),
+}));
+
+vi.mock("@/hooks/use-workspace", () => ({
+  useWorkspace: vi.fn(() => ({
+    workspace: { id: "ws-123", name: "Test Workspace" },
+    isLoading: false,
+    isError: false,
+  })),
+}));
+
+vi.mock("@/hooks/use-attendance", () => ({
   useAttendanceSummaries: vi.fn(),
   useApproveOt: vi.fn(),
   useEnterPaperOt: vi.fn(() => ({ enterPaperOt: vi.fn(), isSubmitting: false })),
   useBulkUploadPaperOt: vi.fn(() => ({ bulkUploadPaperOt: vi.fn(), isUploading: false })),
+  useClaimOt: vi.fn(() => ({ claimOt: vi.fn(), isSubmitting: false })),
 }));
+
+vi.mock("@/lib/api", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/api")>();
+  return {
+    ...actual,
+    fetchAttendanceReport: vi.fn(),
+  };
+});
 
 const mockSummaries = [
   {
@@ -175,5 +208,155 @@ describe("OtApprovalsPage", () => {
     renderPage();
     await user.click(screen.getByText("ot_approvals.tabs.post_ot"));
     expect(screen.getByText("No pending OT")).toBeInTheDocument();
+  });
+
+  describe("Delegated Claim Tab", () => {
+    let claimOtMock: ReturnType<typeof vi.fn>;
+
+    beforeEach(() => {
+      claimOtMock = vi.fn().mockResolvedValue({});
+      vi.mocked(attendanceHooks.useClaimOt).mockReturnValue({
+        claimOt: claimOtMock,
+        isSubmitting: false,
+      } as unknown as ReturnType<typeof attendanceHooks.useClaimOt>);
+
+      vi.mocked(useMyPermissions).mockReturnValue({
+        hasPermission: (perm: string) => perm === "overtime:claim_on_behalf",
+        hasAnyPermission: () => true,
+        hasScopedPermission: () => true,
+        hasRole: () => true,
+        isLoading: false,
+        permissions: ["overtime:claim_on_behalf"],
+        roles: ["clerk"],
+        managedDepartmentIds: null,
+      });
+
+      vi.mocked(fetchAttendanceReport).mockResolvedValue({
+        data: [
+          {
+            employee_id: "EMP-101",
+            employee_name: "John Doe",
+            employee_id_number: "JD101",
+            date: "2026-05-10",
+            computed_std_hours: 8,
+            computed_ot_hours: 2.5,
+            ot_claim_status: "pending_employee",
+          },
+          {
+            employee_id: "EMP-102",
+            employee_name: "Jane Smith",
+            employee_id_number: "JS102",
+            date: "2026-05-11",
+            computed_std_hours: 8,
+            computed_ot_hours: 1.5,
+            ot_claim_status: "pending_employee",
+          },
+          {
+            employee_id: "EMP-103",
+            employee_name: "Bob Johnson",
+            employee_id_number: "BJ103",
+            date: "2026-05-12",
+            computed_std_hours: 8,
+            computed_ot_hours: 0,
+            ot_claim_status: "pending_employee",
+          },
+          {
+            employee_id: "EMP-104",
+            employee_name: "Alice Brown",
+            employee_id_number: "AB104",
+            date: "2026-05-13",
+            computed_std_hours: 8,
+            computed_ot_hours: 3.0,
+            ot_claim_status: "claimed",
+          },
+        ],
+      } as any);
+    });
+
+    it("renders delegated claim tab button when user has overtime:claim_on_behalf", () => {
+      renderPage();
+      expect(screen.getByText("ot_approvals.tabs.delegated_claim")).toBeInTheDocument();
+      expect(screen.queryByText("ot_approvals.tabs.pre_ot")).not.toBeInTheDocument();
+      expect(screen.queryByText("ot_approvals.tabs.post_ot")).not.toBeInTheDocument();
+    });
+
+    it("renders list of claimable entries in table with correct hours", async () => {
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText("John Doe")).toBeInTheDocument();
+        expect(screen.getByText("Jane Smith")).toBeInTheDocument();
+        expect(screen.queryByText("Bob Johnson")).not.toBeInTheDocument();
+        expect(screen.queryByText("Alice Brown")).not.toBeInTheDocument();
+
+        expect(screen.getByText("2.5 hrs")).toBeInTheDocument();
+        expect(screen.getByText("1.5 hrs")).toBeInTheDocument();
+      });
+    });
+
+    it("submits delegated claim with custom reason when claim button is clicked", async () => {
+      const user = userEvent.setup();
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText("John Doe")).toBeInTheDocument();
+      });
+
+      const reasonInputs = screen.getAllByPlaceholderText("ot_approvals.delegated_claim.table.reason");
+      await user.type(reasonInputs[0], "Finished inventory check");
+
+      const claimButtons = screen.getAllByText("ot_approvals.delegated_claim.actions.claim");
+      await user.click(claimButtons[0]);
+
+      await waitFor(() => {
+        expect(claimOtMock).toHaveBeenCalledWith({
+          employeeId: "EMP-101",
+          date: "2026-05-10",
+          claimed_minutes: 150,
+          reason: "Finished inventory check",
+        });
+      });
+    });
+
+    it("submits bulk delegated claims when multiple rows are checked and bulk claim is clicked", async () => {
+      const user = userEvent.setup();
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText("John Doe")).toBeInTheDocument();
+      });
+
+      const checkboxes = screen.getAllByRole("checkbox", { hidden: true });
+      await user.click(checkboxes[1]);
+      await user.click(checkboxes[2]);
+
+      const bulkClaimBtn = screen.getByText("ot_approvals.delegated_claim.actions.claim_selected");
+      await user.click(bulkClaimBtn);
+
+      await waitFor(() => {
+        expect(claimOtMock).toHaveBeenCalledTimes(2);
+        expect(claimOtMock).toHaveBeenNthCalledWith(1, {
+          employeeId: "EMP-101",
+          date: "2026-05-10",
+          claimed_minutes: 150,
+          reason: "Delegated OT claim",
+        });
+        expect(claimOtMock).toHaveBeenNthCalledWith(2, {
+          employeeId: "EMP-102",
+          date: "2026-05-11",
+          claimed_minutes: 90,
+          reason: "Delegated OT claim",
+        });
+      });
+    });
+
+    it("renders empty state when there are no pending employee OT entries to claim", async () => {
+      vi.mocked(fetchAttendanceReport).mockResolvedValue({ data: [] } as any);
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText("ot_approvals.delegated_claim.empty_state.title")).toBeInTheDocument();
+      });
+    });
   });
 });

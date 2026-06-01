@@ -582,7 +582,33 @@
     },
     "tabs": {
       "post_ot": "加班申请 (后)",
-      "pre_ot": "加班申请 (前)"
+      "pre_ot": "加班申请 (前)",
+      "delegated_claim": "代申报加班"
+    },
+    "delegated_claim": {
+      "title": "代申报加班",
+      "subtitle": "代表生产人员 / 无系统账号的员工申报加班时间",
+      "table": {
+        "employee": "员工",
+        "date": "日期",
+        "actual_hours": "实际工时",
+        "computed_ot": "系统OT",
+        "claimed_ot": "申报OT",
+        "reason": "加班原因"
+      },
+      "actions": {
+        "claim": "申报",
+        "claim_selected": "申报 {{count}} 项已选"
+      },
+      "messages": {
+        "success": "加班代申报成功",
+        "error": "加班代申报失败",
+        "select_at_least_one": "请选择至少一项进行申报"
+      },
+      "empty_state": {
+        "title": "暂无待代申报记录",
+        "description": "所有加班时间已申报完毕，或没有生成加班工时。"
+      }
     }
   },
   "attendance": {

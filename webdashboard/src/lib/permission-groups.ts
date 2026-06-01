@@ -110,6 +110,7 @@ export const permissionGroups: PermissionGroup[] = [
     permissions: [
       { id: "overtime:claim", name: "Claim OT", desc: "Submit overtime claims" },
       { id: "overtime:approve", name: "Approve OT", desc: "Review and approve OT claims" },
+      { id: "overtime:claim_on_behalf", name: "Claim OT on Behalf", desc: "Submit overtime claims on behalf of others" },
       { id: "overtime:policies:manage", name: "Manage OT Policies", desc: "Create and edit OT rules" },
       { id: "overtime:paper:upload", name: "Upload OT Paper", desc: "Attach OT documentation" },
       { id: "overtime:request:create", name: "Create OT Request", desc: "Plan pre-overtime requests" },

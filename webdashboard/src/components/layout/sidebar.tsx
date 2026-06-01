@@ -181,7 +181,7 @@ function useSidebarMenuItems(): MenuItem[] {
         { to: ROUTES.ATTENDANCE_ADJUSTMENTS, icon: ClipboardCheck, label: t("common.attendance_confirm"), testId: "sidebar-link-attendance-adjustments", permissions: ["attendance:adjustments:approve"] },
         { to: ROUTES.SHIFT_SWAPS, icon: ArrowLeftRight, label: t("shift_swaps.title"), testId: "sidebar-link-shift-swaps", permissions: ["shift_swaps:manage"] },
         { to: ROUTES.REPORTS, icon: BarChart3, label: t("common.reports"), testId: "sidebar-link-reports", permissions: ["reports:read"] },
-        { to: ROUTES.APPROVALS_OT, icon: CheckCircle, label: "OT Approvals", testId: "sidebar-link-approvals-ot", permissions: ["overtime:approve"] }
+        { to: ROUTES.APPROVALS_OT, icon: CheckCircle, label: "OT Approvals", testId: "sidebar-link-approvals-ot", permissions: ["overtime:approve", "overtime:claim_on_behalf"] }
       ]
     },
     {

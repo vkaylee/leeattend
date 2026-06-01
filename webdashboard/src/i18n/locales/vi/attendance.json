@@ -582,7 +582,33 @@
     },
     "tabs": {
       "post_ot": "Sau ca (Post-OT)",
-      "pre_ot": "Trước ca (Pre-OT)"
+      "pre_ot": "Trước ca (Pre-OT)",
+      "delegated_claim": "Khai báo hộ OT"
+    },
+    "delegated_claim": {
+      "title": "Khai báo hộ OT",
+      "subtitle": "Khai báo giờ tăng ca thay cho nhân sự sản xuất / không có tài khoản",
+      "table": {
+        "employee": "Nhân viên",
+        "date": "Ngày",
+        "actual_hours": "Giờ làm thực tế",
+        "computed_ot": "OT Hệ thống",
+        "claimed_ot": "OT Khai báo",
+        "reason": "Lý do tăng ca"
+      },
+      "actions": {
+        "claim": "Khai báo",
+        "claim_selected": "Khai báo {{count}} mục đã chọn"
+      },
+      "messages": {
+        "success": "Khai báo tăng ca thành công",
+        "error": "Khai báo tăng ca thất bại",
+        "select_at_least_one": "Vui lòng chọn ít nhất một mục để khai báo"
+      },
+      "empty_state": {
+        "title": "Không có bản ghi chờ khai báo",
+        "description": "Tất cả giờ tăng ca đã được khai báo hoặc không có thời gian tăng ca phát sinh."
+      }
     }
   },
   "attendance": {

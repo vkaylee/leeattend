@@ -47,6 +47,7 @@ pub enum Permission {
     // ── Overtime ───────────────────────────────────────
     OvertimeClaim,
     OvertimeApprove,
+    OvertimeClaimOnBehalf,
     OvertimePoliciesManage,
     OvertimePaperUpload,
     OvertimeRequestCreate,
@@ -190,6 +191,7 @@ impl Permission {
             "attendance:staging:manage" => Some(Self::AttendanceStagingManage),
             "overtime:claim" => Some(Self::OvertimeClaim),
             "overtime:approve" => Some(Self::OvertimeApprove),
+            "overtime:claim_on_behalf" => Some(Self::OvertimeClaimOnBehalf),
             "overtime:policies:manage" => Some(Self::OvertimePoliciesManage),
             "overtime:paper:upload" => Some(Self::OvertimePaperUpload),
             "overtime:request:create" => Some(Self::OvertimeRequestCreate),
@@ -294,6 +296,7 @@ impl Permission {
             Self::AttendanceStagingManage => "attendance:staging:manage",
             Self::OvertimeClaim => "overtime:claim",
             Self::OvertimeApprove => "overtime:approve",
+            Self::OvertimeClaimOnBehalf => "overtime:claim_on_behalf",
             Self::OvertimePoliciesManage => "overtime:policies:manage",
             Self::OvertimePaperUpload => "overtime:paper:upload",
             Self::OvertimeRequestCreate => "overtime:request:create",
@@ -397,6 +400,7 @@ impl Permission {
             "attendance:staging:manage",
             "overtime:claim",
             "overtime:approve",
+            "overtime:claim_on_behalf",
             "overtime:policies:manage",
             "overtime:paper:upload",
             "overtime:request:create",
@@ -479,11 +483,11 @@ mod tests {
     /// If you add a new Permission variant, update this number,
     /// `all_permission_strings()`, AND the frontend PermissionSync.test.ts.
     #[test]
-    fn test_total_permission_count_is_97() {
+    fn test_total_permission_count_is_98() {
         let all = Permission::all_permission_strings();
         assert_eq!(
             all.len(),
-            97,
+            98,
             "Permission count changed! Update this test, the UI permissionGroups, AND PermissionSync.test.ts. Current count: {}",
             all.len()
         );
@@ -557,6 +561,7 @@ mod tests {
             Permission::AttendanceStagingManage,
             Permission::OvertimeClaim,
             Permission::OvertimeApprove,
+            Permission::OvertimeClaimOnBehalf,
             Permission::OvertimePoliciesManage,
             Permission::OvertimePaperUpload,
             Permission::OvertimeRequestCreate,
@@ -630,8 +635,8 @@ mod tests {
 
         assert_eq!(
             all_variants.len(),
-            97,
-            "Variant list in test is stale — expected 97, got {}",
+            98,
+            "Variant list in test is stale — expected 98, got {}",
             all_variants.len()
         );
 
