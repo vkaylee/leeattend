@@ -957,38 +957,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/attendance/reprocess/all": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["force_reprocess_all_attendance"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/attendance/reprocess/{employee_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["force_reprocess_attendance"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/v1/dashboard/preferences": {
         parameters: {
             query?: never;
@@ -1702,6 +1670,38 @@ export interface paths {
         patch: operations["update_employee_assignment"];
         trace?: never;
     };
+    "/v1/workspaces/{ws_id}/employers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_employers"];
+        put?: never;
+        post: operations["create_employer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/workspaces/{ws_id}/employers/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_employer"];
+        put: operations["update_employer"];
+        post?: never;
+        delete: operations["delete_employer"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/workspaces/{ws_id}/employment-phases": {
         parameters: {
             query?: never;
@@ -2124,6 +2124,38 @@ export interface paths {
         get: operations["get_raw_attendance_logs"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{workspace_id}/attendance/reprocess-all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["force_reprocess_all_attendance"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{workspace_id}/attendance/reprocess/{employee_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["force_reprocess_attendance"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2654,6 +2686,23 @@ export interface paths {
         };
         /** GET /workspaces/{ws_id}/approval-workflows/history/{type}/{id} */
         get: operations["get_approval_history"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{ws_id}/approval-workflows/pending-tasks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /workspaces/{ws_id}/approval-workflows/pending-tasks */
+        get: operations["get_pending_tasks"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3560,6 +3609,25 @@ export interface components {
             /** Format: uuid */
             workspace_id: string;
         };
+        ApprovalWorkflowTask: {
+            /** Format: uuid */
+            assignee_target_id?: string | null;
+            assignee_target_name?: string | null;
+            assignee_type: string;
+            /** Format: date-time */
+            completed_at?: string | null;
+            /** Format: uuid */
+            completed_by?: string | null;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            instance_id: string;
+            status: string;
+            /** Format: int32 */
+            step_order: number;
+        };
         ApproveAttendanceAdjustmentRequest: {
             status: components["schemas"]["AdjustmentStatus"];
         };
@@ -4028,6 +4096,8 @@ export interface components {
         };
         CreateEmployeeRequest: {
             employee_id_number: components["schemas"]["String"];
+            /** Format: uuid */
+            employer_id?: string | null;
             full_name: string;
             /** Format: date */
             hire_date: string;
@@ -4038,6 +4108,11 @@ export interface components {
             tags?: string[] | null;
             /** Format: uuid */
             user_id?: string | null;
+        };
+        CreateEmployerRequest: {
+            legal_address?: string | null;
+            name: string;
+            tax_code?: string | null;
         };
         CreateEmploymentPhaseDefinitionRequest: {
             description?: string | null;
@@ -4183,6 +4258,7 @@ export interface components {
             early_punch_in_grace_period_minutes?: number;
             end_time: string;
             is_break_auto_deduct?: boolean;
+            /** Format: int32 */
             max_early_ot_minutes?: number | null;
             name: string;
             report_symbol?: string | null;
@@ -4351,6 +4427,7 @@ export interface components {
             /** Format: int32 */
             break_duration_minutes?: number | null;
             break_end?: string | null;
+            break_is_overtime?: boolean | null;
             break_start?: string | null;
             /** Format: date */
             date: string;
@@ -4360,6 +4437,8 @@ export interface components {
             holiday_name?: string | null;
             is_break_auto_deduct?: boolean | null;
             is_holiday?: boolean;
+            /** Format: int32 */
+            max_early_ot_minutes?: number | null;
             /** Format: uuid */
             shift_id?: string | null;
             shift_name?: string | null;
@@ -4373,6 +4452,8 @@ export interface components {
             created_at: string;
             department_name?: string | null;
             employee_id_number: string;
+            /** Format: uuid */
+            employer_id?: string | null;
             full_name: string;
             /** Format: date */
             hire_date: string;
@@ -4597,6 +4678,19 @@ export interface components {
             pattern_id: string;
             /** Format: date */
             start_date: string;
+            /** Format: date-time */
+            updated_at: string;
+            /** Format: uuid */
+            workspace_id: string;
+        };
+        Employer: {
+            /** Format: date-time */
+            created_at: string;
+            /** Format: uuid */
+            id: string;
+            legal_address?: string | null;
+            name: string;
+            tax_code?: string | null;
             /** Format: date-time */
             updated_at: string;
             /** Format: uuid */
@@ -5401,6 +5495,8 @@ export interface components {
             /** Format: uuid */
             entity_id: string;
             entity_type: string;
+            /** Format: uuid */
+            new_approver_user_id?: string | null;
             note?: string | null;
         };
         PunchInRequest: {
@@ -5577,6 +5673,7 @@ export interface components {
             id: string;
             is_active: boolean;
             is_break_auto_deduct: boolean;
+            /** Format: int32 */
             max_early_ot_minutes?: number | null;
             name: string;
             /** Format: uuid */
@@ -5936,6 +6033,8 @@ export interface components {
         };
         UpdateEmployeeRequest: {
             employee_id_number?: null | components["schemas"]["String"];
+            /** Format: uuid */
+            employer_id?: string | null;
             full_name?: string | null;
             /** Format: date */
             hire_date?: string | null;
@@ -5951,6 +6050,11 @@ export interface components {
             termination_date?: string | null;
             /** Format: uuid */
             user_id?: string | null;
+        };
+        UpdateEmployerRequest: {
+            legal_address?: string | null;
+            name?: string | null;
+            tax_code?: string | null;
         };
         /** @description Request payload for updating a feature flag. */
         UpdateFeatureFlagRequest: {
@@ -6034,6 +6138,7 @@ export interface components {
              *     If false (default), create a new version if time-related fields changed.
              */
             is_correction?: boolean;
+            /** Format: int32 */
             max_early_ot_minutes?: number | null;
             name: string;
             report_symbol?: string | null;
@@ -7860,57 +7965,6 @@ export interface operations {
             };
         };
     };
-    force_reprocess_all_attendance: {
-        parameters: {
-            query: {
-                /** @description Start date */
-                start_date: string;
-                /** @description End date */
-                end_date: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Bulk reprocess queued */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-        };
-    };
-    force_reprocess_attendance: {
-        parameters: {
-            query: {
-                /** @description Start date */
-                start_date: string;
-                /** @description End date */
-                end_date: string;
-            };
-            header?: never;
-            path: {
-                /** @description Employee ID */
-                employee_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Attendance reprocessed */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
     get_dashboard_preferences: {
         parameters: {
             query?: never;
@@ -9380,6 +9434,133 @@ export interface operations {
             };
         };
     };
+    list_employers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of employers */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Employer"][];
+                };
+            };
+        };
+    };
+    create_employer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateEmployerRequest"];
+            };
+        };
+        responses: {
+            /** @description Employer created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Employer"];
+                };
+            };
+        };
+    };
+    get_employer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Employer ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Employer details */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Employer"];
+                };
+            };
+        };
+    };
+    update_employer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Employer ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateEmployerRequest"];
+            };
+        };
+        responses: {
+            /** @description Employer updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Employer"];
+                };
+            };
+        };
+    };
+    delete_employer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Employer ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Employer deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     get_employment_phase_definitions: {
         parameters: {
             query?: never;
@@ -10492,6 +10673,62 @@ export interface operations {
                 content: {
                     "application/json": unknown;
                 };
+            };
+        };
+    };
+    force_reprocess_all_attendance: {
+        parameters: {
+            query: {
+                /** @description Start date */
+                start_date: string;
+                /** @description End date */
+                end_date: string;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Bulk reprocess queued */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    force_reprocess_attendance: {
+        parameters: {
+            query: {
+                /** @description Start date */
+                start_date: string;
+                /** @description End date */
+                end_date: string;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+                /** @description Employee ID */
+                employee_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Attendance reprocessed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -11829,6 +12066,29 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ApprovalActionLog"][];
+                };
+            };
+        };
+    };
+    get_pending_tasks: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Pending approval tasks for the current user */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApprovalWorkflowTask"][];
                 };
             };
         };

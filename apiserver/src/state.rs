@@ -138,6 +138,8 @@ pub struct CoreState {
     pub approval_workflow_service: Arc<crate::services::ApprovalWorkflowService>,
     pub location_service: Arc<crate::services::LocationService>,
     pub location_repo: Arc<dyn crate::repositories::LocationRepository>,
+    pub employer_service: Arc<crate::services::EmployerService>,
+    pub employer_repo: Arc<dyn crate::repositories::EmployerRepository>,
 }
 
 /// AI agent management

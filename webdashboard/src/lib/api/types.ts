@@ -20,6 +20,9 @@ export type AgentStatus = components["schemas"]["AgentStatus"];
 export type Device = components["schemas"]["Device"];
 export type AuthorizedAgent = components["schemas"]["AuthorizedAgent"];
 export type Workspace = components["schemas"]["Workspace"];
+export type Employer = components["schemas"]["Employer"];
+export type CreateEmployerRequest = components["schemas"]["CreateEmployerRequest"];
+export type UpdateEmployerRequest = components["schemas"]["UpdateEmployerRequest"];
 
 export interface User {
   avatar_url?: string;

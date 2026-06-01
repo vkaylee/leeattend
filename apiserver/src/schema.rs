@@ -512,6 +512,8 @@ diesel::table! {
         name -> Varchar,
         #[max_length = 50]
         tax_code -> Nullable<Varchar>,
+        #[max_length = 255]
+        legal_address -> Nullable<Varchar>,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
     }

@@ -13,14 +13,14 @@ pub struct Employer {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Deserialize, utoipa::ToSchema)]
+#[derive(Debug, Serialize, Deserialize, utoipa::ToSchema)]
 pub struct CreateEmployerRequest {
     pub name: String,
     pub tax_code: Option<String>,
     pub legal_address: Option<String>,
 }
 
-#[derive(Debug, Deserialize, utoipa::ToSchema)]
+#[derive(Debug, Serialize, Deserialize, utoipa::ToSchema)]
 pub struct UpdateEmployerRequest {
     pub name: Option<String>,
     pub tax_code: Option<String>,

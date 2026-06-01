@@ -22,6 +22,7 @@ pub struct EmployerEntity {
     pub workspace_id: Uuid,
     pub name: String,
     pub tax_code: Option<String>,
+    pub legal_address: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -33,7 +34,7 @@ impl From<EmployerEntity> for Employer {
             workspace_id: entity.workspace_id,
             name: entity.name,
             tax_code: entity.tax_code,
-            legal_address: None,
+            legal_address: entity.legal_address,
             created_at: entity.created_at,
             updated_at: entity.updated_at,
         }
@@ -54,6 +55,7 @@ mod tests {
             workspace_id: ws_id,
             name: "Test Employer".to_string(),
             tax_code: Some("123456".to_string()),
+            legal_address: Some("123 Address Rd".to_string()),
             created_at: now,
             updated_at: now,
         };
@@ -63,7 +65,7 @@ mod tests {
         assert_eq!(employer.workspace_id, ws_id);
         assert_eq!(employer.name, "Test Employer");
         assert_eq!(employer.tax_code, Some("123456".to_string()));
-        assert_eq!(employer.legal_address, None);
+        assert_eq!(employer.legal_address, Some("123 Address Rd".to_string()));
         assert_eq!(employer.created_at, now);
         assert_eq!(employer.updated_at, now);
     }

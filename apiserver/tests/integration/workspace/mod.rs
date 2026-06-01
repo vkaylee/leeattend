@@ -3,6 +3,7 @@
 mod audit;
 mod cache;
 mod data_management;
+mod employers;
 mod isolation;
 mod locations;
 mod management;

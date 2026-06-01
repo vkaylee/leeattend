@@ -18,7 +18,7 @@ pub struct AppWorkers {
 }
 
 impl AppState {
-    #[allow(clippy::too_many_lines)]
+    #[allow(clippy::too_many_lines, clippy::similar_names)]
     pub async fn build(
         diesel_pools: crate::diesel_pool::DieselPools,
         redis_pool: Option<RedisPool>,
@@ -380,6 +380,15 @@ impl AppState {
             audit_repo.clone(),
         ));
 
+        let employer_repo: Arc<dyn crate::repositories::EmployerRepository> = Arc::new(
+            crate::repositories::DieselEmployerRepository::new(diesel_pools.clone()),
+        );
+
+        let employer_service = Arc::new(crate::services::EmployerService::new(
+            employer_repo.clone(),
+            audit_repo.clone(),
+        ));
+
         let roster_provider: Arc<dyn crate::services::payroll_service::RosterDataProvider> =
             Arc::new(crate::services::payroll_service::DirectRosterDataProvider(
                 Arc::clone(&roster_repo),
@@ -600,6 +609,8 @@ impl AppState {
                 approval_workflow_service,
                 location_repo,
                 location_service,
+                employer_repo,
+                employer_service,
             },
             agents: crate::AgentState {
                 manager: agent_manager,

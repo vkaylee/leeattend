@@ -10,6 +10,7 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "lint:fix": "eslint --fix .",
+    "lint:only": "eslint",
     "check-budget": "node scripts/check-budget.mjs",
     "type-check": "tsc --noEmit",
     "test": "NODE_OPTIONS='--experimental-require-module' vitest run --bail 1",

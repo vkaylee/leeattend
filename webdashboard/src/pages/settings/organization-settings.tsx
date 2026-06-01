@@ -1,4 +1,4 @@
-import { Building2, Layers } from "lucide-react";
+import { Building2, Layers, Briefcase } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -9,8 +9,10 @@ import { getCurrentWorkspaceId } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import DepartmentsPage from "@/pages/departments-page";
 
+import EmployersPage from "./employers-page";
 
-type TabType = "departments" | "employment_phases";
+
+type TabType = "departments" | "employment_phases" | "employers";
 
 export default function OrganizationSettings() {
 
@@ -45,6 +47,7 @@ export default function OrganizationSettings() {
 
         <Button className={cn("flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all", activeTab === 'departments' ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700")} data-testid="tab-departments" onClick={() => { setActiveTab("departments"); }} variant="ghost"><Building2 size={14} /> {t("common.settings.tabs.departments")}</Button>
         <Button className={cn("flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all", activeTab === 'employment_phases' ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700")} data-testid="tab-phases" onClick={() => { setActiveTab("employment_phases"); }} variant="ghost"><Layers size={14} /> Lộ trình & Mốc</Button>
+        <Button className={cn("flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all", activeTab === 'employers' ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700")} data-testid="tab-employers" onClick={() => { setActiveTab("employers"); }} variant="ghost"><Briefcase size={14} /> Pháp nhân</Button>
       </div>
 
 
@@ -64,6 +67,12 @@ export default function OrganizationSettings() {
         {activeTab === "employment_phases" ? (
           <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 overflow-hidden shadow-sm p-4">
             <EmploymentPhaseManager wsId={wsId} />
+          </div>
+        ) : null}
+
+        {activeTab === "employers" ? (
+          <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 overflow-hidden shadow-sm p-4">
+            <EmployersPage />
           </div>
         ) : null}
 

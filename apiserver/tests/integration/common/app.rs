@@ -352,6 +352,13 @@ pub async fn spawn_app() -> (String, TestDatabase) {
     let overtime_request_service = Arc::new(apiserver::services::OvertimeRequestService::new(
         overtime_request_repo.clone(),
     ));
+    let employer_repo = Arc::new(apiserver::repositories::DieselEmployerRepository::new(
+        diesel_pools.clone(),
+    ));
+    let employer_service = Arc::new(apiserver::services::EmployerService::new(
+        employer_repo.clone(),
+        audit_repo.clone(),
+    ));
 
     let payroll_service = Arc::new(apiserver::services::payroll_service::PayrollService::new(
         apiserver::services::payroll_service::PayrollServiceArgs {
@@ -649,6 +656,8 @@ pub async fn spawn_app() -> (String, TestDatabase) {
             workspace_config_service: workspace_config_service.clone(),
             approval_workflow_repo: approval_workflow_repo.clone(),
             approval_workflow_service: approval_workflow_service.clone(),
+            employer_repo: employer_repo.clone(),
+            employer_service: employer_service.clone(),
         },
         agents: apiserver::AgentState {
             manager: agent_manager,
@@ -943,6 +952,13 @@ pub async fn spawn_app_with_factory_extended(
     let overtime_request_service = Arc::new(apiserver::services::OvertimeRequestService::new(
         overtime_request_repo.clone(),
     ));
+    let employer_repo = Arc::new(apiserver::repositories::DieselEmployerRepository::new(
+        diesel_pools.clone(),
+    ));
+    let employer_service = Arc::new(apiserver::services::EmployerService::new(
+        employer_repo.clone(),
+        audit_repo.clone(),
+    ));
 
     let payroll_service = Arc::new(apiserver::services::payroll_service::PayrollService::new(
         apiserver::services::payroll_service::PayrollServiceArgs {
@@ -1240,6 +1256,8 @@ pub async fn spawn_app_with_factory_extended(
             workspace_config_service: workspace_config_service.clone(),
             approval_workflow_repo: approval_workflow_repo.clone(),
             approval_workflow_service: approval_workflow_service.clone(),
+            employer_repo: employer_repo.clone(),
+            employer_service: employer_service.clone(),
         },
         agents: apiserver::AgentState {
             manager: agent_manager,
@@ -1583,6 +1601,13 @@ pub async fn setup_app_tower_internal_extended(
     let overtime_request_service = Arc::new(apiserver::services::OvertimeRequestService::new(
         overtime_request_repo.clone(),
     ));
+    let employer_repo = Arc::new(apiserver::repositories::DieselEmployerRepository::new(
+        diesel_pools.clone(),
+    ));
+    let employer_service = Arc::new(apiserver::services::EmployerService::new(
+        employer_repo.clone(),
+        audit_repo.clone(),
+    ));
 
     let payroll_service = Arc::new(apiserver::services::payroll_service::PayrollService::new(
         apiserver::services::payroll_service::PayrollServiceArgs {
@@ -1884,6 +1909,8 @@ pub async fn setup_app_tower_internal_extended(
             workspace_config_service: workspace_config_service.clone(),
             approval_workflow_repo: approval_workflow_repo.clone(),
             approval_workflow_service: approval_workflow_service.clone(),
+            employer_repo: employer_repo.clone(),
+            employer_service: employer_service.clone(),
         },
         agents: apiserver::AgentState {
             manager: agent_manager,

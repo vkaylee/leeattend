@@ -1,6 +1,6 @@
 import type { TFunction } from "i18next";
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { UserCircle } from "lucide-react";
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
@@ -13,7 +13,7 @@ import { Combobox } from "@/components/ui/combobox";
 import FormField from "@/components/ui/form-field";
 import Modal from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
-import { createEmployee, updateEmployee, fetchWorkspaceMembers, Employee } from "@/lib/api";
+import { createEmployee, updateEmployee, fetchWorkspaceMembers, Employee, fetchEmployers, Employer } from "@/lib/api";
 import { useLocations } from "@/pages/settings/hooks/use-locations";
 
 interface EmployeeFormModalProps {
@@ -64,6 +64,9 @@ function EmployeeFormInputs({
   locations,
   selectedLocationId,
   setSelectedLocationId,
+  employers,
+  selectedEmployerId,
+  setSelectedEmployerId,
   t,
 }: {
   editingEmployee: Employee | null;
@@ -74,6 +77,9 @@ function EmployeeFormInputs({
   locations: WorkLocation[];
   selectedLocationId: string;
   setSelectedLocationId: (val: string) => void;
+  employers: Employer[];
+  selectedEmployerId: string;
+  setSelectedEmployerId: (val: string) => void;
   t: TFunction;
 }) {
   return (
@@ -119,20 +125,39 @@ function EmployeeFormInputs({
         />
       </div>
       <div className="space-y-3 px-1">
-        <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em]">
+        <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em]" htmlFor="employees-form-location-combobox">
           Địa điểm làm việc
         </label>
         <Combobox
           clearOnEscape
           data-testid="employees-form-location-combobox"
+          id="employees-form-location-combobox"
           onChange={setSelectedLocationId}
-          options={(locations || []).map((loc) => ({
+          options={locations.map((loc) => ({
             value: loc.id,
             label: loc.name,
             description: loc.is_headquarters ? "Headquarters" : loc.timezone,
           }))}
           placeholder="Chọn địa điểm làm việc"
           value={selectedLocationId}
+        />
+      </div>
+      <div className="space-y-3 px-1">
+        <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em]" htmlFor="employees-form-employer-combobox">
+          Pháp nhân trực thuộc
+        </label>
+        <Combobox
+          clearOnEscape
+          data-testid="employees-form-employer-combobox"
+          id="employees-form-employer-combobox"
+          onChange={setSelectedEmployerId}
+          options={employers.map((emp) => ({
+            value: emp.id,
+            label: emp.name,
+            description: emp.tax_code ? `MST: ${emp.tax_code}` : undefined,
+          }))}
+          placeholder="Chọn pháp nhân trực thuộc"
+          value={selectedEmployerId}
         />
       </div>
       <div className="flex items-center gap-4 py-2 px-2 group cursor-pointer">
@@ -155,6 +180,7 @@ function EmployeeFormInputs({
   );
 }
 
+// eslint-disable-next-line complexity
 export default function EmployeeFormModal({
   isOpen,
   onClose,
@@ -167,14 +193,22 @@ export default function EmployeeFormModal({
   const { createMutation, updateMutation } = useEmployeeMutations(wsId, onClose, onSuccess);
   const { data: locations } = useLocations(wsId);
 
+  const { data: employers = [] } = useQuery({
+    queryKey: ["employers", wsId],
+    queryFn: () => fetchEmployers(wsId),
+    enabled: !!wsId && isOpen,
+  });
+
   const [members, setMembers] = useState<WorkspaceMember[]>([]);
   const [selectedUserId, setSelectedUserId] = useState(editingEmployee?.user_id ?? "");
   const [selectedLocationId, setSelectedLocationId] = useState(editingEmployee?.primary_location_id ?? "");
+  const [selectedEmployerId, setSelectedEmployerId] = useState(editingEmployee?.employer_id ?? "");
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- Derived state synced from props; intentional pattern
     setSelectedUserId(editingEmployee?.user_id ?? "");
     setSelectedLocationId(editingEmployee?.primary_location_id ?? "");
+    setSelectedEmployerId(editingEmployee?.employer_id ?? "");
   }, [editingEmployee]);
 
   useEffect(() => {
@@ -198,6 +232,8 @@ export default function EmployeeFormModal({
     if (selectedLocationId) {
       data.primary_location_id = selectedLocationId;
     }
+    data.employer_id = selectedEmployerId ? selectedEmployerId : null;
+
     if (editingEmployee) {
       updateMutation.mutate({ id: editingEmployee.id, employee: data });
     } else {
@@ -217,12 +253,15 @@ export default function EmployeeFormModal({
       <form className="space-y-8 pt-4 animate-in fade-in duration-500" onSubmit={handleSubmit}>
         <EmployeeFormInputs
           editingEmployee={editingEmployee}
-          locations={locations || []}
+          employers={employers}
+          locations={locations ?? []}
           members={members}
           prefillEnrollmentId={prefillEnrollmentId}
+          selectedEmployerId={selectedEmployerId}
           selectedLocationId={selectedLocationId}
-          setSelectedLocationId={setSelectedLocationId}
           selectedUserId={selectedUserId}
+          setSelectedEmployerId={setSelectedEmployerId}
+          setSelectedLocationId={setSelectedLocationId}
           setSelectedUserId={setSelectedUserId}
           t={t}
         />

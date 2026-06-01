@@ -203,4 +203,15 @@ pub fn router() -> Router<Arc<AppState>> {
                 .put(handlers::locations::update_location)
                 .delete(handlers::locations::delete_location),
         )
+        // Employers
+        .route(
+            "/workspaces/:ws_id/employers",
+            get(handlers::workspaces::list_employers).post(handlers::workspaces::create_employer),
+        )
+        .route(
+            "/workspaces/:ws_id/employers/:id",
+            get(handlers::workspaces::get_employer)
+                .put(handlers::workspaces::update_employer)
+                .delete(handlers::workspaces::delete_employer),
+        )
 }
