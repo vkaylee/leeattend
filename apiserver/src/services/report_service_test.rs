@@ -1637,6 +1637,7 @@ mod tests {
                     max_early_ot_minutes: None,
                     traces: vec![],
                     is_holiday: false,
+                    is_holiday_paid: false,
                     holiday_name: None,
                 }],
             }])

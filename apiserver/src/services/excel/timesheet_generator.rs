@@ -122,6 +122,16 @@ pub fn generate(
                         _ => &leave_unpaid_fmt,
                     };
                     (t, f)
+                } else if cell.status
+                    == crate::services::attendance_utils::AttendanceStatus::HolidayPaid
+                {
+                    let t = format!("{prefix}(HP)");
+                    (t, &holiday_fmt)
+                } else if cell.status
+                    == crate::services::attendance_utils::AttendanceStatus::HolidayUnpaid
+                {
+                    let t = format!("{prefix}(HU)");
+                    (t, &leave_unpaid_fmt)
                 } else {
                     // Convert work units to hours
                     let std_h = units_to_hours(cell.std_work_units, work_unit_minutes);
@@ -157,13 +167,21 @@ pub fn generate(
                     };
 
                     let ot_h = units_to_hours(cell.ot_work_units, work_unit_minutes);
+                    let suffix = if cell.status
+                        == crate::services::attendance_utils::AttendanceStatus::HolidayWork
+                    {
+                        "(HW)"
+                    } else {
+                        ""
+                    };
                     let t = format!(
-                        "{}{}/{}/{}/{}",
+                        "{}{}/{}/{}/{}{}",
                         prefix,
                         fmt_h(std_h),
                         fmt_h(late_h),
                         fmt_h(early_leave_h),
-                        fmt_h(ot_h)
+                        fmt_h(ot_h),
+                        suffix
                     );
                     let f = if cell.is_holiday {
                         &holiday_fmt

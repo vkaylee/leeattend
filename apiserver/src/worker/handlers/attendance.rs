@@ -544,7 +544,7 @@ impl AttendanceHandler {
                         punch_in_time: actual_punch_in.map(|p| p.time()),
                         scheduled_start: daily.start_time,
                         is_holiday: daily.is_holiday,
-                        is_holiday_paid: false,
+                        is_holiday_paid: daily.is_holiday_paid,
                         has_shift: daily.shift_id.is_some(),
                         is_on_leave,
                     },
@@ -601,10 +601,10 @@ impl AttendanceHandler {
                     computed_ot_hours: f64::from(ot_work_units)
                         * (f64::from(emp_attendance_rules.work_unit_minutes) / 60.0),
                     status,
-                    is_holiday: false,
+                    is_holiday: daily.is_holiday,
                     is_unscheduled: status
                         == crate::services::attendance_utils::AttendanceStatus::Unscheduled,
-                    holiday_name: None,
+                    holiday_name: daily.holiday_name.clone(),
                     generation_metadata: combined_metadata,
                     is_leave_paid,
                 });
@@ -1213,6 +1213,7 @@ mod tests {
             schedules: vec![crate::models::EffectiveSchedule {
                 date: sched_date,
                 is_holiday: false,
+                is_holiday_paid: false,
                 holiday_name: None,
                 source: "fixed".to_string(),
                 shift_name: Some("Day Shift".to_string()),
@@ -1395,6 +1396,7 @@ mod tests {
             schedules: vec![crate::models::EffectiveSchedule {
                 date: sched_date,
                 is_holiday: false,
+                is_holiday_paid: false,
                 holiday_name: None,
                 source: "fixed".to_string(),
                 shift_name: Some("Day Shift".to_string()),

@@ -7,6 +7,7 @@ use crate::models::DailyAttendanceReport;
 use crate::services::import_messages::ExcelReportMessages;
 use crate::utils::excel_format_utils::ExcelFormatUtils;
 
+#[allow(clippy::too_many_lines)]
 pub fn generate(
     workbook: &mut Workbook,
     reports: &[DailyAttendanceReport],
@@ -106,7 +107,8 @@ pub fn generate(
             "late" => &status_late,
             "absent" => &status_absent,
             "off" => &status_off,
-            "holiday" => &status_holiday,
+            "holiday" | "holiday_paid" => &status_holiday,
+            "holiday_unpaid" => &status_leave_unpaid,
             "holiday_work" => &status_holiday_work,
             "leave" | "holiday_leave" => {
                 if report.is_leave_paid == Some(true) {

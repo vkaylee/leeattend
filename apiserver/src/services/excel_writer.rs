@@ -8,7 +8,9 @@ use chrono_tz::Tz;
 use rust_xlsxwriter::Workbook;
 
 use crate::models::{AttendanceSummary, DailyAttendanceReport};
-use crate::services::excel::{raw_details_generator, summary_generator, timesheet_generator};
+use crate::services::excel::{
+    guide_generator, raw_details_generator, summary_generator, timesheet_generator,
+};
 use crate::services::import_messages::ExcelReportMessages;
 
 /// Excel file content type for HTTP responses.
@@ -65,6 +67,8 @@ impl ExcelWriter {
             tz,
             msgs,
         )?;
+
+        guide_generator::generate(&mut workbook, msgs)?;
 
         workbook
             .save_to_buffer()
@@ -327,6 +331,117 @@ mod tests {
             (
                 NaiveDate::from_ymd_opt(2026, 1, 15).ok_or("Invalid start date")?,
                 NaiveDate::from_ymd_opt(2026, 1, 18).ok_or("Invalid end date")?,
+            ),
+            "Asia/Ho_Chi_Minh",
+            30,
+            &en_msgs(),
+        );
+        assert!(result.is_ok());
+        let data = result?;
+        assert!(data.len() > 100);
+        assert_eq!(&data[0..2], b"PK");
+        Ok(())
+    }
+
+    #[test]
+    fn test_write_detail_with_holidays() -> Result<(), Box<dyn std::error::Error>> {
+        let emp_id = Uuid::new_v4();
+        let reports = vec![
+            DailyAttendanceReport {
+                date: NaiveDate::from_ymd_opt(2026, 1, 1).ok_or("Invalid date")?,
+                employee_id: emp_id,
+                employee_name: "John Holiday".to_string(),
+                employee_id_number: "EMP002".to_string(),
+                shift_symbol: Some("N".to_string()),
+                shift_name: Some("Normal Shift".to_string()),
+                scheduled_start: Some(NaiveTime::from_hms_opt(8, 0, 0).ok_or("Invalid time")?),
+                scheduled_end: Some(NaiveTime::from_hms_opt(17, 0, 0).ok_or("Invalid time")?),
+                break_duration_minutes: Some(60),
+                break_start: None,
+                break_end: None,
+                is_break_auto_deduct: Some(true),
+                actual_punch_in: None,
+                actual_punch_out: None,
+                std_work_units: 0,
+                ot_work_units: 0,
+                ot_claim_status: None,
+                unit_type: crate::models::enums::TimekeepingUnit::DAY,
+                unit_coefficient_hours: 8.0,
+                computed_std_hours: 0.0,
+                computed_ot_hours: 0.0,
+                status: crate::services::attendance_utils::AttendanceStatus::HolidayPaid,
+                is_holiday: true,
+                is_unscheduled: false,
+                holiday_name: Some("New Year's Day".to_string()),
+                generation_metadata: None,
+                is_leave_paid: None,
+            },
+            DailyAttendanceReport {
+                date: NaiveDate::from_ymd_opt(2026, 1, 2).ok_or("Invalid date")?,
+                employee_id: emp_id,
+                employee_name: "John Holiday".to_string(),
+                employee_id_number: "EMP002".to_string(),
+                shift_symbol: Some("N".to_string()),
+                shift_name: Some("Normal Shift".to_string()),
+                scheduled_start: Some(NaiveTime::from_hms_opt(8, 0, 0).ok_or("Invalid time")?),
+                scheduled_end: Some(NaiveTime::from_hms_opt(17, 0, 0).ok_or("Invalid time")?),
+                break_duration_minutes: Some(60),
+                break_start: None,
+                break_end: None,
+                is_break_auto_deduct: Some(true),
+                actual_punch_in: None,
+                actual_punch_out: None,
+                std_work_units: 0,
+                ot_work_units: 0,
+                ot_claim_status: None,
+                unit_type: crate::models::enums::TimekeepingUnit::DAY,
+                unit_coefficient_hours: 8.0,
+                computed_std_hours: 0.0,
+                computed_ot_hours: 0.0,
+                status: crate::services::attendance_utils::AttendanceStatus::HolidayUnpaid,
+                is_holiday: true,
+                is_unscheduled: false,
+                holiday_name: Some("Unpaid Holiday".to_string()),
+                generation_metadata: None,
+                is_leave_paid: None,
+            },
+            DailyAttendanceReport {
+                date: NaiveDate::from_ymd_opt(2026, 1, 3).ok_or("Invalid date")?,
+                employee_id: emp_id,
+                employee_name: "John Holiday".to_string(),
+                employee_id_number: "EMP002".to_string(),
+                shift_symbol: Some("N".to_string()),
+                shift_name: Some("Normal Shift".to_string()),
+                scheduled_start: Some(NaiveTime::from_hms_opt(8, 0, 0).ok_or("Invalid time")?),
+                scheduled_end: Some(NaiveTime::from_hms_opt(17, 0, 0).ok_or("Invalid time")?),
+                break_duration_minutes: Some(60),
+                break_start: None,
+                break_end: None,
+                is_break_auto_deduct: Some(true),
+                actual_punch_in: None,
+                actual_punch_out: None,
+                std_work_units: 16,
+                ot_work_units: 4,
+                ot_claim_status: Some("approved".to_string()),
+                unit_type: crate::models::enums::TimekeepingUnit::DAY,
+                unit_coefficient_hours: 8.0,
+                computed_std_hours: 8.0,
+                computed_ot_hours: 2.0,
+                status: crate::services::attendance_utils::AttendanceStatus::HolidayWork,
+                is_holiday: true,
+                is_unscheduled: false,
+                holiday_name: Some("New Year Working".to_string()),
+                generation_metadata: None,
+                is_leave_paid: None,
+            },
+        ];
+
+        let result = ExcelWriter::write_detail(
+            &reports,
+            "Test Workspace",
+            (
+                NaiveDate::from_ymd_opt(2026, 1, 1).ok_or("Invalid start date")?,
+                NaiveDate::from_ymd_opt(2026, 1, 3).ok_or("Invalid end date")?,
             ),
             "Asia/Ho_Chi_Minh",
             30,

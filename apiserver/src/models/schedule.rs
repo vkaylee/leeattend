@@ -99,6 +99,8 @@ pub struct EffectiveSchedule {
     #[serde(default)]
     pub is_holiday: bool,
     #[serde(default)]
+    pub is_holiday_paid: bool,
+    #[serde(default)]
     pub holiday_name: Option<String>,
 }
 
@@ -173,6 +175,7 @@ mod tests {
             max_early_ot_minutes: None,
             traces: vec![],
             is_holiday: false,
+            is_holiday_paid: false,
             holiday_name: None,
         };
 

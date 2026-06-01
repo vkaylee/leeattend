@@ -269,6 +269,7 @@ pub struct ExcelReportMessages {
     pub summary_sheet_name: &'static str,
     pub timesheet_sheet_name: &'static str,
     pub raw_details_sheet_name: &'static str,
+    pub guide_sheet_name: &'static str,
 
     // Title templates (use {workspace} placeholder)
     pub summary_title_tpl: &'static str,
@@ -285,6 +286,14 @@ pub struct ExcelReportMessages {
 
     // Raw details headers
     pub detail_headers: [&'static str; 12],
+
+    // Guide page translations
+    pub guide_title: &'static str,
+    pub guide_headers: [&'static str; 3],
+    pub guide_explanation_title: &'static str,
+    pub guide_explanation_format: &'static str,
+    pub guide_explanation_example: &'static str,
+    pub guide_abbreviations: [[&'static str; 3]; 5],
 }
 
 impl ExcelReportMessages {
@@ -302,6 +311,7 @@ impl ExcelReportMessages {
             summary_sheet_name: "Summary",
             timesheet_sheet_name: "Timesheet View",
             raw_details_sheet_name: "Raw Details",
+            guide_sheet_name: "Guide",
             summary_title_tpl: "Attendance Summary Report - {workspace}",
             timesheet_title_tpl: "Timesheet View - {workspace}",
             raw_details_title_tpl: "Raw Details - {workspace}",
@@ -323,6 +333,18 @@ impl ExcelReportMessages {
                 "Status",
                 "Holiday",
             ],
+            guide_title: "Attendance Timesheet Legend & Guide",
+            guide_headers: ["Symbol / Format", "Meaning", "Description"],
+            guide_explanation_title: "Timesheet Cell Format",
+            guide_explanation_format: "[Shift Symbol][Std Hours]/[Late Hours]/[Early Leave Hours]/[OT Hours]",
+            guide_explanation_example: "Example: N8/0.1/0/2 means Shift N, 8h standard, 6m late, 0h early leave, 2h overtime",
+            guide_abbreviations: [
+                ["(PL)", "Paid Leave", "Approved paid leave days"],
+                ["(UL)", "Unpaid Leave", "Approved unpaid leave days"],
+                ["(HP)", "Holiday (Paid)", "Paid public holidays, employee did not work"],
+                ["(HU)", "Holiday (Unpaid)", "Unpaid public holidays, employee did not work"],
+                ["(HW)", "Holiday Work", "Employee worked on a public holiday (followed by work hours details)"],
+            ],
         }
     }
 
@@ -331,6 +353,7 @@ impl ExcelReportMessages {
             summary_sheet_name: "Tổng hợp",
             timesheet_sheet_name: "Bảng chấm công",
             raw_details_sheet_name: "Chi tiết",
+            guide_sheet_name: "Hướng dẫn",
             summary_title_tpl: "Báo cáo tổng hợp chấm công - {workspace}",
             timesheet_title_tpl: "Bảng chấm công - {workspace}",
             raw_details_title_tpl: "Chi tiết chấm công - {workspace}",
@@ -357,6 +380,18 @@ impl ExcelReportMessages {
                 "Trạng thái",
                 "Ngày lễ",
             ],
+            guide_title: "Hướng dẫn & Chú giải Bảng chấm công",
+            guide_headers: ["Ký hiệu / Định dạng", "Ý nghĩa", "Mô tả chi tiết"],
+            guide_explanation_title: "Định dạng ô chấm công",
+            guide_explanation_format: "[Mã ca][Giờ chuẩn]/[Giờ đi trễ]/[Giờ về sớm]/[Giờ tăng ca]",
+            guide_explanation_example: "Ví dụ: N8/0.1/0/2 có nghĩa là Ca N, 8h chuẩn, đi trễ 0.1h (6 phút), không về sớm, 2h tăng ca",
+            guide_abbreviations: [
+                ["(PL)", "Phép năm / Nghỉ có lương", "Ngày nghỉ phép đã được phê duyệt hưởng lương"],
+                ["(UL)", "Nghỉ không lương", "Nghỉ không lương đã được phê duyệt"],
+                ["(HP)", "Nghỉ lễ có lương", "Ngày lễ được hưởng lương, nhân viên không đi làm"],
+                ["(HU)", "Nghỉ lễ không lương", "Ngày lễ không hưởng lương, nhân viên không đi làm"],
+                ["(HW)", "Đi làm ngày lễ", "Nhân viên đi làm vào ngày lễ (kèm theo chi tiết số giờ làm việc)"],
+            ],
         }
     }
 
@@ -365,6 +400,7 @@ impl ExcelReportMessages {
             summary_sheet_name: "汇总",
             timesheet_sheet_name: "考勤表",
             raw_details_sheet_name: "明细",
+            guide_sheet_name: "使用说明",
             summary_title_tpl: "考勤汇总报表 - {workspace}",
             timesheet_title_tpl: "考勤表 - {workspace}",
             raw_details_title_tpl: "考勤明细 - {workspace}",
@@ -385,6 +421,23 @@ impl ExcelReportMessages {
                 "加班状态",
                 "状态",
                 "节假日",
+            ],
+            guide_title: "考勤表图例与使用说明",
+            guide_headers: ["符号 / 格式", "含义", "详细说明"],
+            guide_explanation_title: "考勤单元格格式",
+            guide_explanation_format: "[班次符号][标准工时]/[迟到工时]/[早退工时]/[加班工时]",
+            guide_explanation_example:
+                "示例: N8/0.1/0/2 表示班次N, 8小时标准工时, 迟到0.1小时(6分钟), 无早退, 2小时加班",
+            guide_abbreviations: [
+                ["(PL)", "有薪假", "已批准的有薪假期"],
+                ["(UL)", "无薪假", "已批准的无薪假期"],
+                ["(HP)", "法定节假日(带薪)", "带薪法定节假日，员工未出勤"],
+                ["(HU)", "法定节假日(无薪)", "无薪法定节假日，员工未出勤"],
+                [
+                    "(HW)",
+                    "节假日出勤",
+                    "员工在法定节假日出勤（后跟具体工时明细）",
+                ],
             ],
         }
     }
