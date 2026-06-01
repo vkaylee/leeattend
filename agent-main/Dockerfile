@@ -65,7 +65,7 @@ ENV RUSTC_WRAPPER=sccache
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/sccache \
     sccache --start-server && \
-    cargo build --release --locked && \
+    cargo build --release --locked -p agent && \
     sccache --stop-server && \
     cp target/release/agent /usr/local/bin/agent
 
