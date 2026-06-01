@@ -575,4 +575,179 @@ mod tests {
     fn test_std_hours_from_work_units() {
         assert!((units_to_hours(16, 30) - 8.0).abs() < f64::EPSILON);
     }
+
+    #[test]
+    fn test_detail_sheet_hours_and_headers() -> Result<(), Box<dyn std::error::Error>> {
+        use calamine::{Data, Reader, Xlsx};
+        use std::io::Cursor;
+        use uuid::Uuid;
+
+        let reports = vec![DailyAttendanceReport {
+            date: NaiveDate::from_ymd_opt(2026, 1, 15).unwrap(),
+            employee_id: Uuid::new_v4(),
+            employee_name: "John Doe".to_string(),
+            employee_id_number: "EMP101".to_string(),
+            shift_symbol: Some("HC".to_string()),
+            shift_name: Some("Day".to_string()),
+            scheduled_start: Some(NaiveTime::from_hms_opt(8, 0, 0).unwrap()),
+            scheduled_end: Some(NaiveTime::from_hms_opt(17, 0, 0).unwrap()),
+            break_duration_minutes: Some(60),
+            break_start: None,
+            break_end: None,
+            is_break_auto_deduct: Some(true),
+            actual_punch_in: None,
+            actual_punch_out: None,
+            std_work_units: 16,
+            ot_work_units: 3,
+            ot_claim_status: Some("approved".to_string()),
+            unit_type: crate::models::enums::TimekeepingUnit::DAY,
+            unit_coefficient_hours: 8.0,
+            computed_std_hours: 8.0,
+            computed_ot_hours: 1.5,
+            status: crate::services::attendance_utils::AttendanceStatus::Present,
+            is_holiday: false,
+            is_unscheduled: false,
+            holiday_name: None,
+            generation_metadata: None,
+            is_leave_paid: None,
+        }];
+
+        let date_range = (
+            NaiveDate::from_ymd_opt(2026, 1, 15).unwrap(),
+            NaiveDate::from_ymd_opt(2026, 1, 15).unwrap(),
+        );
+
+        // 1. Verify English report headers and numeric values
+        let bytes_en = ExcelWriter::write_detail(
+            &reports,
+            "EN Workspace",
+            date_range,
+            "UTC",
+            30,
+            &ExcelReportMessages::for_lang("en"),
+        )?;
+
+        let mut wb_en: Xlsx<_> = Xlsx::new(Cursor::new(&bytes_en))?;
+        let sheet_en = wb_en.worksheet_range("Raw Details")?;
+
+        // Assert header is present and columns 7 & 8 are "Std Hours" & "OT Hours"
+        // Header row in raw_details_generator.rs is at row 3 (0-indexed)
+        let header_row: Vec<_> = sheet_en.rows().nth(3).unwrap().to_vec();
+        assert_eq!(header_row[7], Data::String("Std Hours".to_string()));
+        assert_eq!(header_row[8], Data::String("OT Hours".to_string()));
+
+        // Assert data row has correct float values
+        // Data rows start at row 4
+        let data_row: Vec<_> = sheet_en.rows().nth(4).unwrap().to_vec();
+        assert_eq!(data_row[7], Data::Float(8.0));
+        assert_eq!(data_row[8], Data::Float(1.5));
+
+        // 2. Verify Vietnamese report headers (should remain translated)
+        let bytes_vi = ExcelWriter::write_detail(
+            &reports,
+            "VI Workspace",
+            date_range,
+            "Asia/Ho_Chi_Minh",
+            30,
+            &ExcelReportMessages::for_lang("vi"),
+        )?;
+
+        let mut wb_vi: Xlsx<_> = Xlsx::new(Cursor::new(&bytes_vi))?;
+        // Vietnamese sheet name is "Chi tiết"
+        let sheet_vi = wb_vi.worksheet_range("Chi tiết")?;
+        let header_row_vi: Vec<_> = sheet_vi.rows().nth(3).unwrap().to_vec();
+        assert_eq!(header_row_vi[7], Data::String("Giờ chuẩn".to_string()));
+        assert_eq!(header_row_vi[8], Data::String("Giờ tăng ca".to_string()));
+
+        let data_row_vi: Vec<_> = sheet_vi.rows().nth(4).unwrap().to_vec();
+        assert_eq!(data_row_vi[7], Data::Float(8.0));
+        assert_eq!(data_row_vi[8], Data::Float(1.5));
+
+        // 3. Verify Chinese report headers (should remain translated)
+        let bytes_zh = ExcelWriter::write_detail(
+            &reports,
+            "ZH Workspace",
+            date_range,
+            "Asia/Shanghai",
+            30,
+            &ExcelReportMessages::for_lang("zh"),
+        )?;
+
+        let mut wb_zh: Xlsx<_> = Xlsx::new(Cursor::new(&bytes_zh))?;
+        // Chinese sheet name is "明细"
+        let sheet_zh = wb_zh.worksheet_range("明细")?;
+        let header_row_zh: Vec<_> = sheet_zh.rows().nth(3).unwrap().to_vec();
+        assert_eq!(header_row_zh[7], Data::String("标准工时".to_string()));
+        assert_eq!(header_row_zh[8], Data::String("加班工时".to_string()));
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_summary_sheet_hours_and_headers() -> Result<(), Box<dyn std::error::Error>> {
+        use calamine::{Data, Reader, Xlsx};
+        use std::io::Cursor;
+        use uuid::Uuid;
+
+        let summaries = vec![AttendanceSummary {
+            employee_id: Uuid::new_v4(),
+            employee_name: "Alice Smith".to_string(),
+            employee_id_number: "EMP001".to_string(),
+            total_std_units: 160,
+            total_ot_units: 20,
+            total_leave_days: 2,
+            unit_type: crate::models::enums::TimekeepingUnit::DAY,
+            unit_coefficient_hours: 8.0,
+            computed_std_hours: 80.0,
+            computed_ot_hours: 10.0,
+        }];
+
+        let date_range = (
+            NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+            NaiveDate::from_ymd_opt(2026, 1, 31).unwrap(),
+        );
+
+        // 1. English Summary
+        let bytes_en = ExcelWriter::write_summary(
+            &summaries,
+            "EN Workspace",
+            date_range,
+            &ExcelReportMessages::for_lang("en"),
+        )?;
+
+        let mut wb_en: Xlsx<_> = Xlsx::new(Cursor::new(&bytes_en))?;
+        let sheet_en = wb_en.worksheet_range("Summary")?;
+
+        // Header row is row 3
+        let header_row: Vec<_> = sheet_en.rows().nth(3).unwrap().to_vec();
+        assert_eq!(header_row[1], Data::String("Std Hours".to_string()));
+        assert_eq!(header_row[2], Data::String("OT Hours".to_string()));
+
+        // Data row is row 4
+        let data_row: Vec<_> = sheet_en.rows().nth(4).unwrap().to_vec();
+        assert_eq!(data_row[1], Data::Float(80.0));
+        assert_eq!(data_row[2], Data::Float(10.0));
+
+        // 2. Vietnamese Summary
+        let bytes_vi = ExcelWriter::write_summary(
+            &summaries,
+            "VI Workspace",
+            date_range,
+            &ExcelReportMessages::for_lang("vi"),
+        )?;
+
+        let mut wb_vi: Xlsx<_> = Xlsx::new(Cursor::new(&bytes_vi))?;
+        // Vietnamese sheet name is "Tổng hợp"
+        let sheet_vi = wb_vi.worksheet_range("Tổng hợp")?;
+
+        let header_row_vi: Vec<_> = sheet_vi.rows().nth(3).unwrap().to_vec();
+        assert_eq!(header_row_vi[1], Data::String("Giờ công chuẩn".to_string()));
+        assert_eq!(header_row_vi[2], Data::String("Giờ tăng ca".to_string()));
+
+        let data_row_vi: Vec<_> = sheet_vi.rows().nth(4).unwrap().to_vec();
+        assert_eq!(data_row_vi[1], Data::Float(80.0));
+        assert_eq!(data_row_vi[2], Data::Float(10.0));
+
+        Ok(())
+    }
 }

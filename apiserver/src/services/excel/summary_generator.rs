@@ -42,18 +42,8 @@ pub fn generate(
     for (idx, summary) in summaries.iter().enumerate() {
         let row = (idx + 4) as u32;
         worksheet.write_string(row, 0, &summary.employee_name)?;
-        worksheet.write_number_with_format(
-            row,
-            1,
-            f64::from(summary.total_std_units),
-            &number_format,
-        )?;
-        worksheet.write_number_with_format(
-            row,
-            2,
-            f64::from(summary.total_ot_units),
-            &number_format,
-        )?;
+        worksheet.write_number_with_format(row, 1, summary.computed_std_hours, &number_format)?;
+        worksheet.write_number_with_format(row, 2, summary.computed_ot_hours, &number_format)?;
         worksheet.write_number_with_format(
             row,
             3,

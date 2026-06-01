@@ -98,8 +98,8 @@ pub fn generate(
             format_datetime(report.actual_punch_out, tz),
             &time_fmt,
         )?;
-        worksheet.write_number(row, 7, f64::from(report.std_work_units))?;
-        worksheet.write_number(row, 8, f64::from(report.ot_work_units))?;
+        worksheet.write_number(row, 7, report.computed_std_hours)?;
+        worksheet.write_number(row, 8, report.computed_ot_hours)?;
         worksheet.write_string(row, 9, report.ot_claim_status.as_deref().unwrap_or("-"))?;
 
         let status_fmt = match report.status.as_str() {
