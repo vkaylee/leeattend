@@ -506,6 +506,47 @@ async fn test_recruitment_source_breakdown_direct() {
     let repo = DieselEmployeeRepository::new(test_db.diesel_pools.clone());
     repo.create_recruitment_source(&source).await.unwrap();
 
+    // 1. Verify get_recruitment_sources
+    let auth_token = apiserver::diesel_pool::TenantAuthToken::system_override(ws_id);
+    let list = repo.get_recruitment_sources(&auth_token).await.unwrap();
+    assert_eq!(list.len(), 1);
+    assert_eq!(list[0].id, source_id);
+
+    // 2. Verify get_recruitment_source_by_id
+    let fetched = repo
+        .get_recruitment_source_by_id(source_id, &auth_token)
+        .await
+        .unwrap();
+    assert!(fetched.is_some());
+    assert_eq!(fetched.unwrap().name, "Top Recruiting");
+
+    // 3. Verify update_recruitment_source
+    let update_req = apiserver::models::UpdateRecruitmentSourceRequest {
+        name: Some("Premium Agency".to_string()),
+        referrer_employee_id: None,
+        referral_bonus_amount: Some(Decimal::from(100)),
+        referral_bonus_paid: Some(true),
+        agency_contact_name: Some("Alice".to_string()),
+        agency_contact_email: Some("alice@agency.com".to_string()),
+        agency_fee_amount: Some(Decimal::from(500)),
+        agency_fee_paid: Some(true),
+        notes: Some("High tier agency".to_string()),
+    };
+    let updated = repo
+        .update_recruitment_source(source_id, &auth_token, &update_req)
+        .await
+        .unwrap();
+    assert!(updated.is_some());
+    let u = updated.unwrap();
+    assert_eq!(u.name, "Premium Agency");
+    assert_eq!(u.referral_bonus_amount, Some(Decimal::from(100)));
+    assert_eq!(u.referral_bonus_paid, true);
+    assert_eq!(u.agency_contact_name.as_deref(), Some("Alice"));
+    assert_eq!(u.agency_contact_email.as_deref(), Some("alice@agency.com"));
+    assert_eq!(u.agency_fee_amount, Some(Decimal::from(500)));
+    assert_eq!(u.agency_fee_paid, true);
+    assert_eq!(u.notes.as_deref(), Some("High tier agency"));
+
     // Create an employee and set recruitment source
     let emp_id = factory
         .employee()
@@ -514,25 +555,32 @@ async fn test_recruitment_source_breakdown_direct() {
         .create()
         .await;
 
-    repo.set_employee_recruitment_source(
-        &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
-        emp_id,
-        Some(source_id),
-    )
-    .await
-    .expect("Failed to link employee to source");
+    repo.set_employee_recruitment_source(&auth_token, emp_id, Some(source_id))
+        .await
+        .expect("Failed to link employee to source");
 
     let breakdown = repo
-        .get_recruitment_source_breakdown(
-            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
-        )
+        .get_recruitment_source_breakdown(&auth_token)
         .await
         .unwrap();
 
     assert_eq!(breakdown.len(), 1);
     assert_eq!(breakdown[0].source_type, "agency");
-    assert_eq!(breakdown[0].source_name, "Top Recruiting");
+    assert_eq!(breakdown[0].source_name, "Premium Agency");
     assert_eq!(breakdown[0].count, 1);
+
+    // 4. Verify delete_recruitment_source
+    let affected = repo
+        .delete_recruitment_source(source_id, &auth_token)
+        .await
+        .unwrap();
+    assert_eq!(affected, 1);
+
+    let fetched_after = repo
+        .get_recruitment_source_by_id(source_id, &auth_token)
+        .await
+        .unwrap();
+    assert!(fetched_after.is_none());
 }
 
 // ── Timezone Fallback ───────────────────────────────────────────────

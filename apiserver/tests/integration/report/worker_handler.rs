@@ -189,4 +189,18 @@ async fn test_attendance_and_merge_handlers() {
 
     let res = MergeHandler::handle(&queue_repo, &publisher_repo, &merge_detail_job, &deps).await;
     res.expect("MergeHandler Detail should succeed");
+
+    // Direct tests for RedisPublisherRepository methods to ensure 100% coverage
+    publisher_repo
+        .publish_chunk(Uuid::new_v4(), 1, 5)
+        .await
+        .unwrap();
+    publisher_repo
+        .publish_done(Uuid::new_v4(), 5, 100)
+        .await
+        .unwrap();
+    publisher_repo
+        .publish_error(Uuid::new_v4(), "Test error message".to_string(), Some(2))
+        .await
+        .unwrap();
 }

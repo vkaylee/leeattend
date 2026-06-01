@@ -227,3 +227,74 @@ async fn test_overtime_request_full_flow() {
         .unwrap();
     assert_eq!(res.status(), StatusCode::OK);
 }
+
+#[tokio::test]
+async fn test_overtime_request_status_serialization() {
+    use apiserver::models::enums::OtRequestStatus;
+    use apiserver::models::overtime_request::OvertimeRequest;
+    use apiserver::schema::overtime_requests;
+    use chrono::{NaiveDate, Utc};
+    use diesel::prelude::*;
+    use diesel_async::RunQueryDsl;
+
+    let (_app_addr, admin_ws_id, admin_user_id, factory, test_db) = spawn_app_with_factory().await;
+
+    let mut tenant_conn = test_db
+        .diesel_pools
+        .tenants_tx
+        .get_connection(&admin_ws_id)
+        .await
+        .unwrap();
+
+    let statuses = vec![
+        OtRequestStatus::Draft,
+        OtRequestStatus::PendingApproval,
+        OtRequestStatus::Approved,
+        OtRequestStatus::PartiallyAccepted,
+        OtRequestStatus::Active,
+        OtRequestStatus::Completed,
+        OtRequestStatus::Cancelled,
+        OtRequestStatus::Rejected,
+    ];
+
+    for status in statuses {
+        let req_id = Uuid::new_v4();
+        let overtime_req = OvertimeRequest {
+            id: req_id,
+            workspace_id: admin_ws_id,
+            requested_by_user_id: admin_user_id,
+            department_id: None,
+            planned_date: NaiveDate::from_ymd_opt(2026, 6, 1).unwrap(),
+            planned_start_time: None,
+            planned_end_time: None,
+            planned_minutes: 120,
+            reason: format!("Test status {:?}", status),
+            status: status.clone(),
+            workflow_id: None,
+            current_step: 0,
+            quota_warning: None,
+            reconciled_at: None,
+            reconciled_by: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        };
+
+        // Insert
+        let inserted: OvertimeRequest = diesel::insert_into(overtime_requests::table)
+            .values(&overtime_req)
+            .get_result(&mut *tenant_conn)
+            .await
+            .unwrap();
+
+        assert_eq!(inserted.status, status);
+
+        // Query back
+        let queried: OvertimeRequest = overtime_requests::table
+            .filter(overtime_requests::id.eq(req_id))
+            .first(&mut *tenant_conn)
+            .await
+            .unwrap();
+
+        assert_eq!(queried.status, status);
+    }
+}

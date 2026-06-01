@@ -282,12 +282,14 @@ mod tests {
 
     struct MockWorkspaceConfigRepository {
         pub create_entry_called: std::sync::atomic::AtomicBool,
+        pub entries: std::sync::Mutex<Vec<WorkspaceConfigEntry>>,
     }
 
     impl MockWorkspaceConfigRepository {
         fn new() -> Self {
             Self {
                 create_entry_called: std::sync::atomic::AtomicBool::new(false),
+                entries: std::sync::Mutex::new(vec![]),
             }
         }
     }
@@ -301,6 +303,7 @@ mod tests {
         ) -> Result<WorkspaceConfigEntry, AppError> {
             self.create_entry_called
                 .store(true, std::sync::atomic::Ordering::SeqCst);
+            self.entries.lock().unwrap().push(entry.clone());
             Ok(entry)
         }
 
@@ -308,28 +311,51 @@ mod tests {
             &self,
             _auth_token: &TenantAuthToken,
             _workspace_id: Uuid,
-            _config_key: &str,
-            _scope_type: &str,
-            _scope_id: Option<Uuid>,
+            config_key: &str,
+            scope_type: &str,
+            scope_id: Option<Uuid>,
             _target_date: NaiveDate,
         ) -> Result<Option<WorkspaceConfigEntry>, AppError> {
-            Ok(None)
+            let entries = self.entries.lock().unwrap();
+            let entry = entries
+                .iter()
+                .find(|e| {
+                    e.config_key == config_key
+                        && e.scope_type == scope_type
+                        && e.scope_id == scope_id
+                })
+                .cloned();
+            Ok(entry)
         }
 
         async fn list_entries(
             &self,
             _auth_token: &TenantAuthToken,
             _workspace_id: Uuid,
-            _config_key: Option<&str>,
+            config_key: Option<&str>,
         ) -> Result<Vec<WorkspaceConfigEntry>, AppError> {
-            Ok(vec![])
+            let entries = self.entries.lock().unwrap();
+            let filtered = entries
+                .iter()
+                .filter(|e| {
+                    if let Some(key) = config_key {
+                        e.config_key == key
+                    } else {
+                        true
+                    }
+                })
+                .cloned()
+                .collect();
+            Ok(filtered)
         }
 
         async fn delete_entry(
             &self,
             _auth_token: &TenantAuthToken,
-            _entry_id: Uuid,
+            entry_id: Uuid,
         ) -> Result<(), AppError> {
+            let mut entries = self.entries.lock().unwrap();
+            entries.retain(|e| e.id != entry_id);
             Ok(())
         }
     }
@@ -398,5 +424,459 @@ mod tests {
         assert!(repo
             .create_entry_called
             .load(std::sync::atomic::Ordering::SeqCst));
+    }
+
+    #[tokio::test]
+    async fn test_get_effective_config() {
+        let repo = Arc::new(MockWorkspaceConfigRepository::new());
+        let service = WorkspaceConfigService::new(repo.clone());
+        let ws_id = Uuid::new_v4();
+        let token = TenantAuthToken::system_override(ws_id);
+
+        let entry = WorkspaceConfigEntry {
+            id: Uuid::new_v4(),
+            workspace_id: ws_id,
+            scope_type: "employee".to_string(),
+            scope_id: Some(Uuid::new_v4()),
+            config_key: "some_key".to_string(),
+            value_int: Some(42),
+            value_decimal: None,
+            value_text: None,
+            value_bool: None,
+            value_json: None,
+            effective_from: Utc::now().date_naive(),
+            effective_to: None,
+            created_by: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        };
+
+        repo.entries.lock().unwrap().push(entry.clone());
+
+        let res = service
+            .get_effective_config(
+                &token,
+                "some_key",
+                "employee",
+                entry.scope_id,
+                Utc::now().date_naive(),
+            )
+            .await
+            .unwrap();
+
+        assert!(res.is_some());
+        assert_eq!(res.unwrap().value_int, Some(42));
+    }
+
+    #[tokio::test]
+    async fn test_list_entries() {
+        let repo = Arc::new(MockWorkspaceConfigRepository::new());
+        let service = WorkspaceConfigService::new(repo.clone());
+        let ws_id = Uuid::new_v4();
+        let token = TenantAuthToken::system_override(ws_id);
+
+        let entry1 = WorkspaceConfigEntry {
+            id: Uuid::new_v4(),
+            workspace_id: ws_id,
+            scope_type: "workspace".to_string(),
+            scope_id: None,
+            config_key: "key1".to_string(),
+            value_int: Some(1),
+            value_decimal: None,
+            value_text: None,
+            value_bool: None,
+            value_json: None,
+            effective_from: Utc::now().date_naive(),
+            effective_to: None,
+            created_by: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        };
+
+        let entry2 = WorkspaceConfigEntry {
+            id: Uuid::new_v4(),
+            workspace_id: ws_id,
+            scope_type: "workspace".to_string(),
+            scope_id: None,
+            config_key: "key2".to_string(),
+            value_int: Some(2),
+            value_decimal: None,
+            value_text: None,
+            value_bool: None,
+            value_json: None,
+            effective_from: Utc::now().date_naive(),
+            effective_to: None,
+            created_by: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        };
+
+        repo.entries.lock().unwrap().push(entry1);
+        repo.entries.lock().unwrap().push(entry2);
+
+        let res_all = service.list_entries(&token, None).await.unwrap();
+        assert_eq!(res_all.len(), 2);
+
+        let res_key1 = service.list_entries(&token, Some("key1")).await.unwrap();
+        assert_eq!(res_key1.len(), 1);
+        assert_eq!(res_key1[0].config_key, "key1");
+    }
+
+    #[tokio::test]
+    async fn test_delete_entry() {
+        let repo = Arc::new(MockWorkspaceConfigRepository::new());
+        let service = WorkspaceConfigService::new(repo.clone());
+        let ws_id = Uuid::new_v4();
+        let token = TenantAuthToken::system_override(ws_id);
+        let entry_id = Uuid::new_v4();
+
+        let entry = WorkspaceConfigEntry {
+            id: entry_id,
+            workspace_id: ws_id,
+            scope_type: "workspace".to_string(),
+            scope_id: None,
+            config_key: "key1".to_string(),
+            value_int: Some(1),
+            value_decimal: None,
+            value_text: None,
+            value_bool: None,
+            value_json: None,
+            effective_from: Utc::now().date_naive(),
+            effective_to: None,
+            created_by: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        };
+
+        repo.entries.lock().unwrap().push(entry);
+
+        service.delete_entry(&token, entry_id).await.unwrap();
+        let entries = repo.entries.lock().unwrap();
+        assert!(entries.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_get_effective_holiday_strategy() {
+        let repo = Arc::new(MockWorkspaceConfigRepository::new());
+        let service = WorkspaceConfigService::new(repo.clone());
+        let ws_id = Uuid::new_v4();
+        let token = TenantAuthToken::system_override(ws_id);
+
+        let emp_id = Uuid::new_v4();
+        let dept_id = Uuid::new_v4();
+        let employer_id = Uuid::new_v4();
+        let target_date = Utc::now().date_naive();
+        let config_key = "overtime.holiday_overnight_strategy";
+
+        // 1. Fallback Default
+        let strategy = service
+            .get_effective_holiday_strategy(
+                &token,
+                emp_id,
+                Some(dept_id),
+                Some(employer_id),
+                target_date,
+            )
+            .await
+            .unwrap();
+        assert_eq!(
+            strategy,
+            crate::models::HolidayOvernightStrategy::SplitAtMidnight
+        );
+
+        // 2. Workspace scope config
+        let ws_entry = WorkspaceConfigEntry {
+            id: Uuid::new_v4(),
+            workspace_id: ws_id,
+            scope_type: "workspace".to_string(),
+            scope_id: None,
+            config_key: config_key.to_string(),
+            value_int: None,
+            value_decimal: None,
+            value_text: Some("by_punch_in_date".to_string()),
+            value_bool: None,
+            value_json: None,
+            effective_from: target_date,
+            effective_to: None,
+            created_by: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        };
+        repo.entries.lock().unwrap().push(ws_entry);
+
+        let strategy = service
+            .get_effective_holiday_strategy(
+                &token,
+                emp_id,
+                Some(dept_id),
+                Some(employer_id),
+                target_date,
+            )
+            .await
+            .unwrap();
+        assert_eq!(
+            strategy,
+            crate::models::HolidayOvernightStrategy::ByPunchInDate
+        );
+
+        // 3. Employer scope config overrides Workspace
+        let employer_entry = WorkspaceConfigEntry {
+            id: Uuid::new_v4(),
+            workspace_id: ws_id,
+            scope_type: "employer".to_string(),
+            scope_id: Some(employer_id),
+            config_key: config_key.to_string(),
+            value_int: None,
+            value_decimal: None,
+            value_text: Some("by_majority_hours".to_string()),
+            value_bool: None,
+            value_json: None,
+            effective_from: target_date,
+            effective_to: None,
+            created_by: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        };
+        repo.entries.lock().unwrap().push(employer_entry);
+
+        let strategy = service
+            .get_effective_holiday_strategy(
+                &token,
+                emp_id,
+                Some(dept_id),
+                Some(employer_id),
+                target_date,
+            )
+            .await
+            .unwrap();
+        assert_eq!(
+            strategy,
+            crate::models::HolidayOvernightStrategy::ByMajorityHours
+        );
+
+        // 4. Department scope config overrides Employer
+        let dept_entry = WorkspaceConfigEntry {
+            id: Uuid::new_v4(),
+            workspace_id: ws_id,
+            scope_type: "department".to_string(),
+            scope_id: Some(dept_id),
+            config_key: config_key.to_string(),
+            value_int: None,
+            value_decimal: None,
+            value_text: Some("split_at_midnight".to_string()),
+            value_bool: None,
+            value_json: None,
+            effective_from: target_date,
+            effective_to: None,
+            created_by: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        };
+        repo.entries.lock().unwrap().push(dept_entry);
+
+        let strategy = service
+            .get_effective_holiday_strategy(
+                &token,
+                emp_id,
+                Some(dept_id),
+                Some(employer_id),
+                target_date,
+            )
+            .await
+            .unwrap();
+        assert_eq!(
+            strategy,
+            crate::models::HolidayOvernightStrategy::SplitAtMidnight
+        );
+
+        // 5. Employee scope config overrides Department
+        let emp_entry = WorkspaceConfigEntry {
+            id: Uuid::new_v4(),
+            workspace_id: ws_id,
+            scope_type: "employee".to_string(),
+            scope_id: Some(emp_id),
+            config_key: config_key.to_string(),
+            value_int: None,
+            value_decimal: None,
+            value_text: Some("by_punch_in_date".to_string()),
+            value_bool: None,
+            value_json: None,
+            effective_from: target_date,
+            effective_to: None,
+            created_by: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        };
+        repo.entries.lock().unwrap().push(emp_entry);
+
+        let strategy = service
+            .get_effective_holiday_strategy(
+                &token,
+                emp_id,
+                Some(dept_id),
+                Some(employer_id),
+                target_date,
+            )
+            .await
+            .unwrap();
+        assert_eq!(
+            strategy,
+            crate::models::HolidayOvernightStrategy::ByPunchInDate
+        );
+    }
+
+    #[tokio::test]
+    async fn test_get_effective_holiday_ot_multiplier() {
+        let repo = Arc::new(MockWorkspaceConfigRepository::new());
+        let service = WorkspaceConfigService::new(repo.clone());
+        let ws_id = Uuid::new_v4();
+        let token = TenantAuthToken::system_override(ws_id);
+
+        let emp_id = Uuid::new_v4();
+        let dept_id = Uuid::new_v4();
+        let employer_id = Uuid::new_v4();
+        let target_date = Utc::now().date_naive();
+        let config_key = "overtime.default_holiday_ot_multiplier";
+
+        // 1. Fallback Default (3.0)
+        let mult = service
+            .get_effective_holiday_ot_multiplier(
+                &token,
+                emp_id,
+                Some(dept_id),
+                Some(employer_id),
+                target_date,
+            )
+            .await
+            .unwrap();
+        assert_eq!(mult, rust_decimal::Decimal::new(30, 1));
+
+        // 2. Workspace scope config
+        let ws_entry = WorkspaceConfigEntry {
+            id: Uuid::new_v4(),
+            workspace_id: ws_id,
+            scope_type: "workspace".to_string(),
+            scope_id: None,
+            config_key: config_key.to_string(),
+            value_int: None,
+            value_decimal: Some(rust_decimal::Decimal::new(15, 1)), // 1.5
+            value_text: None,
+            value_bool: None,
+            value_json: None,
+            effective_from: target_date,
+            effective_to: None,
+            created_by: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        };
+        repo.entries.lock().unwrap().push(ws_entry);
+
+        let mult = service
+            .get_effective_holiday_ot_multiplier(
+                &token,
+                emp_id,
+                Some(dept_id),
+                Some(employer_id),
+                target_date,
+            )
+            .await
+            .unwrap();
+        assert_eq!(mult, rust_decimal::Decimal::new(15, 1));
+
+        // 3. Employer scope config overrides Workspace
+        let employer_entry = WorkspaceConfigEntry {
+            id: Uuid::new_v4(),
+            workspace_id: ws_id,
+            scope_type: "employer".to_string(),
+            scope_id: Some(employer_id),
+            config_key: config_key.to_string(),
+            value_int: None,
+            value_decimal: Some(rust_decimal::Decimal::new(20, 1)), // 2.0
+            value_text: None,
+            value_bool: None,
+            value_json: None,
+            effective_from: target_date,
+            effective_to: None,
+            created_by: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        };
+        repo.entries.lock().unwrap().push(employer_entry);
+
+        let mult = service
+            .get_effective_holiday_ot_multiplier(
+                &token,
+                emp_id,
+                Some(dept_id),
+                Some(employer_id),
+                target_date,
+            )
+            .await
+            .unwrap();
+        assert_eq!(mult, rust_decimal::Decimal::new(20, 1));
+
+        // 4. Department scope config overrides Employer
+        let dept_entry = WorkspaceConfigEntry {
+            id: Uuid::new_v4(),
+            workspace_id: ws_id,
+            scope_type: "department".to_string(),
+            scope_id: Some(dept_id),
+            config_key: config_key.to_string(),
+            value_int: None,
+            value_decimal: Some(rust_decimal::Decimal::new(25, 1)), // 2.5
+            value_text: None,
+            value_bool: None,
+            value_json: None,
+            effective_from: target_date,
+            effective_to: None,
+            created_by: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        };
+        repo.entries.lock().unwrap().push(dept_entry);
+
+        let mult = service
+            .get_effective_holiday_ot_multiplier(
+                &token,
+                emp_id,
+                Some(dept_id),
+                Some(employer_id),
+                target_date,
+            )
+            .await
+            .unwrap();
+        assert_eq!(mult, rust_decimal::Decimal::new(25, 1));
+
+        // 5. Employee scope config overrides Department
+        let emp_entry = WorkspaceConfigEntry {
+            id: Uuid::new_v4(),
+            workspace_id: ws_id,
+            scope_type: "employee".to_string(),
+            scope_id: Some(emp_id),
+            config_key: config_key.to_string(),
+            value_int: None,
+            value_decimal: Some(rust_decimal::Decimal::new(35, 1)), // 3.5
+            value_text: None,
+            value_bool: None,
+            value_json: None,
+            effective_from: target_date,
+            effective_to: None,
+            created_by: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        };
+        repo.entries.lock().unwrap().push(emp_entry);
+
+        let mult = service
+            .get_effective_holiday_ot_multiplier(
+                &token,
+                emp_id,
+                Some(dept_id),
+                Some(employer_id),
+                target_date,
+            )
+            .await
+            .unwrap();
+        assert_eq!(mult, rust_decimal::Decimal::new(35, 1));
     }
 }

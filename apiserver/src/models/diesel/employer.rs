@@ -39,3 +39,32 @@ impl From<EmployerEntity> for Employer {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_employer_entity_from() {
+        let id = Uuid::new_v4();
+        let ws_id = Uuid::new_v4();
+        let now = Utc::now();
+        let entity = EmployerEntity {
+            id,
+            workspace_id: ws_id,
+            name: "Test Employer".to_string(),
+            tax_code: Some("123456".to_string()),
+            created_at: now,
+            updated_at: now,
+        };
+
+        let employer: Employer = entity.into();
+        assert_eq!(employer.id, id);
+        assert_eq!(employer.workspace_id, ws_id);
+        assert_eq!(employer.name, "Test Employer");
+        assert_eq!(employer.tax_code, Some("123456".to_string()));
+        assert_eq!(employer.legal_address, None);
+        assert_eq!(employer.created_at, now);
+        assert_eq!(employer.updated_at, now);
+    }
+}

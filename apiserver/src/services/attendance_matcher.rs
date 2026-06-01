@@ -379,3 +379,419 @@ impl AttendanceMatcher {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::cache::{RosterData, RosterShift};
+    use crate::models::enums::EarlyArrivalStrategy;
+    use crate::models::{AttendanceRules, Holiday, TimeEntry, Workspace};
+    use crate::repositories::attendance_policy_repository::MockAttendancePolicyRepository;
+    use crate::repositories::employee::MockEmployeeRepository;
+    use crate::repositories::overtime_policy_repository::OvertimePolicyRepositoryTrait;
+    use chrono::{NaiveDate, NaiveTime, Utc};
+    use std::collections::HashMap;
+    use std::sync::Arc;
+    use uuid::Uuid;
+
+    struct MockOvertimePolicyRepository;
+
+    #[async_trait::async_trait]
+    impl OvertimePolicyRepositoryTrait for MockOvertimePolicyRepository {
+        async fn create_policy_definition(
+            &self,
+            _workspace_id: Uuid,
+            _name: &str,
+            _description: Option<&str>,
+        ) -> Result<crate::models::OvertimePolicy, crate::errors::AppError> {
+            unimplemented!()
+        }
+
+        async fn get_policy_definitions(
+            &self,
+            _workspace_id: Uuid,
+        ) -> Result<Vec<crate::models::OvertimePolicy>, crate::errors::AppError> {
+            unimplemented!()
+        }
+
+        async fn get_policy_with_rules(
+            &self,
+            _workspace_id: Uuid,
+            _id: Uuid,
+        ) -> Result<
+            Option<(
+                crate::models::OvertimePolicy,
+                Vec<crate::models::OvertimeRule>,
+            )>,
+            crate::errors::AppError,
+        > {
+            Ok(None)
+        }
+
+        async fn add_rule(
+            &self,
+            _workspace_id: Uuid,
+            _rule: &crate::models::OvertimeRule,
+        ) -> Result<crate::models::OvertimeRule, crate::errors::AppError> {
+            unimplemented!()
+        }
+
+        async fn resolve_policy_for_employee(
+            &self,
+            _employee_id: Uuid,
+            _workspace_id: Uuid,
+            _date: NaiveDate,
+        ) -> Result<Option<Uuid>, crate::errors::AppError> {
+            Ok(None)
+        }
+
+        async fn create_policy_assignment(
+            &self,
+            _workspace_id: Uuid,
+            _assignee_type: &str,
+            _assignee_id: Option<Uuid>,
+            _policy_id: Uuid,
+            _effective_from: NaiveDate,
+        ) -> Result<(), crate::errors::AppError> {
+            unimplemented!()
+        }
+    }
+
+    #[tokio::test]
+    async fn test_process_segment_attendance_no_shift_fallback() {
+        let employee_id = Uuid::new_v4();
+        let ws_id = Uuid::new_v4();
+
+        let workspace = Workspace {
+            id: ws_id,
+            name: "Test Workspace".to_string(),
+            date_format: "YYYY-MM-DD".to_string(),
+            time_format: "HH:mm:ss".to_string(),
+            timezone: "UTC".to_string(),
+            theme_primary_color: "#000".to_string(),
+            default_language: "en".to_string(),
+            logo_url: None,
+            tagline: None,
+            holiday_overnight_strategy: "SplitAtMidnight".to_string(),
+            default_holiday_ot_multiplier: Decimal::new(30, 1),
+            created_at: Utc::now(),
+            custom_db_url_encrypted: None,
+        };
+
+        // Create time entry (punch-in: 08:00, punch-out: 12:00) => 4 hours (8 units of 30 mins)
+        let punch_in = Utc::now()
+            .date_naive()
+            .and_hms_opt(8, 0, 0)
+            .unwrap()
+            .and_utc();
+        let punch_out = Utc::now()
+            .date_naive()
+            .and_hms_opt(12, 0, 0)
+            .unwrap()
+            .and_utc();
+
+        let entry = TimeEntry {
+            id: Uuid::new_v4(),
+            workspace_id: ws_id,
+            employee_id,
+            shift_id: None,
+            punch_in_time: punch_in,
+            punch_out_time: Some(punch_out),
+            duration_minutes: Some(240),
+            is_break_overtime: false,
+            entry_type: "work".to_string(),
+            note: None,
+            generation_metadata: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        };
+
+        let mut daily_entries_map = HashMap::new();
+        daily_entries_map.insert(Utc::now().date_naive(), vec![entry]);
+
+        let ctx = PayrollContext {
+            employee_id,
+            workspace,
+            tz: chrono_tz::UTC,
+            start_date: Utc::now().date_naive(),
+            end_date: Utc::now().date_naive(),
+            salary_history: vec![],
+            all_dept_history: vec![],
+            daily_entries_map,
+            holidays_map: HashMap::new(),
+            roster_data: Arc::new(RosterData::default()),
+            emp_id_number: "EMP001".to_string(),
+            emp_tags: None,
+            payroll_roster_map: HashMap::new(),
+        };
+
+        let std_config = crate::domain::policy::resolver::StandardMonthConfig {
+            std_working_days: Decimal::new(22, 0),
+            hours_per_day: Decimal::new(8, 0),
+            source: "workspace".to_string(),
+        };
+
+        let attendance_rules = AttendanceRules {
+            work_unit_minutes: 30,
+            rounding_policy: "floor".to_string(),
+            early_arrival_strategy: EarlyArrivalStrategy::Block,
+        };
+
+        let mut policy_cache = HashMap::new();
+        let policy_repo = MockAttendancePolicyRepository::new();
+        let employee_repo = MockEmployeeRepository::new();
+        let overtime_policy_repo = MockOvertimePolicyRepository;
+
+        // resolver doesn't get called because day_shifts is empty
+        let args = ProcessSegmentAttendanceArgs {
+            ctx: &ctx,
+            seg_start: Utc::now().date_naive(),
+            seg_end: Utc::now().date_naive(),
+            segment_total_base: Decimal::new(1000, 0),
+            segment_ot_base: Decimal::new(1000, 0),
+            std_config: &std_config,
+            attendance_rules: &attendance_rules,
+            seg_units_per_day: Decimal::new(16, 0),
+            policy_cache: &mut policy_cache,
+            policy_repo: &policy_repo,
+            employee_repo: &employee_repo,
+            overtime_policy_repo: &overtime_policy_repo,
+        };
+
+        let result = AttendanceMatcher::process_segment_attendance(args).await;
+        // 240 mins / 30 mins = 8 units
+        assert_eq!(result.std_units, 8);
+        assert_eq!(result.ot_units, 0);
+    }
+
+    #[tokio::test]
+    async fn test_process_segment_attendance_with_shift_matching() {
+        let employee_id = Uuid::new_v4();
+        let ws_id = Uuid::new_v4();
+        let shift_id = Uuid::new_v4();
+
+        let workspace = Workspace {
+            id: ws_id,
+            name: "Test Workspace".to_string(),
+            date_format: "YYYY-MM-DD".to_string(),
+            time_format: "HH:mm:ss".to_string(),
+            timezone: "UTC".to_string(),
+            theme_primary_color: "#000".to_string(),
+            default_language: "en".to_string(),
+            logo_url: None,
+            tagline: None,
+            holiday_overnight_strategy: "SplitAtMidnight".to_string(),
+            default_holiday_ot_multiplier: Decimal::new(30, 1),
+            created_at: Utc::now(),
+            custom_db_url_encrypted: None,
+        };
+
+        let date = Utc::now().date_naive();
+        // Time entry: 09:00 to 18:00 (matching 9-18 shift)
+        let punch_in = date.and_hms_opt(9, 0, 0).unwrap().and_utc();
+        let punch_out = date.and_hms_opt(18, 0, 0).unwrap().and_utc();
+
+        let entry = TimeEntry {
+            id: Uuid::new_v4(),
+            workspace_id: ws_id,
+            employee_id,
+            shift_id: None,
+            punch_in_time: punch_in,
+            punch_out_time: Some(punch_out),
+            duration_minutes: Some(540), // 9 hours
+            is_break_overtime: false,
+            entry_type: "work".to_string(),
+            note: None,
+            generation_metadata: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        };
+
+        let mut daily_entries_map = HashMap::new();
+        daily_entries_map.insert(date, vec![entry]);
+
+        // Define shift: 09:00 to 18:00, 1 hour (60 min) break
+        let shift = RosterShift {
+            name: "Day Shift".to_string(),
+            report_symbol: Some("D".to_string()),
+            start_time: NaiveTime::from_hms_opt(9, 0, 0).unwrap(),
+            end_time: NaiveTime::from_hms_opt(18, 0, 0).unwrap(),
+            break_duration_minutes: 60,
+            break_start: Some(NaiveTime::from_hms_opt(12, 0, 0).unwrap()),
+            break_end: Some(NaiveTime::from_hms_opt(13, 0, 0).unwrap()),
+            is_break_auto_deduct: true,
+            early_punch_in_grace_period_minutes: 0,
+            allow_early_ot: false,
+            break_is_overtime: false,
+            max_early_ot_minutes: None,
+        };
+
+        let mut shifts = HashMap::new();
+        shifts.insert(shift_id, shift);
+
+        let roster_data = RosterData {
+            shifts,
+            ..Default::default()
+        };
+
+        let mut payroll_roster_map = HashMap::new();
+        payroll_roster_map.insert((employee_id, date), Some(shift_id));
+
+        let ctx = PayrollContext {
+            employee_id,
+            workspace,
+            tz: chrono_tz::UTC,
+            start_date: date,
+            end_date: date,
+            salary_history: vec![],
+            all_dept_history: vec![],
+            daily_entries_map,
+            holidays_map: HashMap::new(),
+            roster_data: Arc::new(roster_data),
+            emp_id_number: "EMP001".to_string(),
+            emp_tags: None,
+            payroll_roster_map,
+        };
+
+        let std_config = crate::domain::policy::resolver::StandardMonthConfig {
+            std_working_days: Decimal::new(22, 0),
+            hours_per_day: Decimal::new(8, 0),
+            source: "workspace".to_string(),
+        };
+
+        let attendance_rules = AttendanceRules {
+            work_unit_minutes: 30,
+            rounding_policy: "floor".to_string(),
+            early_arrival_strategy: EarlyArrivalStrategy::Block,
+        };
+
+        let mut policy_cache = HashMap::new();
+        let mut policy_repo = MockAttendancePolicyRepository::new();
+        policy_repo
+            .expect_get_employee_effective_policy()
+            .returning(|_, _, _| Ok(None));
+
+        let mut employee_repo = MockEmployeeRepository::new();
+        employee_repo
+            .expect_get_working_conditions_at()
+            .returning(|_, _, _| Box::pin(async { Ok(vec![]) }));
+
+        let overtime_policy_repo = MockOvertimePolicyRepository;
+
+        let args = ProcessSegmentAttendanceArgs {
+            ctx: &ctx,
+            seg_start: date,
+            seg_end: date,
+            segment_total_base: Decimal::new(1000, 0),
+            segment_ot_base: Decimal::new(1000, 0),
+            std_config: &std_config,
+            attendance_rules: &attendance_rules,
+            seg_units_per_day: Decimal::new(16, 0),
+            policy_cache: &mut policy_cache,
+            policy_repo: &policy_repo,
+            employee_repo: &employee_repo,
+            overtime_policy_repo: &overtime_policy_repo,
+        };
+
+        let result = AttendanceMatcher::process_segment_attendance(args).await;
+        // Total work duration = 9 hours (540 mins) minus 60 min break = 8 hours (480 mins) = 16 units of 30 mins.
+        assert_eq!(result.std_units, 16);
+    }
+
+    #[tokio::test]
+    async fn test_process_segment_attendance_paid_holiday_no_work() {
+        let employee_id = Uuid::new_v4();
+        let ws_id = Uuid::new_v4();
+
+        let workspace = Workspace {
+            id: ws_id,
+            name: "Test Workspace".to_string(),
+            date_format: "YYYY-MM-DD".to_string(),
+            time_format: "HH:mm:ss".to_string(),
+            timezone: "UTC".to_string(),
+            theme_primary_color: "#000".to_string(),
+            default_language: "en".to_string(),
+            logo_url: None,
+            tagline: None,
+            holiday_overnight_strategy: "SplitAtMidnight".to_string(),
+            default_holiday_ot_multiplier: Decimal::new(30, 1),
+            created_at: Utc::now(),
+            custom_db_url_encrypted: None,
+        };
+
+        let date = Utc::now().date_naive();
+
+        // Holiday map with paid holiday
+        let mut holidays_map = HashMap::new();
+        holidays_map.insert(
+            date,
+            Holiday {
+                id: Uuid::new_v4(),
+                workspace_id: ws_id,
+                date,
+                name: "New Year".to_string(),
+                is_paid: true,
+                is_credit_on_work: false,
+                holiday_type: "full_day".to_string(),
+                ot_multiplier: Some(Decimal::new(30, 1)),
+                created_at: Utc::now(),
+                updated_at: Utc::now(),
+                description: None,
+                work_threshold_percent: None,
+                leave_type_id: None,
+            },
+        );
+
+        let ctx = PayrollContext {
+            employee_id,
+            workspace,
+            tz: chrono_tz::UTC,
+            start_date: date,
+            end_date: date,
+            salary_history: vec![],
+            all_dept_history: vec![],
+            daily_entries_map: HashMap::new(),
+            holidays_map,
+            roster_data: Arc::new(RosterData::default()),
+            emp_id_number: "EMP001".to_string(),
+            emp_tags: None,
+            payroll_roster_map: HashMap::new(),
+        };
+
+        let std_config = crate::domain::policy::resolver::StandardMonthConfig {
+            std_working_days: Decimal::new(22, 0),
+            hours_per_day: Decimal::new(8, 0),
+            source: "workspace".to_string(),
+        };
+
+        let attendance_rules = AttendanceRules {
+            work_unit_minutes: 30,
+            rounding_policy: "floor".to_string(),
+            early_arrival_strategy: EarlyArrivalStrategy::Block,
+        };
+
+        let mut policy_cache = HashMap::new();
+        let policy_repo = MockAttendancePolicyRepository::new();
+        let employee_repo = MockEmployeeRepository::new();
+        let overtime_policy_repo = MockOvertimePolicyRepository;
+
+        let args = ProcessSegmentAttendanceArgs {
+            ctx: &ctx,
+            seg_start: date,
+            seg_end: date,
+            segment_total_base: Decimal::new(1000, 0),
+            segment_ot_base: Decimal::new(1000, 0),
+            std_config: &std_config,
+            attendance_rules: &attendance_rules,
+            seg_units_per_day: Decimal::new(16, 0), // 8 hours * 2 units/hr = 16 units
+            policy_cache: &mut policy_cache,
+            policy_repo: &policy_repo,
+            employee_repo: &employee_repo,
+            overtime_policy_repo: &overtime_policy_repo,
+        };
+
+        let result = AttendanceMatcher::process_segment_attendance(args).await;
+        // Auto-credit standard day (16 units) because it's a paid holiday with no attendance
+        assert_eq!(result.std_units, 16);
+    }
+}
