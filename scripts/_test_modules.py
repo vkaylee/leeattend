@@ -60,6 +60,9 @@ def leeattend_run_lint(component_filter: str = "", mode: str = "all") -> bool:
         typecheck_cmd = build_compose_exec("webdashboard", "bun run type-check", mode=mode)
         tasks.append(("webdashboard-typecheck", "webdashboard", typecheck_cmd))
 
+        i18n_cmd = build_compose_exec("webdashboard", "bun run check-i18n", mode=mode)
+        tasks.append(("webdashboard-i18n", "webdashboard", i18n_cmd))
+
     if mode == "all":
         sync_cmd = build_compose_exec(
             "apiserver", "cargo run -- gen-openapi > /workspace/shared/openapi.json", mode=mode

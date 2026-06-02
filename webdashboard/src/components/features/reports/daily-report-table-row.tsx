@@ -7,9 +7,9 @@ import { DailyAttendanceReport, AttendanceAdjustmentRequest } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { formatHours, getUnitTypeI18nKey, buildWorkUnitsTooltip } from "@/lib/utils/attendance";
 
+import { ScheduleTracePopover } from "../../shifts/schedule-trace-popover";
 import { ReportOtStatusBadge } from "./report-ot-status-badge";
 import { ReportStatusBadge } from "./report-status-badge";
-import { ScheduleTracePopover } from "../../shifts/schedule-trace-popover";
 
 function DailyReportTableRowExpanded({ row }: { row: DailyAttendanceReport }) {
   return (

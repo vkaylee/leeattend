@@ -5,11 +5,11 @@ import React from "react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-import { ToastProvider } from "../../components/ui/toast";
 import * as attendanceHooks from "@/hooks/use-attendance";
 import { useMyPermissions } from "@/hooks/use-permissions";
-import { useWorkspace } from "@/hooks/use-workspace";
 import { fetchAttendanceReport } from "@/lib/api";
+
+import { ToastProvider } from "../../components/ui/toast";
 import OtApprovalsPage from "../approvals/ot-approvals-page";
 
 // Mock i18next

@@ -13,6 +13,7 @@ mod schema_isolation;
 pub mod system_tenants;
 mod test_app_builder;
 mod test_debug_handler;
+mod test_tenant_provisioner;
 mod timezone;
 mod websocket;
 pub mod worker_pool;

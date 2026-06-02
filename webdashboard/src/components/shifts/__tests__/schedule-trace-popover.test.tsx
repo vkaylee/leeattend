@@ -4,7 +4,6 @@ import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi } from "vitest";
 
 import { ScheduleTrace } from "../../../lib/api/types";
-
 import { ScheduleTracePopover } from "../schedule-trace-popover";
 
 // Mock translation locally to ensure we test against keys, not translated values
@@ -86,12 +85,12 @@ describe("ScheduleTracePopover", () => {
     const user = userEvent.setup();
     render(
       <ScheduleTracePopover 
-        source="roster" 
-        traces={mockTraces} 
-        shiftName="Day Shift" 
-        startTime="08:00:00" 
         endTime="17:00:00" 
+        shiftName="Day Shift" 
         shiftSymbol="DS" 
+        source="roster" 
+        startTime="08:00:00" 
+        traces={mockTraces} 
       />
     );
 

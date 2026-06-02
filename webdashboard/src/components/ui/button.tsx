@@ -58,13 +58,13 @@ const Button = memo(
   ) {
     return (
       <button
-        data-component="Button"
         className={cn(
           "inline-flex items-center justify-center font-bold uppercase tracking-widest transition-all active:scale-95 disabled:bg-slate-200 disabled:text-slate-600 disabled:shadow-none disabled:cursor-not-allowed dark:disabled:bg-slate-800 dark:disabled:text-slate-400",
           VARIANT_STYLES[variant],
           SIZE_STYLES[size],
           className,
         )}
+        data-component="Button"
         disabled={disabled ?? loading}
         ref={ref}
         type={type}

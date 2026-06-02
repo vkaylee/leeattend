@@ -17,12 +17,12 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { WorkingCondition } from "@/lib/api/types";
-import { apiFetch } from "@/lib/api/helpers";
 
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { useConfirm } from "@/hooks/use-confirm";
 import { useWorkingConditions } from "@/hooks/use-employees";
+import { apiFetch } from "@/lib/api/helpers";
 import { cn } from "@/lib/utils";
 
 enum EmployeeWorkingConditionType {

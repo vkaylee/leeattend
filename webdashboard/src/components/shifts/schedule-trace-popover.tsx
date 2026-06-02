@@ -11,12 +11,12 @@ import { Typography } from "@/components/ui/typography";
 import { ScheduleTrace } from '../../lib/api/types';
 
 interface ScheduleTracePopoverProps {
-  source: string;
-  traces: ScheduleTrace[];
-  shiftName?: string | null;
-  startTime?: string | null;
   endTime?: string | null;
+  shiftName?: string | null;
   shiftSymbol?: string | null;
+  source: string;
+  startTime?: string | null;
+  traces: ScheduleTrace[];
 }
 
 function AppliedShiftCard({
@@ -194,8 +194,8 @@ export const ScheduleTracePopover: React.FC<ScheduleTracePopoverProps> = ({
   return (
     <Popover.Root>
       <Popover.Trigger 
-        data-testid="schedule-trace-trigger"
-        className="w-[18px] h-[18px] flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-750 text-slate-500 dark:text-slate-400 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary-500 cursor-pointer" 
+        className="w-[18px] h-[18px] flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-750 text-slate-500 dark:text-slate-400 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary-500 cursor-pointer"
+        data-testid="schedule-trace-trigger" 
         onClick={(e: React.MouseEvent) => { e.stopPropagation(); }}
       >
         <Info size={11} />
@@ -223,10 +223,10 @@ export const ScheduleTracePopover: React.FC<ScheduleTracePopoverProps> = ({
 
             {/* Resolved Shift Card */}
             <AppliedShiftCard 
-              shiftName={shiftName}
-              startTime={startTime}
               endTime={endTime}
+              shiftName={shiftName}
               shiftSymbol={shiftSymbol}
+              startTime={startTime}
               t={t}
             />
 

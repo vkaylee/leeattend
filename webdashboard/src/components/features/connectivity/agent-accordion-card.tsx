@@ -45,7 +45,60 @@ interface AgentHeaderProps {
   onToggleTrust: () => void;
 }
 
-// eslint-disable-next-line max-lines-per-function
+interface AgentActionButtonsProps {
+  agent: AuthorizedAgent;
+  onDelete: () => void;
+  onEdit: (agent: AuthorizedAgent) => void;
+  onToggleTrust: () => void;
+}
+
+function AgentActionButtons({
+  agent,
+  onEdit,
+  onToggleTrust,
+  onDelete,
+}: AgentActionButtonsProps) {
+  const { t } = useTranslation();
+  return (
+    <div
+      className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all shrink-0"
+      onClick={e => { e.stopPropagation(); }}
+      onKeyDown={e => { e.stopPropagation(); }}
+      role="none"
+    >
+      <Button
+        className="p-3 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 h-auto"
+        data-testid={`agent-edit-${agent.id}`}
+        onClick={() => { onEdit(agent); }}
+        variant="ghost"
+      >
+        <Pencil size={18} />
+      </Button>
+      <Button
+        className={cn(
+          "px-4 py-2 rounded-xl text-[9px] font-bold uppercase tracking-widest border shadow-sm h-auto",
+          agent.is_trusted
+            ? "text-rose-600 dark:text-rose-300 hover:bg-rose-50 dark:bg-rose-950 border-rose-100 dark:border-rose-800 bg-white dark:bg-slate-900"
+            : "bg-emerald-600 text-white border-transparent hover:bg-emerald-700 hover:text-white"
+        )}
+        data-testid={`agent-trust-toggle-${agent.id}`}
+        onClick={onToggleTrust}
+        variant="ghost"
+      >
+        {agent.is_trusted ? t("common.revoke") : t("common.approve")}
+      </Button>
+      <Button
+        className="p-3 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:text-rose-300 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 h-auto"
+        data-testid={`agent-delete-${agent.id}`}
+        onClick={onDelete}
+        variant="ghost"
+      >
+        <Trash2 size={18} />
+      </Button>
+    </div>
+  );
+}
+
 function AgentHeader({
   agent,
   deviceCount,
@@ -119,42 +172,12 @@ function AgentHeader({
         {agent.last_seen_at ? new Date(agent.last_seen_at).toLocaleString() : t("common.never")}
       </div>
 
-      <div
-        className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all shrink-0"
-        onClick={e => { e.stopPropagation(); }}
-        onKeyDown={e => { e.stopPropagation(); }}
-        role="none"
-      >
-        <Button
-          className="p-3 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 h-auto"
-          data-testid={`agent-edit-${agent.id}`}
-          onClick={() => { onEdit(agent); }}
-          variant="ghost"
-        >
-          <Pencil size={18} />
-        </Button>
-        <Button
-          className={cn(
-            "px-4 py-2 rounded-xl text-[9px] font-bold uppercase tracking-widest border shadow-sm h-auto",
-            agent.is_trusted
-              ? "text-rose-600 dark:text-rose-300 hover:bg-rose-50 dark:bg-rose-950 border-rose-100 dark:border-rose-800 bg-white dark:bg-slate-900"
-              : "bg-emerald-600 text-white border-transparent hover:bg-emerald-700 hover:text-white"
-          )}
-          data-testid={`agent-trust-toggle-${agent.id}`}
-          onClick={onToggleTrust}
-          variant="ghost"
-        >
-          {agent.is_trusted ? t("common.revoke") : t("common.approve")}
-        </Button>
-        <Button
-          className="p-3 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:text-rose-300 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 h-auto"
-          data-testid={`agent-delete-${agent.id}`}
-          onClick={onDelete}
-          variant="ghost"
-        >
-          <Trash2 size={18} />
-        </Button>
-      </div>
+      <AgentActionButtons
+        agent={agent}
+        onDelete={onDelete}
+        onEdit={onEdit}
+        onToggleTrust={onToggleTrust}
+      />
     </div>
   );
 }

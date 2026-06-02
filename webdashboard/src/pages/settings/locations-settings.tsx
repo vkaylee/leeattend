@@ -3,13 +3,14 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
+import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
 import { getCurrentWorkspaceId } from "@/lib/api";
-import { useLocations, useDeleteLocation } from "./hooks/use-locations";
 import { WorkLocation } from "@/lib/api-generated/models";
-import LocationFormDrawer from "./components/location-form-drawer";
-import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
+
+import LocationFormDrawer from "./components/location-form-drawer";
+import { useLocations, useDeleteLocation } from "./hooks/use-locations";
 
 export default function LocationsSettings() {
   const { t } = useTranslation();
@@ -28,8 +29,8 @@ export default function LocationsSettings() {
     }
     if (confirm(t("settings.locations.confirm_delete", { defaultValue: "Are you sure you want to delete this location?" }))) {
       deleteLocation.mutate(id, {
-        onSuccess: () => toast.success(t("settings.locations.deleted", { defaultValue: "Location deleted successfully" })),
-        onError: (err: any) => toast.error(err.message || "Failed to delete"),
+        onSuccess: () => { toast.success(t("settings.locations.deleted", { defaultValue: "Location deleted successfully" })); },
+        onError: (err: Error) => { toast.error(err.message); },
       });
     }
   };
@@ -61,8 +62,8 @@ export default function LocationsSettings() {
           </div>
         </div>
         
-        <Button onClick={handleAdd} className="rounded-2xl px-6" variant="primary">
-          <Plus size={16} className="mr-2" />
+        <Button className="rounded-2xl px-6" onClick={handleAdd} variant="primary">
+          <Plus className="mr-2" size={16} />
           {t("settings.locations.add", { defaultValue: "Add Location" })}
         </Button>
       </div>
@@ -77,13 +78,13 @@ export default function LocationsSettings() {
         ) : (
           locations?.map((location) => (
             <div 
-              key={location.id} 
               className={cn(
                 "group relative bg-white dark:bg-slate-900 rounded-[2.5rem] border p-6 shadow-sm hover:shadow-md transition-all duration-300",
                 location.is_headquarters 
                   ? "border-primary-200 dark:border-primary-800" 
                   : "border-slate-100 dark:border-slate-800"
-              )}
+              )} 
+              key={location.id}
             >
               <div className="flex justify-between items-start mb-4">
                 <div className="flex items-center gap-3">
@@ -99,29 +100,29 @@ export default function LocationsSettings() {
                     <Typography className="font-bold text-slate-800 dark:text-slate-200" variant="h4">
                       {location.name}
                     </Typography>
-                    {location.is_headquarters && (
+                    {location.is_headquarters ? (
                       <span className="text-[10px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest px-2 py-0.5 bg-primary-50 dark:bg-primary-900/30 rounded-full">
                         {t("settings.locations.hq", { defaultValue: "Headquarters" })}
                       </span>
-                    )}
+                    ) : null}
                   </div>
                 </div>
                 
                 <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
                   <Button 
-                    size="icon" 
-                    variant="ghost" 
-                    onClick={() => handleEdit(location)}
-                    className="w-8 h-8 rounded-xl text-slate-400 hover:text-primary-600"
+                    className="w-8 h-8 rounded-xl text-slate-400 hover:text-primary-600" 
+                    onClick={() => { handleEdit(location); }} 
+                    size="icon"
+                    variant="ghost"
                   >
                     <Edit2 size={14} />
                   </Button>
                   {!location.is_headquarters && (
                     <Button 
-                      size="icon" 
-                      variant="ghost" 
-                      onClick={() => handleDelete(location.id, location.is_headquarters)}
-                      className="w-8 h-8 rounded-xl text-slate-400 hover:text-red-600"
+                      className="w-8 h-8 rounded-xl text-slate-400 hover:text-red-600" 
+                      onClick={() => { handleDelete(location.id, location.is_headquarters); }} 
+                      size="icon"
+                      variant="ghost"
                     >
                       <Trash2 size={14} />
                     </Button>
@@ -135,7 +136,7 @@ export default function LocationsSettings() {
                     {t("settings.locations.address", { defaultValue: "Address" })}
                   </Typography>
                   <span className="text-slate-600 dark:text-slate-300 font-medium">
-                    {location.address || "—"}
+                    {location.address ?? "—"}
                   </span>
                 </div>
                 <div className="text-sm">
@@ -153,9 +154,9 @@ export default function LocationsSettings() {
       </div>
 
       <LocationFormDrawer 
+        editingLocation={editingLocation} 
         isOpen={isDrawerOpen} 
-        onClose={() => setIsDrawerOpen(false)} 
-        editingLocation={editingLocation}
+        onClose={() => { setIsDrawerOpen(false); }}
         wsId={wsId}
       />
     </div>

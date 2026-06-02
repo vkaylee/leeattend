@@ -6,7 +6,7 @@ import { useWorkspaceRoles } from "@/hooks/use-workspace";
 import { cn } from "@/lib/utils";
 
 interface RoleFormModalProps {
-  editingRole?: { id: string; name: string; description?: string; color?: string } | null;
+  editingRole?: { id: string; name: string; description?: string | null; color?: string } | null;
   isOpen: boolean;
   onClose: () => void;
 }

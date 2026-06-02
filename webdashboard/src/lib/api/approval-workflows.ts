@@ -40,7 +40,7 @@ export const approvalWorkflowsApi = {
             }
     });
     if (!resData) throw new Error("No response data");
-    return resData as ApprovalWorkflow[];
+    return resData;
   },
 
   getWorkflow: async (workspaceId: string, id: string): Promise<ApprovalWorkflow> => {
@@ -50,7 +50,7 @@ export const approvalWorkflowsApi = {
       }
     });
     if (!resData) throw new Error("No response data");
-    return resData as ApprovalWorkflow;
+    return resData;
   },
 
   createWorkflow: async (workspaceId: string, payload: CreateWorkflowRequest): Promise<ApprovalWorkflow> => {
@@ -61,7 +61,7 @@ export const approvalWorkflowsApi = {
       body: payload
     });
     if (!resData) throw new Error("No response data");
-    return resData as ApprovalWorkflow;
+    return resData;
   },
 
   updateWorkflow: async (workspaceId: string, id: string, payload: UpdateWorkflowRequest): Promise<ApprovalWorkflow> => {
@@ -72,7 +72,7 @@ export const approvalWorkflowsApi = {
       body: payload
     });
     if (!resData) throw new Error("No response data");
-    return resData as ApprovalWorkflow;
+    return resData;
   },
 
   deleteWorkflow: async (workspaceId: string, id: string): Promise<void> => {
@@ -90,7 +90,7 @@ export const approvalWorkflowsApi = {
       }
     });
     if (!resData) throw new Error("No response data");
-    return resData as ApprovalActionLog[];
+    return resData;
   },
 
   processApproval: async (workspaceId: string, payload: {

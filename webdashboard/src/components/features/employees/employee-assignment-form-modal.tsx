@@ -12,11 +12,11 @@ import { Combobox } from "@/components/ui/combobox";
 import FormField from "@/components/ui/form-field";
 import Modal from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
-import { useLocations } from "@/pages/settings/hooks/use-locations";
 import {
   useCreateEmployeeAssignment,
   useUpdateEmployeeAssignment,
 } from "@/hooks/use-employee-assignments";
+import { useLocations } from "@/pages/settings/hooks/use-locations";
 
 const assignmentSchema = z
   .object({
@@ -126,7 +126,7 @@ export default function EmployeeAssignmentFormModal({
           data: {
             start_date: data.start_date,
             end_date: payloadDate,
-            host_location_id: payloadLocationId as string,
+            host_location_id: payloadLocationId!,
             reason: data.reason,
           },
         });
@@ -195,7 +195,7 @@ export default function EmployeeAssignmentFormModal({
                 />
               )}
             />
-            {errors.host_location_id?.message && (
+            {!!errors.host_location_id?.message && (
               <p className="text-sm font-semibold text-rose-500 mt-1">
                 {errors.host_location_id.message}
               </p>

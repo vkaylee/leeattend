@@ -1,7 +1,7 @@
+import { client } from "./client";
 import { API_BASE_URL } from './config';
 import { apiFetch } from "./helpers";
 import { LeavePolicyAssignmentDetail, LeaveRequest, EmployeeLeaveBalance, WorkspaceLeaveBalance, LeaveHistoryItem, LeavePolicy, LeaveType, LeaveTypeConfig, LeaveDurationType, PaginatedResponse } from './types';
-import { client } from "./client";
 
 export async function submitLeaveRequest(
   wsId: string,
@@ -23,7 +23,7 @@ export async function submitLeaveRequest(
     body: data,
   });
   if (!resData) throw new Error("No response data");
-  return resData as unknown as LeaveRequest;
+  return resData;
 }
 
 export async function fetchWorkspaceLeaveRequests(
@@ -37,7 +37,7 @@ export async function fetchWorkspaceLeaveRequests(
     },
   });
   if (!resData) throw new Error("No response data");
-  return resData as unknown as LeaveRequest[];
+  return resData;
 }
 
 export async function fetchMyLeaveRequests(
@@ -49,7 +49,7 @@ export async function fetchMyLeaveRequests(
     },
   });
   if (!resData) throw new Error("No response data");
-  return resData as unknown as LeaveRequest[];
+  return resData;
 }
 
 export async function approveLeaveRequest(
@@ -75,7 +75,7 @@ export async function fetchEmployeeLeaveBalances(
     },
   });
   if (!resData) throw new Error("No response data");
-  return resData as unknown as EmployeeLeaveBalance[];
+  return resData;
 }
 
 export async function fetchWorkspaceLeaveBalances(
@@ -94,7 +94,7 @@ export async function fetchWorkspaceLeaveBalances(
     },
   });
   if (!resData) throw new Error("No response data");
-  return resData as unknown as PaginatedResponse<WorkspaceLeaveBalance>;
+  return resData;
 }
 
 export async function fetchLeaveHistory(
@@ -109,7 +109,7 @@ export async function fetchLeaveHistory(
     },
   });
   if (!resData) throw new Error("No response data");
-  return resData as unknown as LeaveHistoryItem[];
+  return resData;
 }
 
 export async function adjustLeaveBalance(
@@ -182,7 +182,7 @@ export async function fetchLeaveTypes(wsId: string): Promise<LeaveType[]> {
     },
   });
   if (!resData) throw new Error("No response data");
-  return resData as unknown as LeaveType[];
+  return resData;
 }
 
 export async function createLeaveType(
@@ -196,7 +196,7 @@ export async function createLeaveType(
     body: data,
   });
   if (!resData) throw new Error("No response data");
-  return resData as unknown as LeaveType;
+  return resData;
 }
 
 export async function updateLeaveType(
@@ -257,7 +257,7 @@ export async function triggerAccrualRun(
     body: data,
   });
   if (!resData) throw new Error("No response data");
-  return resData as unknown as AccrualJobResponse;
+  return resData;
 }
 
 export interface JobStatusResponse {
@@ -292,7 +292,7 @@ export async function updateLeaveTypeConfig(
     body: { policy_config: config as any },
   });
   if (!resData) throw new Error("No response data");
-  return resData as unknown as LeaveType;
+  return resData;
 }
 
 // ========================
@@ -335,7 +335,7 @@ export async function fetchLatestLeaveImport(
       path: { ws_id: wsId },
     },
   });
-  return resData as unknown as LeaveImportJob | null;
+  return resData as LeaveImportJob | null;
 }
 
 /** Fetch a specific import job by its ID (for polling). */
@@ -348,7 +348,7 @@ export async function fetchLeaveImportStatus(
       path: { ws_id: wsId },
     },
   });
-  return resData as unknown as LeaveImportJob | null;
+  return resData as LeaveImportJob | null;
 }
 
 /** Get the URL for downloading the error Excel file (URL-only, for non-fetch usage). */

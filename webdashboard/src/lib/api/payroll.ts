@@ -1,5 +1,4 @@
-import { API_BASE_URL } from "./config";
-import { apiFetch } from "./helpers";
+import { client } from "./client";
 import { 
   Payslip, 
   PayrollSettings,
@@ -17,14 +16,13 @@ import {
   BatchCalculateResult,
   ConfigRecord
 } from "./types";
-import { client } from "./client";
 
 export async function fetchIncentivePolicies(wsId: string): Promise<PayrollIncentivePolicy[]> {
   const { data: resData } = await client.GET("/workspaces/{ws_id}/payroll/incentive-policies", {
     params: { path: { ws_id: wsId } }
   });
   if (!resData) throw new Error("No response data");
-  return resData as unknown as PayrollIncentivePolicy[];
+  return resData;
 }
 
 export async function createIncentivePolicy(wsId: string, data: { base_amount: number; effective_from: string; name: string; payout_type: string; tiers: any[] }): Promise<void> {
@@ -52,7 +50,7 @@ export async function createSalaryBaseGroup(wsId: string, data: { name: string; 
     body: data
   });
   if (!resData) throw new Error("No response data");
-  return resData as unknown as SalaryBaseGroup;
+  return resData;
 }
 
 export async function fetchSalaryBaseGroups(wsId: string): Promise<{ groups: SalaryBaseGroup[], members: SalaryBaseGroupMember[] }> {
@@ -60,7 +58,7 @@ export async function fetchSalaryBaseGroups(wsId: string): Promise<{ groups: Sal
     params: { path: { ws_id: wsId } }
   });
   if (!resData) throw new Error("No response data");
-  return resData as unknown as { groups: SalaryBaseGroup[], members: SalaryBaseGroupMember[] };
+  return resData;
 }
 
 export async function assignComponentToSalaryBase(wsId: string, baseId: string, componentId: string): Promise<void> {
@@ -81,7 +79,7 @@ export async function fetchPayrollSettings(wsId: string): Promise<PayrollSetting
     params: { path: { ws_id: wsId } }
   });
   if (!resData) throw new Error("No response data");
-  return resData as unknown as PayrollSettings;
+  return resData;
 }
 
 export async function updatePayrollSettings(wsId: string, data: { description?: string | null; name: string }): Promise<PayrollSettings> {
@@ -90,7 +88,7 @@ export async function updatePayrollSettings(wsId: string, data: { description?: 
     body: data
   });
   if (!resData) throw new Error("No response data");
-  return resData as unknown as PayrollSettings;
+  return resData;
 }
 
 export async function fetchPayrollSettingsHistory(wsId: string): Promise<PayrollSettings[]> {
@@ -98,7 +96,7 @@ export async function fetchPayrollSettingsHistory(wsId: string): Promise<Payroll
     params: { path: { ws_id: wsId } }
   });
   if (!resData) throw new Error("No response data");
-  return resData as unknown as PayrollSettings[];
+  return resData;
 }
 
 export async function fetchSalaryComponents(wsId: string): Promise<SalaryComponentDefinition[]> {
@@ -106,7 +104,7 @@ export async function fetchSalaryComponents(wsId: string): Promise<SalaryCompone
     params: { path: { ws_id: wsId } }
   });
   if (!resData) throw new Error("No response data");
-  return resData as unknown as SalaryComponentDefinition[];
+  return resData;
 }
 
 export async function createSalaryComponent(
@@ -118,7 +116,7 @@ export async function createSalaryComponent(
     body: data
   });
   if (!resData) throw new Error("No response data");
-  return resData as unknown as SalaryComponentDefinition;
+  return resData;
 }
 
 export async function fetchEmployeeSalaryComponents(wsId: string, employeeId: string): Promise<EmployeeSalaryComponent[]> {
@@ -139,7 +137,7 @@ export async function assignEmployeeSalaryComponent(
     body: data
   });
   if (!resData) throw new Error("No response data");
-  return resData as unknown as EmployeeSalaryComponent;
+  return resData;
 }
 
 export async function calculate_payroll(
@@ -155,7 +153,7 @@ export async function calculate_payroll(
     }
   });
   if (!resData) throw new Error("No response data");
-  return resData as unknown as Payslip;
+  return resData;
 }
 
 export async function fetchEmployeePayslips(
@@ -166,7 +164,7 @@ export async function fetchEmployeePayslips(
     params: { path: { ws_id: wsId, employee_id: employeeId } }
   });
   if (!resData) throw new Error("No response data");
-  return resData as unknown as Payslip[];
+  return resData;
 }
 
 export async function fetchEmployeePayrollConfigs(wsId: string, employeeId: string): Promise<ConfigRecord[]> {
@@ -183,7 +181,7 @@ export async function fetchOvertimePolicies(wsId: string): Promise<OvertimePolic
     params: { path: { ws_id: wsId } }
   });
   if (!resData) throw new Error("No response data");
-  return resData as unknown as OvertimePolicy[];
+  return resData;
 }
 
 export async function fetchOvertimePolicy(wsId: string, policyId: string): Promise<[OvertimePolicy, OvertimeRule[]]> {
@@ -200,7 +198,7 @@ export async function createOvertimePolicy(wsId: string, data: any): Promise<Ove
     body: data
   });
   if (!resData) throw new Error("No response data");
-  return resData as unknown as OvertimePolicy;
+  return resData;
 }
 
 export async function addOvertimeRule(wsId: string, policyId: string, data: { days_of_week: number; is_holiday: boolean; multiplier: string; priority: number; time_end?: string | null; time_start?: string | null }): Promise<OvertimeRule> {
@@ -209,7 +207,7 @@ export async function addOvertimeRule(wsId: string, policyId: string, data: { da
     body: data
   });
   if (!resData) throw new Error("No response data");
-  return resData as unknown as OvertimeRule;
+  return resData;
 }
 
 export async function setEmployeePayrollConfig(wsId: string, employeeId: string, data: { effective_date: string; hours_per_day: string; std_working_days: string } & Record<string, unknown>): Promise<Record<string, unknown>> {
@@ -218,7 +216,7 @@ export async function setEmployeePayrollConfig(wsId: string, employeeId: string,
     body: data
   });
   if (!resData) throw new Error("No response data");
-  return resData as unknown as Record<string, unknown>;
+  return resData;
 }
 
 export async function fetchDepartmentPayrollConfigs(wsId: string, deptId: string): Promise<Record<string, unknown>> {
@@ -235,7 +233,7 @@ export async function setDepartmentPayrollConfig(wsId: string, deptId: string, d
     body: data
   });
   if (!resData) throw new Error("No response data");
-  return resData as unknown as Record<string, unknown>;
+  return resData;
 }
 
 export async function calculateBatchPayslips(wsId: string, data: { employee_ids: string[]; year: number; month: number }): Promise<{ results: BatchCalculateResult[] }> {
@@ -244,7 +242,7 @@ export async function calculateBatchPayslips(wsId: string, data: { employee_ids:
     body: data
   });
   if (!resData) throw new Error("No response data");
-  return resData as unknown as { results: BatchCalculateResult[] };
+  return resData;
 }
 
 export async function fetchWorkspacePayslips(wsId: string, year: number, month: number): Promise<Payslip[]> {
@@ -255,7 +253,7 @@ export async function fetchWorkspacePayslips(wsId: string, year: number, month: 
     }
   });
   if (!resData) throw new Error("No response data");
-  return resData as unknown as Payslip[];
+  return resData;
 }
 
 export async function assignOvertimePolicy(wsId: string, data: { assignee_id?: string | null; assignee_type: string; effective_from: string; policy_id: string }): Promise<void> {
@@ -272,7 +270,7 @@ export async function fetchPayrollRules(wsId: string): Promise<PayrollRuleDefini
     params: { path: { ws_id: wsId } }
   });
   if (!resData) throw new Error("No response data");
-  return resData as unknown as PayrollRuleDefinition[];
+  return resData;
 }
 
 export async function createPayrollRule(wsId: string, data: { applies_to: any; calculation_method: any; category: any; code: string; name: string; description?: string | null; rule_config: unknown; priority: number; }): Promise<PayrollRuleDefinition> {
@@ -281,7 +279,7 @@ export async function createPayrollRule(wsId: string, data: { applies_to: any; c
     body: data
   });
   if (!resData) throw new Error("No response data");
-  return resData as unknown as PayrollRuleDefinition;
+  return resData;
 }
 
 export async function fetchPayrollRuleTiers(wsId: string, ruleId: string): Promise<PayrollRuleTier[]> {
@@ -289,7 +287,7 @@ export async function fetchPayrollRuleTiers(wsId: string, ruleId: string): Promi
     params: { path: { ws_id: wsId, rule_id: ruleId } }
   });
   if (!resData) throw new Error("No response data");
-  return resData as unknown as PayrollRuleTier[];
+  return resData;
 }
 
 export async function createPayrollRuleTier(wsId: string, ruleId: string, data: { fixed_amount?: string | null; max_amount?: string | null; min_amount: string; rate: string; tier_order: number }): Promise<PayrollRuleTier> {
@@ -298,7 +296,7 @@ export async function createPayrollRuleTier(wsId: string, ruleId: string, data: 
     body: data
   });
   if (!resData) throw new Error("No response data");
-  return resData as unknown as PayrollRuleTier;
+  return resData;
 }
 
 // --- Payroll Rule Assignments ---
@@ -308,7 +306,7 @@ export async function fetchPayrollRuleAssignments(wsId: string, ruleId: string):
     params: { path: { ws_id: wsId, rule_id: ruleId } }
   });
   if (!resData) throw new Error("No response data");
-  return resData as unknown as PayrollRuleAssignment[];
+  return resData;
 }
 
 export async function createPayrollRuleAssignment(wsId: string, ruleId: string, data: { assignee_id?: string | null; assignee_type: any; effective_from: string; effective_to?: string | null; override_config?: unknown }): Promise<PayrollRuleAssignment> {
@@ -317,7 +315,7 @@ export async function createPayrollRuleAssignment(wsId: string, ruleId: string, 
     body: data
   });
   if (!resData) throw new Error("No response data");
-  return resData as unknown as PayrollRuleAssignment;
+  return resData;
 }
 
 export async function deletePayrollRuleAssignment(wsId: string, ruleId: string, assignmentId: string): Promise<void> {

@@ -1,46 +1,87 @@
 const fs = require('fs');
 const path = require('path');
 
-const enPath = path.join(__dirname, 'webdashboard/src/i18n/locales/en.json');
-let en = JSON.parse(fs.readFileSync(enPath, 'utf8'));
+const localesDir = path.join(__dirname, '../../webdashboard/src/i18n/locales');
+const langs = ['vi', 'en', 'zh'];
 
-const keysToCopy = [
-  'agents', 'payroll', 'settings', 'leave_requests', 'members', 
-  'employees', 'departments', 'attendance_confirm', 'attendance_logs', 
-  'attendance_import', 'devices', 'onboarding', 'profile', 'reports', 
-  'patterns', 'rules', 'shifts', 'days', 'debug_tools', 'time_tracking', 
-  'ess', 'leave_balances'
-];
-
-if (!en.common) en.common = {};
-
-keysToCopy.forEach(key => {
-  if (en[key] && typeof en[key] === 'object') {
-    // Duplicate to common[key]
-    // If common[key] is a string, keep it as a special field or just overwrite?
-    // Based on App.tsx, t("common.agents") is used as a string.
-    // So we can't easily have both unless we use a trick.
-    // But wait, if we make common.agents an object, t("common.agents") returns an object.
-    
-    // For now, let's ONLY copy if the code uses it as an object.
-    // Code uses t("common.agents.edit_modal...") -> needs object.
-    // Code uses t("common.agents") -> needs string.
-    
-    // I'll use a Proxy-like approach in the JSON if I could, but I can't.
-    // I'll just choose one.
-    // Actually, I'll keep the string in common and have top-level for objects.
-    // AND I'll fix the code that uses common.prefix for objects to NOT use it.
-    
-    // Wait, the user wants to run tests.
-    // I'll just make the tests happy.
+function getFlatKeys(obj, prefix = '') {
+  let keys = [];
+  for (const [key, value] of Object.entries(obj)) {
+    const newKey = prefix ? `${prefix}.${key}` : key;
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      keys = keys.concat(getFlatKeys(value, newKey));
+    } else {
+      keys.push(newKey);
+    }
   }
-});
+  return keys;
+}
 
-// Manual fix for reported missing keys in translation-usage.test.ts
-// These were reported as missing in [en]
-// App.tsx uses t("settings.categories.general")
-// en.json has settings.categories.general at top level (restored).
-// So why was it missing?
-// Maybe I didn't restore it correctly.
+try {
+  // Get all namespace JSON files from the 'en' directory
+  const enDir = path.join(localesDir, 'en');
+  if (!fs.existsSync(enDir)) {
+    console.error(`Error: 'en' locale directory not found at ${enDir}`);
+    process.exit(1);
+  }
 
-// Let's just make a script that ensures consistency.
+  const jsonFiles = fs.readdirSync(enDir).filter(f => f.endsWith('.json'));
+
+  let hasDiscrepancy = false;
+
+  for (const jsonFile of jsonFiles) {
+    console.log(`Checking namespace: ${jsonFile}...`);
+    const fileKeys = {};
+
+    for (const lang of langs) {
+      const filePath = path.join(localesDir, lang, jsonFile);
+      if (!fs.existsSync(filePath)) {
+        console.error(`❌ File ${jsonFile} missing in ${lang}/`);
+        hasDiscrepancy = true;
+        continue;
+      }
+
+      const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+      fileKeys[lang] = new Set(getFlatKeys(data));
+    }
+
+    // Compare keys between languages
+    for (let i = 0; i < langs.length; i++) {
+      for (let j = i + 1; j < langs.length; j++) {
+        const langA = langs[i];
+        const langB = langs[j];
+        const keysA = fileKeys[langA];
+        const keysB = fileKeys[langB];
+
+        if (!keysA || !keysB) continue;
+
+        // Missing in B
+        const missingInB = [...keysA].filter(x => !keysB.has(x));
+        if (missingInB.length > 0) {
+          console.error(`❌ Keys in ${jsonFile} present in ${langA}/ but missing in ${langB}/:`);
+          missingInB.forEach(k => console.error(`  - ${k}`));
+          hasDiscrepancy = true;
+        }
+
+        // Missing in A
+        const missingInA = [...keysB].filter(x => !keysA.has(x));
+        if (missingInA.length > 0) {
+          console.error(`❌ Keys in ${jsonFile} present in ${langB}/ but missing in ${langA}/:`);
+          missingInA.forEach(k => console.error(`  - ${k}`));
+          hasDiscrepancy = true;
+        }
+      }
+    }
+  }
+
+  if (hasDiscrepancy) {
+    console.error('\n🔴 Localization key mismatch found! Translation keys must align 100% across namespaces.');
+    process.exit(1);
+  } else {
+    console.log('✅ Localization keys reconciled successfully! All namespaces are aligned 100%.');
+    process.exit(0);
+  }
+} catch (err) {
+  console.error('Error running reconciliation check:', err);
+  process.exit(1);
+}

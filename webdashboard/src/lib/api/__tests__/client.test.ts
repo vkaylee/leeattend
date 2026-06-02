@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi, Mock } from 'vitest';
+
 import { client, customFetch } from '../client';
 import { ApiError } from '../errors';
 

@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-redundant-type-constituents */
+ 
 import { UseMutationResult } from "@tanstack/react-query";
 
 import {
@@ -10,6 +10,8 @@ import {
   EmployeeWorkingPattern,
   Shift,
   WorkingPattern,
+  CreateShiftRequest,
+  UpdateShiftRequest,
 } from "@/lib/api/types";
 
 export type TabType = "weekly-roster" | "assignments" | "directory";
@@ -17,11 +19,11 @@ export type ViewMode = "week" | "month";
 
 export interface UseShiftsReturn {
   activeTab: TabType;
-  assignPatternMutation: UseMutationResult<EmployeeWorkingPattern, Error, AssignPatternRequest>;
   allowEarlyOt: boolean;
+  assignPatternMutation: UseMutationResult<EmployeeWorkingPattern, Error, AssignPatternRequest>;
   bulkRosterMutation: UseMutationResult<unknown, Error, { date: string; shift_id: string | null }[]>;
   correctionEffectiveDate: string;
-  createShiftMutation: UseMutationResult<Shift, Error, Partial<Shift>>;
+  createShiftMutation: UseMutationResult<Shift, Error, CreateShiftRequest>;
   currentDate: Date;
   currentMonth: Date;
   deleteRosterMutation: UseMutationResult<unknown, Error, string>;
@@ -31,10 +33,9 @@ export interface UseShiftsReturn {
   employeeSchedule: EmployeeSchedule | undefined;
   employeesError: Error | null;
   endDate: string;
-  maxEarlyOtMinutes: number;
-
-
   handleAssign: () => void;
+
+
   handleAssignAllWeek: (shiftId: string | null) => void;
   handleAssignBulk: (shiftId: string | null) => void;
   handleCopyPreviousMonth: () => Promise<void>;
@@ -57,6 +58,7 @@ export interface UseShiftsReturn {
   isMonthError: boolean;
   isMonthLoading: boolean;
   isShiftPickerOpen: boolean;
+  maxEarlyOtMinutes: number;
   monthDays: Date[];
   monthError: Error | null;
   monthSchedules: EmployeeSchedule[] | undefined;
@@ -76,6 +78,7 @@ export interface UseShiftsReturn {
   selectedEmployee: Employee | null;
   selectedPatternId: string;
   setActiveTab: (v: TabType) => void;
+  setAllowEarlyOt: (v: boolean) => void;
   setCorrectionEffectiveDate: (v: string) => void;
   setCurrentDate: (v: Date) => void;
   setEditingShift: (v: Shift | null) => void;
@@ -87,7 +90,6 @@ export interface UseShiftsReturn {
   setIsFixedBreak: (v: boolean) => void;
   setIsForever: (v: boolean) => void;
   setIsShiftPickerOpen: (v: boolean) => void;
-  setAllowEarlyOt: (v: boolean) => void;
   setMaxEarlyOtMinutes: (v: number) => void;
   setNewBreakEnd: (v: string) => void;
   setNewBreakStart: (v: string) => void;
@@ -106,7 +108,7 @@ export interface UseShiftsReturn {
   shifts: Shift[] | undefined;
   startDate: string;
   targetDates: string[];
-  updateShiftMutation: UseMutationResult<Shift, Error, { id: string; data: Partial<Shift> }>;
+  updateShiftMutation: UseMutationResult<Shift, Error, { id: string; data: UpdateShiftRequest }>;
   viewMode: ViewMode;
   weekDays: Date[];
   wsId: string;

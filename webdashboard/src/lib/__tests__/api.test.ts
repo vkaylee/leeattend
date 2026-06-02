@@ -257,7 +257,7 @@ describe("api.ts comprehensive tests", () => {
 
     it("createLeavePolicy", async () => {
       mockSuccess({});
-      await api.createLeavePolicy("ws-1", { name: "P" });
+      await api.createLeavePolicy("ws-1", { name: "P", leave_type_id: "lt-1", rule_config: {} });
       expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/leave/policies"), expect.objectContaining({ method: "POST" }));
     });
 
@@ -430,7 +430,7 @@ describe("api.ts comprehensive tests", () => {
     it("updateWorkspaceMemberRole", async () => {
       mockSuccess({});
       await api.updateWorkspaceMemberRole("ws-1", "u1", "owner");
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/members/u1/role"), expect.objectContaining({ method: "PUT" }));
+      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/members/u1"), expect.objectContaining({ method: "PATCH" }));
     });
 
     it("login", async () => {

@@ -1,6 +1,5 @@
-/* eslint-disable @typescript-eslint/no-redundant-type-constituents, @typescript-eslint/no-unsafe-assignment */
-import { useState } from "react";
 import { useSearch } from "@tanstack/react-router";
+import { useState } from "react";
 
 import { format } from "date-fns";
 
@@ -9,13 +8,9 @@ import type { Shift, Employee } from "@/lib/api/types";
 import type { TabType, ViewMode } from "./use-shifts-types";
 
 export function useShiftFormState() {
-  let search: any = {};
-  try {
-    search = useSearch({ strict: false });
-  } catch {
-    // Fallback if rendered outside TanStack Router context (e.g. in unit tests)
-  }
-  const initialTab = search?.tab === "weekly-roster" || search?.tab === "assignments" || search?.tab === "directory" ? search.tab : "weekly-roster";
+  const search = useSearch({ strict: false }) as unknown as { tab?: string };
+  const tab = typeof search.tab === "string" ? search.tab : "";
+  const initialTab = tab === "weekly-roster" || tab === "assignments" || tab === "directory" ? tab : "weekly-roster";
   const [activeTab, setActiveTab] = useState<TabType>(initialTab);
   const [viewMode, setViewMode] = useState<ViewMode>("week");
 

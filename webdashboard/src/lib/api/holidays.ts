@@ -1,6 +1,6 @@
+import { client } from "./client";
 // @ts-nocheck
 import { Holiday } from './types';
-import { client } from "./client";
 
 export async function fetchHolidays(
     wsId: string,
@@ -13,7 +13,7 @@ export async function fetchHolidays(
         },
     });
     if (!resData) throw new Error("No response data");
-    return resData as unknown as Holiday[];
+    return resData;
 }
 
 export async function createHoliday(
@@ -27,7 +27,7 @@ export async function createHoliday(
         body: data,
     });
     if (!resData) throw new Error("No response data");
-    return resData as unknown as Holiday;
+    return resData;
 }
 
 export async function updateHoliday(
@@ -42,7 +42,7 @@ export async function updateHoliday(
         body: data,
     });
     if (!resData) throw new Error("No response data");
-    return resData as unknown as Holiday;
+    return resData;
 }
 
 export async function deleteHoliday(

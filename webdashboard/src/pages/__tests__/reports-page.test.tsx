@@ -532,7 +532,7 @@ describe("ReportsPage", () => {
     await user.type(searchInput, "{ArrowUp}");
 
     // In non full-page mode, container.scrollTo is used
-    // eslint-disable-next-line @typescript-eslint/unbound-method
+     
     expect(window.HTMLElement.prototype.scrollTo).toHaveBeenCalledWith({ top: 0, behavior: "smooth" });
 
     // Put it back to index 1 and press Enter

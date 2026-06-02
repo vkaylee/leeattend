@@ -121,14 +121,14 @@ function DayCardSourceTags({ source, effectiveSchedule, t }: DayCardSourceTagsPr
         </span>
       )}
       {effectiveSchedule ? (
-        <div onClick={(e) => e.stopPropagation()}>
+        <div onClick={(e) => { e.stopPropagation(); }}>
           <ScheduleTracePopover 
-            source={effectiveSchedule.source} 
-            traces={effectiveSchedule.traces || []} 
-            shiftName={effectiveSchedule.shift_name}
-            startTime={effectiveSchedule.start_time}
-            endTime={effectiveSchedule.end_time}
+            endTime={effectiveSchedule.end_time} 
+            shiftName={effectiveSchedule.shift_name} 
             shiftSymbol={effectiveSchedule.shift_symbol}
+            source={effectiveSchedule.source}
+            startTime={effectiveSchedule.start_time}
+            traces={effectiveSchedule.traces || []}
           />
         </div>
       ) : null}

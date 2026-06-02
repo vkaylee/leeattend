@@ -1,11 +1,11 @@
+import { client } from "./client";
 // @ts-nocheck
 import { Workspace, WorkspaceMember, MemberRolesResponse, MemberExtraRole, MemberExtraPermission, WorkspaceRole } from "./types";
-import { client } from "./client";
 
 export async function fetchWorkspaces(): Promise<Workspace[]> {
   const { data: resData } = await client.GET("/workspaces");
   if (!resData) throw new Error("No response data");
-  return resData!;
+  return resData;
 }
 
 export async function createWorkspace(data: { name: string; database_url?: string }): Promise<Workspace> {
@@ -13,7 +13,7 @@ export async function createWorkspace(data: { name: string; database_url?: strin
     body: data,
   });
   if (!resData) throw new Error("No response data");
-  return resData!;
+  return resData;
 }
 
 export async function fetchWorkspace(wsId: string): Promise<Workspace> {
@@ -23,7 +23,7 @@ export async function fetchWorkspace(wsId: string): Promise<Workspace> {
     },
   });
   if (!resData) throw new Error("No response data");
-  return resData!;
+  return resData;
 }
 
 export async function updateWorkspace(
@@ -37,7 +37,7 @@ export async function updateWorkspace(
     body: data,
   });
   if (!resData) throw new Error("No response data");
-  return resData!;
+  return resData;
 }
 
 export async function fetchWorkspaceMembers(
@@ -46,7 +46,7 @@ export async function fetchWorkspaceMembers(
   const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/members", {
     params: { path: { ws_id: wsId } }
   });
-    return resData!;
+  return resData || [];
 }
 
 export async function addWorkspaceMember(
@@ -74,7 +74,7 @@ export async function updateWorkspaceMemberRole(
   userId: string,
   roleId: string,
 ): Promise<void> {
-  await client.PUT("/v1/workspaces/{ws_id}/members/{user_id}/role", {
+  await client.PATCH("/v1/workspaces/{ws_id}/members/{user_id}", {
     params: { path: { ws_id: wsId, user_id: userId } },
     body: { role_id: roleId }
   });
@@ -201,6 +201,6 @@ export async function fetchRolePermissions(wsId: string, roleId: string): Promis
 
 export async function updateRolePermissions(wsId: string, roleId: string, permissions: string[]): Promise<void> {
   await client.PUT("/v1/workspaces/{ws_id}/roles/{role_id}/permissions", {
-            params: { path: { ws_id: wsId, role_id: roleId } },
-          body: permissions });
+    params: { path: { ws_id: wsId, role_id: roleId } },
+    body: { permissions } });
 }

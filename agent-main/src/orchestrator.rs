@@ -664,6 +664,7 @@ pub fn spawn_worker(
             let mut poll_count = 0;
             let mut proactive_cooldown = false;
 
+            #[allow(clippy::never_loop)]
             while !token.is_cancelled() {
                 // Sync live cooldown value (config pushes update the AtomicU64)
                 polling_state.set_cooldown(success_cooldown.load(Ordering::Relaxed));

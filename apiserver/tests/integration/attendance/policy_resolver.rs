@@ -1,7 +1,7 @@
 use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
-use apiserver::domain::policy::resolver::PolicyResolver;
 use apiserver::models::EarlyArrivalStrategy;
+use apiserver::services::PolicyResolverService;
 use chrono::NaiveDate;
 use uuid::Uuid;
 
@@ -90,10 +90,14 @@ async fn test_resolve_attendance_policy_hierarchy() {
         diesel::sql_types::Jsonb, serde_json::json!({ "work_unit_minutes": 10, "rounding_policy": "floor", "early_arrival_strategy": "block" })
     );
 
-    let rules =
-        PolicyResolver::resolve_attendance_policy(&policy_repo, employee_id, ws_id, test_date)
-            .await
-            .unwrap();
+    let rules = PolicyResolverService::resolve_attendance_policy(
+        &policy_repo,
+        employee_id,
+        ws_id,
+        test_date,
+    )
+    .await
+    .unwrap();
     assert_eq!(rules.work_unit_minutes, 10);
     assert_eq!(rules.early_arrival_strategy, EarlyArrivalStrategy::Block);
 
@@ -117,10 +121,14 @@ async fn test_resolve_attendance_policy_hierarchy() {
         diesel::sql_types::Uuid, dept_id
     );
 
-    let rules =
-        PolicyResolver::resolve_attendance_policy(&policy_repo, employee_id, ws_id, test_date)
-            .await
-            .unwrap();
+    let rules = PolicyResolverService::resolve_attendance_policy(
+        &policy_repo,
+        employee_id,
+        ws_id,
+        test_date,
+    )
+    .await
+    .unwrap();
     assert_eq!(rules.work_unit_minutes, 20, "Should inherit from GROUP");
     assert_eq!(rules.early_arrival_strategy, EarlyArrivalStrategy::Allow);
 
@@ -144,10 +152,14 @@ async fn test_resolve_attendance_policy_hierarchy() {
         diesel::sql_types::Uuid, employee_id
     );
 
-    let rules =
-        PolicyResolver::resolve_attendance_policy(&policy_repo, employee_id, ws_id, test_date)
-            .await
-            .unwrap();
+    let rules = PolicyResolverService::resolve_attendance_policy(
+        &policy_repo,
+        employee_id,
+        ws_id,
+        test_date,
+    )
+    .await
+    .unwrap();
     assert_eq!(rules.work_unit_minutes, 30, "Should be overridden by USER");
     assert_eq!(rules.early_arrival_strategy, EarlyArrivalStrategy::Clamp);
 }

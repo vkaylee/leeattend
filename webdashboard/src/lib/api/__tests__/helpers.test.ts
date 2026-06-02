@@ -14,7 +14,6 @@ import {
   apiFetch,
   forceRefreshToken,
 } from '../helpers';
-import { API_BASE_URL } from '../config';
 
 describe('Token helpers', () => {
   beforeEach(() => {

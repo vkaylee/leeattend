@@ -61,6 +61,7 @@ async fn test_cannot_revoke_sole_platform_admin_self() {
                     "/api/v1/system/users/{admin_id}/roles/platform_admin"
                 ))
                 .header("X-User-Id", admin_id.to_string())
+                .header("Accept-Language", "en")
                 .body(axum::body::Body::empty())
                 .unwrap(),
         )
@@ -131,6 +132,7 @@ async fn test_cannot_revoke_other_sole_platform_admin() {
                     "/api/v1/system/users/{user_b}/roles/platform_admin"
                 ))
                 .header("X-User-Id", user_b.to_string())
+                .header("Accept-Language", "en")
                 .body(axum::body::Body::empty())
                 .unwrap(),
         )

@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-deprecated, complexity, max-lines-per-function */
+/* eslint-disable complexity, max-lines-per-function */
 import react from "@vitejs/plugin-react";
 
 import { TanStackRouterVite } from "@tanstack/router-vite-plugin";

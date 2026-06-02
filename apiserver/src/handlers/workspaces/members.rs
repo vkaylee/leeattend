@@ -21,7 +21,10 @@ pub struct UpdateMemberRoleRequest {
 
 #[utoipa::path(
     get,
-    path = "/v1/workspaces/members",
+    path = "/v1/workspaces/{ws_id}/members",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID")
+    ),
     responses(
         (status = 200, description = "List of workspace members", body = Vec<WorkspaceMemberDetailResponse>)
     ),
@@ -66,7 +69,10 @@ pub async fn get_workspace_members(
 
 #[utoipa::path(
     post,
-    path = "/v1/workspaces/members",
+    path = "/v1/workspaces/{ws_id}/members",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID")
+    ),
     request_body = AddMemberRequest,
     responses(
         (status = 201, description = "Member added successfully")
@@ -127,9 +133,10 @@ pub async fn add_workspace_member(
 }
 
 #[utoipa::path(
-    put,
-    path = "/v1/workspaces/members/{user_id}/role",
+    patch,
+    path = "/v1/workspaces/{ws_id}/members/{user_id}",
     params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
         ("user_id" = Uuid, Path, description = "User ID to update")
     ),
     request_body = UpdateMemberRoleRequest,
@@ -196,8 +203,9 @@ pub async fn update_workspace_member_role(
 
 #[utoipa::path(
     delete,
-    path = "/v1/workspaces/members/{user_id}",
+    path = "/v1/workspaces/{ws_id}/members/{user_id}",
     params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
         ("user_id" = Uuid, Path, description = "User ID to remove")
     ),
     responses(

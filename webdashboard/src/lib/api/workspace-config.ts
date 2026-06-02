@@ -26,7 +26,7 @@ export const workspaceConfigApi = {
       },
     });
     if (!resData) throw new Error("No response data");
-    return resData!;
+    return resData;
   },
 
   getConfig: async (workspaceId: string, key: string, date?: string): Promise<WorkspaceConfigEntry | null> => {
@@ -47,7 +47,7 @@ export const workspaceConfigApi = {
       body: payload,
     });
     if (!resData) throw new Error("No response data");
-    return resData!;
+    return resData;
   },
 
   deleteConfig: async (workspaceId: string, id: string): Promise<void> => {

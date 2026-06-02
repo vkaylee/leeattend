@@ -4,6 +4,7 @@
  */
 
 import { claimOt, fetchAttendanceSummaries } from "./attendance";
+import { client } from "./client";
 import { getCurrentWorkspaceId } from "./helpers";
 import {
   MyProfileResponse,
@@ -17,14 +18,13 @@ import {
   UpdateProfileRequest,
   CreateEmergencyContactRequest, AttendanceDailySummary 
 } from "./types";
-import { client } from "./client";
 
 // --- Profile ---
 
 export async function fetchMyProfile(): Promise<MyProfileResponse> {
   const { data: resData } = await client.GET("/ess/profile");
   if (!resData) throw new Error("No response data");
-  return resData as unknown as MyProfileResponse;
+  return resData;
 }
 
 export async function updateMyProfile(
@@ -34,7 +34,7 @@ export async function updateMyProfile(
     body: data,
   });
   if (!resData) throw new Error("No response data");
-  return resData!;
+  return resData;
 }
 
 // --- Emergency Contacts ---
@@ -44,7 +44,7 @@ export async function fetchMyEmergencyContacts(): Promise<
 > {
   const { data: resData } = await client.GET("/ess/emergency-contacts");
   if (!resData) throw new Error("No response data");
-  return resData!;
+  return resData;
 }
 
 export async function addEmergencyContact(
@@ -54,7 +54,7 @@ export async function addEmergencyContact(
     body: data,
   });
   if (!resData) throw new Error("No response data");
-  return resData!;
+  return resData;
 }
 
 export async function deleteEmergencyContact(contactId: string): Promise<void> {
@@ -70,7 +70,7 @@ export async function deleteEmergencyContact(contactId: string): Promise<void> {
 export async function fetchMyDocuments(): Promise<EmployeeDocument[]> {
   const { data: resData } = await client.GET("/ess/documents");
   if (!resData) throw new Error("No response data");
-  return resData!;
+  return resData;
 }
 
 // Document upload will be implemented in Phase 4
@@ -80,7 +80,7 @@ export async function fetchMyDocuments(): Promise<EmployeeDocument[]> {
 export async function fetchMyPayslips(): Promise<Payslip[]> {
   const { data: resData } = await client.GET("/ess/payslips");
   if (!resData) throw new Error("No response data");
-  return resData!;
+  return resData;
 }
 
 // --- Attendance ---
@@ -102,7 +102,7 @@ export async function fetchMyAttendance(
     },
   });
   if (!resData) throw new Error("No response data");
-  return resData!;
+  return resData;
 }
 
 // --- Time Clock ---
@@ -119,7 +119,7 @@ export async function fetchMyTimeEntries(
     },
   });
   if (!resData) throw new Error("No response data");
-  return resData!;
+  return resData;
 }
 
 export async function punchMySelf(
@@ -129,7 +129,7 @@ export async function punchMySelf(
     body: data || {},
   });
   if (!resData) throw new Error("No response data");
-  return resData!;
+  return resData;
 }
 
 // --- Leave ---
@@ -137,13 +137,13 @@ export async function punchMySelf(
 export async function fetchEssLeaveBalances(): Promise<EmployeeLeaveBalance[]> {
   const { data: resData } = await client.GET("/ess/leave/balances");
   if (!resData) throw new Error("No response data");
-  return resData!;
+  return resData;
 }
 
 export async function fetchEssLeaveRequests(): Promise<LeaveRequest[]> {
   const { data: resData } = await client.GET("/ess/leave/requests");
   if (!resData) throw new Error("No response data");
-  return resData!;
+  return resData;
 }
 
 // --- OT Claim (ESS Wrapper) ---

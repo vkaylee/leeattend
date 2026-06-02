@@ -91,17 +91,17 @@ const getSourceIndicator = (source?: string) => {
 
 interface RosterCellData {
   cellStyles: string;
+  endTime?: string | null;
   hasShift: boolean;
   hasTraces: boolean;
   holidayName?: string | null;
   isHoliday: boolean;
   shiftBgClass: string;
+  shiftName?: string | null;
   shiftSymbol: string;
   source?: string;
-  traces?: EffectiveSchedule["traces"];
-  shiftName?: string | null;
   startTime?: string | null;
-  endTime?: string | null;
+  traces?: EffectiveSchedule["traces"];
 }
 
 const computeCellData = (
@@ -856,6 +856,7 @@ const RosterGridTable = memo(function RosterGridTable({
                     cellStyles={cellData.cellStyles}
                     dateStr={dateStr}
                     employeeId={empSchedule.employee_id}
+                    endTime={cellData.endTime}
                     hasShift={cellData.hasShift}
                     hasTraces={cellData.hasTraces}
                     holidayName={cellData.holidayName}
@@ -865,12 +866,11 @@ const RosterGridTable = memo(function RosterGridTable({
                     onMouseDown={onCellMouseDown}
                     onMouseEnter={onCellMouseEnter}
                     shiftBgClass={cellData.shiftBgClass}
+                    shiftName={cellData.shiftName}
                     shiftSymbol={cellData.shiftSymbol}
                     source={cellData.source}
-                    traces={cellData.traces}
-                    shiftName={cellData.shiftName}
                     startTime={cellData.startTime}
-                    endTime={cellData.endTime}
+                    traces={cellData.traces}
                   />
                 );
               })}
@@ -887,6 +887,7 @@ interface RosterCellProps {
   cellStyles: string;
   dateStr: string;
   employeeId: string;
+  endTime?: string | null;
   hasShift: boolean;
   hasTraces: boolean;
   holidayName?: string | null;
@@ -895,12 +896,11 @@ interface RosterCellProps {
   onMouseDown: (employeeId: string, dateStr: string, e: React.MouseEvent) => void;
   onMouseEnter: (employeeId: string, dateStr: string) => void;
   shiftBgClass: string;
+  shiftName?: string | null;
   shiftSymbol: string;
   source?: string;
-  traces?: EffectiveSchedule["traces"];
-  shiftName?: string | null;
   startTime?: string | null;
-  endTime?: string | null;
+  traces?: EffectiveSchedule["traces"];
 }
 
 const RosterCell = memo(function RosterCell({
@@ -962,12 +962,12 @@ const RosterCell = memo(function RosterCell({
             onClick={handleTraceClick}
           >
             <ScheduleTracePopover 
-              source={source ?? "none"} 
-              traces={traces} 
-              shiftName={shiftName}
-              startTime={startTime}
-              endTime={endTime}
+              endTime={endTime} 
+              shiftName={shiftName} 
               shiftSymbol={shiftSymbol}
+              source={source ?? "none"}
+              startTime={startTime}
+              traces={traces}
             />
           </div>
         ) : null}

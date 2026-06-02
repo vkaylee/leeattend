@@ -62,18 +62,13 @@ pub async fn create_salary_component(
     let component = state
         .payroll
         .repo
-        .create_salary_component_definition(ctx.workspace_id, req.name, req.code)
+        .create_salary_component_definition(
+            ctx.workspace_id,
+            req.name,
+            req.code,
+            req.base_group_ids,
+        )
         .await?;
-
-    if let Some(base_group_ids) = req.base_group_ids {
-        for group_id in base_group_ids {
-            state
-                .payroll
-                .salary_base_repo
-                .assign_component_to_group(ctx.workspace_id, component.id, group_id)
-                .await?;
-        }
-    }
 
     Ok((StatusCode::CREATED, Json(component)))
 }

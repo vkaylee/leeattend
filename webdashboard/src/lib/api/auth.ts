@@ -1,8 +1,7 @@
+import { client } from "./client";
 // @ts-nocheck
-import { API_BASE_URL } from "./config";
 import { apiFetch, setAccessToken, setRefreshToken, setCurrentUserId, clearAuthSession } from "./helpers";
 import { AuthResponse, RegisterRequest, ChangePasswordRequest, User } from "./types";
-import { client } from "./client";
 
 export async function login(username: string, password: string): Promise<AuthResponse> {
   const { data } = await client.POST("/auth/login", {
@@ -12,7 +11,7 @@ export async function login(username: string, password: string): Promise<AuthRes
   setAccessToken(data.access_token);
   setRefreshToken(data.refresh_token);
   setCurrentUserId(data.user.id);
-  return data!;
+  return data;
 }
 
 export async function logout(): Promise<void> {
@@ -27,7 +26,7 @@ export async function register(data: RegisterRequest): Promise<AuthResponse> {
     body: data,
   });
   if (!resData) throw new Error("Registration failed");
-  return resData!;
+  return resData;
 }
 
 export async function changePassword(
@@ -43,7 +42,7 @@ export async function changePassword(
 export async function fetchMe(): Promise<User> {
   const { data } = await client.GET("/me");
   if (!data) throw new Error("Failed to fetch profile");
-  return data!;
+  return data;
 }
 
 export async function updateMe(data: Partial<User>): Promise<User> {
@@ -51,13 +50,13 @@ export async function updateMe(data: Partial<User>): Promise<User> {
     body: data,
   });
   if (!resData) throw new Error("Failed to update profile");
-  return resData!;
+  return resData;
 }
 
 export async function fetchUsers(): Promise<User[]> {
   const { data } = await client.GET("/users");
   if (!data) throw new Error("Failed to fetch users");
-  return data!;
+  return data;
 }
 
 export async function fetchDevSuperUser(): Promise<{
@@ -78,5 +77,5 @@ export async function fetchMyPermissions(): Promise<{
 }> {
   const { data } = await client.GET("/me/permissions");
   if (!data) throw new Error("Failed to fetch my permissions");
-  return data!;
+  return data;
 }

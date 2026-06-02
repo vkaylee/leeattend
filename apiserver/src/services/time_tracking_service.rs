@@ -129,15 +129,14 @@ impl TimeTrackingService {
                 let earliest_punch =
                     shift_start - chrono::Duration::minutes(i64::from(grace_minutes));
 
-                let rules =
-                    crate::domain::policy::resolver::PolicyResolver::resolve_attendance_rules(
-                        &*self.policy_repo,
-                        &*self.employee_repo,
-                        employee_id,
-                        workspace_id,
-                        today,
-                    )
-                    .await?;
+                let rules = crate::services::PolicyResolverService::resolve_attendance_rules(
+                    &*self.policy_repo,
+                    &*self.employee_repo,
+                    employee_id,
+                    workspace_id,
+                    today,
+                )
+                .await?;
 
                 if rules.early_arrival_strategy == crate::models::EarlyArrivalStrategy::Block
                     && local_now.naive_local() < earliest_punch

@@ -1,5 +1,3 @@
-import { API_BASE_URL } from "./config";
-import { apiFetch } from "./helpers";
 import { client } from "./client";
 
 export interface AssignmentRuleConditions {

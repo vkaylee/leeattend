@@ -20,6 +20,7 @@ use crate::repositories::{roster::RosterRepository, time_entry_repository};
 
 use super::attendance_matcher::AttendanceMatcher;
 use super::financial_calculator::FinancialCalculator;
+use super::PolicyResolverService;
 
 // ---------------------------------------------------------------------------
 // Internal data structs for PayrollService decomposition
@@ -44,6 +45,8 @@ pub struct PayrollContext {
     pub(crate) emp_id_number: String,
     pub(crate) emp_tags: Option<Vec<String>>,
     pub(crate) payroll_roster_map: HashMap<(Uuid, NaiveDate), Option<Uuid>>,
+    pub(crate) working_conditions: Vec<crate::models::WorkingCondition>,
+    pub(crate) attendance_policy: crate::models::AttendanceRules,
 }
 
 /// Named record for a payroll segment snapshot.
@@ -239,6 +242,37 @@ impl PayrollService {
             daily_entries_map.entry(local_date).or_default().push(entry);
         }
 
+        let working_conditions = self
+            .employee_repo
+            .get_working_conditions(
+                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                employee_id,
+            )
+            .await?;
+
+        let effective_time = start_date
+            .and_hms_opt(0, 0, 0)
+            .unwrap_or_default()
+            .and_utc();
+        let policy_version = self
+            .policy_repo
+            .get_employee_effective_policy(
+                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                employee_id,
+                effective_time,
+            )
+            .await?;
+
+        let attendance_policy = if let Some(pv) = policy_version {
+            pv.rules
+        } else {
+            crate::models::AttendanceRules {
+                work_unit_minutes: 30,
+                rounding_policy: "floor".to_string(),
+                early_arrival_strategy: crate::models::EarlyArrivalStrategy::Block,
+            }
+        };
+
         Ok(PayrollContext {
             employee_id,
             workspace,
@@ -253,6 +287,8 @@ impl PayrollService {
             emp_id_number,
             emp_tags,
             payroll_roster_map,
+            working_conditions,
+            attendance_policy,
         })
     }
 
@@ -348,33 +384,42 @@ impl PayrollService {
                 }
             }
 
-            let _rules = PolicyResolver::resolve_with_shift_overrides(
-                &*self.policy_repo,
-                &*self.employee_repo,
-                ctx.employee_id,
-                ctx.workspace.id,
+            let _rules = PolicyResolver::resolve_with_shift_overrides_pure(
+                Some(ctx.attendance_policy.clone()),
+                ctx.working_conditions.clone(),
                 seg_start,
                 &crate::domain::policy::resolver::ShiftPolicyOverrides::default(),
-            )
-            .await;
+            );
 
-            let std_config = PolicyResolver::resolve_standard_month(
-                &*self.employee_repo,
-                &*self.payroll_repo,
-                employee_id,
-                dept_id,
-                workspace_id,
-                seg_start,
-            )
-            .await?;
+            let emp_payroll_config = self
+                .employee_repo
+                .get_employee_payroll_config_at(
+                    &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                    employee_id,
+                    seg_start,
+                )
+                .await?;
 
-            let attendance_policy = PolicyResolver::resolve_attendance_policy(
-                &*self.policy_repo,
-                employee_id,
-                workspace_id,
-                seg_start,
-            )
-            .await?;
+            let dept_payroll_config = if let Some(d_id) = dept_id {
+                self.payroll_repo
+                    .get_department_payroll_config_at(workspace_id, d_id, seg_start)
+                    .await?
+            } else {
+                None
+            };
+
+            let ws_payroll_settings = self
+                .payroll_repo
+                .get_payroll_settings_at(workspace_id, seg_start)
+                .await?;
+
+            let std_config = PolicyResolver::resolve_standard_month_pure(
+                emp_payroll_config,
+                dept_payroll_config,
+                ws_payroll_settings,
+            );
+
+            let attendance_policy = ctx.attendance_policy.clone();
 
             let seg_units_per_day = (std_config.hours_per_day * Decimal::from(60))
                 / Decimal::from(attendance_policy.work_unit_minutes);
@@ -391,8 +436,6 @@ impl PayrollService {
                     attendance_rules: &attendance_policy,
                     seg_units_per_day,
                     policy_cache: &mut policy_cache,
-                    policy_repo: &*self.policy_repo,
-                    employee_repo: &*self.employee_repo,
                     overtime_policy_repo: &*self.overtime_policy_repo,
                 },
             )
@@ -435,7 +478,7 @@ impl PayrollService {
             .unwrap_or(None);
         if let Some(ref ps) = payroll_settings {
             if let Some(max_monthly_hours) = ps.max_ot_hours_per_month {
-                let month_end_policy = PolicyResolver::resolve_attendance_policy(
+                let month_end_policy = PolicyResolverService::resolve_attendance_policy(
                     &*self.policy_repo,
                     employee_id,
                     workspace_id,
@@ -627,12 +670,24 @@ impl PayrollService {
         for chunk in employee_ids.chunks(50) {
             let chunk_ids = chunk.to_vec();
 
-            let (salary_histories, dept_histories, time_entries, employees_res, rosters) = tokio::join!(
+            let effective_time = start_date
+                .and_hms_opt(0, 0, 0)
+                .unwrap_or_default()
+                .and_utc();
+            let (
+                salary_histories,
+                dept_histories,
+                time_entries,
+                employees_res,
+                rosters,
+                conditions_res,
+                policies_res,
+            ) = tokio::join!(
                 self.payroll_repo.get_salary_components_history_batch(
                     workspace_id,
                     &chunk_ids,
                     start_date,
-                    end_date
+                    end_date,
                 ),
                 self.department_repo
                     .get_employee_department_history_batch(token, &chunk_ids),
@@ -641,6 +696,13 @@ impl PayrollService {
                 self.employee_repo.get_employees_by_ids(&chunk_ids, token),
                 self.roster_repo
                     .get_employee_rosters_batch(token, &chunk_ids, start_date, end_date),
+                self.employee_repo
+                    .get_working_conditions_batch(token, &chunk_ids, start_date, end_date),
+                self.policy_repo.get_employee_effective_policies_batch(
+                    token,
+                    &chunk_ids,
+                    effective_time
+                ),
             );
 
             let mut employees = match employees_res {
@@ -655,6 +717,8 @@ impl PayrollService {
             let mut dept_map = dept_histories.unwrap_or_default();
             let mut time_map = time_entries.unwrap_or_default();
             let mut roster_map = rosters.unwrap_or_default();
+            let mut conditions_map = conditions_res.unwrap_or_default();
+            let mut policies_map = policies_res.unwrap_or_default();
 
             let mut contexts = Vec::new();
             for emp_id in chunk_ids {
@@ -674,6 +738,16 @@ impl PayrollService {
                         payroll_roster_map.insert((r.employee_id, r.date), r.shift_id);
                     }
 
+                    let working_conditions = conditions_map.remove(&emp_id).unwrap_or_default();
+                    let attendance_policy = match policies_map.remove(&emp_id) {
+                        Some(pv) => pv.rules,
+                        None => crate::models::AttendanceRules {
+                            work_unit_minutes: 30,
+                            rounding_policy: "floor".to_string(),
+                            early_arrival_strategy: crate::models::EarlyArrivalStrategy::Block,
+                        },
+                    };
+
                     contexts.push(PayrollContext {
                         employee_id: emp_id,
                         workspace: workspace.clone(),
@@ -688,6 +762,8 @@ impl PayrollService {
                         emp_id_number: employee.employee_id_number,
                         emp_tags: Some(employee.tags),
                         payroll_roster_map,
+                        working_conditions,
+                        attendance_policy,
                     });
                 }
             }
@@ -832,6 +908,12 @@ mod tests {
             emp_id_number: "EMP001".into(),
             emp_tags: None,
             payroll_roster_map: HashMap::new(),
+            working_conditions: Vec::new(),
+            attendance_policy: crate::models::AttendanceRules {
+                work_unit_minutes: 30,
+                rounding_policy: "floor".to_string(),
+                early_arrival_strategy: crate::models::EarlyArrivalStrategy::Block,
+            },
         }
     }
 

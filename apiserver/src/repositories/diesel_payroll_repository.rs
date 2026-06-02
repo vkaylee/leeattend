@@ -26,6 +26,14 @@ pub struct DieselPayrollRepository {
     pub diesel_pools: DieselPools,
 }
 
+#[derive(Debug, Clone, Queryable, Selectable, Insertable)]
+#[diesel(table_name = salary_component_base_members)]
+struct SalaryBaseGroupMemberRow {
+    pub component_definition_id: Uuid,
+    pub base_group_id: Uuid,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+}
+
 impl DieselPayrollRepository {
     pub fn new(diesel_pools: DieselPools) -> Self {
         Self { diesel_pools }
@@ -521,6 +529,7 @@ impl PayrollRepository for DieselPayrollRepository {
         workspace_id: Uuid,
         name: String,
         code: String,
+        base_group_ids: Option<Vec<Uuid>>,
     ) -> Result<SalaryComponentDefinition, AppError> {
         let mut conn = crate::diesel_pool::TransactionConn(
             self.diesel_pools
@@ -529,24 +538,72 @@ impl PayrollRepository for DieselPayrollRepository {
                 .await?,
         );
 
-        let entity = SalaryComponentDefinitionEntity {
-            id: Uuid::new_v4(),
-            workspace_id,
-            name,
-            code,
-            created_at: Some(Utc::now()),
-            updated_at: Some(Utc::now()),
-            component_type: "earning".to_string(), // Default or from schema?
-            linked_rule_id: None,
-        };
+        let entity = conn
+            .transaction::<_, AppError, _>(|conn| {
+                Box::pin(async move {
+                    let entity = SalaryComponentDefinitionEntity {
+                        id: Uuid::new_v4(),
+                        workspace_id,
+                        name,
+                        code,
+                        created_at: Some(Utc::now()),
+                        updated_at: Some(Utc::now()),
+                        component_type: "earning".to_string(),
+                        linked_rule_id: None,
+                    };
 
-        let result = diesel::insert_into(salary_component_definitions::table)
-            .values(&entity)
-            .get_result::<SalaryComponentDefinitionEntity>(&mut *conn)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+                    let result = diesel::insert_into(salary_component_definitions::table)
+                        .values(&entity)
+                        .get_result::<SalaryComponentDefinitionEntity>(&mut *conn)
+                        .await
+                        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
-        Ok(result.into())
+                    if let Some(base_group_ids) = base_group_ids {
+                        for group_id in base_group_ids {
+                            let valid_group: Option<Uuid> = salary_base_groups::table
+                                .filter(salary_base_groups::id.eq(group_id))
+                                .filter(
+                                    salary_base_groups::workspace_id
+                                        .eq(workspace_id)
+                                        .or(salary_base_groups::workspace_id.is_null()),
+                                )
+                                .select(salary_base_groups::id)
+                                .first(&mut *conn)
+                                .await
+                                .optional()
+                                .map_err(|e| {
+                                    AppError::Internal(format!("Failed to validate group: {e}"))
+                                })?;
+
+                            if valid_group.is_none() {
+                                return Err(AppError::Forbidden("error.forbidden".to_string()));
+                            }
+
+                            let new_member = SalaryBaseGroupMemberRow {
+                                component_definition_id: result.id,
+                                base_group_id: group_id,
+                                created_at: Utc::now(),
+                            };
+
+                            diesel::insert_into(salary_component_base_members::table)
+                                .values(&new_member)
+                                .on_conflict((
+                                    salary_component_base_members::component_definition_id,
+                                    salary_component_base_members::base_group_id,
+                                ))
+                                .do_nothing()
+                                .execute(&mut *conn)
+                                .await
+                                .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+                        }
+                    }
+
+                    Ok(result)
+                })
+            })
+            .await?;
+
+        Ok(entity.into())
     }
 
     async fn assign_employee_salary_component(

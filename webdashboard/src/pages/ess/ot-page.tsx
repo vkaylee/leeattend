@@ -3,8 +3,8 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { Typography } from "@/components/ui/typography";
-import { useMyOtAssignments, useEmployeeQuota } from "@/hooks/use-overtime-requests";
 import { useMyProfile } from "@/hooks/use-ess";
+import { useMyOtAssignments, useEmployeeQuota } from "@/hooks/use-overtime-requests";
 import { useWorkspace } from "@/hooks/use-workspace";
 
 import { CreateOtRequestModal } from "./components/create-ot-request-modal";

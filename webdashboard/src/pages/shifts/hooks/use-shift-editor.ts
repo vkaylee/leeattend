@@ -1,9 +1,13 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
-import { useBlocker, useNavigate } from "@tanstack/react-router";
+ 
+/* eslint-disable complexity, max-lines-per-function */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useBlocker, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
+
 import { format } from "date-fns";
+
+import type { Shift, CreateShiftRequest, UpdateShiftRequest } from "@/lib/api/types";
 
 import { useToast } from "@/components/ui/toast";
 import {
@@ -12,7 +16,6 @@ import {
   createShift,
   updateShift,
 } from "@/lib/api";
-import type { Shift } from "@/lib/api/types";
 
 export function useShiftEditor(shiftId?: string) {
   const { t } = useTranslation();
@@ -58,9 +61,10 @@ export function useShiftEditor(shiftId?: string) {
     enabled: !!wsId && isEditMode,
   });
 
-  const editingShift = shifts?.find((s) => s.id === shiftId) || null;
+  const editingShift = shifts?.find((s) => s.id === shiftId) ?? null;
 
   // Initialize form state when editingShift is loaded
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (isEditMode && editingShift) {
       setShiftName(editingShift.name);
@@ -68,22 +72,23 @@ export function useShiftEditor(shiftId?: string) {
       setShiftStart(editingShift.start_time.substring(0, 5));
       setShiftEnd(editingShift.end_time.substring(0, 5));
       setShiftBreak(editingShift.break_duration_minutes);
-      setShiftGrace(editingShift.early_punch_in_grace_period_minutes ?? 15);
+      setShiftGrace(editingShift.early_punch_in_grace_period_minutes);
       setBreakStart(editingShift.break_start?.substring(0, 5) ?? "");
       setBreakEnd(editingShift.break_end?.substring(0, 5) ?? "");
       setIsFixedBreakState(!!editingShift.break_start);
-      setIsAutoDeduct(editingShift.is_break_auto_deduct ?? true);
-      setIsBreakOvertime(editingShift.break_is_overtime ?? false);
-      setAllowEarlyOt(editingShift.allow_early_ot ?? false);
+      setIsAutoDeduct(editingShift.is_break_auto_deduct);
+      setIsBreakOvertime(editingShift.break_is_overtime);
+      setAllowEarlyOt(editingShift.allow_early_ot);
       setMaxEarlyOtMinutes(editingShift.max_early_ot_minutes ?? 60);
       setIsCorrection(false);
       setCorrectionEffectiveDate(format(new Date(), 'yyyy-MM-dd'));
       setIsDirty(false);
     }
   }, [editingShift, isEditMode]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   // Mutations
-  const createShiftMutation = useMutation<Shift, Error, any>({
+  const createShiftMutation = useMutation<Shift, Error, CreateShiftRequest>({
     mutationFn: (data) => createShift(wsId, data),
     onSuccess: (data) => {
       toast.success(t("shifts.messages.create_shift_success", { name: data.name }));
@@ -96,7 +101,7 @@ export function useShiftEditor(shiftId?: string) {
     },
   });
 
-  const updateShiftMutation = useMutation<Shift, Error, { id: string; data: any }>({
+  const updateShiftMutation = useMutation<Shift, Error, { id: string; data: UpdateShiftRequest }>({
     mutationFn: ({ id, data }) => updateShift(wsId, id, data),
     onSuccess: () => {
       toast.success(t("shifts.messages.update_shift_success"));
@@ -111,53 +116,55 @@ export function useShiftEditor(shiftId?: string) {
     },
   });
 
-  const handleSubmit = (e?: React.FormEvent) => {
+  const isSaving = createShiftMutation.isPending || updateShiftMutation.isPending;
+  const isSaveDisabled = isSaving || !shiftName || !shiftStart || !shiftEnd || (allowEarlyOt && (!maxEarlyOtMinutes || maxEarlyOtMinutes <= 0));
+
+  const buildPayload = () => {
+    const base = {
+      name: shiftName,
+      report_symbol: shiftSymbol || null,
+      start_time: shiftStart + (shiftStart.length === 5 ? ":00" : ""),
+      end_time: shiftEnd + (shiftEnd.length === 5 ? ":00" : ""),
+      break_duration_minutes: shiftBreak,
+      early_punch_in_grace_period_minutes: shiftGrace,
+      break_is_overtime: isBreakOvertime,
+      allow_early_ot: allowEarlyOt,
+      max_early_ot_minutes: allowEarlyOt ? maxEarlyOtMinutes : null,
+      is_break_auto_deduct: isAutoDeduct,
+    };
+
+    if (isFixedBreak && breakStart && breakEnd) {
+      return {
+        ...base,
+        break_start: breakStart + (breakStart.length === 5 ? ":00" : ""),
+        break_end: breakEnd + (breakEnd.length === 5 ? ":00" : ""),
+      };
+    }
+
+    return {
+      ...base,
+      break_start: null,
+      break_end: null,
+    };
+  };
+
+  const handleSubmit = (e?: React.SyntheticEvent) => {
     if (e) e.preventDefault();
-    if (!shiftName || !shiftStart || !shiftEnd) return;
-    if (allowEarlyOt && (!maxEarlyOtMinutes || maxEarlyOtMinutes <= 0)) return;
+    if (isSaveDisabled) return;
+
+    const payload = buildPayload();
 
     if (isEditMode && shiftId) {
       updateShiftMutation.mutate({
         id: shiftId,
         data: {
-          name: shiftName,
-          report_symbol: shiftSymbol || null,
-          start_time: shiftStart + (shiftStart.length === 5 ? ":00" : ""),
-          end_time: shiftEnd + (shiftEnd.length === 5 ? ":00" : ""),
-          break_duration_minutes: shiftBreak,
-          early_punch_in_grace_period_minutes: shiftGrace,
-          break_is_overtime: isBreakOvertime,
-          allow_early_ot: allowEarlyOt,
-          max_early_ot_minutes: allowEarlyOt ? maxEarlyOtMinutes : null,
-          ...(isFixedBreak && breakStart && breakEnd ? {
-            break_start: breakStart + (breakStart.length === 5 ? ":00" : ""),
-            break_end: breakEnd + (breakEnd.length === 5 ? ":00" : "")
-          } : {
-            break_start: null,
-            break_end: null
-          }),
-          is_break_auto_deduct: isAutoDeduct,
+          ...payload,
           is_correction: isCorrection,
-          effective_date: isCorrection ? undefined : correctionEffectiveDate
-        }
+          effective_date: isCorrection ? undefined : correctionEffectiveDate,
+        },
       });
     } else {
-      createShiftMutation.mutate({
-        name: shiftName,
-        report_symbol: shiftSymbol || undefined,
-        start_time: shiftStart + (shiftStart.length === 5 ? ":00" : ""),
-        end_time: shiftEnd + (shiftEnd.length === 5 ? ":00" : ""),
-        break_duration_minutes: shiftBreak,
-        early_punch_in_grace_period_minutes: shiftGrace,
-        break_is_overtime: isBreakOvertime,
-        allow_early_ot: allowEarlyOt,
-        max_early_ot_minutes: allowEarlyOt ? maxEarlyOtMinutes : null,
-        ...(isFixedBreak && breakStart && breakEnd ? {
-          break_start: breakStart + (breakStart.length === 5 ? ":00" : ""),
-          break_end: breakEnd + (breakEnd.length === 5 ? ":00" : "")
-        } : {}),
-        is_break_auto_deduct: isAutoDeduct
-      });
+      createShiftMutation.mutate(payload);
     }
   };
 
@@ -165,9 +172,6 @@ export function useShiftEditor(shiftId?: string) {
     shouldBlockFn: () => isDirty,
     withResolver: true,
   });
-
-  const isSaving = createShiftMutation.isPending || updateShiftMutation.isPending;
-  const isSaveDisabled = isSaving || !shiftName || !shiftStart || !shiftEnd || (allowEarlyOt && (!maxEarlyOtMinutes || maxEarlyOtMinutes <= 0));
 
   return {
     wsId,

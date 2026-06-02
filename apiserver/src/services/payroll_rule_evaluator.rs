@@ -295,6 +295,7 @@ mod tests {
             _w: Uuid,
             _n: String,
             _c: String,
+            _b: Option<Vec<Uuid>>,
         ) -> Result<crate::models::SalaryComponentDefinition, AppError> {
             unimplemented!()
         }

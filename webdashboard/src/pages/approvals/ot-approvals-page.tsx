@@ -1,7 +1,7 @@
-import { Check, CheckCircle, Info, Loader2 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { Check, CheckCircle, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useQuery } from "@tanstack/react-query";
 
 import { addMonths, endOfMonth, format, startOfMonth, subMonths } from "date-fns";
 
@@ -126,7 +126,7 @@ export default function OtApprovalsPage() {
       />
 
       <div className="flex gap-4 border-b border-slate-100 dark:border-slate-800 pb-6 mb-8 overflow-x-auto custom-scrollbar">
-        {canApprove && (
+        {!!canApprove && (
           <button
             className={`px-6 py-3 rounded-2xl font-bold text-sm tracking-tight transition-all duration-300 whitespace-nowrap ${
               activeTab === "pre"
@@ -138,7 +138,7 @@ export default function OtApprovalsPage() {
             {t("ot_approvals.tabs.pre_ot", { defaultValue: "Pre-OT Approvals (Requests)" })}
           </button>
         )}
-        {canApprove && (
+        {!!canApprove && (
           <button
             className={`px-6 py-3 rounded-2xl font-bold text-sm tracking-tight transition-all duration-300 whitespace-nowrap ${
               activeTab === "post"
@@ -150,7 +150,7 @@ export default function OtApprovalsPage() {
             {t("ot_approvals.tabs.post_ot", { defaultValue: "Post-OT Approvals (Actuals)" })}
           </button>
         )}
-        {(canApprove || canClaimOnBehalf) && (
+        {!!(canApprove || canClaimOnBehalf) && (
           <button
             className={`px-6 py-3 rounded-2xl font-bold text-sm tracking-tight transition-all duration-300 whitespace-nowrap ${
               activeTab === "delegated_claim"
@@ -448,7 +448,7 @@ function DelegatedClaimsTab({ wsId, startDate, endDate }: { wsId: string; startD
                       <span className="font-bold text-sm text-slate-800 dark:text-slate-200">
                         {row.employee_name}
                       </span>
-                      {row.employee_id_number && (
+                      {!!row.employee_id_number && (
                         <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500 uppercase tracking-tight">
                           {row.employee_id_number}
                         </span>

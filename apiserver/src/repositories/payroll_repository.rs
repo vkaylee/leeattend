@@ -110,6 +110,7 @@ pub trait PayrollRepository: Send + Sync {
         workspace_id: Uuid,
         name: String,
         code: String,
+        base_group_ids: Option<Vec<Uuid>>,
     ) -> Result<SalaryComponentDefinition, AppError>;
 
     async fn assign_employee_salary_component(

@@ -148,7 +148,7 @@ export interface CreateDbClusterRequestPayload {
 export async function fetchSystemDbClusters(): Promise<SystemDbCluster[]> {
   const { data: resData } = await client.GET("/system/db-clusters");
   if (!resData) throw new Error("No response data");
-  return resData!;
+  return resData;
 }
 
 export async function createSystemDbCluster(request: CreateDbClusterRequestPayload): Promise<SystemDbCluster> {
@@ -156,7 +156,7 @@ export async function createSystemDbCluster(request: CreateDbClusterRequestPaylo
     body: request as never
   });
   if (!resData) throw new Error("No response data");
-  return resData!;
+  return resData;
 }
 
 export async function deleteSystemDbCluster(id: string): Promise<void> {
@@ -171,5 +171,5 @@ export async function updateSystemDbClusterStatus(id: string, isActive: boolean)
     body: { is_active: isActive } as never
   });
   if (!resData) throw new Error("No response data");
-  return resData!;
+  return resData;
 }

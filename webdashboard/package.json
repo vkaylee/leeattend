@@ -12,6 +12,7 @@
     "lint:fix": "eslint --fix .",
     "lint:only": "eslint",
     "check-budget": "node scripts/check-budget.mjs",
+    "check-i18n": "node ../scripts/locales/reconcile_locales.js",
     "type-check": "tsc --noEmit",
     "test": "NODE_OPTIONS='--experimental-require-module' vitest run --bail 1",
     "test:coverage": "NODE_OPTIONS='--experimental-require-module' vitest run --coverage",

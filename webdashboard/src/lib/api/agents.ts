@@ -4,7 +4,7 @@ import { AgentStatus, Device, AuthorizedAgent, DeviceInfo } from "./types";
 export async function fetchAgents(): Promise<AgentStatus[]> {
   const { data: resData } = await client.GET("/agents");
   if (!resData) throw new Error("No response data");
-  return resData as unknown as AgentStatus[];
+  return resData;
 }
 
 export async function sendAgentCommand(agentId: string, command: unknown): Promise<unknown> {
@@ -18,7 +18,7 @@ export async function sendAgentCommand(agentId: string, command: unknown): Promi
 export async function fetchDevices(): Promise<Device[]> {
   const { data: resData } = await client.GET("/devices");
   if (!resData) throw new Error("No response data");
-  return resData as unknown as Device[];
+  return resData;
 }
 
 export async function createDevice(device: Partial<Device>): Promise<{ id: string }> {
@@ -26,7 +26,7 @@ export async function createDevice(device: Partial<Device>): Promise<{ id: strin
     body: device as never,
   });
   if (!resData) throw new Error("No response data");
-  return resData!;
+  return resData;
 }
 
 export async function updateDevice(id: string, device: Partial<Device>): Promise<void> {
@@ -49,7 +49,7 @@ export async function fetchAuthorizedAgents(includeInactive = false): Promise<Au
     },
   });
   if (!resData) throw new Error("No response data");
-  return resData as unknown as AuthorizedAgent[];
+  return resData;
 }
 
 export async function fetchAuthorizedAgentById(id: string): Promise<AuthorizedAgent> {
@@ -57,7 +57,7 @@ export async function fetchAuthorizedAgentById(id: string): Promise<AuthorizedAg
     params: { path: { id } },
   });
   if (!resData) throw new Error("No response data");
-  return resData as unknown as AuthorizedAgent;
+  return resData;
 }
 
 export async function createAuthorizedAgent(agent: Partial<AuthorizedAgent>): Promise<{ id: string }> {
@@ -65,7 +65,7 @@ export async function createAuthorizedAgent(agent: Partial<AuthorizedAgent>): Pr
     body: agent as never,
   });
   if (!resData) throw new Error("No response data");
-  return resData!;
+  return resData;
 }
 
 export async function updateAgentTrust(id: string, is_trusted: boolean): Promise<void> {
@@ -81,7 +81,7 @@ export async function updateAuthorizedAgent(id: string, agent: Partial<Authorize
     body: agent as never,
   });
   if (!resData) throw new Error("No response data");
-  return resData as unknown as AuthorizedAgent;
+  return resData;
 }
 
 export async function deleteAuthorizedAgent(id: string): Promise<void> {

@@ -15,7 +15,7 @@ use crate::domain::policy::resolver::PolicyResolver;
 use crate::models::{AttendanceSummary, DailyAttendanceReport, TimeEntry};
 use crate::queue::{Job, JobPayload, ReportType};
 use crate::repositories::{PublisherRepository, QueueRepository};
-use crate::services::AttendanceCalculator;
+use crate::services::{AttendanceCalculator, PolicyResolverService};
 
 /// Handler for attendance report jobs.
 /// Extracts `ReportPayload` from `Job.payload` and processes
@@ -210,7 +210,7 @@ impl AttendanceHandler {
             .map_err(|e| format!("Failed to fetch leave data: {e}"))?;
 
         // Batch fetch working conditions for all employees (eliminates N+1)
-        let conditions_map = PolicyResolver::resolve_attendance_rules_batch(
+        let conditions_map = PolicyResolverService::resolve_attendance_rules_batch(
             args.employee_repo,
             &emp_ids,
             args.workspace_id,
@@ -220,7 +220,7 @@ impl AttendanceHandler {
         .await
         .map_err(|e| format!("Failed to fetch working conditions: {e}"))?;
 
-        let attendance_rules_map = PolicyResolver::resolve_attendance_policy_batch(
+        let attendance_rules_map = PolicyResolverService::resolve_attendance_policy_batch(
             args.policy_repo,
             &emp_ids,
             args.workspace_id,
@@ -373,7 +373,7 @@ impl AttendanceHandler {
         let emp_ids: Vec<Uuid> = args.schedules.iter().map(|s| s.employee_id).collect();
 
         // Batch fetch working conditions for all employees (eliminates N+1)
-        let conditions_map = PolicyResolver::resolve_attendance_rules_batch(
+        let conditions_map = PolicyResolverService::resolve_attendance_rules_batch(
             args.employee_repo,
             &emp_ids,
             args.workspace_id,
@@ -383,7 +383,7 @@ impl AttendanceHandler {
         .await
         .map_err(|e| format!("Failed to fetch working conditions: {e}"))?;
 
-        let attendance_rules_map = PolicyResolver::resolve_attendance_policy_batch(
+        let attendance_rules_map = PolicyResolverService::resolve_attendance_policy_batch(
             args.policy_repo,
             &emp_ids,
             args.workspace_id,

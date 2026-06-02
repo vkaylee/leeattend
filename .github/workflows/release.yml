@@ -114,6 +114,9 @@ jobs:
       - name: 🎨 Run Frontend Lint
         run: ./test.sh web --lint-only
 
+      - name: 🌐 Run i18n Reconcile Check
+        run: node scripts/locales/reconcile_locales.js
+
   # ============================================================================
   # TEST PHASE
   # ============================================================================

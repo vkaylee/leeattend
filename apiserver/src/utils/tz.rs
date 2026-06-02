@@ -78,7 +78,7 @@ pub fn local_to_utc(
 /// Convert local date/time to a timezone-aware `DateTime<Tz>`.
 ///
 /// Uses the same unified DST strategy as [`local_to_utc`].
-/// Returns `sqlx::Error` for seamless use in database service contexts.
+/// Returns a `Result<DateTime<Tz>, String>`.
 ///
 /// Replaces the private `local_to_tz` in `pairing_service.rs`.
 pub fn local_to_tz(

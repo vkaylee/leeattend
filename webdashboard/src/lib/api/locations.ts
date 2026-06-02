@@ -2,31 +2,31 @@
 import { client } from "./client";
 
 export interface WorkLocation {
-  id: string;
-  workspace_id: string;
-  name: string;
   address?: string;
-  timezone: string;
-  is_headquarters: boolean;
-  status: string;
   created_at: string;
+  id: string;
+  is_headquarters: boolean;
+  name: string;
+  status: string;
+  timezone: string;
   updated_at: string;
+  workspace_id: string;
 }
 
 export interface CreateWorkLocationRequest {
-  name: string;
   address?: string;
-  timezone?: string;
   is_headquarters?: boolean;
+  name: string;
   status?: string;
+  timezone?: string;
 }
 
 export interface UpdateWorkLocationRequest {
-  name?: string;
   address?: string;
-  timezone?: string;
   is_headquarters?: boolean;
+  name?: string;
   status?: string;
+  timezone?: string;
 }
 
 export async function fetchLocations(wsId: string): Promise<WorkLocation[]> {

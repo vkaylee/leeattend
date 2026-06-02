@@ -1,4 +1,3 @@
-import { client } from "./client";
 import type { 
   AssignPatternRequest,
   BulkAssignPatternRequest,
@@ -9,6 +8,8 @@ import type {
   WorkingPattern, 
   WorkingPatternDetail, 
 } from "./types";
+
+import { client } from "./client";
 
 export type {
   AssignPatternRequest,
@@ -64,7 +65,7 @@ export async function fetchPatternDetails(wsId: string, patternId: string): Prom
     },
   });
   if (!data) throw new Error("No response data");
-  return data as unknown as WorkingPatternDetail[];
+  return data;
 }
 
 export async function assignPattern(
@@ -79,7 +80,7 @@ export async function assignPattern(
     body: data,
   });
   if (!result) throw new Error("No response data");
-  return result as unknown as EmployeeWorkingPattern;
+  return result;
 }
 
 export async function bulkAssignPattern(
@@ -93,7 +94,7 @@ export async function bulkAssignPattern(
     body: data,
   });
   if (!result) throw new Error("No response data");
-  return result as unknown as BulkAssignResponse;
+  return result;
 }
 
 export async function fetchEmployeePatternHistory(
@@ -106,7 +107,7 @@ export async function fetchEmployeePatternHistory(
     },
   });
   if (!data) throw new Error("No response data");
-  return data as unknown as EmployeeWorkingPattern[];
+  return data;
 }
 
 export async function deleteWorkingPattern(wsId: string, patternId: string): Promise<void> {

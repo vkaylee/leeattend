@@ -25,13 +25,13 @@ export type CreateEmployerRequest = components["schemas"]["CreateEmployerRequest
 export type UpdateEmployerRequest = components["schemas"]["UpdateEmployerRequest"];
 
 export interface User {
-  avatar_url?: string;
-  bio?: string;
+  avatar_url?: string | null;
+  bio?: string | null;
   created_at?: string;
   email: string;
-  full_name?: string;
+  full_name?: string | null;
   id: string;
-  preferred_language?: string;
+  preferred_language?: string | null;
   system_roles?: string[];
 }
 
@@ -40,10 +40,10 @@ export type ChangePasswordRequest = components["schemas"]["ChangePasswordRequest
 export type RegisterRequest = components["schemas"]["RegisterRequest"];
 
 export interface WorkspaceMember {
-  avatar_url?: string;
+  avatar_url?: string | null;
   email: string;
   extra_role_ids?: string[];
-  full_name?: string;
+  full_name?: string | null;
   role_id: string;
   user_id: string;
   workspace_id: string;
@@ -55,7 +55,7 @@ export enum RoleScopeType {
 }
 
 export type WorkspaceRole = Omit<components["schemas"]["WorkspaceRole"], "description"> & {
-  description?: string;
+  description?: string | null;
 };
 
 export type AuthResponse = components["schemas"]["AuthResponse"];
@@ -82,18 +82,18 @@ export interface RawAttendanceLog {
 export type LeaveDurationType = 'full_day' | 'first_half' | 'second_half' | 'custom_hours';
 export type LeaveRequest = components["schemas"]["LeaveRequest"];
 
-export type EmployeeLeaveBalance = {
+export interface EmployeeLeaveBalance {
   accrued_amount: number;
   carried_over: number;
   entitlement: number;
-  remaining: number;
-  used: number;
-  leave_type?: string;
   is_paid?: boolean;
+  leave_type?: string;
   leave_type_code?: string;
   leave_type_id?: string;
   leave_type_name?: string;
-};
+  remaining: number;
+  used: number;
+}
 
 export type WorkspaceLeaveBalance = components["schemas"]["WorkspaceLeaveBalance"];
 export type AttendanceAdjustmentRequest = components["schemas"]["AttendanceAdjustmentRequest"] & { requested_date?: string };
@@ -157,16 +157,18 @@ export interface DailyAttendanceReport {
   ot_work_units: number;
   scheduled_end: string | null;
   scheduled_start: string | null;
+  shift_name?: string | null;
+  shift_symbol?: string | null;
   status: string;
   std_work_units: number;
   unit_coefficient_hours: number;
   unit_type: 'DAY' | 'SHIFT' | 'HOUR' | 'MINUTE';
-  shift_symbol?: string | null;
-  shift_name?: string | null;
 }
 
 // --- Payroll and Shift Models ---
 export type Shift = components["schemas"]["Shift"];
+export type CreateShiftRequest = components["schemas"]["CreateShiftRequest"];
+export type UpdateShiftRequest = components["schemas"]["UpdateShiftRequest"];
 export type PayrollSettings = components["schemas"]["PayrollSettings"];
 
 export interface ConfigRecord {
@@ -268,14 +270,14 @@ export interface WorkerMonitorStats {
 }
 
 export interface RecentJob {
-  completed_at: string | null;
+  completed_at?: string | null;
   completed_batches: number;
   created_at: string;
-  error_message: string | null;
+  error_message?: string | null;
   failed_batches: number;
   job_id: string;
-  report_type: string;
-  requester_id: string;
+  report_type?: string | null;
+  requester_id?: string | null;
   status: 'pending' | 'processing' | 'completed' | 'failed';
   total_batches: number;
   workspace_id: string;
@@ -410,8 +412,8 @@ export type LeavePolicyAssignmentDetail = Omit<components["schemas"]["LeavePolic
 };
 export type OtStatus = "none" | "pending_employee" | "pending_manager" | "approved" | "rejected";
 export type AttendanceDailySummary = Omit<components["schemas"]["AttendanceDailySummary"], "entered_via" | "ot_reason"> & {
-  entered_via?: string;
-  ot_reason?: string;
+  entered_via?: string | null;
+  ot_reason?: string | null;
 };
 // --- Payroll Rules ---
 export type PayrollRuleDefinition = components["schemas"]["PayrollRuleDefinition"];

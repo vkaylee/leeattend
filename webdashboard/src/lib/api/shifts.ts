@@ -1,6 +1,7 @@
+import type { Shift, EmployeeSchedule, AssignmentHistory, ShiftRoster, CreateShiftRequest, UpdateShiftRequest } from "./types";
+
 // @ts-nocheck
 import { client } from "./client";
-import type { Shift, EmployeeSchedule, AssignmentHistory, ShiftRoster } from "./types";
 
 export type { Shift, EmployeeSchedule, AssignmentHistory, ShiftRoster };
 
@@ -11,10 +12,10 @@ export async function fetchShifts(wsId: string): Promise<Shift[]> {
     },
   });
   if (!data) throw new Error("No response data");
-  return data as unknown as Shift[];
+  return data;
 }
 
-export async function createShift(wsId: string, data: { name: string; short_code: string; start_time: string; end_time: string; break_duration_minutes: number; color?: string | null }): Promise<Shift> {
+export async function createShift(wsId: string, data: CreateShiftRequest): Promise<Shift> {
   const { data: result } = await client.POST("/workspaces/{workspace_id}/shifts", {
     params: {
       path: { workspace_id: wsId },
@@ -22,13 +23,13 @@ export async function createShift(wsId: string, data: { name: string; short_code
     body: data,
   });
   if (!result) throw new Error("No response data");
-  return result as unknown as Shift;
+  return result;
 }
 
 export async function updateShift(
   wsId: string, 
   shiftId: string, 
-  data: any & { is_correction?: boolean, effective_date?: string }
+  data: UpdateShiftRequest
 ): Promise<Shift> {
   const { data: result } = await client.PUT("/workspaces/{workspace_id}/shifts/{shift_id}", {
     params: {
@@ -37,7 +38,7 @@ export async function updateShift(
     body: data,
   });
   if (!result) throw new Error("No response data");
-  return result as unknown as Shift;
+  return result;
 }
 
 export async function assignShift(
@@ -60,7 +61,7 @@ export const fetchWorkspaceSchedules = async (wsId: string, startDate: string, e
     },
   });
   if (!data) throw new Error("No response data");
-  return data as unknown as EmployeeSchedule[];
+  return data;
 };
 
 export const fetchAssignmentHistory = async (wsId: string): Promise<AssignmentHistory[]> => {
@@ -70,7 +71,7 @@ export const fetchAssignmentHistory = async (wsId: string): Promise<AssignmentHi
     },
   });
   if (!data) throw new Error("No response data");
-  return data as unknown as AssignmentHistory[];
+  return data;
 };
 
 export const fetchEmployeeRosters = async (
@@ -89,7 +90,7 @@ export const fetchEmployeeRosters = async (
     },
   });
   if (!data) throw new Error("No response data");
-  return data as unknown as ShiftRoster[];
+  return data;
 }
 
 export async function upsertRoster(wsId: string, employeeId: string, data: any): Promise<ShiftRoster> {
@@ -100,10 +101,14 @@ export async function upsertRoster(wsId: string, employeeId: string, data: any):
     body: data,
   });
   if (!result) throw new Error("No response data");
-  return result as unknown as ShiftRoster;
+  return result;
 }
 
-export async function bulkUpsertRoster(wsId: string, employeeId: string, items: Partial<ShiftRoster>[]): Promise<void> {
+export async function bulkUpsertRoster(
+  wsId: string,
+  employeeId: string,
+  items: (Omit<Partial<ShiftRoster>, "date"> & { date: string })[],
+): Promise<void> {
   await client.POST("/workspaces/{workspace_id}/employees/{id}/rosters/bulk", {
     params: {
       path: { workspace_id: wsId, id: employeeId },

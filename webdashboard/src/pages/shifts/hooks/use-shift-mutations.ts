@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 
@@ -7,6 +6,8 @@ import type {
   EmployeeWorkingPattern,
   Shift,
   ShiftRoster,
+  CreateShiftRequest,
+  UpdateShiftRequest,
 } from "@/lib/api/types";
 
 import { useToast } from "@/components/ui/toast";
@@ -84,8 +85,8 @@ export function useShiftMutations({ wsId, selectedEmployeeId, onSuccess }: UseSh
     onError: (error: Error) => { toast.error(error.message, t("shifts.messages.remove_override_error")); }
   });
 
-  const createShiftMutation = useMutation<Shift, Error, Partial<Shift>>({
-    mutationFn: (data: Partial<Shift>) => createShift(wsId, data),
+  const createShiftMutation = useMutation<Shift, Error, CreateShiftRequest>({
+    mutationFn: (data: CreateShiftRequest) => createShift(wsId, data),
     onSuccess: (data) => {
       toast.success(t("shifts.messages.create_shift_success", { name: data.name }));
       onSuccess?.("createShift");
@@ -94,8 +95,8 @@ export function useShiftMutations({ wsId, selectedEmployeeId, onSuccess }: UseSh
     onError: (error: Error) => { toast.error(error.message, t("shifts.messages.create_shift_error")); }
   });
 
-  const updateShiftMutation = useMutation<Shift, Error, { id: string, data: Partial<Shift> }>({
-    mutationFn: ({ id, data }: { id: string, data: Partial<Shift> }) => updateShift(wsId, id, data),
+  const updateShiftMutation = useMutation<Shift, Error, { id: string, data: UpdateShiftRequest }>({
+    mutationFn: ({ id, data }: { id: string, data: UpdateShiftRequest }) => updateShift(wsId, id, data),
     onSuccess: () => {
       toast.success(t("shifts.messages.update_shift_success"));
       onSuccess?.("updateShift");

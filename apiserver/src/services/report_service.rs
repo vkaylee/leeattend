@@ -17,7 +17,7 @@ use crate::repositories::{
     employee::EmployeeRepository, AttendanceDailySummaryRepository, AttendancePolicyRepository,
     TimeEntryRepository,
 };
-use crate::services::AttendanceCalculator;
+use crate::services::{AttendanceCalculator, PolicyResolverService};
 
 pub struct AttendanceReportArgs {
     pub workspace_id: Uuid,
@@ -290,7 +290,7 @@ impl ReportService {
             leave_details_map.keys().copied().collect();
 
         // 5d. BATCH fetch attendance rules (SCD Type 2)
-        let attendance_rules_map = PolicyResolver::resolve_attendance_policy_batch(
+        let attendance_rules_map = PolicyResolverService::resolve_attendance_policy_batch(
             &*self.policy_repo,
             &emp_ids,
             args.workspace_id,
@@ -299,7 +299,7 @@ impl ReportService {
         .await?;
 
         // 5e. BATCH fetch working conditions
-        let working_conditions_map = PolicyResolver::resolve_attendance_rules_batch(
+        let working_conditions_map = PolicyResolverService::resolve_attendance_rules_batch(
             &*self.employee_repo,
             &emp_ids,
             args.workspace_id,
@@ -642,7 +642,7 @@ impl ReportService {
             .await?;
 
         // 6b. BATCH fetch attendance rules (SCD Type 2)
-        let attendance_rules_map = PolicyResolver::resolve_attendance_policy_batch(
+        let attendance_rules_map = PolicyResolverService::resolve_attendance_policy_batch(
             &*self.policy_repo,
             &emp_ids,
             workspace.id,
@@ -651,7 +651,7 @@ impl ReportService {
         .await?;
 
         // 6c. BATCH fetch working conditions
-        let working_conditions_map = PolicyResolver::resolve_attendance_rules_batch(
+        let working_conditions_map = PolicyResolverService::resolve_attendance_rules_batch(
             &*self.employee_repo,
             &emp_ids,
             workspace.id,

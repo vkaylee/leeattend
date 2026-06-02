@@ -1,5 +1,6 @@
-import { client } from "./client";
 import type { EmployeeContract, CreateContractRequest, UpdateContractRequest } from "./contract-types";
+
+import { client } from "./client";
 
 export type { EmployeeContract, CreateContractRequest, UpdateContractRequest };
 
@@ -10,7 +11,7 @@ export async function fetchEmployeeContracts(wsId: string, employeeId: string): 
     },
   });
   if (!data) throw new Error("No response data");
-  return data as unknown as EmployeeContract[];
+  return data;
 }
 
 export async function fetchEmployeeContract(wsId: string, employeeId: string, contractId: string): Promise<EmployeeContract> {
@@ -20,7 +21,7 @@ export async function fetchEmployeeContract(wsId: string, employeeId: string, co
     },
   });
   if (!data) throw new Error("No response data");
-  return data as unknown as EmployeeContract;
+  return data;
 }
 
 export async function createEmployeeContract(
@@ -35,7 +36,7 @@ export async function createEmployeeContract(
     body: data,
   });
   if (!result) throw new Error("No response data");
-  return result as unknown as EmployeeContract;
+  return result;
 }
 
 export async function updateEmployeeContract(
@@ -51,7 +52,7 @@ export async function updateEmployeeContract(
     body: data,
   });
   if (!result) throw new Error("No response data");
-  return result as unknown as EmployeeContract;
+  return result;
 }
 
 export async function deleteEmployeeContract(wsId: string, employeeId: string, contractId: string): Promise<void> {

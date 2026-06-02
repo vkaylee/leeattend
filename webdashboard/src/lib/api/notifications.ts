@@ -1,6 +1,5 @@
-// @ts-nocheck
-import { apiFetch } from "./helpers";
 import { client } from "./client";
+// @ts-nocheck
 
 export type NotificationType = "leave_approved" | "leave_rejected" | "attendance_missing" | "system" | "message" | "info" | "alert" | (string & {});
 
@@ -45,10 +44,10 @@ export async function fetchUnreadCount(): Promise<UnreadCountResponse> {
 
 export async function markNotificationAsRead(id: string): Promise<void> {
   await client.PATCH("/v1/notifications/{id}/read", {
-            params: { path: { id } },
-          body: {} });
+            params: { path: { id } }
+      });
 }
 
 export async function markAllNotificationsAsRead(): Promise<void> {
-  await client.POST(`/v1/notifications/read-all`, { body: {} });
+  await client.POST(`/v1/notifications/read-all`, {});
 }

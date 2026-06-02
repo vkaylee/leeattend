@@ -113,7 +113,7 @@ export async function customFetch(url: string | URL | Request, init?: RequestIni
     );
   }
   
-  return res!;
+  return res;
 }
 
 export const client = createClient<paths>({

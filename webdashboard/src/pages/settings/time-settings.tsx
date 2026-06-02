@@ -90,7 +90,7 @@ function TimeSettingsContent({
   const [workUnit, setWorkUnit] = useState(rules.work_unit_minutes);
   const [roundingPolicy, setRoundingPolicy] = useState(rules.rounding_policy);
   const [earlyArrivalStrategy, setEarlyArrivalStrategy] = useState<"allow" | "block" | "clamp">(
-    rules.early_arrival_strategy
+    rules.early_arrival_strategy ?? "block"
   );
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newValidFrom, setNewValidFrom] = useState(() => new Date().toISOString().split("T")[0]);

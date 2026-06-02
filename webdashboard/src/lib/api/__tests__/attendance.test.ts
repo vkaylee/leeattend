@@ -8,7 +8,6 @@ vi.mock("../helpers", () => ({
 }));
 
 import { fetchAttendanceReport } from "../attendance";
-import { API_BASE_URL } from "../config";
 import { apiFetch } from "../helpers";
 
 describe("fetchAttendanceReport", () => {

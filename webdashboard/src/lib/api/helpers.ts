@@ -139,12 +139,12 @@ export async function apiFetch(
   // Add custom headers (overriding base headers)
   if (options.headers) {
     if (options.headers instanceof Headers) {
-      options.headers.forEach((v, k) => headers.set(k, v));
+      options.headers.forEach((v, k) => { headers.set(k, v); });
     } else if (Array.isArray(options.headers)) {
-      options.headers.forEach(([k, v]) => headers.set(k, v));
+      options.headers.forEach(([k, v]) => { headers.set(k, v); });
     } else {
       Object.entries(options.headers).forEach(([k, v]) => {
-        if (v) headers.set(k, v as string);
+        if (v) headers.set(k, v);
       });
     }
   }
@@ -177,7 +177,7 @@ export async function apiFetch(
       });
     }
 
-    return response!;
+    return response;
   } catch (error) {
     clearTimeout(id);
     throw error;

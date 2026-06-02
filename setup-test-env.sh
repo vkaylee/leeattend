@@ -23,7 +23,6 @@ fi
 # --- Timeout Configuration ---
 export TIMEOUT_DB_WAIT=${TIMEOUT_DB_WAIT:-120}     # 2 min for DB ready check
 export TIMEOUT_MIGRATION=${TIMEOUT_MIGRATION:-120} # 2 min for migrations
-export TIMEOUT_SQLX_PREPARE=${TIMEOUT_SQLX_PREPARE:-180} # 3 min for sqlx prepare
 
 # Common Variables
 export DATABASE_URL="postgres://test_user:test_password@test_db:5432/test_database"

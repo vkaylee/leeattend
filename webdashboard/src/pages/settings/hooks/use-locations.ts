@@ -1,4 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+
+import type { CreateWorkLocationRequest, UpdateWorkLocationRequest } from "@/lib/api-generated/models";
+
 import { 
   listLocations, 
   createLocation, 
@@ -6,7 +9,6 @@ import {
   deleteLocation,
   getListLocationsQueryKey
 } from "@/lib/api-generated/crate-handlers-locations/crate-handlers-locations";
-import type { CreateWorkLocationRequest, UpdateWorkLocationRequest } from "@/lib/api-generated/models";
 
 export const locationKeys = {
   all: (wsId: string) => getListLocationsQueryKey(wsId),
@@ -28,7 +30,7 @@ export function useCreateLocation(wsId: string) {
   return useMutation({
     mutationFn: (data: CreateWorkLocationRequest) => createLocation(wsId, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: locationKeys.all(wsId) });
+      void queryClient.invalidateQueries({ queryKey: locationKeys.all(wsId) });
     },
   });
 }
@@ -38,7 +40,7 @@ export function useUpdateLocation(wsId: string) {
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: UpdateWorkLocationRequest }) => updateLocation(wsId, id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: locationKeys.all(wsId) });
+      void queryClient.invalidateQueries({ queryKey: locationKeys.all(wsId) });
     },
   });
 }
@@ -48,7 +50,7 @@ export function useDeleteLocation(wsId: string) {
   return useMutation({
     mutationFn: (id: string) => deleteLocation(wsId, id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: locationKeys.all(wsId) });
+      void queryClient.invalidateQueries({ queryKey: locationKeys.all(wsId) });
     },
   });
 }

@@ -88,7 +88,12 @@ async fn test_get_employee_payslips_api() {
     let component_def = _state
         .payroll
         .repo
-        .create_salary_component_definition(ws_id, "Lương cơ bản".to_string(), "BASE".to_string())
+        .create_salary_component_definition(
+            ws_id,
+            "Lương cơ bản".to_string(),
+            "BASE".to_string(),
+            None,
+        )
         .await
         .unwrap();
 

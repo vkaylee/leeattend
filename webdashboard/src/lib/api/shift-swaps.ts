@@ -87,5 +87,5 @@ export async function fetchShiftSwapStats(
         },
     });
     if (!resData) throw new Error("No response data");
-    return resData as unknown as SwapStats;
+    return resData;
 }

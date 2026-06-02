@@ -29,7 +29,7 @@ function ensureIntervalStarted() {
     if (!intervalId) {
         intervalId = setInterval(() => {
             currentTick = Date.now();
-            listeners.forEach((l) => l());
+            listeners.forEach((l) => { l(); });
         }, 1000);
     }
 }

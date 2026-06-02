@@ -15,7 +15,6 @@ export default function ShiftsPage() {
     activeTab,
     selectedEmployee,
     setActiveTab,
-    setIsCreateModalOpen,
     setSelectedEmployee,
     wsId,
     viewMode,

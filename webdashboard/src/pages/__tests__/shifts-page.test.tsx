@@ -12,9 +12,15 @@ import ShiftsPage from "../shifts-page";
 // Mock TanStack Router
 vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => vi.fn(),
- 
+  useParams: () => ({}),
+  useSearch: () => ({}),
+  useBlocker: () => ({
+    proceed: vi.fn(),
+    reset: vi.fn(),
+    status: "idle",
+  }),
   useLocation: () => ({ pathname: "/", search: "", hash: "" }),
-  Link: ({ to, children, ...props }: { to: string; children: React.ReactNode }) => <a href={to} {...props}>{children}</a>,
+  Link: ({ to, children, ...props }: { to?: string; children: React.ReactNode }) => <a href={to} {...props}>{children}</a>,
 }));
 
 // Mock the API library

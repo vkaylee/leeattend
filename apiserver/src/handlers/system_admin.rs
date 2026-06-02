@@ -349,7 +349,7 @@ pub async fn revoke_system_role(
 
         if count_row.count <= 1 {
             return Err(AppError::Validation(
-                "Cannot revoke the last platform_admin. Assign another admin first.".to_string(),
+                "error.cannot_revoke_last_admin".to_string(),
             ));
         }
     }

@@ -21,6 +21,7 @@ pub const ALL_KEYS: &[&str] = &[
     "error.not_workspace_member",
     "error.user_not_found",
     "error.database_error",
+    "error.cannot_revoke_last_admin",
 ];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -119,6 +120,9 @@ fn lookup_en(key: &str) -> Option<&'static str> {
         "error.not_workspace_member" => Some("Not a member of this workspace"),
         "error.user_not_found" => Some("User not found"),
         "error.database_error" => Some("Database error"),
+        "error.cannot_revoke_last_admin" => {
+            Some("Cannot revoke the last platform_admin. Assign another admin first.")
+        }
         _ => None,
     }
 }
@@ -139,6 +143,7 @@ fn lookup_vi(key: &str) -> Option<&'static str> {
         "error.not_workspace_member" => Some("Bạn không phải là thành viên của workspace này"),
         "error.user_not_found" => Some("Không tìm thấy người dùng"),
         "error.database_error" => Some("Lỗi cơ sở dữ liệu"),
+        "error.cannot_revoke_last_admin" => Some("Không thể thu hồi platform_admin cuối cùng. Hãy gán quản trị viên khác trước."),
         _ => None,
     }
 }
@@ -161,6 +166,9 @@ fn lookup_zh(key: &str) -> Option<&'static str> {
         "error.not_workspace_member" => Some("您不是该工作空间的成员"),
         "error.user_not_found" => Some("未找到该用户"),
         "error.database_error" => Some("数据库错误"),
+        "error.cannot_revoke_last_admin" => {
+            Some("无法撤销最后一个 platform_admin。请先分配另一个管理员。")
+        }
         _ => None,
     }
 }

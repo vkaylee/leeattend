@@ -1,7 +1,5 @@
-import { API_BASE_URL } from "./config";
-import { apiFetch } from "./helpers";
-import { Department } from "./types";
 import { client } from "./client";
+import { Department } from "./types";
 
 export async function fetchDepartments(wsId: string): Promise<Department[]> {
   const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/departments", {

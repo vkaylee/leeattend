@@ -138,7 +138,7 @@ export const overtimeRequestsApi = {
       },
     });
     if (!data) throw new Error("No response data");
-    return data as unknown as OvertimeRequest[];
+    return data;
   },
 
   getWorkspaceQuotaSummary: async (workspaceId: string, month: string): Promise<QuotaSummary[]> => {
@@ -149,7 +149,7 @@ export const overtimeRequestsApi = {
       },
     });
     if (!data) throw new Error("No response data");
-    return data as unknown as QuotaSummary[];
+    return data;
   },
 
   getEmployeeQuota: async (workspaceId: string, employeeId: string, date: string): Promise<QuotaSummary> => {
@@ -160,6 +160,6 @@ export const overtimeRequestsApi = {
       },
     });
     if (!data) throw new Error("No response data");
-    return data as unknown as QuotaSummary;
+    return data;
   }
 };

@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient  } from "@tanstack/react-query";
 import {
     Building2,
     Calendar,
@@ -16,20 +16,19 @@ import React, { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { Department, Employee, WorkspaceMember } from "@/lib/api";
+import type { WorkLocation } from "@/lib/api-generated/models";
 
 import PermissionGate from "@/components/common/permission-gate";
-import { Combobox } from "@/components/ui/combobox";
 import WorkingConditionConfig from "@/components/employees/working-condition-config";
 import EmployeeSalaryConfig from "@/components/payroll/employee-salary-config";
 import Button from "@/components/ui/button";
+import { Combobox } from "@/components/ui/combobox";
 import Sheet from "@/components/ui/sheet";
+import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
 import { fetchWorkspaceMembers, updateEmployee } from "@/lib/api";
-import type { WorkLocation } from "@/lib/api-generated/models";
 import { cn } from "@/lib/utils";
 import { useLocations } from "@/pages/settings/hooks/use-locations";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useToast } from "@/components/ui/toast";
 
 import EmployeeAssignmentsTab from "./employee-assignments-tab";
 import EmployeeContractsTab from "./employee-contracts-tab";
@@ -231,9 +230,7 @@ function ProfileTab({
                         <div>
                             <div className="font-bold text-slate-700 dark:text-slate-200 text-2xl tracking-tighter uppercase leading-none mb-3 flex items-center gap-2">
                                 {currentLocation?.name ?? "Unknown Location"}
-                                {currentLocation?.is_headquarters && (
-                                    <span className="bg-rose-100 text-rose-700 dark:bg-rose-900 dark:text-rose-300 text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-widest border border-rose-200 dark:border-rose-800">HQ</span>
-                                )}
+                                {!!currentLocation?.is_headquarters && <span className="bg-rose-100 text-rose-700 dark:bg-rose-900 dark:text-rose-300 text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-widest border border-rose-200 dark:border-rose-800">HQ</span>}
                             </div>
                             <div className="flex items-center gap-2 text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest opacity-70 group/tz cursor-help relative inline-flex">
                                 <Clock className="text-rose-400" size={12} /> {currentLocation?.timezone ?? "No Timezone"}

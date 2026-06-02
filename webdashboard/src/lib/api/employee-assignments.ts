@@ -1,9 +1,10 @@
-import { client } from "./client";
 import type {
   CreateEmployeeAssignmentRequest,
   EmployeeAssignment,
   UpdateEmployeeAssignmentRequest,
 } from "./types";
+
+import { client } from "./client";
 
 export type {
   CreateEmployeeAssignmentRequest,
@@ -21,7 +22,7 @@ export const fetchEmployeeAssignments = async (
     },
   });
   if (!data) throw new Error("Failed to fetch employee assignments");
-  return data as unknown as EmployeeAssignment[];
+  return data;
 };
 
 export const createEmployeeAssignment = async (
@@ -36,7 +37,7 @@ export const createEmployeeAssignment = async (
     body: data,
   });
   if (!result) throw new Error("Failed to create employee assignment");
-  return result as unknown as EmployeeAssignment;
+  return result;
 };
 
 export const updateEmployeeAssignment = async (
@@ -52,7 +53,7 @@ export const updateEmployeeAssignment = async (
     body: data,
   });
   if (!result) throw new Error("Failed to update employee assignment");
-  return result as unknown as EmployeeAssignment;
+  return result;
 };
 
 export const deleteEmployeeAssignment = async (

@@ -309,7 +309,7 @@ run_static_scan() {
     done
 
     # ── Cross-file check: trap cleanup must exist in main scripts ─────
-    for main_script in "$PROJECT_ROOT/run-tests.sh"; do
+    for main_script in "$PROJECT_ROOT/test.sh"; do
         [[ -f "$main_script" ]] || continue
         local bn
         bn="$(basename "$main_script")"
@@ -358,7 +358,7 @@ check_command_string() {
 run_runtime_test() {
     echo -e "\n${BLUE}${BOLD}═══ LAYER 2: Runtime PTY Hang Test ═══${NC}"
 
-    # Prevent recursive loops: run-tests.sh calls us
+    # Prevent recursive loops: test.sh calls us
     export _PTY_CHECK_DONE=1
 
     if ! command -v script &>/dev/null; then
@@ -366,13 +366,13 @@ run_runtime_test() {
         return
     fi
 
-    # Test 1: run-tests.sh --help must exit cleanly in a PTY
-    _pty_test "run-tests.sh --help" \
-        "$PROJECT_ROOT/run-tests.sh" "--help" 10
+    # Test 1: test.sh --help must exit cleanly in a PTY
+    _pty_test "test.sh --help" \
+        "$PROJECT_ROOT/test.sh" "--help" 10
 
-    # Test 2: run-tests.sh --dry-run must exit cleanly
-    _pty_test "run-tests.sh --api --dry-run" \
-        "$PROJECT_ROOT/run-tests.sh" "--api --dry-run" 15
+    # Test 2: test.sh --dry-run must exit cleanly
+    _pty_test "test.sh --api --dry-run" \
+        "$PROJECT_ROOT/test.sh" "--api --dry-run" 15
 
     # Test 3: Argument word-splitting test
     _arg_quoting_test
@@ -422,12 +422,12 @@ _pty_test() {
 }
 
 # Verify that arguments with special characters pass through correctly.
-# This validates that argument quoting works correctly in run-tests.sh.
+# This validates that argument quoting works correctly in test.sh.
 _arg_quoting_test() {
     echo -e "  ${BLUE}Testing: argument quoting (spaces/special chars)${NC}"
 
-    local test_script="$PROJECT_ROOT/run-tests.sh"
-    [[ -f "$test_script" ]] || { warn "run-tests.sh not found — skipping arg test"; return; }
+    local test_script="$PROJECT_ROOT/test.sh"
+    [[ -f "$test_script" ]] || { warn "test.sh not found — skipping arg test"; return; }
 
     # --test="foo bar" must not be split into --test="foo" and "bar"
     # --dry-run should show the pattern correctly
@@ -446,8 +446,8 @@ _arg_quoting_test() {
 _orphan_leak_test() {
     echo -e "  ${BLUE}Testing: orphan process leak detection${NC}"
 
-    local test_script="$PROJECT_ROOT/run-tests.sh"
-    [[ -f "$test_script" ]] || { warn "run-tests.sh not found — skipping orphan test"; return; }
+    local test_script="$PROJECT_ROOT/test.sh"
+    [[ -f "$test_script" ]] || { warn "test.sh not found — skipping orphan test"; return; }
 
     # Run in a subshell with timeout to guarantee we never hang
     local orphan_result=0
@@ -479,8 +479,8 @@ _orphan_leak_test() {
 _signal_cleanup_test() {
     echo -e "  ${BLUE}Testing: SIGTERM cleanup behavior${NC}"
 
-    local test_script="$PROJECT_ROOT/run-tests.sh"
-    [[ -f "$test_script" ]] || { warn "run-tests.sh not found — skipping signal test"; return; }
+    local test_script="$PROJECT_ROOT/test.sh"
+    [[ -f "$test_script" ]] || { warn "test.sh not found — skipping signal test"; return; }
 
     # Start --help in background, send SIGTERM, verify it dies quickly
     bash "$test_script" --help </dev/null >/dev/null 2>&1 &

@@ -12,7 +12,7 @@ use crate::repositories::leave_request_repository::LeaveRequestRepository;
 use crate::diesel_pool::TenantAuthToken;
 use crate::domain::policy::defaults::DEFAULT_WORK_MINUTES_PER_DAY;
 
-use crate::domain::policy::resolver::{PolicyResolver, ShiftPolicyOverrides};
+use crate::domain::policy::resolver::ShiftPolicyOverrides;
 use crate::models::{AttendanceDailySummary, OtStatus};
 use crate::repositories::holiday_repository::HolidayRepository;
 use crate::repositories::roster::RosterRepository;
@@ -20,6 +20,7 @@ use crate::repositories::AttendancePolicyRepository;
 use crate::repositories::EmployeeRepository;
 use crate::repositories::{workspace_repository::WorkspaceRepository, TimeEntryRepository};
 use crate::services::AttendanceCalculator;
+use crate::services::PolicyResolverService;
 use crate::utils::chrono_helpers::local_to_utc as local_midnight_to_utc;
 
 pub struct EnterPaperOtArgs {
@@ -305,7 +306,7 @@ impl AttendanceSummaryService {
             end += chrono::Duration::days(1);
         }
 
-        let rules = PolicyResolver::resolve_attendance_rules(
+        let rules = PolicyResolverService::resolve_attendance_rules(
             &*self.policy_repo,
             &*self.employee_repo,
             employee_id,
@@ -314,7 +315,7 @@ impl AttendanceSummaryService {
         )
         .await?;
 
-        let policy_rules = PolicyResolver::resolve_with_shift_overrides(
+        let policy_rules = PolicyResolverService::resolve_with_shift_overrides(
             &*self.policy_repo,
             &*self.employee_repo,
             employee_id,

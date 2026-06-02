@@ -10,7 +10,7 @@ interface SyncLangOptions {
   currentWorkspaceDefaultLang?: string;
   hasInitialized: RefObject<boolean>;
   i18n: { changeLanguage: (lang: string) => Promise<unknown>; language: string };
-  userPreferredLang?: string;
+  userPreferredLang?: string | null;
 }
 
 function syncLanguage({ hasInitialized, userPreferredLang, currentWorkspaceDefaultLang, i18n }: SyncLangOptions, user: unknown) {
@@ -20,7 +20,7 @@ function syncLanguage({ hasInitialized, userPreferredLang, currentWorkspaceDefau
     if (user) hasInitialized.current = true;
     return;
   }
-  const langToSet = userPreferredLang ?? currentWorkspaceDefaultLang;
+  const langToSet = userPreferredLang || currentWorkspaceDefaultLang || undefined;
   if (langToSet && i18n.language !== langToSet) {
     void i18n.changeLanguage(langToSet);
     localStorage.setItem('i18nextLng', langToSet);

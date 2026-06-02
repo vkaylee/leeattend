@@ -7,9 +7,9 @@ interface OtSummary {
   claimed_ot_minutes: number;
   date: string;
   employee_id: string;
-  entered_via?: string;
+  entered_via?: string | null;
   id: string;
-  ot_reason?: string;
+  ot_reason?: string | null;
   system_detected_ot_minutes: number;
 }
 
@@ -112,7 +112,7 @@ export function OtApprovalsTable({
   );
 }
 
-function SourceBadge({ enteredVia }: { enteredVia?: string }) {
+function SourceBadge({ enteredVia }: { enteredVia?: string | null }) {
   const { t } = useTranslation();
   if (enteredVia === "paper_form") {
     return (

@@ -157,3 +157,19 @@ vi.mock("@/components/ui/combobox", () => ({
     </select>
   ),
 }));
+
+vi.mock("@tanstack/react-router", () => ({
+  useNavigate: () => vi.fn(),
+  useParams: () => ({}),
+  useSearch: () => ({}),
+  useBlocker: () => ({
+    proceed: vi.fn(),
+    reset: vi.fn(),
+    status: "idle",
+  }),
+  createLazyFileRoute: () => (options: unknown) => ({ options }),
+  createFileRoute: () => (options: unknown) => ({ options }),
+  Outlet: () => null,
+  Link: ({ to, children, ...props }: React.AnchorHTMLAttributes<HTMLAnchorElement> & { to?: string }) => <a href={to} {...props}>{children}</a>,
+}));
+

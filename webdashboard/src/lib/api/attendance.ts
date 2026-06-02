@@ -1,5 +1,5 @@
+import { client } from "./client";
 // @ts-nocheck
-import { API_BASE_URL } from "./config";
 import { apiFetch, getCurrentWorkspaceId, TIMEOUT } from "./helpers";
 import {
   TimeEntry,
@@ -10,12 +10,10 @@ import {
   DailyAttendanceReport,
   PaginatedResponse,
   AttendanceReportSort,
-  ReportExportJob,
   CreateReportExportRequest,
   CreateReportExportResponse,
   WorkerMonitorStats, AttendanceDailySummary 
 } from "./types";
-import { client } from "./client";
 
 export async function punchIn(
   wsId: string,
@@ -28,7 +26,7 @@ export async function punchIn(
     body: data,
   });
   if (!resData) throw new Error("No response data");
-  return resData as TimeEntry;
+  return resData;
 }
 
 export async function punchOut(
@@ -43,7 +41,7 @@ export async function punchOut(
     body: data,
   });
   if (!resData) throw new Error("No response data");
-  return resData as TimeEntry;
+  return resData;
 }
 
 export async function fetchTimeHistory(
@@ -59,7 +57,7 @@ export async function fetchTimeHistory(
     },
   });
   if (!resData) throw new Error("No response data");
-  return resData as TimeEntry[];
+  return resData;
 }
 
 export async function updateTimeEntry(
@@ -103,7 +101,7 @@ export async function fetchWorkspaceAttendanceAdjustments(
   const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/attendance/adjustments", {
     params: {
       path: { ws_id: wsId },
-      query: { status }
+      query: { status: status as any }
     }
   });
   return resData!;
@@ -220,7 +218,7 @@ export async function fetchAttendanceReport(
   });
 
   if (!resData) throw new Error("No response data");
-  return resData as unknown as PaginatedResponse<AttendanceSummary | DailyAttendanceReport>;
+  return resData;
 }
 
 export async function uploadAttendance(
@@ -234,13 +232,13 @@ export async function uploadAttendance(
   if (endpoint === "/employees/upload") {
     const { data: resData } = await client.POST("/v1/workspaces/{ws_id}/employees/upload", {
       params: { path: { ws_id: wsId } },
-      body: formData as any as any,
+      body: formData as any,
     });
     return resData as any;
   } else {
     const { data: resData } = await client.POST("/v1/workspaces/{ws_id}/attendance/upload", {
       params: { path: { ws_id: wsId } },
-      body: formData as any as any,
+      body: formData as any,
     });
     return resData as any;
   }
@@ -273,8 +271,7 @@ export async function reprocessAttendance(
   endDate: string
 ): Promise<void> {
   await client.POST("/workspaces/{workspace_id}/attendance/reprocess/{employee_id}", {
-    params: { path: { workspace_id: wsId, employee_id: employeeId }, query: { start_date: startDate, end_date: endDate } },
-    body: {}
+    params: { path: { workspace_id: wsId, employee_id: employeeId }, query: { start_date: startDate, end_date: endDate } }
   });
 }
 
@@ -284,8 +281,7 @@ export async function reprocessAllAttendance(
   endDate: string
 ): Promise<{ message: string; job_id: string }> {
   const { data: resData } = await client.POST("/workspaces/{workspace_id}/attendance/reprocess-all", {
-    params: { path: { workspace_id: wsId }, query: { start_date: startDate, end_date: endDate } },
-    body: {}
+    params: { path: { workspace_id: wsId }, query: { start_date: startDate, end_date: endDate } }
   });
   return resData as any;
 }
@@ -313,7 +309,7 @@ export async function fetchGenericJobStatus(
   const { data: resData } = await client.GET("/workspaces/{ws_id}/jobs/{job_id}", {
             params: { path: { ws_id: wsId, job_id: jobId } }
       });
-    return resData!;
+    return resData as unknown as GenericJobStatus;
 }
 
 // --- Admin Confirm Attendance ---
@@ -411,7 +407,7 @@ export async function fetchAttendanceSummaries(
     }
   });
   if (!resData) throw new Error("No response data");
-  return resData as unknown as AttendanceDailySummary[];
+  return resData;
 }
 
 export async function enterPaperOt(
@@ -480,7 +476,7 @@ export async function fetchStagingLogs(
   const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/attendance/staging-logs", {
     params: {
       path: { ws_id: wsId },
-      query: { page, limit }
+      query: { page, limit } as any
     }
   });
   if (!resData) throw new Error("No response data");
@@ -551,24 +547,24 @@ export async function downloadExportReport(
 // --- Worker Monitoring (Global Infrastructure) ---
 
 export async function fetchMonitorOverview(): Promise<WorkerMonitorStats> {
-  const { data: resData } = await client.GET(`/v1/monitor/overview`, {});
+  const { data: resData } = await client.GET("/monitor/overview", {});
     return resData!;
 }
 
 export interface AttendanceRules {
-  early_arrival_strategy: "allow" | "block" | "clamp";
+  early_arrival_strategy?: "allow" | "block" | "clamp" | null;
   rounding_policy: string;
   work_unit_minutes: number;
 }
 
 export interface AttendancePolicyVersion {
   created_at: string;
-  created_by: string | null;
+  created_by?: string | null;
   early_arrival_strategy: "allow" | "block" | "clamp";
   id: string;
   rounding_policy: string;
   valid_from: string;
-  valid_to: string | null;
+  valid_to?: string | null;
   work_unit_minutes: number;
 }
 
@@ -597,9 +593,9 @@ export interface PolicyAssignmentResponse {
   id: string;
   rules: AttendanceRules;
   target_id: string;
-  target_type: "USER" | "GROUP";
+  target_type: string;
   valid_from: string;
-  valid_to: string | null;
+  valid_to?: string | null;
 }
 
 export interface UpsertPolicyAssignmentRequest {

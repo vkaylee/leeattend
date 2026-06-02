@@ -4,6 +4,7 @@ import { useState } from 'react';
 
 import { useLanguage, type SupportedLanguage } from '@/hooks/use-language';
 import { cn } from '@/lib/utils';
+
 import { VietnameseFlag, EnglishFlag, ChineseFlag } from './icons/flags';
 
 interface LanguageSwitcherProps {
@@ -103,9 +104,7 @@ export function LanguageSwitcher({ compact = false, className }: LanguageSwitche
                       {lang.name}
                     </span>
                   </div>
-                  {isSelected && (
-                    <Check className="text-primary-500 dark:text-primary-400 flex-shrink-0" size={16} strokeWidth={2.5} />
-                  )}
+                  {!!isSelected && <Check className="text-primary-500 dark:text-primary-400 flex-shrink-0" size={16} strokeWidth={2.5} />}
                 </button>
               );
             })}

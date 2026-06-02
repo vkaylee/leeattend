@@ -106,13 +106,12 @@ export function ShiftTimelinePreview({
           {/* Hour markers background */}
           <div className="absolute inset-0 flex justify-between px-2 pointer-events-none opacity-20">
             {Array.from({ length: 7 }).map((_, i) => (
-              <div key={i} className="h-full w-px bg-slate-400 dark:bg-slate-500" />
+              <div className="h-full w-px bg-slate-400 dark:bg-slate-500" key={i} />
             ))}
           </div>
 
           {/* Render Shift Duration */}
-          {shiftStart && shiftEnd && (
-            <>
+          {!!shiftStart && !!shiftEnd && <>
               {!isCrossMidnight ? (
                 <div
                   className="absolute h-full bg-primary-500/20 dark:bg-primary-500/10 border-x border-primary-500/50 flex items-center justify-center"
@@ -138,12 +137,10 @@ export function ShiftTimelinePreview({
                   </div>
                 </>
               )}
-            </>
-          )}
+            </>}
 
           {/* Render Fixed Break Segment */}
-          {isFixedBreak && breakStart && breakEnd && (
-            (() => {
+          {!!isFixedBreak && !!breakStart && !!breakEnd && (() => {
               const bStart = timeToMinutes(breakStart);
               const bEnd = timeToMinutes(breakEnd);
               const bCross = bEnd < bStart;
@@ -177,12 +174,10 @@ export function ShiftTimelinePreview({
                   </div>
                 </>
               );
-            })()
-          )}
+            })()}
 
           {/* Visual indicators for grace/early OT */}
-          {allowEarlyOt && shiftStart && (
-            (() => {
+          {!!allowEarlyOt && !!shiftStart && (() => {
               const earlyMin = Math.max(0, startMin - maxEarlyOtMinutes);
               return (
                 <div
@@ -190,8 +185,7 @@ export function ShiftTimelinePreview({
                   style={getSegmentStyles(earlyMin, startMin)}
                 />
               );
-            })()
-          )}
+            })()}
         </div>
 
         {/* Timeline Axis Labels */}
@@ -253,7 +247,7 @@ export function ShiftTimelinePreview({
         {/* Break Details */}
         <div className="flex justify-between items-center pb-2.5 border-b border-slate-50 dark:border-slate-800/80">
           <span className="font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-            <Coffee size={12} className="text-amber-500" />
+            <Coffee className="text-amber-500" size={12} />
             {t("shifts.modal.break_config")}
           </span>
           <span className="font-bold text-slate-700 dark:text-slate-200">
@@ -269,9 +263,9 @@ export function ShiftTimelinePreview({
         <div className="flex justify-between items-center pb-2.5 border-b border-slate-50 dark:border-slate-800/80">
           <span className="font-bold text-slate-500 dark:text-slate-400">{t("shifts.modal.break_policy_label")}</span>
           <span className="font-bold text-slate-700 dark:text-slate-200">
-            {isFixedBreak && !isAutoDeduct && !isBreakOvertime && t("shifts.modal.break_policy_no_deduct")}
-            {isFixedBreak && isBreakOvertime && t("shifts.modal.break_policy_overtime")}
-            {isAutoDeduct && t("shifts.modal.break_policy_auto_deduct")}
+            {!!isFixedBreak && !isAutoDeduct && !isBreakOvertime && t("shifts.modal.break_policy_no_deduct")}
+            {!!isFixedBreak && !!isBreakOvertime && t("shifts.modal.break_policy_overtime")}
+            {!!isAutoDeduct && t("shifts.modal.break_policy_auto_deduct")}
             {!isFixedBreak && !isAutoDeduct && t("shifts.modal.break_policy_no_deduct")}
           </span>
         </div>
@@ -280,7 +274,7 @@ export function ShiftTimelinePreview({
         {shiftGrace > 0 && (
           <div className="flex justify-between items-center pb-2.5 border-b border-slate-50 dark:border-slate-800/80">
             <span className="font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-              <Info size={12} className="text-slate-400" />
+              <Info className="text-slate-400" size={12} />
               {t("shifts.grace_period")}
             </span>
             <span className="font-bold text-slate-700 dark:text-slate-200 font-mono">
@@ -290,10 +284,10 @@ export function ShiftTimelinePreview({
         )}
 
         {/* Early OT Details */}
-        {allowEarlyOt && (
+        {!!allowEarlyOt && (
           <div className="flex justify-between items-center">
             <span className="font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-              <AlertCircle size={12} className="text-blue-500" />
+              <AlertCircle className="text-blue-500" size={12} />
               {t("shifts.modal.allow_early_ot")}
             </span>
             <span className="font-bold text-slate-700 dark:text-slate-200 font-mono">

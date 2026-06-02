@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, complexity, max-lines-per-function */
+ 
 import { Page } from '@playwright/test';
 
 import { Device } from '../../src/lib/api/types';
