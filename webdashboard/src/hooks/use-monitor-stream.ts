@@ -8,7 +8,10 @@ import { getAccessToken } from "@/lib/api/helpers";
 import { monitorKeys } from "./use-worker-monitor";
 
 /** SSE base URL – mirrors the REST API_BASE_URL logic. */
-const SSE_URL = (import.meta.env.DEV ? "/api" : ((import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, "") ?? "/api")) + "/monitor/stream";
+const SSE_BASE = import.meta.env.DEV
+  ? "/api"
+  : ((import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, "") ?? "/api");
+const SSE_URL = (SSE_BASE.endsWith("/v1") ? SSE_BASE : `${SSE_BASE}/v1`) + "/monitor/stream";
 
 /** Max consecutive connection errors before giving up (resets on success). */
 const MAX_RETRIES = 5;
