@@ -269,7 +269,7 @@ impl Orchestrator {
         let cleanup_hybrid = self.hybrid_db.clone();
         let cleanup_cancel = self.cancel_token.clone();
         tokio::spawn(async move {
-            let disk_cleanup_interval = Duration::from_secs(86400);
+            let disk_cleanup_interval = Duration::from_hours(24);
             let mut disk_cleanup_timer = tokio::time::interval(disk_cleanup_interval);
 
             disk_cleanup_timer.tick().await;

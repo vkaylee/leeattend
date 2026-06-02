@@ -170,7 +170,7 @@ impl CentralClient {
                 }
 
                 // Periodic stale in-flight reset (every 60 seconds)
-                if last_stale_check.elapsed() >= Duration::from_secs(60) {
+                if last_stale_check.elapsed() >= Duration::from_mins(1) {
                     if let Ok(reset_count) = sync_hybrid
                         .store()
                         .reset_stale_syncing(inflight_timeout_secs as i64)

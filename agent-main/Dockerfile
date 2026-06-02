@@ -1,16 +1,10 @@
 # Multi-stage build for Rust Agent supporting Dev, Test, and Prod
 
 # Stage 1: Cargo Chef base
-FROM public.ecr.aws/docker/library/rust:1.93-slim-bookworm AS chef
-RUN rustup component add clippy rustfmt
+FROM docker.io/blackdex/rust-musl:x86_64-musl-stable AS chef
+RUN rustup component add clippy rustfmt || true
 RUN cargo install cargo-chef --version ^0.1.77 --locked
-RUN apt-get update && apt-get install -y wget && \
-    wget https://github.com/mozilla/sccache/releases/download/v0.8.1/sccache-v0.8.1-x86_64-unknown-linux-musl.tar.gz && \
-    tar xzf sccache-v0.8.1-x86_64-unknown-linux-musl.tar.gz && \
-    mv sccache-v0.8.1-x86_64-unknown-linux-musl/sccache /usr/local/bin/sccache && \
-    chmod +x /usr/local/bin/sccache && \
-    rm -rf sccache* && \
-    apt-get install -y build-essential pkg-config libssl-dev clang mold curl tar rsync && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y wget rsync && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 
 # Stage 2: Planner (Prepare recipe)
@@ -67,14 +61,14 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
     sccache --start-server && \
     cargo build --release --locked -p agent && \
     sccache --stop-server && \
-    cp target/release/agent /usr/local/bin/agent
+    cp target/x86_64-unknown-linux-musl/release/agent /usr/local/bin/agent && \
+    mkdir -p /tmp/data && chown 65532:65532 /tmp/data
 
 # Stage 7: Runtime (Production image)
-FROM public.ecr.aws/docker/library/debian:bookworm-slim AS runtime
+FROM gcr.io/distroless/static-debian12 AS runtime
 WORKDIR /app
-RUN apt-get update && apt-get install -y ca-certificates openssl libssl3 && rm -rf /var/lib/apt/lists/*
-RUN useradd -r -u 1001 -s /usr/sbin/nologin appuser
 COPY --from=builder /usr/local/bin/agent /usr/local/bin/agent
-RUN mkdir -p /app/data && chown -R appuser:appuser /app
-USER appuser
+COPY --chown=65532:65532 --from=builder /tmp/data /app/data
+USER 65532
+VOLUME ["/app/data"]
 CMD ["agent"]

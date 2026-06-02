@@ -221,9 +221,9 @@ pub fn handle_dlq_stats_command(store: &RedbStore) -> Result<(), Box<dyn std::er
     }
 
     let mut reason_sorted: Vec<_> = by_reason.into_iter().collect();
-    reason_sorted.sort_by(|a, b| b.1.cmp(&a.1));
+    reason_sorted.sort_by_key(|b| std::cmp::Reverse(b.1));
     let mut device_sorted: Vec<_> = by_device.into_iter().collect();
-    device_sorted.sort_by(|a, b| b.1.cmp(&a.1));
+    device_sorted.sort_by_key(|b| std::cmp::Reverse(b.1));
     device_sorted.truncate(10);
 
     println!();

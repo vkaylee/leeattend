@@ -1,16 +1,10 @@
 # Multi-stage build for Rust API Server supporting Dev, Test, and Prod
 
 # Stage 1: Cargo Chef base
-FROM public.ecr.aws/docker/library/rust:1.93-slim-bookworm AS chef
-RUN rustup component add clippy rustfmt
+FROM docker.io/blackdex/rust-musl:x86_64-musl-stable AS chef
+RUN rustup component add clippy rustfmt || true
 RUN cargo install cargo-chef --version ^0.1.77 --locked
-RUN apt-get update && apt-get install -y wget && \
-    wget https://github.com/mozilla/sccache/releases/download/v0.8.1/sccache-v0.8.1-x86_64-unknown-linux-musl.tar.gz && \
-    tar xzf sccache-v0.8.1-x86_64-unknown-linux-musl.tar.gz && \
-    mv sccache-v0.8.1-x86_64-unknown-linux-musl/sccache /usr/local/bin/sccache && \
-    chmod +x /usr/local/bin/sccache && \
-    rm -rf sccache* && \
-    apt-get install -y build-essential pkg-config libssl-dev clang mold curl tar postgresql-client rsync libpq-dev && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y wget rsync && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 
 # Stage 2: Planner
@@ -43,8 +37,9 @@ CMD ["cargo", "watch", "-x", "run"]
 # Stage 5: Test
 FROM chef AS test
 ENV SCCACHE_DIR=/sccache
-RUN apt-get update && apt-get install -y libpq-dev && \
-    cargo install diesel_cli --locked --no-default-features --features postgres
+ENV RUSTFLAGS="--sysroot /usr/local/rustup/toolchains/stable-x86_64-unknown-linux-gnu -Ctarget-feature=+crt-static -Clink-self-contained=yes -Cprefer-dynamic=no -L/usr/local/musl/lib -C link-arg=-lssl -C link-arg=-lcrypto -C link-arg=-lz -C link-arg=-lc -C link-arg=-z -C link-arg=notext"
+RUN apt-get update && apt-get install -y postgresql-client && rm -rf /var/lib/apt/lists/*
+RUN cargo install diesel_cli --locked --no-default-features --features postgres
 RUN curl -LsSf https://get.nexte.st/0.9.133/linux | tar zxf - -C /usr/local/bin
 # Coverage tooling: llvm-cov requires llvm-tools-preview component + cargo-llvm-cov binary
 RUN rustup component add llvm-tools-preview && \
@@ -61,6 +56,7 @@ CMD ["cargo", "nextest", "run"]
 
 # Stage 6: Builder
 FROM chef AS builder
+ENV RUSTFLAGS="-Ctarget-feature=+crt-static -Clink-self-contained=yes -Cprefer-dynamic=no -L/usr/local/musl/lib -C link-arg=-lssl -C link-arg=-lcrypto -C link-arg=-lz -C link-arg=-lc -C link-arg=-z -C link-arg=notext"
 COPY --from=cacher /app/target target
 COPY --from=cacher $CARGO_HOME $CARGO_HOME
 COPY . .
@@ -71,18 +67,16 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
     sccache --start-server && \
     cargo build --release --locked -p apiserver && \
     sccache --stop-server && \
-    cp target/release/apiserver /usr/local/bin/apiserver
+    cp target/x86_64-unknown-linux-musl/release/apiserver /usr/local/bin/apiserver && \
+    mkdir -p /tmp/storage && chown 65532:65532 /tmp/storage
 
 # Stage 7: Runtime
-FROM public.ecr.aws/docker/library/debian:bookworm-slim AS runtime
+FROM gcr.io/distroless/static-debian12 AS runtime
 WORKDIR /app
-RUN apt-get update && apt-get install -y ca-certificates libssl3 postgresql-client && rm -rf /var/lib/apt/lists/*
-RUN useradd -r -u 1001 -s /usr/sbin/nologin appuser
 COPY --from=builder /usr/local/bin/apiserver /usr/local/bin/apiserver
-COPY apiserver/migrations ./migrations
+COPY --chown=65532:65532 --from=builder /tmp/storage /app/storage
 ENV STORAGE_DIR=/app/storage
-RUN mkdir -p /app/storage && chown -R appuser:appuser /app
+USER 65532
 VOLUME ["/app/storage"]
-USER appuser
 EXPOSE 3000
 CMD ["apiserver"]

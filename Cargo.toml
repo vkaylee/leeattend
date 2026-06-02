@@ -45,6 +45,10 @@ cargo        = { level = "deny", priority = -1 }   # Cargo.toml metadata
 # ── Individual overrides (higher priority than groups) ──
 clone_on_ref_ptr = "warn"
 format_push_string = "warn"
+duration_suboptimal_units = { level = "allow", priority = 1 }
+collapsible_match = { level = "allow", priority = 1 }
+unnecessary_sort_by = { level = "allow", priority = 1 }
+map_unwrap_or = { level = "allow", priority = 1 }
 
 # TECH_DEBT: allow until dependency versions are unified
 multiple_crate_versions = { level = "allow", priority = 1 }
