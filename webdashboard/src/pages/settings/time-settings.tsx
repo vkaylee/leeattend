@@ -1,11 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Clock, Plus } from "lucide-react";
-import React, { useState, useEffect, ButtonHTMLAttributes } from "react";
+import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
 import { TFunction } from "i18next";
 
 import { PolicyAssignmentsSection } from "@/components/features/attendance/policy-assignments-section";
+import Button from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
@@ -22,7 +23,6 @@ import {
   AttendancePolicyVersion,
   UpdateAttendanceRulesRequest,
 } from "@/lib/api";
-import { cn } from "@/lib/utils";
 
 import { BulkReprocessSection } from "./time-settings/bulk-reprocess";
 import { CreateVersionModal } from "./time-settings/create-version-modal";
@@ -378,36 +378,5 @@ function TabContent({
         workUnit={workUnit}
       />
     </>
-  );
-}
-
-interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  children: React.ReactNode;
-  className?: string;
-  icon?: React.ReactNode;
-  loading?: boolean;
-  size?: "lg" | "sm";
-  variant?: "outline" | "secondary" | "primary" | "ghost";
-}
-
-function Button({ children, className, icon, loading, onClick, size, variant, ...props }: ButtonProps) {
-  return (
-    <button
-      {...props}
-      className={cn(
-        "flex items-center gap-2 px-6 py-3.5 rounded-2xl font-bold transition-all active:scale-95 disabled:opacity-50",
-        variant === "outline"
-          ? "border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300"
-          : "bg-primary-600 hover:bg-primary-700 text-white shadow-xl shadow-primary-500/20",
-        size === "lg" ? "px-8 py-4 text-sm" : "text-xs",
-        className
-      )}
-      disabled={loading === true || props.disabled === true}
-      onClick={onClick}
-      type={props.type ?? "button"}
-    >
-      {loading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : icon}
-      {children}
-    </button>
   );
 }
