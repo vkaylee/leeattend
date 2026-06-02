@@ -43,6 +43,11 @@ pub fn router(state: &Arc<AppState>) -> Router<Arc<AppState>> {
             "/monitor/overview",
             get(handlers::worker_monitor::get_monitor_overview),
         )
+        // Worker monitoring jobs paginated endpoint
+        .route(
+            "/monitor/jobs",
+            get(handlers::worker_monitor::get_monitor_jobs),
+        )
         // Worker monitoring SSE stream
         .route(
             "/monitor/stream",

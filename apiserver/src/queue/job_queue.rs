@@ -15,7 +15,7 @@ use redis::AsyncCommands;
 use tracing::{debug, error};
 use uuid::Uuid;
 
-use crate::queue::{Job, JobMetadata, JobPriority, RedisPool};
+use crate::queue::{Job, JobMetadata, JobPriority, JobStatus, RedisPool, ReportType, TaskType};
 
 /// High-priority queue key (reports, merge, accrual).
 pub const QUEUE_HIGH: &str = "worker:jobs:high";
@@ -26,6 +26,7 @@ pub const RESULTS_PREFIX: &str = "report:results:";
 pub const COUNTER_PREFIX: &str = "report:counter:";
 pub const MERGE_FLAG_PREFIX: &str = "report:merge_triggered:";
 pub const DLQ_KEY: &str = "report:dlq";
+pub const INDEX_ZSET_KEY: &str = "report:job_list";
 pub const JOB_TTL_SECS: i64 = 86_400; // 24 hours
 
 // Global daily stats keys
@@ -196,9 +197,20 @@ impl JobQueue {
             ))
         })?;
 
+        let cutoff = chrono::Utc::now().timestamp() - JOB_TTL_SECS;
+
         redis::pipe()
             .set(&key, json)
             .expire(&key, JOB_TTL_SECS)
+            .zadd(
+                INDEX_ZSET_KEY,
+                meta.job_id.to_string(),
+                meta.created_at.timestamp() as f64,
+            )
+            .cmd("ZREMRANGEBYSCORE")
+            .arg(INDEX_ZSET_KEY)
+            .arg("-inf")
+            .arg(cutoff)
             .query_async::<()>(&mut conn)
             .await
     }
@@ -661,6 +673,129 @@ impl JobQueue {
         jobs.truncate(limit);
 
         Ok(jobs)
+    }
+
+    /// List jobs paginated and filtered.
+    /// Uses Redis Sorted Set (ZSET) `report:job_list` for efficient O(log N) paging.
+    /// In-memory filtering is performed on status, task_type, and search parameters.
+    pub async fn list_jobs_paginated(
+        &self,
+        cursor: Option<i64>,
+        limit: usize,
+        status: Option<String>,
+        task_type: Option<String>,
+        search: Option<String>,
+    ) -> Result<(Vec<JobMetadata>, Option<i64>), redis::RedisError> {
+        let mut conn = self.pool.conn();
+
+        // 1. Fetch job IDs from ZSET index.
+        // We retrieve the last 1000 IDs within the range. Since we filter in memory,
+        // fetching a larger batch ensures we return exactly `limit` items on the page.
+        let max_score = match cursor {
+            Some(c) => format!("({c}"), // exclusive of cursor
+            None => "+inf".to_string(),
+        };
+
+        // ZREVRANGEBYSCORE key max min LIMIT offset count
+        let job_ids: Vec<String> = redis::cmd("ZREVRANGEBYSCORE")
+            .arg(INDEX_ZSET_KEY)
+            .arg(max_score)
+            .arg("-inf")
+            .arg("LIMIT")
+            .arg(0)
+            .arg(1000)
+            .query_async(&mut conn)
+            .await?;
+
+        if job_ids.is_empty() {
+            return Ok((Vec::new(), None));
+        }
+
+        // 2. MGET metadata values
+        let meta_keys: Vec<String> = job_ids
+            .iter()
+            .map(|id| format!("{META_PREFIX}{id}"))
+            .collect();
+        let values: Vec<Option<String>> = conn.mget(&meta_keys).await?;
+
+        // 3. Deserialize and filter
+        let mut jobs: Vec<JobMetadata> = values
+            .into_iter()
+            .filter_map(|v| v.and_then(|s| serde_json::from_str::<JobMetadata>(&s).ok()))
+            .collect();
+
+        // Ensure sorted by created_at desc
+        jobs.sort_by(|a, b| b.created_at.cmp(&a.created_at));
+
+        // In-memory filters
+        if let Some(ref st) = status {
+            let st_lower = st.to_lowercase();
+            jobs.retain(|job| {
+                let s = match job.status {
+                    JobStatus::Pending => "pending",
+                    JobStatus::Processing => "processing",
+                    JobStatus::Completed => "completed",
+                    JobStatus::Failed => "failed",
+                };
+                s == st_lower
+            });
+        }
+
+        if let Some(ref tt) = task_type {
+            let tt_lower = tt.to_lowercase();
+            jobs.retain(|job| {
+                let actual_type = job
+                    .task_type
+                    .as_ref()
+                    .map(|t| match t {
+                        TaskType::AttendanceReport => "attendance_report",
+                        TaskType::PayrollReport => "payroll_report",
+                        TaskType::MergeResults => "merge_results",
+                        TaskType::LeaveAccrual => "leave_accrual",
+                        TaskType::LogIngestion => "log_ingestion",
+                        TaskType::ReprocessAttendance => "reprocess_attendance",
+                        TaskType::ClaimStagedLogs => "claim_staged_logs",
+                        TaskType::LeaveImport => "leave_import",
+                        TaskType::NightlyHousekeeping => "nightly_housekeeping",
+                        TaskType::EmployeeImport => "employee_import",
+                        TaskType::EmployeeImportChunk => "employee_import_chunk",
+                        TaskType::LeaveImportChunk => "leave_import_chunk",
+                        TaskType::FinalizeImport => "finalize_import",
+                        TaskType::ExpiringContractsCheck => "expiring_contracts_check",
+                        TaskType::SyncEmployeeHireDate => "sync_employee_hire_date",
+                    })
+                    .or_else(|| {
+                        job.report_type.as_ref().map(|r| match r {
+                            ReportType::Summary => "summary",
+                            ReportType::Detail => "detail",
+                        })
+                    });
+                actual_type.is_some_and(|t| t == tt_lower)
+            });
+        }
+
+        if let Some(ref query) = search {
+            let q_lower = query.to_lowercase();
+            jobs.retain(|job| {
+                job.job_id.to_string().to_lowercase().contains(&q_lower)
+                    || job
+                        .error_message
+                        .as_ref()
+                        .is_some_and(|err| err.to_lowercase().contains(&q_lower))
+            });
+        }
+
+        // Slice to requested limit
+        let has_more = jobs.len() > limit;
+        jobs.truncate(limit);
+
+        let next_cursor = if has_more {
+            jobs.last().map(|job| job.created_at.timestamp())
+        } else {
+            None
+        };
+
+        Ok((jobs, next_cursor))
     }
 }
 

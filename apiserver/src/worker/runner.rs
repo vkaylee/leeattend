@@ -248,6 +248,9 @@ impl JobWorker {
                         *worker.current_task_type.lock().await = Some(task_type_str.clone());
                     }
 
+                    let batch_index = job.batch_index;
+                    let parent_job_id = job.parent_job_id;
+
                     // Spawn task to process job
                     tokio::spawn(async move {
                         let _permit = permit; // Hold permit until done
@@ -278,9 +281,23 @@ impl JobWorker {
                             }
                             Ok(Err(e)) => {
                                 error!(job_id = %job_id, error = %e, "Job failed");
+                                if let Ok(Some(mut meta)) =
+                                    worker_clone.queue.get_job_metadata(parent_job_id).await
+                                {
+                                    meta.error_message = Some(format!("Batch {batch_index}: {e}"));
+                                    let _ = worker_clone.queue.update_job_metadata(&meta).await;
+                                }
                             }
                             Err(_) => {
                                 error!(job_id = %job_id, timeout_secs = timeout_secs, "Job timed out");
+                                if let Ok(Some(mut meta)) =
+                                    worker_clone.queue.get_job_metadata(parent_job_id).await
+                                {
+                                    meta.error_message = Some(format!(
+                                        "Batch {batch_index} timed out after {timeout_secs}s"
+                                    ));
+                                    let _ = worker_clone.queue.update_job_metadata(&meta).await;
+                                }
                             }
                         }
                     });

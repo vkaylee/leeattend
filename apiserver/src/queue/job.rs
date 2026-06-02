@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 /// Type of task to be processed by workers.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash, utoipa::ToSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum TaskType {
     AttendanceReport,
@@ -430,6 +430,12 @@ pub struct JobMetadata {
     pub completed_at: Option<DateTime<Utc>>,
     /// Error message (if failed)
     pub error_message: Option<String>,
+    /// Type of task
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub task_type: Option<TaskType>,
+    /// Payload configurations (PII masked)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub payload: Option<serde_json::Value>,
 }
 
 impl JobMetadata {
@@ -439,7 +445,9 @@ impl JobMetadata {
         total_batches: u32,
         workspace_id: Uuid,
         requester_id: Uuid,
+        task_type: Option<TaskType>,
         report_type: Option<ReportType>,
+        payload: Option<serde_json::Value>,
     ) -> Self {
         Self {
             job_id,
@@ -454,17 +462,22 @@ impl JobMetadata {
             created_at: Utc::now(),
             completed_at: None,
             error_message: None,
+            task_type,
+            payload,
         }
     }
 
     /// Create new job metadata with date range.
+    #[allow(clippy::too_many_arguments)]
     pub fn with_date_range(
         job_id: Uuid,
         total_batches: u32,
         workspace_id: Uuid,
         requester_id: Uuid,
+        task_type: Option<TaskType>,
         report_type: Option<ReportType>,
         date_range: DateRange,
+        payload: Option<serde_json::Value>,
     ) -> Self {
         Self {
             job_id,
@@ -479,6 +492,8 @@ impl JobMetadata {
             created_at: Utc::now(),
             completed_at: None,
             error_message: None,
+            task_type,
+            payload,
         }
     }
 
@@ -537,7 +552,9 @@ mod tests {
             10,
             Uuid::new_v4(),
             Uuid::new_v4(),
+            None,
             Some(ReportType::Summary),
+            None,
         );
 
         assert!(!meta.is_complete());
@@ -807,8 +824,10 @@ mod tests {
             5,
             Uuid::new_v4(),
             Uuid::new_v4(),
+            None,
             Some(ReportType::Detail),
             dr,
+            None,
         );
 
         assert!(meta.date_range.is_some());
@@ -828,7 +847,9 @@ mod tests {
             0, // No batches
             Uuid::new_v4(),
             Uuid::new_v4(),
+            None,
             Some(ReportType::Summary),
+            None,
         );
 
         assert!((meta.progress_percent() - 100.0).abs() < f32::EPSILON);

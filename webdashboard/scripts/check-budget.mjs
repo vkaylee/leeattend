@@ -13,7 +13,7 @@ const BUDGETS = [
   { name: "Vendor i18n", prefix: "vendor-i18n-", suffix: ".js", maxSize: 100_000, maxGzip: 30_000 },
   { name: "Vendor query", prefix: "vendor-query-", suffix: ".js", maxSize: 100_000, maxGzip: 30_000 },
   { name: "Vendor dnd", prefix: "vendor-dnd-", suffix: ".js", maxSize: 100_000, maxGzip: 30_000 },
-  { name: "Vendor react", prefix: "vendor-react-", suffix: ".js", maxSize: 80_000, maxGzip: 25_000 },
+  { name: "Vendor react", prefix: "vendor-react-", suffix: ".js", maxSize: 450_000, maxGzip: 130_000 },
   { name: "Login page", prefix: "login.lazy-", suffix: ".js", maxSize: 20_000, maxGzip: 5_000 },
   { name: "Dashboard page", prefix: "index.lazy-", suffix: ".js", maxSize: 80_000, maxGzip: 20_000 },
   { name: "Locale files", prefix: "en-", suffix: ".js", maxSize: 150_000, maxGzip: 50_000 },

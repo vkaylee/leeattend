@@ -1058,6 +1058,8 @@ mod tests {
                 created_at: chrono::Utc::now(),
                 completed_at: None,
                 error_message: None,
+                task_type: None,
+                payload: None,
             }))
         });
 
@@ -1185,6 +1187,8 @@ mod tests {
                 created_at: chrono::Utc::now(),
                 completed_at: None,
                 error_message: None,
+                task_type: None,
+                payload: None,
             }))
         });
 
@@ -1368,6 +1372,8 @@ mod tests {
                 created_at: chrono::Utc::now(),
                 completed_at: None,
                 error_message: None,
+                task_type: None,
+                payload: None,
             }))
         });
 

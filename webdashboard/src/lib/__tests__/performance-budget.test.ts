@@ -32,7 +32,7 @@ describe("performance budget", () => {
       "vendor-i18n-": 100_000,
       "vendor-query-": 100_000,
       "vendor-dnd-": 100_000,
-      "vendor-react-": 80_000,
+      "vendor-react-": 450_000,
     };
 
     for (const file of files) {

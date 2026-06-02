@@ -272,11 +272,17 @@ pub async fn force_reprocess_all_attendance(
         total_batches,
         ctx.workspace_id,
         ctx.user_id,
+        Some(crate::queue::TaskType::ReprocessAttendance),
         None, // No report type
         crate::queue::DateRange {
             start: query.start_date,
             end: query.end_date,
         },
+        Some(serde_json::json!({
+            "start_date": query.start_date.to_string(),
+            "end_date": query.end_date.to_string(),
+            "employee_count": total_batches
+        })),
     );
 
     queue

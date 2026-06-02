@@ -538,7 +538,12 @@ pub async fn trigger_accrual_run(
         1, // Single job (not batched)
         ctx.workspace_id,
         ctx.user_id,
+        Some(TaskType::LeaveAccrual),
         None, // No report type for leave accrual
+        Some(serde_json::json!({
+            "date": payload.date,
+            "force": true
+        })),
     );
 
     queue.create_job_metadata(&meta).await.map_err(|e| {

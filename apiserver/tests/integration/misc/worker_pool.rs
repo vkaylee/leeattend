@@ -302,6 +302,8 @@ async fn test_worker_uses_only_one_connection_per_job() {
             created_at: chrono::Utc::now(),
             completed_at: None,
             error_message: None,
+            task_type: None,
+            payload: None,
         };
 
         let _ = queue.create_job_metadata(&meta).await;

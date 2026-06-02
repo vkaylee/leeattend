@@ -12,7 +12,7 @@ import {
   AttendanceReportSort,
   CreateReportExportRequest,
   CreateReportExportResponse,
-  WorkerMonitorStats, AttendanceDailySummary 
+  WorkerMonitorStats, AttendanceDailySummary, MonitorJobsResponse
 } from "./types";
 
 export async function punchIn(
@@ -549,6 +549,29 @@ export async function downloadExportReport(
 export async function fetchMonitorOverview(): Promise<WorkerMonitorStats> {
   const { data: resData } = await client.GET("/monitor/overview", {});
     return resData!;
+}
+
+export interface FetchMonitorJobsParams {
+  cursor?: number | null;
+  limit?: number;
+  search?: string;
+  status?: string;
+  task_type?: string;
+}
+
+export async function fetchMonitorJobs(params: FetchMonitorJobsParams): Promise<MonitorJobsResponse> {
+  const { data: resData } = await client.GET("/monitor/jobs", {
+    params: {
+      query: {
+        cursor: params.cursor ?? undefined,
+        limit: params.limit,
+        search: params.search ?? undefined,
+        status: params.status ?? undefined,
+        task_type: params.task_type ?? undefined,
+      },
+    },
+  });
+  return resData ?? { jobs: [], next_cursor: null };
 }
 
 export interface AttendanceRules {

@@ -4,7 +4,7 @@
 //! Includes both a one-shot REST endpoint and an SSE streaming endpoint.
 
 use axum::{
-    extract::State,
+    extract::{Query, State},
     response::sse::{Event, KeepAlive, Sse},
     Json,
 };
@@ -54,6 +54,17 @@ pub struct WorkerHeartbeat {
     pub last_seen_at: DateTime<Utc>,
 }
 
+/// Statistics of jobs grouped by task type.
+#[derive(Debug, Serialize, utoipa::ToSchema, Clone)]
+pub struct JobTypeStats {
+    pub task_type: String,
+    pub total: u64,
+    pub completed: u64,
+    pub failed: u64,
+    pub processing: u64,
+    pub pending: u64,
+}
+
 /// Combined monitor overview response — stats + worker list in one call.
 #[derive(Debug, Serialize, utoipa::ToSchema)]
 pub struct MonitorOverviewResponse {
@@ -67,6 +78,64 @@ pub struct MonitorOverviewResponse {
     pub failed_today: u64,
     pub workers: Vec<WorkerHeartbeat>,
     pub recent_jobs: Vec<crate::queue::JobMetadata>,
+    pub job_type_stats: Vec<JobTypeStats>,
+}
+
+fn compute_job_type_stats(all_recent_jobs: &[crate::queue::JobMetadata]) -> Vec<JobTypeStats> {
+    let mut type_map: std::collections::HashMap<String, JobTypeStats> =
+        std::collections::HashMap::new();
+    for job in all_recent_jobs {
+        let task_type_str = job
+            .task_type
+            .as_ref()
+            .map(|t| match t {
+                crate::queue::TaskType::AttendanceReport => "attendance_report",
+                crate::queue::TaskType::PayrollReport => "payroll_report",
+                crate::queue::TaskType::MergeResults => "merge_results",
+                crate::queue::TaskType::LeaveAccrual => "leave_accrual",
+                crate::queue::TaskType::LogIngestion => "log_ingestion",
+                crate::queue::TaskType::ReprocessAttendance => "reprocess_attendance",
+                crate::queue::TaskType::ClaimStagedLogs => "claim_staged_logs",
+                crate::queue::TaskType::LeaveImport => "leave_import",
+                crate::queue::TaskType::NightlyHousekeeping => "nightly_housekeeping",
+                crate::queue::TaskType::EmployeeImport => "employee_import",
+                crate::queue::TaskType::EmployeeImportChunk => "employee_import_chunk",
+                crate::queue::TaskType::LeaveImportChunk => "leave_import_chunk",
+                crate::queue::TaskType::FinalizeImport => "finalize_import",
+                crate::queue::TaskType::ExpiringContractsCheck => "expiring_contracts_check",
+                crate::queue::TaskType::SyncEmployeeHireDate => "sync_employee_hire_date",
+            })
+            .or_else(|| {
+                job.report_type.as_ref().map(|r| match r {
+                    crate::queue::ReportType::Summary => "summary",
+                    crate::queue::ReportType::Detail => "detail",
+                })
+            })
+            .unwrap_or("unknown")
+            .to_string();
+
+        let t_stats = type_map
+            .entry(task_type_str.clone())
+            .or_insert_with(|| JobTypeStats {
+                task_type: task_type_str,
+                total: 0,
+                completed: 0,
+                failed: 0,
+                processing: 0,
+                pending: 0,
+            });
+
+        t_stats.total += 1;
+        match job.status {
+            crate::queue::JobStatus::Pending => t_stats.pending += 1,
+            crate::queue::JobStatus::Processing => t_stats.processing += 1,
+            crate::queue::JobStatus::Completed => t_stats.completed += 1,
+            crate::queue::JobStatus::Failed => t_stats.failed += 1,
+        }
+    }
+    let mut job_type_stats: Vec<JobTypeStats> = type_map.into_values().collect();
+    job_type_stats.sort_by(|a, b| b.total.cmp(&a.total));
+    job_type_stats
 }
 
 /// Shared logic: fetch the full monitor overview from Redis.
@@ -112,12 +181,16 @@ async fn fetch_overview_data(state: &Arc<AppState>) -> AppResult<MonitorOverview
 
     let total_workers = workers.len() as u64;
 
-    // 5. Get recent job metadata
+    // 5. Get recent job metadata and calculate type breakdown
     let queue = crate::queue::JobQueue::new(redis.clone());
-    let recent_jobs = queue.list_recent_jobs(50).await.unwrap_or_else(|e| {
-        tracing::warn!(error = %e, "Failed to list recent jobs");
+    let all_recent_jobs = queue.list_recent_jobs(1000).await.unwrap_or_else(|e| {
+        tracing::warn!(error = %e, "Failed to list recent jobs for stats");
         vec![]
     });
+    let job_type_stats = compute_job_type_stats(&all_recent_jobs);
+
+    let mut recent_jobs = all_recent_jobs;
+    recent_jobs.truncate(10);
 
     Ok(MonitorOverviewResponse {
         pending_tasks,
@@ -130,6 +203,7 @@ async fn fetch_overview_data(state: &Arc<AppState>) -> AppResult<MonitorOverview
         failed_today,
         workers,
         recent_jobs,
+        job_type_stats,
     })
 }
 
@@ -150,6 +224,72 @@ pub async fn get_monitor_overview(
 ) -> AppResult<Json<MonitorOverviewResponse>> {
     ctx.require_any_role(&[SystemRoleType::PlatformAdmin, SystemRoleType::Support])?;
     Ok(Json(fetch_overview_data(&state).await?))
+}
+
+/// Query parameters for listing monitor jobs.
+#[derive(Debug, Deserialize, utoipa::IntoParams)]
+pub struct MonitorJobsParams {
+    /// Cursor timestamp for pagination (exclusive)
+    pub cursor: Option<i64>,
+    /// Number of items to return (default: 20)
+    pub limit: Option<usize>,
+    /// Status filter: pending, processing, completed, failed
+    pub status: Option<String>,
+    /// Task type filter
+    pub task_type: Option<String>,
+    /// Search query matching Job ID or error message
+    pub search: Option<String>,
+}
+
+/// Response payload for listing monitor jobs.
+#[derive(Debug, Serialize, utoipa::ToSchema)]
+pub struct MonitorJobsResponse {
+    pub jobs: Vec<crate::queue::JobMetadata>,
+    pub next_cursor: Option<i64>,
+}
+
+/// Get paginated and filtered background jobs.
+///
+/// Route: GET /monitor/jobs
+/// Requires: PlatformAdmin or Support
+#[utoipa::path(
+    get,
+    path = "/monitor/jobs",
+    params(
+        MonitorJobsParams
+    ),
+    responses(
+        (status = 200, description = "Paginated background jobs list", body = MonitorJobsResponse)
+    )
+)]
+pub async fn get_monitor_jobs(
+    State(state): State<Arc<AppState>>,
+    ctx: SystemContext,
+    Query(params): Query<MonitorJobsParams>,
+) -> AppResult<Json<MonitorJobsResponse>> {
+    ctx.require_any_role(&[SystemRoleType::PlatformAdmin, SystemRoleType::Support])?;
+
+    let redis = state
+        .infra
+        .redis
+        .as_ref()
+        .ok_or_else(|| AppError::ServiceUnavailable("Redis not available".to_string()))?;
+
+    let limit = params.limit.unwrap_or(20);
+    let queue = crate::queue::JobQueue::new(redis.clone());
+
+    let (jobs, next_cursor) = queue
+        .list_jobs_paginated(
+            params.cursor,
+            limit,
+            params.status,
+            params.task_type,
+            params.search,
+        )
+        .await
+        .map_err(|e| AppError::Internal(format!("Failed to list jobs: {e}")))?;
+
+    Ok(Json(MonitorJobsResponse { jobs, next_cursor }))
 }
 
 /// SSE stream: push monitor overview data every 2 seconds.
@@ -293,6 +433,7 @@ mod tests {
             failed_today: 3,
             workers: vec![],
             recent_jobs: vec![],
+            job_type_stats: vec![],
         };
 
         let json = serde_json::to_string(&overview)

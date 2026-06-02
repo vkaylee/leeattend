@@ -116,6 +116,8 @@ mod tests {
                     created_at: Utc::now(),
                     completed_at: None,
                     error_message: None,
+                    task_type: None,
+                    payload: None,
                 }))
             });
 
@@ -144,6 +146,8 @@ mod tests {
                     created_at: Utc::now(),
                     completed_at: None,
                     error_message: None,
+                    task_type: None,
+                    payload: None,
                 }))
             });
 

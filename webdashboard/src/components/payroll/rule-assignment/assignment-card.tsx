@@ -80,8 +80,9 @@ export function AssignmentCard({
     return assignment.assignee_id ? `${assignment.assignee_id.slice(0, 8)}…` : "Unknown";
   };
 
-  const overrideRate = a.override_config && 'rate' in a.override_config && a.override_config.rate != null ? Number(a.override_config.rate) : null;
-  const overrideAmount = a.override_config && 'amount' in a.override_config && a.override_config.amount != null ? Number(a.override_config.amount) : null;
+  const overrideConfigObj = a.override_config && typeof a.override_config === "object" ? (a.override_config as Record<string, unknown>) : null;
+  const overrideRate = overrideConfigObj && 'rate' in overrideConfigObj && overrideConfigObj.rate != null ? Number(overrideConfigObj.rate) : null;
+  const overrideAmount = overrideConfigObj && 'amount' in overrideConfigObj && overrideConfigObj.amount != null ? Number(overrideConfigObj.amount) : null;
 
   return (
     <div

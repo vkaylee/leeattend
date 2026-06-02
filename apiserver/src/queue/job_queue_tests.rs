@@ -213,6 +213,8 @@ mod tests {
             error_message: None,
             created_at: chrono::Utc::now(),
             completed_at: None,
+            task_type: None,
+            payload: None,
         };
 
         queue
@@ -296,6 +298,8 @@ mod tests {
             error_message: None,
             created_at: chrono::Utc::now(),
             completed_at: None,
+            task_type: None,
+            payload: None,
         };
 
         // Update metadata directly (without creating first)
@@ -349,6 +353,8 @@ mod tests {
             error_message: None,
             created_at: chrono::Utc::now(),
             completed_at: None,
+            task_type: None,
+            payload: None,
         };
 
         queue
@@ -431,6 +437,8 @@ mod tests {
             error_message: None,
             created_at: chrono::Utc::now(),
             completed_at: None,
+            task_type: None,
+            payload: None,
         };
 
         queue

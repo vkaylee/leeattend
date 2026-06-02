@@ -230,6 +230,7 @@ use utoipa::OpenApi;
         crate::handlers::system_tenants::get_tenant_stats,
         crate::handlers::system_tenants::list_stale_tenants,
         crate::handlers::worker_monitor::get_monitor_overview,
+        crate::handlers::worker_monitor::get_monitor_jobs,
         crate::handlers::workspaces::audit::get_audit_logs,
 
         // Agent Paths
@@ -648,6 +649,8 @@ use utoipa::OpenApi;
             crate::handlers::worker_monitor::WorkerStatus,
             crate::handlers::worker_monitor::WorkerHeartbeat,
             crate::handlers::worker_monitor::MonitorOverviewResponse,
+            crate::handlers::worker_monitor::MonitorJobsResponse,
+            crate::handlers::worker_monitor::JobTypeStats,
             crate::queue::JobMetadata,
             crate::queue::JobStatus,
             crate::queue::ReportType,

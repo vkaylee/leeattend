@@ -201,13 +201,40 @@ export default defineConfig(async ({ mode }: ConfigEnv) => {
     build: {
       rollupOptions: {
         output: {
-          manualChunks: {
-            'vendor-react': ['react', 'react-dom', 'react-router-dom'],
-            'vendor-query': ['@tanstack/react-query'],
-            'vendor-charts': ['recharts'],
-            'vendor-i18n': ['i18next', 'react-i18next', 'i18next-browser-languagedetector'],
-            'vendor-dnd': ['@dnd-kit/core', '@dnd-kit/sortable', '@dnd-kit/utilities'],
-            'vendor-ui': ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-popover', 'cmdk', 'lucide-react'],
+          manualChunks(id: string) {
+            if (id.includes("node_modules")) {
+              const normalized = id.replace(/\\/g, "/");
+              if (
+                normalized.includes("node_modules/react/") ||
+                normalized.includes("node_modules/react-dom/") ||
+                normalized.includes("node_modules/react-router-dom/")
+              ) {
+                return "vendor-react";
+              }
+              if (normalized.includes("node_modules/@tanstack/react-query/")) {
+                return "vendor-query";
+              }
+              if (normalized.includes("node_modules/recharts/")) {
+                return "vendor-charts";
+              }
+              if (
+                normalized.includes("node_modules/i18next/") ||
+                normalized.includes("node_modules/react-i18next/") ||
+                normalized.includes("node_modules/i18next-browser-languagedetector/")
+              ) {
+                return "vendor-i18n";
+              }
+              if (normalized.includes("node_modules/@dnd-kit/")) {
+                return "vendor-dnd";
+              }
+              if (
+                normalized.includes("node_modules/@radix-ui/") ||
+                normalized.includes("node_modules/cmdk/") ||
+                normalized.includes("node_modules/lucide-react/")
+              ) {
+                return "vendor-ui";
+              }
+            }
           },
         },
       },

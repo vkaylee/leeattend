@@ -63,7 +63,9 @@ async fn test_attendance_and_merge_handlers() {
         1, // total_batches
         ws_id,
         user_id,
+        Some(TaskType::AttendanceReport),
         Some(ReportType::Summary),
+        None,
     );
     queue.update_job_metadata(&metadata_summary).await.unwrap();
 
@@ -72,7 +74,9 @@ async fn test_attendance_and_merge_handlers() {
         1, // total_batches
         ws_id,
         user_id,
+        Some(TaskType::AttendanceReport),
         Some(ReportType::Detail),
+        None,
     );
     queue.update_job_metadata(&metadata_detail).await.unwrap();
 

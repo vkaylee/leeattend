@@ -63,6 +63,8 @@ async fn test_get_job_status_success() {
         requester_id: user_id,
         report_type: None,
         date_range: None,
+        task_type: None,
+        payload: None,
     };
 
     queue.update_job_metadata(&meta).await.unwrap();
@@ -137,6 +139,8 @@ async fn test_get_job_status_forbidden_cross_workspace() {
         requester_id: user_id,
         report_type: None,
         date_range: None,
+        task_type: None,
+        payload: None,
     };
 
     queue.update_job_metadata(&meta).await.unwrap();

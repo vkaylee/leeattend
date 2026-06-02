@@ -230,11 +230,18 @@ impl ReportCoordinator {
             total_batches,
             workspace_id,
             requester_id,
+            Some(TaskType::AttendanceReport),
             Some(request.report_type.clone()),
             DateRange {
                 start: request.start_date,
                 end: request.end_date,
             },
+            Some(serde_json::json!({
+                "start_date": request.start_date.to_string(),
+                "end_date": request.end_date.to_string(),
+                "employee_count": employees.len(),
+                "report_type": format!("{:?}", request.report_type).to_lowercase(),
+            })),
         );
 
         self.queue
@@ -848,7 +855,8 @@ mod tests {
             .expect_get_job_metadata()
             .with(mockall::predicate::eq(job_id))
             .returning(move |_| {
-                let mut meta = JobMetadata::new(job_id, 10, Uuid::new_v4(), Uuid::new_v4(), None);
+                let mut meta =
+                    JobMetadata::new(job_id, 10, Uuid::new_v4(), Uuid::new_v4(), None, None, None);
                 meta.completed_batches = 5;
                 meta.status = JobStatus::Processing;
                 Ok(Some(meta))
@@ -895,7 +903,8 @@ mod tests {
             .expect_get_job_metadata()
             .with(mockall::predicate::eq(job_id))
             .returning(move |_| {
-                let meta = JobMetadata::new(job_id, 10, Uuid::new_v4(), Uuid::new_v4(), None);
+                let meta =
+                    JobMetadata::new(job_id, 10, Uuid::new_v4(), Uuid::new_v4(), None, None, None);
                 Ok(Some(meta))
             });
 
@@ -939,7 +948,8 @@ mod tests {
             .expect_get_job_metadata()
             .with(mockall::predicate::eq(job_id))
             .returning(move |_| {
-                let mut meta = JobMetadata::new(job_id, 10, Uuid::new_v4(), Uuid::new_v4(), None);
+                let mut meta =
+                    JobMetadata::new(job_id, 10, Uuid::new_v4(), Uuid::new_v4(), None, None, None);
                 meta.status = JobStatus::Completed;
                 Ok(Some(meta))
             });

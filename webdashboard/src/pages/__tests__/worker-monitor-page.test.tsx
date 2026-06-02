@@ -1,27 +1,34 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import React from "react";
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
+import { useWorkerMonitor } from "@/hooks/use-worker-monitor";
+
 vi.mock("react-i18next", () => ({
     useTranslation: () => ({
- 
         t: (key: string, options?: Record<string, unknown>) => (options?.defaultValue as string) || key,
+    }),
+}));
+
+vi.mock("@/components/ui/toast", () => ({
+    useToast: () => ({
+        success: vi.fn(),
+        error: vi.fn(),
+        info: vi.fn(),
+        warning: vi.fn(),
     }),
 }));
 
 // Mock chart components to avoid recharts SVG rendering in jsdom
 vi.mock("@/components/features/monitor/worker-utilization-gauge", () => ({
- 
     default: () => <div data-testid="utilization-gauge" />,
 }));
 vi.mock("@/components/features/monitor/queue-pressure-chart", () => ({
- 
     default: () => <div data-testid="queue-pressure-chart" />,
 }));
 vi.mock("@/components/features/monitor/job-status-distribution-chart", () => ({
- 
     default: () => <div data-testid="job-distribution-chart" />,
 }));
 
@@ -70,6 +77,8 @@ const mockMonitorData = {
             workspace_id: "ws-1",
             requester_id: "user-1",
             report_type: "summary",
+            task_type: "attendance_report",
+            payload: { start_date: "2026-01-01", end_date: "2026-01-31" },
             created_at: new Date(Date.now() - 60000).toISOString(),
             completed_at: new Date().toISOString(),
             error_message: null,
@@ -83,6 +92,8 @@ const mockMonitorData = {
             workspace_id: "ws-1",
             requester_id: "user-1",
             report_type: "summary",
+            task_type: "payroll_report",
+            payload: { employee_ids: ["emp-1"] },
             created_at: new Date(Date.now() - 120000).toISOString(),
             completed_at: new Date().toISOString(),
             error_message: "DB connection timeout",
@@ -96,6 +107,8 @@ const mockMonitorData = {
             workspace_id: "ws-1",
             requester_id: "user-1",
             report_type: "summary",
+            task_type: "attendance_report",
+            payload: null,
             created_at: new Date().toISOString(),
             completed_at: null,
             error_message: null,
@@ -210,10 +223,36 @@ describe("WorkerMonitorPage", () => {
         expect(dashes.length).toBeGreaterThanOrEqual(2);
     });
 
+    // --- Job Type Breakdown Panel ---
+    it("renders job type breakdown panel with stats", () => {
+        renderPage();
+        expect(screen.getByText("Breakdown by Type")).toBeInTheDocument();
+        // We have 2 attendance_reports (1 completed, 1 processing) -> total 2
+        // We have 1 payroll_report (failed) -> total 1
+        expect(screen.getAllByText("attendance_report").length).toBeGreaterThanOrEqual(1);
+        expect(screen.getAllByText("payroll_report").length).toBeGreaterThanOrEqual(1);
+    });
+
+    // --- Job Details Drawer / Sheet ---
+    it("opens details drawer on clicking a job row", async () => {
+        renderPage();
+        
+        // Find a job row and click it
+        const row = screen.getByText("job-1111...").closest("tr");
+        expect(row).toBeInTheDocument();
+        
+        if (row) {
+            fireEvent.click(row);
+        }
+        
+        // Drawer should display job details
+        expect(screen.getByText("Job Details")).toBeInTheDocument();
+        expect(screen.getByText("job-1111-2222-3333-444455556666")).toBeInTheDocument();
+        expect(screen.getByText("Copy Debug JSON")).toBeInTheDocument();
+    });
+
     // --- Empty State ---
     it("shows empty state when no workers", async () => {
-        const useWorkerMonitor = (await import("@/hooks/use-worker-monitor")).useWorkerMonitor;
- 
         vi.mocked(useWorkerMonitor).mockReturnValue({
             stats: { ...mockMonitorData, total_workers: 0 },
             workers: [],
@@ -231,8 +270,6 @@ describe("WorkerMonitorPage", () => {
 
     // --- Loading State ---
     it("shows loading indicator for stats", async () => {
-        const useWorkerMonitor = (await import("@/hooks/use-worker-monitor")).useWorkerMonitor;
- 
         vi.mocked(useWorkerMonitor).mockReturnValue({
             stats: undefined,
             workers: [],
@@ -251,8 +288,6 @@ describe("WorkerMonitorPage", () => {
 
     // --- Error State ---
     it("shows error banner when fetch fails", async () => {
-        const useWorkerMonitor = (await import("@/hooks/use-worker-monitor")).useWorkerMonitor;
- 
         vi.mocked(useWorkerMonitor).mockReturnValue({
             stats: undefined,
             workers: [],

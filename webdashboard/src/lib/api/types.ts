@@ -265,12 +265,27 @@ export interface WorkerMonitorStats {
   completed_today: number;
   failed_today: number;
   idle_workers: number;
+  job_type_stats: JobTypeStats[];
   pending_high: number;
   pending_low: number;
   pending_tasks: number;
   recent_jobs: RecentJob[];
   total_workers: number;
   workers: WorkerHeartbeat[];
+}
+
+export interface JobTypeStats {
+  completed: number;
+  failed: number;
+  pending: number;
+  processing: number;
+  task_type: string;
+  total: number;
+}
+
+export interface MonitorJobsResponse {
+  jobs: RecentJob[];
+  next_cursor?: number | null;
 }
 
 export interface RecentJob {
@@ -280,9 +295,11 @@ export interface RecentJob {
   error_message?: string | null;
   failed_batches: number;
   job_id: string;
+  payload?: unknown;
   report_type?: string | null;
   requester_id?: string | null;
   status: 'pending' | 'processing' | 'completed' | 'failed';
+  task_type?: string | null;
   total_batches: number;
   workspace_id: string;
 }
@@ -423,7 +440,7 @@ export type AttendanceDailySummary = Omit<components["schemas"]["AttendanceDaily
 export type PayrollRuleDefinition = components["schemas"]["PayrollRuleDefinition"];
 export type PayrollRuleTier = components["schemas"]["PayrollRuleTier"];
 export type PayrollRuleAssignment = Omit<components["schemas"]["PayrollRuleAssignment"], "override_config"> & {
-  override_config?: any;
+  override_config?: unknown;
 };
 // --- Employment Phases ---
 export interface EmploymentPhaseRuleConfig {

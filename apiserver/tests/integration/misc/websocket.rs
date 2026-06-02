@@ -35,6 +35,8 @@ async fn test_websocket_connection_race_completed() {
         created_at: chrono::Utc::now(),
         completed_at: Some(chrono::Utc::now()),
         error_message: None,
+        task_type: None,
+        payload: None,
     };
     queue.create_job_metadata(&meta).await.unwrap();
 
@@ -80,7 +82,15 @@ async fn test_websocket_connection_streaming() {
     // 2. Set up pending job metadata
     let job_id = Uuid::new_v4();
     let queue = JobQueue::new(redis_pool.clone());
-    let meta = JobMetadata::new(job_id, 2, workspace_id, user_id, Some(ReportType::Summary));
+    let meta = JobMetadata::new(
+        job_id,
+        2,
+        workspace_id,
+        user_id,
+        None,
+        Some(ReportType::Summary),
+        None,
+    );
     queue.create_job_metadata(&meta).await.unwrap();
 
     // 3. Connect to WS
@@ -204,7 +214,15 @@ async fn test_websocket_forbidden_workspace() {
     // Set up job metadata owned by user_id in workspace_id
     let job_id = Uuid::new_v4();
     let queue = JobQueue::new(redis_pool.clone());
-    let meta = JobMetadata::new(job_id, 2, workspace_id, user_id, Some(ReportType::Summary));
+    let meta = JobMetadata::new(
+        job_id,
+        2,
+        workspace_id,
+        user_id,
+        None,
+        Some(ReportType::Summary),
+        None,
+    );
     queue.create_job_metadata(&meta).await.unwrap();
 
     let ws_url = format!(
@@ -243,6 +261,8 @@ async fn test_websocket_connection_race_failed() {
         created_at: chrono::Utc::now(),
         completed_at: Some(chrono::Utc::now()),
         error_message: Some("Database timeout".to_string()),
+        task_type: None,
+        payload: None,
     };
     queue.create_job_metadata(&meta).await.unwrap();
 

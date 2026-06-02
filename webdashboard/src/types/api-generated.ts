@@ -662,6 +662,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/monitor/jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get paginated and filtered background jobs.
+         * @description Route: GET /monitor/jobs
+         *     Requires: PlatformAdmin or Support
+         */
+        get: operations["get_monitor_jobs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/monitor/overview": {
         parameters: {
             query?: never;
@@ -4895,6 +4916,8 @@ export interface components {
              * @description Unique job identifier (same as parent_job_id in Job)
              */
             job_id: string;
+            /** @description Payload configurations (PII masked) */
+            payload?: unknown;
             report_type?: null | components["schemas"]["ReportType"];
             /**
              * Format: uuid
@@ -4903,6 +4926,7 @@ export interface components {
             requester_id: string;
             /** @description Current status */
             status: components["schemas"]["JobStatus"];
+            task_type?: null | components["schemas"]["TaskType"];
             /**
              * Format: int32
              * @description Total number of batches
@@ -4939,6 +4963,20 @@ export interface components {
             job_id: string;
             progress: components["schemas"]["JobProgress"];
             status: string;
+        };
+        /** @description Statistics of jobs grouped by task type. */
+        JobTypeStats: {
+            /** Format: int64 */
+            completed: number;
+            /** Format: int64 */
+            failed: number;
+            /** Format: int64 */
+            pending: number;
+            /** Format: int64 */
+            processing: number;
+            task_type: string;
+            /** Format: int64 */
+            total: number;
         };
         LatenessByDay: {
             /** Format: double */
@@ -5117,6 +5155,12 @@ export interface components {
             /** Format: uuid */
             workspace_id: string;
         };
+        /** @description Response payload for listing monitor jobs. */
+        MonitorJobsResponse: {
+            jobs: components["schemas"]["JobMetadata"][];
+            /** Format: int64 */
+            next_cursor?: number | null;
+        };
         /** @description Combined monitor overview response — stats + worker list in one call. */
         MonitorOverviewResponse: {
             /** Format: int64 */
@@ -5127,6 +5171,7 @@ export interface components {
             failed_today: number;
             /** Format: int64 */
             idle_workers: number;
+            job_type_stats: components["schemas"]["JobTypeStats"][];
             /** Format: int64 */
             pending_high: number;
             /** Format: int64 */
@@ -5839,6 +5884,11 @@ export interface components {
          * @enum {string}
          */
         SystemRoleType: "platform_admin" | "support" | "billing_admin";
+        /**
+         * @description Type of task to be processed by workers.
+         * @enum {string}
+         */
+        TaskType: "attendance_report" | "payroll_report" | "merge_results" | "leave_accrual" | "log_ingestion" | "reprocess_attendance" | "claim_staged_logs" | "leave_import" | "nightly_housekeeping" | "employee_import" | "employee_import_chunk" | "leave_import_chunk" | "finalize_import" | "expiring_contracts_check" | "sync_employee_hire_date";
         TimeEntry: {
             /** Format: date-time */
             created_at: string;
@@ -7573,6 +7623,37 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    get_monitor_jobs: {
+        parameters: {
+            query?: {
+                /** @description Cursor timestamp for pagination (exclusive) */
+                cursor?: number | null;
+                /** @description Number of items to return (default: 20) */
+                limit?: number | null;
+                /** @description Status filter: pending, processing, completed, failed */
+                status?: string | null;
+                /** @description Task type filter */
+                task_type?: string | null;
+                /** @description Search query matching Job ID or error message */
+                search?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Paginated background jobs list */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MonitorJobsResponse"];
+                };
             };
         };
     };
