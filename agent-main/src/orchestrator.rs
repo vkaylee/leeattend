@@ -139,9 +139,17 @@ impl Orchestrator {
         // Core Event Loop
         loop {
             tokio::select! {
-                _ = reload_rx.recv() => {
-                    info!("🔄 Configuration change detected, applying differential reload...");
-                    self.handle_config_reload(&mut current_max_workers, &mut worker_registry, &mut worker_ctx, &mut semaphore).await;
+                res = reload_rx.recv() => {
+                    match res {
+                        Some(()) => {
+                            info!("🔄 Configuration change detected, applying differential reload...");
+                            self.handle_config_reload(&mut current_max_workers, &mut worker_registry, &mut worker_ctx, &mut semaphore).await;
+                        }
+                        None => {
+                            error!("❌ Config reload channel closed unexpectedly. Exiting orchestrator loop.");
+                            break;
+                        }
+                    }
                 }
                 _ = self.cancel_token.cancelled() => {
                     info!("Stopping orchestrator...");
