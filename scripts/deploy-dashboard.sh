@@ -92,7 +92,7 @@ fi
 COMPOSE_CMD+=(
     -f .compose/docker-compose.test.yml
     --profile frontend
-    run -T --rm
+    run -T --rm --no-deps
     -e "CLOUDFLARE_API_TOKEN=$CLOUDFLARE_API_TOKEN"
     -e "CLOUDFLARE_ACCOUNT_ID=$CLOUDFLARE_ACCOUNT_ID"
     -e "CLOUDFLARE_PROJECT_NAME=$CLOUDFLARE_PROJECT_NAME"
